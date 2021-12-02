@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2020-12-18
+- Bump `rand_core` version to 0.6 (#17)
+
+## [0.5.0] - 2020-09-11
+- Derive PartialEq+Eq for SplitMix64, Xoroshiro64Star, Xoroshiro64StarStar,
+  Xoroshiro128Plus, Xoroshiro128PlusPlus, Xoroshiro128StarStar,
+  Xoshiro128Plus, Xoshiro128PlusPlus, Xoshiro128StarStar, Xoshiro256Plus,
+  Xoshiro256PlusPlus, Xoshiro256StarStar, Xoshiro512Plus, Xoshiro512PlusPlus,
+  and Xoshiro512StarStar (#6)
+- `next_u32`: Prefer upper bits for `Xoshiro256{PlusPlus,StarStar}` and
+  `Xoshiro512{Plus,PlusPlus,StarStar}`, breaking value stability
+
 ## [0.4.0] - 2019-09-03
 - Add xoshiro128++, 256++ and 512++ variants
 - Add xoroshiro128++ variant

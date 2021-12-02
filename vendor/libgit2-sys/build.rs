@@ -7,10 +7,12 @@ use std::process::Command;
 fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
+    let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
     let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
 
     // To use zlib-ng in zlib-compat mode, we have to build libgit2 ourselves.
-    if !zlib_ng_compat {
+    let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
+    if try_to_use_system_libgit2 {
         let mut cfg = pkg_config::Config::new();
         if let Ok(lib) = cfg.atleast_version("1.1.0").probe("libgit2") {
             for include in &lib.include_paths {
@@ -19,6 +21,8 @@ fn main() {
             return;
         }
     }
+
+    println!("cargo:rustc-cfg=libgit2_vendored");
 
     if !Path::new("libgit2/.git").exists() {
         let _ = Command::new("git")
@@ -107,6 +111,7 @@ fn main() {
     features.push_str("#ifndef INCLUDE_features_h\n");
     features.push_str("#define INCLUDE_features_h\n");
     features.push_str("#define GIT_THREADS 1\n");
+    features.push_str("#define GIT_TRACE 1\n");
 
     if !target.contains("android") {
         features.push_str("#define GIT_USE_NSEC 1\n");

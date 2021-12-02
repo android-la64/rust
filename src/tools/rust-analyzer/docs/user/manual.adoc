@@ -6,6 +6,10 @@
 :source-highlighter: rouge
 :experimental:
 
+////
+IMPORTANT: the master copy of this document lives in the https://github.com/rust-analyzer/rust-analyzer repository
+////
+
 At its core, rust-analyzer is a *library* for semantic analysis of Rust code as it changes over time.
 This manual focuses on a specific usage of the library -- running it as part of a server that implements the
 https://microsoft.github.io/language-server-protocol/[Language Server Protocol] (LSP).
@@ -462,6 +466,9 @@ $ rust-analyzer analysis-stats .
 
 It is especially useful when the `repo` doesn't use external crates or the standard library.
 
+If you want to go as far as to modify the source code to debug the problem, be sure to take a look at the
+https://github.com/rust-analyzer/rust-analyzer/tree/master/docs/dev[dev docs]!
+
 == Configuration
 
 **Source:** https://github.com/rust-analyzer/rust-analyzer/blob/master/crates/rust-analyzer/src/config.rs[config.rs]
@@ -580,10 +587,10 @@ interface Crate {
     target?: string;
     /// Environment variables, used for
     /// the `env!` macro
-    env: : { [key: string]: string; },
+    env: { [key: string]: string; },
 
     /// Whether the crate is a proc-macro crate.
-    is_proc_macro: bool;
+    is_proc_macro: boolean;
     /// For proc-macro crates, path to compiled
     /// proc-macro (.so file).
     proc_macro_dylib_path?: string;
@@ -612,6 +619,15 @@ Relative paths are interpreted relative to `rust-project.json` file location or 
 See https://github.com/rust-analyzer/rust-project.json-example for a small example.
 
 You can set `RA_LOG` environmental variable to `rust_analyzer=info` to inspect how rust-analyzer handles config and project loading.
+
+Note that calls to `cargo check` are disabled when using `rust-project.json` by default, so compilation errors and warnings will no longer be sent to your LSP client. To enable these compilation errors you will need to specify explicitly what command rust-analyzer should run to perform the checks using the `checkOnSave.overrideCommand` configuration. As an example, the following configuration explicitly sets `cargo check` as the `checkOnSave` command.
+
+[source,json]
+----
+{ "rust-analyzer.checkOnSave.overrideCommand": ["cargo", "check", "--message-format=json"] }
+----
+
+The `checkOnSave.overrideCommand` requires the command specified to output json error messages for rust-analyzer to consume. The `--message-format=json` flag does this for `cargo check` so whichever command you use must also output errors in this format. See the <<Configuration>> section for more information.
 
 == Security
 

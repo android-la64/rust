@@ -1061,6 +1061,17 @@ impl<H> Easy2<H> {
         self.setopt_long(curl_sys::CURLOPT_BUFFERSIZE, size as c_long)
     }
 
+    /// Specify the preferred send buffer size, in bytes.
+    ///
+    /// This is treated as a request, not an order, and the main point of this
+    /// is that the read callback may get called more often with smaller
+    /// chunks.
+    ///
+    /// The upload buffer size is by default 64 kilobytes.
+    pub fn upload_buffer_size(&mut self, size: usize) -> Result<(), Error> {
+        self.setopt_long(curl_sys::CURLOPT_UPLOAD_BUFFERSIZE, size as c_long)
+    }
+
     // /// Enable or disable TCP Fast Open
     // ///
     // /// By default this options defaults to `false` and corresponds to
@@ -1151,6 +1162,33 @@ impl<H> Easy2<H> {
     /// By default this value is basic and corresponds to `CURLOPT_HTTPAUTH`.
     pub fn http_auth(&mut self, auth: &Auth) -> Result<(), Error> {
         self.setopt_long(curl_sys::CURLOPT_HTTPAUTH, auth.bits)
+    }
+
+    /// Provides AWS V4 signature authentication on HTTP(S) header.
+    ///
+    /// `param` is used to create outgoing authentication headers.
+    /// Its format is `provider1[:provider2[:region[:service]]]`.
+    /// `provider1,\ provider2"` are used for generating auth parameters
+    /// such as "Algorithm", "date", "request type" and "signed headers".
+    /// `region` is the geographic area of a resources collection. It is
+    /// extracted from the host name specified in the URL if omitted.
+    /// `service` is a function provided by a cloud. It is extracted
+    /// from the host name specified in the URL if omitted.
+    ///
+    /// Example with "Test:Try", when curl will do the algorithm, it will
+    /// generate "TEST-HMAC-SHA256" for "Algorithm", "x-try-date" and
+    /// "X-Try-Date" for "date", "test4_request" for "request type", and
+    /// "SignedHeaders=content-type;host;x-try-date" for "signed headers".
+    /// If you use just "test", instead of "test:try", test will be use
+    /// for every strings generated.
+    ///
+    /// This is a special auth type that can't be combined with the others.
+    /// It will override the other auth types you might have set.
+    ///
+    /// By default this is not set and corresponds to `CURLOPT_AWS_SIGV4`.
+    pub fn aws_sigv4(&mut self, param: &str) -> Result<(), Error> {
+        let param = CString::new(param)?;
+        self.setopt_str(curl_sys::CURLOPT_AWS_SIGV4, &param)
     }
 
     /// Configures the proxy username to pass as authentication for this
@@ -3385,6 +3423,17 @@ impl Auth {
         self.flag(curl_sys::CURLAUTH_NTLM_WB, on)
     }
 
+    /// HTTP AWS V4 signature authentication.
+    ///
+    /// This is a special auth type that can't be combined with the others.
+    /// It will override the other auth types you might have set.
+    ///
+    /// Enabling this auth type is the same as using "aws:amz" as param in
+    /// [`Easy2::aws_sigv4`](struct.Easy2.html#method.aws_sigv4) method.
+    pub fn aws_sigv4(&mut self, on: bool) -> &mut Auth {
+        self.flag(curl_sys::CURLAUTH_AWS_SIGV4, on)
+    }
+
     fn flag(&mut self, bit: c_ulong, on: bool) -> &mut Auth {
         if on {
             self.bits |= bit as c_long;
@@ -3408,6 +3457,7 @@ impl fmt::Debug for Auth {
             )
             .field("ntlm", &(bits & curl_sys::CURLAUTH_NTLM != 0))
             .field("ntlm_wb", &(bits & curl_sys::CURLAUTH_NTLM_WB != 0))
+            .field("aws_sigv4", &(bits & curl_sys::CURLAUTH_AWS_SIGV4 != 0))
             .finish()
     }
 }

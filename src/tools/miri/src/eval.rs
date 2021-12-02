@@ -2,13 +2,19 @@
 
 use std::convert::TryFrom;
 use std::ffi::OsStr;
+use std::iter;
 
 use log::info;
 
 use rustc_hir::def_id::DefId;
-use rustc_middle::ty::{self, layout::LayoutCx, TyCtxt};
-use rustc_target::abi::LayoutOf;
+use rustc_middle::ty::{
+    self,
+    layout::{LayoutCx, LayoutOf},
+    TyCtxt,
+};
 use rustc_target::spec::abi::Abi;
+
+use rustc_session::config::EntryFnType;
 
 use crate::*;
 
@@ -117,12 +123,13 @@ impl Default for MiriConfig {
 }
 
 /// Returns a freshly created `InterpCx`, along with an `MPlaceTy` representing
-/// the location where the return value of the `start` lang item will be
+/// the location where the return value of the `start` function will be
 /// written to.
 /// Public because this is also used by `priroda`.
 pub fn create_ecx<'mir, 'tcx: 'mir>(
     tcx: TyCtxt<'tcx>,
-    main_id: DefId,
+    entry_id: DefId,
+    entry_type: EntryFnType,
     config: MiriConfig,
 ) -> InterpResult<'tcx, (InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>, MPlaceTy<'tcx, Tag>)> {
     let param_env = ty::ParamEnv::reveal_all();
@@ -145,26 +152,10 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
     }
 
     // Setup first stack-frame
-    let main_instance = ty::Instance::mono(tcx, main_id);
-    let main_mir = ecx.load_mir(main_instance.def, None)?;
-    if main_mir.arg_count != 0 {
-        bug!("main function must not take any arguments");
-    }
+    let entry_instance = ty::Instance::mono(tcx, entry_id);
 
-    let start_id = tcx.lang_items().start_fn().unwrap();
-    let main_ret_ty = tcx.fn_sig(main_id).output();
-    let main_ret_ty = main_ret_ty.no_bound_vars().unwrap();
-    let start_instance = ty::Instance::resolve(
-        tcx,
-        ty::ParamEnv::reveal_all(),
-        start_id,
-        tcx.mk_substs(::std::iter::once(ty::subst::GenericArg::from(main_ret_ty))),
-    )
-    .unwrap()
-    .unwrap();
+    // First argument is constructed later, because its skipped if the entry function uses #[start]
 
-    // First argument: pointer to `main()`.
-    let main_ptr = ecx.memory.create_fn_alloc(FnVal::Instance(main_instance));
     // Second argument (argc): length of `config.args`.
     let argc = Scalar::from_machine_usize(u64::try_from(config.args.len()).unwrap(), &ecx);
     // Third argument (`argv`): created from `config.args`.
@@ -212,17 +203,8 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
         // Store command line as UTF-16 for Windows `GetCommandLineW`.
         {
             // Construct a command string with all the aguments.
-            let mut cmd = String::new();
-            for arg in config.args.iter() {
-                if !cmd.is_empty() {
-                    cmd.push(' ');
-                }
-                cmd.push_str(&*shell_escape::windows::escape(arg.as_str().into()));
-            }
-            // Don't forget `0` terminator.
-            cmd.push(std::char::from_u32(0).unwrap());
+            let cmd_utf16: Vec<u16> = args_to_utf16_command_string(config.args.iter());
 
-            let cmd_utf16: Vec<u16> = cmd.encode_utf16().collect();
             let cmd_type = tcx.mk_array(tcx.types.u16, u64::try_from(cmd_utf16.len()).unwrap());
             let cmd_place =
                 ecx.allocate(ecx.layout_of(cmd_type)?, MiriMemoryKind::Machine.into())?;
@@ -240,25 +222,58 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
     // Return place (in static memory so that it does not count as leak).
     let ret_place = ecx.allocate(ecx.machine.layouts.isize, MiriMemoryKind::Machine.into())?;
     // Call start function.
-    ecx.call_function(
-        start_instance,
-        Abi::Rust,
-        &[Scalar::from_pointer(main_ptr, &ecx).into(), argc.into(), argv],
-        Some(&ret_place.into()),
-        StackPopCleanup::None { cleanup: true },
-    )?;
+
+    match entry_type {
+        EntryFnType::Main => {
+            let start_id = tcx.lang_items().start_fn().unwrap();
+            let main_ret_ty = tcx.fn_sig(entry_id).output();
+            let main_ret_ty = main_ret_ty.no_bound_vars().unwrap();
+            let start_instance = ty::Instance::resolve(
+                tcx,
+                ty::ParamEnv::reveal_all(),
+                start_id,
+                tcx.mk_substs(::std::iter::once(ty::subst::GenericArg::from(main_ret_ty))),
+            )
+            .unwrap()
+            .unwrap();
+
+            let main_ptr = ecx.memory.create_fn_alloc(FnVal::Instance(entry_instance));
+
+            ecx.call_function(
+                start_instance,
+                Abi::Rust,
+                &[Scalar::from_pointer(main_ptr, &ecx).into(), argc.into(), argv],
+                Some(&ret_place.into()),
+                StackPopCleanup::None { cleanup: true },
+            )?;
+        }
+        EntryFnType::Start => {
+            ecx.call_function(
+                entry_instance,
+                Abi::Rust,
+                &[argc.into(), argv],
+                Some(&ret_place.into()),
+                StackPopCleanup::None { cleanup: true },
+            )?;
+        }
+    }
 
     Ok((ecx, ret_place))
 }
 
-/// Evaluates the main function specified by `main_id`.
+/// Evaluates the entry function specified by `entry_id`.
 /// Returns `Some(return_code)` if program executed completed.
 /// Returns `None` if an evaluation error occured.
-pub fn eval_main<'tcx>(tcx: TyCtxt<'tcx>, main_id: DefId, config: MiriConfig) -> Option<i64> {
+pub fn eval_entry<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    entry_id: DefId,
+    entry_type: EntryFnType,
+    config: MiriConfig,
+) -> Option<i64> {
     // Copy setting before we move `config`.
     let ignore_leaks = config.ignore_leaks;
 
-    let (mut ecx, ret_place) = match create_ecx(tcx, main_id, config) {
+    let (mut ecx, ret_place) = match create_ecx(tcx, entry_id, entry_type, config) {
         Ok(v) => v,
         Err(err) => {
             err.print_backtrace();
@@ -328,5 +343,108 @@ pub fn eval_main<'tcx>(tcx: TyCtxt<'tcx>, main_id: DefId, config: MiriConfig) ->
             Some(return_code)
         }
         Err(e) => report_error(&ecx, e),
+    }
+}
+
+/// Turns an array of arguments into a Windows command line string.
+///
+/// The string will be UTF-16 encoded and NUL terminated.
+///
+/// Panics if the zeroth argument contains the `"` character because doublequotes
+/// in argv[0] cannot be encoded using the standard command line parsing rules.
+///
+/// Further reading:
+/// * [Parsing C++ command-line arguments](https://docs.microsoft.com/en-us/cpp/cpp/main-function-command-line-args?view=msvc-160#parsing-c-command-line-arguments)
+/// * [The C/C++ Parameter Parsing Rules](https://daviddeley.com/autohotkey/parameters/parameters.htm#WINCRULES)
+fn args_to_utf16_command_string<I, T>(mut args: I) -> Vec<u16>
+where
+    I: Iterator<Item = T>,
+    T: AsRef<str>,
+{
+    // Parse argv[0]. Slashes aren't escaped. Literal double quotes are not allowed.
+    let mut cmd = {
+        let arg0 = if let Some(arg0) = args.next() {
+            arg0
+        } else {
+            return vec![0];
+        };
+        let arg0 = arg0.as_ref();
+        if arg0.contains('"') {
+            panic!("argv[0] cannot contain a doublequote (\") character");
+        } else {
+            // Always surround argv[0] with quotes.
+            let mut s = String::new();
+            s.push('"');
+            s.push_str(arg0);
+            s.push('"');
+            s
+        }
+    };
+
+    // Build the other arguments.
+    for arg in args {
+        let arg = arg.as_ref();
+        cmd.push(' ');
+        if arg.is_empty() {
+            cmd.push_str("\"\"");
+        } else if !arg.bytes().any(|c| matches!(c, b'"' | b'\t' | b' ')) {
+            // No quote, tab, or space -- no escaping required.
+            cmd.push_str(arg);
+        } else {
+            // Spaces and tabs are escaped by surrounding them in quotes.
+            // Quotes are themselves escaped by using backslashes when in a
+            // quoted block.
+            // Backslashes only need to be escaped when one or more are directly
+            // followed by a quote. Otherwise they are taken literally.
+
+            cmd.push('"');
+            let mut chars = arg.chars().peekable();
+            loop {
+                let mut nslashes = 0;
+                while let Some(&'\\') = chars.peek() {
+                    chars.next();
+                    nslashes += 1;
+                }
+
+                match chars.next() {
+                    Some('"') => {
+                        cmd.extend(iter::repeat('\\').take(nslashes * 2 + 1));
+                        cmd.push('"');
+                    }
+                    Some(c) => {
+                        cmd.extend(iter::repeat('\\').take(nslashes));
+                        cmd.push(c);
+                    }
+                    None => {
+                        cmd.extend(iter::repeat('\\').take(nslashes * 2));
+                        break;
+                    }
+                }
+            }
+            cmd.push('"');
+        }
+    }
+
+    if cmd.contains('\0') {
+        panic!("interior null in command line arguments");
+    }
+    cmd.encode_utf16().chain(iter::once(0)).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    #[should_panic(expected = "argv[0] cannot contain a doublequote (\") character")]
+    fn windows_argv0_panic_on_quote() {
+        args_to_utf16_command_string(["\""].iter());
+    }
+    #[test]
+    fn windows_argv0_no_escape() {
+        // Ensure that a trailing backslash in argv[0] is not escaped.
+        let cmd = String::from_utf16_lossy(&args_to_utf16_command_string(
+            [r"C:\Program Files\", "arg1", "arg 2", "arg \" 3"].iter(),
+        ));
+        assert_eq!(cmd.trim_end_matches("\0"), r#""C:\Program Files\" arg1 "arg 2" "arg \" 3""#);
     }
 }

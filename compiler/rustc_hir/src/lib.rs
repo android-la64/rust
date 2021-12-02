@@ -16,7 +16,9 @@ extern crate rustc_data_structures;
 
 mod arena;
 pub mod def;
+pub mod def_path_hash_map;
 pub mod definitions;
+pub mod diagnostic_items;
 pub use rustc_span::def_id;
 mod hir;
 pub mod hir_id;

@@ -27,7 +27,7 @@ use rustc_hir::lang_items::LangItem;
 use rustc_infer::infer::resolve::OpportunisticRegionResolver;
 use rustc_middle::ty::fold::{TypeFoldable, TypeFolder};
 use rustc_middle::ty::subst::Subst;
-use rustc_middle::ty::{self, ToPolyTraitRef, ToPredicate, Ty, TyCtxt, WithConstness};
+use rustc_middle::ty::{self, ToPredicate, Ty, TyCtxt, WithConstness};
 use rustc_span::symbol::sym;
 
 use std::collections::BTreeMap;
@@ -558,7 +558,7 @@ impl<'me, 'tcx> BoundVarReplacer<'me, 'tcx> {
     fn universe_for(&mut self, debruijn: ty::DebruijnIndex) -> ty::UniverseIndex {
         let infcx = self.infcx;
         let index =
-            self.universe_indices.len() - debruijn.as_usize() + self.current_index.as_usize() - 1;
+            self.universe_indices.len() + self.current_index.as_usize() - debruijn.as_usize() - 1;
         let universe = self.universe_indices[index].unwrap_or_else(|| {
             for i in self.universe_indices.iter_mut().take(index + 1) {
                 *i = i.or_else(|| Some(infcx.create_next_universe()))
@@ -595,7 +595,7 @@ impl TypeFolder<'tcx> for BoundVarReplacer<'_, 'tcx> {
             ty::ReLateBound(debruijn, br) if debruijn >= self.current_index => {
                 let universe = self.universe_for(debruijn);
                 let p = ty::PlaceholderRegion { universe, name: br.kind };
-                self.mapped_regions.insert(p.clone(), br);
+                self.mapped_regions.insert(p, br);
                 self.infcx.tcx.mk_region(ty::RePlaceholder(p))
             }
             _ => r,
@@ -613,7 +613,7 @@ impl TypeFolder<'tcx> for BoundVarReplacer<'_, 'tcx> {
             ty::Bound(debruijn, bound_ty) if debruijn >= self.current_index => {
                 let universe = self.universe_for(debruijn);
                 let p = ty::PlaceholderType { universe, name: bound_ty.var };
-                self.mapped_types.insert(p.clone(), bound_ty);
+                self.mapped_types.insert(p, bound_ty);
                 self.infcx.tcx.mk_ty(ty::Placeholder(p))
             }
             _ if t.has_vars_bound_at_or_above(self.current_index) => t.super_fold_with(self),
@@ -637,7 +637,7 @@ impl TypeFolder<'tcx> for BoundVarReplacer<'_, 'tcx> {
                     universe,
                     name: ty::BoundConst { var: bound_const, ty },
                 };
-                self.mapped_consts.insert(p.clone(), bound_const);
+                self.mapped_consts.insert(p, bound_const);
                 self.infcx.tcx.mk_const(ty::Const { val: ty::ConstKind::Placeholder(p), ty })
             }
             _ if ct.has_vars_bound_at_or_above(self.current_index) => ct.super_fold_with(self),
@@ -810,17 +810,7 @@ pub fn normalize_projection_type<'a, 'b, 'tcx>(
         // and a deferred predicate to resolve this when more type
         // information is available.
 
-        let tcx = selcx.infcx().tcx;
-        let def_id = projection_ty.item_def_id;
-        let ty_var = selcx.infcx().next_ty_var(TypeVariableOrigin {
-            kind: TypeVariableOriginKind::NormalizeProjectionType,
-            span: tcx.def_span(def_id),
-        });
-        let projection = ty::Binder::dummy(ty::ProjectionPredicate { projection_ty, ty: ty_var });
-        let obligation =
-            Obligation::with_depth(cause, depth + 1, param_env, projection.to_predicate(tcx));
-        obligations.push(obligation);
-        ty_var
+        selcx.infcx().infer_projection(param_env, projection_ty, cause, depth + 1, obligations)
     })
 }
 
@@ -1038,7 +1028,7 @@ fn normalize_to_error<'a, 'tcx>(
     cause: ObligationCause<'tcx>,
     depth: usize,
 ) -> NormalizedTy<'tcx> {
-    let trait_ref = projection_ty.trait_ref(selcx.tcx()).to_poly_trait_ref();
+    let trait_ref = ty::Binder::dummy(projection_ty.trait_ref(selcx.tcx()));
     let trait_obligation = Obligation {
         cause,
         recursion_depth: depth,
@@ -1300,7 +1290,7 @@ fn assemble_candidates_from_impls<'cx, 'tcx>(
 
     // If we are resolving `<T as TraitRef<...>>::Item == Type`,
     // start out by selecting the predicate `T as TraitRef<...>`:
-    let poly_trait_ref = obligation.predicate.trait_ref(selcx.tcx()).to_poly_trait_ref();
+    let poly_trait_ref = ty::Binder::dummy(obligation.predicate.trait_ref(selcx.tcx()));
     let trait_obligation = obligation.with(poly_trait_ref.to_poly_trait_predicate());
     let _ = selcx.infcx().commit_if_ok(|_| {
         let impl_source = match selcx.select(&trait_obligation) {
@@ -1495,7 +1485,8 @@ fn assemble_candidates_from_impls<'cx, 'tcx>(
             }
             super::ImplSource::AutoImpl(..)
             | super::ImplSource::Builtin(..)
-            | super::ImplSource::TraitUpcasting(_) => {
+            | super::ImplSource::TraitUpcasting(_)
+            | super::ImplSource::ConstDrop(_) => {
                 // These traits have no associated types.
                 selcx.tcx().sess.delay_span_bug(
                     obligation.cause.span,
@@ -1567,7 +1558,8 @@ fn confirm_select_candidate<'cx, 'tcx>(
         | super::ImplSource::Param(..)
         | super::ImplSource::Builtin(..)
         | super::ImplSource::TraitUpcasting(_)
-        | super::ImplSource::TraitAlias(..) => {
+        | super::ImplSource::TraitAlias(..)
+        | super::ImplSource::ConstDrop(_) => {
             // we don't create Select candidates with this kind of resolution
             span_bug!(
                 obligation.cause.span,

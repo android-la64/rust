@@ -8,11 +8,10 @@ use std::{
 
 use always_assert::always;
 use crossbeam_channel::{select, Receiver};
-use ide::{FileId, PrimeCachesProgress};
 use ide_db::base_db::{SourceDatabaseExt, VfsPath};
 use lsp_server::{Connection, Notification, Request};
 use lsp_types::notification::Notification as _;
-use vfs::ChangeKind;
+use vfs::{ChangeKind, FileId};
 
 use crate::{
     config::Config,
@@ -22,12 +21,12 @@ use crate::{
     handlers, lsp_ext,
     lsp_utils::{apply_document_changes, is_cancelled, notification_is, Progress},
     mem_docs::DocumentData,
-    reload::{BuildDataProgress, ProjectWorkspaceProgress},
+    reload::{self, BuildDataProgress, ProjectWorkspaceProgress},
     Result,
 };
 
 pub fn main_loop(config: Config, connection: Connection) -> Result<()> {
-    log::info!("initial config: {:#?}", config);
+    tracing::info!("initial config: {:#?}", config);
 
     // Windows scheduler implements priority boosts: if thread waits for an
     // event (like a condvar), and event fires, priority of the thread is
@@ -65,6 +64,13 @@ pub(crate) enum Task {
     PrimeCaches(PrimeCachesProgress),
     FetchWorkspace(ProjectWorkspaceProgress),
     FetchBuildData(BuildDataProgress),
+}
+
+#[derive(Debug)]
+pub(crate) enum PrimeCachesProgress {
+    Begin,
+    Report(ide::PrimeCachesProgress),
+    End { cancelled: bool },
 }
 
 impl fmt::Debug for Event {
@@ -146,8 +152,10 @@ impl GlobalState {
             );
         }
 
-        self.fetch_workspaces_request();
-        self.fetch_workspaces_if_needed();
+        self.fetch_workspaces_queue.request_op();
+        if self.fetch_workspaces_queue.should_start_op() {
+            self.fetch_workspaces();
+        }
 
         while let Some(event) = self.next_event(&inbox) {
             if let Event::Lsp(lsp_server::Message::Notification(not)) = &event {
@@ -182,10 +190,10 @@ impl GlobalState {
         // NOTE: don't count blocking select! call as a loop-turn time
         let _p = profile::span("GlobalState::handle_event");
 
-        log::info!("handle_event({:?})", event);
+        tracing::info!("handle_event({:?})", event);
         let task_queue_len = self.task_pool.handle.len();
         if task_queue_len > 0 {
-            log::info!("task queue len: {}", task_queue_len);
+            tracing::info!("task queue len: {}", task_queue_len);
         }
 
         let was_quiescent = self.is_quiescent();
@@ -209,17 +217,17 @@ impl GlobalState {
                             }
                         }
                         Task::PrimeCaches(progress) => match progress {
-                            PrimeCachesProgress::Started => prime_caches_progress.push(progress),
-                            PrimeCachesProgress::StartedOnCrate { .. } => {
+                            PrimeCachesProgress::Begin => prime_caches_progress.push(progress),
+                            PrimeCachesProgress::Report(_) => {
                                 match prime_caches_progress.last_mut() {
-                                    Some(last @ PrimeCachesProgress::StartedOnCrate { .. }) => {
+                                    Some(last @ PrimeCachesProgress::Report(_)) => {
                                         // Coalesce subsequent update events.
                                         *last = progress;
                                     }
                                     _ => prime_caches_progress.push(progress),
                                 }
                             }
-                            PrimeCachesProgress::Finished => prime_caches_progress.push(progress),
+                            PrimeCachesProgress::End { .. } => prime_caches_progress.push(progress),
                         },
                         Task::FetchWorkspace(progress) => {
                             let (state, msg) = match progress {
@@ -228,14 +236,14 @@ impl GlobalState {
                                     (Progress::Report, Some(msg))
                                 }
                                 ProjectWorkspaceProgress::End(workspaces) => {
-                                    self.fetch_workspaces_completed(workspaces);
+                                    self.fetch_workspaces_queue.op_completed(workspaces);
 
                                     let old = Arc::clone(&self.workspaces);
                                     self.switch_workspaces();
                                     let workspaces_updated = !Arc::ptr_eq(&old, &self.workspaces);
 
                                     if self.config.run_build_scripts() && workspaces_updated {
-                                        self.fetch_build_data_request()
+                                        self.fetch_build_data_queue.request_op()
                                     }
 
                                     (Progress::End, None)
@@ -251,7 +259,7 @@ impl GlobalState {
                                     (Some(Progress::Report), Some(msg))
                                 }
                                 BuildDataProgress::End(build_data_result) => {
-                                    self.fetch_build_data_completed(build_data_result);
+                                    self.fetch_build_data_queue.op_completed(build_data_result);
 
                                     self.switch_workspaces();
 
@@ -275,22 +283,28 @@ impl GlobalState {
                 for progress in prime_caches_progress {
                     let (state, message, fraction);
                     match progress {
-                        PrimeCachesProgress::Started => {
+                        PrimeCachesProgress::Begin => {
                             state = Progress::Begin;
                             message = None;
                             fraction = 0.0;
                         }
-                        PrimeCachesProgress::StartedOnCrate { on_crate, n_done, n_total } => {
+                        PrimeCachesProgress::Report(report) => {
                             state = Progress::Report;
-                            message = Some(format!("{}/{} ({})", n_done, n_total, on_crate));
-                            fraction = Progress::fraction(n_done, n_total);
+                            message = Some(format!(
+                                "{}/{} ({})",
+                                report.n_done, report.n_total, report.on_crate
+                            ));
+                            fraction = Progress::fraction(report.n_done, report.n_total);
                         }
-                        PrimeCachesProgress::Finished => {
+                        PrimeCachesProgress::End { cancelled } => {
                             state = Progress::End;
                             message = None;
                             fraction = 1.0;
 
                             self.prime_caches_queue.op_completed(());
+                            if cancelled {
+                                self.prime_caches_queue.request_op();
+                            }
                         }
                     };
 
@@ -359,7 +373,7 @@ impl GlobalState {
                                         diag.fixes,
                                     ),
                                     Err(err) => {
-                                        log::error!(
+                                        tracing::error!(
                                             "File with cargo diagnostic not found in VFS: {}",
                                             err
                                         );
@@ -380,7 +394,7 @@ impl GlobalState {
                                 flycheck::Progress::DidCancel => (Progress::End, None),
                                 flycheck::Progress::DidFinish(result) => {
                                     if let Err(err) = result {
-                                        log::error!("cargo check failed: {}", err)
+                                        tracing::error!("cargo check failed: {}", err)
                                     }
                                     (Progress::End, None)
                                 }
@@ -413,26 +427,10 @@ impl GlobalState {
                 for flycheck in &self.flycheck {
                     flycheck.update();
                 }
+                self.prime_caches_queue.request_op();
             }
 
             if !was_quiescent || state_changed {
-                // Ensure that only one cache priming task can run at a time
-                self.prime_caches_queue.request_op();
-                if self.prime_caches_queue.should_start_op() {
-                    self.task_pool.handle.spawn_with_sender({
-                        let analysis = self.snapshot().analysis;
-                        move |sender| {
-                            let cb = |progress| {
-                                sender.send(Task::PrimeCaches(progress)).unwrap();
-                            };
-                            match analysis.prime_caches(cb) {
-                                Ok(()) => (),
-                                Err(_canceled) => (),
-                            }
-                        }
-                    });
-                }
-
                 // Refresh semantic tokens if the client supports it.
                 if self.config.semantic_tokens_refresh() {
                     self.semantic_tokens_cache.lock().clear();
@@ -478,15 +476,47 @@ impl GlobalState {
         }
 
         if self.config.cargo_autoreload() {
-            self.fetch_workspaces_if_needed();
+            if self.fetch_workspaces_queue.should_start_op() {
+                self.fetch_workspaces();
+            }
         }
-        self.fetch_build_data_if_needed();
+        if self.fetch_build_data_queue.should_start_op() {
+            self.fetch_build_data();
+        }
+        if self.prime_caches_queue.should_start_op() {
+            self.task_pool.handle.spawn_with_sender({
+                let analysis = self.snapshot().analysis;
+                move |sender| {
+                    sender.send(Task::PrimeCaches(PrimeCachesProgress::Begin)).unwrap();
+                    let res = analysis.prime_caches(|progress| {
+                        let report = PrimeCachesProgress::Report(progress);
+                        sender.send(Task::PrimeCaches(report)).unwrap();
+                    });
+                    sender
+                        .send(Task::PrimeCaches(PrimeCachesProgress::End {
+                            cancelled: res.is_err(),
+                        }))
+                        .unwrap();
+                }
+            });
+        }
 
-        self.report_new_status_if_needed();
+        let status = self.current_status();
+        if self.last_reported_status.as_ref() != Some(&status) {
+            self.last_reported_status = Some(status.clone());
+
+            if let (lsp_ext::Health::Error, Some(message)) = (status.health, &status.message) {
+                self.show_message(lsp_types::MessageType::Error, message.clone());
+            }
+
+            if self.config.server_status_notification() {
+                self.send_notification::<lsp_ext::ServerStatusNotification>(status);
+            }
+        }
 
         let loop_duration = loop_start.elapsed();
         if loop_duration > Duration::from_millis(100) {
-            log::warn!("overly long loop turn: {:?}", loop_duration);
+            tracing::warn!("overly long loop turn: {:?}", loop_duration);
             self.poke_rust_analyzer_developer(format!(
                 "overly long loop turn: {:?}",
                 loop_duration
@@ -520,24 +550,19 @@ impl GlobalState {
         }
 
         RequestDispatcher { req: Some(req), global_state: self }
-            .on_sync::<lsp_ext::ReloadWorkspace>(|s, ()| {
-                s.fetch_workspaces_request();
-                s.fetch_workspaces_if_needed();
+            .on_sync_mut::<lsp_ext::ReloadWorkspace>(|s, ()| {
+                s.fetch_workspaces_queue.request_op();
                 Ok(())
             })?
-            .on_sync::<lsp_ext::JoinLines>(|s, p| handlers::handle_join_lines(s.snapshot(), p))?
-            .on_sync::<lsp_ext::OnEnter>(|s, p| handlers::handle_on_enter(s.snapshot(), p))?
-            .on_sync::<lsp_types::request::Shutdown>(|s, ()| {
+            .on_sync_mut::<lsp_types::request::Shutdown>(|s, ()| {
                 s.shutdown_requested = true;
                 Ok(())
             })?
-            .on_sync::<lsp_types::request::SelectionRangeRequest>(|s, p| {
-                handlers::handle_selection_range(s.snapshot(), p)
-            })?
-            .on_sync::<lsp_ext::MatchingBrace>(|s, p| {
-                handlers::handle_matching_brace(s.snapshot(), p)
-            })?
-            .on_sync::<lsp_ext::MemoryUsage>(|s, p| handlers::handle_memory_usage(s, p))?
+            .on_sync_mut::<lsp_ext::MemoryUsage>(|s, p| handlers::handle_memory_usage(s, p))?
+            .on_sync::<lsp_ext::JoinLines>(handlers::handle_join_lines)?
+            .on_sync::<lsp_ext::OnEnter>(handlers::handle_on_enter)?
+            .on_sync::<lsp_types::request::SelectionRangeRequest>(handlers::handle_selection_range)?
+            .on_sync::<lsp_ext::MatchingBrace>(handlers::handle_matching_brace)?
             .on::<lsp_ext::AnalyzerStatus>(handlers::handle_analyzer_status)
             .on::<lsp_ext::SyntaxTree>(handlers::handle_syntax_tree)
             .on::<lsp_ext::ViewHir>(handlers::handle_view_hir)
@@ -617,7 +642,7 @@ impl GlobalState {
                         .insert(path.clone(), DocumentData::new(params.text_document.version))
                         .is_err()
                     {
-                        log::error!("duplicate DidOpenTextDocument: {}", path)
+                        tracing::error!("duplicate DidOpenTextDocument: {}", path)
                     }
                     this.vfs
                         .write()
@@ -635,7 +660,7 @@ impl GlobalState {
                             doc.version = params.text_document.version;
                         }
                         None => {
-                            log::error!("expected DidChangeTextDocument: {}", path);
+                            tracing::error!("unexpected DidChangeTextDocument: {}; send DidOpenTextDocument first", path);
                             return Ok(());
                         }
                     };
@@ -652,7 +677,7 @@ impl GlobalState {
             .on::<lsp_types::notification::DidCloseTextDocument>(|this, params| {
                 if let Ok(path) = from_proto::vfs_path(&params.text_document.uri) {
                     if this.mem_docs.remove(&path).is_err() {
-                        log::error!("orphan DidCloseTextDocument: {}", path);
+                        tracing::error!("orphan DidCloseTextDocument: {}", path);
                     }
 
                     this.semantic_tokens_cache.lock().remove(&params.text_document.uri);
@@ -668,7 +693,9 @@ impl GlobalState {
                     flycheck.update();
                 }
                 if let Ok(abs_path) = from_proto::abs_path(&params.text_document.uri) {
-                    this.maybe_refresh(&[(abs_path, ChangeKind::Modify)]);
+                    if reload::should_refresh_for_change(&abs_path, ChangeKind::Modify) {
+                        this.fetch_workspaces_queue.request_op();
+                    }
                 }
                 Ok(())
             })?
@@ -683,12 +710,12 @@ impl GlobalState {
                         }],
                     },
                     |this, resp| {
-                        log::debug!("config update response: '{:?}", resp);
+                        tracing::debug!("config update response: '{:?}", resp);
                         let lsp_server::Response { error, result, .. } = resp;
 
                         match (error, result) {
                             (Some(err), _) => {
-                                log::error!("failed to fetch the server settings: {:?}", err)
+                                tracing::error!("failed to fetch the server settings: {:?}", err)
                             }
                             (None, Some(mut configs)) => {
                                 if let Some(json) = configs.get_mut(0) {
@@ -699,7 +726,7 @@ impl GlobalState {
                                     this.update_configuration(config);
                                 }
                             }
-                            (None, None) => log::error!(
+                            (None, None) => tracing::error!(
                                 "received empty server settings response from the client"
                             ),
                         }
@@ -727,7 +754,7 @@ impl GlobalState {
             .map(|path| self.vfs.read().0.file_id(path).unwrap())
             .collect::<Vec<_>>();
 
-        log::trace!("updating notifications for {:?}", subscriptions);
+        tracing::trace!("updating notifications for {:?}", subscriptions);
 
         let snapshot = self.snapshot();
         self.task_pool.handle.spawn(move || {
@@ -737,7 +764,7 @@ impl GlobalState {
                     handlers::publish_diagnostics(&snapshot, file_id)
                         .map_err(|err| {
                             if !is_cancelled(&*err) {
-                                log::error!("failed to compute diagnostics: {:?}", err);
+                                tracing::error!("failed to compute diagnostics: {:?}", err);
                             }
                             ()
                         })

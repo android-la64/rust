@@ -2,7 +2,7 @@ use crate::clean::auto_trait::AutoTraitFinder;
 use crate::clean::blanket_impl::BlanketImplFinder;
 use crate::clean::{
     inline, Clean, Crate, ExternalCrate, Generic, GenericArg, GenericArgs, ImportSource, Item,
-    ItemKind, Lifetime, Path, PathSegment, PolyTrait, Primitive, PrimitiveType, ResolvedPath, Type,
+    ItemKind, Lifetime, Path, PathSegment, Primitive, PrimitiveType, ResolvedPath, Type,
     TypeBinding, Visibility,
 };
 use crate::core::DocContext;
@@ -26,12 +26,7 @@ mod tests;
 crate fn krate(cx: &mut DocContext<'_>) -> Crate {
     use crate::visit_lib::LibEmbargoVisitor;
 
-    let krate = cx.tcx.hir().krate();
-    let module = crate::visit_ast::RustdocVisitor::new(cx).visit(krate);
-
-    cx.cache.deref_trait_did = cx.tcx.lang_items().deref_trait();
-    cx.cache.deref_mut_trait_did = cx.tcx.lang_items().deref_mut_trait();
-    cx.cache.owned_box_did = cx.tcx.lang_items().owned_box();
+    let module = crate::visit_ast::RustdocVisitor::new(cx).visit();
 
     let mut externs = Vec::new();
     for &cnum in cx.tcx.crates(()).iter() {
@@ -97,7 +92,7 @@ crate fn krate(cx: &mut DocContext<'_>) -> Crate {
 
 fn external_generic_args(
     cx: &mut DocContext<'_>,
-    trait_did: Option<DefId>,
+    did: DefId,
     has_self: bool,
     bindings: Vec<TypeBinding>,
     substs: SubstsRef<'_>,
@@ -121,85 +116,47 @@ fn external_generic_args(
                 ty_kind = Some(ty.kind());
                 Some(GenericArg::Type(ty.clean(cx)))
             }
-            GenericArgKind::Const(ct) => Some(GenericArg::Const(ct.clean(cx))),
+            GenericArgKind::Const(ct) => Some(GenericArg::Const(Box::new(ct.clean(cx)))),
         })
         .collect();
 
-    match trait_did {
-        // Attempt to sugar an external path like Fn<(A, B,), C> to Fn(A, B) -> C
-        Some(did) if cx.tcx.fn_trait_kind_from_lang_item(did).is_some() => {
-            assert!(ty_kind.is_some());
-            let inputs = match ty_kind {
-                Some(ty::Tuple(ref tys)) => tys.iter().map(|t| t.expect_ty().clean(cx)).collect(),
-                _ => return GenericArgs::AngleBracketed { args, bindings },
-            };
-            let output = None;
-            // FIXME(#20299) return type comes from a projection now
-            // match types[1].kind {
-            //     ty::Tuple(ref v) if v.is_empty() => None, // -> ()
-            //     _ => Some(types[1].clean(cx))
-            // };
-            GenericArgs::Parenthesized { inputs, output }
-        }
-        _ => GenericArgs::AngleBracketed { args, bindings },
+    if cx.tcx.fn_trait_kind_from_lang_item(did).is_some() {
+        let inputs = match ty_kind.unwrap() {
+            ty::Tuple(tys) => tys.iter().map(|t| t.expect_ty().clean(cx)).collect(),
+            _ => return GenericArgs::AngleBracketed { args, bindings },
+        };
+        let output = None;
+        // FIXME(#20299) return type comes from a projection now
+        // match types[1].kind {
+        //     ty::Tuple(ref v) if v.is_empty() => None, // -> ()
+        //     _ => Some(types[1].clean(cx))
+        // };
+        GenericArgs::Parenthesized { inputs, output }
+    } else {
+        GenericArgs::AngleBracketed { args, bindings }
     }
 }
 
-// trait_did should be set to a trait's DefId if called on a TraitRef, in order to sugar
-// from Fn<(A, B,), C> to Fn(A, B) -> C
 pub(super) fn external_path(
     cx: &mut DocContext<'_>,
-    name: Symbol,
-    trait_did: Option<DefId>,
+    did: DefId,
     has_self: bool,
     bindings: Vec<TypeBinding>,
     substs: SubstsRef<'_>,
 ) -> Path {
+    let def_kind = cx.tcx.def_kind(did);
+    let name = cx.tcx.item_name(did);
     Path {
-        global: false,
-        res: Res::Err,
+        res: Res::Def(def_kind, did),
         segments: vec![PathSegment {
             name,
-            args: external_generic_args(cx, trait_did, has_self, bindings, substs),
+            args: external_generic_args(cx, did, has_self, bindings, substs),
         }],
     }
 }
 
-crate fn strip_type(ty: Type) -> Type {
-    match ty {
-        Type::ResolvedPath { path, did, is_generic } => {
-            Type::ResolvedPath { path: strip_path(&path), did, is_generic }
-        }
-        Type::DynTrait(mut bounds, lt) => {
-            let first = bounds.remove(0);
-            let stripped_trait = strip_type(first.trait_);
-
-            bounds.insert(
-                0,
-                PolyTrait { trait_: stripped_trait, generic_params: first.generic_params },
-            );
-            Type::DynTrait(bounds, lt)
-        }
-        Type::Tuple(inner_tys) => {
-            Type::Tuple(inner_tys.iter().map(|t| strip_type(t.clone())).collect())
-        }
-        Type::Slice(inner_ty) => Type::Slice(Box::new(strip_type(*inner_ty))),
-        Type::Array(inner_ty, s) => Type::Array(Box::new(strip_type(*inner_ty)), s),
-        Type::RawPointer(m, inner_ty) => Type::RawPointer(m, Box::new(strip_type(*inner_ty))),
-        Type::BorrowedRef { lifetime, mutability, type_ } => {
-            Type::BorrowedRef { lifetime, mutability, type_: Box::new(strip_type(*type_)) }
-        }
-        Type::QPath { name, self_type, trait_, self_def_id } => Type::QPath {
-            name,
-            self_def_id,
-            self_type: Box::new(strip_type(*self_type)),
-            trait_: Box::new(strip_type(*trait_)),
-        },
-        _ => ty,
-    }
-}
-
-crate fn strip_path(path: &Path) -> Path {
+/// Remove the generic arguments from a path.
+crate fn strip_path_generics(path: Path) -> Path {
     let segments = path
         .segments
         .iter()
@@ -209,7 +166,7 @@ crate fn strip_path(path: &Path) -> Path {
         })
         .collect();
 
-    Path { global: path.global, res: path.res, segments }
+    Path { res: path.res, segments }
 }
 
 crate fn qpath_to_string(p: &hir::QPath<'_>) -> String {
@@ -409,22 +366,18 @@ crate fn print_const_expr(tcx: TyCtxt<'_>, body: hir::BodyId) -> String {
 }
 
 /// Given a type Path, resolve it to a Type using the TyCtxt
-crate fn resolve_type(cx: &mut DocContext<'_>, path: Path, id: hir::HirId) -> Type {
-    debug!("resolve_type({:?},{:?})", path, id);
+crate fn resolve_type(cx: &mut DocContext<'_>, path: Path) -> Type {
+    debug!("resolve_type({:?})", path);
 
-    let is_generic = match path.res {
-        Res::PrimTy(p) => return Primitive(PrimitiveType::from(p)),
-        Res::SelfTy(..) if path.segments.len() == 1 => {
-            return Generic(kw::SelfUpper);
+    match path.res {
+        Res::PrimTy(p) => Primitive(PrimitiveType::from(p)),
+        Res::SelfTy(..) if path.segments.len() == 1 => Generic(kw::SelfUpper),
+        Res::Def(DefKind::TyParam, _) if path.segments.len() == 1 => Generic(path.segments[0].name),
+        _ => {
+            let did = register_res(cx, path.res);
+            ResolvedPath { path, did }
         }
-        Res::Def(DefKind::TyParam, _) if path.segments.len() == 1 => {
-            return Generic(Symbol::intern(&path.whole_name()));
-        }
-        Res::SelfTy(..) | Res::Def(DefKind::TyParam | DefKind::AssocTy, _) => true,
-        _ => false,
-    };
-    let did = register_res(cx, path.res);
-    ResolvedPath { path, did, is_generic }
+    }
 }
 
 crate fn get_auto_trait_and_blanket_impls(

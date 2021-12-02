@@ -3,6 +3,7 @@
 use crate::convert;
 use crate::ops::{self, ControlFlow};
 use crate::result::Result;
+use crate::task::Ready;
 
 /// Indicates whether a value is available or if the current task has been
 /// scheduled to receive a wakeup instead.
@@ -30,9 +31,10 @@ impl<T> Poll<T> {
     ///
     /// # Examples
     ///
-    /// Converts a `Poll<`[`String`]`>` into an `Poll<`[`usize`]`>`, consuming the original:
+    /// Converts a <code>Poll<[String]></code> into a <code>Poll<[usize]></code>, consuming
+    /// the original:
     ///
-    /// [`String`]: ../../std/string/struct.String.html
+    /// [String]: ../../std/string/struct.String.html "String"
     /// ```
     /// # use core::task::Poll;
     /// let poll_some_string = Poll::Ready(String::from("Hello, World!"));
@@ -90,6 +92,38 @@ impl<T> Poll<T> {
     #[stable(feature = "futures_api", since = "1.36.0")]
     pub const fn is_pending(&self) -> bool {
         !self.is_ready()
+    }
+
+    /// Extracts the successful type of a [`Poll<T>`].
+    ///
+    /// When combined with the `?` operator, this function will
+    /// propagate any [`Poll::Pending`] values to the caller, and
+    /// extract the `T` from [`Poll::Ready`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// #![feature(poll_ready)]
+    ///
+    /// use std::task::{Context, Poll};
+    /// use std::future::{self, Future};
+    /// use std::pin::Pin;
+    ///
+    /// pub fn do_poll(cx: &mut Context<'_>) -> Poll<()> {
+    ///     let mut fut = future::ready(42);
+    ///     let fut = Pin::new(&mut fut);
+    ///
+    ///     let num = fut.poll(cx).ready()?;
+    ///     # drop(num);
+    ///     // ... use num
+    ///
+    ///     Poll::Ready(())
+    /// }
+    /// ```
+    #[inline]
+    #[unstable(feature = "poll_ready", issue = "89780")]
+    pub fn ready(self) -> Ready<T> {
+        Ready(self)
     }
 }
 

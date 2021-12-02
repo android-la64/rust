@@ -57,6 +57,20 @@ pub enum RustcSource {
     Discover,
 }
 
+/// Crates to disable `#[cfg(test)]` on.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum UnsetTestCrates {
+    None,
+    Only(Vec<String>),
+    All,
+}
+
+impl Default for UnsetTestCrates {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct CargoConfig {
     /// Do not activate the `default` feature.
@@ -80,20 +94,29 @@ pub struct CargoConfig {
     pub rustc_source: Option<RustcSource>,
 
     /// crates to disable `#[cfg(test)]` on
-    pub unset_test_crates: Vec<String>,
+    pub unset_test_crates: UnsetTestCrates,
 
     pub wrap_rustc_in_build_scripts: bool,
 }
 
 impl CargoConfig {
     pub fn cfg_overrides(&self) -> CfgOverrides {
-        self.unset_test_crates
-            .iter()
-            .cloned()
-            .zip(iter::repeat_with(|| {
-                cfg::CfgDiff::new(Vec::new(), vec![cfg::CfgAtom::Flag("test".into())]).unwrap()
-            }))
-            .collect()
+        match &self.unset_test_crates {
+            UnsetTestCrates::None => CfgOverrides::Selective(iter::empty().collect()),
+            UnsetTestCrates::Only(unset_test_crates) => CfgOverrides::Selective(
+                unset_test_crates
+                    .iter()
+                    .cloned()
+                    .zip(iter::repeat_with(|| {
+                        cfg::CfgDiff::new(Vec::new(), vec![cfg::CfgAtom::Flag("test".into())])
+                            .unwrap()
+                    }))
+                    .collect(),
+            ),
+            UnsetTestCrates::All => CfgOverrides::Wildcard(
+                cfg::CfgDiff::new(Vec::new(), vec![cfg::CfgAtom::Flag("test".into())]).unwrap(),
+            ),
+        }
     }
 }
 
@@ -112,8 +135,8 @@ pub struct PackageData {
     pub manifest: ManifestPath,
     /// Targets provided by the crate (lib, bin, example, test, ...)
     pub targets: Vec<Target>,
-    /// Is this package a member of the current workspace
-    pub is_member: bool,
+    /// Does this package come from the local filesystem (and is editable)?
+    pub is_local: bool,
     /// List of packages this package depends on
     pub dependencies: Vec<PackageDependency>,
     /// Rust edition for this package
@@ -273,19 +296,19 @@ impl CargoWorkspace {
         let mut packages = Arena::default();
         let mut targets = Arena::default();
 
-        let ws_members = &meta.workspace_members;
-
         meta.packages.sort_by(|a, b| a.id.cmp(&b.id));
         for meta_pkg in &meta.packages {
             let cargo_metadata::Package {
                 id, edition, name, manifest_path, version, metadata, ..
             } = meta_pkg;
             let meta = from_value::<PackageMetadata>(metadata.clone()).unwrap_or_default();
-            let is_member = ws_members.contains(id);
             let edition = edition.parse::<Edition>().unwrap_or_else(|err| {
-                log::error!("Failed to parse edition {}", err);
+                tracing::error!("Failed to parse edition {}", err);
                 Edition::CURRENT
             });
+            // We treat packages without source as "local" packages. That includes all members of
+            // the current workspace, as well as any path dependency outside the workspace.
+            let is_local = meta_pkg.source.is_none();
 
             let pkg = packages.alloc(PackageData {
                 id: id.repr.clone(),
@@ -293,7 +316,7 @@ impl CargoWorkspace {
                 version: version.clone(),
                 manifest: AbsPathBuf::assert(PathBuf::from(&manifest_path)).try_into().unwrap(),
                 targets: Vec::new(),
-                is_member,
+                is_local,
                 edition,
                 dependencies: Vec::new(),
                 features: meta_pkg.features.clone().into_iter().collect(),
@@ -322,7 +345,7 @@ impl CargoWorkspace {
                 // https://github.com/rust-lang/cargo/issues/7841
                 // is fixed and hits stable (around 1.43-is probably?).
                 None => {
-                    log::error!("Node id do not match in cargo metadata, ignoring {}", node.id);
+                    tracing::error!("Node id do not match in cargo metadata, ignoring {}", node.id);
                     continue;
                 }
             };
@@ -335,7 +358,7 @@ impl CargoWorkspace {
                 let pkg = match pkg_by_id.get(&dep_node.pkg) {
                     Some(&pkg) => pkg,
                     None => {
-                        log::error!(
+                        tracing::error!(
                             "Dep node id do not match in cargo metadata, ignoring {}",
                             dep_node.pkg
                         );
@@ -352,15 +375,6 @@ impl CargoWorkspace {
             AbsPathBuf::assert(PathBuf::from(meta.workspace_root.into_os_string()));
 
         CargoWorkspace { packages, targets, workspace_root }
-    }
-
-    pub fn from_cargo_metadata3(
-        cargo_toml: &ManifestPath,
-        config: &CargoConfig,
-        progress: &dyn Fn(String),
-    ) -> Result<CargoWorkspace> {
-        let meta = CargoWorkspace::fetch_metadata(cargo_toml, config, progress)?;
-        Ok(CargoWorkspace::new(meta))
     }
 
     pub fn packages<'a>(&'a self) -> impl Iterator<Item = Package> + ExactSizeIterator + 'a {
@@ -394,7 +408,7 @@ impl CargoWorkspace {
 fn rustc_discover_host_triple(cargo_toml: &ManifestPath) -> Option<String> {
     let mut rustc = Command::new(toolchain::rustc());
     rustc.current_dir(cargo_toml.parent()).arg("-vV");
-    log::debug!("Discovering host platform by {:?}", rustc);
+    tracing::debug!("Discovering host platform by {:?}", rustc);
     match utf8_stdout(rustc) {
         Ok(stdout) => {
             let field = "host: ";
@@ -403,12 +417,12 @@ fn rustc_discover_host_triple(cargo_toml: &ManifestPath) -> Option<String> {
                 Some(target.to_string())
             } else {
                 // If we fail to resolve the host platform, it's not the end of the world.
-                log::info!("rustc -vV did not report host platform, got:\n{}", stdout);
+                tracing::info!("rustc -vV did not report host platform, got:\n{}", stdout);
                 None
             }
         }
         Err(e) => {
-            log::warn!("Failed to discover host platform: {}", e);
+            tracing::warn!("Failed to discover host platform: {}", e);
             None
         }
     }
@@ -421,7 +435,7 @@ fn cargo_config_build_target(cargo_toml: &ManifestPath) -> Option<String> {
         .args(&["-Z", "unstable-options", "config", "get", "build.target"])
         .env("RUSTC_BOOTSTRAP", "1");
     // if successful we receive `build.target = "target-triple"`
-    log::debug!("Discovering cargo config target by {:?}", cargo_config);
+    tracing::debug!("Discovering cargo config target by {:?}", cargo_config);
     match utf8_stdout(cargo_config) {
         Ok(stdout) => stdout
             .strip_prefix("build.target = \"")

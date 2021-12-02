@@ -1,4 +1,1 @@
-struct S (
-    #[serde(with = "url_serde")]
-    pub Uri,
-);
+struct S (#[attr] f32);

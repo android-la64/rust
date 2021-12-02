@@ -7,6 +7,7 @@ use std::{
     process::{self, Stdio},
 };
 
+use anyhow::Context;
 use ide::{
     AnnotationConfig, AssistKind, AssistResolveStrategy, FileId, FilePosition, FileRange,
     HoverAction, HoverGotoTypeData, Query, RangeInfo, Runnable, RunnableKind, SingleResolve,
@@ -27,7 +28,7 @@ use lsp_types::{
 use project_model::TargetKind;
 use serde_json::json;
 use stdx::{format_to, never};
-use syntax::{algo, ast, AstNode, TextRange, TextSize};
+use syntax::{algo, ast, AstNode, TextRange, TextSize, T};
 
 use crate::{
     cargo_target_spec::CargoTargetSpec,
@@ -40,7 +41,7 @@ use crate::{
         self, InlayHint, InlayHintsParams, PositionOrRange, ViewCrateGraphParams,
         WorkspaceSymbolParams,
     },
-    lsp_utils::all_edits_are_disjoint,
+    lsp_utils::{all_edits_are_disjoint, invalid_params_error},
     to_proto, LspError, Result,
 };
 
@@ -265,10 +266,13 @@ pub(crate) fn handle_on_type_formatting(
     // `text.char_at(position) == typed_char`.
     position.offset -= TextSize::of('.');
     let char_typed = params.ch.chars().next().unwrap_or('\0');
-    assert!({
-        let text = snap.analysis.file_text(position.file_id)?;
-        text[usize::from(position.offset)..].starts_with(char_typed)
-    });
+
+    let text = snap.analysis.file_text(position.file_id)?;
+    if !text[usize::from(position.offset)..].starts_with(char_typed) {
+        // Add `always!` here once VS Code bug is fixed:
+        //   https://github.com/rust-analyzer/rust-analyzer/issues/10002
+        return Ok(None);
+    }
 
     // We have an assist that inserts ` ` after typing `->` in `fn foo() ->{`,
     // but it requires precise cursor positioning to work, and one can't
@@ -423,10 +427,9 @@ pub(crate) fn handle_workspace_symbol(
         // If no explicit marker was set, check request params. If that's also empty
         // use global config.
         if !all_symbols {
-            let search_kind = if let Some(ref search_kind) = params.search_kind {
-                search_kind
-            } else {
-                &config.search_kind
+            let search_kind = match params.search_kind {
+                Some(ref search_kind) => search_kind,
+                None => &config.search_kind,
             };
             all_symbols = match search_kind {
                 lsp_ext::WorkspaceSymbolSearchKind::OnlyTypes => false,
@@ -435,10 +438,9 @@ pub(crate) fn handle_workspace_symbol(
         }
 
         if !libs {
-            let search_scope = if let Some(ref search_scope) = params.search_scope {
-                search_scope
-            } else {
-                &config.search_scope
+            let search_scope = match params.search_scope {
+                Some(ref search_scope) => search_scope,
+                None => &config.search_scope,
             };
             libs = match search_scope {
                 lsp_ext::WorkspaceSymbolSearchScope::Workspace => false,
@@ -724,16 +726,13 @@ pub(crate) fn handle_completion(
     let completion_triggered_after_single_colon = {
         let mut res = false;
         if let Some(ctx) = params.context {
-            if ctx.trigger_character.unwrap_or_default() == ":" {
+            if ctx.trigger_character.as_deref() == Some(":") {
                 let source_file = snap.analysis.parse(position.file_id)?;
-                let syntax = source_file.syntax();
-                let text = syntax.text();
-                if let Some(next_char) = text.char_at(position.offset) {
-                    let diff = TextSize::of(next_char) + TextSize::of(':');
-                    let prev_char = position.offset - diff;
-                    if text.char_at(prev_char) != Some(':') {
-                        res = true;
-                    }
+                let left_token =
+                    source_file.syntax().token_at_offset(position.offset).left_biased();
+                match left_token {
+                    Some(left_token) => res = left_token.kind() == T![:],
+                    None => res = true,
                 }
             }
         }
@@ -764,9 +763,8 @@ pub(crate) fn handle_completion_resolve(
     let _p = profile::span("handle_completion_resolve");
 
     if !all_edits_are_disjoint(&original_completion, &[]) {
-        return Err(LspError::new(
-            ErrorCode::InvalidParams as i32,
-            "Received a completion with overlapping edits, this is not LSP-compliant".into(),
+        return Err(invalid_params_error(
+            "Received a completion with overlapping edits, this is not LSP-compliant".to_string(),
         )
         .into());
     }
@@ -787,8 +785,10 @@ pub(crate) fn handle_completion_resolve(
         .resolve_completion_edits(
             &snap.config.completion(),
             FilePosition { file_id, offset },
-            &resolve_data.full_import_path,
-            resolve_data.imported_name,
+            resolve_data
+                .imports
+                .into_iter()
+                .map(|import| (import.full_import_path, import.imported_name)),
         )?
         .into_iter()
         .flat_map(|edit| edit.into_iter().map(|indel| to_proto::text_edit(&line_index, indel)))
@@ -927,21 +927,25 @@ pub(crate) fn handle_references(
         Some(refs) => refs,
     };
 
-    let decl = if params.context.include_declaration {
-        refs.declaration.map(|decl| FileRange {
-            file_id: decl.nav.file_id,
-            range: decl.nav.focus_or_full_range(),
-        })
-    } else {
-        None
-    };
+    let include_declaration = params.context.include_declaration;
     let locations = refs
-        .references
         .into_iter()
-        .flat_map(|(file_id, refs)| {
-            refs.into_iter().map(move |(range, _)| FileRange { file_id, range })
+        .flat_map(|refs| {
+            let decl = if include_declaration {
+                refs.declaration.map(|decl| FileRange {
+                    file_id: decl.nav.file_id,
+                    range: decl.nav.focus_or_full_range(),
+                })
+            } else {
+                None
+            };
+            refs.references
+                .into_iter()
+                .flat_map(|(file_id, refs)| {
+                    refs.into_iter().map(move |(range, _)| FileRange { file_id, range })
+                })
+                .chain(decl)
         })
-        .chain(decl)
         .filter_map(|frange| to_proto::location(&snap, frange).ok())
         .collect();
 
@@ -1031,7 +1035,7 @@ pub(crate) fn handle_code_action_resolve(
     let _p = profile::span("handle_code_action_resolve");
     let params = match code_action.data.take() {
         Some(it) => it,
-        None => Err("can't resolve code action without data")?,
+        None => return Err(invalid_params_error(format!("code action without data")).into()),
     };
 
     let file_id = from_proto::file_id(&snap, &params.code_action_params.text_document.uri)?;
@@ -1049,10 +1053,10 @@ pub(crate) fn handle_code_action_resolve(
     let (assist_index, assist_resolve) = match parse_action_id(&params.id) {
         Ok(parsed_data) => parsed_data,
         Err(e) => {
-            return Err(LspError::new(
-                ErrorCode::InvalidParams as i32,
-                format!("Failed to parse action id string '{}': {}", params.id, e),
-            )
+            return Err(invalid_params_error(format!(
+                "Failed to parse action id string '{}': {}",
+                params.id, e
+            ))
             .into())
         }
     };
@@ -1069,23 +1073,17 @@ pub(crate) fn handle_code_action_resolve(
 
     let assist = match assists.get(assist_index) {
         Some(assist) => assist,
-        None => return Err(LspError::new(
-            ErrorCode::InvalidParams as i32,
-            format!(
-                "Failed to find the assist for index {} provided by the resolve request. Resolve request assist id: {}",
-                assist_index, params.id,
-            ),
-        )
+        None => return Err(invalid_params_error(format!(
+            "Failed to find the assist for index {} provided by the resolve request. Resolve request assist id: {}",
+            assist_index, params.id,
+        ))
         .into())
     };
     if assist.id.0 != expected_assist_id || assist.id.1 != expected_kind {
-        return Err(LspError::new(
-            ErrorCode::InvalidParams as i32,
-            format!(
-                "Mismatching assist at index {} for the resolve parameters given. Resolve request assist id: {}, actual id: {:?}.",
-                assist_index, params.id, assist.id
-            ),
-        )
+        return Err(invalid_params_error(format!(
+            "Mismatching assist at index {} for the resolve parameters given. Resolve request assist id: {}, actual id: {:?}.",
+            assist_index, params.id, assist.id
+        ))
         .into());
     }
     let edit = to_proto::code_action(&snap, assist.clone(), None)?.edit;
@@ -1137,6 +1135,7 @@ pub(crate) fn handle_code_lens(
             annotate_impls: lens_config.implementations,
             annotate_references: lens_config.refs,
             annotate_method_references: lens_config.method_refs,
+            annotate_enum_variant_references: lens_config.enum_variant_refs,
         },
         file_id,
     )?;
@@ -1184,9 +1183,9 @@ pub(crate) fn handle_document_highlight(
     };
     let res = refs
         .into_iter()
-        .map(|ide::HighlightedRange { range, access }| lsp_types::DocumentHighlight {
+        .map(|ide::HighlightedRange { range, category }| lsp_types::DocumentHighlight {
             range: to_proto::range(&line_index, range),
-            kind: access.map(to_proto::document_highlight_kind),
+            kind: category.map(to_proto::document_highlight_kind),
         })
         .collect();
     Ok(Some(res))
@@ -1512,8 +1511,8 @@ fn show_ref_command_link(
             let line_index = snap.file_line_index(position.file_id).ok()?;
             let position = to_proto::position(&line_index, position.offset);
             let locations: Vec<_> = ref_search_res
-                .references
                 .into_iter()
+                .flat_map(|res| res.references)
                 .flat_map(|(file_id, ranges)| {
                     ranges.into_iter().filter_map(move |(range, _)| {
                         to_proto::location(snap, FileRange { file_id, range }).ok()
@@ -1649,7 +1648,7 @@ fn run_rustfmt(
                     }
                 }
                 Err(_) => {
-                    log::error!(
+                    tracing::error!(
                         "Unable to get file path for {}, rustfmt.toml might be ignored",
                         text_document.uri
                     );
@@ -1699,8 +1698,12 @@ fn run_rustfmt(
         }
     };
 
-    let mut rustfmt =
-        rustfmt.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
+    let mut rustfmt = rustfmt
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context(format!("Failed to spawn {:?}", rustfmt))?;
 
     rustfmt.stdin.as_mut().unwrap().write_all(file.as_bytes())?;
 
@@ -1719,7 +1722,7 @@ fn run_rustfmt(
                 // formatting because otherwise an error is surfaced to the user on top of the
                 // syntax error diagnostics they're already receiving. This is especially jarring
                 // if they have format on save enabled.
-                log::info!("rustfmt exited with status 1, assuming parse error and ignoring");
+                tracing::info!("rustfmt exited with status 1, assuming parse error and ignoring");
                 Ok(None)
             }
             _ => {

@@ -8,6 +8,7 @@ use rustc_hir::{Expr, ExprKind};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::hir::map::Map;
 use rustc_session::{declare_lint_pass, declare_tool_lint};
+use rustc_span::sym;
 
 declare_clippy_lint! {
     /// ### What it does
@@ -138,12 +139,12 @@ impl<'tcx, 'l> ArmVisitor<'tcx, 'l> {
 
 fn is_mutex_lock_call<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>) -> Option<&'tcx Expr<'tcx>> {
     if_chain! {
-        if let ExprKind::MethodCall(path, _span, args, _) = &expr.kind;
+        if let ExprKind::MethodCall(path, _span, [self_arg, ..], _) = &expr.kind;
         if path.ident.as_str() == "lock";
-        let ty = cx.typeck_results().expr_ty(&args[0]);
-        if is_type_diagnostic_item(cx, ty, sym!(mutex_type));
+        let ty = cx.typeck_results().expr_ty(self_arg);
+        if is_type_diagnostic_item(cx, ty, sym::Mutex);
         then {
-            Some(&args[0])
+            Some(self_arg)
         } else {
             None
         }

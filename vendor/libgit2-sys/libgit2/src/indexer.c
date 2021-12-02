@@ -601,6 +601,48 @@ static void hash_partially(git_indexer *idx, const uint8_t *data, size_t size)
 	idx->inbuf_len += size - to_expell;
 }
 
+#if defined(NO_MMAP) || !defined(GIT_WIN32)
+
+static int write_at(git_indexer *idx, const void *data, off64_t offset, size_t size)
+{
+	size_t remaining_size = size;
+	const char *ptr = (const char *)data;
+
+	/* Handle data size larger that ssize_t */
+	while (remaining_size > 0) {
+		ssize_t nb;
+		HANDLE_EINTR(nb, p_pwrite(idx->pack->mwf.fd, (void *)ptr,
+					  remaining_size, offset));
+		if (nb <= 0)
+			return -1;
+
+		ptr += nb;
+		offset += nb;
+		remaining_size -= nb;
+	}
+
+	return 0;
+}
+
+static int append_to_pack(git_indexer *idx, const void *data, size_t size)
+{
+	if (write_at(idx, data, idx->pack->mwf.size, size) < 0) {
+		git_error_set(GIT_ERROR_OS, "cannot extend packfile '%s'", idx->pack->pack_name);
+		return -1;
+	}
+
+	return 0;
+}
+
+#else
+
+/*
+ * Windows may keep different views to a networked file for the mmap- and
+ * open-accessed versions of a file, so any writes done through
+ * `write(2)`/`pwrite(2)` may not be reflected on the data that `mmap(2)` is
+ * able to read.
+ */
+
 static int write_at(git_indexer *idx, const void *data, off64_t offset, size_t size)
 {
 	git_file fd = idx->pack->mwf.fd;
@@ -638,7 +680,6 @@ static int append_to_pack(git_indexer *idx, const void *data, size_t size)
 	size_t page_offset;
 	off64_t page_start;
 	off64_t current_size = idx->pack->mwf.size;
-	int fd = idx->pack->mwf.fd;
 	int error;
 
 	if (!size)
@@ -655,14 +696,15 @@ static int append_to_pack(git_indexer *idx, const void *data, size_t size)
 	page_offset = new_size % mmap_alignment;
 	page_start = new_size - page_offset;
 
-	if (p_lseek(fd, page_start + mmap_alignment - 1, SEEK_SET) < 0 ||
-	    p_write(idx->pack->mwf.fd, data, 1) < 0) {
+	if (p_pwrite(idx->pack->mwf.fd, data, 1, page_start + mmap_alignment - 1) < 0) {
 		git_error_set(GIT_ERROR_OS, "cannot extend packfile '%s'", idx->pack->pack_name);
 		return -1;
 	}
 
 	return write_at(idx, data, idx->pack->mwf.size, size);
 }
+
+#endif
 
 static int read_stream_object(git_indexer *idx, git_indexer_progress *stats)
 {
@@ -1263,11 +1305,19 @@ int git_indexer_commit(git_indexer *idx, git_indexer_progress *stats)
 	if (git_mwindow_free_all(&idx->pack->mwf) < 0)
 		goto on_error;
 
-	/* Truncate file to undo rounding up to next page_size in append_to_pack */
+#if !defined(NO_MMAP) && defined(GIT_WIN32)
+	/*
+	 * Some non-Windows remote filesystems fail when truncating files if the
+	 * file permissions change after opening the file (done by p_mkstemp).
+	 *
+	 * Truncation is only needed when mmap is used to undo rounding up to next
+	 * page_size in append_to_pack.
+	 */
 	if (p_ftruncate(idx->pack->mwf.fd, idx->pack->mwf.size) < 0) {
 		git_error_set(GIT_ERROR_OS, "failed to truncate pack file '%s'", idx->pack->pack_name);
 		return -1;
 	}
+#endif
 
 	if (idx->do_fsync && p_fsync(idx->pack->mwf.fd) < 0) {
 		git_error_set(GIT_ERROR_OS, "failed to fsync packfile");

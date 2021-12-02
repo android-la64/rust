@@ -37,12 +37,22 @@
 //! [Myers' diff algorithm]: https://neil.fraser.name/writing/diff/myers.pdf
 //! [semantic cleanups]: https://neil.fraser.name/writing/diff/
 
-#![doc(html_root_url = "https://docs.rs/dissimilar/1.0.2")]
+#![doc(html_root_url = "https://docs.rs/dissimilar/1.0.3")]
 #![allow(
     clippy::blocks_in_if_conditions,
-    clippy::collapsible_if,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::cloned_instead_of_copied, // https://github.com/rust-lang/rust-clippy/issues/7127
+    clippy::collapsible_else_if,
     clippy::comparison_chain,
-    clippy::new_without_default
+    clippy::match_same_arms,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::new_without_default,
+    clippy::shadow_unrelated,
+    clippy::similar_names,
+    clippy::too_many_lines,
+    clippy::unseparated_literal_suffix
 )]
 
 mod find;
@@ -424,10 +434,28 @@ fn cleanup_char_boundary(solution: &mut Solution) {
         adjust
     }
 
-    for diff in &mut solution.diffs {
-        match diff {
+    fn skip_overlap<'a>(prev: &Range<'a>, range: &mut Range<'a>) {
+        let prev_end = prev.offset + prev.len;
+        if prev_end > range.offset {
+            let delta = cmp::min(prev_end - range.offset, range.len);
+            range.offset += delta;
+            range.len -= delta;
+        }
+    }
+
+    let mut read = 0;
+    let mut retain = 0;
+    let mut last_delete = Range::empty();
+    let mut last_insert = Range::empty();
+    while let Some(&(mut diff)) = solution.diffs.get(read) {
+        read += 1;
+        match &mut diff {
             Diff::Equal(range1, range2) => {
                 let adjust = boundary_up(range1.doc, range1.offset);
+                // If the whole range is sub-character, skip it.
+                if range1.len <= adjust {
+                    continue;
+                }
                 range1.offset += adjust;
                 range1.len -= adjust;
                 range2.offset += adjust;
@@ -435,24 +463,39 @@ fn cleanup_char_boundary(solution: &mut Solution) {
                 let adjust = boundary_down(range1.doc, range1.offset + range1.len);
                 range1.len -= adjust;
                 range2.len -= adjust;
+                last_delete = Range::empty();
+                last_insert = Range::empty();
             }
             Diff::Delete(range) => {
+                skip_overlap(&last_delete, range);
+                if range.len == 0 {
+                    continue;
+                }
                 let adjust = boundary_down(range.doc, range.offset);
                 range.offset -= adjust;
                 range.len += adjust;
                 let adjust = boundary_up(range.doc, range.offset + range.len);
                 range.len += adjust;
+                last_delete = *range;
             }
             Diff::Insert(range) => {
+                skip_overlap(&last_insert, range);
+                if range.len == 0 {
+                    continue;
+                }
                 let adjust = boundary_down(range.doc, range.offset);
                 range.offset -= adjust;
                 range.len += adjust;
                 let adjust = boundary_up(range.doc, range.offset + range.len);
                 range.len += adjust;
+                last_insert = *range;
             }
         }
+        solution.diffs[retain] = diff;
+        retain += 1;
     }
 
+    solution.diffs.truncate(retain);
     solution.utf8 = true;
 }
 

@@ -12,14 +12,16 @@ use std::{ffi::OsString, iter, path::PathBuf};
 use flycheck::FlycheckConfig;
 use ide::{
     AssistConfig, CompletionConfig, DiagnosticsConfig, HighlightRelatedConfig, HoverConfig,
-    HoverDocFormat, InlayHintsConfig, JoinLinesConfig,
+    HoverDocFormat, InlayHintsConfig, JoinLinesConfig, Snippet, SnippetScope,
 };
 use ide_db::helpers::{
     insert_use::{ImportGranularity, InsertUseConfig, PrefixKind},
     SnippetCap,
 };
 use lsp_types::{ClientCapabilities, MarkupKind};
-use project_model::{CargoConfig, ProjectJson, ProjectJsonData, ProjectManifest, RustcSource};
+use project_model::{
+    CargoConfig, ProjectJson, ProjectJsonData, ProjectManifest, RustcSource, UnsetTestCrates,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{de::DeserializeOwned, Deserialize};
 use vfs::AbsPathBuf;
@@ -51,7 +53,7 @@ config_data! {
         assist_importEnforceGranularity: bool              = "false",
         /// The path structure for newly inserted paths to use.
         assist_importPrefix: ImportPrefixDef               = "\"plain\"",
-        /// Group inserted imports by the [following order](https://rust-analyzer.github.io/manual.html#auto-import). Groups are separated by newlines.
+        /// Group inserted imports by the https://rust-analyzer.github.io/manual.html#auto-import[following order]. Groups are separated by newlines.
         assist_importGroup: bool                           = "true",
         /// Whether to allow import insertion to merge new imports into single path glob imports like `use std::fmt::*;`.
         assist_allowMergingIntoGlobImports: bool           = "true",
@@ -110,6 +112,8 @@ config_data! {
         completion_addCallArgumentSnippets: bool = "true",
         /// Whether to add parenthesis when completing functions.
         completion_addCallParenthesis: bool      = "true",
+        /// Custom completion snippets.
+        completion_snippets: FxHashMap<String, SnippetDef> = "{}",
         /// Whether to show postfix snippets like `dbg`, `if`, `not`, etc.
         completion_postfix_enable: bool          = "true",
         /// Toggles the additional completions that automatically add imports when completed.
@@ -141,7 +145,7 @@ config_data! {
         diagnostics_warningsAsInfo: Vec<String> = "[]",
 
         /// Expand attribute macros.
-        experimental_procAttrMacros: bool = "false",
+        experimental_procAttrMacros: bool = "true",
 
         /// Controls file watching implementation.
         files_watcher: String = "\"client\"",
@@ -206,6 +210,8 @@ config_data! {
         joinLines_removeTrailingComma: bool = "true",
         /// Join lines unwraps trivial blocks.
         joinLines_unwrapTrivialBlock: bool = "true",
+        /// Join lines merges consecutive declaration and initialization of an assignment.
+        joinLines_joinAssignments: bool = "true",
 
         /// Whether to show `Debug` lens. Only applies when
         /// `#rust-analyzer.lens.enable#` is set.
@@ -221,9 +227,12 @@ config_data! {
         /// Whether to show `Method References` lens. Only applies when
         /// `#rust-analyzer.lens.enable#` is set.
         lens_methodReferences: bool = "false",
-        /// Whether to show `References` lens. Only applies when
-        /// `#rust-analyzer.lens.enable#` is set.
+        /// Whether to show `References` lens for Struct, Enum, Union and Trait.
+        /// Only applies when `#rust-analyzer.lens.enable#` is set.
         lens_references: bool = "false",
+        /// Whether to show `References` lens for Enum Variants.
+        /// Only applies when `#rust-analyzer.lens.enable#` is set.
+        lens_enumVariantReferences: bool = "false",
         /// Internal config: use custom client-side commands even when the
         /// client doesn't set the corresponding capability.
         lens_forceCustomCommands: bool = "true",
@@ -273,9 +282,9 @@ config_data! {
         rustfmt_enableRangeFormatting: bool = "false",
 
         /// Workspace symbol search scope.
-        workspace_symbol_search_scope: WorskpaceSymbolSearchScopeDef = "\"workspace\"",
+        workspace_symbol_search_scope: WorkspaceSymbolSearchScopeDef = "\"workspace\"",
         /// Workspace symbol search kind.
-        workspace_symbol_search_kind: WorskpaceSymbolSearchKindDef = "\"only_types\"",
+        workspace_symbol_search_kind: WorkspaceSymbolSearchKindDef = "\"only_types\"",
     }
 }
 
@@ -292,6 +301,7 @@ pub struct Config {
     detached_files: Vec<AbsPathBuf>,
     pub discovered_projects: Option<Vec<ProjectManifest>>,
     pub root_path: AbsPathBuf,
+    snippets: Vec<Snippet>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -319,6 +329,7 @@ pub struct LensConfig {
     pub implementations: bool,
     pub method_refs: bool,
     pub refs: bool, // for Struct, Enum, Union and Trait
+    pub enum_variant_refs: bool,
 }
 
 impl LensConfig {
@@ -335,7 +346,7 @@ impl LensConfig {
     }
 
     pub fn references(&self) -> bool {
-        self.method_refs || self.refs
+        self.method_refs || self.refs || self.enum_variant_refs
     }
 }
 
@@ -427,10 +438,11 @@ impl Config {
             detached_files: Vec::new(),
             discovered_projects: None,
             root_path,
+            snippets: Default::default(),
         }
     }
     pub fn update(&mut self, mut json: serde_json::Value) {
-        log::info!("updating config from JSON: {:#}", json);
+        tracing::info!("updating config from JSON: {:#}", json);
         if json.is_null() || json.as_object().map_or(false, |it| it.is_empty()) {
             return;
         }
@@ -439,6 +451,28 @@ impl Config {
             .map(AbsPathBuf::assert)
             .collect();
         self.data = ConfigData::from_json(json);
+        self.snippets.clear();
+        for (name, def) in self.data.completion_snippets.iter() {
+            if def.prefix.is_empty() && def.postfix.is_empty() {
+                continue;
+            }
+            let scope = match def.scope {
+                SnippetScopeDef::Expr => SnippetScope::Expr,
+                SnippetScopeDef::Type => SnippetScope::Type,
+                SnippetScopeDef::Item => SnippetScope::Item,
+            };
+            match Snippet::new(
+                &def.prefix,
+                &def.postfix,
+                &def.body,
+                def.description.as_ref().unwrap_or(name),
+                &def.requires,
+                scope,
+            ) {
+                Some(snippet) => self.snippets.push(snippet),
+                None => tracing::info!("Invalid snippet {}", name),
+            }
+        }
     }
 
     pub fn json_schema() -> serde_json::Value {
@@ -476,7 +510,9 @@ impl Config {
                         ManifestOrProjectJson::Manifest(it) => {
                             let path = self.root_path.join(it);
                             ProjectManifest::from_manifest_file(path)
-                                .map_err(|e| log::error!("failed to load linked project: {}", e))
+                                .map_err(|e| {
+                                    tracing::error!("failed to load linked project: {}", e)
+                                })
                                 .ok()?
                                 .into()
                         }
@@ -664,9 +700,9 @@ impl Config {
             all_features: self.data.cargo_allFeatures,
             features: self.data.cargo_features.clone(),
             target: self.data.cargo_target.clone(),
-            rustc_source,
             no_sysroot: self.data.cargo_noSysroot,
-            unset_test_crates: self.data.cargo_unsetTest.clone(),
+            rustc_source,
+            unset_test_crates: UnsetTestCrates::Only(self.data.cargo_unsetTest.clone()),
             wrap_rustc_in_build_scripts: self.data.cargo_useRustcWrapperForBuildScripts,
         }
     }
@@ -772,6 +808,7 @@ impl Config {
                     .snippet_support?,
                 false
             )),
+            snippets: self.snippets.clone(),
         }
     }
     pub fn assist(&self) -> AssistConfig {
@@ -786,6 +823,7 @@ impl Config {
             join_else_if: self.data.joinLines_joinElseIf,
             remove_trailing_comma: self.data.joinLines_removeTrailingComma,
             unwrap_trivial_blocks: self.data.joinLines_unwrapTrivialBlock,
+            join_assignments: self.data.joinLines_joinAssignments,
         }
     }
     pub fn call_info_full(&self) -> bool {
@@ -798,6 +836,7 @@ impl Config {
             implementations: self.data.lens_enable && self.data.lens_implementations,
             method_refs: self.data.lens_enable && self.data.lens_methodReferences,
             refs: self.data.lens_enable && self.data.lens_references,
+            enum_variant_refs: self.data.lens_enable && self.data.lens_enumVariantReferences,
         }
     }
     pub fn hover_actions(&self) -> HoverActionsConfig {
@@ -841,14 +880,14 @@ impl Config {
     pub fn workspace_symbol(&self) -> WorkspaceSymbolConfig {
         WorkspaceSymbolConfig {
             search_scope: match self.data.workspace_symbol_search_scope {
-                WorskpaceSymbolSearchScopeDef::Workspace => WorkspaceSymbolSearchScope::Workspace,
-                WorskpaceSymbolSearchScopeDef::WorkspaceAndDependencies => {
+                WorkspaceSymbolSearchScopeDef::Workspace => WorkspaceSymbolSearchScope::Workspace,
+                WorkspaceSymbolSearchScopeDef::WorkspaceAndDependencies => {
                     WorkspaceSymbolSearchScope::WorkspaceAndDependencies
                 }
             },
             search_kind: match self.data.workspace_symbol_search_kind {
-                WorskpaceSymbolSearchKindDef::OnlyTypes => WorkspaceSymbolSearchKind::OnlyTypes,
-                WorskpaceSymbolSearchKindDef::AllSymbols => WorkspaceSymbolSearchKind::AllSymbols,
+                WorkspaceSymbolSearchKindDef::OnlyTypes => WorkspaceSymbolSearchKind::OnlyTypes,
+                WorkspaceSymbolSearchKindDef::AllSymbols => WorkspaceSymbolSearchKind::AllSymbols,
             },
         }
     }
@@ -901,6 +940,66 @@ impl Config {
     }
 }
 
+#[derive(Deserialize, Debug, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+enum SnippetScopeDef {
+    Expr,
+    Item,
+    Type,
+}
+
+impl Default for SnippetScopeDef {
+    fn default() -> Self {
+        SnippetScopeDef::Expr
+    }
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(default)]
+struct SnippetDef {
+    #[serde(deserialize_with = "single_or_array")]
+    prefix: Vec<String>,
+    #[serde(deserialize_with = "single_or_array")]
+    postfix: Vec<String>,
+    description: Option<String>,
+    #[serde(deserialize_with = "single_or_array")]
+    body: Vec<String>,
+    #[serde(deserialize_with = "single_or_array")]
+    requires: Vec<String>,
+    scope: SnippetScopeDef,
+}
+
+fn single_or_array<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    struct SingleOrVec;
+
+    impl<'de> serde::de::Visitor<'de> for SingleOrVec {
+        type Value = Vec<String>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("string or array of strings")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(vec![value.to_owned()])
+        }
+
+        fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            Deserialize::deserialize(serde::de::value::SeqAccessDeserializer::new(seq))
+        }
+    }
+
+    deserializer.deserialize_any(SingleOrVec)
+}
+
 #[derive(Deserialize, Debug, Clone)]
 #[serde(untagged)]
 enum ManifestOrProjectJson {
@@ -932,14 +1031,14 @@ enum ImportPrefixDef {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
-enum WorskpaceSymbolSearchScopeDef {
+enum WorkspaceSymbolSearchScopeDef {
     Workspace,
     WorkspaceAndDependencies,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
-enum WorskpaceSymbolSearchKindDef {
+enum WorkspaceSymbolSearchKindDef {
     OnlyTypes,
     AllSymbols,
 }
@@ -1070,6 +1169,9 @@ fn field_props(field: &str, ty: &str, doc: &[&str], default: &str) -> serde_json
             "items": { "type": "string" },
             "uniqueItems": true,
         },
+        "FxHashMap<String, SnippetDef>" => set! {
+            "type": "object",
+        },
         "FxHashMap<String, String>" => set! {
             "type": "object",
         },
@@ -1126,7 +1228,7 @@ fn field_props(field: &str, ty: &str, doc: &[&str], default: &str) -> serde_json
             "type": "array",
             "items": { "type": ["string", "object"] },
         },
-        "WorskpaceSymbolSearchScopeDef" => set! {
+        "WorkspaceSymbolSearchScopeDef" => set! {
             "type": "string",
             "enum": ["workspace", "workspace_and_dependencies"],
             "enumDescriptions": [
@@ -1134,7 +1236,7 @@ fn field_props(field: &str, ty: &str, doc: &[&str], default: &str) -> serde_json
                 "Search in current workspace and dependencies"
             ],
         },
-        "WorskpaceSymbolSearchKindDef" => set! {
+        "WorkspaceSymbolSearchKindDef" => set! {
             "type": "string",
             "enum": ["only_types", "all_symbols"],
             "enumDescriptions": [

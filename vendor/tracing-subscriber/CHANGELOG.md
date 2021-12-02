@@ -1,3 +1,143 @@
+# 0.2.24 (September 19, 2021)
+
+This release contains a number of bug fixes, including a fix for
+`tracing-subscriber` failing to compile on the minimum supported Rust version of
+1.42.0. It also adds `IntoIterator` implementations for the `Targets` type.
+
+### Fixed
+
+- Fixed compilation on Rust 1.42.0 ([#1580], [#1581])
+- **registry**: Ensure per-layer filter `enabled` state is cleared when a global
+  filter short-circuits filter evaluation ([#1575])
+- **layer**: Fixed `Layer::on_layer` not being called for `Box`ed `Layer`s,
+  which broke  per-layer filtering ([#1576])
+
+### Added
+
+- **filter**: Added `Targets::iter`, returning an iterator over the set of
+  target-level pairs enabled by a `Targets` filter ([#1574])
+- **filter**:  Added `IntoIterator` implementations for `Targets` and `&Targets`
+  ([#1574])
+
+Thanks to new contributor @connec for contributing to this release!
+
+[#1580]: https://github.com/tokio-rs/tracing/pull/1580
+[#1581]: https://github.com/tokio-rs/tracing/pull/1581
+[#1575]: https://github.com/tokio-rs/tracing/pull/1575
+[#1576]: https://github.com/tokio-rs/tracing/pull/1576
+[#1574]: https://github.com/tokio-rs/tracing/pull/1574
+
+# 0.2.23 (September 16, 2021)
+
+This release fixes a few bugs in the per-layer filtering API added in v0.2.21.
+
+### Fixed
+
+- **env-filter**: Fixed excessive `EnvFilter` memory use ([#1568])
+- **filter**: Fixed a panic that may occur in debug mode when using per-layer
+  filters together with global filters ([#1569])
+- Fixed incorrect documentation formatting ([#1572])
+
+[#1568]: https://github.com/tokio-rs/tracing/pull/1568
+[#1569]: https://github.com/tokio-rs/tracing/pull/1569
+[#1572]: https://github.com/tokio-rs/tracing/pull/1572
+
+# 0.2.22 (September 13, 2021)
+
+This fixes a regression where the `filter::ParseError` type was accidentally
+renamed.
+
+### Fixed
+
+- **filter**: Fix `filter::ParseError` accidentally being renamed to
+  `filter::DirectiveParseError` ([#1558])
+
+[#1558]: https://github.com/tokio-rs/tracing/pull/1558
+
+# 0.2.21 (September 12, 2021)
+
+This release introduces the [`Filter`] trait, a new API for [per-layer
+filtering][plf]. This allows controlling which spans and events are recorded by
+various layers individually, rather than globally.
+
+In addition, it adds a new [`Targets`] filter, which provides a lighter-weight
+version of the filtering provided by [`EnvFilter`], as well as other smaller API
+improvements and fixes.
+
+### Deprecated
+
+- **registry**: `SpanRef::parent_id`, which cannot properly support per-layer
+  filtering. Use `.parent().map(SpanRef::id)` instead. ([#1523])
+
+### Fixed
+
+- **layer** `Context` methods that are provided when the `Subscriber` implements
+  `LookupSpan` no longer require the "registry" feature flag ([#1525])
+- **layer** `fmt::Debug` implementation for `Layered` no longer requires the `S`
+  type parameter to implement `Debug` ([#1528])
+
+### Added
+
+- **registry**: `Filter` trait, `Filtered` type, `Layer::with_filter` method,
+  and other APIs for per-layer filtering ([#1523])
+- **filter**: `FilterFn` and `DynFilterFn` types that implement global (`Layer`)
+  and per-layer (`Filter`) filtering for closures and function pointers
+  ([#1523])
+- **filter**: `Targets` filter, which implements a lighter-weight form of
+  `EnvFilter`-like filtering ([#1550])
+- **env-filter**: Added support for filtering on floating-point values ([#1507])
+- **layer**: `Layer::on_layer` callback, called when layering the `Layer` onto a
+`Subscriber` ([#1523])
+- **layer**: `Layer` implementations for `Box<L>` and `Arc<L>` where `L: Layer`
+  ([#1536])
+- **layer**: `Layer` implementations for `Box<dyn Layer<S> + Send + Sync + 'static>`
+  and `Arc<dyn Layer<S> + Send + Sync + 'static>` ([#1536])
+- A number of small documentation fixes and improvements ([#1553], [#1544],
+  [#1539], [#1524])
+
+Special thanks to new contributors @jsgf and @maxburke for contributing to this
+release!
+
+[`Filter`]: https://docs.rs/tracing-subscriber/0.2.21/tracing_subscriber/layer/trait.Filter.html
+[plf]: https://docs.rs/tracing-subscriber/0.2.21/tracing_subscriber/layer/index.html#per-layer-filtering
+[`Targets`]: https://docs.rs/tracing-subscriber/0.2.21/tracing_subscriber/filter/struct.Targets.html
+[`EnvFilter`]: https://docs.rs/tracing-subscriber/0.2.21/tracing_subscriber/filter/struct.EnvFilter.html
+[#1507]: https://github.com/tokio-rs/tracing/pull/1507
+[#1523]: https://github.com/tokio-rs/tracing/pull/1523
+[#1524]: https://github.com/tokio-rs/tracing/pull/1524
+[#1525]: https://github.com/tokio-rs/tracing/pull/1525
+[#1528]: https://github.com/tokio-rs/tracing/pull/1528
+[#1539]: https://github.com/tokio-rs/tracing/pull/1539
+[#1544]: https://github.com/tokio-rs/tracing/pull/1544
+[#1550]: https://github.com/tokio-rs/tracing/pull/1550
+[#1553]: https://github.com/tokio-rs/tracing/pull/1553
+
+# 0.2.20 (August 17, 2021)
+
+### Fixed
+
+- **fmt**: Fixed `fmt` printing only the first `source` for errors with a chain
+  of sources ([#1460])
+- **fmt**: Fixed missing space between level and event in the `Pretty` formatter
+  ([#1498])
+- **json**: Fixed `Json` formatter not honoring `without_time` and `with_level`
+  configurations ([#1463])
+
+### Added
+
+- **registry**: Improved panic message when cloning a span whose ID doesn't
+  exist, to aid in debugging issues with multiple subscribers ([#1483])
+- **registry**: Improved documentation on span ID generation ([#1453])
+
+[#1460]: https://github.com/tokio-rs/tracing/pull/1460
+[#1483]: https://github.com/tokio-rs/tracing/pull/1483
+[#1463]: https://github.com/tokio-rs/tracing/pull/1463
+[#1453]: https://github.com/tokio-rs/tracing/pull/1453
+[#1498]: https://github.com/tokio-rs/tracing/pull/1498
+
+Thanks to new contributors @joshtriplett and @lerouxrgd, and returning
+contributor @teozkr, for contributing to this release!
+
 # 0.2.19 (June 25, 2021)
 
 ### Deprecated
@@ -22,7 +162,7 @@
   `with_filter`, `and`, and `or_else` combinators ([#1274])
 - **fmt**: `MakeWriter` implementation for `Arc<W> where &W: io::Write`
   ([#1274])
-  
+
 Thanks to @teozkr and @Folyd for contributing to this release!
 
 [#1413]: https://github.com/tokio-rs/tracing/pull/1413

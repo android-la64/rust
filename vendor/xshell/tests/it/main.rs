@@ -96,7 +96,7 @@ fn exit_status() {
     setup();
 
     let err = cmd!("false").read().unwrap_err();
-    assert_eq!(err.to_string(), "command `false` failed, exit code: 1");
+    assert!(err.to_string().starts_with("command `false` failed"));
 }
 
 #[test]
@@ -363,6 +363,27 @@ fn write_makes_directory() {
 }
 
 #[test]
+fn recovers_from_panics() {
+    let tempdir = mktemp_d().unwrap();
+    let tempdir = tempdir.path().canonicalize().unwrap();
+
+    let orig = cwd().unwrap();
+
+    std::panic::catch_unwind(|| {
+        let _p = pushd(&tempdir).unwrap();
+        assert_eq!(cwd().unwrap(), tempdir);
+        std::panic::resume_unwind(Box::new(()));
+    })
+    .unwrap_err();
+
+    assert_eq!(cwd().unwrap(), orig);
+    {
+        let _p = pushd(&tempdir).unwrap();
+        assert_eq!(cwd().unwrap(), tempdir);
+    }
+}
+
+#[test]
 fn test_compile_failures() {
     setup();
 
@@ -477,6 +498,32 @@ fn string_escapes() {
     assert_eq!(cmd!("\"hello\"").to_string(), "\"hello\"");
     assert_eq!(cmd!("\"\"\"asdf\"\"\"").to_string(), r##""""asdf""""##);
     assert_eq!(cmd!("\\\\").to_string(), r#"\\"#);
+}
+
+#[test]
+fn cd_tempdir() {
+    println!("cwd: {}", cwd().unwrap().display());
+    let tmp = mktemp_d().unwrap();
+    println!("tmp: {}", tmp.path().display());
+    // Enter directory in child block so pushd guard is dropped before tmp
+    {
+        let _cwd = pushd(tmp.path()).unwrap();
+        println!("cwd: {}", cwd().unwrap().display());
+    }
+}
+
+#[test]
+fn cd_tempdir_no_block() {
+    let tmp = mktemp_d().unwrap();
+    let _cwd = pushd(tmp.path()).unwrap();
+}
+
+#[test]
+fn current_version_in_changelog() {
+    let _p = pushd(env!("CARGO_MANIFEST_DIR")).unwrap();
+    let changelog = read_file("CHANGELOG.md").unwrap();
+    let current_version_header = format!("## {}", env!("CARGO_PKG_VERSION"));
+    assert_eq!(changelog.lines().filter(|&line| line == current_version_header).count(), 1);
 }
 
 fn sleep_ms(ms: u64) {

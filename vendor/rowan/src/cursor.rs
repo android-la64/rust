@@ -107,8 +107,10 @@ enum Green {
     Token { ptr: ptr::NonNull<GreenTokenData> },
 }
 
+struct _SyntaxElement;
+
 struct NodeData {
-    _c: Count<SyntaxElement>,
+    _c: Count<_SyntaxElement>,
 
     rc: Cell<u32>,
     parent: Cell<Option<ptr::NonNull<NodeData>>>,
@@ -226,13 +228,11 @@ impl NodeData {
         green: Green,
         mutable: bool,
     ) -> ptr::NonNull<NodeData> {
+        let parent = ManuallyDrop::new(parent);
         let res = NodeData {
             _c: Count::new(),
             rc: Cell::new(1),
-            parent: {
-                let parent = ManuallyDrop::new(parent);
-                Cell::new(parent.as_ref().map(|it| it.ptr))
-            },
+            parent: Cell::new(parent.as_ref().map(|it| it.ptr)),
             index: Cell::new(index),
             green,
 
@@ -243,30 +243,39 @@ impl NodeData {
             prev: Cell::new(ptr::null()),
         };
         unsafe {
-            let mut res = Box::into_raw(Box::new(res));
             if mutable {
-                if let Err(node) = sll::init((*res).parent().map(|it| &it.first), &*res) {
-                    if cfg!(debug_assertions) {
-                        assert_eq!((*node).index(), (*res).index());
-                        match ((*node).green(), (*res).green()) {
-                            (NodeOrToken::Node(lhs), NodeOrToken::Node(rhs)) => {
-                                assert!(ptr::eq(lhs, rhs))
-                            }
-                            (NodeOrToken::Token(lhs), NodeOrToken::Token(rhs)) => {
-                                assert!(ptr::eq(lhs, rhs))
-                            }
-                            it => {
-                                panic!("node/token confusion: {:?}", it)
+                let res_ptr: *const NodeData = &res;
+                match sll::init((*res_ptr).parent().map(|it| &it.first), res_ptr.as_ref().unwrap())
+                {
+                    sll::AddToSllResult::AlreadyInSll(node) => {
+                        if cfg!(debug_assertions) {
+                            assert_eq!((*node).index(), (*res_ptr).index());
+                            match ((*node).green(), (*res_ptr).green()) {
+                                (NodeOrToken::Node(lhs), NodeOrToken::Node(rhs)) => {
+                                    assert!(ptr::eq(lhs, rhs))
+                                }
+                                (NodeOrToken::Token(lhs), NodeOrToken::Token(rhs)) => {
+                                    assert!(ptr::eq(lhs, rhs))
+                                }
+                                it => {
+                                    panic!("node/token confusion: {:?}", it)
+                                }
                             }
                         }
-                    }
 
-                    Box::from_raw(res);
-                    res = node as *mut _;
-                    (*res).inc_rc();
+                        ManuallyDrop::into_inner(parent);
+                        let res = node as *mut NodeData;
+                        (*res).inc_rc();
+                        return ptr::NonNull::new_unchecked(res);
+                    }
+                    it => {
+                        let res = Box::into_raw(Box::new(res));
+                        it.add_to_sll(res);
+                        return ptr::NonNull::new_unchecked(res);
+                    }
                 }
             }
-            ptr::NonNull::new_unchecked(res)
+            ptr::NonNull::new_unchecked(Box::into_raw(Box::new(res)))
         }
     }
 
@@ -375,7 +384,7 @@ impl NodeData {
             child.as_ref().into_node().and_then(|green| {
                 let parent = self.parent_node()?;
                 let offset = parent.offset() + child.rel_offset();
-                Some(SyntaxNode::new_child(green, parent.to_owned(), index as u32, offset))
+                Some(SyntaxNode::new_child(green, parent, index as u32, offset))
             })
         })
     }
@@ -388,7 +397,7 @@ impl NodeData {
             child.as_ref().into_node().and_then(|green| {
                 let parent = self.parent_node()?;
                 let offset = parent.offset() + child.rel_offset();
-                Some(SyntaxNode::new_child(green, parent.to_owned(), index as u32, offset))
+                Some(SyntaxNode::new_child(green, parent, index as u32, offset))
             })
         })
     }
@@ -400,7 +409,7 @@ impl NodeData {
         siblings.nth(index).and_then(|(index, child)| {
             let parent = self.parent_node()?;
             let offset = parent.offset() + child.rel_offset();
-            Some(SyntaxElement::new(child.as_ref(), parent.to_owned(), index as u32, offset))
+            Some(SyntaxElement::new(child.as_ref(), parent, index as u32, offset))
         })
     }
     fn prev_sibling_or_token(&self) -> Option<SyntaxElement> {
@@ -410,7 +419,7 @@ impl NodeData {
         siblings.nth(index).and_then(|(index, child)| {
             let parent = self.parent_node()?;
             let offset = parent.offset() + child.rel_offset();
-            Some(SyntaxElement::new(child.as_ref(), parent.to_owned(), index as u32, offset))
+            Some(SyntaxElement::new(child.as_ref(), parent, index as u32, offset))
         })
     }
 
@@ -462,7 +471,14 @@ impl NodeData {
             if !self.first.get().is_null() {
                 sll::adjust(&*self.first.get(), index as u32, Delta::Add(1));
             }
-            sll::link(&self.first, child).unwrap();
+
+            match sll::link(&self.first, child) {
+                sll::AddToSllResult::AlreadyInSll(_) => {
+                    panic!("Child already in sorted linked list")
+                }
+                it => it.add_to_sll(child),
+            }
+
             match self.green() {
                 NodeOrToken::Node(green) => {
                     // Child is root, so it ownes the green node. Steal it!
@@ -723,29 +739,8 @@ impl SyntaxNode {
     }
 
     #[inline]
-    pub fn preorder_with_tokens(&self) -> impl Iterator<Item = WalkEvent<SyntaxElement>> {
-        let start: SyntaxElement = self.clone().into();
-        iter::successors(Some(WalkEvent::Enter(start.clone())), move |pos| {
-            let next = match pos {
-                WalkEvent::Enter(el) => match el {
-                    NodeOrToken::Node(node) => match node.first_child_or_token() {
-                        Some(child) => WalkEvent::Enter(child),
-                        None => WalkEvent::Leave(node.clone().into()),
-                    },
-                    NodeOrToken::Token(token) => WalkEvent::Leave(token.clone().into()),
-                },
-                WalkEvent::Leave(el) => {
-                    if el == &start {
-                        return None;
-                    }
-                    match el.next_sibling_or_token() {
-                        Some(sibling) => WalkEvent::Enter(sibling),
-                        None => WalkEvent::Leave(el.parent().unwrap().into()),
-                    }
-                }
-            };
-            Some(next)
-        })
+    pub fn preorder_with_tokens(&self) -> PreorderWithTokens {
+        PreorderWithTokens::new(self.clone())
     }
 
     pub fn token_at_offset(&self, offset: TextSize) -> TokenAtOffset<SyntaxToken> {
@@ -1179,20 +1174,21 @@ impl Iterator for SyntaxElementChildren {
 }
 
 pub struct Preorder {
-    root: SyntaxNode,
+    start: SyntaxNode,
     next: Option<WalkEvent<SyntaxNode>>,
     skip_subtree: bool,
 }
 
 impl Preorder {
-    fn new(root: SyntaxNode) -> Preorder {
-        let next = Some(WalkEvent::Enter(root.clone()));
-        Preorder { root, next, skip_subtree: false }
+    fn new(start: SyntaxNode) -> Preorder {
+        let next = Some(WalkEvent::Enter(start.clone()));
+        Preorder { start, next, skip_subtree: false }
     }
 
     pub fn skip_subtree(&mut self) {
         self.skip_subtree = true;
     }
+
     #[cold]
     fn do_skip(&mut self) {
         self.next = self.next.take().map(|next| match next {
@@ -1218,14 +1214,68 @@ impl Iterator for Preorder {
                     None => WalkEvent::Leave(node.clone()),
                 },
                 WalkEvent::Leave(node) => {
-                    if node == &self.root {
+                    if node == &self.start {
                         return None;
                     }
                     match node.next_sibling() {
                         Some(sibling) => WalkEvent::Enter(sibling),
-                        None => WalkEvent::Leave(node.parent().unwrap()),
+                        None => WalkEvent::Leave(node.parent()?),
                     }
                 }
+            })
+        });
+        next
+    }
+}
+
+pub struct PreorderWithTokens {
+    start: SyntaxElement,
+    next: Option<WalkEvent<SyntaxElement>>,
+    skip_subtree: bool,
+}
+
+impl PreorderWithTokens {
+    fn new(start: SyntaxNode) -> PreorderWithTokens {
+        let next = Some(WalkEvent::Enter(start.clone().into()));
+        PreorderWithTokens { start: start.into(), next, skip_subtree: false }
+    }
+
+    pub fn skip_subtree(&mut self) {
+        self.skip_subtree = true;
+    }
+
+    #[cold]
+    fn do_skip(&mut self) {
+        self.next = self.next.take().map(|next| match next {
+            WalkEvent::Enter(first_child) => WalkEvent::Leave(first_child.parent().unwrap().into()),
+            WalkEvent::Leave(parent) => WalkEvent::Leave(parent),
+        })
+    }
+}
+
+impl Iterator for PreorderWithTokens {
+    type Item = WalkEvent<SyntaxElement>;
+
+    fn next(&mut self) -> Option<WalkEvent<SyntaxElement>> {
+        if self.skip_subtree {
+            self.do_skip();
+            self.skip_subtree = false;
+        }
+        let next = self.next.take();
+        self.next = next.as_ref().and_then(|next| {
+            Some(match next {
+                WalkEvent::Enter(el) => match el {
+                    NodeOrToken::Node(node) => match node.first_child_or_token() {
+                        Some(child) => WalkEvent::Enter(child),
+                        None => WalkEvent::Leave(node.clone().into()),
+                    },
+                    NodeOrToken::Token(token) => WalkEvent::Leave(token.clone().into()),
+                },
+                WalkEvent::Leave(el) if el == &self.start => return None,
+                WalkEvent::Leave(el) => match el.next_sibling_or_token() {
+                    Some(sibling) => WalkEvent::Enter(sibling),
+                    None => WalkEvent::Leave(el.parent()?.into()),
+                },
             })
         });
         next

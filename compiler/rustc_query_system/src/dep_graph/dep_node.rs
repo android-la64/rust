@@ -42,29 +42,17 @@
 //!   `DefId` it was computed from. In other cases, too much information gets
 //!   lost during fingerprint computation.
 
-use super::{DepContext, DepKind};
+use super::{DepContext, DepKind, FingerprintStyle};
+use crate::ich::StableHashingContext;
 
 use rustc_data_structures::fingerprint::{Fingerprint, PackedFingerprint};
 use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
-
 use std::fmt;
 use std::hash::Hash;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Encodable, Decodable)]
 pub struct DepNode<K> {
     pub kind: K,
-    // Important - whenever a `DepNode` is constructed, we need to make
-    // sure to register a `DefPathHash -> DefId` mapping if needed.
-    // This is currently done in two places:
-    //
-    // * When a `DepNode::construct` is called, `arg.to_fingerprint()`
-    //   is responsible for calling `OnDiskCache::store_foreign_def_id_hash`
-    //   if needed
-    // * When we serialize the on-disk cache, `OnDiskCache::serialize` is
-    //   responsible for calling `DepGraph::register_reused_dep_nodes`.
-    //
-    // FIXME: Enforce this by preventing manual construction of `DefNode`
-    // (e.g. add a `_priv: ()` field)
     pub hash: PackedFingerprint,
 }
 
@@ -87,7 +75,7 @@ impl<K: DepKind> DepNode<K> {
 
         #[cfg(debug_assertions)]
         {
-            if !kind.can_reconstruct_query_key()
+            if !kind.fingerprint_style().reconstructible()
                 && (tcx.sess().opts.debugging_opts.incremental_info
                     || tcx.sess().opts.debugging_opts.query_dep_graph)
             {
@@ -106,7 +94,7 @@ impl<K: DepKind> fmt::Debug for DepNode<K> {
 }
 
 pub trait DepNodeParams<Ctxt: DepContext>: fmt::Debug + Sized {
-    fn can_reconstruct_query_key() -> bool;
+    fn fingerprint_style() -> FingerprintStyle;
 
     /// This method turns the parameters of a DepNodeConstructor into an opaque
     /// Fingerprint to be used in DepNode.
@@ -123,7 +111,7 @@ pub trait DepNodeParams<Ctxt: DepContext>: fmt::Debug + Sized {
     /// This method tries to recover the query key from the given `DepNode`,
     /// something which is needed when forcing `DepNode`s during red-green
     /// evaluation. The query system will only call this method if
-    /// `can_reconstruct_query_key()` is `true`.
+    /// `fingerprint_style()` is not `FingerprintStyle::Opaque`.
     /// It is always valid to return `None` here, in which case incremental
     /// compilation will treat the query as having changed instead of forcing it.
     fn recover(tcx: Ctxt, dep_node: &DepNode<Ctxt::DepKind>) -> Option<Self>;
@@ -131,11 +119,11 @@ pub trait DepNodeParams<Ctxt: DepContext>: fmt::Debug + Sized {
 
 impl<Ctxt: DepContext, T> DepNodeParams<Ctxt> for T
 where
-    T: HashStable<Ctxt::StableHashingContext> + fmt::Debug,
+    T: for<'a> HashStable<StableHashingContext<'a>> + fmt::Debug,
 {
     #[inline]
-    default fn can_reconstruct_query_key() -> bool {
-        false
+    default fn fingerprint_style() -> FingerprintStyle {
+        FingerprintStyle::Opaque
     }
 
     default fn to_fingerprint(&self, tcx: Ctxt) -> Fingerprint {

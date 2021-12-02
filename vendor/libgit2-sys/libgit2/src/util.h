@@ -22,7 +22,7 @@
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #define bitsizeof(x) (CHAR_BIT * sizeof(x))
-#define MSB(x, bits) ((x) & (~0ULL << (bitsizeof(x) - (bits))))
+#define MSB(x, bits) ((x) & (~UINT64_C(0) << (bitsizeof(x) - (bits))))
 #ifndef min
 # define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
@@ -34,7 +34,7 @@
 # define GIT_CONTAINER_OF(ptr, type, member) \
 	__builtin_choose_expr( \
 	    __builtin_offsetof(type, member) == 0 && \
-	    __builtin_types_compatible_p(typeof(&((type *) 0)->member), typeof(ptr)), \
+	    __builtin_types_compatible_p(__typeof__(&((type *) 0)->member), __typeof__(ptr)), \
 		((type *) (ptr)), \
 		(void)0)
 #else
@@ -167,6 +167,17 @@ extern int git__strcasecmp(const char *a, const char *b);
 extern int git__strncasecmp(const char *a, const char *b, size_t sz);
 
 extern int git__strcasesort_cmp(const char *a, const char *b);
+
+/*
+ * Compare some NUL-terminated `a` to a possibly non-NUL terminated
+ * `b` of length `b_len`; like `strncmp` but ensuring that
+ * `strlen(a) == b_len` as well.
+ */
+GIT_INLINE(int) git__strlcmp(const char *a, const char *b, size_t b_len)
+{
+	int cmp = strncmp(a, b, b_len);
+	return cmp ? cmp : (int)a[b_len];
+}
 
 typedef struct {
 	git_atomic32 refcount;
@@ -317,27 +328,6 @@ extern int git__date_rfc2822_fmt(char *out, size_t len, const git_time *date);
 extern size_t git__unescape(char *str);
 
 /*
- * Iterate through an UTF-8 string, yielding one
- * codepoint at a time.
- *
- * @param str current position in the string
- * @param str_len size left in the string; -1 if the string is NULL-terminated
- * @param dst pointer where to store the current codepoint
- * @return length in bytes of the read codepoint; -1 if the codepoint was invalid
- */
-extern int git__utf8_iterate(const uint8_t *str, int str_len, int32_t *dst);
-
-/*
- * Iterate through an UTF-8 string and stops after finding any invalid UTF-8
- * codepoints.
- *
- * @param str string to scan
- * @param str_len size of the string
- * @return length in bytes of the string that contains valid data
- */
-extern size_t git__utf8_valid_buf_length(const uint8_t *str, size_t str_len);
-
-/*
  * Safely zero-out memory, making sure that the compiler
  * doesn't optimize away the operation.
  */
@@ -380,7 +370,7 @@ GIT_INLINE(double) git__timer(void)
    return (double)time * scaling_factor / 1.0E9;
 }
 
-#elif defined(AMIGA)
+#elif defined(__amigaos4__)
 
 #include <proto/timer.h>
 
@@ -397,17 +387,17 @@ GIT_INLINE(double) git__timer(void)
 
 GIT_INLINE(double) git__timer(void)
 {
-	struct timespec tp;
+	struct timeval tv;
 
-	if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0) {
+#ifdef CLOCK_MONOTONIC
+	struct timespec tp;
+	if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0)
 		return (double) tp.tv_sec + (double) tp.tv_nsec / 1.0E9;
-	} else {
-		/* Fall back to using gettimeofday */
-		struct timeval tv;
-		struct timezone tz;
-		gettimeofday(&tv, &tz);
-		return (double)tv.tv_sec + (double)tv.tv_usec / 1.0E6;
-	}
+#endif
+
+	/* Fall back to using gettimeofday */
+	gettimeofday(&tv, NULL);
+	return (double)tv.tv_sec + (double)tv.tv_usec / 1.0E6;
 }
 
 #endif

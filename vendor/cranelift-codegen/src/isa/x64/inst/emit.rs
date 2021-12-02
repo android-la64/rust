@@ -1448,6 +1448,7 @@ pub(crate) fn emit(
                 SseOpcode::Andnpd => (LegacyPrefixes::_66, 0x0F55, 2),
                 SseOpcode::Blendvps => (LegacyPrefixes::_66, 0x0F3814, 3),
                 SseOpcode::Blendvpd => (LegacyPrefixes::_66, 0x0F3815, 3),
+                SseOpcode::Cvttpd2dq => (LegacyPrefixes::_66, 0x0FE6, 2),
                 SseOpcode::Cvttps2dq => (LegacyPrefixes::_F3, 0x0F5B, 2),
                 SseOpcode::Cvtdq2ps => (LegacyPrefixes::None, 0x0F5B, 2),
                 SseOpcode::Divps => (LegacyPrefixes::None, 0x0F5E, 2),
@@ -1482,6 +1483,7 @@ pub(crate) fn emit(
                 SseOpcode::Paddsw => (LegacyPrefixes::_66, 0x0FED, 2),
                 SseOpcode::Paddusb => (LegacyPrefixes::_66, 0x0FDC, 2),
                 SseOpcode::Paddusw => (LegacyPrefixes::_66, 0x0FDD, 2),
+                SseOpcode::Pmaddubsw => (LegacyPrefixes::_66, 0x0F3804, 3),
                 SseOpcode::Pand => (LegacyPrefixes::_66, 0x0FDB, 2),
                 SseOpcode::Pandn => (LegacyPrefixes::_66, 0x0FDF, 2),
                 SseOpcode::Pavgb => (LegacyPrefixes::_66, 0x0FE0, 2),
@@ -1699,6 +1701,7 @@ pub(crate) fn emit(
                 SseOpcode::Roundss => (LegacyPrefixes::_66, 0x0F3A0A, 3),
                 SseOpcode::Roundpd => (LegacyPrefixes::_66, 0x0F3A09, 3),
                 SseOpcode::Roundsd => (LegacyPrefixes::_66, 0x0F3A0B, 3),
+                SseOpcode::Shufps => (LegacyPrefixes::None, 0x0FC6, 2),
                 _ => unimplemented!("Opcode {:?} not implemented", op),
             };
             let rex = RexFlags::from(*size);

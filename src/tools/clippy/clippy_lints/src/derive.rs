@@ -105,9 +105,6 @@ declare_clippy_lint! {
     /// nothing more than copy the object, which is what `#[derive(Copy, Clone)]`
     /// gets you.
     ///
-    /// ### Known problems
-    /// Bounds of generic types are sometimes wrong: https://github.com/rust-lang/rust/issues/26925
-    ///
     /// ### Example
     /// ```rust,ignore
     /// #[derive(Copy)]
@@ -396,7 +393,7 @@ impl<'tcx> Visitor<'tcx> for UnsafeVisitor<'_, 'tcx> {
 
         if_chain! {
             if let Some(header) = kind.header();
-            if let Unsafety::Unsafe = header.unsafety;
+            if header.unsafety == Unsafety::Unsafe;
             then {
                 self.has_unsafe = true;
             }
@@ -411,7 +408,7 @@ impl<'tcx> Visitor<'tcx> for UnsafeVisitor<'_, 'tcx> {
         }
 
         if let ExprKind::Block(block, _) = expr.kind {
-            if let BlockCheckMode::UnsafeBlock(UnsafeSource::UserProvided) = block.rules {
+            if block.rules == BlockCheckMode::UnsafeBlock(UnsafeSource::UserProvided) {
                 self.has_unsafe = true;
             }
         }

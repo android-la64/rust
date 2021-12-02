@@ -1,15 +1,16 @@
 use self::collector::NodeCollector;
 
-use crate::hir::{AttributeMap, IndexedHir, Owner};
+use crate::hir::{AttributeMap, IndexedHir, ModuleItems, Owner};
 use crate::ty::TyCtxt;
 use rustc_ast as ast;
 use rustc_data_structures::fingerprint::Fingerprint;
 use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
 use rustc_data_structures::svh::Svh;
+use rustc_data_structures::sync::{par_for_each_in, Send, Sync};
 use rustc_hir::def::{DefKind, Res};
-use rustc_hir::def_id::{CrateNum, DefId, LocalDefId, CRATE_DEF_INDEX, LOCAL_CRATE};
+use rustc_hir::def_id::{CrateNum, DefId, LocalDefId, CRATE_DEF_ID, LOCAL_CRATE};
 use rustc_hir::definitions::{DefKey, DefPath, DefPathHash};
-use rustc_hir::intravisit;
+use rustc_hir::intravisit::{self, Visitor};
 use rustc_hir::itemlikevisit::ItemLikeVisitor;
 use rustc_hir::*;
 use rustc_index::vec::Idx;
@@ -19,6 +20,7 @@ use rustc_span::source_map::Spanned;
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
 use rustc_span::Span;
 use rustc_target::spec::abi::Abi;
+use std::collections::VecDeque;
 
 pub mod blocks;
 mod collector;
@@ -82,12 +84,12 @@ pub struct Map<'hir> {
 
 /// An iterator that walks up the ancestor tree of a given `HirId`.
 /// Constructed using `tcx.hir().parent_iter(hir_id)`.
-pub struct ParentHirIterator<'map, 'hir> {
+pub struct ParentHirIterator<'hir> {
     current_id: HirId,
-    map: &'map Map<'hir>,
+    map: Map<'hir>,
 }
 
-impl<'hir> Iterator for ParentHirIterator<'_, 'hir> {
+impl<'hir> Iterator for ParentHirIterator<'hir> {
     type Item = (HirId, Node<'hir>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -114,12 +116,12 @@ impl<'hir> Iterator for ParentHirIterator<'_, 'hir> {
 
 /// An iterator that walks up the ancestor tree of a given `HirId`.
 /// Constructed using `tcx.hir().parent_owner_iter(hir_id)`.
-pub struct ParentOwnerIterator<'map, 'hir> {
+pub struct ParentOwnerIterator<'hir> {
     current_id: HirId,
-    map: &'map Map<'hir>,
+    map: Map<'hir>,
 }
 
-impl<'hir> Iterator for ParentOwnerIterator<'_, 'hir> {
+impl<'hir> Iterator for ParentOwnerIterator<'hir> {
     type Item = (HirId, OwnerNode<'hir>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -153,6 +155,21 @@ impl<'hir> Iterator for ParentOwnerIterator<'_, 'hir> {
 impl<'hir> Map<'hir> {
     pub fn krate(&self) -> &'hir Crate<'hir> {
         self.tcx.hir_crate(())
+    }
+
+    pub fn root_module(&self) -> &'hir Mod<'hir> {
+        match self.tcx.hir_owner(CRATE_DEF_ID).map(|o| o.node) {
+            Some(OwnerNode::Crate(item)) => item,
+            _ => bug!(),
+        }
+    }
+
+    pub fn items(&self) -> impl Iterator<Item = &'hir Item<'hir>> + 'hir {
+        let krate = self.krate();
+        krate.owners.iter().filter_map(|owner| match owner.as_ref()? {
+            OwnerNode::Item(item) => Some(*item),
+            _ => None,
+        })
     }
 
     pub fn def_key(&self, def_id: LocalDefId) -> DefKey {
@@ -206,11 +223,6 @@ impl<'hir> Map<'hir> {
     }
 
     pub fn opt_def_kind(&self, local_def_id: LocalDefId) -> Option<DefKind> {
-        // FIXME(eddyb) support `find` on the crate root.
-        if local_def_id.to_def_id().index == CRATE_DEF_INDEX {
-            return Some(DefKind::Mod);
-        }
-
         let hir_id = self.local_def_id_to_hir_id(local_def_id);
         let def_kind = match self.find(hir_id)? {
             Node::Item(item) => match item.kind {
@@ -479,6 +491,17 @@ impl<'hir> Map<'hir> {
         Some(ccx)
     }
 
+    /// Returns an iterator of the `DefId`s for all body-owners in this
+    /// crate. If you would prefer to iterate over the bodies
+    /// themselves, you can do `self.hir().krate().body_ids.iter()`.
+    pub fn body_owners(self) -> impl Iterator<Item = LocalDefId> + 'hir {
+        self.krate().bodies.keys().map(move |&body_id| self.body_owner_def_id(body_id))
+    }
+
+    pub fn par_body_owners<F: Fn(LocalDefId) + Sync + Send>(self, f: F) {
+        par_for_each_in(&self.krate().bodies, |(&body_id, _)| f(self.body_owner_def_id(body_id)));
+    }
+
     pub fn ty_param_owner(&self, id: HirId) -> HirId {
         match self.get(id) {
             Node::Item(&Item { kind: ItemKind::Trait(..) | ItemKind::TraitAlias(..), .. }) => id,
@@ -519,38 +542,125 @@ impl<'hir> Map<'hir> {
         }
     }
 
+    /// Walks the contents of a crate. See also `Crate::visit_all_items`.
+    pub fn walk_toplevel_module(self, visitor: &mut impl Visitor<'hir>) {
+        let (top_mod, span, hir_id) = self.get_module(CRATE_DEF_ID);
+        visitor.visit_mod(top_mod, span, hir_id);
+    }
+
+    /// Walks the attributes in a crate.
+    pub fn walk_attributes(self, visitor: &mut impl Visitor<'hir>) {
+        let krate = self.krate();
+        for (&id, attrs) in krate.attrs.iter() {
+            for a in *attrs {
+                visitor.visit_attribute(id, a)
+            }
+        }
+    }
+
+    /// Visits all items in the crate in some deterministic (but
+    /// unspecified) order. If you just need to process every item,
+    /// but don't care about nesting, this method is the best choice.
+    ///
+    /// If you do care about nesting -- usually because your algorithm
+    /// follows lexical scoping rules -- then you want a different
+    /// approach. You should override `visit_nested_item` in your
+    /// visitor and then call `intravisit::walk_crate` instead.
+    pub fn visit_all_item_likes<V>(&self, visitor: &mut V)
+    where
+        V: itemlikevisit::ItemLikeVisitor<'hir>,
+    {
+        let krate = self.krate();
+        for owner in krate.owners.iter().filter_map(Option::as_ref) {
+            match owner {
+                OwnerNode::Item(item) => visitor.visit_item(item),
+                OwnerNode::ForeignItem(item) => visitor.visit_foreign_item(item),
+                OwnerNode::ImplItem(item) => visitor.visit_impl_item(item),
+                OwnerNode::TraitItem(item) => visitor.visit_trait_item(item),
+                OwnerNode::Crate(_) => {}
+            }
+        }
+    }
+
+    /// A parallel version of `visit_all_item_likes`.
+    pub fn par_visit_all_item_likes<V>(&self, visitor: &V)
+    where
+        V: itemlikevisit::ParItemLikeVisitor<'hir> + Sync + Send,
+    {
+        let krate = self.krate();
+        par_for_each_in(&krate.owners.raw, |owner| match owner.as_ref() {
+            Some(OwnerNode::Item(item)) => visitor.visit_item(item),
+            Some(OwnerNode::ForeignItem(item)) => visitor.visit_foreign_item(item),
+            Some(OwnerNode::ImplItem(item)) => visitor.visit_impl_item(item),
+            Some(OwnerNode::TraitItem(item)) => visitor.visit_trait_item(item),
+            Some(OwnerNode::Crate(_)) | None => {}
+        })
+    }
+
     pub fn visit_item_likes_in_module<V>(&self, module: LocalDefId, visitor: &mut V)
     where
         V: ItemLikeVisitor<'hir>,
     {
         let module = self.tcx.hir_module_items(module);
 
-        for id in &module.items {
+        for id in module.items.iter() {
             visitor.visit_item(self.item(*id));
         }
 
-        for id in &module.trait_items {
+        for id in module.trait_items.iter() {
             visitor.visit_trait_item(self.trait_item(*id));
         }
 
-        for id in &module.impl_items {
+        for id in module.impl_items.iter() {
             visitor.visit_impl_item(self.impl_item(*id));
         }
 
-        for id in &module.foreign_items {
+        for id in module.foreign_items.iter() {
             visitor.visit_foreign_item(self.foreign_item(*id));
+        }
+    }
+
+    pub fn for_each_module(&self, f: impl Fn(LocalDefId)) {
+        let mut queue = VecDeque::new();
+        queue.push_back(CRATE_DEF_ID);
+
+        while let Some(id) = queue.pop_front() {
+            f(id);
+            let items = self.tcx.hir_module_items(id);
+            queue.extend(items.submodules.iter().copied())
+        }
+    }
+
+    #[cfg(not(parallel_compiler))]
+    #[inline]
+    pub fn par_for_each_module(&self, f: impl Fn(LocalDefId)) {
+        self.for_each_module(f)
+    }
+
+    #[cfg(parallel_compiler)]
+    pub fn par_for_each_module(&self, f: impl Fn(LocalDefId) + Sync) {
+        use rustc_data_structures::sync::{par_iter, ParallelIterator};
+        par_iter_submodules(self.tcx, CRATE_DEF_ID, &f);
+
+        fn par_iter_submodules<F>(tcx: TyCtxt<'_>, module: LocalDefId, f: &F)
+        where
+            F: Fn(LocalDefId) + Sync,
+        {
+            (*f)(module);
+            let items = tcx.hir_module_items(module);
+            par_iter(&items.submodules[..]).for_each(|&sm| par_iter_submodules(tcx, sm, f));
         }
     }
 
     /// Returns an iterator for the nodes in the ancestor tree of the `current_id`
     /// until the crate root is reached. Prefer this over your own loop using `get_parent_node`.
-    pub fn parent_iter(&self, current_id: HirId) -> ParentHirIterator<'_, 'hir> {
+    pub fn parent_iter(self, current_id: HirId) -> ParentHirIterator<'hir> {
         ParentHirIterator { current_id, map: self }
     }
 
     /// Returns an iterator for the nodes in the ancestor tree of the `current_id`
     /// until the crate root is reached. Prefer this over your own loop using `get_parent_node`.
-    pub fn parent_owner_iter(&self, current_id: HirId) -> ParentOwnerIterator<'_, 'hir> {
+    pub fn parent_owner_iter(self, current_id: HirId) -> ParentOwnerIterator<'hir> {
         ParentOwnerIterator { current_id, map: self }
     }
 
@@ -934,7 +1044,8 @@ pub(super) fn index_hir<'tcx>(tcx: TyCtxt<'tcx>, (): ()) -> &'tcx IndexedHir<'tc
         &tcx.untracked_resolutions.definitions,
         hcx,
     );
-    intravisit::walk_crate(&mut collector, tcx.untracked_crate);
+    let top_mod = tcx.untracked_crate.module();
+    collector.visit_mod(top_mod, top_mod.inner, CRATE_HIR_ID);
 
     let map = collector.finalize_and_compute_crate_hash();
     tcx.arena.alloc(map)
@@ -952,21 +1063,11 @@ pub(super) fn crate_hash(tcx: TyCtxt<'_>, crate_num: CrateNum) -> Svh {
         .iter_enumerated()
         .filter_map(|(def_id, hod)| {
             let def_path_hash = tcx.untracked_resolutions.definitions.def_path_hash(def_id);
-            let mut hasher = StableHasher::new();
-            hod.as_ref()?.hash_stable(&mut hcx, &mut hasher);
-            AttributeMap { map: &tcx.untracked_crate.attrs, prefix: def_id }
-                .hash_stable(&mut hcx, &mut hasher);
-            Some((def_path_hash, hasher.finish()))
+            let hash = hod.as_ref()?.hash;
+            Some((def_path_hash, hash, def_id))
         })
         .collect();
     hir_body_nodes.sort_unstable_by_key(|bn| bn.0);
-
-    let node_hashes = hir_body_nodes.iter().fold(
-        Fingerprint::ZERO,
-        |combined_fingerprint, &(def_path_hash, fingerprint)| {
-            combined_fingerprint.combine(def_path_hash.0.combine(fingerprint))
-        },
-    );
 
     let upstream_crates = upstream_crates(tcx);
 
@@ -987,7 +1088,17 @@ pub(super) fn crate_hash(tcx: TyCtxt<'_>, crate_num: CrateNum) -> Svh {
     source_file_names.sort_unstable();
 
     let mut stable_hasher = StableHasher::new();
-    node_hashes.hash_stable(&mut hcx, &mut stable_hasher);
+    for (def_path_hash, fingerprint, def_id) in hir_body_nodes.iter() {
+        def_path_hash.0.hash_stable(&mut hcx, &mut stable_hasher);
+        fingerprint.hash_stable(&mut hcx, &mut stable_hasher);
+        AttributeMap { map: &tcx.untracked_crate.attrs, prefix: *def_id }
+            .hash_stable(&mut hcx, &mut stable_hasher);
+        if tcx.sess.opts.debugging_opts.incremental_relative_spans {
+            let span = tcx.untracked_resolutions.definitions.def_span(*def_id);
+            debug_assert_eq!(span.parent(), None);
+            span.hash_stable(&mut hcx, &mut stable_hasher);
+        }
+    }
     upstream_crates.hash_stable(&mut hcx, &mut stable_hasher);
     source_file_names.hash_stable(&mut hcx, &mut stable_hasher);
     tcx.sess.opts.dep_tracking_hash(true).hash_stable(&mut hcx, &mut stable_hasher);
@@ -1099,5 +1210,71 @@ fn hir_id_to_string(map: &Map<'_>, id: HirId) -> String {
         Some(Node::Visibility(ref vis)) => format!("visibility {:?}{}", vis, id_str),
         Some(Node::Crate(..)) => String::from("root_crate"),
         None => format!("unknown node{}", id_str),
+    }
+}
+
+pub(super) fn hir_module_items(tcx: TyCtxt<'_>, module_id: LocalDefId) -> ModuleItems {
+    let mut collector = ModuleCollector {
+        tcx,
+        submodules: Vec::default(),
+        items: Vec::default(),
+        trait_items: Vec::default(),
+        impl_items: Vec::default(),
+        foreign_items: Vec::default(),
+    };
+
+    let (hir_mod, span, hir_id) = tcx.hir().get_module(module_id);
+    collector.visit_mod(hir_mod, span, hir_id);
+
+    let ModuleCollector { submodules, items, trait_items, impl_items, foreign_items, .. } =
+        collector;
+    return ModuleItems {
+        submodules: submodules.into_boxed_slice(),
+        items: items.into_boxed_slice(),
+        trait_items: trait_items.into_boxed_slice(),
+        impl_items: impl_items.into_boxed_slice(),
+        foreign_items: foreign_items.into_boxed_slice(),
+    };
+
+    struct ModuleCollector<'tcx> {
+        tcx: TyCtxt<'tcx>,
+        submodules: Vec<LocalDefId>,
+        items: Vec<ItemId>,
+        trait_items: Vec<TraitItemId>,
+        impl_items: Vec<ImplItemId>,
+        foreign_items: Vec<ForeignItemId>,
+    }
+
+    impl<'hir> Visitor<'hir> for ModuleCollector<'hir> {
+        type Map = Map<'hir>;
+
+        fn nested_visit_map(&mut self) -> intravisit::NestedVisitorMap<Self::Map> {
+            intravisit::NestedVisitorMap::All(self.tcx.hir())
+        }
+
+        fn visit_item(&mut self, item: &'hir Item<'hir>) {
+            self.items.push(item.item_id());
+            if let ItemKind::Mod(..) = item.kind {
+                // If this declares another module, do not recurse inside it.
+                self.submodules.push(item.def_id);
+            } else {
+                intravisit::walk_item(self, item)
+            }
+        }
+
+        fn visit_trait_item(&mut self, item: &'hir TraitItem<'hir>) {
+            self.trait_items.push(item.trait_item_id());
+            intravisit::walk_trait_item(self, item)
+        }
+
+        fn visit_impl_item(&mut self, item: &'hir ImplItem<'hir>) {
+            self.impl_items.push(item.impl_item_id());
+            intravisit::walk_impl_item(self, item)
+        }
+
+        fn visit_foreign_item(&mut self, item: &'hir ForeignItem<'hir>) {
+            self.foreign_items.push(item.foreign_item_id());
+            intravisit::walk_foreign_item(self, item)
+        }
     }
 }

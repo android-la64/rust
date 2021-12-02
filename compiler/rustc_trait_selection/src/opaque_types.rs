@@ -1,4 +1,3 @@
-use crate::infer::InferCtxtExt as _;
 use crate::traits::{self, ObligationCause, PredicateObligation};
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::sync::Lrc;
@@ -499,7 +498,7 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
     /// - `substs`, the substs  used to instantiate this opaque type
     /// - `instantiated_ty`, the inferred type C1 -- fully resolved, lifted version of
     ///   `opaque_defn.concrete_ty`
-    #[instrument(skip(self))]
+    #[instrument(level = "debug", skip(self))]
     fn infer_opaque_definition_from_instantiation(
         &self,
         opaque_type_key: OpaqueTypeKey<'tcx>,
@@ -518,6 +517,7 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
         debug!(?id_substs);
         let map: FxHashMap<GenericArg<'tcx>, GenericArg<'tcx>> =
             substs.iter().enumerate().map(|(index, subst)| (subst, id_substs[index])).collect();
+        debug!("map = {:#?}", map);
 
         // Convert the type from the function into a type valid outside
         // the function, by replacing invalid regions with 'static,
@@ -673,6 +673,7 @@ impl TypeFolder<'tcx> for ReverseMapper<'tcx> {
         self.tcx
     }
 
+    #[instrument(skip(self), level = "debug")]
     fn fold_region(&mut self, r: ty::Region<'tcx>) -> ty::Region<'tcx> {
         match r {
             // Ignore bound regions and `'static` regions that appear in the
@@ -863,7 +864,6 @@ struct Instantiator<'a, 'tcx> {
 }
 
 impl<'a, 'tcx> Instantiator<'a, 'tcx> {
-    #[instrument(skip(self))]
     fn instantiate_opaque_types_in_map<T: TypeFoldable<'tcx>>(&mut self, value: T) -> T {
         let tcx = self.infcx.tcx;
         value.fold_with(&mut BottomUpFolder {
@@ -954,6 +954,7 @@ impl<'a, 'tcx> Instantiator<'a, 'tcx> {
         })
     }
 
+    #[instrument(skip(self), level = "debug")]
     fn fold_opaque_ty(
         &mut self,
         ty: Ty<'tcx>,
@@ -964,24 +965,17 @@ impl<'a, 'tcx> Instantiator<'a, 'tcx> {
         let tcx = infcx.tcx;
         let OpaqueTypeKey { def_id, substs } = opaque_type_key;
 
-        debug!("instantiate_opaque_types: Opaque(def_id={:?}, substs={:?})", def_id, substs);
-
         // Use the same type variable if the exact same opaque type appears more
         // than once in the return type (e.g., if it's passed to a type alias).
         if let Some(opaque_defn) = infcx.inner.borrow().opaque_types.get(&opaque_type_key) {
-            debug!("instantiate_opaque_types: returning concrete ty {:?}", opaque_defn.concrete_ty);
+            debug!("re-using cached concrete type {:?}", opaque_defn.concrete_ty.kind());
             return opaque_defn.concrete_ty;
         }
+
         let ty_var = infcx.next_ty_var(TypeVariableOrigin {
             kind: TypeVariableOriginKind::TypeInference,
             span: self.value_span,
         });
-
-        // Make sure that we are in fact defining the *entire* type
-        // (e.g., `type Foo<T: Bound> = impl Bar;` needs to be
-        // defined by a function like `fn foo<T: Bound>() -> Foo<T>`).
-        debug!("instantiate_opaque_types: param_env={:#?}", self.param_env,);
-        debug!("instantiate_opaque_types: generics={:#?}", tcx.generics_of(def_id),);
 
         // Ideally, we'd get the span where *this specific `ty` came
         // from*, but right now we just use the span from the overall
@@ -999,43 +993,40 @@ impl<'a, 'tcx> Instantiator<'a, 'tcx> {
             infcx.opaque_types_vars.insert(ty_var, ty);
         }
 
-        debug!("instantiate_opaque_types: ty_var={:?}", ty_var);
-        self.compute_opaque_type_obligations(opaque_type_key);
-
-        ty_var
-    }
-
-    fn compute_opaque_type_obligations(&mut self, opaque_type_key: OpaqueTypeKey<'tcx>) {
-        let infcx = self.infcx;
-        let tcx = infcx.tcx;
-        let OpaqueTypeKey { def_id, substs } = opaque_type_key;
+        debug!("generated new type inference var {:?}", ty_var.kind());
 
         let item_bounds = tcx.explicit_item_bounds(def_id);
-        debug!("instantiate_opaque_types: bounds={:#?}", item_bounds);
-        let bounds: Vec<_> =
-            item_bounds.iter().map(|(bound, _)| bound.subst(tcx, substs)).collect();
 
-        let param_env = tcx.param_env(def_id);
-        let InferOk { value: bounds, obligations } = infcx.partially_normalize_associated_types_in(
-            ObligationCause::misc(self.value_span, self.body_id),
-            param_env,
-            bounds,
-        );
-        self.obligations.extend(obligations);
+        self.obligations.reserve(item_bounds.len());
+        for (predicate, _) in item_bounds {
+            debug!(?predicate);
+            let predicate = predicate.subst(tcx, substs);
+            debug!(?predicate);
 
-        debug!("instantiate_opaque_types: bounds={:?}", bounds);
+            // We can't normalize associated types from `rustc_infer`, but we can eagerly register inference variables for them.
+            let predicate = predicate.fold_with(&mut BottomUpFolder {
+                tcx,
+                ty_op: |ty| match ty.kind() {
+                    ty::Projection(projection_ty) => infcx.infer_projection(
+                        self.param_env,
+                        *projection_ty,
+                        ObligationCause::misc(self.value_span, self.body_id),
+                        0,
+                        &mut self.obligations,
+                    ),
+                    _ => ty,
+                },
+                lt_op: |lt| lt,
+                ct_op: |ct| ct,
+            });
+            debug!(?predicate);
 
-        for predicate in &bounds {
             if let ty::PredicateKind::Projection(projection) = predicate.kind().skip_binder() {
                 if projection.ty.references_error() {
                     // No point on adding these obligations since there's a type error involved.
-                    return;
+                    return tcx.ty_error();
                 }
             }
-        }
-
-        self.obligations.reserve(bounds.len());
-        for predicate in bounds {
             // Change the predicate to refer to the type variable,
             // which will be the concrete type instead of the opaque type.
             // This also instantiates nested instances of `impl Trait`.
@@ -1045,9 +1036,11 @@ impl<'a, 'tcx> Instantiator<'a, 'tcx> {
                 traits::ObligationCause::new(self.value_span, self.body_id, traits::OpaqueType);
 
             // Require that the predicate holds for the concrete type.
-            debug!("instantiate_opaque_types: predicate={:?}", predicate);
+            debug!(?predicate);
             self.obligations.push(traits::Obligation::new(cause, self.param_env, predicate));
         }
+
+        ty_var
     }
 }
 
@@ -1071,11 +1064,7 @@ impl<'a, 'tcx> Instantiator<'a, 'tcx> {
 /// Here, `def_id` is the `LocalDefId` of the defining use of the opaque type (e.g., `f1` or `f2`),
 /// and `opaque_hir_id` is the `HirId` of the definition of the opaque type `Baz`.
 /// For the above example, this function returns `true` for `f1` and `false` for `f2`.
-pub fn may_define_opaque_type(
-    tcx: TyCtxt<'_>,
-    def_id: LocalDefId,
-    opaque_hir_id: hir::HirId,
-) -> bool {
+fn may_define_opaque_type(tcx: TyCtxt<'_>, def_id: LocalDefId, opaque_hir_id: hir::HirId) -> bool {
     let mut hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
 
     // Named opaque types can be defined by any siblings or children of siblings.
@@ -1111,18 +1100,17 @@ pub fn may_define_opaque_type(
 ///
 /// Requires that trait definitions have been processed so that we can
 /// elaborate predicates and walk supertraits.
+#[instrument(skip(tcx, predicates), level = "debug")]
 crate fn required_region_bounds(
     tcx: TyCtxt<'tcx>,
     erased_self_ty: Ty<'tcx>,
     predicates: impl Iterator<Item = ty::Predicate<'tcx>>,
 ) -> Vec<ty::Region<'tcx>> {
-    debug!("required_region_bounds(erased_self_ty={:?})", erased_self_ty);
-
     assert!(!erased_self_ty.has_escaping_bound_vars());
 
     traits::elaborate_predicates(tcx, predicates)
         .filter_map(|obligation| {
-            debug!("required_region_bounds(obligation={:?})", obligation);
+            debug!(?obligation);
             match obligation.predicate.kind().skip_binder() {
                 ty::PredicateKind::Projection(..)
                 | ty::PredicateKind::Trait(..)

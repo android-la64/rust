@@ -18,9 +18,7 @@ use rustc_middle::ty::TyCtxt;
 use rustc_span::def_id::CRATE_DEF_INDEX;
 use rustc_target::spec::abi::Abi;
 
-use crate::clean::{
-    self, utils::find_nearest_parent_module, ExternalCrate, GetDefId, ItemId, PrimitiveType,
-};
+use crate::clean::{self, utils::find_nearest_parent_module, ExternalCrate, ItemId, PrimitiveType};
 use crate::formats::item_type::ItemType;
 use crate::html::escape::Escape;
 use crate::html::render::cache::ExternalLocation;
@@ -155,9 +153,23 @@ impl clean::GenericParamDef {
         &'a self,
         cx: &'a Context<'tcx>,
     ) -> impl fmt::Display + 'a + Captures<'tcx> {
-        display_fn(move |f| match self.kind {
-            clean::GenericParamDefKind::Lifetime => write!(f, "{}", self.name),
-            clean::GenericParamDefKind::Type { ref bounds, ref default, .. } => {
+        display_fn(move |f| match &self.kind {
+            clean::GenericParamDefKind::Lifetime { outlives } => {
+                write!(f, "{}", self.name)?;
+
+                if !outlives.is_empty() {
+                    f.write_str(": ")?;
+                    for (i, lt) in outlives.iter().enumerate() {
+                        if i != 0 {
+                            f.write_str(" + ")?;
+                        }
+                        write!(f, "{}", lt.print())?;
+                    }
+                }
+
+                Ok(())
+            }
+            clean::GenericParamDefKind::Type { bounds, default, .. } => {
                 f.write_str(&*self.name.as_str())?;
 
                 if !bounds.is_empty() {
@@ -178,7 +190,7 @@ impl clean::GenericParamDef {
 
                 Ok(())
             }
-            clean::GenericParamDefKind::Const { ref ty, ref default, .. } => {
+            clean::GenericParamDefKind::Const { ty, default, .. } => {
                 if f.alternate() {
                     write!(f, "const {}: {:#}", self.name, ty.print(cx))?;
                 } else {
@@ -256,7 +268,7 @@ crate fn print_where_clause<'a, 'tcx: 'a>(
                         0 => String::new(),
                         _ if f.alternate() => {
                             format!(
-                                "for<{:#}> ",
+                                "for&lt;{:#}&gt; ",
                                 comma_sep(bound_params.iter().map(|lt| lt.print()))
                             )
                         }
@@ -495,7 +507,11 @@ crate fn href_with_root_path(
         if shortty == ItemType::Module { fqp } else { &fqp[..fqp.len() - 1] }
     }
 
-    if !did.is_local() && !cache.access_levels.is_public(did) && !cache.document_private {
+    if !did.is_local()
+        && !cache.access_levels.is_public(did)
+        && !cache.document_private
+        && !cache.primitive_locations.values().any(|&id| id == did)
+    {
         return Err(HrefError::Private);
     }
 
@@ -503,6 +519,7 @@ crate fn href_with_root_path(
     let (fqp, shortty, mut url_parts) = match cache.paths.get(&did) {
         Some(&(ref fqp, shortty)) => (fqp, shortty, {
             let module_fqp = to_module_fqp(shortty, fqp);
+            debug!(?fqp, ?shortty, ?module_fqp);
             href_relative_parts(module_fqp, relative_to)
         }),
         None => {
@@ -534,6 +551,7 @@ crate fn href_with_root_path(
             url_parts.insert(0, root);
         }
     }
+    debug!(?url_parts);
     let last = &fqp.last().unwrap()[..];
     let filename;
     match shortty {
@@ -728,19 +746,22 @@ fn fmt_type<'cx>(
     use_absolute: bool,
     cx: &'cx Context<'_>,
 ) -> fmt::Result {
-    debug!("fmt_type(t = {:?})", t);
+    trace!("fmt_type(t = {:?})", t);
 
     match *t {
         clean::Generic(name) => write!(f, "{}", name),
-        clean::ResolvedPath { did, ref path, is_generic } => {
+        clean::ResolvedPath { did, ref path } => {
             // Paths like `T::Output` and `Self::Output` should be rendered with all segments.
-            resolved_path(f, did, path, is_generic, use_absolute, cx)
+            resolved_path(f, did, path, path.is_assoc_ty(), use_absolute, cx)
         }
         clean::DynTrait(ref bounds, ref lt) => {
             f.write_str("dyn ")?;
             fmt::Display::fmt(&tybounds(bounds, lt, cx), f)
         }
         clean::Infer => write!(f, "_"),
+        clean::Primitive(clean::PrimitiveType::Never) => {
+            primitive_link(f, PrimitiveType::Never, "!", cx)
+        }
         clean::Primitive(prim) => primitive_link(f, prim, &*prim.as_sym().as_str(), cx),
         clean::BareFunction(ref decl) => {
             if f.alternate() {
@@ -799,34 +820,22 @@ fn fmt_type<'cx>(
                 primitive_link(f, PrimitiveType::Array, &format!("; {}]", Escape(n)), cx)
             }
         }
-        clean::Never => primitive_link(f, PrimitiveType::Never, "!", cx),
         clean::RawPointer(m, ref t) => {
             let m = match m {
                 hir::Mutability::Mut => "mut",
                 hir::Mutability::Not => "const",
             };
-            match **t {
-                clean::Generic(_) | clean::ResolvedPath { is_generic: true, .. } => {
-                    if f.alternate() {
-                        primitive_link(
-                            f,
-                            clean::PrimitiveType::RawPointer,
-                            &format!("*{} {:#}", m, t.print(cx)),
-                            cx,
-                        )
-                    } else {
-                        primitive_link(
-                            f,
-                            clean::PrimitiveType::RawPointer,
-                            &format!("*{} {}", m, t.print(cx)),
-                            cx,
-                        )
-                    }
-                }
-                _ => {
-                    primitive_link(f, clean::PrimitiveType::RawPointer, &format!("*{} ", m), cx)?;
-                    fmt::Display::fmt(&t.print(cx), f)
-                }
+
+            if matches!(**t, clean::Generic(_)) || t.is_assoc_ty() {
+                let text = if f.alternate() {
+                    format!("*{} {:#}", m, t.print(cx))
+                } else {
+                    format!("*{} {}", m, t.print(cx))
+                };
+                primitive_link(f, clean::PrimitiveType::RawPointer, &text, cx)
+            } else {
+                primitive_link(f, clean::PrimitiveType::RawPointer, &format!("*{} ", m), cx)?;
+                fmt::Display::fmt(&t.print(cx), f)
             }
         }
         clean::BorrowedRef { lifetime: ref l, mutability, type_: ref ty } => {
@@ -903,15 +912,10 @@ fn fmt_type<'cx>(
             }
         }
         clean::QPath { ref name, ref self_type, ref trait_, ref self_def_id } => {
-            let should_show_cast = match *trait_ {
-                box clean::ResolvedPath { ref path, .. } => {
-                    !path.segments.is_empty()
-                        && self_def_id
-                            .zip(trait_.def_id())
-                            .map_or(!self_type.is_self_type(), |(id, trait_)| id != trait_)
-                }
-                _ => true,
-            };
+            let should_show_cast = !trait_.segments.is_empty()
+                && self_def_id
+                    .zip(Some(trait_.def_id()))
+                    .map_or(!self_type.is_self_type(), |(id, trait_)| id != trait_);
             if f.alternate() {
                 if should_show_cast {
                     write!(f, "<{:#} as {:#}>::", self_type.print(cx), trait_.print(cx))?
@@ -925,36 +929,31 @@ fn fmt_type<'cx>(
                     write!(f, "{}::", self_type.print(cx))?
                 }
             };
-            match *trait_ {
-                // It's pretty unsightly to look at `<A as B>::C` in output, and
-                // we've got hyperlinking on our side, so try to avoid longer
-                // notation as much as possible by making `C` a hyperlink to trait
-                // `B` to disambiguate.
-                //
-                // FIXME: this is still a lossy conversion and there should probably
-                //        be a better way of representing this in general? Most of
-                //        the ugliness comes from inlining across crates where
-                //        everything comes in as a fully resolved QPath (hard to
-                //        look at).
-                box clean::ResolvedPath { did, .. } => {
-                    match href(did, cx) {
-                        Ok((ref url, _, ref path)) if !f.alternate() => {
-                            write!(
-                                f,
-                                "<a class=\"type\" href=\"{url}#{shortty}.{name}\" \
+            // It's pretty unsightly to look at `<A as B>::C` in output, and
+            // we've got hyperlinking on our side, so try to avoid longer
+            // notation as much as possible by making `C` a hyperlink to trait
+            // `B` to disambiguate.
+            //
+            // FIXME: this is still a lossy conversion and there should probably
+            //        be a better way of representing this in general? Most of
+            //        the ugliness comes from inlining across crates where
+            //        everything comes in as a fully resolved QPath (hard to
+            //        look at).
+            match href(trait_.def_id(), cx) {
+                Ok((ref url, _, ref path)) if !f.alternate() => {
+                    write!(
+                        f,
+                        "<a class=\"type\" href=\"{url}#{shortty}.{name}\" \
                                     title=\"type {path}::{name}\">{name}</a>",
-                                url = url,
-                                shortty = ItemType::AssocType,
-                                name = name,
-                                path = path.join("::")
-                            )?;
-                        }
-                        _ => write!(f, "{}", name)?,
-                    }
-                    Ok(())
+                        url = url,
+                        shortty = ItemType::AssocType,
+                        name = name,
+                        path = path.join("::")
+                    )?;
                 }
-                _ => write!(f, "{}", name),
+                _ => write!(f, "{}", name)?,
             }
+            Ok(())
         }
     }
 }
@@ -965,6 +964,15 @@ impl clean::Type {
         cx: &'a Context<'tcx>,
     ) -> impl fmt::Display + 'b + Captures<'tcx> {
         display_fn(move |f| fmt_type(self, f, false, cx))
+    }
+}
+
+impl clean::Path {
+    crate fn print<'b, 'a: 'b, 'tcx: 'a>(
+        &'a self,
+        cx: &'a Context<'tcx>,
+    ) -> impl fmt::Display + 'b + Captures<'tcx> {
+        display_fn(move |f| resolved_path(f, self.def_id(), self, false, false, cx))
     }
 }
 
@@ -1048,7 +1056,11 @@ impl clean::BareFunctionDecl {
     ) -> impl fmt::Display + 'a + Captures<'tcx> {
         display_fn(move |f| {
             if !self.generic_params.is_empty() {
-                write!(f, "for<{}> ", comma_sep(self.generic_params.iter().map(|g| g.print(cx))))
+                write!(
+                    f,
+                    "for&lt;{}&gt; ",
+                    comma_sep(self.generic_params.iter().map(|g| g.print(cx)))
+                )
             } else {
                 Ok(())
             }

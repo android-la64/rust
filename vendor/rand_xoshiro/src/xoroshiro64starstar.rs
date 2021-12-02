@@ -7,7 +7,6 @@
 // except according to those terms.
 
 #[cfg(feature="serde1")] use serde::{Serialize, Deserialize};
-use rand_core;
 use rand_core::le::read_u32_into;
 use rand_core::impls::{fill_bytes_via_next, next_u64_via_u32};
 use rand_core::{RngCore, SeedableRng};
@@ -21,7 +20,7 @@ use rand_core::{RngCore, SeedableRng};
 /// reference source code](http://xoshiro.di.unimi.it/xoroshiro64starstar.c) by
 /// David Blackman and Sebastiano Vigna.
 #[allow(missing_copy_implementations)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature="serde1", derive(Serialize, Deserialize))]
 pub struct Xoroshiro64StarStar {
     s0: u32,

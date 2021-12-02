@@ -1,12 +1,17 @@
-use hir::{HasSource, HirDisplay, Module, TypeInfo};
-use ide_db::{base_db::FileId, helpers::SnippetCap};
+use hir::{HasSource, HirDisplay, Module, ModuleDef, Semantics, TypeInfo};
+use ide_db::{
+    base_db::FileId,
+    defs::{Definition, NameRefClass},
+    helpers::SnippetCap,
+    RootDatabase,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use stdx::to_lower_snake_case;
 use syntax::{
     ast::{
         self,
         edit::{AstNodeEdit, IndentLevel},
-        make, ArgListOwner, AstNode, CallExpr, ModuleItemOwner,
+        make, AstNode, CallExpr, HasArgList, HasModuleItem,
     },
     SyntaxKind, SyntaxNode, TextRange, TextSize,
 };
@@ -37,7 +42,7 @@ use crate::{
 //     bar("", baz());
 // }
 //
-// fn bar(arg: &str, baz: Baz) ${0:-> ()} {
+// fn bar(arg: &str, baz: Baz) ${0:-> _} {
 //     todo!()
 // }
 //
@@ -46,50 +51,60 @@ pub(crate) fn generate_function(acc: &mut Assists, ctx: &AssistContext) -> Optio
     gen_fn(acc, ctx).or_else(|| gen_method(acc, ctx))
 }
 
-enum FuncExpr {
-    Func(ast::CallExpr),
-    Method(ast::MethodCallExpr),
-}
-
-impl FuncExpr {
-    fn arg_list(&self) -> Option<ast::ArgList> {
-        match self {
-            FuncExpr::Func(fn_call) => fn_call.arg_list(),
-            FuncExpr::Method(m_call) => m_call.arg_list(),
-        }
-    }
-
-    fn syntax(&self) -> &SyntaxNode {
-        match self {
-            FuncExpr::Func(fn_call) => fn_call.syntax(),
-            FuncExpr::Method(m_call) => m_call.syntax(),
-        }
-    }
-}
-
 fn gen_fn(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
     let path_expr: ast::PathExpr = ctx.find_node_at_offset()?;
     let call = path_expr.syntax().parent().and_then(ast::CallExpr::cast)?;
-
     let path = path_expr.path()?;
+    let name_ref = path.segment()?.name_ref()?;
     if ctx.sema.resolve_path(&path).is_some() {
         // The function call already resolves, no need to add a function
         return None;
     }
 
-    let target_module = match path.qualifier() {
-        Some(qualifier) => match ctx.sema.resolve_path(&qualifier) {
-            Some(hir::PathResolution::Def(hir::ModuleDef::Module(module))) => Some(module),
-            _ => return None,
-        },
-        None => None,
-    };
+    let fn_name = &*name_ref.text();
+    let target_module;
+    let mut adt_name = None;
 
-    let (target, file, insert_offset) = get_fn_target(ctx, &target_module, call.clone())?;
-    let function_builder = FunctionBuilder::from_call(ctx, &call, &path, target_module, target)?;
-    let target = call.syntax().text_range();
-    let label = format!("Generate {} function", function_builder.fn_name.clone());
-    add_func_to_accumulator(acc, ctx, target, function_builder, insert_offset, file, None, label)
+    let (target, file, insert_offset) = match path.qualifier() {
+        Some(qualifier) => match ctx.sema.resolve_path(&qualifier) {
+            Some(hir::PathResolution::Def(hir::ModuleDef::Module(module))) => {
+                target_module = Some(module);
+                get_fn_target(ctx, &target_module, call.clone())?
+            }
+            Some(hir::PathResolution::Def(hir::ModuleDef::Adt(adt))) => {
+                let current_module = current_module(call.syntax(), ctx)?;
+                let module = adt.module(ctx.sema.db);
+                target_module = if current_module == module { None } else { Some(module) };
+                if current_module.krate() != module.krate() {
+                    return None;
+                }
+                let (impl_, file) = get_adt_source(ctx, &adt, fn_name)?;
+                let (target, insert_offset) = get_method_target(ctx, &module, &impl_)?;
+                adt_name = if impl_.is_none() { Some(adt.name(ctx.sema.db)) } else { None };
+                (target, file, insert_offset)
+            }
+            _ => {
+                return None;
+            }
+        },
+        _ => {
+            target_module = None;
+            get_fn_target(ctx, &target_module, call.clone())?
+        }
+    };
+    let function_builder = FunctionBuilder::from_call(ctx, &call, fn_name, target_module, target)?;
+    let text_range = call.syntax().text_range();
+    let label = format!("Generate {} function", function_builder.fn_name);
+    add_func_to_accumulator(
+        acc,
+        ctx,
+        text_range,
+        function_builder,
+        insert_offset,
+        file,
+        adt_name,
+        label,
+    )
 }
 
 fn gen_method(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
@@ -103,26 +118,20 @@ fn gen_method(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
     if current_module.krate() != target_module.krate() {
         return None;
     }
-
-    let range = adt.source(ctx.sema.db)?.syntax().original_file_range(ctx.sema.db);
-    let file = ctx.sema.parse(range.file_id);
-    let adt_source =
-        ctx.sema.find_node_at_offset_with_macros(file.syntax(), range.range.start())?;
-    let impl_ = find_struct_impl(ctx, &adt_source, fn_name.text().as_str())?;
-
+    let (impl_, file) = get_adt_source(ctx, &adt, fn_name.text().as_str())?;
     let (target, insert_offset) = get_method_target(ctx, &target_module, &impl_)?;
     let function_builder =
         FunctionBuilder::from_method_call(ctx, &call, &fn_name, target_module, target)?;
     let text_range = call.syntax().text_range();
     let adt_name = if impl_.is_none() { Some(adt.name(ctx.sema.db)) } else { None };
-    let label = format!("Generate {} method", function_builder.fn_name.clone());
+    let label = format!("Generate {} method", function_builder.fn_name);
     add_func_to_accumulator(
         acc,
         ctx,
         text_range,
         function_builder,
         insert_offset,
-        range.file_id,
+        file,
         adt_name,
         label,
     )
@@ -156,6 +165,18 @@ fn current_module(current_node: &SyntaxNode, ctx: &AssistContext) -> Option<Modu
     ctx.sema.scope(current_node).module()
 }
 
+fn get_adt_source(
+    ctx: &AssistContext,
+    adt: &hir::Adt,
+    fn_name: &str,
+) -> Option<(Option<ast::Impl>, FileId)> {
+    let range = adt.source(ctx.sema.db)?.syntax().original_file_range(ctx.sema.db);
+    let file = ctx.sema.parse(range.file_id);
+    let adt_source =
+        ctx.sema.find_node_at_offset_with_macros(file.syntax(), range.range.start())?;
+    find_struct_impl(ctx, &adt_source, fn_name).map(|impl_| (impl_, range.file_id))
+}
+
 struct FunctionTemplate {
     leading_ws: String,
     fn_def: ast::Fn,
@@ -171,10 +192,9 @@ impl FunctionTemplate {
             Some(cap) => {
                 let cursor = if self.should_focus_return_type {
                     // Focus the return type if there is one
-                    if let Some(ref ret_type) = self.ret_type {
-                        ret_type.syntax()
-                    } else {
-                        self.tail_expr.syntax()
+                    match self.ret_type {
+                        Some(ref ret_type) => ret_type.syntax(),
+                        None => self.tail_expr.syntax(),
                     }
                 } else {
                     self.tail_expr.syntax()
@@ -205,14 +225,15 @@ impl FunctionBuilder {
     fn from_call(
         ctx: &AssistContext,
         call: &ast::CallExpr,
-        path: &ast::Path,
+        fn_name: &str,
         target_module: Option<hir::Module>,
         target: GeneratedFunctionTarget,
     ) -> Option<Self> {
         let needs_pub = target_module.is_some();
         let target_module = target_module.or_else(|| current_module(target.syntax(), ctx))?;
-        let fn_name = fn_name(path)?;
-        let (type_params, params) = fn_args(ctx, target_module, FuncExpr::Func(call.clone()))?;
+        let fn_name = make::name(fn_name);
+        let (type_params, params) =
+            fn_args(ctx, target_module, ast::CallableExpr::Call(call.clone()))?;
 
         let await_expr = call.syntax().parent().and_then(ast::AwaitExpr::cast);
         let is_async = await_expr.is_some();
@@ -242,7 +263,8 @@ impl FunctionBuilder {
         let needs_pub =
             !module_is_descendant(&current_module(call.syntax(), ctx)?, &target_module, ctx);
         let fn_name = make::name(&name.text());
-        let (type_params, params) = fn_args(ctx, target_module, FuncExpr::Method(call.clone()))?;
+        let (type_params, params) =
+            fn_args(ctx, target_module, ast::CallableExpr::MethodCall(call.clone()))?;
 
         let await_expr = call.syntax().parent().and_then(ast::AwaitExpr::cast);
         let is_async = await_expr.is_some();
@@ -306,7 +328,7 @@ impl FunctionBuilder {
 }
 
 /// Makes an optional return type along with whether the return type should be focused by the cursor.
-/// If we cannot infer what the return type should be, we create unit as a placeholder.
+/// If we cannot infer what the return type should be, we create a placeholder type.
 ///
 /// The rule for whether we focus a return type or not (and thus focus the function body),
 /// is rather simple:
@@ -321,19 +343,19 @@ fn make_return_type(
 ) -> (Option<ast::RetType>, bool) {
     let (ret_ty, should_focus_return_type) = {
         match ctx.sema.type_of_expr(call).map(TypeInfo::original) {
-            Some(ty) if ty.is_unknown() => (Some(make::ty_unit()), true),
-            None => (Some(make::ty_unit()), true),
+            Some(ty) if ty.is_unknown() => (Some(make::ty_placeholder()), true),
+            None => (Some(make::ty_placeholder()), true),
             Some(ty) if ty.is_unit() => (None, false),
             Some(ty) => {
                 let rendered = ty.display_source_code(ctx.db(), target_module.into());
                 match rendered {
                     Ok(rendered) => (Some(make::ty(&rendered)), false),
-                    Err(_) => (Some(make::ty_unit()), true),
+                    Err(_) => (Some(make::ty_placeholder()), true),
                 }
             }
         }
     };
-    let ret_type = ret_ty.map(|rt| make::ret_type(rt));
+    let ret_type = ret_ty.map(make::ret_type);
     (ret_type, should_focus_return_type)
 }
 
@@ -350,7 +372,7 @@ fn get_fn_target(
             file = in_file;
             target
         }
-        None => next_space_for_fn_after_call_site(FuncExpr::Func(call.clone()))?,
+        None => next_space_for_fn_after_call_site(ast::CallableExpr::Call(call))?,
     };
     Some((target.clone(), file, get_insert_offset(&target)))
 }
@@ -361,7 +383,7 @@ fn get_method_target(
     impl_: &Option<ast::Impl>,
 ) -> Option<(GeneratedFunctionTarget, TextSize)> {
     let target = match impl_ {
-        Some(impl_) => next_space_for_fn_in_impl(&impl_)?,
+        Some(impl_) => next_space_for_fn_in_impl(impl_)?,
         None => {
             next_space_for_fn_in_module(ctx.sema.db, &target_module.definition_source(ctx.sema.db))?
                 .1
@@ -392,37 +414,28 @@ impl GeneratedFunctionTarget {
     }
 }
 
-fn fn_name(call: &ast::Path) -> Option<ast::Name> {
-    let name = call.segment()?.syntax().to_string();
-    Some(make::name(&name))
-}
-
 /// Computes the type variables and arguments required for the generated function
 fn fn_args(
     ctx: &AssistContext,
     target_module: hir::Module,
-    call: FuncExpr,
+    call: ast::CallableExpr,
 ) -> Option<(Option<ast::GenericParamList>, ast::ParamList)> {
     let mut arg_names = Vec::new();
     let mut arg_types = Vec::new();
     for arg in call.arg_list()?.args() {
-        arg_names.push(match fn_arg_name(&arg) {
-            Some(name) => name,
-            None => String::from("arg"),
-        });
+        arg_names.push(fn_arg_name(&ctx.sema, &arg));
         arg_types.push(match fn_arg_type(ctx, target_module, &arg) {
             Some(ty) => {
-                if ty.len() > 0 && ty.starts_with('&') {
-                    if let Some((new_ty, _)) = useless_type_special_case("", &ty[1..].to_owned()) {
-                        new_ty
-                    } else {
-                        ty
+                if !ty.is_empty() && ty.starts_with('&') {
+                    match useless_type_special_case("", &ty[1..].to_owned()) {
+                        Some((new_ty, _)) => new_ty,
+                        None => ty,
                     }
                 } else {
                     ty
                 }
             }
-            None => String::from("()"),
+            None => String::from("_"),
         });
     }
     deduplicate_arg_names(&mut arg_names);
@@ -434,8 +447,8 @@ fn fn_args(
         None,
         make::param_list(
             match call {
-                FuncExpr::Func(_) => None,
-                FuncExpr::Method(_) => Some(make::self_param()),
+                ast::CallableExpr::Call(_) => None,
+                ast::CallableExpr::MethodCall(_) => Some(make::self_param()),
             },
             params,
         ),
@@ -474,18 +487,27 @@ fn deduplicate_arg_names(arg_names: &mut Vec<String>) {
     }
 }
 
-fn fn_arg_name(fn_arg: &ast::Expr) -> Option<String> {
-    match fn_arg {
-        ast::Expr::CastExpr(cast_expr) => fn_arg_name(&cast_expr.expr()?),
-        _ => {
-            let s = fn_arg
-                .syntax()
-                .descendants()
-                .filter(|d| ast::NameRef::can_cast(d.kind()))
-                .last()?
-                .to_string();
-            Some(to_lower_snake_case(&s))
+fn fn_arg_name(sema: &Semantics<RootDatabase>, arg_expr: &ast::Expr) -> String {
+    let name = (|| match arg_expr {
+        ast::Expr::CastExpr(cast_expr) => Some(fn_arg_name(sema, &cast_expr.expr()?)),
+        expr => {
+            let name_ref = expr.syntax().descendants().filter_map(ast::NameRef::cast).last()?;
+            if let Some(NameRefClass::Definition(Definition::ModuleDef(
+                ModuleDef::Const(_) | ModuleDef::Static(_),
+            ))) = NameRefClass::classify(sema, &name_ref)
+            {
+                return Some(name_ref.to_string().to_lowercase());
+            };
+            Some(to_lower_snake_case(&name_ref.to_string()))
         }
+    })();
+    match name {
+        Some(mut name) if name.starts_with(|c: char| c.is_ascii_digit()) => {
+            name.insert_str(0, "arg");
+            name
+        }
+        Some(name) => name,
+        None => "arg".to_string(),
     }
 }
 
@@ -499,18 +521,14 @@ fn fn_arg_type(
         return None;
     }
 
-    if let Ok(rendered) = ty.display_source_code(ctx.db(), target_module.into()) {
-        Some(rendered)
-    } else {
-        None
-    }
+    ty.display_source_code(ctx.db(), target_module.into()).ok()
 }
 
 /// Returns the position inside the current mod or file
 /// directly after the current block
 /// We want to write the generated function directly after
 /// fns, impls or macro calls, but inside mods
-fn next_space_for_fn_after_call_site(expr: FuncExpr) -> Option<GeneratedFunctionTarget> {
+fn next_space_for_fn_after_call_site(expr: ast::CallableExpr) -> Option<GeneratedFunctionTarget> {
     let mut ancestors = expr.syntax().ancestors().peekable();
     let mut last_ancestor: Option<SyntaxNode> = None;
     while let Some(next_ancestor) = ancestors.next() {
@@ -536,20 +554,14 @@ fn next_space_for_fn_in_module(
 ) -> Option<(FileId, GeneratedFunctionTarget)> {
     let file = module_source.file_id.original_file(db);
     let assist_item = match &module_source.value {
-        hir::ModuleSource::SourceFile(it) => {
-            if let Some(last_item) = it.items().last() {
-                GeneratedFunctionTarget::BehindItem(last_item.syntax().clone())
-            } else {
-                GeneratedFunctionTarget::BehindItem(it.syntax().clone())
-            }
-        }
-        hir::ModuleSource::Module(it) => {
-            if let Some(last_item) = it.item_list().and_then(|it| it.items().last()) {
-                GeneratedFunctionTarget::BehindItem(last_item.syntax().clone())
-            } else {
-                GeneratedFunctionTarget::InEmptyItemList(it.item_list()?.syntax().clone())
-            }
-        }
+        hir::ModuleSource::SourceFile(it) => match it.items().last() {
+            Some(last_item) => GeneratedFunctionTarget::BehindItem(last_item.syntax().clone()),
+            None => GeneratedFunctionTarget::BehindItem(it.syntax().clone()),
+        },
+        hir::ModuleSource::Module(it) => match it.item_list().and_then(|it| it.items().last()) {
+            Some(last_item) => GeneratedFunctionTarget::BehindItem(last_item.syntax().clone()),
+            None => GeneratedFunctionTarget::InEmptyItemList(it.item_list()?.syntax().clone()),
+        },
         hir::ModuleSource::BlockExpr(it) => {
             if let Some(last_item) =
                 it.statements().take_while(|stmt| matches!(stmt, ast::Stmt::Item(_))).last()
@@ -603,7 +615,7 @@ fn foo() {
     bar();
 }
 
-fn bar() ${0:-> ()} {
+fn bar() ${0:-> _} {
     todo!()
 }
 ",
@@ -630,7 +642,7 @@ impl Foo {
     }
 }
 
-fn bar() ${0:-> ()} {
+fn bar() ${0:-> _} {
     todo!()
 }
 ",
@@ -654,7 +666,7 @@ fn foo1() {
     bar();
 }
 
-fn bar() ${0:-> ()} {
+fn bar() ${0:-> _} {
     todo!()
 }
 
@@ -680,7 +692,7 @@ mod baz {
         bar();
     }
 
-    fn bar() ${0:-> ()} {
+    fn bar() ${0:-> _} {
         todo!()
     }
 }
@@ -704,7 +716,7 @@ fn foo() {
     bar(BazBaz);
 }
 
-fn bar(baz_baz: BazBaz) ${0:-> ()} {
+fn bar(baz_baz: BazBaz) ${0:-> _} {
     todo!()
 }
 ",
@@ -727,7 +739,7 @@ fn foo() {
     bar(&BazBaz as *const BazBaz);
 }
 
-fn bar(baz_baz: *const BazBaz) ${0:-> ()} {
+fn bar(baz_baz: *const BazBaz) ${0:-> _} {
     todo!()
 }
 ",
@@ -752,7 +764,7 @@ fn foo() {
     bar(baz());
 }
 
-fn bar(baz: Baz) ${0:-> ()} {
+fn bar(baz: Baz) ${0:-> _} {
     todo!()
 }
 ",
@@ -1055,7 +1067,7 @@ fn foo() {
     bar(Baz::new);
 }
 
-fn bar(new: fn) ${0:-> ()} {
+fn bar(new: fn) ${0:-> _} {
     todo!()
 }
 ",
@@ -1079,7 +1091,7 @@ fn foo() {
     bar(closure)
 }
 
-fn bar(closure: ()) {
+fn bar(closure: _) {
     ${0:todo!()}
 }
 ",
@@ -1087,7 +1099,7 @@ fn bar(closure: ()) {
     }
 
     #[test]
-    fn unresolveable_types_default_to_unit() {
+    fn unresolveable_types_default_to_placeholder() {
         check_assist(
             generate_function,
             r"
@@ -1100,7 +1112,7 @@ fn foo() {
     bar(baz)
 }
 
-fn bar(baz: ()) {
+fn bar(baz: _) {
     ${0:todo!()}
 }
 ",
@@ -1364,7 +1376,7 @@ impl Foo {
         self.bar();
     }
 
-    fn bar(&self) ${0:-> ()} {
+    fn bar(&self) ${0:-> _} {
         todo!()
     }
 }
@@ -1386,7 +1398,7 @@ fn foo() {
     bar(42).await();
 }
 
-async fn bar(arg: i32) ${0:-> ()} {
+async fn bar(arg: i32) ${0:-> _} {
     todo!()
 }
 ",
@@ -1407,7 +1419,7 @@ fn foo() {S.bar();}
 impl S {
 
 
-fn bar(&self) ${0:-> ()} {
+fn bar(&self) ${0:-> _} {
     todo!()
 }
 }
@@ -1429,7 +1441,7 @@ impl S {}
 struct S;
 fn foo() {S.bar();}
 impl S {
-    fn bar(&self) ${0:-> ()} {
+    fn bar(&self) ${0:-> _} {
         todo!()
     }
 }
@@ -1454,7 +1466,7 @@ mod s {
 impl S {
 
 
-    pub(crate) fn bar(&self) ${0:-> ()} {
+    pub(crate) fn bar(&self) ${0:-> _} {
         todo!()
     }
 }
@@ -1487,7 +1499,7 @@ mod s {
 impl S {
 
 
-fn bar(&self) ${0:-> ()} {
+fn bar(&self) ${0:-> _} {
     todo!()
 }
 }
@@ -1510,9 +1522,215 @@ fn foo() {S.bar();}
 impl S {
 
 
-fn bar(&self) ${0:-> ()} {
+fn bar(&self) ${0:-> _} {
     todo!()
 }
+}
+",
+        )
+    }
+
+    #[test]
+    fn create_static_method() {
+        check_assist(
+            generate_function,
+            r"
+struct S;
+fn foo() {S::bar$0();}
+",
+            r"
+struct S;
+fn foo() {S::bar();}
+impl S {
+
+
+fn bar() ${0:-> _} {
+    todo!()
+}
+}
+",
+        )
+    }
+
+    #[test]
+    fn create_static_method_within_an_impl() {
+        check_assist(
+            generate_function,
+            r"
+struct S;
+fn foo() {S::bar$0();}
+impl S {}
+
+",
+            r"
+struct S;
+fn foo() {S::bar();}
+impl S {
+    fn bar() ${0:-> _} {
+        todo!()
+    }
+}
+
+",
+        )
+    }
+
+    #[test]
+    fn create_static_method_from_different_module() {
+        check_assist(
+            generate_function,
+            r"
+mod s {
+    pub struct S;
+}
+fn foo() {s::S::bar$0();}
+",
+            r"
+mod s {
+    pub struct S;
+impl S {
+
+
+    pub(crate) fn bar() ${0:-> _} {
+        todo!()
+    }
+}
+}
+fn foo() {s::S::bar();}
+",
+        )
+    }
+
+    #[test]
+    fn create_static_method_with_cursor_anywhere_on_call_expresion() {
+        check_assist(
+            generate_function,
+            r"
+struct S;
+fn foo() {$0S::bar();}
+",
+            r"
+struct S;
+fn foo() {S::bar();}
+impl S {
+
+
+fn bar() ${0:-> _} {
+    todo!()
+}
+}
+",
+        )
+    }
+
+    #[test]
+    fn no_panic_on_invalid_global_path() {
+        check_assist(
+            generate_function,
+            r"
+fn main() {
+    ::foo$0();
+}
+",
+            r"
+fn main() {
+    ::foo();
+}
+
+fn foo() ${0:-> _} {
+    todo!()
+}
+",
+        )
+    }
+
+    #[test]
+    fn handle_tuple_indexing() {
+        check_assist(
+            generate_function,
+            r"
+fn main() {
+    let a = ((),);
+    foo$0(a.0);
+}
+",
+            r"
+fn main() {
+    let a = ((),);
+    foo(a.0);
+}
+
+fn foo(arg0: ()) ${0:-> _} {
+    todo!()
+}
+",
+        )
+    }
+
+    #[test]
+    fn add_function_with_const_arg() {
+        check_assist(
+            generate_function,
+            r"
+const VALUE: usize = 0;
+fn main() {
+    foo$0(VALUE);
+}
+",
+            r"
+const VALUE: usize = 0;
+fn main() {
+    foo(VALUE);
+}
+
+fn foo(value: usize) ${0:-> _} {
+    todo!()
+}
+",
+        )
+    }
+
+    #[test]
+    fn add_function_with_static_arg() {
+        check_assist(
+            generate_function,
+            r"
+static VALUE: usize = 0;
+fn main() {
+    foo$0(VALUE);
+}
+",
+            r"
+static VALUE: usize = 0;
+fn main() {
+    foo(VALUE);
+}
+
+fn foo(value: usize) ${0:-> _} {
+    todo!()
+}
+",
+        )
+    }
+
+    #[test]
+    fn add_function_with_static_mut_arg() {
+        check_assist(
+            generate_function,
+            r"
+static mut VALUE: usize = 0;
+fn main() {
+    foo$0(VALUE);
+}
+",
+            r"
+static mut VALUE: usize = 0;
+fn main() {
+    foo(VALUE);
+}
+
+fn foo(value: usize) ${0:-> _} {
+    todo!()
 }
 ",
         )

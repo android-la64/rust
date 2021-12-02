@@ -1,7 +1,7 @@
 [package]
 name = "rustc_symbol_mangling"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 
 [lib]
 doctest = false
@@ -16,4 +16,5 @@ rustc_middle = { path = "../rustc_middle" }
 rustc_hir = { path = "../rustc_hir" }
 rustc_target = { path = "../rustc_target" }
 rustc_data_structures = { path = "../rustc_data_structures" }
+rustc_query_system = { path = "../rustc_query_system" }
 rustc_session = { path = "../rustc_session" }

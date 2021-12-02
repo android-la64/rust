@@ -2,41 +2,23 @@ use super::*;
 
 pub(super) fn inner_attrs(p: &mut Parser) {
     while p.at(T![#]) && p.nth(1) == T![!] {
-        attr(p, true)
+        attr(p, true);
     }
 }
 
 pub(super) fn outer_attrs(p: &mut Parser) {
     while p.at(T![#]) {
-        attr(p, false)
+        attr(p, false);
     }
-}
-
-pub(super) fn meta(p: &mut Parser) {
-    let meta = p.start();
-    paths::use_path(p);
-
-    match p.current() {
-        T![=] => {
-            p.bump(T![=]);
-            if expressions::expr(p).0.is_none() {
-                p.error("expected expression");
-            }
-        }
-        T!['('] | T!['['] | T!['{'] => items::token_tree(p),
-        _ => {}
-    }
-
-    meta.complete(p, META);
 }
 
 fn attr(p: &mut Parser, inner: bool) {
-    let attr = p.start();
     assert!(p.at(T![#]));
+
+    let attr = p.start();
     p.bump(T![#]);
 
     if inner {
-        assert!(p.at(T![!]));
         p.bump(T![!]);
     }
 
@@ -50,4 +32,22 @@ fn attr(p: &mut Parser, inner: bool) {
         p.error("expected `[`");
     }
     attr.complete(p, ATTR);
+}
+
+pub(super) fn meta(p: &mut Parser) {
+    let meta = p.start();
+    paths::use_path(p);
+
+    match p.current() {
+        T![=] => {
+            p.bump(T![=]);
+            if !expressions::expr(p) {
+                p.error("expected expression");
+            }
+        }
+        T!['('] | T!['['] | T!['{'] => items::token_tree(p),
+        _ => {}
+    }
+
+    meta.complete(p, META);
 }

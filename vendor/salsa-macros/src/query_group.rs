@@ -36,202 +36,181 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
     // Decompose the trait into the corresponding queries.
     let mut queries = vec![];
     for item in input.items {
-        match item {
-            TraitItem::Method(method) => {
-                let mut storage = QueryStorage::Memoized;
-                let mut cycle = None;
-                let mut invoke = None;
-                let query_name = method.sig.ident.to_string();
-                let mut query_type = Ident::new(
-                    &format!("{}Query", method.sig.ident.to_string().to_camel_case()),
-                    Span::call_site(),
-                );
-                let mut num_storages = 0;
+        if let TraitItem::Method(method) = item {
+            let query_name = method.sig.ident.to_string();
 
-                // Extract attributes.
-                let (attrs, salsa_attrs) = filter_attrs(method.attrs);
-                for SalsaAttr { name, tts, span } in salsa_attrs {
-                    match name.as_str() {
-                        "memoized" => {
-                            storage = QueryStorage::Memoized;
-                            num_storages += 1;
-                        }
-                        "dependencies" => {
-                            storage = QueryStorage::Dependencies;
-                            num_storages += 1;
-                        }
-                        "input" => {
-                            storage = QueryStorage::Input;
-                            num_storages += 1;
-                        }
-                        "interned" => {
-                            storage = QueryStorage::Interned;
-                            num_storages += 1;
-                        }
-                        "cycle" => {
-                            cycle = Some(parse_macro_input!(tts as Parenthesized<syn::Path>).0);
-                        }
-                        "invoke" => {
-                            invoke = Some(parse_macro_input!(tts as Parenthesized<syn::Path>).0);
-                        }
-                        "query_type" => {
-                            query_type = parse_macro_input!(tts as Parenthesized<Ident>).0;
-                        }
-                        "transparent" => {
-                            storage = QueryStorage::Transparent;
-                            num_storages += 1;
-                        }
-                        _ => {
-                            return Error::new(span, format!("unknown salsa attribute `{}`", name))
-                                .to_compile_error()
-                                .into();
-                        }
+            let mut storage = QueryStorage::Memoized;
+            let mut cycle = None;
+            let mut invoke = None;
+
+            let mut query_type = format_ident!("{}Query", query_name.to_string().to_camel_case());
+            let mut num_storages = 0;
+
+            // Extract attributes.
+            let (attrs, salsa_attrs) = filter_attrs(method.attrs);
+            for SalsaAttr { name, tts, span } in salsa_attrs {
+                match name.as_str() {
+                    "memoized" => {
+                        storage = QueryStorage::Memoized;
+                        num_storages += 1;
                     }
-                }
-
-                // Check attribute combinations.
-                if num_storages > 1 {
-                    return Error::new(method.sig.span(), "multiple storage attributes specified")
-                        .to_compile_error()
-                        .into();
-                }
-                match &invoke {
-                    Some(invoke) if storage == QueryStorage::Input => {
-                        return Error::new(
-                            invoke.span(),
-                            "#[salsa::invoke] cannot be set on #[salsa::input] queries",
-                        )
-                        .to_compile_error()
-                        .into();
+                    "dependencies" => {
+                        storage = QueryStorage::Dependencies;
+                        num_storages += 1;
                     }
-                    _ => {}
-                }
-
-                // Extract keys.
-                let mut iter = method.sig.inputs.iter();
-                match iter.next() {
-                    Some(FnArg::Receiver(sr)) if sr.mutability.is_none() => (),
+                    "input" => {
+                        storage = QueryStorage::Input;
+                        num_storages += 1;
+                    }
+                    "interned" => {
+                        storage = QueryStorage::Interned;
+                        num_storages += 1;
+                    }
+                    "cycle" => {
+                        cycle = Some(parse_macro_input!(tts as Parenthesized<syn::Path>).0);
+                    }
+                    "invoke" => {
+                        invoke = Some(parse_macro_input!(tts as Parenthesized<syn::Path>).0);
+                    }
+                    "query_type" => {
+                        query_type = parse_macro_input!(tts as Parenthesized<Ident>).0;
+                    }
+                    "transparent" => {
+                        storage = QueryStorage::Transparent;
+                        num_storages += 1;
+                    }
                     _ => {
-                        return Error::new(
-                            method.sig.span(),
-                            format!(
-                                "first argument of query `{}` must be `&self`",
-                                method.sig.ident,
-                            ),
-                        )
-                        .to_compile_error()
-                        .into();
-                    }
-                }
-                let mut keys: Vec<Type> = vec![];
-                for arg in iter {
-                    match *arg {
-                        FnArg::Typed(ref arg) => {
-                            keys.push((*arg.ty).clone());
-                        }
-                        ref arg => {
-                            return Error::new(
-                                arg.span(),
-                                format!(
-                                    "unsupported argument `{:?}` of `{}`",
-                                    arg, method.sig.ident,
-                                ),
-                            )
+                        return Error::new(span, format!("unknown salsa attribute `{}`", name))
                             .to_compile_error()
                             .into();
-                        }
                     }
                 }
+            }
 
-                // Extract value.
-                let value = match method.sig.output {
-                    ReturnType::Type(_, ref ty) => ty.as_ref().clone(),
-                    ref ret => {
+            let sig_span = method.sig.span();
+            // Check attribute combinations.
+            if num_storages > 1 {
+                return Error::new(sig_span, "multiple storage attributes specified")
+                    .to_compile_error()
+                    .into();
+            }
+            match &invoke {
+                Some(invoke) if storage == QueryStorage::Input => {
+                    return Error::new(
+                        invoke.span(),
+                        "#[salsa::invoke] cannot be set on #[salsa::input] queries",
+                    )
+                    .to_compile_error()
+                    .into();
+                }
+                _ => {}
+            }
+
+            // Extract keys.
+            let mut iter = method.sig.inputs.iter();
+            match iter.next() {
+                Some(FnArg::Receiver(sr)) if sr.mutability.is_none() => (),
+                _ => {
+                    return Error::new(
+                        sig_span,
+                        format!("first argument of query `{}` must be `&self`", query_name),
+                    )
+                    .to_compile_error()
+                    .into();
+                }
+            }
+            let mut keys: Vec<(Ident, Type)> = vec![];
+            for (idx, arg) in iter.enumerate() {
+                match arg {
+                    FnArg::Typed(syn::PatType { pat, ty, .. }) => keys.push((
+                        match pat.as_ref() {
+                            syn::Pat::Ident(ident_pat) => ident_pat.ident.clone(),
+                            _ => format_ident!("key{}", idx),
+                        },
+                        Type::clone(ty),
+                    )),
+                    arg => {
                         return Error::new(
-                            ret.span(),
-                            format!(
-                                "unsupported return type `{:?}` of `{}`",
-                                ret, method.sig.ident
-                            ),
+                            arg.span(),
+                            format!("unsupported argument `{:?}` of `{}`", arg, query_name,),
                         )
                         .to_compile_error()
                         .into();
                     }
-                };
-
-                // For `#[salsa::interned]` keys, we create a "lookup key" automatically.
-                //
-                // For a query like:
-                //
-                //     fn foo(&self, x: Key1, y: Key2) -> u32
-                //
-                // we would create
-                //
-                //     fn lookup_foo(&self, x: u32) -> (Key1, Key2)
-                let lookup_query = if let QueryStorage::Interned = storage {
-                    let lookup_query_type = Ident::new(
-                        &format!(
-                            "{}LookupQuery",
-                            method.sig.ident.to_string().to_camel_case()
-                        ),
-                        Span::call_site(),
-                    );
-                    let lookup_fn_name = Ident::new(
-                        &format!("lookup_{}", method.sig.ident.to_string()),
-                        method.sig.ident.span(),
-                    );
-                    let keys = &keys;
-                    let lookup_value: Type = parse_quote!((#(#keys),*));
-                    let lookup_keys = vec![value.clone()];
-                    Some(Query {
-                        query_type: lookup_query_type,
-                        query_name: format!("lookup_{}", query_name),
-                        fn_name: lookup_fn_name,
-                        attrs: vec![], // FIXME -- some automatically generated docs on this method?
-                        storage: QueryStorage::InternedLookup {
-                            intern_query_type: query_type.clone(),
-                        },
-                        keys: lookup_keys,
-                        value: lookup_value,
-                        invoke: None,
-                        cycle: cycle.clone(),
-                    })
-                } else {
-                    None
-                };
-
-                queries.push(Query {
-                    query_type,
-                    query_name,
-                    fn_name: method.sig.ident,
-                    attrs,
-                    storage,
-                    keys,
-                    value,
-                    invoke,
-                    cycle,
-                });
-
-                queries.extend(lookup_query);
+                }
             }
-            _ => (),
+
+            // Extract value.
+            let value = match method.sig.output {
+                ReturnType::Type(_, ref ty) => ty.as_ref().clone(),
+                ref ret => {
+                    return Error::new(
+                        ret.span(),
+                        format!("unsupported return type `{:?}` of `{}`", ret, query_name),
+                    )
+                    .to_compile_error()
+                    .into();
+                }
+            };
+
+            // For `#[salsa::interned]` keys, we create a "lookup key" automatically.
+            //
+            // For a query like:
+            //
+            //     fn foo(&self, x: Key1, y: Key2) -> u32
+            //
+            // we would create
+            //
+            //     fn lookup_foo(&self, x: u32) -> (Key1, Key2)
+            let lookup_query = if let QueryStorage::Interned = storage {
+                let lookup_query_type =
+                    format_ident!("{}LookupQuery", query_name.to_string().to_camel_case());
+                let lookup_fn_name = format_ident!("lookup_{}", query_name);
+                let keys = keys.iter().map(|(_, ty)| ty);
+                let lookup_value: Type = parse_quote!((#(#keys),*));
+                let lookup_keys = vec![(parse_quote! { key }, value.clone())];
+                Some(Query {
+                    query_type: lookup_query_type,
+                    query_name: format!("{}", lookup_fn_name),
+                    fn_name: lookup_fn_name,
+                    attrs: vec![], // FIXME -- some automatically generated docs on this method?
+                    storage: QueryStorage::InternedLookup {
+                        intern_query_type: query_type.clone(),
+                    },
+                    keys: lookup_keys,
+                    value: lookup_value,
+                    invoke: None,
+                    cycle: cycle.clone(),
+                })
+            } else {
+                None
+            };
+
+            queries.push(Query {
+                query_type,
+                query_name,
+                fn_name: method.sig.ident,
+                attrs,
+                storage,
+                keys,
+                value,
+                invoke,
+                cycle,
+            });
+
+            queries.extend(lookup_query);
         }
     }
 
-    let group_storage = Ident::new(
-        &format!("{}GroupStorage__", trait_name.to_string()),
-        Span::call_site(),
-    );
+    let group_storage = format_ident!("{}GroupStorage__", trait_name, span = Span::call_site());
 
     let mut query_fn_declarations = proc_macro2::TokenStream::new();
     let mut query_fn_definitions = proc_macro2::TokenStream::new();
     let mut storage_fields = proc_macro2::TokenStream::new();
     let mut queries_with_storage = vec![];
     for query in &queries {
-        let key_names: &Vec<_> = &(0..query.keys.len())
-            .map(|i| Ident::new(&format!("key{}", i), Span::call_site()))
-            .collect();
-        let keys = &query.keys;
+        let (key_names, keys): (Vec<_>, Vec<_>) =
+            query.keys.iter().map(|(pat, ty)| (pat, ty)).unzip();
         let value = &query.value;
         let fn_name = &query.fn_name;
         let qt = &query.query_type;
@@ -272,9 +251,8 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
 
         // For input queries, we need `set_foo` etc
         if let QueryStorage::Input = query.storage {
-            let set_fn_name = Ident::new(&format!("set_{}", fn_name), fn_name.span());
-            let set_with_durability_fn_name =
-                Ident::new(&format!("set_{}_with_durability", fn_name), fn_name.span());
+            let set_fn_name = format_ident!("set_{}", fn_name);
+            let set_with_durability_fn_name = format_ident!("set_{}_with_durability", fn_name);
 
             let set_fn_docs = format!(
                 "
@@ -366,7 +344,7 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
 
     // Emit an impl of the trait
     output.extend({
-        let bounds = input.supertraits.clone();
+        let bounds = input.supertraits;
         quote! {
             impl<DB> #trait_name for DB
             where
@@ -380,10 +358,9 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
     });
 
     let non_transparent_queries = || {
-        queries.iter().filter(|q| match q.storage {
-            QueryStorage::Transparent => false,
-            _ => true,
-        })
+        queries
+            .iter()
+            .filter(|q| !matches!(q.storage, QueryStorage::Transparent))
     };
 
     // Emit the query types.
@@ -393,7 +370,9 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
 
         let storage = match &query.storage {
             QueryStorage::Memoized => quote!(salsa::plumbing::MemoizedStorage<Self>),
-            QueryStorage::Dependencies => quote!(salsa::plumbing::DependencyStorage<Self>),
+            QueryStorage::Dependencies => {
+                quote!(salsa::plumbing::DependencyStorage<Self>)
+            }
             QueryStorage::Input => quote!(salsa::plumbing::InputStorage<Self>),
             QueryStorage::Interned => quote!(salsa::plumbing::InternedStorage<Self>),
             QueryStorage::InternedLookup { intern_query_type } => {
@@ -401,7 +380,7 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
             }
             QueryStorage::Transparent => panic!("should have been filtered"),
         };
-        let keys = &query.keys;
+        let keys = query.keys.iter().map(|(_, ty)| ty);
         let value = &query.value;
         let query_name = &query.query_name;
 
@@ -413,9 +392,8 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
 
         output.extend(quote! {
             impl #qt {
-                /// Get access to extra methods pertaining to this query. For
-                /// example, you can use this to run the GC (`sweep`) across a
-                /// single input. You can also use it to invoke this query, though
+                /// Get access to extra methods pertaining to this query.
+                /// You can also use it to invoke this query, though
                 /// it's more common to use the trait method on the database
                 /// itself.
                 #trait_vis fn in_db(self, db: &#dyn_db) -> salsa::QueryTable<'_, Self>
@@ -425,7 +403,6 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
             }
         });
 
-        if query.storage.supports_mut() {}
         output.extend(quote! {
             impl #qt {
                 /// Like `in_db`, but gives access to methods for setting the
@@ -495,9 +472,8 @@ pub(crate) fn query_group(args: TokenStream, input: TokenStream) -> TokenStream 
         // Implement the QueryFunction trait for queries which need it.
         if query.storage.needs_query_function() {
             let span = query.fn_name.span();
-            let key_names: &Vec<_> = &(0..query.keys.len())
-                .map(|i| Ident::new(&format!("key{}", i), Span::call_site()))
-                .collect();
+
+            let key_names: Vec<_> = query.keys.iter().map(|(pat, _)| pat).collect();
             let key_pattern = if query.keys.len() == 1 {
                 quote! { #(#key_names),* }
             } else {
@@ -689,7 +665,7 @@ struct Query {
     attrs: Vec<syn::Attribute>,
     query_type: Ident,
     storage: QueryStorage,
-    keys: Vec<syn::Type>,
+    keys: Vec<(Ident, syn::Type)>,
     value: syn::Type,
     invoke: Option<syn::Path>,
     cycle: Option<syn::Path>,
@@ -723,18 +699,6 @@ impl QueryStorage {
             | QueryStorage::InternedLookup { .. }
             | QueryStorage::Transparent => false,
             QueryStorage::Memoized | QueryStorage::Dependencies => true,
-        }
-    }
-
-    /// Does this type of query support `&mut` operations?
-    fn supports_mut(&self) -> bool {
-        match self {
-            QueryStorage::Input => true,
-            QueryStorage::Interned
-            | QueryStorage::InternedLookup { .. }
-            | QueryStorage::Transparent
-            | QueryStorage::Memoized
-            | QueryStorage::Dependencies => false,
         }
     }
 }

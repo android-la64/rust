@@ -58,8 +58,8 @@ impl rustc_driver::Callbacks for MiriCompilerCalls {
 
         queries.global_ctxt().unwrap().peek_mut().enter(|tcx| {
             init_late_loggers(tcx);
-            let (entry_def_id, _) = if let Some((entry_def, x)) = tcx.entry_fn(()) {
-                (entry_def, x)
+            let (entry_def_id, entry_type) = if let Some(entry_def) = tcx.entry_fn(()) {
+                entry_def
             } else {
                 let output_ty = ErrorOutputType::HumanReadable(HumanReadableErrorType::Default(
                     ColorConfig::Auto,
@@ -79,7 +79,7 @@ impl rustc_driver::Callbacks for MiriCompilerCalls {
                 env::set_current_dir(cwd).unwrap();
             }
 
-            if let Some(return_code) = miri::eval_main(tcx, entry_def_id, config) {
+            if let Some(return_code) = miri::eval_entry(tcx, entry_def_id, entry_type, config) {
                 std::process::exit(
                     i32::try_from(return_code).expect("Return value was too large!"),
                 );
@@ -164,11 +164,14 @@ fn init_late_loggers(tcx: TyCtxt<'_>) {
             // used for everything, we only apply it to the parts of rustc that are
             // CTFE-related. Otherwise, we use it verbatim for `RUSTC_LOG`.
             // This way, if you set `MIRI_LOG=trace`, you get only the right parts of
-            // rustc traced, but you can also do `MIRI_LOG=miri=trace,rustc_mir::interpret=debug`.
+            // rustc traced, but you can also do `MIRI_LOG=miri=trace,rustc_const_eval::interpret=debug`.
             if log::Level::from_str(&var).is_ok() {
                 env::set_var(
                     "RUSTC_LOG",
-                    &format!("rustc_middle::mir::interpret={0},rustc_mir::interpret={0}", var),
+                    &format!(
+                        "rustc_middle::mir::interpret={0},rustc_const_eval::interpret={0}",
+                        var
+                    ),
                 );
             } else {
                 env::set_var("RUSTC_LOG", &var);

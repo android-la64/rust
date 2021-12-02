@@ -120,8 +120,7 @@ crate struct Crate {
     crate module: Item,
     crate externs: Vec<ExternalCrate>,
     crate primitives: ThinVec<(DefId, PrimitiveType)>,
-    // These are later on moved into `CACHEKEY`, leaving the map empty.
-    // Only here so that they can be filtered through the rustdoc passes.
+    /// Only here so that they can be filtered through the rustdoc passes.
     crate external_traits: Rc<RefCell<FxHashMap<DefId, TraitWithExtraInfo>>>,
     crate collapsed: bool,
 }
@@ -212,7 +211,7 @@ impl ExternalCrate {
     crate fn keywords(&self, tcx: TyCtxt<'_>) -> ThinVec<(DefId, Symbol)> {
         let root = self.def_id();
 
-        let as_keyword = |res: Res| {
+        let as_keyword = |res: Res<!>| {
             if let Res::Def(DefKind::Mod, def_id) = res {
                 let attrs = tcx.get_attrs(def_id);
                 let mut keyword = None;
@@ -230,8 +229,7 @@ impl ExternalCrate {
         };
         if root.is_local() {
             tcx.hir()
-                .krate()
-                .module()
+                .root_module()
                 .item_ids
                 .iter()
                 .filter_map(|&id| {
@@ -243,7 +241,8 @@ impl ExternalCrate {
                         hir::ItemKind::Use(ref path, hir::UseKind::Single)
                             if item.vis.node.is_pub() =>
                         {
-                            as_keyword(path.res).map(|(_, prim)| (id.def_id.to_def_id(), prim))
+                            as_keyword(path.res.expect_non_local())
+                                .map(|(_, prim)| (id.def_id.to_def_id(), prim))
                         }
                         _ => None,
                     }
@@ -274,7 +273,7 @@ impl ExternalCrate {
         // Also note that this does not attempt to deal with modules tagged
         // duplicately for the same primitive. This is handled later on when
         // rendering by delegating everything to a hash map.
-        let as_primitive = |res: Res| {
+        let as_primitive = |res: Res<!>| {
             if let Res::Def(DefKind::Mod, def_id) = res {
                 let attrs = tcx.get_attrs(def_id);
                 let mut prim = None;
@@ -296,8 +295,7 @@ impl ExternalCrate {
 
         if root.is_local() {
             tcx.hir()
-                .krate()
-                .module()
+                .root_module()
                 .item_ids
                 .iter()
                 .filter_map(|&id| {
@@ -309,7 +307,7 @@ impl ExternalCrate {
                         hir::ItemKind::Use(ref path, hir::UseKind::Single)
                             if item.vis.node.is_pub() =>
                         {
-                            as_primitive(path.res).map(|(_, prim)| {
+                            as_primitive(path.res.expect_non_local()).map(|(_, prim)| {
                                 // Pretend the primitive is local.
                                 (id.def_id.to_def_id(), prim)
                             })
@@ -420,9 +418,9 @@ impl Item {
             def_id,
             name,
             kind,
-            Box::new(ast_attrs.clean(cx)),
+            box ast_attrs.clean(cx),
             cx,
-            ast_attrs.cfg(cx.sess()),
+            ast_attrs.cfg(cx.tcx, &cx.cache.hidden_cfg),
         )
     }
 
@@ -438,7 +436,7 @@ impl Item {
 
         Item {
             def_id: def_id.into(),
-            kind: Box::new(kind),
+            kind: box kind,
             name,
             attrs,
             visibility: cx.tcx.visibility(def_id).clean(cx),
@@ -461,60 +459,20 @@ impl Item {
             .map_or(&[][..], |v| v.as_slice())
             .iter()
             .filter_map(|ItemLink { link: s, link_text, did, ref fragment }| {
-                match did {
-                    Some(did) => {
-                        if let Ok((mut href, ..)) = href(did.clone(), cx) {
-                            if let Some(ref fragment) = *fragment {
-                                href.push('#');
-                                href.push_str(fragment);
-                            }
-                            Some(RenderedLink {
-                                original_text: s.clone(),
-                                new_text: link_text.clone(),
-                                href,
-                            })
-                        } else {
-                            None
-                        }
+                debug!(?did);
+                if let Ok((mut href, ..)) = href(*did, cx) {
+                    debug!(?href);
+                    if let Some(ref fragment) = *fragment {
+                        href.push('#');
+                        href.push_str(fragment);
                     }
-                    // FIXME(83083): using fragments as a side-channel for
-                    // primitive names is very unfortunate
-                    None => {
-                        let relative_to = &cx.current;
-                        if let Some(ref fragment) = *fragment {
-                            let url = match cx.cache().extern_locations.get(&self.def_id.krate()) {
-                                Some(&ExternalLocation::Local) => {
-                                    if relative_to[0] == "std" {
-                                        let depth = relative_to.len() - 1;
-                                        "../".repeat(depth)
-                                    } else {
-                                        let depth = relative_to.len();
-                                        format!("{}std/", "../".repeat(depth))
-                                    }
-                                }
-                                Some(ExternalLocation::Remote(ref s)) => {
-                                    format!("{}/std/", s.trim_end_matches('/'))
-                                }
-                                Some(ExternalLocation::Unknown) | None => {
-                                    format!("{}/std/", crate::DOC_RUST_LANG_ORG_CHANNEL)
-                                }
-                            };
-                            // This is a primitive so the url is done "by hand".
-                            let tail = fragment.find('#').unwrap_or_else(|| fragment.len());
-                            Some(RenderedLink {
-                                original_text: s.clone(),
-                                new_text: link_text.clone(),
-                                href: format!(
-                                    "{}primitive.{}.html{}",
-                                    url,
-                                    &fragment[..tail],
-                                    &fragment[tail..]
-                                ),
-                            })
-                        } else {
-                            panic!("This isn't a primitive?!");
-                        }
-                    }
+                    Some(RenderedLink {
+                        original_text: s.clone(),
+                        new_text: link_text.clone(),
+                        href,
+                    })
+                } else {
+                    None
                 }
             })
             .collect()
@@ -531,18 +489,10 @@ impl Item {
             .get(&self.def_id)
             .map_or(&[][..], |v| v.as_slice())
             .iter()
-            .filter_map(|ItemLink { link: s, link_text, did, fragment }| {
-                // FIXME(83083): using fragments as a side-channel for
-                // primitive names is very unfortunate
-                if did.is_some() || fragment.is_some() {
-                    Some(RenderedLink {
-                        original_text: s.clone(),
-                        new_text: link_text.clone(),
-                        href: String::new(),
-                    })
-                } else {
-                    None
-                }
+            .map(|ItemLink { link: s, link_text, .. }| RenderedLink {
+                original_text: s.clone(),
+                new_text: link_text.clone(),
+                href: String::new(),
             })
             .collect()
     }
@@ -796,7 +746,7 @@ crate trait AttributesExt {
 
     fn other_attrs(&self) -> Vec<ast::Attribute>;
 
-    fn cfg(&self, sess: &Session) -> Option<Arc<Cfg>>;
+    fn cfg(&self, tcx: TyCtxt<'_>, hidden_cfg: &FxHashSet<Cfg>) -> Option<Arc<Cfg>>;
 }
 
 impl AttributesExt for [ast::Attribute] {
@@ -821,8 +771,44 @@ impl AttributesExt for [ast::Attribute] {
         self.iter().filter(|attr| attr.doc_str().is_none()).cloned().collect()
     }
 
-    fn cfg(&self, sess: &Session) -> Option<Arc<Cfg>> {
-        let mut cfg = Cfg::True;
+    fn cfg(&self, tcx: TyCtxt<'_>, hidden_cfg: &FxHashSet<Cfg>) -> Option<Arc<Cfg>> {
+        let sess = tcx.sess;
+        let doc_cfg_active = tcx.features().doc_cfg;
+        let doc_auto_cfg_active = tcx.features().doc_auto_cfg;
+
+        fn single<T: IntoIterator>(it: T) -> Option<T::Item> {
+            let mut iter = it.into_iter();
+            let item = iter.next()?;
+            if iter.next().is_some() {
+                return None;
+            }
+            Some(item)
+        }
+
+        let mut cfg = if doc_cfg_active || doc_auto_cfg_active {
+            let mut doc_cfg = self
+                .iter()
+                .filter(|attr| attr.has_name(sym::doc))
+                .flat_map(|attr| attr.meta_item_list().unwrap_or_else(Vec::new))
+                .filter(|attr| attr.has_name(sym::cfg))
+                .peekable();
+            if doc_cfg.peek().is_some() && doc_cfg_active {
+                doc_cfg
+                    .filter_map(|attr| Cfg::parse(attr.meta_item()?).ok())
+                    .fold(Cfg::True, |cfg, new_cfg| cfg & new_cfg)
+            } else if doc_auto_cfg_active {
+                self.iter()
+                    .filter(|attr| attr.has_name(sym::cfg))
+                    .filter_map(|attr| single(attr.meta_item_list()?))
+                    .filter_map(|attr| Cfg::parse(attr.meta_item()?).ok())
+                    .filter(|cfg| !hidden_cfg.contains(cfg))
+                    .fold(Cfg::True, |cfg, new_cfg| cfg & new_cfg)
+            } else {
+                Cfg::True
+            }
+        } else {
+            Cfg::True
+        };
 
         for attr in self.iter() {
             // #[doc]
@@ -849,6 +835,8 @@ impl AttributesExt for [ast::Attribute] {
             }
         }
 
+        // treat #[target_feature(enable = "feat")] attributes as if they were
+        // #[doc(cfg(target_feature = "feat"))] attributes as well
         for attr in self.lists(sym::target_feature) {
             if attr.has_name(sym::enable) {
                 if let Some(feat) = attr.value_str() {
@@ -955,18 +943,10 @@ impl<'a> FromIterator<&'a DocFragment> for String {
     }
 }
 
-/// The attributes on an [`Item`], including attributes like `#[derive(...)]` and `#[inline]`,
-/// as well as doc comments.
-#[derive(Clone, Debug, Default)]
-crate struct Attributes {
-    crate doc_strings: Vec<DocFragment>,
-    crate other_attrs: Vec<ast::Attribute>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 /// A link that has not yet been rendered.
 ///
 /// This link will be turned into a rendered link by [`Item::links`].
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 crate struct ItemLink {
     /// The original link written in the markdown
     pub(crate) link: String,
@@ -975,7 +955,7 @@ crate struct ItemLink {
     /// This may not be the same as `link` if there was a disambiguator
     /// in an intra-doc link (e.g. \[`fn@f`\])
     pub(crate) link_text: String,
-    pub(crate) did: Option<DefId>,
+    pub(crate) did: DefId,
     /// The url fragment to append to the link
     pub(crate) fragment: Option<String>,
 }
@@ -989,6 +969,14 @@ pub struct RenderedLink {
     pub(crate) new_text: String,
     /// The URL to put in the `href`
     pub(crate) href: String,
+}
+
+/// The attributes on an [`Item`], including attributes like `#[derive(...)]` and `#[inline]`,
+/// as well as doc comments.
+#[derive(Clone, Debug, Default)]
+crate struct Attributes {
+    crate doc_strings: Vec<DocFragment>,
+    crate other_attrs: Vec<ast::Attribute>,
 }
 
 impl Attributes {
@@ -1158,13 +1146,10 @@ impl GenericBound {
     crate fn maybe_sized(cx: &mut DocContext<'_>) -> GenericBound {
         let did = cx.tcx.require_lang_item(LangItem::Sized, None);
         let empty = cx.tcx.intern_substs(&[]);
-        let path = external_path(cx, cx.tcx.item_name(did), Some(did), false, vec![], empty);
+        let path = external_path(cx, did, false, vec![], empty);
         inline::record_extern_fqn(cx, did, ItemType::Trait);
         GenericBound::TraitBound(
-            PolyTrait {
-                trait_: ResolvedPath { path, did, is_generic: false },
-                generic_params: Vec::new(),
-            },
+            PolyTrait { trait_: path, generic_params: Vec::new() },
             hir::TraitBoundModifier::Maybe,
         )
     }
@@ -1172,7 +1157,7 @@ impl GenericBound {
     crate fn is_sized_bound(&self, cx: &DocContext<'_>) -> bool {
         use rustc_hir::TraitBoundModifier as TBM;
         if let GenericBound::TraitBound(PolyTrait { ref trait_, .. }, TBM::None) = *self {
-            if trait_.def_id() == cx.tcx.lang_items().sized_trait() {
+            if Some(trait_.def_id()) == cx.tcx.lang_items().sized_trait() {
                 return true;
             }
         }
@@ -1186,7 +1171,7 @@ impl GenericBound {
         None
     }
 
-    crate fn get_trait_type(&self) -> Option<Type> {
+    crate fn get_trait_path(&self) -> Option<Path> {
         if let GenericBound::TraitBound(PolyTrait { ref trait_, .. }, _) = *self {
             Some(trait_.clone())
         } else {
@@ -1231,7 +1216,9 @@ impl WherePredicate {
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 crate enum GenericParamDefKind {
-    Lifetime,
+    Lifetime {
+        outlives: Vec<Lifetime>,
+    },
     Type {
         did: DefId,
         bounds: Vec<GenericBound>,
@@ -1257,7 +1244,7 @@ impl GenericParamDefKind {
         match self {
             GenericParamDefKind::Type { default, .. } => default.clone(),
             GenericParamDefKind::Const { ty, .. } => Some(ty.clone()),
-            GenericParamDefKind::Lifetime => None,
+            GenericParamDefKind::Lifetime { .. } => None,
         }
     }
 }
@@ -1271,7 +1258,7 @@ crate struct GenericParamDef {
 impl GenericParamDef {
     crate fn is_synthetic_type_param(&self) -> bool {
         match self.kind {
-            GenericParamDefKind::Lifetime | GenericParamDefKind::Const { .. } => false,
+            GenericParamDefKind::Lifetime { .. } | GenericParamDefKind::Const { .. } => false,
             GenericParamDefKind::Type { ref synthetic, .. } => synthetic.is_some(),
         }
     }
@@ -1416,88 +1403,54 @@ crate struct TraitAlias {
 /// A trait reference, which may have higher ranked lifetimes.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 crate struct PolyTrait {
-    crate trait_: Type,
+    crate trait_: Path,
     crate generic_params: Vec<GenericParamDef>,
 }
 
-/// A representation of a type suitable for hyperlinking purposes. Ideally, one can get the original
-/// type out of the AST/`TyCtxt` given one of these, if more information is needed. Most
-/// importantly, it does not preserve mutability or boxes.
+/// Rustdoc's representation of types, mostly based on the [`hir::Ty`].
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 crate enum Type {
-    /// Structs/enums/traits (most that would be an `hir::TyKind::Path`).
-    ResolvedPath {
-        path: Path,
-        did: DefId,
-        /// `true` if is a `T::Name` path for associated types.
-        is_generic: bool,
-    },
-    /// `dyn for<'a> Trait<'a> + Send + 'static`
+    /// A named type, which could be a trait.
+    ///
+    /// This is mostly Rustdoc's version of [`hir::Path`]. It has to be different because Rustdoc's [`PathSegment`] can contain cleaned generics.
+    ResolvedPath { path: Path, did: DefId },
+    /// A `dyn Trait` object: `dyn for<'a> Trait<'a> + Send + 'static`
     DynTrait(Vec<PolyTrait>, Option<Lifetime>),
-    /// For parameterized types, so the consumer of the JSON don't go
-    /// looking for types which don't exist anywhere.
+    /// A type parameter.
     Generic(Symbol),
-    /// Primitives are the fixed-size numeric types (plus int/usize/float), char,
-    /// arrays, slices, and tuples.
+    /// A primitive (aka, builtin) type.
     Primitive(PrimitiveType),
-    /// `extern "ABI" fn`
+    /// A function pointer: `extern "ABI" fn(...) -> ...`
     BareFunction(Box<BareFunctionDecl>),
+    /// A tuple type: `(i32, &str)`.
     Tuple(Vec<Type>),
+    /// A slice type (does *not* include the `&`): `[i32]`
     Slice(Box<Type>),
-    /// The `String` field is about the size or the constant representing the array's length.
+    /// An array type.
+    ///
+    /// The `String` field is a stringified version of the array's length parameter.
     Array(Box<Type>, String),
-    Never,
+    /// A raw pointer type: `*const i32`, `*mut i32`
     RawPointer(Mutability, Box<Type>),
-    BorrowedRef {
-        lifetime: Option<Lifetime>,
-        mutability: Mutability,
-        type_: Box<Type>,
-    },
+    /// A reference type: `&i32`, `&'a mut Foo`
+    BorrowedRef { lifetime: Option<Lifetime>, mutability: Mutability, type_: Box<Type> },
 
-    // `<Type as Trait>::Name`
+    /// A qualified path to an associated item: `<Type as Trait>::Name`
     QPath {
         name: Symbol,
         self_type: Box<Type>,
+        /// FIXME: This is a hack that should be removed; see [this discussion][1].
+        ///
+        /// [1]: https://github.com/rust-lang/rust/pull/85479#discussion_r635729093
         self_def_id: Option<DefId>,
-        trait_: Box<Type>,
+        trait_: Path,
     },
 
-    // `_`
+    /// A type that is inferred: `_`
     Infer,
 
-    // `impl TraitA + TraitB + ...`
+    /// An `impl Trait`: `impl TraitA + TraitB + ...`
     ImplTrait(Vec<GenericBound>),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Copy, Debug)]
-/// N.B. this has to be different from `hir::PrimTy` because it also includes types that aren't
-/// paths, like `Unit`.
-crate enum PrimitiveType {
-    Isize,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    Usize,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    F32,
-    F64,
-    Char,
-    Bool,
-    Str,
-    Slice,
-    Array,
-    Tuple,
-    Unit,
-    RawPointer,
-    Reference,
-    Fn,
-    Never,
 }
 
 crate trait GetDefId {
@@ -1543,14 +1496,14 @@ impl Type {
             }
             RawPointer(..) => Some(PrimitiveType::RawPointer),
             BareFunction(..) => Some(PrimitiveType::Fn),
-            Never => Some(PrimitiveType::Never),
             _ => None,
         }
     }
 
-    crate fn is_generic(&self) -> bool {
-        match *self {
-            ResolvedPath { is_generic, .. } => is_generic,
+    /// Checks if this is a `T::Name` path for an associated type.
+    crate fn is_assoc_ty(&self) -> bool {
+        match self {
+            ResolvedPath { path, .. } => path.is_assoc_ty(),
             _ => false,
         }
     }
@@ -1563,34 +1516,8 @@ impl Type {
     }
 
     crate fn generics(&self) -> Option<Vec<&Type>> {
-        match *self {
-            ResolvedPath { ref path, .. } => path.segments.last().and_then(|seg| {
-                if let GenericArgs::AngleBracketed { ref args, .. } = seg.args {
-                    Some(
-                        args.iter()
-                            .filter_map(|arg| match arg {
-                                GenericArg::Type(ty) => Some(ty),
-                                _ => None,
-                            })
-                            .collect(),
-                    )
-                } else {
-                    None
-                }
-            }),
-            _ => None,
-        }
-    }
-
-    crate fn bindings(&self) -> Option<&[TypeBinding]> {
-        match *self {
-            ResolvedPath { ref path, .. } => path.segments.last().and_then(|seg| {
-                if let GenericArgs::AngleBracketed { ref bindings, .. } = seg.args {
-                    Some(&**bindings)
-                } else {
-                    None
-                }
-            }),
+        match self {
+            ResolvedPath { path, .. } => path.generics(),
             _ => None,
         }
     }
@@ -1608,19 +1535,13 @@ impl Type {
             QPath { self_type, trait_, name, .. } => (self_type, trait_, name),
             _ => return None,
         };
-        let trait_did = match **trait_ {
-            ResolvedPath { did, .. } => did,
-            _ => return None,
-        };
-        Some((&self_, trait_did, *name))
+        Some((&self_, trait_.def_id(), *name))
     }
-}
 
-impl Type {
     fn inner_def_id(&self, cache: Option<&Cache>) -> Option<DefId> {
         let t: PrimitiveType = match *self {
             ResolvedPath { did, .. } => return Some(did),
-            DynTrait(ref bounds, _) => return bounds[0].trait_.inner_def_id(cache),
+            DynTrait(ref bounds, _) => return Some(bounds[0].trait_.def_id()),
             Primitive(p) => return cache.and_then(|c| c.primitive_locations.get(&p).cloned()),
             BorrowedRef { type_: box Generic(..), .. } => PrimitiveType::Reference,
             BorrowedRef { ref type_, .. } => return type_.inner_def_id(cache),
@@ -1632,7 +1553,6 @@ impl Type {
                 }
             }
             BareFunction(..) => PrimitiveType::Fn,
-            Never => PrimitiveType::Never,
             Slice(..) => PrimitiveType::Slice,
             Array(..) => PrimitiveType::Array,
             RawPointer(..) => PrimitiveType::RawPointer,
@@ -1651,6 +1571,41 @@ impl GetDefId for Type {
     fn def_id_full(&self, cache: &Cache) -> Option<DefId> {
         self.inner_def_id(Some(cache))
     }
+}
+
+/// A primitive (aka, builtin) type.
+///
+/// This represents things like `i32`, `str`, etc.
+///
+/// N.B. This has to be different from [`hir::PrimTy`] because it also includes types that aren't
+/// paths, like [`Self::Unit`].
+#[derive(Clone, PartialEq, Eq, Hash, Copy, Debug)]
+crate enum PrimitiveType {
+    Isize,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    Usize,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    F32,
+    F64,
+    Char,
+    Bool,
+    Str,
+    Slice,
+    Array,
+    Tuple,
+    Unit,
+    RawPointer,
+    Reference,
+    Fn,
+    Never,
 }
 
 impl PrimitiveType {
@@ -1799,6 +1754,39 @@ impl PrimitiveType {
             Fn => kw::Fn,
             Never => sym::never,
         }
+    }
+
+    /// Returns the DefId of the module with `doc(primitive)` for this primitive type.
+    /// Panics if there is no such module.
+    ///
+    /// This gives precedence to primitives defined in the current crate, and deprioritizes primitives defined in `core`,
+    /// but otherwise, if multiple crates define the same primitive, there is no guarantee of which will be picked.
+    /// In particular, if a crate depends on both `std` and another crate that also defines `doc(primitive)`, then
+    /// it's entirely random whether `std` or the other crate is picked. (no_std crates are usually fine unless multiple dependencies define a primitive.)
+    crate fn primitive_locations(tcx: TyCtxt<'_>) -> &FxHashMap<PrimitiveType, DefId> {
+        static PRIMITIVE_LOCATIONS: OnceCell<FxHashMap<PrimitiveType, DefId>> = OnceCell::new();
+        PRIMITIVE_LOCATIONS.get_or_init(|| {
+            let mut primitive_locations = FxHashMap::default();
+            // NOTE: technically this misses crates that are only passed with `--extern` and not loaded when checking the crate.
+            // This is a degenerate case that I don't plan to support.
+            for &crate_num in tcx.crates(()) {
+                let e = ExternalCrate { crate_num };
+                let crate_name = e.name(tcx);
+                debug!(?crate_num, ?crate_name);
+                for &(def_id, prim) in &e.primitives(tcx) {
+                    // HACK: try to link to std instead where possible
+                    if crate_name == sym::core && primitive_locations.contains_key(&prim) {
+                        continue;
+                    }
+                    primitive_locations.insert(prim, def_id);
+                }
+            }
+            let local_primitives = ExternalCrate { crate_num: LOCAL_CRATE }.primitives(tcx);
+            for (def_id, prim) in local_primitives {
+                primitive_locations.insert(prim, def_id);
+            }
+            primitive_locations
+        })
     }
 }
 
@@ -1988,12 +1976,15 @@ impl Span {
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 crate struct Path {
-    crate global: bool,
     crate res: Res,
     crate segments: Vec<PathSegment>,
 }
 
 impl Path {
+    crate fn def_id(&self) -> DefId {
+        self.res.def_id()
+    }
+
     crate fn last(&self) -> Symbol {
         self.segments.last().expect("segments were empty").name
     }
@@ -2003,8 +1994,48 @@ impl Path {
     }
 
     crate fn whole_name(&self) -> String {
-        String::from(if self.global { "::" } else { "" })
-            + &self.segments.iter().map(|s| s.name.to_string()).collect::<Vec<_>>().join("::")
+        self.segments
+            .iter()
+            .map(|s| if s.name == kw::PathRoot { String::new() } else { s.name.to_string() })
+            .intersperse("::".into())
+            .collect()
+    }
+
+    /// Checks if this is a `T::Name` path for an associated type.
+    crate fn is_assoc_ty(&self) -> bool {
+        match self.res {
+            Res::SelfTy(..) if self.segments.len() != 1 => true,
+            Res::Def(DefKind::TyParam, _) if self.segments.len() != 1 => true,
+            Res::Def(DefKind::AssocTy, _) => true,
+            _ => false,
+        }
+    }
+
+    crate fn generics(&self) -> Option<Vec<&Type>> {
+        self.segments.last().and_then(|seg| {
+            if let GenericArgs::AngleBracketed { ref args, .. } = seg.args {
+                Some(
+                    args.iter()
+                        .filter_map(|arg| match arg {
+                            GenericArg::Type(ty) => Some(ty),
+                            _ => None,
+                        })
+                        .collect(),
+                )
+            } else {
+                None
+            }
+        })
+    }
+
+    crate fn bindings(&self) -> Option<&[TypeBinding]> {
+        self.segments.last().and_then(|seg| {
+            if let GenericArgs::AngleBracketed { ref bindings, .. } = seg.args {
+                Some(&**bindings)
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -2012,9 +2043,14 @@ impl Path {
 crate enum GenericArg {
     Lifetime(Lifetime),
     Type(Type),
-    Const(Constant),
+    Const(Box<Constant>),
     Infer,
 }
+
+// `GenericArg` can occur many times in a single `Path`, so make sure it
+// doesn't increase in size unexpectedly.
+#[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
+rustc_data_structures::static_assert_size!(GenericArg, 80);
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 crate enum GenericArgs {
@@ -2144,7 +2180,7 @@ crate struct Impl {
     crate span: Span,
     crate unsafety: hir::Unsafety,
     crate generics: Generics,
-    crate trait_: Option<Type>,
+    crate trait_: Option<Path>,
     crate for_: Type,
     crate items: Vec<Item>,
     crate negative_polarity: bool,
@@ -2155,7 +2191,8 @@ crate struct Impl {
 impl Impl {
     crate fn provided_trait_methods(&self, tcx: TyCtxt<'_>) -> FxHashSet<Symbol> {
         self.trait_
-            .def_id()
+            .as_ref()
+            .map(|t| t.def_id())
             .map(|did| tcx.provided_trait_methods(did).map(|meth| meth.ident.name).collect())
             .unwrap_or_default()
     }
@@ -2195,7 +2232,6 @@ crate struct ImportSource {
 #[derive(Clone, Debug)]
 crate struct Macro {
     crate source: String,
-    crate imported_from: Option<Symbol>,
 }
 
 #[derive(Clone, Debug)]

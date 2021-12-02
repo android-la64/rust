@@ -167,10 +167,9 @@ impl<'a> HirFormatter<'a> {
     }
 
     pub fn should_truncate(&self) -> bool {
-        if let Some(max_size) = self.max_size {
-            self.curr_size >= max_size
-        } else {
-            false
+        match self.max_size {
+            Some(max_size) => self.curr_size >= max_size,
+            None => false,
         }
     }
 
@@ -666,7 +665,7 @@ impl HirDisplay for Ty {
                         let substs = generics.type_params_subst(f.db);
                         let bounds =
                             f.db.generic_predicates(id.parent)
-                                .into_iter()
+                                .iter()
                                 .map(|pred| pred.clone().substitute(&Interner, &substs))
                                 .filter(|wc| match &wc.skip_binders() {
                                     WhereClause::Implemented(tr) => {
@@ -1141,20 +1140,22 @@ impl HirDisplay for Path {
                 write!(f, ">")?;
             }
             (_, PathKind::Plain) => {}
-            (_, PathKind::Abs) => write!(f, "::")?,
+            (_, PathKind::Abs) => {}
             (_, PathKind::Crate) => write!(f, "crate")?,
             (_, PathKind::Super(0)) => write!(f, "self")?,
             (_, PathKind::Super(n)) => {
-                write!(f, "super")?;
-                for _ in 0..*n {
-                    write!(f, "::super")?;
+                for i in 0..*n {
+                    if i > 0 {
+                        write!(f, "::")?;
+                    }
+                    write!(f, "super")?;
                 }
             }
             (_, PathKind::DollarCrate(_)) => write!(f, "{{extern_crate}}")?,
         }
 
         for (seg_idx, segment) in self.segments().iter().enumerate() {
-            if seg_idx != 0 {
+            if !matches!(self.kind(), PathKind::Plain) || seg_idx > 0 {
                 write!(f, "::")?;
             }
             write!(f, "{}", segment.name)?;

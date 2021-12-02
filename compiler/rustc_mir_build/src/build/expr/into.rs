@@ -326,10 +326,16 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                 let fields_map: FxHashMap<_, _> = fields
                     .into_iter()
                     .map(|f| {
+                        let local_info = Box::new(LocalInfo::AggregateTemp);
                         (
                             f.name,
                             unpack!(
-                                block = this.as_operand(block, Some(scope), &this.thir[f.expr])
+                                block = this.as_operand(
+                                    block,
+                                    Some(scope),
+                                    &this.thir[f.expr],
+                                    Some(local_info)
+                                )
                             ),
                         )
                     })
@@ -443,8 +449,11 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     })
                     .collect();
 
-                let destination = this.cfg.start_new_block();
+                if !options.contains(InlineAsmOptions::NORETURN) {
+                    this.cfg.push_assign_unit(block, source_info, destination, this.tcx);
+                }
 
+                let destination_block = this.cfg.start_new_block();
                 this.cfg.terminate(
                     block,
                     source_info,
@@ -456,11 +465,11 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                         destination: if options.contains(InlineAsmOptions::NORETURN) {
                             None
                         } else {
-                            Some(destination)
+                            Some(destination_block)
                         },
                     },
                 );
-                destination.unit()
+                destination_block.unit()
             }
 
             // These cases don't actually need a destination
@@ -508,7 +517,8 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
 
             ExprKind::Yield { value } => {
                 let scope = this.local_scope();
-                let value = unpack!(block = this.as_operand(block, Some(scope), &this.thir[value]));
+                let value =
+                    unpack!(block = this.as_operand(block, Some(scope), &this.thir[value], None));
                 let resume = this.cfg.start_new_block();
                 this.cfg.terminate(
                     block,

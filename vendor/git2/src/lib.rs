@@ -80,6 +80,7 @@ use std::str;
 use std::sync::Once;
 
 pub use crate::apply::{ApplyLocation, ApplyOptions};
+pub use crate::attr::AttrValue;
 pub use crate::blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use crate::blob::{Blob, BlobWriter};
 pub use crate::branch::{Branch, Branches};
@@ -91,12 +92,13 @@ pub use crate::cred::{Cred, CredentialHelper};
 pub use crate::describe::{Describe, DescribeFormatOptions, DescribeOptions};
 pub use crate::diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
 pub use crate::diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
-pub use crate::diff::{DiffFindOptions, DiffHunk, DiffLine, DiffStats};
+pub use crate::diff::{DiffFindOptions, DiffHunk, DiffLine, DiffLineType, DiffStats};
 pub use crate::error::Error;
 pub use crate::index::{
     Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
 };
 pub use crate::indexer::{IndexerProgress, Progress};
+pub use crate::mailmap::Mailmap;
 pub use crate::mempack::Mempack;
 pub use crate::merge::{AnnotatedCommit, MergeOptions};
 pub use crate::message::{message_prettify, DEFAULT_COMMENT_CHAR};
@@ -128,9 +130,12 @@ pub use crate::status::{StatusEntry, StatusIter, StatusOptions, StatusShow, Stat
 pub use crate::submodule::{Submodule, SubmoduleUpdateOptions};
 pub use crate::tag::Tag;
 pub use crate::time::{IndexTime, Time};
+pub use crate::tracing::{trace_set, TraceLevel};
+pub use crate::transaction::Transaction;
 pub use crate::tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use crate::treebuilder::TreeBuilder;
 pub use crate::util::IntoCString;
+pub use crate::version::Version;
 pub use crate::worktree::{Worktree, WorktreeAddOptions, WorktreeLockStatus, WorktreePruneOptions};
 
 // Create a convinience method on bitflag struct which checks the given flag
@@ -633,6 +638,7 @@ impl MergePreference {
 mod test;
 #[macro_use]
 mod panic;
+mod attr;
 mod call;
 mod util;
 
@@ -657,6 +663,7 @@ mod diff;
 mod error;
 mod index;
 mod indexer;
+mod mailmap;
 mod mempack;
 mod merge;
 mod message;
@@ -685,8 +692,11 @@ mod submodule;
 mod tag;
 mod tagforeach;
 mod time;
+mod tracing;
+mod transaction;
 mod tree;
 mod treebuilder;
+mod version;
 mod worktree;
 
 fn init() {
@@ -925,6 +935,34 @@ impl ConfigLevel {
             raw::GIT_CONFIG_LEVEL_APP => ConfigLevel::App,
             raw::GIT_CONFIG_HIGHEST_LEVEL => ConfigLevel::Highest,
             n => panic!("unknown config level: {}", n),
+        }
+    }
+}
+
+impl SubmoduleIgnore {
+    /// Converts a [`raw::git_submodule_ignore_t`] to a [`SubmoduleIgnore`]
+    pub fn from_raw(raw: raw::git_submodule_ignore_t) -> Self {
+        match raw {
+            raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED => SubmoduleIgnore::Unspecified,
+            raw::GIT_SUBMODULE_IGNORE_NONE => SubmoduleIgnore::None,
+            raw::GIT_SUBMODULE_IGNORE_UNTRACKED => SubmoduleIgnore::Untracked,
+            raw::GIT_SUBMODULE_IGNORE_DIRTY => SubmoduleIgnore::Dirty,
+            raw::GIT_SUBMODULE_IGNORE_ALL => SubmoduleIgnore::All,
+            n => panic!("unknown submodule ignore rule: {}", n),
+        }
+    }
+}
+
+impl SubmoduleUpdate {
+    /// Converts a [`raw::git_submodule_update_t`] to a [`SubmoduleUpdate`]
+    pub fn from_raw(raw: raw::git_submodule_update_t) -> Self {
+        match raw {
+            raw::GIT_SUBMODULE_UPDATE_CHECKOUT => SubmoduleUpdate::Checkout,
+            raw::GIT_SUBMODULE_UPDATE_REBASE => SubmoduleUpdate::Rebase,
+            raw::GIT_SUBMODULE_UPDATE_MERGE => SubmoduleUpdate::Merge,
+            raw::GIT_SUBMODULE_UPDATE_NONE => SubmoduleUpdate::None,
+            raw::GIT_SUBMODULE_UPDATE_DEFAULT => SubmoduleUpdate::Default,
+            n => panic!("unknown submodule update strategy: {}", n),
         }
     }
 }
@@ -1171,6 +1209,7 @@ impl SubmoduleStatus {
 /// These values represent settings for the `submodule.$name.ignore`
 /// configuration value which says how deeply to look at the working
 /// directory when getting the submodule status.
+#[derive(Debug)]
 pub enum SubmoduleIgnore {
     /// Use the submodule's configuration
     Unspecified,
@@ -1182,6 +1221,31 @@ pub enum SubmoduleIgnore {
     Dirty,
     /// Never dirty
     All,
+}
+
+/// Submodule update values
+///
+/// These values represent settings for the `submodule.$name.update`
+/// configuration value which says how to handle `git submodule update`
+/// for this submodule. The value is usually set in the ".gitmodules"
+/// file and copied to ".git/config" when the submodule is initialized.
+#[derive(Debug)]
+pub enum SubmoduleUpdate {
+    /// The default; when a submodule is updated, checkout the new detached
+    /// HEAD to the submodule directory.
+    Checkout,
+    /// Update by rebasing the current checked out branch onto the commit from
+    /// the superproject.
+    Rebase,
+    /// Update by merging the commit in the superproject into the current
+    /// checkout out branch of the submodule.
+    Merge,
+    /// Do not update this submodule even when the commit in the superproject
+    /// is updated.
+    None,
+    /// Not used except as static initializer when we don't want any particular
+    /// update rule to be specified.
+    Default,
 }
 
 bitflags! {

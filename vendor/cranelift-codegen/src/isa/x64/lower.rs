@@ -4927,6 +4927,165 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                 }
             }
         }
+        Opcode::IaddPairwise => {
+            if let (Some(swiden_low), Some(swiden_high)) = (
+                matches_input(ctx, inputs[0], Opcode::SwidenLow),
+                matches_input(ctx, inputs[1], Opcode::SwidenHigh),
+            ) {
+                let swiden_input = &[
+                    InsnInput {
+                        insn: swiden_low,
+                        input: 0,
+                    },
+                    InsnInput {
+                        insn: swiden_high,
+                        input: 0,
+                    },
+                ];
+
+                let input_ty = ctx.input_ty(swiden_low, 0);
+                let output_ty = ctx.output_ty(insn, 0);
+                let src0 = put_input_in_reg(ctx, swiden_input[0]);
+                let src1 = put_input_in_reg(ctx, swiden_input[1]);
+                let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
+                if src0 != src1 {
+                    unimplemented!(
+                        "iadd_pairwise not implemented for general case with different inputs"
+                    );
+                }
+                match (input_ty, output_ty) {
+                    (types::I8X16, types::I16X8) => {
+                        static MUL_CONST: [u8; 16] = [0x01; 16];
+                        let mul_const = ctx.use_constant(VCodeConstantData::WellKnown(&MUL_CONST));
+                        let mul_const_reg = ctx.alloc_tmp(types::I8X16).only_reg().unwrap();
+                        ctx.emit(Inst::xmm_load_const(mul_const, mul_const_reg, types::I8X16));
+                        ctx.emit(Inst::xmm_mov(
+                            SseOpcode::Movdqa,
+                            RegMem::reg(mul_const_reg.to_reg()),
+                            dst,
+                        ));
+                        ctx.emit(Inst::xmm_rm_r(SseOpcode::Pmaddubsw, RegMem::reg(src0), dst));
+                    }
+                    (types::I16X8, types::I32X4) => {
+                        static MUL_CONST: [u8; 16] = [
+                            0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+                            0x01, 0x00, 0x01, 0x00,
+                        ];
+                        let mul_const = ctx.use_constant(VCodeConstantData::WellKnown(&MUL_CONST));
+                        let mul_const_reg = ctx.alloc_tmp(types::I16X8).only_reg().unwrap();
+                        ctx.emit(Inst::xmm_load_const(mul_const, mul_const_reg, types::I16X8));
+                        ctx.emit(Inst::xmm_mov(SseOpcode::Movdqa, RegMem::reg(src0), dst));
+                        ctx.emit(Inst::xmm_rm_r(
+                            SseOpcode::Pmaddwd,
+                            RegMem::reg(mul_const_reg.to_reg()),
+                            dst,
+                        ));
+                    }
+                    _ => {
+                        unimplemented!("Type not supported for {:?}", op);
+                    }
+                }
+            } else if let (Some(uwiden_low), Some(uwiden_high)) = (
+                matches_input(ctx, inputs[0], Opcode::UwidenLow),
+                matches_input(ctx, inputs[1], Opcode::UwidenHigh),
+            ) {
+                let uwiden_input = &[
+                    InsnInput {
+                        insn: uwiden_low,
+                        input: 0,
+                    },
+                    InsnInput {
+                        insn: uwiden_high,
+                        input: 0,
+                    },
+                ];
+
+                let input_ty = ctx.input_ty(uwiden_low, 0);
+                let output_ty = ctx.output_ty(insn, 0);
+                let src0 = put_input_in_reg(ctx, uwiden_input[0]);
+                let src1 = put_input_in_reg(ctx, uwiden_input[1]);
+                let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
+                if src0 != src1 {
+                    unimplemented!(
+                        "iadd_pairwise not implemented for general case with different inputs"
+                    );
+                }
+                match (input_ty, output_ty) {
+                    (types::I8X16, types::I16X8) => {
+                        static MUL_CONST: [u8; 16] = [0x01; 16];
+                        let mul_const = ctx.use_constant(VCodeConstantData::WellKnown(&MUL_CONST));
+                        let mul_const_reg = ctx.alloc_tmp(types::I8X16).only_reg().unwrap();
+                        ctx.emit(Inst::xmm_load_const(mul_const, mul_const_reg, types::I8X16));
+                        ctx.emit(Inst::xmm_mov(SseOpcode::Movdqa, RegMem::reg(src0), dst));
+                        ctx.emit(Inst::xmm_rm_r(
+                            SseOpcode::Pmaddubsw,
+                            RegMem::reg(mul_const_reg.to_reg()),
+                            dst,
+                        ));
+                    }
+                    (types::I16X8, types::I32X4) => {
+                        static PXOR_CONST: [u8; 16] = [
+                            0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80,
+                            0x00, 0x80, 0x00, 0x80,
+                        ];
+                        let pxor_const =
+                            ctx.use_constant(VCodeConstantData::WellKnown(&PXOR_CONST));
+                        let pxor_const_reg = ctx.alloc_tmp(types::I16X8).only_reg().unwrap();
+                        ctx.emit(Inst::xmm_load_const(
+                            pxor_const,
+                            pxor_const_reg,
+                            types::I16X8,
+                        ));
+                        ctx.emit(Inst::xmm_mov(SseOpcode::Movdqa, RegMem::reg(src0), dst));
+                        ctx.emit(Inst::xmm_rm_r(
+                            SseOpcode::Pxor,
+                            RegMem::reg(pxor_const_reg.to_reg()),
+                            dst,
+                        ));
+
+                        static MADD_CONST: [u8; 16] = [
+                            0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00,
+                            0x01, 0x00, 0x01, 0x00,
+                        ];
+                        let madd_const =
+                            ctx.use_constant(VCodeConstantData::WellKnown(&MADD_CONST));
+                        let madd_const_reg = ctx.alloc_tmp(types::I8X16).only_reg().unwrap();
+                        ctx.emit(Inst::xmm_load_const(
+                            madd_const,
+                            madd_const_reg,
+                            types::I16X8,
+                        ));
+                        ctx.emit(Inst::xmm_rm_r(
+                            SseOpcode::Pmaddwd,
+                            RegMem::reg(madd_const_reg.to_reg()),
+                            dst,
+                        ));
+                        static ADDD_CONST2: [u8; 16] = [
+                            0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+                            0x00, 0x00, 0x01, 0x00,
+                        ];
+                        let addd_const2 =
+                            ctx.use_constant(VCodeConstantData::WellKnown(&ADDD_CONST2));
+                        let addd_const2_reg = ctx.alloc_tmp(types::I8X16).only_reg().unwrap();
+                        ctx.emit(Inst::xmm_load_const(
+                            addd_const2,
+                            addd_const2_reg,
+                            types::I16X8,
+                        ));
+                        ctx.emit(Inst::xmm_rm_r(
+                            SseOpcode::Paddd,
+                            RegMem::reg(addd_const2_reg.to_reg()),
+                            dst,
+                        ));
+                    }
+                    _ => {
+                        unimplemented!("Type not supported for {:?}", op);
+                    }
+                }
+            } else {
+                unimplemented!("Operands not supported for {:?}", op);
+            }
+        }
         Opcode::UwidenHigh | Opcode::UwidenLow | Opcode::SwidenHigh | Opcode::SwidenLow => {
             let input_ty = ctx.input_ty(insn, 0);
             let output_ty = ctx.output_ty(insn, 0);
@@ -4940,6 +5099,9 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                         }
                         (types::I16X8, types::I32X4) => {
                             ctx.emit(Inst::xmm_mov(SseOpcode::Pmovsxwd, RegMem::reg(src), dst));
+                        }
+                        (types::I32X4, types::I64X2) => {
+                            ctx.emit(Inst::xmm_mov(SseOpcode::Pmovsxdq, RegMem::reg(src), dst));
                         }
                         _ => unreachable!(),
                     },
@@ -4966,6 +5128,16 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                             ));
                             ctx.emit(Inst::xmm_mov(SseOpcode::Pmovsxwd, RegMem::from(dst), dst));
                         }
+                        (types::I32X4, types::I64X2) => {
+                            ctx.emit(Inst::xmm_rm_r_imm(
+                                SseOpcode::Pshufd,
+                                RegMem::reg(src),
+                                dst,
+                                0xEE,
+                                OperandSize::Size32,
+                            ));
+                            ctx.emit(Inst::xmm_mov(SseOpcode::Pmovsxdq, RegMem::from(dst), dst));
+                        }
                         _ => unreachable!(),
                     },
                     Opcode::UwidenLow => match (input_ty, output_ty) {
@@ -4975,10 +5147,10 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                         (types::I16X8, types::I32X4) => {
                             ctx.emit(Inst::xmm_mov(SseOpcode::Pmovzxwd, RegMem::reg(src), dst));
                         }
-                        _ => unreachable!(
-                            "In UwidenLow: input_ty {:?}, output_ty {:?}",
-                            input_ty, output_ty
-                        ),
+                        (types::I32X4, types::I64X2) => {
+                            ctx.emit(Inst::xmm_mov(SseOpcode::Pmovzxdq, RegMem::reg(src), dst));
+                        }
+                        _ => unreachable!(),
                     },
                     Opcode::UwidenHigh => match (input_ty, output_ty) {
                         (types::I8X16, types::I16X8) => {
@@ -5003,6 +5175,16 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                             ));
                             ctx.emit(Inst::xmm_mov(SseOpcode::Pmovzxwd, RegMem::from(dst), dst));
                         }
+                        (types::I32X4, types::I64X2) => {
+                            ctx.emit(Inst::xmm_rm_r_imm(
+                                SseOpcode::Pshufd,
+                                RegMem::reg(src),
+                                dst,
+                                0xEE,
+                                OperandSize::Size32,
+                            ));
+                            ctx.emit(Inst::xmm_mov(SseOpcode::Pmovzxdq, RegMem::from(dst), dst));
+                        }
                         _ => unreachable!(),
                     },
                     _ => unreachable!(),
@@ -5014,28 +5196,91 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         Opcode::Snarrow | Opcode::Unarrow => {
             let input_ty = ctx.input_ty(insn, 0);
             let output_ty = ctx.output_ty(insn, 0);
-            let src1 = put_input_in_reg(ctx, inputs[0]);
-            let src2 = put_input_in_reg(ctx, inputs[1]);
             let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
             if output_ty.is_vector() {
                 match op {
                     Opcode::Snarrow => match (input_ty, output_ty) {
                         (types::I16X8, types::I8X16) => {
+                            let src1 = put_input_in_reg(ctx, inputs[0]);
+                            let src2 = put_input_in_reg(ctx, inputs[1]);
                             ctx.emit(Inst::gen_move(dst, src1, input_ty));
                             ctx.emit(Inst::xmm_rm_r(SseOpcode::Packsswb, RegMem::reg(src2), dst));
                         }
                         (types::I32X4, types::I16X8) => {
+                            let src1 = put_input_in_reg(ctx, inputs[0]);
+                            let src2 = put_input_in_reg(ctx, inputs[1]);
                             ctx.emit(Inst::gen_move(dst, src1, input_ty));
                             ctx.emit(Inst::xmm_rm_r(SseOpcode::Packssdw, RegMem::reg(src2), dst));
+                        }
+                        // TODO: The type we are expecting as input as actually an F64X2 but the instruction is only defined
+                        // for integers so here we use I64X2. This is a separate issue that needs to be fixed in instruction.rs.
+                        (types::I64X2, types::I32X4) => {
+                            if let Some(fcvt_inst) =
+                                matches_input(ctx, inputs[0], Opcode::FcvtToSintSat)
+                            {
+                                //y = i32x4.trunc_sat_f64x2_s_zero(x) is lowered to:
+                                //MOVE xmm_tmp, xmm_x
+                                //CMPEQPD xmm_tmp, xmm_x
+                                //MOVE xmm_y, xmm_x
+                                //ANDPS xmm_tmp, [wasm_f64x2_splat(2147483647.0)]
+                                //MINPD xmm_y, xmm_tmp
+                                //CVTTPD2DQ xmm_y, xmm_y
+
+                                let fcvt_input = InsnInput {
+                                    insn: fcvt_inst,
+                                    input: 0,
+                                };
+                                let src = put_input_in_reg(ctx, fcvt_input);
+                                ctx.emit(Inst::gen_move(dst, src, input_ty));
+                                let tmp1 = ctx.alloc_tmp(output_ty).only_reg().unwrap();
+                                ctx.emit(Inst::gen_move(tmp1, src, input_ty));
+                                let cond = FcmpImm::from(FloatCC::Equal);
+                                ctx.emit(Inst::xmm_rm_r_imm(
+                                    SseOpcode::Cmppd,
+                                    RegMem::reg(src),
+                                    tmp1,
+                                    cond.encode(),
+                                    OperandSize::Size32,
+                                ));
+
+                                // 2147483647.0 is equivalent to 0x41DFFFFFFFC00000
+                                static UMAX_MASK: [u8; 16] = [
+                                    0x00, 0x00, 0xC0, 0xFF, 0xFF, 0xFF, 0xDF, 0x41, 0x00, 0x00,
+                                    0xC0, 0xFF, 0xFF, 0xFF, 0xDF, 0x41,
+                                ];
+                                let umax_const =
+                                    ctx.use_constant(VCodeConstantData::WellKnown(&UMAX_MASK));
+                                let umax_mask = ctx.alloc_tmp(types::F64X2).only_reg().unwrap();
+                                ctx.emit(Inst::xmm_load_const(umax_const, umax_mask, types::F64X2));
+
+                                //ANDPD xmm_y, [wasm_f64x2_splat(2147483647.0)]
+                                ctx.emit(Inst::xmm_rm_r(
+                                    SseOpcode::Andps,
+                                    RegMem::from(umax_mask),
+                                    tmp1,
+                                ));
+                                ctx.emit(Inst::xmm_rm_r(SseOpcode::Minpd, RegMem::from(tmp1), dst));
+                                ctx.emit(Inst::xmm_rm_r(
+                                    SseOpcode::Cvttpd2dq,
+                                    RegMem::from(dst),
+                                    dst,
+                                ));
+                            } else {
+                                unreachable!();
+                            }
                         }
                         _ => unreachable!(),
                     },
                     Opcode::Unarrow => match (input_ty, output_ty) {
                         (types::I16X8, types::I8X16) => {
+                            let src1 = put_input_in_reg(ctx, inputs[0]);
+                            let src2 = put_input_in_reg(ctx, inputs[1]);
                             ctx.emit(Inst::gen_move(dst, src1, input_ty));
                             ctx.emit(Inst::xmm_rm_r(SseOpcode::Packuswb, RegMem::reg(src2), dst));
                         }
                         (types::I32X4, types::I16X8) => {
+                            let src1 = put_input_in_reg(ctx, inputs[0]);
+                            let src2 = put_input_in_reg(ctx, inputs[1]);
                             ctx.emit(Inst::gen_move(dst, src1, input_ty));
                             ctx.emit(Inst::xmm_rm_r(SseOpcode::Packusdw, RegMem::reg(src2), dst));
                         }
@@ -6442,6 +6687,84 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             ));
         }
 
+        Opcode::Uunarrow => {
+            if let Some(fcvt_inst) = matches_input(ctx, inputs[0], Opcode::FcvtToUintSat) {
+                //y = i32x4.trunc_sat_f64x2_u_zero(x) is lowered to:
+                //MOVAPD xmm_y, xmm_x
+                //XORPD xmm_tmp, xmm_tmp
+                //MAXPD xmm_y, xmm_tmp
+                //MINPD xmm_y, [wasm_f64x2_splat(4294967295.0)]
+                //ROUNDPD xmm_y, xmm_y, 0x0B
+                //ADDPD xmm_y, [wasm_f64x2_splat(0x1.0p+52)]
+                //SHUFPS xmm_y, xmm_xmp, 0x88
+
+                let fcvt_input = InsnInput {
+                    insn: fcvt_inst,
+                    input: 0,
+                };
+                let input_ty = ctx.input_ty(fcvt_inst, 0);
+                let output_ty = ctx.output_ty(insn, 0);
+                let src = put_input_in_reg(ctx, fcvt_input);
+                let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
+
+                ctx.emit(Inst::gen_move(dst, src, input_ty));
+                let tmp1 = ctx.alloc_tmp(output_ty).only_reg().unwrap();
+                ctx.emit(Inst::xmm_rm_r(SseOpcode::Xorpd, RegMem::from(tmp1), tmp1));
+                ctx.emit(Inst::xmm_rm_r(SseOpcode::Maxpd, RegMem::from(tmp1), dst));
+
+                // 4294967295.0 is equivalent to 0x41EFFFFFFFE00000
+                static UMAX_MASK: [u8; 16] = [
+                    0x00, 0x00, 0xE0, 0xFF, 0xFF, 0xFF, 0xEF, 0x41, 0x00, 0x00, 0xE0, 0xFF, 0xFF,
+                    0xFF, 0xEF, 0x41,
+                ];
+                let umax_const = ctx.use_constant(VCodeConstantData::WellKnown(&UMAX_MASK));
+                let umax_mask = ctx.alloc_tmp(types::F64X2).only_reg().unwrap();
+                ctx.emit(Inst::xmm_load_const(umax_const, umax_mask, types::F64X2));
+
+                //MINPD xmm_y, [wasm_f64x2_splat(4294967295.0)]
+                ctx.emit(Inst::xmm_rm_r(
+                    SseOpcode::Minpd,
+                    RegMem::from(umax_mask),
+                    dst,
+                ));
+                //ROUNDPD xmm_y, xmm_y, 0x0B
+                ctx.emit(Inst::xmm_rm_r_imm(
+                    SseOpcode::Roundpd,
+                    RegMem::reg(dst.to_reg()),
+                    dst,
+                    RoundImm::RoundZero.encode(),
+                    OperandSize::Size32,
+                ));
+                //ADDPD xmm_y, [wasm_f64x2_splat(0x1.0p+52)]
+                static UINT_MASK: [u8; 16] = [
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x30, 0x43,
+                ];
+                let uint_mask_const = ctx.use_constant(VCodeConstantData::WellKnown(&UINT_MASK));
+                let uint_mask = ctx.alloc_tmp(types::F64X2).only_reg().unwrap();
+                ctx.emit(Inst::xmm_load_const(
+                    uint_mask_const,
+                    uint_mask,
+                    types::F64X2,
+                ));
+                ctx.emit(Inst::xmm_rm_r(
+                    SseOpcode::Addpd,
+                    RegMem::from(uint_mask),
+                    dst,
+                ));
+
+                //SHUFPS xmm_y, xmm_xmp, 0x88
+                ctx.emit(Inst::xmm_rm_r_imm(
+                    SseOpcode::Shufps,
+                    RegMem::reg(tmp1.to_reg()),
+                    dst,
+                    0x88,
+                    OperandSize::Size32,
+                ));
+            } else {
+                println!("Did not match fcvt input!");
+            }
+        }
         // Unimplemented opcodes below. These are not currently used by Wasm
         // lowering or other known embeddings, but should be either supported or
         // removed eventually.
@@ -6470,10 +6793,6 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
 
         Opcode::Vsplit | Opcode::Vconcat => {
             unimplemented!("Vector split/concat ops not implemented.");
-        }
-
-        Opcode::Uunarrow => {
-            unimplemented!("unimplemented lowering for opcode {:?}", op);
         }
 
         // Opcodes that should be removed by legalization. These should

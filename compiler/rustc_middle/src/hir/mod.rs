@@ -6,7 +6,6 @@ pub mod exports;
 pub mod map;
 pub mod place;
 
-use crate::ich::StableHashingContext;
 use crate::ty::query::Providers;
 use crate::ty::TyCtxt;
 use rustc_ast::Attribute;
@@ -16,6 +15,7 @@ use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
 use rustc_hir::def_id::LocalDefId;
 use rustc_hir::*;
 use rustc_index::vec::{Idx, IndexVec};
+use rustc_query_system::ich::StableHashingContext;
 use rustc_span::DUMMY_SP;
 use std::collections::BTreeMap;
 
@@ -121,6 +121,17 @@ impl<'tcx> AttributeMap<'tcx> {
     }
 }
 
+/// Gather the LocalDefId for each item-like within a module, including items contained within
+/// bodies.  The Ids are in visitor order.  This is used to partition a pass between modules.
+#[derive(Debug, HashStable)]
+pub struct ModuleItems {
+    submodules: Box<[LocalDefId]>,
+    items: Box<[ItemId]>,
+    trait_items: Box<[TraitItemId]>,
+    impl_items: Box<[ImplItemId]>,
+    foreign_items: Box<[ForeignItemId]>,
+}
+
 impl<'tcx> TyCtxt<'tcx> {
     #[inline(always)]
     pub fn hir(self) -> map::Map<'tcx> {
@@ -140,7 +151,7 @@ pub fn provide(providers: &mut Providers) {
     providers.hir_crate = |tcx, ()| tcx.untracked_crate;
     providers.index_hir = map::index_hir;
     providers.crate_hash = map::crate_hash;
-    providers.hir_module_items = |tcx, id| &tcx.untracked_crate.modules[&id];
+    providers.hir_module_items = map::hir_module_items;
     providers.hir_owner = |tcx, id| {
         let owner = tcx.index_hir(()).map[id].as_ref()?;
         let node = owner.nodes[ItemLocalId::new(0)].as_ref().unwrap().node;
@@ -153,6 +164,7 @@ pub fn provide(providers: &mut Providers) {
         index.parenting.get(&id).copied().unwrap_or(CRATE_HIR_ID)
     };
     providers.hir_attrs = |tcx, id| AttributeMap { map: &tcx.untracked_crate.attrs, prefix: id };
+    providers.source_span = |tcx, def_id| tcx.resolutions(()).definitions.def_span(def_id);
     providers.def_span = |tcx, def_id| tcx.hir().span_if_local(def_id).unwrap_or(DUMMY_SP);
     providers.fn_arg_names = |tcx, id| {
         let hir = tcx.hir();

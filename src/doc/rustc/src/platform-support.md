@@ -133,8 +133,8 @@ target | std | notes
 `armv5te-unknown-linux-musleabi` | ✓ | ARMv5TE Linux with MUSL
 `armv7-linux-androideabi` | ✓ | ARMv7a Android
 `armv7-unknown-linux-gnueabi` | ✓ |ARMv7 Linux (kernel 4.15, glibc 2.27)
-`armv7-unknown-linux-musleabi` | ✓ |ARMv7 Linux, MUSL
-`armv7-unknown-linux-musleabihf` | ✓ | ARMv7 Linux with MUSL
+`armv7-unknown-linux-musleabi` | ✓ |ARMv7 Linux with MUSL
+`armv7-unknown-linux-musleabihf` | ✓ | ARMv7 Linux with MUSL, hardfloat
 `armv7a-none-eabi` | * | Bare ARMv7-A
 `armv7r-none-eabi` | * | Bare ARMv7-R
 `armv7r-none-eabihf` | * | Bare ARMv7-R, hardfloat
@@ -202,6 +202,7 @@ target | std | host | notes
 -------|:---:|:----:|-------
 `aarch64-apple-ios-macabi` | ? |  | Apple Catalyst on ARM64
 `aarch64-apple-tvos` | * |  | ARM64 tvOS
+[`aarch64-kmc-solid_asp3`](platform-support/kmc-solid.md) | ✓ |  | ARM64 SOLID with TOPPERS/ASP3
 `aarch64-unknown-freebsd` | ✓ | ✓ | ARM64 FreeBSD
 `aarch64-unknown-hermit` | ? |  |
 `aarch64-unknown-uefi` | * |  | ARM64 UEFI
@@ -217,10 +218,14 @@ target | std | host | notes
 `armv5te-unknown-linux-uclibceabi` | ? |  | ARMv5TE Linux with uClibc
 `armv6-unknown-freebsd` | ✓ | ✓ | ARMv6 FreeBSD
 `armv6-unknown-netbsd-eabihf` | ? |  |
+`armv6k-nintendo-3ds` | * |  | ARMv6K Nintendo 3DS, Horizon (Requires devkitARM toolchain)
 `armv7-apple-ios` | ✓ |  | ARMv7 iOS, Cortex-a8
+`armv7-unknown-linux-uclibceabihf` | ✓ | ? | ARMv7 Linux uClibc
 `armv7-unknown-freebsd` | ✓ | ✓ | ARMv7 FreeBSD
 `armv7-unknown-netbsd-eabihf` | ✓ | ✓ |
 `armv7-wrs-vxworks-eabihf` | ? |  |
+[`armv7a-kmc-solid_asp3-eabi`](platform-support/kmc-solid.md) | ✓ |  | ARM SOLID with TOPPERS/ASP3
+[`armv7a-kmc-solid_asp3-eabihf`](platform-support/kmc-solid.md) | ✓ |  | ARM SOLID with TOPPERS/ASP3, hardfloat
 `armv7a-none-eabihf` | * | | ARM Cortex-A, hardfloat
 `armv7s-apple-ios` | ✓ |  |
 `avr-unknown-gnu-atmega328` | * |  | AVR. Requires `-Z build-std=core`
@@ -237,6 +242,7 @@ target | std | host | notes
 `i686-uwp-windows-gnu` | ? |  |
 `i686-uwp-windows-msvc` | ? |  |
 `i686-wrs-vxworks` | ? |  |
+`m68k-unknown-linux-gnu` | ? |  | Motorola 680x0 Linux
 `mips-unknown-linux-uclibc` | ✓ |  | MIPS Linux with uClibc
 `mipsel-sony-psp` | * |  | MIPS (LE) Sony PlayStation Portable (PSP)
 `mipsel-unknown-linux-uclibc` | ✓ |  | MIPS (LE) Linux with uClibc

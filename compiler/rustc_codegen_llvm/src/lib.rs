@@ -27,8 +27,8 @@ use rustc_codegen_ssa::ModuleCodegen;
 use rustc_codegen_ssa::{CodegenResults, CompiledModule};
 use rustc_data_structures::fx::FxHashMap;
 use rustc_errors::{ErrorReported, FatalError, Handler};
+use rustc_metadata::EncodedMetadata;
 use rustc_middle::dep_graph::{WorkProduct, WorkProductId};
-use rustc_middle::middle::cstore::EncodedMetadata;
 use rustc_middle::ty::TyCtxt;
 use rustc_session::config::{OptLevel, OutputFilenames, PrintRequest};
 use rustc_session::Session;
@@ -92,11 +92,12 @@ impl ExtraBackendMethods for LlvmCodegenBackend {
     fn codegen_allocator<'tcx>(
         &self,
         tcx: TyCtxt<'tcx>,
-        mods: &mut ModuleLlvm,
+        module_llvm: &mut ModuleLlvm,
+        module_name: &str,
         kind: AllocatorKind,
         has_alloc_error_handler: bool,
     ) {
-        unsafe { allocator::codegen(tcx, mods, kind, has_alloc_error_handler) }
+        unsafe { allocator::codegen(tcx, module_llvm, module_name, kind, has_alloc_error_handler) }
     }
     fn compile_codegen_unit(
         &self,
@@ -210,9 +211,16 @@ impl CodegenBackend for LlvmCodegenBackend {
         match req {
             PrintRequest::RelocationModels => {
                 println!("Available relocation models:");
-                for name in
-                    &["static", "pic", "dynamic-no-pic", "ropi", "rwpi", "ropi-rwpi", "default"]
-                {
+                for name in &[
+                    "static",
+                    "pic",
+                    "pie",
+                    "dynamic-no-pic",
+                    "ropi",
+                    "rwpi",
+                    "ropi-rwpi",
+                    "default",
+                ] {
                     println!("    {}", name);
                 }
                 println!();
@@ -331,7 +339,7 @@ impl ModuleLlvm {
         unsafe {
             let llcx = llvm::LLVMRustContextCreate(cgcx.fewer_names);
             let llmod_raw = back::lto::parse_module(llcx, name, buffer, handler)?;
-            let tm_factory_config = TargetMachineFactoryConfig::new(&cgcx, name.to_str().unwrap());
+            let tm_factory_config = TargetMachineFactoryConfig::new(cgcx, name.to_str().unwrap());
             let tm = match (cgcx.tm_factory)(tm_factory_config) {
                 Ok(m) => m,
                 Err(e) => {

@@ -1,7 +1,7 @@
 use ide_db::{base_db::FileId, defs::Definition, search::FileReference};
 use syntax::{
     algo::find_node_at_range,
-    ast::{self, ArgListOwner},
+    ast::{self, HasArgList},
     AstNode, SourceFile, SyntaxKind, SyntaxNode, TextRange, T,
 };
 
@@ -137,7 +137,7 @@ fn process_usage(
         return Some(range_to_remove(arg.syntax()));
     }
 
-    return None;
+    None
 }
 
 fn range_to_remove(node: &SyntaxNode) -> TextRange {

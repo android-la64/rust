@@ -1,4 +1,3 @@
-use crate::ich::StableHashingContext;
 use crate::mir::interpret::ErrorHandled;
 use crate::ty;
 use crate::ty::util::{Discr, IntTypeExt};
@@ -7,9 +6,11 @@ use rustc_data_structures::fingerprint::Fingerprint;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
 use rustc_errors::ErrorReported;
+use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::def_id::DefId;
 use rustc_index::vec::{Idx, IndexVec};
+use rustc_query_system::ich::StableHashingContext;
 use rustc_serialize::{self, Encodable, Encoder};
 use rustc_session::DataTypeKind;
 use rustc_span::symbol::sym;
@@ -286,6 +287,10 @@ impl<'tcx> AdtDef {
     /// Returns `true` if this type has a destructor.
     pub fn has_dtor(&self, tcx: TyCtxt<'tcx>) -> bool {
         self.destructor(tcx).is_some()
+    }
+
+    pub fn has_non_const_dtor(&self, tcx: TyCtxt<'tcx>) -> bool {
+        matches!(self.destructor(tcx), Some(Destructor { constness: hir::Constness::NotConst, .. }))
     }
 
     /// Asserts this is a struct or union and returns its unique variant.

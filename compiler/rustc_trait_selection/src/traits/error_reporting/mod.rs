@@ -19,7 +19,7 @@ use rustc_hir::intravisit::Visitor;
 use rustc_hir::GenericParam;
 use rustc_hir::Item;
 use rustc_hir::Node;
-use rustc_middle::mir::abstract_const::NotConstEvaluatable;
+use rustc_middle::thir::abstract_const::NotConstEvaluatable;
 use rustc_middle::ty::error::ExpectedFound;
 use rustc_middle::ty::fold::TypeFolder;
 use rustc_middle::ty::{
@@ -66,7 +66,6 @@ pub trait InferCtxtExt<'tcx> {
         root_obligation: &PredicateObligation<'tcx>,
         error: &SelectionError<'tcx>,
         fallback_has_occurred: bool,
-        points_at_arg: bool,
     );
 
     /// Given some node representing a fn-like thing in the HIR map,
@@ -237,7 +236,6 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
         root_obligation: &PredicateObligation<'tcx>,
         error: &SelectionError<'tcx>,
         fallback_has_occurred: bool,
-        points_at_arg: bool,
     ) {
         let tcx = self.tcx;
         let mut span = obligation.cause.span;
@@ -249,10 +247,10 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
                 if let ObligationCauseCode::WellFormed(Some(wf_loc)) =
                     root_obligation.cause.code.peel_derives()
                 {
-                    if let Some(cause) = self.tcx.diagnostic_hir_wf_check((
-                        tcx.erase_regions(obligation.predicate),
-                        wf_loc.clone(),
-                    )) {
+                    if let Some(cause) = self
+                        .tcx
+                        .diagnostic_hir_wf_check((tcx.erase_regions(obligation.predicate), *wf_loc))
+                    {
                         obligation.cause = cause;
                         span = obligation.cause.span;
                     }
@@ -387,7 +385,6 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
                             &obligation,
                             &mut err,
                             &trait_ref,
-                            points_at_arg,
                             have_alt_message,
                         ) {
                             self.note_obligation_cause(&mut err, &obligation);
@@ -430,8 +427,8 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
                             err.span_label(enclosing_scope_span, s.as_str());
                         }
 
-                        self.suggest_dereferences(&obligation, &mut err, trait_ref, points_at_arg);
-                        self.suggest_fn_call(&obligation, &mut err, trait_ref, points_at_arg);
+                        self.suggest_dereferences(&obligation, &mut err, trait_ref);
+                        self.suggest_fn_call(&obligation, &mut err, trait_ref);
                         self.suggest_remove_reference(&obligation, &mut err, trait_ref);
                         self.suggest_semicolon_removal(&obligation, &mut err, span, trait_ref);
                         self.note_version_mismatch(&mut err, &trait_ref);
@@ -500,12 +497,7 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
                         // Changing mutability doesn't make a difference to whether we have
                         // an `Unsize` impl (Fixes ICE in #71036)
                         if !is_unsize {
-                            self.suggest_change_mut(
-                                &obligation,
-                                &mut err,
-                                trait_ref,
-                                points_at_arg,
-                            );
+                            self.suggest_change_mut(&obligation, &mut err, trait_ref);
                         }
 
                         // If this error is due to `!: Trait` not implemented but `(): Trait` is
@@ -524,12 +516,12 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
                             });
                             let unit_obligation = obligation.with(predicate.to_predicate(tcx));
                             if self.predicate_may_hold(&unit_obligation) {
-                                err.note("this trait is implemented for `()`.");
+                                err.note("this trait is implemented for `()`");
                                 err.note(
                                     "this error might have been caused by changes to \
                                     Rust's type-inference algorithm (see issue #48950 \
                                     <https://github.com/rust-lang/rust/issues/48950> \
-                                    for more information).",
+                                    for more information)",
                                 );
                                 err.help("did you intend to use the type `()` here instead?");
                             }
@@ -541,9 +533,9 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
                         // example).
 
                         let trait_is_debug =
-                            self.tcx.is_diagnostic_item(sym::debug_trait, trait_ref.def_id());
+                            self.tcx.is_diagnostic_item(sym::Debug, trait_ref.def_id());
                         let trait_is_display =
-                            self.tcx.is_diagnostic_item(sym::display_trait, trait_ref.def_id());
+                            self.tcx.is_diagnostic_item(sym::Display, trait_ref.def_id());
 
                         let in_std_macro =
                             match obligation.cause.span.ctxt().outer_expn_data().macro_def_id {
@@ -730,7 +722,10 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
                 };
 
                 let found_did = match *found_trait_ty.kind() {
-                    ty::Closure(did, _) | ty::Foreign(did) | ty::FnDef(did, _) => Some(did),
+                    ty::Closure(did, _)
+                    | ty::Foreign(did)
+                    | ty::FnDef(did, _)
+                    | ty::Generator(did, ..) => Some(did),
                     ty::Adt(def, _) => Some(def.did),
                     _ => None,
                 };
@@ -846,6 +841,9 @@ impl<'a, 'tcx> InferCtxtExt<'tcx> for InferCtxt<'a, 'tcx> {
 
             Overflow => {
                 bug!("overflow should be handled before the `report_selection_error` path");
+            }
+            SelectionError::ErrorReporting => {
+                bug!("ErrorReporting Overflow should not reach `report_selection_err` call")
             }
         };
 
@@ -1200,13 +1198,13 @@ impl<'a, 'tcx> InferCtxtPrivExt<'tcx> for InferCtxt<'a, 'tcx> {
         false
     }
 
+    #[instrument(skip(self), level = "debug")]
     fn report_fulfillment_error(
         &self,
         error: &FulfillmentError<'tcx>,
         body_id: Option<hir::BodyId>,
         fallback_has_occurred: bool,
     ) {
-        debug!("report_fulfillment_error({:?})", error);
         match error.code {
             FulfillmentErrorCode::CodeSelectionError(ref selection_error) => {
                 self.report_selection_error(
@@ -1214,7 +1212,6 @@ impl<'a, 'tcx> InferCtxtPrivExt<'tcx> for InferCtxt<'a, 'tcx> {
                     &error.root_obligation,
                     selection_error,
                     fallback_has_occurred,
-                    error.points_at_arg_span,
                 );
             }
             FulfillmentErrorCode::CodeProjectionError(ref e) => {
@@ -1534,6 +1531,7 @@ impl<'a, 'tcx> InferCtxtPrivExt<'tcx> for InferCtxt<'a, 'tcx> {
         )
     }
 
+    #[instrument(skip(self), level = "debug")]
     fn maybe_report_ambiguity(
         &self,
         obligation: &PredicateObligation<'tcx>,
@@ -1548,8 +1546,7 @@ impl<'a, 'tcx> InferCtxtPrivExt<'tcx> for InferCtxt<'a, 'tcx> {
         let span = obligation.cause.span;
 
         debug!(
-            "maybe_report_ambiguity(predicate={:?}, obligation={:?} body_id={:?}, code={:?})",
-            predicate, obligation, body_id, obligation.cause.code,
+            ?predicate, ?obligation.cause.code,
         );
 
         // Ambiguity errors are often caused as fallout from earlier
@@ -1562,7 +1559,7 @@ impl<'a, 'tcx> InferCtxtPrivExt<'tcx> for InferCtxt<'a, 'tcx> {
         let mut err = match bound_predicate.skip_binder() {
             ty::PredicateKind::Trait(data) => {
                 let trait_ref = bound_predicate.rebind(data.trait_ref);
-                debug!("trait_ref {:?}", trait_ref);
+                debug!(?trait_ref);
 
                 if predicate.references_error() {
                     return;

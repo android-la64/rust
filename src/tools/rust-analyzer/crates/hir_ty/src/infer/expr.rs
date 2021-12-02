@@ -63,7 +63,7 @@ impl<'a> InferenceContext<'a> {
     /// Return the type after possible coercion.
     pub(super) fn infer_expr_coerce(&mut self, expr: ExprId, expected: &Expectation) -> Ty {
         let ty = self.infer_expr_inner(expr, expected);
-        let ty = if let Some(target) = expected.only_has_type(&mut self.table) {
+        if let Some(target) = expected.only_has_type(&mut self.table) {
             match self.coerce(Some(expr), &ty, &target) {
                 Ok(res) => res.value,
                 Err(_) => {
@@ -77,9 +77,7 @@ impl<'a> InferenceContext<'a> {
             }
         } else {
             ty
-        };
-
-        ty
+        }
     }
 
     fn callable_sig_from_fn_trait(&mut self, ty: &Ty, num_args: usize) -> Option<(Vec<Ty>, Ty)> {
@@ -266,10 +264,9 @@ impl<'a> InferenceContext<'a> {
 
                 // collect explicitly written argument types
                 for arg_type in arg_types.iter() {
-                    let arg_ty = if let Some(type_ref) = arg_type {
-                        self.make_ty(type_ref)
-                    } else {
-                        self.table.new_type_var()
+                    let arg_ty = match arg_type {
+                        Some(type_ref) => self.make_ty(type_ref),
+                        None => self.table.new_type_var(),
                     };
                     sig_tys.push(arg_ty);
                 }
@@ -330,10 +327,8 @@ impl<'a> InferenceContext<'a> {
                     },
                 );
                 let res = derefs.by_ref().find_map(|(callee_deref_ty, _)| {
-                    self.callable_sig(
-                        &canonicalized.decanonicalize_ty(callee_deref_ty.value),
-                        args.len(),
-                    )
+                    let ty = &canonicalized.decanonicalize_ty(&mut self.table, callee_deref_ty);
+                    self.callable_sig(ty, args.len())
                 });
                 let (param_tys, ret_ty): (Vec<Ty>, Ty) = match res {
                     Some(res) => {
@@ -512,17 +507,20 @@ impl<'a> InferenceContext<'a> {
                     },
                 );
                 let ty = autoderef.by_ref().find_map(|(derefed_ty, _)| {
-                    let def_db = self.db.upcast();
                     let module = self.resolver.module();
+                    let db = self.db;
                     let is_visible = |field_id: &FieldId| {
                         module
                             .map(|mod_id| {
-                                self.db.field_visibilities(field_id.parent)[field_id.local_id]
-                                    .is_visible_from(def_db, mod_id)
+                                db.field_visibilities(field_id.parent)[field_id.local_id]
+                                    .is_visible_from(db.upcast(), mod_id)
                             })
                             .unwrap_or(true)
                     };
-                    match canonicalized.decanonicalize_ty(derefed_ty.value).kind(&Interner) {
+                    match canonicalized
+                        .decanonicalize_ty(&mut self.table, derefed_ty)
+                        .kind(&Interner)
+                    {
                         TyKind::Tuple(_, substs) => name.as_tuple_index().and_then(|idx| {
                             substs
                                 .as_slice(&Interner)
@@ -639,7 +637,7 @@ impl<'a> InferenceContext<'a> {
                                 },
                             ) {
                                 Some(derefed_ty) => {
-                                    canonicalized.decanonicalize_ty(derefed_ty.value)
+                                    canonicalized.decanonicalize_ty(&mut self.table, derefed_ty)
                                 }
                                 None => self.err_ty(),
                             }
@@ -742,8 +740,9 @@ impl<'a> InferenceContext<'a> {
                         krate,
                         index_trait,
                     );
-                    let self_ty =
-                        self_ty.map_or(self.err_ty(), |t| canonicalized.decanonicalize_ty(t.value));
+                    let self_ty = self_ty.map_or(self.err_ty(), |t| {
+                        canonicalized.decanonicalize_ty(&mut self.table, t)
+                    });
                     self.resolve_associated_type_with_params(
                         self_ty,
                         self.resolve_ops_index_output(),
@@ -899,9 +898,7 @@ impl<'a> InferenceContext<'a> {
         if let Some(builtin_rhs) = self.builtin_binary_op_rhs_expectation(op, lhs_ty.clone()) {
             self.unify(&builtin_rhs, &rhs_ty);
         }
-        if let Some(builtin_ret) =
-            self.builtin_binary_op_return_ty(op, lhs_ty.clone(), rhs_ty.clone())
-        {
+        if let Some(builtin_ret) = self.builtin_binary_op_return_ty(op, lhs_ty, rhs_ty) {
             self.unify(&builtin_ret, &ret_ty);
         }
 
@@ -917,7 +914,7 @@ impl<'a> InferenceContext<'a> {
     ) -> Ty {
         for stmt in statements {
             match stmt {
-                Statement::Let { pat, type_ref, initializer } => {
+                Statement::Let { pat, type_ref, initializer, else_branch } => {
                     let decl_ty = type_ref
                         .as_ref()
                         .map(|tr| self.make_ty(tr))
@@ -934,6 +931,13 @@ impl<'a> InferenceContext<'a> {
                         }
                     }
 
+                    if let Some(expr) = else_branch {
+                        self.infer_expr_coerce(
+                            *expr,
+                            &Expectation::has_type(Ty::new(&Interner, TyKind::Never)),
+                        );
+                    }
+
                     self.infer_pat(*pat, &ty, BindingMode::default());
                 }
                 Statement::Expr { expr, .. } => {
@@ -942,7 +946,7 @@ impl<'a> InferenceContext<'a> {
             }
         }
 
-        let ty = if let Some(expr) = tail {
+        if let Some(expr) = tail {
             self.infer_expr_coerce(expr, expected)
         } else {
             // Citing rustc: if there is no explicit tail expression,
@@ -961,8 +965,7 @@ impl<'a> InferenceContext<'a> {
                 }
                 TyBuilder::unit()
             }
-        };
-        ty
+        }
     }
 
     fn infer_method_call(
@@ -992,7 +995,7 @@ impl<'a> InferenceContext<'a> {
         });
         let (receiver_ty, method_ty, substs) = match resolved {
             Some((ty, func)) => {
-                let ty = canonicalized_receiver.decanonicalize_ty(ty);
+                let ty = canonicalized_receiver.decanonicalize_ty(&mut self.table, ty);
                 let generics = generics(self.db.upcast(), func.into());
                 let substs = self.substs_for_method_call(generics, generic_args, &ty);
                 self.write_method_resolution(tgt_expr, func, substs.clone());
@@ -1032,7 +1035,7 @@ impl<'a> InferenceContext<'a> {
         inputs: Vec<Ty>,
     ) -> Vec<Ty> {
         if let Some(expected_ty) = expected_output.to_option(&mut self.table) {
-            let result = self.table.fudge_inference(|table| {
+            self.table.fudge_inference(|table| {
                 if table.try_unify(&expected_ty, &output).is_ok() {
                     table.resolve_with_fallback(inputs, |var, kind, _, _| match kind {
                         chalk_ir::VariableKind::Ty(tk) => var.to_ty(&Interner, tk).cast(&Interner),
@@ -1046,8 +1049,7 @@ impl<'a> InferenceContext<'a> {
                 } else {
                     Vec::new()
                 }
-            });
-            result
+            })
         } else {
             Vec::new()
         }

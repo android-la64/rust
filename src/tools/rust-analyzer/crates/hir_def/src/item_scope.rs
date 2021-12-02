@@ -8,12 +8,13 @@ use hir_expand::{name::Name, AstId, MacroCallId, MacroDefKind};
 use once_cell::sync::Lazy;
 use profile::Count;
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::SmallVec;
 use stdx::format_to;
 use syntax::ast;
 
 use crate::{
-    db::DefDatabase, per_ns::PerNs, visibility::Visibility, AdtId, BuiltinType, ConstId, ImplId,
-    LocalModuleId, MacroDefId, ModuleDefId, ModuleId, TraitId,
+    attr::AttrId, db::DefDatabase, per_ns::PerNs, visibility::Visibility, AdtId, BuiltinType,
+    ConstId, ImplId, LocalModuleId, MacroDefId, ModuleDefId, ModuleId, TraitId,
 };
 
 #[derive(Copy, Clone)]
@@ -61,6 +62,7 @@ pub struct ItemScope {
     // be all resolved to the last one defined if shadowing happens.
     legacy_macros: FxHashMap<Name, MacroDefId>,
     attr_macros: FxHashMap<AstId<ast::Item>, MacroCallId>,
+    derive_macros: FxHashMap<AstId<ast::Item>, SmallVec<[(AttrId, MacroCallId); 1]>>,
 }
 
 pub(crate) static BUILTIN_SCOPE: Lazy<FxHashMap<Name, PerNs>> = Lazy::new(|| {
@@ -180,6 +182,21 @@ impl ItemScope {
         &self,
     ) -> impl Iterator<Item = (AstId<ast::Item>, MacroCallId)> + '_ {
         self.attr_macros.iter().map(|(k, v)| (*k, *v))
+    }
+
+    pub(crate) fn add_derive_macro_invoc(
+        &mut self,
+        item: AstId<ast::Item>,
+        call: MacroCallId,
+        attr_id: AttrId,
+    ) {
+        self.derive_macros.entry(item).or_default().push((attr_id, call));
+    }
+
+    pub(crate) fn derive_macro_invocs(
+        &self,
+    ) -> impl Iterator<Item = (AstId<ast::Item>, &[(AttrId, MacroCallId)])> + '_ {
+        self.derive_macros.iter().map(|(k, v)| (*k, v.as_ref()))
     }
 
     pub(crate) fn unnamed_trait_vis(&self, tr: TraitId) -> Option<Visibility> {
@@ -320,6 +337,7 @@ impl ItemScope {
             unnamed_trait_imports,
             legacy_macros,
             attr_macros,
+            derive_macros,
         } = self;
         types.shrink_to_fit();
         values.shrink_to_fit();
@@ -331,6 +349,7 @@ impl ItemScope {
         unnamed_trait_imports.shrink_to_fit();
         legacy_macros.shrink_to_fit();
         attr_macros.shrink_to_fit();
+        derive_macros.shrink_to_fit();
     }
 }
 

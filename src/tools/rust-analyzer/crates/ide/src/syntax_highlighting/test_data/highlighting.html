@@ -17,6 +17,8 @@ pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padd
 .function.unsafe    { color: #BC8383; }
 .trait.unsafe       { color: #BC8383; }
 .operator.unsafe    { color: #BC8383; }
+.mutable.unsafe     { color: #BC8383; text-decoration: underline; }
+.keyword.unsafe     { color: #BC8383; font-weight: bold; }
 .parameter          { color: #94BFF3; }
 .text               { color: #DCDCCC; }
 .type               { color: #7CB8BB; }
@@ -33,7 +35,6 @@ pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padd
 .mutable            { text-decoration: underline; }
 .escape_sequence    { color: #94BFF3; }
 .keyword            { color: #F0DFAF; font-weight: bold; }
-.keyword.unsafe     { color: #BC8383; font-weight: bold; }
 .control            { font-style: italic; }
 .reference          { font-style: italic; font-weight: bold; }
 
@@ -51,21 +52,23 @@ pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padd
     <span class="keyword">pub</span> <span class="keyword">trait</span> <span class="trait declaration public">Copy</span> <span class="brace">{</span><span class="brace">}</span>
 <span class="brace">}</span>
 
+<span class="attribute attribute">#</span><span class="attribute attribute">[</span><span class="module attribute">proc_macros</span><span class="operator attribute">::</span><span class="builtin_attr attribute">identity</span><span class="attribute attribute">]</span>
 <span class="keyword">pub</span> <span class="keyword">mod</span> <span class="module declaration public">ops</span> <span class="brace">{</span>
-    <span class="attribute attribute">#</span><span class="attribute attribute">[</span><span class="builtin_attr attribute">lang</span><span class="attribute attribute"> </span><span class="operator attribute">=</span><span class="attribute attribute"> </span><span class="string_literal attribute">"fn_once"</span><span class="attribute attribute">]</span>
+    <span class="attribute attribute">#</span><span class="attribute attribute">[</span><span class="builtin_attr attribute">lang</span> <span class="operator attribute">=</span> <span class="string_literal attribute">"fn_once"</span><span class="attribute attribute">]</span>
     <span class="keyword">pub</span> <span class="keyword">trait</span> <span class="trait declaration public">FnOnce</span><span class="angle">&lt;</span><span class="type_param declaration">Args</span><span class="angle">&gt;</span> <span class="brace">{</span><span class="brace">}</span>
 
-    <span class="attribute attribute">#</span><span class="attribute attribute">[</span><span class="builtin_attr attribute">lang</span><span class="attribute attribute"> </span><span class="operator attribute">=</span><span class="attribute attribute"> </span><span class="string_literal attribute">"fn_mut"</span><span class="attribute attribute">]</span>
+    <span class="attribute attribute">#</span><span class="attribute attribute">[</span><span class="builtin_attr attribute">lang</span> <span class="operator attribute">=</span> <span class="string_literal attribute">"fn_mut"</span><span class="attribute attribute">]</span>
     <span class="keyword">pub</span> <span class="keyword">trait</span> <span class="trait declaration public">FnMut</span><span class="angle">&lt;</span><span class="type_param declaration">Args</span><span class="angle">&gt;</span><span class="colon">:</span> <span class="trait public">FnOnce</span><span class="angle">&lt;</span><span class="type_param">Args</span><span class="angle">&gt;</span> <span class="brace">{</span><span class="brace">}</span>
 
-    <span class="attribute attribute">#</span><span class="attribute attribute">[</span><span class="builtin_attr attribute">lang</span><span class="attribute attribute"> </span><span class="operator attribute">=</span><span class="attribute attribute"> </span><span class="string_literal attribute">"fn"</span><span class="attribute attribute">]</span>
+    <span class="attribute attribute">#</span><span class="attribute attribute">[</span><span class="builtin_attr attribute">lang</span> <span class="operator attribute">=</span> <span class="string_literal attribute">"fn"</span><span class="attribute attribute">]</span>
     <span class="keyword">pub</span> <span class="keyword">trait</span> <span class="trait declaration public">Fn</span><span class="angle">&lt;</span><span class="type_param declaration">Args</span><span class="angle">&gt;</span><span class="colon">:</span> <span class="trait public">FnMut</span><span class="angle">&lt;</span><span class="type_param">Args</span><span class="angle">&gt;</span> <span class="brace">{</span><span class="brace">}</span>
 <span class="brace">}</span>
 
-
-<span class="keyword">struct</span> <span class="struct declaration">Foo</span> <span class="brace">{</span>
-    <span class="keyword">pub</span> <span class="field declaration public">x</span><span class="colon">:</span> <span class="builtin_type">i32</span><span class="comma">,</span>
-    <span class="keyword">pub</span> <span class="field declaration public">y</span><span class="colon">:</span> <span class="builtin_type">i32</span><span class="comma">,</span>
+proc_macros::<span class="macro">mirror!</span> <span class="brace">{</span>
+    <span class="brace">{</span>
+        <span class="comma">,</span><span class="builtin_type">i32</span> <span class="colon">:</span><span class="field declaration public">x</span> <span class="keyword">pub</span>
+        <span class="comma">,</span><span class="builtin_type">i32</span> <span class="colon">:</span><span class="field declaration public">y</span> <span class="keyword">pub</span>
+    <span class="brace">}</span> <span class="struct declaration">Foo</span> <span class="keyword">struct</span>
 <span class="brace">}</span>
 
 <span class="keyword">trait</span> <span class="trait declaration">Bar</span> <span class="keyword">where</span> <span class="type_param">Self</span><span class="colon">:</span> <span class="brace">{</span>
@@ -114,8 +117,6 @@ pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padd
 <span class="keyword">fn</span> <span class="function declaration">str</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span>
     <span class="function">str</span><span class="parenthesis">(</span><span class="parenthesis">)</span><span class="semicolon">;</span>
 <span class="brace">}</span>
-
-<span class="keyword">static</span> <span class="keyword">mut</span> <span class="static declaration mutable unsafe">STATIC_MUT</span><span class="colon">:</span> <span class="builtin_type">i32</span> <span class="operator">=</span> <span class="numeric_literal">0</span><span class="semicolon">;</span>
 
 <span class="keyword">fn</span> <span class="function declaration">foo</span><span class="angle">&lt;</span><span class="lifetime declaration">'a</span><span class="comma">,</span> <span class="type_param declaration">T</span><span class="angle">&gt;</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="operator">-&gt;</span> <span class="type_param">T</span> <span class="brace">{</span>
     <span class="function">foo</span><span class="operator">::</span><span class="angle">&lt;</span><span class="lifetime">'a</span><span class="comma">,</span> <span class="builtin_type">i32</span><span class="angle">&gt;</span><span class="parenthesis">(</span><span class="parenthesis">)</span>
@@ -184,10 +185,6 @@ pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padd
         <span class="keyword">let</span> <span class="variable declaration">x</span> <span class="operator">=</span> <span class="numeric_literal">92</span><span class="semicolon">;</span>
         <span class="variable mutable">vec</span><span class="operator">.</span><span class="unresolved_reference">push</span><span class="parenthesis">(</span><span class="struct">Foo</span> <span class="brace">{</span> <span class="field">x</span><span class="comma">,</span> <span class="field public">y</span><span class="colon">:</span> <span class="numeric_literal">1</span> <span class="brace">}</span><span class="parenthesis">)</span><span class="semicolon">;</span>
     <span class="brace">}</span>
-    <span class="keyword unsafe">unsafe</span> <span class="brace">{</span>
-        <span class="variable mutable">vec</span><span class="operator">.</span><span class="unresolved_reference">set_len</span><span class="parenthesis">(</span><span class="numeric_literal">0</span><span class="parenthesis">)</span><span class="semicolon">;</span>
-        <span class="static mutable unsafe">STATIC_MUT</span> <span class="operator">=</span> <span class="numeric_literal">1</span><span class="semicolon">;</span>
-    <span class="brace">}</span>
 
     <span class="keyword control">for</span> <span class="variable declaration">e</span> <span class="keyword control">in</span> <span class="variable mutable">vec</span> <span class="brace">{</span>
         <span class="comment">// Do nothing</span>
@@ -244,27 +241,24 @@ pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padd
     <span class="brace">}</span>
 <span class="brace">}</span>
 
-<span class="keyword async">async</span> <span class="keyword">fn</span> <span class="function declaration async">learn_and_sing</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span>
-    <span class="keyword">let</span> <span class="variable declaration">song</span> <span class="operator">=</span> <span class="unresolved_reference">learn_song</span><span class="parenthesis">(</span><span class="parenthesis">)</span><span class="operator">.</span><span class="keyword control async">await</span><span class="semicolon">;</span>
-    <span class="unresolved_reference">sing_song</span><span class="parenthesis">(</span><span class="variable consuming">song</span><span class="parenthesis">)</span><span class="operator">.</span><span class="keyword control async">await</span><span class="semicolon">;</span>
+<span class="keyword async">async</span> <span class="keyword">fn</span> <span class="function async declaration">learn_and_sing</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span>
+    <span class="keyword">let</span> <span class="variable declaration">song</span> <span class="operator">=</span> <span class="unresolved_reference">learn_song</span><span class="parenthesis">(</span><span class="parenthesis">)</span><span class="operator">.</span><span class="keyword async control">await</span><span class="semicolon">;</span>
+    <span class="unresolved_reference">sing_song</span><span class="parenthesis">(</span><span class="variable consuming">song</span><span class="parenthesis">)</span><span class="operator">.</span><span class="keyword async control">await</span><span class="semicolon">;</span>
 <span class="brace">}</span>
 
-<span class="keyword async">async</span> <span class="keyword">fn</span> <span class="function declaration async">async_main</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span>
+<span class="keyword async">async</span> <span class="keyword">fn</span> <span class="function async declaration">async_main</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span>
     <span class="keyword">let</span> <span class="variable declaration">f1</span> <span class="operator">=</span> <span class="function async">learn_and_sing</span><span class="parenthesis">(</span><span class="parenthesis">)</span><span class="semicolon">;</span>
     <span class="keyword">let</span> <span class="variable declaration">f2</span> <span class="operator">=</span> <span class="unresolved_reference">dance</span><span class="parenthesis">(</span><span class="parenthesis">)</span><span class="semicolon">;</span>
     futures::<span class="macro">join!</span><span class="parenthesis">(</span>f1<span class="comma">,</span> f2<span class="parenthesis">)</span><span class="semicolon">;</span>
 <span class="brace">}</span>
 
-<span class="keyword unsafe">unsafe</span> <span class="keyword">trait</span> <span class="trait declaration unsafe">Dangerous</span> <span class="brace">{</span><span class="brace">}</span>
-<span class="keyword">impl</span> <span class="trait unsafe">Dangerous</span> <span class="keyword">for</span> <span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span><span class="brace">}</span>
-
 <span class="keyword">fn</span> <span class="function declaration">use_foo_items</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span>
-    <span class="keyword">let</span> <span class="variable declaration">bob</span> <span class="operator">=</span> <span class="module library">foo</span><span class="operator">::</span><span class="struct library">Person</span> <span class="brace">{</span>
+    <span class="keyword">let</span> <span class="variable declaration">bob</span> <span class="operator">=</span> <span class="module crate_root library">foo</span><span class="operator">::</span><span class="struct library">Person</span> <span class="brace">{</span>
         <span class="field library">name</span><span class="colon">:</span> <span class="string_literal">"Bob"</span><span class="comma">,</span>
-        <span class="field library">age</span><span class="colon">:</span> <span class="module library">foo</span><span class="operator">::</span><span class="module library">consts</span><span class="operator">::</span><span class="constant library">NUMBER</span><span class="comma">,</span>
+        <span class="field library">age</span><span class="colon">:</span> <span class="module crate_root library">foo</span><span class="operator">::</span><span class="module library">consts</span><span class="operator">::</span><span class="constant library">NUMBER</span><span class="comma">,</span>
     <span class="brace">}</span><span class="semicolon">;</span>
 
-    <span class="keyword">let</span> <span class="variable declaration">control_flow</span> <span class="operator">=</span> <span class="module library">foo</span><span class="operator">::</span><span class="function library">identity</span><span class="parenthesis">(</span><span class="module library">foo</span><span class="operator">::</span><span class="enum library">ControlFlow</span><span class="operator">::</span><span class="enum_variant library">Continue</span><span class="parenthesis">)</span><span class="semicolon">;</span>
+    <span class="keyword">let</span> <span class="variable declaration">control_flow</span> <span class="operator">=</span> <span class="module crate_root library">foo</span><span class="operator">::</span><span class="function library">identity</span><span class="parenthesis">(</span><span class="module crate_root library">foo</span><span class="operator">::</span><span class="enum library">ControlFlow</span><span class="operator">::</span><span class="enum_variant library">Continue</span><span class="parenthesis">)</span><span class="semicolon">;</span>
 
     <span class="keyword control">if</span> <span class="variable">control_flow</span><span class="operator">.</span><span class="function associated consuming library">should_die</span><span class="parenthesis">(</span><span class="parenthesis">)</span> <span class="brace">{</span>
         foo::<span class="macro">die!</span><span class="parenthesis">(</span><span class="parenthesis">)</span><span class="semicolon">;</span>

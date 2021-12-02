@@ -2,6 +2,9 @@
 //! `macro_rules` macros. It uses `TokenTree` (from `tt` package) as the
 //! interface, although it contains some code to bridge `SyntaxNode`s and
 //! `TokenTree`s as well!
+//!
+//! The tes for this functionality live in another crate:
+//! `hir_def::macro_expansion_tests::mbe`.
 
 mod parser;
 mod expander;
@@ -10,27 +13,37 @@ mod tt_iter;
 mod subtree_source;
 
 #[cfg(test)]
-mod tests;
-
-#[cfg(test)]
 mod benchmark;
 mod token_map;
 
 use std::fmt;
 
-pub use tt::{Delimiter, DelimiterKind, Punct};
-
 use crate::{
-    parser::{parse_pattern, parse_template, MetaTemplate, Op},
+    parser::{MetaTemplate, Op},
     tt_iter::TtIter,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+// FIXME: we probably should re-think  `token_tree_to_syntax_node` interfaces
+pub use ::parser::ParserEntryPoint;
+pub use tt::{Delimiter, DelimiterKind, Punct};
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ParseError {
     UnexpectedToken(String),
     Expected(String),
     InvalidRepeat,
     RepetitionEmptyTokenTree,
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseError::UnexpectedToken(it) => f.write_str(it),
+            ParseError::Expected(it) => f.write_str(it),
+            ParseError::InvalidRepeat => f.write_str("invalid repeat"),
+            ParseError::RepetitionEmptyTokenTree => f.write_str("empty token tree in repetition"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -39,15 +52,9 @@ pub enum ExpandError {
     UnexpectedToken,
     BindingError(String),
     ConversionError,
-    ProcMacroError(tt::ExpansionError),
+    // FIXME: no way mbe should know about proc macros.
     UnresolvedProcMacro,
     Other(String),
-}
-
-impl From<tt::ExpansionError> for ExpandError {
-    fn from(it: tt::ExpansionError) -> Self {
-        ExpandError::ProcMacroError(it)
-    }
 }
 
 impl fmt::Display for ExpandError {
@@ -57,7 +64,6 @@ impl fmt::Display for ExpandError {
             ExpandError::UnexpectedToken => f.write_str("unexpected token in input"),
             ExpandError::BindingError(e) => f.write_str(e),
             ExpandError::ConversionError => f.write_str("could not convert tokens"),
-            ExpandError::ProcMacroError(e) => e.fmt(f),
             ExpandError::UnresolvedProcMacro => f.write_str("unresolved proc macro"),
             ExpandError::Other(e) => f.write_str(e),
         }
@@ -67,7 +73,7 @@ impl fmt::Display for ExpandError {
 pub use crate::{
     syntax_bridge::{
         parse_exprs_with_sep, parse_to_token_tree, syntax_node_to_token_tree,
-        token_tree_to_syntax_node,
+        syntax_node_to_token_tree_censored, token_tree_to_syntax_node,
     },
     token_map::TokenMap,
 };
@@ -77,15 +83,7 @@ pub use crate::{
 /// `tt::TokenTree`, but there's a crucial difference: in macro rules, `$ident`
 /// and `$()*` have special meaning (see `Var` and `Repeat` data structures)
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MacroRules {
-    rules: Vec<Rule>,
-    /// Highest id of the token we have in TokenMap
-    shift: Shift,
-}
-
-/// For Macro 2.0
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MacroDef {
+pub struct DeclarativeMacro {
     rules: Vec<Rule>,
     /// Highest id of the token we have in TokenMap
     shift: Shift,
@@ -97,11 +95,11 @@ struct Rule {
     rhs: MetaTemplate,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct Shift(u32);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Shift(u32);
 
 impl Shift {
-    fn new(tt: &tt::Subtree) -> Shift {
+    pub fn new(tt: &tt::Subtree) -> Shift {
         // Note that TokenId is started from zero,
         // We have to add 1 to prevent duplication.
         let value = max_id(tt).map_or(0, |it| it + 1);
@@ -134,7 +132,7 @@ impl Shift {
     }
 
     /// Shift given TokenTree token id
-    fn shift_all(self, tt: &mut tt::Subtree) {
+    pub fn shift_all(self, tt: &mut tt::Subtree) {
         for t in &mut tt.token_trees {
             match t {
                 tt::TokenTree::Leaf(leaf) => match leaf {
@@ -152,14 +150,14 @@ impl Shift {
         }
     }
 
-    fn shift(self, id: tt::TokenId) -> tt::TokenId {
+    pub fn shift(self, id: tt::TokenId) -> tt::TokenId {
         if id == tt::TokenId::unspecified() {
             return id;
         }
         tt::TokenId(id.0 + self.0)
     }
 
-    fn unshift(self, id: tt::TokenId) -> Option<tt::TokenId> {
+    pub fn unshift(self, id: tt::TokenId) -> Option<tt::TokenId> {
         id.0.checked_sub(self.0).map(tt::TokenId)
     }
 }
@@ -170,8 +168,9 @@ pub enum Origin {
     Call,
 }
 
-impl MacroRules {
-    pub fn parse(tt: &tt::Subtree) -> Result<MacroRules, ParseError> {
+impl DeclarativeMacro {
+    /// The old, `macro_rules! m {}` flavor.
+    pub fn parse_macro_rules(tt: &tt::Subtree) -> Result<DeclarativeMacro, ParseError> {
         // Note: this parsing can be implemented using mbe machinery itself, by
         // matching against `$($lhs:tt => $rhs:tt);*` pattern, but implementing
         // manually seems easier.
@@ -192,30 +191,11 @@ impl MacroRules {
             validate(&rule.lhs)?;
         }
 
-        Ok(MacroRules { rules, shift: Shift::new(tt) })
+        Ok(DeclarativeMacro { rules, shift: Shift::new(tt) })
     }
 
-    pub fn expand(&self, tt: &tt::Subtree) -> ExpandResult<tt::Subtree> {
-        // apply shift
-        let mut tt = tt.clone();
-        self.shift.shift_all(&mut tt);
-        expander::expand_rules(&self.rules, &tt)
-    }
-
-    pub fn map_id_down(&self, id: tt::TokenId) -> tt::TokenId {
-        self.shift.shift(id)
-    }
-
-    pub fn map_id_up(&self, id: tt::TokenId) -> (tt::TokenId, Origin) {
-        match self.shift.unshift(id) {
-            Some(id) => (id, Origin::Call),
-            None => (id, Origin::Def),
-        }
-    }
-}
-
-impl MacroDef {
-    pub fn parse(tt: &tt::Subtree) -> Result<MacroDef, ParseError> {
+    /// The new, unstable `macro m {}` flavor.
+    pub fn parse_macro2(tt: &tt::Subtree) -> Result<DeclarativeMacro, ParseError> {
         let mut src = TtIter::new(tt);
         let mut rules = Vec::new();
 
@@ -245,7 +225,7 @@ impl MacroDef {
             validate(&rule.lhs)?;
         }
 
-        Ok(MacroDef { rules, shift: Shift::new(tt) })
+        Ok(DeclarativeMacro { rules, shift: Shift::new(tt) })
     }
 
     pub fn expand(&self, tt: &tt::Subtree) -> ExpandResult<tt::Subtree> {
@@ -280,8 +260,8 @@ impl Rule {
             .expect_subtree()
             .map_err(|()| ParseError::Expected("expected subtree".to_string()))?;
 
-        let lhs = MetaTemplate(parse_pattern(lhs)?);
-        let rhs = MetaTemplate(parse_template(rhs)?);
+        let lhs = MetaTemplate::parse_pattern(lhs)?;
+        let rhs = MetaTemplate::parse_template(rhs)?;
 
         Ok(crate::Rule { lhs, rhs })
     }

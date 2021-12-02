@@ -653,6 +653,11 @@ impl Easy {
         self.inner.buffer_size(size)
     }
 
+    /// Same as [`Easy2::upload_buffer_size`](struct.Easy2.html#method.upload_buffer_size)
+    pub fn upload_buffer_size(&mut self, size: usize) -> Result<(), Error> {
+        self.inner.upload_buffer_size(size)
+    }
+
     /// Same as [`Easy2::tcp_nodelay`](struct.Easy2.html#method.tcp_nodelay)
     pub fn tcp_nodelay(&mut self, enable: bool) -> Result<(), Error> {
         self.inner.tcp_nodelay(enable)
@@ -694,6 +699,11 @@ impl Easy {
     /// Same as [`Easy2::http_auth`](struct.Easy2.html#method.http_auth)
     pub fn http_auth(&mut self, auth: &Auth) -> Result<(), Error> {
         self.inner.http_auth(auth)
+    }
+
+    /// Same as [`Easy2::aws_sigv4`](struct.Easy2.html#method.aws_sigv4)
+    pub fn aws_sigv4(&mut self, param: &str) -> Result<(), Error> {
+        self.inner.aws_sigv4(param)
     }
 
     /// Same as [`Easy2::proxy_username`](struct.Easy2.html#method.proxy_username)

@@ -8,10 +8,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use ast::NameOwner;
+use ast::HasName;
 use expect_test::expect_file;
 use rayon::prelude::*;
-use test_utils::{bench, bench_fixture, project_root, skip_slow_tests};
+use test_utils::{bench, bench_fixture, project_root};
 
 use crate::{ast, fuzz, tokenize, AstNode, SourceFile, SyntaxError, TextRange, TextSize, Token};
 
@@ -48,9 +48,10 @@ fn main() {
 
 #[test]
 fn benchmark_parser() {
-    if skip_slow_tests() {
+    if std::env::var("RUN_SLOW_BENCHES").is_err() {
         return;
     }
+
     let data = bench_fixture::glorious_old_parser();
     let tree = {
         let _b = bench("parsing");
@@ -226,12 +227,9 @@ where
     T: crate::AstNode,
     F: Fn(&str) -> Result<T, ()>,
 {
-    dir_tests(&test_data_dir(), ok_paths, "rast", |text, path| {
-        if let Ok(node) = f(text) {
-            format!("{:#?}", crate::ast::AstNode::syntax(&node))
-        } else {
-            panic!("Failed to parse '{:?}'", path);
-        }
+    dir_tests(&test_data_dir(), ok_paths, "rast", |text, path| match f(text) {
+        Ok(node) => format!("{:#?}", crate::ast::AstNode::syntax(&node)),
+        Err(_) => panic!("Failed to parse '{:?}'", path),
     });
     dir_tests(&test_data_dir(), err_paths, "rast", |text, path| {
         if f(text).is_ok() {

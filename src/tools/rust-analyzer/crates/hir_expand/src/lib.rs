@@ -8,34 +8,33 @@ pub mod db;
 pub mod ast_id_map;
 pub mod name;
 pub mod hygiene;
-pub mod builtin_attr;
-pub mod builtin_derive;
-pub mod builtin_macro;
+pub mod builtin_attr_macro;
+pub mod builtin_derive_macro;
+pub mod builtin_fn_macro;
 pub mod proc_macro;
 pub mod quote;
 pub mod eager;
-mod input;
 
 use base_db::ProcMacroKind;
 use either::Either;
 
 pub use mbe::{ExpandError, ExpandResult};
-pub use parser::FragmentKind;
 
 use std::{hash::Hash, iter, sync::Arc};
 
 use base_db::{impl_intern_key, salsa, CrateId, FileId, FileRange};
 use syntax::{
     algo::skip_trivia_token,
-    ast::{self, AstNode},
-    Direction, SyntaxNode, SyntaxToken, TextRange, TextSize,
+    ast::{self, AstNode, HasAttrs},
+    Direction, SyntaxNode, SyntaxToken, TextRange,
 };
 
 use crate::{
     ast_id_map::FileAstId,
-    builtin_attr::BuiltinAttrExpander,
-    builtin_derive::BuiltinDeriveExpander,
-    builtin_macro::{BuiltinFnLikeExpander, EagerExpander},
+    builtin_attr_macro::BuiltinAttrExpander,
+    builtin_derive_macro::BuiltinDeriveExpander,
+    builtin_fn_macro::{BuiltinFnLikeExpander, EagerExpander},
+    db::TokenExpander,
     proc_macro::ProcMacroExpander,
 };
 
@@ -63,17 +62,86 @@ enum HirFileIdRepr {
     FileId(FileId),
     MacroFile(MacroFile),
 }
-
 impl From<FileId> for HirFileId {
     fn from(id: FileId) -> Self {
         HirFileId(HirFileIdRepr::FileId(id))
     }
 }
-
 impl From<MacroFile> for HirFileId {
     fn from(id: MacroFile) -> Self {
         HirFileId(HirFileIdRepr::MacroFile(id))
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MacroFile {
+    pub macro_call_id: MacroCallId,
+}
+
+/// `MacroCallId` identifies a particular macro invocation, like
+/// `println!("Hello, {}", world)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MacroCallId(salsa::InternId);
+impl_intern_key!(MacroCallId);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MacroCallLoc {
+    pub def: MacroDefId,
+    pub(crate) krate: CrateId,
+    eager: Option<EagerCallInfo>,
+    pub kind: MacroCallKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MacroDefId {
+    pub krate: CrateId,
+    pub kind: MacroDefKind,
+    pub local_inner: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MacroDefKind {
+    Declarative(AstId<ast::Macro>),
+    BuiltIn(BuiltinFnLikeExpander, AstId<ast::Macro>),
+    // FIXME: maybe just Builtin and rename BuiltinFnLikeExpander to BuiltinExpander
+    BuiltInAttr(BuiltinAttrExpander, AstId<ast::Macro>),
+    BuiltInDerive(BuiltinDeriveExpander, AstId<ast::Macro>),
+    BuiltInEager(EagerExpander, AstId<ast::Macro>),
+    ProcMacro(ProcMacroExpander, ProcMacroKind, AstId<ast::Fn>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct EagerCallInfo {
+    /// NOTE: This can be *either* the expansion result, *or* the argument to the eager macro!
+    arg_or_expansion: Arc<tt::Subtree>,
+    included_file: Option<FileId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum MacroCallKind {
+    FnLike {
+        ast_id: AstId<ast::MacroCall>,
+        expand_to: ExpandTo,
+    },
+    Derive {
+        ast_id: AstId<ast::Item>,
+        derive_name: String,
+        /// Syntactical index of the invoking `#[derive]` attribute.
+        ///
+        /// Outer attributes are counted first, then inner attributes. This does not support
+        /// out-of-line modules, which may have attributes spread across 2 files!
+        derive_attr_index: u32,
+    },
+    Attr {
+        ast_id: AstId<ast::Item>,
+        attr_name: String,
+        attr_args: (tt::Subtree, mbe::TokenMap),
+        /// Syntactical index of the invoking `#[attribute]`.
+        ///
+        /// Outer attributes are counted first, then inner attributes. This does not support
+        /// out-of-line modules, which may have attributes spread across 2 files!
+        invoc_attr_index: u32,
+    },
 }
 
 impl HirFileId {
@@ -132,15 +200,27 @@ impl HirFileId {
                     };
                     Some(InFile::new(id.file_id, def_tt))
                 });
+                let attr_input_or_mac_def = def.or_else(|| match loc.kind {
+                    MacroCallKind::Attr { ast_id, invoc_attr_index, .. } => {
+                        let tt = ast_id
+                            .to_node(db)
+                            .attrs()
+                            .nth(invoc_attr_index as usize)?
+                            .token_tree()?;
+                        Some(InFile::new(ast_id.file_id, tt))
+                    }
+                    _ => None,
+                });
 
-                let macro_def = db.macro_def(loc.def)?;
+                let macro_def = db.macro_def(loc.def).ok()?;
                 let (parse, exp_map) = db.parse_macro_expansion(macro_file).value?;
                 let macro_arg = db.macro_arg(macro_file.macro_call_id)?;
 
                 Some(ExpansionInfo {
                     expanded: InFile::new(self, parse.syntax_node()),
                     arg: InFile::new(loc.kind.file_id(), arg_tt),
-                    def,
+                    attr_input_or_mac_def,
+                    macro_arg_shift: mbe::Shift::new(&macro_arg.0),
                     macro_arg,
                     macro_def,
                     exp_map,
@@ -164,6 +244,19 @@ impl HirFileId {
         }
     }
 
+    pub fn is_custom_derive(&self, db: &dyn db::AstDatabase) -> bool {
+        match self.0 {
+            HirFileIdRepr::FileId(_) => false,
+            HirFileIdRepr::MacroFile(macro_file) => {
+                let loc: MacroCallLoc = db.lookup_intern_macro(macro_file.macro_call_id);
+                match loc.def.kind {
+                    MacroDefKind::ProcMacro(_, ProcMacroKind::CustomDerive, _) => true,
+                    _ => false,
+                }
+            }
+        }
+    }
+
     /// Return whether this file is an include macro
     pub fn is_include_macro(&self, db: &dyn db::AstDatabase) -> bool {
         match self.0 {
@@ -175,28 +268,20 @@ impl HirFileId {
         }
     }
 
+    /// Return whether this file is an include macro
+    pub fn is_attr_macro(&self, db: &dyn db::AstDatabase) -> bool {
+        match self.0 {
+            HirFileIdRepr::MacroFile(macro_file) => {
+                let loc: MacroCallLoc = db.lookup_intern_macro(macro_file.macro_call_id);
+                matches!(loc.kind, MacroCallKind::Attr { .. })
+            }
+            _ => false,
+        }
+    }
+
     pub fn is_macro(self) -> bool {
         matches!(self.0, HirFileIdRepr::MacroFile(_))
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MacroFile {
-    macro_call_id: MacroCallId,
-}
-
-/// `MacroCallId` identifies a particular macro invocation, like
-/// `println!("Hello, {}", world)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MacroCallId(salsa::InternId);
-impl_intern_key!(MacroCallId);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MacroDefId {
-    pub krate: CrateId,
-    pub kind: MacroDefKind,
-
-    pub local_inner: bool,
 }
 
 impl MacroDefId {
@@ -224,59 +309,6 @@ impl MacroDefId {
     pub fn is_proc_macro(&self) -> bool {
         matches!(self.kind, MacroDefKind::ProcMacro(..))
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MacroDefKind {
-    Declarative(AstId<ast::Macro>),
-    BuiltIn(BuiltinFnLikeExpander, AstId<ast::Macro>),
-    // FIXME: maybe just Builtin and rename BuiltinFnLikeExpander to BuiltinExpander
-    BuiltInAttr(BuiltinAttrExpander, AstId<ast::Macro>),
-    BuiltInDerive(BuiltinDeriveExpander, AstId<ast::Macro>),
-    BuiltInEager(EagerExpander, AstId<ast::Macro>),
-    ProcMacro(ProcMacroExpander, ProcMacroKind, AstId<ast::Fn>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct EagerCallInfo {
-    /// NOTE: This can be *either* the expansion result, *or* the argument to the eager macro!
-    arg_or_expansion: Arc<tt::Subtree>,
-    included_file: Option<FileId>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MacroCallLoc {
-    pub def: MacroDefId,
-    pub(crate) krate: CrateId,
-    eager: Option<EagerCallInfo>,
-    pub kind: MacroCallKind,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum MacroCallKind {
-    FnLike {
-        ast_id: AstId<ast::MacroCall>,
-        fragment: FragmentKind,
-    },
-    Derive {
-        ast_id: AstId<ast::Item>,
-        derive_name: String,
-        /// Syntactical index of the invoking `#[derive]` attribute.
-        ///
-        /// Outer attributes are counted first, then inner attributes. This does not support
-        /// out-of-line modules, which may have attributes spread across 2 files!
-        derive_attr_index: u32,
-    },
-    Attr {
-        ast_id: AstId<ast::Item>,
-        attr_name: String,
-        attr_args: tt::Subtree,
-        /// Syntactical index of the invoking `#[attribute]`.
-        ///
-        /// Outer attributes are counted first, then inner attributes. This does not support
-        /// out-of-line modules, which may have attributes spread across 2 files!
-        invoc_attr_index: u32,
-    },
 }
 
 // FIXME: attribute indices do not account for `cfg_attr`, which means that we'll strip the whole
@@ -315,11 +347,11 @@ impl MacroCallKind {
         }
     }
 
-    fn fragment_kind(&self) -> FragmentKind {
+    fn expand_to(&self) -> ExpandTo {
         match self {
-            MacroCallKind::FnLike { fragment, .. } => *fragment,
-            MacroCallKind::Derive { .. } => FragmentKind::Items,
-            MacroCallKind::Attr { .. } => FragmentKind::Items, // is this always correct?
+            MacroCallKind::FnLike { expand_to, .. } => *expand_to,
+            MacroCallKind::Derive { .. } => ExpandTo::Items,
+            MacroCallKind::Attr { .. } => ExpandTo::Items, // is this always correct?
         }
     }
 }
@@ -335,11 +367,12 @@ impl MacroCallId {
 pub struct ExpansionInfo {
     expanded: InFile<SyntaxNode>,
     arg: InFile<SyntaxNode>,
-    /// The `macro_rules!` arguments.
-    def: Option<InFile<ast::TokenTree>>,
+    /// The `macro_rules!` arguments or attribute input.
+    attr_input_or_mac_def: Option<InFile<ast::TokenTree>>,
 
-    macro_def: Arc<db::TokenExpander>,
+    macro_def: Arc<TokenExpander>,
     macro_arg: Arc<(tt::Subtree, mbe::TokenMap)>,
+    macro_arg_shift: mbe::Shift,
     exp_map: Arc<mbe::TokenMap>,
 }
 
@@ -350,39 +383,97 @@ impl ExpansionInfo {
         Some(self.arg.with_value(self.arg.value.parent()?))
     }
 
-    pub fn map_token_down(&self, token: InFile<&SyntaxToken>) -> Option<InFile<SyntaxToken>> {
+    pub fn map_token_down(
+        &self,
+        db: &dyn db::AstDatabase,
+        item: Option<ast::Item>,
+        token: InFile<&SyntaxToken>,
+    ) -> Option<impl Iterator<Item = InFile<SyntaxToken>> + '_> {
         assert_eq!(token.file_id, self.arg.file_id);
-        let range = token.value.text_range().checked_sub(self.arg.value.text_range().start())?;
-        let token_id = self.macro_arg.1.token_by_range(range)?;
-        let token_id = self.macro_def.map_id_down(token_id);
+        let token_id = if let Some(item) = item {
+            // check if we are mapping down in an attribute input
+            let call_id = match self.expanded.file_id.0 {
+                HirFileIdRepr::FileId(_) => return None,
+                HirFileIdRepr::MacroFile(macro_file) => macro_file.macro_call_id,
+            };
+            let loc = db.lookup_intern_macro(call_id);
 
-        let range = self.exp_map.range_by_token(token_id, token.value.kind())?;
+            let token_range = token.value.text_range();
+            match &loc.kind {
+                MacroCallKind::Attr { attr_args, invoc_attr_index, .. } => {
+                    let attr = item.attrs().nth(*invoc_attr_index as usize)?;
+                    match attr.token_tree() {
+                        Some(token_tree)
+                            if token_tree.syntax().text_range().contains_range(token_range) =>
+                        {
+                            let attr_input_start =
+                                token_tree.left_delimiter_token()?.text_range().start();
+                            let range = token.value.text_range().checked_sub(attr_input_start)?;
+                            let token_id =
+                                self.macro_arg_shift.shift(attr_args.1.token_by_range(range)?);
+                            Some(token_id)
+                        }
+                        _ => None,
+                    }
+                }
+                _ => None,
+            }
+        } else {
+            None
+        };
 
-        let token = self.expanded.value.covering_element(range).into_token()?;
+        let token_id = match token_id {
+            Some(token_id) => token_id,
+            None => {
+                let range =
+                    token.value.text_range().checked_sub(self.arg.value.text_range().start())?;
+                let token_id = self.macro_arg.1.token_by_range(range)?;
+                self.macro_def.map_id_down(token_id)
+            }
+        };
 
-        Some(self.expanded.with_value(token))
+        let tokens = self
+            .exp_map
+            .ranges_by_token(token_id, token.value.kind())
+            .flat_map(move |range| self.expanded.value.covering_element(range).into_token());
+
+        Some(tokens.map(move |token| self.expanded.with_value(token)))
     }
 
     pub fn map_token_up(
         &self,
+        db: &dyn db::AstDatabase,
         token: InFile<&SyntaxToken>,
     ) -> Option<(InFile<SyntaxToken>, Origin)> {
         let token_id = self.exp_map.token_by_range(token.value.text_range())?;
+        let (mut token_id, origin) = self.macro_def.map_id_up(token_id);
 
-        let (token_id, origin) = self.macro_def.map_id_up(token_id);
-        let (token_map, tt) = match origin {
-            mbe::Origin::Call => (&self.macro_arg.1, self.arg.clone()),
-            mbe::Origin::Def => match (&*self.macro_def, self.def.as_ref()) {
-                (
-                    db::TokenExpander::MacroRules { def_site_token_map, .. }
-                    | db::TokenExpander::MacroDef { def_site_token_map, .. },
-                    Some(tt),
-                ) => (def_site_token_map, tt.syntax().cloned()),
-                _ => panic!("`Origin::Def` used with non-`macro_rules!` macro"),
+        let call_id = match self.expanded.file_id.0 {
+            HirFileIdRepr::FileId(_) => return None,
+            HirFileIdRepr::MacroFile(macro_file) => macro_file.macro_call_id,
+        };
+        let loc = db.lookup_intern_macro(call_id);
+
+        let (token_map, tt) = match &loc.kind {
+            MacroCallKind::Attr { attr_args, .. } => match self.macro_arg_shift.unshift(token_id) {
+                Some(unshifted) => {
+                    token_id = unshifted;
+                    (&attr_args.1, self.attr_input_or_mac_def.clone()?.syntax().cloned())
+                }
+                None => (&self.macro_arg.1, self.arg.clone()),
+            },
+            _ => match origin {
+                mbe::Origin::Call => (&self.macro_arg.1, self.arg.clone()),
+                mbe::Origin::Def => match (&*self.macro_def, &self.attr_input_or_mac_def) {
+                    (TokenExpander::DeclarativeMacro { def_site_token_map, .. }, Some(tt)) => {
+                        (def_site_token_map, tt.syntax().cloned())
+                    }
+                    _ => panic!("`Origin::Def` used with non-`macro_rules!` macro"),
+                },
             },
         };
 
-        let range = token_map.range_by_token(token_id, token.value.kind())?;
+        let range = token_map.first_range_by_token(token_id, token.value.kind())?;
         let token =
             tt.value.covering_element(range + tt.value.text_range().start()).into_token()?;
         Some((tt.with_value(token), origin))
@@ -453,12 +544,32 @@ impl InFile<SyntaxNode> {
     pub fn ancestors_with_macros(
         self,
         db: &dyn db::AstDatabase,
-    ) -> impl Iterator<Item = InFile<SyntaxNode>> + '_ {
+    ) -> impl Iterator<Item = InFile<SyntaxNode>> + Clone + '_ {
         iter::successors(Some(self), move |node| match node.value.parent() {
             Some(parent) => Some(node.with_value(parent)),
             None => {
                 let parent_node = node.file_id.call_node(db)?;
                 Some(parent_node)
+            }
+        })
+    }
+
+    /// Skips the attributed item that caused the macro invocation we are climbing up
+    pub fn ancestors_with_macros_skip_attr_item(
+        self,
+        db: &dyn db::AstDatabase,
+    ) -> impl Iterator<Item = InFile<SyntaxNode>> + '_ {
+        iter::successors(Some(self), move |node| match node.value.parent() {
+            Some(parent) => Some(node.with_value(parent)),
+            None => {
+                let parent_node = node.file_id.call_node(db)?;
+                if node.file_id.is_attr_macro(db) {
+                    // macro call was an attributed item, skip it
+                    // FIXME: does this fail if this is a direct expansion of another macro?
+                    parent_node.map(|node| node.parent()).transpose()
+                } else {
+                    Some(parent_node)
+                }
             }
         })
     }
@@ -489,7 +600,7 @@ impl<'a> InFile<&'a SyntaxNode> {
             Some(range) => {
                 let original_file = range.file_id.original_file(db);
                 if range.file_id != original_file.into() {
-                    log::error!("Failed mapping up more for {:?}", range);
+                    tracing::error!("Failed mapping up more for {:?}", range);
                 }
                 Some(FileRange { file_id: original_file, range: range.value })
             }
@@ -532,7 +643,7 @@ fn ascend_call_token(
     expansion: &ExpansionInfo,
     token: InFile<SyntaxToken>,
 ) -> Option<InFile<SyntaxToken>> {
-    let (mapped, origin) = expansion.map_token_up(token.as_ref())?;
+    let (mapped, origin) = expansion.map_token_up(db, token.as_ref())?;
     if origin != Origin::Call {
         return None;
     }
@@ -581,58 +692,61 @@ impl<N: AstNode> InFile<N> {
     }
 }
 
-/// Given a `MacroCallId`, return what `FragmentKind` it belongs to.
-/// FIXME: Not completed
-pub fn to_fragment_kind(call: &ast::MacroCall) -> FragmentKind {
-    use syntax::SyntaxKind::*;
+/// In Rust, macros expand token trees to token trees. When we want to turn a
+/// token tree into an AST node, we need to figure out what kind of AST node we
+/// want: something like `foo` can be a type, an expression, or a pattern.
+///
+/// Naively, one would think that "what this expands to" is a property of a
+/// particular macro: macro `m1` returns an item, while macro `m2` returns an
+/// expression, etc. That's not the case -- macros are polymorphic in the
+/// result, and can expand to any type of the AST node.
+///
+/// What defines the actual AST node is the syntactic context of the macro
+/// invocation. As a contrived example, in `let T![*] = T![*];` the first `T`
+/// expands to a pattern, while the second one expands to an expression.
+///
+/// `ExpandTo` captures this bit of information about a particular macro call
+/// site.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ExpandTo {
+    Statements,
+    Items,
+    Pattern,
+    Type,
+    Expr,
+}
 
-    let syn = call.syntax();
+impl ExpandTo {
+    pub fn from_call_site(call: &ast::MacroCall) -> ExpandTo {
+        use syntax::SyntaxKind::*;
 
-    let parent = match syn.parent() {
-        Some(it) => it,
-        None => return FragmentKind::Statements,
-    };
+        let syn = call.syntax();
 
-    match parent.kind() {
-        MACRO_ITEMS | SOURCE_FILE => FragmentKind::Items,
-        MACRO_STMTS => FragmentKind::Statements,
-        MACRO_PAT => FragmentKind::Pattern,
-        MACRO_TYPE => FragmentKind::Type,
-        ITEM_LIST => FragmentKind::Items,
-        LET_STMT => {
-            // FIXME: Handle LHS Pattern
-            FragmentKind::Expr
-        }
-        EXPR_STMT => FragmentKind::Statements,
-        BLOCK_EXPR => FragmentKind::Statements,
-        ARG_LIST => FragmentKind::Expr,
-        TRY_EXPR => FragmentKind::Expr,
-        TUPLE_EXPR => FragmentKind::Expr,
-        PAREN_EXPR => FragmentKind::Expr,
-        ARRAY_EXPR => FragmentKind::Expr,
-        FOR_EXPR => FragmentKind::Expr,
-        PATH_EXPR => FragmentKind::Expr,
-        CLOSURE_EXPR => FragmentKind::Expr,
-        CONDITION => FragmentKind::Expr,
-        BREAK_EXPR => FragmentKind::Expr,
-        RETURN_EXPR => FragmentKind::Expr,
-        MATCH_EXPR => FragmentKind::Expr,
-        MATCH_ARM => FragmentKind::Expr,
-        MATCH_GUARD => FragmentKind::Expr,
-        RECORD_EXPR_FIELD => FragmentKind::Expr,
-        CALL_EXPR => FragmentKind::Expr,
-        INDEX_EXPR => FragmentKind::Expr,
-        METHOD_CALL_EXPR => FragmentKind::Expr,
-        FIELD_EXPR => FragmentKind::Expr,
-        AWAIT_EXPR => FragmentKind::Expr,
-        CAST_EXPR => FragmentKind::Expr,
-        REF_EXPR => FragmentKind::Expr,
-        PREFIX_EXPR => FragmentKind::Expr,
-        RANGE_EXPR => FragmentKind::Expr,
-        BIN_EXPR => FragmentKind::Expr,
-        _ => {
-            // Unknown , Just guess it is `Items`
-            FragmentKind::Items
+        let parent = match syn.parent() {
+            Some(it) => it,
+            None => return ExpandTo::Statements,
+        };
+
+        match parent.kind() {
+            MACRO_ITEMS | SOURCE_FILE | ITEM_LIST => ExpandTo::Items,
+            MACRO_STMTS | EXPR_STMT | STMT_LIST => ExpandTo::Statements,
+            MACRO_PAT => ExpandTo::Pattern,
+            MACRO_TYPE => ExpandTo::Type,
+
+            ARG_LIST | TRY_EXPR | TUPLE_EXPR | PAREN_EXPR | ARRAY_EXPR | FOR_EXPR | PATH_EXPR
+            | CLOSURE_EXPR | CONDITION | BREAK_EXPR | RETURN_EXPR | MATCH_EXPR | MATCH_ARM
+            | MATCH_GUARD | RECORD_EXPR_FIELD | CALL_EXPR | INDEX_EXPR | METHOD_CALL_EXPR
+            | FIELD_EXPR | AWAIT_EXPR | CAST_EXPR | REF_EXPR | PREFIX_EXPR | RANGE_EXPR
+            | BIN_EXPR => ExpandTo::Expr,
+            LET_STMT => {
+                // FIXME: Handle LHS Pattern
+                ExpandTo::Expr
+            }
+
+            _ => {
+                // Unknown , Just guess it is `Items`
+                ExpandTo::Items
+            }
         }
     }
 }

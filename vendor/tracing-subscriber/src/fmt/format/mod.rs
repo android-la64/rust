@@ -636,7 +636,7 @@ where
         let fmt_ctx = {
             #[cfg(feature = "ansi")]
             {
-                FmtCtx::new(&ctx, event.parent(), self.ansi)
+                FmtCtx::new(ctx, event.parent(), self.ansi)
             }
             #[cfg(not(feature = "ansi"))]
             {
@@ -648,10 +648,27 @@ where
             write!(writer, "{}:", meta.target())?;
         }
         ctx.format_fields(writer, event)?;
-        let span = ctx.ctx.current_span();
-        if let Some(id) = span.id() {
-            if let Some(span) = ctx.ctx.metadata(id) {
-                write!(writer, "{}", span.fields()).unwrap_or(());
+
+        let span = event
+            .parent()
+            .and_then(|id| ctx.ctx.span(id))
+            .or_else(|| ctx.ctx.lookup_current());
+
+        let scope = span.into_iter().flat_map(|span| span.scope());
+        #[cfg(feature = "ansi")]
+        let dimmed = if self.ansi {
+            Style::new().dimmed()
+        } else {
+            Style::new()
+        };
+        for span in scope {
+            let exts = span.extensions();
+            if let Some(fields) = exts.get::<FormattedFields<N>>() {
+                if !fields.is_empty() {
+                    #[cfg(feature = "ansi")]
+                    let fields = dimmed.paint(fields.as_str());
+                    write!(writer, " {}", fields)?;
+                }
             }
         }
         writeln!(writer)
@@ -761,7 +778,10 @@ impl<'a> field::Visit for DefaultVisitor<'a> {
 
     fn record_error(&mut self, field: &Field, value: &(dyn std::error::Error + 'static)) {
         if let Some(source) = value.source() {
-            self.record_debug(field, &format_args!("{}, {}: {}", value, field, source))
+            self.record_debug(
+                field,
+                &format_args!("{} {}.sources={}", value, field, ErrorSourceList(source)),
+            )
         } else {
             self.record_debug(field, &format_args!("{}", value))
         }
@@ -803,6 +823,21 @@ impl<'a> fmt::Debug for DefaultVisitor<'a> {
             .field("is_empty", &self.is_empty)
             .field("result", &self.result)
             .finish()
+    }
+}
+
+/// Renders an error into a list of sources, *including* the error
+struct ErrorSourceList<'a>(&'a (dyn std::error::Error + 'static));
+
+impl<'a> Display for ErrorSourceList<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut list = f.debug_list();
+        let mut curr = Some(self.0);
+        while let Some(curr_err) = curr {
+            list.entry(&format_args!("{}", curr_err));
+            curr = curr_err.source();
+        }
+        list.finish()
     }
 }
 
@@ -855,7 +890,7 @@ where
 
         let span = self
             .span
-            .and_then(|id| self.ctx.ctx.span(&id))
+            .and_then(|id| self.ctx.ctx.span(id))
             .or_else(|| self.ctx.ctx.lookup_current());
 
         let scope = span.into_iter().flat_map(|span| span.scope().from_root());
@@ -925,7 +960,7 @@ where
 
         let span = self
             .span
-            .and_then(|id| self.ctx.ctx.span(&id))
+            .and_then(|id| self.ctx.ctx.span(id))
             .or_else(|| self.ctx.ctx.lookup_current());
 
         let scope = span.into_iter().flat_map(|span| span.scope().from_root());

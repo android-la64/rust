@@ -165,7 +165,7 @@ impl Step for Llvm {
 
         let llvm_exp_targets = match builder.config.llvm_experimental_targets {
             Some(ref s) => s,
-            None => "AVR",
+            None => "AVR;M68k",
         };
 
         let assertions = if builder.config.llvm_assertions { "ON" } else { "OFF" };
@@ -188,6 +188,11 @@ impl Step for Llvm {
             .define("LLVM_PARALLEL_COMPILE_JOBS", builder.jobs().to_string())
             .define("LLVM_TARGET_ARCH", target_native.split('-').next().unwrap())
             .define("LLVM_DEFAULT_TARGET_TRIPLE", target_native);
+
+        // Parts of our test suite rely on the `FileCheck` tool, which is built by default in
+        // `build/$TARGET/llvm/build/bin` is but *not* then installed to `build/$TARGET/llvm/bin`.
+        // This flag makes sure `FileCheck` is copied in the final binaries directory.
+        cfg.define("LLVM_INSTALL_UTILS", "ON");
 
         if builder.config.llvm_profile_generate {
             cfg.define("LLVM_BUILD_INSTRUMENTED", "IR");

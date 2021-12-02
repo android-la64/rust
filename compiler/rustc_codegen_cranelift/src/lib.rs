@@ -1,4 +1,5 @@
-#![feature(rustc_private, decl_macro, never_type, hash_drain_filter, vec_into_raw_parts, once_cell)]
+#![feature(rustc_private, decl_macro)]
+#![cfg_attr(feature = "jit", feature(never_type, vec_into_raw_parts, once_cell))]
 #![warn(rust_2018_idioms)]
 #![warn(unused_lifetimes)]
 #![warn(unreachable_pub)]
@@ -16,7 +17,6 @@ extern crate rustc_incremental;
 extern crate rustc_index;
 extern crate rustc_interface;
 extern crate rustc_metadata;
-extern crate rustc_mir;
 extern crate rustc_session;
 extern crate rustc_span;
 extern crate rustc_target;
@@ -30,8 +30,8 @@ use std::any::Any;
 use rustc_codegen_ssa::traits::CodegenBackend;
 use rustc_codegen_ssa::CodegenResults;
 use rustc_errors::ErrorReported;
+use rustc_metadata::EncodedMetadata;
 use rustc_middle::dep_graph::{WorkProduct, WorkProductId};
-use rustc_middle::middle::cstore::EncodedMetadata;
 use rustc_session::config::OutputFilenames;
 use rustc_session::Session;
 
@@ -45,7 +45,6 @@ mod abi;
 mod allocator;
 mod analyze;
 mod archive;
-mod backend;
 mod base;
 mod cast;
 mod codegen_i128;
@@ -79,12 +78,12 @@ mod prelude {
     pub(crate) use rustc_hir::def_id::{DefId, LOCAL_CRATE};
     pub(crate) use rustc_middle::bug;
     pub(crate) use rustc_middle::mir::{self, *};
-    pub(crate) use rustc_middle::ty::layout::{self, TyAndLayout};
+    pub(crate) use rustc_middle::ty::layout::{self, LayoutOf, TyAndLayout};
     pub(crate) use rustc_middle::ty::{
         self, FloatTy, Instance, InstanceDef, IntTy, ParamEnv, Ty, TyCtxt, TypeAndMut,
         TypeFoldable, UintTy,
     };
-    pub(crate) use rustc_target::abi::{Abi, LayoutOf, Scalar, Size, VariantIdx};
+    pub(crate) use rustc_target::abi::{Abi, Scalar, Size, VariantIdx};
 
     pub(crate) use rustc_data_structures::fx::FxHashMap;
 

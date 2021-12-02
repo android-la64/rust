@@ -18,18 +18,18 @@
 //!
 //!
 //! See the full discussion : <https://rust-lang.zulipchat.com/#narrow/stream/131828-t-compiler/topic/Eager.20expansion.20of.20built-in.20macros>
+use std::sync::Arc;
+
+use base_db::CrateId;
+use mbe::ExpandResult;
+use syntax::{ted, SyntaxNode};
 
 use crate::{
     ast::{self, AstNode},
     db::AstDatabase,
-    EagerCallInfo, InFile, MacroCallId, MacroCallKind, MacroCallLoc, MacroDefId, MacroDefKind,
+    EagerCallInfo, ExpandTo, InFile, MacroCallId, MacroCallKind, MacroCallLoc, MacroDefId,
+    MacroDefKind,
 };
-
-use base_db::CrateId;
-use mbe::ExpandResult;
-use parser::FragmentKind;
-use std::sync::Arc;
-use syntax::{ted, SyntaxNode};
 
 #[derive(Debug)]
 pub struct ErrorEmitted {
@@ -107,13 +107,13 @@ pub fn expand_eager_macro(
     mut diagnostic_sink: &mut dyn FnMut(mbe::ExpandError),
 ) -> Result<MacroCallId, ErrorEmitted> {
     let parsed_args = diagnostic_sink.option_with(
-        || Some(mbe::syntax_node_to_token_tree(&macro_call.value.token_tree()?.syntax()).0),
+        || Some(mbe::syntax_node_to_token_tree(macro_call.value.token_tree()?.syntax()).0),
         || err("malformed macro invocation"),
     )?;
 
     let ast_map = db.ast_id_map(macro_call.file_id);
     let call_id = InFile::new(macro_call.file_id, ast_map.ast_id(&macro_call.value));
-    let fragment = crate::to_fragment_kind(&macro_call.value);
+    let expand_to = ExpandTo::from_call_site(&macro_call.value);
 
     // Note:
     // When `lazy_expand` is called, its *parent* file must be already exists.
@@ -126,12 +126,13 @@ pub fn expand_eager_macro(
             arg_or_expansion: Arc::new(parsed_args.clone()),
             included_file: None,
         }),
-        kind: MacroCallKind::FnLike { ast_id: call_id, fragment: FragmentKind::Expr },
+        kind: MacroCallKind::FnLike { ast_id: call_id, expand_to: ExpandTo::Expr },
     });
     let arg_file_id = arg_id;
 
-    let parsed_args =
-        diagnostic_sink.result(mbe::token_tree_to_syntax_node(&parsed_args, FragmentKind::Expr))?.0;
+    let parsed_args = diagnostic_sink
+        .result(mbe::token_tree_to_syntax_node(&parsed_args, mbe::ParserEntryPoint::Expr))?
+        .0;
     let result = eager_macro_recur(
         db,
         InFile::new(arg_file_id.as_file(), parsed_args.syntax_node()),
@@ -153,7 +154,7 @@ pub fn expand_eager_macro(
                 arg_or_expansion: Arc::new(expanded.subtree),
                 included_file: expanded.included_file,
             }),
-            kind: MacroCallKind::FnLike { ast_id: call_id, fragment },
+            kind: MacroCallKind::FnLike { ast_id: call_id, expand_to },
         };
 
         Ok(db.intern_macro(loc))
@@ -176,11 +177,11 @@ fn lazy_expand(
 ) -> ExpandResult<Option<InFile<SyntaxNode>>> {
     let ast_id = db.ast_id_map(macro_call.file_id).ast_id(&macro_call.value);
 
-    let fragment = crate::to_fragment_kind(&macro_call.value);
+    let expand_to = ExpandTo::from_call_site(&macro_call.value);
     let id = def.as_lazy_macro(
         db,
         krate,
-        MacroCallKind::FnLike { ast_id: macro_call.with_value(ast_id), fragment },
+        MacroCallKind::FnLike { ast_id: macro_call.with_value(ast_id), expand_to },
     );
 
     let err = db.macro_expand_error(id);
@@ -203,8 +204,13 @@ fn eager_macro_recur(
 
     // Collect replacement
     for child in children {
-        let def = diagnostic_sink
-            .option_with(|| macro_resolver(child.path()?), || err("failed to resolve macro"))?;
+        let def = diagnostic_sink.option_with(
+            || macro_resolver(child.path()?),
+            || {
+                let path = child.path().map(|path| format!(" `{}!`", path)).unwrap_or_default();
+                err(format!("failed to resolve macro{}", path))
+            },
+        )?;
         let insert = match def.kind {
             MacroDefKind::BuiltInEager(..) => {
                 let id = expand_eager_macro(

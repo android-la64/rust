@@ -70,6 +70,7 @@ pub struct Fixture {
     pub text: String,
     pub krate: Option<String>,
     pub deps: Vec<String>,
+    pub extern_prelude: Option<Vec<String>>,
     pub cfg_atoms: Vec<String>,
     pub cfg_key_values: Vec<(String, String)>,
     pub edition: Option<String>,
@@ -92,19 +93,32 @@ impl Fixture {
     ///  //- other meta
     ///  ```
     ///
-    /// Fixture can also start with a minicore declaration:
+    /// Fixture can also start with a proc_macros and minicore declaration(in that order):
     ///
     /// ```
+    /// //- proc_macros: identity
     /// //- minicore: sized
     /// ```
     ///
-    /// That will include a subset of `libcore` into the fixture, see
+    /// That will include predefined proc macros and a subset of `libcore` into the fixture, see
     /// `minicore.rs` for what's available.
-    pub fn parse(ra_fixture: &str) -> (Option<MiniCore>, Vec<Fixture>) {
+    pub fn parse(ra_fixture: &str) -> (Option<MiniCore>, Vec<String>, Vec<Fixture>) {
         let fixture = trim_indent(ra_fixture);
         let mut fixture = fixture.as_str();
         let mut mini_core = None;
         let mut res: Vec<Fixture> = Vec::new();
+        let mut test_proc_macros = vec![];
+
+        if fixture.starts_with("//- proc_macros:") {
+            let first_line = fixture.split_inclusive('\n').next().unwrap();
+            test_proc_macros = first_line
+                .strip_prefix("//- proc_macros:")
+                .unwrap()
+                .split(',')
+                .map(|it| it.trim().to_string())
+                .collect();
+            fixture = &fixture[first_line.len()..];
+        }
 
         if fixture.starts_with("//- minicore:") {
             let first_line = fixture.split_inclusive('\n').next().unwrap();
@@ -128,14 +142,15 @@ impl Fixture {
 
             if line.starts_with("//-") {
                 let meta = Fixture::parse_meta_line(line);
-                res.push(meta)
+                res.push(meta);
             } else {
                 if line.starts_with("// ")
                     && line.contains(':')
                     && !line.contains("::")
+                    && !line.contains(".")
                     && line.chars().all(|it| !it.is_uppercase())
                 {
-                    panic!("looks like invalid metadata line: {:?}", line)
+                    panic!("looks like invalid metadata line: {:?}", line);
                 }
 
                 if let Some(entry) = res.last_mut() {
@@ -144,7 +159,7 @@ impl Fixture {
             }
         }
 
-        (mini_core, res)
+        (mini_core, test_proc_macros, res)
     }
 
     //- /lib.rs crate:foo deps:bar,baz cfg:foo=a,bar=b env:OUTDIR=path/to,OTHER=foo
@@ -158,6 +173,7 @@ impl Fixture {
 
         let mut krate = None;
         let mut deps = Vec::new();
+        let mut extern_prelude = None;
         let mut edition = None;
         let mut cfg_atoms = Vec::new();
         let mut cfg_key_values = Vec::new();
@@ -170,6 +186,14 @@ impl Fixture {
             match key {
                 "crate" => krate = Some(value.to_string()),
                 "deps" => deps = value.split(',').map(|it| it.to_string()).collect(),
+                "extern-prelude" => {
+                    if value.is_empty() {
+                        extern_prelude = Some(Vec::new());
+                    } else {
+                        extern_prelude =
+                            Some(value.split(',').map(|it| it.to_string()).collect::<Vec<_>>());
+                    }
+                }
                 "edition" => edition = Some(value.to_string()),
                 "cfg" => {
                     for entry in value.split(',') {
@@ -191,11 +215,21 @@ impl Fixture {
             }
         }
 
+        for prelude_dep in extern_prelude.iter().flatten() {
+            assert!(
+                deps.contains(prelude_dep),
+                "extern-prelude {:?} must be a subset of deps {:?}",
+                extern_prelude,
+                deps
+            );
+        }
+
         Fixture {
             path,
             text: String::new(),
             krate,
             deps,
+            extern_prelude,
             cfg_atoms,
             cfg_key_values,
             edition,
@@ -223,9 +257,9 @@ impl MiniCore {
         let line = line.strip_prefix("//- minicore:").unwrap().trim();
         for entry in line.split(", ") {
             if res.has_flag(entry) {
-                panic!("duplicate minicore flag: {:?}", entry)
+                panic!("duplicate minicore flag: {:?}", entry);
             }
-            res.activated_flags.push(entry.to_string())
+            res.activated_flags.push(entry.to_string());
         }
 
         res
@@ -277,7 +311,7 @@ impl MiniCore {
         // Fixed point loop to compute transitive closure of flags.
         loop {
             let mut changed = false;
-            for &(u, v) in implications.iter() {
+            for &(u, v) in &implications {
                 if self.has_flag(u) && !self.has_flag(v) {
                     self.activated_flags.push(v.to_string());
                     changed = true;
@@ -321,7 +355,7 @@ impl MiniCore {
             }
 
             if keep {
-                buf.push_str(line)
+                buf.push_str(line);
             }
             if line_region {
                 active_regions.pop().unwrap();
@@ -333,7 +367,6 @@ impl MiniCore {
                 panic!("unused minicore flag: {:?}", flag);
             }
         }
-        format!("{}", buf);
         buf
     }
 }
@@ -355,13 +388,15 @@ fn parse_fixture_checks_further_indented_metadata() {
 
 #[test]
 fn parse_fixture_gets_full_meta() {
-    let (mini_core, parsed) = Fixture::parse(
+    let (mini_core, proc_macros, parsed) = Fixture::parse(
         r#"
+//- proc_macros: identity
 //- minicore: coerce_unsized
 //- /lib.rs crate:foo deps:bar,baz cfg:foo=a,bar=b,atom env:OUTDIR=path/to,OTHER=foo
 mod m;
 "#,
     );
+    assert_eq!(proc_macros, vec!["identity".to_string()]);
     assert_eq!(mini_core.unwrap().activated_flags, vec!["coerce_unsized".to_string()]);
     assert_eq!(1, parsed.len());
 

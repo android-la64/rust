@@ -54,7 +54,11 @@ static LLVM_THREAD_LOCAL char *LastError;
 //
 // Notably it exits the process with code 101, unlike LLVM's default of 1.
 static void FatalErrorHandler(void *UserData,
+#if LLVM_VERSION_LT(14, 0)
                               const std::string& Reason,
+#else
+                              const char* Reason,
+#endif
                               bool GenCrashDiag) {
   // Do the same thing that the default error handler does.
   std::cerr << "LLVM ERROR: " << Reason << std::endl;
@@ -203,56 +207,57 @@ static Attribute::AttrKind fromRust(LLVMRustAttribute Kind) {
   report_fatal_error("bad AttributeKind");
 }
 
+template<typename T> static inline void AddAttribute(T *t, unsigned Index, Attribute Attr) {
+#if LLVM_VERSION_LT(14, 0)
+  t->addAttribute(Index, Attr);
+#else
+  t->addAttributeAtIndex(Index, Attr);
+#endif
+}
+
 extern "C" void LLVMRustAddCallSiteAttribute(LLVMValueRef Instr, unsigned Index,
                                              LLVMRustAttribute RustAttr) {
   CallBase *Call = unwrap<CallBase>(Instr);
   Attribute Attr = Attribute::get(Call->getContext(), fromRust(RustAttr));
-  Call->addAttribute(Index, Attr);
+  AddAttribute(Call, Index, Attr);
 }
 
 extern "C" void LLVMRustAddCallSiteAttrString(LLVMValueRef Instr, unsigned Index,
                                               const char *Name) {
   CallBase *Call = unwrap<CallBase>(Instr);
   Attribute Attr = Attribute::get(Call->getContext(), Name);
-  Call->addAttribute(Index, Attr);
+  AddAttribute(Call, Index, Attr);
 }
-
 
 extern "C" void LLVMRustAddAlignmentCallSiteAttr(LLVMValueRef Instr,
                                                  unsigned Index,
                                                  uint32_t Bytes) {
   CallBase *Call = unwrap<CallBase>(Instr);
-  AttrBuilder B;
-  B.addAlignmentAttr(Bytes);
-  Call->setAttributes(Call->getAttributes().addAttributes(
-      Call->getContext(), Index, B));
+  Attribute Attr = Attribute::getWithAlignment(Call->getContext(), Align(Bytes));
+  AddAttribute(Call, Index, Attr);
 }
 
 extern "C" void LLVMRustAddDereferenceableCallSiteAttr(LLVMValueRef Instr,
                                                        unsigned Index,
                                                        uint64_t Bytes) {
   CallBase *Call = unwrap<CallBase>(Instr);
-  AttrBuilder B;
-  B.addDereferenceableAttr(Bytes);
-  Call->setAttributes(Call->getAttributes().addAttributes(
-      Call->getContext(), Index, B));
+  Attribute Attr = Attribute::getWithDereferenceableBytes(Call->getContext(), Bytes);
+  AddAttribute(Call, Index, Attr);
 }
 
 extern "C" void LLVMRustAddDereferenceableOrNullCallSiteAttr(LLVMValueRef Instr,
                                                              unsigned Index,
                                                              uint64_t Bytes) {
   CallBase *Call = unwrap<CallBase>(Instr);
-  AttrBuilder B;
-  B.addDereferenceableOrNullAttr(Bytes);
-  Call->setAttributes(Call->getAttributes().addAttributes(
-      Call->getContext(), Index, B));
+  Attribute Attr = Attribute::getWithDereferenceableOrNullBytes(Call->getContext(), Bytes);
+  AddAttribute(Call, Index, Attr);
 }
 
 extern "C" void LLVMRustAddByValCallSiteAttr(LLVMValueRef Instr, unsigned Index,
                                              LLVMTypeRef Ty) {
   CallBase *Call = unwrap<CallBase>(Instr);
   Attribute Attr = Attribute::getWithByValType(Call->getContext(), unwrap(Ty));
-  Call->addAttribute(Index, Attr);
+  AddAttribute(Call, Index, Attr);
 }
 
 extern "C" void LLVMRustAddStructRetCallSiteAttr(LLVMValueRef Instr, unsigned Index,
@@ -263,28 +268,28 @@ extern "C" void LLVMRustAddStructRetCallSiteAttr(LLVMValueRef Instr, unsigned In
 #else
   Attribute Attr = Attribute::get(Call->getContext(), Attribute::StructRet);
 #endif
-  Call->addAttribute(Index, Attr);
+  AddAttribute(Call, Index, Attr);
 }
 
 extern "C" void LLVMRustAddFunctionAttribute(LLVMValueRef Fn, unsigned Index,
                                              LLVMRustAttribute RustAttr) {
   Function *A = unwrap<Function>(Fn);
   Attribute Attr = Attribute::get(A->getContext(), fromRust(RustAttr));
-  A->addAttribute(Index, Attr);
+  AddAttribute(A, Index, Attr);
 }
 
 extern "C" void LLVMRustAddAlignmentAttr(LLVMValueRef Fn,
                                          unsigned Index,
                                          uint32_t Bytes) {
   Function *A = unwrap<Function>(Fn);
-  A->addAttribute(Index, Attribute::getWithAlignment(
+  AddAttribute(A, Index, Attribute::getWithAlignment(
       A->getContext(), llvm::Align(Bytes)));
 }
 
 extern "C" void LLVMRustAddDereferenceableAttr(LLVMValueRef Fn, unsigned Index,
                                                uint64_t Bytes) {
   Function *A = unwrap<Function>(Fn);
-  A->addAttribute(Index, Attribute::getWithDereferenceableBytes(A->getContext(),
+  AddAttribute(A, Index, Attribute::getWithDereferenceableBytes(A->getContext(),
                                                                 Bytes));
 }
 
@@ -292,7 +297,7 @@ extern "C" void LLVMRustAddDereferenceableOrNullAttr(LLVMValueRef Fn,
                                                      unsigned Index,
                                                      uint64_t Bytes) {
   Function *A = unwrap<Function>(Fn);
-  A->addAttribute(Index, Attribute::getWithDereferenceableOrNullBytes(
+  AddAttribute(A, Index, Attribute::getWithDereferenceableOrNullBytes(
       A->getContext(), Bytes));
 }
 
@@ -300,7 +305,7 @@ extern "C" void LLVMRustAddByValAttr(LLVMValueRef Fn, unsigned Index,
                                      LLVMTypeRef Ty) {
   Function *F = unwrap<Function>(Fn);
   Attribute Attr = Attribute::getWithByValType(F->getContext(), unwrap(Ty));
-  F->addAttribute(Index, Attr);
+  AddAttribute(F, Index, Attr);
 }
 
 extern "C" void LLVMRustAddStructRetAttr(LLVMValueRef Fn, unsigned Index,
@@ -311,7 +316,7 @@ extern "C" void LLVMRustAddStructRetAttr(LLVMValueRef Fn, unsigned Index,
 #else
   Attribute Attr = Attribute::get(F->getContext(), Attribute::StructRet);
 #endif
-  F->addAttribute(Index, Attr);
+  AddAttribute(F, Index, Attr);
 }
 
 extern "C" void LLVMRustAddFunctionAttrStringValue(LLVMValueRef Fn,
@@ -319,7 +324,7 @@ extern "C" void LLVMRustAddFunctionAttrStringValue(LLVMValueRef Fn,
                                                    const char *Name,
                                                    const char *Value) {
   Function *F = unwrap<Function>(Fn);
-  F->addAttribute(Index, Attribute::get(
+  AddAttribute(F, Index, Attribute::get(
       F->getContext(), StringRef(Name), StringRef(Value)));
 }
 
@@ -330,7 +335,12 @@ extern "C" void LLVMRustRemoveFunctionAttributes(LLVMValueRef Fn,
   Attribute Attr = Attribute::get(F->getContext(), fromRust(RustAttr));
   AttrBuilder B(Attr);
   auto PAL = F->getAttributes();
-  auto PALNew = PAL.removeAttributes(F->getContext(), Index, B);
+  AttributeList PALNew;
+#if LLVM_VERSION_LT(14, 0)
+  PALNew = PAL.removeAttributes(F->getContext(), Index, B);
+#else
+  PALNew = PAL.removeAttributesAtIndex(F->getContext(), Index, B);
+#endif
   F->setAttributes(PALNew);
 }
 
@@ -1743,10 +1753,11 @@ LLVMRustBuildMaxNum(LLVMBuilderRef B, LLVMValueRef LHS, LLVMValueRef RHS) {
 }
 
 // This struct contains all necessary info about a symbol exported from a DLL.
-// At the moment, it's just the symbol's name, but we use a separate struct to
-// make it easier to add other information like ordinal later.
 struct LLVMRustCOFFShortExport {
   const char* name;
+  bool ordinal_present;
+  // The value of `ordinal` is only meaningful if `ordinal_present` is true.
+  uint16_t ordinal;
 };
 
 // Machine must be a COFF machine type, as defined in PE specs.
@@ -1762,13 +1773,15 @@ extern "C" LLVMRustResult LLVMRustWriteImportLibrary(
   ConvertedExports.reserve(NumExports);
 
   for (size_t i = 0; i < NumExports; ++i) {
+    bool ordinal_present = Exports[i].ordinal_present;
+    uint16_t ordinal = ordinal_present ? Exports[i].ordinal : 0;
     ConvertedExports.push_back(llvm::object::COFFShortExport{
       Exports[i].name,  // Name
       std::string{},    // ExtName
       std::string{},    // SymbolName
       std::string{},    // AliasTarget
-      0,                // Ordinal
-      false,            // Noname
+      ordinal,          // Ordinal
+      ordinal_present,  // Noname
       false,            // Data
       false,            // Private
       false             // Constant

@@ -11,7 +11,7 @@ use std::{fmt, iter::FromIterator, ops, panic::RefUnwindSafe, str::FromStr, sync
 use cfg::CfgOptions;
 use rustc_hash::{FxHashMap, FxHashSet};
 use syntax::SmolStr;
-use tt::{ExpansionError, Subtree};
+use tt::Subtree;
 use vfs::{file_set::FileSet, FileId, VfsPath};
 
 /// Files are grouped into source roots. A source root is a directory on the
@@ -163,7 +163,13 @@ pub trait ProcMacroExpander: fmt::Debug + Send + Sync + RefUnwindSafe {
         subtree: &Subtree,
         attrs: Option<&Subtree>,
         env: &Env,
-    ) -> Result<Subtree, ExpansionError>;
+    ) -> Result<Subtree, ProcMacroExpansionError>;
+}
+
+pub enum ProcMacroExpansionError {
+    Panic(String),
+    /// Things like "proc macro server was killed by OOM".
+    System(String),
 }
 
 #[derive(Debug, Clone)]
@@ -211,6 +217,22 @@ pub struct Env {
 pub struct Dependency {
     pub crate_id: CrateId,
     pub name: CrateName,
+    prelude: bool,
+}
+
+impl Dependency {
+    pub fn new(name: CrateName, crate_id: CrateId) -> Self {
+        Self { name, crate_id, prelude: true }
+    }
+
+    pub fn with_prelude(name: CrateName, crate_id: CrateId, prelude: bool) -> Self {
+        Self { name, crate_id, prelude }
+    }
+
+    /// Whether this dependency is to be added to the depending crate's extern prelude.
+    pub fn is_prelude(&self) -> bool {
+        self.prelude
+    }
 }
 
 impl CrateGraph {
@@ -243,22 +265,21 @@ impl CrateGraph {
     pub fn add_dep(
         &mut self,
         from: CrateId,
-        name: CrateName,
-        to: CrateId,
+        dep: Dependency,
     ) -> Result<(), CyclicDependenciesError> {
         let _p = profile::span("add_dep");
 
         // Check if adding a dep from `from` to `to` creates a cycle. To figure
         // that out, look for a  path in the *opposite* direction, from `to` to
         // `from`.
-        if let Some(path) = self.find_path(&mut FxHashSet::default(), to, from) {
+        if let Some(path) = self.find_path(&mut FxHashSet::default(), dep.crate_id, from) {
             let path = path.into_iter().map(|it| (it, self[it].display_name.clone())).collect();
             let err = CyclicDependenciesError { path };
-            assert!(err.from().0 == from && err.to().0 == to);
+            assert!(err.from().0 == from && err.to().0 == dep.crate_id);
             return Err(err);
         }
 
-        self.arena.get_mut(&from).unwrap().add_dep(name, to);
+        self.arena.get_mut(&from).unwrap().add_dep(dep);
         Ok(())
     }
 
@@ -403,7 +424,7 @@ impl CrateGraph {
                     .get_mut(&std)
                     .unwrap()
                     .dependencies
-                    .push(Dependency { crate_id: cfg_if, name: CrateName::new("cfg_if").unwrap() });
+                    .push(Dependency::new(CrateName::new("cfg_if").unwrap(), cfg_if));
                 true
             }
             _ => false,
@@ -429,8 +450,8 @@ impl CrateId {
 }
 
 impl CrateData {
-    fn add_dep(&mut self, name: CrateName, crate_id: CrateId) {
-        self.dependencies.push(Dependency { crate_id, name })
+    fn add_dep(&mut self, dep: Dependency) {
+        self.dependencies.push(dep)
     }
 }
 
@@ -515,8 +536,8 @@ impl fmt::Display for CyclicDependenciesError {
         write!(
             f,
             "cyclic deps: {} -> {}, alternative path: {}",
-            render(&self.from()),
-            render(&self.to()),
+            render(self.from()),
+            render(self.to()),
             path
         )
     }
@@ -556,9 +577,15 @@ mod tests {
             Env::default(),
             Default::default(),
         );
-        assert!(graph.add_dep(crate1, CrateName::new("crate2").unwrap(), crate2).is_ok());
-        assert!(graph.add_dep(crate2, CrateName::new("crate3").unwrap(), crate3).is_ok());
-        assert!(graph.add_dep(crate3, CrateName::new("crate1").unwrap(), crate1).is_err());
+        assert!(graph
+            .add_dep(crate1, Dependency::new(CrateName::new("crate2").unwrap(), crate2))
+            .is_ok());
+        assert!(graph
+            .add_dep(crate2, Dependency::new(CrateName::new("crate3").unwrap(), crate3))
+            .is_ok());
+        assert!(graph
+            .add_dep(crate3, Dependency::new(CrateName::new("crate1").unwrap(), crate1))
+            .is_err());
     }
 
     #[test]
@@ -582,8 +609,12 @@ mod tests {
             Env::default(),
             Default::default(),
         );
-        assert!(graph.add_dep(crate1, CrateName::new("crate2").unwrap(), crate2).is_ok());
-        assert!(graph.add_dep(crate2, CrateName::new("crate2").unwrap(), crate2).is_err());
+        assert!(graph
+            .add_dep(crate1, Dependency::new(CrateName::new("crate2").unwrap(), crate2))
+            .is_ok());
+        assert!(graph
+            .add_dep(crate2, Dependency::new(CrateName::new("crate2").unwrap(), crate2))
+            .is_err());
     }
 
     #[test]
@@ -616,8 +647,12 @@ mod tests {
             Env::default(),
             Default::default(),
         );
-        assert!(graph.add_dep(crate1, CrateName::new("crate2").unwrap(), crate2).is_ok());
-        assert!(graph.add_dep(crate2, CrateName::new("crate3").unwrap(), crate3).is_ok());
+        assert!(graph
+            .add_dep(crate1, Dependency::new(CrateName::new("crate2").unwrap(), crate2))
+            .is_ok());
+        assert!(graph
+            .add_dep(crate2, Dependency::new(CrateName::new("crate3").unwrap(), crate3))
+            .is_ok());
     }
 
     #[test]
@@ -642,14 +677,14 @@ mod tests {
             Default::default(),
         );
         assert!(graph
-            .add_dep(crate1, CrateName::normalize_dashes("crate-name-with-dashes"), crate2)
+            .add_dep(
+                crate1,
+                Dependency::new(CrateName::normalize_dashes("crate-name-with-dashes"), crate2)
+            )
             .is_ok());
         assert_eq!(
             graph[crate1].dependencies,
-            vec![Dependency {
-                crate_id: crate2,
-                name: CrateName::new("crate_name_with_dashes").unwrap()
-            }]
+            vec![Dependency::new(CrateName::new("crate_name_with_dashes").unwrap(), crate2)]
         );
     }
 }

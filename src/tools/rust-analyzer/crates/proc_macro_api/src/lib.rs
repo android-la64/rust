@@ -7,33 +7,79 @@
 
 pub mod msg;
 mod process;
-mod rpc;
 mod version;
 
-use paths::{AbsPath, AbsPathBuf};
+use paths::AbsPathBuf;
 use std::{
     ffi::OsStr,
-    io,
+    fmt, io,
     sync::{Arc, Mutex},
 };
 
-use tt::{SmolStr, Subtree};
+use serde::{Deserialize, Serialize};
+use tt::Subtree;
 
-use crate::process::ProcMacroProcessSrv;
+use crate::{
+    msg::{ExpandMacro, FlatTree, PanicMessage},
+    process::ProcMacroProcessSrv,
+};
 
-pub use rpc::{ExpansionResult, ExpansionTask, ListMacrosResult, ListMacrosTask, ProcMacroKind};
 pub use version::{read_dylib_info, RustCInfo};
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+pub enum ProcMacroKind {
+    CustomDerive,
+    FuncLike,
+    Attr,
+}
+
+/// A handle to an external process which load dylibs with macros (.so or .dll)
+/// and runs actual macro expansion functions.
+#[derive(Debug)]
+pub struct ProcMacroServer {
+    /// Currently, the proc macro process expands all procedural macros sequentially.
+    ///
+    /// That means that concurrent salsa requests may block each other when expanding proc macros,
+    /// which is unfortunate, but simple and good enough for the time being.
+    ///
+    /// Therefore, we just wrap the `ProcMacroProcessSrv` in a mutex here.
+    process: Arc<Mutex<ProcMacroProcessSrv>>,
+}
+
+pub struct MacroDylib {
+    path: AbsPathBuf,
+}
+
+impl MacroDylib {
+    // FIXME: this is buggy due to TOCTOU, we should check the version in the
+    // macro process instead.
+    pub fn new(path: AbsPathBuf) -> io::Result<MacroDylib> {
+        let _p = profile::span("MacroDylib::new");
+
+        let info = version::read_dylib_info(&path)?;
+        if info.version.0 < 1 || info.version.1 < 47 {
+            let msg = format!("proc-macro {} built by {:#?} is not supported by Rust Analyzer, please update your rust version.", path.display(), info);
+            return Err(io::Error::new(io::ErrorKind::InvalidData, msg));
+        }
+
+        Ok(MacroDylib { path })
+    }
+}
+
+/// A handle to a specific macro (a `#[proc_macro]` annotated function).
+///
+/// It exists withing a context of a specific [`ProcMacroProcess`] -- currently
+/// we share a single expander process for all macros.
 #[derive(Debug, Clone)]
-pub struct ProcMacroProcessExpander {
+pub struct ProcMacro {
     process: Arc<Mutex<ProcMacroProcessSrv>>,
     dylib_path: AbsPathBuf,
-    name: SmolStr,
+    name: String,
     kind: ProcMacroKind,
 }
 
-impl Eq for ProcMacroProcessExpander {}
-impl PartialEq for ProcMacroProcessExpander {
+impl Eq for ProcMacro {}
+impl PartialEq for ProcMacro {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
             && self.kind == other.kind
@@ -42,7 +88,60 @@ impl PartialEq for ProcMacroProcessExpander {
     }
 }
 
-impl ProcMacroProcessExpander {
+pub struct ServerError {
+    pub message: String,
+    pub io: Option<io::Error>,
+}
+
+impl fmt::Display for ServerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message)?;
+        if let Some(io) = &self.io {
+            write!(f, ": {}", io)?;
+        }
+        Ok(())
+    }
+}
+
+pub struct MacroPanic {
+    pub message: String,
+}
+
+impl ProcMacroServer {
+    /// Spawns an external process as the proc macro server and returns a client connected to it.
+    pub fn spawn(
+        process_path: AbsPathBuf,
+        args: impl IntoIterator<Item = impl AsRef<OsStr>>,
+    ) -> io::Result<ProcMacroServer> {
+        let process = ProcMacroProcessSrv::run(process_path, args)?;
+        Ok(ProcMacroServer { process: Arc::new(Mutex::new(process)) })
+    }
+
+    pub fn load_dylib(
+        &self,
+        dylib: MacroDylib,
+    ) -> Result<Result<Vec<ProcMacro>, String>, ServerError> {
+        let _p = profile::span("ProcMacroClient::by_dylib_path");
+        let macros =
+            self.process.lock().unwrap_or_else(|e| e.into_inner()).find_proc_macros(&dylib.path)?;
+
+        let res = macros.map(|macros| {
+            macros
+                .into_iter()
+                .map(|(name, kind)| ProcMacro {
+                    process: self.process.clone(),
+                    name,
+                    kind,
+                    dylib_path: dylib.path.clone(),
+                })
+                .collect()
+        });
+
+        Ok(res)
+    }
+}
+
+impl ProcMacro {
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -56,83 +155,22 @@ impl ProcMacroProcessExpander {
         subtree: &Subtree,
         attr: Option<&Subtree>,
         env: Vec<(String, String)>,
-    ) -> Result<Subtree, tt::ExpansionError> {
-        let task = ExpansionTask {
-            macro_body: subtree.clone(),
+    ) -> Result<Result<Subtree, PanicMessage>, ServerError> {
+        let task = ExpandMacro {
+            macro_body: FlatTree::new(subtree),
             macro_name: self.name.to_string(),
-            attributes: attr.cloned(),
-            lib: self.dylib_path.to_path_buf(),
+            attributes: attr.map(FlatTree::new),
+            lib: self.dylib_path.to_path_buf().into(),
             env,
         };
 
-        let result: ExpansionResult = self
-            .process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .send_task(msg::Request::ExpansionMacro(task))?;
-        Ok(result.expansion)
-    }
-}
-
-#[derive(Debug)]
-pub struct ProcMacroClient {
-    /// Currently, the proc macro process expands all procedural macros sequentially.
-    ///
-    /// That means that concurrent salsa requests may block each other when expanding proc macros,
-    /// which is unfortunate, but simple and good enough for the time being.
-    ///
-    /// Therefore, we just wrap the `ProcMacroProcessSrv` in a mutex here.
-    process: Arc<Mutex<ProcMacroProcessSrv>>,
-}
-
-impl ProcMacroClient {
-    /// Spawns an external process as the proc macro server and returns a client connected to it.
-    pub fn extern_process(
-        process_path: AbsPathBuf,
-        args: impl IntoIterator<Item = impl AsRef<OsStr>>,
-    ) -> io::Result<ProcMacroClient> {
-        let process = ProcMacroProcessSrv::run(process_path, args)?;
-        Ok(ProcMacroClient { process: Arc::new(Mutex::new(process)) })
-    }
-
-    pub fn by_dylib_path(&self, dylib_path: &AbsPath) -> Vec<ProcMacroProcessExpander> {
-        let _p = profile::span("ProcMacroClient::by_dylib_path");
-        match version::read_dylib_info(dylib_path) {
-            Ok(info) => {
-                if info.version.0 < 1 || info.version.1 < 47 {
-                    eprintln!("proc-macro {} built by {:#?} is not supported by Rust Analyzer, please update your rust version.", dylib_path.display(), info);
-                }
-            }
-            Err(err) => {
-                eprintln!(
-                    "proc-macro {} failed to find the given version. Reason: {}",
-                    dylib_path.display(),
-                    err
-                );
+        let request = msg::Request::ExpandMacro(task);
+        let response = self.process.lock().unwrap_or_else(|e| e.into_inner()).send_task(request)?;
+        match response {
+            msg::Response::ExpandMacro(it) => Ok(it.map(|it| it.to_subtree())),
+            msg::Response::ListMacros { .. } => {
+                Err(ServerError { message: "unexpected response".to_string(), io: None })
             }
         }
-
-        let macros = match self
-            .process
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .find_proc_macros(dylib_path)
-        {
-            Err(err) => {
-                eprintln!("Failed to find proc macros. Error: {:#?}", err);
-                return vec![];
-            }
-            Ok(macros) => macros,
-        };
-
-        macros
-            .into_iter()
-            .map(|(name, kind)| ProcMacroProcessExpander {
-                process: self.process.clone(),
-                name: name.into(),
-                kind,
-                dylib_path: dylib_path.to_path_buf(),
-            })
-            .collect()
     }
 }

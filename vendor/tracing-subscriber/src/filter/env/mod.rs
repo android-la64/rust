@@ -4,10 +4,7 @@
 // these are publicly re-exported, but the compiler doesn't realize
 // that for some reason.
 #[allow(unreachable_pub)]
-pub use self::{
-    directive::{Directive, ParseError},
-    field::BadName as BadFieldName,
-};
+pub use self::{directive::Directive, field::BadName as BadFieldName};
 mod directive;
 mod field;
 
@@ -16,6 +13,7 @@ use crate::{
     layer::{Context, Layer},
     sync::RwLock,
 };
+use directive::ParseError;
 use std::{cell::RefCell, collections::HashMap, env, error::Error, fmt, str::FromStr};
 use tracing_core::{
     callsite,
@@ -88,6 +86,11 @@ use tracing_core::{
 ///    - which has a field named `name` with value `bob`,
 ///    - at _any_ level.
 ///
+/// The [`Targets`] type implements a similar form of filtering, but without the
+/// ability to dynamically enable events based on the current span context, and
+/// without filtering on field values. When these features are not required,
+/// [`Targets`] provides a lighter-weight alternative to [`EnvFilter`].
+///
 /// [`Layer`]: ../layer/trait.Layer.html
 /// [`env_logger`]: https://docs.rs/env_logger/0.7.1/env_logger/#enabling-logging
 /// [`Span`]: https://docs.rs/tracing-core/latest/tracing_core/span/index.html
@@ -95,6 +98,7 @@ use tracing_core::{
 /// [`Event`]: https://docs.rs/tracing-core/latest/tracing_core/struct.Event.html
 /// [`level`]: https://docs.rs/tracing-core/latest/tracing_core/struct.Level.html
 /// [`Metadata`]: https://docs.rs/tracing-core/latest/tracing_core/struct.Metadata.html
+/// [`Targets`]: crate::filter::Targets
 #[cfg(feature = "env-filter")]
 #[cfg_attr(docsrs, doc(cfg(feature = "env-filter")))]
 #[derive(Debug)]
@@ -112,13 +116,9 @@ thread_local! {
 
 type FieldMap<T> = HashMap<Field, T>;
 
-#[cfg(feature = "smallvec")]
-type FilterVec<T> = smallvec::SmallVec<[T; 8]>;
-#[cfg(not(feature = "smallvec"))]
-type FilterVec<T> = Vec<T>;
-
 /// Indicates that an error occurred while parsing a `EnvFilter` from an
 /// environment variable.
+#[cfg_attr(docsrs, doc(cfg(feature = "env-filter")))]
 #[derive(Debug)]
 pub struct FromEnvError {
     kind: ErrorKind,
@@ -165,7 +165,7 @@ impl EnvFilter {
 
     /// Returns a new `EnvFilter` from the directives in the given string,
     /// or an error if any are invalid.
-    pub fn try_new<S: AsRef<str>>(dirs: S) -> Result<Self, ParseError> {
+    pub fn try_new<S: AsRef<str>>(dirs: S) -> Result<Self, directive::ParseError> {
         let directives = dirs
             .as_ref()
             .split(',')
@@ -261,7 +261,7 @@ impl EnvFilter {
             #[cfg(feature = "ansi_term")]
             use ansi_term::{Color, Style};
             // NOTE: We can't use a configured `MakeWriter` because the EnvFilter
-            // has no knowledge of any underlying subscriber or collector, which
+            // has no knowledge of any underlying subscriber or subscriber, which
             // may or may not use a `MakeWriter`.
             let warn = |msg: &str| {
                 #[cfg(not(feature = "ansi_term"))]
@@ -484,7 +484,7 @@ impl<S: Subscriber> Layer<S> for EnvFilter {
 }
 
 impl FromStr for EnvFilter {
-    type Err = ParseError;
+    type Err = directive::ParseError;
 
     fn from_str(spec: &str) -> Result<Self, Self::Err> {
         Self::try_new(spec)
@@ -535,8 +535,8 @@ impl fmt::Display for EnvFilter {
 
 // ===== impl FromEnvError =====
 
-impl From<ParseError> for FromEnvError {
-    fn from(p: ParseError) -> Self {
+impl From<directive::ParseError> for FromEnvError {
+    fn from(p: directive::ParseError) -> Self {
         Self {
             kind: ErrorKind::Parse(p),
         }
@@ -636,7 +636,7 @@ mod tests {
             Kind::SPAN,
         );
 
-        let interest = filter.register_callsite(&META);
+        let interest = filter.register_callsite(META);
         assert!(interest.is_never());
     }
 
@@ -654,7 +654,7 @@ mod tests {
             Kind::SPAN,
         );
 
-        let interest = filter.register_callsite(&META);
+        let interest = filter.register_callsite(META);
         assert!(interest.is_always());
     }
 
@@ -673,7 +673,7 @@ mod tests {
             Kind::SPAN,
         );
 
-        let interest = filter.register_callsite(&META);
+        let interest = filter.register_callsite(META);
         assert!(interest.is_always());
     }
 
@@ -692,7 +692,7 @@ mod tests {
             Kind::SPAN,
         );
 
-        let interest = filter.register_callsite(&META);
+        let interest = filter.register_callsite(META);
         assert!(interest.is_never());
     }
 
@@ -705,5 +705,34 @@ mod tests {
         let f2: EnvFilter = format!("{}", f1).parse().unwrap();
         assert_eq!(f1.statics, f2.statics);
         assert_eq!(f1.dynamics, f2.dynamics);
+    }
+
+    #[test]
+    fn size_of_filters() {
+        fn print_sz(s: &str) {
+            let filter = s.parse::<EnvFilter>().expect("filter should parse");
+            println!(
+                "size_of_val({:?})\n -> {}B",
+                s,
+                std::mem::size_of_val(&filter)
+            );
+        }
+
+        print_sz("info");
+
+        print_sz("foo=debug");
+
+        print_sz(
+            "crate1::mod1=error,crate1::mod2=warn,crate1::mod2::mod3=info,\
+            crate2=debug,crate3=trace,crate3::mod2::mod1=off",
+        );
+
+        print_sz("[span1{foo=1}]=error,[span2{bar=2 baz=false}],crate2[{quux=\"quuux\"}]=debug");
+
+        print_sz(
+            "crate1::mod1=error,crate1::mod2=warn,crate1::mod2::mod3=info,\
+            crate2=debug,crate3=trace,crate3::mod2::mod1=off,[span1{foo=1}]=error,\
+            [span2{bar=2 baz=false}],crate2[{quux=\"quuux\"}]=debug",
+        );
     }
 }

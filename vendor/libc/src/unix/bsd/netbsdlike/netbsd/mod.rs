@@ -13,6 +13,7 @@ pub type shmatt_t = ::c_uint;
 pub type cpuid_t = u64;
 pub type cpuset_t = _cpuset;
 pub type pthread_spin_t = ::c_uchar;
+pub type timer_t = ::c_int;
 
 // elf.h
 
@@ -118,6 +119,11 @@ s! {
         pub mq_maxmsg: ::c_long,
         pub mq_msgsize: ::c_long,
         pub mq_curmsgs: ::c_long,
+    }
+
+    pub struct itimerspec {
+        pub it_interval: ::timespec,
+        pub it_value: ::timespec,
     }
 
     pub struct sigset_t {
@@ -1039,6 +1045,36 @@ pub const AT_SYMLINK_NOFOLLOW: ::c_int = 0x200;
 pub const AT_SYMLINK_FOLLOW: ::c_int = 0x400;
 pub const AT_REMOVEDIR: ::c_int = 0x800;
 
+pub const AT_NULL: ::c_int = 0;
+pub const AT_IGNORE: ::c_int = 1;
+pub const AT_EXECFD: ::c_int = 2;
+pub const AT_PHDR: ::c_int = 3;
+pub const AT_PHENT: ::c_int = 4;
+pub const AT_PHNUM: ::c_int = 5;
+pub const AT_PAGESZ: ::c_int = 6;
+pub const AT_BASE: ::c_int = 7;
+pub const AT_FLAGS: ::c_int = 8;
+pub const AT_ENTRY: ::c_int = 9;
+pub const AT_DCACHEBSIZE: ::c_int = 10;
+pub const AT_ICACHEBSIZE: ::c_int = 11;
+pub const AT_UCACHEBSIZE: ::c_int = 12;
+pub const AT_STACKBASE: ::c_int = 13;
+pub const AT_EUID: ::c_int = 2000;
+pub const AT_RUID: ::c_int = 2001;
+pub const AT_EGID: ::c_int = 2002;
+pub const AT_RGID: ::c_int = 2003;
+pub const AT_SUN_LDELF: ::c_int = 2004;
+pub const AT_SUN_LDSHDR: ::c_int = 2005;
+pub const AT_SUN_LDNAME: ::c_int = 2006;
+pub const AT_SUN_LDPGSIZE: ::c_int = 2007;
+pub const AT_SUN_PLATFORM: ::c_int = 2008;
+pub const AT_SUN_HWCAP: ::c_int = 2009;
+pub const AT_SUN_IFLUSH: ::c_int = 2010;
+pub const AT_SUN_CPU: ::c_int = 2011;
+pub const AT_SUN_EMUL_ENTRY: ::c_int = 2012;
+pub const AT_SUN_EMUL_EXECFD: ::c_int = 2013;
+pub const AT_SUN_EXECNAME: ::c_int = 2014;
+
 pub const EXTATTR_NAMESPACE_USER: ::c_int = 1;
 pub const EXTATTR_NAMESPACE_SYSTEM: ::c_int = 2;
 
@@ -1266,6 +1302,7 @@ pub const MAP_RENAME: ::c_int = 0x20;
 pub const MAP_NORESERVE: ::c_int = 0x40;
 pub const MAP_HASSEMAPHORE: ::c_int = 0x200;
 pub const MAP_WIRED: ::c_int = 0x800;
+pub const MAP_STACK: ::c_int = 0x2000;
 // mremap flag
 pub const MAP_REMAPDUP: ::c_int = 0x004;
 
@@ -1531,6 +1568,11 @@ pub const PTHREAD_MUTEX_NORMAL: ::c_int = 0;
 pub const PTHREAD_MUTEX_ERRORCHECK: ::c_int = 1;
 pub const PTHREAD_MUTEX_RECURSIVE: ::c_int = 2;
 pub const PTHREAD_MUTEX_DEFAULT: ::c_int = PTHREAD_MUTEX_NORMAL;
+
+pub const SCHED_NONE: ::c_int = -1;
+pub const SCHED_OTHER: ::c_int = 0;
+pub const SCHED_FIFO: ::c_int = 1;
+pub const SCHED_RR: ::c_int = 2;
 
 pub const EVFILT_AIO: u32 = 2;
 pub const EVFILT_PROC: u32 = 4;
@@ -2111,6 +2153,8 @@ extern "C" {
     ) -> ::c_int;
     pub fn mq_unlink(name: *const ::c_char) -> ::c_int;
     pub fn ptrace(request: ::c_int, pid: ::pid_t, addr: *mut ::c_void, data: ::c_int) -> ::c_int;
+    pub fn utrace(label: *const ::c_char, addr: *mut ::c_void, len: ::size_t) -> ::c_int;
+    pub fn pthread_getname_np(t: ::pthread_t, name: *mut ::c_char, len: ::size_t) -> ::c_int;
     pub fn pthread_setname_np(
         t: ::pthread_t,
         name: *const ::c_char,
@@ -2219,6 +2263,21 @@ extern "C" {
     ) -> ::size_t;
     pub fn iconv_close(cd: iconv_t) -> ::c_int;
 
+    pub fn timer_create(
+        clockid: ::clockid_t,
+        sevp: *mut ::sigevent,
+        timerid: *mut ::timer_t,
+    ) -> ::c_int;
+    pub fn timer_delete(timerid: ::timer_t) -> ::c_int;
+    pub fn timer_getoverrun(timerid: ::timer_t) -> ::c_int;
+    pub fn timer_gettime(timerid: ::timer_t, curr_value: *mut ::itimerspec) -> ::c_int;
+    pub fn timer_settime(
+        timerid: ::timer_t,
+        flags: ::c_int,
+        new_value: *const ::itimerspec,
+        old_value: *mut ::itimerspec,
+    ) -> ::c_int;
+
     // Added in `NetBSD` 7.0
     pub fn explicit_memset(b: *mut ::c_void, c: ::c_int, len: ::size_t);
     pub fn consttime_memequal(a: *const ::c_void, b: *const ::c_void, len: ::size_t) -> ::c_int;
@@ -2234,6 +2293,20 @@ extern "C" {
 
     pub fn sched_setparam(pid: ::pid_t, param: *const sched_param) -> ::c_int;
     pub fn sched_getparam(pid: ::pid_t, param: *mut sched_param) -> ::c_int;
+    pub fn sched_getscheduler(pid: ::pid_t) -> ::c_int;
+    pub fn sched_setscheduler(
+        pid: ::pid_t,
+        policy: ::c_int,
+        param: *const ::sched_param,
+    ) -> ::c_int;
+
+    #[link_name = "__pollts50"]
+    pub fn pollts(
+        fds: *mut ::pollfd,
+        nfds: ::nfds_t,
+        ts: *const ::timespec,
+        sigmask: *const ::sigset_t,
+    ) -> ::c_int;
 }
 
 #[link(name = "util")]
@@ -2345,6 +2418,13 @@ extern "C" {
         status: ::c_int,
         tpe: ::c_int,
     );
+
+    pub fn string_to_flags(
+        string_p: *mut *mut ::c_char,
+        setp: *mut ::c_ulong,
+        clrp: *mut ::c_ulong,
+    ) -> ::c_int;
+    pub fn flags_to_string(flags: ::c_ulong, def: *const ::c_char) -> ::c_int;
 
     pub fn kinfo_getvmmap(pid: ::pid_t, cntp: *mut ::size_t) -> *mut kinfo_vmentry;
 }

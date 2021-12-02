@@ -31,7 +31,7 @@
 //! When you execute `x.py build`, the steps executed are:
 //!
 //! * First, the python script is run. This will automatically download the
-//!   stage0 rustc and cargo according to `src/stage0.txt`, or use the cached
+//!   stage0 rustc and cargo according to `src/stage0.json`, or use the cached
 //!   versions if they're available. These are then used to compile rustbuild
 //!   itself (using Cargo). Finally, control is then transferred to rustbuild.
 //!
@@ -1494,8 +1494,13 @@ impl Build {
             {
                 eprintln!(
                     "
-Couldn't find required command: ninja
-You should install ninja, or set `ninja=false` in config.toml in the `[llvm]` section.
+Couldn't find required command: ninja (or ninja-build)
+
+You should install ninja as described at
+<https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages>,
+or set `ninja = false` in the `[llvm]` section of `config.toml`.
+Alternatively, set `download-ci-llvm = true` in that `[llvm]` section
+to download LLVM rather than building it.
 "
                 );
                 std::process::exit(1);

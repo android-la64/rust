@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::error::Error as StdError;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -16,6 +15,7 @@ use rustc_span::symbol::sym;
 
 use super::cache::{build_index, ExternalLocation};
 use super::print_item::{full_path, item_path, print_item};
+use super::templates;
 use super::write_shared::write_shared;
 use super::{
     collect_spans_and_sources, print_sidebar, settings, AllTypes, LinkFromSrc, NameDoc, StylePath,
@@ -33,7 +33,6 @@ use crate::formats::FormatRenderer;
 use crate::html::escape::Escape;
 use crate::html::format::Buffer;
 use crate::html::markdown::{self, plain_text_summary, ErrorCodes, IdMap};
-use crate::html::static_files::PAGE;
 use crate::html::{layout, sources};
 
 /// Major driving force in all rustdoc rendering. This contains information
@@ -69,7 +68,7 @@ crate struct Context<'tcx> {
 }
 
 // `Context` is cloned a lot, so we don't want the size to grow unexpectedly.
-#[cfg(target_arch = "x86_64")]
+#[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
 rustc_data_structures::static_assert_size!(Context<'_>, 104);
 
 /// Shared mutable state used in [`Context`] and elsewhere.
@@ -225,7 +224,7 @@ impl<'tcx> Context<'tcx> {
                 &self.shared.layout,
                 &page,
                 |buf: &mut _| print_sidebar(self, it, buf),
-                |buf: &mut _| print_item(self, it, buf, &page),
+                |buf: &mut _| print_item(self, &self.shared.templates, it, buf, &page),
                 &self.shared.style_files,
             )
         } else {
@@ -416,12 +415,7 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
         };
         let mut issue_tracker_base_url = None;
         let mut include_sources = true;
-
-        let mut templates = tera::Tera::default();
-        templates.add_raw_template("page.html", PAGE).map_err(|e| Error {
-            file: "page.html".into(),
-            error: format!("{}: {}", e, e.source().map(|e| e.to_string()).unwrap_or_default()),
-        })?;
+        let templates = templates::load()?;
 
         // Crawl the crate attributes looking for attributes which control how we're
         // going to emit HTML
@@ -574,7 +568,7 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
             |buf: &mut Buffer| all.print(buf),
             &self.shared.style_files,
         );
-        self.shared.fs.write(final_file, v.as_bytes())?;
+        self.shared.fs.write(final_file, v)?;
 
         // Generating settings page.
         page.title = "Rustdoc settings";
@@ -596,14 +590,14 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
             )?,
             &style_files,
         );
-        self.shared.fs.write(&settings_file, v.as_bytes())?;
+        self.shared.fs.write(settings_file, v)?;
         if let Some(ref redirections) = self.shared.redirections {
             if !redirections.borrow().is_empty() {
                 let redirect_map_path =
                     self.dst.join(&*crate_name.as_str()).join("redirect-map.json");
                 let paths = serde_json::to_string(&*redirections.borrow()).unwrap();
                 self.shared.ensure_dir(&self.dst.join(&*crate_name.as_str()))?;
-                self.shared.fs.write(&redirect_map_path, paths.as_bytes())?;
+                self.shared.fs.write(redirect_map_path, paths)?;
             }
         }
 
@@ -641,7 +635,7 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
         if !buf.is_empty() {
             self.shared.ensure_dir(&self.dst)?;
             let joint_dst = self.dst.join("index.html");
-            scx.fs.write(&joint_dst, buf.as_bytes())?;
+            scx.fs.write(joint_dst, buf)?;
         }
 
         // Render sidebar-items.js used throughout this module.
@@ -653,7 +647,7 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
             let items = self.build_sidebar_items(module);
             let js_dst = self.dst.join("sidebar-items.js");
             let v = format!("initSidebarItems({});", serde_json::to_string(&items).unwrap());
-            scx.fs.write(&js_dst, &v)?;
+            scx.fs.write(js_dst, v)?;
         }
         Ok(())
     }
@@ -687,7 +681,7 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
             let file_name = &item_path(item_type, &name.as_str());
             self.shared.ensure_dir(&self.dst)?;
             let joint_dst = self.dst.join(file_name);
-            self.shared.fs.write(&joint_dst, buf.as_bytes())?;
+            self.shared.fs.write(joint_dst, buf)?;
 
             if !self.render_redirect_pages {
                 self.shared.all.borrow_mut().append(full_path(self, &item), &item_type);
@@ -705,7 +699,7 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
                 } else {
                     let v = layout::redirect(file_name);
                     let redir_dst = self.dst.join(redir_name);
-                    self.shared.fs.write(&redir_dst, v.as_bytes())?;
+                    self.shared.fs.write(redir_dst, v)?;
                 }
             }
         }

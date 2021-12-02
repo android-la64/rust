@@ -104,6 +104,8 @@ pub use workspace_folders::*;
 mod workspace_symbols;
 pub use workspace_symbols::*;
 
+pub mod lsif;
+
 /* ----------------- Auxiliary types ----------------- */
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
@@ -928,7 +930,7 @@ pub struct InitializeParams {
     /// system.
     ///
     /// Uses IETF language tags as the value's syntax
-    /// (See https://en.wikipedia.org/wiki/IETF_language_tag)
+    /// (See <https://en.wikipedia.org/wiki/IETF_language_tag>)
     ///
     /// @since 3.16.0
     #[serde(skip_serializing_if = "Option::is_none")]

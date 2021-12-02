@@ -1,7 +1,5 @@
 //! A cross-platform Rust API for memory mapped buffers.
 
-#![doc(html_root_url = "https://docs.rs/memmap2/0.3.0")]
-
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]
@@ -19,28 +17,36 @@ use crate::unix::MmapInner;
 #[cfg(not(any(unix, windows)))]
 mod stub;
 #[cfg(not(any(unix, windows)))]
+use crate::stub::file_len;
+#[cfg(not(any(unix, windows)))]
 use crate::stub::MmapInner;
 
 use std::fmt;
+#[cfg(not(any(unix, windows)))]
 use std::fs::File;
 use std::io::{Error, ErrorKind, Result};
 use std::ops::{Deref, DerefMut};
 #[cfg(unix)]
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{AsRawFd, RawFd};
+#[cfg(windows)]
+use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::slice;
 use std::usize;
 
-#[cfg(windows)]
+#[cfg(not(any(unix, windows)))]
 pub struct MmapRawDescriptor<'a>(&'a File);
 
 #[cfg(unix)]
-pub struct MmapRawDescriptor(std::os::unix::io::RawFd);
+pub struct MmapRawDescriptor(RawFd);
+
+#[cfg(windows)]
+pub struct MmapRawDescriptor(RawHandle);
 
 pub trait MmapAsRawDesc {
     fn as_raw_desc(&self) -> MmapRawDescriptor;
 }
 
-#[cfg(windows)]
+#[cfg(not(any(unix, windows)))]
 impl MmapAsRawDesc for &File {
     fn as_raw_desc(&self) -> MmapRawDescriptor {
         MmapRawDescriptor(self)
@@ -48,16 +54,36 @@ impl MmapAsRawDesc for &File {
 }
 
 #[cfg(unix)]
-impl MmapAsRawDesc for &File {
+impl MmapAsRawDesc for RawFd {
+    fn as_raw_desc(&self) -> MmapRawDescriptor {
+        MmapRawDescriptor(*self)
+    }
+}
+
+#[cfg(unix)]
+impl<'a, T> MmapAsRawDesc for &'a T
+where
+    T: AsRawFd,
+{
     fn as_raw_desc(&self) -> MmapRawDescriptor {
         MmapRawDescriptor(self.as_raw_fd())
     }
 }
 
-#[cfg(unix)]
-impl MmapAsRawDesc for std::os::unix::io::RawFd {
+#[cfg(windows)]
+impl MmapAsRawDesc for RawHandle {
     fn as_raw_desc(&self) -> MmapRawDescriptor {
         MmapRawDescriptor(*self)
+    }
+}
+
+#[cfg(windows)]
+impl<'a, T> MmapAsRawDesc for &'a T
+where
+    T: AsRawHandle,
+{
+    fn as_raw_desc(&self) -> MmapRawDescriptor {
+        MmapRawDescriptor(self.as_raw_handle())
     }
 }
 
@@ -176,13 +202,26 @@ impl MmapOptions {
         self.len.map(Ok).unwrap_or_else(|| {
             let desc = file.as_raw_desc();
             let file_len = file_len(desc.0)?;
-            let len = file_len as u64 - self.offset;
-            if len > (usize::MAX as u64) {
+
+            if file_len < self.offset {
                 return Err(Error::new(
                     ErrorKind::InvalidData,
-                    "memory map length overflows usize",
+                    "memory map offset is larger than length",
                 ));
             }
+            let len = file_len - self.offset;
+
+            // This check it not relevant on 64bit targets, because usize == u64
+            #[cfg(not(target_pointer_width = "64"))]
+            {
+                if len > (usize::MAX as u64) {
+                    return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        "memory map length overflows usize",
+                    ));
+                }
+            }
+
             Ok(len as usize)
         })
     }
@@ -281,7 +320,7 @@ impl MmapOptions {
         let desc = file.as_raw_desc();
 
         MmapInner::map_exec(self.get_len(&file)?, desc.0, self.offset, self.populate)
-            .map(|inner| Mmap { inner: inner })
+            .map(|inner| Mmap { inner })
     }
 
     /// Creates a writeable memory map backed by a file.
@@ -321,7 +360,7 @@ impl MmapOptions {
         let desc = file.as_raw_desc();
 
         MmapInner::map_mut(self.get_len(&file)?, desc.0, self.offset, self.populate)
-            .map(|inner| MmapMut { inner: inner })
+            .map(|inner| MmapMut { inner })
     }
 
     /// Creates a copy-on-write memory map backed by a file.
@@ -352,7 +391,7 @@ impl MmapOptions {
         let desc = file.as_raw_desc();
 
         MmapInner::map_copy(self.get_len(&file)?, desc.0, self.offset, self.populate)
-            .map(|inner| MmapMut { inner: inner })
+            .map(|inner| MmapMut { inner })
     }
 
     /// Creates a copy-on-write read-only memory map backed by a file.
@@ -387,7 +426,7 @@ impl MmapOptions {
         let desc = file.as_raw_desc();
 
         MmapInner::map_copy_read_only(self.get_len(&file)?, desc.0, self.offset, self.populate)
-            .map(|inner| Mmap { inner: inner })
+            .map(|inner| Mmap { inner })
     }
 
     /// Creates an anonymous memory map.
@@ -412,7 +451,7 @@ impl MmapOptions {
         let desc = file.as_raw_desc();
 
         MmapInner::map_mut(self.get_len(&file)?, desc.0, self.offset, self.populate)
-            .map(|inner| MmapRaw { inner: inner })
+            .map(|inner| MmapRaw { inner })
     }
 }
 
@@ -539,6 +578,9 @@ impl Mmap {
         Ok(MmapMut { inner: self.inner })
     }
 }
+
+#[cfg(feature = "stable_deref_trait")]
+unsafe impl stable_deref_trait::StableDeref for Mmap {}
 
 impl Deref for Mmap {
     type Target = [u8];
@@ -830,6 +872,9 @@ impl MmapMut {
     }
 }
 
+#[cfg(feature = "stable_deref_trait")]
+unsafe impl stable_deref_trait::StableDeref for MmapMut {}
+
 impl Deref for MmapMut {
     type Target = [u8];
 
@@ -950,7 +995,7 @@ mod test {
         assert_eq!(&incr[..], &mmap[..]);
     }
 
-    /// Checks that a 0-length file will not be mapped.
+    /// Checks that "mapping" a 0-length file derefs to an empty slice.
     #[test]
     fn map_empty_file() {
         let tempdir = tempdir::TempDir::new("mmap").unwrap();
@@ -962,8 +1007,10 @@ mod test {
             .create(true)
             .open(&path)
             .unwrap();
-        let mmap = unsafe { Mmap::map(&file) };
-        assert!(mmap.is_err());
+        let mmap = unsafe { Mmap::map(&file).unwrap() };
+        assert!(mmap.is_empty());
+        let mmap = unsafe { MmapMut::map_mut(&file).unwrap() };
+        assert!(mmap.is_empty());
     }
 
     #[test]
@@ -988,7 +1035,7 @@ mod test {
 
     #[test]
     fn map_anon_zero_len() {
-        assert!(MmapOptions::new().map_anon().is_err())
+        assert!(MmapOptions::new().map_anon().unwrap().is_empty())
     }
 
     #[test]
@@ -1102,6 +1149,29 @@ mod test {
         assert_eq!(nulls, &read);
     }
 
+    // 32bit Linux cannot map a file larger than i32, but Windows can.
+    #[cfg(all(target_os = "linux", target_pointer_width = "32"))]
+    #[test]
+    fn map_offset() {
+        let tempdir = tempdir::TempDir::new("mmap").unwrap();
+        let path = tempdir.path().join("mmap");
+
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&path)
+            .unwrap();
+
+        let offset = u32::max_value() as u64 + 2;
+        let len = 5432;
+        file.set_len(offset + len as u64).unwrap();
+
+        let mmap = unsafe { MmapOptions::new().offset(offset).map_mut(&file) };
+        assert!(mmap.is_err());
+    }
+
+    #[cfg(not(all(target_os = "linux", target_pointer_width = "32")))]
     #[test]
     fn map_offset() {
         let tempdir = tempdir::TempDir::new("mmap").unwrap();
@@ -1326,5 +1396,23 @@ mod test {
         assert_eq!(mmap.len(), 6);
         assert!(!mmap.as_ptr().is_null());
         assert_eq!(unsafe { std::ptr::read(mmap.as_ptr()) }, b'a');
+    }
+
+    /// Something that relies on StableDeref
+    #[test]
+    #[cfg(feature = "stable_deref_trait")]
+    fn owning_ref() {
+        extern crate owning_ref;
+
+        let mut map = MmapMut::map_anon(128).unwrap();
+        map[10] = 42;
+        let owning = owning_ref::OwningRef::new(map);
+        let sliced = owning.map(|map| &map[10..20]);
+        assert_eq!(42, sliced[0]);
+
+        let map = sliced.into_owner().make_read_only().unwrap();
+        let owning = owning_ref::OwningRef::new(map);
+        let sliced = owning.map(|map| &map[10..20]);
+        assert_eq!(42, sliced[0]);
     }
 }

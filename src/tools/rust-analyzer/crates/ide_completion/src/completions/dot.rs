@@ -672,4 +672,51 @@ impl Foo { fn foo(&mut self) { $0 } }"#,
             "#]],
         );
     }
+
+    #[test]
+    fn macro_completion_after_dot() {
+        check(
+            r#"
+macro_rules! m {
+    ($e:expr) => { $e };
+}
+
+struct Completable;
+
+impl Completable {
+    fn method(&self) {}
+}
+
+fn f() {
+    let c = Completable;
+    m!(c.$0);
+}
+    "#,
+            expect![[r#"
+                me method() fn(&self)
+            "#]],
+        );
+    }
+
+    #[test]
+    fn completes_method_call_when_receiver_type_has_errors_issue_10297() {
+        check(
+            r#"
+//- minicore: iterator, sized
+struct Vec<T>;
+impl<T> IntoIterator for Vec<T> {
+    type Item = ();
+    type IntoIter = ();
+    fn into_iter(self);
+}
+fn main() {
+    let x: Vec<_>;
+    x.$0;
+}
+"#,
+            expect![[r#"
+                me into_iter() (as IntoIterator) fn(self) -> <Self as IntoIterator>::IntoIter
+            "#]],
+        )
+    }
 }

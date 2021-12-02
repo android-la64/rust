@@ -345,6 +345,16 @@ s! {
         pub dlpi_tls_modid: usize,
         pub dlpi_tls_data: *mut ::c_void,
     }
+
+    pub struct ipc_perm {
+        pub cuid: ::uid_t,
+        pub cgid: ::gid_t,
+        pub uid: ::uid_t,
+        pub gid: ::gid_t,
+        pub mode: ::mode_t,
+        pub seq: ::c_ushort,
+        pub key: ::key_t,
+    }
 }
 
 s_no_extra_traits! {
@@ -976,10 +986,16 @@ pub const LOCK_UN: ::c_int = 8;
 
 pub const MAP_COPY: ::c_int = 0x0002;
 #[doc(hidden)]
-#[deprecated(since = "0.2.54", note = "Removed in FreeBSD 11")]
+#[deprecated(
+    since = "0.2.54",
+    note = "Removed in FreeBSD 11, unused in DragonFlyBSD"
+)]
 pub const MAP_RENAME: ::c_int = 0x0020;
 #[doc(hidden)]
-#[deprecated(since = "0.2.54", note = "Removed in FreeBSD 11")]
+#[deprecated(
+    since = "0.2.54",
+    note = "Removed in FreeBSD 11, unused in DragonFlyBSD"
+)]
 pub const MAP_NORESERVE: ::c_int = 0x0040;
 pub const MAP_HASSEMAPHORE: ::c_int = 0x0200;
 pub const MAP_STACK: ::c_int = 0x0400;
@@ -1414,6 +1430,8 @@ extern "C" {
     pub fn clock_settime(clk_id: ::clockid_t, tp: *const ::timespec) -> ::c_int;
     pub fn clock_getcpuclockid(pid: ::pid_t, clk_id: *mut ::clockid_t) -> ::c_int;
 
+    pub fn pthread_getcpuclockid(thread: ::pthread_t, clk_id: *mut ::clockid_t) -> ::c_int;
+
     pub fn dirfd(dirp: *mut ::DIR) -> ::c_int;
     pub fn duplocale(base: ::locale_t) -> ::locale_t;
     pub fn endutxent();
@@ -1547,13 +1565,17 @@ extern "C" {
     ) -> ::c_int;
     pub fn pthread_barrier_destroy(barrier: *mut pthread_barrier_t) -> ::c_int;
     pub fn pthread_barrier_wait(barrier: *mut pthread_barrier_t) -> ::c_int;
+    pub fn pthread_get_name_np(tid: ::pthread_t, name: *mut ::c_char, len: ::size_t);
     pub fn pthread_set_name_np(tid: ::pthread_t, name: *const ::c_char);
     pub fn ptrace(request: ::c_int, pid: ::pid_t, addr: *mut ::c_char, data: ::c_int) -> ::c_int;
+    pub fn utrace(addr: *const ::c_void, len: ::size_t) -> ::c_int;
     pub fn pututxline(ut: *const utmpx) -> *mut utmpx;
     pub fn pwritev(fd: ::c_int, iov: *const ::iovec, iovcnt: ::c_int, offset: ::off_t)
         -> ::ssize_t;
     pub fn querylocale(mask: ::c_int, loc: ::locale_t) -> *const ::c_char;
     pub fn rtprio(function: ::c_int, pid: ::pid_t, rtp: *mut rtprio) -> ::c_int;
+    pub fn sched_getparam(pid: ::pid_t, param: *mut sched_param) -> ::c_int;
+    pub fn sched_setparam(pid: ::pid_t, param: *const sched_param) -> ::c_int;
     pub fn sched_getscheduler(pid: ::pid_t) -> ::c_int;
     pub fn sched_setscheduler(
         pid: ::pid_t,
@@ -1643,6 +1665,8 @@ extern "C" {
     pub fn explicit_bzero(s: *mut ::c_void, len: ::size_t);
     // ISO/IEC 9899:2011 ("ISO C11") K.3.7.4.1
     pub fn memset_s(s: *mut ::c_void, smax: ::size_t, c: ::c_int, n: ::size_t) -> ::c_int;
+    pub fn gethostid() -> ::c_long;
+    pub fn sethostid(hostid: ::c_long);
 }
 
 #[link(name = "rt")]

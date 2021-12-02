@@ -3,10 +3,10 @@ use rustc_data_structures::temp_dir::MaybeTempDir;
 use rustc_errors::{ErrorReported, Handler};
 use rustc_fs_util::fix_windows_verbatim_for_gcc;
 use rustc_hir::def_id::CrateNum;
-use rustc_middle::middle::cstore::DllImport;
 use rustc_middle::middle::dependency_format::Linkage;
 use rustc_session::config::{self, CFGuard, CrateType, DebugInfo, LdImpl, Strip};
 use rustc_session::config::{OutputFilenames, OutputType, PrintRequest};
+use rustc_session::cstore::DllImport;
 use rustc_session::output::{check_file_is_writeable, invalid_output_for_target, out_filename};
 use rustc_session::search_paths::PathKind;
 use rustc_session::utils::NativeLibKind;
@@ -19,7 +19,7 @@ use rustc_target::spec::crt_objects::{CrtObjects, CrtObjectsFallback};
 use rustc_target::spec::{LinkOutputKind, LinkerFlavor, LldFlavor, SplitDebuginfo};
 use rustc_target::spec::{PanicStrategy, RelocModel, RelroLevel, SanitizerSet, Target};
 
-use super::archive::ArchiveBuilder;
+use super::archive::{find_library, ArchiveBuilder};
 use super::command::Command;
 use super::linker::{self, Linker};
 use super::rpath::{self, RPathConfig};
@@ -36,6 +36,7 @@ use regex::Regex;
 use tempfile::Builder as TempFileBuilder;
 
 use std::ffi::OsString;
+use std::lazy::OnceCell;
 use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Output, Stdio};
 use std::{ascii, char, env, fmt, fs, io, mem, str};
@@ -230,6 +231,9 @@ fn link_rlib<'a, B: ArchiveBuilder<'a>>(
     tmpdir: &MaybeTempDir,
 ) -> Result<B, ErrorReported> {
     info!("preparing rlib to {:?}", out_filename);
+
+    let lib_search_paths = archive_search_paths(sess);
+
     let mut ab = <B as ArchiveBuilder>::new(sess, out_filename, None);
 
     for obj in codegen_results.modules.iter().filter_map(|m| m.object.as_ref()) {
@@ -254,6 +258,19 @@ fn link_rlib<'a, B: ArchiveBuilder<'a>>(
     // metadata of the rlib we're generating somehow.
     for lib in codegen_results.crate_info.used_libraries.iter() {
         match lib.kind {
+            NativeLibKind::Static { bundle: None | Some(true), whole_archive: Some(true) }
+                if flavor == RlibFlavor::Normal =>
+            {
+                // Don't allow mixing +bundle with +whole_archive since an rlib may contain
+                // multiple native libs, some of which are +whole-archive and some of which are
+                // -whole-archive and it isn't clear how we can currently handle such a
+                // situation correctly.
+                // See https://github.com/rust-lang/rust/issues/88085#issuecomment-901050897
+                sess.err(
+                    "the linking modifiers `+bundle` and `+whole-archive` are not compatible \
+                        with each other when generating rlibs",
+                );
+            }
             NativeLibKind::Static { bundle: None | Some(true), .. } => {}
             NativeLibKind::Static { bundle: Some(false), .. }
             | NativeLibKind::Dylib { .. }
@@ -262,7 +279,15 @@ fn link_rlib<'a, B: ArchiveBuilder<'a>>(
             | NativeLibKind::Unspecified => continue,
         }
         if let Some(name) = lib.name {
-            ab.add_native_library(name, lib.verbatim.unwrap_or(false));
+            let location =
+                find_library(name, lib.verbatim.unwrap_or(false), &lib_search_paths, sess);
+            ab.add_archive(&location, |_| false).unwrap_or_else(|e| {
+                sess.fatal(&format!(
+                    "failed to add native library {}: {}",
+                    location.to_string_lossy(),
+                    e
+                ));
+            });
         }
     }
 
@@ -302,7 +327,7 @@ fn link_rlib<'a, B: ArchiveBuilder<'a>>(
             // metadata in rlib files is wrapped in a "dummy" object file for
             // the target platform so the rlib can be processed entirely by
             // normal linkers for the platform.
-            let metadata = create_metadata_file(sess, &codegen_results.metadata.raw_data);
+            let metadata = create_metadata_file(sess, codegen_results.metadata.raw_data());
             ab.add_file(&emit_metadata(sess, &metadata, tmpdir));
 
             // After adding all files to the archive, we need to update the
@@ -541,13 +566,35 @@ fn link_staticlib<'a, B: ArchiveBuilder<'a>>(
             matches!(lib.kind, NativeLibKind::Static { bundle: None | Some(true), .. })
                 && !relevant_lib(sess, lib)
         });
-        ab.add_rlib(
-            path,
-            &name.as_str(),
-            are_upstream_rust_objects_already_included(sess)
-                && !ignored_for_lto(sess, &codegen_results.crate_info, cnum),
-            skip_object_files,
-        )
+
+        let lto = are_upstream_rust_objects_already_included(sess)
+            && !ignored_for_lto(sess, &codegen_results.crate_info, cnum);
+
+        // Ignoring obj file starting with the crate name
+        // as simple comparison is not enough - there
+        // might be also an extra name suffix
+        let obj_start = name.as_str().to_owned();
+
+        ab.add_archive(path, move |fname: &str| {
+            // Ignore metadata files, no matter the name.
+            if fname == METADATA_FILENAME {
+                return true;
+            }
+
+            // Don't include Rust objects if LTO is enabled
+            if lto && looks_like_rust_object_file(fname) {
+                return true;
+            }
+
+            // Otherwise if this is *not* a rust object and we're skipping
+            // objects then skip this file
+            if skip_object_files && (!fname.starts_with(&obj_start) || !fname.ends_with(".o")) {
+                return true;
+            }
+
+            // ok, don't skip this
+            false
+        })
         .unwrap();
 
         all_native_libs.extend(codegen_results.crate_info.native_libraries[&cnum].iter().cloned());
@@ -590,7 +637,7 @@ fn link_dwarf_object<'a>(sess: &'a Session, executable_out_filename: &Path) {
     cmd.arg("-o");
     cmd.arg(&dwp_out_filename);
 
-    let mut new_path = sess.host_filesearch(PathKind::All).get_tools_search_paths(false);
+    let mut new_path = sess.get_tools_search_paths(false);
     if let Some(path) = env::var_os("PATH") {
         new_path.extend(env::split_paths(&path));
     }
@@ -796,19 +843,18 @@ fn link_natively<'a, B: ArchiveBuilder<'a>>(
         let msg_bus = "clang: error: unable to execute command: Bus error: 10";
         if out.contains(msg_segv) || out.contains(msg_bus) {
             warn!(
+                ?cmd, %out,
                 "looks like the linker segfaulted when we tried to call it, \
-                 automatically retrying again. cmd = {:?}, out = {}.",
-                cmd, out,
+                 automatically retrying again",
             );
             continue;
         }
 
         if is_illegal_instruction(&output.status) {
             warn!(
+                ?cmd, %out, status = %output.status,
                 "looks like the linker hit an illegal instruction when we \
-                 tried to call it, automatically retrying again. cmd = {:?}, ]\
-                 out = {}, status = {}.",
-                cmd, out, output.status,
+                 tried to call it, automatically retrying again.",
             );
             continue;
         }
@@ -977,14 +1023,20 @@ fn link_natively<'a, B: ArchiveBuilder<'a>>(
     }
 
     if sess.target.is_like_osx {
-        if let Some(option) = osx_strip_opt(sess.opts.debugging_opts.strip) {
-            strip_symbols_in_osx(sess, &out_filename, option);
+        match sess.opts.debugging_opts.strip {
+            Strip::Debuginfo => strip_symbols_in_osx(sess, &out_filename, Some("-S")),
+            Strip::Symbols => strip_symbols_in_osx(sess, &out_filename, None),
+            Strip::None => {}
         }
     }
 }
 
-fn strip_symbols_in_osx<'a>(sess: &'a Session, out_filename: &Path, option: &str) {
-    let prog = Command::new("strip").arg(option).arg(out_filename).output();
+fn strip_symbols_in_osx<'a>(sess: &'a Session, out_filename: &Path, option: Option<&str>) {
+    let mut cmd = Command::new("strip");
+    if let Some(option) = option {
+        cmd.arg(option);
+    }
+    let prog = cmd.arg(out_filename).output();
     match prog {
         Ok(prog) => {
             if !prog.status.success() {
@@ -999,14 +1051,6 @@ fn strip_symbols_in_osx<'a>(sess: &'a Session, out_filename: &Path, option: &str
             }
         }
         Err(e) => sess.fatal(&format!("unable to run `strip`: {}", e)),
-    }
-}
-
-fn osx_strip_opt<'a>(strip: Strip) -> Option<&'a str> {
-    match strip {
-        Strip::Debuginfo => Some("-S"),
-        Strip::Symbols => Some("-x"),
-        Strip::None => None,
     }
 }
 
@@ -1218,10 +1262,11 @@ fn preserve_objects_for_their_debuginfo(sess: &Session) -> bool {
     sess.split_debuginfo() == SplitDebuginfo::Unpacked
 }
 
-pub fn archive_search_paths(sess: &Session) -> Vec<PathBuf> {
+fn archive_search_paths(sess: &Session) -> Vec<PathBuf> {
     sess.target_filesearch(PathKind::Native).search_path_dirs()
 }
 
+#[derive(PartialEq)]
 enum RlibFlavor {
     Normal,
     StaticlibBase,
@@ -1442,9 +1487,13 @@ fn exec_linker(
 fn link_output_kind(sess: &Session, crate_type: CrateType) -> LinkOutputKind {
     let kind = match (crate_type, sess.crt_static(Some(crate_type)), sess.relocation_model()) {
         (CrateType::Executable, _, _) if sess.is_wasi_reactor() => LinkOutputKind::WasiReactorExe,
-        (CrateType::Executable, false, RelocModel::Pic) => LinkOutputKind::DynamicPicExe,
+        (CrateType::Executable, false, RelocModel::Pic | RelocModel::Pie) => {
+            LinkOutputKind::DynamicPicExe
+        }
         (CrateType::Executable, false, _) => LinkOutputKind::DynamicNoPicExe,
-        (CrateType::Executable, true, RelocModel::Pic) => LinkOutputKind::StaticPicExe,
+        (CrateType::Executable, true, RelocModel::Pic | RelocModel::Pie) => {
+            LinkOutputKind::StaticPicExe
+        }
         (CrateType::Executable, true, _) => LinkOutputKind::StaticNoPicExe,
         (_, true, _) => LinkOutputKind::StaticDylib,
         (_, false, _) => LinkOutputKind::DynamicDylib,
@@ -2001,7 +2050,7 @@ fn add_local_native_libraries(
     let relevant_libs =
         codegen_results.crate_info.used_libraries.iter().filter(|l| relevant_lib(sess, l));
 
-    let search_path = archive_search_paths(sess);
+    let search_path = OnceCell::new();
     let mut last = (NativeLibKind::Unspecified, None);
     for lib in relevant_libs {
         let name = match lib.name {
@@ -2023,7 +2072,11 @@ fn add_local_native_libraries(
             }
             NativeLibKind::Static { bundle: None | Some(true), .. }
             | NativeLibKind::Static { whole_archive: Some(true), .. } => {
-                cmd.link_whole_staticlib(name, verbatim, &search_path);
+                cmd.link_whole_staticlib(
+                    name,
+                    verbatim,
+                    &search_path.get_or_init(|| archive_search_paths(sess)),
+                );
             }
             NativeLibKind::Static { .. } => cmd.link_staticlib(name, verbatim),
             NativeLibKind::RawDylib => {
@@ -2116,6 +2169,7 @@ fn add_upstream_rust_crates<'a, B: ArchiveBuilder<'a>>(
     }
 
     let mut compiler_builtins = None;
+    let search_path = OnceCell::new();
 
     for &cnum in deps.iter() {
         if group_start == Some(cnum) {
@@ -2149,16 +2203,35 @@ fn add_upstream_rust_crates<'a, B: ArchiveBuilder<'a>>(
                 // external build system already has the native dependencies defined, and it
                 // will provide them to the linker itself.
                 if sess.opts.debugging_opts.link_native_libraries {
-                    // Skip if this library is the same as the last.
                     let mut last = None;
                     for lib in &codegen_results.crate_info.native_libraries[&cnum] {
-                        if lib.name.is_some()
-                            && relevant_lib(sess, lib)
-                            && matches!(lib.kind, NativeLibKind::Static { bundle: Some(false), .. })
-                            && last != lib.name
-                        {
-                            cmd.link_staticlib(lib.name.unwrap(), lib.verbatim.unwrap_or(false));
-                            last = lib.name;
+                        if !relevant_lib(sess, lib) {
+                            // Skip libraries if they are disabled by `#[link(cfg=...)]`
+                            continue;
+                        }
+
+                        // Skip if this library is the same as the last.
+                        if last == lib.name {
+                            continue;
+                        }
+
+                        if let Some(static_lib_name) = lib.name {
+                            if let NativeLibKind::Static { bundle: Some(false), whole_archive } =
+                                lib.kind
+                            {
+                                let verbatim = lib.verbatim.unwrap_or(false);
+                                if whole_archive == Some(true) {
+                                    cmd.link_whole_staticlib(
+                                        static_lib_name,
+                                        verbatim,
+                                        search_path.get_or_init(|| archive_search_paths(sess)),
+                                    );
+                                } else {
+                                    cmd.link_staticlib(static_lib_name, verbatim);
+                                }
+
+                                last = lib.name;
+                            }
                         }
                     }
                 }
@@ -2483,8 +2556,7 @@ fn add_gcc_ld_path(cmd: &mut dyn Linker, sess: &Session, flavor: LinkerFlavor) {
             match ld_impl {
                 LdImpl::Lld => {
                     if sess.target.lld_flavor == LldFlavor::Ld64 {
-                        let tools_path =
-                            sess.host_filesearch(PathKind::All).get_tools_search_paths(false);
+                        let tools_path = sess.get_tools_search_paths(false);
                         let ld64_exe = tools_path
                             .into_iter()
                             .map(|p| p.join("gcc-ld"))
@@ -2499,8 +2571,7 @@ fn add_gcc_ld_path(cmd: &mut dyn Linker, sess: &Session, flavor: LinkerFlavor) {
                             arg
                         });
                     } else {
-                        let tools_path =
-                            sess.host_filesearch(PathKind::All).get_tools_search_paths(false);
+                        let tools_path = sess.get_tools_search_paths(false);
                         let lld_path = tools_path
                             .into_iter()
                             .map(|p| p.join("gcc-ld"))

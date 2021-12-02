@@ -1,5 +1,5 @@
-use super::{plain_text_summary, short_markdown_summary};
-use super::{ErrorCodes, IdMap, Ignore, LangString, Markdown, MarkdownHtml};
+use super::{find_testable_code, plain_text_summary, short_markdown_summary};
+use super::{ErrorCodes, HeadingOffset, IdMap, Ignore, LangString, Markdown, MarkdownHtml};
 use rustc_span::edition::{Edition, DEFAULT_EDITION};
 
 #[test]
@@ -147,33 +147,41 @@ fn test_lang_string_tokenizer() {
 fn test_header() {
     fn t(input: &str, expect: &str) {
         let mut map = IdMap::new();
-        let output =
-            Markdown(input, &[], &mut map, ErrorCodes::Yes, DEFAULT_EDITION, &None).into_string();
+        let output = Markdown {
+            content: input,
+            links: &[],
+            ids: &mut map,
+            error_codes: ErrorCodes::Yes,
+            edition: DEFAULT_EDITION,
+            playground: &None,
+            heading_offset: HeadingOffset::H2,
+        }
+        .into_string();
         assert_eq!(output, expect, "original: {}", input);
     }
 
     t(
         "# Foo bar",
-        "<h1 id=\"foo-bar\" class=\"section-header\"><a href=\"#foo-bar\">Foo bar</a></h1>",
+        "<h2 id=\"foo-bar\" class=\"section-header\"><a href=\"#foo-bar\">Foo bar</a></h2>",
     );
     t(
         "## Foo-bar_baz qux",
-        "<h2 id=\"foo-bar_baz-qux\" class=\"section-header\">\
-         <a href=\"#foo-bar_baz-qux\">Foo-bar_baz qux</a></h2>",
+        "<h3 id=\"foo-bar_baz-qux\" class=\"section-header\">\
+         <a href=\"#foo-bar_baz-qux\">Foo-bar_baz qux</a></h3>",
     );
     t(
         "### **Foo** *bar* baz!?!& -_qux_-%",
-        "<h3 id=\"foo-bar-baz--qux-\" class=\"section-header\">\
+        "<h4 id=\"foo-bar-baz--qux-\" class=\"section-header\">\
             <a href=\"#foo-bar-baz--qux-\"><strong>Foo</strong> \
             <em>bar</em> baz!?!&amp; -<em>qux</em>-%</a>\
-         </h3>",
+         </h4>",
     );
     t(
         "#### **Foo?** & \\*bar?!*  _`baz`_ ❤ #qux",
-        "<h4 id=\"foo--bar--baz--qux\" class=\"section-header\">\
+        "<h5 id=\"foo--bar--baz--qux\" class=\"section-header\">\
              <a href=\"#foo--bar--baz--qux\"><strong>Foo?</strong> &amp; *bar?!*  \
              <em><code>baz</code></em> ❤ #qux</a>\
-         </h4>",
+         </h5>",
     );
 }
 
@@ -181,40 +189,48 @@ fn test_header() {
 fn test_header_ids_multiple_blocks() {
     let mut map = IdMap::new();
     fn t(map: &mut IdMap, input: &str, expect: &str) {
-        let output =
-            Markdown(input, &[], map, ErrorCodes::Yes, DEFAULT_EDITION, &None).into_string();
+        let output = Markdown {
+            content: input,
+            links: &[],
+            ids: map,
+            error_codes: ErrorCodes::Yes,
+            edition: DEFAULT_EDITION,
+            playground: &None,
+            heading_offset: HeadingOffset::H2,
+        }
+        .into_string();
         assert_eq!(output, expect, "original: {}", input);
     }
 
     t(
         &mut map,
         "# Example",
-        "<h1 id=\"example\" class=\"section-header\"><a href=\"#example\">Example</a></h1>",
+        "<h2 id=\"example\" class=\"section-header\"><a href=\"#example\">Example</a></h2>",
     );
     t(
         &mut map,
         "# Panics",
-        "<h1 id=\"panics\" class=\"section-header\"><a href=\"#panics\">Panics</a></h1>",
+        "<h2 id=\"panics\" class=\"section-header\"><a href=\"#panics\">Panics</a></h2>",
     );
     t(
         &mut map,
         "# Example",
-        "<h1 id=\"example-1\" class=\"section-header\"><a href=\"#example-1\">Example</a></h1>",
+        "<h2 id=\"example-1\" class=\"section-header\"><a href=\"#example-1\">Example</a></h2>",
     );
     t(
         &mut map,
         "# Main",
-        "<h1 id=\"main-1\" class=\"section-header\"><a href=\"#main-1\">Main</a></h1>",
+        "<h2 id=\"main-1\" class=\"section-header\"><a href=\"#main-1\">Main</a></h2>",
     );
     t(
         &mut map,
         "# Example",
-        "<h1 id=\"example-2\" class=\"section-header\"><a href=\"#example-2\">Example</a></h1>",
+        "<h2 id=\"example-2\" class=\"section-header\"><a href=\"#example-2\">Example</a></h2>",
     );
     t(
         &mut map,
         "# Panics",
-        "<h1 id=\"panics-1\" class=\"section-header\"><a href=\"#panics-1\">Panics</a></h1>",
+        "<h2 id=\"panics-1\" class=\"section-header\"><a href=\"#panics-1\">Panics</a></h2>",
     );
 }
 
@@ -299,4 +315,26 @@ fn test_markdown_html_escape() {
     t("`Struct<'a, T>`", "<p><code>Struct&lt;'a, T&gt;</code></p>\n");
     t("Struct<'a, T>", "<p>Struct&lt;’a, T&gt;</p>\n");
     t("Struct<br>", "<p>Struct&lt;br&gt;</p>\n");
+}
+
+#[test]
+fn test_find_testable_code_line() {
+    fn t(input: &str, expect: &[usize]) {
+        impl crate::doctest::Tester for Vec<usize> {
+            fn add_test(&mut self, _test: String, _config: LangString, line: usize) {
+                self.push(line);
+            }
+        }
+        let mut lines = Vec::<usize>::new();
+        find_testable_code(input, &mut lines, ErrorCodes::No, false, None);
+        assert_eq!(lines, expect);
+    }
+
+    t("", &[]);
+    t("```rust\n```", &[1]);
+    t(" ```rust\n```", &[1]);
+    t("\n```rust\n```", &[2]);
+    t("\n ```rust\n```", &[2]);
+    t("```rust\n```\n```rust\n```", &[1, 3]);
+    t("```rust\n```\n ```rust\n```", &[1, 3]);
 }

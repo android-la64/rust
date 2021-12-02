@@ -25,6 +25,7 @@
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
 #include "llvm/Transforms/IPO/FunctionImport.h"
+#include "llvm/Transforms/Utils/AddDiscriminators.h"
 #include "llvm/Transforms/Utils/FunctionImportUtils.h"
 #include "llvm/LTO/LTO.h"
 #include "llvm-c/Transforms/PassManagerBuilder.h"
@@ -39,6 +40,7 @@
 #include "llvm/Transforms/Instrumentation/HWAddressSanitizer.h"
 #include "llvm/Transforms/Utils/CanonicalizeAliases.h"
 #include "llvm/Transforms/Utils/NameAnonGlobals.h"
+#include "llvm/Transforms/Utils.h"
 
 using namespace llvm;
 
@@ -201,6 +203,12 @@ void LLVMRustAddLastExtensionPasses(
 #define SUBTARGET_AVR
 #endif
 
+#ifdef LLVM_COMPONENT_M68k
+#define SUBTARGET_M68K SUBTARGET(M68k)
+#else
+#define SUBTARGET_M68K
+#endif
+
 #ifdef LLVM_COMPONENT_MIPS
 #define SUBTARGET_MIPS SUBTARGET(Mips)
 #else
@@ -248,6 +256,7 @@ void LLVMRustAddLastExtensionPasses(
   SUBTARGET_ARM                                                                \
   SUBTARGET_AARCH64                                                            \
   SUBTARGET_AVR                                                                \
+  SUBTARGET_M68K                                                               \
   SUBTARGET_MIPS                                                               \
   SUBTARGET_PPC                                                                \
   SUBTARGET_SYSTEMZ                                                            \
@@ -516,7 +525,7 @@ extern "C" void LLVMRustDisposeTargetMachine(LLVMTargetMachineRef TM) {
 extern "C" void LLVMRustConfigurePassManagerBuilder(
     LLVMPassManagerBuilderRef PMBR, LLVMRustCodeGenOptLevel OptLevel,
     bool MergeFunctions, bool SLPVectorize, bool LoopVectorize, bool PrepareForThinLTO,
-    const char* PGOGenPath, const char* PGOUsePath) {
+    const char* PGOGenPath, const char* PGOUsePath, const char* PGOSampleUsePath) {
   unwrap(PMBR)->MergeFunctions = MergeFunctions;
   unwrap(PMBR)->SLPVectorize = SLPVectorize;
   unwrap(PMBR)->OptLevel = fromRust(OptLevel);
@@ -524,13 +533,14 @@ extern "C" void LLVMRustConfigurePassManagerBuilder(
   unwrap(PMBR)->PrepareForThinLTO = PrepareForThinLTO;
 
   if (PGOGenPath) {
-    assert(!PGOUsePath);
+    assert(!PGOUsePath && !PGOSampleUsePath);
     unwrap(PMBR)->EnablePGOInstrGen = true;
     unwrap(PMBR)->PGOInstrGen = PGOGenPath;
-  }
-  if (PGOUsePath) {
-    assert(!PGOGenPath);
+  } else if (PGOUsePath) {
+    assert(!PGOSampleUsePath);
     unwrap(PMBR)->PGOInstrUse = PGOUsePath;
+  } else if (PGOSampleUsePath) {
+    unwrap(PMBR)->PGOSampleUse = PGOSampleUsePath;
   }
 }
 
@@ -752,6 +762,7 @@ LLVMRustOptimizeWithNewPassManager(
     LLVMRustSanitizerOptions *SanitizerOptions,
     const char *PGOGenPath, const char *PGOUsePath,
     bool InstrumentCoverage, bool InstrumentGCOV,
+    const char *PGOSampleUsePath, bool DebugInfoForProfiling,
     void* LlvmSelfProfiler,
     LLVMRustSelfProfileBeforePassCallback BeforePassCallback,
     LLVMRustSelfProfileAfterPassCallback AfterPassCallback,
@@ -790,11 +801,19 @@ LLVMRustOptimizeWithNewPassManager(
 
   Optional<PGOOptions> PGOOpt;
   if (PGOGenPath) {
-    assert(!PGOUsePath);
-    PGOOpt = PGOOptions(PGOGenPath, "", "", PGOOptions::IRInstr);
+    assert(!PGOUsePath && !PGOSampleUsePath);
+    PGOOpt = PGOOptions(PGOGenPath, "", "", PGOOptions::IRInstr,
+                        PGOOptions::NoCSAction, DebugInfoForProfiling);
   } else if (PGOUsePath) {
-    assert(!PGOGenPath);
-    PGOOpt = PGOOptions(PGOUsePath, "", "", PGOOptions::IRUse);
+    assert(!PGOSampleUsePath);
+    PGOOpt = PGOOptions(PGOUsePath, "", "", PGOOptions::IRUse,
+                        PGOOptions::NoCSAction, DebugInfoForProfiling);
+  } else if (PGOSampleUsePath) {
+    PGOOpt = PGOOptions(PGOSampleUsePath, "", "", PGOOptions::SampleUse,
+                        PGOOptions::NoCSAction, DebugInfoForProfiling);
+  } else if (DebugInfoForProfiling) {
+    PGOOpt = PGOOptions("", "", "", PGOOptions::NoAction,
+                        PGOOptions::NoCSAction, DebugInfoForProfiling);
   }
 
 #if LLVM_VERSION_GE(12, 0) && !LLVM_VERSION_GE(13,0)
@@ -875,7 +894,11 @@ LLVMRustOptimizeWithNewPassManager(
 #if LLVM_VERSION_GE(11, 0)
       OptimizerLastEPCallbacks.push_back(
         [Options](ModulePassManager &MPM, OptimizationLevel Level) {
+#if LLVM_VERSION_GE(14, 0)
+          MPM.addPass(ModuleMemorySanitizerPass(Options));
+#else
           MPM.addPass(MemorySanitizerPass(Options));
+#endif
           MPM.addPass(createModuleToFunctionPassAdaptor(MemorySanitizerPass(Options)));
         }
       );
@@ -897,7 +920,11 @@ LLVMRustOptimizeWithNewPassManager(
 #if LLVM_VERSION_GE(11, 0)
       OptimizerLastEPCallbacks.push_back(
         [](ModulePassManager &MPM, OptimizationLevel Level) {
+#if LLVM_VERSION_GE(14, 0)
+          MPM.addPass(ModuleThreadSanitizerPass());
+#else
           MPM.addPass(ThreadSanitizerPass());
+#endif
           MPM.addPass(createModuleToFunctionPassAdaptor(ThreadSanitizerPass()));
         }
       );
@@ -989,7 +1016,10 @@ LLVMRustOptimizeWithNewPassManager(
 #endif
   bool NeedThinLTOBufferPasses = UseThinLTOBuffers;
   if (!NoPrepopulatePasses) {
-    if (OptLevel == OptimizationLevel::O0) {
+    // The pre-link pipelines don't support O0 and require using budilO0DefaultPipeline() instead.
+    // At the same time, the LTO pipelines do support O0 and using them is required.
+    bool IsLTO = OptStage == LLVMRustOptStage::ThinLTO || OptStage == LLVMRustOptStage::FatLTO;
+    if (OptLevel == OptimizationLevel::O0 && !IsLTO) {
 #if LLVM_VERSION_GE(12, 0)
       for (const auto &C : PipelineStartEPCallbacks)
         PB.registerPipelineStartEPCallback(C);
@@ -1554,7 +1584,11 @@ extern "C" bool
 LLVMRustPrepareThinLTOResolveWeak(const LLVMRustThinLTOData *Data, LLVMModuleRef M) {
   Module &Mod = *unwrap(M);
   const auto &DefinedGlobals = Data->ModuleToDefinedGVSummaries.lookup(Mod.getModuleIdentifier());
+#if LLVM_VERSION_GE(14, 0)
+  thinLTOFinalizeInModule(Mod, DefinedGlobals, /*PropagateAttrs=*/true);
+#else
   thinLTOResolvePrevailingInModule(Mod, DefinedGlobals);
+#endif
   return true;
 }
 
@@ -1732,7 +1766,7 @@ LLVMRustGetBitcodeSliceFromObjectData(const char *data,
 // Rewrite all `DICompileUnit` pointers to the `DICompileUnit` specified. See
 // the comment in `back/lto.rs` for why this exists.
 extern "C" void
-LLVMRustThinLTOGetDICompileUnit(LLVMModuleRef Mod,
+LLVMRustLTOGetDICompileUnit(LLVMModuleRef Mod,
                                 DICompileUnit **A,
                                 DICompileUnit **B) {
   Module *M = unwrap(Mod);
@@ -1750,7 +1784,7 @@ LLVMRustThinLTOGetDICompileUnit(LLVMModuleRef Mod,
 // Rewrite all `DICompileUnit` pointers to the `DICompileUnit` specified. See
 // the comment in `back/lto.rs` for why this exists.
 extern "C" void
-LLVMRustThinLTOPatchDICompileUnit(LLVMModuleRef Mod, DICompileUnit *Unit) {
+LLVMRustLTOPatchDICompileUnit(LLVMModuleRef Mod, DICompileUnit *Unit) {
   Module *M = unwrap(Mod);
 
   // If the original source module didn't have a `DICompileUnit` then try to

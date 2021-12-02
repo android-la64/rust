@@ -1,23 +1,34 @@
 //! Conversions between [`SyntaxNode`] and [`tt::TokenTree`].
 
-use parser::{FragmentKind, ParseError, TreeSink};
-use rustc_hash::FxHashMap;
+use parser::{ParseError, TreeSink};
+use rustc_hash::{FxHashMap, FxHashSet};
 use syntax::{
     ast::{self, make::tokens::doc_comment},
-    tokenize, AstToken, Parse, SmolStr, SyntaxKind,
+    tokenize, AstToken, Parse, PreorderWithTokens, SmolStr, SyntaxElement, SyntaxKind,
     SyntaxKind::*,
-    SyntaxNode, SyntaxToken, SyntaxTreeBuilder, TextRange, TextSize, Token as RawToken, T,
+    SyntaxNode, SyntaxToken, SyntaxTreeBuilder, TextRange, TextSize, Token as RawToken, WalkEvent,
+    T,
 };
 use tt::buffer::{Cursor, TokenBuffer};
 
-use crate::{subtree_source::SubtreeTokenSource, tt_iter::TtIter};
-use crate::{ExpandError, TokenMap};
+use crate::{
+    subtree_source::SubtreeTokenSource, tt_iter::TtIter, ExpandError, ParserEntryPoint, TokenMap,
+};
 
 /// Convert the syntax node to a `TokenTree` (what macro
 /// will consume).
 pub fn syntax_node_to_token_tree(node: &SyntaxNode) -> (tt::Subtree, TokenMap) {
+    syntax_node_to_token_tree_censored(node, &Default::default())
+}
+
+/// Convert the syntax node to a `TokenTree` (what macro will consume)
+/// with the censored range excluded.
+pub fn syntax_node_to_token_tree_censored(
+    node: &SyntaxNode,
+    censor: &FxHashSet<SyntaxNode>,
+) -> (tt::Subtree, TokenMap) {
     let global_offset = node.text_range().start();
-    let mut c = Convertor::new(node, global_offset);
+    let mut c = Convertor::new(node, global_offset, censor);
     let subtree = convert_tokens(&mut c);
     c.id_alloc.map.shrink_to_fit();
     (subtree, c.id_alloc.map)
@@ -37,7 +48,7 @@ pub fn syntax_node_to_token_tree(node: &SyntaxNode) -> (tt::Subtree, TokenMap) {
 
 pub fn token_tree_to_syntax_node(
     tt: &tt::Subtree,
-    fragment_kind: FragmentKind,
+    entry_point: ParserEntryPoint,
 ) -> Result<(Parse<SyntaxNode>, TokenMap), ExpandError> {
     let buffer = match tt {
         tt::Subtree { delimiter: None, token_trees } => {
@@ -47,7 +58,7 @@ pub fn token_tree_to_syntax_node(
     };
     let mut token_source = SubtreeTokenSource::new(&buffer);
     let mut tree_sink = TtTreeSink::new(buffer.begin());
-    parser::parse_fragment(&mut token_source, &mut tree_sink, fragment_kind);
+    parser::parse(&mut token_source, &mut tree_sink, entry_point);
     if tree_sink.roots.len() != 1 {
         return Err(ExpandError::ConversionError);
     }
@@ -78,7 +89,7 @@ pub fn parse_to_token_tree(text: &str) -> Option<(tt::Subtree, TokenMap)> {
     Some((subtree, conv.id_alloc.map))
 }
 
-/// Split token tree with seperate expr: $($e:expr)SEP*
+/// Split token tree with separate expr: $($e:expr)SEP*
 pub fn parse_exprs_with_sep(tt: &tt::Subtree, sep: char) -> Vec<tt::Subtree> {
     if tt.token_trees.is_empty() {
         return Vec::new();
@@ -88,10 +99,7 @@ pub fn parse_exprs_with_sep(tt: &tt::Subtree, sep: char) -> Vec<tt::Subtree> {
     let mut res = Vec::new();
 
     while iter.peek_n(0).is_some() {
-        let expanded = iter.expect_fragment(FragmentKind::Expr);
-        if expanded.err.is_some() {
-            break;
-        }
+        let expanded = iter.expect_fragment(ParserEntryPoint::Expr);
 
         res.push(match expanded.value {
             None => break,
@@ -141,7 +149,18 @@ fn convert_tokens<C: TokenConvertor>(conv: &mut C) -> tt::Subtree {
         let k: SyntaxKind = token.kind();
         if k == COMMENT {
             if let Some(tokens) = conv.convert_doc_comment(&token) {
-                result.extend(tokens);
+                // FIXME: There has to be a better way to do this
+                // Add the comments token id to the converted doc string
+                let id = conv.id_alloc().alloc(range);
+                result.extend(tokens.into_iter().map(|mut tt| {
+                    if let tt::TokenTree::Subtree(sub) = &mut tt {
+                        if let tt::TokenTree::Leaf(tt::Leaf::Literal(lit)) = &mut sub.token_trees[2]
+                        {
+                            lit.id = id
+                        }
+                    }
+                    tt
+                }));
             }
             continue;
         }
@@ -288,6 +307,7 @@ fn doc_comment_text(comment: &ast::Comment) -> SmolStr {
 }
 
 fn convert_doc_comment(token: &syntax::SyntaxToken) -> Option<Vec<tt::TokenTree>> {
+    cov_mark::hit!(test_meta_doc_comments);
     let comment = ast::Comment::cast(token.clone())?;
     let doc = comment.kind().doc?;
 
@@ -412,8 +432,6 @@ impl<'a> SrcToken for (&'a RawToken, &'a str) {
     }
 }
 
-impl RawConvertor<'_> {}
-
 impl<'a> TokenConvertor for RawConvertor<'a> {
     type Token = (&'a RawToken, &'a str);
 
@@ -443,21 +461,50 @@ impl<'a> TokenConvertor for RawConvertor<'a> {
     }
 }
 
-struct Convertor {
+struct Convertor<'c> {
     id_alloc: TokenIdAlloc,
     current: Option<SyntaxToken>,
+    preorder: PreorderWithTokens,
+    censor: &'c FxHashSet<SyntaxNode>,
     range: TextRange,
     punct_offset: Option<(SyntaxToken, TextSize)>,
 }
 
-impl Convertor {
-    fn new(node: &SyntaxNode, global_offset: TextSize) -> Convertor {
+impl<'c> Convertor<'c> {
+    fn new(
+        node: &SyntaxNode,
+        global_offset: TextSize,
+        censor: &'c FxHashSet<SyntaxNode>,
+    ) -> Convertor<'c> {
+        let range = node.text_range();
+        let mut preorder = node.preorder_with_tokens();
+        let first = Self::next_token(&mut preorder, censor);
         Convertor {
             id_alloc: { TokenIdAlloc { map: TokenMap::default(), global_offset, next_id: 0 } },
-            current: node.first_token(),
-            range: node.text_range(),
+            current: first,
+            preorder,
+            range,
+            censor,
             punct_offset: None,
         }
+    }
+
+    fn next_token(
+        preorder: &mut PreorderWithTokens,
+        censor: &FxHashSet<SyntaxNode>,
+    ) -> Option<SyntaxToken> {
+        while let Some(ev) = preorder.next() {
+            let ele = match ev {
+                WalkEvent::Enter(ele) => ele,
+                _ => continue,
+            };
+            match ele {
+                SyntaxElement::Token(t) => return Some(t),
+                SyntaxElement::Node(node) if censor.contains(&node) => preorder.skip_subtree(),
+                SyntaxElement::Node(_) => (),
+            }
+        }
+        None
     }
 }
 
@@ -491,7 +538,7 @@ impl SrcToken for SynToken {
     }
 }
 
-impl TokenConvertor for Convertor {
+impl TokenConvertor for Convertor<'_> {
     type Token = SynToken;
     fn convert_doc_comment(&self, token: &Self::Token) -> Option<Vec<tt::TokenTree>> {
         convert_doc_comment(token.token())
@@ -512,8 +559,7 @@ impl TokenConvertor for Convertor {
         if !&self.range.contains_range(curr.text_range()) {
             return None;
         }
-        self.current = curr.next_token();
-
+        self.current = Self::next_token(&mut self.preorder, self.censor);
         let token = if curr.kind().is_punct() {
             let range = curr.text_range();
             let range = TextRange::at(range.start(), TextSize::of('.'));
@@ -696,118 +742,5 @@ impl<'a> TreeSink for TtTreeSink<'a> {
 
     fn error(&mut self, error: ParseError) {
         self.inner.error(error, self.text_pos)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::tests::parse_macro;
-    use parser::TokenSource;
-    use syntax::{
-        ast::{make, AstNode},
-        ted,
-    };
-    use test_utils::assert_eq_text;
-
-    #[test]
-    fn convert_tt_token_source() {
-        let expansion = parse_macro(
-            r#"
-            macro_rules! literals {
-                ($i:ident) => {
-                    {
-                        let a = 'c';
-                        let c = 1000;
-                        let f = 12E+99_f64;
-                        let s = "rust1";
-                    }
-                }
-            }
-            "#,
-        )
-        .expand_tt("literals!(foo);");
-        let tts = &[expansion.into()];
-        let buffer = tt::buffer::TokenBuffer::from_tokens(tts);
-        let mut tt_src = SubtreeTokenSource::new(&buffer);
-        let mut tokens = vec![];
-        while tt_src.current().kind != EOF {
-            tokens.push((tt_src.current().kind, tt_src.text()));
-            tt_src.bump();
-        }
-
-        // [${]
-        // [let] [a] [=] ['c'] [;]
-        assert_eq!(tokens[2 + 3].1, "'c'");
-        assert_eq!(tokens[2 + 3].0, CHAR);
-        // [let] [c] [=] [1000] [;]
-        assert_eq!(tokens[2 + 5 + 3].1, "1000");
-        assert_eq!(tokens[2 + 5 + 3].0, INT_NUMBER);
-        // [let] [f] [=] [12E+99_f64] [;]
-        assert_eq!(tokens[2 + 10 + 3].1, "12E+99_f64");
-        assert_eq!(tokens[2 + 10 + 3].0, FLOAT_NUMBER);
-
-        // [let] [s] [=] ["rust1"] [;]
-        assert_eq!(tokens[2 + 15 + 3].1, "\"rust1\"");
-        assert_eq!(tokens[2 + 15 + 3].0, STRING);
-    }
-
-    #[test]
-    fn stmts_token_trees_to_expr_is_err() {
-        let expansion = parse_macro(
-            r#"
-            macro_rules! stmts {
-                () => {
-                    let a = 0;
-                    let b = 0;
-                    let c = 0;
-                    let d = 0;
-                }
-            }
-            "#,
-        )
-        .expand_tt("stmts!();");
-        assert!(token_tree_to_syntax_node(&expansion, FragmentKind::Expr).is_err());
-    }
-
-    #[test]
-    fn test_token_tree_last_child_is_white_space() {
-        let source_file = ast::SourceFile::parse("f!{}").ok().unwrap();
-        let macro_call = source_file.syntax().descendants().find_map(ast::MacroCall::cast).unwrap();
-        let token_tree = macro_call.token_tree().unwrap();
-
-        // Token Tree now is :
-        // TokenTree
-        // - TokenTree
-        //   - T!['{']
-        //   - T!['}']
-
-        let token_tree = token_tree.clone_for_update();
-        ted::append_child(token_tree.syntax(), make::tokens::single_space());
-        let token_tree = token_tree.clone_subtree();
-        // Token Tree now is :
-        // TokenTree
-        // - T!['{']
-        // - T!['}']
-        // - WHITE_SPACE
-
-        let tt = syntax_node_to_token_tree(token_tree.syntax()).0;
-        assert_eq!(tt.delimiter_kind(), Some(tt::DelimiterKind::Brace));
-    }
-
-    #[test]
-    fn test_token_tree_multi_char_punct() {
-        let source_file = ast::SourceFile::parse("struct Foo { a: x::Y }").ok().unwrap();
-        let struct_def = source_file.syntax().descendants().find_map(ast::Struct::cast).unwrap();
-        let tt = syntax_node_to_token_tree(struct_def.syntax()).0;
-        token_tree_to_syntax_node(&tt, FragmentKind::Item).unwrap();
-    }
-
-    #[test]
-    fn test_missing_closing_delim() {
-        let source_file = ast::SourceFile::parse("m!(x").tree();
-        let node = source_file.syntax().descendants().find_map(ast::TokenTree::cast).unwrap();
-        let tt = syntax_node_to_token_tree(node.syntax()).0.to_string();
-        assert_eq_text!(&*tt, "( x");
     }
 }

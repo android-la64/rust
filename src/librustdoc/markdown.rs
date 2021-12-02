@@ -10,7 +10,9 @@ use crate::config::{Options, RenderOptions};
 use crate::doctest::{Collector, TestOptions};
 use crate::html::escape::Escape;
 use crate::html::markdown;
-use crate::html::markdown::{find_testable_code, ErrorCodes, IdMap, Markdown, MarkdownWithToc};
+use crate::html::markdown::{
+    find_testable_code, ErrorCodes, HeadingOffset, IdMap, Markdown, MarkdownWithToc,
+};
 
 /// Separate any lines at the start of the file that begin with `# ` or `%`.
 fn extract_leading_metadata(s: &str) -> (Vec<&str>, &str) {
@@ -70,7 +72,16 @@ crate fn render<P: AsRef<Path>>(
     let text = if !options.markdown_no_toc {
         MarkdownWithToc(text, &mut ids, error_codes, edition, &playground).into_string()
     } else {
-        Markdown(text, &[], &mut ids, error_codes, edition, &playground).into_string()
+        Markdown {
+            content: text,
+            links: &[],
+            ids: &mut ids,
+            error_codes,
+            edition,
+            playground: &playground,
+            heading_offset: HeadingOffset::H1,
+        }
+        .into_string()
     };
 
     let err = write!(
@@ -120,7 +131,7 @@ crate fn test(options: Options) -> Result<(), String> {
         .map_err(|err| format!("{}: {}", options.input.display(), err))?;
     let mut opts = TestOptions::default();
     opts.no_crate_inject = true;
-    opts.display_warnings = options.display_warnings;
+    opts.display_doctest_warnings = options.display_doctest_warnings;
     let mut collector = Collector::new(
         Symbol::intern(&options.input.display().to_string()),
         options.clone(),
@@ -138,7 +149,7 @@ crate fn test(options: Options) -> Result<(), String> {
     crate::doctest::run_tests(
         options.test_args,
         options.nocapture,
-        options.display_warnings,
+        options.display_doctest_warnings,
         collector.tests,
     );
     Ok(())

@@ -6,9 +6,9 @@ use syntax::{
     ast::{
         self,
         edit::{AstNodeEdit, IndentLevel},
-        make, NameOwner,
+        make, HasName,
     },
-    AstNode,
+    AstNode, TextRange,
 };
 
 use crate::{
@@ -44,6 +44,14 @@ use crate::{
 // ```
 pub(crate) fn replace_if_let_with_match(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
     let if_expr: ast::IfExpr = ctx.find_node_at_offset()?;
+    let available_range = TextRange::new(
+        if_expr.syntax().text_range().start(),
+        if_expr.then_branch()?.syntax().text_range().start(),
+    );
+    let cursor_in_range = available_range.contains_range(ctx.frange.range);
+    if !cursor_in_range {
+        return None;
+    }
     let mut else_block = None;
     let if_exprs = successors(Some(if_expr.clone()), |expr| match expr.else_branch()? {
         ast::ElseBranch::IfExpr(expr) => Some(expr),
@@ -79,11 +87,10 @@ pub(crate) fn replace_if_let_with_match(acc: &mut Assists, ctx: &AssistContext) 
         return None;
     }
 
-    let target = if_expr.syntax().text_range();
     acc.add(
         AssistId("replace_if_let_with_match", AssistKind::RefactorRewrite),
         "Replace if let with match",
-        target,
+        available_range,
         move |edit| {
             let match_expr = {
                 let else_arm = make_else_arm(ctx, else_block, &cond_bodies);
@@ -126,7 +133,7 @@ fn make_else_arm(
     if let Some(else_block) = else_block {
         let pattern = if let [(Either::Left(pat), _)] = conditionals {
             ctx.sema
-                .type_of_pat(&pat)
+                .type_of_pat(pat)
                 .and_then(|ty| TryEnum::from_ty(&ctx.sema, &ty.adjusted()))
                 .zip(Some(pat))
         } else {
@@ -134,8 +141,8 @@ fn make_else_arm(
         };
         let pattern = match pattern {
             Some((it, pat)) => {
-                if does_pat_match_variant(&pat, &it.sad_pattern()) {
-                    it.happy_pattern()
+                if does_pat_match_variant(pat, &it.sad_pattern()) {
+                    it.happy_pattern_wildcard()
                 } else {
                     it.sad_pattern()
                 }
@@ -144,7 +151,7 @@ fn make_else_arm(
         };
         make::match_arm(iter::once(pattern), None, unwrap_trivial_block(else_block))
     } else {
-        make::match_arm(iter::once(make::wildcard_pat().into()), None, make::expr_unit().into())
+        make::match_arm(iter::once(make::wildcard_pat().into()), None, make::expr_unit())
     }
 }
 
@@ -203,11 +210,7 @@ pub(crate) fn replace_match_with_if_let(acc: &mut Assists, ctx: &AssistContext) 
                 ast::Expr::BlockExpr(block) => block,
                 expr => make::block_expr(iter::empty(), Some(expr)),
             };
-            let else_expr = match else_expr {
-                ast::Expr::BlockExpr(block) if block.is_empty() => None,
-                ast::Expr::TupleExpr(tuple) if tuple.fields().next().is_none() => None,
-                expr => Some(expr),
-            };
+            let else_expr = if is_empty_expr(&else_expr) { None } else { Some(else_expr) };
             let if_let_expr = make::expr_if(
                 condition,
                 then_block,
@@ -250,14 +253,17 @@ fn pick_pattern_and_expr_order(
 
 fn is_empty_expr(expr: &ast::Expr) -> bool {
     match expr {
-        ast::Expr::BlockExpr(expr) => expr.is_empty(),
+        ast::Expr::BlockExpr(expr) => match expr.stmt_list() {
+            Some(it) => it.statements().next().is_none() && it.tail_expr().is_none(),
+            None => true,
+        },
         ast::Expr::TupleExpr(expr) => expr.fields().next().is_none(),
         _ => false,
     }
 }
 
 fn binds_name(sema: &hir::Semantics<RootDatabase>, pat: &ast::Pat) -> bool {
-    let binds_name_v = |pat| binds_name(&sema, &pat);
+    let binds_name_v = |pat| binds_name(sema, &pat);
     match pat {
         ast::Pat::IdentPat(pat) => !matches!(
             pat.name().and_then(|name| NameClass::classify(sema, &name)),
@@ -323,6 +329,38 @@ impl VariantData {
                 self.foo();
             }
             _ => (),
+        }
+    }
+}
+"#,
+        )
+    }
+
+    #[test]
+    fn test_if_let_with_match_available_range_left() {
+        check_assist_not_applicable(
+            replace_if_let_with_match,
+            r#"
+impl VariantData {
+    pub fn foo(&self) {
+        $0 if let VariantData::Struct(..) = *self {
+            self.foo();
+        }
+    }
+}
+"#,
+        )
+    }
+
+    #[test]
+    fn test_if_let_with_match_available_range_right() {
+        check_assist_not_applicable(
+            replace_if_let_with_match,
+            r#"
+impl VariantData {
+    pub fn foo(&self) {
+        if let VariantData::Struct(..) = *self {$0
+            self.foo();
         }
     }
 }

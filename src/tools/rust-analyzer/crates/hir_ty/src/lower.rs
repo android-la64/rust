@@ -30,6 +30,7 @@ use smallvec::SmallVec;
 use stdx::impl_from;
 use syntax::ast;
 
+use crate::all_super_traits;
 use crate::{
     consteval,
     db::HirDatabase,
@@ -307,17 +308,12 @@ impl<'a> TyLoweringContext<'a> {
                     let mut expander = self.expander.borrow_mut();
                     if expander.is_some() {
                         (Some(expander), false)
+                    } else if let Some(module_id) = self.resolver.module() {
+                        *expander =
+                            Some(Expander::new(self.db.upcast(), macro_call.file_id, module_id));
+                        (Some(expander), true)
                     } else {
-                        if let Some(module_id) = self.resolver.module() {
-                            *expander = Some(Expander::new(
-                                self.db.upcast(),
-                                macro_call.file_id,
-                                module_id,
-                            ));
-                            (Some(expander), true)
-                        } else {
-                            (None, false)
-                        }
+                        (None, false)
                     }
                 };
                 let ty = if let Some(mut expander) = expander {
@@ -373,10 +369,9 @@ impl<'a> TyLoweringContext<'a> {
                 Some((it, None)) => it,
                 _ => return None,
             };
-        if let TypeNs::GenericParam(param_id) = resolution {
-            Some(param_id)
-        } else {
-            None
+        match resolution {
+            TypeNs::GenericParam(param_id) => Some(param_id),
+            _ => None,
         }
     }
 
@@ -387,15 +382,17 @@ impl<'a> TyLoweringContext<'a> {
         res: Option<TypeNs>,
         remaining_segments: PathSegments<'_>,
     ) -> (Ty, Option<TypeNs>) {
-        if remaining_segments.len() == 1 {
-            // resolve unselected assoc types
-            let segment = remaining_segments.first().unwrap();
-            (self.select_associated_type(res, segment), None)
-        } else if remaining_segments.len() > 1 {
-            // FIXME report error (ambiguous associated type)
-            (TyKind::Error.intern(&Interner), None)
-        } else {
-            (ty, res)
+        match remaining_segments.len() {
+            0 => (ty, res),
+            1 => {
+                // resolve unselected assoc types
+                let segment = remaining_segments.first().unwrap();
+                (self.select_associated_type(res, segment), None)
+            }
+            _ => {
+                // FIXME report error (ambiguous associated type)
+                (TyKind::Error.intern(&Interner), None)
+            }
         }
     }
 
@@ -408,52 +405,60 @@ impl<'a> TyLoweringContext<'a> {
     ) -> (Ty, Option<TypeNs>) {
         let ty = match resolution {
             TypeNs::TraitId(trait_) => {
-                let ty = if remaining_segments.len() == 1 {
-                    let trait_ref =
-                        self.lower_trait_ref_from_resolved_path(trait_, resolved_segment, None);
-                    let segment = remaining_segments.first().unwrap();
-                    let found = self
-                        .db
-                        .trait_data(trait_ref.hir_trait_id())
-                        .associated_type_by_name(segment.name);
-                    match found {
-                        Some(associated_ty) => {
-                            // FIXME handle type parameters on the segment
-                            TyKind::Alias(AliasTy::Projection(ProjectionTy {
-                                associated_ty_id: to_assoc_type_id(associated_ty),
-                                substitution: trait_ref.substitution,
-                            }))
-                            .intern(&Interner)
-                        }
-                        None => {
-                            // FIXME: report error (associated type not found)
-                            TyKind::Error.intern(&Interner)
+                let ty = match remaining_segments.len() {
+                    1 => {
+                        let trait_ref =
+                            self.lower_trait_ref_from_resolved_path(trait_, resolved_segment, None);
+                        let segment = remaining_segments.first().unwrap();
+                        let found = self
+                            .db
+                            .trait_data(trait_ref.hir_trait_id())
+                            .associated_type_by_name(segment.name);
+                        match found {
+                            Some(associated_ty) => {
+                                // FIXME handle type parameters on the segment
+                                TyKind::Alias(AliasTy::Projection(ProjectionTy {
+                                    associated_ty_id: to_assoc_type_id(associated_ty),
+                                    substitution: trait_ref.substitution,
+                                }))
+                                .intern(&Interner)
+                            }
+                            None => {
+                                // FIXME: report error (associated type not found)
+                                TyKind::Error.intern(&Interner)
+                            }
                         }
                     }
-                } else if remaining_segments.len() > 1 {
-                    // FIXME report error (ambiguous associated type)
-                    TyKind::Error.intern(&Interner)
-                } else {
-                    let self_ty = Some(
-                        TyKind::BoundVar(BoundVar::new(DebruijnIndex::INNERMOST, 0))
-                            .intern(&Interner),
-                    );
-                    let trait_ref = self.with_shifted_in(DebruijnIndex::ONE, |ctx| {
-                        ctx.lower_trait_ref_from_resolved_path(trait_, resolved_segment, self_ty)
-                    });
-                    let dyn_ty = DynTy {
-                        bounds: crate::make_only_type_binders(
-                            1,
-                            QuantifiedWhereClauses::from_iter(
-                                &Interner,
-                                Some(crate::wrap_empty_binders(WhereClause::Implemented(
-                                    trait_ref,
-                                ))),
+                    0 => {
+                        let self_ty = Some(
+                            TyKind::BoundVar(BoundVar::new(DebruijnIndex::INNERMOST, 0))
+                                .intern(&Interner),
+                        );
+                        let trait_ref = self.with_shifted_in(DebruijnIndex::ONE, |ctx| {
+                            ctx.lower_trait_ref_from_resolved_path(
+                                trait_,
+                                resolved_segment,
+                                self_ty,
+                            )
+                        });
+                        let dyn_ty = DynTy {
+                            bounds: crate::make_only_type_binders(
+                                1,
+                                QuantifiedWhereClauses::from_iter(
+                                    &Interner,
+                                    Some(crate::wrap_empty_binders(WhereClause::Implemented(
+                                        trait_ref,
+                                    ))),
+                                ),
                             ),
-                        ),
-                        lifetime: static_lifetime(),
-                    };
-                    TyKind::Dyn(dyn_ty).intern(&Interner)
+                            lifetime: static_lifetime(),
+                        };
+                        TyKind::Dyn(dyn_ty).intern(&Interner)
+                    }
+                    _ => {
+                        // FIXME report error (ambiguous associated type)
+                        TyKind::Error.intern(&Interner)
+                    }
                 };
                 return (ty, None);
             }
@@ -526,9 +531,10 @@ impl<'a> TyLoweringContext<'a> {
 
     fn select_associated_type(&self, res: Option<TypeNs>, segment: PathSegment<'_>) -> Ty {
         if let Some(res) = res {
-            let ty = associated_type_shorthand_candidates(
+            let ty = named_associated_type_shorthand_candidates(
                 self.db,
                 res,
+                Some(segment.name.clone()),
                 move |name, t, associated_ty| {
                     if name == segment.name {
                         let substs = match self.type_param_mode {
@@ -550,16 +556,16 @@ impl<'a> TyLoweringContext<'a> {
                         // associated_type_shorthand_candidates does not do that
                         let substs = substs.shifted_in_from(&Interner, self.in_binders);
                         // FIXME handle type parameters on the segment
-                        return Some(
+                        Some(
                             TyKind::Alias(AliasTy::Projection(ProjectionTy {
                                 associated_ty_id: to_assoc_type_id(associated_ty),
                                 substitution: substs,
                             }))
                             .intern(&Interner),
-                        );
+                        )
+                    } else {
+                        None
                     }
-
-                    None
                 },
             );
 
@@ -930,6 +936,15 @@ pub fn callable_item_sig(db: &dyn HirDatabase, def: CallableDefId) -> PolyFnSig 
 pub fn associated_type_shorthand_candidates<R>(
     db: &dyn HirDatabase,
     res: TypeNs,
+    cb: impl FnMut(&Name, &TraitRef, TypeAliasId) -> Option<R>,
+) -> Option<R> {
+    named_associated_type_shorthand_candidates(db, res, None, cb)
+}
+
+fn named_associated_type_shorthand_candidates<R>(
+    db: &dyn HirDatabase,
+    res: TypeNs,
+    assoc_name: Option<Name>,
     mut cb: impl FnMut(&Name, &TraitRef, TypeAliasId) -> Option<R>,
 ) -> Option<R> {
     let mut search = |t| {
@@ -954,7 +969,7 @@ pub fn associated_type_shorthand_candidates<R>(
             db.impl_trait(impl_id)?.into_value_and_skipped_binders().0,
         ),
         TypeNs::GenericParam(param_id) => {
-            let predicates = db.generic_predicates_for_param(param_id);
+            let predicates = db.generic_predicates_for_param(param_id, assoc_name);
             let res = predicates.iter().find_map(|pred| match pred.skip_binders().skip_binders() {
                 // FIXME: how to correctly handle higher-ranked bounds here?
                 WhereClause::Implemented(tr) => search(
@@ -1017,32 +1032,75 @@ pub(crate) fn field_types_query(
 pub(crate) fn generic_predicates_for_param_query(
     db: &dyn HirDatabase,
     param_id: TypeParamId,
+    assoc_name: Option<Name>,
 ) -> Arc<[Binders<QuantifiedWhereClause>]> {
     let resolver = param_id.parent.resolver(db.upcast());
     let ctx =
         TyLoweringContext::new(db, &resolver).with_type_param_mode(TypeParamLoweringMode::Variable);
     let generics = generics(db.upcast(), param_id.parent);
-    resolver
+    let mut predicates: Vec<_> = resolver
         .where_predicates_in_scope()
         // we have to filter out all other predicates *first*, before attempting to lower them
         .filter(|pred| match pred {
-            WherePredicate::ForLifetime { target, .. }
-            | WherePredicate::TypeBound { target, .. } => match target {
-                WherePredicateTypeTarget::TypeRef(type_ref) => {
-                    ctx.lower_ty_only_param(type_ref) == Some(param_id)
+            WherePredicate::ForLifetime { target, bound, .. }
+            | WherePredicate::TypeBound { target, bound, .. } => {
+                match target {
+                    WherePredicateTypeTarget::TypeRef(type_ref) => {
+                        if ctx.lower_ty_only_param(type_ref) != Some(param_id) {
+                            return false;
+                        }
+                    }
+                    WherePredicateTypeTarget::TypeParam(local_id) => {
+                        if *local_id != param_id.local_id {
+                            return false;
+                        }
+                    }
+                };
+
+                match &**bound {
+                    TypeBound::ForLifetime(_, path) | TypeBound::Path(path, _) => {
+                        // Only lower the bound if the trait could possibly define the associated
+                        // type we're looking for.
+
+                        let assoc_name = match &assoc_name {
+                            Some(it) => it,
+                            None => return true,
+                        };
+                        let tr = match resolver
+                            .resolve_path_in_type_ns_fully(db.upcast(), path.mod_path())
+                        {
+                            Some(TypeNs::TraitId(tr)) => tr,
+                            _ => return false,
+                        };
+
+                        all_super_traits(db.upcast(), tr).iter().any(|tr| {
+                            db.trait_data(*tr).items.iter().any(|(name, item)| {
+                                matches!(item, AssocItemId::TypeAliasId(_)) && name == assoc_name
+                            })
+                        })
+                    }
+                    TypeBound::Lifetime(_) | TypeBound::Error => false,
                 }
-                WherePredicateTypeTarget::TypeParam(local_id) => *local_id == param_id.local_id,
-            },
+            }
             WherePredicate::Lifetime { .. } => false,
         })
         .flat_map(|pred| ctx.lower_where_predicate(pred, true).map(|p| make_binders(&generics, p)))
-        .collect()
+        .collect();
+
+    let subst = generics.bound_vars_subst(DebruijnIndex::INNERMOST);
+    let explicitly_unsized_tys = ctx.unsized_types.into_inner();
+    let implicitly_sized_predicates =
+        implicitly_sized_clauses(db, param_id.parent, &explicitly_unsized_tys, &subst, &resolver)
+            .map(|p| make_binders(&generics, crate::wrap_empty_binders(p)));
+    predicates.extend(implicitly_sized_predicates);
+    predicates.into()
 }
 
 pub(crate) fn generic_predicates_for_param_recover(
     _db: &dyn HirDatabase,
     _cycle: &[String],
     _param_id: &TypeParamId,
+    _assoc_name: &Option<Name>,
 ) -> Arc<[Binders<QuantifiedWhereClause>]> {
     Arc::new([])
 }
@@ -1419,8 +1477,13 @@ pub(crate) fn value_ty_query(db: &dyn HirDatabase, def: ValueTyDefId) -> Binders
 }
 
 pub(crate) fn impl_self_ty_query(db: &dyn HirDatabase, impl_id: ImplId) -> Binders<Ty> {
+    let impl_loc = impl_id.lookup(db.upcast());
     let impl_data = db.impl_data(impl_id);
     let resolver = impl_id.resolver(db.upcast());
+    let _cx = stdx::panic_context::enter(format!(
+        "impl_self_ty_query({:?} -> {:?} -> {:?})",
+        impl_id, impl_loc, impl_data
+    ));
     let generics = generics(db.upcast(), impl_id.into());
     let ctx =
         TyLoweringContext::new(db, &resolver).with_type_param_mode(TypeParamLoweringMode::Variable);
@@ -1446,8 +1509,13 @@ pub(crate) fn impl_self_ty_recover(
 }
 
 pub(crate) fn impl_trait_query(db: &dyn HirDatabase, impl_id: ImplId) -> Option<Binders<TraitRef>> {
+    let impl_loc = impl_id.lookup(db.upcast());
     let impl_data = db.impl_data(impl_id);
     let resolver = impl_id.resolver(db.upcast());
+    let _cx = stdx::panic_context::enter(format!(
+        "impl_trait_query({:?} -> {:?} -> {:?})",
+        impl_id, impl_loc, impl_data
+    ));
     let ctx =
         TyLoweringContext::new(db, &resolver).with_type_param_mode(TypeParamLoweringMode::Variable);
     let (self_ty, binders) = db.impl_self_ty(impl_id).into_value_and_skipped_binders();

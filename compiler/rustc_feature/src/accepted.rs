@@ -16,7 +16,6 @@ macro_rules! declare_features {
                     since: $ver,
                     issue: to_nonzero($issue),
                     edition: None,
-                    description: concat!($($doc,)*),
                 }
             ),+
         ];
@@ -294,6 +293,10 @@ declare_features! (
     (accepted, const_fn_transmute, "1.56.0", Some(53605), None),
     /// Allows accessing fields of unions inside `const` functions.
     (accepted, const_fn_union, "1.56.0", Some(51909), None),
+    /// Allows macro attributes to observe output of `#[derive]`.
+    (accepted, macro_attributes_in_derive_output, "1.57.0", Some(81119), None),
+    /// Allows panicking during const eval (producing compile-time errors).
+    (accepted, const_panic, "1.57.0", Some(51999), None),
 
     // -------------------------------------------------------------------------
     // feature-group-end: accepted features

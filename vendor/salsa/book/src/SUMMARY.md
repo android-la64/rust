@@ -6,7 +6,7 @@
 - [Common patterns](./common_patterns.md)
   - [Selection](./common_patterns/selection.md)
   - [On-demand (Lazy) inputs](./common_patterns/on_demand_inputs.md)
-- [YouTube videos](./videos.md)
+- [Videos](./videos.md)
 - [Plumbing](./plumbing.md)
   - [Diagram](./plumbing/diagram.md)
   - [Query groups](./plumbing/query_groups.md)
@@ -20,3 +20,4 @@
   - [RFC 0005: Durability](./rfcs/RFC0005-Durability.md)
   - [RFC 0006: Dynamic database](./rfcs/RFC0006-Dynamic-Databases.md)
   - [RFC 0007: Opinionated cancelation](./rfcs/RFC0007-Opinionated-Cancelation.md)
+  - [RFC 0008: Remove garbage collection](./rfcs/RFC0008-Remove-Garbage-Collection.md)

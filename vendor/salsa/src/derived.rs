@@ -7,7 +7,7 @@ use crate::plumbing::QueryFunction;
 use crate::plumbing::QueryStorageMassOps;
 use crate::plumbing::QueryStorageOps;
 use crate::runtime::{FxIndexMap, StampedValue};
-use crate::{CycleError, Database, DatabaseKeyIndex, QueryDb, Revision, Runtime, SweepStrategy};
+use crate::{CycleError, Database, DatabaseKeyIndex, QueryDb, Revision};
 use parking_lot::RwLock;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
@@ -104,7 +104,7 @@ where
         let database_key_index = DatabaseKeyIndex {
             group_index: self.group_index,
             query_index: Q::QUERY_INDEX,
-            key_index: key_index,
+            key_index,
         };
         entry
             .or_insert_with(|| Arc::new(Slot::new(key.clone(), database_key_index)))
@@ -202,13 +202,6 @@ where
     Q: QueryFunction,
     MP: MemoizationPolicy<Q>,
 {
-    fn sweep(&self, runtime: &Runtime, strategy: SweepStrategy) {
-        let map_read = self.slot_map.read();
-        let revision_now = runtime.current_revision();
-        for slot in map_read.values() {
-            slot.sweep(revision_now, strategy);
-        }
-    }
     fn purge(&self) {
         self.lru_list.purge();
         *self.slot_map.write() = Default::default();
@@ -236,11 +229,11 @@ where
         Q::Key: Borrow<S>,
     {
         db.salsa_runtime_mut()
-            .with_incremented_revision(&mut |_new_revision| {
+            .with_incremented_revision(&mut |new_revision| {
                 let map_read = self.slot_map.read();
 
                 if let Some(slot) = map_read.get(key) {
-                    if let Some(durability) = slot.invalidate() {
+                    if let Some(durability) = slot.invalidate(new_revision) {
                         return Some(durability);
                     }
                 }

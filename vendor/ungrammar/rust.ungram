@@ -315,10 +315,15 @@ Stmt =
 
 LetStmt =
   Attr* 'let' Pat (':' Type)?
-  '=' initializer:Expr ';'
+  '=' initializer:Expr
+  LetElse?
+  ';'
+
+LetElse =
+  'else' BlockExpr
 
 ExprStmt =
-  Attr* Expr ';'?
+  Expr ';'?
 
 Expr =
   ArrayExpr
@@ -331,7 +336,6 @@ Expr =
 | CastExpr
 | ClosureExpr
 | ContinueExpr
-| EffectExpr
 | FieldExpr
 | ForExpr
 | IfExpr
@@ -366,7 +370,7 @@ Literal =
 PathExpr =
   Attr* Path
 
-BlockExpr =
+StmtList =
   '{'
     Attr*
     statements:Stmt*
@@ -379,8 +383,8 @@ RefExpr =
 TryExpr =
   Attr* Expr '?'
 
-EffectExpr =
-  Attr* Label? ('try' | 'unsafe' | 'async' | 'const') BlockExpr
+BlockExpr =
+  Attr* Label? ('try' | 'unsafe' | 'async' | 'const') StmtList
 
 PrefixExpr =
   Attr* op:('-' | '!' | '*') Expr
@@ -619,7 +623,7 @@ RecordPat =
 RecordPatFieldList =
   '{'
     fields:(RecordPatField (',' RecordPatField)* ','?)?
-    '..'?
+    RestPat?
   '}'
 
 RecordPatField =
@@ -647,7 +651,7 @@ BoxPat =
   'box' Pat
 
 RestPat =
-  '..'
+  Attr* '..'
 
 MacroPat =
   MacroCall

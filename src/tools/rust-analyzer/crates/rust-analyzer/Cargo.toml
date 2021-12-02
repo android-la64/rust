@@ -20,11 +20,9 @@ path = "src/bin/main.rs"
 anyhow = "1.0.26"
 crossbeam-channel = "0.5.0"
 dissimilar = "1.0.2"
-env_logger = { version = "0.9", default-features = false }
 itertools = "0.10.0"
 jod-thread = "0.1.0"
-log = "0.4.8"
-lsp-types = { version = "0.89.0", features = ["proposed"] }
+lsp-types = { version = "0.90.0", features = ["proposed"] }
 parking_lot = "0.11.0"
 xflags = "0.2.1"
 oorandom = "11.1.2"
@@ -36,8 +34,9 @@ rayon = "1.5"
 mimalloc = { version = "0.1.19", default-features = false, optional = true }
 lsp-server = "0.5.1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.2", default-features = false, features = ["env-filter", "registry"] }
-tracing-tree = { version = "0.1.4" }
+tracing-subscriber = { version = "0.2", default-features = false, features = ["env-filter", "registry", "fmt", "tracing-log"] }
+tracing-log = "0.1.2"
+tracing-tree = { version = "0.1.10" }
 always-assert = "0.1"
 
 stdx = { path = "../stdx", version = "0.0.0" }
@@ -47,7 +46,6 @@ ide_db = { path = "../ide_db", version = "0.0.0" }
 profile = { path = "../profile", version = "0.0.0" }
 project_model = { path = "../project_model", version = "0.0.0" }
 syntax = { path = "../syntax", version = "0.0.0" }
-text_edit = { path = "../text_edit", version = "0.0.0" }
 vfs = { path = "../vfs", version = "0.0.0" }
 vfs-notify = { path = "../vfs-notify", version = "0.0.0" }
 cfg = { path = "../cfg", version = "0.0.0" }
@@ -69,13 +67,12 @@ winapi = "0.3.8"
 jemallocator = { version = "0.4.1", package = "tikv-jemallocator", optional = true }
 
 [dev-dependencies]
-expect-test = "1.1"
+expect-test = "1.2.0-pre.1"
 xshell = "0.1"
 
 test_utils = { path = "../test_utils" }
 sourcegen = { path = "../sourcegen" }
 mbe = { path = "../mbe" }
-tt = { path = "../tt" }
 
 [features]
 jemalloc = ["jemallocator", "profile/jemalloc"]

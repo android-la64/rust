@@ -11,10 +11,7 @@ use crate::runtime::Runtime;
 use crate::runtime::RuntimeId;
 use crate::runtime::StampedValue;
 use crate::Cancelled;
-use crate::{
-    CycleError, Database, DatabaseKeyIndex, DiscardIf, DiscardWhat, Event, EventKind, QueryDb,
-    SweepStrategy,
-};
+use crate::{CycleError, Database, DatabaseKeyIndex, Event, EventKind, QueryDb};
 use log::{debug, info};
 use parking_lot::Mutex;
 use parking_lot::{RawRwLock, RwLock};
@@ -375,7 +372,7 @@ where
                                     durability: err.durability,
                                     changed_at: err.changed_at,
                                 })
-                                .ok_or_else(|| err)
+                                .ok_or(err)
                         })
                     }
 
@@ -392,7 +389,7 @@ where
                                     changed_at: err.changed_at,
                                     durability: err.durability,
                                 })
-                                .ok_or_else(|| err),
+                                .ok_or(err),
                         )
                     }
                 };
@@ -453,7 +450,7 @@ where
     pub(super) fn evict(&self) {
         let mut state = self.state.write();
         if let QueryState::Memoized(memo) = &mut *state {
-            // Similar to GC, evicting a value with an untracked input could
+            // Evicting a value with an untracked input could
             // lead to inconsistencies. Note that we can't check
             // `has_untracked_input` when we add the value to the cache,
             // because inputs can become untracked in the next revision.
@@ -464,78 +461,16 @@ where
         }
     }
 
-    pub(super) fn sweep(&self, revision_now: Revision, strategy: SweepStrategy) {
-        let mut state = self.state.write();
-        match &mut *state {
-            QueryState::NotComputed => (),
-
-            // Leave stuff that is currently being computed -- the
-            // other thread doing that work has unique access to
-            // this slot and we should not interfere.
-            QueryState::InProgress { .. } => {
-                debug!("sweep({:?}): in-progress", self);
-            }
-
-            // Otherwise, drop only value or the whole memo according to the
-            // strategy.
+    pub(super) fn invalidate(&self, new_revision: Revision) -> Option<Durability> {
+        log::debug!("Slot::invalidate(new_revision = {:?})", new_revision);
+        match &mut *self.state.write() {
             QueryState::Memoized(memo) => {
-                debug!(
-                    "sweep({:?}): last verified at {:?}, current revision {:?}",
-                    self, memo.revisions.verified_at, revision_now
-                );
-
-                // Check if this memo read something "untracked"
-                // -- meaning non-deterministic.  In this case, we
-                // can only collect "outdated" data that wasn't
-                // used in the current revision. This is because
-                // if we collected something from the current
-                // revision, we might wind up re-executing the
-                // query later in the revision and getting a
-                // distinct result.
-                let has_untracked_input = memo.revisions.has_untracked_input();
-
-                // Since we don't acquire a query lock in this
-                // method, it *is* possible for the revision to
-                // change while we are executing. However, it is
-                // *not* possible for any memos to have been
-                // written into this table that reflect the new
-                // revision, since we are holding the write lock
-                // when we read `revision_now`.
-                assert!(memo.revisions.verified_at <= revision_now);
-                match strategy.discard_if {
-                    DiscardIf::Never => unreachable!(),
-
-                    // If we are only discarding outdated things,
-                    // and this is not outdated, keep it.
-                    DiscardIf::Outdated if memo.revisions.verified_at == revision_now => (),
-
-                    // As explained on the `has_untracked_input` variable
-                    // definition, if this is a volatile entry, we
-                    // can't discard it unless it is outdated.
-                    DiscardIf::Always
-                        if has_untracked_input && memo.revisions.verified_at == revision_now => {}
-
-                    // Otherwise, we can discard -- discard whatever the user requested.
-                    DiscardIf::Outdated | DiscardIf::Always => match strategy.discard_what {
-                        DiscardWhat::Nothing => unreachable!(),
-                        DiscardWhat::Values => {
-                            memo.value = None;
-                        }
-                        DiscardWhat::Everything => {
-                            *state = QueryState::NotComputed;
-                        }
-                    },
-                }
+                memo.revisions.inputs = MemoInputs::Untracked;
+                memo.revisions.changed_at = new_revision;
+                Some(memo.revisions.durability)
             }
-        }
-    }
-
-    pub(super) fn invalidate(&self) -> Option<Durability> {
-        if let QueryState::Memoized(memo) = &mut *self.state.write() {
-            memo.revisions.inputs = MemoInputs::Untracked;
-            Some(memo.revisions.durability)
-        } else {
-            None
+            QueryState::NotComputed => None,
+            QueryState::InProgress { .. } => unreachable!(),
         }
     }
 
@@ -564,7 +499,7 @@ where
             // entry, that must mean that it was found to be out
             // of date and removed.
             QueryState::NotComputed => {
-                debug!("maybe_changed_since({:?}: no value", self);
+                debug!("maybe_changed_since({:?}): no value", self);
                 return true;
             }
 
@@ -574,7 +509,7 @@ where
             QueryState::InProgress { id, waiting } => {
                 let other_id = *id;
                 debug!(
-                    "maybe_changed_since({:?}: blocking on thread `{:?}`",
+                    "maybe_changed_since({:?}): blocking on thread `{:?}`",
                     self, other_id,
                 );
                 match self.register_with_in_progress_thread(db, runtime, other_id, waiting) {
@@ -596,7 +531,7 @@ where
 
         if memo.revisions.verified_at == revision_now {
             debug!(
-                "maybe_changed_since({:?}: {:?} since up-to-date memo that changed at {:?}",
+                "maybe_changed_since({:?}): {:?} since up-to-date memo that changed at {:?}",
                 self,
                 memo.revisions.changed_at > revision,
                 memo.revisions.changed_at,
@@ -644,11 +579,11 @@ where
                         return match self.read_upgrade(db, revision_now) {
                             Ok(v) => {
                                 debug!(
-                                "maybe_changed_since({:?}: {:?} since (recomputed) value changed at {:?}",
-                                self,
+                                    "maybe_changed_since({:?}: {:?} since (recomputed) value changed at {:?}",
+                                    self,
                                     v.changed_at > revision,
-                                v.changed_at,
-                            );
+                                    v.changed_at,
+                                );
                                 v.changed_at > revision
                             }
                             Err(_) => true,
@@ -741,7 +676,7 @@ where
     ) -> Result<BlockingFuture<WaitResult<Q::Value, DatabaseKeyIndex>>, CycleDetected> {
         let id = runtime.id();
         if other_id == id {
-            return Err(CycleDetected { from: id, to: id });
+            Err(CycleDetected { from: id, to: id })
         } else {
             if !runtime.try_block_on(self.database_key_index, other_id) {
                 return Err(CycleDetected {
@@ -926,7 +861,10 @@ impl MemoRevisions {
         assert!(self.verified_at != revision_now);
         let verified_at = self.verified_at;
 
-        debug!("validate_memoized_value: verified_at={:#?}", self.inputs,);
+        debug!(
+            "validate_memoized_value: verified_at={:?}, revision_now={:?}, inputs={:#?}",
+            verified_at, revision_now, self.inputs
+        );
 
         if self.check_durability(db.salsa_runtime()) {
             return self.mark_value_as_verified(revision_now);
@@ -935,7 +873,7 @@ impl MemoRevisions {
         match &self.inputs {
             // We can't validate values that had untracked inputs; just have to
             // re-execute.
-            MemoInputs::Untracked { .. } => {
+            MemoInputs::Untracked => {
                 return false;
             }
 
@@ -953,9 +891,7 @@ impl MemoRevisions {
             MemoInputs::Tracked { inputs } => {
                 let changed_input = inputs
                     .iter()
-                    .filter(|&&input| db.maybe_changed_since(input, verified_at))
-                    .next();
-
+                    .find(|&&input| db.maybe_changed_since(input, verified_at));
                 if let Some(input) = changed_input {
                     debug!("validate_memoized_value: `{:?}` may have changed", input);
 
@@ -985,10 +921,7 @@ impl MemoRevisions {
     }
 
     fn has_untracked_input(&self) -> bool {
-        match self.inputs {
-            MemoInputs::Untracked => true,
-            _ => false,
-        }
+        matches!(self.inputs, MemoInputs::Untracked)
     }
 }
 

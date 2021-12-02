@@ -37,6 +37,24 @@ fn infer_slice_method() {
 }
 
 #[test]
+fn infer_array_inherent_impl() {
+    check_types(
+        r#"
+        #[lang = "array"]
+        impl<T, const N: usize> [T; N] {
+            fn foo(&self) -> T {
+                loop {}
+            }
+        }
+        fn test(x: &[u8; 0]) {
+            <[_; 0]>::foo(x);
+          //^^^^^^^^^^^^^^^^ u8
+        }
+        "#,
+    );
+}
+
+#[test]
 fn infer_associated_method_struct() {
     check_infer(
         r#"
@@ -1065,22 +1083,22 @@ fn dyn_trait_super_trait_not_in_scope() {
 fn method_resolution_foreign_opaque_type() {
     check_infer(
         r#"
-        extern "C" {
-            type S;
-            fn f() -> &'static S;
-        }
+extern "C" {
+    type S;
+    fn f() -> &'static S;
+}
 
-        impl S {
-            fn foo(&self) -> bool {
-                true
-            }
-        }
+impl S {
+    fn foo(&self) -> bool {
+        true
+    }
+}
 
-        fn test() {
-            let s = unsafe { f() };
-            s.foo();
-        }
-        "#,
+fn test() {
+    let s = unsafe { f() };
+    s.foo();
+}
+"#,
         expect![[r#"
             75..79 'self': &S
             89..109 '{     ...     }': bool
@@ -1088,7 +1106,7 @@ fn method_resolution_foreign_opaque_type() {
             123..167 '{     ...o(); }': ()
             133..134 's': &S
             137..151 'unsafe { f() }': &S
-            144..151 '{ f() }': &S
+            137..151 'unsafe { f() }': &S
             146..147 'f': fn f() -> &S
             146..149 'f()': &S
             157..158 's': &S
@@ -1260,6 +1278,35 @@ fn f() {
 
     S.pub_method();
   //^^^^^^^^^^^^^^ u16
+}
+    "#,
+    );
+}
+
+#[test]
+fn resolve_const_generic_array_methods() {
+    check_types(
+        r#"
+#[lang = "array"]
+impl<T, const N: usize> [T; N] {
+    pub fn map<F, U>(self, f: F) -> [U; N]
+    where
+        F: FnMut(T) -> U,
+    { loop {} }
+}
+
+#[lang = "slice"]
+impl<T> [T] {
+    pub fn map<F, U>(self, f: F) -> &[U]
+    where
+        F: FnMut(T) -> U,
+    { loop {} }
+}
+
+fn f() {
+    let v = [1, 2].map::<_, usize>(|x| -> x * 2);
+    v;
+  //^ [usize; _]
 }
     "#,
     );

@@ -88,7 +88,7 @@
 //! ```
 //!
 //! *Note: The actual definition of [`Write`] uses [`io::Result`], which
-//! is just a synonym for [`Result`]`<T, `[`io::Error`]`>`.*
+//! is just a synonym for <code>[Result]<T, [io::Error]></code>.*
 //!
 //! This method doesn't produce a value, but the write may
 //! fail. It's crucial to handle the error case, and *not* write
@@ -217,13 +217,13 @@
 //! early return of [`Err`] that it provides.
 //!
 //! [`expect`]: Result::expect
-//! [`Write`]: ../../std/io/trait.Write.html
-//! [`write_all`]: ../../std/io/trait.Write.html#method.write_all
-//! [`io::Result`]: ../../std/io/type.Result.html
+//! [`Write`]: ../../std/io/trait.Write.html "io::Write"
+//! [`write_all`]: ../../std/io/trait.Write.html#method.write_all "io::Write::write_all"
+//! [`io::Result`]: ../../std/io/type.Result.html "io::Result"
 //! [`?`]: crate::ops::Try
 //! [`Ok(T)`]: Ok
 //! [`Err(E)`]: Err
-//! [`io::Error`]: ../../std/io/struct.Error.html
+//! [io::Error]: ../../std/io/struct.Error.html "io::Error"
 //!
 //! # Method overview
 //!
@@ -329,8 +329,8 @@
 //!   [`Ok`], or returns the provided default value if the [`Result`] is
 //!   [`Err`]
 //! * [`map_or_else`] applies the provided function to the contained value
-//!   of [`Ok`], or applies the provided fallback function to the contained
-//!   value of [`Err`]
+//!   of [`Ok`], or applies the provided default fallback function to the
+//!   contained value of [`Err`]
 //!
 //! [`map_or`]: Result::map_or
 //! [`map_or_else`]: Result::map_or_else
@@ -498,7 +498,7 @@ use crate::{convert, fmt, hint};
 /// See the [module documentation](self) for details.
 #[derive(Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 #[must_use = "this `Result` may be an `Err` variant, which should be handled"]
-#[rustc_diagnostic_item = "result_type"]
+#[rustc_diagnostic_item = "Result"]
 #[stable(feature = "rust1", since = "1.0.0")]
 pub enum Result<T, E> {
     /// Contains the success value
@@ -795,9 +795,8 @@ impl<T, E> Result<T, E> {
         }
     }
 
-    /// Maps a `Result<T, E>` to `U` by applying a fallback function to a
-    /// contained [`Err`] value, or a default function to a
-    /// contained [`Ok`] value.
+    /// Maps a `Result<T, E>` to `U` by applying fallback function `default` to
+    /// a contained [`Err`] value, or function `f` to a contained [`Ok`] value.
     ///
     /// This function can be used to unpack a successful result
     /// while handling an error.

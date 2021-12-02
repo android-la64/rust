@@ -34,45 +34,48 @@ mod items;
 mod params;
 mod paths;
 mod patterns;
-mod type_args;
-mod type_params;
+mod generic_args;
+mod generic_params;
 mod types;
 
 use crate::{
     parser::{CompletedMarker, Marker, Parser},
     SyntaxKind::{self, *},
-    TokenSet,
+    TokenSet, T,
 };
 
-pub(crate) fn root(p: &mut Parser) {
-    let m = p.start();
-    p.eat(SHEBANG);
-    items::mod_contents(p, false);
-    m.complete(p, SOURCE_FILE);
-}
-
-/// Various pieces of syntax that can be parsed by macros by example
-pub(crate) mod fragments {
+pub(crate) mod entry_points {
     use super::*;
 
-    pub(crate) use super::{
-        expressions::block_expr, paths::type_path as path, patterns::pattern_single, types::type_,
-    };
+    pub(crate) fn source_file(p: &mut Parser) {
+        let m = p.start();
+        p.eat(SHEBANG);
+        items::mod_contents(p, false);
+        m.complete(p, SOURCE_FILE);
+    }
+
+    pub(crate) use expressions::block_expr;
+
+    pub(crate) use paths::type_path as path;
+
+    pub(crate) use patterns::pattern_single as pattern;
+
+    pub(crate) use types::type_;
 
     pub(crate) fn expr(p: &mut Parser) {
-        let _ = expressions::expr_with_attrs(p);
+        let _ = expressions::expr(p);
     }
 
     pub(crate) fn stmt(p: &mut Parser) {
-        expressions::stmt(p, expressions::StmtWithSemi::No, true)
+        expressions::stmt(p, expressions::StmtWithSemi::No, true);
     }
 
     pub(crate) fn stmt_optional_semi(p: &mut Parser) {
-        expressions::stmt(p, expressions::StmtWithSemi::Optional, false)
+        expressions::stmt(p, expressions::StmtWithSemi::Optional, false);
     }
 
-    pub(crate) fn opt_visibility(p: &mut Parser) {
-        let _ = super::opt_visibility(p);
+    pub(crate) fn visibility(p: &mut Parser) {
+        let _ = opt_visibility(p);
     }
 
     // Parse a meta item , which excluded [], e.g : #[ MetaItem ]
@@ -81,7 +84,7 @@ pub(crate) mod fragments {
     }
 
     pub(crate) fn item(p: &mut Parser) {
-        items::item_or_macro(p, true)
+        items::item_or_macro(p, true);
     }
 
     pub(crate) fn macro_items(p: &mut Parser) {
@@ -106,7 +109,7 @@ pub(crate) mod fragments {
     }
 
     pub(crate) fn attr(p: &mut Parser) {
-        attributes::outer_attrs(p)
+        attributes::outer_attrs(p);
     }
 }
 
@@ -125,8 +128,7 @@ pub(crate) fn reparser(
         EXTERN_ITEM_LIST => items::extern_item_list,
         TOKEN_TREE if first_child? == T!['{'] => items::token_tree,
         ASSOC_ITEM_LIST => match parent? {
-            IMPL => items::assoc_item_list,
-            TRAIT => items::assoc_item_list,
+            IMPL | TRAIT => items::assoc_item_list,
             _ => return None,
         },
         ITEM_LIST => items::item_list,
@@ -163,22 +165,16 @@ fn opt_visibility(p: &mut Parser) -> bool {
                     // struct B(pub (super::A));
                     // struct B(pub (crate::A,));
                     T![crate] | T![self] | T![super] | T![ident] if p.nth(2) != T![:] => {
-                        p.bump_any();
-                        let path_m = p.start();
-                        let path_segment_m = p.start();
-                        let name_ref_m = p.start();
-                        p.bump_any();
-                        name_ref_m.complete(p, NAME_REF);
-                        path_segment_m.complete(p, PATH_SEGMENT);
-                        path_m.complete(p, PATH);
+                        p.bump(T!['(']);
+                        paths::use_path(p);
                         p.expect(T![')']);
                     }
                     // test crate_visibility_in
                     // pub(in super::A) struct S;
                     // pub(in crate) struct S;
                     T![in] => {
-                        p.bump_any();
-                        p.bump_any();
+                        p.bump(T!['(']);
+                        p.bump(T![in]);
                         paths::use_path(p);
                         p.expect(T![')']);
                     }
@@ -186,22 +182,25 @@ fn opt_visibility(p: &mut Parser) -> bool {
                 }
             }
             m.complete(p, VISIBILITY);
+            true
         }
         // test crate_keyword_vis
         // crate fn main() { }
         // struct S { crate field: u32 }
         // struct T(crate u32);
-        //
-        // test crate_keyword_path
-        // fn foo() { crate::foo(); }
-        T![crate] if !p.nth_at(1, T![::]) => {
+        T![crate] => {
+            if p.nth_at(1, T![::]) {
+                // test crate_keyword_path
+                // fn foo() { crate::foo(); }
+                return false;
+            }
             let m = p.start();
             p.bump(T![crate]);
             m.complete(p, VISIBILITY);
+            true
         }
-        _ => return false,
+        _ => false,
     }
-    true
 }
 
 fn opt_rename(p: &mut Parser) {
@@ -246,7 +245,7 @@ fn name_r(p: &mut Parser, recovery: TokenSet) {
 }
 
 fn name(p: &mut Parser) {
-    name_r(p, TokenSet::EMPTY)
+    name_r(p, TokenSet::EMPTY);
 }
 
 fn name_ref(p: &mut Parser) {

@@ -201,6 +201,7 @@ where
                 Html(_) => { /* no newlines if HTML continues */ }
                 Text(_) => { /* no newlines for inline HTML */ }
                 End(_) => { /* no newlines if ending a previous opened tag */ }
+                SoftBreak => { /* SoftBreak will result in a newline later */ }
                 _ => {
                     // Ensure next Markdown block is rendered properly
                     // by adding a newline after an HTML element.
@@ -318,11 +319,15 @@ where
             }
             End(ref tag) => match tag {
                 Image(_, ref uri, ref title) | Link(_, ref uri, ref title) => {
-                    if title.is_empty() {
-                        write!(formatter, "]({})", uri)
+                    if uri.contains(' ') {
+                        write!(formatter, "](<{uri}>", uri = uri)?;
                     } else {
-                        write!(formatter, "]({uri} \"{title}\")", uri = uri, title = title)
+                        write!(formatter, "]({uri}", uri = uri)?;
                     }
+                    if !title.is_empty() {
+                        write!(formatter, " \"{title}\"", title = title)?;
+                    }
+                    formatter.write_str(")")
                 }
                 Emphasis => formatter.write_char('*'),
                 Strong => formatter.write_str("**"),

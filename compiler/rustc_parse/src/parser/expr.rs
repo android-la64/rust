@@ -1,9 +1,12 @@
 use super::pat::{RecoverColon, RecoverComma, PARAM_EXPECTED};
 use super::ty::{AllowPlus, RecoverQPath, RecoverReturnSign};
-use super::{AttrWrapper, BlockMode, ForceCollect, Parser, PathStyle, Restrictions, TokenType};
+use super::{
+    AttrWrapper, BlockMode, ClosureSpans, ForceCollect, Parser, PathStyle, Restrictions, TokenType,
+};
 use super::{SemiColonMode, SeqSep, TokenExpectType, TrailingToken};
 use crate::maybe_recover_from_interpolated_ty_qpath;
 
+use ast::token::DelimToken;
 use rustc_ast::ptr::P;
 use rustc_ast::token::{self, Token, TokenKind};
 use rustc_ast::tokenstream::Spacing;
@@ -91,6 +94,8 @@ impl<'a> Parser<'a> {
     /// Parses an expression.
     #[inline]
     pub fn parse_expr(&mut self) -> PResult<'a, P<Expr>> {
+        self.current_closure.take();
+
         self.parse_expr_res(Restrictions::empty(), None)
     }
 
@@ -516,6 +521,26 @@ impl<'a> Parser<'a> {
             token::BinOp(token::And) | token::AndAnd => {
                 make_it!(this, attrs, |this, _| this.parse_borrow_expr(lo))
             }
+            token::BinOp(token::Plus) if this.look_ahead(1, |tok| tok.is_numeric_lit()) => {
+                let mut err = this.struct_span_err(lo, "leading `+` is not supported");
+                err.span_label(lo, "unexpected `+`");
+
+                // a block on the LHS might have been intended to be an expression instead
+                if let Some(sp) = this.sess.ambiguous_block_expr_parse.borrow().get(&lo) {
+                    this.sess.expr_parentheses_needed(&mut err, *sp);
+                } else {
+                    err.span_suggestion_verbose(
+                        lo,
+                        "try removing the `+`",
+                        "".to_string(),
+                        Applicability::MachineApplicable,
+                    );
+                }
+                err.emit();
+
+                this.bump();
+                this.parse_prefix_expr(None)
+            } // `+expr`
             token::Ident(..) if this.token.is_keyword(kw::Box) => {
                 make_it!(this, attrs, |this, _| this.parse_box_expr(lo))
             }
@@ -882,6 +907,12 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn look_ahead_type_ascription_as_field(&mut self) -> bool {
+        self.look_ahead(1, |t| t.is_ident())
+            && self.look_ahead(2, |t| t == &token::Colon)
+            && self.look_ahead(3, |t| t.can_begin_expr())
+    }
+
     fn parse_dot_suffix_expr(&mut self, lo: Span, base: P<Expr>) -> PResult<'a, P<Expr>> {
         match self.token.uninterpolate().kind {
             token::Ident(..) => self.parse_dot_suffix(base, lo),
@@ -1031,10 +1062,75 @@ impl<'a> Parser<'a> {
 
     /// Parse a function call expression, `expr(...)`.
     fn parse_fn_call_expr(&mut self, lo: Span, fun: P<Expr>) -> P<Expr> {
-        let seq = self.parse_paren_expr_seq().map(|args| {
+        let snapshot = if self.token.kind == token::OpenDelim(token::Paren)
+            && self.look_ahead_type_ascription_as_field()
+        {
+            Some((self.clone(), fun.kind.clone()))
+        } else {
+            None
+        };
+        let open_paren = self.token.span;
+
+        let mut seq = self.parse_paren_expr_seq().map(|args| {
             self.mk_expr(lo.to(self.prev_token.span), self.mk_call(fun, args), AttrVec::new())
         });
+        if let Some(expr) =
+            self.maybe_recover_struct_lit_bad_delims(lo, open_paren, &mut seq, snapshot)
+        {
+            return expr;
+        }
         self.recover_seq_parse_error(token::Paren, lo, seq)
+    }
+
+    /// If we encounter a parser state that looks like the user has written a `struct` literal with
+    /// parentheses instead of braces, recover the parser state and provide suggestions.
+    #[instrument(skip(self, seq, snapshot), level = "trace")]
+    fn maybe_recover_struct_lit_bad_delims(
+        &mut self,
+        lo: Span,
+        open_paren: Span,
+        seq: &mut PResult<'a, P<Expr>>,
+        snapshot: Option<(Self, ExprKind)>,
+    ) -> Option<P<Expr>> {
+        match (seq.as_mut(), snapshot) {
+            (Err(ref mut err), Some((mut snapshot, ExprKind::Path(None, path)))) => {
+                let name = pprust::path_to_string(&path);
+                snapshot.bump(); // `(`
+                match snapshot.parse_struct_fields(path, false, token::Paren) {
+                    Ok((fields, ..)) if snapshot.eat(&token::CloseDelim(token::Paren)) => {
+                        // We have are certain we have `Enum::Foo(a: 3, b: 4)`, suggest
+                        // `Enum::Foo { a: 3, b: 4 }` or `Enum::Foo(3, 4)`.
+                        *self = snapshot;
+                        let close_paren = self.prev_token.span;
+                        let span = lo.to(self.prev_token.span);
+                        err.cancel();
+                        self.struct_span_err(
+                            span,
+                            "invalid `struct` delimiters or `fn` call arguments",
+                        )
+                        .multipart_suggestion(
+                            &format!("if `{}` is a struct, use braces as delimiters", name),
+                            vec![(open_paren, " { ".to_string()), (close_paren, " }".to_string())],
+                            Applicability::MaybeIncorrect,
+                        )
+                        .multipart_suggestion(
+                            &format!("if `{}` is a function, use the arguments directly", name),
+                            fields
+                                .into_iter()
+                                .map(|field| (field.span.until(field.expr.span), String::new()))
+                                .collect(),
+                            Applicability::MaybeIncorrect,
+                        )
+                        .emit();
+                        return Some(self.mk_expr_err(span));
+                    }
+                    Ok(_) => {}
+                    Err(mut err) => err.emit(),
+                }
+            }
+            _ => {}
+        }
+        None
     }
 
     /// Parse an indexing expression `expr[...]`.
@@ -1109,7 +1205,7 @@ impl<'a> Parser<'a> {
         } else if self.check(&token::BinOp(token::Or)) || self.check(&token::OrOr) {
             self.parse_closure_expr(attrs)
         } else if self.check(&token::OpenDelim(token::Bracket)) {
-            self.parse_array_or_repeat_expr(attrs)
+            self.parse_array_or_repeat_expr(attrs, token::Bracket)
         } else if self.check_path() {
             self.parse_path_start_expr(attrs)
         } else if self.check_keyword(kw::Move) || self.check_keyword(kw::Static) {
@@ -1227,11 +1323,15 @@ impl<'a> Parser<'a> {
         self.maybe_recover_from_bad_qpath(expr, true)
     }
 
-    fn parse_array_or_repeat_expr(&mut self, attrs: AttrVec) -> PResult<'a, P<Expr>> {
+    fn parse_array_or_repeat_expr(
+        &mut self,
+        attrs: AttrVec,
+        close_delim: token::DelimToken,
+    ) -> PResult<'a, P<Expr>> {
         let lo = self.token.span;
-        self.bump(); // `[`
+        self.bump(); // `[` or other open delim
 
-        let close = &token::CloseDelim(token::Bracket);
+        let close = &token::CloseDelim(close_delim);
         let kind = if self.eat(close) {
             // Empty vector
             ExprKind::Array(Vec::new())
@@ -1468,6 +1568,20 @@ impl<'a> Parser<'a> {
 
     pub(super) fn parse_lit(&mut self) -> PResult<'a, Lit> {
         self.parse_opt_lit().ok_or_else(|| {
+            if let token::Interpolated(inner) = &self.token.kind {
+                let expr = match inner.as_ref() {
+                    token::NtExpr(expr) => Some(expr),
+                    token::NtLiteral(expr) => Some(expr),
+                    _ => None,
+                };
+                if let Some(expr) = expr {
+                    if matches!(expr.kind, ExprKind::Err) {
+                        self.diagnostic()
+                            .delay_span_bug(self.token.span, &"invalid interpolated expression");
+                        return self.diagnostic().struct_dummy();
+                    }
+                }
+            }
             let msg = format!("unexpected token: {}", super::token_descr(&self.token));
             self.struct_span_err(self.token.span, &msg)
         })
@@ -1657,6 +1771,46 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn is_array_like_block(&mut self) -> bool {
+        self.look_ahead(1, |t| matches!(t.kind, TokenKind::Ident(..) | TokenKind::Literal(_)))
+            && self.look_ahead(2, |t| t == &token::Comma)
+            && self.look_ahead(3, |t| t.can_begin_expr())
+    }
+
+    /// Emits a suggestion if it looks like the user meant an array but
+    /// accidentally used braces, causing the code to be interpreted as a block
+    /// expression.
+    fn maybe_suggest_brackets_instead_of_braces(
+        &mut self,
+        lo: Span,
+        attrs: AttrVec,
+    ) -> Option<P<Expr>> {
+        let mut snapshot = self.clone();
+        match snapshot.parse_array_or_repeat_expr(attrs, token::Brace) {
+            Ok(arr) => {
+                let hi = snapshot.prev_token.span;
+                self.struct_span_err(
+                    arr.span,
+                    "this code is interpreted as a block expression, not an array",
+                )
+                .multipart_suggestion(
+                    "try using [] instead of {}",
+                    vec![(lo, "[".to_owned()), (hi, "]".to_owned())],
+                    Applicability::MaybeIncorrect,
+                )
+                .note("to define an array, one would use square brackets instead of curly braces")
+                .emit();
+
+                *self = snapshot;
+                Some(self.mk_expr_err(arr.span))
+            }
+            Err(mut e) => {
+                e.cancel();
+                None
+            }
+        }
+    }
+
     /// Parses a block or unsafe block.
     pub(super) fn parse_block_expr(
         &mut self,
@@ -1665,6 +1819,12 @@ impl<'a> Parser<'a> {
         blk_mode: BlockCheckMode,
         mut attrs: AttrVec,
     ) -> PResult<'a, P<Expr>> {
+        if self.is_array_like_block() {
+            if let Some(arr) = self.maybe_suggest_brackets_instead_of_braces(lo, attrs.clone()) {
+                return Ok(arr);
+            }
+        }
+
         if let Some(label) = opt_label {
             self.sess.gated_spans.gate(sym::label_break_value, label.ident.span);
         }
@@ -1716,7 +1876,7 @@ impl<'a> Parser<'a> {
         let capture_clause = self.parse_capture_clause()?;
         let decl = self.parse_fn_block_decl()?;
         let decl_hi = self.prev_token.span;
-        let body = match decl.output {
+        let mut body = match decl.output {
             FnRetTy::Default(_) => {
                 let restrictions = self.restrictions - Restrictions::STMT_EXPR;
                 self.parse_expr_res(restrictions, None)?
@@ -1733,11 +1893,28 @@ impl<'a> Parser<'a> {
             self.sess.gated_spans.gate(sym::async_closure, span);
         }
 
-        Ok(self.mk_expr(
+        if self.token.kind == TokenKind::Semi && self.token_cursor.frame.delim == DelimToken::Paren
+        {
+            // It is likely that the closure body is a block but where the
+            // braces have been removed. We will recover and eat the next
+            // statements later in the parsing process.
+            body = self.mk_expr_err(body.span);
+        }
+
+        let body_span = body.span;
+
+        let closure = self.mk_expr(
             lo.to(body.span),
             ExprKind::Closure(capture_clause, asyncness, movability, decl, body, lo.to(decl_hi)),
             attrs,
-        ))
+        );
+
+        // Disable recovery for closure body
+        let spans =
+            ClosureSpans { whole_closure: closure.span, closing_pipe: decl_hi, body: body_span };
+        self.current_closure = Some(spans);
+
+        Ok(closure)
     }
 
     /// Parses an optional `move` prefix to a closure-like construct.
@@ -1930,7 +2107,7 @@ impl<'a> Parser<'a> {
         self.check_for_for_in_in_typo(self.prev_token.span);
         let expr = self.parse_expr_res(Restrictions::NO_STRUCT_LITERAL, None)?;
 
-        let pat = self.recover_parens_around_for_head(pat, &expr, begin_paren);
+        let pat = self.recover_parens_around_for_head(pat, begin_paren);
 
         let (iattrs, loop_block) = self.parse_inner_attrs_and_block()?;
         attrs.extend(iattrs);
@@ -2145,7 +2322,24 @@ impl<'a> Parser<'a> {
                 None
             };
             let arrow_span = this.token.span;
-            this.expect(&token::FatArrow)?;
+            if let Err(mut err) = this.expect(&token::FatArrow) {
+                // We might have a `=>` -> `=` or `->` typo (issue #89396).
+                if TokenKind::FatArrow
+                    .similar_tokens()
+                    .map_or(false, |similar_tokens| similar_tokens.contains(&this.token.kind))
+                {
+                    err.span_suggestion(
+                        this.token.span,
+                        "try using a fat arrow here",
+                        "=>".to_string(),
+                        Applicability::MaybeIncorrect,
+                    );
+                    err.emit();
+                    this.bump();
+                } else {
+                    return Err(err);
+                }
+            }
             let arm_start_span = this.token.span;
 
             let expr = this.parse_expr_res(Restrictions::STMT_EXPR, None).map_err(|mut err| {
@@ -2332,14 +2526,12 @@ impl<'a> Parser<'a> {
             .emit();
     }
 
-    /// Precondition: already parsed the '{'.
-    pub(super) fn parse_struct_expr(
+    pub(super) fn parse_struct_fields(
         &mut self,
-        qself: Option<ast::QSelf>,
         pth: ast::Path,
-        attrs: AttrVec,
         recover: bool,
-    ) -> PResult<'a, P<Expr>> {
+        close_delim: token::DelimToken,
+    ) -> PResult<'a, (Vec<ExprField>, ast::StructRest, bool)> {
         let mut fields = Vec::new();
         let mut base = ast::StructRest::None;
         let mut recover_async = false;
@@ -2351,11 +2543,11 @@ impl<'a> Parser<'a> {
             e.note("for more on editions, read https://doc.rust-lang.org/edition-guide");
         };
 
-        while self.token != token::CloseDelim(token::Brace) {
+        while self.token != token::CloseDelim(close_delim) {
             if self.eat(&token::DotDot) {
                 let exp_span = self.prev_token.span;
                 // We permit `.. }` on the left-hand side of a destructuring assignment.
-                if self.check(&token::CloseDelim(token::Brace)) {
+                if self.check(&token::CloseDelim(close_delim)) {
                     self.sess.gated_spans.gate(sym::destructuring_assignment, self.prev_token.span);
                     base = ast::StructRest::Rest(self.prev_token.span.shrink_to_hi());
                     break;
@@ -2396,7 +2588,7 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            match self.expect_one_of(&[token::Comma], &[token::CloseDelim(token::Brace)]) {
+            match self.expect_one_of(&[token::Comma], &[token::CloseDelim(close_delim)]) {
                 Ok(_) => {
                     if let Some(f) = parsed_field.or(recovery_field) {
                         // Only include the field if there's no parse error for the field name.
@@ -2427,8 +2619,21 @@ impl<'a> Parser<'a> {
                 }
             }
         }
+        Ok((fields, base, recover_async))
+    }
 
-        let span = pth.span.to(self.token.span);
+    /// Precondition: already parsed the '{'.
+    pub(super) fn parse_struct_expr(
+        &mut self,
+        qself: Option<ast::QSelf>,
+        pth: ast::Path,
+        attrs: AttrVec,
+        recover: bool,
+    ) -> PResult<'a, P<Expr>> {
+        let lo = pth.span;
+        let (fields, base, recover_async) =
+            self.parse_struct_fields(pth.clone(), recover, token::Brace)?;
+        let span = lo.to(self.token.span);
         self.expect(&token::CloseDelim(token::Brace))?;
         let expr = if recover_async {
             ExprKind::Err

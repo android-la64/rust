@@ -3,10 +3,11 @@
 #![feature(array_windows)]
 #![feature(crate_visibility_modifier)]
 #![feature(if_let_guard)]
-#![cfg_attr(bootstrap, feature(bindings_after_at))]
 #![feature(box_patterns)]
-#![cfg_attr(bootstrap, allow(incomplete_features))] // if_let_guard
 #![recursion_limit = "256"]
+
+#[macro_use]
+extern crate tracing;
 
 use rustc_ast as ast;
 use rustc_ast::token::{self, Nonterminal, Token, TokenKind};
@@ -133,7 +134,7 @@ fn maybe_source_file_to_parser(
     let mut parser = stream_to_parser(sess, stream, None);
     parser.unclosed_delims = unclosed_delims;
     if parser.token == token::Eof {
-        parser.token.span = Span::new(end_pos, end_pos, parser.token.span.ctxt());
+        parser.token.span = Span::new(end_pos, end_pos, parser.token.span.ctxt(), None);
     }
 
     Ok(parser)

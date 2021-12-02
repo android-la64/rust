@@ -15,6 +15,7 @@ mod object_safety;
 mod on_unimplemented;
 mod project;
 pub mod query;
+pub(crate) mod relationships;
 mod select;
 mod specialize;
 mod structural_match;
@@ -63,7 +64,9 @@ pub use self::specialize::specialization_graph::FutureCompatOverlapErrorKind;
 pub use self::specialize::{specialization_graph, translate_substs, OverlapError};
 pub use self::structural_match::search_for_structural_match_violation;
 pub use self::structural_match::NonStructuralMatchTy;
-pub use self::util::{elaborate_predicates, elaborate_trait_ref, elaborate_trait_refs};
+pub use self::util::{
+    elaborate_obligations, elaborate_predicates, elaborate_trait_ref, elaborate_trait_refs,
+};
 pub use self::util::{expand_trait_aliases, TraitAliasExpander};
 pub use self::util::{
     get_vtable_index_of_object_method, impl_item_is_final, predicate_for_trait_def, upcast_choices,
@@ -139,7 +142,8 @@ pub fn type_known_to_meet_bound_modulo_regions<'a, 'tcx>(
         infcx.tcx.def_path_str(def_id)
     );
 
-    let trait_ref = ty::TraitRef { def_id, substs: infcx.tcx.mk_substs_trait(ty, &[]) };
+    let trait_ref =
+        ty::Binder::dummy(ty::TraitRef { def_id, substs: infcx.tcx.mk_substs_trait(ty, &[]) });
     let obligation = Obligation {
         param_env,
         cause: ObligationCause::misc(span, hir::CRATE_HIR_ID),
@@ -621,8 +625,33 @@ fn dump_vtable_entries<'tcx>(
     trait_ref: ty::PolyTraitRef<'tcx>,
     entries: &[VtblEntry<'tcx>],
 ) {
-    let msg = format!("Vtable entries for `{}`: {:#?}", trait_ref, entries);
+    let msg = format!("vtable entries for `{}`: {:#?}", trait_ref, entries);
     tcx.sess.struct_span_err(sp, &msg).emit();
+}
+
+fn own_existential_vtable_entries<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    trait_ref: ty::PolyExistentialTraitRef<'tcx>,
+) -> &'tcx [DefId] {
+    let trait_methods = tcx
+        .associated_items(trait_ref.def_id())
+        .in_definition_order()
+        .filter(|item| item.kind == ty::AssocKind::Fn);
+    // Now list each method's DefId (for within its trait).
+    let own_entries = trait_methods.filter_map(move |trait_method| {
+        debug!("own_existential_vtable_entry: trait_method={:?}", trait_method);
+        let def_id = trait_method.def_id;
+
+        // Some methods cannot be called on an object; skip those.
+        if !is_vtable_safe_method(tcx, trait_ref.def_id(), &trait_method) {
+            debug!("own_existential_vtable_entry: not vtable safe");
+            return None;
+        }
+
+        Some(def_id)
+    });
+
+    tcx.arena.alloc_from_iter(own_entries.into_iter())
 }
 
 /// Given a trait `trait_ref`, iterates the vtable entries
@@ -641,21 +670,15 @@ fn vtable_entries<'tcx>(
                 entries.extend(COMMON_VTABLE_ENTRIES);
             }
             VtblSegment::TraitOwnEntries { trait_ref, emit_vptr } => {
-                let trait_methods = tcx
-                    .associated_items(trait_ref.def_id())
-                    .in_definition_order()
-                    .filter(|item| item.kind == ty::AssocKind::Fn);
-                // Now list each method's DefId and InternalSubsts (for within its trait).
-                // If the method can never be called from this object, produce `Vacant`.
-                let own_entries = trait_methods.map(move |trait_method| {
-                    debug!("vtable_entries: trait_method={:?}", trait_method);
-                    let def_id = trait_method.def_id;
+                let existential_trait_ref = trait_ref
+                    .map_bound(|trait_ref| ty::ExistentialTraitRef::erase_self_ty(tcx, trait_ref));
 
-                    // Some methods cannot be called on an object; skip those.
-                    if !is_vtable_safe_method(tcx, trait_ref.def_id(), &trait_method) {
-                        debug!("vtable_entries: not vtable safe");
-                        return VtblEntry::Vacant;
-                    }
+                // Lookup the shape of vtable for the trait.
+                let own_existential_entries =
+                    tcx.own_existential_vtable_entries(existential_trait_ref);
+
+                let own_entries = own_existential_entries.iter().copied().map(|def_id| {
+                    debug!("vtable_entries: trait_method={:?}", def_id);
 
                     // The method may have some early-bound lifetimes; add regions for those.
                     let substs = trait_ref.map_bound(|trait_ref| {
@@ -804,19 +827,20 @@ pub fn provide(providers: &mut ty::query::Providers) {
         specialization_graph_of: specialize::specialization_graph_provider,
         specializes: specialize::specializes,
         codegen_fulfill_obligation: codegen::codegen_fulfill_obligation,
+        own_existential_vtable_entries,
         vtable_entries,
         vtable_trait_upcasting_coercion_new_vptr_slot,
         subst_and_check_impossible_predicates,
-        mir_abstract_const: |tcx, def_id| {
+        thir_abstract_const: |tcx, def_id| {
             let def_id = def_id.expect_local();
             if let Some(def) = ty::WithOptConstParam::try_lookup(def_id, tcx) {
-                tcx.mir_abstract_const_of_const_arg(def)
+                tcx.thir_abstract_const_of_const_arg(def)
             } else {
-                const_evaluatable::mir_abstract_const(tcx, ty::WithOptConstParam::unknown(def_id))
+                const_evaluatable::thir_abstract_const(tcx, ty::WithOptConstParam::unknown(def_id))
             }
         },
-        mir_abstract_const_of_const_arg: |tcx, (did, param_did)| {
-            const_evaluatable::mir_abstract_const(
+        thir_abstract_const_of_const_arg: |tcx, (did, param_did)| {
+            const_evaluatable::thir_abstract_const(
                 tcx,
                 ty::WithOptConstParam { did, const_param_did: Some(param_did) },
             )

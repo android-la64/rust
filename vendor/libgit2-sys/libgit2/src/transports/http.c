@@ -104,6 +104,11 @@ static int apply_url_credentials(
 	const char *username,
 	const char *password)
 {
+	GIT_ASSERT_ARG(username);
+
+	if (!password)
+		password = "";
+
 	if (allowed_types & GIT_CREDENTIAL_USERPASS_PLAINTEXT)
 		return git_credential_userpass_plaintext_new(cred, username, password);
 
@@ -138,8 +143,7 @@ static int handle_auth(
 	/* Start with URL-specified credentials, if there were any. */
 	if ((allowed_credtypes & GIT_CREDENTIAL_USERPASS_PLAINTEXT) &&
 	    !server->url_cred_presented &&
-	    server->url.username &&
-	    server->url.password) {
+	    server->url.username) {
 		error = apply_url_credentials(&server->cred, allowed_credtypes, server->url.username, server->url.password);
 		server->url_cred_presented = 1;
 
@@ -158,7 +162,7 @@ static int handle_auth(
 
 	if (error > 0) {
 		git_error_set(GIT_ERROR_HTTP, "%s authentication required but no callback set", server_type);
-		error = -1;
+		error = GIT_EAUTH;
 	}
 
 	if (!error)
@@ -175,7 +179,7 @@ GIT_INLINE(int) handle_remote_auth(
 
 	if (response->server_auth_credtypes == 0) {
 		git_error_set(GIT_ERROR_HTTP, "server requires authentication that we do not support");
-		return -1;
+		return GIT_EAUTH;
 	}
 
 	/* Otherwise, prompt for credentials. */
@@ -197,7 +201,7 @@ GIT_INLINE(int) handle_proxy_auth(
 
 	if (response->proxy_auth_credtypes == 0) {
 		git_error_set(GIT_ERROR_HTTP, "proxy requires authentication that we do not support");
-		return -1;
+		return GIT_EAUTH;
 	}
 
 	/* Otherwise, prompt for credentials. */
@@ -255,7 +259,7 @@ static int handle_response(
 	} else if (response->status == GIT_HTTP_STATUS_UNAUTHORIZED ||
 	           response->status == GIT_HTTP_STATUS_PROXY_AUTHENTICATION_REQUIRED) {
 		git_error_set(GIT_ERROR_HTTP, "unexpected authentication failure");
-		return -1;
+		return GIT_EAUTH;
 	}
 
 	if (response->status != GIT_HTTP_STATUS_OK) {
@@ -286,7 +290,6 @@ static int lookup_proxy(
 {
 	const char *proxy;
 	git_remote *remote;
-	bool use_ssl;
 	char *config = NULL;
 	int error = 0;
 
@@ -300,9 +303,8 @@ static int lookup_proxy(
 
 	case GIT_PROXY_AUTO:
 		remote = transport->owner->owner;
-		use_ssl = !strcmp(transport->server.url.scheme, "https");
 
-		error = git_remote__get_http_proxy(remote, use_ssl, &config);
+		error = git_remote__http_proxy(&config, remote, &transport->server.url);
 
 		if (error || !config)
 			goto done;
@@ -412,7 +414,7 @@ static int http_stream_read(
 
 	if (stream->state == HTTP_STATE_SENDING_REQUEST) {
 		git_error_set(GIT_ERROR_HTTP, "too many redirects or authentication replays");
-		error = -1;
+		error = GIT_ERROR; /* not GIT_EAUTH, because the exact cause is unclear */
 		goto done;
 	}
 
@@ -550,7 +552,7 @@ static int http_stream_write(
 	if (stream->state == HTTP_STATE_NONE) {
 		git_error_set(GIT_ERROR_HTTP,
 		              "too many redirects or authentication replays");
-		error = -1;
+		error = GIT_ERROR; /* not GIT_EAUTH because the exact cause is unclear */
 		goto done;
 	}
 

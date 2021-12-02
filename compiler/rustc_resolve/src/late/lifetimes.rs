@@ -522,8 +522,7 @@ fn item_for(tcx: TyCtxt<'_>, local_def_id: LocalDefId) -> LocalDefId {
         _ => {}
     }
     let item = {
-        let hir = tcx.hir();
-        let mut parent_iter = hir.parent_iter(hir_id);
+        let mut parent_iter = tcx.hir().parent_iter(hir_id);
         loop {
             let node = parent_iter.next().map(|n| n.1);
             match node {
@@ -1652,7 +1651,11 @@ fn extract_labels(ctxt: &mut LifetimeContext<'_, '_>, body: &hir::Body<'_>) {
     }
 
     fn expression_label(ex: &hir::Expr<'_>) -> Option<Ident> {
-        if let hir::ExprKind::Loop(_, Some(label), ..) = ex.kind { Some(label.ident) } else { None }
+        match ex.kind {
+            hir::ExprKind::Loop(_, Some(label), ..) => Some(label.ident),
+            hir::ExprKind::Block(_, Some(label)) => Some(label.ident),
+            _ => None,
+        }
     }
 
     fn check_if_label_shadows_lifetime(tcx: TyCtxt<'_>, mut scope: ScopeRef<'_>, label: Ident) {
@@ -2024,7 +2027,7 @@ impl<'a, 'tcx> LifetimeContext<'a, 'tcx> {
         // ensure that we issue lints in a repeatable order
         def_ids.sort_by_cached_key(|&def_id| self.tcx.def_path_hash(def_id));
 
-        for def_id in def_ids {
+        'lifetimes: for def_id in def_ids {
             debug!("check_uses_for_lifetimes_defined_by_scope: def_id = {:?}", def_id);
 
             let lifetimeuseset = self.lifetime_uses.remove(&def_id);
@@ -2066,6 +2069,27 @@ impl<'a, 'tcx> LifetimeContext<'a, 'tcx> {
                                     .any(|attr| attr.has_name(sym::automatically_derived))
                                 {
                                     continue;
+                                }
+
+                                // opaque types generated when desugaring an async function can have a single
+                                // use lifetime even if it is explicitly denied (Issue #77175)
+                                if let hir::Node::Item(hir::Item {
+                                    kind: hir::ItemKind::OpaqueTy(ref opaque),
+                                    ..
+                                }) = self.tcx.hir().get(parent_hir_id)
+                                {
+                                    if opaque.origin != hir::OpaqueTyOrigin::AsyncFn {
+                                        continue 'lifetimes;
+                                    }
+                                    // We want to do this only if the liftime identifier is already defined
+                                    // in the async function that generated this. Otherwise it could be
+                                    // an opaque type defined by the developer and we still want this
+                                    // lint to fail compilation
+                                    for p in opaque.generics.params {
+                                        if defined_by.contains_key(&p.name) {
+                                            continue 'lifetimes;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -2716,6 +2740,7 @@ impl<'a, 'tcx> LifetimeContext<'a, 'tcx> {
         for input in inputs {
             gather.visit_ty(input);
         }
+        trace!(?gather.anon_count);
         let late_bound_vars = self.map.late_bound_vars.entry(hir_id).or_default();
         let named_late_bound_vars = late_bound_vars.len() as u32;
         late_bound_vars.extend(
@@ -3004,6 +3029,7 @@ impl<'a, 'tcx> LifetimeContext<'a, 'tcx> {
                 NestedVisitorMap::None
             }
 
+            #[instrument(skip(self), level = "trace")]
             fn visit_ty(&mut self, ty: &hir::Ty<'_>) {
                 // If we enter a `BareFn`, then we enter a *new* binding scope
                 if let hir::TyKind::BareFn(_) = ty.kind {
@@ -3024,6 +3050,7 @@ impl<'a, 'tcx> LifetimeContext<'a, 'tcx> {
                 intravisit::walk_generic_args(self, path_span, generic_args)
             }
 
+            #[instrument(skip(self), level = "trace")]
             fn visit_lifetime(&mut self, lifetime_ref: &hir::Lifetime) {
                 if lifetime_ref.is_elided() {
                     self.anon_count += 1;

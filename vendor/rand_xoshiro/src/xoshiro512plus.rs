@@ -22,7 +22,7 @@ use crate::Seed512;
 /// The algorithm used here is translated from [the `xoshiro512plus.c`
 /// reference source code](http://xoshiro.di.unimi.it/xoshiro512plus.c) by
 /// David Blackman and Sebastiano Vigna.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature="serde1", derive(Serialize, Deserialize))]
 pub struct Xoshiro512Plus {
     s: [u64; 8],
@@ -88,7 +88,9 @@ impl SeedableRng for Xoshiro512Plus {
 impl RngCore for Xoshiro512Plus {
     #[inline]
     fn next_u32(&mut self) -> u32 {
-        self.next_u64() as u32
+        // The lowest bits have some linear dependencies, so we use the
+        // upper bits instead.
+        (self.next_u64() >> 32) as u32
     }
 
     #[inline]

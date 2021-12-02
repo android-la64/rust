@@ -1,5 +1,6 @@
 use clippy_utils::consts::{constant_simple, Constant};
 use clippy_utils::diagnostics::{span_lint, span_lint_and_help, span_lint_and_sugg, span_lint_and_then};
+use clippy_utils::higher;
 use clippy_utils::source::snippet;
 use clippy_utils::ty::match_type;
 use clippy_utils::{
@@ -7,7 +8,7 @@ use clippy_utils::{
     paths, SpanlessEq,
 };
 use if_chain::if_chain;
-use rustc_ast::ast::{Crate as AstCrate, ItemKind, LitKind, ModKind, NodeId};
+use rustc_ast::ast::{Crate, ItemKind, LitKind, ModKind, NodeId};
 use rustc_ast::visit::FnKind;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_errors::Applicability;
@@ -17,8 +18,8 @@ use rustc_hir::def_id::DefId;
 use rustc_hir::hir_id::CRATE_HIR_ID;
 use rustc_hir::intravisit::{NestedVisitorMap, Visitor};
 use rustc_hir::{
-    BinOpKind, Block, Crate, Expr, ExprKind, HirId, Item, Local, MatchSource, MutTy, Mutability, Node, Path, Stmt,
-    StmtKind, Ty, TyKind, UnOp,
+    BinOpKind, Block, Expr, ExprKind, HirId, Item, Local, MutTy, Mutability, Node, Path, Stmt, StmtKind, Ty, TyKind,
+    UnOp,
 };
 use rustc_lint::{EarlyContext, EarlyLintPass, LateContext, LateLintPass, LintContext};
 use rustc_middle::hir::map::Map;
@@ -241,7 +242,7 @@ declare_clippy_lint! {
     ///
     /// Good:
     /// ```rust,ignore
-    /// utils::is_type_diagnostic_item(cx, ty, sym::vec_type)
+    /// utils::is_type_diagnostic_item(cx, ty, sym::Vec)
     /// ```
     pub MATCH_TYPE_ON_DIAGNOSTIC_ITEM,
     internal,
@@ -316,7 +317,7 @@ declare_clippy_lint! {
 declare_lint_pass!(ClippyLintsInternal => [CLIPPY_LINTS_INTERNAL]);
 
 impl EarlyLintPass for ClippyLintsInternal {
-    fn check_crate(&mut self, cx: &EarlyContext<'_>, krate: &AstCrate) {
+    fn check_crate(&mut self, cx: &EarlyContext<'_>, krate: &Crate) {
         if let Some(utils) = krate.items.iter().find(|item| item.ident.name.as_str() == "utils") {
             if let ItemKind::Mod(_, ModKind::Loaded(ref items, ..)) = utils.kind {
                 if let Some(paths) = items.iter().find(|item| item.ident.name.as_str() == "paths") {
@@ -411,7 +412,7 @@ impl<'tcx> LateLintPass<'tcx> for LintWithoutLintPass {
         }
     }
 
-    fn check_crate_post(&mut self, cx: &LateContext<'tcx>, _: &'tcx Crate<'_>) {
+    fn check_crate_post(&mut self, cx: &LateContext<'tcx>) {
         if is_lint_allowed(cx, LINT_WITHOUT_LINT_PASS, CRATE_HIR_ID) {
             return;
         }
@@ -503,10 +504,10 @@ impl<'tcx> LateLintPass<'tcx> for CompilerLintFunctions {
         }
 
         if_chain! {
-            if let ExprKind::MethodCall(path, _, args, _) = expr.kind;
+            if let ExprKind::MethodCall(path, _, [self_arg, ..], _) = &expr.kind;
             let fn_name = path.ident;
             if let Some(sugg) = self.map.get(&*fn_name.as_str());
-            let ty = cx.typeck_results().expr_ty(&args[0]).peel_refs();
+            let ty = cx.typeck_results().expr_ty(self_arg).peel_refs();
             if match_type(cx, ty, &paths::EARLY_CONTEXT)
                 || match_type(cx, ty, &paths::LATE_CONTEXT);
             then {
@@ -560,9 +561,7 @@ declare_lint_pass!(ProduceIce => [PRODUCE_ICE]);
 
 impl EarlyLintPass for ProduceIce {
     fn check_fn(&mut self, _: &EarlyContext<'_>, fn_kind: FnKind<'_>, _: Span, _: NodeId) {
-        if is_trigger_fn(fn_kind) {
-            panic!("Would you like some help with that?");
-        }
+        assert!(!is_trigger_fn(fn_kind), "Would you like some help with that?");
     }
 }
 
@@ -893,7 +892,7 @@ impl<'tcx> LateLintPass<'tcx> for InvalidPaths {
                 }).collect();
             if !check_path(cx, &path[..]);
             then {
-                span_lint(cx, CLIPPY_LINTS_INTERNAL, item.span, "invalid path");
+                span_lint(cx, INVALID_PATHS, item.span, "invalid path");
             }
         }
     }
@@ -908,7 +907,7 @@ pub struct InterningDefinedSymbol {
 impl_lint_pass!(InterningDefinedSymbol => [INTERNING_DEFINED_SYMBOL, UNNECESSARY_SYMBOL_STR]);
 
 impl<'tcx> LateLintPass<'tcx> for InterningDefinedSymbol {
-    fn check_crate(&mut self, cx: &LateContext<'_>, _: &Crate<'_>) {
+    fn check_crate(&mut self, cx: &LateContext<'_>) {
         if !self.symbol_map.is_empty() {
             return;
         }
@@ -1106,16 +1105,10 @@ impl<'tcx> LateLintPass<'tcx> for IfChainStyle {
     }
 
     fn check_expr(&mut self, cx: &LateContext<'tcx>, expr: &'tcx hir::Expr<'_>) {
-        let (cond, then, els) = match expr.kind {
-            ExprKind::If(cond, then, els) => (Some(cond), then, els.is_some()),
-            ExprKind::Match(
-                _,
-                [arm, ..],
-                MatchSource::IfLetDesugar {
-                    contains_else_clause: els,
-                },
-            ) => (None, arm.body, els),
-            _ => return,
+        let (cond, then, els) = if let Some(higher::IfOrIfLet { cond, r#else, then }) = higher::IfOrIfLet::hir(expr) {
+            (cond, then, r#else.is_some())
+        } else {
+            return;
         };
         let then_block = match then.kind {
             ExprKind::Block(block, _) => block,
@@ -1131,7 +1124,6 @@ impl<'tcx> LateLintPass<'tcx> for IfChainStyle {
         };
         // check for `if a && b;`
         if_chain! {
-            if let Some(cond) = cond;
             if let ExprKind::Binary(op, _, _) = cond.kind;
             if op.node == BinOpKind::And;
             if cx.sess().source_map().is_multiline(cond.span);
@@ -1166,9 +1158,7 @@ fn check_nested_if_chains(
         _ => return,
     };
     if_chain! {
-        if matches!(tail.kind,
-            ExprKind::If(_, _, None)
-            | ExprKind::Match(.., MatchSource::IfLetDesugar { contains_else_clause: false }));
+        if let Some(higher::IfOrIfLet { r#else: None, .. }) = higher::IfOrIfLet::hir(tail);
         let sm = cx.sess().source_map();
         if head
             .iter()
@@ -1232,5 +1222,10 @@ fn if_chain_local_span(cx: &LateContext<'_>, local: &Local<'_>, if_chain_span: S
     let sm = cx.sess().source_map();
     let span = sm.span_extend_to_prev_str(span, "let", false);
     let span = sm.span_extend_to_next_char(span, ';', false);
-    Span::new(span.lo() - BytePos(3), span.hi() + BytePos(1), span.ctxt())
+    Span::new(
+        span.lo() - BytePos(3),
+        span.hi() + BytePos(1),
+        span.ctxt(),
+        span.parent(),
+    )
 }

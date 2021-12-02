@@ -9,17 +9,20 @@
 //! at the index that the match starts at and its tree parent is
 //! resolved to the search element definition, we get a reference.
 
+use std::iter;
+
+use either::Either;
 use hir::{PathResolution, Semantics};
 use ide_db::{
     base_db::FileId,
     defs::{Definition, NameClass, NameRefClass},
-    search::{ReferenceAccess, SearchScope, UsageSearchResult},
+    search::{ReferenceCategory, SearchScope, UsageSearchResult},
     RootDatabase,
 };
 use rustc_hash::FxHashMap;
 use syntax::{
     algo::find_node_at_offset,
-    ast::{self, NameOwner},
+    ast::{self, HasName},
     match_ast, AstNode, SyntaxNode, TextRange, TextSize, T,
 };
 
@@ -28,13 +31,13 @@ use crate::{display::TryToNav, FilePosition, NavigationTarget};
 #[derive(Debug, Clone)]
 pub struct ReferenceSearchResult {
     pub declaration: Option<Declaration>,
-    pub references: FxHashMap<FileId, Vec<(TextRange, Option<ReferenceAccess>)>>,
+    pub references: FxHashMap<FileId, Vec<(TextRange, Option<ReferenceCategory>)>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Declaration {
     pub nav: NavigationTarget,
-    pub access: Option<ReferenceAccess>,
+    pub is_mut: bool,
 }
 
 // Feature: Find All References
@@ -52,102 +55,109 @@ pub(crate) fn find_all_refs(
     sema: &Semantics<RootDatabase>,
     position: FilePosition,
     search_scope: Option<SearchScope>,
-) -> Option<ReferenceSearchResult> {
+) -> Option<Vec<ReferenceSearchResult>> {
     let _p = profile::span("find_all_refs");
     let syntax = sema.parse(position.file_id).syntax().clone();
 
     let mut is_literal_search = false;
-    let def = if let Some(name) = name_for_constructor_search(&syntax, position) {
-        is_literal_search = true;
-        match NameClass::classify(sema, &name)? {
-            NameClass::Definition(it) | NameClass::ConstReference(it) => it,
-            NameClass::PatFieldShorthand { local_def: _, field_ref } => {
-                Definition::Field(field_ref)
-            }
+    let defs = match name_for_constructor_search(&syntax, position) {
+        Some(name) => {
+            is_literal_search = true;
+            let def = match NameClass::classify(sema, &name)? {
+                NameClass::Definition(it) | NameClass::ConstReference(it) => it,
+                NameClass::PatFieldShorthand { local_def: _, field_ref } => {
+                    Definition::Field(field_ref)
+                }
+            };
+            Either::Left(iter::once(def))
         }
-    } else {
-        find_def(sema, &syntax, position.offset)?
+        None => Either::Right(find_defs(sema, &syntax, position.offset)),
     };
 
-    let mut usages = def.usages(sema).set_scope(search_scope).include_self_refs().all();
-    let declaration = match def {
-        Definition::ModuleDef(hir::ModuleDef::Module(module)) => {
-            Some(NavigationTarget::from_module_to_decl(sema.db, module))
-        }
-        def => def.try_to_nav(sema.db),
-    }
-    .map(|nav| {
-        let decl_range = nav.focus_or_full_range();
-        Declaration { nav, access: decl_access(&def, &syntax, decl_range) }
-    });
-    if is_literal_search {
-        retain_adt_literal_usages(&mut usages, def, sema);
-    }
+    Some(
+        defs.into_iter()
+            .map(|def| {
+                let mut usages =
+                    def.usages(sema).set_scope(search_scope.clone()).include_self_refs().all();
+                let declaration = match def {
+                    Definition::ModuleDef(hir::ModuleDef::Module(module)) => {
+                        Some(NavigationTarget::from_module_to_decl(sema.db, module))
+                    }
+                    def => def.try_to_nav(sema.db),
+                }
+                .map(|nav| {
+                    let decl_range = nav.focus_or_full_range();
+                    Declaration {
+                        is_mut: decl_mutability(&def, sema.parse(nav.file_id).syntax(), decl_range),
+                        nav,
+                    }
+                });
+                if is_literal_search {
+                    retain_adt_literal_usages(&mut usages, def, sema);
+                }
 
-    let references = usages
-        .into_iter()
-        .map(|(file_id, refs)| {
-            (file_id, refs.into_iter().map(|file_ref| (file_ref.range, file_ref.access)).collect())
-        })
-        .collect();
+                let references = usages
+                    .into_iter()
+                    .map(|(file_id, refs)| {
+                        (
+                            file_id,
+                            refs.into_iter()
+                                .map(|file_ref| (file_ref.range, file_ref.category))
+                                .collect(),
+                        )
+                    })
+                    .collect();
 
-    Some(ReferenceSearchResult { declaration, references })
+                ReferenceSearchResult { declaration, references }
+            })
+            .collect(),
+    )
 }
 
-pub(crate) fn find_def(
-    sema: &Semantics<RootDatabase>,
+pub(crate) fn find_defs<'a>(
+    sema: &'a Semantics<RootDatabase>,
     syntax: &SyntaxNode,
     offset: TextSize,
-) -> Option<Definition> {
-    let def = match sema.find_node_at_offset_with_descend(syntax, offset)? {
-        ast::NameLike::NameRef(name_ref) => match NameRefClass::classify(sema, &name_ref)? {
-            NameRefClass::Definition(def) => def,
-            NameRefClass::FieldShorthand { local_ref, field_ref: _ } => {
-                Definition::Local(local_ref)
-            }
-        },
-        ast::NameLike::Name(name) => match NameClass::classify(sema, &name)? {
-            NameClass::Definition(it) | NameClass::ConstReference(it) => it,
-            NameClass::PatFieldShorthand { local_def, field_ref: _ } => {
-                Definition::Local(local_def)
-            }
-        },
-        ast::NameLike::Lifetime(lifetime) => NameRefClass::classify_lifetime(sema, &lifetime)
-            .and_then(|class| match class {
-                NameRefClass::Definition(it) => Some(it),
-                _ => None,
-            })
-            .or_else(|| {
-                NameClass::classify_lifetime(sema, &lifetime).and_then(|class| match class {
-                    NameClass::Definition(it) => Some(it),
+) -> impl Iterator<Item = Definition> + 'a {
+    sema.find_nodes_at_offset_with_descend(syntax, offset).filter_map(move |node| {
+        Some(match node {
+            ast::NameLike::NameRef(name_ref) => match NameRefClass::classify(sema, &name_ref)? {
+                NameRefClass::Definition(def) => def,
+                NameRefClass::FieldShorthand { local_ref, field_ref: _ } => {
+                    Definition::Local(local_ref)
+                }
+            },
+            ast::NameLike::Name(name) => match NameClass::classify(sema, &name)? {
+                NameClass::Definition(it) | NameClass::ConstReference(it) => it,
+                NameClass::PatFieldShorthand { local_def, field_ref: _ } => {
+                    Definition::Local(local_def)
+                }
+            },
+            ast::NameLike::Lifetime(lifetime) => NameRefClass::classify_lifetime(sema, &lifetime)
+                .and_then(|class| match class {
+                    NameRefClass::Definition(it) => Some(it),
                     _ => None,
                 })
-            })?,
-    };
-    Some(def)
+                .or_else(|| {
+                    NameClass::classify_lifetime(sema, &lifetime).and_then(NameClass::defined)
+                })?,
+        })
+    })
 }
 
-pub(crate) fn decl_access(
-    def: &Definition,
-    syntax: &SyntaxNode,
-    range: TextRange,
-) -> Option<ReferenceAccess> {
+pub(crate) fn decl_mutability(def: &Definition, syntax: &SyntaxNode, range: TextRange) -> bool {
     match def {
         Definition::Local(_) | Definition::Field(_) => {}
-        _ => return None,
+        _ => return false,
     };
 
-    let stmt = find_node_at_offset::<ast::LetStmt>(syntax, range.start())?;
-    if stmt.initializer().is_some() {
-        let pat = stmt.pat()?;
-        if let ast::Pat::IdentPat(it) = pat {
-            if it.mut_token().is_some() {
-                return Some(ReferenceAccess::Write);
-            }
-        }
+    match find_node_at_offset::<ast::LetStmt>(syntax, range.start()) {
+        Some(stmt) if stmt.initializer().is_some() => match stmt.pat() {
+            Some(ast::Pat::IdentPat(it)) => it.mut_token().is_some(),
+            _ => false,
+        },
+        _ => false,
     }
-
-    None
 }
 
 /// Filter out all non-literal usages for adt-defs
@@ -265,7 +275,7 @@ fn is_lit_name_ref(name_ref: &ast::NameRef) -> bool {
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, Expect};
-    use ide_db::base_db::FileId;
+    use ide_db::{base_db::FileId, search::ReferenceCategory};
     use stdx::format_to;
 
     use crate::{fixture, SearchScope};
@@ -612,6 +622,7 @@ impl Foo {
             expect![[r#"
                 f Function FileId(0) 27..43 30..31
 
+                (no references)
             "#]],
         );
     }
@@ -629,6 +640,7 @@ enum Foo {
             expect![[r#"
                 B Variant FileId(0) 22..23 22..23
 
+                (no references)
             "#]],
         );
     }
@@ -646,6 +658,7 @@ enum Foo {
             expect![[r#"
                 field Field FileId(0) 26..35 26..31
 
+                (no references)
             "#]],
         );
     }
@@ -747,6 +760,7 @@ use self$0;
             expect![[r#"
                 Module FileId(0) 0..10
 
+                (no references)
             "#]],
         );
     }
@@ -1068,21 +1082,29 @@ impl Foo {
         let refs = analysis.find_all_refs(pos, search_scope).unwrap().unwrap();
 
         let mut actual = String::new();
-        if let Some(decl) = refs.declaration {
-            format_to!(actual, "{}", decl.nav.debug_render());
-            if let Some(access) = decl.access {
-                format_to!(actual, " {:?}", access)
-            }
+        for refs in refs {
             actual += "\n\n";
-        }
 
-        for (file_id, references) in refs.references {
-            for (range, access) in references {
-                format_to!(actual, "{:?} {:?}", file_id, range);
-                if let Some(access) = access {
-                    format_to!(actual, " {:?}", access);
+            if let Some(decl) = refs.declaration {
+                format_to!(actual, "{}", decl.nav.debug_render());
+                if decl.is_mut {
+                    format_to!(actual, " {:?}", ReferenceCategory::Write)
                 }
-                actual += "\n";
+                actual += "\n\n";
+            }
+
+            for (file_id, references) in &refs.references {
+                for (range, access) in references {
+                    format_to!(actual, "{:?} {:?}", file_id, range);
+                    if let Some(access) = access {
+                        format_to!(actual, " {:?}", access);
+                    }
+                    actual += "\n";
+                }
+            }
+
+            if refs.references.is_empty() {
+                actual += "(no references)\n";
             }
         }
         expect.assert_eq(actual.trim_start())
@@ -1442,5 +1464,58 @@ m$0!();
                 FileId(0) 64..65
             "#]],
         );
+    }
+
+    #[test]
+    fn multi_def() {
+        check(
+            r#"
+macro_rules! m {
+    ($name:ident) => {
+        mod module {
+            pub fn $name() {}
+        }
+
+        pub fn $name() {}
+    }
+}
+
+m!(func$0);
+
+fn f() {
+    func();
+    module::func();
+}
+            "#,
+            expect![[r#"
+                func Function FileId(0) 137..146 140..144
+
+                FileId(0) 161..165
+
+
+                func Function FileId(0) 137..146 140..144
+
+                FileId(0) 181..185
+            "#]],
+        )
+    }
+
+    #[test]
+    fn attr_expanded() {
+        check(
+            r#"
+//- proc_macros: identity
+
+#[proc_macros::identity]
+fn func$0() {
+    func();
+}
+"#,
+            expect![[r#"
+                func Function FileId(0) 26..51 29..33
+
+                FileId(0) 42..46
+            "#]],
+        )
     }
 }

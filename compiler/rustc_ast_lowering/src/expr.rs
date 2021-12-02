@@ -55,7 +55,6 @@ impl<'hir> LoweringContext<'_, 'hir> {
                         0,
                         ParenthesizedGenericArgs::Err,
                         ImplTraitContext::disallowed(),
-                        None,
                     ));
                     let args = self.lower_exprs(args);
                     hir::ExprKind::MethodCall(
@@ -101,10 +100,13 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 ExprKind::If(ref cond, ref then, ref else_opt) => {
                     self.lower_expr_if(cond, then, else_opt.as_deref())
                 }
-                ExprKind::While(ref cond, ref body, opt_label) => self
-                    .with_loop_scope(e.id, |this| {
-                        this.lower_expr_while_in_loop_scope(e.span, cond, body, opt_label)
-                    }),
+                ExprKind::While(ref cond, ref body, opt_label) => {
+                    self.with_loop_scope(e.id, |this| {
+                        let span =
+                            this.mark_span_with_reason(DesugaringKind::WhileLoop, e.span, None);
+                        this.lower_expr_while_in_loop_scope(span, cond, body, opt_label)
+                    })
+                }
                 ExprKind::Loop(ref body, opt_label) => self.with_loop_scope(e.id, |this| {
                     hir::ExprKind::Loop(
                         this.lower_block(body, false),
@@ -328,7 +330,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
         let mut generic_args = vec![];
         for (idx, arg) in args.into_iter().enumerate() {
             if legacy_args_idx.contains(&idx) {
-                let parent_def_id = self.current_hir_id_owner.0;
+                let parent_def_id = self.current_hir_id_owner;
                 let node_id = self.resolver.next_node_id();
 
                 // Add a definition for the in-band const def.
@@ -422,7 +424,9 @@ impl<'hir> LoweringContext<'_, 'hir> {
         let if_kind = hir::ExprKind::If(new_cond, self.arena.alloc(then), Some(else_expr));
         let if_expr = self.expr(span, if_kind, ThinVec::new());
         let block = self.block_expr(self.arena.alloc(if_expr));
-        hir::ExprKind::Loop(block, opt_label, hir::LoopSource::While, span.with_hi(cond.span.hi()))
+        let span = self.lower_span(span.with_hi(cond.span.hi()));
+        let opt_label = self.lower_label(opt_label);
+        hir::ExprKind::Loop(block, opt_label, hir::LoopSource::While, span)
     }
 
     /// Desugar `try { <stmts>; <expr> }` into `{ <stmts>; ::std::ops::Try::from_output(<expr>) }`,
@@ -1186,9 +1190,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 }
             }
             None => self
-                .loop_scopes
-                .last()
-                .cloned()
+                .loop_scope
                 .map(|id| Ok(self.lower_node_id(id)))
                 .unwrap_or(Err(hir::LoopIdError::OutsideLoopScope)),
         };
@@ -1208,18 +1210,9 @@ impl<'hir> LoweringContext<'_, 'hir> {
     }
 
     fn with_catch_scope<T>(&mut self, catch_id: NodeId, f: impl FnOnce(&mut Self) -> T) -> T {
-        let len = self.catch_scopes.len();
-        self.catch_scopes.push(catch_id);
-
+        let old_scope = self.catch_scope.replace(catch_id);
         let result = f(self);
-        assert_eq!(
-            len + 1,
-            self.catch_scopes.len(),
-            "catch scopes should be added and removed in stack order"
-        );
-
-        self.catch_scopes.pop().unwrap();
-
+        self.catch_scope = old_scope;
         result
     }
 
@@ -1228,17 +1221,9 @@ impl<'hir> LoweringContext<'_, 'hir> {
         let was_in_loop_condition = self.is_in_loop_condition;
         self.is_in_loop_condition = false;
 
-        let len = self.loop_scopes.len();
-        self.loop_scopes.push(loop_id);
-
+        let old_scope = self.loop_scope.replace(loop_id);
         let result = f(self);
-        assert_eq!(
-            len + 1,
-            self.loop_scopes.len(),
-            "loop scopes should be added and removed in stack order"
-        );
-
-        self.loop_scopes.pop().unwrap();
+        self.loop_scope = old_scope;
 
         self.is_in_loop_condition = was_in_loop_condition;
 
@@ -1469,8 +1454,13 @@ impl<'hir> LoweringContext<'_, 'hir> {
             )
         };
 
+        // #82462: to correctly diagnose borrow errors, the block that contains
+        // the iter expr needs to have a span that covers the loop body.
+        let desugared_full_span =
+            self.mark_span_with_reason(DesugaringKind::ForLoop(ForLoopLoc::Head), e.span, None);
+
         let match_expr = self.arena.alloc(self.expr_match(
-            desugared_span,
+            desugared_full_span,
             into_iter_expr,
             arena_vec![self; iter_arm],
             hir::MatchSource::ForLoopDesugar,
@@ -1484,7 +1474,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
         // surrounding scope of the `match` since the `match` is not a terminating scope.
         //
         // Also, add the attributes to the outer returned expr node.
-        self.expr_drop_temps_mut(desugared_span, match_expr, attrs.into())
+        self.expr_drop_temps_mut(desugared_full_span, match_expr, attrs.into())
     }
 
     /// Desugar `ExprKind::Try` from: `<expr>?` into:
@@ -1565,8 +1555,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 unstable_span,
             );
             let thin_attrs = ThinVec::from(attrs);
-            let catch_scope = self.catch_scopes.last().copied();
-            let ret_expr = if let Some(catch_node) = catch_scope {
+            let ret_expr = if let Some(catch_node) = self.catch_scope {
                 let target_id = Ok(self.lower_node_id(catch_node));
                 self.arena.alloc(self.expr(
                     try_span,

@@ -263,6 +263,10 @@ pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::
         attributes::emit_uwtable(llfn, true);
     }
 
+    if cx.sess().opts.debugging_opts.profile_sample_use.is_some() {
+        llvm::AddFunctionAttrString(llfn, Function, cstr!("use-sample-profile"));
+    }
+
     // FIXME: none of these three functions interact with source level attributes.
     set_frame_pointer_type(cx, llfn);
     set_instrument_function(cx, llfn);
@@ -305,9 +309,12 @@ pub fn from_fn_attrs(cx: &CodegenCx<'ll, 'tcx>, llfn: &'ll Value, instance: ty::
     let mut function_features = codegen_fn_attrs
         .target_features
         .iter()
-        .map(|f| {
+        .flat_map(|f| {
             let feature = &f.as_str();
-            format!("+{}", llvm_util::to_llvm_feature(cx.tcx.sess, feature))
+            llvm_util::to_llvm_feature(cx.tcx.sess, feature)
+                .into_iter()
+                .map(|f| format!("+{}", f))
+                .collect::<Vec<String>>()
         })
         .chain(codegen_fn_attrs.instruction_set.iter().map(|x| match x {
             InstructionSetAttr::ArmA32 => "-thumb-mode".to_string(),

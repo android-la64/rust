@@ -17,6 +17,10 @@ impl RustString {
     pub fn len(&self) -> usize {
         self.bytes.borrow().len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.bytes.borrow().is_empty()
+    }
 }
 
 /// Appending to a Rust string -- used by RawRustStringOstream.
@@ -89,6 +93,14 @@ pub fn initialize_available_targets() {
         LLVMInitializeAVRTargetMC,
         LLVMInitializeAVRAsmPrinter,
         LLVMInitializeAVRAsmParser
+    );
+    init_target!(
+        llvm_component = "m68k",
+        LLVMInitializeM68kTargetInfo,
+        LLVMInitializeM68kTarget,
+        LLVMInitializeM68kTargetMC,
+        LLVMInitializeM68kAsmPrinter,
+        LLVMInitializeM68kAsmParser
     );
     init_target!(
         llvm_component = "mips",

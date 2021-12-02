@@ -52,8 +52,8 @@ pub use crate::{
     ptr::{AstPtr, SyntaxNodePtr},
     syntax_error::SyntaxError,
     syntax_node::{
-        SyntaxElement, SyntaxElementChildren, SyntaxNode, SyntaxNodeChildren, SyntaxToken,
-        SyntaxTreeBuilder,
+        PreorderWithTokens, SyntaxElement, SyntaxElementChildren, SyntaxNode, SyntaxNodeChildren,
+        SyntaxToken, SyntaxTreeBuilder,
     },
     token_text::TokenText,
 };
@@ -89,6 +89,9 @@ impl<T> Parse<T> {
     pub fn syntax_node(&self) -> SyntaxNode {
         SyntaxNode::new_root(self.green.clone())
     }
+    pub fn errors(&self) -> &[SyntaxError] {
+        &*self.errors
+    }
 }
 
 impl<T: AstNode> Parse<T> {
@@ -98,10 +101,6 @@ impl<T: AstNode> Parse<T> {
 
     pub fn tree(&self) -> T {
         T::cast(self.syntax_node()).unwrap()
-    }
-
-    pub fn errors(&self) -> &[SyntaxError] {
-        &*self.errors
     }
 
     pub fn ok(self) -> Result<T, Arc<Vec<SyntaxError>>> {
@@ -162,10 +161,6 @@ impl SourceFile {
         let (green, mut errors) = parsing::parse_text(text);
         let root = SyntaxNode::new_root(green.clone());
 
-        if cfg!(debug_assertions) {
-            validation::validate_block_structure(&root);
-        }
-
         errors.extend(validation::validate(&root));
 
         assert_eq!(root.kind(), SyntaxKind::SOURCE_FILE);
@@ -173,52 +168,58 @@ impl SourceFile {
     }
 }
 
+// FIXME: `parse` functions shouldn't hang directly from AST nodes, and they
+// shouldn't return `Result`.
+//
+// We need a dedicated module for parser entry points, and they should always
+// return `Parse`.
+
 impl ast::Path {
     /// Returns `text`, parsed as a path, but only if it has no errors.
     pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_fragment(text, parser::FragmentKind::Path)
+        parsing::parse_text_as(text, parser::ParserEntryPoint::Path)
     }
 }
 
 impl ast::Pat {
     /// Returns `text`, parsed as a pattern, but only if it has no errors.
     pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_fragment(text, parser::FragmentKind::Pattern)
+        parsing::parse_text_as(text, parser::ParserEntryPoint::Pattern)
     }
 }
 
 impl ast::Expr {
     /// Returns `text`, parsed as an expression, but only if it has no errors.
     pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_fragment(text, parser::FragmentKind::Expr)
+        parsing::parse_text_as(text, parser::ParserEntryPoint::Expr)
     }
 }
 
 impl ast::Item {
     /// Returns `text`, parsed as an item, but only if it has no errors.
     pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_fragment(text, parser::FragmentKind::Item)
+        parsing::parse_text_as(text, parser::ParserEntryPoint::Item)
     }
 }
 
 impl ast::Type {
     /// Returns `text`, parsed as an type reference, but only if it has no errors.
     pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_fragment(text, parser::FragmentKind::Type)
+        parsing::parse_text_as(text, parser::ParserEntryPoint::Type)
     }
 }
 
 impl ast::Attr {
     /// Returns `text`, parsed as an attribute, but only if it has no errors.
     pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_fragment(text, parser::FragmentKind::Attr)
+        parsing::parse_text_as(text, parser::ParserEntryPoint::Attr)
     }
 }
 
 impl ast::Stmt {
     /// Returns `text`, parsed as statement, but only if it has no errors.
     pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_fragment(text, parser::FragmentKind::StatementOptionalSemi)
+        parsing::parse_text_as(text, parser::ParserEntryPoint::StatementOptionalSemi)
     }
 }
 
@@ -253,7 +254,7 @@ macro_rules! match_ast {
 /// API.
 #[test]
 fn api_walkthrough() {
-    use ast::{ModuleItemOwner, NameOwner};
+    use ast::{HasModuleItem, HasName};
 
     let source_code = "
         fn foo() {
@@ -293,7 +294,8 @@ fn api_walkthrough() {
 
     // Let's get the `1 + 1` expression!
     let body: ast::BlockExpr = func.body().unwrap();
-    let expr: ast::Expr = body.tail_expr().unwrap();
+    let stmt_list: ast::StmtList = body.stmt_list().unwrap();
+    let expr: ast::Expr = stmt_list.tail_expr().unwrap();
 
     // Enums are used to group related ast nodes together, and can be used for
     // matching. However, because there are no public fields, it's possible to
@@ -329,8 +331,8 @@ fn api_walkthrough() {
     assert_eq!(text.to_string(), "1 + 1");
 
     // There's a bunch of traversal methods on `SyntaxNode`:
-    assert_eq!(expr_syntax.parent().as_ref(), Some(body.syntax()));
-    assert_eq!(body.syntax().first_child_or_token().map(|it| it.kind()), Some(T!['{']));
+    assert_eq!(expr_syntax.parent().as_ref(), Some(stmt_list.syntax()));
+    assert_eq!(stmt_list.syntax().first_child_or_token().map(|it| it.kind()), Some(T!['{']));
     assert_eq!(
         expr_syntax.next_sibling_or_token().map(|it| it.kind()),
         Some(SyntaxKind::WHITESPACE)

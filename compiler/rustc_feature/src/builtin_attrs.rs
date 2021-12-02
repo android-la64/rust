@@ -202,6 +202,10 @@ pub const BUILTIN_ATTRIBUTES: &[BuiltinAttribute] = &[
     ungated!(forbid, Normal, template!(List: r#"lint1, lint2, ..., /*opt*/ reason = "...""#)),
     ungated!(deny, Normal, template!(List: r#"lint1, lint2, ..., /*opt*/ reason = "...""#)),
     ungated!(must_use, Normal, template!(Word, NameValueStr: "reason")),
+    gated!(
+        must_not_suspend, Normal, template!(Word, NameValueStr: "reason"), must_not_suspend,
+        experimental!(must_not_suspend)
+    ),
     // FIXME(#14407)
     ungated!(
         deprecated, Normal,
@@ -453,6 +457,9 @@ pub const BUILTIN_ATTRIBUTES: &[BuiltinAttribute] = &[
     ),
     // Enumerates "identity-like" conversion methods to suggest on type mismatch.
     rustc_attr!(rustc_conversion_suggestion, Normal, template!(Word), INTERNAL_UNSTABLE),
+    // Prevents field reads in the marked trait or method to be considered
+    // during dead code analysis.
+    rustc_attr!(rustc_trivial_field_reads, Normal, template!(Word), INTERNAL_UNSTABLE),
 
     // ==========================================================================
     // Internal attributes, Const related:
@@ -460,6 +467,8 @@ pub const BUILTIN_ATTRIBUTES: &[BuiltinAttribute] = &[
 
     rustc_attr!(rustc_promotable, Normal, template!(Word), IMPL_DETAIL),
     rustc_attr!(rustc_legacy_const_generics, Normal, template!(List: "N"), INTERNAL_UNSTABLE),
+    // Do not const-check this function's body. It will always get replaced during CTFE.
+    rustc_attr!(rustc_do_not_const_check, Normal, template!(Word), INTERNAL_UNSTABLE),
 
     // ==========================================================================
     // Internal attributes, Layout related:

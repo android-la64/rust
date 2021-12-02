@@ -155,9 +155,9 @@ pub fn from_utf8_mut(v: &mut [u8]) -> Result<&mut str, Utf8Error> {
 /// assert_eq!("💖", sparkle_heart);
 /// ```
 #[inline]
+#[must_use]
 #[stable(feature = "rust1", since = "1.0.0")]
 #[rustc_const_stable(feature = "const_str_from_utf8_unchecked", since = "1.55.0")]
-#[cfg_attr(bootstrap, rustc_allow_const_fn_unstable(const_fn_transmute))]
 pub const unsafe fn from_utf8_unchecked(v: &[u8]) -> &str {
     // SAFETY: the caller must guarantee that the bytes `v` are valid UTF-8.
     // Also relies on `&str` and `&[u8]` having the same layout.
@@ -182,6 +182,7 @@ pub const unsafe fn from_utf8_unchecked(v: &[u8]) -> &str {
 /// assert_eq!("💖", heart);
 /// ```
 #[inline]
+#[must_use]
 #[stable(feature = "str_mut_extras", since = "1.20.0")]
 pub unsafe fn from_utf8_unchecked_mut(v: &mut [u8]) -> &mut str {
     // SAFETY: the caller must guarantee that the bytes `v`

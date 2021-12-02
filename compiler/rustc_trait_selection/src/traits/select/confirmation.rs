@@ -28,7 +28,7 @@ use crate::traits::TraitNotObjectSafe;
 use crate::traits::VtblSegment;
 use crate::traits::{BuiltinDerivedObligation, ImplDerivedObligation};
 use crate::traits::{
-    ImplSourceAutoImplData, ImplSourceBuiltinData, ImplSourceClosureData,
+    ImplSourceAutoImplData, ImplSourceBuiltinData, ImplSourceClosureData, ImplSourceConstDropData,
     ImplSourceDiscriminantKindData, ImplSourceFnPointerData, ImplSourceGeneratorData,
     ImplSourceObjectData, ImplSourcePointeeData, ImplSourceTraitAliasData,
     ImplSourceTraitUpcastingData, ImplSourceUserDefinedData,
@@ -92,7 +92,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 Ok(ImplSource::Generator(vtable_generator))
             }
 
-            FnPointerCandidate => {
+            FnPointerCandidate { .. } => {
                 let data = self.confirm_fn_pointer_candidate(obligation)?;
                 Ok(ImplSource::FnPointer(data))
             }
@@ -124,6 +124,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 let data = self.confirm_trait_upcasting_unsize_candidate(obligation, idx)?;
                 Ok(ImplSource::TraitUpcasting(data))
             }
+
+            ConstDropCandidate => Ok(ImplSource::ConstDrop(ImplSourceConstDropData)),
         }
     }
 
@@ -139,6 +141,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             let placeholder_trait_predicate =
                 self.infcx().replace_bound_vars_with_placeholders(trait_predicate);
             let placeholder_self_ty = placeholder_trait_predicate.self_ty();
+            let placeholder_trait_predicate = ty::Binder::dummy(placeholder_trait_predicate);
             let (def_id, substs) = match *placeholder_self_ty.kind() {
                 ty::Projection(proj) => (proj.item_def_id, proj.substs),
                 ty::Opaque(def_id, substs) => (def_id, substs),
@@ -162,7 +165,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             obligations.extend(self.infcx.commit_if_ok(|_| {
                 self.infcx
                     .at(&obligation.cause, obligation.param_env)
-                    .sup(placeholder_trait_predicate.trait_ref.to_poly_trait_ref(), candidate.value)
+                    .sup(placeholder_trait_predicate.to_poly_trait_ref(), candidate.value)
                     .map(|InferOk { obligations, .. }| obligations)
                     .map_err(|_| Unimplemented)
             })?);
@@ -598,12 +601,11 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         Ok(ImplSourceGeneratorData { generator_def_id, substs, nested: obligations })
     }
 
+    #[instrument(skip(self), level = "debug")]
     fn confirm_closure_candidate(
         &mut self,
         obligation: &TraitObligation<'tcx>,
     ) -> Result<ImplSourceClosureData<'tcx, PredicateObligation<'tcx>>, SelectionError<'tcx>> {
-        debug!(?obligation, "confirm_closure_candidate");
-
         let kind = self
             .tcx()
             .fn_trait_kind_from_lang_item(obligation.predicate.def_id())
@@ -644,7 +646,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             obligations.push(Obligation::new(
                 obligation.cause.clone(),
                 obligation.param_env,
-                ty::PredicateKind::ClosureKind(closure_def_id, substs, kind)
+                ty::Binder::dummy(ty::PredicateKind::ClosureKind(closure_def_id, substs, kind))
                     .to_predicate(self.tcx()),
             ));
         }
@@ -677,6 +679,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     /// because these output type parameters should not affect the
     /// selection of the impl. Therefore, if there is a mismatch, we
     /// report an error to the user.
+    #[instrument(skip(self), level = "trace")]
     fn confirm_poly_trait_refs(
         &mut self,
         obligation_cause: ObligationCause<'tcx>,
@@ -896,10 +899,10 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 );
 
                 // We can only make objects from sized types.
-                let tr = ty::TraitRef::new(
+                let tr = ty::Binder::dummy(ty::TraitRef::new(
                     tcx.require_lang_item(LangItem::Sized, None),
                     tcx.mk_substs_trait(source, &[]),
-                );
+                ));
                 nested.push(predicate_to_obligation(tr.without_const().to_predicate(tcx)));
 
                 // If the type is `Foo + 'a`, ensure that the type

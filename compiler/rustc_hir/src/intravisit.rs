@@ -32,7 +32,6 @@
 //! example generator inference, and possibly also HIR borrowck.
 
 use crate::hir::*;
-use crate::hir_id::CRATE_HIR_ID;
 use crate::itemlikevisit::{ItemLikeVisitor, ParItemLikeVisitor};
 use rustc_ast::walk_list;
 use rustc_ast::{Attribute, Label};
@@ -393,10 +392,10 @@ pub trait Visitor<'v>: Sized {
     fn visit_impl_item(&mut self, ii: &'v ImplItem<'v>) {
         walk_impl_item(self, ii)
     }
-    fn visit_foreign_item_ref(&mut self, ii: &'v ForeignItemRef<'v>) {
+    fn visit_foreign_item_ref(&mut self, ii: &'v ForeignItemRef) {
         walk_foreign_item_ref(self, ii)
     }
-    fn visit_impl_item_ref(&mut self, ii: &'v ImplItemRef<'v>) {
+    fn visit_impl_item_ref(&mut self, ii: &'v ImplItemRef) {
         walk_impl_item_ref(self, ii)
     }
     fn visit_trait_ref(&mut self, t: &'v TraitRef<'v>) {
@@ -474,17 +473,6 @@ pub trait Visitor<'v>: Sized {
     }
     fn visit_defaultness(&mut self, defaultness: &'v Defaultness) {
         walk_defaultness(self, defaultness);
-    }
-}
-
-/// Walks the contents of a crate. See also `Crate::visit_all_items`.
-pub fn walk_crate<'v, V: Visitor<'v>>(visitor: &mut V, krate: &'v Crate<'v>) {
-    let top_mod = krate.module();
-    visitor.visit_mod(top_mod, top_mod.inner, CRATE_HIR_ID);
-    for (&id, attrs) in krate.attrs.iter() {
-        for a in *attrs {
-            visitor.visit_attribute(id, a)
-        }
     }
 }
 
@@ -883,7 +871,6 @@ pub fn walk_param_bound<'v, V: Visitor<'v>>(visitor: &mut V, bound: &'v GenericB
             visitor.visit_generic_args(span, args);
         }
         GenericBound::Outlives(ref lifetime) => visitor.visit_lifetime(lifetime),
-        GenericBound::Unsized(_) => {}
     }
 }
 
@@ -1055,22 +1042,20 @@ pub fn walk_impl_item<'v, V: Visitor<'v>>(visitor: &mut V, impl_item: &'v ImplIt
 
 pub fn walk_foreign_item_ref<'v, V: Visitor<'v>>(
     visitor: &mut V,
-    foreign_item_ref: &'v ForeignItemRef<'v>,
+    foreign_item_ref: &'v ForeignItemRef,
 ) {
     // N.B., deliberately force a compilation error if/when new fields are added.
-    let ForeignItemRef { id, ident, span: _, ref vis } = *foreign_item_ref;
+    let ForeignItemRef { id, ident, span: _ } = *foreign_item_ref;
     visitor.visit_nested_foreign_item(id);
     visitor.visit_ident(ident);
-    visitor.visit_vis(vis);
 }
 
-pub fn walk_impl_item_ref<'v, V: Visitor<'v>>(visitor: &mut V, impl_item_ref: &'v ImplItemRef<'v>) {
+pub fn walk_impl_item_ref<'v, V: Visitor<'v>>(visitor: &mut V, impl_item_ref: &'v ImplItemRef) {
     // N.B., deliberately force a compilation error if/when new fields are added.
-    let ImplItemRef { id, ident, ref kind, span: _, ref vis, ref defaultness } = *impl_item_ref;
+    let ImplItemRef { id, ident, ref kind, span: _, ref defaultness } = *impl_item_ref;
     visitor.visit_nested_impl_item(id);
     visitor.visit_ident(ident);
     visitor.visit_associated_item_kind(kind);
-    visitor.visit_vis(vis);
     visitor.visit_defaultness(defaultness);
 }
 

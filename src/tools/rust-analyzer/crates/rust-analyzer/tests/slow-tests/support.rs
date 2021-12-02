@@ -71,11 +71,15 @@ impl<'a> Project<'a> {
         let tmp_dir = self.tmp_dir.unwrap_or_else(TestDir::new);
         static INIT: Once = Once::new();
         INIT.call_once(|| {
-            env_logger::builder().is_test(true).parse_env("RA_LOG").try_init().unwrap();
+            tracing_subscriber::fmt()
+                .with_test_writer()
+                .with_env_filter(tracing_subscriber::EnvFilter::from_env("RA_LOG"))
+                .init();
             profile::init_from(crate::PROFILE);
         });
 
-        let (mini_core, fixtures) = Fixture::parse(self.fixture);
+        let (mini_core, proc_macros, fixtures) = Fixture::parse(self.fixture);
+        assert!(proc_macros.is_empty());
         assert!(mini_core.is_none());
         for entry in fixtures {
             let path = tmp_dir.path().join(&entry.path['/'.len_utf8()..]);

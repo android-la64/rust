@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "tracing-subscriber"
-version = "0.2.19"
+version = "0.2.24"
 authors = ["Eliza Weisman <eliza@buoyant.io>", "David Barsky <me@davidbarsky.com>", "Tokio Contributors <team@tokio.rs>"]
 description = "Utilities for implementing and composing `tracing` subscribers.\n"
 homepage = "https://tokio.rs"
@@ -96,7 +96,7 @@ optional = true
 default-features = false
 
 [dependencies.tracing-core]
-version = "0.1.17"
+version = "0.1.20"
 
 [dependencies.tracing-log]
 version = "0.1.2"

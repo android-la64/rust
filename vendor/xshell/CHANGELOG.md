@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.17
+
+- Allow panics to transparently pass through xshell calls.
+  This removes some internal lock poisoned errors.
+
+## 0.1.16
+
+- Add `xshell::hard_link`.
+
+## 0.1.15
+
+- Correctly handle multiple internal read guards.
 
 ## 0.1.14
 

@@ -1,7 +1,7 @@
 use hir::{db::AstDatabase, InFile};
 use ide_db::source_change::SourceChange;
 use syntax::{
-    ast::{self, ArgListOwner},
+    ast::{self, HasArgList},
     AstNode, TextRange,
 };
 use text_edit::TextEdit;
@@ -113,7 +113,7 @@ fn foo() {
     }
 
     #[test]
-    fn replace_with_wind_map() {
+    fn replace_with_find_map() {
         check_fix(
             r#"
 //- minicore: iterators

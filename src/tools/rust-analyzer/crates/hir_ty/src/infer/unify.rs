@@ -41,8 +41,13 @@ where
 }
 
 impl<T: HasInterner<Interner = Interner>> Canonicalized<T> {
-    pub(super) fn decanonicalize_ty(&self, ty: Ty) -> Ty {
-        chalk_ir::Substitute::apply(&self.free_vars, ty, &Interner)
+    /// this method is wrong and shouldn't exist
+    pub(super) fn decanonicalize_ty(&self, table: &mut InferenceTable, ty: Canonical<Ty>) -> Ty {
+        let mut vars = self.free_vars.clone();
+        while ty.binders.len(&Interner) > vars.len() {
+            vars.push(table.new_type_var().cast(&Interner));
+        }
+        chalk_ir::Substitute::apply(&vars, ty.value, &Interner)
     }
 
     pub(super) fn apply_solution(
@@ -319,10 +324,9 @@ impl<'a> InferenceTable<'a> {
 
     /// Unify two types and register new trait goals that arise from that.
     pub(crate) fn unify(&mut self, ty1: &Ty, ty2: &Ty) -> bool {
-        let result = if let Ok(r) = self.try_unify(ty1, ty2) {
-            r
-        } else {
-            return false;
+        let result = match self.try_unify(ty1, ty2) {
+            Ok(r) => r,
+            Err(_) => return false,
         };
         self.register_infer_ok(result);
         true
@@ -460,12 +464,9 @@ impl<'a> InferenceTable<'a> {
             self.new_type_var().inference_var(&Interner).expect("inference_var");
         let result = f(self);
         self.rollback_to(snapshot);
-
-        let result = result
-            .fold_with(&mut VarFudger { table: self, highest_known_var }, DebruijnIndex::INNERMOST)
-            .expect("fold_with with VarFudger");
-
         result
+            .fold_with(&mut VarFudger { table: self, highest_known_var }, DebruijnIndex::INNERMOST)
+            .expect("fold_with with VarFudger")
     }
 
     /// This checks whether any of the free variables in the `canonicalized`

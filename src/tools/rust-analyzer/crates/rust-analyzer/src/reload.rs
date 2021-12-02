@@ -5,9 +5,10 @@ use flycheck::{FlycheckConfig, FlycheckHandle};
 use hir::db::DefDatabase;
 use ide::Change;
 use ide_db::base_db::{
-    CrateGraph, Env, ProcMacro, ProcMacroExpander, ProcMacroKind, SourceRoot, VfsPath,
+    CrateGraph, Env, ProcMacro, ProcMacroExpander, ProcMacroExpansionError, ProcMacroKind,
+    SourceRoot, VfsPath,
 };
-use proc_macro_api::ProcMacroClient;
+use proc_macro_api::{MacroDylib, ProcMacroServer};
 use project_model::{ProjectWorkspace, WorkspaceBuildScripts};
 use vfs::{file_set::FileSetConfig, AbsPath, AbsPathBuf, ChangeKind};
 
@@ -47,7 +48,7 @@ impl GlobalState {
             self.analysis_host.update_lru_capacity(self.config.lru_capacity());
         }
         if self.config.linked_projects() != old_config.linked_projects() {
-            self.fetch_workspaces_request()
+            self.fetch_workspaces_queue.request_op()
         } else if self.config.flycheck() != old_config.flycheck() {
             self.reload_flycheck();
         }
@@ -57,59 +58,8 @@ impl GlobalState {
             .raw_database_mut()
             .set_enable_proc_attr_macros(self.config.expand_proc_attr_macros());
     }
-    pub(crate) fn maybe_refresh(&mut self, changes: &[(AbsPathBuf, ChangeKind)]) {
-        if !changes.iter().any(|(path, kind)| is_interesting(path, *kind)) {
-            return;
-        }
-        log::info!(
-            "Requesting workspace reload because of the following changes: {}",
-            itertools::join(
-                changes
-                    .iter()
-                    .filter(|(path, kind)| is_interesting(path, *kind))
-                    .map(|(path, kind)| format!("{}: {:?}", path.display(), kind)),
-                ", "
-            )
-        );
-        self.fetch_workspaces_request();
 
-        fn is_interesting(path: &AbsPath, change_kind: ChangeKind) -> bool {
-            const IMPLICIT_TARGET_FILES: &[&str] = &["build.rs", "src/main.rs", "src/lib.rs"];
-            const IMPLICIT_TARGET_DIRS: &[&str] = &["src/bin", "examples", "tests", "benches"];
-            let file_name = path.file_name().unwrap_or_default();
-
-            if file_name == "Cargo.toml" || file_name == "Cargo.lock" {
-                return true;
-            }
-            if change_kind == ChangeKind::Modify {
-                return false;
-            }
-            if path.extension().unwrap_or_default() != "rs" {
-                return false;
-            }
-            if IMPLICIT_TARGET_FILES.iter().any(|it| path.as_ref().ends_with(it)) {
-                return true;
-            }
-            let parent = match path.parent() {
-                Some(it) => it,
-                None => return false,
-            };
-            if IMPLICIT_TARGET_DIRS.iter().any(|it| parent.as_ref().ends_with(it)) {
-                return true;
-            }
-            if file_name == "main.rs" {
-                let grand_parent = match parent.parent() {
-                    Some(it) => it,
-                    None => return false,
-                };
-                if IMPLICIT_TARGET_DIRS.iter().any(|it| grand_parent.as_ref().ends_with(it)) {
-                    return true;
-                }
-            }
-            false
-        }
-    }
-    pub(crate) fn report_new_status_if_needed(&mut self) {
+    pub(crate) fn current_status(&self) -> lsp_ext::ServerStatusParams {
         let mut status = lsp_ext::ServerStatusParams {
             health: lsp_ext::Health::Ok,
             quiescent: self.is_quiescent(),
@@ -132,28 +82,11 @@ impl GlobalState {
             status.health = lsp_ext::Health::Error;
             status.message = Some(error)
         }
-
-        if self.last_reported_status.as_ref() != Some(&status) {
-            self.last_reported_status = Some(status.clone());
-
-            if let (lsp_ext::Health::Error, Some(message)) = (status.health, &status.message) {
-                self.show_message(lsp_types::MessageType::Error, message.clone());
-            }
-
-            if self.config.server_status_notification() {
-                self.send_notification::<lsp_ext::ServerStatusNotification>(status);
-            }
-        }
+        status
     }
 
-    pub(crate) fn fetch_workspaces_request(&mut self) {
-        self.fetch_workspaces_queue.request_op()
-    }
-    pub(crate) fn fetch_workspaces_if_needed(&mut self) {
-        if !self.fetch_workspaces_queue.should_start_op() {
-            return;
-        }
-        log::info!("will fetch workspaces");
+    pub(crate) fn fetch_workspaces(&mut self) {
+        tracing::info!("will fetch workspaces");
 
         self.task_pool.handle.spawn_with_sender({
             let linked_projects = self.config.linked_projects();
@@ -196,28 +129,15 @@ impl GlobalState {
                         .push(project_model::ProjectWorkspace::load_detached_files(detached_files));
                 }
 
-                log::info!("did fetch workspaces {:?}", workspaces);
+                tracing::info!("did fetch workspaces {:?}", workspaces);
                 sender
                     .send(Task::FetchWorkspace(ProjectWorkspaceProgress::End(workspaces)))
                     .unwrap();
             }
         });
     }
-    pub(crate) fn fetch_workspaces_completed(
-        &mut self,
-        workspaces: Vec<anyhow::Result<ProjectWorkspace>>,
-    ) {
-        self.fetch_workspaces_queue.op_completed(workspaces)
-    }
 
-    pub(crate) fn fetch_build_data_request(&mut self) {
-        self.fetch_build_data_queue.request_op();
-    }
-    pub(crate) fn fetch_build_data_if_needed(&mut self) {
-        if !self.fetch_build_data_queue.should_start_op() {
-            return;
-        }
-
+    pub(crate) fn fetch_build_data(&mut self) {
         let workspaces = Arc::clone(&self.workspaces);
         let config = self.config.cargo();
         self.task_pool.handle.spawn_with_sender(move |sender| {
@@ -232,31 +152,17 @@ impl GlobalState {
             let mut res = Vec::new();
             for ws in workspaces.iter() {
                 res.push(ws.run_build_scripts(&config, &progress));
-                let ws = match ws {
-                    ProjectWorkspace::Cargo { cargo, .. } => cargo,
-                    ProjectWorkspace::DetachedFiles { .. } | ProjectWorkspace::Json { .. } => {
-                        res.push(Ok(WorkspaceBuildScripts::default()));
-                        continue;
-                    }
-                };
-                res.push(WorkspaceBuildScripts::run(&config, ws, &progress))
             }
             sender.send(Task::FetchBuildData(BuildDataProgress::End((workspaces, res)))).unwrap();
         });
     }
-    pub(crate) fn fetch_build_data_completed(
-        &mut self,
-        build_data: (Arc<Vec<ProjectWorkspace>>, Vec<anyhow::Result<WorkspaceBuildScripts>>),
-    ) {
-        self.fetch_build_data_queue.op_completed(build_data)
-    }
 
     pub(crate) fn switch_workspaces(&mut self) {
         let _p = profile::span("GlobalState::switch_workspaces");
-        log::info!("will switch workspaces");
+        tracing::info!("will switch workspaces");
 
         if let Some(error_message) = self.fetch_workspace_error() {
-            log::error!("failed to switch workspaces: {}", error_message);
+            tracing::error!("failed to switch workspaces: {}", error_message);
             if !self.workspaces.is_empty() {
                 // It only makes sense to switch to a partially broken workspace
                 // if we don't have any workspace at all yet.
@@ -265,7 +171,7 @@ impl GlobalState {
         }
 
         if let Some(error_message) = self.fetch_build_data_error() {
-            log::error!("failed to switch build data: {}", error_message);
+            tracing::error!("failed to switch build data: {}", error_message);
         }
 
         let workspaces = self
@@ -336,7 +242,7 @@ impl GlobalState {
                         .workspaces
                         .iter()
                         .flat_map(|ws| ws.to_roots())
-                        .filter(|it| it.is_member)
+                        .filter(|it| it.is_local)
                         .flat_map(|root| {
                             root.include.into_iter().flat_map(|it| {
                                 [
@@ -372,10 +278,10 @@ impl GlobalState {
         if self.proc_macro_client.is_none() {
             self.proc_macro_client = match self.config.proc_macro_srv() {
                 None => None,
-                Some((path, args)) => match ProcMacroClient::extern_process(path.clone(), args) {
+                Some((path, args)) => match ProcMacroServer::spawn(path.clone(), args) {
                     Ok(it) => Some(it),
                     Err(err) => {
-                        log::error!(
+                        tracing::error!(
                             "Failed to run proc_macro_srv from path {}, error: {:?}",
                             path.display(),
                             err
@@ -415,7 +321,7 @@ impl GlobalState {
                 }
                 let res = vfs.file_id(&vfs_path);
                 if res.is_none() {
-                    log::warn!("failed to load {}", path.display())
+                    tracing::warn!("failed to load {}", path.display())
                 }
                 res
             };
@@ -433,7 +339,7 @@ impl GlobalState {
         self.analysis_host.apply_change(change);
         self.process_changes();
         self.reload_flycheck();
-        log::info!("did switch workspaces");
+        tracing::info!("did switch workspaces");
     }
 
     fn fetch_workspace_error(&self) -> Option<String> {
@@ -453,19 +359,29 @@ impl GlobalState {
     }
 
     fn fetch_build_data_error(&self) -> Option<String> {
-        let mut buf = String::new();
+        let mut buf = "rust-analyzer failed to run build scripts:\n".to_string();
+        let mut has_errors = false;
 
         for ws in &self.fetch_build_data_queue.last_op_result().1 {
-            if let Err(err) = ws {
-                stdx::format_to!(buf, "rust-analyzer failed to run custom build: {:#}\n", err);
+            match ws {
+                Ok(data) => {
+                    if let Some(err) = data.error() {
+                        has_errors = true;
+                        stdx::format_to!(buf, "{:#}\n", err);
+                    }
+                }
+                Err(err) => {
+                    has_errors = true;
+                    stdx::format_to!(buf, "{:#}\n", err);
+                }
             }
         }
 
-        if buf.is_empty() {
-            return None;
+        if has_errors {
+            Some(buf)
+        } else {
+            None
         }
-
-        Some(buf)
     }
 
     fn reload_flycheck(&mut self) {
@@ -546,12 +462,12 @@ impl ProjectFolders {
                 vfs::loader::Entry::Directories(dirs)
             };
 
-            if root.is_member {
+            if root.is_local {
                 res.watch.push(res.load.len());
             }
             res.load.push(entry);
 
-            if root.is_member {
+            if root.is_local {
                 local_filesets.push(fsc.len());
             }
             fsc.add_file_set(file_set_roots)
@@ -589,15 +505,37 @@ impl SourceRootConfig {
     }
 }
 
-pub(crate) fn load_proc_macro(client: Option<&ProcMacroClient>, path: &AbsPath) -> Vec<ProcMacro> {
+pub(crate) fn load_proc_macro(client: Option<&ProcMacroServer>, path: &AbsPath) -> Vec<ProcMacro> {
+    let dylib = match MacroDylib::new(path.to_path_buf()) {
+        Ok(it) => it,
+        Err(err) => {
+            // FIXME: that's not really right -- we store this error in a
+            // persistent status.
+            tracing::warn!("failed to load proc macro: {}", err);
+            return Vec::new();
+        }
+    };
+
     return client
-        .map(|it| it.by_dylib_path(path))
-        .unwrap_or_default()
+        .map(|it| it.load_dylib(dylib))
         .into_iter()
+        .flat_map(|it| match it {
+            Ok(Ok(macros)) => macros,
+            Err(err) => {
+                tracing::error!("proc macro server crashed: {}", err);
+                Vec::new()
+            }
+            Ok(Err(err)) => {
+                // FIXME: that's not really right -- we store this error in a
+                // persistent status.
+                tracing::warn!("failed to load proc macro: {}", err);
+                Vec::new()
+            }
+        })
         .map(expander_to_proc_macro)
         .collect();
 
-    fn expander_to_proc_macro(expander: proc_macro_api::ProcMacroProcessExpander) -> ProcMacro {
+    fn expander_to_proc_macro(expander: proc_macro_api::ProcMacro) -> ProcMacro {
         let name = expander.name().into();
         let kind = match expander.kind() {
             proc_macro_api::ProcMacroKind::CustomDerive => ProcMacroKind::CustomDerive,
@@ -609,7 +547,7 @@ pub(crate) fn load_proc_macro(client: Option<&ProcMacroClient>, path: &AbsPath) 
     }
 
     #[derive(Debug)]
-    struct Expander(proc_macro_api::ProcMacroProcessExpander);
+    struct Expander(proc_macro_api::ProcMacro);
 
     impl ProcMacroExpander for Expander {
         fn expand(
@@ -617,9 +555,49 @@ pub(crate) fn load_proc_macro(client: Option<&ProcMacroClient>, path: &AbsPath) 
             subtree: &tt::Subtree,
             attrs: Option<&tt::Subtree>,
             env: &Env,
-        ) -> Result<tt::Subtree, tt::ExpansionError> {
+        ) -> Result<tt::Subtree, ProcMacroExpansionError> {
             let env = env.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
-            self.0.expand(subtree, attrs, env)
+            match self.0.expand(subtree, attrs, env) {
+                Ok(Ok(subtree)) => Ok(subtree),
+                Ok(Err(err)) => Err(ProcMacroExpansionError::Panic(err.0)),
+                Err(err) => Err(ProcMacroExpansionError::System(err.to_string())),
+            }
         }
     }
+}
+
+pub(crate) fn should_refresh_for_change(path: &AbsPath, change_kind: ChangeKind) -> bool {
+    const IMPLICIT_TARGET_FILES: &[&str] = &["build.rs", "src/main.rs", "src/lib.rs"];
+    const IMPLICIT_TARGET_DIRS: &[&str] = &["src/bin", "examples", "tests", "benches"];
+    let file_name = path.file_name().unwrap_or_default();
+
+    if file_name == "Cargo.toml" || file_name == "Cargo.lock" {
+        return true;
+    }
+    if change_kind == ChangeKind::Modify {
+        return false;
+    }
+    if path.extension().unwrap_or_default() != "rs" {
+        return false;
+    }
+    if IMPLICIT_TARGET_FILES.iter().any(|it| path.as_ref().ends_with(it)) {
+        return true;
+    }
+    let parent = match path.parent() {
+        Some(it) => it,
+        None => return false,
+    };
+    if IMPLICIT_TARGET_DIRS.iter().any(|it| parent.as_ref().ends_with(it)) {
+        return true;
+    }
+    if file_name == "main.rs" {
+        let grand_parent = match parent.parent() {
+            Some(it) => it,
+            None => return false,
+        };
+        if IMPLICIT_TARGET_DIRS.iter().any(|it| grand_parent.as_ref().ends_with(it)) {
+            return true;
+        }
+    }
+    false
 }

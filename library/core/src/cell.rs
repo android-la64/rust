@@ -349,7 +349,7 @@ impl<T> Cell<T> {
         drop(old);
     }
 
-    /// Swaps the values of two Cells.
+    /// Swaps the values of two `Cell`s.
     /// Difference with `std::mem::swap` is that this function doesn't require `&mut` reference.
     ///
     /// # Examples
@@ -1303,6 +1303,11 @@ impl Clone for BorrowRef<'_> {
 ///
 /// See the [module-level documentation](self) for more.
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg_attr(
+    not(bootstrap),
+    must_not_suspend = "holding a Ref across suspend \
+                      points can cause BorrowErrors"
+)]
 pub struct Ref<'b, T: ?Sized + 'b> {
     value: &'b T,
     borrow: BorrowRef<'b>,
@@ -1679,6 +1684,11 @@ impl<'b> BorrowRefMut<'b> {
 ///
 /// See the [module-level documentation](self) for more.
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg_attr(
+    not(bootstrap),
+    must_not_suspend = "holding a RefMut across suspend \
+                      points can cause BorrowErrors"
+)]
 pub struct RefMut<'b, T: ?Sized + 'b> {
     value: &'b mut T,
     borrow: BorrowRefMut<'b>,
@@ -1916,7 +1926,8 @@ impl<T: ?Sized> UnsafeCell<T> {
     /// ```
     #[inline(always)]
     #[stable(feature = "unsafe_cell_get_mut", since = "1.50.0")]
-    pub fn get_mut(&mut self) -> &mut T {
+    #[rustc_const_unstable(feature = "const_unsafecell_get_mut", issue = "88836")]
+    pub const fn get_mut(&mut self) -> &mut T {
         &mut self.value
     }
 

@@ -75,6 +75,7 @@ mod netbsd_base;
 mod openbsd_base;
 mod redox_base;
 mod solaris_base;
+mod solid_base;
 mod thumb_base;
 mod uefi_msvc_base;
 mod vxworks_base;
@@ -287,6 +288,7 @@ impl ToJson for MergeFunctions {
 pub enum RelocModel {
     Static,
     Pic,
+    Pie,
     DynamicNoPic,
     Ropi,
     Rwpi,
@@ -300,6 +302,7 @@ impl FromStr for RelocModel {
         Ok(match s {
             "static" => RelocModel::Static,
             "pic" => RelocModel::Pic,
+            "pie" => RelocModel::Pie,
             "dynamic-no-pic" => RelocModel::DynamicNoPic,
             "ropi" => RelocModel::Ropi,
             "rwpi" => RelocModel::Rwpi,
@@ -314,6 +317,7 @@ impl ToJson for RelocModel {
         match *self {
             RelocModel::Static => "static",
             RelocModel::Pic => "pic",
+            RelocModel::Pie => "pie",
             RelocModel::DynamicNoPic => "dynamic-no-pic",
             RelocModel::Ropi => "ropi",
             RelocModel::Rwpi => "rwpi",
@@ -742,6 +746,7 @@ supported_targets! {
     ("x86_64-unknown-linux-gnux32", x86_64_unknown_linux_gnux32),
     ("i686-unknown-linux-gnu", i686_unknown_linux_gnu),
     ("i586-unknown-linux-gnu", i586_unknown_linux_gnu),
+    ("m68k-unknown-linux-gnu", m68k_unknown_linux_gnu),
     ("mips-unknown-linux-gnu", mips_unknown_linux_gnu),
     ("mips64-unknown-linux-gnuabi64", mips64_unknown_linux_gnuabi64),
     ("mips64el-unknown-linux-gnuabi64", mips64el_unknown_linux_gnuabi64),
@@ -931,6 +936,10 @@ supported_targets! {
     ("powerpc-wrs-vxworks-spe", powerpc_wrs_vxworks_spe),
     ("powerpc64-wrs-vxworks", powerpc64_wrs_vxworks),
 
+    ("aarch64-kmc-solid_asp3", aarch64_kmc_solid_asp3),
+    ("armv7a-kmc-solid_asp3-eabi", armv7a_kmc_solid_asp3_eabi),
+    ("armv7a-kmc-solid_asp3-eabihf", armv7a_kmc_solid_asp3_eabihf),
+
     ("mipsel-sony-psp", mipsel_sony_psp),
     ("mipsel-unknown-none", mipsel_unknown_none),
     ("thumbv4t-none-eabi", thumbv4t_none_eabi),
@@ -941,6 +950,10 @@ supported_targets! {
 
     ("bpfeb-unknown-none", bpfeb_unknown_none),
     ("bpfel-unknown-none", bpfel_unknown_none),
+
+    ("armv6k-nintendo-3ds", armv6k_nintendo_3ds),
+
+    ("armv7-unknown-linux-uclibceabihf", armv7_unknown_linux_uclibceabihf),
 }
 
 /// Warnings encountered when parsing the target `json`.

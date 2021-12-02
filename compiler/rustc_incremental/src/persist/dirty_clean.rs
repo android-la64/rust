@@ -137,12 +137,11 @@ pub fn check_dirty_clean_annotations(tcx: TyCtxt<'_>) {
     }
 
     tcx.dep_graph.with_ignore(|| {
-        let krate = tcx.hir().krate();
         let mut dirty_clean_visitor = DirtyCleanVisitor { tcx, checked_attrs: Default::default() };
-        krate.visit_all_item_likes(&mut dirty_clean_visitor);
+        tcx.hir().visit_all_item_likes(&mut dirty_clean_visitor);
 
         let mut all_attrs = FindAllAttrs { tcx, found_attrs: vec![] };
-        intravisit::walk_crate(&mut all_attrs, krate);
+        tcx.hir().walk_attributes(&mut all_attrs);
 
         // Note that we cannot use the existing "unused attribute"-infrastructure
         // here, since that is running before codegen. This is also the reason why

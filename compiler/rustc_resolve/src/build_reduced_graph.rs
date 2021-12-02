@@ -9,11 +9,9 @@ use crate::def_collector::collect_definitions;
 use crate::imports::{Import, ImportKind};
 use crate::macros::{MacroRulesBinding, MacroRulesScope, MacroRulesScopeRef};
 use crate::Namespace::{self, MacroNS, TypeNS, ValueNS};
-use crate::{CrateLint, Determinacy, PathResult, ResolutionError, VisResolutionError};
-use crate::{
-    ExternPreludeEntry, ModuleOrUniformRoot, ParentScope, PerNS, Resolver, ResolverArenas,
-};
-use crate::{Module, ModuleData, ModuleKind, NameBinding, NameBindingKind, Segment, ToNameBinding};
+use crate::{CrateLint, Determinacy, ExternPreludeEntry, Module, ModuleKind, ModuleOrUniformRoot};
+use crate::{NameBinding, NameBindingKind, ParentScope, PathResult, PerNS, ResolutionError};
+use crate::{Resolver, ResolverArenas, Segment, ToNameBinding, VisResolutionError};
 
 use rustc_ast::visit::{self, AssocCtxt, Visitor};
 use rustc_ast::{self as ast, AssocItem, AssocItemKind, MetaItemKind, StmtKind};
@@ -29,8 +27,8 @@ use rustc_hir::def_id::{DefId, LocalDefId, CRATE_DEF_INDEX};
 use rustc_metadata::creader::LoadedMacro;
 use rustc_middle::bug;
 use rustc_middle::hir::exports::Export;
-use rustc_middle::middle::cstore::CrateStore;
 use rustc_middle::ty;
+use rustc_session::cstore::CrateStore;
 use rustc_span::hygiene::{ExpnId, LocalExpnId, MacroKind};
 use rustc_span::source_map::{respan, Spanned};
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
@@ -95,100 +93,96 @@ impl<'a> Resolver<'a> {
     }
 
     /// Walks up the tree of definitions starting at `def_id`,
-    /// stopping at the first `DefKind::Mod` encountered
-    fn nearest_parent_mod(&mut self, def_id: DefId) -> Module<'a> {
-        let def_key = self.cstore().def_key(def_id);
-
-        let mut parent_id = DefId {
-            krate: def_id.krate,
-            index: def_key.parent.expect("failed to get parent for module"),
-        };
-        // The immediate parent may not be a module
-        // (e.g. `const _: () =  { #[path = "foo.rs"] mod foo; };`)
-        // Walk up the tree until we hit a module or the crate root.
-        while parent_id.index != CRATE_DEF_INDEX
-            && self.cstore().def_kind(parent_id) != DefKind::Mod
-        {
-            let parent_def_key = self.cstore().def_key(parent_id);
-            parent_id.index = parent_def_key.parent.expect("failed to get parent for module");
-        }
-        self.get_module(parent_id)
-    }
-
-    pub fn get_module(&mut self, def_id: DefId) -> Module<'a> {
-        // If this is a local module, it will be in `module_map`, no need to recalculate it.
-        if let Some(def_id) = def_id.as_local() {
-            return self.module_map[&def_id];
-        }
-
-        // Cache module resolution
-        if let Some(&module) = self.extern_module_map.get(&def_id) {
-            return module;
-        }
-
-        let (name, parent) = if def_id.index == CRATE_DEF_INDEX {
-            // This is the crate root
-            (self.cstore().crate_name(def_id.krate), None)
-        } else {
-            let def_key = self.cstore().def_key(def_id);
-            let name = def_key
-                .disambiguated_data
-                .data
-                .get_opt_name()
-                .expect("given a DefId that wasn't a module");
-
-            let parent = Some(self.nearest_parent_mod(def_id));
-            (name, parent)
-        };
-
-        // Allocate and return a new module with the information we found
-        let kind = ModuleKind::Def(DefKind::Mod, def_id, name);
-        let module = self.arenas.alloc_module(ModuleData::new(
-            parent,
-            kind,
-            def_id,
-            self.cstore().module_expansion_untracked(def_id, &self.session),
-            self.cstore().get_span_untracked(def_id, &self.session),
-        ));
-        self.extern_module_map.insert(def_id, module);
-        module
-    }
-
-    crate fn macro_def_scope(&mut self, expn_id: ExpnId) -> Module<'a> {
-        let def_id = match expn_id.expn_data().macro_def_id {
-            Some(def_id) => def_id,
-            None => {
-                return expn_id
-                    .as_local()
-                    .and_then(|expn_id| self.ast_transform_scopes.get(&expn_id))
-                    .unwrap_or(&self.graph_root);
+    /// stopping at the first encountered module.
+    /// Parent block modules for arbitrary def-ids are not recorded for the local crate,
+    /// and are not preserved in metadata for foreign crates, so block modules are never
+    /// returned by this function.
+    ///
+    /// For the local crate ignoring block modules may be incorrect, so use this method with care.
+    ///
+    /// For foreign crates block modules can be ignored without introducing observable differences,
+    /// moreover they has to be ignored right now because they are not kept in metadata.
+    /// Foreign parent modules are used for resolving names used by foreign macros with def-site
+    /// hygiene, therefore block module ignorability relies on macros with def-site hygiene and
+    /// block module parents being unreachable from other crates.
+    /// Reachable macros with block module parents exist due to `#[macro_export] macro_rules!`,
+    /// but they cannot use def-site hygiene, so the assumption holds
+    /// (<https://github.com/rust-lang/rust/pull/77984#issuecomment-712445508>).
+    fn get_nearest_non_block_module(&mut self, mut def_id: DefId) -> Module<'a> {
+        loop {
+            match self.get_module(def_id) {
+                Some(module) => return module,
+                None => {
+                    def_id.index =
+                        self.def_key(def_id).parent.expect("non-root `DefId` without parent")
+                }
             }
-        };
-        self.macro_def_scope_from_def_id(def_id)
+        }
     }
 
-    crate fn macro_def_scope_from_def_id(&mut self, def_id: DefId) -> Module<'a> {
+    pub fn expect_module(&mut self, def_id: DefId) -> Module<'a> {
+        self.get_module(def_id).expect("argument `DefId` is not a module")
+    }
+
+    /// If `def_id` refers to a module (in resolver's sense, i.e. a module item, crate root, enum,
+    /// or trait), then this function returns that module's resolver representation, otherwise it
+    /// returns `None`.
+    crate fn get_module(&mut self, def_id: DefId) -> Option<Module<'a>> {
+        if let module @ Some(..) = self.module_map.get(&def_id) {
+            return module.copied();
+        }
+
+        if !def_id.is_local() {
+            let def_kind = self.cstore().def_kind(def_id);
+            match def_kind {
+                DefKind::Mod | DefKind::Enum | DefKind::Trait => {
+                    let def_key = self.cstore().def_key(def_id);
+                    let parent = def_key.parent.map(|index| {
+                        self.get_nearest_non_block_module(DefId { index, krate: def_id.krate })
+                    });
+                    let name = if def_id.index == CRATE_DEF_INDEX {
+                        self.cstore().crate_name(def_id.krate)
+                    } else {
+                        def_key.disambiguated_data.data.get_opt_name().expect("module without name")
+                    };
+                    let expn_id = if def_kind == DefKind::Mod {
+                        self.cstore().module_expansion_untracked(def_id, &self.session)
+                    } else {
+                        // FIXME: Parent expansions for enums and traits are not kept in metadata.
+                        ExpnId::root()
+                    };
+
+                    Some(self.new_module(
+                        parent,
+                        ModuleKind::Def(def_kind, def_id, name),
+                        expn_id,
+                        self.cstore().get_span_untracked(def_id, &self.session),
+                        // FIXME: Account for `#[no_implicit_prelude]` attributes.
+                        parent.map_or(false, |module| module.no_implicit_prelude),
+                    ))
+                }
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    crate fn expn_def_scope(&mut self, expn_id: ExpnId) -> Module<'a> {
+        match expn_id.expn_data().macro_def_id {
+            Some(def_id) => self.macro_def_scope(def_id),
+            None => expn_id
+                .as_local()
+                .and_then(|expn_id| self.ast_transform_scopes.get(&expn_id))
+                .unwrap_or(&self.graph_root),
+        }
+    }
+
+    crate fn macro_def_scope(&mut self, def_id: DefId) -> Module<'a> {
         if let Some(id) = def_id.as_local() {
             self.local_macro_def_scopes[&id]
         } else {
-            // This is not entirely correct - a `macro_rules!` macro may occur
-            // inside a 'block' module:
-            //
-            // ```rust
-            // const _: () = {
-            // #[macro_export]
-            // macro_rules! my_macro {
-            //     () => {};
-            // }
-            // `
-            // We don't record this information for external crates, so
-            // the module we compute here will be the closest 'mod' item
-            // (not necesssarily the actual parent of the `macro_rules!`
-            // macro). `macro_rules!` macros can't use def-site hygiene,
-            // so this hopefully won't be a problem.
-            //
-            // See https://github.com/rust-lang/rust/pull/77984#issuecomment-712445508
-            self.nearest_parent_mod(def_id)
+            self.get_nearest_non_block_module(def_id)
         }
     }
 
@@ -226,9 +220,7 @@ impl<'a> Resolver<'a> {
     }
 
     crate fn build_reduced_graph_external(&mut self, module: Module<'a>) {
-        let def_id = module.def_id().expect("unpopulated module without a def-id");
-        for child in self.cstore().item_children_untracked(def_id, self.session) {
-            let child = child.map_id(|_| panic!("unexpected id"));
+        for child in self.cstore().item_children_untracked(module.def_id(), self.session) {
             let parent_scope = ParentScope::module(module, self);
             BuildReducedGraphVisitor { r: self, parent_scope }
                 .build_reduced_graph_for_external_crate_res(child);
@@ -275,7 +267,7 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
                         self.r.visibilities[&def_id.expect_local()]
                     }
                     // Otherwise, the visibility is restricted to the nearest parent `mod` item.
-                    _ => ty::Visibility::Restricted(self.parent_scope.module.nearest_parent_mod),
+                    _ => ty::Visibility::Restricted(self.parent_scope.module.nearest_parent_mod()),
                 })
             }
             ast::VisibilityKind::Restricted { ref path, id, .. } => {
@@ -718,7 +710,7 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
                         local_def_id,
                     );
                     self.r.extern_crate_map.insert(local_def_id, crate_id);
-                    self.r.get_module(DefId { krate: crate_id, index: CRATE_DEF_INDEX })
+                    self.r.expect_module(crate_id.as_def_id())
                 };
 
                 let used = self.process_macro_use_imports(item, module);
@@ -769,21 +761,15 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
             }
 
             ItemKind::Mod(..) => {
-                let module_kind = ModuleKind::Def(DefKind::Mod, def_id, ident.name);
-                let module = self.r.arenas.alloc_module(ModuleData {
-                    no_implicit_prelude: parent.no_implicit_prelude || {
-                        self.r.session.contains_name(&item.attrs, sym::no_implicit_prelude)
-                    },
-                    ..ModuleData::new(
-                        Some(parent),
-                        module_kind,
-                        def_id,
-                        expansion.to_expn_id(),
-                        item.span,
-                    )
-                });
+                let module = self.r.new_module(
+                    Some(parent),
+                    ModuleKind::Def(DefKind::Mod, def_id, ident.name),
+                    expansion.to_expn_id(),
+                    item.span,
+                    parent.no_implicit_prelude
+                        || self.r.session.contains_name(&item.attrs, sym::no_implicit_prelude),
+                );
                 self.r.define(parent, ident, TypeNS, (module, vis, sp, expansion));
-                self.r.module_map.insert(local_def_id, module);
 
                 // Descend into the module.
                 self.parent_scope.module = module;
@@ -814,13 +800,12 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
             }
 
             ItemKind::Enum(_, _) => {
-                let module_kind = ModuleKind::Def(DefKind::Enum, def_id, ident.name);
                 let module = self.r.new_module(
-                    parent,
-                    module_kind,
-                    parent.nearest_parent_mod,
+                    Some(parent),
+                    ModuleKind::Def(DefKind::Enum, def_id, ident.name),
                     expansion.to_expn_id(),
                     item.span,
+                    parent.no_implicit_prelude,
                 );
                 self.r.define(parent, ident, TypeNS, (module, vis, sp, expansion));
                 self.parent_scope.module = module;
@@ -889,13 +874,12 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
 
             ItemKind::Trait(..) => {
                 // Add all the items within to a new module.
-                let module_kind = ModuleKind::Def(DefKind::Trait, def_id, ident.name);
                 let module = self.r.new_module(
-                    parent,
-                    module_kind,
-                    parent.nearest_parent_mod,
+                    Some(parent),
+                    ModuleKind::Def(DefKind::Trait, def_id, ident.name),
                     expansion.to_expn_id(),
                     item.span,
+                    parent.no_implicit_prelude,
                 );
                 self.r.define(parent, ident, TypeNS, (module, vis, sp, expansion));
                 self.parent_scope.module = module;
@@ -934,11 +918,11 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
         let expansion = self.parent_scope.expansion;
         if self.block_needs_anonymous_module(block) {
             let module = self.r.new_module(
-                parent,
+                Some(parent),
                 ModuleKind::Block(block.id),
-                parent.nearest_parent_mod,
                 expansion.to_expn_id(),
                 block.span,
+                parent.no_implicit_prelude,
             );
             self.r.block_map.insert(block.id, module);
             self.parent_scope.module = module; // Descend into the block.
@@ -946,20 +930,15 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
     }
 
     /// Builds the reduced graph for a single item in an external crate.
-    fn build_reduced_graph_for_external_crate_res(&mut self, child: Export<NodeId>) {
+    fn build_reduced_graph_for_external_crate_res(&mut self, child: Export) {
         let parent = self.parent_scope.module;
         let Export { ident, res, vis, span } = child;
+        let res = res.expect_non_local();
         let expansion = self.parent_scope.expansion;
         // Record primary definitions.
         match res {
-            Res::Def(kind @ (DefKind::Mod | DefKind::Enum | DefKind::Trait), def_id) => {
-                let module = self.r.new_module(
-                    parent,
-                    ModuleKind::Def(kind, def_id, ident.name),
-                    def_id,
-                    expansion.to_expn_id(),
-                    span,
-                );
+            Res::Def(DefKind::Mod | DefKind::Enum | DefKind::Trait, def_id) => {
+                let module = self.r.expect_module(def_id);
                 self.r.define(parent, ident, TypeNS, (module, vis, span, expansion));
             }
             Res::Def(

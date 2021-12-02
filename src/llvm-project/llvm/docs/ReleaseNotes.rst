@@ -55,6 +55,17 @@ Non-comprehensive list of changes in this release
   emits valid unwind entrypoints which are validated when the context is being
   set during exception handling.
 
+* Flang is now included in the binary packages released by LLVM.
+
+* The debuginfo-test project has been renamed cross-project-tests and is now
+  intended for testing components from multiple projects, not just debug
+  information. The new "cross-project-tests" name replaces "debuginfo-test" in
+  LLVM_ENABLE_PROJECTS, and a new check-cross-project-tests target has been
+  added for running all tests in the project. The pre-existing check-debuginfo-
+  test target remains for running just the debug information tests.
+  (`D95339 <https://reviews.llvm.org/D95339>`_ and
+  `D96513 <https://reviews.llvm.org/D96513>`_)
+
 Changes to the LLVM IR
 ----------------------
 
@@ -63,6 +74,10 @@ Changes to the LLVM IR
 
 * The opaque pointer type ``ptr`` has been introduced. It is still in the
   process of being worked on and should not be used yet.
+
+* Using the legacy pass manager for the optimization pipeline is deprecated and
+  will be removed after LLVM 14. In the meantime, only minimal effort will be
+  made to maintain the legacy pass manager for the optimization pipeline.
 
 Changes to building LLVM
 ------------------------
@@ -80,10 +95,15 @@ Changes to the AArch64 Backend
 * Introduced assembly support for Armv9-A's Realm Management Extension (RME)
   and Scalable Matrix Extension (SME).
 
+* Produce proper cross-section relative relocations on COFF
+
+* Fixed the calling convention on Windows for variadic functions involving
+  floats in the fixed arguments
+
 Changes to the ARM Backend
 --------------------------
 
-During this release ...
+* Produce proper cross-section relative relocations on COFF
 
 Changes to the MIPS Target
 --------------------------
@@ -240,6 +260,15 @@ Changes to the LLVM tools
 
 * In lli the default JIT engine switched from MCJIT (``-jit-kind=mcjit``) to ORC (``-jit-kind=orc``).
   (`D98931 <https://reviews.llvm.org/D98931>`_)
+
+* llvm-rc got support for invoking Clang to preprocess its input.
+  (`D100755 <https://reviews.llvm.org/D100755>`_)
+
+* llvm-rc got a GNU windres compatible frontend, llvm-windres.
+  (`D100756 <https://reviews.llvm.org/D100756>`_)
+
+* llvm-ml has improved compatibility with MS ml.exe, managing to assemble
+  more asm files.
 
 Changes to LLDB
 ---------------------------------

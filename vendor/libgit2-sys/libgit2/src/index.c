@@ -944,7 +944,7 @@ static int index_entry_create(
 	if (st)
 		mode = st->st_mode;
 
-	if (!git_path_isvalid(repo, path, mode, path_valid_flags)) {
+	if (!git_path_validate(repo, path, mode, path_valid_flags)) {
 		git_error_set(GIT_ERROR_INDEX, "invalid path: '%s'", path);
 		return -1;
 	}
@@ -988,7 +988,7 @@ static int index_entry_init(
 	if (git_repository__ensure_not_bare(repo, "create blob from file") < 0)
 		return GIT_EBAREREPO;
 
-	if (git_buf_joinpath(&path, git_repository_workdir(repo), rel_path) < 0)
+	if (git_repository_workdir_path(&path, repo, rel_path) < 0)
 		return -1;
 
 	error = git_path_lstat(path.ptr, &st);
@@ -1532,7 +1532,7 @@ static int add_repo_as_submodule(git_index_entry **out, git_index *index, const 
 	struct stat st;
 	int error;
 
-	if ((error = git_buf_joinpath(&abspath, git_repository_workdir(repo), path)) < 0)
+	if ((error = git_repository_workdir_path(&abspath, repo, path)) < 0)
 		return error;
 
 	if ((error = p_stat(abspath.ptr, &st)) < 0) {
@@ -2861,14 +2861,16 @@ static int write_entries(git_index *index, git_filebuf *file)
 {
 	int error = 0;
 	size_t i;
-	git_vector case_sorted, *entries;
+	git_vector case_sorted = GIT_VECTOR_INIT, *entries = NULL;
 	git_index_entry *entry;
 	const char *last = NULL;
 
 	/* If index->entries is sorted case-insensitively, then we need
 	 * to re-sort it case-sensitively before writing */
 	if (index->ignore_case) {
-		git_vector_dup(&case_sorted, &index->entries, git_index_entry_cmp);
+		if ((error = git_vector_dup(&case_sorted, &index->entries, git_index_entry_cmp)) < 0)
+			goto done;
+
 		git_vector_sort(&case_sorted);
 		entries = &case_sorted;
 	} else {
@@ -2885,9 +2887,8 @@ static int write_entries(git_index *index, git_filebuf *file)
 			last = entry->path;
 	}
 
-	if (index->ignore_case)
-		git_vector_free(&case_sorted);
-
+done:
+	git_vector_free(&case_sorted);
 	return error;
 }
 

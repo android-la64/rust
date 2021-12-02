@@ -44,7 +44,7 @@ use crate::intrinsics;
 /// ```
 #[inline]
 #[stable(feature = "unreachable", since = "1.27.0")]
-#[rustc_const_unstable(feature = "const_unreachable_unchecked", issue = "53188")]
+#[rustc_const_stable(feature = "const_unreachable_unchecked", since = "1.57.0")]
 pub const unsafe fn unreachable_unchecked() -> ! {
     // SAFETY: the safety contract for `intrinsics::unreachable` must
     // be upheld by the caller.
@@ -154,18 +154,6 @@ pub fn spin_loop() {
 /// [`std::convert::identity`]: crate::convert::identity
 #[inline]
 #[unstable(feature = "bench_black_box", issue = "64102")]
-#[cfg_attr(not(bootstrap), allow(unused_mut))]
-#[cfg_attr(bootstrap, allow(deprecated))]
-pub fn black_box<T>(mut dummy: T) -> T {
-    #[cfg(bootstrap)]
-    // SAFETY: the inline assembly is a no-op.
-    unsafe {
-        llvm_asm!("" : : "r"(&mut dummy) : "memory" : "volatile");
-        dummy
-    }
-
-    #[cfg(not(bootstrap))]
-    {
-        crate::intrinsics::black_box(dummy)
-    }
+pub fn black_box<T>(dummy: T) -> T {
+    crate::intrinsics::black_box(dummy)
 }

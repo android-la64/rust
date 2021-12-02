@@ -44,6 +44,9 @@ use crate::sys_common::FromInner;
 #[stable(feature = "time", since = "1.3.0")]
 pub use core::time::Duration;
 
+#[unstable(feature = "duration_checked_float", issue = "83400")]
+pub use core::time::FromSecsError;
+
 /// A measurement of a monotonically nondecreasing clock.
 /// Opaque and useful only with [`Duration`].
 ///
@@ -105,6 +108,7 @@ pub use core::time::Duration;
 /// | UNIX      | [clock_gettime (Monotonic Clock)]                                    |
 /// | Darwin    | [mach_absolute_time]                                                 |
 /// | VXWorks   | [clock_gettime (Monotonic Clock)]                                    |
+/// | SOLID     | `get_tim`                                                            |
 /// | WASI      | [__wasi_clock_time_get (Monotonic Clock)]                            |
 /// | Windows   | [QueryPerformanceCounter]                                            |
 ///
@@ -181,6 +185,7 @@ pub struct Instant(time::Instant);
 /// | UNIX      | [clock_gettime (Realtime Clock)]                                     |
 /// | Darwin    | [gettimeofday]                                                       |
 /// | VXWorks   | [clock_gettime (Realtime Clock)]                                     |
+/// | SOLID     | `SOLID_RTC_ReadTime`                                                 |
 /// | WASI      | [__wasi_clock_time_get (Realtime Clock)]                             |
 /// | Windows   | [GetSystemTimePreciseAsFileTime] / [GetSystemTimeAsFileTime]         |
 ///
@@ -263,6 +268,20 @@ impl Instant {
         //
         // To hopefully mitigate the impact of this, a few platforms are
         // excluded as "these at least haven't gone backwards yet".
+        //
+        // While issues have been seen on arm64 platforms the Arm architecture
+        // requires that the counter monotonically increases and that it must
+        // provide a uniform view of system time (e.g. it must not be possible
+        // for a core to recieve a message from another core with a time stamp
+        // and observe time going backwards (ARM DDI 0487G.b D11.1.2). While
+        // there have been a few 64bit SoCs that have bugs which cause time to
+        // not monoticially increase, these have been fixed in the Linux kernel
+        // and we shouldn't penalize all Arm SoCs for those who refuse to
+        // update their kernels:
+        // SUN50I_ERRATUM_UNKNOWN1 - Allwinner A64 / Pine A64 - fixed in 5.1
+        // FSL_ERRATUM_A008585 - Freescale LS2080A/LS1043A - fixed in 4.10
+        // HISILICON_ERRATUM_161010101 - Hisilicon 1610 - fixed in 4.11
+        // ARM64_ERRATUM_858921 - Cortex A73 - fixed in 4.12
         if time::Instant::actually_monotonic() {
             return Instant(os_now);
         }
@@ -469,7 +488,7 @@ impl SystemTime {
     /// as the system clock being adjusted either forwards or backwards).
     /// [`Instant`] can be used to measure elapsed time without this risk of failure.
     ///
-    /// If successful, [`Ok`]`(`[`Duration`]`)` is returned where the duration represents
+    /// If successful, <code>[Ok]\([Duration])</code> is returned where the duration represents
     /// the amount of time elapsed from the specified measurement to this one.
     ///
     /// Returns an [`Err`] if `earlier` is later than `self`, and the error
@@ -496,7 +515,7 @@ impl SystemTime {
     ///
     /// This function may fail as the underlying system clock is susceptible to
     /// drift and updates (e.g., the system clock could go backwards), so this
-    /// function might not always succeed. If successful, [`Ok`]`(`[`Duration`]`)` is
+    /// function might not always succeed. If successful, <code>[Ok]\([Duration])</code> is
     /// returned where the duration represents the amount of time elapsed from
     /// this time measurement to the current time.
     ///

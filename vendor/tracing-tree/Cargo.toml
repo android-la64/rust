@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "tracing-tree"
-version = "0.1.9"
+version = "0.1.10"
 authors = ["David Barsky <me@davidbarsky.com>", "Nathan Whitaker"]
 description = "A Tracing Layer which prints a tree of spans and events."
 readme = "README.md"
@@ -32,7 +32,7 @@ version = "0.2"
 [dependencies.termcolor]
 version = "1.1"
 
-[dependencies.tracing]
+[dependencies.tracing-core]
 version = "0.1"
 
 [dependencies.tracing-log]
@@ -51,6 +51,9 @@ version = "0.3"
 
 [dev-dependencies.log]
 version = "0.4"
+
+[dev-dependencies.tracing]
+version = "0.1"
 
 [features]
 default = ["tracing-log"]

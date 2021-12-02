@@ -6,6 +6,7 @@
 
 use crate::{declare_lint, declare_lint_pass, FutureIncompatibilityReason};
 use rustc_span::edition::Edition;
+use rustc_span::symbol::sym;
 
 declare_lint! {
     /// The `forbidden_lint_groups` lint detects violations of
@@ -312,6 +313,46 @@ declare_lint! {
     pub UNUSED_IMPORTS,
     Warn,
     "imports that are never used"
+}
+
+declare_lint! {
+    /// The `must_not_suspend` lint guards against values that shouldn't be held across suspend points
+    /// (`.await`)
+    ///
+    /// ### Example
+    ///
+    /// ```rust
+    /// #![feature(must_not_suspend)]
+    /// #![warn(must_not_suspend)]
+    ///
+    /// #[must_not_suspend]
+    /// struct SyncThing {}
+    ///
+    /// async fn yield_now() {}
+    ///
+    /// pub async fn uhoh() {
+    ///     let guard = SyncThing {};
+    ///     yield_now().await;
+    /// }
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// The `must_not_suspend` lint detects values that are marked with the `#[must_not_suspend]`
+    /// attribute being held across suspend points. A "suspend" point is usually a `.await` in an async
+    /// function.
+    ///
+    /// This attribute can be used to mark values that are semantically incorrect across suspends
+    /// (like certain types of timers), values that have async alternatives, and values that
+    /// regularly cause problems with the `Send`-ness of async fn's returned futures (like
+    /// `MutexGuard`'s)
+    ///
+    pub MUST_NOT_SUSPEND,
+    Allow,
+    "use of a `#[must_not_suspend]` value across a yield point",
+    @feature_gate = rustc_span::symbol::sym::must_not_suspend;
 }
 
 declare_lint! {
@@ -1584,7 +1625,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```rust
+    /// ```rust,edition2018
     /// trait Trait { }
     ///
     /// fn takes_trait_object(_: Box<Trait>) {
@@ -1922,6 +1963,7 @@ declare_lint! {
     "detects proc macro derives using inaccessible names from parent modules",
     @future_incompatible = FutureIncompatibleInfo {
         reference: "issue #83583 <https://github.com/rust-lang/rust/issues/83583>",
+        reason: FutureIncompatibilityReason::FutureReleaseErrorReportNow,
     };
 }
 
@@ -2993,6 +3035,7 @@ declare_lint_pass! {
         CENUM_IMPL_DROP_CAST,
         CONST_EVALUATABLE_UNCHECKED,
         INEFFECTIVE_UNSTABLE_TRAIT_IMPL,
+        MUST_NOT_SUSPEND,
         UNINHABITED_STATIC,
         FUNCTION_ITEM_REFERENCES,
         USELESS_DEPRECATED,
@@ -3010,6 +3053,9 @@ declare_lint_pass! {
         UNSUPPORTED_CALLING_CONVENTIONS,
         BREAK_WITH_LABEL_AND_LOOP,
         UNUSED_ATTRIBUTES,
+        NON_EXHAUSTIVE_OMITTED_PATTERNS,
+        TEXT_DIRECTION_CODEPOINT_IN_COMMENT,
+        DEREF_INTO_DYN_SUPERTRAIT,
     ]
 }
 
@@ -3312,7 +3358,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```rust,compile_fail
+    /// ```rust,edition2018,compile_fail
     /// #![deny(rust_2021_prefixes_incompatible_syntax)]
     ///
     /// macro_rules! m {
@@ -3332,6 +3378,8 @@ declare_lint! {
     ///
     /// This lint suggests to add whitespace between the `z` and `"hey"` tokens
     /// to keep them separated in Rust 2021.
+    // Allow this lint -- rustdoc doesn't yet support threading edition into this lint's parser.
+    #[allow(rustdoc::invalid_rust_codeblocks)]
     pub RUST_2021_PREFIXES_INCOMPATIBLE_SYNTAX,
     Allow,
     "identifiers that will be parsed as a prefix in Rust 2021",
@@ -3418,6 +3466,62 @@ declare_lint! {
 }
 
 declare_lint! {
+    /// The `non_exhaustive_omitted_patterns` lint detects when a wildcard (`_` or `..`) in a
+    /// pattern for a `#[non_exhaustive]` struct or enum is reachable.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,ignore (needs separate crate)
+    /// // crate A
+    /// #[non_exhaustive]
+    /// pub enum Bar {
+    ///     A,
+    ///     B, // added variant in non breaking change
+    /// }
+    ///
+    /// // in crate B
+    /// #![feature(non_exhaustive_omitted_patterns_lint)]
+    ///
+    /// match Bar::A {
+    ///     Bar::A => {},
+    ///     #[warn(non_exhaustive_omitted_patterns)]
+    ///     _ => {},
+    /// }
+    /// ```
+    ///
+    /// This will produce:
+    ///
+    /// ```text
+    /// warning: reachable patterns not covered of non exhaustive enum
+    ///    --> $DIR/reachable-patterns.rs:70:9
+    ///    |
+    /// LL |         _ => {}
+    ///    |         ^ pattern `B` not covered
+    ///    |
+    ///  note: the lint level is defined here
+    ///   --> $DIR/reachable-patterns.rs:69:16
+    ///    |
+    /// LL |         #[warn(non_exhaustive_omitted_patterns)]
+    ///    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ///    = help: ensure that all possible cases are being handled by adding the suggested match arms
+    ///    = note: the matched value is of type `Bar` and the `non_exhaustive_omitted_patterns` attribute was found
+    /// ```
+    ///
+    /// ### Explanation
+    ///
+    /// Structs and enums tagged with `#[non_exhaustive]` force the user to add a
+    /// (potentially redundant) wildcard when pattern-matching, to allow for future
+    /// addition of fields or variants. The `non_exhaustive_omitted_patterns` lint
+    /// detects when such a wildcard happens to actually catch some fields/variants.
+    /// In other words, when the match without the wildcard would not be exhaustive.
+    /// This lets the user be informed if new fields/variants were added.
+    pub NON_EXHAUSTIVE_OMITTED_PATTERNS,
+    Allow,
+    "detect when patterns of types marked `non_exhaustive` are missed",
+    @feature_gate = sym::non_exhaustive_omitted_patterns_lint;
+}
+
+declare_lint! {
     /// The `text_direction_codepoint_in_comment` lint detects Unicode codepoints in comments that
     /// change the visual representation of text on screen in a way that does not correspond to
     /// their on memory representation.
@@ -3443,4 +3547,49 @@ declare_lint! {
     pub TEXT_DIRECTION_CODEPOINT_IN_COMMENT,
     Deny,
     "invisible directionality-changing codepoints in comment"
+}
+
+declare_lint! {
+    /// The `deref_into_dyn_supertrait` lint is output whenever there is a use of the
+    /// `Deref` implementation with a `dyn SuperTrait` type as `Output`.
+    ///
+    /// These implementations will become shadowed when the `trait_upcasting` feature is stablized.
+    /// The `deref` functions will no longer be called implicitly, so there might be behavior change.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// #![deny(deref_into_dyn_supertrait)]
+    /// #![allow(dead_code)]
+    ///
+    /// use core::ops::Deref;
+    ///
+    /// trait A {}
+    /// trait B: A {}
+    /// impl<'a> Deref for dyn 'a + B {
+    ///     type Target = dyn A;
+    ///     fn deref(&self) -> &Self::Target {
+    ///         todo!()
+    ///     }
+    /// }
+    ///
+    /// fn take_a(_: &dyn A) { }
+    ///
+    /// fn take_b(b: &dyn B) {
+    ///     take_a(b);
+    /// }
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// The dyn upcasting coercion feature adds new coercion rules, taking priority
+    /// over certain other coercion rules, which will cause some behavior change.
+    pub DEREF_INTO_DYN_SUPERTRAIT,
+    Warn,
+    "`Deref` implementation usage with a supertrait trait object for output might be shadowed in the future",
+    @future_incompatible = FutureIncompatibleInfo {
+        reference: "issue #89460 <https://github.com/rust-lang/rust/issues/89460>",
+    };
 }

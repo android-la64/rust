@@ -1,8 +1,8 @@
-//! See `complete_fn_param`.
+//! See [`complete_fn_param`].
 
 use rustc_hash::FxHashMap;
 use syntax::{
-    ast::{self, ModuleItemOwner},
+    ast::{self, HasModuleItem},
     match_ast, AstNode,
 };
 

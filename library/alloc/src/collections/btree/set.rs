@@ -1,6 +1,7 @@
 // This is pretty much entirely stolen from TreeSet, since BTreeMap has an identical interface
 // to TreeMap
 
+use crate::vec::Vec;
 use core::borrow::Borrow;
 use core::cmp::Ordering::{Equal, Greater, Less};
 use core::cmp::{max, min};
@@ -106,9 +107,10 @@ impl<T: fmt::Debug> fmt::Debug for Iter<'_, T> {
 /// An owning iterator over the items of a `BTreeSet`.
 ///
 /// This `struct` is created by the [`into_iter`] method on [`BTreeSet`]
-/// (provided by the `IntoIterator` trait). See its documentation for more.
+/// (provided by the [`IntoIterator`] trait). See its documentation for more.
 ///
 /// [`into_iter`]: BTreeSet#method.into_iter
+/// [`IntoIterator`]: core::iter::IntoIterator
 #[stable(feature = "rust1", since = "1.0.0")]
 #[derive(Debug)]
 pub struct IntoIter<T> {
@@ -246,6 +248,7 @@ impl<T> BTreeSet<T> {
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
     #[rustc_const_unstable(feature = "const_btree_new", issue = "71835")]
+    #[must_use]
     pub const fn new() -> BTreeSet<T> {
         BTreeSet { map: BTreeMap::new() }
     }
@@ -532,6 +535,7 @@ impl<T> BTreeSet<T> {
     /// b.insert(1);
     /// assert_eq!(a.is_disjoint(&b), false);
     /// ```
+    #[must_use]
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn is_disjoint(&self, other: &BTreeSet<T>) -> bool
     where
@@ -557,6 +561,7 @@ impl<T> BTreeSet<T> {
     /// set.insert(4);
     /// assert_eq!(set.is_subset(&sup), false);
     /// ```
+    #[must_use]
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn is_subset(&self, other: &BTreeSet<T>) -> bool
     where
@@ -636,6 +641,7 @@ impl<T> BTreeSet<T> {
     /// set.insert(2);
     /// assert_eq!(set.is_superset(&sub), true);
     /// ```
+    #[must_use]
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn is_superset(&self, other: &BTreeSet<T>) -> bool
     where
@@ -1056,9 +1062,17 @@ impl<T> BTreeSet<T> {
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: Ord> FromIterator<T> for BTreeSet<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> BTreeSet<T> {
-        let mut set = BTreeSet::new();
-        set.extend(iter);
-        set
+        let mut inputs: Vec<_> = iter.into_iter().collect();
+
+        if inputs.is_empty() {
+            return BTreeSet::new();
+        }
+
+        // use stable sort to preserve the insertion order.
+        inputs.sort();
+        let iter = inputs.into_iter().map(|k| (k, ()));
+        let map = BTreeMap::bulk_build_from_sorted_iter(iter);
+        BTreeSet { map }
     }
 }
 
@@ -1071,8 +1085,16 @@ impl<T: Ord, const N: usize> From<[T; N]> for BTreeSet<T> {
     /// let set2: BTreeSet<_> = [1, 2, 3, 4].into();
     /// assert_eq!(set1, set2);
     /// ```
-    fn from(arr: [T; N]) -> Self {
-        core::array::IntoIter::new(arr).collect()
+    fn from(mut arr: [T; N]) -> Self {
+        if N == 0 {
+            return BTreeSet::new();
+        }
+
+        // use stable sort to preserve the insertion order.
+        arr.sort();
+        let iter = core::array::IntoIter::new(arr).map(|k| (k, ()));
+        let map = BTreeMap::bulk_build_from_sorted_iter(iter);
+        BTreeSet { map }
     }
 }
 

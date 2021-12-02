@@ -14,13 +14,13 @@ use rustc_hir::lang_items::LangItem;
 use rustc_index::vec::Idx;
 use rustc_middle::mir::AssertKind;
 use rustc_middle::mir::{self, SwitchTargets};
-use rustc_middle::ty::layout::{FnAbiExt, HasTyCtxt};
-use rustc_middle::ty::print::with_no_trimmed_paths;
+use rustc_middle::ty::layout::{HasTyCtxt, LayoutOf};
+use rustc_middle::ty::print::{with_no_trimmed_paths, with_no_visible_paths};
 use rustc_middle::ty::{self, Instance, Ty, TypeFoldable};
 use rustc_span::source_map::Span;
 use rustc_span::{sym, Symbol};
 use rustc_target::abi::call::{ArgAbi, FnAbi, PassMode};
-use rustc_target::abi::{self, HasDataLayout, LayoutOf};
+use rustc_target::abi::{self, HasDataLayout, WrappingRange};
 use rustc_target::spec::abi::Abi;
 
 /// Used by `FunctionCx::codegen_terminator` for emitting common patterns
@@ -124,7 +124,7 @@ impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
         &self,
         fx: &mut FunctionCx<'a, 'tcx, Bx>,
         bx: &mut Bx,
-        fn_abi: FnAbi<'tcx, Ty<'tcx>>,
+        fn_abi: &'tcx FnAbi<'tcx, Ty<'tcx>>,
         fn_ptr: Bx::Value,
         llargs: &[Bx::Value],
         destination: Option<(ReturnDest<'tcx, Bx::Value>, mir::BasicBlock)>,
@@ -337,7 +337,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     def: ty::InstanceDef::Virtual(drop_fn.def_id(), 0),
                     substs: drop_fn.substs,
                 };
-                let fn_abi = FnAbi::of_instance(&bx, virtual_drop, &[]);
+                let fn_abi = bx.fn_abi_of_instance(virtual_drop, ty::List::empty());
                 let vtable = args[1];
                 args = &args[..1];
                 (
@@ -346,7 +346,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     fn_abi,
                 )
             }
-            _ => (bx.get_fn_addr(drop_fn), FnAbi::of_instance(&bx, drop_fn, &[])),
+            _ => (bx.get_fn_addr(drop_fn), bx.fn_abi_of_instance(drop_fn, ty::List::empty())),
         };
         helper.do_call(
             self,
@@ -433,7 +433,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         // Obtain the panic entry point.
         let def_id = common::langcall(bx.tcx(), Some(span), "", lang_item);
         let instance = ty::Instance::mono(bx.tcx(), def_id);
-        let fn_abi = FnAbi::of_instance(&bx, instance, &[]);
+        let fn_abi = bx.fn_abi_of_instance(instance, ty::List::empty());
         let llfn = bx.get_fn_addr(instance);
 
         // Codegen the actual panic invoke/call.
@@ -476,15 +476,20 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 UninitValid => !layout.might_permit_raw_init(bx, /*zero:*/ false),
             };
             if do_panic {
-                let msg_str = with_no_trimmed_paths(|| {
-                    if layout.abi.is_uninhabited() {
-                        // Use this error even for the other intrinsics as it is more precise.
-                        format!("attempted to instantiate uninhabited type `{}`", ty)
-                    } else if intrinsic == ZeroValid {
-                        format!("attempted to zero-initialize type `{}`, which is invalid", ty)
-                    } else {
-                        format!("attempted to leave type `{}` uninitialized, which is invalid", ty)
-                    }
+                let msg_str = with_no_visible_paths(|| {
+                    with_no_trimmed_paths(|| {
+                        if layout.abi.is_uninhabited() {
+                            // Use this error even for the other intrinsics as it is more precise.
+                            format!("attempted to instantiate uninhabited type `{}`", ty)
+                        } else if intrinsic == ZeroValid {
+                            format!("attempted to zero-initialize type `{}`, which is invalid", ty)
+                        } else {
+                            format!(
+                                "attempted to leave type `{}` uninitialized, which is invalid",
+                                ty
+                            )
+                        }
+                    })
                 });
                 let msg = bx.const_str(Symbol::intern(&msg_str));
                 let location = self.get_caller_location(bx, source_info).immediate();
@@ -494,7 +499,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 let def_id =
                     common::langcall(bx.tcx(), Some(source_info.span), "", LangItem::Panic);
                 let instance = ty::Instance::mono(bx.tcx(), def_id);
-                let fn_abi = FnAbi::of_instance(bx, instance, &[]);
+                let fn_abi = bx.fn_abi_of_instance(instance, ty::List::empty());
                 let llfn = bx.get_fn_addr(instance);
 
                 // Codegen the actual panic invoke/call.
@@ -570,17 +575,14 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         };
 
         let extra_args = &args[sig.inputs().skip_binder().len()..];
-        let extra_args = extra_args
-            .iter()
-            .map(|op_arg| {
-                let op_ty = op_arg.ty(self.mir, bx.tcx());
-                self.monomorphize(op_ty)
-            })
-            .collect::<Vec<_>>();
+        let extra_args = bx.tcx().mk_type_list(extra_args.iter().map(|op_arg| {
+            let op_ty = op_arg.ty(self.mir, bx.tcx());
+            self.monomorphize(op_ty)
+        }));
 
         let fn_abi = match instance {
-            Some(instance) => FnAbi::of_instance(&bx, instance, &extra_args),
-            None => FnAbi::of_fn_ptr(&bx, sig, &extra_args),
+            Some(instance) => bx.fn_abi_of_instance(instance, extra_args),
+            None => bx.fn_abi_of_fn_ptr(sig, extra_args),
         };
 
         if intrinsic == Some(sym::transmute) {
@@ -665,8 +667,12 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         if i == 2 && intrinsic.as_str().starts_with("simd_shuffle") {
                             if let mir::Operand::Constant(constant) = arg {
                                 let c = self.eval_mir_constant(constant);
-                                let (llval, ty) =
-                                    self.simd_shuffle_indices(&bx, constant.span, constant.ty(), c);
+                                let (llval, ty) = self.simd_shuffle_indices(
+                                    &bx,
+                                    constant.span,
+                                    self.monomorphize(constant.ty()),
+                                    c,
+                                );
                                 return OperandRef {
                                     val: Immediate(llval),
                                     layout: bx.layout_of(ty),
@@ -776,22 +782,30 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
 
             self.codegen_argument(&mut bx, op, &mut llargs, &fn_abi.args[i]);
         }
-        if let Some(tup) = untuple {
+        let num_untupled = untuple.map(|tup| {
             self.codegen_arguments_untupled(
                 &mut bx,
                 tup,
                 &mut llargs,
                 &fn_abi.args[first_args.len()..],
             )
-        }
+        });
 
         let needs_location =
             instance.map_or(false, |i| i.def.requires_caller_location(self.cx.tcx()));
         if needs_location {
+            let mir_args = if let Some(num_untupled) = num_untupled {
+                first_args.len() + num_untupled
+            } else {
+                args.len()
+            };
             assert_eq!(
                 fn_abi.args.len(),
-                args.len() + 1,
-                "#[track_caller] fn's must have 1 more argument in their ABI than in their MIR",
+                mir_args + 1,
+                "#[track_caller] fn's must have 1 more argument in their ABI than in their MIR: {:?} {:?} {:?}",
+                instance,
+                fn_span,
+                fn_abi,
             );
             let location =
                 self.get_caller_location(&mut bx, mir::SourceInfo { span: fn_span, ..source_info });
@@ -1102,9 +1116,9 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 // the load would just produce `OperandValue::Ref` instead
                 // of the `OperandValue::Immediate` we need for the call.
                 llval = bx.load(bx.backend_type(arg.layout), llval, align);
-                if let abi::Abi::Scalar(ref scalar) = arg.layout.abi {
+                if let abi::Abi::Scalar(scalar) = arg.layout.abi {
                     if scalar.is_bool() {
-                        bx.range_metadata(llval, 0..2);
+                        bx.range_metadata(llval, WrappingRange { start: 0, end: 1 });
                     }
                 }
                 // We store bools as `i8` so we need to truncate to `i1`.
@@ -1121,7 +1135,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         operand: &mir::Operand<'tcx>,
         llargs: &mut Vec<Bx::Value>,
         args: &[ArgAbi<'tcx, Ty<'tcx>>],
-    ) {
+    ) -> usize {
         let tuple = self.codegen_operand(bx, operand);
 
         // Handle both by-ref and immediate tuples.
@@ -1141,6 +1155,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 self.codegen_argument(bx, op, llargs, &args[i]);
             }
         }
+        tuple.layout.fields.count()
     }
 
     fn get_caller_location(
@@ -1424,7 +1439,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         let src = self.codegen_operand(bx, src);
 
         // Special-case transmutes between scalars as simple bitcasts.
-        match (&src.layout.abi, &dst.layout.abi) {
+        match (src.layout.abi, dst.layout.abi) {
             (abi::Abi::Scalar(src_scalar), abi::Abi::Scalar(dst_scalar)) => {
                 // HACK(eddyb) LLVM doesn't like `bitcast`s between pointers and non-pointers.
                 if (src_scalar.value == abi::Pointer) == (dst_scalar.value == abi::Pointer) {

@@ -20,7 +20,7 @@
 		: 32 * 1024 * 1024)
 
 #define DEFAULT_MAPPED_LIMIT \
-	((1024 * 1024) * (sizeof(void*) >= 8 ? 8192ULL : 256UL))
+	((1024 * 1024) * (sizeof(void*) >= 8 ? UINT64_C(8192) : UINT64_C(256)))
 
 /* default is unlimited */
 #define DEFAULT_FILE_LIMIT 0
@@ -312,8 +312,10 @@ static int git_mwindow_find_lru_file_locked(git_mwindow_file **out)
 				current_file, &mru_window, NULL, true, GIT_MWINDOW__MRU)) {
 			continue;
 		}
-		if (!lru_window || lru_window->last_used > mru_window->last_used)
+		if (!lru_window || lru_window->last_used > mru_window->last_used) {
+			lru_window = mru_window;
 			lru_file = current_file;
+		}
 	}
 
 	if (!lru_file) {

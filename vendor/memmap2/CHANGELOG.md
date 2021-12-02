@@ -6,14 +6,44 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2021-09-19
+### Added
+- `MmapOptions` accepts any type that supports `RawHandle`/`RawFd` returning now.
+  This allows using `memmap2` not only with Rust std types, but also with
+  [async-std](https://github.com/async-rs/async-std) one.
+  [@adamreichold](https://github.com/adamreichold)
+- (unix) Memoize page size to avoid repeatedly calling into sysconf machinery.
+  [@adamreichold](https://github.com/adamreichold)
+
+### Changed
+- (win) Use `std::os::windows::io::AsRawHandle` directly, without relying on `std::fs::File`.
+  [@adamreichold](https://github.com/adamreichold)
+- Do not panic when failing to release resources in Drop impls.
+  [@adamreichold](https://github.com/adamreichold)
+
+## [0.4.0] - 2021-09-16
+### Added
+- Optional [`StableDeref`](https://github.com/storyyeller/stable_deref_trait) support.
+  [@SimonSapin](https://github.com/SimonSapin)
+
+### Changed
+- Mapping of zero-sized files is no longer an error.
+  [@SimonSapin](https://github.com/SimonSapin)
+- MSRV changed from 1.31 to 1.36
+
+## [0.3.1] - 2021-08-15
+### Fixed
+- Integer overflow during file length calculation on 32bit targets.
+- Stub implementation. [@Mrmaxmeier](https://github.com/Mrmaxmeier)
+
 ## [0.3.0] - 2021-06-10
 ### Changed
-- `MmapOptions` allows mapping using Unix descriptors and not only `std::fs:File` now.
+- `MmapOptions` allows mapping using Unix descriptors and not only `std::fs::File` now.
   [@mripard](https://github.com/mripard)
 
 ## [0.2.3] - 2021-05-24
 ### Added
-- Allow compilation on unsupported platform.
+- Allow compilation on unsupported platforms.
   The code will panic on access just like in `std`.
   [@jcaesar](https://github.com/jcaesar)
 
@@ -33,7 +63,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - MSRV is 1.31 now (edition 2018).
 - Make anonymous memory maps private by default on unix. [@CensoredUsername](https://github.com/CensoredUsername)
-- Add `map_copy_read_only`. [@zserik](https://github.com/zserik)
+- Add `map_copy_read_only`. [@zseri](https://github.com/zseri)
 
 ## 0.1.0 - 2020-01-18
 ### Added
@@ -45,7 +75,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 - `winapi` dependency. [memmap-rs/pull/89](https://github.com/danburkert/memmap-rs/pull/89)
 
-[Unreleased]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.2.1...v0.2.2

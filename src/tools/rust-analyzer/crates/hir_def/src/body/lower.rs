@@ -14,7 +14,7 @@ use la_arena::Arena;
 use profile::Count;
 use syntax::{
     ast::{
-        self, ArgListOwner, ArrayExprKind, AstChildren, LiteralKind, LoopBodyOwner, NameOwner,
+        self, ArrayExprKind, AstChildren, HasArgList, HasLoopBody, HasName, LiteralKind,
         SlicePatComponents,
     },
     AstNode, AstPtr, SyntaxNodePtr,
@@ -245,43 +245,37 @@ impl ExprCollector<'_> {
 
                 self.alloc_expr(Expr::If { condition, then_branch, else_branch }, syntax_ptr)
             }
-            ast::Expr::EffectExpr(e) => match e.effect() {
-                ast::Effect::Try(_) => {
-                    let body = self.collect_block_opt(e.block_expr());
+            ast::Expr::BlockExpr(e) => match e.modifier() {
+                Some(ast::BlockModifier::Try(_)) => {
+                    let body = self.collect_block(e);
                     self.alloc_expr(Expr::TryBlock { body }, syntax_ptr)
                 }
-                ast::Effect::Unsafe(_) => {
-                    let body = self.collect_block_opt(e.block_expr());
+                Some(ast::BlockModifier::Unsafe(_)) => {
+                    let body = self.collect_block(e);
                     self.alloc_expr(Expr::Unsafe { body }, syntax_ptr)
                 }
                 // FIXME: we need to record these effects somewhere...
-                ast::Effect::Label(label) => {
+                Some(ast::BlockModifier::Label(label)) => {
                     let label = self.collect_label(label);
-                    match e.block_expr() {
-                        Some(block) => {
-                            let res = self.collect_block(block);
-                            match &mut self.body.exprs[res] {
-                                Expr::Block { label: block_label, .. } => {
-                                    *block_label = Some(label);
-                                }
-                                _ => unreachable!(),
-                            }
-                            res
+                    let res = self.collect_block(e);
+                    match &mut self.body.exprs[res] {
+                        Expr::Block { label: block_label, .. } => {
+                            *block_label = Some(label);
                         }
-                        None => self.missing_expr(),
+                        _ => unreachable!(),
                     }
+                    res
                 }
-                // FIXME: we need to record these effects somewhere...
-                ast::Effect::Async(_) => {
-                    let body = self.collect_block_opt(e.block_expr());
+                Some(ast::BlockModifier::Async(_)) => {
+                    let body = self.collect_block(e);
                     self.alloc_expr(Expr::Async { body }, syntax_ptr)
                 }
-                ast::Effect::Const(_) => {
-                    let body = self.collect_block_opt(e.block_expr());
+                Some(ast::BlockModifier::Const(_)) => {
+                    let body = self.collect_block(e);
                     self.alloc_expr(Expr::Const { body }, syntax_ptr)
                 }
+                None => self.collect_block(e),
             },
-            ast::Expr::BlockExpr(e) => self.collect_block(e),
             ast::Expr::LoopExpr(e) => {
                 let label = e.label().map(|label| self.collect_label(label));
                 let body = self.collect_block_opt(e.loop_body());
@@ -480,10 +474,9 @@ impl ExprCollector<'_> {
             }
             ast::Expr::PrefixExpr(e) => {
                 let expr = self.collect_expr_opt(e.expr());
-                if let Some(op) = e.op_kind() {
-                    self.alloc_expr(Expr::UnaryOp { expr, op }, syntax_ptr)
-                } else {
-                    self.alloc_expr(Expr::Missing, syntax_ptr)
+                match e.op_kind() {
+                    Some(op) => self.alloc_expr(Expr::UnaryOp { expr, op }, syntax_ptr),
+                    None => self.alloc_expr(Expr::Missing, syntax_ptr),
                 }
             }
             ast::Expr::ClosureExpr(e) => {
@@ -558,7 +551,7 @@ impl ExprCollector<'_> {
             ast::Expr::MacroCall(e) => {
                 let macro_ptr = AstPtr::new(&e);
                 let mut ids = vec![];
-                self.collect_macro_call(e, macro_ptr, true, |this, expansion| {
+                self.collect_macro_call(e, macro_ptr, |this, expansion| {
                     ids.push(match expansion {
                         Some(it) => this.collect_expr(it),
                         None => this.alloc_expr(Expr::Missing, syntax_ptr.clone()),
@@ -582,7 +575,6 @@ impl ExprCollector<'_> {
         &mut self,
         e: ast::MacroCall,
         syntax_ptr: AstPtr<ast::MacroCall>,
-        is_error_recoverable: bool,
         mut collector: F,
     ) {
         // File containing the macro call. Expansion errors will be attached here.
@@ -620,28 +612,20 @@ impl ExprCollector<'_> {
 
         match res.value {
             Some((mark, expansion)) => {
-                // FIXME: Statements are too complicated to recover from error for now.
-                // It is because we don't have any hygiene for local variable expansion right now.
-                if !is_error_recoverable && res.err.is_some() {
-                    self.expander.exit(self.db, mark);
-                    collector(self, None);
-                } else {
-                    self.source_map.expansions.insert(macro_call, self.expander.current_file_id);
+                self.source_map.expansions.insert(macro_call, self.expander.current_file_id);
 
-                    let id = collector(self, Some(expansion));
-                    self.expander.exit(self.db, mark);
-                    id
-                }
+                let id = collector(self, Some(expansion));
+                self.expander.exit(self.db, mark);
+                id
             }
             None => collector(self, None),
         }
     }
 
     fn collect_expr_opt(&mut self, expr: Option<ast::Expr>) -> ExprId {
-        if let Some(expr) = expr {
-            self.collect_expr(expr)
-        } else {
-            self.missing_expr()
+        match expr {
+            Some(expr) => self.collect_expr(expr),
+            None => self.missing_expr(),
         }
     }
 
@@ -655,11 +639,22 @@ impl ExprCollector<'_> {
                 let type_ref =
                     stmt.ty().map(|it| Interned::new(TypeRef::from_ast(&self.ctx(), it)));
                 let initializer = stmt.initializer().map(|e| self.collect_expr(e));
-                self.statements_in_scope.push(Statement::Let { pat, type_ref, initializer });
+                let else_branch = stmt
+                    .let_else()
+                    .and_then(|let_else| let_else.block_expr())
+                    .map(|block| self.collect_block(block));
+                self.statements_in_scope.push(Statement::Let {
+                    pat,
+                    type_ref,
+                    initializer,
+                    else_branch,
+                });
             }
             ast::Stmt::ExprStmt(stmt) => {
-                if self.check_cfg(&stmt).is_none() {
-                    return;
+                if let Some(expr) = stmt.expr() {
+                    if self.check_cfg(&expr).is_none() {
+                        return;
+                    }
                 }
                 let has_semi = stmt.semicolon_token().is_some();
                 // Note that macro could be expended to multiple statements
@@ -667,27 +662,21 @@ impl ExprCollector<'_> {
                     let macro_ptr = AstPtr::new(&m);
                     let syntax_ptr = AstPtr::new(&stmt.expr().unwrap());
 
-                    self.collect_macro_call(
-                        m,
-                        macro_ptr,
-                        false,
-                        |this, expansion| match expansion {
-                            Some(expansion) => {
-                                let statements: ast::MacroStmts = expansion;
+                    self.collect_macro_call(m, macro_ptr, |this, expansion| match expansion {
+                        Some(expansion) => {
+                            let statements: ast::MacroStmts = expansion;
 
-                                statements.statements().for_each(|stmt| this.collect_stmt(stmt));
-                                if let Some(expr) = statements.expr() {
-                                    let expr = this.collect_expr(expr);
-                                    this.statements_in_scope
-                                        .push(Statement::Expr { expr, has_semi });
-                                }
-                            }
-                            None => {
-                                let expr = this.alloc_expr(Expr::Missing, syntax_ptr.clone());
+                            statements.statements().for_each(|stmt| this.collect_stmt(stmt));
+                            if let Some(expr) = statements.expr() {
+                                let expr = this.collect_expr(expr);
                                 this.statements_in_scope.push(Statement::Expr { expr, has_semi });
                             }
-                        },
-                    );
+                        }
+                        None => {
+                            let expr = this.alloc_expr(Expr::Missing, syntax_ptr.clone());
+                            this.statements_in_scope.push(Statement::Expr { expr, has_semi });
+                        }
+                    });
                 } else {
                     let expr = self.collect_expr_opt(stmt.expr());
                     self.statements_in_scope.push(Statement::Expr { expr, has_semi });
@@ -742,10 +731,9 @@ impl ExprCollector<'_> {
     }
 
     fn collect_block_opt(&mut self, expr: Option<ast::BlockExpr>) -> ExprId {
-        if let Some(block) = expr {
-            self.collect_block(block)
-        } else {
-            self.missing_expr()
+        match expr {
+            Some(block) => self.collect_block(block),
+            None => self.missing_expr(),
         }
     }
 
@@ -839,7 +827,7 @@ impl ExprCollector<'_> {
                 let ellipsis = p
                     .record_pat_field_list()
                     .expect("every struct should have a field list")
-                    .dotdot_token()
+                    .rest_pat()
                     .is_some();
 
                 Pat::Record { path, args, ellipsis }
@@ -889,7 +877,7 @@ impl ExprCollector<'_> {
                 Some(call) => {
                     let macro_ptr = AstPtr::new(&call);
                     let mut pat = None;
-                    self.collect_macro_call(call, macro_ptr, true, |this, expanded_pat| {
+                    self.collect_macro_call(call, macro_ptr, |this, expanded_pat| {
                         pat = Some(this.collect_pat_opt(expanded_pat));
                     });
 
@@ -908,10 +896,9 @@ impl ExprCollector<'_> {
     }
 
     fn collect_pat_opt(&mut self, pat: Option<ast::Pat>) -> PatId {
-        if let Some(pat) = pat {
-            self.collect_pat(pat)
-        } else {
-            self.missing_pat()
+        match pat {
+            Some(pat) => self.collect_pat(pat),
+            None => self.missing_pat(),
         }
     }
 
@@ -930,7 +917,7 @@ impl ExprCollector<'_> {
 
     /// Returns `None` (and emits diagnostics) when `owner` if `#[cfg]`d out, and `Some(())` when
     /// not.
-    fn check_cfg(&mut self, owner: &dyn ast::AttrsOwner) -> Option<()> {
+    fn check_cfg(&mut self, owner: &dyn ast::HasAttrs) -> Option<()> {
         match self.expander.parse_attrs(self.db, owner).cfg() {
             Some(cfg) => {
                 if self.expander.cfg_options().check(&cfg) != Some(false) {

@@ -1,4 +1,5 @@
 use crate::errors::LifetimesOrBoundsMismatchOnTrait;
+use rustc_data_structures::stable_set::FxHashSet;
 use rustc_errors::{pluralize, struct_span_err, Applicability, DiagnosticId, ErrorReported};
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
@@ -250,7 +251,7 @@ fn compare_predicate_entailment<'tcx>(
         // Compute placeholder form of impl and trait method tys.
         let tcx = infcx.tcx;
 
-        let mut wf_tys = vec![];
+        let mut wf_tys = FxHashSet::default();
 
         let (impl_sig, _) = infcx.replace_bound_vars_with_fresh_vars(
             impl_m_span,
@@ -265,14 +266,9 @@ fn compare_predicate_entailment<'tcx>(
         // First liberate late bound regions and subst placeholders
         let trait_sig = tcx.liberate_late_bound_regions(impl_m.def_id, tcx.fn_sig(trait_m.def_id));
         let trait_sig = trait_sig.subst(tcx, trait_to_placeholder_substs);
-        // Next, add all inputs and output as well-formed tys. Importantly,
-        // we have to do this before normalization, since the normalized ty may
-        // not contain the input parameters. See issue #87748.
-        wf_tys.extend(trait_sig.inputs_and_output.iter());
         let trait_sig =
             inh.normalize_associated_types_in(impl_m_span, impl_m_hir_id, param_env, trait_sig);
-        // Also add the resulting inputs and output as well-formed.
-        // This probably isn't strictly necessary.
+        // Add the resulting inputs and output as well-formed.
         wf_tys.extend(trait_sig.inputs_and_output.iter());
         let trait_fty = tcx.mk_fn_ptr(ty::Binder::dummy(trait_sig));
 
@@ -398,7 +394,7 @@ fn compare_predicate_entailment<'tcx>(
         // Finally, resolve all regions. This catches wily misuses of
         // lifetime parameters.
         let fcx = FnCtxt::new(&inh, param_env, impl_m_hir_id);
-        fcx.regionck_item(impl_m_hir_id, impl_m_span, &wf_tys);
+        fcx.regionck_item(impl_m_hir_id, impl_m_span, wf_tys);
 
         Ok(())
     })
@@ -1098,7 +1094,7 @@ crate fn compare_const_impl<'tcx>(
         }
 
         let fcx = FnCtxt::new(&inh, param_env, impl_c_hir_id);
-        fcx.regionck_item(impl_c_hir_id, impl_c_span, &[]);
+        fcx.regionck_item(impl_c_hir_id, impl_c_span, FxHashSet::default());
     });
 }
 
@@ -1216,7 +1212,7 @@ fn compare_type_predicate_entailment<'tcx>(
         // Finally, resolve all regions. This catches wily misuses of
         // lifetime parameters.
         let fcx = FnCtxt::new(&inh, param_env, impl_ty_hir_id);
-        fcx.regionck_item(impl_ty_hir_id, impl_ty_span, &[]);
+        fcx.regionck_item(impl_ty_hir_id, impl_ty_span, FxHashSet::default());
 
         Ok(())
     })
@@ -1436,10 +1432,10 @@ pub fn check_type_bounds<'tcx>(
         // lifetime parameters.
         let fcx = FnCtxt::new(&inh, param_env, impl_ty_hir_id);
         let implied_bounds = match impl_ty.container {
-            ty::TraitContainer(_) => vec![],
+            ty::TraitContainer(_) => FxHashSet::default(),
             ty::ImplContainer(def_id) => fcx.impl_implied_bounds(def_id, impl_ty_span),
         };
-        fcx.regionck_item(impl_ty_hir_id, impl_ty_span, &implied_bounds);
+        fcx.regionck_item(impl_ty_hir_id, impl_ty_span, implied_bounds);
 
         Ok(())
     })

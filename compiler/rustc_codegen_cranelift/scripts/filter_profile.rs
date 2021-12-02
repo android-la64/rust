@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             continue;
         }
 
-        if stack.contains("rustc_mir::monomorphize::partitioning::collect_and_partition_mono_items")
+        if stack.contains("rustc_monomorphize::partitioning::collect_and_partition_mono_items")
             || stack.contains("rustc_incremental::assert_dep_graph::assert_dep_graph")
             || stack.contains("rustc_symbol_mangling::test::report_symbol_names")
         {
@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         const COLLECT_AND_PARTITION_MONO_ITEMS: &str =
-            "rustc_mir::monomorphize::partitioning::collect_and_partition_mono_items";
+            "rustc_monomorphize::partitioning::collect_and_partition_mono_items";
         if let Some(index) = stack.find(COLLECT_AND_PARTITION_MONO_ITEMS) {
             stack = &stack[..index + COLLECT_AND_PARTITION_MONO_ITEMS.len()];
         }
@@ -96,7 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             stack = &stack[..index + REPORT_SYMBOL_NAMES.len()];
         }
 
-        const ENCODE_METADATA: &str = "rustc_middle::ty::context::TyCtxt::encode_metadata";
+        const ENCODE_METADATA: &str = "rustc_metadata::rmeta::encoder::encode_metadata";
         if let Some(index) = stack.find(ENCODE_METADATA) {
             stack = &stack[..index + ENCODE_METADATA.len()];
         }

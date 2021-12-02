@@ -15,10 +15,11 @@ use rustc_middle::mir::interpret::{
     Scalar as InterpScalar,
 };
 use rustc_middle::mir::mono::MonoItem;
+use rustc_middle::ty::layout::LayoutOf;
 use rustc_middle::ty::{self, Instance, Ty};
 use rustc_middle::{bug, span_bug};
 use rustc_target::abi::{
-    AddressSpace, Align, HasDataLayout, LayoutOf, Primitive, Scalar, Size, WrappingRange,
+    AddressSpace, Align, HasDataLayout, Primitive, Scalar, Size, WrappingRange,
 };
 use std::ops::Range;
 use tracing::debug;
@@ -110,7 +111,7 @@ pub fn const_alloc_to_llvm(cx: &CodegenCx<'ll, '_>, alloc: &Allocation) -> &'ll 
                 Pointer::new(alloc_id, Size::from_bytes(ptr_offset)),
                 &cx.tcx,
             ),
-            &Scalar { value: Primitive::Pointer, valid_range: WrappingRange { start: 0, end: !0 } },
+            Scalar { value: Primitive::Pointer, valid_range: WrappingRange { start: 0, end: !0 } },
             cx.type_i8p_ext(address_space),
         ));
         next_offset = offset + pointer_size;
@@ -177,7 +178,7 @@ fn check_and_apply_linkage(
         };
         unsafe {
             // Declare a symbol `foo` with the desired linkage.
-            let g1 = cx.declare_global(&sym, llty2);
+            let g1 = cx.declare_global(sym, llty2);
             llvm::LLVMRustSetLinkage(g1, base::linkage_to_llvm(linkage));
 
             // Declare an internal global `extern_with_linkage_foo` which
@@ -187,7 +188,7 @@ fn check_and_apply_linkage(
             // `extern_with_linkage_foo` will instead be initialized to
             // zero.
             let mut real_name = "_rust_extern_with_linkage_".to_string();
-            real_name.push_str(&sym);
+            real_name.push_str(sym);
             let g2 = cx.define_global(&real_name, llty).unwrap_or_else(|| {
                 cx.sess().span_fatal(
                     cx.tcx.def_span(span_def_id),
@@ -201,7 +202,7 @@ fn check_and_apply_linkage(
     } else {
         // Generate an external declaration.
         // FIXME(nagisa): investigate whether it can be changed into define_global
-        cx.declare_global(&sym, llty)
+        cx.declare_global(sym, llty)
     }
 }
 
@@ -233,7 +234,7 @@ impl CodegenCx<'ll, 'tcx> {
                 _ => self.define_private_global(self.val_ty(cv)),
             };
             llvm::LLVMSetInitializer(gv, cv);
-            set_global_alignment(&self, gv, align);
+            set_global_alignment(self, gv, align);
             llvm::SetUnnamedAddress(gv, llvm::UnnamedAddr::Global);
             gv
         }
@@ -278,7 +279,7 @@ impl CodegenCx<'ll, 'tcx> {
 
             g
         } else {
-            check_and_apply_linkage(&self, &fn_attrs, ty, sym, def_id)
+            check_and_apply_linkage(self, fn_attrs, ty, sym, def_id)
         };
 
         // Thread-local statics in some other crate need to *always* be linked
@@ -368,7 +369,7 @@ impl StaticMethods for CodegenCx<'ll, 'tcx> {
         unsafe {
             let attrs = self.tcx.codegen_fn_attrs(def_id);
 
-            let (v, alloc) = match codegen_static_initializer(&self, def_id) {
+            let (v, alloc) = match codegen_static_initializer(self, def_id) {
                 Ok(v) => v,
                 // Error has already been reported
                 Err(_) => return,
@@ -416,7 +417,7 @@ impl StaticMethods for CodegenCx<'ll, 'tcx> {
                 self.statics_to_rauw.borrow_mut().push((g, new_g));
                 new_g
             };
-            set_global_alignment(&self, g, self.align_of(ty));
+            set_global_alignment(self, g, self.align_of(ty));
             llvm::LLVMSetInitializer(g, v);
 
             if self.should_assume_dso_local(g, true) {
@@ -429,7 +430,7 @@ impl StaticMethods for CodegenCx<'ll, 'tcx> {
                 llvm::LLVMSetGlobalConstant(g, llvm::True);
             }
 
-            debuginfo::create_global_var_metadata(&self, def_id, g);
+            debuginfo::create_global_var_metadata(self, def_id, g);
 
             if attrs.flags.contains(CodegenFnAttrFlags::THREAD_LOCAL) {
                 llvm::set_thread_local_mode(g, self.tls_model);
@@ -517,7 +518,7 @@ impl StaticMethods for CodegenCx<'ll, 'tcx> {
                     );
                 }
             } else {
-                base::set_link_section(g, &attrs);
+                base::set_link_section(g, attrs);
             }
 
             if attrs.flags.contains(CodegenFnAttrFlags::USED) {

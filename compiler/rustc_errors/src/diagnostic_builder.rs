@@ -242,6 +242,7 @@ impl<'a> DiagnosticBuilder<'a> {
         sp: S,
         msg: &str,
     ) -> &mut Self);
+    forward!(pub fn set_is_lint(&mut self,) -> &mut Self);
 
     /// See [`Diagnostic::multipart_suggestion()`].
     pub fn multipart_suggestion(
@@ -254,6 +255,20 @@ impl<'a> DiagnosticBuilder<'a> {
             return self;
         }
         self.0.diagnostic.multipart_suggestion(msg, suggestion, applicability);
+        self
+    }
+
+    /// See [`Diagnostic::multipart_suggestion()`].
+    pub fn multipart_suggestion_verbose(
+        &mut self,
+        msg: &str,
+        suggestion: Vec<(Span, String)>,
+        applicability: Applicability,
+    ) -> &mut Self {
+        if !self.0.allow_suggestions {
+            return self;
+        }
+        self.0.diagnostic.multipart_suggestion_verbose(msg, suggestion, applicability);
         self
     }
 

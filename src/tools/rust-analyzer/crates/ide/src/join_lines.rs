@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 
 use ide_assists::utils::extract_trivial_expression;
+use ide_db::helpers::node_ext::expr_as_name_ref;
 use itertools::Itertools;
 use syntax::{
     ast::{self, AstNode, AstToken, IsString},
@@ -15,6 +16,7 @@ pub struct JoinLinesConfig {
     pub join_else_if: bool,
     pub remove_trailing_comma: bool,
     pub unwrap_trivial_blocks: bool,
+    pub join_assignments: bool,
 }
 
 // Feature: Join Lines
@@ -134,10 +136,9 @@ fn remove_newline(
             }
             T!['}'] => {
                 // Removes: comma, newline (incl. surrounding whitespace)
-                let space = if let Some(left) = prev.prev_sibling_or_token() {
-                    compute_ws(left.kind(), next.kind())
-                } else {
-                    " "
+                let space = match prev.prev_sibling_or_token() {
+                    Some(left) => compute_ws(left.kind(), next.kind()),
+                    None => " ",
                 };
                 edit.replace(
                     TextRange::new(prev.text_range().start(), token.text_range().end()),
@@ -159,6 +160,12 @@ fn remove_newline(
                     return;
                 }
             }
+        }
+    }
+
+    if config.join_assignments {
+        if join_assignments(edit, &prev, &next).is_some() {
+            return;
         }
     }
 
@@ -204,7 +211,7 @@ fn remove_newline(
 }
 
 fn join_single_expr_block(edit: &mut TextEditBuilder, token: &SyntaxToken) -> Option<()> {
-    let block_expr = ast::BlockExpr::cast(token.parent()?)?;
+    let block_expr = ast::BlockExpr::cast(token.ancestors().nth(1)?)?;
     if !block_expr.is_standalone() {
         return None;
     }
@@ -229,6 +236,41 @@ fn join_single_use_tree(edit: &mut TextEditBuilder, token: &SyntaxToken) -> Opti
     let use_tree_list = ast::UseTreeList::cast(token.parent()?)?;
     let (tree,) = use_tree_list.use_trees().collect_tuple()?;
     edit.replace(use_tree_list.syntax().text_range(), tree.syntax().text().to_string());
+    Some(())
+}
+
+fn join_assignments(
+    edit: &mut TextEditBuilder,
+    prev: &SyntaxElement,
+    next: &SyntaxElement,
+) -> Option<()> {
+    let let_stmt = ast::LetStmt::cast(prev.as_node()?.clone())?;
+    if let_stmt.eq_token().is_some() {
+        cov_mark::hit!(join_assignments_already_initialized);
+        return None;
+    }
+    let let_ident_pat = match let_stmt.pat()? {
+        ast::Pat::IdentPat(it) => it,
+        _ => return None,
+    };
+
+    let expr_stmt = ast::ExprStmt::cast(next.as_node()?.clone())?;
+    let bin_expr = match expr_stmt.expr()? {
+        ast::Expr::BinExpr(it) => it,
+        _ => return None,
+    };
+    if !matches!(bin_expr.op_kind()?, ast::BinaryOp::Assignment { op: None }) {
+        return None;
+    }
+    let lhs = bin_expr.lhs()?;
+    let name_ref = expr_as_name_ref(&lhs)?;
+
+    if name_ref.to_string() != let_ident_pat.syntax().to_string() {
+        cov_mark::hit!(join_assignments_mismatch);
+        return None;
+    }
+
+    edit.delete(let_stmt.semicolon_token()?.text_range().cover(lhs.syntax().text_range()));
     Some(())
 }
 
@@ -275,6 +317,7 @@ mod tests {
             join_else_if: true,
             remove_trailing_comma: true,
             unwrap_trivial_blocks: true,
+            join_assignments: true,
         };
 
         let (before_cursor_pos, before) = extract_offset(ra_fixture_before);
@@ -300,6 +343,7 @@ mod tests {
             join_else_if: true,
             remove_trailing_comma: true,
             unwrap_trivial_blocks: true,
+            join_assignments: true,
         };
 
         let (sel, before) = extract_range(ra_fixture_before);
@@ -989,6 +1033,55 @@ fn main() {
     }$0 if bar {
 
     }
+}
+"#,
+        );
+    }
+
+    #[test]
+    fn join_assignments() {
+        check_join_lines(
+            r#"
+fn foo() {
+    $0let foo;
+    foo = "bar";
+}
+"#,
+            r#"
+fn foo() {
+    $0let foo = "bar";
+}
+"#,
+        );
+
+        cov_mark::check!(join_assignments_mismatch);
+        check_join_lines(
+            r#"
+fn foo() {
+    let foo;
+    let qux;$0
+    foo = "bar";
+}
+"#,
+            r#"
+fn foo() {
+    let foo;
+    let qux;$0 foo = "bar";
+}
+"#,
+        );
+
+        cov_mark::check!(join_assignments_already_initialized);
+        check_join_lines(
+            r#"
+fn foo() {
+    let foo = "bar";$0
+    foo = "bar";
+}
+"#,
+            r#"
+fn foo() {
+    let foo = "bar";$0 foo = "bar";
 }
 "#,
         );

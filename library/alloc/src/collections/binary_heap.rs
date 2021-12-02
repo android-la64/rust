@@ -3,7 +3,7 @@
 //! Insertion and popping the largest element have *O*(log(*n*)) time complexity.
 //! Checking the largest element is *O*(1). Converting a vector to a binary heap
 //! can be done in-place, and has *O*(*n*) complexity. A binary heap can also be
-//! converted to a sorted vector in-place, allowing it to be used for an *O*(*n* \* log(*n*))
+//! converted to a sorted vector in-place, allowing it to be used for an *O*(*n* * log(*n*))
 //! in-place heapsort.
 //!
 //! # Examples
@@ -159,9 +159,9 @@ use super::SpecExtend;
 /// This will be a max-heap.
 ///
 /// It is a logic error for an item to be modified in such a way that the
-/// item's ordering relative to any other item, as determined by the `Ord`
+/// item's ordering relative to any other item, as determined by the [`Ord`]
 /// trait, changes while it is in the heap. This is normally only possible
-/// through `Cell`, `RefCell`, global state, I/O, or unsafe code. The
+/// through [`Cell`], [`RefCell`], global state, I/O, or unsafe code. The
 /// behavior resulting from such a logic error is not specified, but will
 /// not result in undefined behavior. This could include panics, incorrect
 /// results, aborts, memory leaks, and non-termination.
@@ -219,7 +219,7 @@ use super::SpecExtend;
 ///
 /// ## Min-heap
 ///
-/// Either `std::cmp::Reverse` or a custom `Ord` implementation can be used to
+/// Either [`core::cmp::Reverse`] or a custom [`Ord`] implementation can be used to
 /// make `BinaryHeap` a min-heap. This makes `heap.pop()` return the smallest
 /// value instead of the greatest one.
 ///
@@ -243,13 +243,17 @@ use super::SpecExtend;
 ///
 /// # Time complexity
 ///
-/// | [push] | [pop]     | [peek]/[peek\_mut] |
-/// |--------|-----------|--------------------|
-/// | O(1)~  | *O*(log(*n*)) | *O*(1)               |
+/// | [push]  | [pop]         | [peek]/[peek\_mut] |
+/// |---------|---------------|--------------------|
+/// | *O*(1)~ | *O*(log(*n*)) | *O*(1)             |
 ///
 /// The value for `push` is an expected cost; the method documentation gives a
 /// more detailed analysis.
 ///
+/// [`core::cmp::Reverse`]: core::cmp::Reverse
+/// [`Ord`]: core::cmp::Ord
+/// [`Cell`]: core::cell::Cell
+/// [`RefCell`]: core::cell::RefCell
 /// [push]: BinaryHeap::push
 /// [pop]: BinaryHeap::pop
 /// [peek]: BinaryHeap::peek
@@ -360,6 +364,7 @@ impl<T: Ord> BinaryHeap<T> {
     /// heap.push(4);
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[must_use]
     pub fn new() -> BinaryHeap<T> {
         BinaryHeap { data: vec![] }
     }
@@ -379,6 +384,7 @@ impl<T: Ord> BinaryHeap<T> {
     /// heap.push(4);
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> BinaryHeap<T> {
         BinaryHeap { data: Vec::with_capacity(capacity) }
     }
@@ -844,6 +850,7 @@ impl<T> BinaryHeap<T> {
     ///
     /// assert_eq!(heap.into_iter_sorted().take(2).collect::<Vec<_>>(), vec![5, 4]);
     /// ```
+    #[must_use = "`self` will be dropped if the result is not used"]
     #[unstable(feature = "binary_heap_into_iter_sorted", issue = "59278")]
     pub fn into_iter_sorted(self) -> IntoIterSorted<T> {
         IntoIterSorted { inner: self }
@@ -1002,6 +1009,7 @@ impl<T> BinaryHeap<T> {
     ///
     /// io::sink().write(heap.as_slice()).unwrap();
     /// ```
+    #[must_use]
     #[unstable(feature = "binary_heap_as_slice", issue = "83659")]
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
@@ -1024,6 +1032,7 @@ impl<T> BinaryHeap<T> {
     ///     println!("{}", x);
     /// }
     /// ```
+    #[must_use = "`self` will be dropped if the result is not used"]
     #[stable(feature = "binary_heap_extras_15", since = "1.5.0")]
     pub fn into_vec(self) -> Vec<T> {
         self.into()
@@ -1255,9 +1264,10 @@ impl<T> FusedIterator for Iter<'_, T> {}
 /// An owning iterator over the elements of a `BinaryHeap`.
 ///
 /// This `struct` is created by [`BinaryHeap::into_iter()`]
-/// (provided by the `IntoIterator` trait). See its documentation for more.
+/// (provided by the [`IntoIterator`] trait). See its documentation for more.
 ///
 /// [`into_iter`]: BinaryHeap::into_iter
+/// [`IntoIterator`]: core::iter::IntoIterator
 #[stable(feature = "rust1", since = "1.0.0")]
 #[derive(Clone)]
 pub struct IntoIter<T> {

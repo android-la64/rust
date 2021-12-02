@@ -22,7 +22,7 @@ use hir_def::{
 use hir_expand::name::{AsName, Name};
 use stdx::{always, never};
 use syntax::{
-    ast::{self, NameOwner},
+    ast::{self, HasName},
     AstNode, AstPtr,
 };
 
@@ -63,7 +63,7 @@ impl<'a> DeclValidator<'a> {
             ModuleDefId::AdtId(adt) => self.validate_adt(adt),
             ModuleDefId::ConstId(const_id) => self.validate_const(const_id),
             ModuleDefId::StaticId(static_id) => self.validate_static(static_id),
-            _ => return,
+            _ => (),
         }
     }
 

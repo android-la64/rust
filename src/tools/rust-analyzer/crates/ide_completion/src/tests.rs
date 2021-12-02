@@ -15,6 +15,7 @@ mod item_list;
 mod item;
 mod pattern;
 mod predicate;
+mod proc_macros;
 mod record;
 mod sourcegen;
 mod type_pos;
@@ -23,7 +24,7 @@ mod visibility;
 
 use std::mem;
 
-use hir::{PrefixKind, Semantics};
+use hir::{db::DefDatabase, PrefixKind, Semantics};
 use ide_db::{
     base_db::{fixture::ChangeFixture, FileLoader, FilePosition},
     helpers::{
@@ -73,15 +74,16 @@ pub(crate) const TEST_CONFIG: CompletionConfig = CompletionConfig {
         group: true,
         skip_glob_imports: true,
     },
+    snippets: Vec::new(),
 };
 
-pub(crate) fn completion_list(code: &str) -> String {
-    completion_list_with_config(TEST_CONFIG, code)
+pub(crate) fn completion_list(ra_fixture: &str) -> String {
+    completion_list_with_config(TEST_CONFIG, ra_fixture)
 }
 
-fn completion_list_with_config(config: CompletionConfig, code: &str) -> String {
+fn completion_list_with_config(config: CompletionConfig, ra_fixture: &str) -> String {
     // filter out all but one builtintype completion for smaller test outputs
-    let items = get_all_items(config, code);
+    let items = get_all_items(config, ra_fixture);
     let mut bt_seen = false;
     let items = items
         .into_iter()
@@ -96,6 +98,7 @@ fn completion_list_with_config(config: CompletionConfig, code: &str) -> String {
 pub(crate) fn position(ra_fixture: &str) -> (RootDatabase, FilePosition) {
     let change_fixture = ChangeFixture::parse(ra_fixture);
     let mut database = RootDatabase::default();
+    database.set_enable_proc_attr_macros(true);
     database.apply_change(change_fixture.change);
     let (file_id, range_or_offset) = change_fixture.file_position.expect("expected a marker ($0)");
     let offset = range_or_offset.expect_offset();
@@ -179,13 +182,15 @@ pub(crate) fn check_edit_with_config(
     let mut actual = db.file_text(position.file_id).to_string();
 
     let mut combined_edit = completion.text_edit().to_owned();
-    if let Some(import_text_edit) =
-        completion.import_to_add().and_then(|edit| edit.to_text_edit(config.insert_use))
-    {
-        combined_edit.union(import_text_edit).expect(
-            "Failed to apply completion resolve changes: change ranges overlap, but should not",
-        )
-    }
+    completion
+        .imports_to_add()
+        .iter()
+        .filter_map(|edit| edit.to_text_edit(config.insert_use))
+        .for_each(|text_edit| {
+            combined_edit.union(text_edit).expect(
+                "Failed to apply completion resolve changes: change ranges overlap, but should not",
+            )
+        });
 
     combined_edit.apply(&mut actual);
     assert_eq_text!(&ra_fixture_after, &actual)
@@ -226,4 +231,27 @@ fn check_no_completion(ra_fixture: &str) {
 fn test_no_completions_required() {
     cov_mark::check!(no_completion_required);
     check_no_completion(r#"fn foo() { for i i$0 }"#);
+}
+
+#[test]
+fn regression_10042() {
+    completion_list(
+        r#"
+macro_rules! preset {
+    ($($x:ident)&&*) => {
+        {
+            let mut v = Vec::new();
+            $(
+                v.push($x.into());
+            )*
+            v
+        }
+    };
+}
+
+fn foo() {
+    preset!(foo$0);
+}
+"#,
+    );
 }

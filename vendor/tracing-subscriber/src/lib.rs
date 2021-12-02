@@ -14,6 +14,30 @@
 //!
 //! [msrv]: #supported-rust-versions
 //!
+//! ## `Layer`s and `Filter`s
+//!
+//! The most important component of the `tracing-subscriber` API is the
+//! [`Layer`] trait, which provides a composable abstraction for building
+//! [`Subscriber`]s. Like the [`Subscriber`] trait, a [`Layer`] defines a
+//! particular behavior for collecting trace data. Unlike [`Subscriber`]s,
+//! which implement a *complete* strategy for how trace data is collected,
+//! [`Layer`]s provide *modular* implementations of specific behaviors.
+//! Therefore, they can be [composed together] to form a [`Subscriber`] which is
+//! capable of recording traces in a variety of ways. See the [`layer` module's
+//! documentation][layer] for details on using [`Layer`]s.
+//!
+//! In addition, the [`Filter`] trait defines an interface for filtering what
+//! spans and events are recorded by a particular layer. This allows different
+//! [`Layer`]s to handle separate subsets of the trace data emitted by a
+//! program. See the [documentation on per-layer filtering][plf] for more
+//! information on using [`Filter`]s.
+//!
+//! [`Layer`]: crate::layer::Layer
+//! [composed together]: crate::layer#composing-layers
+//! [layer]: crate::layer
+//! [`Filter`]: crate::layer::Filter
+//! [plf]: crate::layer#per-layer-filtering
+//!
 //! ## Included Subscribers
 //!
 //! The following `Subscriber`s are provided for application authors:
@@ -67,12 +91,20 @@
 //! [`env_logger` crate]: https://crates.io/crates/env_logger
 //! [`parking_lot`]: https://crates.io/crates/parking_lot
 //! [`registry`]: registry/index.html
-#![doc(html_root_url = "https://docs.rs/tracing-subscriber/0.2.19")]
+#![doc(html_root_url = "https://docs.rs/tracing-subscriber/0.2.24")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/tokio-rs/tracing/master/assets/logo-type.png",
     issue_tracker_base_url = "https://github.com/tokio-rs/tracing/issues/"
 )]
-#![cfg_attr(docsrs, feature(doc_cfg), deny(broken_intra_doc_links))]
+#![cfg_attr(
+    docsrs,
+    // Allows displaying cfgs/feature flags in the documentation.
+    feature(doc_cfg),
+    // Allows adding traits to RustDoc's list of "notable traits"
+    feature(doc_notable_trait),
+    // Fail the docs build if any intra-docs links are broken
+    deny(rustdoc::broken_intra_doc_links),
+)]
 #![warn(
     missing_debug_implementations,
     missing_docs,
@@ -103,7 +135,6 @@
 
 use tracing_core::span::Id;
 
-#[macro_use]
 macro_rules! try_lock {
     ($lock:expr) => {
         try_lock!($lock, else return)

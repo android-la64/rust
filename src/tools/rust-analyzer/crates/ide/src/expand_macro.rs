@@ -2,7 +2,8 @@ use std::iter;
 
 use hir::Semantics;
 use ide_db::{helpers::pick_best_token, RootDatabase};
-use syntax::{ast, ted, AstNode, NodeOrToken, SyntaxKind, SyntaxKind::*, SyntaxNode, WalkEvent, T};
+use itertools::Itertools;
+use syntax::{ast, ted, AstNode, NodeOrToken, SyntaxKind, SyntaxNode, WalkEvent, T};
 
 use crate::FilePosition;
 
@@ -30,6 +31,24 @@ pub(crate) fn expand_macro(db: &RootDatabase, position: FilePosition) -> Option<
         SyntaxKind::IDENT => 1,
         _ => 0,
     })?;
+
+    let descended = sema.descend_into_macros(tok.clone());
+    if let Some(attr) = descended.ancestors().find_map(ast::Attr::cast) {
+        if let Some((path, tt)) = attr.as_simple_call() {
+            if path == "derive" {
+                let mut tt = tt.syntax().children_with_tokens().skip(1).join("");
+                tt.pop();
+                let expansions = sema.expand_derive_macro(&attr)?;
+                return Some(ExpandedMacro {
+                    name: tt,
+                    expansion: expansions.into_iter().map(insert_whitespaces).join(""),
+                });
+            }
+        }
+    }
+
+    // FIXME: Intermix attribute and bang! expansions
+    // currently we only recursively expand one of the two types
     let mut expanded = None;
     let mut name = None;
     for node in tok.ancestors() {
@@ -40,7 +59,6 @@ pub(crate) fn expand_macro(db: &RootDatabase, position: FilePosition) -> Option<
                 break;
             }
         }
-
         if let Some(mac) = ast::MacroCall::cast(node) {
             name = Some(mac.path()?.segment()?.name_ref()?.to_string());
             expanded = expand_macro_recur(&sema, &mac);
@@ -94,24 +112,26 @@ fn expand<T: AstNode>(
 // FIXME: It would also be cool to share logic here and in the mbe tests,
 // which are pretty unreadable at the moment.
 fn insert_whitespaces(syn: SyntaxNode) -> String {
+    use SyntaxKind::*;
     let mut res = String::new();
-    let mut token_iter = syn
-        .preorder_with_tokens()
-        .filter_map(|event| {
-            if let WalkEvent::Enter(NodeOrToken::Token(token)) = event {
-                Some(token)
-            } else {
-                None
-            }
-        })
-        .peekable();
 
     let mut indent = 0;
     let mut last: Option<SyntaxKind> = None;
 
-    while let Some(token) = token_iter.next() {
-        let mut is_next = |f: fn(SyntaxKind) -> bool, default| -> bool {
-            token_iter.peek().map(|it| f(it.kind())).unwrap_or(default)
+    for event in syn.preorder_with_tokens() {
+        let token = match event {
+            WalkEvent::Enter(NodeOrToken::Token(token)) => token,
+            WalkEvent::Leave(NodeOrToken::Node(node))
+                if matches!(node.kind(), ATTR | MATCH_ARM | STRUCT | ENUM | UNION | FN | IMPL) =>
+            {
+                res.push('\n');
+                res.extend(iter::repeat(" ").take(2 * indent));
+                continue;
+            }
+            _ => continue,
+        };
+        let is_next = |f: fn(SyntaxKind) -> bool, default| -> bool {
+            token.next_token().map(|it| f(it.kind())).unwrap_or(default)
         };
         let is_last =
             |f: fn(SyntaxKind) -> bool, default| -> bool { last.map(f).unwrap_or(default) };
@@ -139,7 +159,7 @@ fn insert_whitespaces(syn: SyntaxNode) -> String {
                 res.push_str("}\n");
                 res.extend(iter::repeat(" ").take(2 * indent));
             }
-            LIFETIME_IDENT if is_next(|it| it == IDENT, true) => {
+            LIFETIME_IDENT if is_next(|it| it == IDENT || it == MUT_KW, true) => {
                 res.push_str(token.text());
                 res.push(' ');
             }
@@ -169,6 +189,7 @@ mod tests {
 
     use crate::fixture;
 
+    #[track_caller]
     fn check(ra_fixture: &str, expect: Expect) {
         let (analysis, pos) = fixture::position(ra_fixture);
         let expansion = analysis.expand_macro(pos).unwrap().unwrap();
@@ -194,6 +215,7 @@ f$0oo!();
             expect![[r#"
                 foo
                 fn b(){}
+
             "#]],
         );
     }
@@ -213,11 +235,12 @@ macro_rules! foo {
 f$0oo!();
         "#,
             expect![[r#"
-            foo
-            fn some_thing() -> u32 {
-              let a = 0;
-              a+10
-            }"#]],
+                foo
+                fn some_thing() -> u32 {
+                  let a = 0;
+                  a+10
+                }
+            "#]],
         );
     }
 
@@ -323,6 +346,67 @@ fn main() {
             expect![[r#"
                 foo
                 0 "#]],
+        );
+    }
+
+    #[test]
+    fn macro_expand_derive() {
+        check(
+            r#"
+#[rustc_builtin_macro]
+pub macro Clone {}
+
+#[derive(C$0lone)]
+struct Foo {}
+"#,
+            expect![[r#"
+                Clone
+                impl< >crate::clone::Clone for Foo< >{}
+
+            "#]],
+        );
+    }
+
+    #[test]
+    fn macro_expand_derive2() {
+        check(
+            r#"
+#[rustc_builtin_macro]
+pub macro Clone {}
+#[rustc_builtin_macro]
+pub macro Copy {}
+
+#[derive(Cop$0y)]
+#[derive(Clone)]
+struct Foo {}
+"#,
+            expect![[r#"
+                Copy
+                impl< >crate::marker::Copy for Foo< >{}
+
+            "#]],
+        );
+    }
+
+    #[test]
+    fn macro_expand_derive_multi() {
+        check(
+            r#"
+#[rustc_builtin_macro]
+pub macro Clone {}
+#[rustc_builtin_macro]
+pub macro Copy {}
+
+#[derive(Cop$0y, Clone)]
+struct Foo {}
+"#,
+            expect![[r#"
+                Copy, Clone
+                impl< >crate::marker::Copy for Foo< >{}
+
+                impl< >crate::clone::Clone for Foo< >{}
+
+            "#]],
         );
     }
 }

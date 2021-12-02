@@ -1,8 +1,9 @@
 use log::trace;
 
 use rustc_middle::mir;
+use rustc_middle::ty::layout::LayoutOf;
 use rustc_span::Symbol;
-use rustc_target::abi::{Align, LayoutOf, Size};
+use rustc_target::abi::{Align, Size};
 use rustc_target::spec::abi::Abi;
 
 use crate::*;
@@ -20,7 +21,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         args: &[OpTy<'tcx, Tag>],
         dest: &PlaceTy<'tcx, Tag>,
         ret: mir::BasicBlock,
-    ) -> InterpResult<'tcx, EmulateByNameResult> {
+    ) -> InterpResult<'tcx, EmulateByNameResult<'mir, 'tcx>> {
         let this = self.eval_context_mut();
 
         match &*link_name.as_str() {

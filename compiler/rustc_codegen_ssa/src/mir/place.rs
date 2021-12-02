@@ -8,10 +8,10 @@ use crate::MemFlags;
 
 use rustc_middle::mir;
 use rustc_middle::mir::tcx::PlaceTy;
-use rustc_middle::ty::layout::{HasTyCtxt, TyAndLayout};
+use rustc_middle::ty::layout::{HasTyCtxt, LayoutOf, TyAndLayout};
 use rustc_middle::ty::{self, Ty};
 use rustc_target::abi::{Abi, Align, FieldsShape, Int, TagEncoding};
-use rustc_target::abi::{LayoutOf, VariantIdx, Variants};
+use rustc_target::abi::{VariantIdx, Variants};
 
 #[derive(Copy, Clone, Debug)]
 pub struct PlaceRef<'tcx, V> {
@@ -99,7 +99,7 @@ impl<'a, 'tcx, V: CodegenObject> PlaceRef<'tcx, V> {
                     // Also handles the first field of Scalar, ScalarPair, and Vector layouts.
                     self.llval
                 }
-                Abi::ScalarPair(ref a, ref b)
+                Abi::ScalarPair(a, b)
                     if offset == a.value.size(bx.cx()).align_to(b.value.align(bx.cx()).abi) =>
                 {
                     // Offset matches second field.
@@ -222,7 +222,7 @@ impl<'a, 'tcx, V: CodegenObject> PlaceRef<'tcx, V> {
                     .map_or(index.as_u32() as u128, |discr| discr.val);
                 return bx.cx().const_uint_big(cast_to, discr_val);
             }
-            Variants::Multiple { ref tag, ref tag_encoding, tag_field, .. } => {
+            Variants::Multiple { tag, ref tag_encoding, tag_field, .. } => {
                 (tag, tag_encoding, tag_field)
             }
         };

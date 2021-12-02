@@ -46,6 +46,7 @@ pub mod errors;
 pub mod extdeps;
 pub mod features;
 pub mod pal;
+pub mod primitive_docs;
 pub mod style;
 pub mod target_specific_tests;
 pub mod ui_tests;
@@ -56,6 +57,7 @@ fn filter_dirs(path: &Path) -> bool {
     let skip = [
         "tidy-test-file",
         "compiler/rustc_codegen_cranelift",
+        "compiler/rustc_codegen_gcc",
         "src/llvm-project",
         "library/backtrace",
         "library/stdarch",

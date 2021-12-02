@@ -9,7 +9,7 @@ mod index_map;
 pub use index_map::SortedIndexMultiMap;
 
 /// `SortedMap` is a data structure with similar characteristics as BTreeMap but
-/// slightly different trade-offs: lookup, insertion, and removal are O(log(N))
+/// slightly different trade-offs: lookup, insertion, and removal are *O*(log(*n*))
 /// and elements can be iterated in order cheaply.
 ///
 /// `SortedMap` can be faster than a `BTreeMap` for small sizes (<50) since it
@@ -205,10 +205,10 @@ impl<K: Ord, V> SortedMap<K, V> {
         R: RangeBounds<K>,
     {
         let start = match range.start_bound() {
-            Bound::Included(ref k) => match self.lookup_index_for(k) {
+            Bound::Included(k) => match self.lookup_index_for(k) {
                 Ok(index) | Err(index) => index,
             },
-            Bound::Excluded(ref k) => match self.lookup_index_for(k) {
+            Bound::Excluded(k) => match self.lookup_index_for(k) {
                 Ok(index) => index + 1,
                 Err(index) => index,
             },
@@ -216,11 +216,11 @@ impl<K: Ord, V> SortedMap<K, V> {
         };
 
         let end = match range.end_bound() {
-            Bound::Included(ref k) => match self.lookup_index_for(k) {
+            Bound::Included(k) => match self.lookup_index_for(k) {
                 Ok(index) => index + 1,
                 Err(index) => index,
             },
-            Bound::Excluded(ref k) => match self.lookup_index_for(k) {
+            Bound::Excluded(k) => match self.lookup_index_for(k) {
                 Ok(index) | Err(index) => index,
             },
             Bound::Unbounded => self.data.len(),

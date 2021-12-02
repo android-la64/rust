@@ -1,10 +1,10 @@
-use crate::rustc_target::abi::LayoutOf;
 use clippy_utils::diagnostics::span_lint_and_then;
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::{Item, ItemKind};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::mir::interpret::ConstValue;
+use rustc_middle::ty::layout::LayoutOf;
 use rustc_middle::ty::{self, ConstKind};
 use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::{BytePos, Pos, Span};
@@ -63,6 +63,7 @@ impl<'tcx> LateLintPass<'tcx> for LargeConstArrays {
                     hi_pos - BytePos::from_usize("const".len()),
                     hi_pos,
                     item.span.ctxt(),
+                    item.span.parent(),
                 );
                 span_lint_and_then(
                     cx,

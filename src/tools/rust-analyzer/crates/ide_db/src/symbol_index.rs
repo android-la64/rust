@@ -37,7 +37,7 @@ use hir::db::DefDatabase;
 use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use syntax::{
-    ast::{self, NameOwner},
+    ast::{self, HasName},
     match_ast, AstNode, Parse, SmolStr, SourceFile,
     SyntaxKind::*,
     SyntaxNode, SyntaxNodePtr, TextRange, WalkEvent,
@@ -198,7 +198,7 @@ pub fn world_symbols(db: &RootDatabase, query: Query) -> Vec<FileSymbol> {
 
 pub fn crate_symbols(db: &RootDatabase, krate: CrateId, query: Query) -> Vec<FileSymbol> {
     let _p = profile::span("crate_symbols").detail(|| format!("{:?}", query));
-    // FIXME(#4842): This now depends on CrateDefMap, why not build the entire symbol index from
+    // FIXME(#4842): This now depends on DefMap, why not build the entire symbol index from
     // that instead?
 
     let def_map = db.crate_def_map(krate);
@@ -427,7 +427,7 @@ fn source_file_to_file_symbols(source_file: &SourceFile, file_id: FileId) -> Vec
 }
 
 fn to_symbol(node: &SyntaxNode) -> Option<(SmolStr, SyntaxNodePtr, TextRange)> {
-    fn decl<N: NameOwner>(node: N) -> Option<(SmolStr, SyntaxNodePtr, TextRange)> {
+    fn decl<N: HasName>(node: N) -> Option<(SmolStr, SyntaxNodePtr, TextRange)> {
         let name = node.name()?;
         let name_range = name.syntax().text_range();
         let name = name.text().into();

@@ -2644,6 +2644,46 @@ fn test_aarch64_binemit() {
     ));
 
     insns.push((
+        Inst::VecRRPairLong {
+            op: VecRRPairLongOp::Uaddlp8,
+            rd: writable_vreg(0),
+            rn: vreg(1),
+        },
+        "2028206E",
+        "uaddlp v0.8h, v1.16b",
+    ));
+
+    insns.push((
+        Inst::VecRRPairLong {
+            op: VecRRPairLongOp::Saddlp8,
+            rd: writable_vreg(3),
+            rn: vreg(11),
+        },
+        "6329204E",
+        "saddlp v3.8h, v11.16b",
+    ));
+
+    insns.push((
+        Inst::VecRRPairLong {
+            op: VecRRPairLongOp::Uaddlp16,
+            rd: writable_vreg(14),
+            rn: vreg(23),
+        },
+        "EE2A606E",
+        "uaddlp v14.4s, v23.8h",
+    ));
+
+    insns.push((
+        Inst::VecRRPairLong {
+            op: VecRRPairLongOp::Saddlp16,
+            rd: writable_vreg(29),
+            rn: vreg(0),
+        },
+        "1D28604E",
+        "saddlp v29.4s, v0.8h",
+    ));
+
+    insns.push((
         Inst::VecRRR {
             alu_op: VecALUOp::Sqadd,
             rd: writable_vreg(1),
@@ -3653,18 +3693,6 @@ fn test_aarch64_binemit() {
 
     insns.push((
         Inst::VecRRR {
-            alu_op: VecALUOp::Umlal,
-            rd: writable_vreg(9),
-            rn: vreg(20),
-            rm: vreg(17),
-            size: VectorSize::Size32x2,
-        },
-        "8982B12E",
-        "umlal v9.2d, v20.2s, v17.2s",
-    ));
-
-    insns.push((
-        Inst::VecRRR {
             alu_op: VecALUOp::Zip1,
             rd: writable_vreg(16),
             rn: vreg(12),
@@ -3712,75 +3740,219 @@ fn test_aarch64_binemit() {
     ));
 
     insns.push((
-        Inst::VecRRR {
-            alu_op: VecALUOp::Smull,
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Smull8,
             rd: writable_vreg(16),
             rn: vreg(12),
             rm: vreg(1),
-            size: VectorSize::Size8x16,
+            high_half: false,
         },
         "90C1210E",
         "smull v16.8h, v12.8b, v1.8b",
     ));
 
     insns.push((
-        Inst::VecRRR {
-            alu_op: VecALUOp::Smull,
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umull8,
+            rd: writable_vreg(15),
+            rn: vreg(11),
+            rm: vreg(2),
+            high_half: false,
+        },
+        "6FC1222E",
+        "umull v15.8h, v11.8b, v2.8b",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umlal8,
+            rd: writable_vreg(4),
+            rn: vreg(8),
+            rm: vreg(16),
+            high_half: false,
+        },
+        "0481302E",
+        "umlal v4.8h, v8.8b, v16.8b",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Smull16,
             rd: writable_vreg(2),
             rn: vreg(13),
             rm: vreg(6),
-            size: VectorSize::Size16x8,
+            high_half: false,
         },
         "A2C1660E",
         "smull v2.4s, v13.4h, v6.4h",
     ));
 
     insns.push((
-        Inst::VecRRR {
-            alu_op: VecALUOp::Smull,
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umull16,
+            rd: writable_vreg(3),
+            rn: vreg(14),
+            rm: vreg(7),
+            high_half: false,
+        },
+        "C3C1672E",
+        "umull v3.4s, v14.4h, v7.4h",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umlal16,
+            rd: writable_vreg(7),
+            rn: vreg(14),
+            rm: vreg(21),
+            high_half: false,
+        },
+        "C781752E",
+        "umlal v7.4s, v14.4h, v21.4h",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Smull32,
             rd: writable_vreg(8),
             rn: vreg(12),
             rm: vreg(14),
-            size: VectorSize::Size32x4,
+            high_half: false,
         },
         "88C1AE0E",
         "smull v8.2d, v12.2s, v14.2s",
     ));
 
     insns.push((
-        Inst::VecRRR {
-            alu_op: VecALUOp::Smull2,
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umull32,
+            rd: writable_vreg(9),
+            rn: vreg(5),
+            rm: vreg(6),
+            high_half: false,
+        },
+        "A9C0A62E",
+        "umull v9.2d, v5.2s, v6.2s",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umlal32,
+            rd: writable_vreg(9),
+            rn: vreg(20),
+            rm: vreg(17),
+            high_half: false,
+        },
+        "8982B12E",
+        "umlal v9.2d, v20.2s, v17.2s",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Smull8,
             rd: writable_vreg(16),
             rn: vreg(12),
             rm: vreg(1),
-            size: VectorSize::Size8x16,
+            high_half: true,
         },
         "90C1214E",
         "smull2 v16.8h, v12.16b, v1.16b",
     ));
 
     insns.push((
-        Inst::VecRRR {
-            alu_op: VecALUOp::Smull2,
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umull8,
+            rd: writable_vreg(29),
+            rn: vreg(22),
+            rm: vreg(10),
+            high_half: true,
+        },
+        "DDC22A6E",
+        "umull2 v29.8h, v22.16b, v10.16b",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umlal8,
+            rd: writable_vreg(1),
+            rn: vreg(5),
+            rm: vreg(15),
+            high_half: true,
+        },
+        "A1802F6E",
+        "umlal2 v1.8h, v5.16b, v15.16b",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Smull16,
             rd: writable_vreg(2),
             rn: vreg(13),
             rm: vreg(6),
-            size: VectorSize::Size16x8,
+            high_half: true,
         },
         "A2C1664E",
         "smull2 v2.4s, v13.8h, v6.8h",
     ));
 
     insns.push((
-        Inst::VecRRR {
-            alu_op: VecALUOp::Smull2,
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umull16,
+            rd: writable_vreg(19),
+            rn: vreg(18),
+            rm: vreg(17),
+            high_half: true,
+        },
+        "53C2716E",
+        "umull2 v19.4s, v18.8h, v17.8h",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umlal16,
+            rd: writable_vreg(11),
+            rn: vreg(10),
+            rm: vreg(12),
+            high_half: true,
+        },
+        "4B816C6E",
+        "umlal2 v11.4s, v10.8h, v12.8h",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Smull32,
             rd: writable_vreg(8),
             rn: vreg(12),
             rm: vreg(14),
-            size: VectorSize::Size32x4,
+            high_half: true,
         },
         "88C1AE4E",
         "smull2 v8.2d, v12.4s, v14.4s",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umull32,
+            rd: writable_vreg(4),
+            rn: vreg(12),
+            rm: vreg(16),
+            high_half: true,
+        },
+        "84C1B06E",
+        "umull2 v4.2d, v12.4s, v16.4s",
+    ));
+
+    insns.push((
+        Inst::VecRRRLong {
+            alu_op: VecRRRLongOp::Umlal32,
+            rd: writable_vreg(10),
+            rn: vreg(29),
+            rm: vreg(2),
+            high_half: true,
+        },
+        "AA83A26E",
+        "umlal2 v10.2d, v29.4s, v2.4s",
     ));
 
     insns.push((
@@ -5719,7 +5891,7 @@ fn test_aarch64_binemit() {
             ty: I16,
             op: inst_common::AtomicRmwOp::Xor,
         },
-        "BF3B03D53B7F5F487C031ACA3C7F1848B8FFFFB5BF3B03D5",
+        "3BFF5F487C031ACA3CFF1848B8FFFFB5",
         "atomically { 16_bits_at_[x25]) Xor= x26 ; x27 = old_value_at_[x25]; x24,x28 = trash }",
     ));
 
@@ -5728,7 +5900,7 @@ fn test_aarch64_binemit() {
             ty: I32,
             op: inst_common::AtomicRmwOp::Xchg,
         },
-        "BF3B03D53B7F5F88FC031AAA3C7F1888B8FFFFB5BF3B03D5",
+        "3BFF5F88FC031AAA3CFF1888B8FFFFB5",
         "atomically { 32_bits_at_[x25]) Xchg= x26 ; x27 = old_value_at_[x25]; x24,x28 = trash }",
     ));
     insns.push((
@@ -5775,56 +5947,112 @@ fn test_aarch64_binemit() {
         Inst::AtomicCASLoop {
             ty: I8,
         },
-        "BF3B03D53B7F5F08581F40927F0318EB610000543C7F180878FFFFB5BF3B03D5",
+        "3BFF5F087F033AEB610000543CFF180898FFFFB5",
         "atomically { compare-and-swap(8_bits_at_[x25], x26 -> x28), x27 = old_value_at_[x25]; x24 = trash }"
+    ));
+
+    insns.push((
+        Inst::AtomicCASLoop {
+            ty: I16,
+        },
+        "3BFF5F487F233AEB610000543CFF184898FFFFB5",
+        "atomically { compare-and-swap(16_bits_at_[x25], x26 -> x28), x27 = old_value_at_[x25]; x24 = trash }"
+    ));
+
+    insns.push((
+        Inst::AtomicCASLoop {
+            ty: I32,
+        },
+        "3BFF5F887F031AEB610000543CFF188898FFFFB5",
+        "atomically { compare-and-swap(32_bits_at_[x25], x26 -> x28), x27 = old_value_at_[x25]; x24 = trash }"
     ));
 
     insns.push((
         Inst::AtomicCASLoop {
             ty: I64,
         },
-        "BF3B03D53B7F5FC8F8031AAA7F0318EB610000543C7F18C878FFFFB5BF3B03D5",
+        "3BFF5FC87F031AEB610000543CFF18C898FFFFB5",
         "atomically { compare-and-swap(64_bits_at_[x25], x26 -> x28), x27 = old_value_at_[x25]; x24 = trash }"
     ));
 
     insns.push((
-        Inst::AtomicLoad {
-            ty: I8,
-            r_data: writable_xreg(7),
-            r_addr: xreg(28),
+        Inst::LoadAcquire {
+            access_ty: I8,
+            rt: writable_xreg(7),
+            rn: xreg(28),
         },
-        "BF3B03D587034039",
-        "atomically { x7 = zero_extend_8_bits_at[x28] }",
+        "87FFDF08",
+        "ldarb w7, [x28]",
     ));
 
     insns.push((
-        Inst::AtomicLoad {
-            ty: I64,
-            r_data: writable_xreg(28),
-            r_addr: xreg(7),
+        Inst::LoadAcquire {
+            access_ty: I16,
+            rt: writable_xreg(2),
+            rn: xreg(3),
         },
-        "BF3B03D5FC0040F9",
-        "atomically { x28 = zero_extend_64_bits_at[x7] }",
+        "62FCDF48",
+        "ldarh w2, [x3]",
     ));
 
     insns.push((
-        Inst::AtomicStore {
-            ty: I16,
-            r_data: xreg(17),
-            r_addr: xreg(8),
+        Inst::LoadAcquire {
+            access_ty: I32,
+            rt: writable_xreg(15),
+            rn: xreg(0),
         },
-        "11010079BF3B03D5",
-        "atomically { 16_bits_at[x8] = x17 }",
+        "0FFCDF88",
+        "ldar w15, [x0]",
     ));
 
     insns.push((
-        Inst::AtomicStore {
-            ty: I32,
-            r_data: xreg(18),
-            r_addr: xreg(7),
+        Inst::LoadAcquire {
+            access_ty: I64,
+            rt: writable_xreg(28),
+            rn: xreg(7),
         },
-        "F20000B9BF3B03D5",
-        "atomically { 32_bits_at[x7] = x18 }",
+        "FCFCDFC8",
+        "ldar x28, [x7]",
+    ));
+
+    insns.push((
+        Inst::StoreRelease {
+            access_ty: I8,
+            rt: xreg(7),
+            rn: xreg(28),
+        },
+        "87FF9F08",
+        "stlrb w7, [x28]",
+    ));
+
+    insns.push((
+        Inst::StoreRelease {
+            access_ty: I16,
+            rt: xreg(2),
+            rn: xreg(3),
+        },
+        "62FC9F48",
+        "stlrh w2, [x3]",
+    ));
+
+    insns.push((
+        Inst::StoreRelease {
+            access_ty: I32,
+            rt: xreg(15),
+            rn: xreg(0),
+        },
+        "0FFC9F88",
+        "stlr w15, [x0]",
+    ));
+
+    insns.push((
+        Inst::StoreRelease {
+            access_ty: I64,
+            rt: xreg(28),
+            rn: xreg(7),
+        },
+        "FCFC9FC8",
+        "stlr x28, [x7]",
     ));
 
     insns.push((Inst::Fence {}, "BF3B03D5", "dmb ish"));

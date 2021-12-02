@@ -1,66 +1,79 @@
 use super::*;
 
 // test trait_item
-// trait T<U>: Hash + Clone where U: Copy {}
-// trait X<U: Debug + Display>: Hash + Clone where U: Copy {}
-pub(super) fn trait_(p: &mut Parser) {
-    assert!(p.at(T![trait]));
+// trait T { fn new() -> Self; }
+pub(super) fn trait_(p: &mut Parser, m: Marker) {
     p.bump(T![trait]);
     name_r(p, ITEM_RECOVERY_SET);
-    type_params::opt_generic_param_list(p);
-    // test trait_alias
-    // trait Z<U> = T<U>;
-    // trait Z<U> = T<U> where U: Copy;
-    // trait Z<U> = where Self: T<U>;
+
+    // test trait_item_generic_params
+    // trait X<U: Debug + Display> {}
+    generic_params::opt_generic_param_list(p);
+
     if p.eat(T![=]) {
-        type_params::bounds_without_colon(p);
-        type_params::opt_where_clause(p);
+        // test trait_alias
+        // trait Z<U> = T<U>;
+        generic_params::bounds_without_colon(p);
+
+        // test trait_alias_where_clause
+        // trait Z<U> = T<U> where U: Copy;
+        // trait Z<U> = where Self: T<U>;
+        generic_params::opt_where_clause(p);
         p.expect(T![;]);
+        m.complete(p, TRAIT);
         return;
     }
+
     if p.at(T![:]) {
-        type_params::bounds(p);
+        // test trait_item_bounds
+        // trait T: Hash + Clone {}
+        generic_params::bounds(p);
     }
-    type_params::opt_where_clause(p);
+
+    // test trait_item_where_clause
+    // trait T where Self: Copy {}
+    generic_params::opt_where_clause(p);
+
     if p.at(T!['{']) {
         assoc_item_list(p);
     } else {
         p.error("expected `{`");
     }
+    m.complete(p, TRAIT);
 }
 
-// test impl_def
-// impl Foo {}
-pub(super) fn impl_(p: &mut Parser) {
-    assert!(p.at(T![impl]));
+// test impl_item
+// impl S {}
+pub(super) fn impl_(p: &mut Parser, m: Marker) {
     p.bump(T![impl]);
-    if choose_type_params_over_qpath(p) {
-        type_params::opt_generic_param_list(p);
+    if p.at(T![<]) && not_a_qualified_path(p) {
+        generic_params::opt_generic_param_list(p);
     }
 
-    // test impl_def_const
-    // impl const Send for X {}
+    // test impl_item_const
+    // impl const Send for S {}
     p.eat(T![const]);
 
     // FIXME: never type
     // impl ! {}
 
-    // test impl_def_neg
-    // impl !Send for X {}
+    // test impl_item_neg
+    // impl !Send for S {}
     p.eat(T![!]);
     impl_type(p);
     if p.eat(T![for]) {
         impl_type(p);
     }
-    type_params::opt_where_clause(p);
+    generic_params::opt_where_clause(p);
     if p.at(T!['{']) {
         assoc_item_list(p);
     } else {
         p.error("expected `{`");
     }
+    m.complete(p, IMPL);
 }
 
-// test impl_item_list
+// test assoc_item_list
 // impl F {
 //     type A = i32;
 //     const B: i32 = 92;
@@ -69,14 +82,11 @@ pub(super) fn impl_(p: &mut Parser) {
 // }
 pub(crate) fn assoc_item_list(p: &mut Parser) {
     assert!(p.at(T!['{']));
+
     let m = p.start();
     p.bump(T!['{']);
-    // test impl_inner_attributes
-    // enum F{}
-    // impl F {
-    //      //! This is a doc comment
-    //      #![doc("This is also a doc comment")]
-    // }
+    // test assoc_item_list_inner_attrs
+    // impl S { #![attr] }
     attributes::inner_attrs(p);
 
     while !p.at(EOF) && !p.at(T!['}']) {
@@ -92,7 +102,7 @@ pub(crate) fn assoc_item_list(p: &mut Parser) {
 
 // test impl_type_params
 // impl<const N: u32> Bar<N> {}
-fn choose_type_params_over_qpath(p: &Parser) -> bool {
+fn not_a_qualified_path(p: &Parser) -> bool {
     // There's an ambiguity between generic parameters and qualified paths in impls.
     // If we see `<` it may start both, so we have to inspect some following tokens.
     // The following combinations can only start generics,
@@ -109,9 +119,6 @@ fn choose_type_params_over_qpath(p: &Parser) -> bool {
     // we disambiguate it in favor of generics (`impl<T> ::absolute::Path<T> { ... }`)
     // because this is what almost always expected in practice, qualified paths in impls
     // (`impl <Type>::AssocTy { ... }`) aren't even allowed by type checker at the moment.
-    if !p.at(T![<]) {
-        return false;
-    }
     if p.nth(1) == T![#] || p.nth(1) == T![>] || p.nth(1) == T![const] {
         return true;
     }

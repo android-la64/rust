@@ -36,20 +36,14 @@
 # include "win32/w32_leakcheck.h"
 #endif
 
-#ifdef GIT_OPENSSL
-# include <openssl/err.h>
-#endif
-
-#ifdef GIT_MBEDTLS
-# include <mbedtls/error.h>
-#endif
-
 /* Declarations for tuneable settings */
 extern size_t git_mwindow__window_size;
 extern size_t git_mwindow__mapped_limit;
 extern size_t git_mwindow__file_limit;
 extern size_t git_indexer__max_objects;
 extern bool git_disable_pack_keep_file_checks;
+extern int git_odb__packed_priority;
+extern int git_odb__loose_priority;
 
 char *git__user_agent;
 char *git__ssl_ciphers;
@@ -58,6 +52,7 @@ static void libgit2_settings_global_shutdown(void)
 {
 	git__free(git__user_agent);
 	git__free(git__ssl_ciphers);
+	git_repository__free_extensions();
 }
 
 static int git_libgit2_settings_global_init(void)
@@ -267,10 +262,7 @@ int git_libgit2_opts(int key, ...)
 		{
 			const char *file = va_arg(ap, const char *);
 			const char *path = va_arg(ap, const char *);
-			if (file)
-				error = git_mbedtls__set_cert_location(file, 0);
-			if (error && path)
-				error = git_mbedtls__set_cert_location(path, 1);
+			error = git_mbedtls__set_cert_location(file, path);
 		}
 #else
 		git_error_set(GIT_ERROR_SSL, "TLS backend doesn't support certificate locations");
@@ -366,6 +358,36 @@ int git_libgit2_opts(int key, ...)
 
 	case GIT_OPT_ENABLE_HTTP_EXPECT_CONTINUE:
 		git_http__expect_continue = (va_arg(ap, int) != 0);
+		break;
+
+	case GIT_OPT_SET_ODB_PACKED_PRIORITY:
+		git_odb__packed_priority = va_arg(ap, int);
+		break;
+
+	case GIT_OPT_SET_ODB_LOOSE_PRIORITY:
+		git_odb__loose_priority = va_arg(ap, int);
+		break;
+
+	case GIT_OPT_SET_EXTENSIONS:
+		{
+			const char **extensions = va_arg(ap, const char **);
+			size_t len = va_arg(ap, size_t);
+			error = git_repository__set_extensions(extensions, len);
+		}
+		break;
+
+	case GIT_OPT_GET_EXTENSIONS:
+		{
+			git_strarray *out = va_arg(ap, git_strarray *);
+			char **extensions;
+			size_t len;
+
+			if ((error = git_repository__extensions(&extensions, &len)) < 0)
+				break;
+
+			out->strings = extensions;
+			out->count = len;
+		}
 		break;
 
 	default:

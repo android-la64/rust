@@ -11,6 +11,7 @@ use rustc_middle::hir::map::Map;
 use rustc_middle::lint::in_external_macro;
 use rustc_middle::ty::subst::GenericArgKind;
 use rustc_session::{declare_lint_pass, declare_tool_lint};
+use rustc_span::hygiene::DesugaringKind;
 use rustc_span::source_map::Span;
 use rustc_span::sym;
 
@@ -199,20 +200,19 @@ fn check_final_expr<'tcx>(
                 check_block_return(cx, ifblock);
             }
             if let Some(else_clause) = else_clause_opt {
-                check_final_expr(cx, else_clause, None, RetReplacement::Empty);
+                if expr.span.desugaring_kind() != Some(DesugaringKind::LetElse) {
+                    check_final_expr(cx, else_clause, None, RetReplacement::Empty);
+                }
             }
         },
         // a match expr, check all arms
         // an if/if let expr, check both exprs
         // note, if without else is going to be a type checking error anyways
         // (except for unit type functions) so we don't match it
-        ExprKind::Match(_, arms, source) => match source {
-            MatchSource::Normal => {
-                for arm in arms.iter() {
-                    check_final_expr(cx, arm.body, Some(arm.body.span), RetReplacement::Block);
-                }
-            },
-            _ => (),
+        ExprKind::Match(_, arms, MatchSource::Normal) => {
+            for arm in arms.iter() {
+                check_final_expr(cx, arm.body, Some(arm.body.span), RetReplacement::Block);
+            }
         },
         ExprKind::DropTemps(expr) => check_final_expr(cx, expr, None, RetReplacement::Empty),
         _ => (),

@@ -131,12 +131,8 @@ impl Assists {
         target: TextRange,
         f: impl FnOnce(&mut AssistBuilder),
     ) -> Option<()> {
-        if !self.is_allowed(&id) {
-            return None;
-        }
-        let label = Label::new(label.into());
-        let assist = Assist { id, label, group: None, target, source_change: None };
-        self.add_impl(assist, f)
+        let mut f = Some(f);
+        self.add_impl(None, id, label.into(), target, &mut |it| f.take().unwrap()(it))
     }
 
     pub(crate) fn add_group(
@@ -147,25 +143,33 @@ impl Assists {
         target: TextRange,
         f: impl FnOnce(&mut AssistBuilder),
     ) -> Option<()> {
+        let mut f = Some(f);
+        self.add_impl(Some(group), id, label.into(), target, &mut |it| f.take().unwrap()(it))
+    }
+
+    fn add_impl(
+        &mut self,
+        group: Option<&GroupLabel>,
+        id: AssistId,
+        label: String,
+        target: TextRange,
+        f: &mut dyn FnMut(&mut AssistBuilder),
+    ) -> Option<()> {
         if !self.is_allowed(&id) {
             return None;
         }
-        let label = Label::new(label.into());
-        let assist = Assist { id, label, group: Some(group.clone()), target, source_change: None };
-        self.add_impl(assist, f)
-    }
 
-    fn add_impl(&mut self, mut assist: Assist, f: impl FnOnce(&mut AssistBuilder)) -> Option<()> {
-        let source_change = if self.resolve.should_resolve(&assist.id) {
+        let source_change = if self.resolve.should_resolve(&id) {
             let mut builder = AssistBuilder::new(self.file);
             f(&mut builder);
             Some(builder.finish())
         } else {
             None
         };
-        assist.source_change = source_change;
 
-        self.buf.push(assist);
+        let label = Label::new(label);
+        let group = group.cloned();
+        self.buf.push(Assist { id, label, group, target, source_change });
         Some(())
     }
 
@@ -288,6 +292,10 @@ impl AssistBuilder {
     }
     pub(crate) fn create_file(&mut self, dst: AnchoredPathBuf, content: impl Into<String>) {
         let file_system_edit = FileSystemEdit::CreateFile { dst, initial_contents: content.into() };
+        self.source_change.push_file_system_edit(file_system_edit);
+    }
+    pub(crate) fn move_file(&mut self, src: FileId, dst: AnchoredPathBuf) {
+        let file_system_edit = FileSystemEdit::MoveFile { src, dst };
         self.source_change.push_file_system_edit(file_system_edit);
     }
 

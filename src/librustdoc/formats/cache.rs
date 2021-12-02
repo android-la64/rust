@@ -6,7 +6,7 @@ use rustc_middle::middle::privacy::AccessLevels;
 use rustc_middle::ty::TyCtxt;
 use rustc_span::symbol::sym;
 
-use crate::clean::{self, GetDefId, ItemId};
+use crate::clean::{self, GetDefId, ItemId, PrimitiveType};
 use crate::config::RenderOptions;
 use crate::fold::DocFolder;
 use crate::formats::item_type::ItemType;
@@ -98,9 +98,6 @@ crate struct Cache {
     stripped_mod: bool,
 
     crate search_index: Vec<IndexItem>,
-    crate deref_trait_did: Option<DefId>,
-    crate deref_mut_trait_did: Option<DefId>,
-    crate owned_box_did: Option<DefId>,
 
     // In rare case where a structure is defined in one module but implemented
     // in another, if the implementing module is parsed before defining module,
@@ -122,6 +119,8 @@ crate struct Cache {
     ///
     /// Links are indexed by the DefId of the item they document.
     crate intra_doc_links: FxHashMap<ItemId, Vec<clean::ItemLink>>,
+    /// Cfg that have been hidden via #![doc(cfg_hide(...))]
+    crate hidden_cfg: FxHashSet<clean::cfg::Cfg>,
 }
 
 /// This struct is used to wrap the `cache` and `tcx` in order to run `DocFolder`.
@@ -159,17 +158,16 @@ impl Cache {
             self.external_paths.insert(e.def_id(), (vec![name.to_string()], ItemType::Module));
         }
 
-        // Cache where all known primitives have their documentation located.
-        //
-        // Favor linking to as local extern as possible, so iterate all crates in
-        // reverse topological order.
-        for &e in krate.externs.iter().rev() {
-            for &(def_id, prim) in &e.primitives(tcx) {
-                self.primitive_locations.insert(prim, def_id);
-            }
-        }
-        for &(def_id, prim) in &krate.primitives {
-            self.primitive_locations.insert(prim, def_id);
+        // FIXME: avoid this clone (requires implementing Default manually)
+        self.primitive_locations = PrimitiveType::primitive_locations(tcx).clone();
+        for (prim, &def_id) in &self.primitive_locations {
+            let crate_name = tcx.crate_name(def_id.krate);
+            // Recall that we only allow primitive modules to be at the root-level of the crate.
+            // If that restriction is ever lifted, this will have to include the relative paths instead.
+            self.external_paths.insert(
+                def_id,
+                (vec![crate_name.to_string(), prim.as_sym().to_string()], ItemType::Primitive),
+            );
         }
 
         krate = CacheBuilder { tcx, cache: self }.fold_crate(krate);
@@ -205,7 +203,9 @@ impl<'a, 'tcx> DocFolder for CacheBuilder<'a, 'tcx> {
         // masked crate then remove it completely.
         if let clean::ImplItem(ref i) = *item.kind {
             if self.cache.masked_crates.contains(&item.def_id.krate())
-                || i.trait_.def_id().map_or(false, |d| self.cache.masked_crates.contains(&d.krate))
+                || i.trait_
+                    .as_ref()
+                    .map_or(false, |t| self.cache.masked_crates.contains(&t.def_id().krate))
                 || i.for_.def_id().map_or(false, |d| self.cache.masked_crates.contains(&d.krate))
             {
                 return None;
@@ -225,11 +225,11 @@ impl<'a, 'tcx> DocFolder for CacheBuilder<'a, 'tcx> {
 
         // Collect all the implementors of traits.
         if let clean::ImplItem(ref i) = *item.kind {
-            if let Some(did) = i.trait_.def_id() {
+            if let Some(trait_) = &i.trait_ {
                 if i.blanket_impl.is_none() {
                     self.cache
                         .implementors
-                        .entry(did)
+                        .entry(trait_.def_id())
                         .or_default()
                         .push(Impl { impl_item: item.clone() });
                 }
@@ -404,12 +404,8 @@ impl<'a, 'tcx> DocFolder for CacheBuilder<'a, 'tcx> {
                     }
                     clean::DynTrait(ref bounds, _)
                     | clean::BorrowedRef { type_: box clean::DynTrait(ref bounds, _), .. } => {
-                        if let Some(did) = bounds[0].trait_.def_id() {
-                            self.cache.parent_stack.push(did);
-                            true
-                        } else {
-                            false
-                        }
+                        self.cache.parent_stack.push(bounds[0].trait_.def_id());
+                        true
                     }
                     ref t => {
                         let prim_did = t
@@ -443,9 +439,7 @@ impl<'a, 'tcx> DocFolder for CacheBuilder<'a, 'tcx> {
                 }
                 clean::DynTrait(ref bounds, _)
                 | clean::BorrowedRef { type_: box clean::DynTrait(ref bounds, _), .. } => {
-                    if let Some(did) = bounds[0].trait_.def_id() {
-                        dids.insert(did);
-                    }
+                    dids.insert(bounds[0].trait_.def_id());
                 }
                 ref t => {
                     let did = t

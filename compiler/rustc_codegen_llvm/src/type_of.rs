@@ -1,15 +1,14 @@
-use crate::abi::FnAbi;
 use crate::common::*;
 use crate::context::TypeLowering;
 use crate::type_::Type;
 use rustc_codegen_ssa::traits::*;
 use rustc_middle::bug;
-use rustc_middle::ty::layout::{FnAbiExt, TyAndLayout};
-use rustc_middle::ty::print::with_no_trimmed_paths;
+use rustc_middle::ty::layout::{FnAbiOf, LayoutOf, TyAndLayout};
+use rustc_middle::ty::print::{with_no_trimmed_paths, with_no_visible_paths};
 use rustc_middle::ty::{self, Ty, TypeFoldable};
 use rustc_target::abi::{Abi, AddressSpace, Align, FieldsShape};
 use rustc_target::abi::{Int, Pointer, F32, F64};
-use rustc_target::abi::{LayoutOf, PointeeInfo, Scalar, Size, TyAbiInterface, Variants};
+use rustc_target::abi::{PointeeInfo, Scalar, Size, TyAbiInterface, Variants};
 use smallvec::{smallvec, SmallVec};
 use tracing::debug;
 
@@ -23,7 +22,7 @@ fn uncached_llvm_type<'a, 'tcx>(
 ) -> &'a Type {
     match layout.abi {
         Abi::Scalar(_) => bug!("handled elsewhere"),
-        Abi::Vector { ref element, count } => {
+        Abi::Vector { element, count } => {
             let element = layout.scalar_llvm_type_at(cx, element, Size::ZERO);
             return cx.type_vector(element, count);
         }
@@ -44,7 +43,8 @@ fn uncached_llvm_type<'a, 'tcx>(
         // in problematically distinct types due to HRTB and subtyping (see #47638).
         // ty::Dynamic(..) |
         ty::Adt(..) | ty::Closure(..) | ty::Foreign(..) | ty::Generator(..) | ty::Str => {
-            let mut name = with_no_trimmed_paths(|| layout.ty.to_string());
+            let mut name =
+                with_no_visible_paths(|| with_no_trimmed_paths(|| layout.ty.to_string()));
             if let (&ty::Adt(def, _), &Variants::Single { index }) =
                 (layout.ty.kind(), &layout.variants)
             {
@@ -177,7 +177,7 @@ pub trait LayoutLlvmExt<'tcx> {
     fn scalar_llvm_type_at<'a>(
         &self,
         cx: &CodegenCx<'a, 'tcx>,
-        scalar: &Scalar,
+        scalar: Scalar,
         offset: Size,
     ) -> &'a Type;
     fn scalar_pair_element_llvm_type<'a>(
@@ -218,7 +218,7 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
     /// of that field's type - this is useful for taking the address of
     /// that field and ensuring the struct has the right alignment.
     fn llvm_type<'a>(&self, cx: &CodegenCx<'a, 'tcx>) -> &'a Type {
-        if let Abi::Scalar(ref scalar) = self.abi {
+        if let Abi::Scalar(scalar) = self.abi {
             // Use a different cache for scalars because pointers to DSTs
             // can be either fat or thin (data pointers of fat pointers).
             if let Some(&llty) = cx.scalar_lltypes.borrow().get(&self.ty) {
@@ -231,7 +231,9 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
                 ty::Adt(def, _) if def.is_box() => {
                     cx.type_ptr_to(cx.layout_of(self.ty.boxed_ty()).llvm_type(cx))
                 }
-                ty::FnPtr(sig) => cx.fn_ptr_backend_type(&FnAbi::of_fn_ptr(cx, sig, &[])),
+                ty::FnPtr(sig) => {
+                    cx.fn_ptr_backend_type(cx.fn_abi_of_fn_ptr(sig, ty::List::empty()))
+                }
                 _ => self.scalar_llvm_type_at(cx, scalar, Size::ZERO),
             };
             cx.scalar_lltypes.borrow_mut().insert(self.ty, llty);
@@ -243,7 +245,7 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
             Variants::Single { index } => Some(index),
             _ => None,
         };
-        if let Some(ref llty) = cx.type_lowering.borrow().get(&(self.ty, variant_index)) {
+        if let Some(llty) = cx.type_lowering.borrow().get(&(self.ty, variant_index)) {
             return llty.lltype;
         }
 
@@ -268,10 +270,9 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
         };
         debug!("--> mapped {:#?} to llty={:?}", self, llty);
 
-        cx.type_lowering.borrow_mut().insert(
-            (self.ty, variant_index),
-            TypeLowering { lltype: llty, field_remapping: field_remapping },
-        );
+        cx.type_lowering
+            .borrow_mut()
+            .insert((self.ty, variant_index), TypeLowering { lltype: llty, field_remapping });
 
         if let Some((llty, layout)) = defer {
             let (llfields, packed, new_field_remapping) = struct_llfields(cx, layout);
@@ -286,7 +287,7 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
     }
 
     fn immediate_llvm_type<'a>(&self, cx: &CodegenCx<'a, 'tcx>) -> &'a Type {
-        if let Abi::Scalar(ref scalar) = self.abi {
+        if let Abi::Scalar(scalar) = self.abi {
             if scalar.is_bool() {
                 return cx.type_i1();
             }
@@ -297,7 +298,7 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
     fn scalar_llvm_type_at<'a>(
         &self,
         cx: &CodegenCx<'a, 'tcx>,
-        scalar: &Scalar,
+        scalar: Scalar,
         offset: Size,
     ) -> &'a Type {
         match scalar.value {
@@ -337,7 +338,7 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
         }
 
         let (a, b) = match self.abi {
-            Abi::ScalarPair(ref a, ref b) => (a, b),
+            Abi::ScalarPair(a, b) => (a, b),
             _ => bug!("TyAndLayout::scalar_pair_element_llty({:?}): not applicable", self),
         };
         let scalar = [a, b][index];

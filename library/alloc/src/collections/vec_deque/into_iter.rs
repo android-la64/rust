@@ -8,16 +8,23 @@ use super::VecDeque;
 /// An owning iterator over the elements of a `VecDeque`.
 ///
 /// This `struct` is created by the [`into_iter`] method on [`VecDeque`]
-/// (provided by the `IntoIterator` trait). See its documentation for more.
+/// (provided by the [`IntoIterator`] trait). See its documentation for more.
 ///
 /// [`into_iter`]: VecDeque::into_iter
+/// [`IntoIterator`]: core::iter::IntoIterator
 #[derive(Clone)]
 #[stable(feature = "rust1", since = "1.0.0")]
 pub struct IntoIter<
     T,
     #[unstable(feature = "allocator_api", issue = "32838")] A: Allocator = Global,
 > {
-    pub(crate) inner: VecDeque<T, A>,
+    inner: VecDeque<T, A>,
+}
+
+impl<T, A: Allocator> IntoIter<T, A> {
+    pub(super) fn new(inner: VecDeque<T, A>) -> Self {
+        IntoIter { inner }
+    }
 }
 
 #[stable(feature = "collection_debug", since = "1.17.0")]

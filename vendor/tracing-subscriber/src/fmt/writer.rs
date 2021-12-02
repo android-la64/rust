@@ -10,11 +10,12 @@ use tracing_core::Metadata;
 
 /// A type that can create [`io::Write`] instances.
 ///
-/// `MakeWriter` is used by [`fmt::Subscriber`] or [`fmt::Layer`] to print formatted text representations of
-/// [`Event`]s.
+/// `MakeWriter` is used by [`fmt::Subscriber`] or [`fmt::Layer`] to print
+/// formatted text representations of [`Event`]s.
 ///
-/// This trait is already implemented for function pointers and immutably-borrowing closures that
-/// return an instance of [`io::Write`], such as [`io::stdout`] and [`io::stderr`].
+/// This trait is already implemented for function pointers and
+/// immutably-borrowing closures that return an instance of [`io::Write`], such
+/// as [`io::stdout`] and [`io::stderr`].
 ///
 /// The [`MakeWriter::make_writer_for`] method takes [`Metadata`] describing a
 /// span or event and returns a writer. `MakeWriter`s can optionally provide
@@ -75,8 +76,8 @@ use tracing_core::Metadata;
 /// ```
 ///
 /// [`io::Write`]: std::io::Write
-/// [`fmt::Collector`]: super::super::fmt::Collector
-/// [`fmt::Subscriber`]: super::super::fmt::Subscriber
+/// [`fmt::Layer`]: crate::fmt::Layer
+/// [`fmt::Subscriber`]: crate::fmt::Subscriber
 /// [`Event`]: tracing_core::event::Event
 /// [`io::stdout`]: std::io::stdout()
 /// [`io::stderr`]: std::io::stderr()
@@ -318,7 +319,7 @@ pub trait MakeWriterExt: MakeWriter {
     /// determine if  a writer should be produced for a given span or event.
     ///
     /// If the predicate returns `false`, the wrapped [`MakeWriter`]'s
-    /// [`make_writer_for`][mwf] will return [`OptionalWriter::none`].
+    /// [`make_writer_for`][mwf] will return [`OptionalWriter::none`][own].
     /// Otherwise, it calls the wrapped [`MakeWriter`]'s
     /// [`make_writer_for`][mwf] method, and returns the produced writer.
     ///
@@ -383,6 +384,7 @@ pub trait MakeWriterExt: MakeWriter {
     ///
     /// [`Metadata`]: tracing_core::Metadata
     /// [mwf]: MakeWriter::make_writer_for
+    /// [own]: EitherWriter::none
     fn with_filter<F>(self, filter: F) -> WithFilter<Self, F>
     where
         Self: Sized,
@@ -412,7 +414,32 @@ pub trait MakeWriterExt: MakeWriter {
     /// ```
     ///
     /// `and` can be used in conjunction with filtering combinators. For
-    /// example, if we want to write to a number of outputs depending on
+    /// example, if we want to write to a number of outputs depending on the
+    /// level of an event, we could write:
+    ///
+    /// ```
+    /// use tracing::Level;
+    /// # use tracing_subscriber::fmt::writer::MakeWriterExt;
+    /// use std::{sync::Arc, fs::File};
+    /// # // don't actually create the file when running the tests.
+    /// # fn docs() -> std::io::Result<()> {
+    /// let debug_log = Arc::new(File::create("debug.log")?);
+    ///
+    /// // Write everything to the debug log.
+    /// let mk_writer = debug_log
+    ///     // Write the `ERROR` and `WARN` levels to stderr.
+    ///     .and(std::io::stderr.with_max_level(Level::WARN))
+    ///     // Write `INFO` to `stdout`.
+    ///     .and(std::io::stdout
+    ///         .with_max_level(Level::INFO)
+    ///         .with_min_level(Level::INFO)
+    ///     );
+    ///
+    /// tracing_subscriber::fmt().with_writer(mk_writer).init();
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// [writers]: std::io::Write
     fn and<B>(self, other: B) -> Tee<Self, B>
     where
         Self: Sized,
@@ -423,7 +450,7 @@ pub trait MakeWriterExt: MakeWriter {
 
     /// Combines `self` with another type implementing [`MakeWriter`], returning
     /// a new [`MakeWriter`] that calls `other`'s [`make_writer`] if `self`'s
-    /// `make_writer` returns [`OptionalWriter::none`].
+    /// `make_writer` returns [`OptionalWriter::none`][own].
     ///
     /// # Examples
     ///
@@ -441,6 +468,9 @@ pub trait MakeWriterExt: MakeWriter {
     ///
     /// tracing_subscriber::fmt().with_writer(mk_writer).init();
     /// ```
+    ///
+    /// [`make_writer`]: MakeWriter::make_writer
+    /// [own]: EitherWriter::none
     fn or_else<W, B>(self, other: B) -> OrElse<Self, B>
     where
         Self: MakeWriter<Writer = OptionalWriter<W>> + Sized,
@@ -530,7 +560,7 @@ pub type OptionalWriter<T> = EitherWriter<T, std::io::Sink>;
 /// A [`MakeWriter`] combinator that only returns an enabled [writer] for spans
 /// and events with metadata at or below a specified verbosity [`Level`].
 ///
-/// This is returned by the [`MakeWriterExt::with_max_level] method. See the
+/// This is returned by the [`MakeWriterExt::with_max_level`] method. See the
 /// method documentation for details.
 ///
 /// [writer]: std::io::Write
@@ -544,7 +574,7 @@ pub struct WithMaxLevel<M> {
 /// A [`MakeWriter`] combinator that only returns an enabled [writer] for spans
 /// and events with metadata at or above a specified verbosity [`Level`].
 ///
-/// This is returned by the [`MakeWriterExt::with_min_level] method. See the
+/// This is returned by the [`MakeWriterExt::with_min_level`] method. See the
 /// method documentation for details.
 ///
 /// [writer]: std::io::Write
@@ -556,14 +586,16 @@ pub struct WithMinLevel<M> {
 }
 
 /// A [`MakeWriter`] combinator that wraps a [`MakeWriter`] with a predicate for
-/// span and event [`Metadata`], so that the [`MakeWriterExt::make_writer_for`]
-/// method returns [`OptionalWriter::some`] when the predicate returns `true`,
-/// and [`OptionalWriter::none`] when the predicate returns `false`.
+/// span and event [`Metadata`], so that the [`MakeWriter::make_writer_for`]
+/// method returns [`OptionalWriter::some`][ows] when the predicate returns `true`,
+/// and [`OptionalWriter::none`][own] when the predicate returns `false`.
 ///
 /// This is returned by the [`MakeWriterExt::with_filter`] method. See the
 /// method documentation for details.
 ///
 /// [`Metadata`]: tracing_core::Metadata
+/// [ows]: EitherWriter::some
+/// [own]: EitherWriter::none
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct WithFilter<M, F> {
     make: M,
@@ -572,10 +604,12 @@ pub struct WithFilter<M, F> {
 
 /// Combines a [`MakeWriter`] that returns an [`OptionalWriter`] with another
 /// [`MakeWriter`], so that the second [`MakeWriter`] is used when the first
-/// [`MakeWriter`] returns [`OptionalWriter::none`].
+/// [`MakeWriter`] returns [`OptionalWriter::none`][own].
 ///
 /// This is returned by the [`MakeWriterExt::or_else] method. See the
 /// method documentation for details.
+///
+/// [own]: EitherWriter::none
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct OrElse<A, B> {
     inner: A,
@@ -790,12 +824,13 @@ impl<T> From<Option<T>> for OptionalWriter<T> {
 
 impl<M> WithMaxLevel<M> {
     /// Wraps the provided [`MakeWriter`] with a maximum [`Level`], so that it
-    /// returns [`OptionalWriter::none`] for spans and events whose level is
+    /// returns [`OptionalWriter::none`][own] for spans and events whose level is
     /// more verbose than the maximum level.
     ///
     /// See [`MakeWriterExt::with_max_level`] for details.
     ///
     /// [`Level`]: tracing_core::Level
+    /// [own]: EitherWriter::none
     pub fn new(make: M, level: tracing_core::Level) -> Self {
         Self { make, level }
     }
@@ -823,12 +858,13 @@ impl<M: MakeWriter> MakeWriter for WithMaxLevel<M> {
 
 impl<M> WithMinLevel<M> {
     /// Wraps the provided [`MakeWriter`] with a minimum [`Level`], so that it
-    /// returns [`OptionalWriter::none`] for spans and events whose level is
+    /// returns [`OptionalWriter::none`][own] for spans and events whose level is
     /// less verbose than the maximum level.
     ///
     /// See [`MakeWriterExt::with_min_level`] for details.
     ///
     /// [`Level`]: tracing_core::Level
+    /// [own]: EitherWriter::none
     pub fn new(make: M, level: tracing_core::Level) -> Self {
         Self { make, level }
     }
@@ -901,6 +937,8 @@ impl<A, B> Tee<A, B> {
     /// outputs.
     ///
     /// See the documentation for [`MakeWriterExt::and`] for details.
+    ///
+    /// [writers]: std::io::Write
     pub fn new(a: A, b: B) -> Self {
         Self { a, b }
     }

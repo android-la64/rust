@@ -8,10 +8,12 @@ use rustc_hir as hir;
 use rustc_hir::def::CtorKind;
 use rustc_hir::def_id::DefId;
 use rustc_middle::middle::stability;
+use rustc_middle::span_bug;
 use rustc_middle::ty::layout::LayoutError;
-use rustc_middle::ty::TyCtxt;
+use rustc_middle::ty::{Adt, TyCtxt};
 use rustc_span::hygiene::MacroKind;
 use rustc_span::symbol::{kw, sym, Symbol};
+use rustc_target::abi::{Layout, Primitive, TagEncoding, Variants};
 
 use super::{
     collect_paths_for_type, document, ensure_trailing_slash, item_ty_to_strs, notable_traits_decl,
@@ -28,16 +30,43 @@ use crate::html::format::{
 };
 use crate::html::highlight;
 use crate::html::layout::Page;
-use crate::html::markdown::MarkdownSummaryLine;
+use crate::html::markdown::{HeadingOffset, MarkdownSummaryLine};
+
+use serde::Serialize;
 
 const ITEM_TABLE_OPEN: &'static str = "<div class=\"item-table\">";
 const ITEM_TABLE_CLOSE: &'static str = "</div>";
+const ITEM_TABLE_ROW_OPEN: &'static str = "<div class=\"item-row\">";
+const ITEM_TABLE_ROW_CLOSE: &'static str = "</div>";
 
-pub(super) fn print_item(cx: &Context<'_>, item: &clean::Item, buf: &mut Buffer, page: &Page<'_>) {
+// A component in a `use` path, like `string` in std::string::ToString
+#[derive(Serialize)]
+struct PathComponent<'a> {
+    path: String,
+    name: &'a str,
+}
+
+#[derive(Serialize)]
+struct ItemVars<'a> {
+    page: &'a Page<'a>,
+    static_root_path: &'a str,
+    typ: &'a str,
+    name: &'a str,
+    item_type: &'a str,
+    path_components: Vec<PathComponent<'a>>,
+    stability_since_raw: &'a str,
+    src_href: Option<&'a str>,
+}
+
+pub(super) fn print_item(
+    cx: &Context<'_>,
+    templates: &tera::Tera,
+    item: &clean::Item,
+    buf: &mut Buffer,
+    page: &Page<'_>,
+) {
     debug_assert!(!item.is_stripped());
-    // Write the breadcrumb trail header for the top
-    buf.write_str("<h1 class=\"fqn\"><span class=\"in-band\">");
-    let name = match *item.kind {
+    let typ = match *item.kind {
         clean::ModuleItem(_) => {
             if item.is_crate() {
                 "Crate "
@@ -69,48 +98,15 @@ pub(super) fn print_item(cx: &Context<'_>, item: &clean::Item, buf: &mut Buffer,
             unreachable!();
         }
     };
-    buf.write_str(name);
-    if !item.is_primitive() && !item.is_keyword() {
-        let cur = &cx.current;
-        let amt = if item.is_mod() { cur.len() - 1 } else { cur.len() };
-        for (i, component) in cur.iter().enumerate().take(amt) {
-            write!(
-                buf,
-                "<a href=\"{}index.html\">{}</a>::<wbr>",
-                "../".repeat(cur.len() - i - 1),
-                component
-            );
-        }
-    }
-    write!(buf, "<a class=\"{}\" href=\"#\">{}</a>", item.type_(), item.name.as_ref().unwrap());
-    write!(
-        buf,
-        "<button id=\"copy-path\" onclick=\"copy_path(this)\" title=\"Copy item path to clipboard\">\
-            <img src=\"{static_root_path}clipboard{suffix}.svg\" \
-                width=\"19\" height=\"18\" \
-                alt=\"Copy item path\">\
-         </button>",
-        static_root_path = page.get_static_root_path(),
-        suffix = page.resource_suffix,
-    );
-
-    buf.write_str("</span>"); // in-band
-    buf.write_str("<span class=\"out-of-band\">");
+    let mut stability_since_raw = Buffer::new();
     render_stability_since_raw(
-        buf,
+        &mut stability_since_raw,
         item.stable_since(cx.tcx()).as_deref(),
         item.const_stability(cx.tcx()),
         None,
         None,
     );
-    buf.write_str(
-        "<span id=\"render-detail\">\
-                <a id=\"toggle-all-docs\" href=\"javascript:void(0)\" \
-                    title=\"collapse all docs\">\
-                    [<span class=\"inner\">&#x2212;</span>]\
-                </a>\
-            </span>",
-    );
+    let stability_since_raw: String = stability_since_raw.into_inner();
 
     // Write `src` tag
     //
@@ -118,11 +114,38 @@ pub(super) fn print_item(cx: &Context<'_>, item: &clean::Item, buf: &mut Buffer,
     // [src] link in the downstream documentation will actually come back to
     // this page, and this link will be auto-clicked. The `id` attribute is
     // used to find the link to auto-click.
-    if cx.include_sources && !item.is_primitive() {
-        write_srclink(cx, item, buf);
-    }
+    let src_href =
+        if cx.include_sources && !item.is_primitive() { cx.src_href(item) } else { None };
 
-    buf.write_str("</span></h1>"); // out-of-band
+    let path_components = if item.is_primitive() || item.is_keyword() {
+        vec![]
+    } else {
+        let cur = &cx.current;
+        let amt = if item.is_mod() { cur.len() - 1 } else { cur.len() };
+        cur.iter()
+            .enumerate()
+            .take(amt)
+            .map(|(i, component)| PathComponent {
+                path: "../".repeat(cur.len() - i - 1),
+                name: component,
+            })
+            .collect()
+    };
+
+    let item_vars = ItemVars {
+        page: page,
+        static_root_path: page.get_static_root_path(),
+        typ: typ,
+        name: &item.name.as_ref().unwrap().as_str(),
+        item_type: &item.type_().to_string(),
+        path_components: path_components,
+        stability_since_raw: &stability_since_raw,
+        src_href: src_href.as_deref(),
+    };
+
+    let teractx = tera::Context::from_serialize(item_vars).unwrap();
+    let heading = templates.render("print_item.html", &teractx).unwrap();
+    buf.write_str(&heading);
 
     match *item.kind {
         clean::ModuleItem(ref m) => item_module(buf, cx, item, &m.items),
@@ -171,7 +194,7 @@ fn toggle_close(w: &mut Buffer) {
 }
 
 fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[clean::Item]) {
-    document(w, cx, item, None);
+    document(w, cx, item, None, HeadingOffset::H2);
 
     let mut indices = (0..items.len()).filter(|i| !items[*i].is_stripped()).collect::<Vec<usize>>();
 
@@ -254,9 +277,6 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
 
     debug!("{:?}", indices);
     let mut curty = None;
-    // See: https://github.com/rust-lang/rust/issues/88545
-    let item_table_block_size = 900usize;
-    let mut item_table_nth_element = 0usize;
 
     for &idx in &indices {
         let myitem = &items[idx];
@@ -277,18 +297,19 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
             write!(
                 w,
                 "<h2 id=\"{id}\" class=\"section-header\">\
-                       <a href=\"#{id}\">{name}</a></h2>\n{}",
+                    <a href=\"#{id}\">{name}</a>\
+                 </h2>\n{}",
                 ITEM_TABLE_OPEN,
                 id = cx.derive_id(short.to_owned()),
                 name = name
             );
-            item_table_nth_element = 0;
         }
 
         match *myitem.kind {
             clean::ExternCrateItem { ref src } => {
                 use crate::html::format::anchor;
 
+                w.write_str(ITEM_TABLE_ROW_OPEN);
                 match *src {
                     Some(ref src) => write!(
                         w,
@@ -309,6 +330,7 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
                     ),
                 }
                 w.write_str("</code></div>");
+                w.write_str(ITEM_TABLE_ROW_CLOSE);
             }
 
             clean::ImportItem(ref import) => {
@@ -320,7 +342,7 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
                     let import_item = clean::Item {
                         def_id: import_def_id.into(),
                         attrs: import_attrs,
-                        cfg: ast_attrs.cfg(cx.sess()),
+                        cfg: ast_attrs.cfg(cx.tcx(), &cx.cache().hidden_cfg),
                         ..myitem.clone()
                     };
 
@@ -333,6 +355,7 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
 
                 let add = if stab.is_some() { " " } else { "" };
 
+                w.write_str(ITEM_TABLE_ROW_OPEN);
                 write!(
                     w,
                     "<div class=\"item-left {stab}{add}import-item\">\
@@ -345,6 +368,7 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
                     imp = import.print(cx),
                     stab_tags = stab_tags.unwrap_or_default(),
                 );
+                w.write_str(ITEM_TABLE_ROW_CLOSE);
             }
 
             _ => {
@@ -365,6 +389,7 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
                 let add = if stab.is_some() { " " } else { "" };
 
                 let doc_value = myitem.doc_value().unwrap_or_default();
+                w.write_str(ITEM_TABLE_ROW_OPEN);
                 write!(
                     w,
                     "<div class=\"item-left {stab}{add}module-item\">\
@@ -387,14 +412,8 @@ fn item_module(w: &mut Buffer, cx: &Context<'_>, item: &clean::Item, items: &[cl
                         .collect::<Vec<_>>()
                         .join(" "),
                 );
+                w.write_str(ITEM_TABLE_ROW_CLOSE);
             }
-        }
-
-        item_table_nth_element += 1;
-        if item_table_nth_element > item_table_block_size {
-            w.write_str(ITEM_TABLE_CLOSE);
-            w.write_str(ITEM_TABLE_OPEN);
-            item_table_nth_element = 0;
         }
     }
 
@@ -415,10 +434,7 @@ fn extra_info_tags(item: &clean::Item, parent: &clean::Item, tcx: TyCtxt<'_>) ->
     // The trailing space after each tag is to space it properly against the rest of the docs.
     if let Some(depr) = &item.deprecation(tcx) {
         let mut message = "Deprecated";
-        if !stability::deprecation_in_effect(
-            depr.is_since_rustc_version,
-            depr.since.map(|s| s.as_str()).as_deref(),
-        ) {
+        if !stability::deprecation_in_effect(depr) {
             message = "Deprecation planned";
         }
         tags += &tag_html("deprecated", "", message);
@@ -485,7 +501,7 @@ fn item_function(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, f: &clean::
             notable_traits = notable_traits_decl(&f.decl, cx),
         );
     });
-    document(w, cx, it, None)
+    document(w, cx, it, None, HeadingOffset::H2)
 }
 
 fn item_trait(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clean::Trait) {
@@ -608,7 +624,7 @@ fn item_trait(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clean::Tra
     });
 
     // Trait documentation
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     fn write_small_section_header(w: &mut Buffer, id: &str, title: &str, extra_content: &str) {
         write!(
@@ -626,7 +642,7 @@ fn item_trait(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clean::Tra
         let item_type = m.type_();
         let id = cx.derive_id(format!("{}.{}", item_type, name));
         let mut content = Buffer::empty_from(w);
-        document(&mut content, cx, m, Some(t));
+        document(&mut content, cx, m, Some(t), HeadingOffset::H5);
         let toggled = !content.is_empty();
         if toggled {
             write!(w, "<details class=\"rustdoc-toggle\" open><summary>");
@@ -709,11 +725,10 @@ fn item_trait(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clean::Tra
         let mut implementor_dups: FxHashMap<Symbol, (DefId, bool)> = FxHashMap::default();
         for implementor in implementors {
             match implementor.inner_impl().for_ {
-                clean::ResolvedPath { ref path, did, is_generic: false, .. }
+                clean::ResolvedPath { ref path, did, .. }
                 | clean::BorrowedRef {
-                    type_: box clean::ResolvedPath { ref path, did, is_generic: false, .. },
-                    ..
-                } => {
+                    type_: box clean::ResolvedPath { ref path, did, .. }, ..
+                } if !path.is_assoc_ty() => {
                     let &mut (prev_did, ref mut has_duplicates) =
                         implementor_dups.entry(path.last()).or_insert((did, false));
                     if prev_did != did {
@@ -841,7 +856,7 @@ fn item_trait_alias(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clea
         );
     });
 
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     // Render any items associated directly to this alias, as otherwise they
     // won't be visible anywhere in the docs. It would be nice to also show
@@ -863,7 +878,7 @@ fn item_opaque_ty(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clean:
         );
     });
 
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     // Render any items associated directly to this alias, as otherwise they
     // won't be visible anywhere in the docs. It would be nice to also show
@@ -894,7 +909,7 @@ fn item_typedef(
         );
     });
 
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     let def_id = it.def_id.expect_def_id();
     // Render any items associated directly to this alias, as otherwise they
@@ -912,7 +927,7 @@ fn item_union(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, s: &clean::Uni
         });
     });
 
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     let mut fields = s
         .fields
@@ -945,7 +960,7 @@ fn item_union(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, s: &clean::Uni
             if let Some(stability_class) = field.stability_class(cx.tcx()) {
                 write!(w, "<span class=\"stab {stab}\"></span>", stab = stability_class);
             }
-            document(w, cx, field, Some(it));
+            document(w, cx, field, Some(it), HeadingOffset::H3);
         }
     }
     let def_id = it.def_id.expect_def_id();
@@ -1027,7 +1042,7 @@ fn item_enum(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, e: &clean::Enum
         });
     });
 
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     if !e.variants.is_empty() {
         write!(
@@ -1056,7 +1071,7 @@ fn item_enum(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, e: &clean::Enum
             w.write_str("</code>");
             render_stability_since(w, variant, it, cx.tcx());
             w.write_str("</div>");
-            document(w, cx, variant, Some(it));
+            document(w, cx, variant, Some(it), HeadingOffset::H3);
             document_non_exhaustive(w, variant);
 
             use crate::clean::Variant;
@@ -1096,7 +1111,7 @@ fn item_enum(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, e: &clean::Enum
                                 f = field.name.as_ref().unwrap(),
                                 t = ty.print(cx)
                             );
-                            document(w, cx, field, Some(variant));
+                            document(w, cx, field, Some(variant), HeadingOffset::H4);
                         }
                         _ => unreachable!(),
                     }
@@ -1123,7 +1138,7 @@ fn item_macro(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clean::Mac
             None,
         );
     });
-    document(w, cx, it, None)
+    document(w, cx, it, None, HeadingOffset::H2)
 }
 
 fn item_proc_macro(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, m: &clean::ProcMacro) {
@@ -1153,11 +1168,11 @@ fn item_proc_macro(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, m: &clean
             });
         }
     }
-    document(w, cx, it, None)
+    document(w, cx, it, None, HeadingOffset::H2)
 }
 
 fn item_primitive(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item) {
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
     render_assoc_items(w, cx, it, it.def_id.expect_def_id(), AssocItemRender::All)
 }
 
@@ -1196,7 +1211,7 @@ fn item_constant(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, c: &clean::
         }
     });
 
-    document(w, cx, it, None)
+    document(w, cx, it, None, HeadingOffset::H2)
 }
 
 fn item_struct(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, s: &clean::Struct) {
@@ -1207,7 +1222,7 @@ fn item_struct(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, s: &clean::St
         });
     });
 
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     let mut fields = s
         .fields
@@ -1243,7 +1258,7 @@ fn item_struct(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, s: &clean::St
                     name = field_name,
                     ty = ty.print(cx)
                 );
-                document(w, cx, field, Some(it));
+                document(w, cx, field, Some(it), HeadingOffset::H3);
             }
         }
     }
@@ -1264,7 +1279,7 @@ fn item_static(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, s: &clean::St
             typ = s.type_.print(cx)
         );
     });
-    document(w, cx, it, None)
+    document(w, cx, it, None, HeadingOffset::H2)
 }
 
 fn item_foreign_type(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item) {
@@ -1279,13 +1294,13 @@ fn item_foreign_type(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item) {
         );
     });
 
-    document(w, cx, it, None);
+    document(w, cx, it, None, HeadingOffset::H2);
 
     render_assoc_items(w, cx, it, it.def_id.expect_def_id(), AssocItemRender::All)
 }
 
 fn item_keyword(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item) {
-    document(w, cx, it, None)
+    document(w, cx, it, None, HeadingOffset::H2)
 }
 
 /// Compare two strings treating multi-digit numbers as single units (i.e. natural sort order).
@@ -1407,11 +1422,12 @@ fn render_implementor(
     // If there's already another implementor that has the same abridged name, use the
     // full path, for example in `std::iter::ExactSizeIterator`
     let use_absolute = match implementor.inner_impl().for_ {
-        clean::ResolvedPath { ref path, is_generic: false, .. }
-        | clean::BorrowedRef {
-            type_: box clean::ResolvedPath { ref path, is_generic: false, .. },
-            ..
-        } => implementor_dups[&path.last()].1,
+        clean::ResolvedPath { ref path, .. }
+        | clean::BorrowedRef { type_: box clean::ResolvedPath { ref path, .. }, .. }
+            if !path.is_assoc_ty() =>
+        {
+            implementor_dups[&path.last()].1
+        }
         _ => false,
     };
     render_impl(
@@ -1636,6 +1652,15 @@ fn document_non_exhaustive(w: &mut Buffer, item: &clean::Item) {
 }
 
 fn document_type_layout(w: &mut Buffer, cx: &Context<'_>, ty_def_id: DefId) {
+    fn write_size_of_layout(w: &mut Buffer, layout: &Layout, tag_size: u64) {
+        if layout.abi.is_unsized() {
+            write!(w, "(unsized)");
+        } else {
+            let bytes = layout.size.bytes() - tag_size;
+            write!(w, "{size} byte{pl}", size = bytes, pl = if bytes == 1 { "" } else { "s" },);
+        }
+    }
+
     if !cx.shared.show_type_layout {
         return;
     }
@@ -1651,22 +1676,46 @@ fn document_type_layout(w: &mut Buffer, cx: &Context<'_>, ty_def_id: DefId) {
             writeln!(
                 w,
                 "<div class=\"warning\"><p><strong>Note:</strong> Most layout information is \
-                 completely unstable and may be different between compiler versions and platforms. \
+                 <strong>completely unstable</strong> and may even differ between compilations. \
                  The only exception is types with certain <code>repr(...)</code> attributes. \
                  Please see the Rust Reference’s \
                  <a href=\"https://doc.rust-lang.org/reference/type-layout.html\">“Type Layout”</a> \
                  chapter for details on type layout guarantees.</p></div>"
             );
-            if ty_layout.layout.abi.is_unsized() {
-                writeln!(w, "<p><strong>Size:</strong> (unsized)</p>");
-            } else {
-                let bytes = ty_layout.layout.size.bytes();
-                writeln!(
-                    w,
-                    "<p><strong>Size:</strong> {size} byte{pl}</p>",
-                    size = bytes,
-                    pl = if bytes == 1 { "" } else { "s" },
-                );
+            w.write_str("<p><strong>Size:</strong> ");
+            write_size_of_layout(w, ty_layout.layout, 0);
+            writeln!(w, "</p>");
+            if let Variants::Multiple { variants, tag, tag_encoding, .. } =
+                &ty_layout.layout.variants
+            {
+                if !variants.is_empty() {
+                    w.write_str(
+                        "<p><strong>Size for each variant:</strong></p>\
+                            <ul>",
+                    );
+
+                    let adt = if let Adt(adt, _) = ty_layout.ty.kind() {
+                        adt
+                    } else {
+                        span_bug!(tcx.def_span(ty_def_id), "not an adt")
+                    };
+
+                    let tag_size = if let TagEncoding::Niche { .. } = tag_encoding {
+                        0
+                    } else if let Primitive::Int(i, _) = tag.value {
+                        i.size().bytes()
+                    } else {
+                        span_bug!(tcx.def_span(ty_def_id), "tag is neither niche nor int")
+                    };
+
+                    for (index, layout) in variants.iter_enumerated() {
+                        let ident = adt.variants[index].ident;
+                        write!(w, "<li><code>{name}</code>: ", name = ident);
+                        write_size_of_layout(w, layout, tag_size);
+                        writeln!(w, "</li>");
+                    }
+                    w.write_str("</ul>");
+                }
             }
         }
         // This kind of layout error can occur with valid code, e.g. if you try to

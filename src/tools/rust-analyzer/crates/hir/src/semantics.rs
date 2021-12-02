@@ -2,7 +2,7 @@
 
 mod source_to_def;
 
-use std::{cell::RefCell, fmt, iter::successors};
+use std::{cell::RefCell, fmt};
 
 use base_db::{FileId, FileRange};
 use hir_def::{
@@ -14,19 +14,20 @@ use hir_expand::{name::AsName, ExpansionInfo};
 use hir_ty::{associated_type_shorthand_candidates, Interner};
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::{smallvec, SmallVec};
 use syntax::{
-    algo::find_node_at_offset,
-    ast::{self, GenericParamsOwner, LoopBodyOwner},
-    match_ast, AstNode, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TextSize,
+    algo::skip_trivia_token,
+    ast::{self, HasGenericParams, HasLoopBody},
+    match_ast, AstNode, Direction, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextRange, TextSize,
 };
 
 use crate::{
     db::HirDatabase,
     semantics::source_to_def::{ChildContainer, SourceToDefCache, SourceToDefCtx},
     source_analyzer::{resolve_hir_path, SourceAnalyzer},
-    Access, AssocItem, Callable, ConstParam, Crate, Field, Function, HirFileId, Impl, InFile,
-    Label, LifetimeParam, Local, MacroDef, Module, ModuleDef, Name, Path, ScopeDef, Trait, Type,
-    TypeAlias, TypeParam, VariantDef,
+    Access, AssocItem, Callable, ConstParam, Crate, Field, Function, HasSource, HirFileId, Impl,
+    InFile, Label, LifetimeParam, Local, MacroDef, Module, ModuleDef, Name, Path, ScopeDef, Trait,
+    Type, TypeAlias, TypeParam, VariantDef,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -148,6 +149,10 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
         self.imp.expand_attr_macro(item)
     }
 
+    pub fn expand_derive_macro(&self, derive: &ast::Attr) -> Option<Vec<SyntaxNode>> {
+        self.imp.expand_derive_macro(derive)
+    }
+
     pub fn is_attr_macro_call(&self, item: &ast::Item) -> bool {
         self.imp.is_attr_macro_call(item)
     }
@@ -161,16 +166,36 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
         self.imp.speculative_expand(actual_macro_call, speculative_args, token_to_map)
     }
 
+    pub fn speculative_expand_attr_macro(
+        &self,
+        actual_macro_call: &ast::Item,
+        speculative_args: &ast::Item,
+        token_to_map: SyntaxToken,
+    ) -> Option<(SyntaxNode, SyntaxToken)> {
+        self.imp.speculative_expand_attr(actual_macro_call, speculative_args, token_to_map)
+    }
+
+    // FIXME: Rename to descend_into_macros_single
     pub fn descend_into_macros(&self, token: SyntaxToken) -> SyntaxToken {
+        self.imp.descend_into_macros(token).pop().unwrap()
+    }
+
+    // FIXME: Rename to descend_into_macros
+    pub fn descend_into_macros_many(&self, token: SyntaxToken) -> SmallVec<[SyntaxToken; 1]> {
         self.imp.descend_into_macros(token)
     }
 
-    pub fn descend_node_at_offset<N: ast::AstNode>(
-        &self,
-        node: &SyntaxNode,
-        offset: TextSize,
-    ) -> Option<N> {
-        self.imp.descend_node_at_offset(node, offset).find_map(N::cast)
+    /// Maps a node down by mapping its first and last token down.
+    pub fn descend_node_into_attributes<N: AstNode>(&self, node: N) -> SmallVec<[N; 1]> {
+        self.imp.descend_node_into_attributes(node)
+    }
+
+    /// Search for a definition's source and cache its syntax tree
+    pub fn source<Def: HasSource>(&self, def: Def) -> Option<InFile<Def::Ast>>
+    where
+        Def::Ast: AstNode,
+    {
+        self.imp.source(def)
     }
 
     pub fn hir_file_for(&self, syntax_node: &SyntaxNode) -> HirFileId {
@@ -179,6 +204,10 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
 
     pub fn original_range(&self, node: &SyntaxNode) -> FileRange {
         self.imp.original_range(node)
+    }
+
+    pub fn original_range_opt(&self, node: &SyntaxNode) -> Option<FileRange> {
+        self.imp.original_range_opt(node)
     }
 
     pub fn diagnostics_display_range(&self, diagnostics: InFile<SyntaxNodePtr>) -> FileRange {
@@ -191,6 +220,7 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
     ) -> impl Iterator<Item = SyntaxNode> + '_ {
         token.parent().into_iter().flat_map(move |it| self.ancestors_with_macros(it))
     }
+
     pub fn ancestors_with_macros(&self, node: SyntaxNode) -> impl Iterator<Item = SyntaxNode> + '_ {
         self.imp.ancestors_with_macros(node)
     }
@@ -220,11 +250,17 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
         node: &SyntaxNode,
         offset: TextSize,
     ) -> Option<N> {
-        if let Some(it) = find_node_at_offset(node, offset) {
-            return Some(it);
-        }
+        self.imp.descend_node_at_offset(node, offset).flatten().find_map(N::cast)
+    }
 
-        self.imp.descend_node_at_offset(node, offset).find_map(N::cast)
+    /// Find an AstNode by offset inside SyntaxNode, if it is inside *MacroCall*,
+    /// descend it and find again
+    pub fn find_nodes_at_offset_with_descend<'slf, N: AstNode + 'slf>(
+        &'slf self,
+        node: &SyntaxNode,
+        offset: TextSize,
+    ) -> impl Iterator<Item = N> + 'slf {
+        self.imp.descend_node_at_offset(node, offset).filter_map(|mut it| it.find_map(N::cast))
     }
 
     pub fn resolve_lifetime_param(&self, lifetime: &ast::Lifetime) -> Option<LifetimeParam> {
@@ -385,6 +421,31 @@ impl<'db> SemanticsImpl<'db> {
         Some(node)
     }
 
+    fn expand_derive_macro(&self, attr: &ast::Attr) -> Option<Vec<SyntaxNode>> {
+        let item = attr.syntax().parent().and_then(ast::Item::cast)?;
+        let sa = self.analyze(item.syntax());
+        let item = InFile::new(sa.file_id, &item);
+        let src = InFile::new(sa.file_id, attr.clone());
+        self.with_ctx(|ctx| {
+            let macro_call_ids = ctx.attr_to_derive_macro_call(item, src)?;
+
+            let expansions: Vec<_> = macro_call_ids
+                .iter()
+                .map(|call| call.as_file())
+                .flat_map(|file_id| {
+                    let node = self.db.parse_or_expand(file_id)?;
+                    self.cache(node.clone(), file_id);
+                    Some(node)
+                })
+                .collect();
+            if expansions.is_empty() {
+                None
+            } else {
+                Some(expansions)
+            }
+        })
+    }
+
     fn is_attr_macro_call(&self, item: &ast::Item) -> bool {
         let sa = self.analyze(item.syntax());
         let src = InFile::new(sa.file_id, item.clone());
@@ -406,102 +467,199 @@ impl<'db> SemanticsImpl<'db> {
         hir_expand::db::expand_speculative(
             self.db.upcast(),
             macro_call_id,
-            speculative_args,
+            speculative_args.syntax(),
             token_to_map,
         )
     }
 
-    fn descend_into_macros(&self, token: SyntaxToken) -> SyntaxToken {
+    fn speculative_expand_attr(
+        &self,
+        actual_macro_call: &ast::Item,
+        speculative_args: &ast::Item,
+        token_to_map: SyntaxToken,
+    ) -> Option<(SyntaxNode, SyntaxToken)> {
+        let sa = self.analyze(actual_macro_call.syntax());
+        let macro_call = InFile::new(sa.file_id, actual_macro_call.clone());
+        let macro_call_id = self.with_ctx(|ctx| ctx.item_to_macro_call(macro_call))?;
+        hir_expand::db::expand_speculative(
+            self.db.upcast(),
+            macro_call_id,
+            speculative_args.syntax(),
+            token_to_map,
+        )
+    }
+
+    // This might not be the correct way to do this, but it works for now
+    fn descend_node_into_attributes<N: AstNode>(&self, node: N) -> SmallVec<[N; 1]> {
+        let mut res = smallvec![];
+        let tokens = (|| {
+            let first = skip_trivia_token(node.syntax().first_token()?, Direction::Next)?;
+            let last = skip_trivia_token(node.syntax().last_token()?, Direction::Prev)?;
+            Some((first, last))
+        })();
+        let (first, last) = match tokens {
+            Some(it) => it,
+            None => return res,
+        };
+
+        if first == last {
+            self.descend_into_macros_impl(first, |InFile { value, .. }| {
+                if let Some(node) = value.ancestors().find_map(N::cast) {
+                    res.push(node)
+                }
+            });
+        } else {
+            // Descend first and last token, then zip them to look for the node they belong to
+            let mut scratch: SmallVec<[_; 1]> = smallvec![];
+            self.descend_into_macros_impl(first, |token| {
+                scratch.push(token);
+            });
+
+            let mut scratch = scratch.into_iter();
+            self.descend_into_macros_impl(last, |InFile { value: last, file_id: last_fid }| {
+                if let Some(InFile { value: first, file_id: first_fid }) = scratch.next() {
+                    if first_fid == last_fid {
+                        if let Some(p) = first.parent() {
+                            let range = first.text_range().cover(last.text_range());
+                            let node = find_root(&p)
+                                .covering_element(range)
+                                .ancestors()
+                                .take_while(|it| it.text_range() == range)
+                                .find_map(N::cast);
+                            if let Some(node) = node {
+                                res.push(node);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        res
+    }
+
+    fn descend_into_macros(&self, token: SyntaxToken) -> SmallVec<[SyntaxToken; 1]> {
+        let mut res = smallvec![];
+        self.descend_into_macros_impl(token, |InFile { value, .. }| res.push(value));
+        res
+    }
+
+    fn descend_into_macros_impl(&self, token: SyntaxToken, mut f: impl FnMut(InFile<SyntaxToken>)) {
         let _p = profile::span("descend_into_macros");
         let parent = match token.parent() {
             Some(it) => it,
-            None => return token,
+            None => return,
         };
         let sa = self.analyze(&parent);
+        let mut stack: SmallVec<[_; 1]> = smallvec![InFile::new(sa.file_id, token)];
+        let mut cache = self.expansion_info_cache.borrow_mut();
 
-        let token = successors(Some(InFile::new(sa.file_id, token)), |token| {
-            self.db.unwind_if_cancelled();
+        let mut process_expansion_for_token =
+            |stack: &mut SmallVec<_>, file_id, item, token: InFile<&_>| {
+                let mapped_tokens = cache
+                    .entry(file_id)
+                    .or_insert_with(|| file_id.expansion_info(self.db.upcast()))
+                    .as_ref()?
+                    .map_token_down(self.db.upcast(), item, token)?;
 
-            for node in token.value.ancestors() {
-                match_ast! {
-                    match node {
-                        ast::MacroCall(macro_call) => {
-                            let tt = macro_call.token_tree()?;
-                            let l_delim = match tt.left_delimiter_token() {
-                                Some(it) => it.text_range().end(),
-                                None => tt.syntax().text_range().start()
-                            };
-                            let r_delim = match tt.right_delimiter_token() {
-                                Some(it) => it.text_range().start(),
-                                None => tt.syntax().text_range().end()
-                            };
-                            if !TextRange::new(l_delim, r_delim).contains_range(token.value.text_range()) {
-                                return None;
-                            }
-                            let file_id = sa.expand(self.db, token.with_value(&macro_call))?;
-                            let token = self
-                                .expansion_info_cache
-                                .borrow_mut()
-                                .entry(file_id)
-                                .or_insert_with(|| file_id.expansion_info(self.db.upcast()))
-                                .as_ref()?
-                                .map_token_down(token.as_ref())?;
-
-                            if let Some(parent) = token.value.parent() {
-                                self.cache(find_root(&parent), token.file_id);
-                            }
-
-                            return Some(token);
-                        },
-                        ast::Item(item) => {
-                            match self.with_ctx(|ctx| ctx.item_to_macro_call(token.with_value(item))) {
-                                Some(call_id) => {
-                                    let file_id = call_id.as_file();
-                                    let token = self
-                                        .expansion_info_cache
-                                        .borrow_mut()
-                                        .entry(file_id)
-                                        .or_insert_with(|| file_id.expansion_info(self.db.upcast()))
-                                        .as_ref()?
-                                        .map_token_down(token.as_ref())?;
-
-                                    if let Some(parent) = token.value.parent() {
-                                        self.cache(find_root(&parent), token.file_id);
-                                    }
-
-                                    return Some(token);
-                                }
-                                None => {}
-                            }
-                        },
-                        _ => {}
+                let len = stack.len();
+                // requeue the tokens we got from mapping our current token down
+                stack.extend(mapped_tokens.inspect(|token| {
+                    if let Some(parent) = token.value.parent() {
+                        self.cache(find_root(&parent), token.file_id);
                     }
+                }));
+                // if the length changed we have found a mapping for the token
+                (stack.len() != len).then(|| ())
+            };
+
+        // Remap the next token in the queue into a macro call its in, if it is not being remapped
+        // either due to not being in a macro-call or because its unused push it into the result vec,
+        // otherwise push the remapped tokens back into the queue as they can potentially be remapped again.
+        while let Some(token) = stack.pop() {
+            self.db.unwind_if_cancelled();
+            let was_not_remapped = (|| {
+                // are we inside an attribute macro call
+                let containing_attribute_macro_call = self.with_ctx(|ctx| {
+                    token
+                        .value
+                        .ancestors()
+                        .filter_map(ast::Item::cast)
+                        .filter_map(|item| {
+                            Some((ctx.item_to_macro_call(token.with_value(item.clone()))?, item))
+                        })
+                        .last()
+                });
+                if let Some((call_id, item)) = containing_attribute_macro_call {
+                    let file_id = call_id.as_file();
+                    return process_expansion_for_token(
+                        &mut stack,
+                        file_id,
+                        Some(item),
+                        token.as_ref(),
+                    );
                 }
+
+                // or are we inside a function-like macro call
+                if let Some(macro_call) = token.value.ancestors().find_map(ast::MacroCall::cast) {
+                    let tt = macro_call.token_tree()?;
+                    let l_delim = match tt.left_delimiter_token() {
+                        Some(it) => it.text_range().end(),
+                        None => tt.syntax().text_range().start(),
+                    };
+                    let r_delim = match tt.right_delimiter_token() {
+                        Some(it) => it.text_range().start(),
+                        None => tt.syntax().text_range().end(),
+                    };
+                    if !TextRange::new(l_delim, r_delim).contains_range(token.value.text_range()) {
+                        return None;
+                    }
+
+                    let file_id = sa.expand(self.db, token.with_value(&macro_call))?;
+                    return process_expansion_for_token(&mut stack, file_id, None, token.as_ref());
+                }
+
+                // outside of a macro invocation so this is a "final" token
+                None
+            })()
+            .is_none();
+
+            if was_not_remapped {
+                f(token)
             }
-
-            None
-        })
-        .last()
-        .unwrap();
-
-        token.value
+        }
     }
 
+    // Note this return type is deliberate as [`find_nodes_at_offset_with_descend`] wants to stop
+    // traversing the inner iterator when it finds a node.
+    // The outer iterator is over the tokens descendants
+    // The inner iterator is the ancestors of a descendant
     fn descend_node_at_offset(
         &self,
         node: &SyntaxNode,
         offset: TextSize,
-    ) -> impl Iterator<Item = SyntaxNode> + '_ {
-        // Handle macro token cases
+    ) -> impl Iterator<Item = impl Iterator<Item = SyntaxNode> + '_> + '_ {
         node.token_at_offset(offset)
-            .map(|token| self.descend_into_macros(token))
-            .map(|it| self.token_ancestors_with_macros(it))
-            .flatten()
+            .map(move |token| self.descend_into_macros(token))
+            .map(|descendants| {
+                descendants.into_iter().map(move |it| self.token_ancestors_with_macros(it))
+            })
+            // re-order the tokens from token_at_offset by returning the ancestors with the smaller first nodes first
+            // See algo::ancestors_at_offset, which uses the same approach
+            .kmerge_by(|left, right| {
+                left.clone()
+                    .map(|node| node.text_range().len())
+                    .lt(right.clone().map(|node| node.text_range().len()))
+            })
     }
 
     fn original_range(&self, node: &SyntaxNode) -> FileRange {
         let node = self.find_file(node.clone());
         node.as_ref().original_file_range(self.db.upcast())
+    }
+
+    fn original_range_opt(&self, node: &SyntaxNode) -> Option<FileRange> {
+        let node = self.find_file(node.clone());
+        node.as_ref().original_file_range_opt(self.db.upcast())
     }
 
     fn diagnostics_display_range(&self, src: InFile<SyntaxNodePtr>) -> FileRange {
@@ -514,11 +672,14 @@ impl<'db> SemanticsImpl<'db> {
     fn token_ancestors_with_macros(
         &self,
         token: SyntaxToken,
-    ) -> impl Iterator<Item = SyntaxNode> + '_ {
+    ) -> impl Iterator<Item = SyntaxNode> + Clone + '_ {
         token.parent().into_iter().flat_map(move |parent| self.ancestors_with_macros(parent))
     }
 
-    fn ancestors_with_macros(&self, node: SyntaxNode) -> impl Iterator<Item = SyntaxNode> + '_ {
+    fn ancestors_with_macros(
+        &self,
+        node: SyntaxNode,
+    ) -> impl Iterator<Item = SyntaxNode> + Clone + '_ {
         let node = self.find_file(node);
         node.ancestors_with_macros(self.db.upcast()).map(|it| it.value)
     }
@@ -536,20 +697,7 @@ impl<'db> SemanticsImpl<'db> {
     fn resolve_lifetime_param(&self, lifetime: &ast::Lifetime) -> Option<LifetimeParam> {
         let text = lifetime.text();
         let lifetime_param = lifetime.syntax().ancestors().find_map(|syn| {
-            let gpl = match_ast! {
-                match syn {
-                    ast::Fn(it) => it.generic_param_list()?,
-                    ast::TypeAlias(it) => it.generic_param_list()?,
-                    ast::Struct(it) => it.generic_param_list()?,
-                    ast::Enum(it) => it.generic_param_list()?,
-                    ast::Union(it) => it.generic_param_list()?,
-                    ast::Trait(it) => it.generic_param_list()?,
-                    ast::Impl(it) => it.generic_param_list()?,
-                    ast::WherePred(it) => it.generic_param_list()?,
-                    ast::ForType(it) => it.generic_param_list()?,
-                    _ => return None,
-                }
-            };
+            let gpl = ast::AnyHasGenericParams::cast(syn)?.generic_param_list()?;
             gpl.lifetime_params()
                 .find(|tp| tp.lifetime().as_ref().map(|lt| lt.text()).as_ref() == Some(&text))
         })?;
@@ -565,7 +713,7 @@ impl<'db> SemanticsImpl<'db> {
                     ast::ForExpr(it) => it.label(),
                     ast::WhileExpr(it) => it.label(),
                     ast::LoopExpr(it) => it.label(),
-                    ast::EffectExpr(it) => it.label(),
+                    ast::BlockExpr(it) => it.label(),
                     _ => None,
                 }
             };
@@ -705,6 +853,15 @@ impl<'db> SemanticsImpl<'db> {
         SemanticsScope { db: self.db, file_id, resolver }
     }
 
+    fn source<Def: HasSource>(&self, def: Def) -> Option<InFile<Def::Ast>>
+    where
+        Def::Ast: AstNode,
+    {
+        let res = def.source(self.db)?;
+        self.cache(find_root(res.value.syntax()), res.file_id);
+        Some(res)
+    }
+
     fn analyze(&self, node: &SyntaxNode) -> SourceAnalyzer {
         self.analyze_impl(node, None)
     }
@@ -816,7 +973,7 @@ impl<'db> SemanticsImpl<'db> {
     }
 
     fn is_unsafe_ident_pat(&self, ident_pat: &ast::IdentPat) -> bool {
-        if !ident_pat.ref_token().is_some() {
+        if ident_pat.ref_token().is_none() {
             return false;
         }
 

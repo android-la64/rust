@@ -37,7 +37,6 @@ macro_rules! declare_features {
                     since: $ver,
                     issue: to_nonzero($issue),
                     edition: $edition,
-                    description: concat!($($doc,)*),
                 }
             ),+];
 
@@ -426,9 +425,6 @@ declare_features! (
     /// Allows using the `amdgpu-kernel` ABI.
     (active, abi_amdgpu_kernel, "1.29.0", Some(51575), None),
 
-    /// Allows panicking during const eval (producing compile-time errors).
-    (active, const_panic, "1.30.0", Some(51999), None),
-
     /// Allows `#[marker]` on certain traits allowing overlapping implementations.
     (active, marker_trait_attr, "1.30.0", Some(29864), None),
 
@@ -596,9 +592,6 @@ declare_features! (
     /// Lessens the requirements for structs to implement `Unsize`.
     (active, relaxed_struct_unsize, "1.51.0", Some(81793), None),
 
-    /// Allows macro attributes to observe output of `#[derive]`.
-    (active, macro_attributes_in_derive_output, "1.51.0", Some(81119), None),
-
     /// Allows associated types in inherent impls.
     (incomplete, inherent_associated_types, "1.52.0", Some(8995), None),
 
@@ -678,6 +671,21 @@ declare_features! (
 
     /// Allows `let...else` statements.
     (active, let_else, "1.56.0", Some(87335), None),
+
+    /// Allows the `#[must_not_suspend]` attribute.
+    (active, must_not_suspend, "1.57.0", Some(83310), None),
+
+    /// Allows `#[track_caller]` on closures and generators.
+    (active, closure_track_caller, "1.57.0", Some(87417), None),
+
+    /// Allows `#[doc(cfg_hide(...))]`.
+    (active, doc_cfg_hide, "1.57.0", Some(43781), None),
+
+    /// Allows using the `non_exhaustive_omitted_patterns` lint.
+    (active, non_exhaustive_omitted_patterns_lint, "1.57.0", Some(89554), None),
+
+    /// Tells rustdoc to automatically generate `#[doc(cfg(...))]`.
+    (active, doc_auto_cfg, "1.57.0", Some(43781), None),
 
     // -------------------------------------------------------------------------
     // feature-group-end: actual feature gates

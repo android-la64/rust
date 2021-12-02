@@ -61,9 +61,6 @@ pub struct Match {
 /// Information about a placeholder bound in a match.
 #[derive(Debug)]
 pub(crate) struct PlaceholderMatch {
-    /// The node that the placeholder matched to. If set, then we'll search for further matches
-    /// within this node. It isn't set when we match tokens within a macro call's token tree.
-    pub(crate) node: Option<SyntaxNode>,
     pub(crate) range: FileRange,
     /// More matches, found within `node`.
     pub(crate) inner_matches: SsrMatches,
@@ -186,7 +183,7 @@ impl<'db, 'sema> Matcher<'db, 'sema> {
                 self.validate_range(&original_range)?;
                 matches_out.placeholder_values.insert(
                     placeholder.ident.clone(),
-                    PlaceholderMatch::new(Some(code), original_range),
+                    PlaceholderMatch::from_range(original_range),
                 );
             }
             return Ok(());
@@ -465,7 +462,7 @@ impl<'db, 'sema> Matcher<'db, 'sema> {
                 let mut last_matched_token = child;
                 // Read code tokens util we reach one equal to the next token from our pattern
                 // or we reach the end of the token tree.
-                while let Some(next) = children.next() {
+                for next in &mut children {
                     match &next {
                         SyntaxElement::Token(t) => {
                             if Some(t.to_string()) == next_pattern_token {
@@ -530,7 +527,7 @@ impl<'db, 'sema> Matcher<'db, 'sema> {
         pattern_ufcs: &UfcsCallInfo,
         code: &ast::MethodCallExpr,
     ) -> Result<(), MatchFailed> {
-        use ast::ArgListOwner;
+        use ast::HasArgList;
         let code_resolved_function = self
             .sema
             .resolve_method_call(code)
@@ -590,7 +587,7 @@ impl<'db, 'sema> Matcher<'db, 'sema> {
         pattern_ufcs: &UfcsCallInfo,
         code: &ast::CallExpr,
     ) -> Result<(), MatchFailed> {
-        use ast::ArgListOwner;
+        use ast::HasArgList;
         // Check that the first argument is the expected type.
         if let (Some(pattern_type), Some(expr)) = (
             &pattern_ufcs.qualifier_type,
@@ -715,18 +712,13 @@ fn recording_match_fail_reasons() -> bool {
 }
 
 impl PlaceholderMatch {
-    fn new(node: Option<&SyntaxNode>, range: FileRange) -> Self {
+    fn from_range(range: FileRange) -> Self {
         Self {
-            node: node.cloned(),
             range,
             inner_matches: SsrMatches::default(),
             autoderef_count: 0,
             autoref_kind: ast::SelfParamKind::Owned,
         }
-    }
-
-    fn from_range(range: FileRange) -> Self {
-        Self::new(None, range)
     }
 }
 
@@ -771,7 +763,7 @@ impl Iterator for PatternIterator {
     type Item = SyntaxElement;
 
     fn next(&mut self) -> Option<SyntaxElement> {
-        while let Some(element) = self.iter.next() {
+        for element in &mut self.iter {
             if !element.kind().is_trivia() {
                 return Some(element);
             }
@@ -788,7 +780,6 @@ impl PatternIterator {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{MatchFinder, SsrRule};
 
     #[test]
@@ -803,14 +794,6 @@ mod tests {
         assert_eq!(matches.matches.len(), 1);
         assert_eq!(matches.matches[0].matched_node.text(), "foo(1+2)");
         assert_eq!(matches.matches[0].placeholder_values.len(), 1);
-        assert_eq!(
-            matches.matches[0].placeholder_values[&Var("x".to_string())]
-                .node
-                .as_ref()
-                .unwrap()
-                .text(),
-            "1+2"
-        );
 
         let edits = match_finder.edits();
         assert_eq!(edits.len(), 1);

@@ -49,6 +49,7 @@ use std::{
 
 use hir_def::{EnumVariantId, HasModule, LocalFieldId, VariantId};
 use smallvec::{smallvec, SmallVec};
+use stdx::never;
 
 use crate::{AdtId, Interner, Scalar, Ty, TyExt, TyKind};
 
@@ -82,10 +83,10 @@ pub(super) struct IntRange {
 impl IntRange {
     #[inline]
     fn is_integral(ty: &Ty) -> bool {
-        match ty.kind(&Interner) {
-            TyKind::Scalar(Scalar::Char | Scalar::Int(_) | Scalar::Uint(_) | Scalar::Bool) => true,
-            _ => false,
-        }
+        matches!(
+            ty.kind(&Interner),
+            TyKind::Scalar(Scalar::Char | Scalar::Int(_) | Scalar::Uint(_) | Scalar::Bool)
+        )
     }
 
     fn is_singleton(&self) -> bool {
@@ -104,10 +105,9 @@ impl IntRange {
 
     #[inline]
     fn from_range(lo: u128, hi: u128, scalar_ty: Scalar) -> IntRange {
-        if let Scalar::Bool = scalar_ty {
-            IntRange { range: lo..=hi }
-        } else {
-            unimplemented!()
+        match scalar_ty {
+            Scalar::Bool => IntRange { range: lo..=hi },
+            _ => unimplemented!(),
         }
     }
 
@@ -324,7 +324,10 @@ impl Constructor {
             PatKind::Leaf { .. } | PatKind::Deref { .. } => Single,
             &PatKind::Variant { enum_variant, .. } => Variant(enum_variant),
             &PatKind::LiteralBool { value } => IntRange(IntRange::from_bool(value)),
-            PatKind::Or { .. } => cx.bug("Or-pattern should have been expanded earlier on."),
+            PatKind::Or { .. } => {
+                never!("Or-pattern should have been expanded earlier on.");
+                Wildcard
+            }
         }
     }
 
@@ -371,7 +374,7 @@ impl Constructor {
     /// this checks for inclusion.
     // We inline because this has a single call site in `Matrix::specialize_constructor`.
     #[inline]
-    pub(super) fn is_covered_by(&self, pcx: PatCtxt<'_>, other: &Self) -> bool {
+    pub(super) fn is_covered_by(&self, _pcx: PatCtxt<'_>, other: &Self) -> bool {
         // This must be kept in sync with `is_covered_by_any`.
         match (self, other) {
             // Wildcards cover anything
@@ -396,17 +399,18 @@ impl Constructor {
             // Only a wildcard pattern can match the special extra constructor.
             (NonExhaustive, _) => false,
 
-            _ => pcx.cx.bug(&format!(
-                "trying to compare incompatible constructors {:?} and {:?}",
-                self, other
-            )),
+            _ => {
+                never!("trying to compare incompatible constructors {:?} and {:?}", self, other);
+                // Continue with 'whatever is covered' supposed to result in false no-error diagnostic.
+                true
+            }
         }
     }
 
     /// Faster version of `is_covered_by` when applied to many constructors. `used_ctors` is
     /// assumed to be built from `matrix.head_ctors()` with wildcards filtered out, and `self` is
     /// assumed to have been split from a wildcard.
-    fn is_covered_by_any(&self, pcx: PatCtxt<'_>, used_ctors: &[Constructor]) -> bool {
+    fn is_covered_by_any(&self, _pcx: PatCtxt<'_>, used_ctors: &[Constructor]) -> bool {
         if used_ctors.is_empty() {
             return false;
         }
@@ -427,7 +431,8 @@ impl Constructor {
             // This constructor is never covered by anything else
             NonExhaustive => false,
             Str(..) | FloatRange(..) | Opaque | Missing | Wildcard => {
-                pcx.cx.bug(&format!("found unexpected ctor in all_ctors: {:?}", self))
+                never!("found unexpected ctor in all_ctors: {:?}", self);
+                true
             }
         }
     }
@@ -683,7 +688,8 @@ impl Fields {
                     }
                 }
                 ty_kind => {
-                    cx.bug(&format!("Unexpected type for `Single` constructor: {:?}", ty_kind))
+                    never!("Unexpected type for `Single` constructor: {:?}", ty_kind);
+                    Fields::from_single_pattern(wildcard_from_ty(ty))
                 }
             },
             Slice(..) => {
@@ -729,16 +735,12 @@ impl Fields {
                         })
                         .collect();
 
-                    if let Some((adt, substs)) = pcx.ty.as_adt() {
-                        if let hir_def::AdtId::EnumId(_) = adt {
-                            let enum_variant = match ctor {
-                                &Variant(id) => id,
-                                _ => unreachable!(),
-                            };
-                            PatKind::Variant { substs: substs.clone(), enum_variant, subpatterns }
-                        } else {
-                            PatKind::Leaf { subpatterns }
-                        }
+                    if let Some((hir_def::AdtId::EnumId(_), substs)) = pcx.ty.as_adt() {
+                        let enum_variant = match ctor {
+                            &Variant(id) => id,
+                            _ => unreachable!(),
+                        };
+                        PatKind::Variant { substs: substs.clone(), enum_variant, subpatterns }
                     } else {
                         PatKind::Leaf { subpatterns }
                     }
@@ -749,7 +751,8 @@ impl Fields {
                 // can ignore this issue.
                 TyKind::Ref(..) => PatKind::Deref { subpattern: subpatterns.next().unwrap() },
                 TyKind::Slice(..) | TyKind::Array(..) => {
-                    pcx.cx.bug(&format!("bad slice pattern {:?} {:?}", ctor, pcx.ty))
+                    never!("bad slice pattern {:?} {:?}", ctor, pcx.ty);
+                    PatKind::Wild
                 }
                 _ => PatKind::Wild,
             },
@@ -759,11 +762,17 @@ impl Fields {
             Constructor::IntRange(_) => UNHANDLED,
             NonExhaustive => PatKind::Wild,
             Wildcard => return Pat::wildcard_from_ty(pcx.ty.clone()),
-            Opaque => pcx.cx.bug("we should not try to apply an opaque constructor"),
-            Missing => pcx.cx.bug(
-                "trying to apply the `Missing` constructor;\
-                this should have been done in `apply_constructors`",
-            ),
+            Opaque => {
+                never!("we should not try to apply an opaque constructor");
+                PatKind::Wild
+            }
+            Missing => {
+                never!(
+                    "trying to apply the `Missing` constructor; \
+                    this should have been done in `apply_constructors`",
+                );
+                PatKind::Wild
+            }
         };
 
         Pat { ty: pcx.ty.clone(), kind: Box::new(pat) }

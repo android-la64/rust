@@ -1130,8 +1130,7 @@ static int packfile_open_locked(struct git_pack_file *p)
 
 	/* Verify the pack matches its index. */
 	if (p->num_objects != ntohl(hdr.hdr_entries) ||
-		p_lseek(p->mwf.fd, p->mwf.size - GIT_OID_RAWSZ, SEEK_SET) == -1 ||
-		p_read(p->mwf.fd, sha1.id, GIT_OID_RAWSZ) < 0)
+		p_pread(p->mwf.fd, sha1.id, GIT_OID_RAWSZ, p->mwf.size - GIT_OID_RAWSZ) < 0)
 		goto cleanup;
 
 	idx_sha1 = ((unsigned char *)p->index_map.data) + p->index_map.len - 40;
@@ -1299,7 +1298,12 @@ int git_pack_foreach_entry(
 		return error;
 	}
 
-	GIT_ASSERT(p->index_map.data);
+	if (!p->index_map.data) {
+		git_error_set(GIT_ERROR_INTERNAL, "internal error: p->index_map.data == NULL");
+		git_mutex_unlock(&p->lock);
+		return -1;
+	}
+
 	index = p->index_map.data;
 
 	if (p->index_version > 1)
@@ -1369,6 +1373,77 @@ int git_pack_foreach_entry(
 	return error;
 }
 
+int git_pack_foreach_entry_offset(
+	struct git_pack_file *p,
+	git_pack_foreach_entry_offset_cb cb,
+	void *data)
+{
+	const unsigned char *index;
+	off64_t current_offset;
+	const git_oid *current_oid;
+	uint32_t i;
+	int error = 0;
+
+	if (git_mutex_lock(&p->lock) < 0)
+		return packfile_error("failed to get lock for git_pack_foreach_entry_offset");
+
+	index = p->index_map.data;
+	if (index == NULL) {
+		if ((error = pack_index_open_locked(p)) < 0)
+			goto cleanup;
+
+		if (!p->index_map.data) {
+			git_error_set(GIT_ERROR_INTERNAL, "internal error: p->index_map.data == NULL");
+			goto cleanup;
+		}
+
+		index = p->index_map.data;
+	}
+
+	if (p->index_version > 1)
+		index += 8;
+
+	index += 4 * 256;
+
+	/* all offsets should have been validated by pack_index_check_locked */
+	if (p->index_version > 1) {
+		const unsigned char *offsets = index + 24 * p->num_objects;
+		const unsigned char *large_offset_ptr;
+		const unsigned char *large_offsets = index + 28 * p->num_objects;
+		const unsigned char *large_offsets_end = ((const unsigned char *)p->index_map.data) + p->index_map.len - 20;
+		for (i = 0; i < p->num_objects; i++) {
+			current_offset = ntohl(*(const uint32_t *)(offsets + 4 * i));
+			if (current_offset & 0x80000000) {
+				large_offset_ptr = large_offsets + (current_offset & 0x7fffffff) * 8;
+				if (large_offset_ptr >= large_offsets_end) {
+					error = packfile_error("invalid large offset");
+					goto cleanup;
+				}
+				current_offset = (((off64_t)ntohl(*((uint32_t *)(large_offset_ptr + 0)))) << 32) |
+						ntohl(*((uint32_t *)(large_offset_ptr + 4)));
+			}
+			current_oid = (const git_oid *)(index + 20 * i);
+			if ((error = cb(current_oid, current_offset, data)) != 0) {
+				error = git_error_set_after_callback(error);
+				goto cleanup;
+			}
+		}
+	} else {
+		for (i = 0; i < p->num_objects; i++) {
+			current_offset = ntohl(*(const uint32_t *)(index + 24 * i));
+			current_oid = (const git_oid *)(index + 24 * i + 4);
+			if ((error = cb(current_oid, current_offset, data)) != 0) {
+				error = git_error_set_after_callback(error);
+				goto cleanup;
+			}
+		}
+	}
+
+cleanup:
+	git_mutex_unlock(&p->lock);
+	return error;
+}
+
 int git_pack__lookup_sha1(const void *oid_lookup_table, size_t stride, unsigned lo,
 		unsigned hi, const unsigned char *oid_prefix)
 {
@@ -1413,7 +1488,11 @@ static int pack_entry_find_offset(
 	if ((error = pack_index_open_locked(p)) < 0)
 		goto cleanup;
 
-	GIT_ASSERT(p->index_map.data);
+	if (!p->index_map.data) {
+		git_error_set(GIT_ERROR_INTERNAL, "internal error: p->index_map.data == NULL");
+		goto cleanup;
+	}
+
 	index = p->index_map.data;
 	level1_ofs = p->index_map.data;
 

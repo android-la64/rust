@@ -10,7 +10,7 @@ use chalk_ir::{cast::Cast, fold::Fold, interner::HasInterner, VariableKind};
 use hir_def::lang_item::LangItemTarget;
 use hir_expand::name::name;
 use limit::Limit;
-use log::{info, warn};
+use tracing::{info, warn};
 
 use crate::{
     db::HirDatabase, static_lifetime, AliasEq, AliasTy, BoundVar, Canonical, CanonicalVarKinds,
@@ -109,10 +109,9 @@ pub(crate) fn deref(
     ty: InEnvironment<&Canonical<Ty>>,
 ) -> Option<Canonical<Ty>> {
     let _p = profile::span("deref");
-    if let Some(derefed) = builtin_deref(&ty.goal.value) {
-        Some(Canonical { value: derefed, binders: ty.goal.binders.clone() })
-    } else {
-        deref_by_trait(db, krate, ty)
+    match builtin_deref(&ty.goal.value) {
+        Some(derefed) => Some(Canonical { value: derefed, binders: ty.goal.binders.clone() }),
+        None => deref_by_trait(db, krate, ty),
     }
 }
 
@@ -194,7 +193,7 @@ fn deref_by_trait(
             // would have to pass the solution up to the inference context, but
             // that requires a larger refactoring (especially if the deref
             // happens during method resolution). So for the moment, we just
-            // check that we're not in the situation we're we would actually
+            // check that we're not in the situation where we would actually
             // need to handle the values of the additional variables, i.e.
             // they're just being 'passed through'. In the 'standard' case where
             // we have `impl<T> Deref for Foo<T> { Target = T }`, that should be

@@ -4,8 +4,10 @@
 )]
 #![feature(rustc_private)]
 #![feature(array_methods)]
+#![feature(assert_matches)]
 #![feature(box_patterns)]
 #![feature(control_flow_enum)]
+#![feature(box_syntax)]
 #![feature(in_band_lifetimes)]
 #![feature(nll)]
 #![feature(test)]
@@ -17,8 +19,6 @@
 #![recursion_limit = "256"]
 #![warn(rustc::internal)]
 
-#[macro_use]
-extern crate lazy_static;
 #[macro_use]
 extern crate tracing;
 
@@ -34,6 +34,7 @@ extern crate rustc_ast;
 extern crate rustc_ast_lowering;
 extern crate rustc_ast_pretty;
 extern crate rustc_attr;
+extern crate rustc_const_eval;
 extern crate rustc_data_structures;
 extern crate rustc_driver;
 extern crate rustc_errors;
@@ -49,7 +50,6 @@ extern crate rustc_lint;
 extern crate rustc_lint_defs;
 extern crate rustc_metadata;
 extern crate rustc_middle;
-extern crate rustc_mir;
 extern crate rustc_parse;
 extern crate rustc_passes;
 extern crate rustc_resolve;
@@ -419,8 +419,12 @@ fn opts() -> Vec<RustcOptGroup> {
                 "URL",
             )
         }),
-        unstable("display-warnings", |o| {
-            o.optflagmulti("", "display-warnings", "to print code warnings when testing doc")
+        unstable("display-doctest-warnings", |o| {
+            o.optflagmulti(
+                "",
+                "display-doctest-warnings",
+                "show warnings that originate in doctests",
+            )
         }),
         stable("crate-version", |o| {
             o.optopt("", "crate-version", "crate version to print into documentation", "VERSION")
@@ -726,6 +730,7 @@ fn main_options(options: config::Options) -> MainResult {
     let default_passes = options.default_passes;
     let output_format = options.output_format;
     // FIXME: fix this clone (especially render_options)
+    let externs = options.externs.clone();
     let manual_passes = options.manual_passes.clone();
     let render_options = options.render_options.clone();
     let config = core::create_config(options);
@@ -743,7 +748,7 @@ fn main_options(options: config::Options) -> MainResult {
             // We need to hold on to the complete resolver, so we cause everything to be
             // cloned for the analysis passes to use. Suboptimal, but necessary in the
             // current architecture.
-            let resolver = core::create_resolver(queries, &sess);
+            let resolver = core::create_resolver(externs, queries, sess);
 
             if sess.has_errors() {
                 sess.fatal("Compilation failed, aborting rustdoc");

@@ -55,7 +55,7 @@ impl fmt::Display for FlycheckConfig {
 pub struct FlycheckHandle {
     // XXX: drop order is significant
     sender: Sender<Restart>,
-    thread: jod_thread::JoinHandle,
+    _thread: jod_thread::JoinHandle,
 }
 
 impl FlycheckHandle {
@@ -71,7 +71,7 @@ impl FlycheckHandle {
             .name("Flycheck".to_owned())
             .spawn(move || actor.run(receiver))
             .expect("failed to spawn thread");
-        FlycheckHandle { sender, thread }
+        FlycheckHandle { sender, _thread: thread }
     }
 
     /// Schedule a re-start of the cargo check worker.
@@ -163,7 +163,7 @@ impl FlycheckActor {
                     self.cancel_check_process();
 
                     let mut command = self.check_command();
-                    log::info!("restart flycheck {:?}", command);
+                    tracing::info!("restart flycheck {:?}", command);
                     command.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null());
                     if let Ok(child) = command.spawn().map(JodChild) {
                         self.cargo_handle = Some(CargoHandle::spawn(child));
@@ -176,10 +176,10 @@ impl FlycheckActor {
                     let cargo_handle = self.cargo_handle.take().unwrap();
                     let res = cargo_handle.join();
                     if res.is_err() {
-                        log::error!(
+                        tracing::error!(
                             "Flycheck failed to run the following command: {:?}",
                             self.check_command()
-                        )
+                        );
                     }
                     self.progress(Progress::DidFinish(res));
                 }
@@ -253,14 +253,14 @@ impl FlycheckActor {
     }
 
     fn send(&self, check_task: Message) {
-        (self.sender)(check_task)
+        (self.sender)(check_task);
     }
 }
 
 struct CargoHandle {
     child: JodChild,
     #[allow(unused)]
-    thread: jod_thread::JoinHandle<io::Result<bool>>,
+    thread: jod_thread::JoinHandle<bool>,
     receiver: Receiver<CargoMessage>,
 }
 
@@ -279,7 +279,7 @@ impl CargoHandle {
         // It is okay to ignore the result, as it only errors if the process is already dead
         let _ = self.child.kill();
         let exit_status = self.child.wait()?;
-        let read_at_least_one_message = self.thread.join()?;
+        let read_at_least_one_message = self.thread.join();
         if !exit_status.success() && !read_at_least_one_message {
             // FIXME: Read the stderr to display the reason, see `read2()` reference in PR comment:
             // https://github.com/rust-analyzer/rust-analyzer/pull/3632#discussion_r395605298
@@ -304,7 +304,7 @@ impl CargoActor {
     fn new(child_stdout: process::ChildStdout, sender: Sender<CargoMessage>) -> CargoActor {
         CargoActor { child_stdout, sender }
     }
-    fn run(self) -> io::Result<bool> {
+    fn run(self) -> bool {
         // We manually read a line at a time, instead of using serde's
         // stream deserializers, because the deserializer cannot recover
         // from an error, resulting in it getting stuck, because we try to
@@ -319,7 +319,7 @@ impl CargoActor {
             let message = match message {
                 Ok(message) => message,
                 Err(err) => {
-                    log::error!("Invalid json from cargo check, ignoring ({})", err);
+                    tracing::error!("Invalid json from cargo check, ignoring ({})", err);
                     continue;
                 }
             };
@@ -334,25 +334,20 @@ impl CargoActor {
                     // Skip certain kinds of messages to only spend time on what's useful
                     JsonMessage::Cargo(message) => match message {
                         cargo_metadata::Message::CompilerArtifact(artifact) if !artifact.fresh => {
-                            self.sender.send(CargoMessage::CompilerArtifact(artifact)).unwrap()
+                            self.sender.send(CargoMessage::CompilerArtifact(artifact)).unwrap();
                         }
                         cargo_metadata::Message::CompilerMessage(msg) => {
-                            self.sender.send(CargoMessage::Diagnostic(msg.message)).unwrap()
+                            self.sender.send(CargoMessage::Diagnostic(msg.message)).unwrap();
                         }
-
-                        cargo_metadata::Message::CompilerArtifact(_)
-                        | cargo_metadata::Message::BuildScriptExecuted(_)
-                        | cargo_metadata::Message::BuildFinished(_)
-                        | cargo_metadata::Message::TextLine(_)
-                        | _ => (),
+                        _ => (),
                     },
                     JsonMessage::Rustc(message) => {
-                        self.sender.send(CargoMessage::Diagnostic(message)).unwrap()
+                        self.sender.send(CargoMessage::Diagnostic(message)).unwrap();
                     }
                 }
             }
         }
-        Ok(read_at_least_one_message)
+        read_at_least_one_message
     }
 }
 

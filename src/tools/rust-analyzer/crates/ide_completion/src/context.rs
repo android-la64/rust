@@ -9,7 +9,7 @@ use ide_db::{
 };
 use syntax::{
     algo::find_node_at_offset,
-    ast::{self, NameOrNameRef, NameOwner},
+    ast::{self, HasName, NameOrNameRef},
     match_ast, AstNode, NodeOrToken,
     SyntaxKind::{self, *},
     SyntaxNode, SyntaxToken, TextRange, TextSize, T,
@@ -93,10 +93,9 @@ pub(crate) struct CompletionContext<'a> {
     pub(super) function_def: Option<ast::Fn>,
     /// The parent impl of the cursor position if it exists.
     pub(super) impl_def: Option<ast::Impl>,
-    pub(super) name_ref_syntax: Option<ast::NameRef>,
+    pub(super) name_syntax: Option<ast::NameLike>,
 
     // potentially set if we are completing a lifetime
-    pub(super) lifetime_syntax: Option<ast::Lifetime>,
     pub(super) lifetime_param_syntax: Option<ast::LifetimeParam>,
     pub(super) lifetime_allowed: bool,
     pub(super) is_label_ref: bool,
@@ -108,7 +107,6 @@ pub(crate) struct CompletionContext<'a> {
 
     pub(super) pattern_ctx: Option<PatternContext>,
     pub(super) path_context: Option<PathCompletionContext>,
-    pub(super) active_parameter: Option<ActiveParameter>,
     pub(super) locals: Vec<(String, Local)>,
 
     pub(super) incomplete_let: bool,
@@ -161,8 +159,7 @@ impl<'a> CompletionContext<'a> {
             expected_type: None,
             function_def: None,
             impl_def: None,
-            name_ref_syntax: None,
-            lifetime_syntax: None,
+            name_syntax: None,
             lifetime_param_syntax: None,
             lifetime_allowed: false,
             is_label_ref: false,
@@ -172,53 +169,97 @@ impl<'a> CompletionContext<'a> {
             attribute_under_caret: None,
             previous_token: None,
             path_context: None,
-            active_parameter: ActiveParameter::at(db, position),
             locals,
             incomplete_let: false,
             no_completion_required: false,
         };
+        ctx.expand_and_fill(
+            original_file.syntax().clone(),
+            file_with_fake_ident.syntax().clone(),
+            position.offset,
+            fake_ident_token,
+        );
+        Some(ctx)
+    }
 
-        let mut original_file = original_file.syntax().clone();
-        let mut speculative_file = file_with_fake_ident.syntax().clone();
-        let mut offset = position.offset;
-        let mut fake_ident_token = fake_ident_token;
-
-        // Are we inside a macro call?
-        while let (Some(actual_macro_call), Some(macro_call_with_fake_ident)) = (
-            find_node_at_offset::<ast::MacroCall>(&original_file, offset),
-            find_node_at_offset::<ast::MacroCall>(&speculative_file, offset),
-        ) {
-            if actual_macro_call.path().as_ref().map(|s| s.syntax().text())
-                != macro_call_with_fake_ident.path().as_ref().map(|s| s.syntax().text())
-            {
-                break;
-            }
-            let speculative_args = match macro_call_with_fake_ident.token_tree() {
-                Some(tt) => tt,
-                None => break,
-            };
-            if let (Some(actual_expansion), Some(speculative_expansion)) = (
-                ctx.sema.expand(&actual_macro_call),
-                ctx.sema.speculative_expand(
-                    &actual_macro_call,
-                    &speculative_args,
-                    fake_ident_token,
-                ),
+    fn expand_and_fill(
+        &mut self,
+        mut original_file: SyntaxNode,
+        mut speculative_file: SyntaxNode,
+        mut offset: TextSize,
+        mut fake_ident_token: SyntaxToken,
+    ) {
+        loop {
+            // Expand attributes
+            if let (Some(actual_item), Some(item_with_fake_ident)) = (
+                find_node_at_offset::<ast::Item>(&original_file, offset),
+                find_node_at_offset::<ast::Item>(&speculative_file, offset),
             ) {
-                let new_offset = speculative_expansion.1.text_range().start();
-                if new_offset > actual_expansion.text_range().end() {
+                match (
+                    self.sema.expand_attr_macro(&actual_item),
+                    self.sema.speculative_expand_attr_macro(
+                        &actual_item,
+                        &item_with_fake_ident,
+                        fake_ident_token.clone(),
+                    ),
+                ) {
+                    (Some(actual_expansion), Some(speculative_expansion)) => {
+                        let new_offset = speculative_expansion.1.text_range().start();
+                        if new_offset > actual_expansion.text_range().end() {
+                            break;
+                        }
+                        original_file = actual_expansion;
+                        speculative_file = speculative_expansion.0;
+                        fake_ident_token = speculative_expansion.1;
+                        offset = new_offset;
+                        continue;
+                    }
+                    (None, None) => (),
+                    _ => break,
+                }
+            }
+
+            // Expand fn-like macro calls
+            if let (Some(actual_macro_call), Some(macro_call_with_fake_ident)) = (
+                find_node_at_offset::<ast::MacroCall>(&original_file, offset),
+                find_node_at_offset::<ast::MacroCall>(&speculative_file, offset),
+            ) {
+                let mac_call_path0 = actual_macro_call.path().as_ref().map(|s| s.syntax().text());
+                let mac_call_path1 =
+                    macro_call_with_fake_ident.path().as_ref().map(|s| s.syntax().text());
+                if mac_call_path0 != mac_call_path1 {
                     break;
                 }
-                original_file = actual_expansion;
-                speculative_file = speculative_expansion.0;
-                fake_ident_token = speculative_expansion.1;
-                offset = new_offset;
+                let speculative_args = match macro_call_with_fake_ident.token_tree() {
+                    Some(tt) => tt,
+                    None => break,
+                };
+
+                if let (Some(actual_expansion), Some(speculative_expansion)) = (
+                    self.sema.expand(&actual_macro_call),
+                    self.sema.speculative_expand(
+                        &actual_macro_call,
+                        &speculative_args,
+                        fake_ident_token,
+                    ),
+                ) {
+                    let new_offset = speculative_expansion.1.text_range().start();
+                    if new_offset > actual_expansion.text_range().end() {
+                        break;
+                    }
+                    original_file = actual_expansion;
+                    speculative_file = speculative_expansion.0;
+                    fake_ident_token = speculative_expansion.1;
+                    offset = new_offset;
+                } else {
+                    break;
+                }
             } else {
                 break;
             }
         }
-        ctx.fill(&original_file, speculative_file, offset);
-        Some(ctx)
+
+        self.fill(&original_file, speculative_file, offset);
     }
 
     /// Checks whether completions in that particular case don't make much sense.
@@ -285,7 +326,7 @@ impl<'a> CompletionContext<'a> {
     }
 
     pub(crate) fn has_block_expr_parent(&self) -> bool {
-        matches!(self.completion_location, Some(ImmediateLocation::BlockExpr))
+        matches!(self.completion_location, Some(ImmediateLocation::StmtList))
     }
 
     pub(crate) fn expects_ident_pat_or_ref_expr(&self) -> bool {
@@ -342,6 +383,7 @@ impl<'a> CompletionContext<'a> {
                         | ImmediateLocation::ModDeclaration(_)
                         | ImmediateLocation::RecordPat(_)
                         | ImmediateLocation::RecordExpr(_)
+                        | ImmediateLocation::Rename
                 )
             )
     }
@@ -393,6 +435,10 @@ impl<'a> CompletionContext<'a> {
             (Some(attrs), Some(krate)) => self.is_doc_hidden(&attrs, krate),
             _ => false,
         }
+    }
+
+    pub(crate) fn is_immediately_after_macro_bang(&self) -> bool {
+        self.token.kind() == BANG && self.token.parent().map_or(false, |it| it.kind() == MACRO_CALL)
     }
 
     /// A version of [`SemanticsScope::process_all_names`] that filters out `#[doc(hidden)]` items.
@@ -463,10 +509,9 @@ impl<'a> CompletionContext<'a> {
                             .and_then(|pat| self.sema.type_of_pat(&pat))
                             .or_else(|| it.initializer().and_then(|it| self.sema.type_of_expr(&it)))
                             .map(TypeInfo::original);
-                        let name = if let Some(ast::Pat::IdentPat(ident)) = it.pat() {
-                            ident.name().map(NameOrNameRef::Name)
-                        } else {
-                            None
+                        let name = match it.pat() {
+                            Some(ast::Pat::IdentPat(ident)) => ident.name().map(NameOrNameRef::Name),
+                            Some(_) | None => None,
                         };
 
                         (ty, name)
@@ -601,6 +646,8 @@ impl<'a> CompletionContext<'a> {
         self.completion_location =
             determine_location(&self.sema, original_file, offset, &name_like);
         self.prev_sibling = determine_prev_sibling(&name_like);
+        self.name_syntax =
+            find_node_at_offset(original_file, name_like.syntax().text_range().start());
         match name_like {
             ast::NameLike::Lifetime(lifetime) => {
                 self.classify_lifetime(original_file, lifetime, offset);
@@ -620,8 +667,6 @@ impl<'a> CompletionContext<'a> {
         lifetime: ast::Lifetime,
         offset: TextSize,
     ) {
-        self.lifetime_syntax =
-            find_node_at_offset(original_file, lifetime.syntax().text_range().start());
         if let Some(parent) = lifetime.syntax().parent() {
             if parent.kind() == ERROR {
                 return;
@@ -694,9 +739,6 @@ impl<'a> CompletionContext<'a> {
 
     fn classify_name_ref(&mut self, original_file: &SyntaxNode, name_ref: ast::NameRef) {
         self.fill_impl_def();
-
-        self.name_ref_syntax =
-            find_node_at_offset(original_file, name_ref.syntax().text_range().start());
 
         self.function_def = self
             .sema
@@ -776,9 +818,9 @@ impl<'a> CompletionContext<'a> {
                     if let Some(stmt) = ast::ExprStmt::cast(node.clone()) {
                         return Some(stmt.syntax().text_range() == name_ref.syntax().text_range());
                     }
-                    if let Some(block) = ast::BlockExpr::cast(node) {
+                    if let Some(stmt_list) = ast::StmtList::cast(node) {
                         return Some(
-                            block.tail_expr().map(|e| e.syntax().text_range())
+                            stmt_list.tail_expr().map(|e| e.syntax().text_range())
                                 == Some(name_ref.syntax().text_range()),
                         );
                     }
@@ -826,7 +868,8 @@ mod tests {
 
     fn check_expected_type_and_name(ra_fixture: &str, expect: Expect) {
         let (db, pos) = position(ra_fixture);
-        let completion_context = CompletionContext::new(&db, pos, &TEST_CONFIG).unwrap();
+        let config = TEST_CONFIG;
+        let completion_context = CompletionContext::new(&db, pos, &config).unwrap();
 
         let ty = completion_context
             .expected_type

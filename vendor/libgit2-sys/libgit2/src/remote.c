@@ -121,7 +121,7 @@ static int write_add_refspec(git_repository *repo, const char *name, const char 
 		return error;
 
 	/*
-	 * "$^" is a unmatcheable regexp: it will not match anything at all, so
+	 * "$^" is an unmatchable regexp: it will not match anything at all, so
 	 * all values will be considered new and we will not replace any
 	 * present value.
 	 */
@@ -600,6 +600,22 @@ const char *git_remote_url(const git_remote *remote)
 	return remote->url;
 }
 
+int git_remote_set_instance_url(git_remote *remote, const char *url)
+{
+	char *tmp;
+
+	GIT_ASSERT_ARG(remote);
+	GIT_ASSERT_ARG(url);
+
+	if ((tmp = git__strdup(url)) == NULL)
+		return -1;
+
+	git__free(remote->url);
+	remote->url = tmp;
+
+	return 0;
+}
+
 static int set_url(git_repository *repo, const char *remote, const char *pattern, const char *url)
 {
 	git_config *cfg;
@@ -645,13 +661,37 @@ const char *git_remote_pushurl(const git_remote *remote)
 	return remote->pushurl;
 }
 
-int git_remote_set_pushurl(git_repository *repo, const char *remote, const char* url)
+int git_remote_set_instance_pushurl(git_remote *remote, const char *url)
+{
+	char *tmp;
+
+	GIT_ASSERT_ARG(remote);
+	GIT_ASSERT_ARG(url);
+
+	if ((tmp = git__strdup(url)) == NULL)
+		return -1;
+
+	git__free(remote->pushurl);
+	remote->pushurl = tmp;
+
+	return 0;
+}
+
+int git_remote_set_pushurl(git_repository *repo, const char *remote, const char *url)
 {
 	return set_url(repo, remote, CONFIG_PUSHURL_FMT, url);
 }
 
-static int resolve_url(git_buf *resolved_url, const char *url, int direction, const git_remote_callbacks *callbacks)
+static int resolve_url(
+	git_buf *resolved_url,
+	const char *url,
+	int direction,
+	const git_remote_callbacks *callbacks)
 {
+#ifdef GIT_DEPRECATE_HARD
+	GIT_UNUSED(direction);
+	GIT_UNUSED(callbacks);
+#else
 	int status, error;
 
 	if (callbacks && callbacks->resolve_url) {
@@ -666,22 +706,35 @@ static int resolve_url(git_buf *resolved_url, const char *url, int direction, co
 			return status;
 		}
 	}
+#endif
 
 	return git_buf_sets(resolved_url, url);
 }
 
-int git_remote__urlfordirection(git_buf *url_out, struct git_remote *remote, int direction, const git_remote_callbacks *callbacks)
+int git_remote__urlfordirection(
+	git_buf *url_out,
+	struct git_remote *remote,
+	int direction,
+	const git_remote_callbacks *callbacks)
 {
 	const char *url = NULL;
 
 	GIT_ASSERT_ARG(remote);
 	GIT_ASSERT_ARG(direction == GIT_DIRECTION_FETCH || direction == GIT_DIRECTION_PUSH);
 
-	if (direction == GIT_DIRECTION_FETCH) {
-		url = remote->url;
-	} else if (direction == GIT_DIRECTION_PUSH) {
-		url = remote->pushurl ? remote->pushurl : remote->url;
+	if (callbacks && callbacks->remote_ready) {
+		int status = callbacks->remote_ready(remote, direction, callbacks->payload);
+
+		if (status != 0 && status != GIT_PASSTHROUGH) {
+			git_error_set_after_callback_function(status, "git_remote_ready_cb");
+			return status;
+		}
 	}
+
+	if (direction == GIT_DIRECTION_FETCH)
+		url = remote->url;
+	else if (direction == GIT_DIRECTION_PUSH)
+		url = remote->pushurl ? remote->pushurl : remote->url;
 
 	if (!url) {
 		git_error_set(GIT_ERROR_INVALID,
@@ -690,6 +743,7 @@ int git_remote__urlfordirection(git_buf *url_out, struct git_remote *remote, int
 			direction == GIT_DIRECTION_FETCH ? "fetch" : "push");
 		return GIT_EINVALID;
 	}
+
 	return resolve_url(url_out, url, direction, callbacks);
 }
 
@@ -795,75 +849,147 @@ int git_remote_ls(const git_remote_head ***out, size_t *size, git_remote *remote
 	return remote->transport->ls(out, size, remote->transport);
 }
 
-int git_remote__get_http_proxy(git_remote *remote, bool use_ssl, char **proxy_url)
+static int lookup_config(char **out, git_config *cfg, const char *name)
 {
-	git_config *cfg;
 	git_config_entry *ce = NULL;
-	git_buf val = GIT_BUF_INIT;
 	int error;
 
-	GIT_ASSERT_ARG(remote);
-
-	if (!proxy_url || !remote->repo)
-		return -1;
-
-	*proxy_url = NULL;
-
-	if ((error = git_repository_config__weakptr(&cfg, remote->repo)) < 0)
-		return error;
-
-	/* Go through the possible sources for proxy configuration, from most specific
-	 * to least specific. */
-
-	/* remote.<name>.proxy config setting */
-	if (remote->name && remote->name[0]) {
-		git_buf buf = GIT_BUF_INIT;
-
-		if ((error = git_buf_printf(&buf, "remote.%s.proxy", remote->name)) < 0)
-			return error;
-
-		error = git_config__lookup_entry(&ce, cfg, git_buf_cstr(&buf), false);
-		git_buf_dispose(&buf);
-
-		if (error < 0)
-			return error;
-
-		if (ce && ce->value) {
-			*proxy_url = git__strdup(ce->value);
-			goto found;
-		}
-	}
-
-	/* http.proxy config setting */
-	if ((error = git_config__lookup_entry(&ce, cfg, "http.proxy", false)) < 0)
+	if ((error = git_config__lookup_entry(&ce, cfg, name, false)) < 0)
 		return error;
 
 	if (ce && ce->value) {
-		*proxy_url = git__strdup(ce->value);
-		goto found;
+		*out = git__strdup(ce->value);
+		GIT_ERROR_CHECK_ALLOC(*out);
+	} else {
+		error = GIT_ENOTFOUND;
 	}
 
+	git_config_entry_free(ce);
+	return error;
+}
+
+static void url_config_trim(git_net_url *url)
+{
+	size_t len = strlen(url->path);
+
+	if (url->path[len - 1] == '/') {
+		len--;
+	} else {
+		while (len && url->path[len - 1] != '/')
+			len--;
+	}
+
+	url->path[len] = '\0';
+}
+
+static int http_proxy_config(char **out, git_remote *remote, git_net_url *url)
+{
+	git_config *cfg = NULL;
+	git_buf buf = GIT_BUF_INIT;
+	git_net_url lookup_url = GIT_NET_URL_INIT;
+	int error;
+
+	if ((error = git_net_url_dup(&lookup_url, url)) < 0)
+		goto done;
+
+	if (remote->repo) {
+		if ((error = git_repository_config(&cfg, remote->repo)) < 0)
+			goto done;
+	} else {
+		if ((error = git_config_open_default(&cfg)) < 0)
+			goto done;
+	}
+
+	/* remote.<name>.proxy config setting */
+	if (remote->name && remote->name[0]) {
+		git_buf_clear(&buf);
+
+		if ((error = git_buf_printf(&buf, "remote.%s.proxy", remote->name)) < 0 ||
+		    (error = lookup_config(out, cfg, buf.ptr)) != GIT_ENOTFOUND)
+			goto done;
+	}
+
+	while (true) {
+		git_buf_clear(&buf);
+
+		if ((error = git_buf_puts(&buf, "http.")) < 0 ||
+		    (error = git_net_url_fmt(&buf, &lookup_url)) < 0 ||
+		    (error = git_buf_puts(&buf, ".proxy")) < 0 ||
+		    (error = lookup_config(out, cfg, buf.ptr)) != GIT_ENOTFOUND)
+			goto done;
+
+		if (! lookup_url.path[0])
+			break;
+
+		url_config_trim(&lookup_url);
+	}
+
+	git_buf_clear(&buf);
+
+	error = lookup_config(out, cfg, "http.proxy");
+
+done:
+	git_config_free(cfg);
+	git_buf_dispose(&buf);
+	git_net_url_dispose(&lookup_url);
+	return error;
+}
+
+static int http_proxy_env(char **out, git_remote *remote, git_net_url *url)
+{
+	git_buf proxy_env = GIT_BUF_INIT, no_proxy_env = GIT_BUF_INIT;
+	bool use_ssl = (strcmp(url->scheme, "https") == 0);
+	int error;
+
+	GIT_UNUSED(remote);
+
 	/* http_proxy / https_proxy environment variables */
-	error = git__getenv(&val, use_ssl ? "https_proxy" : "http_proxy");
+	error = git__getenv(&proxy_env, use_ssl ? "https_proxy" : "http_proxy");
 
 	/* try uppercase environment variables */
 	if (error == GIT_ENOTFOUND)
-		error = git__getenv(&val, use_ssl ? "HTTPS_PROXY" : "HTTP_PROXY");
+		error = git__getenv(&proxy_env, use_ssl ? "HTTPS_PROXY" : "HTTP_PROXY");
 
-	if (error < 0) {
-		if (error == GIT_ENOTFOUND) {
-			git_error_clear();
-			error = 0;
-		}
+	if (error)
+		goto done;
 
+	/* no_proxy/NO_PROXY environment variables */
+	error = git__getenv(&no_proxy_env, "no_proxy");
+
+	if (error == GIT_ENOTFOUND)
+		error = git__getenv(&no_proxy_env, "NO_PROXY");
+
+	if (error && error != GIT_ENOTFOUND)
+		goto done;
+
+	if (!git_net_url_matches_pattern_list(url, no_proxy_env.ptr))
+		*out = git_buf_detach(&proxy_env);
+	else
+		error = GIT_ENOTFOUND;
+
+done:
+	git_buf_dispose(&proxy_env);
+	git_buf_dispose(&no_proxy_env);
+	return error;
+}
+
+int git_remote__http_proxy(char **out, git_remote *remote, git_net_url *url)
+{
+	int error;
+
+	GIT_ASSERT_ARG(out);
+	GIT_ASSERT_ARG(remote);
+
+	*out = NULL;
+
+	/*
+	 * Go through the possible sources for proxy configuration,
+	 * Examine the various git config options first, then
+	 * consult environment variables.
+	 */
+	if ((error = http_proxy_config(out, remote, url)) != GIT_ENOTFOUND ||
+	    (error = http_proxy_env(out, remote, url)) != GIT_ENOTFOUND)
 		return error;
-	}
-
-	*proxy_url = git_buf_detach(&val);
-
-found:
-	GIT_ERROR_CHECK_ALLOC(*proxy_url);
-	git_config_entry_free(ce);
 
 	return 0;
 }
@@ -1141,6 +1267,16 @@ static int remote_head_for_ref(git_remote_head **out, git_remote *remote, git_re
 		ref_name = git_reference_name(resolved_ref);
 	}
 
+	/*
+	 * The ref name may be unresolvable - perhaps it's pointing to
+	 * something invalid.  In this case, there is no remote head for
+	 * this ref.
+	 */
+	if (!ref_name) {
+		error = 0;
+		goto cleanup;
+	}
+
 	if ((error = ref_to_update(&update, &remote_name, remote, spec, ref_name)) < 0)
 		goto cleanup;
 
@@ -1307,7 +1443,7 @@ int git_remote_prune(git_remote *remote, const git_remote_callbacks *callbacks)
 			if (error == GIT_ENOTFOUND)
 				continue;
 
-			/* if we did find a source, remove it from the candiates */
+			/* If we did find a source, remove it from the candidates. */
 			if ((error = git_vector_set((void **) &src_name, &candidates, i, NULL)) < 0)
 				goto cleanup;
 
@@ -1449,6 +1585,11 @@ static int update_tips_for_spec(
 		error = git_reference_name_to_id(&old, remote->repo, refname.ptr);
 		if (error < 0 && error != GIT_ENOTFOUND)
 			goto on_error;
+
+		if (!(error || error == GIT_ENOTFOUND)
+				&& !spec->force
+				&& !git_graph_descendant_of(remote->repo, &head->oid, &old))
+			continue;
 
 		if (error == GIT_ENOTFOUND) {
 			memset(&old, 0, GIT_OID_RAWSZ);
@@ -1672,7 +1813,7 @@ int git_remote_update_tips(
 			goto out;
 	}
 
-	/* only try to do opportunisitic updates if the refpec lists differ */
+	/* Only try to do opportunistic updates if the refpec lists differ. */
 	if (remote->passed_refspecs)
 		error = opportunistic_updates(remote, callbacks, &refs, reflog_message);
 

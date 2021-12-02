@@ -19,19 +19,82 @@ use crate::util::{self, path_to_repo_path, Binding};
 use crate::worktree::{Worktree, WorktreeAddOptions};
 use crate::CherrypickOptions;
 use crate::RevertOptions;
+use crate::{mailmap::Mailmap, panic};
 use crate::{
     raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState, Revspec,
     StashFlags,
 };
 use crate::{
-    AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore, SubmoduleStatus,
+    AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore,
+    SubmoduleStatus, SubmoduleUpdate,
 };
 use crate::{ApplyLocation, ApplyOptions, Rebase, RebaseOptions};
 use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
 use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
-use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag};
+use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
+
+type MergeheadForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
+type FetchheadForeachCb<'a> = dyn FnMut(&str, &[u8], &Oid, bool) -> bool + 'a;
+
+struct FetchheadForeachCbData<'a> {
+    callback: &'a mut FetchheadForeachCb<'a>,
+}
+
+struct MergeheadForeachCbData<'a> {
+    callback: &'a mut MergeheadForeachCb<'a>,
+}
+
+extern "C" fn mergehead_foreach_cb(oid: *const raw::git_oid, payload: *mut c_void) -> c_int {
+    panic::wrap(|| unsafe {
+        let data = &mut *(payload as *mut MergeheadForeachCbData<'_>);
+        let res = {
+            let callback = &mut data.callback;
+            callback(&Binding::from_raw(oid))
+        };
+
+        if res {
+            0
+        } else {
+            1
+        }
+    })
+    .unwrap_or(1)
+}
+
+extern "C" fn fetchhead_foreach_cb(
+    ref_name: *const c_char,
+    remote_url: *const c_char,
+    oid: *const raw::git_oid,
+    is_merge: c_uint,
+    payload: *mut c_void,
+) -> c_int {
+    panic::wrap(|| unsafe {
+        let data = &mut *(payload as *mut FetchheadForeachCbData<'_>);
+        let res = {
+            let callback = &mut data.callback;
+
+            assert!(!ref_name.is_null());
+            assert!(!remote_url.is_null());
+            assert!(!oid.is_null());
+
+            let ref_name = str::from_utf8(CStr::from_ptr(ref_name).to_bytes()).unwrap();
+            let remote_url = CStr::from_ptr(remote_url).to_bytes();
+            let oid = Binding::from_raw(oid);
+            let is_merge = is_merge == 1;
+
+            callback(&ref_name, remote_url, &oid, is_merge)
+        };
+
+        if res {
+            0
+        } else {
+            1
+        }
+    })
+    .unwrap_or(1)
+}
 
 /// An owned git repository, representing all state associated with the
 /// underlying filesystem.
@@ -952,6 +1015,14 @@ impl Repository {
     }
 
     /// Get the value of a git attribute for a path as a string.
+    ///
+    /// This function will return a special string if the attribute is set to a special value.
+    /// Interpreting the special string is discouraged. You should always use
+    /// [`AttrValue::from_string`](crate::AttrValue::from_string) to interpret the return value
+    /// and avoid the special string.
+    ///
+    /// As such, the return type of this function will probably be changed in the next major version
+    /// to prevent interpreting the returned string without checking whether it's special.
     pub fn get_attr(
         &self,
         path: &Path,
@@ -964,6 +1035,14 @@ impl Repository {
     }
 
     /// Get the value of a git attribute for a path as a byte slice.
+    ///
+    /// This function will return a special byte slice if the attribute is set to a special value.
+    /// Interpreting the special byte slice is discouraged. You should always use
+    /// [`AttrValue::from_bytes`](crate::AttrValue::from_bytes) to interpret the return value and
+    /// avoid the special string.
+    ///
+    /// As such, the return type of this function will probably be changed in the next major version
+    /// to prevent interpreting the returned byte slice without checking whether it's special.
     pub fn get_attr_bytes(
         &self,
         path: &Path,
@@ -1617,6 +1696,62 @@ impl Repository {
             try_call!(raw::git_submodule_status(&mut ret, self.raw, name, ignore));
         }
         Ok(SubmoduleStatus::from_bits_truncate(ret as u32))
+    }
+
+    /// Set the ignore rule for the submodule in the configuration
+    ///
+    /// This does not affect any currently-loaded instances.
+    pub fn submodule_set_ignore(
+        &mut self,
+        name: &str,
+        ignore: SubmoduleIgnore,
+    ) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_ignore(self.raw(), name, ignore));
+        }
+        Ok(())
+    }
+
+    /// Set the update rule for the submodule in the configuration
+    ///
+    /// This setting won't affect any existing instances.
+    pub fn submodule_set_update(
+        &mut self,
+        name: &str,
+        update: SubmoduleUpdate,
+    ) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_update(self.raw(), name, update));
+        }
+        Ok(())
+    }
+
+    /// Set the URL for the submodule in the configuration
+    ///
+    /// After calling this, you may wish to call [`Submodule::sync`] to write
+    /// the changes to the checked out submodule repository.
+    pub fn submodule_set_url(&mut self, name: &str, url: &str) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        let url = CString::new(url)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_url(self.raw(), name, url));
+        }
+        Ok(())
+    }
+
+    /// Set the branch for the submodule in the configuration
+    ///
+    /// After calling this, you may wish to call [`Submodule::sync`] to write
+    /// the changes to the checked out submodule repository.
+    pub fn submodule_set_branch(&mut self, name: &str, branch_name: &str) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        let branch_name = CString::new(branch_name)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_branch(self.raw(), name, branch_name));
+        }
+        Ok(())
     }
 
     /// Lookup a reference to one of the objects in a repository.
@@ -2708,7 +2843,7 @@ impl Repository {
         let raw_opts = options.map(|o| o.raw());
         let ptr_raw_opts = match raw_opts.as_ref() {
             Some(v) => v,
-            None => 0 as *const _,
+            None => std::ptr::null(),
         };
         unsafe {
             try_call!(raw::git_cherrypick(self.raw(), commit.raw(), ptr_raw_opts));
@@ -2791,6 +2926,26 @@ impl Repository {
             ));
 
             Ok(())
+        }
+    }
+
+    /// Apply a Diff to the provided tree, and return the resulting Index.
+    pub fn apply_to_tree(
+        &self,
+        tree: &Tree<'_>,
+        diff: &Diff<'_>,
+        options: Option<&mut ApplyOptions<'_>>,
+    ) -> Result<Index, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_apply_to_tree(
+                &mut ret,
+                self.raw,
+                tree.raw(),
+                diff.raw(),
+                options.map(|s| s.raw()).unwrap_or(ptr::null())
+            ));
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -2878,6 +3033,70 @@ impl Repository {
                 opts.map(|o| o.raw())
             ));
             Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Create a new transaction
+    pub fn transaction<'a>(&'a self) -> Result<Transaction<'a>, Error> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_transaction_new(&mut raw, self.raw));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Gets this repository's mailmap.
+    pub fn mailmap(&self) -> Result<Mailmap, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_mailmap_from_repository(&mut ret, self.raw));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    ///  If a merge is in progress, invoke 'callback' for each commit ID in the
+    ///  MERGE_HEAD file.
+    pub fn mergehead_foreach<C>(&mut self, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(&Oid) -> bool,
+    {
+        unsafe {
+            let mut data = MergeheadForeachCbData {
+                callback: &mut callback,
+            };
+            let cb: raw::git_repository_mergehead_foreach_cb = Some(mergehead_foreach_cb);
+            try_call!(raw::git_repository_mergehead_foreach(
+                self.raw(),
+                cb,
+                &mut data as *mut _ as *mut _
+            ));
+            Ok(())
+        }
+    }
+
+    /// Invoke 'callback' for each entry in the given FETCH_HEAD file.
+    ///
+    /// `callback` will be called with with following arguments:
+    ///
+    /// - `&str`: the reference name
+    /// - `&[u8]`: the remote url
+    /// - `&Oid`: the reference target OID
+    /// - `bool`: was the reference the result of a merge
+    pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(&str, &[u8], &Oid, bool) -> bool,
+    {
+        unsafe {
+            let mut data = FetchheadForeachCbData {
+                callback: &mut callback,
+            };
+            let cb: raw::git_repository_fetchhead_foreach_cb = Some(fetchhead_foreach_cb);
+            try_call!(raw::git_repository_fetchhead_foreach(
+                self.raw(),
+                cb,
+                &mut data as *mut _ as *mut _
+            ));
+            Ok(())
         }
     }
 }
@@ -3062,7 +3281,9 @@ impl RepositoryInitOptions {
 mod tests {
     use crate::build::CheckoutBuilder;
     use crate::CherrypickOptions;
-    use crate::{ObjectType, Oid, Repository, ResetType};
+    use crate::{
+        ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
+    };
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
@@ -3704,5 +3925,144 @@ mod tests {
         assert!(merge_analysis.contains(crate::MergeAnalysis::ANALYSIS_FASTFORWARD));
 
         Ok(())
+    }
+
+    #[test]
+    fn smoke_submodule_set() -> Result<(), crate::Error> {
+        let (td1, _repo) = crate::test::repo_init();
+        let (td2, mut repo2) = crate::test::repo_init();
+        let url = crate::test::path2url(td1.path());
+        let name = "bar";
+        {
+            let mut s = repo2.submodule(&url, Path::new(name), true)?;
+            fs::remove_dir_all(td2.path().join("bar")).unwrap();
+            Repository::clone(&url, td2.path().join("bar"))?;
+            s.add_to_index(false)?;
+            s.add_finalize()?;
+        }
+
+        // update strategy
+        repo2.submodule_set_update(name, SubmoduleUpdate::None)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.update_strategy(),
+            SubmoduleUpdate::None
+        ));
+        repo2.submodule_set_update(name, SubmoduleUpdate::Rebase)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.update_strategy(),
+            SubmoduleUpdate::Rebase
+        ));
+
+        // ignore rule
+        repo2.submodule_set_ignore(name, SubmoduleIgnore::Untracked)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.ignore_rule(),
+            SubmoduleIgnore::Untracked
+        ));
+        repo2.submodule_set_ignore(name, SubmoduleIgnore::Dirty)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.ignore_rule(),
+            SubmoduleIgnore::Dirty
+        ));
+
+        // url
+        repo2.submodule_set_url(name, "fake-url")?;
+        assert_eq!(repo2.find_submodule(name)?.url(), Some("fake-url"));
+
+        // branch
+        repo2.submodule_set_branch(name, "fake-branch")?;
+        assert_eq!(repo2.find_submodule(name)?.branch(), Some("fake-branch"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn smoke_mailmap_from_repository() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let commit = {
+            let head = t!(repo.head()).target().unwrap();
+            t!(repo.find_commit(head))
+        };
+
+        // This is our baseline for HEAD.
+        let author = commit.author();
+        let committer = commit.committer();
+        assert_eq!(author.name(), Some("name"));
+        assert_eq!(author.email(), Some("email"));
+        assert_eq!(committer.name(), Some("name"));
+        assert_eq!(committer.email(), Some("email"));
+
+        // There is no .mailmap file in the test repo so all signature identities are equal.
+        let mailmap = t!(repo.mailmap());
+        let mailmapped_author = t!(commit.author_with_mailmap(&mailmap));
+        let mailmapped_committer = t!(commit.committer_with_mailmap(&mailmap));
+        assert_eq!(mailmapped_author.name(), author.name());
+        assert_eq!(mailmapped_author.email(), author.email());
+        assert_eq!(mailmapped_committer.name(), committer.name());
+        assert_eq!(mailmapped_committer.email(), committer.email());
+
+        let commit = {
+            // - Add a .mailmap file to the repository.
+            // - Commit with a signature identity different from the author's.
+            // - Include entries for both author and committer to prove we call
+            //   the right raw functions.
+            let mailmap_file = Path::new(".mailmap");
+            let p = Path::new(repo.workdir().unwrap()).join(&mailmap_file);
+            t!(fs::write(
+                p,
+                r#"
+Author Name <author.proper@email> name <email>
+Committer Name <committer.proper@email> <committer@email>"#,
+            ));
+            let mut index = t!(repo.index());
+            t!(index.add_path(&mailmap_file));
+            let id_mailmap = t!(index.write_tree());
+            let tree_mailmap = t!(repo.find_tree(id_mailmap));
+
+            let head = t!(repo.commit(
+                Some("HEAD"),
+                &author,
+                t!(&Signature::now("committer", "committer@email")),
+                "Add mailmap",
+                &tree_mailmap,
+                &[&commit],
+            ));
+            t!(repo.find_commit(head))
+        };
+
+        // Sanity check that we're working with the right commit and that its
+        // author and committer identities differ.
+        let author = commit.author();
+        let committer = commit.committer();
+        assert_ne!(author.name(), committer.name());
+        assert_ne!(author.email(), committer.email());
+        assert_eq!(author.name(), Some("name"));
+        assert_eq!(author.email(), Some("email"));
+        assert_eq!(committer.name(), Some("committer"));
+        assert_eq!(committer.email(), Some("committer@email"));
+
+        // Fetch the newly added .mailmap from the repository.
+        let mailmap = t!(repo.mailmap());
+        let mailmapped_author = t!(commit.author_with_mailmap(&mailmap));
+        let mailmapped_committer = t!(commit.committer_with_mailmap(&mailmap));
+
+        let mm_resolve_author = t!(mailmap.resolve_signature(&author));
+        let mm_resolve_committer = t!(mailmap.resolve_signature(&committer));
+
+        // Mailmap Signature lifetime is independent of Commit lifetime.
+        drop(author);
+        drop(committer);
+        drop(commit);
+
+        // author_with_mailmap() + committer_with_mailmap() work
+        assert_eq!(mailmapped_author.name(), Some("Author Name"));
+        assert_eq!(mailmapped_author.email(), Some("author.proper@email"));
+        assert_eq!(mailmapped_committer.name(), Some("Committer Name"));
+        assert_eq!(mailmapped_committer.email(), Some("committer.proper@email"));
+
+        // resolve_signature() works
+        assert_eq!(mm_resolve_author.email(), mailmapped_author.email());
+        assert_eq!(mm_resolve_committer.email(), mailmapped_committer.email());
     }
 }

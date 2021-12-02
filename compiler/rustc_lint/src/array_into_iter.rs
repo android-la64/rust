@@ -13,7 +13,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```rust
+    /// ```rust,edition2018
     /// # #![allow(unused)]
     /// [1, 2, 3].into_iter().for_each(|n| { *n; });
     /// ```
@@ -124,7 +124,7 @@ impl<'tcx> LateLintPass<'tcx> for ArrayIntoIter {
                 let mut diag = lint.build(&format!(
                     "this method call resolves to `<&{} as IntoIterator>::into_iter` \
                     (due to backwards compatibility), \
-                    but will resolve to <{} as IntoIterator>::into_iter in Rust 2021.",
+                    but will resolve to <{} as IntoIterator>::into_iter in Rust 2021",
                     target, target,
                 ));
                 diag.span_suggestion(

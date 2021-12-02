@@ -6,6 +6,7 @@ use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::def_id::DefId;
 use rustc_hir::Node;
+use rustc_hir::CRATE_HIR_ID;
 use rustc_middle::middle::privacy::AccessLevel;
 use rustc_middle::ty::TyCtxt;
 use rustc_span;
@@ -15,7 +16,7 @@ use rustc_span::symbol::{kw, sym, Symbol};
 
 use std::mem;
 
-use crate::clean::{self, AttributesExt, NestedAttributesExt};
+use crate::clean::{self, cfg::Cfg, AttributesExt, NestedAttributesExt};
 use crate::core;
 use crate::doctree::*;
 
@@ -71,12 +72,12 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
         self.exact_paths.entry(did).or_insert_with(|| def_id_to_path(tcx, did));
     }
 
-    crate fn visit(mut self, krate: &'tcx hir::Crate<'_>) -> Module<'tcx> {
-        let span = krate.module().inner;
+    crate fn visit(mut self) -> Module<'tcx> {
+        let span = self.cx.tcx.def_span(CRATE_DEF_ID);
         let mut top_level_module = self.visit_mod_contents(
             &Spanned { span, node: hir::VisibilityKind::Public },
             hir::CRATE_HIR_ID,
-            &krate.module(),
+            self.cx.tcx.hir().root_module(),
             self.cx.tcx.crate_name(LOCAL_CRATE),
         );
 
@@ -105,6 +106,29 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
                 }
             }
         }
+
+        self.cx.cache.hidden_cfg = self
+            .cx
+            .tcx
+            .hir()
+            .attrs(CRATE_HIR_ID)
+            .iter()
+            .filter(|attr| attr.has_name(sym::doc))
+            .flat_map(|attr| attr.meta_item_list().into_iter().flatten())
+            .filter(|attr| attr.has_name(sym::cfg_hide))
+            .flat_map(|attr| {
+                attr.meta_item_list()
+                    .unwrap_or(&[])
+                    .iter()
+                    .filter_map(|attr| {
+                        Cfg::parse(attr.meta_item()?)
+                            .map_err(|e| self.cx.sess().diagnostic().span_err(e.span, e.msg))
+                            .ok()
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
         self.cx.cache.exact_paths = self.exact_paths;
         top_level_module
     }

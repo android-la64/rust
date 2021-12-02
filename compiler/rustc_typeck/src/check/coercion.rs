@@ -42,7 +42,7 @@ use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
 use rustc_infer::infer::{Coercion, InferOk, InferResult};
-use rustc_infer::traits::Obligation;
+use rustc_infer::traits::{Obligation, TraitEngine, TraitEngineExt};
 use rustc_middle::lint::in_external_macro;
 use rustc_middle::ty::adjustment::{
     Adjust, Adjustment, AllowTwoPhase, AutoBorrow, AutoBorrowMutability, PointerCast,
@@ -54,7 +54,7 @@ use rustc_middle::ty::subst::SubstsRef;
 use rustc_middle::ty::{self, ToPredicate, Ty, TypeAndMut};
 use rustc_session::parse::feature_err;
 use rustc_span::symbol::sym;
-use rustc_span::{self, BytePos, Span};
+use rustc_span::{self, BytePos, DesugaringKind, Span};
 use rustc_target::spec::abi::Abi;
 use rustc_trait_selection::traits::error_reporting::InferCtxtExt;
 use rustc_trait_selection::traits::{self, ObligationCause, ObligationCauseCode};
@@ -146,6 +146,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
             .and_then(|InferOk { value: ty, obligations }| success(f(ty), ty, obligations))
     }
 
+    #[instrument(skip(self))]
     fn coerce(&self, a: Ty<'tcx>, b: Ty<'tcx>) -> CoerceResult<'tcx> {
         // First, remove any resolved type variables (at the top level, at least):
         let a = self.shallow_resolve(a);
@@ -159,24 +160,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
 
         // Coercing from `!` to any type is allowed:
         if a.is_never() {
-            // Subtle: If we are coercing from `!` to `?T`, where `?T` is an unbound
-            // type variable, we want `?T` to fallback to `!` if not
-            // otherwise constrained. An example where this arises:
-            //
-            //     let _: Option<?T> = Some({ return; });
-            //
-            // here, we would coerce from `!` to `?T`.
-            return if b.is_ty_var() {
-                // Micro-optimization: no need for this if `b` is
-                // already resolved in some way.
-                let diverging_ty = self.next_diverging_ty_var(TypeVariableOrigin {
-                    kind: TypeVariableOriginKind::AdjustmentType,
-                    span: self.cause.span,
-                });
-                self.coerce_from_inference_variable(diverging_ty, b, simple(Adjust::NeverToAny))
-            } else {
-                success(simple(Adjust::NeverToAny)(b), b, vec![])
-            };
+            return success(simple(Adjust::NeverToAny)(b), b, vec![]);
         }
 
         // Coercing *from* an unresolved inference variable means that
@@ -273,10 +257,10 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
                     obligations.push(Obligation::new(
                         self.cause.clone(),
                         self.param_env,
-                        ty::PredicateKind::Coerce(ty::CoercePredicate {
+                        ty::Binder::dummy(ty::PredicateKind::Coerce(ty::CoercePredicate {
                             a: source_ty,
                             b: target_ty,
-                        })
+                        }))
                         .to_predicate(self.tcx()),
                     ));
                 }
@@ -499,12 +483,11 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
     // &[T; n] or &mut [T; n] -> &[T]
     // or &mut [T; n] -> &mut [T]
     // or &Concrete -> &Trait, etc.
+    #[instrument(skip(self), level = "debug")]
     fn coerce_unsized(&self, mut source: Ty<'tcx>, mut target: Ty<'tcx>) -> CoerceResult<'tcx> {
-        debug!("coerce_unsized(source={:?}, target={:?})", source, target);
-
         source = self.shallow_resolve(source);
         target = self.shallow_resolve(target);
-        debug!("coerce_unsized: resolved source={:?} target={:?}", source, target);
+        debug!(?source, ?target);
 
         // These 'if' statements require some explanation.
         // The `CoerceUnsized` trait is special - it is only
@@ -707,13 +690,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
 
                 // Object safety violations or miscellaneous.
                 Err(err) => {
-                    self.report_selection_error(
-                        obligation.clone(),
-                        &obligation,
-                        &err,
-                        false,
-                        false,
-                    );
+                    self.report_selection_error(obligation.clone(), &obligation, &err, false);
                     // Treat this like an obligation and follow through
                     // with the unsizing - the lack of a coercion should
                     // be silent, as it causes a type mismatch later.
@@ -941,11 +918,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         expr_ty: Ty<'tcx>,
         target: Ty<'tcx>,
         allow_two_phase: AllowTwoPhase,
+        cause: Option<ObligationCause<'tcx>>,
     ) -> RelateResult<'tcx, Ty<'tcx>> {
         let source = self.resolve_vars_with_obligations(expr_ty);
         debug!("coercion::try({:?}: {:?} -> {:?})", expr, source, target);
 
-        let cause = self.cause(expr.span, ObligationCauseCode::ExprAssignable);
+        let cause =
+            cause.unwrap_or_else(|| self.cause(expr.span, ObligationCauseCode::ExprAssignable));
         let coerce = Coerce::new(self, cause, allow_two_phase);
         let ok = self.commit_if_ok(|_| coerce.coerce(source, target))?;
 
@@ -955,14 +934,25 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     }
 
     /// Same as `try_coerce()`, but without side-effects.
+    ///
+    /// Returns false if the coercion creates any obligations that result in
+    /// errors.
     pub fn can_coerce(&self, expr_ty: Ty<'tcx>, target: Ty<'tcx>) -> bool {
         let source = self.resolve_vars_with_obligations(expr_ty);
-        debug!("coercion::can({:?} -> {:?})", source, target);
+        debug!("coercion::can_with_predicates({:?} -> {:?})", source, target);
 
         let cause = self.cause(rustc_span::DUMMY_SP, ObligationCauseCode::ExprAssignable);
         // We don't ever need two-phase here since we throw out the result of the coercion
         let coerce = Coerce::new(self, cause, AllowTwoPhase::No);
-        self.probe(|_| coerce.coerce(source, target)).is_ok()
+        self.probe(|_| {
+            let ok = match coerce.coerce(source, target) {
+                Ok(ok) => ok,
+                _ => return false,
+            };
+            let mut fcx = traits::FulfillmentContext::new_in_snapshot();
+            fcx.register_predicate_obligations(self, ok.obligations);
+            fcx.select_where_possible(&self).is_ok()
+        })
     }
 
     /// Given a type and a target type, this function will calculate and return
@@ -1002,6 +992,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             new_ty,
             exprs.len()
         );
+
+        // The following check fixes #88097, where the compiler erroneously
+        // attempted to coerce a closure type to itself via a function pointer.
+        if prev_ty == new_ty {
+            return Ok(prev_ty);
+        }
 
         // Special-case that coercion alone cannot handle:
         // Function items or non-capturing closures of differing IDs or InternalSubsts.
@@ -1363,7 +1359,13 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                 // Special-case the first expression we are coercing.
                 // To be honest, I'm not entirely sure why we do this.
                 // We don't allow two-phase borrows, see comment in try_find_coercion_lub for why
-                fcx.try_coerce(expression, expression_ty, self.expected_ty, AllowTwoPhase::No)
+                fcx.try_coerce(
+                    expression,
+                    expression_ty,
+                    self.expected_ty,
+                    AllowTwoPhase::No,
+                    Some(cause.clone()),
+                )
             } else {
                 match self.expressions {
                     Expressions::Dynamic(ref exprs) => fcx.try_find_coercion_lub(
@@ -1494,21 +1496,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                     fcx.emit_coerce_suggestions(&mut err, expr, found, expected, None);
                 }
 
-                // Error possibly reported in `check_assign` so avoid emitting error again.
-                let assign_to_bool = expression
-                    // #67273: Use initial expected type as opposed to `expected`.
-                    // Otherwise we end up using prior coercions in e.g. a `match` expression:
-                    // ```
-                    // match i {
-                    //     0 => true, // Because of this...
-                    //     1 => i = 1, // ...`expected == bool` now, but not when checking `i = 1`.
-                    //     _ => (),
-                    // };
-                    // ```
-                    .filter(|e| fcx.is_assign_to_bool(e, self.expected_ty()))
-                    .is_some();
-
-                err.emit_unless(assign_to_bool || unsized_return);
+                err.emit_unless(unsized_return);
 
                 self.final_ty = Some(fcx.tcx.ty_error());
             }
@@ -1546,8 +1534,10 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                 // If the block is from an external macro or try (`?`) desugaring, then
                 // do not suggest adding a semicolon, because there's nowhere to put it.
                 // See issues #81943 and #87051.
-                if cond_expr.span.desugaring_kind().is_none()
-                    && !in_external_macro(fcx.tcx.sess, cond_expr.span)
+                if matches!(
+                    cond_expr.span.desugaring_kind(),
+                    None | Some(DesugaringKind::WhileLoop)
+                ) && !in_external_macro(fcx.tcx.sess, cond_expr.span)
                     && !matches!(
                         cond_expr.kind,
                         hir::ExprKind::Match(.., hir::MatchSource::TryDesugar)

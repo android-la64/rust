@@ -22,7 +22,11 @@ mod repr;
 
 pub(crate) fn complete_attribute(acc: &mut Completions, ctx: &CompletionContext) -> Option<()> {
     let attribute = ctx.attribute_under_caret.as_ref()?;
-    match (attribute.path().and_then(|p| p.as_single_name_ref()), attribute.token_tree()) {
+    let name_ref = match attribute.path() {
+        Some(p) => Some(p.as_single_name_ref()?),
+        None => None,
+    };
+    match (name_ref, attribute.token_tree()) {
         (Some(path), Some(token_tree)) => match path.text().as_str() {
             "derive" => derive::complete_derive(acc, ctx, token_tree),
             "repr" => repr::complete_repr(acc, ctx, token_tree),
@@ -272,8 +276,12 @@ const ATTRIBUTES: &[AttrCompletion] = &[
     attr("proc_macro", None, None),
     attr("proc_macro_attribute", None, None),
     attr("proc_macro_derive(…)", Some("proc_macro_derive"), Some("proc_macro_derive(${0:Trait})")),
-    attr("recursion_limit = …", Some("recursion_limit"), Some("recursion_limit = ${0:128}"))
-        .prefer_inner(),
+    attr(
+        r#"recursion_limit = "…""#,
+        Some("recursion_limit"),
+        Some(r#"recursion_limit = "${0:128}""#),
+    )
+    .prefer_inner(),
     attr("repr(…)", Some("repr"), Some("repr(${0:C})")),
     attr("should_panic", Some("should_panic"), Some(r#"should_panic"#)),
     attr(

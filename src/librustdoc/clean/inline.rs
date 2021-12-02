@@ -124,14 +124,8 @@ crate fn try_inline(
 
     let (attrs, cfg) = merge_attrs(cx, Some(parent_module), load_attrs(cx, did), attrs_clone);
     cx.inlined.insert(did.into());
-    let mut item = clean::Item::from_def_id_and_attrs_and_parts(
-        did,
-        Some(name),
-        kind,
-        Box::new(attrs),
-        cx,
-        cfg,
-    );
+    let mut item =
+        clean::Item::from_def_id_and_attrs_and_parts(did, Some(name), kind, box attrs, cx, cfg);
     if let Some(import_def_id) = import_def_id {
         // The visibility needs to reflect the one from the reexport and not from the "source" DefId.
         item.visibility = cx.tcx.visibility(import_def_id).clean(cx);
@@ -324,10 +318,10 @@ fn merge_attrs(
             } else {
                 Attributes::from_ast(&both, None)
             },
-            both.cfg(cx.sess()),
+            both.cfg(cx.tcx, &cx.cache.hidden_cfg),
         )
     } else {
-        (old_attrs.clean(cx), old_attrs.cfg(cx.sess()))
+        (old_attrs.clean(cx), old_attrs.cfg(cx.tcx, &cx.cache.hidden_cfg))
     }
 }
 
@@ -395,13 +389,45 @@ crate fn build_impl(
         }
     }
 
+    let document_hidden = cx.render_options.document_hidden;
     let predicates = tcx.explicit_predicates_of(did);
     let (trait_items, generics) = match impl_item {
         Some(impl_) => (
             impl_
                 .items
                 .iter()
-                .map(|item| tcx.hir().impl_item(item.id).clean(cx))
+                .map(|item| tcx.hir().impl_item(item.id))
+                .filter(|item| {
+                    // Filter out impl items whose corresponding trait item has `doc(hidden)`
+                    // not to document such impl items.
+                    // For inherent impls, we don't do any filtering, because that's already done in strip_hidden.rs.
+
+                    // When `--document-hidden-items` is passed, we don't
+                    // do any filtering, too.
+                    if document_hidden {
+                        return true;
+                    }
+                    if let Some(associated_trait) = associated_trait {
+                        let assoc_kind = match item.kind {
+                            hir::ImplItemKind::Const(..) => ty::AssocKind::Const,
+                            hir::ImplItemKind::Fn(..) => ty::AssocKind::Fn,
+                            hir::ImplItemKind::TyAlias(..) => ty::AssocKind::Type,
+                        };
+                        let trait_item = tcx
+                            .associated_items(associated_trait.def_id)
+                            .find_by_name_and_kind(
+                                tcx,
+                                item.ident,
+                                assoc_kind,
+                                associated_trait.def_id,
+                            )
+                            .unwrap(); // SAFETY: For all impl items there exists trait item that has the same name.
+                        !tcx.get_attrs(trait_item.def_id).lists(sym::doc).has_word(sym::hidden)
+                    } else {
+                        true
+                    }
+                })
+                .map(|item| item.clean(cx))
                 .collect::<Vec<_>>(),
             impl_.generics.clean(cx),
         ),
@@ -420,20 +446,26 @@ crate fn build_impl(
         ),
     };
     let polarity = tcx.impl_polarity(did);
-    let trait_ = associated_trait.clean(cx).map(|bound| match bound {
-        clean::GenericBound::TraitBound(polyt, _) => polyt.trait_,
-        clean::GenericBound::Outlives(..) => unreachable!(),
-    });
-    if trait_.def_id() == tcx.lang_items().deref_trait() {
+    let trait_ = associated_trait.clean(cx);
+    if trait_.as_ref().map(|t| t.def_id()) == tcx.lang_items().deref_trait() {
         super::build_deref_target_impls(cx, &trait_items, ret);
     }
 
     // Return if the trait itself or any types of the generic parameters are doc(hidden).
-    let mut stack: Vec<&Type> = trait_.iter().collect();
-    stack.push(&for_);
+    let mut stack: Vec<&Type> = vec![&for_];
+
+    if let Some(did) = trait_.as_ref().map(|t| t.def_id()) {
+        if tcx.get_attrs(did).lists(sym::doc).has_word(sym::hidden) {
+            return;
+        }
+    }
+    if let Some(generics) = trait_.as_ref().and_then(|t| t.generics()) {
+        stack.extend(generics);
+    }
+
     while let Some(ty) = stack.pop() {
         if let Some(did) = ty.def_id() {
-            if cx.tcx.get_attrs(did).lists(sym::doc).has_word(sym::hidden) {
+            if tcx.get_attrs(did).lists(sym::doc).has_word(sym::hidden) {
                 return;
             }
         }
@@ -442,14 +474,14 @@ crate fn build_impl(
         }
     }
 
-    if let Some(trait_did) = trait_.def_id() {
-        record_extern_trait(cx, trait_did);
+    if let Some(did) = trait_.as_ref().map(|t| t.def_id()) {
+        record_extern_trait(cx, did);
     }
 
     let (merged_attrs, cfg) = merge_attrs(cx, parent_module.into(), load_attrs(cx, did), attrs);
-    debug!("merged_attrs={:?}", merged_attrs);
+    trace!("merged_attrs={:?}", merged_attrs);
 
-    debug!("build_impl: impl {:?} for {:?}", trait_.def_id(), for_.def_id());
+    trace!("build_impl: impl {:?} for {:?}", trait_.as_ref().map(|t| t.def_id()), for_.def_id());
     ret.push(clean::Item::from_def_id_and_attrs_and_parts(
         did,
         None,
@@ -464,7 +496,7 @@ crate fn build_impl(
             synthetic: false,
             blanket_impl: None,
         }),
-        Box::new(merged_attrs),
+        box merged_attrs,
         cx,
         cfg,
     ));
@@ -482,25 +514,25 @@ fn build_module(
     // visit each node at most once.
     for &item in cx.tcx.item_children(did).iter() {
         if item.vis == ty::Visibility::Public {
-            if let Some(def_id) = item.res.mod_def_id() {
+            let res = item.res.expect_non_local();
+            if let Some(def_id) = res.mod_def_id() {
                 if did == def_id || !visited.insert(def_id) {
                     continue;
                 }
             }
-            if let Res::PrimTy(p) = item.res {
+            if let Res::PrimTy(p) = res {
                 // Primitive types can't be inlined so generate an import instead.
                 let prim_ty = clean::PrimitiveType::from(p);
                 items.push(clean::Item {
                     name: None,
-                    attrs: Box::new(clean::Attributes::default()),
+                    attrs: box clean::Attributes::default(),
                     def_id: ItemId::Primitive(prim_ty, did.krate),
                     visibility: clean::Public,
-                    kind: Box::new(clean::ImportItem(clean::Import::new_simple(
+                    kind: box clean::ImportItem(clean::Import::new_simple(
                         item.ident.name,
                         clean::ImportSource {
                             path: clean::Path {
-                                global: false,
-                                res: item.res,
+                                res,
                                 segments: vec![clean::PathSegment {
                                     name: prim_ty.as_sym(),
                                     args: clean::GenericArgs::AngleBracketed {
@@ -512,12 +544,10 @@ fn build_module(
                             did: None,
                         },
                         true,
-                    ))),
+                    )),
                     cfg: None,
                 });
-            } else if let Some(i) =
-                try_inline(cx, did, None, item.res, item.ident.name, None, visited)
-            {
+            } else if let Some(i) = try_inline(cx, did, None, res, item.ident.name, None, visited) {
                 items.extend(i)
             }
         }
@@ -557,7 +587,6 @@ fn build_macro(
     name: Symbol,
     import_def_id: Option<DefId>,
 ) -> clean::ItemKind {
-    let imported_from = cx.tcx.crate_name(def_id.krate);
     match CStore::from_tcx(cx.tcx).load_macro_untracked(def_id, cx.sess()) {
         LoadedMacro::MacroDef(item_def, _) => {
             if let ast::ItemKind::MacroDef(ref def) = item_def.kind {
@@ -569,7 +598,6 @@ fn build_macro(
                         def_id,
                         cx.tcx.visibility(import_def_id.unwrap_or(def_id)),
                     ),
-                    imported_from: Some(imported_from),
                 })
             } else {
                 unreachable!()
@@ -598,11 +626,10 @@ fn filter_non_trait_generics(trait_did: DefId, mut g: clean::Generics) -> clean:
                 ref mut bounds,
                 ..
             } if *s == kw::SelfUpper => {
-                bounds.retain(|bound| match *bound {
-                    clean::GenericBound::TraitBound(
-                        clean::PolyTrait { trait_: clean::ResolvedPath { did, .. }, .. },
-                        _,
-                    ) => did != trait_did,
+                bounds.retain(|bound| match bound {
+                    clean::GenericBound::TraitBound(clean::PolyTrait { trait_, .. }, _) => {
+                        trait_.def_id() != trait_did
+                    }
                     _ => true,
                 });
             }
@@ -610,18 +637,12 @@ fn filter_non_trait_generics(trait_did: DefId, mut g: clean::Generics) -> clean:
         }
     }
 
-    g.where_predicates.retain(|pred| match *pred {
+    g.where_predicates.retain(|pred| match pred {
         clean::WherePredicate::BoundPredicate {
-            ty:
-                clean::QPath {
-                    self_type: box clean::Generic(ref s),
-                    trait_: box clean::ResolvedPath { did, .. },
-                    name: ref _name,
-                    ..
-                },
-            ref bounds,
+            ty: clean::QPath { self_type: box clean::Generic(ref s), trait_, name: _, .. },
+            bounds,
             ..
-        } => !(bounds.is_empty() || *s == kw::SelfUpper && did == trait_did),
+        } => !(bounds.is_empty() || *s == kw::SelfUpper && trait_.def_id() == trait_did),
         _ => true,
     });
     g

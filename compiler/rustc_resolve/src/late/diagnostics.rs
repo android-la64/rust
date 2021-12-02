@@ -7,12 +7,12 @@ use crate::{PathResult, PathSource, Segment};
 
 use rustc_ast::visit::FnKind;
 use rustc_ast::{
-    self as ast, Expr, ExprKind, GenericParam, GenericParamKind, Item, ItemKind, NodeId, Path, Ty,
-    TyKind,
+    self as ast, AssocItemKind, Expr, ExprKind, GenericParam, GenericParamKind, Item, ItemKind,
+    NodeId, Path, Ty, TyKind,
 };
 use rustc_ast_pretty::pprust::path_segment_to_string;
 use rustc_data_structures::fx::FxHashSet;
-use rustc_errors::{pluralize, struct_span_err, Applicability, DiagnosticBuilder, SuggestionStyle};
+use rustc_errors::{pluralize, struct_span_err, Applicability, DiagnosticBuilder};
 use rustc_hir as hir;
 use rustc_hir::def::Namespace::{self, *};
 use rustc_hir::def::{self, CtorKind, CtorOf, DefKind};
@@ -768,6 +768,7 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                                             args[1].span.lo(),
                                             args.last().unwrap().span.hi(),
                                             call_span.ctxt(),
+                                            None,
                                         ))
                                     } else {
                                         None
@@ -1025,9 +1026,15 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
 
                 self.suggest_using_enum_variant(err, source, def_id, span);
             }
-            (Res::Def(DefKind::Struct, def_id), _) if ns == ValueNS => {
+            (Res::Def(DefKind::Struct, def_id), source) if ns == ValueNS => {
                 let (ctor_def, ctor_vis, fields) =
                     if let Some(struct_ctor) = self.r.struct_constructors.get(&def_id).cloned() {
+                        if let PathSource::Expr(Some(parent)) = source {
+                            if let ExprKind::Field(..) | ExprKind::MethodCall(..) = parent.kind {
+                                bad_struct_syntax_suggestion(def_id);
+                                return true;
+                            }
+                        }
                         struct_ctor
                     } else {
                         bad_struct_syntax_suggestion(def_id);
@@ -1141,6 +1148,40 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
             _ => return false,
         }
         true
+    }
+
+    /// Given the target `ident` and `kind`, search for the similarly named associated item
+    /// in `self.current_trait_ref`.
+    crate fn find_similarly_named_assoc_item(
+        &mut self,
+        ident: Symbol,
+        kind: &AssocItemKind,
+    ) -> Option<Symbol> {
+        let module = if let Some((module, _)) = self.current_trait_ref {
+            module
+        } else {
+            return None;
+        };
+        if ident == kw::Underscore {
+            // We do nothing for `_`.
+            return None;
+        }
+
+        let resolutions = self.r.resolutions(module);
+        let targets = resolutions
+            .borrow()
+            .iter()
+            .filter_map(|(key, res)| res.borrow().binding.map(|binding| (key, binding.res())))
+            .filter(|(_, res)| match (kind, res) {
+                (AssocItemKind::Const(..), Res::Def(DefKind::AssocConst, _)) => true,
+                (AssocItemKind::Fn(_), Res::Def(DefKind::AssocFn, _)) => true,
+                (AssocItemKind::TyAlias(..), Res::Def(DefKind::AssocTy, _)) => true,
+                _ => false,
+            })
+            .map(|(key, _)| key.ident.name)
+            .collect::<Vec<_>>();
+
+        find_best_match_for_name(&targets, ident, None)
     }
 
     fn lookup_assoc_candidate<FilterFn>(
@@ -1450,7 +1491,7 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                     // form the path
                     let mut path_segments = path_segments.clone();
                     path_segments.push(ast::PathSegment::from_ident(ident));
-                    let module_def_id = module.def_id().unwrap();
+                    let module_def_id = module.def_id();
                     if module_def_id == def_id {
                         let path =
                             Path { span: name_binding.span, segments: path_segments, tokens: None };
@@ -1959,11 +2000,10 @@ impl<'tcx> LifetimeContext<'_, 'tcx> {
                             introduce_suggestion.push((*span, formatter(&lt_name)));
                         }
                     }
-                    err.multipart_suggestion_with_style(
+                    err.multipart_suggestion_verbose(
                         &msg,
                         introduce_suggestion,
                         Applicability::MaybeIncorrect,
-                        SuggestionStyle::ShowAlways,
                     );
                 }
 
@@ -1975,14 +2015,13 @@ impl<'tcx> LifetimeContext<'_, 'tcx> {
                     })
                     .map(|(formatter, span)| (*span, formatter(name)))
                     .collect();
-                err.multipart_suggestion_with_style(
+                err.multipart_suggestion_verbose(
                     &format!(
                         "consider using the `{}` lifetime",
                         lifetime_names.iter().next().unwrap()
                     ),
                     spans_suggs,
                     Applicability::MaybeIncorrect,
-                    SuggestionStyle::ShowAlways,
                 );
             };
         let suggest_new = |err: &mut DiagnosticBuilder<'_>, suggs: Vec<Option<String>>| {
@@ -2073,11 +2112,10 @@ impl<'tcx> LifetimeContext<'_, 'tcx> {
                             };
                             spans_suggs.push((span, sugg.to_string()));
                         }
-                        err.multipart_suggestion_with_style(
+                        err.multipart_suggestion_verbose(
                             "consider using the `'static` lifetime",
                             spans_suggs,
                             Applicability::MaybeIncorrect,
-                            SuggestionStyle::ShowAlways,
                         );
                         continue;
                     }
@@ -2162,11 +2200,10 @@ impl<'tcx> LifetimeContext<'_, 'tcx> {
                         .unwrap_or((span, sugg));
                     introduce_suggestion.push((span, sugg.to_string()));
                 }
-                err.multipart_suggestion_with_style(
+                err.multipart_suggestion_verbose(
                     &msg,
                     introduce_suggestion,
                     Applicability::MaybeIncorrect,
-                    SuggestionStyle::ShowAlways,
                 );
                 if should_break {
                     break;
@@ -2242,11 +2279,10 @@ impl<'tcx> LifetimeContext<'_, 'tcx> {
                 if spans_suggs.len() > 0 {
                     // This happens when we have `Foo<T>` where we point at the space before `T`,
                     // but this can be confusing so we give a suggestion with placeholders.
-                    err.multipart_suggestion_with_style(
+                    err.multipart_suggestion_verbose(
                         "consider using one of the available lifetimes here",
                         spans_suggs,
                         Applicability::HasPlaceholders,
-                        SuggestionStyle::ShowAlways,
                     );
                 }
             }

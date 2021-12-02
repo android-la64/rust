@@ -9,14 +9,15 @@
 #![feature(format_args_capture)]
 #![feature(iter_zip)]
 #![feature(nll)]
-#![cfg_attr(bootstrap, allow(incomplete_features))] // if_let_guard
 
 #[macro_use]
 extern crate rustc_macros;
 
+#[macro_use]
+extern crate tracing;
+
 pub use emitter::ColorConfig;
 
-use tracing::debug;
 use Level::*;
 
 use emitter::{is_case_difference, Emitter, EmitterWriter};
@@ -340,7 +341,7 @@ impl CodeSuggestion {
                     });
                     buf.push_str(&part.snippet);
                     let cur_hi = sm.lookup_char_pos(part.span.hi());
-                    if prev_hi.line == cur_lo.line {
+                    if prev_hi.line == cur_lo.line && cur_hi.line == cur_lo.line {
                         // Account for the difference between the width of the current code and the
                         // snippet being suggested, so that the *later* suggestions are correctly
                         // aligned on the screen.
@@ -1029,15 +1030,13 @@ impl HandlerInner {
             let mut error_codes = self
                 .emitted_diagnostic_codes
                 .iter()
-                .filter_map(|x| {
-                    match &x {
+                .filter_map(|x| match &x {
                     DiagnosticId::Error(s)
-                        if let Ok(Some(_explanation)) = registry.try_find_description(s) =>
+                        if registry.try_find_description(s).map_or(false, |o| o.is_some()) =>
                     {
                         Some(s.clone())
                     }
                     _ => None,
-                }
                 })
                 .collect::<Vec<_>>();
             if !error_codes.is_empty() {

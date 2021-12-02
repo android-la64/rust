@@ -47,9 +47,9 @@
 //!
 //! Rust's pointer types must always point to a valid location; there are
 //! no "null" references. Instead, Rust has *optional* pointers, like
-//! the optional owned box, [`Option`]`<`[`Box<T>`]`>`.
+//! the optional owned box, <code>[Option]<[Box\<T>]></code>.
 //!
-//! [`Box<T>`]: ../../std/boxed/struct.Box.html
+//! [Box\<T>]: ../../std/boxed/struct.Box.html
 //!
 //! The following example uses [`Option`] to create an optional box of
 //! [`i32`]. Notice that in order to use the inner [`i32`] value, the
@@ -111,16 +111,20 @@
 //!
 //! ## Adapters for working with references
 //!
-//! * [`as_ref`] converts from `&Option<T>` to `Option<&T>`
-//! * [`as_mut`] converts from `&mut Option<T>` to `Option<&mut T>`
-//! * [`as_deref`] converts from `&Option<T>` to `Option<&T::Target>`
-//! * [`as_deref_mut`] converts from `&mut Option<T>` to
-//!   `Option<&mut T::Target>`
-//! * [`as_pin_ref`] converts from [`Pin`]`<&Option<T>>` to
-//!   `Option<`[`Pin`]`<&T>>`
-//! * [`as_pin_mut`] converts from [`Pin`]`<&mut Option<T>>` to
-//!   `Option<`[`Pin`]`<&mut T>>`
+//! * [`as_ref`] converts from <code>[&][][Option]\<T></code> to <code>[Option]<[&]T></code>
+//! * [`as_mut`] converts from <code>[&mut] [Option]\<T></code> to <code>[Option]<[&mut] T></code>
+//! * [`as_deref`] converts from <code>[&][][Option]\<T></code> to
+//!   <code>[Option]<[&]T::[Target]></code>
+//! * [`as_deref_mut`] converts from <code>[&mut] [Option]\<T></code> to
+//!   <code>[Option]<[&mut] T::[Target]></code>
+//! * [`as_pin_ref`] converts from <code>[Pin]<[&][][Option]\<T>></code> to
+//!   <code>[Option]<[Pin]<[&]T>></code>
+//! * [`as_pin_mut`] converts from <code>[Pin]<[&mut] [Option]\<T>></code> to
+//!   <code>[Option]<[Pin]<[&mut] T>></code>
 //!
+//! [&]: reference "shared reference"
+//! [&mut]: reference "mutable reference"
+//! [Target]: Deref::Target "ops::Deref::Target"
 //! [`as_deref`]: Option::as_deref
 //! [`as_deref_mut`]: Option::as_deref_mut
 //! [`as_mut`]: Option::as_mut
@@ -505,7 +509,7 @@ use crate::{
 
 /// The `Option` type. See [the module level documentation](self) for more.
 #[derive(Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
-#[rustc_diagnostic_item = "option_type"]
+#[rustc_diagnostic_item = "Option"]
 #[stable(feature = "rust1", since = "1.0.0")]
 pub enum Option<T> {
     /// No value
@@ -540,8 +544,8 @@ impl<T> Option<T> {
     /// ```
     #[must_use = "if you intended to assert that this has a value, consider `.unwrap()` instead"]
     #[inline]
-    #[rustc_const_stable(feature = "const_option", since = "1.48.0")]
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[rustc_const_stable(feature = "const_option", since = "1.48.0")]
     pub const fn is_some(&self) -> bool {
         matches!(*self, Some(_))
     }
@@ -560,8 +564,8 @@ impl<T> Option<T> {
     #[must_use = "if you intended to assert that this doesn't have a value, consider \
                   `.and_then(|_| panic!(\"`Option` had a value when expected `None`\"))` instead"]
     #[inline]
-    #[rustc_const_stable(feature = "const_option", since = "1.48.0")]
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[rustc_const_stable(feature = "const_option", since = "1.48.0")]
     pub const fn is_none(&self) -> bool {
         !self.is_some()
     }
@@ -603,13 +607,13 @@ impl<T> Option<T> {
     ///
     /// # Examples
     ///
-    /// Converts an `Option<`[`String`]`>` into an `Option<`[`usize`]`>`, preserving the original.
-    /// The [`map`] method takes the `self` argument by value, consuming the original,
+    /// Converts an <code>Option<[String]></code> into an <code>Option<[usize]></code>, preserving
+    /// the original. The [`map`] method takes the `self` argument by value, consuming the original,
     /// so this technique uses `as_ref` to first take an `Option` to a reference
     /// to the value inside the original.
     ///
     /// [`map`]: Option::map
-    /// [`String`]: ../../std/string/struct.String.html
+    /// [String]: ../../std/string/struct.String.html "String"
     ///
     /// ```
     /// let text: Option<String> = Some("Hello, world!".to_string());
@@ -642,15 +646,19 @@ impl<T> Option<T> {
     /// ```
     #[inline]
     #[stable(feature = "rust1", since = "1.0.0")]
-    pub fn as_mut(&mut self) -> Option<&mut T> {
+    #[rustc_const_unstable(feature = "const_option", issue = "67441")]
+    pub const fn as_mut(&mut self) -> Option<&mut T> {
         match *self {
             Some(ref mut x) => Some(x),
             None => None,
         }
     }
 
-    /// Converts from [`Pin`]`<&Option<T>>` to `Option<`[`Pin`]`<&T>>`.
+    /// Converts from <code>[Pin]<[&]Option\<T>></code> to <code>Option<[Pin]<[&]T>></code>.
+    ///
+    /// [&]: reference "shared reference"
     #[inline]
+    #[must_use]
     #[stable(feature = "pin", since = "1.33.0")]
     pub fn as_pin_ref(self: Pin<&Self>) -> Option<Pin<&T>> {
         // SAFETY: `x` is guaranteed to be pinned because it comes from `self`
@@ -658,8 +666,11 @@ impl<T> Option<T> {
         unsafe { Pin::get_ref(self).as_ref().map(|x| Pin::new_unchecked(x)) }
     }
 
-    /// Converts from [`Pin`]`<&mut Option<T>>` to `Option<`[`Pin`]`<&mut T>>`.
+    /// Converts from <code>[Pin]<[&mut] Option\<T>></code> to <code>Option<[Pin]<[&mut] T>></code>.
+    ///
+    /// [&mut]: reference "mutable reference"
     #[inline]
+    #[must_use]
     #[stable(feature = "pin", since = "1.33.0")]
     pub fn as_pin_mut(self: Pin<&mut Self>) -> Option<Pin<&mut T>> {
         // SAFETY: `get_unchecked_mut` is never used to move the `Option` inside `self`.
@@ -819,9 +830,10 @@ impl<T> Option<T> {
     ///
     /// # Examples
     ///
-    /// Converts an `Option<`[`String`]`>` into an `Option<`[`usize`]`>`, consuming the original:
+    /// Converts an <code>Option<[String]></code> into an <code>Option<[usize]></code>, consuming
+    /// the original:
     ///
-    /// [`String`]: ../../std/string/struct.String.html
+    /// [String]: ../../std/string/struct.String.html "String"
     /// ```
     /// let maybe_some_string = Some(String::from("Hello, World!"));
     /// // `Option::map` takes self *by value*, consuming `maybe_some_string`
@@ -1173,7 +1185,7 @@ impl<T> Option<T> {
     // Entry-like operations to insert a value and return a reference
     /////////////////////////////////////////////////////////////////////////
 
-    /// Inserts `value` into the option then returns a mutable reference to it.
+    /// Inserts `value` into the option, then returns a mutable reference to it.
     ///
     /// If the option already contains a value, the old value is dropped.
     ///
@@ -1309,8 +1321,10 @@ impl<T> Option<T> {
     /// ```
     #[inline]
     #[stable(feature = "rust1", since = "1.0.0")]
-    pub fn take(&mut self) -> Option<T> {
-        mem::take(self)
+    #[rustc_const_unstable(feature = "const_option", issue = "67441")]
+    pub const fn take(&mut self) -> Option<T> {
+        // FIXME replace `mem::replace` by `mem::take` when the latter is const ready
+        mem::replace(self, None)
     }
 
     /// Replaces the actual value in the option by the value given in parameter,
@@ -1331,8 +1345,9 @@ impl<T> Option<T> {
     /// assert_eq!(old, None);
     /// ```
     #[inline]
+    #[rustc_const_unstable(feature = "const_option", issue = "67441")]
     #[stable(feature = "option_replace", since = "1.31.0")]
-    pub fn replace(&mut self, value: T) -> Option<T> {
+    pub const fn replace(&mut self, value: T) -> Option<T> {
         mem::replace(self, Some(value))
     }
 
@@ -1397,7 +1412,7 @@ impl<T> Option<T> {
 }
 
 impl<T, U> Option<(T, U)> {
-    /// Unzips an option containing a tuple of two options
+    /// Unzips an option containing a tuple of two options.
     ///
     /// If `self` is `Some((a, b))` this method returns `(Some(a), Some(b))`.
     /// Otherwise, `(None, None)` is returned.
@@ -1437,8 +1452,14 @@ impl<T: Copy> Option<&T> {
     /// assert_eq!(copied, Some(12));
     /// ```
     #[stable(feature = "copied", since = "1.35.0")]
-    pub fn copied(self) -> Option<T> {
-        self.map(|&t| t)
+    #[rustc_const_unstable(feature = "const_option", issue = "67441")]
+    pub const fn copied(self) -> Option<T> {
+        // FIXME: this implementation, which sidesteps using `Option::map` since it's not const
+        // ready yet, should be reverted when possible to avoid code repetition
+        match self {
+            Some(&v) => Some(v),
+            None => None,
+        }
     }
 }
 
@@ -1455,6 +1476,7 @@ impl<T: Copy> Option<&mut T> {
     /// let copied = opt_x.copied();
     /// assert_eq!(copied, Some(12));
     /// ```
+    #[must_use = "`self` will be dropped if the result is not used"]
     #[stable(feature = "copied", since = "1.35.0")]
     pub fn copied(self) -> Option<T> {
         self.map(|&mut t| t)
@@ -1474,6 +1496,7 @@ impl<T: Clone> Option<&T> {
     /// let cloned = opt_x.cloned();
     /// assert_eq!(cloned, Some(12));
     /// ```
+    #[must_use = "`self` will be dropped if the result is not used"]
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn cloned(self) -> Option<T> {
         self.map(|t| t.clone())
@@ -1500,7 +1523,7 @@ impl<T: Clone> Option<&mut T> {
 }
 
 impl<T: Default> Option<T> {
-    /// Returns the contained [`Some`] value or a default
+    /// Returns the contained [`Some`] value or a default.
     ///
     /// Consumes the `self` argument then, if [`Some`], returns the contained
     /// value, otherwise if [`None`], returns the [default value] for that
@@ -1561,7 +1584,7 @@ impl<T: DerefMut> Option<T> {
     /// Converts from `Option<T>` (or `&mut Option<T>`) to `Option<&mut T::Target>`.
     ///
     /// Leaves the original `Option` in-place, creating a new one containing a mutable reference to
-    /// the inner type's `Deref::Target` type.
+    /// the inner type's [`Deref::Target`] type.
     ///
     /// # Examples
     ///
@@ -1581,9 +1604,9 @@ impl<T: DerefMut> Option<T> {
 impl<T, E> Option<Result<T, E>> {
     /// Transposes an `Option` of a [`Result`] into a [`Result`] of an `Option`.
     ///
-    /// [`None`] will be mapped to [`Ok`]`(`[`None`]`)`.
-    /// [`Some`]`(`[`Ok`]`(_))` and [`Some`]`(`[`Err`]`(_))` will be mapped to
-    /// [`Ok`]`(`[`Some`]`(_))` and [`Err`]`(_)`.
+    /// [`None`] will be mapped to <code>[Ok]\([None])</code>.
+    /// <code>[Some]\([Ok]\(\_))</code> and <code>[Some]\([Err]\(\_))</code> will be mapped to
+    /// <code>[Ok]\([Some]\(\_))</code> and <code>[Err]\(\_)</code>.
     ///
     /// # Examples
     ///
@@ -1701,7 +1724,7 @@ impl<'a, T> IntoIterator for &'a mut Option<T> {
 
 #[stable(since = "1.12.0", feature = "option_from")]
 impl<T> From<T> for Option<T> {
-    /// Copies `val` into a new `Some`.
+    /// Moves `val` into a new [`Some`].
     ///
     /// # Examples
     ///
@@ -1721,13 +1744,13 @@ impl<'a, T> From<&'a Option<T>> for Option<&'a T> {
     ///
     /// # Examples
     ///
-    /// Converts an `Option<`[`String`]`>` into an `Option<`[`usize`]`>`, preserving the original.
-    /// The [`map`] method takes the `self` argument by value, consuming the original,
-    /// so this technique uses `from` to first take an `Option` to a reference
+    /// Converts an <code>[Option]<[String]></code> into an <code>[Option]<[usize]></code>, preserving
+    /// the original. The [`map`] method takes the `self` argument by value, consuming the original,
+    /// so this technique uses `from` to first take an [`Option`] to a reference
     /// to the value inside the original.
     ///
     /// [`map`]: Option::map
-    /// [`String`]: ../../std/string/struct.String.html
+    /// [String]: ../../std/string/struct.String.html "String"
     ///
     /// ```
     /// let s: Option<String> = Some(String::from("Hello, Rustaceans!"));
@@ -1942,8 +1965,8 @@ unsafe impl<A> TrustedLen for IntoIter<A> {}
 impl<A, V: FromIterator<A>> FromIterator<Option<A>> for Option<V> {
     /// Takes each element in the [`Iterator`]: if it is [`None`][Option::None],
     /// no further elements are taken, and the [`None`][Option::None] is
-    /// returned. Should no [`None`][Option::None] occur, a container with the
-    /// values of each [`Option`] is returned.
+    /// returned. Should no [`None`][Option::None] occur, a container of type
+    /// `V` containing the values of each [`Option`] is returned.
     ///
     /// # Examples
     ///
@@ -2039,7 +2062,7 @@ impl<T> ops::FromResidual for Option<T> {
 }
 
 impl<T> Option<Option<T>> {
-    /// Converts from `Option<Option<T>>` to `Option<T>`
+    /// Converts from `Option<Option<T>>` to `Option<T>`.
     ///
     /// # Examples
     ///

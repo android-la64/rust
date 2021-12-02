@@ -142,7 +142,6 @@ impl EventLoop {
         loop {
             match self.kqueue.poll(None) {
                 Some(event) => {
-                    dbg!(&event);
                     match event {
                         kqueue::Event {
                             data: EventData::Vnode(data),
@@ -274,7 +273,8 @@ impl EventLoop {
             | FilterFlag::NOTE_REVOKE;
 
         self.kqueue
-            .add_filename(&path, event_filter, filter_flags)?;
+            .add_filename(&path, event_filter, filter_flags)
+            .map_err(|e| Error::io(e).add_path(path.clone()))?;
         self.watches.insert(path, is_recursive);
         self.kqueue.watch()?;
         Ok(())
@@ -286,7 +286,7 @@ impl EventLoop {
             Some(is_recursive) => {
                 self.kqueue
                     .remove_filename(&path, EventFilter::EVFILT_VNODE)
-                    .map_err(|e| Error::io(e))?;
+                    .map_err(|e| Error::io(e).add_path(path.clone()))?;
 
                 if is_recursive || remove_recursive {
                     for entry in WalkDir::new(path)
@@ -294,10 +294,10 @@ impl EventLoop {
                         .into_iter()
                         .filter_map(filter_dir)
                     {
-                        self.kqueue.remove_filename(
-                            entry.path().to_path_buf(),
-                            EventFilter::EVFILT_VNODE,
-                        )?;
+                        let p = entry.path().to_path_buf();
+                        self.kqueue
+                            .remove_filename(&p, EventFilter::EVFILT_VNODE)
+                            .map_err(|e| Error::io(e).add_path(p))?;
                     }
                 }
                 self.kqueue.watch()?;

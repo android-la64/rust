@@ -1,6 +1,6 @@
 use std::fmt;
 
-use ast::NameOwner;
+use ast::HasName;
 use cfg::CfgExpr;
 use either::Either;
 use hir::{AsAssocItem, HasAttrs, HasSource, HirDisplay, InFile, Semantics};
@@ -14,7 +14,7 @@ use ide_db::{
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use stdx::{always, format_to};
-use syntax::ast::{self, AstNode, AttrsOwner};
+use syntax::ast::{self, AstNode, HasAttrs as _};
 
 use crate::{
     display::{ToNav, TryToNav},
@@ -226,17 +226,22 @@ fn find_related_tests(
     tests: &mut FxHashSet<Runnable>,
 ) {
     if let Some(refs) = references::find_all_refs(sema, position, search_scope) {
-        for (file_id, refs) in refs.references {
+        for (file_id, refs) in refs.into_iter().flat_map(|refs| refs.references) {
             let file = sema.parse(file_id);
             let file = file.syntax();
-            let functions = refs.iter().filter_map(|(range, _)| {
-                let token = file.token_at_offset(range.start()).next()?;
-                let token = sema.descend_into_macros(token);
-                token
-                    .ancestors()
-                    .find_map(ast::Fn::cast)
-                    .map(|f| hir::InFile::new(sema.hir_file_for(f.syntax()), f))
+
+            // create flattened vec of tokens
+            let tokens = refs.iter().flat_map(|(range, _)| {
+                match file.token_at_offset(range.start()).next() {
+                    Some(token) => sema.descend_into_macros_many(token),
+                    None => Default::default(),
+                }
             });
+
+            // find first suitable ancestor
+            let functions = tokens
+                .filter_map(|token| token.ancestors().find_map(ast::Fn::cast))
+                .map(|f| hir::InFile::new(sema.hir_file_for(f.syntax()), f));
 
             for fn_def in functions {
                 // #[test/bench] expands to just the item causing us to lose the attribute, so recover them by going out of the attribute
@@ -323,7 +328,7 @@ pub(crate) fn runnable_fn(sema: &Semantics<RootDatabase>, def: hir::Function) ->
 
     let nav = NavigationTarget::from_named(
         sema.db,
-        func.as_ref().map(|it| it as &dyn ast::NameOwner),
+        func.as_ref().map(|it| it as &dyn ast::HasName),
         SymbolKind::Function,
     );
     let cfg = def.attrs(sema.db).cfg();
@@ -1724,6 +1729,88 @@ fn t1() {}
                         },
                         kind: TestMod {
                             path: "m",
+                        },
+                        cfg: None,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn attributed_module() {
+        check(
+            r#"
+//- proc_macros: identity
+//- /lib.rs
+$0
+#[proc_macros::identity]
+mod module {
+    #[test]
+    fn t0() {}
+    #[test]
+    fn t1() {}
+}
+"#,
+            &[TestMod, Test, Test],
+            expect![[r#"
+                [
+                    Runnable {
+                        use_name_in_title: true,
+                        nav: NavigationTarget {
+                            file_id: FileId(
+                                0,
+                            ),
+                            full_range: 26..94,
+                            focus_range: 30..36,
+                            name: "module",
+                            kind: Module,
+                            description: "mod module",
+                        },
+                        kind: TestMod {
+                            path: "module",
+                        },
+                        cfg: None,
+                    },
+                    Runnable {
+                        use_name_in_title: true,
+                        nav: NavigationTarget {
+                            file_id: FileId(
+                                0,
+                            ),
+                            full_range: 43..65,
+                            focus_range: 58..60,
+                            name: "t0",
+                            kind: Function,
+                        },
+                        kind: Test {
+                            test_id: Path(
+                                "module::t0",
+                            ),
+                            attr: TestAttr {
+                                ignore: false,
+                            },
+                        },
+                        cfg: None,
+                    },
+                    Runnable {
+                        use_name_in_title: true,
+                        nav: NavigationTarget {
+                            file_id: FileId(
+                                0,
+                            ),
+                            full_range: 70..92,
+                            focus_range: 85..87,
+                            name: "t1",
+                            kind: Function,
+                        },
+                        kind: Test {
+                            test_id: Path(
+                                "module::t1",
+                            ),
+                            attr: TestAttr {
+                                ignore: false,
+                            },
                         },
                         cfg: None,
                     },

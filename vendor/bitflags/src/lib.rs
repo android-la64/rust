@@ -276,7 +276,7 @@
 //! Users should generally avoid defining a flag with a value of zero.
 
 #![cfg_attr(not(test), no_std)]
-#![doc(html_root_url = "https://docs.rs/bitflags/1.3.1")]
+#![doc(html_root_url = "https://docs.rs/bitflags/1.3.2")]
 
 #[doc(hidden)]
 pub extern crate core as _core;
@@ -400,6 +400,7 @@ macro_rules! __impl_all_bitflags {
                 const $Flag: $T = 0;
             )+
         }
+        #[allow(non_snake_case)]
         impl __BitFlags for $BitFlags {
             $(
                 __impl_bitflags! {
@@ -449,6 +450,7 @@ macro_rules! __impl_bitflags {
 
                 // Conditionally override the check for just those flags that
                 // are not #[cfg]ed away.
+                #[allow(non_snake_case)]
                 impl __BitFlags for $BitFlags {
                     $(
                         __impl_bitflags! {

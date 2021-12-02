@@ -33,6 +33,7 @@ mod iter_nth_zero;
 mod iter_skip_next;
 mod iterator_step_by_zero;
 mod manual_saturating_arithmetic;
+mod manual_split_once;
 mod manual_str_repeat;
 mod map_collect_result_unit;
 mod map_flatten;
@@ -64,6 +65,7 @@ mod wrong_self_convention;
 mod zst_offset;
 
 use bind_instead_of_map::BindInsteadOfMap;
+use clippy_utils::consts::{constant, Constant};
 use clippy_utils::diagnostics::{span_lint, span_lint_and_help};
 use clippy_utils::ty::{contains_adt_constructor, contains_ty, implements_trait, is_copy, is_type_diagnostic_item};
 use clippy_utils::{contains_return, get_trait_def_id, in_macro, iter_input_pats, meets_msrv, msrvs, paths, return_ty};
@@ -261,6 +263,8 @@ declare_clippy_lint! {
     /// - Traits implementation, when `&self` is taken.
     /// The method signature is controlled by the trait and often `&self` is required for all types that implement the trait
     /// (see e.g. the `std::string::ToString` trait).
+    ///
+    /// Clippy allows `Pin<&Self>` and `Pin<&mut Self>` if `&self` and `&mut self` is required.
     ///
     /// Please find more info here:
     /// https://rust-lang.github.io/api-guidelines/naming.html#ad-hoc-conversions-follow-as_-to_-into_-conventions-c-conv
@@ -993,7 +997,7 @@ declare_clippy_lint! {
 declare_clippy_lint! {
     /// ### What it does
     /// Checks for use of `.iter().nth()` (and the related
-    /// `.iter_mut().nth()`) on standard library types with O(1) element access.
+    /// `.iter_mut().nth()`) on standard library types with *O*(1) element access.
     ///
     /// ### Why is this bad?
     /// `.get()` and `.get_mut()` are more efficient and more
@@ -1280,8 +1284,9 @@ declare_clippy_lint! {
     ///
     /// ### Why is this bad?
     /// It looks suspicious. Maybe `map` was confused with `filter`.
-    /// If the `map` call is intentional, this should be rewritten. Or, if you intend to
-    /// drive the iterator to completion, you can just use `for_each` instead.
+    /// If the `map` call is intentional, this should be rewritten
+    /// using `inspect`. Or, if you intend to drive the iterator to
+    /// completion, you can just use `for_each` instead.
     ///
     /// ### Example
     /// ```rust
@@ -1771,6 +1776,29 @@ declare_clippy_lint! {
     "manual implementation of `str::repeat`"
 }
 
+declare_clippy_lint! {
+    /// **What it does:** Checks for usages of `str::splitn(2, _)`
+    ///
+    /// **Why is this bad?** `split_once` is both clearer in intent and slightly more efficient.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust,ignore
+    /// // Bad
+    ///  let (key, value) = _.splitn(2, '=').next_tuple()?;
+    ///  let value = _.splitn(2, '=').nth(1)?;
+    ///
+    /// // Good
+    /// let (key, value) = _.split_once('=')?;
+    /// let value = _.split_once('=')?.1;
+    /// ```
+    pub MANUAL_SPLIT_ONCE,
+    complexity,
+    "replace `.splitn(2, pat)` with `.split_once(pat)`"
+}
+
 pub struct Methods {
     avoid_breaking_exported_api: bool,
     msrv: Option<RustcVersion>,
@@ -1848,7 +1876,8 @@ impl_lint_pass!(Methods => [
     IMPLICIT_CLONE,
     SUSPICIOUS_SPLITN,
     MANUAL_STR_REPEAT,
-    EXTEND_WITH_DRAIN
+    EXTEND_WITH_DRAIN,
+    MANUAL_SPLIT_ONCE
 ]);
 
 /// Extracts a method call name, args, and `Span` of the method name.
@@ -2035,7 +2064,7 @@ impl<'tcx> LateLintPass<'tcx> for Methods {
             then {
                 let first_arg_span = first_arg_ty.span;
                 let first_arg_ty = hir_ty_to_ty(cx.tcx, first_arg_ty);
-                let self_ty = TraitRef::identity(cx.tcx, item.def_id.to_def_id()).self_ty();
+                let self_ty = TraitRef::identity(cx.tcx, item.def_id.to_def_id()).self_ty().skip_binder();
                 wrong_self_convention::check(
                     cx,
                     &item.ident.name.as_str(),
@@ -2052,7 +2081,7 @@ impl<'tcx> LateLintPass<'tcx> for Methods {
             if item.ident.name == sym::new;
             if let TraitItemKind::Fn(_, _) = item.kind;
             let ret_ty = return_ty(cx, item.hir_id());
-            let self_ty = TraitRef::identity(cx.tcx, item.def_id.to_def_id()).self_ty();
+            let self_ty = TraitRef::identity(cx.tcx, item.def_id.to_def_id()).self_ty().skip_binder();
             if !contains_ty(cx.tcx, ret_ty, self_ty);
 
             then {
@@ -2176,8 +2205,18 @@ fn check_methods<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>, msrv: Optio
                     unnecessary_lazy_eval::check(cx, expr, recv, arg, "or");
                 }
             },
-            ("splitn" | "splitn_mut" | "rsplitn" | "rsplitn_mut", [count_arg, _]) => {
-                suspicious_splitn::check(cx, name, expr, recv, count_arg);
+            ("splitn" | "rsplitn", [count_arg, pat_arg]) => {
+                if let Some((Constant::Int(count), _)) = constant(cx, cx.typeck_results(), count_arg) {
+                    suspicious_splitn::check(cx, name, expr, recv, count);
+                    if count == 2 && meets_msrv(msrv, &msrvs::STR_SPLIT_ONCE) {
+                        manual_split_once::check(cx, name, expr, recv, pat_arg);
+                    }
+                }
+            },
+            ("splitn_mut" | "rsplitn_mut", [count_arg, _]) => {
+                if let Some((Constant::Int(count), _)) = constant(cx, cx.typeck_results(), count_arg) {
+                    suspicious_splitn::check(cx, name, expr, recv, count);
+                }
             },
             ("step_by", [arg]) => iterator_step_by_zero::check(cx, expr, arg),
             ("to_os_string" | "to_owned" | "to_path_buf" | "to_vec", []) => {

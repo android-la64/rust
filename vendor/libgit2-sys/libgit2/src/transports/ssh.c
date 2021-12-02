@@ -461,13 +461,13 @@ static int request_creds(git_credential **out, ssh_subtransport *t, const char *
 
 	if (no_callback) {
 		git_error_set(GIT_ERROR_SSH, "authentication required but no callback set");
-		return -1;
+		return GIT_EAUTH;
 	}
 
 	if (!(cred->credtype & auth_methods)) {
 		cred->free(cred);
-		git_error_set(GIT_ERROR_SSH, "callback returned unsupported credentials type");
-		return -1;
+		git_error_set(GIT_ERROR_SSH, "authentication callback returned unsupported credentials type");
+		return GIT_EAUTH;
 	}
 
 	*out = cred;
@@ -476,11 +476,11 @@ static int request_creds(git_credential **out, ssh_subtransport *t, const char *
 }
 
 static int _git_ssh_session_create(
-	LIBSSH2_SESSION** session,
+	LIBSSH2_SESSION **session,
 	git_stream *io)
 {
 	int rc = 0;
-	LIBSSH2_SESSION* s;
+	LIBSSH2_SESSION *s;
 	git_socket_stream *socket = GIT_CONTAINER_OF(io, git_socket_stream, parent);
 
 	GIT_ASSERT_ARG(session);
@@ -521,8 +521,8 @@ static int _git_ssh_setup_conn(
 	size_t i;
 	ssh_stream *s;
 	git_credential *cred = NULL;
-	LIBSSH2_SESSION* session=NULL;
-	LIBSSH2_CHANNEL* channel=NULL;
+	LIBSSH2_SESSION *session=NULL;
+	LIBSSH2_CHANNEL *channel=NULL;
 
 	t->current_stream = NULL;
 
@@ -580,6 +580,24 @@ post_extract:
 				case LIBSSH2_HOSTKEY_TYPE_DSS:
 					cert.raw_type = GIT_CERT_SSH_RAW_TYPE_DSS;
 					break;
+					
+#ifdef LIBSSH2_HOSTKEY_TYPE_ECDSA_256
+				case LIBSSH2_HOSTKEY_TYPE_ECDSA_256:
+					cert.raw_type = GIT_CERT_SSH_RAW_TYPE_KEY_ECDSA_256;
+					break;
+				case LIBSSH2_HOSTKEY_TYPE_ECDSA_384:
+					cert.raw_type = GIT_CERT_SSH_RAW_TYPE_KEY_ECDSA_384;
+					break;
+				case LIBSSH2_KNOWNHOST_KEY_ECDSA_521:
+					cert.raw_type = GIT_CERT_SSH_RAW_TYPE_KEY_ECDSA_521;
+					break;
+#endif
+					
+#ifdef LIBSSH2_HOSTKEY_TYPE_ED25519
+				case LIBSSH2_HOSTKEY_TYPE_ED25519:
+					cert.raw_type = GIT_CERT_SSH_RAW_TYPE_KEY_ED25519;
+					break;
+#endif
 				default:
 					cert.raw_type = GIT_CERT_SSH_RAW_TYPE_UNKNOWN;
 			}
@@ -822,7 +840,7 @@ static int list_auth_methods(int *out, LIBSSH2_SESSION *session, const char *use
 	/* either error, or the remote accepts NONE auth, which is bizarre, let's punt */
 	if (list == NULL && !libssh2_userauth_authenticated(session)) {
 		ssh_error(session, "Failed to retrieve list of SSH authentication methods");
-		return -1;
+		return GIT_EAUTH;
 	}
 
 	ptr = list;

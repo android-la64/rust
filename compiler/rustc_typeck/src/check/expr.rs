@@ -77,7 +77,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 !self.typeck_results.borrow().adjustments().contains_key(expr.hir_id),
                 "expression with never type wound up being adjusted"
             );
-            let adj_ty = self.next_diverging_ty_var(TypeVariableOrigin {
+            let adj_ty = self.next_ty_var(TypeVariableOrigin {
                 kind: TypeVariableOriginKind::AdjustmentType,
                 span: expr.span,
             });
@@ -92,8 +92,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let expr = expr.peel_drop_temps();
             self.suggest_deref_ref_or_into(&mut err, expr, expected_ty, ty, None);
             extend_err(&mut err);
-            // Error possibly reported in `check_assign` so avoid emitting error again.
-            err.emit_unless(self.is_assign_to_bool(expr, expected_ty));
+            err.emit();
         }
         ty
     }
@@ -156,11 +155,22 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// Note that inspecting a type's structure *directly* may expose the fact
     /// that there are actually multiple representations for `Error`, so avoid
     /// that when err needs to be handled differently.
-    #[instrument(skip(self), level = "debug")]
+    #[instrument(skip(self, expr), level = "debug")]
     pub(super) fn check_expr_with_expectation(
         &self,
         expr: &'tcx hir::Expr<'tcx>,
         expected: Expectation<'tcx>,
+    ) -> Ty<'tcx> {
+        self.check_expr_with_expectation_and_args(expr, expected, &[])
+    }
+
+    /// Same as `check_expr_with_expectation`, but allows us to pass in the arguments of a
+    /// `ExprKind::Call` when evaluating its callee when it is an `ExprKind::Path`.
+    pub(super) fn check_expr_with_expectation_and_args(
+        &self,
+        expr: &'tcx hir::Expr<'tcx>,
+        expected: Expectation<'tcx>,
+        args: &'tcx [hir::Expr<'tcx>],
     ) -> Ty<'tcx> {
         if self.tcx().sess.verbose() {
             // make this code only run with -Zverbose because it is probably slow
@@ -198,7 +208,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let old_diverges = self.diverges.replace(Diverges::Maybe);
         let old_has_errors = self.has_errors.replace(false);
 
-        let ty = ensure_sufficient_stack(|| self.check_expr_kind(expr, expected));
+        let ty = ensure_sufficient_stack(|| match &expr.kind {
+            hir::ExprKind::Path(
+                qpath @ hir::QPath::Resolved(..) | qpath @ hir::QPath::TypeRelative(..),
+            ) => self.check_expr_path(qpath, expr, args),
+            _ => self.check_expr_kind(expr, expected),
+        });
 
         // Warn for non-block expressions with diverging children.
         match expr.kind {
@@ -238,12 +253,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         ty
     }
 
+    #[instrument(skip(self, expr), level = "debug")]
     fn check_expr_kind(
         &self,
         expr: &'tcx hir::Expr<'tcx>,
         expected: Expectation<'tcx>,
     ) -> Ty<'tcx> {
-        debug!("check_expr_kind(expected={:?}, expr={:?})", expected, expr);
+        trace!("expr={:#?}", expr);
 
         let tcx = self.tcx;
         match expr.kind {
@@ -261,7 +277,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             ExprKind::Path(QPath::LangItem(lang_item, _)) => {
                 self.check_lang_item_path(lang_item, expr)
             }
-            ExprKind::Path(ref qpath) => self.check_expr_path(qpath, expr),
+            ExprKind::Path(ref qpath) => self.check_expr_path(qpath, expr, &[]),
             ExprKind::InlineAsm(asm) => self.check_expr_asm(asm),
             ExprKind::LlvmInlineAsm(asm) => {
                 for expr in asm.outputs_exprs.iter().chain(asm.inputs_exprs.iter()) {
@@ -481,10 +497,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         self.resolve_lang_item_path(lang_item, expr.span, expr.hir_id).1
     }
 
-    fn check_expr_path(
+    pub(crate) fn check_expr_path(
         &self,
         qpath: &'tcx hir::QPath<'tcx>,
         expr: &'tcx hir::Expr<'tcx>,
+        args: &'tcx [hir::Expr<'tcx>],
     ) -> Ty<'tcx> {
         let tcx = self.tcx;
         let (res, opt_ty, segs) =
@@ -517,16 +534,17 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     // We just want to check sizedness, so instead of introducing
                     // placeholder lifetimes with probing, we just replace higher lifetimes
                     // with fresh vars.
+                    let span = args.get(i).map(|a| a.span).unwrap_or(expr.span);
                     let input = self
                         .replace_bound_vars_with_fresh_vars(
-                            expr.span,
+                            span,
                             infer::LateBoundRegionConversionTime::FnCall,
                             fn_sig.input(i),
                         )
                         .0;
                     self.require_type_is_sized_deferred(
                         input,
-                        expr.span,
+                        span,
                         traits::SizedArgumentType(None),
                     );
                 }
@@ -747,7 +765,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             if self.ret_coercion_span.get().is_none() {
                 self.ret_coercion_span.set(Some(e.span));
             }
-            self.check_return_expr(e);
+            self.check_return_expr(e, true);
         } else {
             let mut coercion = self.ret_coercion.as_ref().unwrap().borrow_mut();
             if self.ret_coercion_span.get().is_none() {
@@ -776,16 +794,32 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         self.tcx.types.never
     }
 
-    pub(super) fn check_return_expr(&self, return_expr: &'tcx hir::Expr<'tcx>) {
+    /// `explicit_return` is `true` if we're checkng an explicit `return expr`,
+    /// and `false` if we're checking a trailing expression.
+    pub(super) fn check_return_expr(
+        &self,
+        return_expr: &'tcx hir::Expr<'tcx>,
+        explicit_return: bool,
+    ) {
         let ret_coercion = self.ret_coercion.as_ref().unwrap_or_else(|| {
             span_bug!(return_expr.span, "check_return_expr called outside fn body")
         });
 
         let ret_ty = ret_coercion.borrow().expected_ty();
         let return_expr_ty = self.check_expr_with_hint(return_expr, ret_ty);
+        let mut span = return_expr.span;
+        // Use the span of the trailing expression for our cause,
+        // not the span of the entire function
+        if !explicit_return {
+            if let ExprKind::Block(body, _) = return_expr.kind {
+                if let Some(last_expr) = body.expr {
+                    span = last_expr.span;
+                }
+            }
+        }
         ret_coercion.borrow_mut().coerce(
             self,
-            &self.cause(return_expr.span, ObligationCauseCode::ReturnValue(return_expr.hir_id)),
+            &self.cause(span, ObligationCauseCode::ReturnValue(return_expr.hir_id)),
             return_expr,
             return_expr_ty,
         );
@@ -1236,6 +1270,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             variant,
             fields,
             base_expr.is_none(),
+            expr.span,
         );
         if let Some(base_expr) = base_expr {
             // If check_expr_struct_fields hit an error, do not attempt to populate
@@ -1283,6 +1318,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         variant: &'tcx ty::VariantDef,
         ast_fields: &'tcx [hir::ExprField<'tcx>],
         check_completeness: bool,
+        expr_span: Span,
     ) -> bool {
         let tcx = self.tcx;
 
@@ -1334,7 +1370,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         ident,
                     });
                 } else {
-                    self.report_unknown_field(adt_ty, variant, field, ast_fields, kind_name, span);
+                    self.report_unknown_field(
+                        adt_ty, variant, field, ast_fields, kind_name, expr_span,
+                    );
                 }
 
                 tcx.ty_error()
@@ -1467,7 +1505,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         field: &hir::ExprField<'_>,
         skip_fields: &[hir::ExprField<'_>],
         kind_name: &str,
-        ty_span: Span,
+        expr_span: Span,
     ) {
         if variant.is_recovered() {
             self.set_tainted_by_errors();
@@ -1510,8 +1548,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         ),
                     );
                     err.span_label(field.ident.span, "field does not exist");
-                    err.span_suggestion(
-                        ty_span,
+                    err.span_suggestion_verbose(
+                        expr_span,
                         &format!(
                             "`{adt}::{variant}` is a tuple {kind_name}, use the appropriate syntax",
                             adt = ty,
@@ -1528,8 +1566,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 _ => {
                     err.span_label(variant.ident.span, format!("`{adt}` defined here", adt = ty));
                     err.span_label(field.ident.span, "field does not exist");
-                    err.span_suggestion(
-                        ty_span,
+                    err.span_suggestion_verbose(
+                        expr_span,
                         &format!(
                             "`{adt}` is a tuple {kind_name}, use the appropriate syntax",
                             adt = ty,
@@ -1660,15 +1698,15 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         // Save the index of all fields regardless of their visibility in case
                         // of error recovery.
                         self.write_field_index(expr.hir_id, index);
+                        let adjustments = self.adjust_steps(&autoderef);
                         if field.vis.is_accessible_from(def_scope, self.tcx) {
-                            let adjustments = self.adjust_steps(&autoderef);
                             self.apply_adjustments(base, adjustments);
                             self.register_predicates(autoderef.into_obligations());
 
                             self.tcx.check_stability(field.did, Some(expr.hir_id), expr.span, None);
                             return field_ty;
                         }
-                        private_candidate = Some((base_def.did, field_ty));
+                        private_candidate = Some((adjustments, base_def.did, field_ty));
                     }
                 }
                 ty::Tuple(tys) => {
@@ -1691,7 +1729,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
         self.structurally_resolved_type(autoderef.span(), autoderef.final_ty(false));
 
-        if let Some((did, field_ty)) = private_candidate {
+        if let Some((adjustments, did, field_ty)) = private_candidate {
+            // (#90483) apply adjustments to avoid ExprUseVisitor from
+            // creating erroneous projection.
+            self.apply_adjustments(base, adjustments);
             self.ban_private_field_access(expr, expr_t, field, did);
             return field_ty;
         }
@@ -1822,6 +1863,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 field,
                 expr_t,
                 expr,
+                None,
             );
         }
         err.emit();
@@ -1838,13 +1880,43 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             expr_t
         );
         err.span_label(field.span, "method, not a field");
-        if !self.expr_in_place(expr.hir_id) {
+        let expr_is_call =
+            if let hir::Node::Expr(hir::Expr { kind: ExprKind::Call(callee, _args), .. }) =
+                self.tcx.hir().get(self.tcx.hir().get_parent_node(expr.hir_id))
+            {
+                expr.hir_id == callee.hir_id
+            } else {
+                false
+            };
+        let expr_snippet =
+            self.tcx.sess.source_map().span_to_snippet(expr.span).unwrap_or(String::new());
+        let is_wrapped = expr_snippet.starts_with('(') && expr_snippet.ends_with(')');
+        let after_open = expr.span.lo() + rustc_span::BytePos(1);
+        let before_close = expr.span.hi() - rustc_span::BytePos(1);
+
+        if expr_is_call && is_wrapped {
+            err.multipart_suggestion(
+                "remove wrapping parentheses to call the method",
+                vec![
+                    (expr.span.with_hi(after_open), String::new()),
+                    (expr.span.with_lo(before_close), String::new()),
+                ],
+                Applicability::MachineApplicable,
+            );
+        } else if !self.expr_in_place(expr.hir_id) {
+            // Suggest call parentheses inside the wrapping parentheses
+            let span = if is_wrapped {
+                expr.span.with_lo(after_open).with_hi(before_close)
+            } else {
+                expr.span
+            };
             self.suggest_method_call(
                 &mut err,
                 "use parentheses to call the method",
                 field,
                 expr_t,
                 expr,
+                Some(span),
             );
         } else {
             err.help("methods are immutable and cannot be assigned to");
@@ -2067,7 +2139,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             idx_t
         } else {
             let base_t = self.structurally_resolved_type(base.span, base_t);
-            match self.lookup_indexing(expr, base, base_t, idx_t) {
+            match self.lookup_indexing(expr, base, base_t, idx, idx_t) {
                 Some((index_ty, element_ty)) => {
                     // two-phase not needed because index_ty is never mutable
                     self.demand_coerce(idx, idx_t, index_ty, None, AllowTwoPhase::No);

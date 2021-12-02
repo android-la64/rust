@@ -96,16 +96,16 @@ pub(super) fn check<'tcx>(
             (&paths::RESULT, true, &["or", "unwrap_or"], "else"),
         ];
 
-        if let hir::ExprKind::MethodCall(path, _, args, _) = &arg.kind {
+        if let hir::ExprKind::MethodCall(path, _, [self_arg, ..], _) = &arg.kind {
             if path.ident.name == sym::len {
-                let ty = cx.typeck_results().expr_ty(&args[0]).peel_refs();
+                let ty = cx.typeck_results().expr_ty(self_arg).peel_refs();
 
                 match ty.kind() {
                     ty::Slice(_) | ty::Array(_, _) | ty::Str => return,
                     _ => (),
                 }
 
-                if is_type_diagnostic_item(cx, ty, sym::vec_type) {
+                if is_type_diagnostic_item(cx, ty, sym::Vec) {
                     return;
                 }
             }
@@ -178,12 +178,12 @@ pub(super) fn check<'tcx>(
             hir::ExprKind::Index(..) | hir::ExprKind::MethodCall(..) => {
                 check_general_case(cx, name, method_span, &args[0], &args[1], expr.span, None);
             },
-            hir::ExprKind::Block(block, _) => {
-                if let BlockCheckMode::UnsafeBlock(UnsafeSource::UserProvided) = block.rules {
-                    if let Some(block_expr) = block.expr {
-                        if let hir::ExprKind::MethodCall(..) = block_expr.kind {
-                            check_general_case(cx, name, method_span, &args[0], &args[1], expr.span, None);
-                        }
+            hir::ExprKind::Block(block, _)
+                if block.rules == BlockCheckMode::UnsafeBlock(UnsafeSource::UserProvided) =>
+            {
+                if let Some(block_expr) = block.expr {
+                    if let hir::ExprKind::MethodCall(..) = block_expr.kind {
+                        check_general_case(cx, name, method_span, &args[0], &args[1], expr.span, None);
                     }
                 }
             },

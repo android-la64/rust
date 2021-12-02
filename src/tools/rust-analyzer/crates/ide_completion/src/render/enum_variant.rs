@@ -26,7 +26,6 @@ pub(crate) fn render_variant(
 #[derive(Debug)]
 struct EnumRender<'a> {
     ctx: RenderContext<'a>,
-    name: hir::Name,
     variant: hir::Variant,
     path: Option<hir::ModPath>,
     qualified_name: hir::ModPath,
@@ -54,11 +53,11 @@ impl<'a> EnumRender<'a> {
             }
             None => (
                 hir::ModPath::from_segments(hir::PathKind::Plain, iter::once(name.clone())),
-                hir::ModPath::from_segments(hir::PathKind::Plain, iter::once(name.clone())),
+                hir::ModPath::from_segments(hir::PathKind::Plain, iter::once(name)),
             ),
         };
 
-        EnumRender { ctx, name, variant, path, qualified_name, short_qualified_name, variant_kind }
+        EnumRender { ctx, variant, path, qualified_name, short_qualified_name, variant_kind }
     }
     fn render(self, import_to_add: Option<ImportEdit>) -> CompletionItem {
         let mut item = CompletionItem::new(
@@ -69,8 +68,11 @@ impl<'a> EnumRender<'a> {
         item.kind(SymbolKind::Variant)
             .set_documentation(self.variant.docs(self.ctx.db()))
             .set_deprecated(self.ctx.is_deprecated(self.variant))
-            .add_import(import_to_add)
             .detail(self.detail());
+
+        if let Some(import_to_add) = import_to_add {
+            item.add_import(import_to_add);
+        }
 
         if self.variant_kind == hir::StructKind::Tuple {
             cov_mark::hit!(inserts_parens_for_tuple_enums);

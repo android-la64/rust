@@ -1,8 +1,8 @@
 use smallvec::smallvec;
 
+use crate::infer::outlives::components::{push_outlives_components, Component};
 use crate::traits::{Obligation, ObligationCause, PredicateObligation};
 use rustc_data_structures::fx::{FxHashSet, FxIndexSet};
-use rustc_middle::ty::outlives::Component;
 use rustc_middle::ty::{self, ToPredicate, TyCtxt, WithConstness};
 use rustc_span::symbol::Ident;
 
@@ -200,7 +200,7 @@ impl Elaborator<'tcx> {
 
                 let visited = &mut self.visited;
                 let mut components = smallvec![];
-                tcx.push_outlives_components(ty_max, &mut components);
+                push_outlives_components(tcx, ty_max, &mut components);
                 self.stack.extend(
                     components
                         .into_iter()
@@ -231,6 +231,7 @@ impl Elaborator<'tcx> {
                                 None
                             }
                         })
+                        .map(ty::Binder::dummy)
                         .map(|predicate_kind| predicate_kind.to_predicate(tcx))
                         .filter(|&predicate| visited.insert(predicate))
                         .map(|predicate| {

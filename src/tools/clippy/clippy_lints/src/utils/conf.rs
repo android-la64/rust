@@ -15,6 +15,14 @@ pub struct Rename {
     pub rename: String,
 }
 
+/// A single disallowed method, used by the `DISALLOWED_METHOD` lint.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum DisallowedMethod {
+    Simple(String),
+    WithReason { path: String, reason: Option<String> },
+}
+
 /// Conf with parse errors
 #[derive(Default)]
 pub struct TryConf {
@@ -31,9 +39,6 @@ impl TryConf {
     }
 }
 
-/// Note that the configuration parsing currently doesn't support documentation that will
-/// that spans over several lines. This will be possible with the new implementation
-/// See (rust-clippy#7172)
 macro_rules! define_Conf {
     ($(
         $(#[doc = $doc:literal])+
@@ -130,13 +135,12 @@ macro_rules! define_Conf {
     };
 }
 
-// N.B., this macro is parsed by util/lintlib.py
 define_Conf! {
-    /// Lint: ENUM_VARIANT_NAMES, LARGE_TYPES_PASSED_BY_VALUE, TRIVIALLY_COPY_PASS_BY_REF, UNNECESSARY_WRAPS, UPPER_CASE_ACRONYMS, WRONG_SELF_CONVENTION.
+    /// Lint: ENUM_VARIANT_NAMES, LARGE_TYPES_PASSED_BY_VALUE, TRIVIALLY_COPY_PASS_BY_REF, UNNECESSARY_WRAPS, UPPER_CASE_ACRONYMS, WRONG_SELF_CONVENTION, BOX_COLLECTION, REDUNDANT_ALLOCATION, RC_BUFFER, VEC_BOX, OPTION_OPTION, LINKEDLIST, RC_MUTEX.
     ///
     /// Suppress lints whenever the suggested change would cause breakage for other crates.
     (avoid_breaking_exported_api: bool = true),
-    /// Lint: MANUAL_STR_REPEAT, CLONED_INSTEAD_OF_COPIED, REDUNDANT_FIELD_NAMES, REDUNDANT_STATIC_LIFETIMES, FILTER_MAP_NEXT, CHECKED_CONVERSIONS, MANUAL_RANGE_CONTAINS, USE_SELF, MEM_REPLACE_WITH_DEFAULT, MANUAL_NON_EXHAUSTIVE, OPTION_AS_REF_DEREF, MAP_UNWRAP_OR, MATCH_LIKE_MATCHES_MACRO, MANUAL_STRIP, MISSING_CONST_FOR_FN, UNNESTED_OR_PATTERNS, FROM_OVER_INTO, PTR_AS_PTR, IF_THEN_SOME_ELSE_NONE.
+    /// Lint: MANUAL_SPLIT_ONCE, MANUAL_STR_REPEAT, CLONED_INSTEAD_OF_COPIED, REDUNDANT_FIELD_NAMES, REDUNDANT_STATIC_LIFETIMES, FILTER_MAP_NEXT, CHECKED_CONVERSIONS, MANUAL_RANGE_CONTAINS, USE_SELF, MEM_REPLACE_WITH_DEFAULT, MANUAL_NON_EXHAUSTIVE, OPTION_AS_REF_DEREF, MAP_UNWRAP_OR, MATCH_LIKE_MATCHES_MACRO, MANUAL_STRIP, MISSING_CONST_FOR_FN, UNNESTED_OR_PATTERNS, FROM_OVER_INTO, PTR_AS_PTR, IF_THEN_SOME_ELSE_NONE, APPROX_CONSTANT.
     ///
     /// The minimum rust version that the project supports
     (msrv: Option<String> = None),
@@ -247,7 +251,7 @@ define_Conf! {
     /// Lint: DISALLOWED_METHOD.
     ///
     /// The list of disallowed methods, written as fully qualified paths.
-    (disallowed_methods: Vec<String> = Vec::new()),
+    (disallowed_methods: Vec<crate::utils::conf::DisallowedMethod> = Vec::new()),
     /// Lint: DISALLOWED_TYPE.
     ///
     /// The list of disallowed types, written as fully qualified paths.
@@ -280,6 +284,10 @@ define_Conf! {
     ///
     /// The list of unicode scripts allowed to be used in the scope.
     (allowed_scripts: Vec<String> = vec!["Latin".to_string()]),
+    /// Lint: NON_SEND_FIELDS_IN_SEND_TY.
+    ///
+    /// Whether to apply the raw pointer heuristic to determine if a type is `Send`.
+    (enable_raw_pointer_heuristic_for_send: bool = true),
 }
 
 /// Search for the configuration file.

@@ -14,15 +14,20 @@ use rustc_codegen_ssa::traits::*;
 use rustc_data_structures::base_n;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::small_c_str::SmallCStr;
-use rustc_middle::bug;
 use rustc_middle::mir::mono::CodegenUnit;
-use rustc_middle::ty::layout::{HasParamEnv, LayoutError, TyAndLayout};
+use rustc_middle::ty::layout::{
+    FnAbiError, FnAbiOfHelpers, FnAbiRequest, HasParamEnv, LayoutError, LayoutOfHelpers,
+    TyAndLayout,
+};
 use rustc_middle::ty::{self, Instance, Ty, TyCtxt};
+use rustc_middle::{bug, span_bug};
 use rustc_session::config::{CFGuard, CrateType, DebugInfo};
 use rustc_session::Session;
-use rustc_span::source_map::{Span, DUMMY_SP};
+use rustc_span::source_map::Span;
 use rustc_span::symbol::Symbol;
-use rustc_target::abi::{HasDataLayout, LayoutOf, PointeeInfo, Size, TargetDataLayout, VariantIdx};
+use rustc_target::abi::{
+    call::FnAbi, HasDataLayout, PointeeInfo, Size, TargetDataLayout, VariantIdx,
+};
 use rustc_target::spec::{HasTargetSpec, RelocModel, Target, TlsModel};
 use smallvec::SmallVec;
 
@@ -190,11 +195,14 @@ pub unsafe fn create_module(
     let llvm_target = SmallCStr::new(&sess.target.llvm_target);
     llvm::LLVMRustSetNormalizedTarget(llmod, llvm_target.as_ptr());
 
-    if sess.relocation_model() == RelocModel::Pic {
+    let reloc_model = sess.relocation_model();
+    if matches!(reloc_model, RelocModel::Pic | RelocModel::Pie) {
         llvm::LLVMRustSetModulePICLevel(llmod);
         // PIE is potentially more effective than PIC, but can only be used in executables.
         // If all our outputs are executables, then we can relax PIC to PIE.
-        if sess.crate_types().iter().all(|ty| *ty == CrateType::Executable) {
+        if reloc_model == RelocModel::Pie
+            || sess.crate_types().iter().all(|ty| *ty == CrateType::Executable)
+        {
             llvm::LLVMRustSetModulePIELevel(llmod);
         }
     }
@@ -355,7 +363,7 @@ impl<'ll, 'tcx> CodegenCx<'ll, 'tcx> {
 
     fn create_used_variable_impl(&self, name: &'static CStr, values: &[&'ll Value]) {
         let section = cstr!("llvm.metadata");
-        let array = self.const_array(&self.type_ptr_to(self.type_i8()), values);
+        let array = self.const_array(self.type_ptr_to(self.type_i8()), values);
 
         unsafe {
             let g = llvm::LLVMAddGlobal(self.llmod, self.val_ty(array), name.as_ptr());
@@ -439,7 +447,7 @@ impl MiscMethods<'tcx> for CodegenCx<'ll, 'tcx> {
     }
 
     fn sess(&self) -> &Session {
-        &self.tcx.sess
+        self.tcx.sess
     }
 
     fn check_overflow(&self) -> bool {
@@ -835,27 +843,58 @@ impl ty::layout::HasTyCtxt<'tcx> for CodegenCx<'ll, 'tcx> {
     }
 }
 
-impl LayoutOf<'tcx> for CodegenCx<'ll, 'tcx> {
-    type Ty = Ty<'tcx>;
-    type TyAndLayout = TyAndLayout<'tcx>;
-
-    fn layout_of(&self, ty: Ty<'tcx>) -> Self::TyAndLayout {
-        self.spanned_layout_of(ty, DUMMY_SP)
-    }
-
-    fn spanned_layout_of(&self, ty: Ty<'tcx>, span: Span) -> Self::TyAndLayout {
-        self.tcx.layout_of(ty::ParamEnv::reveal_all().and(ty)).unwrap_or_else(|e| {
-            if let LayoutError::SizeOverflow(_) = e {
-                self.sess().span_fatal(span, &e.to_string())
-            } else {
-                bug!("failed to get layout for `{}`: {}", ty, e)
-            }
-        })
-    }
-}
-
 impl<'tcx, 'll> HasParamEnv<'tcx> for CodegenCx<'ll, 'tcx> {
     fn param_env(&self) -> ty::ParamEnv<'tcx> {
         ty::ParamEnv::reveal_all()
+    }
+}
+
+impl LayoutOfHelpers<'tcx> for CodegenCx<'ll, 'tcx> {
+    type LayoutOfResult = TyAndLayout<'tcx>;
+
+    #[inline]
+    fn handle_layout_err(&self, err: LayoutError<'tcx>, span: Span, ty: Ty<'tcx>) -> ! {
+        if let LayoutError::SizeOverflow(_) = err {
+            self.sess().span_fatal(span, &err.to_string())
+        } else {
+            span_bug!(span, "failed to get layout for `{}`: {}", ty, err)
+        }
+    }
+}
+
+impl FnAbiOfHelpers<'tcx> for CodegenCx<'ll, 'tcx> {
+    type FnAbiOfResult = &'tcx FnAbi<'tcx, Ty<'tcx>>;
+
+    #[inline]
+    fn handle_fn_abi_err(
+        &self,
+        err: FnAbiError<'tcx>,
+        span: Span,
+        fn_abi_request: FnAbiRequest<'tcx>,
+    ) -> ! {
+        if let FnAbiError::Layout(LayoutError::SizeOverflow(_)) = err {
+            self.sess().span_fatal(span, &err.to_string())
+        } else {
+            match fn_abi_request {
+                FnAbiRequest::OfFnPtr { sig, extra_args } => {
+                    span_bug!(
+                        span,
+                        "`fn_abi_of_fn_ptr({}, {:?})` failed: {}",
+                        sig,
+                        extra_args,
+                        err
+                    );
+                }
+                FnAbiRequest::OfInstance { instance, extra_args } => {
+                    span_bug!(
+                        span,
+                        "`fn_abi_of_instance({}, {:?})` failed: {}",
+                        instance,
+                        extra_args,
+                        err
+                    );
+                }
+            }
+        }
     }
 }

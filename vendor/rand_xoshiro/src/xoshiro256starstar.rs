@@ -19,7 +19,7 @@ use rand_core::{SeedableRng, RngCore, Error};
 /// The algorithm used here is translated from [the `xoshiro256starstar.c`
 /// reference source code](http://xoshiro.di.unimi.it/xoshiro256starstar.c) by
 /// David Blackman and Sebastiano Vigna.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature="serde1", derive(Serialize, Deserialize))]
 pub struct Xoshiro256StarStar {
     s: [u64; 4],
@@ -83,7 +83,9 @@ impl SeedableRng for Xoshiro256StarStar {
 impl RngCore for Xoshiro256StarStar {
     #[inline]
     fn next_u32(&mut self) -> u32 {
-        self.next_u64() as u32
+        // The lowest bits have some linear dependencies, so we use the
+        // upper bits instead.
+        (self.next_u64() >> 32) as u32
     }
 
     #[inline]

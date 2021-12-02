@@ -66,27 +66,6 @@ impl PartialEq<AbsPath> for AbsPathBuf {
     }
 }
 
-impl serde::Serialize for AbsPathBuf {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.0.serialize(serializer)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for AbsPathBuf {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let path = PathBuf::deserialize(deserializer)?;
-        AbsPathBuf::try_from(path).map_err(|path| {
-            serde::de::Error::custom(format!("expected absolute path, got {}", path.display()))
-        })
-    }
-}
-
 impl AbsPathBuf {
     /// Wrap the given absolute path in `AbsPathBuf`
     ///
@@ -292,7 +271,7 @@ impl RelPath {
 /// Taken from <https://github.com/rust-lang/cargo/blob/79c769c3d7b4c2cf6a93781575b7f592ef974255/src/cargo/util/paths.rs#L60-L85>
 fn normalize_path(path: &Path) -> PathBuf {
     let mut components = path.components().peekable();
-    let mut ret = if let Some(c @ Component::Prefix(..)) = components.peek().cloned() {
+    let mut ret = if let Some(c @ Component::Prefix(..)) = components.peek().copied() {
         components.next();
         PathBuf::from(c.as_os_str())
     } else {

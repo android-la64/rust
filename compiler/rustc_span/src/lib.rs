@@ -21,10 +21,12 @@
 #![feature(nll)]
 #![feature(min_specialization)]
 #![feature(thread_local_const_init)]
-#![cfg_attr(bootstrap, allow(incomplete_features))] // if_let_guard
 
 #[macro_use]
 extern crate rustc_macros;
+
+#[macro_use]
+extern crate tracing;
 
 use rustc_data_structures::AtomicRef;
 use rustc_macros::HashStable_Generic;
@@ -42,7 +44,7 @@ use hygiene::Transparency;
 pub use hygiene::{DesugaringKind, ExpnKind, ForLoopLoc, MacroKind};
 pub use hygiene::{ExpnData, ExpnHash, ExpnId, LocalExpnId, SyntaxContext};
 pub mod def_id;
-use def_id::{CrateNum, DefId, DefPathHash, LOCAL_CRATE};
+use def_id::{CrateNum, DefId, DefPathHash, LocalDefId, LOCAL_CRATE};
 pub mod lev_distance;
 mod span_encoding;
 pub use span_encoding::{Span, DUMMY_SP};
@@ -79,7 +81,7 @@ mod tests;
 // threads within the compilation session, but is not accessible outside the
 // session.
 pub struct SessionGlobals {
-    symbol_interner: Lock<symbol::Interner>,
+    symbol_interner: symbol::Interner,
     span_interner: Lock<span_encoding::SpanInterner>,
     hygiene_data: Lock<hygiene::HygieneData>,
     source_map: Lock<Option<Lrc<SourceMap>>>,
@@ -88,7 +90,7 @@ pub struct SessionGlobals {
 impl SessionGlobals {
     pub fn new(edition: Edition) -> SessionGlobals {
         SessionGlobals {
-            symbol_interner: Lock::new(symbol::Interner::fresh()),
+            symbol_interner: symbol::Interner::fresh(),
             span_interner: Lock::new(span_encoding::SpanInterner::default()),
             hygiene_data: Lock::new(hygiene::HygieneData::new(edition)),
             source_map: Lock::new(None),
@@ -435,24 +437,38 @@ pub struct SpanData {
     /// Information about where the macro came from, if this piece of
     /// code was created by a macro expansion.
     pub ctxt: SyntaxContext,
+    pub parent: Option<LocalDefId>,
 }
 
 impl SpanData {
     #[inline]
     pub fn span(&self) -> Span {
-        Span::new(self.lo, self.hi, self.ctxt)
+        Span::new(self.lo, self.hi, self.ctxt, self.parent)
     }
     #[inline]
     pub fn with_lo(&self, lo: BytePos) -> Span {
-        Span::new(lo, self.hi, self.ctxt)
+        Span::new(lo, self.hi, self.ctxt, self.parent)
     }
     #[inline]
     pub fn with_hi(&self, hi: BytePos) -> Span {
-        Span::new(self.lo, hi, self.ctxt)
+        Span::new(self.lo, hi, self.ctxt, self.parent)
     }
     #[inline]
     pub fn with_ctxt(&self, ctxt: SyntaxContext) -> Span {
-        Span::new(self.lo, self.hi, ctxt)
+        Span::new(self.lo, self.hi, ctxt, self.parent)
+    }
+    #[inline]
+    pub fn with_parent(&self, parent: Option<LocalDefId>) -> Span {
+        Span::new(self.lo, self.hi, self.ctxt, parent)
+    }
+    /// Returns `true` if this is a dummy span with any hygienic context.
+    #[inline]
+    pub fn is_dummy(self) -> bool {
+        self.lo.0 == 0 && self.hi.0 == 0
+    }
+    /// Returns `true` if `self` fully encloses `other`.
+    pub fn contains(self, other: Self) -> bool {
+        self.lo <= other.lo && other.hi <= self.hi
     }
 }
 
@@ -508,18 +524,25 @@ impl Span {
     }
     #[inline]
     pub fn ctxt(self) -> SyntaxContext {
-        self.data().ctxt
+        self.data_untracked().ctxt
     }
     #[inline]
     pub fn with_ctxt(self, ctxt: SyntaxContext) -> Span {
-        self.data().with_ctxt(ctxt)
+        self.data_untracked().with_ctxt(ctxt)
+    }
+    #[inline]
+    pub fn parent(self) -> Option<LocalDefId> {
+        self.data().parent
+    }
+    #[inline]
+    pub fn with_parent(self, ctxt: Option<LocalDefId>) -> Span {
+        self.data().with_parent(ctxt)
     }
 
     /// Returns `true` if this is a dummy span with any hygienic context.
     #[inline]
     pub fn is_dummy(self) -> bool {
-        let span = self.data();
-        span.lo.0 == 0 && span.hi.0 == 0
+        self.data_untracked().is_dummy()
     }
 
     /// Returns `true` if this span comes from a macro or desugaring.
@@ -535,26 +558,26 @@ impl Span {
 
     #[inline]
     pub fn with_root_ctxt(lo: BytePos, hi: BytePos) -> Span {
-        Span::new(lo, hi, SyntaxContext::root())
+        Span::new(lo, hi, SyntaxContext::root(), None)
     }
 
     /// Returns a new span representing an empty span at the beginning of this span.
     #[inline]
     pub fn shrink_to_lo(self) -> Span {
-        let span = self.data();
+        let span = self.data_untracked();
         span.with_hi(span.lo)
     }
     /// Returns a new span representing an empty span at the end of this span.
     #[inline]
     pub fn shrink_to_hi(self) -> Span {
-        let span = self.data();
+        let span = self.data_untracked();
         span.with_lo(span.hi)
     }
 
     #[inline]
     /// Returns `true` if `hi == lo`.
     pub fn is_empty(&self) -> bool {
-        let span = self.data();
+        let span = self.data_untracked();
         span.hi == span.lo
     }
 
@@ -567,7 +590,7 @@ impl Span {
     pub fn contains(self, other: Span) -> bool {
         let span = self.data();
         let other = other.data();
-        span.lo <= other.lo && other.hi <= span.hi
+        span.contains(other)
     }
 
     /// Returns `true` if `self` touches `other`.
@@ -603,7 +626,7 @@ impl Span {
 
     /// The `Span` for the tokens in the previous macro expansion from which `self` was generated,
     /// if any.
-    pub fn parent(self) -> Option<Span> {
+    pub fn parent_callsite(self) -> Option<Span> {
         let expn_data = self.ctxt().outer_expn_data();
         if !expn_data.is_root() { Some(expn_data.call_site) } else { None }
     }
@@ -611,7 +634,7 @@ impl Span {
     /// Walk down the expansion ancestors to find a span that's contained within `outer`.
     pub fn find_ancestor_inside(mut self, outer: Span) -> Option<Span> {
         while !outer.contains(self) {
-            self = self.parent()?;
+            self = self.parent_callsite()?;
         }
         Some(self)
     }
@@ -732,6 +755,7 @@ impl Span {
             cmp::min(span_data.lo, end_data.lo),
             cmp::max(span_data.hi, end_data.hi),
             if span_data.ctxt == SyntaxContext::root() { end_data.ctxt } else { span_data.ctxt },
+            if span_data.parent == end_data.parent { span_data.parent } else { None },
         )
     }
 
@@ -749,6 +773,7 @@ impl Span {
             span.hi,
             end.lo,
             if end.ctxt == SyntaxContext::root() { end.ctxt } else { span.ctxt },
+            if span.parent == end.parent { span.parent } else { None },
         )
     }
 
@@ -760,12 +785,30 @@ impl Span {
     ///     ^^^^^^^^^^^^^^^^^
     /// ```
     pub fn until(self, end: Span) -> Span {
-        let span = self.data();
-        let end = end.data();
+        // Most of this function's body is copied from `to`.
+        // We can't just do `self.to(end.shrink_to_lo())`,
+        // because to also does some magic where it uses min/max so
+        // it can handle overlapping spans. Some advanced mis-use of
+        // `until` with different ctxts makes this visible.
+        let span_data = self.data();
+        let end_data = end.data();
+        // FIXME(jseyfried): `self.ctxt` should always equal `end.ctxt` here (cf. issue #23480).
+        // Return the macro span on its own to avoid weird diagnostic output. It is preferable to
+        // have an incomplete span than a completely nonsensical one.
+        if span_data.ctxt != end_data.ctxt {
+            if span_data.ctxt == SyntaxContext::root() {
+                return end;
+            } else if end_data.ctxt == SyntaxContext::root() {
+                return self;
+            }
+            // Both spans fall within a macro.
+            // FIXME(estebank): check if it is the *same* macro.
+        }
         Span::new(
-            span.lo,
-            end.lo,
-            if end.ctxt == SyntaxContext::root() { end.ctxt } else { span.ctxt },
+            span_data.lo,
+            end_data.lo,
+            if end_data.ctxt == SyntaxContext::root() { end_data.ctxt } else { span_data.ctxt },
+            if span_data.parent == end_data.parent { span_data.parent } else { None },
         )
     }
 
@@ -775,6 +818,7 @@ impl Span {
             span.lo + BytePos::from_usize(inner.start),
             span.lo + BytePos::from_usize(inner.end),
             span.ctxt,
+            span.parent,
         )
     }
 
@@ -813,7 +857,7 @@ impl Span {
     pub fn remove_mark(&mut self) -> ExpnId {
         let mut span = self.data();
         let mark = span.ctxt.remove_mark();
-        *self = Span::new(span.lo, span.hi, span.ctxt);
+        *self = Span::new(span.lo, span.hi, span.ctxt, span.parent);
         mark
     }
 
@@ -821,7 +865,7 @@ impl Span {
     pub fn adjust(&mut self, expn_id: ExpnId) -> Option<ExpnId> {
         let mut span = self.data();
         let mark = span.ctxt.adjust(expn_id);
-        *self = Span::new(span.lo, span.hi, span.ctxt);
+        *self = Span::new(span.lo, span.hi, span.ctxt, span.parent);
         mark
     }
 
@@ -829,7 +873,7 @@ impl Span {
     pub fn normalize_to_macros_2_0_and_adjust(&mut self, expn_id: ExpnId) -> Option<ExpnId> {
         let mut span = self.data();
         let mark = span.ctxt.normalize_to_macros_2_0_and_adjust(expn_id);
-        *self = Span::new(span.lo, span.hi, span.ctxt);
+        *self = Span::new(span.lo, span.hi, span.ctxt, span.parent);
         mark
     }
 
@@ -837,7 +881,7 @@ impl Span {
     pub fn glob_adjust(&mut self, expn_id: ExpnId, glob_span: Span) -> Option<Option<ExpnId>> {
         let mut span = self.data();
         let mark = span.ctxt.glob_adjust(expn_id, glob_span);
-        *self = Span::new(span.lo, span.hi, span.ctxt);
+        *self = Span::new(span.lo, span.hi, span.ctxt, span.parent);
         mark
     }
 
@@ -849,7 +893,7 @@ impl Span {
     ) -> Option<Option<ExpnId>> {
         let mut span = self.data();
         let mark = span.ctxt.reverse_glob_adjust(expn_id, glob_span);
-        *self = Span::new(span.lo, span.hi, span.ctxt);
+        *self = Span::new(span.lo, span.hi, span.ctxt, span.parent);
         mark
     }
 
@@ -901,7 +945,7 @@ impl<D: Decoder> Decodable<D> for Span {
             let lo = d.read_struct_field("lo", Decodable::decode)?;
             let hi = d.read_struct_field("hi", Decodable::decode)?;
 
-            Ok(Span::new(lo, hi, SyntaxContext::root()))
+            Ok(Span::new(lo, hi, SyntaxContext::root(), None))
         })
     }
 }
@@ -962,7 +1006,7 @@ impl fmt::Debug for Span {
 
 impl fmt::Debug for SpanData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        (*SPAN_DEBUG)(Span::new(self.lo, self.hi, self.ctxt), f)
+        (*SPAN_DEBUG)(Span::new(self.lo, self.hi, self.ctxt, self.parent), f)
     }
 }
 
@@ -1923,6 +1967,7 @@ pub struct FileLines {
 
 pub static SPAN_DEBUG: AtomicRef<fn(Span, &mut fmt::Formatter<'_>) -> fmt::Result> =
     AtomicRef::new(&(default_span_debug as fn(_, &mut fmt::Formatter<'_>) -> _));
+pub static SPAN_TRACK: AtomicRef<fn(LocalDefId)> = AtomicRef::new(&((|_| {}) as fn(_)));
 
 // _____________________________________________________________________________
 // SpanLinesError, SpanSnippetError, DistinctSources, MalformedSourceMapPositions
@@ -1977,6 +2022,7 @@ impl InnerSpan {
 pub trait HashStableContext {
     fn def_path_hash(&self, def_id: DefId) -> DefPathHash;
     fn hash_spans(&self) -> bool;
+    fn def_span(&self, def_id: LocalDefId) -> Span;
     fn span_data_to_lines_and_cols(
         &mut self,
         span: &SpanData,
@@ -2000,22 +2046,35 @@ where
     fn hash_stable(&self, ctx: &mut CTX, hasher: &mut StableHasher) {
         const TAG_VALID_SPAN: u8 = 0;
         const TAG_INVALID_SPAN: u8 = 1;
+        const TAG_RELATIVE_SPAN: u8 = 2;
 
         if !ctx.hash_spans() {
             return;
         }
 
-        self.ctxt().hash_stable(ctx, hasher);
+        let span = self.data_untracked();
+        span.ctxt.hash_stable(ctx, hasher);
+        span.parent.hash_stable(ctx, hasher);
 
-        if self.is_dummy() {
+        if span.is_dummy() {
             Hash::hash(&TAG_INVALID_SPAN, hasher);
             return;
+        }
+
+        if let Some(parent) = span.parent {
+            let def_span = ctx.def_span(parent).data_untracked();
+            if def_span.contains(span) {
+                // This span is enclosed in a definition: only hash the relative position.
+                Hash::hash(&TAG_RELATIVE_SPAN, hasher);
+                (span.lo - def_span.lo).to_u32().hash_stable(ctx, hasher);
+                (span.hi - def_span.lo).to_u32().hash_stable(ctx, hasher);
+                return;
+            }
         }
 
         // If this is not an empty or invalid span, we want to hash the last
         // position that belongs to it, as opposed to hashing the first
         // position past it.
-        let span = self.data();
         let (file, line_lo, col_lo, line_hi, col_hi) = match ctx.span_data_to_lines_and_cols(&span)
         {
             Some(pos) => pos,

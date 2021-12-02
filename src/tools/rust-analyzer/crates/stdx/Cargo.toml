@@ -9,7 +9,7 @@ edition = "2018"
 doctest = false
 
 [dependencies]
-libc = "0.2.93"
+libc = "0.2"
 backtrace = { version = "0.3.44", optional = true }
 always-assert = { version = "0.1.2", features = ["log"] }
 # Think twice before adding anything here

@@ -6,6 +6,8 @@
 
 use either::Either;
 use hir_expand::HirFileId;
+use itertools::Itertools;
+use syntax::ast::HasAttrs;
 
 use crate::{
     db::DefDatabase,
@@ -107,6 +109,15 @@ impl ChildBySource for ItemScope {
         self.attr_macro_invocs().for_each(|(ast_id, call_id)| {
             let item = ast_id.with_value(ast_id.to_node(db.upcast()));
             res[keys::ATTR_MACRO].insert(item, call_id);
+        });
+        self.derive_macro_invocs().for_each(|(ast_id, calls)| {
+            let item = ast_id.to_node(db.upcast());
+            let grouped = calls.iter().copied().into_group_map();
+            for (attr_id, calls) in grouped {
+                if let Some(attr) = item.attrs().nth(attr_id.ast_index as usize) {
+                    res[keys::DERIVE_MACRO].insert(ast_id.with_value(attr), calls.into());
+                }
+            }
         });
 
         fn add_module_def(

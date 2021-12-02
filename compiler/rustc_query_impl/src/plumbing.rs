@@ -36,7 +36,6 @@ impl<'tcx> std::ops::Deref for QueryCtxt<'tcx> {
 
 impl HasDepContext for QueryCtxt<'tcx> {
     type DepKind = rustc_middle::dep_graph::DepKind;
-    type StableHashingContext = rustc_middle::ich::StableHashingContext<'tcx>;
     type DepContext = TyCtxt<'tcx>;
 
     #[inline]
@@ -253,17 +252,17 @@ macro_rules! handle_cycle_error {
         $error.emit();
         Value::from_cycle_error($tcx)
     }};
-    ([fatal_cycle $($rest:tt)*][$tcx:expr, $error:expr]) => {{
+    ([(fatal_cycle) $($rest:tt)*][$tcx:expr, $error:expr]) => {{
         $error.emit();
         $tcx.sess.abort_if_errors();
         unreachable!()
     }};
-    ([cycle_delay_bug $($rest:tt)*][$tcx:expr, $error:expr]) => {{
+    ([(cycle_delay_bug) $($rest:tt)*][$tcx:expr, $error:expr]) => {{
         $error.delay_as_bug();
         Value::from_cycle_error($tcx)
     }};
-    ([$other:ident $(($($other_args:tt)*))* $(, $($modifiers:tt)*)*][$($args:tt)*]) => {
-        handle_cycle_error!([$($($modifiers)*)*][$($args)*])
+    ([$other:tt $($modifiers:tt)*][$($args:tt)*]) => {
+        handle_cycle_error!([$($modifiers)*][$($args)*])
     };
 }
 
@@ -271,11 +270,11 @@ macro_rules! is_anon {
     ([]) => {{
         false
     }};
-    ([anon $($rest:tt)*]) => {{
+    ([(anon) $($rest:tt)*]) => {{
         true
     }};
-    ([$other:ident $(($($other_args:tt)*))* $(, $($modifiers:tt)*)*]) => {
-        is_anon!([$($($modifiers)*)*])
+    ([$other:tt $($modifiers:tt)*]) => {
+        is_anon!([$($modifiers)*])
     };
 }
 
@@ -283,11 +282,11 @@ macro_rules! is_eval_always {
     ([]) => {{
         false
     }};
-    ([eval_always $($rest:tt)*]) => {{
+    ([(eval_always) $($rest:tt)*]) => {{
         true
     }};
-    ([$other:ident $(($($other_args:tt)*))* $(, $($modifiers:tt)*)*]) => {
-        is_eval_always!([$($($modifiers)*)*])
+    ([$other:tt $($modifiers:tt)*]) => {
+        is_eval_always!([$($modifiers)*])
     };
 }
 
@@ -295,11 +294,11 @@ macro_rules! hash_result {
     ([][$hcx:expr, $result:expr]) => {{
         dep_graph::hash_result($hcx, &$result)
     }};
-    ([no_hash $($rest:tt)*][$hcx:expr, $result:expr]) => {{
+    ([(no_hash) $($rest:tt)*][$hcx:expr, $result:expr]) => {{
         None
     }};
-    ([$other:ident $(($($other_args:tt)*))* $(, $($modifiers:tt)*)*][$($args:tt)*]) => {
-        hash_result!([$($($modifiers)*)*][$($args)*])
+    ([$other:tt $($modifiers:tt)*][$($args:tt)*]) => {
+        hash_result!([$($modifiers)*][$($args)*])
     };
 }
 
@@ -321,10 +320,13 @@ macro_rules! define_queries {
             pub fn $name<$tcx>(tcx: QueryCtxt<$tcx>, key: query_keys::$name<$tcx>) -> QueryStackFrame {
                 let kind = dep_graph::DepKind::$name;
                 let name = stringify!($name);
-                let description = ty::print::with_forced_impl_filename_line(
+                // Disable visible paths printing for performance reasons.
+                // Showing visible path instead of any path is not that important in production.
+                let description = ty::print::with_no_visible_paths(
+                    || ty::print::with_forced_impl_filename_line(
                     // Force filename-line mode to avoid invoking `type_of` query.
                     || queries::$name::describe(tcx, key)
-                );
+                ));
                 let description = if tcx.sess.verbose() {
                     format!("{} [{}]", description, name)
                 } else {
@@ -426,6 +428,7 @@ macro_rules! define_queries {
             use rustc_middle::ty::query::query_keys;
             use rustc_query_system::dep_graph::DepNodeParams;
             use rustc_query_system::query::{force_query, QueryDescription};
+            use rustc_query_system::dep_graph::FingerprintStyle;
 
             // We use this for most things when incr. comp. is turned off.
             pub const Null: QueryStruct = QueryStruct {
@@ -452,9 +455,9 @@ macro_rules! define_queries {
                 const is_anon: bool = is_anon!([$($modifiers)*]);
 
                 #[inline(always)]
-                fn can_reconstruct_query_key() -> bool {
+                fn fingerprint_style() -> FingerprintStyle {
                     <query_keys::$name<'_> as DepNodeParams<TyCtxt<'_>>>
-                        ::can_reconstruct_query_key()
+                        ::fingerprint_style()
                 }
 
                 fn recover<'tcx>(tcx: TyCtxt<'tcx>, dep_node: &DepNode) -> Option<query_keys::$name<'tcx>> {
@@ -470,7 +473,7 @@ macro_rules! define_queries {
                         return
                     }
 
-                    if !can_reconstruct_query_key() {
+                    if !fingerprint_style().reconstructible() {
                         return
                     }
 

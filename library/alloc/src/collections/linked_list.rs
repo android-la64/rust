@@ -38,9 +38,12 @@ mod tests;
 /// let list = LinkedList::from([1, 2, 3]);
 /// ```
 ///
-/// NOTE: It is almost always better to use `Vec` or `VecDeque` because
+/// NOTE: It is almost always better to use [`Vec`] or [`VecDeque`] because
 /// array-based containers are generally faster,
 /// more memory efficient, and make better use of CPU cache.
+///
+/// [`Vec`]: crate::vec::Vec
+/// [`VecDeque`]: super::vec_deque::VecDeque
 #[stable(feature = "rust1", since = "1.0.0")]
 #[cfg_attr(not(test), rustc_diagnostic_item = "LinkedList")]
 #[rustc_insignificant_dtor]
@@ -122,9 +125,10 @@ impl<T: fmt::Debug> fmt::Debug for IterMut<'_, T> {
 /// An owning iterator over the elements of a `LinkedList`.
 ///
 /// This `struct` is created by the [`into_iter`] method on [`LinkedList`]
-/// (provided by the `IntoIterator` trait). See its documentation for more.
+/// (provided by the [`IntoIterator`] trait). See its documentation for more.
 ///
 /// [`into_iter`]: LinkedList::into_iter
+/// [`IntoIterator`]: core::iter::IntoIterator
 #[derive(Clone)]
 #[stable(feature = "rust1", since = "1.0.0")]
 pub struct IntoIter<T> {
@@ -413,6 +417,7 @@ impl<T> LinkedList<T> {
     #[inline]
     #[rustc_const_stable(feature = "const_linked_list_new", since = "1.32.0")]
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[must_use]
     pub const fn new() -> Self {
         LinkedList { head: None, tail: None, len: 0, marker: PhantomData }
     }
@@ -632,6 +637,8 @@ impl<T> LinkedList<T> {
     /// Returns `true` if the `LinkedList` contains an element equal to the
     /// given value.
     ///
+    /// This operation should compute in *O*(*n*) time.
+    ///
     /// # Examples
     ///
     /// ```
@@ -657,6 +664,8 @@ impl<T> LinkedList<T> {
     /// Provides a reference to the front element, or `None` if the list is
     /// empty.
     ///
+    /// This operation should compute in *O*(1) time.
+    ///
     /// # Examples
     ///
     /// ```
@@ -676,6 +685,8 @@ impl<T> LinkedList<T> {
 
     /// Provides a mutable reference to the front element, or `None` if the list
     /// is empty.
+    ///
+    /// This operation should compute in *O*(1) time.
     ///
     /// # Examples
     ///
@@ -703,6 +714,8 @@ impl<T> LinkedList<T> {
     /// Provides a reference to the back element, or `None` if the list is
     /// empty.
     ///
+    /// This operation should compute in *O*(1) time.
+    ///
     /// # Examples
     ///
     /// ```
@@ -722,6 +735,8 @@ impl<T> LinkedList<T> {
 
     /// Provides a mutable reference to the back element, or `None` if the list
     /// is empty.
+    ///
+    /// This operation should compute in *O*(1) time.
     ///
     /// # Examples
     ///
@@ -1370,6 +1385,7 @@ impl<'a, T> CursorMut<'a, T> {
     /// The lifetime of the returned `Cursor` is bound to that of the
     /// `CursorMut`, which means it cannot outlive the `CursorMut` and that the
     /// `CursorMut` is frozen for the lifetime of the `Cursor`.
+    #[must_use]
     #[unstable(feature = "linked_list_cursors", issue = "58533")]
     pub fn as_cursor(&self) -> Cursor<'_, T> {
         Cursor { list: self.list, current: self.current, index: self.index }

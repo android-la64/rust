@@ -1145,3 +1145,79 @@ impl<'a, T, DB: TypeMetadata> Output<'a, T, DB> {
         "#,
     );
 }
+
+#[test]
+fn bitslice_panic() {
+    check_no_mismatches(
+        r#"
+//- minicore: option, deref
+
+pub trait BitView {
+    type Store;
+}
+
+pub struct Lsb0;
+
+pub struct BitArray<V: BitView> { }
+
+pub struct BitSlice<T> { }
+
+impl<V: BitView> core::ops::Deref for BitArray<V> {
+    type Target = BitSlice<V::Store>;
+}
+
+impl<T> BitSlice<T> {
+    pub fn split_first(&self) -> Option<(T, &Self)> { loop {} }
+}
+
+fn multiexp_inner() {
+    let exp: &BitArray<Foo>;
+    exp.split_first();
+}
+        "#,
+    );
+}
+
+#[test]
+fn macro_expands_to_impl_trait() {
+    check_no_mismatches(
+        r#"
+trait Foo {}
+
+macro_rules! ty {
+    () => {
+        impl Foo
+    }
+}
+
+fn foo(_: ty!()) {}
+
+fn bar() {
+    foo(());
+}
+    "#,
+    )
+}
+
+#[test]
+fn nested_macro_in_fn_params() {
+    check_no_mismatches(
+        r#"
+macro_rules! U32Inner {
+    () => {
+        u32
+    };
+}
+
+macro_rules! U32 {
+    () => {
+        U32Inner!()
+    };
+}
+
+fn mamba(a: U32!(), p: u32) -> u32 {
+    a
+}
+    "#,
+    )
+}

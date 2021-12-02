@@ -61,7 +61,7 @@ use std::{error, fmt, iter, mem};
 /// non-panicking way to detect whether the infrastructure required to use the
 /// API of proc_macro is presently available. Returns true if invoked from
 /// inside of a procedural macro, false if invoked from any other binary.
-#[unstable(feature = "proc_macro_is_available", issue = "71436")]
+#[stable(feature = "proc_macro_is_available", since = "1.57.0")]
 pub fn is_available() -> bool {
     bridge::Bridge::is_available()
 }
@@ -355,6 +355,18 @@ impl Span {
     #[unstable(feature = "proc_macro_span", issue = "54725")]
     pub fn end(&self) -> LineColumn {
         self.0.end().add_1_to_column()
+    }
+
+    /// Creates an empty span pointing to directly before this span.
+    #[unstable(feature = "proc_macro_span_shrink", issue = "87552")]
+    pub fn before(&self) -> Span {
+        Span(self.0.before())
+    }
+
+    /// Creates an empty span pointing to directly after this span.
+    #[unstable(feature = "proc_macro_span_shrink", issue = "87552")]
+    pub fn after(&self) -> Span {
+        Span(self.0.after())
     }
 
     /// Creates a new span encompassing `self` and `other`.

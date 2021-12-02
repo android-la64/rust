@@ -1,10 +1,11 @@
 use either::Either;
 use hir::{known, Callable, HasVisibility, HirDisplay, Semantics, TypeInfo};
-use ide_db::helpers::FamousDefs;
 use ide_db::RootDatabase;
+use ide_db::{base_db::FileRange, helpers::FamousDefs};
+use itertools::Itertools;
 use stdx::to_lower_snake_case;
 use syntax::{
-    ast::{self, ArgListOwner, AstNode, NameOwner},
+    ast::{self, AstNode, HasArgList, HasName},
     match_ast, Direction, NodeOrToken, SmolStr, SyntaxKind, TextRange, T,
 };
 
@@ -62,20 +63,24 @@ pub(crate) fn inlay_hints(
     let _p = profile::span("inlay_hints");
     let sema = Semantics::new(db);
     let file = sema.parse(file_id);
+    let file = file.syntax();
 
     let mut res = Vec::new();
-    for node in file.syntax().descendants() {
-        if let Some(expr) = ast::Expr::cast(node.clone()) {
-            get_chaining_hints(&mut res, &sema, config, expr);
-        }
 
-        match_ast! {
-            match node {
-                ast::CallExpr(it) => { get_param_name_hints(&mut res, &sema, config, ast::Expr::from(it)); },
-                ast::MethodCallExpr(it) => { get_param_name_hints(&mut res, &sema, config, ast::Expr::from(it)); },
-                ast::IdentPat(it) => { get_bind_pat_hints(&mut res, &sema, config, it); },
+    for node in file.descendants() {
+        if let Some(expr) = ast::Expr::cast(node.clone()) {
+            get_chaining_hints(&mut res, &sema, config, &expr);
+            match expr {
+                ast::Expr::CallExpr(it) => {
+                    get_param_name_hints(&mut res, &sema, config, ast::Expr::from(it));
+                }
+                ast::Expr::MethodCallExpr(it) => {
+                    get_param_name_hints(&mut res, &sema, config, ast::Expr::from(it));
+                }
                 _ => (),
             }
+        } else if let Some(it) = ast::IdentPat::cast(node.clone()) {
+            get_bind_pat_hints(&mut res, &sema, config, &it);
         }
     }
     res
@@ -85,7 +90,7 @@ fn get_chaining_hints(
     acc: &mut Vec<InlayHint>,
     sema: &Semantics<RootDatabase>,
     config: &InlayHintsConfig,
-    expr: ast::Expr,
+    expr: &ast::Expr,
 ) -> Option<()> {
     if !config.chaining_hints {
         return None;
@@ -95,7 +100,9 @@ fn get_chaining_hints(
         return None;
     }
 
-    let krate = sema.scope(expr.syntax()).module().map(|it| it.krate());
+    let descended = sema.descend_node_into_attributes(expr.clone()).pop();
+    let desc_expr = descended.as_ref().unwrap_or(expr);
+    let krate = sema.scope(desc_expr.syntax()).module().map(|it| it.krate());
     let famous_defs = FamousDefs(sema, krate);
 
     let mut tokens = expr
@@ -117,7 +124,7 @@ fn get_chaining_hints(
             next_next = tokens.next()?.kind();
         }
         if next_next == T![.] {
-            let ty = sema.type_of_expr(&expr)?.original;
+            let ty = sema.type_of_expr(desc_expr)?.original;
             if ty.is_unknown() {
                 return None;
             }
@@ -156,6 +163,8 @@ fn get_param_name_hints(
         .into_iter()
         .zip(arg_list.args())
         .filter_map(|((param, _ty), arg)| {
+            // Only annotate hints for expressions that exist in the original file
+            let range = sema.original_range_opt(arg.syntax())?;
             let param_name = match param? {
                 Either::Left(_) => "self".to_string(),
                 Either::Right(pat) => match pat {
@@ -163,11 +172,13 @@ fn get_param_name_hints(
                     _ => return None,
                 },
             };
-            Some((param_name, arg))
+            Some((param_name, arg, range))
         })
-        .filter(|(param_name, arg)| !should_hide_param_name_hint(sema, &callable, param_name, arg))
-        .map(|(param_name, arg)| InlayHint {
-            range: arg.syntax().text_range(),
+        .filter(|(param_name, arg, _)| {
+            !should_hide_param_name_hint(sema, &callable, param_name, arg)
+        })
+        .map(|(param_name, _, FileRange { range, .. })| InlayHint {
+            range,
             kind: InlayKind::ParameterHint,
             label: param_name.into(),
         });
@@ -180,20 +191,34 @@ fn get_bind_pat_hints(
     acc: &mut Vec<InlayHint>,
     sema: &Semantics<RootDatabase>,
     config: &InlayHintsConfig,
-    pat: ast::IdentPat,
+    pat: &ast::IdentPat,
 ) -> Option<()> {
     if !config.type_hints {
         return None;
     }
 
-    let krate = sema.scope(pat.syntax()).module().map(|it| it.krate());
-    let famous_defs = FamousDefs(sema, krate);
-
-    let ty = sema.type_of_pat(&pat.clone().into())?.original;
+    let descended = sema.descend_node_into_attributes(pat.clone()).pop();
+    let desc_pat = descended.as_ref().unwrap_or(pat);
+    let ty = sema.type_of_pat(&desc_pat.clone().into())?.original;
 
     if should_not_display_type_hint(sema, &pat, &ty) {
         return None;
     }
+
+    let krate = sema.scope(desc_pat.syntax()).module().map(|it| it.krate());
+    let famous_defs = FamousDefs(sema, krate);
+    let label = hint_iterator(sema, &famous_defs, config, &ty);
+
+    let label = match label {
+        Some(label) => label,
+        None => {
+            let ty_name = ty.display_truncated(sema.db, config.max_length).to_string();
+            if is_named_constructor(sema, pat, &ty_name).is_some() {
+                return None;
+            }
+            ty_name.into()
+        }
+    };
 
     acc.push(InlayHint {
         range: match pat.name() {
@@ -201,11 +226,66 @@ fn get_bind_pat_hints(
             None => pat.syntax().text_range(),
         },
         kind: InlayKind::TypeHint,
-        label: hint_iterator(sema, &famous_defs, config, &ty)
-            .unwrap_or_else(|| ty.display_truncated(sema.db, config.max_length).to_string().into()),
+        label,
     });
 
     Some(())
+}
+
+fn is_named_constructor(
+    sema: &Semantics<RootDatabase>,
+    pat: &ast::IdentPat,
+    ty_name: &str,
+) -> Option<()> {
+    let let_node = pat.syntax().parent()?;
+    let expr = match_ast! {
+        match let_node {
+            ast::LetStmt(it) => it.initializer(),
+            ast::Condition(it) => it.expr(),
+            _ => None,
+        }
+    }?;
+
+    let expr = sema.descend_node_into_attributes(expr.clone()).pop().unwrap_or(expr);
+    // unwrap postfix expressions
+    let expr = match expr {
+        ast::Expr::TryExpr(it) => it.expr(),
+        ast::Expr::AwaitExpr(it) => it.expr(),
+        expr => Some(expr),
+    }?;
+    let expr = match expr {
+        ast::Expr::CallExpr(call) => match call.expr()? {
+            ast::Expr::PathExpr(p) => p,
+            _ => return None,
+        },
+        _ => return None,
+    };
+    let path = expr.path()?;
+
+    // Check for tuple-struct or tuple-variant in which case we can check the last segment
+    let callable = sema.type_of_expr(&ast::Expr::PathExpr(expr))?.original.as_callable(sema.db);
+    let callable_kind = callable.map(|it| it.kind());
+    if let Some(hir::CallableKind::TupleStruct(_) | hir::CallableKind::TupleEnumVariant(_)) =
+        callable_kind
+    {
+        if let Some(ctor) = path.segment() {
+            return (&ctor.to_string() == ty_name).then(|| ());
+        }
+    }
+
+    // otherwise use the qualifying segment as the constructor name
+    let qual_seg = path.qualifier()?.segment()?;
+    let ctor_name = match qual_seg.kind()? {
+        ast::PathSegmentKind::Name(name_ref) => {
+            match qual_seg.generic_arg_list().map(|it| it.generic_args()) {
+                Some(generics) => format!("{}<{}>", name_ref, generics.format(", ")),
+                None => name_ref.to_string(),
+            }
+        }
+        ast::PathSegmentKind::Type { type_ref: Some(ty), trait_ref: None } => ty.to_string(),
+        _ => return None,
+    };
+    (&ctor_name == ty_name).then(|| ())
 }
 
 /// Checks if the type is an Iterator from std::iter and replaces its hint with an `impl Iterator<Item = Ty>`.
@@ -431,9 +511,13 @@ fn get_callable(
 ) -> Option<(hir::Callable, ast::ArgList)> {
     match expr {
         ast::Expr::CallExpr(expr) => {
+            let descended = sema.descend_node_into_attributes(expr.clone()).pop();
+            let expr = descended.as_ref().unwrap_or(expr);
             sema.type_of_expr(&expr.expr()?)?.original.as_callable(sema.db).zip(expr.arg_list())
         }
         ast::Expr::MethodCallExpr(expr) => {
+            let descended = sema.descend_node_into_attributes(expr.clone()).pop();
+            let expr = descended.as_ref().unwrap_or(expr);
             sema.resolve_method_call_as_callable(expr).zip(expr.arg_list())
         }
         _ => None,
@@ -454,10 +538,12 @@ mod tests {
         max_length: None,
     };
 
+    #[track_caller]
     fn check(ra_fixture: &str) {
         check_with_config(TEST_CONFIG, ra_fixture);
     }
 
+    #[track_caller]
     fn check_params(ra_fixture: &str) {
         check_with_config(
             InlayHintsConfig {
@@ -470,6 +556,7 @@ mod tests {
         );
     }
 
+    #[track_caller]
     fn check_types(ra_fixture: &str) {
         check_with_config(
             InlayHintsConfig {
@@ -482,6 +569,7 @@ mod tests {
         );
     }
 
+    #[track_caller]
     fn check_chains(ra_fixture: &str) {
         check_with_config(
             InlayHintsConfig {
@@ -494,6 +582,7 @@ mod tests {
         );
     }
 
+    #[track_caller]
     fn check_with_config(config: InlayHintsConfig, ra_fixture: &str) {
         let (analysis, file_id) = fixture::file(&ra_fixture);
         let expected = extract_annotations(&*analysis.file_text(file_id).unwrap());
@@ -503,6 +592,7 @@ mod tests {
         assert_eq!(expected, actual, "\nExpected:\n{:#?}\n\nActual:\n{:#?}", expected, actual);
     }
 
+    #[track_caller]
     fn check_expect(config: InlayHintsConfig, ra_fixture: &str, expect: Expect) {
         let (analysis, file_id) = fixture::file(&ra_fixture);
         let inlay_hints = analysis.inlay_hints(&config, file_id).unwrap();
@@ -1175,11 +1265,12 @@ trait Display {}
 trait Sync {}
 
 fn main() {
-    let _v = Vec::<Box<&(dyn Display + Sync)>>::new();
+    // The block expression wrapping disables the constructor hint hiding logic
+    let _v = { Vec::<Box<&(dyn Display + Sync)>>::new() };
       //^^ Vec<Box<&(dyn Display + Sync)>>
-    let _v = Vec::<Box<*const (dyn Display + Sync)>>::new();
+    let _v = { Vec::<Box<*const (dyn Display + Sync)>>::new() };
       //^^ Vec<Box<*const (dyn Display + Sync)>>
-    let _v = Vec::<Box<dyn Display + Sync>>::new();
+    let _v = { Vec::<Box<dyn Display + Sync>>::new() };
       //^^ Vec<Box<dyn Display + Sync>>
 }
 "#,
@@ -1213,6 +1304,48 @@ fn main() {
         let _chained = iter::repeat(t).take(10);
           //^^^^^^^^ impl Iterator<Item = T>
     }
+}
+"#,
+        );
+    }
+
+    #[test]
+    fn skip_constructor_type_hints() {
+        check_types(
+            r#"
+//- minicore: try
+use core::ops::ControlFlow;
+
+struct Struct;
+struct TupleStruct();
+
+impl Struct {
+    fn new() -> Self {
+        Struct
+    }
+    fn try_new() -> ControlFlow<(), Self> {
+        ControlFlow::Continue(Struct)
+    }
+}
+
+struct Generic<T>(T);
+impl Generic<i32> {
+    fn new() -> Self {
+        Generic(0)
+    }
+}
+
+fn main() {
+    let strukt = Struct::new();
+    let tuple_struct = TupleStruct();
+    let generic0 = Generic::new();
+     // ^^^^^^^^ Generic<i32>
+    let generic1 = Generic::<i32>::new();
+    let generic2 = <Generic<i32>>::new();
+}
+
+fn fallible() -> ControlFlow<()> {
+    let strukt = Struct::try_new()?;
 }
 "#,
         );
@@ -1462,6 +1595,55 @@ fn main() {
                         range: 174..189,
                         kind: ChainingHint,
                         label: "&mut MyIter",
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn hints_in_attr_call() {
+        check_expect(
+            TEST_CONFIG,
+            r#"
+//- proc_macros: identity, input_replace
+struct Struct;
+impl Struct {
+    fn chain(self) -> Self {
+        self
+    }
+}
+#[proc_macros::identity]
+fn main() {
+    let strukt = Struct;
+    strukt
+        .chain()
+        .chain()
+        .chain();
+    Struct::chain(strukt);
+}
+"#,
+            expect![[r#"
+                [
+                    InlayHint {
+                        range: 124..130,
+                        kind: TypeHint,
+                        label: "Struct",
+                    },
+                    InlayHint {
+                        range: 145..185,
+                        kind: ChainingHint,
+                        label: "Struct",
+                    },
+                    InlayHint {
+                        range: 145..168,
+                        kind: ChainingHint,
+                        label: "Struct",
+                    },
+                    InlayHint {
+                        range: 222..228,
+                        kind: ParameterHint,
+                        label: "self",
                     },
                 ]
             "#]],

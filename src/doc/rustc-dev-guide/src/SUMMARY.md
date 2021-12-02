@@ -14,13 +14,13 @@
     - [Distribution artifacts](./building/build-install-distribution-artifacts.md)
     - [Documenting Compiler](./building/compiler-documenting.md)
     - [Rustdoc overview](./rustdoc.md)
-    - [ctags](./building/ctags.md)
     - [Adding a new target](./building/new-target.md)
 - [The compiler testing framework](./tests/intro.md)
     - [Running tests](./tests/running.md)
     - [Adding new tests](./tests/adding.md)
     - [Using `compiletest` commands to control test execution](./compiletest.md)
 - [Debugging the Compiler](./compiler-debugging.md)
+    - [Using the tracing/logging instrumentation](./tracing.md)
 - [Profiling the compiler](./profiling.md)
     - [with the linux perf tool](./profiling/with_perf.md)
     - [with Windows Performance Analyzer](./profiling/wpa_profiling.md)
@@ -99,6 +99,7 @@
     - [Generics and substitutions](./generics.md)
     - [`TypeFolder` and `TypeFoldable`](./ty-fold.md)
     - [Generic arguments](./generic_arguments.md)
+    - [Constants in the type system](./constants.md)
 - [Type inference](./type-inference.md)
 - [Trait solving](./traits/resolution.md)
     - [Early and Late Bound Parameters](./early-late-bound.md)
@@ -132,6 +133,7 @@
     - [Creating Errors With SessionDiagnostic](./diagnostics/sessiondiagnostic.md)
     - [`LintStore`](./diagnostics/lintstore.md)
     - [Diagnostic Codes](./diagnostics/diagnostic-codes.md)
+    - [Diagnostic Items](./diagnostics/diagnostic-items.md)
 
 # MIR to Binaries
 

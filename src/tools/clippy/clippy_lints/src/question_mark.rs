@@ -97,7 +97,8 @@ impl QuestionMark {
 
     fn check_if_let_some_and_early_return_none(cx: &LateContext<'_>, expr: &Expr<'_>) {
         if_chain! {
-            if let Some(higher::IfLet { let_pat, let_expr, if_then, if_else: Some(if_else) }) = higher::IfLet::hir(cx, expr);
+            if let Some(higher::IfLet { let_pat, let_expr, if_then, if_else: Some(if_else) })
+                = higher::IfLet::hir(cx, expr);
             if Self::is_option(cx, let_expr);
 
             if let PatKind::TupleStruct(ref path1, fields, None) = let_pat.kind;
@@ -105,7 +106,7 @@ impl QuestionMark {
             if let PatKind::Binding(annot, bind_id, _, _) = fields[0].kind;
             let by_ref = matches!(annot, BindingAnnotation::Ref | BindingAnnotation::RefMut);
 
-            if let ExprKind::Block(ref block, None) = if_then.kind;
+            if let ExprKind::Block(block, None) = if_then.kind;
             if block.stmts.is_empty();
             if let Some(trailing_expr) = &block.expr;
             if path_to_local_id(trailing_expr, bind_id);
@@ -142,7 +143,7 @@ impl QuestionMark {
     fn is_option(cx: &LateContext<'_>, expression: &Expr<'_>) -> bool {
         let expr_ty = cx.typeck_results().expr_ty(expression);
 
-        is_type_diagnostic_item(cx, expr_ty, sym::option_type)
+        is_type_diagnostic_item(cx, expr_ty, sym::Option)
     }
 
     fn expression_returns_none(cx: &LateContext<'_>, expression: &Expr<'_>) -> bool {

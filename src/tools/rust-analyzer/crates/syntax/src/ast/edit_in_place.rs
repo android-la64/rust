@@ -7,20 +7,16 @@ use rowan::SyntaxElement;
 
 use crate::{
     algo::neighbor,
-    ast::{
-        self,
-        edit::{AstNodeEdit, IndentLevel},
-        make, GenericParamsOwner,
-    },
+    ast::{self, edit::IndentLevel, make, HasGenericParams},
     ted::{self, Position},
     AstNode, AstToken, Direction,
     SyntaxKind::{ATTR, COMMENT, WHITESPACE},
     SyntaxNode,
 };
 
-use super::NameOwner;
+use super::HasName;
 
-pub trait GenericParamsOwnerEdit: ast::GenericParamsOwner + AstNodeEdit {
+pub trait GenericParamsOwnerEdit: ast::HasGenericParams {
     fn get_or_create_generic_param_list(&self) -> ast::GenericParamList;
     fn get_or_create_where_clause(&self) -> ast::WhereClause;
 }
@@ -53,7 +49,7 @@ impl GenericParamsOwnerEdit for ast::Fn {
             } else {
                 Position::last_child_of(self.syntax())
             };
-            create_where_clause(position)
+            create_where_clause(position);
         }
         self.where_clause().unwrap()
     }
@@ -64,10 +60,9 @@ impl GenericParamsOwnerEdit for ast::Impl {
         match self.generic_param_list() {
             Some(it) => it,
             None => {
-                let position = if let Some(imp_token) = self.impl_token() {
-                    Position::after(imp_token)
-                } else {
-                    Position::last_child_of(self.syntax())
+                let position = match self.impl_token() {
+                    Some(imp_token) => Position::after(imp_token),
+                    None => Position::last_child_of(self.syntax()),
                 };
                 create_generic_param_list(position)
             }
@@ -76,12 +71,11 @@ impl GenericParamsOwnerEdit for ast::Impl {
 
     fn get_or_create_where_clause(&self) -> ast::WhereClause {
         if self.where_clause().is_none() {
-            let position = if let Some(items) = self.assoc_item_list() {
-                Position::before(items.syntax())
-            } else {
-                Position::last_child_of(self.syntax())
+            let position = match self.assoc_item_list() {
+                Some(items) => Position::before(items.syntax()),
+                None => Position::last_child_of(self.syntax()),
             };
-            create_where_clause(position)
+            create_where_clause(position);
         }
         self.where_clause().unwrap()
     }
@@ -106,12 +100,11 @@ impl GenericParamsOwnerEdit for ast::Trait {
 
     fn get_or_create_where_clause(&self) -> ast::WhereClause {
         if self.where_clause().is_none() {
-            let position = if let Some(items) = self.assoc_item_list() {
-                Position::before(items.syntax())
-            } else {
-                Position::last_child_of(self.syntax())
+            let position = match self.assoc_item_list() {
+                Some(items) => Position::before(items.syntax()),
+                None => Position::last_child_of(self.syntax()),
             };
-            create_where_clause(position)
+            create_where_clause(position);
         }
         self.where_clause().unwrap()
     }
@@ -149,7 +142,7 @@ impl GenericParamsOwnerEdit for ast::Struct {
             } else {
                 Position::last_child_of(self.syntax())
             };
-            create_where_clause(position)
+            create_where_clause(position);
         }
         self.where_clause().unwrap()
     }
@@ -181,7 +174,7 @@ impl GenericParamsOwnerEdit for ast::Enum {
             } else {
                 Position::last_child_of(self.syntax())
             };
-            create_where_clause(position)
+            create_where_clause(position);
         }
         self.where_clause().unwrap()
     }
@@ -198,7 +191,7 @@ fn create_generic_param_list(position: Position) -> ast::GenericParamList {
     gpl
 }
 
-pub trait AttrsOwnerEdit: ast::AttrsOwner + AstNodeEdit {
+pub trait AttrsOwnerEdit: ast::HasAttrs {
     fn remove_attrs_and_docs(&self) {
         remove_attrs_and_docs(self.syntax());
 
@@ -222,7 +215,7 @@ pub trait AttrsOwnerEdit: ast::AttrsOwner + AstNodeEdit {
     }
 }
 
-impl<T: ast::AttrsOwner + AstNodeEdit> AttrsOwnerEdit for T {}
+impl<T: ast::HasAttrs> AttrsOwnerEdit for T {}
 
 impl ast::GenericParamList {
     pub fn add_generic_param(&self, generic_param: ast::GenericParam) {
@@ -238,7 +231,7 @@ impl ast::GenericParamList {
             }
             None => {
                 let after_l_angle = Position::after(self.l_angle_token().unwrap());
-                ted::insert(after_l_angle, generic_param.syntax())
+                ted::insert(after_l_angle, generic_param.syntax());
             }
         }
     }
@@ -251,18 +244,15 @@ impl ast::WhereClause {
                 ted::append_child_raw(self.syntax(), make::token(T![,]));
             }
         }
-        ted::append_child(self.syntax(), predicate.syntax())
+        ted::append_child(self.syntax(), predicate.syntax());
     }
 }
 
 impl ast::TypeBoundList {
     pub fn remove(&self) {
-        if let Some(colon) =
-            self.syntax().siblings_with_tokens(Direction::Prev).find(|it| it.kind() == T![:])
-        {
-            ted::remove_all(colon..=self.syntax().clone().into())
-        } else {
-            ted::remove(self.syntax())
+        match self.syntax().siblings_with_tokens(Direction::Prev).find(|it| it.kind() == T![:]) {
+            Some(colon) => ted::remove_all(colon..=self.syntax().clone().into()),
+            None => ted::remove(self.syntax()),
         }
     }
 }
@@ -271,7 +261,7 @@ impl ast::PathSegment {
     pub fn get_or_create_generic_arg_list(&self) -> ast::GenericArgList {
         if self.generic_arg_list().is_none() {
             let arg_list = make::generic_arg_list().clone_for_update();
-            ted::append_child(self.syntax(), arg_list.syntax())
+            ted::append_child(self.syntax(), arg_list.syntax());
         }
         self.generic_arg_list().unwrap()
     }
@@ -279,7 +269,7 @@ impl ast::PathSegment {
 
 impl ast::UseTree {
     pub fn remove(&self) {
-        for &dir in [Direction::Next, Direction::Prev].iter() {
+        for dir in [Direction::Next, Direction::Prev] {
             if let Some(next_use_tree) = neighbor(self, dir) {
                 let separators = self
                     .syntax()
@@ -290,7 +280,7 @@ impl ast::UseTree {
                 break;
             }
         }
-        ted::remove(self.syntax())
+        ted::remove(self.syntax());
     }
 }
 
@@ -305,13 +295,13 @@ impl ast::Use {
             let ws_text = next_ws.syntax().text();
             if let Some(rest) = ws_text.strip_prefix('\n') {
                 if rest.is_empty() {
-                    ted::remove(next_ws.syntax())
+                    ted::remove(next_ws.syntax());
                 } else {
-                    ted::replace(next_ws.syntax(), make::tokens::whitespace(rest))
+                    ted::replace(next_ws.syntax(), make::tokens::whitespace(rest));
                 }
             }
         }
-        ted::remove(self.syntax())
+        ted::remove(self.syntax());
     }
 }
 
@@ -455,7 +445,36 @@ impl ast::RecordExprFieldList {
     }
 }
 
-impl ast::BlockExpr {
+impl ast::RecordExprField {
+    /// This will either replace the initializer, or in the case that this is a shorthand convert
+    /// the initializer into the name ref and insert the expr as the new initializer.
+    pub fn replace_expr(&self, expr: ast::Expr) {
+        if self.name_ref().is_some() {
+            match self.expr() {
+                Some(prev) => ted::replace(prev.syntax(), expr.syntax()),
+                None => ted::append_child(self.syntax(), expr.syntax()),
+            }
+            return;
+        }
+        // this is a shorthand
+        if let Some(ast::Expr::PathExpr(path_expr)) = self.expr() {
+            if let Some(path) = path_expr.path() {
+                if let Some(name_ref) = path.as_single_name_ref() {
+                    path_expr.syntax().detach();
+                    let children = vec![
+                        name_ref.syntax().clone().into(),
+                        ast::make::token(T![:]).into(),
+                        ast::make::tokens::single_space().into(),
+                        expr.syntax().clone().into(),
+                    ];
+                    ted::insert_all_raw(Position::last_child_of(self.syntax()), children);
+                }
+            }
+        }
+    }
+}
+
+impl ast::StmtList {
     pub fn push_front(&self, statement: ast::Stmt) {
         ted::insert(Position::after(self.l_curly_token().unwrap()), statement.syntax());
     }
@@ -486,6 +505,25 @@ fn normalize_ws_between_braces(node: &SyntaxNode) -> Option<()> {
     }
     Some(())
 }
+
+pub trait Indent: AstNode + Clone + Sized {
+    fn indent_level(&self) -> IndentLevel {
+        IndentLevel::from_node(self.syntax())
+    }
+    fn indent(&self, by: IndentLevel) {
+        by.increase_indent(self.syntax());
+    }
+    fn dedent(&self, by: IndentLevel) {
+        by.decrease_indent(self.syntax());
+    }
+    fn reindent_to(&self, target_level: IndentLevel) {
+        let current_level = IndentLevel::from_node(self.syntax());
+        self.dedent(current_level);
+        self.indent(target_level);
+    }
+}
+
+impl<N: AstNode + Clone> Indent for N {}
 
 #[cfg(test)]
 mod tests {
@@ -525,5 +563,23 @@ mod tests {
 
         check_create_gpl::<ast::Enum>("enum E", "enum E<>");
         check_create_gpl::<ast::Enum>("enum E {", "enum E<> {");
+    }
+
+    #[test]
+    fn test_increase_indent() {
+        let arm_list = ast_mut_from_text::<ast::Fn>(
+            "fn foo() {
+    ;
+    ;
+}",
+        );
+        arm_list.indent(IndentLevel(2));
+        assert_eq!(
+            arm_list.to_string(),
+            "fn foo() {
+            ;
+            ;
+        }",
+        );
     }
 }

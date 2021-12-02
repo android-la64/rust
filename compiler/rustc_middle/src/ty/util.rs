@@ -1,6 +1,5 @@
 //! Miscellaneous type-system utilities that are too small to deserve their own modules.
 
-use crate::ich::NodeIdHashingMode;
 use crate::middle::codegen_fn_attrs::CodegenFnAttrFlags;
 use crate::ty::fold::TypeFolder;
 use crate::ty::layout::IntegerExt;
@@ -18,6 +17,7 @@ use rustc_hir as hir;
 use rustc_hir::def::DefKind;
 use rustc_hir::def_id::DefId;
 use rustc_macros::HashStable;
+use rustc_query_system::ich::NodeIdHashingMode;
 use rustc_span::DUMMY_SP;
 use rustc_target::abi::{Integer, Size, TargetDataLayout};
 use smallvec::SmallVec;
@@ -45,18 +45,6 @@ impl<'tcx> fmt::Display for Discr<'tcx> {
     }
 }
 
-fn signed_min(size: Size) -> i128 {
-    size.sign_extend(1_u128 << (size.bits() - 1)) as i128
-}
-
-fn signed_max(size: Size) -> i128 {
-    i128::MAX >> (128 - size.bits())
-}
-
-fn unsigned_max(size: Size) -> u128 {
-    u128::MAX >> (128 - size.bits())
-}
-
 fn int_size_and_signed<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> (Size, bool) {
     let (int, signed) = match *ty.kind() {
         Int(ity) => (Integer::from_int_ty(&tcx, ity), true),
@@ -74,8 +62,8 @@ impl<'tcx> Discr<'tcx> {
     pub fn checked_add(self, tcx: TyCtxt<'tcx>, n: u128) -> (Self, bool) {
         let (size, signed) = int_size_and_signed(tcx, self.ty);
         let (val, oflo) = if signed {
-            let min = signed_min(size);
-            let max = signed_max(size);
+            let min = size.signed_int_min();
+            let max = size.signed_int_max();
             let val = size.sign_extend(self.val) as i128;
             assert!(n < (i128::MAX as u128));
             let n = n as i128;
@@ -86,7 +74,7 @@ impl<'tcx> Discr<'tcx> {
             let val = size.truncate(val);
             (val, oflo)
         } else {
-            let max = unsigned_max(size);
+            let max = size.unsigned_int_max();
             let val = self.val;
             let oflo = val > max - n;
             let val = if oflo { n - (max - val) - 1 } else { val + n };
@@ -336,16 +324,16 @@ impl<'tcx> TyCtxt<'tcx> {
         self.ensure().coherent_trait(drop_trait);
 
         let ty = self.type_of(adt_did);
-        let dtor_did = self.find_map_relevant_impl(drop_trait, ty, |impl_did| {
+        let (did, constness) = self.find_map_relevant_impl(drop_trait, ty, |impl_did| {
             if let Some(item) = self.associated_items(impl_did).in_definition_order().next() {
                 if validate(self, impl_did).is_ok() {
-                    return Some(item.def_id);
+                    return Some((item.def_id, self.impl_constness(impl_did)));
                 }
             }
             None
-        });
+        })?;
 
-        Some(ty::Destructor { did: dtor_did? })
+        Some(ty::Destructor { did, constness })
     }
 
     /// Returns the set of types that are required to be alive in
@@ -528,6 +516,7 @@ impl<'tcx> TyCtxt<'tcx> {
     }
 
     /// Expands the given impl trait type, stopping if the type is recursive.
+    #[instrument(skip(self), level = "debug")]
     pub fn try_expand_impl_trait_type(
         self,
         def_id: DefId,
@@ -544,6 +533,7 @@ impl<'tcx> TyCtxt<'tcx> {
         };
 
         let expanded_type = visitor.expand_opaque_ty(def_id, substs).unwrap();
+        trace!(?expanded_type);
         if visitor.found_recursion { Err(expanded_type) } else { Ok(expanded_type) }
     }
 }
@@ -621,7 +611,8 @@ impl<'tcx> ty::TyS<'tcx> {
         let val = match self.kind() {
             ty::Int(_) | ty::Uint(_) => {
                 let (size, signed) = int_size_and_signed(tcx, self);
-                let val = if signed { signed_max(size) as u128 } else { unsigned_max(size) };
+                let val =
+                    if signed { size.signed_int_max() as u128 } else { size.unsigned_int_max() };
                 Some(val)
             }
             ty::Char => Some(std::char::MAX as u128),
@@ -640,7 +631,7 @@ impl<'tcx> ty::TyS<'tcx> {
         let val = match self.kind() {
             ty::Int(_) | ty::Uint(_) => {
                 let (size, signed) = int_size_and_signed(tcx, self);
-                let val = if signed { size.truncate(signed_min(size) as u128) } else { 0 };
+                let val = if signed { size.truncate(size.signed_int_min() as u128) } else { 0 };
                 Some(val)
             }
             ty::Char => Some(0),

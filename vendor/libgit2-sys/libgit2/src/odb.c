@@ -23,14 +23,14 @@
 
 #define GIT_ALTERNATES_FILE "info/alternates"
 
+#define GIT_ALTERNATES_MAX_DEPTH 5
+
 /*
  * We work under the assumption that most objects for long-running
  * operations will be packed
  */
-#define GIT_LOOSE_PRIORITY 1
-#define GIT_PACKED_PRIORITY 2
-
-#define GIT_ALTERNATES_MAX_DEPTH 5
+int git_odb__loose_priority = GIT_ODB_DEFAULT_LOOSE_PRIORITY;
+int git_odb__packed_priority = GIT_ODB_DEFAULT_PACKED_PRIORITY;
 
 bool git_odb__strict_hash_verification = true;
 
@@ -260,9 +260,7 @@ int git_odb__hashfd_filtered(
 	if (!(error = git_futils_readbuffer_fd(&raw, fd, size))) {
 		git_buf post = GIT_BUF_INIT;
 
-		error = git_filter_list_apply_to_data(&post, fl, &raw);
-
-		git_buf_dispose(&raw);
+		error = git_filter_list__convert_buf(&post, fl, &raw);
 
 		if (!error)
 			error = git_odb_hash(out, post.ptr, post.size, type);
@@ -299,14 +297,15 @@ int git_odb__hashlink(git_oid *out, const char *path)
 		GIT_ERROR_CHECK_ALLOC(link_data);
 
 		read_len = p_readlink(path, link_data, size);
-		link_data[size] = '\0';
-		if (read_len != size) {
+		if (read_len == -1) {
 			git_error_set(GIT_ERROR_OS, "failed to read symlink data for '%s'", path);
 			git__free(link_data);
 			return -1;
 		}
+		GIT_ASSERT(read_len <= size);
+		link_data[read_len] = '\0';
 
-		result = git_odb_hash(out, link_data, size, GIT_OBJECT_BLOB);
+		result = git_odb_hash(out, link_data, read_len, GIT_OBJECT_BLOB);
 		git__free(link_data);
 	} else {
 		int fd = git_futils_open_ro(path);
@@ -574,7 +573,7 @@ int git_odb__add_default_backends(
 	git_odb *db, const char *objects_dir,
 	bool as_alternates, int alternate_depth)
 {
-	size_t i;
+	size_t i = 0;
 	struct stat st;
 	ino_t inode;
 	git_odb_backend *loose, *packed;
@@ -583,7 +582,7 @@ int git_odb__add_default_backends(
 	 * a cross-platform workaround for this */
 #ifdef GIT_WIN32
 	GIT_UNUSED(i);
-	GIT_UNUSED(st);
+	GIT_UNUSED(&st);
 
 	inode = 0;
 #else
@@ -614,13 +613,23 @@ int git_odb__add_default_backends(
 
 	/* add the loose object backend */
 	if (git_odb_backend_loose(&loose, objects_dir, -1, db->do_fsync, 0, 0) < 0 ||
-		add_backend_internal(db, loose, GIT_LOOSE_PRIORITY, as_alternates, inode) < 0)
+		add_backend_internal(db, loose, git_odb__loose_priority, as_alternates, inode) < 0)
 		return -1;
 
 	/* add the packed file backend */
 	if (git_odb_backend_pack(&packed, objects_dir) < 0 ||
-		add_backend_internal(db, packed, GIT_PACKED_PRIORITY, as_alternates, inode) < 0)
+		add_backend_internal(db, packed, git_odb__packed_priority, as_alternates, inode) < 0)
 		return -1;
+
+	if (git_mutex_lock(&db->lock) < 0) {
+		git_error_set(GIT_ERROR_ODB, "failed to acquire the odb lock");
+		return -1;
+	}
+	if (!db->cgraph && git_commit_graph_new(&db->cgraph, objects_dir, false) < 0) {
+		git_mutex_unlock(&db->lock);
+		return -1;
+	}
+	git_mutex_unlock(&db->lock);
 
 	return load_alternates(db, objects_dir, alternate_depth);
 }
@@ -683,6 +692,23 @@ int git_odb_add_disk_alternate(git_odb *odb, const char *path)
 	return git_odb__add_default_backends(odb, path, true, 0);
 }
 
+int git_odb_set_commit_graph(git_odb *odb, git_commit_graph *cgraph)
+{
+	int error = 0;
+
+	GIT_ASSERT_ARG(odb);
+
+	if ((error = git_mutex_lock(&odb->lock)) < 0) {
+		git_error_set(GIT_ERROR_ODB, "failed to acquire the db lock");
+		return error;
+	}
+	git_commit_graph_free(odb->cgraph);
+	odb->cgraph = cgraph;
+	git_mutex_unlock(&odb->lock);
+
+	return error;
+}
+
 int git_odb_open(git_odb **out, const char *objects_dir)
 {
 	git_odb *db;
@@ -742,6 +768,7 @@ static void odb_free(git_odb *db)
 	if (locked)
 		git_mutex_unlock(&db->lock);
 
+	git_commit_graph_free(db->cgraph);
 	git_vector_free(&db->backends);
 	git_cache_dispose(&db->own_cache);
 	git_mutex_free(&db->lock);
@@ -784,6 +811,29 @@ static int odb_exists_1(
 	git_mutex_unlock(&db->lock);
 
 	return (int)found;
+}
+
+int git_odb__get_commit_graph_file(git_commit_graph_file **out, git_odb *db)
+{
+	int error = 0;
+	git_commit_graph_file *result = NULL;
+
+	if ((error = git_mutex_lock(&db->lock)) < 0) {
+		git_error_set(GIT_ERROR_ODB, "failed to acquire the db lock");
+		return error;
+	}
+	if (!db->cgraph) {
+		error = GIT_ENOTFOUND;
+		goto done;
+	}
+	error = git_commit_graph_get_file(&result, db->cgraph);
+	if (error)
+		goto done;
+	*out = result;
+
+done:
+	git_mutex_unlock(&db->lock);
+	return error;
 }
 
 static int odb_freshen_1(
@@ -1653,6 +1703,35 @@ int git_odb_write_pack(struct git_odb_writepack **out, git_odb *db, git_indexer_
 	return error;
 }
 
+int git_odb_write_multi_pack_index(git_odb *db)
+{
+	size_t i, writes = 0;
+	int error = GIT_ERROR;
+
+	GIT_ASSERT_ARG(db);
+
+	for (i = 0; i < db->backends.length && error < 0; ++i) {
+		backend_internal *internal = git_vector_get(&db->backends, i);
+		git_odb_backend *b = internal->backend;
+
+		/* we don't write in alternates! */
+		if (internal->is_alternate)
+			continue;
+
+		if (b->writemidx != NULL) {
+			++writes;
+			error = b->writemidx(b);
+		}
+	}
+
+	if (error == GIT_PASSTHROUGH)
+		error = 0;
+	if (error < 0 && !writes)
+		error = git_odb__error_unsupported_in_backend("write multi-pack-index");
+
+	return error;
+}
+
 void *git_odb_backend_data_alloc(git_odb_backend *backend, size_t len)
 {
 	GIT_UNUSED(backend);
@@ -1695,6 +1774,8 @@ int git_odb_refresh(struct git_odb *db)
 			}
 		}
 	}
+	if (db->cgraph)
+		git_commit_graph_refresh(db->cgraph);
 	git_mutex_unlock(&db->lock);
 
 	return 0;

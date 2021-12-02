@@ -10,10 +10,17 @@ set -ex
 #export RUST_TEST_NOCAPTURE=1
 #export RUST_TEST_THREADS=1
 
-RUSTFLAGS="$RUSTFLAGS -D warnings "
+export RUSTFLAGS="${RUSTFLAGS} -D warnings -Z merge-functions=disabled "
+
+export STDARCH_DISABLE_DEDUP_GUARD=1
 
 case ${TARGET} in
+    # On Windows the linker performs identical COMDAT folding (ICF) by default
+    # in release mode which removes identical COMDAT sections. This interferes
+    # with our instruction assertions just like LLVM's MergeFunctions pass so
+    # we disable it.
     *-pc-windows-msvc)
+        export RUSTFLAGS="${RUSTFLAGS} -Clink-args=/OPT:NOICF"
         ;;
     # On 32-bit use a static relocation model which avoids some extra
     # instructions when dealing with static data, notably allowing some
@@ -65,6 +72,8 @@ cargo_test() {
 CORE_ARCH="--manifest-path=crates/core_arch/Cargo.toml"
 STD_DETECT="--manifest-path=crates/std_detect/Cargo.toml"
 STDARCH_EXAMPLES="--manifest-path=examples/Cargo.toml"
+INTRINSIC_TEST="--manifest-path=crates/intrinsic-test/Cargo.toml"
+
 cargo_test "${CORE_ARCH} --release"
 
 if [ "$NOSTD" != "1" ]; then
@@ -110,6 +119,11 @@ case ${TARGET} in
         ;;
 
 esac
+
+if [ "${TARGET}" = "aarch64-unknown-linux-gnu" ]; then
+    export CPPFLAGS="-fuse-ld=lld -I/usr/aarch64-linux-gnu/include/ -I/usr/aarch64-linux-gnu/include/c++/9/aarch64-linux-gnu/"
+    cargo run ${INTRINSIC_TEST} --release --bin intrinsic-test -- crates/intrinsic-test/neon-intrinsics.csv --runner "${CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER}" --cppcompiler "clang++-12"
+fi
 
 if [ "$NORUN" != "1" ] && [ "$NOSTD" != 1 ]; then
     # Test examples

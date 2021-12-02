@@ -95,6 +95,9 @@ pub fn lifetime(text: &str) -> ast::Lifetime {
 pub fn ty(text: &str) -> ast::Type {
     ty_from_text(text)
 }
+pub fn ty_placeholder() -> ast::Type {
+    ty_from_text("_")
+}
 pub fn ty_unit() -> ast::Type {
     ty_from_text("()")
 }
@@ -244,6 +247,7 @@ pub fn record_field(
     ast_from_text(&format!("struct S {{ {}{}: {}, }}", visibility, name, ty))
 }
 
+// TODO
 pub fn block_expr(
     stmts: impl IntoIterator<Item = ast::Stmt>,
     tail_expr: Option<ast::Expr>,
@@ -253,7 +257,7 @@ pub fn block_expr(
         format_to!(buf, "    {}\n", stmt);
     }
     if let Some(tail_expr) = tail_expr {
-        format_to!(buf, "    {}\n", tail_expr)
+        format_to!(buf, "    {}\n", tail_expr);
     }
     buf += "}";
     ast_from_text(&format!("fn f() {}", buf))
@@ -295,6 +299,9 @@ pub fn expr_return(expr: Option<ast::Expr>) -> ast::Expr {
 pub fn expr_try(expr: ast::Expr) -> ast::Expr {
     expr_from_text(&format!("{}?", expr))
 }
+pub fn expr_await(expr: ast::Expr) -> ast::Expr {
+    expr_from_text(&format!("{}.await", expr))
+}
 pub fn expr_match(expr: ast::Expr, match_arm_list: ast::MatchArmList) -> ast::Expr {
     expr_from_text(&format!("match {} {}", expr, match_arm_list))
 }
@@ -313,6 +320,11 @@ pub fn expr_if(
 pub fn expr_for_loop(pat: ast::Pat, expr: ast::Expr, block: ast::BlockExpr) -> ast::Expr {
     expr_from_text(&format!("for {} in {} {}", pat, expr, block))
 }
+
+pub fn expr_loop(block: ast::BlockExpr) -> ast::Expr {
+    expr_from_text(&format!("loop {}", block))
+}
+
 pub fn expr_prefix(op: SyntaxKind, expr: ast::Expr) -> ast::Expr {
     let token = token(op);
     expr_from_text(&format!("{}{}", token, expr))
@@ -548,7 +560,7 @@ pub fn param(pat: ast::Pat, ty: ast::Type) -> ast::Param {
 }
 
 pub fn self_param() -> ast::SelfParam {
-    ast_from_text(&format!("fn f(&self) {{ }}"))
+    ast_from_text("fn f(&self) { }")
 }
 
 pub fn ret_type(ty: ast::Type) -> ast::RetType {
@@ -632,9 +644,14 @@ pub fn fn_(
     ret_type: Option<ast::RetType>,
     is_async: bool,
 ) -> ast::Fn {
-    let type_params =
-        if let Some(type_params) = type_params { format!("<{}>", type_params) } else { "".into() };
-    let ret_type = if let Some(ret_type) = ret_type { format!("{} ", ret_type) } else { "".into() };
+    let type_params = match type_params {
+        Some(type_params) => format!("<{}>", type_params),
+        None => "".into(),
+    };
+    let ret_type = match ret_type {
+        Some(ret_type) => format!("{} ", ret_type),
+        None => "".into(),
+    };
     let visibility = match visibility {
         None => String::new(),
         Some(it) => format!("{} ", it),

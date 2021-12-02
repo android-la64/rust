@@ -2,7 +2,7 @@ use super::Pass;
 use crate::clean::*;
 use crate::core::DocContext;
 use crate::fold::DocFolder;
-use crate::html::markdown::opts;
+use crate::html::markdown::main_body_opts;
 use core::ops::Range;
 use pulldown_cmark::{Event, Parser, Tag};
 use std::iter::Peekable;
@@ -52,7 +52,7 @@ fn drop_tag(
                 continue;
             }
             let last_tag_name_low = last_tag_name.to_lowercase();
-            if ALLOWED_UNCLOSED.iter().any(|&at| at == last_tag_name_low) {
+            if ALLOWED_UNCLOSED.contains(&last_tag_name_low.as_str()) {
                 continue;
             }
             // `tags` is used as a queue, meaning that everything after `pos` is included inside it.
@@ -192,7 +192,7 @@ impl<'a, 'tcx> DocFolder for InvalidHtmlTagsLinter<'a, 'tcx> {
             let mut is_in_comment = None;
             let mut in_code_block = false;
 
-            let p = Parser::new_ext(&dox, opts()).into_offset_iter();
+            let p = Parser::new_ext(&dox, main_body_opts()).into_offset_iter();
 
             for (event, range) in p {
                 match event {
@@ -207,7 +207,7 @@ impl<'a, 'tcx> DocFolder for InvalidHtmlTagsLinter<'a, 'tcx> {
 
             for (tag, range) in tags.iter().filter(|(t, _)| {
                 let t = t.to_lowercase();
-                ALLOWED_UNCLOSED.iter().find(|&&at| at == t).is_none()
+                !ALLOWED_UNCLOSED.contains(&t.as_str())
             }) {
                 report_diag(&format!("unclosed HTML tag `{}`", tag), range);
             }

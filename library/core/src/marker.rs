@@ -30,7 +30,8 @@ use crate::hash::Hasher;
 /// [arc]: ../../std/sync/struct.Arc.html
 /// [ub]: ../../reference/behavior-considered-undefined.html
 #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg_attr(not(test), rustc_diagnostic_item = "send_trait")]
+#[cfg_attr(all(not(test), bootstrap), rustc_diagnostic_item = "send_trait")]
+#[cfg_attr(all(not(test), not(bootstrap)), rustc_diagnostic_item = "Send")]
 #[rustc_on_unimplemented(
     message = "`{Self}` cannot be sent between threads safely",
     label = "`{Self}` cannot be sent between threads safely"
@@ -99,17 +100,15 @@ pub trait Sized {
 /// `Unsize<dyn fmt::Debug>`.
 ///
 /// All implementations of `Unsize` are provided automatically by the compiler.
+/// Those implementations are:
 ///
-/// `Unsize` is implemented for:
-///
-/// - `[T; N]` is `Unsize<[T]>`
-/// - `T` is `Unsize<dyn Trait>` when `T: Trait`
-/// - `Foo<..., T, ...>` is `Unsize<Foo<..., U, ...>>` if:
-///   - `T: Unsize<U>`
-///   - Foo is a struct
-///   - Only the last field of `Foo` has a type involving `T`
-///   - `T` is not part of the type of any other fields
-///   - `Bar<T>: Unsize<Bar<U>>`, if the last field of `Foo` has type `Bar<T>`
+/// - Arrays `[T; N]` implement `Unsize<[T]>`.
+/// - Types implementing a trait `Trait` also implement `Unsize<dyn Trait>`.
+/// - Structs `Foo<..., T, ...>` implement `Unsize<Foo<..., U, ...>>` if all of these conditions
+///   are met:
+///   - `T: Unsize<U>`.
+///   - Only the last field of `Foo` has a type involving `T`.
+///   - `Bar<T>: Unsize<Bar<U>>`, where `Bar<T>` stands for the actual type of that last field.
 ///
 /// `Unsize` is used along with [`ops::CoerceUnsized`] to allow
 /// "user-defined" containers such as [`Rc`] to contain dynamically-sized
@@ -382,6 +381,7 @@ pub trait StructuralEq {
 // existing specializations on `Copy` that already exist in the standard
 // library, and there's no way to safely have this behavior right now.
 #[rustc_unsafe_specialization_marker]
+#[rustc_diagnostic_item = "Copy"]
 pub trait Copy: Clone {
     // Empty.
 }
@@ -460,7 +460,7 @@ pub macro Copy($item:item) {
 /// [transmute]: crate::mem::transmute
 /// [nomicon-send-and-sync]: ../../nomicon/send-and-sync.html
 #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg_attr(not(test), rustc_diagnostic_item = "sync_trait")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "Sync")]
 #[lang = "sync"]
 #[rustc_on_unimplemented(
     message = "`{Self}` cannot be shared between threads safely",

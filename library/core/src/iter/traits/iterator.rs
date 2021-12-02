@@ -96,7 +96,7 @@ pub trait Iterator {
     /// Specifically, `size_hint()` returns a tuple where the first element
     /// is the lower bound, and the second element is the upper bound.
     ///
-    /// The second half of the tuple that is returned is an [`Option`]`<`[`usize`]`>`.
+    /// The second half of the tuple that is returned is an <code>[Option]<[usize]></code>.
     /// A [`None`] here means that either there is no known upper bound, or the
     /// upper bound is larger than [`usize`].
     ///
@@ -115,10 +115,8 @@ pub trait Iterator {
     /// That said, the implementation should provide a correct estimation,
     /// because otherwise it would be a violation of the trait's protocol.
     ///
-    /// The default implementation returns `(0, `[`None`]`)` which is correct for any
+    /// The default implementation returns <code>(0, [None])</code> which is correct for any
     /// iterator.
-    ///
-    /// [`usize`]: type@usize
     ///
     /// # Examples
     ///
@@ -248,8 +246,14 @@ pub trait Iterator {
     /// of elements the iterator is advanced by before running out of elements (i.e. the
     /// length of the iterator). Note that `k` is always less than `n`.
     ///
-    /// Calling `advance_by(0)` does not consume any elements and always returns [`Ok(())`][Ok].
+    /// Calling `advance_by(0)` can do meaningful work, for example [`Flatten`]
+    /// can advance its outer iterator until it finds an inner iterator that is not empty, which
+    /// then often allows it to return a more accurate `size_hint()` than in its initial state.
+    /// `advance_by(0)` may either return `Ok()` or `Err(0)`. The former conveys no information
+    /// whether the iterator is or is not exhausted, the latter can be treated as if [`next`]
+    /// had returned `None`. Replacing a `Err(0)` with `Ok` is only correct for `n = 0`.
     ///
+    /// [`Flatten`]: crate::iter::Flatten
     /// [`next`]: Iterator::next
     ///
     /// # Examples
@@ -870,7 +874,6 @@ pub trait Iterator {
     /// The returned iterator might panic if the to-be-returned index would
     /// overflow a [`usize`].
     ///
-    /// [`usize`]: type@usize
     /// [`zip`]: Iterator::zip
     ///
     /// # Examples
@@ -1122,7 +1125,6 @@ pub trait Iterator {
     /// Basic usage:
     ///
     /// ```
-    /// #![feature(iter_map_while)]
     /// let a = [-1i32, 4, 0, 1];
     ///
     /// let mut iter = a.iter().map_while(|x| 16i32.checked_div(*x));
@@ -1153,7 +1155,6 @@ pub trait Iterator {
     /// Stopping after an initial [`None`]:
     ///
     /// ```
-    /// #![feature(iter_map_while)]
     /// use std::convert::TryFrom;
     ///
     /// let a = [0, 1, 2, -3, 4, 5, -6];
@@ -1171,7 +1172,6 @@ pub trait Iterator {
     /// removed:
     ///
     /// ```
-    /// #![feature(iter_map_while)]
     /// use std::convert::TryFrom;
     ///
     /// let a = [1, 2, -3, 4];
@@ -1197,7 +1197,7 @@ pub trait Iterator {
     ///
     /// [`fuse`]: Iterator::fuse
     #[inline]
-    #[unstable(feature = "iter_map_while", reason = "recently added", issue = "68537")]
+    #[stable(feature = "iter_map_while", since = "1.57.0")]
     fn map_while<B, P>(self, predicate: P) -> MapWhile<Self, P>
     where
         Self: Sized,
@@ -1807,10 +1807,11 @@ pub trait Iterator {
     /// The relative order of partitioned items is not maintained.
     ///
     /// # Current implementation
+    ///
     /// Current algorithms tries finding the first element for which the predicate evaluates
     /// to false, and the last element for which it evaluates to true and repeatedly swaps them.
     ///
-    /// Time Complexity: *O*(*N*)
+    /// Time complexity: *O*(*n*)
     ///
     /// See also [`is_partitioned()`] and [`partition()`].
     ///
@@ -2178,8 +2179,9 @@ pub trait Iterator {
     /// If the iterator is empty, returns [`None`]; otherwise, returns the
     /// result of the reduction.
     ///
+    /// The reducing function is a closure with two arguments: an 'accumulator', and an element.
     /// For iterators with at least one element, this is the same as [`fold()`]
-    /// with the first element of the iterator as the initial value, folding
+    /// with the first element of the iterator as the initial accumulator value, folding
     /// every subsequent element into it.
     ///
     /// [`fold()`]: Iterator::fold
@@ -2193,8 +2195,8 @@ pub trait Iterator {
     ///     where I: Iterator,
     ///           I::Item: Ord,
     /// {
-    ///     iter.reduce(|a, b| {
-    ///         if a >= b { a } else { b }
+    ///     iter.reduce(|accum, item| {
+    ///         if accum >= item { accum } else { item }
     ///     })
     /// }
     /// let a = [10, 20, 5, -23, 0];
@@ -3458,6 +3460,7 @@ pub trait Iterator {
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<I: Iterator + ?Sized> Iterator for &mut I {
     type Item = I::Item;
+    #[inline]
     fn next(&mut self) -> Option<I::Item> {
         (**self).next()
     }

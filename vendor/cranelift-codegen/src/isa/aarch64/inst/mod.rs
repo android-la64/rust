@@ -303,14 +303,8 @@ pub enum VecALUOp {
     Fmul,
     /// Add pairwise
     Addp,
-    /// Unsigned multiply add long
-    Umlal,
     /// Zip vectors (primary) [meaning, high halves]
     Zip1,
-    /// Signed multiply long (low halves)
-    Smull,
-    /// Signed multiply long (high halves)
-    Smull2,
     /// Signed saturating rounding doubling multiply returning high half
     Sqrdmulh,
 }
@@ -402,11 +396,39 @@ pub enum VecRRNarrowOp {
     Fcvtn64,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum VecRRRLongOp {
+    /// Signed multiply long.
+    Smull8,
+    Smull16,
+    Smull32,
+    /// Unsigned multiply long.
+    Umull8,
+    Umull16,
+    Umull32,
+    /// Unsigned multiply add long
+    Umlal8,
+    Umlal16,
+    Umlal32,
+}
+
 /// A vector operation on a pair of elements with one register.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum VecPairOp {
     /// Add pair of elements
     Addp,
+}
+
+/// 1-operand vector instruction that extends elements of the input register
+/// and operates on a pair of elements.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum VecRRPairLongOp {
+    /// Sign extend and add pair of elements
+    Saddlp8,
+    Saddlp16,
+    /// Unsigned extend and add pair of elements
+    Uaddlp8,
+    Uaddlp16,
 }
 
 /// An operation across the lanes of vectors.
@@ -767,10 +789,9 @@ pub enum Inst {
     },
 
     /// Similar to AtomicRMW, a compare-and-swap operation implemented using a load-linked
-    /// store-conditional loop. The sequence is both preceded and followed by a fence which is
-    /// at least as comprehensive as that of the `Fence` instruction below.  This instruction
-    /// is sequentially consistent.  Note that the operand conventions, although very similar
-    /// to AtomicRMW, are different:
+    /// store-conditional loop.
+    /// This instruction is sequentially consistent.
+    /// Note that the operand conventions, although very similar to AtomicRMW, are different:
     ///
     /// x25   (rd) address
     /// x26   (rd) expected value
@@ -781,22 +802,21 @@ pub enum Inst {
         ty: Type, // I8, I16, I32 or I64
     },
 
-    /// Read `ty` bits from address `r_addr`, zero extend the loaded value to 64 bits and put it
-    /// in `r_data`.  The load instruction is preceded by a fence at least as comprehensive as
-    /// that of the `Fence` instruction below.  This instruction is sequentially consistent.
-    AtomicLoad {
-        ty: Type, // I8, I16, I32 or I64
-        r_data: Writable<Reg>,
-        r_addr: Reg,
+    /// Read `access_ty` bits from address `rt`, either 8, 16, 32 or 64-bits, and put
+    /// it in `rn`, optionally zero-extending to fill a word or double word result.
+    /// This instruction is sequentially consistent.
+    LoadAcquire {
+        access_ty: Type, // I8, I16, I32 or I64
+        rt: Writable<Reg>,
+        rn: Reg,
     },
 
-    /// Write the lowest `ty` bits of `r_data` to address `r_addr`, with a memory fence
-    /// instruction following the store.  The fence is at least as comprehensive as that of the
-    /// `Fence` instruction below.  This instruction is sequentially consistent.
-    AtomicStore {
-        ty: Type, // I8, I16, I32 or I64
-        r_data: Reg,
-        r_addr: Reg,
+    /// Write the lowest `ty` bits of `rt` to address `rn`.
+    /// This instruction is sequentially consistent.
+    StoreRelease {
+        access_ty: Type, // I8, I16, I32 or I64
+        rt: Reg,
+        rn: Reg,
     },
 
     /// A memory fence.  This must provide ordering to ensure that, at a minimum, neither loads
@@ -1083,6 +1103,25 @@ pub enum Inst {
     /// 1-operand vector instruction that operates on a pair of elements.
     VecRRPair {
         op: VecPairOp,
+        rd: Writable<Reg>,
+        rn: Reg,
+    },
+
+    /// 2-operand vector instruction that produces a result with twice the
+    /// lane width and half the number of lanes.
+    VecRRRLong {
+        alu_op: VecRRRLongOp,
+        rd: Writable<Reg>,
+        rn: Reg,
+        rm: Reg,
+        high_half: bool,
+    },
+
+    /// 1-operand vector instruction that extends elements of the input
+    /// register and operates on a pair of elements. The output lane width
+    /// is double that of the input.
+    VecRRPairLong {
+        op: VecRRPairLongOp,
         rd: Writable<Reg>,
         rn: Reg,
     },
@@ -1899,13 +1938,13 @@ fn aarch64_get_regs(inst: &Inst, collector: &mut RegUsageCollector) {
             collector.add_def(writable_xreg(24));
             collector.add_def(writable_xreg(27));
         }
-        &Inst::AtomicLoad { r_data, r_addr, .. } => {
-            collector.add_use(r_addr);
-            collector.add_def(r_data);
+        &Inst::LoadAcquire { rt, rn, .. } => {
+            collector.add_use(rn);
+            collector.add_def(rt);
         }
-        &Inst::AtomicStore { r_data, r_addr, .. } => {
-            collector.add_use(r_addr);
-            collector.add_use(r_data);
+        &Inst::StoreRelease { rt, rn, .. } => {
+            collector.add_use(rn);
+            collector.add_use(rt);
         }
         &Inst::Fence {} => {}
         &Inst::FpuMove64 { rd, rn } => {
@@ -2134,10 +2173,26 @@ fn aarch64_get_regs(inst: &Inst, collector: &mut RegUsageCollector) {
             collector.add_def(rd);
             collector.add_use(rn);
         }
+        &Inst::VecRRRLong {
+            alu_op, rd, rn, rm, ..
+        } => {
+            match alu_op {
+                VecRRRLongOp::Umlal8 | VecRRRLongOp::Umlal16 | VecRRRLongOp::Umlal32 => {
+                    collector.add_mod(rd)
+                }
+                _ => collector.add_def(rd),
+            };
+            collector.add_use(rn);
+            collector.add_use(rm);
+        }
+        &Inst::VecRRPairLong { rd, rn, .. } => {
+            collector.add_def(rd);
+            collector.add_use(rn);
+        }
         &Inst::VecRRR {
             alu_op, rd, rn, rm, ..
         } => {
-            if alu_op == VecALUOp::Bsl || alu_op == VecALUOp::Umlal {
+            if alu_op == VecALUOp::Bsl {
                 collector.add_mod(rd);
             } else {
                 collector.add_def(rd);
@@ -2522,21 +2577,21 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
         &mut Inst::AtomicCASLoop { .. } => {
             // There are no vregs to map in this insn.
         }
-        &mut Inst::AtomicLoad {
-            ref mut r_data,
-            ref mut r_addr,
+        &mut Inst::LoadAcquire {
+            ref mut rt,
+            ref mut rn,
             ..
         } => {
-            map_def(mapper, r_data);
-            map_use(mapper, r_addr);
+            map_def(mapper, rt);
+            map_use(mapper, rn);
         }
-        &mut Inst::AtomicStore {
-            ref mut r_data,
-            ref mut r_addr,
+        &mut Inst::StoreRelease {
+            ref mut rt,
+            ref mut rn,
             ..
         } => {
-            map_use(mapper, r_data);
-            map_use(mapper, r_addr);
+            map_use(mapper, rt);
+            map_use(mapper, rn);
         }
         &mut Inst::Fence {} => {}
         &mut Inst::FpuMove64 {
@@ -2944,6 +2999,30 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             map_def(mapper, rd);
             map_use(mapper, rn);
         }
+        &mut Inst::VecRRRLong {
+            alu_op,
+            ref mut rd,
+            ref mut rn,
+            ref mut rm,
+            ..
+        } => {
+            match alu_op {
+                VecRRRLongOp::Umlal8 | VecRRRLongOp::Umlal16 | VecRRRLongOp::Umlal32 => {
+                    map_mod(mapper, rd)
+                }
+                _ => map_def(mapper, rd),
+            };
+            map_use(mapper, rn);
+            map_use(mapper, rm);
+        }
+        &mut Inst::VecRRPairLong {
+            ref mut rd,
+            ref mut rn,
+            ..
+        } => {
+            map_def(mapper, rd);
+            map_use(mapper, rn);
+        }
         &mut Inst::VecRRR {
             alu_op,
             ref mut rd,
@@ -2951,7 +3030,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            if alu_op == VecALUOp::Bsl || alu_op == VecALUOp::Umlal {
+            if alu_op == VecALUOp::Bsl {
                 map_mod(mapper, rd);
             } else {
                 map_def(mapper, rd);
@@ -3562,25 +3641,35 @@ impl Inst {
                     "atomically {{ compare-and-swap({}_bits_at_[x25], x26 -> x28), x27 = old_value_at_[x25]; x24 = trash }}",
                     ty.bits())
             }
-            &Inst::AtomicLoad {
-                ty, r_data, r_addr, ..
+            &Inst::LoadAcquire {
+                access_ty, rt, rn, ..
             } => {
-                format!(
-                    "atomically {{ {} = zero_extend_{}_bits_at[{}] }}",
-                    r_data.show_rru(mb_rru),
-                    ty.bits(),
-                    r_addr.show_rru(mb_rru)
-                )
+                let (op, ty) = match access_ty {
+                    I8 => ("ldarb", I32),
+                    I16 => ("ldarh", I32),
+                    I32 => ("ldar", I32),
+                    I64 => ("ldar", I64),
+                    _ => panic!("Unsupported type: {}", access_ty),
+                };
+                let size = OperandSize::from_ty(ty);
+                let rt = show_ireg_sized(rt.to_reg(), mb_rru, size);
+                let rn = rn.show_rru(mb_rru);
+                format!("{} {}, [{}]", op, rt, rn)
             }
-            &Inst::AtomicStore {
-                ty, r_data, r_addr, ..
+            &Inst::StoreRelease {
+                access_ty, rt, rn, ..
             } => {
-                format!(
-                    "atomically {{ {}_bits_at[{}] = {} }}",
-                    ty.bits(),
-                    r_addr.show_rru(mb_rru),
-                    r_data.show_rru(mb_rru)
-                )
+                let (op, ty) = match access_ty {
+                    I8 => ("stlrb", I32),
+                    I16 => ("stlrh", I32),
+                    I32 => ("stlr", I32),
+                    I64 => ("stlr", I64),
+                    _ => panic!("Unsupported type: {}", access_ty),
+                };
+                let size = OperandSize::from_ty(ty);
+                let rt = show_ireg_sized(rt, mb_rru, size);
+                let rn = rn.show_rru(mb_rru);
+                format!("{} {}, [{}]", op, rt, rn)
             }
             &Inst::Fence {} => {
                 format!("dmb ish")
@@ -4104,6 +4193,26 @@ impl Inst {
 
                 format!("{} {}, {}", op, rd, rn)
             }
+            &Inst::VecRRPairLong { op, rd, rn } => {
+                let (op, dest, src) = match op {
+                    VecRRPairLongOp::Saddlp8 => {
+                        ("saddlp", VectorSize::Size16x8, VectorSize::Size8x16)
+                    }
+                    VecRRPairLongOp::Saddlp16 => {
+                        ("saddlp", VectorSize::Size32x4, VectorSize::Size16x8)
+                    }
+                    VecRRPairLongOp::Uaddlp8 => {
+                        ("uaddlp", VectorSize::Size16x8, VectorSize::Size8x16)
+                    }
+                    VecRRPairLongOp::Uaddlp16 => {
+                        ("uaddlp", VectorSize::Size32x4, VectorSize::Size16x8)
+                    }
+                };
+                let rd = show_vreg_vector(rd.to_reg(), mb_rru, dest);
+                let rn = show_vreg_vector(rn, mb_rru, src);
+
+                format!("{} {}, {}", op, rd, rn)
+            }
             &Inst::VecRRR {
                 rd,
                 rn,
@@ -4147,24 +4256,80 @@ impl Inst {
                     VecALUOp::Fmin => ("fmin", size),
                     VecALUOp::Fmul => ("fmul", size),
                     VecALUOp::Addp => ("addp", size),
-                    VecALUOp::Umlal => ("umlal", size),
                     VecALUOp::Zip1 => ("zip1", size),
-                    VecALUOp::Smull => ("smull", size),
-                    VecALUOp::Smull2 => ("smull2", size),
                     VecALUOp::Sqrdmulh => ("sqrdmulh", size),
                 };
-                let rd_size = match alu_op {
-                    VecALUOp::Umlal | VecALUOp::Smull | VecALUOp::Smull2 => size.widen(),
-                    _ => size,
+                let rd = show_vreg_vector(rd.to_reg(), mb_rru, size);
+                let rn = show_vreg_vector(rn, mb_rru, size);
+                let rm = show_vreg_vector(rm, mb_rru, size);
+                format!("{} {}, {}, {}", op, rd, rn, rm)
+            }
+            &Inst::VecRRRLong {
+                rd,
+                rn,
+                rm,
+                alu_op,
+                high_half,
+            } => {
+                let (op, dest_size, src_size) = match (alu_op, high_half) {
+                    (VecRRRLongOp::Smull8, false) => {
+                        ("smull", VectorSize::Size16x8, VectorSize::Size8x8)
+                    }
+                    (VecRRRLongOp::Smull8, true) => {
+                        ("smull2", VectorSize::Size16x8, VectorSize::Size8x16)
+                    }
+                    (VecRRRLongOp::Smull16, false) => {
+                        ("smull", VectorSize::Size32x4, VectorSize::Size16x4)
+                    }
+                    (VecRRRLongOp::Smull16, true) => {
+                        ("smull2", VectorSize::Size32x4, VectorSize::Size16x8)
+                    }
+                    (VecRRRLongOp::Smull32, false) => {
+                        ("smull", VectorSize::Size64x2, VectorSize::Size32x2)
+                    }
+                    (VecRRRLongOp::Smull32, true) => {
+                        ("smull2", VectorSize::Size64x2, VectorSize::Size32x4)
+                    }
+                    (VecRRRLongOp::Umull8, false) => {
+                        ("umull", VectorSize::Size16x8, VectorSize::Size8x8)
+                    }
+                    (VecRRRLongOp::Umull8, true) => {
+                        ("umull2", VectorSize::Size16x8, VectorSize::Size8x16)
+                    }
+                    (VecRRRLongOp::Umull16, false) => {
+                        ("umull", VectorSize::Size32x4, VectorSize::Size16x4)
+                    }
+                    (VecRRRLongOp::Umull16, true) => {
+                        ("umull2", VectorSize::Size32x4, VectorSize::Size16x8)
+                    }
+                    (VecRRRLongOp::Umull32, false) => {
+                        ("umull", VectorSize::Size64x2, VectorSize::Size32x2)
+                    }
+                    (VecRRRLongOp::Umull32, true) => {
+                        ("umull2", VectorSize::Size64x2, VectorSize::Size32x4)
+                    }
+                    (VecRRRLongOp::Umlal8, false) => {
+                        ("umlal", VectorSize::Size16x8, VectorSize::Size8x8)
+                    }
+                    (VecRRRLongOp::Umlal8, true) => {
+                        ("umlal2", VectorSize::Size16x8, VectorSize::Size8x16)
+                    }
+                    (VecRRRLongOp::Umlal16, false) => {
+                        ("umlal", VectorSize::Size32x4, VectorSize::Size16x4)
+                    }
+                    (VecRRRLongOp::Umlal16, true) => {
+                        ("umlal2", VectorSize::Size32x4, VectorSize::Size16x8)
+                    }
+                    (VecRRRLongOp::Umlal32, false) => {
+                        ("umlal", VectorSize::Size64x2, VectorSize::Size32x2)
+                    }
+                    (VecRRRLongOp::Umlal32, true) => {
+                        ("umlal2", VectorSize::Size64x2, VectorSize::Size32x4)
+                    }
                 };
-                let rn_size = match alu_op {
-                    VecALUOp::Smull => size.halve(),
-                    _ => size,
-                };
-                let rm_size = rn_size;
-                let rd = show_vreg_vector(rd.to_reg(), mb_rru, rd_size);
-                let rn = show_vreg_vector(rn, mb_rru, rn_size);
-                let rm = show_vreg_vector(rm, mb_rru, rm_size);
+                let rd = show_vreg_vector(rd.to_reg(), mb_rru, dest_size);
+                let rn = show_vreg_vector(rn, mb_rru, src_size);
+                let rm = show_vreg_vector(rm, mb_rru, src_size);
                 format!("{} {}, {}, {}", op, rd, rn, rm)
             }
             &Inst::VecMisc { op, rd, rn, size } => {

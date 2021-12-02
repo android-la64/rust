@@ -89,6 +89,8 @@ pub enum git_odb {}
 pub enum git_odb_stream {}
 pub enum git_odb_object {}
 pub enum git_worktree {}
+pub enum git_transaction {}
+pub enum git_mailmap {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -351,6 +353,8 @@ pub type git_indexer_progress_cb =
 )]
 pub type git_transfer_progress = git_indexer_progress;
 
+pub type git_remote_ready_cb = Option<extern "C" fn(*mut git_remote, c_int, *mut c_void) -> c_int>;
+
 #[repr(C)]
 pub struct git_remote_callbacks {
     pub version: c_uint,
@@ -366,6 +370,7 @@ pub struct git_remote_callbacks {
     pub push_update_reference: git_push_update_reference_cb,
     pub push_negotiation: git_push_negotiation,
     pub transport: git_transport_cb,
+    pub remote_ready: git_remote_ready_cb,
     pub payload: *mut c_void,
     pub resolve_url: git_url_resolve_cb,
 }
@@ -1167,6 +1172,7 @@ pub const GIT_DIFF_UPDATE_INDEX: git_diff_option_t = 1 << 15;
 pub const GIT_DIFF_INCLUDE_UNREADABLE: git_diff_option_t = 1 << 16;
 pub const GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED: git_diff_option_t = 1 << 17;
 pub const GIT_DIFF_INDENT_HEURISTIC: git_diff_option_t = 1 << 18;
+pub const GIT_DIFF_IGNORE_BLANK_LINES: git_diff_option_t = 1 << 19;
 pub const GIT_DIFF_FORCE_TEXT: git_diff_option_t = 1 << 20;
 pub const GIT_DIFF_FORCE_BINARY: git_diff_option_t = 1 << 21;
 pub const GIT_DIFF_IGNORE_WHITESPACE: git_diff_option_t = 1 << 22;
@@ -1245,6 +1251,13 @@ pub const GIT_DIFF_FORMAT_EMAIL_OPTIONS_VERSION: c_uint = 1;
 
 pub const GIT_DIFF_FORMAT_EMAIL_NONE: u32 = 0;
 pub const GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER: u32 = 1 << 0;
+
+#[repr(C)]
+pub struct git_diff_patchid_options {
+    pub version: c_uint,
+}
+
+pub const GIT_DIFF_PATCHID_OPTIONS_VERSION: c_uint = 1;
 
 #[repr(C)]
 pub struct git_diff_binary {
@@ -1476,6 +1489,8 @@ pub struct git_odb_backend {
             *mut c_void,
         ) -> c_int,
     >,
+
+    pub writemidx: Option<extern "C" fn(*mut git_odb_backend) -> c_int>,
 
     pub freshen: Option<extern "C" fn(*mut git_odb_backend, *const git_oid) -> c_int>,
 
@@ -1736,6 +1751,20 @@ pub type git_commit_signing_cb = Option<
     ) -> c_int,
 >;
 
+pub type git_commit_create_cb = Option<
+    extern "C" fn(
+        *mut git_oid,
+        *const git_signature,
+        *const git_signature,
+        *const c_char,
+        *const c_char,
+        *const git_tree,
+        usize,
+        *const git_commit,
+        *mut c_void,
+    ) -> c_int,
+>;
+
 pub const GIT_REBASE_NO_OPERATION: usize = usize::max_value();
 
 #[repr(C)]
@@ -1746,6 +1775,7 @@ pub struct git_rebase_options {
     pub rewrite_notes_ref: *const c_char,
     pub merge_options: git_merge_options,
     pub checkout_options: git_checkout_options,
+    pub commit_create_cb: git_commit_create_cb,
     pub signing_cb: git_commit_signing_cb,
     pub payload: *mut c_void,
 }
@@ -1880,6 +1910,49 @@ pub struct git_worktree_prune_options {
 
 pub const GIT_WORKTREE_PRUNE_OPTIONS_VERSION: c_uint = 1;
 
+pub type git_repository_mergehead_foreach_cb =
+    Option<extern "C" fn(oid: *const git_oid, payload: *mut c_void) -> c_int>;
+
+pub type git_repository_fetchhead_foreach_cb = Option<
+    extern "C" fn(*const c_char, *const c_char, *const git_oid, c_uint, *mut c_void) -> c_int,
+>;
+
+git_enum! {
+    pub enum git_trace_level_t {
+        /* No tracing will be performed. */
+        GIT_TRACE_NONE = 0,
+
+        /* Severe errors that may impact the program's execution */
+        GIT_TRACE_FATAL = 1,
+
+        /* Errors that do not impact the program's execution */
+        GIT_TRACE_ERROR = 2,
+
+        /* Warnings that suggest abnormal data */
+        GIT_TRACE_WARN = 3,
+
+        /* Informational messages about program execution */
+        GIT_TRACE_INFO = 4,
+
+        /* Detailed data that allows for debugging */
+        GIT_TRACE_DEBUG = 5,
+
+        /* Exceptionally detailed debugging data */
+        GIT_TRACE_TRACE = 6,
+    }
+}
+
+pub type git_trace_cb = Option<extern "C" fn(level: git_trace_level_t, msg: *const c_char)>;
+
+git_enum! {
+    pub enum git_feature_t {
+        GIT_FEATURE_THREADS = 1 << 0,
+        GIT_FEATURE_HTTPS   = 1 << 1,
+        GIT_FEATURE_SSH     = 1 << 2,
+        GIT_FEATURE_NSEC    = 1 << 3,
+    }
+}
+
 extern "C" {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -1971,6 +2044,16 @@ extern "C" {
     pub fn git_repository_reinit_filesystem(
         repo: *mut git_repository,
         recurse_submodules: c_int,
+    ) -> c_int;
+    pub fn git_repository_mergehead_foreach(
+        repo: *mut git_repository,
+        callback: git_repository_mergehead_foreach_cb,
+        payload: *mut c_void,
+    ) -> c_int;
+    pub fn git_repository_fetchhead_foreach(
+        repo: *mut git_repository,
+        callback: git_repository_fetchhead_foreach_cb,
+        payload: *mut c_void,
     ) -> c_int;
     pub fn git_ignore_add_rule(repo: *mut git_repository, rules: *const c_char) -> c_int;
     pub fn git_ignore_clear_internal_rules(repo: *mut git_repository) -> c_int;
@@ -2409,6 +2492,7 @@ extern "C" {
     ) -> c_int;
     pub fn git_submodule_free(submodule: *mut git_submodule);
     pub fn git_submodule_head_id(submodule: *mut git_submodule) -> *const git_oid;
+    pub fn git_submodule_ignore(submodule: *mut git_submodule) -> git_submodule_ignore_t;
     pub fn git_submodule_index_id(submodule: *mut git_submodule) -> *const git_oid;
     pub fn git_submodule_init(submodule: *mut git_submodule, overwrite: c_int) -> c_int;
     pub fn git_submodule_location(status: *mut c_uint, submodule: *mut git_submodule) -> c_int;
@@ -2589,7 +2673,17 @@ extern "C" {
 
     // commit
     pub fn git_commit_author(commit: *const git_commit) -> *const git_signature;
+    pub fn git_commit_author_with_mailmap(
+        out: *mut *mut git_signature,
+        commit: *const git_commit,
+        mailmap: *const git_mailmap,
+    ) -> c_int;
     pub fn git_commit_committer(commit: *const git_commit) -> *const git_signature;
+    pub fn git_commit_committer_with_mailmap(
+        out: *mut *mut git_signature,
+        commit: *const git_commit,
+        mailmap: *const git_mailmap,
+    ) -> c_int;
     pub fn git_commit_free(commit: *mut git_commit);
     pub fn git_commit_id(commit: *const git_commit) -> *const git_oid;
     pub fn git_commit_lookup(
@@ -2712,6 +2806,7 @@ extern "C" {
         force: c_int,
     ) -> c_int;
     pub fn git_branch_name(out: *mut *const c_char, branch: *const git_reference) -> c_int;
+    pub fn git_branch_name_is_valid(valid: *mut c_int, name: *const c_char) -> c_int;
     pub fn git_branch_remote_name(
         out: *mut git_buf,
         repo: *mut git_repository,
@@ -3434,6 +3529,16 @@ extern "C" {
         version: c_uint,
     ) -> c_int;
 
+    pub fn git_diff_patchid(
+        out: *mut git_oid,
+        diff: *mut git_diff,
+        opts: *mut git_diff_patchid_options,
+    ) -> c_int;
+    pub fn git_diff_patchid_options_init(
+        opts: *mut git_diff_patchid_options,
+        version: c_uint,
+    ) -> c_int;
+
     // patch
     pub fn git_patch_from_diff(out: *mut *mut git_patch, diff: *mut git_diff, idx: size_t)
         -> c_int;
@@ -3853,6 +3958,9 @@ extern "C" {
         given_opts: *const git_revert_options,
     ) -> c_int;
 
+    // Common
+    pub fn git_libgit2_version(major: *mut c_int, minor: *mut c_int, rev: *mut c_int) -> c_int;
+    pub fn git_libgit2_features() -> c_int;
     pub fn git_libgit2_opts(option: c_int, ...) -> c_int;
 
     // Worktrees
@@ -3896,6 +4004,59 @@ extern "C" {
         wt: *mut git_worktree,
         opts: *mut git_worktree_prune_options,
     ) -> c_int;
+
+    // Ref transactions
+    pub fn git_transaction_new(out: *mut *mut git_transaction, repo: *mut git_repository) -> c_int;
+    pub fn git_transaction_lock_ref(tx: *mut git_transaction, refname: *const c_char) -> c_int;
+    pub fn git_transaction_set_target(
+        tx: *mut git_transaction,
+        refname: *const c_char,
+        target: *const git_oid,
+        sig: *const git_signature,
+        msg: *const c_char,
+    ) -> c_int;
+    pub fn git_transaction_set_symbolic_target(
+        tx: *mut git_transaction,
+        refname: *const c_char,
+        target: *const c_char,
+        sig: *const git_signature,
+        msg: *const c_char,
+    ) -> c_int;
+    pub fn git_transaction_set_reflog(
+        tx: *mut git_transaction,
+        refname: *const c_char,
+        reflog: *const git_reflog,
+    ) -> c_int;
+    pub fn git_transaction_remove(tx: *mut git_transaction, refname: *const c_char) -> c_int;
+    pub fn git_transaction_commit(tx: *mut git_transaction) -> c_int;
+    pub fn git_transaction_free(tx: *mut git_transaction);
+
+    // Mailmap
+    pub fn git_mailmap_new(out: *mut *mut git_mailmap) -> c_int;
+    pub fn git_mailmap_from_buffer(
+        out: *mut *mut git_mailmap,
+        buf: *const c_char,
+        len: size_t,
+    ) -> c_int;
+    pub fn git_mailmap_from_repository(
+        out: *mut *mut git_mailmap,
+        repo: *mut git_repository,
+    ) -> c_int;
+    pub fn git_mailmap_free(mm: *mut git_mailmap);
+    pub fn git_mailmap_resolve_signature(
+        out: *mut *mut git_signature,
+        mm: *const git_mailmap,
+        sig: *const git_signature,
+    ) -> c_int;
+    pub fn git_mailmap_add_entry(
+        mm: *mut git_mailmap,
+        real_name: *const c_char,
+        real_email: *const c_char,
+        replace_name: *const c_char,
+        replace_email: *const c_char,
+    ) -> c_int;
+
+    pub fn git_trace_set(level: git_trace_level_t, cb: git_trace_cb) -> c_int;
 }
 
 pub fn init() {
@@ -3944,3 +4105,8 @@ fn ssh_init() {
 
 #[cfg(not(feature = "ssh"))]
 fn ssh_init() {}
+
+#[doc(hidden)]
+pub fn vendored() -> bool {
+    cfg!(libgit2_vendored)
+}

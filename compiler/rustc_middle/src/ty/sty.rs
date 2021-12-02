@@ -643,7 +643,7 @@ impl<'tcx> GeneratorSubsts<'tcx> {
     }
 
     /// This returns the types of the MIR locals which had to be stored across suspension points.
-    /// It is calculated in rustc_mir::transform::generator::StateTransform.
+    /// It is calculated in rustc_const_eval::transform::generator::StateTransform.
     /// All the types here must be in the tuple in GeneratorInterior.
     ///
     /// The locals are grouped by their variant number. Note that some locals may
@@ -844,8 +844,11 @@ impl<'tcx> TraitRef<'tcx> {
 
     /// Returns a `TraitRef` of the form `P0: Foo<P1..Pn>` where `Pi`
     /// are the parameters defined on trait.
-    pub fn identity(tcx: TyCtxt<'tcx>, def_id: DefId) -> TraitRef<'tcx> {
-        TraitRef { def_id, substs: InternalSubsts::identity_for_item(tcx, def_id) }
+    pub fn identity(tcx: TyCtxt<'tcx>, def_id: DefId) -> Binder<'tcx, TraitRef<'tcx>> {
+        ty::Binder::dummy(TraitRef {
+            def_id,
+            substs: InternalSubsts::identity_for_item(tcx, def_id),
+        })
     }
 
     #[inline]
@@ -1268,7 +1271,7 @@ pub type Region<'tcx> = &'tcx RegionKind;
 /// Representation of regions. Note that the NLL checker uses a distinct
 /// representation of regions. For this reason, it internally replaces all the
 /// regions with inference variables -- the index of the variable is then used
-/// to index into internal NLL data structures. See `rustc_mir::borrow_check`
+/// to index into internal NLL data structures. See `rustc_const_eval::borrow_check`
 /// module for more information.
 ///
 /// ## The Region lattice within a given function
@@ -1670,6 +1673,14 @@ impl<'tcx> TyS<'tcx> {
     #[inline]
     pub fn is_ty_var(&self) -> bool {
         matches!(self.kind(), Infer(TyVar(_)))
+    }
+
+    #[inline]
+    pub fn ty_vid(&self) -> Option<ty::TyVid> {
+        match self.kind() {
+            &Infer(TyVar(vid)) => Some(vid),
+            _ => None,
+        }
     }
 
     #[inline]

@@ -15,8 +15,8 @@ declare_clippy_lint! {
     /// order of sub-expressions.
     ///
     /// ### Why is this bad?
-    /// It is often confusing to read. In addition, the
-    /// sub-expression evaluation order for Rust is not well documented.
+    /// It is often confusing to read. As described [here](https://doc.rust-lang.org/reference/expressions.html?highlight=subexpression#evaluation-order-of-operands),
+    /// the operands of these expressions are evaluated before applying the effects of the expression.
     ///
     /// ### Known problems
     /// Code which intentionally depends on the evaluation
@@ -141,7 +141,7 @@ impl<'a, 'tcx> Visitor<'tcx> for DivergenceVisitor<'a, 'tcx> {
                 match typ.kind() {
                     ty::FnDef(..) | ty::FnPtr(_) => {
                         let sig = typ.fn_sig(self.cx.tcx);
-                        if let ty::Never = self.cx.tcx.erase_late_bound_regions(sig).output().kind() {
+                        if self.cx.tcx.erase_late_bound_regions(sig).output().kind() == &ty::Never {
                             self.report_diverging_sub_expr(e);
                         }
                     },

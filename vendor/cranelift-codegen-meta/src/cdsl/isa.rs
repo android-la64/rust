@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 use crate::cdsl::cpu_modes::CpuMode;
-use crate::cdsl::instructions::{InstructionGroup, InstructionPredicateMap};
+use crate::cdsl::instructions::InstructionPredicateMap;
 use crate::cdsl::recipes::Recipes;
 use crate::cdsl::regs::IsaRegs;
 use crate::cdsl::settings::SettingGroup;
@@ -10,7 +10,6 @@ use crate::cdsl::xform::{TransformGroupIndex, TransformGroups};
 
 pub(crate) struct TargetIsa {
     pub name: &'static str,
-    pub instructions: InstructionGroup,
     pub settings: SettingGroup,
     pub regs: IsaRegs,
     pub recipes: Recipes,
@@ -26,7 +25,6 @@ pub(crate) struct TargetIsa {
 impl TargetIsa {
     pub fn new(
         name: &'static str,
-        instructions: InstructionGroup,
         settings: SettingGroup,
         regs: IsaRegs,
         recipes: Recipes,
@@ -51,7 +49,6 @@ impl TargetIsa {
 
         Self {
             name,
-            instructions,
             settings,
             regs,
             recipes,

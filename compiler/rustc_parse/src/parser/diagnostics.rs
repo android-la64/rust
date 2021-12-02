@@ -277,7 +277,7 @@ impl<'a> Parser<'a> {
                 self.struct_span_err(sp, &msg)
                     .span_suggestion_short(sp, "change this to `;`", ";".to_string(), appl)
                     .emit();
-                return Ok(false);
+                return Ok(true);
             } else if self.look_ahead(0, |t| {
                 t == &token::CloseDelim(token::Brace)
                     || (
@@ -295,7 +295,7 @@ impl<'a> Parser<'a> {
                     .span_label(self.token.span, "unexpected token")
                     .span_suggestion_short(sp, "add `;` here", ";".to_string(), appl)
                     .emit();
-                return Ok(false);
+                return Ok(true);
             }
         }
 
@@ -1334,30 +1334,25 @@ impl<'a> Parser<'a> {
     pub(super) fn recover_parens_around_for_head(
         &mut self,
         pat: P<Pat>,
-        expr: &Expr,
         begin_paren: Option<Span>,
     ) -> P<Pat> {
         match (&self.token.kind, begin_paren) {
             (token::CloseDelim(token::Paren), Some(begin_par_sp)) => {
                 self.bump();
 
-                let pat_str = self
-                    // Remove the `(` from the span of the pattern:
-                    .span_to_snippet(pat.span.trim_start(begin_par_sp).unwrap())
-                    .unwrap_or_else(|_| pprust::pat_to_string(&pat));
-
-                self.struct_span_err(self.prev_token.span, "unexpected closing `)`")
-                    .span_label(begin_par_sp, "opening `(`")
-                    .span_suggestion(
-                        begin_par_sp.to(self.prev_token.span),
-                        "remove parenthesis in `for` loop",
-                        format!("{} in {}", pat_str, pprust::expr_to_string(&expr)),
-                        // With e.g. `for (x) in y)` this would replace `(x) in y)`
-                        // with `x) in y)` which is syntactically invalid.
-                        // However, this is prevented before we get here.
-                        Applicability::MachineApplicable,
-                    )
-                    .emit();
+                self.struct_span_err(
+                    MultiSpan::from_spans(vec![begin_par_sp, self.prev_token.span]),
+                    "unexpected parenthesis surrounding `for` loop head",
+                )
+                .multipart_suggestion(
+                    "remove parenthesis in `for` loop",
+                    vec![(begin_par_sp, String::new()), (self.prev_token.span, String::new())],
+                    // With e.g. `for (x) in y)` this would replace `(x) in y)`
+                    // with `x) in y)` which is syntactically invalid.
+                    // However, this is prevented before we get here.
+                    Applicability::MachineApplicable,
+                )
+                .emit();
 
                 // Unwrap `(pat)` into `pat` to avoid the `unused_parens` lint.
                 pat.and_then(|pat| match pat.kind {
@@ -1633,50 +1628,57 @@ impl<'a> Parser<'a> {
         {
             let rfc_note = "anonymous parameters are removed in the 2018 edition (see RFC 1685)";
 
-            let (ident, self_sugg, param_sugg, type_sugg) = match pat.kind {
-                PatKind::Ident(_, ident, _) => (
-                    ident,
-                    format!("self: {}", ident),
-                    format!("{}: TypeName", ident),
-                    format!("_: {}", ident),
-                ),
-                // Also catches `fn foo(&a)`.
-                PatKind::Ref(ref pat, mutab)
-                    if matches!(pat.clone().into_inner().kind, PatKind::Ident(..)) =>
-                {
-                    match pat.clone().into_inner().kind {
-                        PatKind::Ident(_, ident, _) => {
-                            let mutab = mutab.prefix_str();
-                            (
-                                ident,
-                                format!("self: &{}{}", mutab, ident),
-                                format!("{}: &{}TypeName", ident, mutab),
-                                format!("_: &{}{}", mutab, ident),
-                            )
+            let (ident, self_sugg, param_sugg, type_sugg, self_span, param_span, type_span) =
+                match pat.kind {
+                    PatKind::Ident(_, ident, _) => (
+                        ident,
+                        "self: ".to_string(),
+                        ": TypeName".to_string(),
+                        "_: ".to_string(),
+                        pat.span.shrink_to_lo(),
+                        pat.span.shrink_to_hi(),
+                        pat.span.shrink_to_lo(),
+                    ),
+                    // Also catches `fn foo(&a)`.
+                    PatKind::Ref(ref inner_pat, mutab)
+                        if matches!(inner_pat.clone().into_inner().kind, PatKind::Ident(..)) =>
+                    {
+                        match inner_pat.clone().into_inner().kind {
+                            PatKind::Ident(_, ident, _) => {
+                                let mutab = mutab.prefix_str();
+                                (
+                                    ident,
+                                    "self: ".to_string(),
+                                    format!("{}: &{}TypeName", ident, mutab),
+                                    "_: ".to_string(),
+                                    pat.span.shrink_to_lo(),
+                                    pat.span,
+                                    pat.span.shrink_to_lo(),
+                                )
+                            }
+                            _ => unreachable!(),
                         }
-                        _ => unreachable!(),
                     }
-                }
-                _ => {
-                    // Otherwise, try to get a type and emit a suggestion.
-                    if let Some(ty) = pat.to_ty() {
-                        err.span_suggestion_verbose(
-                            pat.span,
-                            "explicitly ignore the parameter name",
-                            format!("_: {}", pprust::ty_to_string(&ty)),
-                            Applicability::MachineApplicable,
-                        );
-                        err.note(rfc_note);
-                    }
+                    _ => {
+                        // Otherwise, try to get a type and emit a suggestion.
+                        if let Some(ty) = pat.to_ty() {
+                            err.span_suggestion_verbose(
+                                pat.span,
+                                "explicitly ignore the parameter name",
+                                format!("_: {}", pprust::ty_to_string(&ty)),
+                                Applicability::MachineApplicable,
+                            );
+                            err.note(rfc_note);
+                        }
 
-                    return None;
-                }
-            };
+                        return None;
+                    }
+                };
 
             // `fn foo(a, b) {}`, `fn foo(a<x>, b<y>) {}` or `fn foo(usize, usize) {}`
             if first_param {
                 err.span_suggestion(
-                    pat.span,
+                    self_span,
                     "if this is a `self` type, give it a parameter name",
                     self_sugg,
                     Applicability::MaybeIncorrect,
@@ -1686,14 +1688,14 @@ impl<'a> Parser<'a> {
             // `fn foo(HashMap: TypeName<u32>)`.
             if self.token != token::Lt {
                 err.span_suggestion(
-                    pat.span,
+                    param_span,
                     "if this is a parameter name, give it a type",
                     param_sugg,
                     Applicability::HasPlaceholders,
                 );
             }
             err.span_suggestion(
-                pat.span,
+                type_span,
                 "if this is a type, explicitly ignore the parameter name",
                 type_sugg,
                 Applicability::MachineApplicable,
@@ -1948,7 +1950,19 @@ impl<'a> Parser<'a> {
         }
         match self.parse_expr_res(Restrictions::CONST_EXPR, None) {
             Ok(expr) => {
-                if token::Comma == self.token.kind || self.token.kind.should_end_const_arg() {
+                // Find a mistake like `MyTrait<Assoc == S::Assoc>`.
+                if token::EqEq == snapshot.token.kind {
+                    err.span_suggestion(
+                        snapshot.token.span,
+                        "if you meant to use an associated type binding, replace `==` with `=`",
+                        "=".to_string(),
+                        Applicability::MaybeIncorrect,
+                    );
+                    let value = self.mk_expr_err(start.to(expr.span));
+                    err.emit();
+                    return Ok(GenericArg::Const(AnonConst { id: ast::DUMMY_NODE_ID, value }));
+                } else if token::Comma == self.token.kind || self.token.kind.should_end_const_arg()
+                {
                     // Avoid the following output by checking that we consumed a full const arg:
                     // help: expressions must be enclosed in braces to be used as const generic
                     //       arguments

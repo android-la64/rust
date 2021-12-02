@@ -1,14 +1,14 @@
 use std::io;
 
-use automaton::Automaton;
-use buffer::Buffer;
-use dfa::{self, DFA};
-use error::Result;
-use nfa::{self, NFA};
-use packed;
-use prefilter::PrefilterState;
-use state_id::StateID;
-use Match;
+use crate::automaton::Automaton;
+use crate::buffer::Buffer;
+use crate::dfa::{self, DFA};
+use crate::error::Result;
+use crate::nfa::{self, NFA};
+use crate::packed;
+use crate::prefilter::{Prefilter, PrefilterState};
+use crate::state_id::StateID;
+use crate::Match;
 
 /// An automaton for searching multiple strings in linear time.
 ///
@@ -1005,18 +1005,6 @@ impl<S: StateID> AhoCorasick<S> {
     ///
     /// let ac = AhoCorasickBuilder::new()
     ///     .dfa(true)
-    ///     .byte_classes(false)
-    ///     .build(&["foo", "bar", "baz"]);
-    /// assert_eq!(20_768, ac.heap_bytes());
-    ///
-    /// let ac = AhoCorasickBuilder::new()
-    ///     .dfa(true)
-    ///     .byte_classes(true) // default
-    ///     .build(&["foo", "bar", "baz"]);
-    /// assert_eq!(1_248, ac.heap_bytes());
-    ///
-    /// let ac = AhoCorasickBuilder::new()
-    ///     .dfa(true)
     ///     .ascii_case_insensitive(true)
     ///     .build(&["foo", "bar", "baz"]);
     /// assert_eq!(1_248, ac.heap_bytes());
@@ -1073,6 +1061,24 @@ impl<S: StateID> Imp<S> {
             Imp::NFA(ref nfa) => nfa.pattern_count(),
             Imp::DFA(ref dfa) => dfa.pattern_count(),
         }
+    }
+
+    /// Returns the prefilter object, if one exists, for the underlying
+    /// automaton.
+    fn prefilter(&self) -> Option<&dyn Prefilter> {
+        match *self {
+            Imp::NFA(ref nfa) => nfa.prefilter(),
+            Imp::DFA(ref dfa) => dfa.prefilter(),
+        }
+    }
+
+    /// Returns true if and only if we should attempt to use a prefilter.
+    fn use_prefilter(&self) -> bool {
+        let p = match self.prefilter() {
+            None => return false,
+            Some(p) => p,
+        };
+        !p.looks_for_non_start_of_match()
     }
 
     #[inline(always)]
@@ -1151,7 +1157,7 @@ impl<S: StateID> Imp<S> {
 ///
 /// The lifetime `'b` refers to the lifetime of the haystack being searched.
 #[derive(Debug)]
-pub struct FindIter<'a, 'b, S: 'a + StateID> {
+pub struct FindIter<'a, 'b, S: StateID> {
     fsm: &'a Imp<S>,
     prestate: PrefilterState,
     haystack: &'b [u8],
@@ -1208,7 +1214,7 @@ impl<'a, 'b, S: StateID> Iterator for FindIter<'a, 'b, S> {
 ///
 /// The lifetime `'b` refers to the lifetime of the haystack being searched.
 #[derive(Debug)]
-pub struct FindOverlappingIter<'a, 'b, S: 'a + StateID> {
+pub struct FindOverlappingIter<'a, 'b, S: StateID> {
     fsm: &'a Imp<S>,
     prestate: PrefilterState,
     haystack: &'b [u8],
@@ -1279,7 +1285,7 @@ impl<'a, 'b, S: StateID> Iterator for FindOverlappingIter<'a, 'b, S> {
 ///
 /// The lifetime `'a` refers to the lifetime of the `AhoCorasick` automaton.
 #[derive(Debug)]
-pub struct StreamFindIter<'a, R, S: 'a + StateID> {
+pub struct StreamFindIter<'a, R, S: StateID> {
     it: StreamChunkIter<'a, R, S>,
 }
 
@@ -1314,7 +1320,7 @@ impl<'a, R: io::Read, S: StateID> Iterator for StreamFindIter<'a, R, S> {
 /// N.B. This does not actually implement Iterator because we need to borrow
 /// from the underlying reader. But conceptually, it's still an iterator.
 #[derive(Debug)]
-struct StreamChunkIter<'a, R, S: 'a + StateID> {
+struct StreamChunkIter<'a, R, S: StateID> {
     /// The AC automaton.
     fsm: &'a Imp<S>,
     /// State associated with this automaton's prefilter. It is a heuristic
@@ -1363,7 +1369,11 @@ impl<'a, R: io::Read, S: StateID> StreamChunkIter<'a, R, S> {
             "stream searching is only supported for Standard match semantics"
         );
 
-        let prestate = PrefilterState::new(ac.max_pattern_len());
+        let prestate = if ac.imp.use_prefilter() {
+            PrefilterState::new(ac.max_pattern_len())
+        } else {
+            PrefilterState::disabled()
+        };
         let buf = Buffer::new(ac.imp.max_pattern_len());
         let state_id = ac.imp.start_state();
         StreamChunkIter {
@@ -1659,7 +1669,7 @@ impl AhoCorasickBuilder {
             // N.B. Using byte classes can actually be faster by improving
             // locality, but this only really applies for multi-megabyte
             // automata (i.e., automata that don't fit in your CPU's cache).
-            self.dfa(true).byte_classes(false);
+            self.dfa(true);
         } else if patterns.len() <= 5000 {
             self.dfa(true);
         }
@@ -1847,7 +1857,7 @@ impl AhoCorasickBuilder {
     /// finite automaton (NFA) is used instead.
     ///
     /// The main benefit to a DFA is that it can execute searches more quickly
-    /// than a DFA (perhaps 2-4 times as fast). The main drawback is that the
+    /// than a NFA (perhaps 2-4 times as fast). The main drawback is that the
     /// DFA uses more space and can take much longer to build.
     ///
     /// Enabling this option does not change the time complexity for
@@ -1906,6 +1916,10 @@ impl AhoCorasickBuilder {
     /// overall performance.
     ///
     /// This option is enabled by default.
+    #[deprecated(
+        since = "0.7.16",
+        note = "not carrying its weight, will be always enabled, see: https://github.com/BurntSushi/aho-corasick/issues/57"
+    )]
     pub fn byte_classes(&mut self, yes: bool) -> &mut AhoCorasickBuilder {
         self.dfa_builder.byte_classes(yes);
         self
@@ -1934,6 +1948,10 @@ impl AhoCorasickBuilder {
     /// non-premultiplied form only requires 8 bits.
     ///
     /// This option is enabled by default.
+    #[deprecated(
+        since = "0.7.16",
+        note = "not carrying its weight, will be always enabled, see: https://github.com/BurntSushi/aho-corasick/issues/57"
+    )]
     pub fn premultiply(&mut self, yes: bool) -> &mut AhoCorasickBuilder {
         self.dfa_builder.premultiply(yes);
         self

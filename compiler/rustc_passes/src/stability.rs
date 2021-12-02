@@ -8,6 +8,7 @@ use rustc_errors::struct_span_err;
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::def_id::{DefId, LocalDefId, CRATE_DEF_ID, CRATE_DEF_INDEX, LOCAL_CRATE};
+use rustc_hir::hir_id::CRATE_HIR_ID;
 use rustc_hir::intravisit::{self, NestedVisitorMap, Visitor};
 use rustc_hir::{FieldDef, Generics, HirId, Item, TraitRef, Ty, TyKind, Variant};
 use rustc_middle::hir::map::Map;
@@ -678,7 +679,6 @@ fn stability_index(tcx: TyCtxt<'tcx>, (): ()) -> Index<'tcx> {
         .collect();
 
     {
-        let krate = tcx.hir().krate();
         let mut annotator = Annotator {
             tcx,
             index: &mut index,
@@ -711,13 +711,13 @@ fn stability_index(tcx: TyCtxt<'tcx>, (): ()) -> Index<'tcx> {
 
         annotator.annotate(
             CRATE_DEF_ID,
-            krate.module().inner,
+            tcx.hir().span(CRATE_HIR_ID),
             None,
             AnnotationKind::Required,
             InheritDeprecation::Yes,
             InheritConstStability::No,
             InheritStability::No,
-            |v| intravisit::walk_crate(v, krate),
+            |v| tcx.hir().walk_toplevel_module(v),
         );
     }
     index
@@ -906,11 +906,10 @@ pub fn check_unused_or_stable_features(tcx: TyCtxt<'_>) {
     let access_levels = &tcx.privacy_access_levels(());
 
     if tcx.stability().staged_api[&LOCAL_CRATE] {
-        let krate = tcx.hir().krate();
         let mut missing = MissingStabilityAnnotations { tcx, access_levels };
-        missing.check_missing_stability(CRATE_DEF_ID, krate.module().inner);
-        intravisit::walk_crate(&mut missing, krate);
-        krate.visit_all_item_likes(&mut missing.as_deep_visitor());
+        missing.check_missing_stability(CRATE_DEF_ID, tcx.hir().span(CRATE_HIR_ID));
+        tcx.hir().walk_toplevel_module(&mut missing);
+        tcx.hir().visit_all_item_likes(&mut missing.as_deep_visitor());
     }
 
     let declared_lang_features = &tcx.features().declared_lang_features;
@@ -929,6 +928,16 @@ pub fn check_unused_or_stable_features(tcx: TyCtxt<'_>) {
     let declared_lib_features = &tcx.features().declared_lib_features;
     let mut remaining_lib_features = FxHashMap::default();
     for (feature, span) in declared_lib_features {
+        if !tcx.sess.opts.unstable_features.is_nightly_build() {
+            struct_span_err!(
+                tcx.sess,
+                *span,
+                E0554,
+                "`#![feature]` may not be used on the {} release channel",
+                env!("CFG_RELEASE_CHANNEL")
+            )
+            .emit();
+        }
         if remaining_lib_features.contains_key(&feature) {
             // Warn if the user enables a lib feature multiple times.
             duplicate_feature_err(tcx.sess, *span, *feature);

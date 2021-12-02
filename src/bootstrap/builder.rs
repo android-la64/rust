@@ -370,7 +370,7 @@ impl<'a> Builder<'a> {
         match kind {
             Kind::Build => describe!(
                 compile::Std,
-                compile::Rustc,
+                compile::Assemble,
                 compile::CodegenBackend,
                 compile::StartupObjects,
                 tool::BuildManifest,
@@ -523,7 +523,7 @@ impl<'a> Builder<'a> {
                 install::Src,
                 install::Rustc
             ),
-            Kind::Run => describe!(run::ExpandYamlAnchors, run::BuildManifest),
+            Kind::Run => describe!(run::ExpandYamlAnchors, run::BuildManifest, run::BumpStage0),
         }
     }
 
@@ -1342,12 +1342,6 @@ impl<'a> Builder<'a> {
                 rustdocflags.arg("-Dwarnings");
             }
 
-            // FIXME(#58633) hide "unused attribute" errors in incremental
-            // builds of the standard library, as the underlying checks are
-            // not yet properly integrated with incremental recompilation.
-            if mode == Mode::Std && compiler.stage == 0 && self.config.incremental {
-                lint_flags.push("-Aunused-attributes");
-            }
             // This does not use RUSTFLAGS due to caching issues with Cargo.
             // Clippy is treated as an "in tree" tool, but shares the same
             // cache as other "submodule" tools. With these options set in
@@ -1616,6 +1610,22 @@ impl<'a> Builder<'a> {
 
         // Only execute if it's supposed to run as default
         if desc.default && should_run.is_really_default() { self.ensure(step) } else { None }
+    }
+
+    /// Checks if any of the "should_run" paths is in the `Builder` paths.
+    pub(crate) fn was_invoked_explicitly<S: Step>(&'a self) -> bool {
+        let desc = StepDescription::from::<S>();
+        let should_run = (desc.should_run)(ShouldRun::new(self));
+
+        for path in &self.paths {
+            if should_run.paths.iter().any(|s| s.has(path))
+                && !desc.is_excluded(self, &PathSet::Suite(path.clone()))
+            {
+                return true;
+            }
+        }
+
+        false
     }
 }
 

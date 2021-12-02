@@ -60,6 +60,32 @@
     test(no_crate_inject, attr(deny(warnings))),
     test(attr(allow(dead_code, deprecated, unused_variables, unused_mut)))
 )]
+#![cfg_attr(
+    not(bootstrap),
+    doc(cfg_hide(
+        not(test),
+        any(not(feature = "miri-test-libstd"), test, doctest),
+        no_fp_fmt_parse,
+        target_pointer_width = "16",
+        target_pointer_width = "32",
+        target_pointer_width = "64",
+        target_has_atomic = "8",
+        target_has_atomic = "16",
+        target_has_atomic = "32",
+        target_has_atomic = "64",
+        target_has_atomic = "ptr",
+        target_has_atomic_equal_alignment = "8",
+        target_has_atomic_equal_alignment = "16",
+        target_has_atomic_equal_alignment = "32",
+        target_has_atomic_equal_alignment = "64",
+        target_has_atomic_equal_alignment = "ptr",
+        target_has_atomic_load_store = "8",
+        target_has_atomic_load_store = "16",
+        target_has_atomic_load_store = "32",
+        target_has_atomic_load_store = "64",
+        target_has_atomic_load_store = "ptr",
+    ))
+)]
 #![no_core]
 //
 // Lints:
@@ -69,7 +95,6 @@
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![allow(explicit_outlives_requirements)]
-#![cfg_attr(bootstrap, allow(incomplete_features))] // if_let_guard
 //
 // Library features for const fns:
 #![feature(const_align_of_val)]
@@ -92,6 +117,7 @@
 #![feature(const_maybe_uninit_assume_init)]
 #![feature(const_option)]
 #![feature(const_pin)]
+#![feature(const_replace)]
 #![feature(const_ptr_offset)]
 #![feature(const_ptr_offset_from)]
 #![feature(const_ptr_read)]
@@ -104,7 +130,6 @@
 #![feature(const_trait_impl)]
 #![feature(const_type_id)]
 #![feature(const_type_name)]
-#![feature(const_unreachable_unchecked)]
 #![feature(const_default_impls)]
 #![feature(duration_consts_2)]
 #![feature(ptr_metadata)]
@@ -122,18 +147,18 @@
 #![feature(const_fn_floating_point_arithmetic)]
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(const_fn_trait_bound)]
-#![cfg_attr(bootstrap, feature(const_fn_transmute))]
-#![cfg_attr(bootstrap, feature(const_fn_union))]
 #![feature(const_impl_trait)]
 #![feature(const_mut_refs)]
-#![feature(const_panic)]
+#![cfg_attr(bootstrap, feature(const_panic))]
 #![feature(const_precise_live_drops)]
 #![feature(const_raw_ptr_deref)]
 #![feature(const_refs_to_cell)]
 #![feature(decl_macro)]
 #![feature(doc_cfg)]
 #![feature(doc_notable_trait)]
+#![feature(doc_primitive)]
 #![feature(exhaustive_patterns)]
+#![cfg_attr(not(bootstrap), feature(doc_cfg_hide))]
 #![feature(extern_types)]
 #![feature(fundamental)]
 #![feature(if_let_guard)]
@@ -143,6 +168,8 @@
 #![feature(link_llvm_intrinsics)]
 #![feature(llvm_asm)]
 #![feature(min_specialization)]
+#![feature(mixed_integer_ops)]
+#![cfg_attr(not(bootstrap), feature(must_not_suspend))]
 #![feature(negative_impls)]
 #![feature(never_type)]
 #![feature(no_core)]
@@ -358,3 +385,5 @@ pub mod arch {
         /* compiler built-in */
     }
 }
+
+include!("primitive_docs.rs");

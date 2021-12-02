@@ -257,10 +257,31 @@ if idx >= len {
 
 **Rationale:** it's useful to see the invariant relied upon by the rest of the function clearly spelled out.
 
+## Control Flow
+
+As a special case of the previous rule, do not hide control flow inside functions, push it to the caller:
+
+```rust
+// GOOD
+if cond {
+    f()
+}
+
+// BAD
+fn f() {
+    if !cond {
+        return;
+    }
+    ...
+}
+```
+
 ## Assertions
 
 Assert liberally.
-Prefer `stdx::never!` to standard `assert!`.
+Prefer [`stdx::never!`](https://docs.rs/always-assert/0.1.2/always_assert/macro.never.html) to standard `assert!`.
+
+**Rationale:** See [cross cutting concern: error handling](https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/architecture.md#error-handling).
 
 ## Getters & Setters
 
@@ -828,7 +849,7 @@ Default names:
 
 * `res` -- "result of the function" local variable
 * `it` -- I don't really care about the name
-* `n_foo` -- number of foos
+* `n_foos` -- number of foos (prefer this to `foo_count`)
 * `foo_idx` -- index of `foo`
 
 Many names in rust-analyzer conflict with keywords.
@@ -873,6 +894,29 @@ fn foo() -> Option<Bar> {
 ```
 
 **Rationale:** reduce cognitive stack usage.
+
+Use `return Err(err)` to throw an error:
+
+```rust
+// GOOD
+fn f() -> Result<(), ()> {
+    if condition {
+        return Err(());
+    }
+    Ok(())
+}
+
+// BAD
+fn f() -> Result<(), ()> {
+    if condition {
+        Err(())?;
+    }
+    Ok(())
+}
+```
+
+**Rationale:** `return` has type `!`, which allows the compiler to flag dead
+code (`Err(...)?` is of unconstrained generic type `T`).
 
 ## Comparisons
 
@@ -924,6 +968,26 @@ Don't use the `ref` keyword.
 `ref` was required before [match ergonomics](https://github.com/rust-lang/rfcs/blob/master/text/2005-match-ergonomics.md).
 Today, it is redundant.
 Between `ref` and mach ergonomics, the latter is more ergonomic in most cases, and is simpler (does not require a keyword).
+
+## Empty Match Arms
+
+Ues `=> (),` when a match arm is intentionally empty:
+
+```rust
+// GOOD
+match result {
+    Ok(_) => (),
+    Err(err) => error!("{}", err),
+}
+
+// BAD
+match result {
+    Ok(_) => {}
+    Err(err) => error!("{}", err),
+}
+```
+
+**Rationale:** consistency.
 
 ## Functional Combinators
 

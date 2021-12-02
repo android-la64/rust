@@ -17,7 +17,7 @@ typedef uint64_t hashsig_state;
 #define HASHSIG_SCALE 100
 
 #define HASHSIG_MAX_RUN 80
-#define HASHSIG_HASH_START	0x012345678ABCDEF0LL
+#define HASHSIG_HASH_START	INT64_C(0x012345678ABCDEF0)
 #define HASHSIG_HASH_SHIFT  5
 
 #define HASHSIG_HASH_MIX(S,CH) \
@@ -286,8 +286,10 @@ int git_hashsig_create_fromfile(
 		return fd;
 	}
 
-	if ((error = hashsig_in_progress_init(&prog, sig)) < 0)
+	if ((error = hashsig_in_progress_init(&prog, sig)) < 0) {
+		p_close(fd);
 		return error;
+	}
 
 	while (!error) {
 		if ((buflen = p_read(fd, buf, sizeof(buf))) <= 0) {
