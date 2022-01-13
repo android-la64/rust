@@ -1,12 +1,13 @@
 //! Renderer for function calls.
 
+use either::Either;
 use hir::{AsAssocItem, HasSource, HirDisplay};
 use ide_db::SymbolKind;
 use itertools::Itertools;
 use syntax::ast;
 
 use crate::{
-    item::{CompletionItem, CompletionItemKind, CompletionKind, CompletionRelevance, ImportEdit},
+    item::{CompletionItem, CompletionItemKind, CompletionRelevance, ImportEdit},
     render::{
         builder_ext::Params, compute_exact_name_match, compute_ref_match, compute_type_match,
         RenderContext,
@@ -37,7 +38,7 @@ pub(crate) fn render_method(
 #[derive(Debug)]
 struct FunctionRender<'a> {
     ctx: RenderContext<'a>,
-    name: String,
+    name: hir::Name,
     receiver: Option<hir::Name>,
     func: hir::Function,
     /// NB: having `ast::Fn` here might or might not be a good idea. The problem
@@ -66,7 +67,7 @@ impl<'a> FunctionRender<'a> {
         fn_: hir::Function,
         is_method: bool,
     ) -> Option<FunctionRender<'a>> {
-        let name = local_name.unwrap_or_else(|| fn_.name(ctx.db())).to_string();
+        let name = local_name.unwrap_or_else(|| fn_.name(ctx.db()));
         let ast_node = fn_.source(ctx.db())?.value;
 
         Some(FunctionRender { ctx, name, receiver, func: fn_, ast_node, is_method })
@@ -76,12 +77,10 @@ impl<'a> FunctionRender<'a> {
         let params = self.params();
         let call = match &self.receiver {
             Some(receiver) => format!("{}.{}", receiver, &self.name),
-            None => self.name.clone(),
+            None => self.name.to_string(),
         };
-        let mut item =
-            CompletionItem::new(CompletionKind::Reference, self.ctx.source_range(), call.clone());
-        item.kind(self.kind())
-            .set_documentation(self.ctx.docs(self.func))
+        let mut item = CompletionItem::new(self.kind(), self.ctx.source_range(), call.clone());
+        item.set_documentation(self.ctx.docs(self.func))
             .set_deprecated(
                 self.ctx.is_deprecated(self.func) || self.ctx.is_deprecated_assoc_item(self.func),
             )
@@ -92,7 +91,7 @@ impl<'a> FunctionRender<'a> {
             let db = self.ctx.db();
             if let Some(actm) = self.func.as_assoc_item(db) {
                 if let Some(trt) = actm.containing_trait_or_trait_impl(db) {
-                    item.trait_name(trt.name(db).to_string());
+                    item.trait_name(trt.name(db).to_smol_str());
                 }
             }
         }
@@ -100,7 +99,7 @@ impl<'a> FunctionRender<'a> {
         if let Some(import_to_add) = import_to_add {
             item.add_import(import_to_add);
         }
-        item.lookup_by(self.name);
+        item.lookup_by(self.name.to_smol_str());
 
         let ret_type = self.func.ret_type(self.ctx.db());
         item.set_relevance(CompletionRelevance {
@@ -160,47 +159,25 @@ impl<'a> FunctionRender<'a> {
         format!("-> {}", ret_ty.display(self.ctx.db()))
     }
 
-    fn add_arg(&self, arg: &str, ty: &hir::Type) -> String {
-        if let Some(derefed_ty) = ty.remove_ref() {
-            for (name, local) in self.ctx.completion.locals.iter() {
-                if name == arg && local.ty(self.ctx.db()) == derefed_ty {
-                    let mutability = if ty.is_mutable_reference() { "&mut " } else { "&" };
-                    return format!("{}{}", mutability, arg);
-                }
-            }
-        }
-        arg.to_string()
-    }
-
     fn params(&self) -> Params {
         let ast_params = match self.ast_node.param_list() {
             Some(it) => it,
             None => return Params::Named(Vec::new()),
         };
+        let params = ast_params.params().map(Either::Right);
 
-        let mut params_pats = Vec::new();
-        let params_ty = if self.ctx.completion.has_dot_receiver() || self.receiver.is_some() {
-            self.func.method_params(self.ctx.db()).unwrap_or_default()
+        let params = if self.ctx.completion.has_dot_receiver() || self.receiver.is_some() {
+            params.zip(self.func.method_params(self.ctx.db()).unwrap_or_default()).collect()
         } else {
-            if let Some(s) = ast_params.self_param() {
-                cov_mark::hit!(parens_for_method_call_as_assoc_fn);
-                params_pats.push(Some(s.to_string()));
-            }
-            self.func.assoc_fn_params(self.ctx.db())
+            ast_params
+                .self_param()
+                .map(Either::Left)
+                .into_iter()
+                .chain(params)
+                .zip(self.func.assoc_fn_params(self.ctx.db()))
+                .collect()
         };
-        params_pats
-            .extend(ast_params.params().into_iter().map(|it| it.pat().map(|it| it.to_string())));
 
-        let params = params_pats
-            .into_iter()
-            .zip(params_ty)
-            .flat_map(|(pat, param_ty)| {
-                let pat = pat?;
-                let name = pat;
-                let arg = name.trim_start_matches("mut ").trim_start_matches('_');
-                Some(self.add_arg(arg, param_ty.ty()))
-            })
-            .collect();
         Params::Named(params)
     }
 
@@ -310,7 +287,6 @@ impl S {
 
     #[test]
     fn parens_for_method_call_as_assoc_fn() {
-        cov_mark::check!(parens_for_method_call_as_assoc_fn);
         check_edit(
             "foo",
             r#"

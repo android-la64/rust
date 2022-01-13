@@ -111,7 +111,7 @@ impl EarlyProps {
                     let v_max = range_components[1].expect(ERROR_MESSAGE);
                     (v_min, v_max)
                 }
-                _ => panic!(ERROR_MESSAGE),
+                _ => panic!("{}", ERROR_MESSAGE),
             }
         }
 
@@ -287,6 +287,7 @@ impl TestProps {
                  testfile: &Path,
                  cfg: Option<&str>,
                  config: &Config) {
+        let mut has_edition = false;
         iter_header(testfile,
                     cfg,
                     &mut |ln| {
@@ -301,6 +302,7 @@ impl TestProps {
 
             if let Some(edition) = config.parse_edition(ln) {
                 self.compile_flags.push(format!("--edition={}", edition));
+                has_edition = true;
             }
 
             if let Some(r) = config.parse_revisions(ln) {
@@ -402,6 +404,10 @@ impl TestProps {
                     self.exec_env.push(((*key).to_owned(), val))
                 }
             }
+        }
+        
+        if let (Some(edition), false) = (&config.edition, has_edition) {
+            self.compile_flags.push(format!("--edition={}", edition));
         }
     }
 }

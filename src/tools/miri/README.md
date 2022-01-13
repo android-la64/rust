@@ -59,6 +59,9 @@ in your program, and cannot run all programs:
   has no access to most platform-specific APIs or FFI. A few APIs have been
   implemented (such as printing to stdout) but most have not: for example, Miri
   currently does not support SIMD or networking.
+* Threading support is not finished yet. E.g., weak memory effects are not
+  emulated and spin loops (without syscalls) just loop forever. There is no
+  threading support on Windows.
 
 [rust]: https://www.rust-lang.org/
 [mir]: https://github.com/rust-lang/rfcs/blob/master/text/1211-mir.md
@@ -196,6 +199,10 @@ up the sysroot.  If you are using `miri` (the Miri driver) directly, see the
 Miri adds its own set of `-Z` flags, which are usually set via the `MIRIFLAGS`
 environment variable:
 
+* `-Zmiri-check-number-validity` enables checking of integer and float validity
+  (e.g., they must be initialized and not carry pointer provenance) as part of
+  enforcing validity invariants. This has no effect when
+  `-Zmiri-disable-validation` is present.
 * `-Zmiri-compare-exchange-weak-failure-rate=<rate>` changes the failure rate of
   `compare_exchange_weak` operations. The default is `0.8` (so 4 out of 5 weak ops will fail).
   You can change it to any value between `0.0` and `1.0`, where `1.0` means it

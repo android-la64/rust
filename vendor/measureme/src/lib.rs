@@ -1,10 +1,8 @@
 //! This crate provides a library for high-performance event tracing which is used by
 //! the Rust compiler's unstable `-Z self-profile` feature.
 //!
-//! The output of a tracing session will be three files:
-//!   1. A `.events` file which contains all of the traced events.
-//!   2. A `.string_data` file which contains all the strings referenced by events.
-//!   3. A `.string_index` file which maps `StringId` values to offsets into the `.string_data` file.
+//! The output of a tracing session will be an `.mm_profdata` file containing a stream
+//! of events and a string table that allows to decode the `StringId`s in the event stream.
 //!
 //! # Writing event trace files
 //!
@@ -50,8 +48,8 @@ pub mod stringtable;
 pub mod rustc;
 
 pub use crate::event_id::{EventId, EventIdBuilder};
-pub use crate::profiler::{Profiler, TimingGuard, DetachedTiming};
-pub use crate::raw_event::{RawEvent, MAX_INSTANT_TIMESTAMP, MAX_INTERVAL_TIMESTAMP};
+pub use crate::profiler::{DetachedTiming, Profiler, TimingGuard};
+pub use crate::raw_event::{RawEvent, MAX_INTERVAL_VALUE, MAX_SINGLE_VALUE};
 pub use crate::serialization::{
     split_streams, Addr, PageTag, SerializationSink, SerializationSinkBuilder,
 };

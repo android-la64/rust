@@ -136,6 +136,7 @@ impl ChangeFixture {
                     file_id,
                     meta.edition,
                     Some(crate_name.clone().into()),
+                    None,
                     meta.cfg.clone(),
                     meta.cfg,
                     meta.env,
@@ -168,6 +169,7 @@ impl ChangeFixture {
                 crate_root,
                 Edition::CURRENT,
                 Some(CrateName::new("test").unwrap().into()),
+                None,
                 default_cfg.clone(),
                 default_cfg,
                 Env::default(),
@@ -202,6 +204,7 @@ impl ChangeFixture {
                 core_file,
                 Edition::Edition2021,
                 Some(CrateDisplayName::from_canonical_name("core".to_string())),
+                None,
                 CfgOptions::default(),
                 CfgOptions::default(),
                 Env::default(),
@@ -235,6 +238,7 @@ impl ChangeFixture {
                 proc_lib_file,
                 Edition::Edition2021,
                 Some(CrateDisplayName::from_canonical_name("proc_macros".to_string())),
+                None,
                 CfgOptions::default(),
                 CfgOptions::default(),
                 Env::default(),
@@ -270,7 +274,7 @@ fn test_proc_macros(proc_macros: &[String]) -> (Vec<ProcMacro>, String) {
 pub fn identity(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
-#[proc_macro_derive(derive_identity)]
+#[proc_macro_derive(DeriveIdentity)]
 pub fn derive_identity(item: TokenStream) -> TokenStream {
     item
 }
@@ -283,14 +287,14 @@ pub fn mirror(input: TokenStream) -> TokenStream {
     input
 }
 "#;
-    let proc_macros = std::array::IntoIter::new([
+    let proc_macros = [
         ProcMacro {
             name: "identity".into(),
             kind: crate::ProcMacroKind::Attr,
             expander: Arc::new(IdentityProcMacroExpander),
         },
         ProcMacro {
-            name: "derive_identity".into(),
+            name: "DeriveIdentity".into(),
             kind: crate::ProcMacroKind::CustomDerive,
             expander: Arc::new(IdentityProcMacroExpander),
         },
@@ -304,8 +308,9 @@ pub fn mirror(input: TokenStream) -> TokenStream {
             kind: crate::ProcMacroKind::FuncLike,
             expander: Arc::new(MirrorProcMacroExpander),
         },
-    ])
-    .filter(|pm| proc_macros.iter().any(|name| name == pm.name))
+    ]
+    .into_iter()
+    .filter(|pm| proc_macros.iter().any(|name| name == &stdx::to_lower_snake_case(&pm.name)))
     .collect();
     (proc_macros, source.into())
 }

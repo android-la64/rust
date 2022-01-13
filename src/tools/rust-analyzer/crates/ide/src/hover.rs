@@ -11,7 +11,7 @@ use ide_db::{
     base_db::FileRange,
     defs::Definition,
     helpers::{pick_best_token, FamousDefs},
-    RootDatabase,
+    FxIndexSet, RootDatabase,
 };
 use itertools::Itertools;
 use syntax::{ast, match_ast, AstNode, SyntaxKind::*, SyntaxNode, SyntaxToken, T};
@@ -69,7 +69,7 @@ impl HoverAction {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct HoverGotoTypeData {
     pub mod_path: String,
     pub nav: NavigationTarget,
@@ -97,7 +97,7 @@ pub(crate) fn hover(
     let file = sema.parse(file_id).syntax().clone();
 
     if !range.is_empty() {
-        return hover_ranged(&file, range, &sema, config);
+        return hover_ranged(&file, range, sema, config);
     }
     let offset = range.start();
 
@@ -116,12 +116,12 @@ pub(crate) fn hover(
         });
     }
 
-    let descended = sema.descend_into_macros_many(original_token.clone());
+    let descended = sema.descend_into_macros(original_token.clone());
 
     // FIXME: Definition should include known lints and the like instead of having this special case here
     if let Some(res) = descended.iter().find_map(|token| {
         let attr = token.ancestors().find_map(ast::Attr::cast)?;
-        render::try_for_lint(&attr, &token)
+        render::try_for_lint(&attr, token)
     }) {
         return Some(RangeInfo::new(original_token.text_range(), res));
     }
@@ -136,11 +136,12 @@ pub(crate) fn hover(
         .flatten()
         .unique_by(|&(def, _)| def)
         .filter_map(|(def, node)| hover_for_definition(sema, file_id, def, &node, config))
-        .reduce(|mut acc, HoverResult { markup, actions }| {
+        .reduce(|mut acc: HoverResult, HoverResult { markup, actions }| {
             acc.actions.extend(actions);
             acc.markup = Markup::from(format!("{}\n---\n{}", acc.markup, markup));
             acc
         });
+
     if result.is_none() {
         // fallbacks, show keywords or types
         if let Some(res) = render::keyword(sema, config, &original_token) {
@@ -152,7 +153,10 @@ pub(crate) fn hover(
             return res;
         }
     }
-    result.map(|res| RangeInfo::new(original_token.text_range(), res))
+    result.map(|mut res: HoverResult| {
+        res.actions = dedupe_or_merge_hover_actions(res.actions);
+        RangeInfo::new(original_token.text_range(), res)
+    })
 }
 
 pub(crate) fn hover_for_definition(
@@ -163,9 +167,7 @@ pub(crate) fn hover_for_definition(
     config: &HoverConfig,
 ) -> Option<HoverResult> {
     let famous_defs = match &definition {
-        Definition::ModuleDef(hir::ModuleDef::BuiltinType(_)) => {
-            Some(FamousDefs(&sema, sema.scope(&node).krate()))
-        }
+        Definition::BuiltinType(_) => Some(FamousDefs(sema, sema.scope(node).krate())),
         _ => None,
     };
     if let Some(markup) = render::definition(sema.db, definition, famous_defs.as_ref(), config) {
@@ -179,7 +181,7 @@ pub(crate) fn hover_for_definition(
             res.actions.push(action);
         }
 
-        if let Some(action) = runnable_action(&sema, definition, file_id) {
+        if let Some(action) = runnable_action(sema, definition, file_id) {
             res.actions.push(action);
         }
 
@@ -246,7 +248,7 @@ fn hover_type_fallback(
         }
     };
 
-    let res = render::type_info(&sema, config, &expr_or_pat)?;
+    let res = render::type_info(sema, config, &expr_or_pat)?;
     let range = sema.original_range(&node).range;
     Some(RangeInfo::new(range, res))
 }
@@ -260,10 +262,8 @@ fn show_implementations_action(db: &RootDatabase, def: Definition) -> Option<Hov
     }
 
     let adt = match def {
-        Definition::ModuleDef(hir::ModuleDef::Trait(it)) => {
-            return it.try_to_nav(db).map(to_action)
-        }
-        Definition::ModuleDef(hir::ModuleDef::Adt(it)) => Some(it),
+        Definition::Trait(it) => return it.try_to_nav(db).map(to_action),
+        Definition::Adt(it) => Some(it),
         Definition::SelfType(it) => it.self_ty(db).as_adt(),
         _ => None,
     }?;
@@ -272,14 +272,12 @@ fn show_implementations_action(db: &RootDatabase, def: Definition) -> Option<Hov
 
 fn show_fn_references_action(db: &RootDatabase, def: Definition) -> Option<HoverAction> {
     match def {
-        Definition::ModuleDef(hir::ModuleDef::Function(it)) => {
-            it.try_to_nav(db).map(|nav_target| {
-                HoverAction::Reference(FilePosition {
-                    file_id: nav_target.file_id,
-                    offset: nav_target.focus_or_full_range().start(),
-                })
+        Definition::Function(it) => it.try_to_nav(db).map(|nav_target| {
+            HoverAction::Reference(FilePosition {
+                file_id: nav_target.file_id,
+                offset: nav_target.focus_or_full_range().start(),
             })
-        }
+        }),
         _ => None,
     }
 }
@@ -290,20 +288,17 @@ fn runnable_action(
     file_id: FileId,
 ) -> Option<HoverAction> {
     match def {
-        Definition::ModuleDef(it) => match it {
-            hir::ModuleDef::Module(it) => runnable_mod(sema, it).map(HoverAction::Runnable),
-            hir::ModuleDef::Function(func) => {
-                let src = func.source(sema.db)?;
-                if src.file_id != file_id.into() {
-                    cov_mark::hit!(hover_macro_generated_struct_fn_doc_comment);
-                    cov_mark::hit!(hover_macro_generated_struct_fn_doc_attr);
-                    return None;
-                }
-
-                runnable_fn(sema, func).map(HoverAction::Runnable)
+        Definition::Module(it) => runnable_mod(sema, it).map(HoverAction::Runnable),
+        Definition::Function(func) => {
+            let src = func.source(sema.db)?;
+            if src.file_id != file_id.into() {
+                cov_mark::hit!(hover_macro_generated_struct_fn_doc_comment);
+                cov_mark::hit!(hover_macro_generated_struct_fn_doc_attr);
+                return None;
             }
-            _ => None,
-        },
+
+            runnable_fn(sema, func).map(HoverAction::Runnable)
+        }
         _ => None,
     }
 }
@@ -323,6 +318,7 @@ fn goto_type_action_for_def(db: &RootDatabase, def: Definition) -> Option<HoverA
             Definition::Local(it) => it.ty(db),
             Definition::GenericParam(hir::GenericParam::ConstParam(it)) => it.ty(db),
             Definition::Field(field) => field.ty(db),
+            Definition::Function(function) => function.ret_type(db),
             _ => return None,
         };
 
@@ -348,4 +344,44 @@ fn walk_and_push_ty(
             push_new_def(trait_.into());
         }
     });
+}
+
+fn dedupe_or_merge_hover_actions(actions: Vec<HoverAction>) -> Vec<HoverAction> {
+    let mut deduped_actions = Vec::with_capacity(actions.len());
+    let mut go_to_type_targets = FxIndexSet::default();
+
+    let mut seen_implementation = false;
+    let mut seen_reference = false;
+    let mut seen_runnable = false;
+    for action in actions {
+        match action {
+            HoverAction::GoToType(targets) => {
+                go_to_type_targets.extend(targets);
+            }
+            HoverAction::Implementation(..) => {
+                if !seen_implementation {
+                    seen_implementation = true;
+                    deduped_actions.push(action);
+                }
+            }
+            HoverAction::Reference(..) => {
+                if !seen_reference {
+                    seen_reference = true;
+                    deduped_actions.push(action);
+                }
+            }
+            HoverAction::Runnable(..) => {
+                if !seen_runnable {
+                    seen_runnable = true;
+                    deduped_actions.push(action);
+                }
+            }
+        };
+    }
+
+    if !go_to_type_targets.is_empty() {
+        deduped_actions.push(HoverAction::GoToType(go_to_type_targets.into_iter().collect()));
+    }
+
+    deduped_actions
 }

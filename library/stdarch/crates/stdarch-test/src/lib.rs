@@ -130,13 +130,26 @@ pub fn assert(shim_addr: usize, fnname: &str, expected: &str) {
                 "usad8" | "vfma" | "vfms" => 27,
                 "qadd8" | "qsub8" | "sadd8" | "sel" | "shadd8" | "shsub8" | "usub8" | "ssub8" => 29,
                 // core_arch/src/arm_shared/simd32
+                // vst1q_s64_x4_vst1 : #instructions = 22 >= 22 (limit)
+                "vld3" => 23,
+                // core_arch/src/arm_shared/simd32
+                // vld4q_lane_u32_vld4 : #instructions = 31 >= 22 (limit)
+                "vld4" => 32,
+                // core_arch/src/arm_shared/simd32
                 // vst1q_s64_x4_vst1 : #instructions = 40 >= 22 (limit)
                 "vst1" => 41,
+                // core_arch/src/arm_shared/simd32
+                // vst4q_u32_vst4 : #instructions = 26 >= 22 (limit)
+                "vst4" => 27,
 
                 // Temporary, currently the fptosi.sat and fptoui.sat LLVM
                 // intrinsics emit unnecessary code on arm. This can be
                 // removed once it has been addressed in LLVM.
                 "fcvtzu" | "fcvtzs" | "vcvt" => 64,
+
+                // core_arch/src/arm_shared/simd32
+                // vst1q_p64_x4_nop : #instructions = 33 >= 22 (limit)
+                "nop" if fnname.contains("vst1q_p64") => 34,
 
                 // Original limit was 20 instructions, but ARM DSP Intrinsics
                 // are exactly 20 instructions long. So, bump the limit to 22

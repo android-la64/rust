@@ -202,6 +202,93 @@ fn main() {}
     );
 }
 
+// Each package in these workspaces should be run from its own root
+#[test]
+fn test_path_dependency_runnables() {
+    if skip_slow_tests() {
+        return;
+    }
+
+    let server = Project::with_fixture(
+        r#"
+//- /consumer/Cargo.toml
+[package]
+name = "consumer"
+version = "0.1.0"
+[dependencies]
+dependency = { path = "../dependency" }
+
+//- /consumer/src/lib.rs
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn consumer() {}
+}
+
+//- /dependency/Cargo.toml
+[package]
+name = "dependency"
+version = "0.1.0"
+[dev-dependencies]
+devdependency = { path = "../devdependency" }
+
+//- /dependency/src/lib.rs
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn dependency() {}
+}
+
+//- /devdependency/Cargo.toml
+[package]
+name = "devdependency"
+version = "0.1.0"
+
+//- /devdependency/src/lib.rs
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn devdependency() {}
+}
+        "#,
+    )
+    .root("consumer")
+    .root("dependency")
+    .root("devdependency")
+    .server()
+    .wait_until_workspace_is_loaded();
+
+    for runnable in ["consumer", "dependency", "devdependency"] {
+        server.request::<Runnables>(
+            RunnablesParams {
+                text_document: server.doc_id(&format!("{}/src/lib.rs", runnable)),
+                position: None,
+            },
+            json!([
+                "{...}",
+                {
+                    "label": "cargo test -p [..] --all-targets",
+                    "kind": "cargo",
+                    "args": {
+                        "overrideCargo": null,
+                        "workspaceRoot": server.path().join(runnable),
+                        "cargoArgs": [
+                            "test",
+                            "--package",
+                            runnable,
+                            "--all-targets"
+                        ],
+                        "cargoExtraArgs": [],
+                        "executableArgs": []
+                    },
+                },
+                "{...}",
+                "{...}"
+            ]),
+        );
+    }
+}
+
 #[test]
 fn test_format_document() {
     if skip_slow_tests() {
@@ -712,12 +799,15 @@ fn resolve_proc_macro() {
 [package]
 name = "foo"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 [dependencies]
 bar = {path = "../bar"}
 
 //- /foo/src/main.rs
 use bar::Bar;
+
+#[rustc_builtin_macro]
+macro derive($item:item) {}
 trait Bar {
   fn bar();
 }
@@ -731,7 +821,7 @@ fn main() {
 [package]
 name = "bar"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 
 [lib]
 proc-macro = true
@@ -788,7 +878,7 @@ pub fn foo(_input: TokenStream) -> TokenStream {
     let res = server.send_request::<HoverRequest>(HoverParams {
         text_document_position_params: TextDocumentPositionParams::new(
             server.doc_id("foo/src/main.rs"),
-            Position::new(7, 9),
+            Position::new(10, 9),
         ),
         work_done_progress_params: Default::default(),
     });

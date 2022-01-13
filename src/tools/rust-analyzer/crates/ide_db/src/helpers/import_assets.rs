@@ -8,10 +8,11 @@ use rustc_hash::FxHashSet;
 use syntax::{
     ast::{self, HasName},
     utils::path_to_string_stripping_turbo_fish,
-    AstNode, SyntaxNode,
+    AstNode, AstToken, SyntaxNode,
 };
 
 use crate::{
+    helpers::get_path_in_derive_attr,
     items_locator::{self, AssocItemSearch, DEFAULT_QUERY_SEARCH_LIMIT},
     RootDatabase,
 };
@@ -119,7 +120,7 @@ impl ImportAssets {
         })
     }
 
-    pub fn for_ident_pat(pat: &ast::IdentPat, sema: &Semantics<RootDatabase>) -> Option<Self> {
+    pub fn for_ident_pat(sema: &Semantics<RootDatabase>, pat: &ast::IdentPat) -> Option<Self> {
         if !pat.is_simple_ident() {
             return None;
         }
@@ -127,6 +128,22 @@ impl ImportAssets {
         let candidate_node = pat.syntax().clone();
         Some(Self {
             import_candidate: ImportCandidate::for_name(sema, &name)?,
+            module_with_candidate: sema.scope(&candidate_node).module()?,
+            candidate_node,
+        })
+    }
+
+    pub fn for_derive_ident(sema: &Semantics<RootDatabase>, ident: &ast::Ident) -> Option<Self> {
+        let attr = ident.syntax().ancestors().find_map(ast::Attr::cast)?;
+        let path = get_path_in_derive_attr(sema, &attr, ident)?;
+
+        if let Some(_) = path.qualifier() {
+            return None;
+        }
+        let name = NameToImport::Exact(path.segment()?.name_ref()?.to_string());
+        let candidate_node = attr.syntax().clone();
+        Some(Self {
+            import_candidate: ImportCandidate::Path(PathImportCandidate { qualifier: None, name }),
             module_with_candidate: sema.scope(&candidate_node).module()?,
             candidate_node,
         })
@@ -372,7 +389,7 @@ fn import_for_item(
     })
 }
 
-fn item_for_path_search(db: &RootDatabase, item: ItemInNs) -> Option<ItemInNs> {
+pub fn item_for_path_search(db: &RootDatabase, item: ItemInNs) -> Option<ItemInNs> {
     Some(match item {
         ItemInNs::Types(_) | ItemInNs::Values(_) => match item_as_assoc(db, item) {
             Some(assoc_item) => match assoc_item.container(db) {
@@ -393,7 +410,7 @@ fn find_import_for_segment(
     unresolved_first_segment: &str,
 ) -> Option<ItemInNs> {
     let segment_is_name = item_name(db, original_item)
-        .map(|name| name.to_string() == unresolved_first_segment)
+        .map(|name| name.to_smol_str() == unresolved_first_segment)
         .unwrap_or(false);
 
     Some(if segment_is_name {
@@ -417,7 +434,7 @@ fn module_with_segment_name(
     };
     while let Some(module) = current_module {
         if let Some(module_name) = module.name(db) {
-            if module_name.to_string() == segment_name {
+            if module_name.to_smol_str() == segment_name {
                 return Some(module);
             }
         }

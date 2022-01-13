@@ -246,6 +246,18 @@ impl SourceAnalyzer {
         }
     }
 
+    pub(crate) fn resolve_path_as_macro(
+        &self,
+        db: &dyn HirDatabase,
+        path: &ast::Path,
+    ) -> Option<MacroDef> {
+        // This must be a normal source file rather than macro file.
+        let hygiene = Hygiene::new(db.upcast(), self.file_id);
+        let ctx = body::LowerCtx::with_hygiene(db.upcast(), &hygiene);
+        let hir_path = Path::from_src(path.clone(), &ctx)?;
+        resolve_hir_path_as_macro(db, &self.resolver, &hir_path)
+    }
+
     pub(crate) fn resolve_path(
         &self,
         db: &dyn HirDatabase,
@@ -500,6 +512,15 @@ pub(crate) fn resolve_hir_path(
     path: &Path,
 ) -> Option<PathResolution> {
     resolve_hir_path_(db, resolver, path, false)
+}
+
+#[inline]
+pub(crate) fn resolve_hir_path_as_macro(
+    db: &dyn HirDatabase,
+    resolver: &Resolver,
+    path: &Path,
+) -> Option<MacroDef> {
+    resolver.resolve_path_as_macro(db.upcast(), path.mod_path()).map(Into::into)
 }
 
 fn resolve_hir_path_(

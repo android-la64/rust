@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{patterns::ImmediateLocation, CompletionItem};
 
-use crate::{context::CompletionContext, item::CompletionKind, Completions};
+use crate::{context::CompletionContext, Completions};
 
 /// Complete mod declaration, i.e. `mod $0 ;`
 pub(crate) fn complete_mod(acc: &mut Completions, ctx: &CompletionContext) -> Option<()> {
@@ -80,8 +80,7 @@ pub(crate) fn complete_mod(acc: &mut Completions, ctx: &CompletionContext) -> Op
             if mod_under_caret.semicolon_token().is_none() {
                 label.push(';');
             }
-            let mut item = CompletionItem::new(CompletionKind::Magic, ctx.source_range(), &label);
-            item.kind(SymbolKind::Module);
+            let item = CompletionItem::new(SymbolKind::Module, ctx.source_range(), &label);
             item.add_to(acc)
         });
 
@@ -122,7 +121,7 @@ fn directory_to_look_for_submodules(
     module_chain_to_containing_module_file(module, db)
         .into_iter()
         .filter_map(|module| module.name(db))
-        .try_fold(base_directory, |path, name| path.join(&name.to_string()))
+        .try_fold(base_directory, |path, name| path.join(&name.to_smol_str()))
 }
 
 fn module_chain_to_containing_module_file(
@@ -141,8 +140,9 @@ fn module_chain_to_containing_module_file(
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::completion_list;
     use expect_test::{expect, Expect};
+
+    use crate::tests::completion_list;
 
     fn check(ra_fixture: &str, expect: Expect) {
         let actual = completion_list(ra_fixture);

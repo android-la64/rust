@@ -28,9 +28,10 @@ use crate::{utils::suggest_name, AssistContext, AssistId, AssistKind, Assists};
 // }
 // ```
 pub(crate) fn extract_variable(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
-    if ctx.frange.range.is_empty() {
+    if ctx.has_empty_selection() {
         return None;
     }
+
     let node = match ctx.covering_element() {
         NodeOrToken::Node(it) => it,
         NodeOrToken::Token(it) if it.kind() == COMMENT => {
@@ -42,7 +43,7 @@ pub(crate) fn extract_variable(acc: &mut Assists, ctx: &AssistContext) -> Option
     let node = node.ancestors().take_while(|anc| anc.text_range() == node.text_range()).last()?;
     let to_extract = node
         .descendants()
-        .take_while(|it| ctx.frange.range.contains_range(it.text_range()))
+        .take_while(|it| ctx.selection_trimmed().contains_range(it.text_range()))
         .find_map(valid_target_expr)?;
 
     if let Some(ty_info) = ctx.sema.type_of_expr(&to_extract) {
@@ -159,6 +160,9 @@ impl Anchor {
             .ancestors()
             .take_while(|it| !ast::Item::can_cast(it.kind()) || ast::MacroCall::can_cast(it.kind()))
             .find_map(|node| {
+                if ast::MacroCall::can_cast(node.kind()) {
+                    return None;
+                }
                 if let Some(expr) =
                     node.parent().and_then(ast::StmtList::cast).and_then(|it| it.tail_expr())
                 {
@@ -238,7 +242,7 @@ fn foo() {
             extract_variable,
             r#"
 fn foo() {
-    $01 + 1$0;
+  $0  1 + 1$0;
 }"#,
             r#"
 fn foo() {
@@ -247,12 +251,12 @@ fn foo() {
         );
         check_assist(
             extract_variable,
-            "
+            r"
 fn foo() {
     $0{ let x = 0; x }$0
     something_else();
 }",
-            "
+            r"
 fn foo() {
     let $0var_name = { let x = 0; x };
     something_else();
@@ -264,11 +268,11 @@ fn foo() {
     fn test_extract_var_part_of_expr_stmt() {
         check_assist(
             extract_variable,
-            "
+            r"
 fn foo() {
     $01$0 + 1;
 }",
-            "
+            r"
 fn foo() {
     let $0var_name = 1;
     var_name + 1;
@@ -813,6 +817,32 @@ fn foo() {
 }
 "#,
         )
+    }
+
+    #[test]
+    fn extract_macro_call() {
+        check_assist(
+            extract_variable,
+            r"
+struct Vec;
+macro_rules! vec {
+    () => {Vec}
+}
+fn main() {
+    let _ = $0vec![]$0;
+}
+",
+            r"
+struct Vec;
+macro_rules! vec {
+    () => {Vec}
+}
+fn main() {
+    let $0vec = vec![];
+    let _ = vec;
+}
+",
+        );
     }
 
     #[test]

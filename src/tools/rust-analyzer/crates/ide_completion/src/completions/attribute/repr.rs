@@ -4,33 +4,37 @@ use syntax::ast;
 
 use crate::{
     context::CompletionContext,
-    item::{CompletionItem, CompletionItemKind, CompletionKind},
+    item::{CompletionItem, CompletionItemKind},
     Completions,
 };
 
-pub(super) fn complete_repr(
-    acc: &mut Completions,
-    ctx: &CompletionContext,
-    derive_input: ast::TokenTree,
-) {
-    if let Some(existing_reprs) = super::parse_comma_sep_input(derive_input) {
-        for repr_completion in REPR_COMPLETIONS {
-            if existing_reprs
+pub(super) fn complete_repr(acc: &mut Completions, ctx: &CompletionContext, input: ast::TokenTree) {
+    if let Some(existing_reprs) = super::parse_comma_sep_expr(input) {
+        for &ReprCompletion { label, snippet, lookup, collides } in REPR_COMPLETIONS {
+            let repr_already_annotated = existing_reprs
                 .iter()
-                .any(|it| repr_completion.label == it || repr_completion.collides.contains(&&**it))
-            {
+                .filter_map(|expr| match expr {
+                    ast::Expr::PathExpr(path) => path.path()?.as_single_name_ref(),
+                    ast::Expr::CallExpr(call) => match call.expr()? {
+                        ast::Expr::PathExpr(path) => path.path()?.as_single_name_ref(),
+                        _ => return None,
+                    },
+                    _ => None,
+                })
+                .any(|it| {
+                    let text = it.text();
+                    lookup.unwrap_or(label) == text || collides.contains(&text.as_str())
+                });
+            if repr_already_annotated {
                 continue;
             }
-            let mut item = CompletionItem::new(
-                CompletionKind::Attribute,
-                ctx.source_range(),
-                repr_completion.label,
-            );
-            item.kind(CompletionItemKind::Attribute);
-            if let Some(lookup) = repr_completion.lookup {
+
+            let mut item =
+                CompletionItem::new(CompletionItemKind::Attribute, ctx.source_range(), label);
+            if let Some(lookup) = lookup {
                 item.lookup_by(lookup);
             }
-            if let Some((snippet, cap)) = repr_completion.snippet.zip(ctx.config.snippet_cap) {
+            if let Some((snippet, cap)) = snippet.zip(ctx.config.snippet_cap) {
                 item.insert_snippet(cap, snippet);
             }
             item.add_to(acc);

@@ -150,10 +150,8 @@ fn upload_lots() {
     while running {
         let n = t!(poll.poll(&mut events, cur_timeout));
 
-        if n == 0 {
-            if t!(m.timeout()) == 0 {
-                running = false;
-            }
+        if n == 0 && t!(m.timeout()) == 0 {
+            running = false;
         }
 
         for event in events.iter() {
@@ -167,10 +165,10 @@ fn upload_lots() {
                         } else {
                             let mut e = mio::Ready::empty();
                             if events.input() {
-                                e = e | mio::Ready::readable();
+                                e |= mio::Ready::readable();
                             }
                             if events.output() {
-                                e = e | mio::Ready::writable();
+                                e |= mio::Ready::writable();
                             }
                             if token == 0 {
                                 let token = next_token;
@@ -258,6 +256,40 @@ fn waitfds() {
 
     let m = Multi::new();
     let events = t!(m.wait(&mut waitfds, Duration::from_secs(1)));
+    assert_eq!(events, 3);
+    for waitfd in waitfds {
+        assert!(waitfd.received_read());
+    }
+}
+
+// Tests passing raw file descriptors to Multi::wait. The test is limited to Linux only as the
+// semantics of the underlying poll(2) system call used by curl apparently differ on other
+// platforms, making the test fail.
+#[cfg(feature = "poll_7_68_0")]
+#[cfg(target_os = "linux")]
+#[test]
+fn pollfds() {
+    use curl::multi::WaitFd;
+    use std::fs::File;
+    use std::os::unix::io::AsRawFd;
+
+    let filenames = ["/dev/null", "/dev/zero", "/dev/urandom"];
+    let files: Vec<File> = filenames
+        .iter()
+        .map(|filename| File::open(filename).unwrap())
+        .collect();
+    let mut waitfds: Vec<WaitFd> = files
+        .iter()
+        .map(|f| {
+            let mut waitfd = WaitFd::new();
+            waitfd.set_fd(f.as_raw_fd());
+            waitfd.poll_on_read(true);
+            waitfd
+        })
+        .collect();
+
+    let m = Multi::new();
+    let events = t!(m.poll(&mut waitfds, Duration::from_secs(1)));
     assert_eq!(events, 3);
     for waitfd in waitfds {
         assert!(waitfd.received_read());

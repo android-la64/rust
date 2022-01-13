@@ -2,11 +2,11 @@
 
 use hir::HasSource;
 use ide_db::SymbolKind;
-use syntax::display::macro_label;
+use syntax::{display::macro_label, SmolStr};
 
 use crate::{
     context::CallKind,
-    item::{CompletionItem, CompletionKind, ImportEdit},
+    item::{CompletionItem, ImportEdit},
     render::RenderContext,
 };
 
@@ -23,7 +23,7 @@ pub(crate) fn render_macro(
 #[derive(Debug)]
 struct MacroRender<'a> {
     ctx: RenderContext<'a>,
-    name: String,
+    name: SmolStr,
     macro_: hir::MacroDef,
     docs: Option<hir::Documentation>,
     bra: &'static str,
@@ -32,7 +32,7 @@ struct MacroRender<'a> {
 
 impl<'a> MacroRender<'a> {
     fn new(ctx: RenderContext<'a>, name: hir::Name, macro_: hir::MacroDef) -> MacroRender<'a> {
-        let name = name.to_string();
+        let name = name.to_smol_str();
         let docs = ctx.docs(macro_);
         let docs_str = docs.as_ref().map_or("", |s| s.as_str());
         let (bra, ket) = guess_macro_braces(&name, docs_str);
@@ -40,18 +40,15 @@ impl<'a> MacroRender<'a> {
         MacroRender { ctx, name, macro_, docs, bra, ket }
     }
 
-    fn render(&self, import_to_add: Option<ImportEdit>) -> Option<CompletionItem> {
+    fn render(self, import_to_add: Option<ImportEdit>) -> Option<CompletionItem> {
         let source_range = if self.ctx.completion.is_immediately_after_macro_bang() {
             cov_mark::hit!(completes_macro_call_if_cursor_at_bang_token);
             self.ctx.completion.token.parent().map(|it| it.text_range())
         } else {
             Some(self.ctx.source_range())
         }?;
-        let mut item = CompletionItem::new(CompletionKind::Reference, source_range, &self.label());
-        item.kind(SymbolKind::Macro)
-            .set_documentation(self.docs.clone())
-            .set_deprecated(self.ctx.is_deprecated(self.macro_))
-            .set_detail(self.detail());
+        let mut item = CompletionItem::new(SymbolKind::Macro, source_range, self.label());
+        item.set_deprecated(self.ctx.is_deprecated(self.macro_)).set_detail(self.detail());
 
         if let Some(import_to_add) = import_to_add {
             item.add_import(import_to_add);
@@ -73,10 +70,11 @@ impl<'a> MacroRender<'a> {
             }
             _ => {
                 cov_mark::hit!(dont_insert_macro_call_parens_unncessary);
-                item.insert_text(&self.name);
+                item.insert_text(&*self.name);
             }
         };
 
+        item.set_documentation(self.docs);
         Some(item.build())
     }
 
@@ -85,18 +83,18 @@ impl<'a> MacroRender<'a> {
             && !matches!(self.ctx.completion.path_call_kind(), Some(CallKind::Mac))
     }
 
-    fn label(&self) -> String {
+    fn label(&self) -> SmolStr {
         if self.needs_bang() && self.ctx.snippet_cap().is_some() {
-            format!("{}!{}…{}", self.name, self.bra, self.ket)
+            SmolStr::from_iter([&*self.name, "!", self.bra, "…", self.ket])
         } else if self.macro_.kind() == hir::MacroKind::Derive {
-            self.name.to_string()
+            self.name.clone()
         } else {
             self.banged_name()
         }
     }
 
-    fn banged_name(&self) -> String {
-        format!("{}!", self.name)
+    fn banged_name(&self) -> SmolStr {
+        SmolStr::from_iter([&*self.name, "!"])
     }
 
     fn detail(&self) -> Option<String> {

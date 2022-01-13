@@ -32,7 +32,7 @@
         "watch": "npm run build-base -- --sourcemap --watch",
         "lint": "tsfmt --verify && eslint -c .eslintrc.js --ext ts ./src ./tests",
         "fix": " tsfmt -r       && eslint -c .eslintrc.js --ext ts ./src ./tests --fix",
-        "pretest": "tsc && npm run build",
+        "pretest": "tsc --noEmit && npm run build",
         "test": "node ./out/tests/runTests.js"
     },
     "dependencies": {
@@ -436,12 +436,17 @@
                     ]
                 },
                 "rust-analyzer.assist.importGroup": {
-                    "markdownDescription": "Group inserted imports by the https://rust-analyzer.github.io/manual.html#auto-import[following order]. Groups are separated by newlines.",
+                    "markdownDescription": "Group inserted imports by the [following order](https://rust-analyzer.github.io/manual.html#auto-import). Groups are separated by newlines.",
                     "default": true,
                     "type": "boolean"
                 },
                 "rust-analyzer.assist.allowMergingIntoGlobImports": {
                     "markdownDescription": "Whether to allow import insertion to merge new imports into single path glob imports like `use std::fmt::*;`.",
+                    "default": true,
+                    "type": "boolean"
+                },
+                "rust-analyzer.cache.warmup": {
+                    "markdownDescription": "Warm up caches on project load.",
                     "default": true,
                     "type": "boolean"
                 },
@@ -752,6 +757,11 @@
                     "default": true,
                     "type": "boolean"
                 },
+                "rust-analyzer.inlayHints.hideNamedConstructorHints": {
+                    "markdownDescription": "Whether to hide inlay hints for constructors.",
+                    "default": false,
+                    "type": "boolean"
+                },
                 "rust-analyzer.joinLines.joinElseIf": {
                     "markdownDescription": "Join lines inserts else between consecutive ifs.",
                     "default": true,
@@ -867,7 +877,7 @@
                     }
                 },
                 "rust-analyzer.rustcSource": {
-                    "markdownDescription": "Path to the Cargo.toml of the rust compiler workspace, for usage in rustc_private\nprojects, or \"discover\" to try to automatically find it.\n\nAny project which uses rust-analyzer with the rustcPrivate\ncrates must set `[package.metadata.rust-analyzer] rustc_private=true` to use it.\n\nThis option is not reloaded automatically; you must restart rust-analyzer for it to take effect.",
+                    "markdownDescription": "Path to the Cargo.toml of the rust compiler workspace, for usage in rustc_private\nprojects, or \"discover\" to try to automatically find it if the `rustc-dev` component\nis installed.\n\nAny project which uses rust-analyzer with the rustcPrivate\ncrates must set `[package.metadata.rust-analyzer] rustc_private=true` to use it.\n\nThis option does not take effect until rust-analyzer is restarted.",
                     "default": null,
                     "type": [
                         "null",

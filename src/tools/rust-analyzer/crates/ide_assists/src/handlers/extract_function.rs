@@ -1,16 +1,20 @@
-use std::{hash::BuildHasherDefault, iter};
+use std::iter;
 
 use ast::make;
 use either::Either;
-use hir::{HirDisplay, InFile, Local, Semantics, TypeInfo};
+use hir::{HirDisplay, InFile, Local, ModuleDef, Semantics, TypeInfo};
 use ide_db::{
     defs::{Definition, NameRefClass},
-    helpers::node_ext::{preorder_expr, walk_expr, walk_pat, walk_patterns_in_expr},
+    helpers::{
+        insert_use::{insert_use, ImportScope},
+        mod_path_to_ast,
+        node_ext::{preorder_expr, walk_expr, walk_pat, walk_patterns_in_expr},
+        FamousDefs,
+    },
     search::{FileReference, ReferenceCategory, SearchScope},
-    RootDatabase,
+    FxIndexSet, RootDatabase,
 };
 use itertools::Itertools;
-use rustc_hash::FxHasher;
 use stdx::format_to;
 use syntax::{
     ast::{
@@ -27,8 +31,6 @@ use crate::{
     assist_context::{AssistContext, Assists, TreeMutator},
     AssistId,
 };
-
-type FxIndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
 // Assist: extract_function
 //
@@ -56,7 +58,7 @@ type FxIndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 // }
 // ```
 pub(crate) fn extract_function(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
-    let range = ctx.frange.range;
+    let range = ctx.selection_trimmed();
     if range.is_empty() {
         return None;
     }
@@ -85,6 +87,8 @@ pub(crate) fn extract_function(acc: &mut Assists, ctx: &AssistContext) -> Option
     let ret_values = body.ret_values(ctx, node.parent().as_ref().unwrap_or(&node));
 
     let target_range = body.text_range();
+
+    let scope = ImportScope::find_insert_use_container(&node, &ctx.sema)?;
 
     acc.add(
         AssistId("extract_function", crate::AssistKind::RefactorExtract),
@@ -118,10 +122,34 @@ pub(crate) fn extract_function(acc: &mut Assists, ctx: &AssistContext) -> Option
 
             let fn_def = format_function(ctx, module, &fun, old_indent, new_indent);
             let insert_offset = insert_after.text_range().end();
+
+            if fn_def.contains("ControlFlow") {
+                let scope = match scope {
+                    ImportScope::File(it) => ImportScope::File(builder.make_mut(it)),
+                    ImportScope::Module(it) => ImportScope::Module(builder.make_mut(it)),
+                    ImportScope::Block(it) => ImportScope::Block(builder.make_mut(it)),
+                };
+
+                let control_flow_enum =
+                    FamousDefs(&ctx.sema, Some(module.krate())).core_ops_ControlFlow();
+
+                if let Some(control_flow_enum) = control_flow_enum {
+                    let mod_path = module.find_use_path_prefixed(
+                        ctx.sema.db,
+                        ModuleDef::from(control_flow_enum),
+                        ctx.config.insert_use.prefix_kind,
+                    );
+
+                    if let Some(mod_path) = mod_path {
+                        insert_use(&scope, mod_path_to_ast(&mod_path), &ctx.config.insert_use);
+                    }
+                }
+            }
+
             match ctx.config.snippet_cap {
                 Some(cap) => builder.insert_snippet(cap, insert_offset, fn_def),
                 None => builder.insert(insert_offset, fn_def),
-            }
+            };
         },
     )
 }
@@ -309,7 +337,7 @@ impl LocalUsages {
         Self(
             Definition::Local(var)
                 .usages(&ctx.sema)
-                .in_scope(SearchScope::single_file(ctx.frange.file_id))
+                .in_scope(SearchScope::single_file(ctx.file_id()))
                 .all(),
         )
     }
@@ -623,7 +651,7 @@ impl FunctionBody {
                         .children_with_tokens()
                         .flat_map(SyntaxElement::into_token)
                         .filter(|it| it.kind() == SyntaxKind::IDENT)
-                        .flat_map(|t| sema.descend_into_macros_many(t))
+                        .flat_map(|t| sema.descend_into_macros(t))
                         .for_each(|t| cb(t.parent().and_then(ast::NameRef::cast)));
                 }
             }
@@ -1039,7 +1067,7 @@ fn is_defined_outside_of_body(
     body: &FunctionBody,
     src: &hir::InFile<Either<ast::IdentPat, ast::SelfParam>>,
 ) -> bool {
-    src.file_id.original_file(ctx.db()) == ctx.frange.file_id
+    src.file_id.original_file(ctx.db()) == ctx.file_id()
         && !body.contains_node(either_syntax(&src.value))
 }
 
@@ -1184,7 +1212,17 @@ impl FlowHandler {
                 let action = action.make_result_handler(None);
                 let stmt = make::expr_stmt(action);
                 let block = make::block_expr(iter::once(stmt.into()), None);
-                let condition = make::condition(call_expr, None);
+                let controlflow_break_path = make::path_from_text("ControlFlow::Break");
+                let condition = make::condition(
+                    call_expr,
+                    Some(
+                        make::tuple_struct_pat(
+                            controlflow_break_path,
+                            iter::once(make::wildcard_pat().into()),
+                        )
+                        .into(),
+                    ),
+                );
                 make::expr_if(condition, block, None)
             }
             FlowHandler::IfOption { action } => {
@@ -1326,7 +1364,7 @@ impl Function {
                     .unwrap_or_else(make::ty_placeholder);
                 make::ext::ty_result(fun_ty.make_ty(ctx, module), handler_ty)
             }
-            FlowHandler::If { .. } => make::ext::ty_bool(),
+            FlowHandler::If { .. } => make::ty("ControlFlow<()>"),
             FlowHandler::IfOption { action } => {
                 let handler_ty = action
                     .expr_ty(ctx)
@@ -1461,8 +1499,11 @@ fn make_body(
             })
         }
         FlowHandler::If { .. } => {
-            let lit_false = make::expr_literal("false");
-            with_tail_expr(block, lit_false.into())
+            let controlflow_continue = make::expr_call(
+                make::expr_path(make::path_from_text("ControlFlow::Continue")),
+                make::arg_list(iter::once(make::expr_unit())),
+            );
+            with_tail_expr(block, controlflow_continue.into())
         }
         FlowHandler::IfOption { .. } => {
             let none = make::expr_path(make::ext::ident_path("None"));
@@ -1638,7 +1679,10 @@ fn update_external_control_flow(handler: &FlowHandler, syntax: &SyntaxNode) {
 fn make_rewritten_flow(handler: &FlowHandler, arg_expr: Option<ast::Expr>) -> Option<ast::Expr> {
     let value = match handler {
         FlowHandler::None | FlowHandler::Try { .. } => return None,
-        FlowHandler::If { .. } => make::expr_literal("true").into(),
+        FlowHandler::If { .. } => make::expr_call(
+            make::expr_path(make::path_from_text("ControlFlow::Break")),
+            make::arg_list(iter::once(make::expr_unit())),
+        ),
         FlowHandler::IfOption { .. } => {
             let expr = arg_expr.unwrap_or_else(|| make::expr_tuple(Vec::new()));
             let args = make::arg_list(iter::once(expr));
@@ -3270,6 +3314,7 @@ fn foo() {
         check_assist(
             extract_function,
             r#"
+//- minicore: try
 fn foo() {
     loop {
         let mut n = 1;
@@ -3281,21 +3326,23 @@ fn foo() {
 }
 "#,
             r#"
+use core::ops::ControlFlow;
+
 fn foo() {
     loop {
         let mut n = 1;
-        if fun_name(&mut n) {
+        if let ControlFlow::Break(_) = fun_name(&mut n) {
             break;
         }
         let h = 1 + n;
     }
 }
 
-fn $0fun_name(n: &mut i32) -> bool {
+fn $0fun_name(n: &mut i32) -> ControlFlow<()> {
     let m = *n + 1;
-    return true;
+    return ControlFlow::Break(());
     *n += m;
-    false
+    ControlFlow::Continue(())
 }
 "#,
         );
@@ -3306,6 +3353,7 @@ fn $0fun_name(n: &mut i32) -> bool {
         check_assist(
             extract_function,
             r#"
+//- minicore: try
 fn foo() {
     loop {
         let mut n = 1;
@@ -3318,22 +3366,24 @@ fn foo() {
 }
 "#,
             r#"
+use core::ops::ControlFlow;
+
 fn foo() {
     loop {
         let mut n = 1;
-        if fun_name(n) {
+        if let ControlFlow::Break(_) = fun_name(n) {
             break;
         }
         let h = 1;
     }
 }
 
-fn $0fun_name(n: i32) -> bool {
+fn $0fun_name(n: i32) -> ControlFlow<()> {
     let m = n + 1;
     if m == 42 {
-        return true;
+        return ControlFlow::Break(());
     }
-    false
+    ControlFlow::Continue(())
 }
 "#,
         );

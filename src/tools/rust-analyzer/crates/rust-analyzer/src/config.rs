@@ -58,6 +58,9 @@ config_data! {
         /// Whether to allow import insertion to merge new imports into single path glob imports like `use std::fmt::*;`.
         assist_allowMergingIntoGlobImports: bool           = "true",
 
+        /// Warm up caches on project load.
+        cache_warmup: bool = "true",
+
         /// Show function name and docs in parameter hints.
         callInfo_full: bool                                = "true",
 
@@ -195,14 +198,16 @@ config_data! {
         hoverActions_run: bool             = "true",
 
         /// Whether to show inlay type hints for method chains.
-        inlayHints_chainingHints: bool      = "true",
+        inlayHints_chainingHints: bool              = "true",
         /// Maximum length for inlay hints. Set to null to have an unlimited length.
-        inlayHints_maxLength: Option<usize> = "25",
+        inlayHints_maxLength: Option<usize>         = "25",
         /// Whether to show function parameter name inlay hints at the call
         /// site.
-        inlayHints_parameterHints: bool     = "true",
+        inlayHints_parameterHints: bool             = "true",
         /// Whether to show inlay type hints for variables.
-        inlayHints_typeHints: bool          = "true",
+        inlayHints_typeHints: bool                  = "true",
+        /// Whether to hide inlay hints for constructors.
+        inlayHints_hideNamedConstructorHints: bool  = "false",
 
         /// Join lines inserts else between consecutive ifs.
         joinLines_joinElseIf: bool = "true",
@@ -263,12 +268,13 @@ config_data! {
         runnables_cargoExtraArgs: Vec<String>   = "[]",
 
         /// Path to the Cargo.toml of the rust compiler workspace, for usage in rustc_private
-        /// projects, or "discover" to try to automatically find it.
+        /// projects, or "discover" to try to automatically find it if the `rustc-dev` component
+        /// is installed.
         ///
         /// Any project which uses rust-analyzer with the rustcPrivate
         /// crates must set `[package.metadata.rust-analyzer] rustc_private=true` to use it.
         ///
-        /// This option is not reloaded automatically; you must restart rust-analyzer for it to take effect.
+        /// This option does not take effect until rust-analyzer is restarted.
         rustcSource: Option<String> = "null",
 
         /// Additional arguments to `rustfmt`.
@@ -542,6 +548,10 @@ impl Config {
         )
     }
 
+    pub fn prefill_caches(&self) -> bool {
+        self.data.cache_warmup
+    }
+
     pub fn location_link(&self) -> bool {
         try_or!(self.caps.text_document.as_ref()?.definition?.link_support?, false)
     }
@@ -767,6 +777,7 @@ impl Config {
             type_hints: self.data.inlayHints_typeHints,
             parameter_hints: self.data.inlayHints_parameterHints,
             chaining_hints: self.data.inlayHints_chainingHints,
+            hide_named_constructor_hints: self.data.inlayHints_hideNamedConstructorHints,
             max_length: self.data.inlayHints_maxLength,
         }
     }
@@ -1287,6 +1298,29 @@ mod tests {
             .trim_end()
             .to_string();
         schema.push_str(",\n");
+
+        // Transform the asciidoc form link to markdown style.
+        //
+        // https://link[text] => [text](https://link)
+        let url_matches = schema.match_indices("https://");
+        let mut url_offsets = url_matches.map(|(idx, _)| idx).collect::<Vec<usize>>();
+        url_offsets.reverse();
+        for idx in url_offsets {
+            let link = &schema[idx..];
+            // matching on whitespace to ignore normal links
+            if let Some(link_end) = link.find(|c| c == ' ' || c == '[') {
+                if link.chars().nth(link_end) == Some('[') {
+                    if let Some(link_text_end) = link.find(']') {
+                        let link_text = link[link_end..(link_text_end + 1)].to_string();
+
+                        schema.replace_range((idx + link_end)..(idx + link_text_end + 1), "");
+                        schema.insert(idx, '(');
+                        schema.insert(idx + link_end + 1, ')');
+                        schema.insert_str(idx, &link_text);
+                    }
+                }
+            }
+        }
 
         let package_json_path = project_root().join("editors/code/package.json");
         let mut package_json = fs::read_to_string(&package_json_path).unwrap();

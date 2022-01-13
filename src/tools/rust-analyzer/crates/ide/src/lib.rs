@@ -219,6 +219,7 @@ impl Analysis {
             file_id,
             Edition::CURRENT,
             None,
+            None,
             cfg_options.clone(),
             cfg_options,
             Env::default(),
@@ -311,7 +312,7 @@ impl Analysis {
     pub fn join_lines(&self, config: &JoinLinesConfig, frange: FileRange) -> Cancellable<TextEdit> {
         self.with_db(|db| {
             let parse = db.parse(frange.file_id);
-            join_lines::join_lines(&config, &parse.tree(), frange.range)
+            join_lines::join_lines(config, &parse.tree(), frange.range)
         })
     }
 

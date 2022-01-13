@@ -16,6 +16,7 @@ pub struct InlayHintsConfig {
     pub type_hints: bool,
     pub parameter_hints: bool,
     pub chaining_hints: bool,
+    pub hide_named_constructor_hints: bool,
     pub max_length: Option<usize>,
 }
 
@@ -201,7 +202,7 @@ fn get_bind_pat_hints(
     let desc_pat = descended.as_ref().unwrap_or(pat);
     let ty = sema.type_of_pat(&desc_pat.clone().into())?.original;
 
-    if should_not_display_type_hint(sema, &pat, &ty) {
+    if should_not_display_type_hint(sema, pat, &ty) {
         return None;
     }
 
@@ -213,7 +214,9 @@ fn get_bind_pat_hints(
         Some(label) => label,
         None => {
             let ty_name = ty.display_truncated(sema.db, config.max_length).to_string();
-            if is_named_constructor(sema, pat, &ty_name).is_some() {
+            if config.hide_named_constructor_hints
+                && is_named_constructor(sema, pat, &ty_name).is_some()
+            {
                 return None;
             }
             ty_name.into()
@@ -269,7 +272,7 @@ fn is_named_constructor(
         callable_kind
     {
         if let Some(ctor) = path.segment() {
-            return (&ctor.to_string() == ty_name).then(|| ());
+            return (ctor.to_string() == ty_name).then(|| ());
         }
     }
 
@@ -285,7 +288,7 @@ fn is_named_constructor(
         ast::PathSegmentKind::Type { type_ref: Some(ty), trait_ref: None } => ty.to_string(),
         _ => return None,
     };
-    (&ctor_name == ty_name).then(|| ())
+    (ctor_name == ty_name).then(|| ())
 }
 
 /// Checks if the type is an Iterator from std::iter and replaces its hint with an `impl Iterator<Item = Ty>`.
@@ -344,7 +347,7 @@ fn pat_is_enum_variant(db: &RootDatabase, bind_pat: &ast::IdentPat, pat_ty: &hir
         enum_data
             .variants(db)
             .into_iter()
-            .map(|variant| variant.name(db).to_string())
+            .map(|variant| variant.name(db).to_smol_str())
             .any(|enum_name| enum_name == pat_text)
     } else {
         false
@@ -363,7 +366,7 @@ fn should_not_display_type_hint(
     }
 
     if let Some(hir::Adt::Struct(s)) = pat_ty.as_adt() {
-        if s.fields(db).is_empty() && s.name(db).to_string() == bind_pat.to_string() {
+        if s.fields(db).is_empty() && s.name(db).to_smol_str() == bind_pat.to_string() {
             return true;
         }
     }
@@ -419,7 +422,7 @@ fn should_hide_param_name_hint(
     }
 
     let fn_name = match callable.kind() {
-        hir::CallableKind::Function(it) => Some(it.name(sema.db).to_string()),
+        hir::CallableKind::Function(it) => Some(it.name(sema.db).to_smol_str()),
         _ => None,
     };
     let fn_name = fn_name.as_deref();
@@ -438,15 +441,25 @@ fn is_argument_similar_to_param_name(argument: &ast::Expr, param_name: &str) -> 
         None => return false,
     };
 
+    // std is honestly too panic happy...
+    let str_split_at = |str: &str, at| str.is_char_boundary(at).then(|| argument.split_at(at));
+
     let param_name = param_name.trim_start_matches('_');
     let argument = argument.trim_start_matches('_');
-    if argument.strip_prefix(param_name).map_or(false, |s| s.starts_with('_')) {
-        return true;
+
+    match str_split_at(argument, param_name.len()) {
+        Some((prefix, rest)) if prefix.eq_ignore_ascii_case(param_name) => {
+            return rest.is_empty() || rest.starts_with('_');
+        }
+        _ => (),
     }
-    if argument.strip_suffix(param_name).map_or(false, |s| s.ends_with('_')) {
-        return true;
+    match argument.len().checked_sub(param_name.len()).and_then(|at| str_split_at(argument, at)) {
+        Some((rest, suffix)) if param_name.eq_ignore_ascii_case(suffix) => {
+            return rest.is_empty() || rest.ends_with('_');
+        }
+        _ => (),
     }
-    argument == param_name
+    false
 }
 
 /// Hide the parameter name of a unary function if it is a `_` - prefixed suffix of the function's name, or equal.
@@ -461,9 +474,13 @@ fn is_param_name_suffix_of_fn_name(
     match (callable.n_params(), fn_name) {
         (1, Some(function)) => {
             function == param_name
-                || (function.len() > param_name.len()
-                    && function.ends_with(param_name)
-                    && function[..function.len() - param_name.len()].ends_with('_'))
+                || function
+                    .len()
+                    .checked_sub(param_name.len())
+                    .and_then(|at| function.is_char_boundary(at).then(|| function.split_at(at)))
+                    .map_or(false, |(prefix, suffix)| {
+                        suffix.eq_ignore_ascii_case(param_name) && prefix.ends_with('_')
+                    })
         }
         _ => false,
     }
@@ -475,7 +492,9 @@ fn is_enum_name_similar_to_param_name(
     param_name: &str,
 ) -> bool {
     match sema.type_of_expr(argument).and_then(|t| t.original.as_adt()) {
-        Some(hir::Adt::Enum(e)) => to_lower_snake_case(&e.name(sema.db).to_string()) == param_name,
+        Some(hir::Adt::Enum(e)) => {
+            to_lower_snake_case(&e.name(sema.db).to_smol_str()) == param_name
+        }
         _ => false,
     }
 }
@@ -535,6 +554,7 @@ mod tests {
         type_hints: true,
         parameter_hints: true,
         chaining_hints: true,
+        hide_named_constructor_hints: false,
         max_length: None,
     };
 
@@ -550,6 +570,7 @@ mod tests {
                 parameter_hints: true,
                 type_hints: false,
                 chaining_hints: false,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             ra_fixture,
@@ -563,6 +584,7 @@ mod tests {
                 parameter_hints: false,
                 type_hints: true,
                 chaining_hints: false,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             ra_fixture,
@@ -576,6 +598,7 @@ mod tests {
                 parameter_hints: false,
                 type_hints: false,
                 chaining_hints: true,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             ra_fixture,
@@ -584,7 +607,7 @@ mod tests {
 
     #[track_caller]
     fn check_with_config(config: InlayHintsConfig, ra_fixture: &str) {
-        let (analysis, file_id) = fixture::file(&ra_fixture);
+        let (analysis, file_id) = fixture::file(ra_fixture);
         let expected = extract_annotations(&*analysis.file_text(file_id).unwrap());
         let inlay_hints = analysis.inlay_hints(&config, file_id).unwrap();
         let actual =
@@ -594,7 +617,7 @@ mod tests {
 
     #[track_caller]
     fn check_expect(config: InlayHintsConfig, ra_fixture: &str, expect: Expect) {
-        let (analysis, file_id) = fixture::file(&ra_fixture);
+        let (analysis, file_id) = fixture::file(ra_fixture);
         let inlay_hints = analysis.inlay_hints(&config, file_id).unwrap();
         expect.assert_debug_eq(&inlay_hints)
     }
@@ -606,6 +629,7 @@ mod tests {
                 type_hints: false,
                 parameter_hints: false,
                 chaining_hints: false,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             r#"
@@ -842,6 +866,9 @@ enum CompletionKind {
 fn non_ident_pat((a, b): (u32, u32)) {}
 
 fn main() {
+    const PARAM: u32 = 0;
+    foo(PARAM);
+
     check("");
 
     map(0);
@@ -1311,7 +1338,14 @@ fn main() {
 
     #[test]
     fn skip_constructor_type_hints() {
-        check_types(
+        check_with_config(
+            InlayHintsConfig {
+                type_hints: true,
+                parameter_hints: true,
+                chaining_hints: true,
+                hide_named_constructor_hints: true,
+                max_length: None,
+            },
             r#"
 //- minicore: try
 use core::ops::ControlFlow;
@@ -1346,6 +1380,53 @@ fn main() {
 
 fn fallible() -> ControlFlow<()> {
     let strukt = Struct::try_new()?;
+}
+"#,
+        );
+    }
+
+    #[test]
+    fn shows_constructor_type_hints_when_enabled() {
+        check_types(
+            r#"
+//- minicore: try
+use core::ops::ControlFlow;
+
+struct Struct;
+struct TupleStruct();
+
+impl Struct {
+    fn new() -> Self {
+        Struct
+    }
+    fn try_new() -> ControlFlow<(), Self> {
+        ControlFlow::Continue(Struct)
+    }
+}
+
+struct Generic<T>(T);
+impl Generic<i32> {
+    fn new() -> Self {
+        Generic(0)
+    }
+}
+
+fn main() {
+    let strukt = Struct::new();
+     // ^^^^^^ Struct
+    let tuple_struct = TupleStruct();
+     // ^^^^^^^^^^^^ TupleStruct
+    let generic0 = Generic::new();
+     // ^^^^^^^^ Generic<i32>
+    let generic1 = Generic::<i32>::new();
+     // ^^^^^^^^ Generic<i32>
+    let generic2 = <Generic<i32>>::new();
+     // ^^^^^^^^ Generic<i32>
+}
+
+fn fallible() -> ControlFlow<()> {
+    let strukt = Struct::try_new()?;
+     // ^^^^^^ Struct
 }
 "#,
         );
@@ -1406,6 +1487,7 @@ fn main() {
                 parameter_hints: false,
                 type_hints: false,
                 chaining_hints: true,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             r#"
@@ -1462,6 +1544,7 @@ fn main() {
                 parameter_hints: false,
                 type_hints: false,
                 chaining_hints: true,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             r#"
@@ -1506,6 +1589,7 @@ fn main() {
                 parameter_hints: false,
                 type_hints: false,
                 chaining_hints: true,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             r#"
@@ -1551,6 +1635,7 @@ fn main() {
                 parameter_hints: false,
                 type_hints: false,
                 chaining_hints: true,
+                hide_named_constructor_hints: false,
                 max_length: None,
             },
             r#"

@@ -20,15 +20,17 @@ use lsp_types::{
     CallHierarchyIncomingCall, CallHierarchyIncomingCallsParams, CallHierarchyItem,
     CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsParams, CallHierarchyPrepareParams,
     CodeLens, CompletionItem, Diagnostic, DiagnosticTag, DocumentFormattingParams, FoldingRange,
-    FoldingRangeParams, HoverContents, Location, NumberOrString, Position, PrepareRenameResponse,
-    Range, RenameParams, SemanticTokensDeltaParams, SemanticTokensFullDeltaResult,
-    SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeResult,
-    SemanticTokensResult, SymbolInformation, SymbolTag, TextDocumentIdentifier, Url, WorkspaceEdit,
+    FoldingRangeParams, HoverContents, Location, LocationLink, NumberOrString, Position,
+    PrepareRenameResponse, Range, RenameParams, SemanticTokensDeltaParams,
+    SemanticTokensFullDeltaResult, SemanticTokensParams, SemanticTokensRangeParams,
+    SemanticTokensRangeResult, SemanticTokensResult, SymbolInformation, SymbolTag,
+    TextDocumentIdentifier, Url, WorkspaceEdit,
 };
-use project_model::TargetKind;
+use project_model::{ManifestPath, ProjectWorkspace, TargetKind};
 use serde_json::json;
 use stdx::{format_to, never};
 use syntax::{algo, ast, AstNode, TextRange, TextSize, T};
+use vfs::AbsPathBuf;
 
 use crate::{
     cargo_target_spec::CargoTargetSpec,
@@ -308,7 +310,7 @@ pub(crate) fn handle_document_symbol(
     for symbol in snap.analysis.file_structure(file_id)? {
         let mut tags = Vec::new();
         if symbol.deprecated {
-            tags.push(SymbolTag::Deprecated)
+            tags.push(SymbolTag::DEPRECATED)
         };
 
         #[allow(deprecated)]
@@ -364,9 +366,8 @@ pub(crate) fn handle_document_symbol(
         let mut tags = Vec::new();
 
         #[allow(deprecated)]
-        match symbol.deprecated {
-            Some(true) => tags.push(SymbolTag::Deprecated),
-            _ => {}
+        if let Some(true) = symbol.deprecated {
+            tags.push(SymbolTag::DEPRECATED)
         }
 
         #[allow(deprecated)]
@@ -462,7 +463,7 @@ pub(crate) fn handle_workspace_symbol(
                 kind: nav
                     .kind
                     .map(to_proto::symbol_kind)
-                    .unwrap_or(lsp_types::SymbolKind::Variable),
+                    .unwrap_or(lsp_types::SymbolKind::VARIABLE),
                 tags: None,
                 location: to_proto::location_from_nav(snap, nav)?,
                 container_name,
@@ -601,6 +602,62 @@ pub(crate) fn handle_parent_module(
     params: lsp_types::TextDocumentPositionParams,
 ) -> Result<Option<lsp_types::GotoDefinitionResponse>> {
     let _p = profile::span("handle_parent_module");
+    if let Ok(file_path) = &params.text_document.uri.to_file_path() {
+        if file_path.file_name().unwrap_or_default() == "Cargo.toml" {
+            // search workspaces for parent packages or fallback to workspace root
+            let abs_path_buf = match AbsPathBuf::try_from(file_path.to_path_buf()).ok() {
+                Some(abs_path_buf) => abs_path_buf,
+                None => return Ok(None),
+            };
+
+            let manifest_path = match ManifestPath::try_from(abs_path_buf).ok() {
+                Some(manifest_path) => manifest_path,
+                None => return Ok(None),
+            };
+
+            let links: Vec<LocationLink> = snap
+                .workspaces
+                .iter()
+                .filter_map(|ws| match ws {
+                    ProjectWorkspace::Cargo { cargo, .. } => cargo.parent_manifests(&manifest_path),
+                    _ => None,
+                })
+                .flatten()
+                .map(|parent_manifest_path| LocationLink {
+                    origin_selection_range: None,
+                    target_uri: to_proto::url_from_abs_path(&parent_manifest_path),
+                    target_range: Range::default(),
+                    target_selection_range: Range::default(),
+                })
+                .collect::<_>();
+            return Ok(Some(links.into()));
+        }
+
+        // check if invoked at the crate root
+        let file_id = from_proto::file_id(&snap, &params.text_document.uri)?;
+        let crate_id = match snap.analysis.crate_for(file_id)?.first() {
+            Some(&crate_id) => crate_id,
+            None => return Ok(None),
+        };
+        let cargo_spec = match CargoTargetSpec::for_file(&snap, file_id)? {
+            Some(it) => it,
+            None => return Ok(None),
+        };
+
+        if snap.analysis.crate_root(crate_id)? == file_id {
+            let cargo_toml_url = to_proto::url_from_abs_path(&cargo_spec.cargo_toml);
+            let res = vec![LocationLink {
+                origin_selection_range: None,
+                target_uri: cargo_toml_url,
+                target_range: Range::default(),
+                target_selection_range: Range::default(),
+            }]
+            .into();
+            return Ok(Some(res));
+        }
+    }
+
+    // locate parent module by semantics
     let position = from_proto::file_position(&snap, params)?;
     let navs = snap.analysis.parent_module(position)?;
     let res = to_proto::goto_definition_response(&snap, None, navs)?;
@@ -649,7 +706,7 @@ pub(crate) fn handle_runnables(
     let config = snap.config.runnables();
     match cargo_spec {
         Some(spec) => {
-            for &cmd in ["check", "test"].iter() {
+            for cmd in ["check", "test"] {
                 res.push(lsp_ext::Runnable {
                     label: format!("cargo {} -p {} --all-targets", cmd, spec.package),
                     location: None,
@@ -863,9 +920,14 @@ pub(crate) fn handle_hover(
 
     let line_index = snap.file_line_index(file_range.file_id)?;
     let range = to_proto::range(&line_index, info.range);
+    let markup_kind =
+        snap.config.hover().documentation.map_or(ide::HoverDocFormat::Markdown, |kind| kind);
     let hover = lsp_ext::Hover {
         hover: lsp_types::Hover {
-            contents: HoverContents::Markup(to_proto::markup_content(info.info.markup)),
+            contents: HoverContents::Markup(to_proto::markup_content(
+                info.info.markup,
+                markup_kind,
+            )),
             range: Some(range),
         },
         actions: if snap.config.hover_actions().none() {
@@ -1035,7 +1097,7 @@ pub(crate) fn handle_code_action_resolve(
     let _p = profile::span("handle_code_action_resolve");
     let params = match code_action.data.take() {
         Some(it) => it,
-        None => return Err(invalid_params_error(format!("code action without data")).into()),
+        None => return Err(invalid_params_error("code action without data".to_string()).into()),
     };
 
     let file_id = from_proto::file_id(&snap, &params.code_action_params.text_document.uri)?;
@@ -1094,7 +1156,7 @@ pub(crate) fn handle_code_action_resolve(
 fn parse_action_id(action_id: &str) -> Result<(usize, SingleResolve), String> {
     let id_parts = action_id.split(':').collect_vec();
     match id_parts.as_slice() {
-        &[assist_id_string, assist_kind_string, index_string] => {
+        [assist_id_string, assist_kind_string, index_string] => {
             let assist_kind: AssistKind = assist_kind_string.parse()?;
             let index: usize = match index_string.parse() {
                 Ok(index) => index,
@@ -1236,7 +1298,7 @@ pub(crate) fn publish_diagnostics(
             source: Some("rust-analyzer".to_string()),
             message: d.message,
             related_information: None,
-            tags: if d.unused { Some(vec![DiagnosticTag::Unnecessary]) } else { None },
+            tags: if d.unused { Some(vec![DiagnosticTag::UNNECESSARY]) } else { None },
             data: None,
         })
         .collect();

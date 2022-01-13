@@ -27,11 +27,13 @@
 pub(crate) mod abi_1_47;
 mod abi_1_55;
 mod abi_1_56;
+mod abi_1_58;
 
 use super::dylib::LoadProcMacroDylibError;
 pub(crate) use abi_1_47::Abi as Abi_1_47;
 pub(crate) use abi_1_55::Abi as Abi_1_55;
 pub(crate) use abi_1_56::Abi as Abi_1_56;
+pub(crate) use abi_1_58::Abi as Abi_1_58;
 use libloading::Library;
 use proc_macro_api::{ProcMacroKind, RustCInfo};
 
@@ -49,6 +51,7 @@ pub(crate) enum Abi {
     Abi1_47(Abi_1_47),
     Abi1_55(Abi_1_55),
     Abi1_56(Abi_1_56),
+    Abi1_58(Abi_1_58),
 }
 
 impl Abi {
@@ -66,19 +69,26 @@ impl Abi {
         symbol_name: String,
         info: RustCInfo,
     ) -> Result<Abi, LoadProcMacroDylibError> {
-        if info.version.0 != 1 {
-            Err(LoadProcMacroDylibError::UnsupportedABI)
-        } else if info.version.1 < 47 {
-            Err(LoadProcMacroDylibError::UnsupportedABI)
-        } else if info.version.1 < 54 {
-            let inner = unsafe { Abi_1_47::from_lib(lib, symbol_name) }?;
-            Ok(Abi::Abi1_47(inner))
-        } else if info.version.1 < 56 {
-            let inner = unsafe { Abi_1_55::from_lib(lib, symbol_name) }?;
-            Ok(Abi::Abi1_55(inner))
-        } else {
-            let inner = unsafe { Abi_1_56::from_lib(lib, symbol_name) }?;
-            Ok(Abi::Abi1_56(inner))
+        // FIXME: this should use exclusive ranges when they're stable
+        // https://github.com/rust-lang/rust/issues/37854
+        match (info.version.0, info.version.1) {
+            (1, 47..=54) => {
+                let inner = unsafe { Abi_1_47::from_lib(lib, symbol_name) }?;
+                Ok(Abi::Abi1_47(inner))
+            }
+            (1, 55..=55) => {
+                let inner = unsafe { Abi_1_55::from_lib(lib, symbol_name) }?;
+                Ok(Abi::Abi1_55(inner))
+            }
+            (1, 56..=57) => {
+                let inner = unsafe { Abi_1_56::from_lib(lib, symbol_name) }?;
+                Ok(Abi::Abi1_56(inner))
+            }
+            (1, 58..) => {
+                let inner = unsafe { Abi_1_58::from_lib(lib, symbol_name) }?;
+                Ok(Abi::Abi1_58(inner))
+            }
+            _ => Err(LoadProcMacroDylibError::UnsupportedABI),
         }
     }
 
@@ -92,6 +102,7 @@ impl Abi {
             Self::Abi1_55(abi) => abi.expand(macro_name, macro_body, attributes),
             Self::Abi1_47(abi) => abi.expand(macro_name, macro_body, attributes),
             Self::Abi1_56(abi) => abi.expand(macro_name, macro_body, attributes),
+            Self::Abi1_58(abi) => abi.expand(macro_name, macro_body, attributes),
         }
     }
 
@@ -100,6 +111,7 @@ impl Abi {
             Self::Abi1_47(abi) => abi.list_macros(),
             Self::Abi1_55(abi) => abi.list_macros(),
             Self::Abi1_56(abi) => abi.list_macros(),
+            Self::Abi1_58(abi) => abi.list_macros(),
         }
     }
 }

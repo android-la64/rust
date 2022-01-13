@@ -21,8 +21,7 @@ able to parse any URI, such as `urn:isbn:0451450523`.
 extern crate bitflags;
 
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
-
+use std::fmt::Debug;
 pub use url::Url;
 
 use std::collections::HashMap;
@@ -30,6 +29,40 @@ use std::collections::HashMap;
 use serde::de;
 use serde::de::Error as Error_;
 use serde_json::Value;
+
+fn fmt_pascal_case(f: &mut std::fmt::Formatter<'_>, name: &str) -> std::fmt::Result {
+    for word in name.split('_') {
+        let mut chars = word.chars();
+        let first = chars.next().unwrap();
+        write!(f, "{}", first)?;
+        for rest in chars {
+            write!(f, "{}", rest.to_lowercase())?;
+        }
+    }
+    Ok(())
+}
+
+macro_rules! lsp_enum {
+    (impl $typ: ty { $( $(#[$attr:meta])* pub const $name: ident : $enum_type: ty = $value: expr; )* }) => {
+        impl $typ {
+            $(
+            $(#[$attr])*
+            pub const $name: $enum_type = $value;
+            )*
+        }
+
+        impl std::fmt::Debug for $typ {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match *self {
+                    $(
+                    Self::$name => crate::fmt_pascal_case(f, stringify!($name)),
+                    )*
+                    _ => write!(f, "{}({})", stringify!($typ), self.0),
+                }
+            }
+        }
+    }
+}
 
 pub mod error_codes;
 pub mod notification;
@@ -289,17 +322,20 @@ impl Diagnostic {
 }
 
 /// The protocol currently supports the following diagnostic severities:
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Deserialize_repr, Serialize_repr)]
-#[repr(u8)]
-pub enum DiagnosticSeverity {
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct DiagnosticSeverity(i32);
+lsp_enum! {
+impl DiagnosticSeverity {
     /// Reports an error.
-    Error = 1,
+    pub const ERROR: DiagnosticSeverity = DiagnosticSeverity(1);
     /// Reports a warning.
-    Warning = 2,
+    pub const WARNING: DiagnosticSeverity = DiagnosticSeverity(2);
     /// Reports an information.
-    Information = 3,
+    pub const INFORMATION: DiagnosticSeverity = DiagnosticSeverity(3);
     /// Reports a hint.
-    Hint = 4,
+    pub const HINT: DiagnosticSeverity = DiagnosticSeverity(4);
+}
 }
 
 /// Represents a related message and source code location for a diagnostic. This
@@ -315,17 +351,20 @@ pub struct DiagnosticRelatedInformation {
 }
 
 /// The diagnostic tags.
-#[derive(Debug, Eq, PartialEq, Clone, Deserialize_repr, Serialize_repr)]
-#[repr(u8)]
-pub enum DiagnosticTag {
+#[derive(Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct DiagnosticTag(i32);
+lsp_enum! {
+impl DiagnosticTag {
     /// Unused or unnecessary code.
     /// Clients are allowed to render diagnostics with this tag faded out instead of having
     /// an error squiggle.
-    Unnecessary = 1,
+    pub const UNNECESSARY: DiagnosticTag = DiagnosticTag(1);
 
     /// Deprecated or obsolete code.
     /// Clients are allowed to rendered diagnostics with this tag strike through.
-    Deprecated = 2,
+    pub const DEPRECATED: DiagnosticTag = DiagnosticTag(2);
+}
 }
 
 /// Represents a reference to a command. Provides a title which will be used to represent a command in the UI.
@@ -1066,38 +1105,38 @@ pub enum FailureHandlingKind {
 }
 
 /// A symbol kind.
-#[derive(Debug, Eq, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
-#[repr(u8)]
-pub enum SymbolKind {
-    File = 1,
-    Module = 2,
-    Namespace = 3,
-    Package = 4,
-    Class = 5,
-    Method = 6,
-    Property = 7,
-    Field = 8,
-    Constructor = 9,
-    Enum = 10,
-    Interface = 11,
-    Function = 12,
-    Variable = 13,
-    Constant = 14,
-    String = 15,
-    Number = 16,
-    Boolean = 17,
-    Array = 18,
-    Object = 19,
-    Key = 20,
-    Null = 21,
-    EnumMember = 22,
-    Struct = 23,
-    Event = 24,
-    Operator = 25,
-    TypeParameter = 26,
-
-    // Capturing all unknown enums by this lib.
-    Unknown = 255,
+#[derive(Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct SymbolKind(i32);
+lsp_enum! {
+impl SymbolKind {
+    pub const FILE: SymbolKind = SymbolKind(1);
+    pub const MODULE: SymbolKind = SymbolKind(2);
+    pub const NAMESPACE: SymbolKind = SymbolKind(3);
+    pub const PACKAGE: SymbolKind = SymbolKind(4);
+    pub const CLASS: SymbolKind = SymbolKind(5);
+    pub const METHOD: SymbolKind = SymbolKind(6);
+    pub const PROPERTY: SymbolKind = SymbolKind(7);
+    pub const FIELD: SymbolKind = SymbolKind(8);
+    pub const CONSTRUCTOR: SymbolKind = SymbolKind(9);
+    pub const ENUM: SymbolKind = SymbolKind(10);
+    pub const INTERFACE: SymbolKind = SymbolKind(11);
+    pub const FUNCTION: SymbolKind = SymbolKind(12);
+    pub const VARIABLE: SymbolKind = SymbolKind(13);
+    pub const CONSTANT: SymbolKind = SymbolKind(14);
+    pub const STRING: SymbolKind = SymbolKind(15);
+    pub const NUMBER: SymbolKind = SymbolKind(16);
+    pub const BOOLEAN: SymbolKind = SymbolKind(17);
+    pub const ARRAY: SymbolKind = SymbolKind(18);
+    pub const OBJECT: SymbolKind = SymbolKind(19);
+    pub const KEY: SymbolKind = SymbolKind(20);
+    pub const NULL: SymbolKind = SymbolKind(21);
+    pub const ENUM_MEMBER: SymbolKind = SymbolKind(22);
+    pub const STRUCT: SymbolKind = SymbolKind(23);
+    pub const EVENT: SymbolKind = SymbolKind(24);
+    pub const OPERATOR: SymbolKind = SymbolKind(25);
+    pub const TYPE_PARAMETER: SymbolKind = SymbolKind(26);
+}
 }
 
 /// Specific capabilities for the `SymbolKind` in the `workspace/symbol` request.
@@ -1504,18 +1543,21 @@ pub struct InitializeError {
 // The server can signal the following capabilities:
 
 /// Defines how the host (editor) should sync document changes to the language server.
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Deserialize_repr, Serialize_repr)]
-#[repr(u8)]
-pub enum TextDocumentSyncKind {
+#[derive(Eq, PartialEq, Clone, Copy, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct TextDocumentSyncKind(i32);
+lsp_enum! {
+impl TextDocumentSyncKind {
     /// Documents should not be synced at all.
-    None = 0,
+    pub const NONE: TextDocumentSyncKind = TextDocumentSyncKind(0);
 
     /// Documents are synced by always sending the full content of the document.
-    Full = 1,
+    pub const FULL: TextDocumentSyncKind = TextDocumentSyncKind(1);
 
     /// Documents are synced by sending the full content on open. After that only
     /// incremental updates to the document are sent.
-    Incremental = 2,
+    pub const INCREMENTAL: TextDocumentSyncKind = TextDocumentSyncKind(2);
+}
 }
 
 pub type ExecuteCommandClientCapabilities = DynamicRegistrationClientCapabilities;
@@ -2006,18 +2048,21 @@ pub struct WillSaveTextDocumentParams {
 }
 
 /// Represents reasons why a text document is saved.
-#[derive(Copy, Debug, Eq, PartialEq, Clone, Deserialize_repr, Serialize_repr)]
-#[repr(u8)]
-pub enum TextDocumentSaveReason {
+#[derive(Copy, Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct TextDocumentSaveReason(i32);
+lsp_enum! {
+impl TextDocumentSaveReason {
     /// Manually triggered, e.g. by the user pressing save, by starting debugging,
     /// or by an API call.
-    Manual = 1,
+    pub const MANUAL: TextDocumentSaveReason = TextDocumentSaveReason(1);
 
     /// Automatic after a delay.
-    AfterDelay = 2,
+    pub const AFTER_DELAY: TextDocumentSaveReason = TextDocumentSaveReason(2);
 
     /// When the editor lost focus.
-    FocusOut = 3,
+    pub const FOCUS_OUT: TextDocumentSaveReason = TextDocumentSaveReason(3);
+}
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
@@ -2059,17 +2104,20 @@ pub struct DidChangeWatchedFilesParams {
 }
 
 /// The file event type.
-#[derive(Debug, Eq, PartialEq, Copy, Clone, Deserialize_repr, Serialize_repr)]
-#[repr(u8)]
-pub enum FileChangeType {
+#[derive(Eq, PartialEq, Copy, Clone, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct FileChangeType(i32);
+lsp_enum! {
+impl FileChangeType {
     /// The file got created.
-    Created = 1,
+    pub const CREATED: FileChangeType = FileChangeType(1);
 
     /// The file got changed.
-    Changed = 2,
+    pub const CHANGED: FileChangeType = FileChangeType(2);
 
     /// The file got deleted.
-    Deleted = 3,
+    pub const DELETED: FileChangeType = FileChangeType(3);
+}
 }
 
 /// An event describing a file change.
@@ -2355,11 +2403,14 @@ pub struct PartialResultParams {
 
 /// Symbol tags are extra annotations that tweak the rendering of a symbol.
 /// Since 3.15
-#[derive(Debug, Eq, PartialEq, Clone, Deserialize_repr, Serialize_repr)]
-#[repr(u8)]
-pub enum SymbolTag {
+#[derive(Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct SymbolTag(i32);
+lsp_enum! {
+impl SymbolTag {
     /// Render a symbol as obsolete, usually using a strike-out.
-    Deprecated = 1,
+    pub const DEPRECATED: SymbolTag = SymbolTag(1);
+}
 }
 
 #[cfg(test)]

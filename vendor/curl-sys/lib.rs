@@ -607,6 +607,8 @@ pub const CURLOPT_ISSUERCERT_BLOB: CURLoption = CURLOPTTYPE_BLOB + 295;
 
 pub const CURLOPT_AWS_SIGV4: CURLoption = CURLOPTTYPE_OBJECTPOINT + 305;
 
+pub const CURLOPT_CAINFO_BLOB: CURLoption = CURLOPTTYPE_BLOB + 309;
+
 pub const CURL_IPRESOLVE_WHATEVER: c_int = 0;
 pub const CURL_IPRESOLVE_V4: c_int = 1;
 pub const CURL_IPRESOLVE_V6: c_int = 2;
@@ -1079,6 +1081,19 @@ extern "C" {
         timeout_ms: c_int,
         ret: *mut c_int,
     ) -> CURLMcode;
+
+    #[cfg(feature = "poll_7_68_0")]
+    pub fn curl_multi_poll(
+        multi_handle: *mut CURLM,
+        extra_fds: *mut curl_waitfd,
+        extra_nfds: c_uint,
+        timeout_ms: c_int,
+        ret: *mut c_int,
+    ) -> CURLMcode;
+
+    #[cfg(feature = "poll_7_68_0")]
+    pub fn curl_multi_wakeup(multi_handle: *mut CURLM) -> CURLMcode;
+
     pub fn curl_multi_perform(multi_handle: *mut CURLM, running_handles: *mut c_int) -> CURLMcode;
     pub fn curl_multi_cleanup(multi_handle: *mut CURLM) -> CURLMcode;
     pub fn curl_multi_info_read(

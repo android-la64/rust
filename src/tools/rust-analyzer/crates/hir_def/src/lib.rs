@@ -764,7 +764,7 @@ fn derive_macro_as_call_id(
         krate,
         MacroCallKind::Derive {
             ast_id: item_attr.ast_id,
-            derive_name: last_segment.to_string(),
+            derive_name: last_segment.to_string().into_boxed_str(),
             derive_attr_index: derive_attr.ast_index,
         },
     );
@@ -776,22 +776,17 @@ fn attr_macro_as_call_id(
     macro_attr: &Attr,
     db: &dyn db::DefDatabase,
     krate: CrateId,
-    resolver: impl Fn(path::ModPath) -> Option<MacroDefId>,
+    def: Option<MacroDefId>,
 ) -> Result<MacroCallId, UnresolvedMacro> {
-    let def: MacroDefId = resolver(item_attr.path.clone())
-        .ok_or_else(|| UnresolvedMacro { path: item_attr.path.clone() })?;
-    let last_segment = item_attr
-        .path
-        .segments()
-        .last()
-        .ok_or_else(|| UnresolvedMacro { path: item_attr.path.clone() })?;
-    let mut arg = match &macro_attr.input {
-        Some(input) => match &**input {
-            attr::AttrInput::Literal(_) => Default::default(),
-            attr::AttrInput::TokenTree(tt, map) => (tt.clone(), map.clone()),
-        },
-        None => Default::default(),
+    let attr_path = &item_attr.path;
+    let def = def.ok_or_else(|| UnresolvedMacro { path: attr_path.clone() })?;
+    let last_segment =
+        attr_path.segments().last().ok_or_else(|| UnresolvedMacro { path: attr_path.clone() })?;
+    let mut arg = match macro_attr.input.as_deref() {
+        Some(attr::AttrInput::TokenTree(tt, map)) => (tt.clone(), map.clone()),
+        _ => Default::default(),
     };
+
     // The parentheses are always disposed here.
     arg.0.delimiter = None;
 
@@ -800,7 +795,7 @@ fn attr_macro_as_call_id(
         krate,
         MacroCallKind::Attr {
             ast_id: item_attr.ast_id,
-            attr_name: last_segment.to_string(),
+            attr_name: last_segment.to_string().into_boxed_str(),
             attr_args: arg,
             invoc_attr_index: macro_attr.id.ast_index,
         },

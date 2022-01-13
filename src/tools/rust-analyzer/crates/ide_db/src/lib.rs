@@ -3,6 +3,7 @@
 //! It is mainly a `HirDatabase` for semantic analysis, plus a `SymbolsDatabase`, for fuzzy search.
 
 mod apply_change;
+
 pub mod assists;
 pub mod label;
 pub mod line_index;
@@ -32,6 +33,10 @@ use crate::{line_index::LineIndex, symbol_index::SymbolsDatabase};
 
 /// `base_db` is normally also needed in places where `ide_db` is used, so this re-export is for convenience.
 pub use base_db;
+
+pub type FxIndexSet<T> = indexmap::IndexSet<T, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
+pub type FxIndexMap<K, V> =
+    indexmap::IndexMap<K, V, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
 
 #[salsa::database(
     base_db::SourceDatabaseStorage,
@@ -160,4 +165,9 @@ pub enum SymbolKind {
     Union,
     ValueParam,
     Variant,
+}
+
+#[cfg(test)]
+mod tests {
+    mod sourcegen_lints;
 }

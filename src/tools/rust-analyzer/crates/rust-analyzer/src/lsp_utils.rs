@@ -62,7 +62,7 @@ impl GlobalState {
         let from_source_build = env!("REV").contains("dev");
         let profiling_enabled = std::env::var("RA_PROFILE").is_ok();
         if from_source_build || profiling_enabled {
-            self.show_message(lsp_types::MessageType::Error, message)
+            self.show_message(lsp_types::MessageType::ERROR, message)
         }
     }
 
@@ -77,7 +77,7 @@ impl GlobalState {
             return;
         }
         let percentage = fraction.map(|f| {
-            assert!(0.0 <= f && f <= 1.0);
+            assert!((0.0..=1.0).contains(&f));
             (f * 100.0) as u32
         });
         let token = lsp_types::ProgressToken::String(format!("rustAnalyzer/{}", title));

@@ -13,6 +13,7 @@ use hir_def::{
 };
 use hir_expand::name::Name;
 use rustc_hash::{FxHashMap, FxHashSet};
+use stdx::never;
 
 use crate::{
     autoderef,
@@ -261,33 +262,45 @@ impl InherentImpls {
         let mut impls = Self { map: FxHashMap::default() };
 
         let crate_def_map = db.crate_def_map(krate);
-        collect_def_map(db, &crate_def_map, &mut impls);
+        impls.collect_def_map(db, &crate_def_map);
 
         return Arc::new(impls);
+    }
 
-        fn collect_def_map(db: &dyn HirDatabase, def_map: &DefMap, impls: &mut InherentImpls) {
-            for (_module_id, module_data) in def_map.modules() {
-                for impl_id in module_data.scope.impls() {
-                    let data = db.impl_data(impl_id);
-                    if data.target_trait.is_some() {
-                        continue;
-                    }
+    pub(crate) fn inherent_impls_in_block_query(
+        db: &dyn HirDatabase,
+        block: BlockId,
+    ) -> Option<Arc<Self>> {
+        let mut impls = Self { map: FxHashMap::default() };
+        if let Some(block_def_map) = db.block_def_map(block) {
+            impls.collect_def_map(db, &block_def_map);
+            return Some(Arc::new(impls));
+        }
+        return None;
+    }
 
-                    let self_ty = db.impl_self_ty(impl_id);
-                    let fp = TyFingerprint::for_inherent_impl(self_ty.skip_binders());
-                    if let Some(fp) = fp {
-                        impls.map.entry(fp).or_default().push(impl_id);
-                    }
-                    // `fp` should only be `None` in error cases (either erroneous code or incomplete name resolution)
+    fn collect_def_map(&mut self, db: &dyn HirDatabase, def_map: &DefMap) {
+        for (_module_id, module_data) in def_map.modules() {
+            for impl_id in module_data.scope.impls() {
+                let data = db.impl_data(impl_id);
+                if data.target_trait.is_some() {
+                    continue;
                 }
 
-                // To better support custom derives, collect impls in all unnamed const items.
-                // const _: () = { ... };
-                for konst in module_data.scope.unnamed_consts() {
-                    let body = db.body(konst.into());
-                    for (_, block_def_map) in body.blocks(db.upcast()) {
-                        collect_def_map(db, &block_def_map, impls);
-                    }
+                let self_ty = db.impl_self_ty(impl_id);
+                let fp = TyFingerprint::for_inherent_impl(self_ty.skip_binders());
+                if let Some(fp) = fp {
+                    self.map.entry(fp).or_default().push(impl_id);
+                }
+                // `fp` should only be `None` in error cases (either erroneous code or incomplete name resolution)
+            }
+
+            // To better support custom derives, collect impls in all unnamed const items.
+            // const _: () = { ... };
+            for konst in module_data.scope.unnamed_consts() {
+                let body = db.body(konst.into());
+                for (_, block_def_map) in body.blocks(db.upcast()) {
+                    self.collect_def_map(db, &block_def_map);
                 }
             }
         }
@@ -322,7 +335,7 @@ pub fn def_crates(
             }};
         }
 
-    let mod_to_crate_ids = |module: ModuleId| Some(std::iter::once(module.krate()).collect());
+    let mod_to_crate_ids = |module: ModuleId| Some(iter::once(module.krate()).collect());
 
     let lang_item_targets = match ty.kind(&Interner) {
         TyKind::Adt(AdtId(def_id), _) => {
@@ -521,9 +534,16 @@ fn iterate_method_candidates_with_autoref(
     name: Option<&Name>,
     mut callback: &mut dyn FnMut(&Canonical<Ty>, AssocItemId) -> ControlFlow<()>,
 ) -> ControlFlow<()> {
+    let (receiver_ty, rest) = match deref_chain.split_first() {
+        Some((rec, rest)) => (rec.clone(), rest),
+        None => {
+            never!("received empty deref-chain");
+            return ControlFlow::Break(());
+        }
+    };
     iterate_method_candidates_by_receiver(
-        &deref_chain[0],
-        &deref_chain[1..],
+        &receiver_ty,
+        &rest,
         db,
         env.clone(),
         krate,
@@ -534,8 +554,8 @@ fn iterate_method_candidates_with_autoref(
     )?;
 
     let refed = Canonical {
-        binders: deref_chain[0].binders.clone(),
-        value: TyKind::Ref(Mutability::Not, static_lifetime(), deref_chain[0].value.clone())
+        binders: receiver_ty.binders.clone(),
+        value: TyKind::Ref(Mutability::Not, static_lifetime(), receiver_ty.value.clone())
             .intern(&Interner),
     };
 
@@ -552,9 +572,8 @@ fn iterate_method_candidates_with_autoref(
     )?;
 
     let ref_muted = Canonical {
-        binders: deref_chain[0].binders.clone(),
-        value: TyKind::Ref(Mutability::Mut, static_lifetime(), deref_chain[0].value.clone())
-            .intern(&Interner),
+        binders: receiver_ty.binders,
+        value: TyKind::Ref(Mutability::Mut, static_lifetime(), receiver_ty.value).intern(&Interner),
     };
 
     iterate_method_candidates_by_receiver(
@@ -584,7 +603,7 @@ fn iterate_method_candidates_by_receiver(
     // We're looking for methods with *receiver* type receiver_ty. These could
     // be found in any of the derefs of receiver_ty, so we have to go through
     // that.
-    for self_ty in std::iter::once(receiver_ty).chain(rest_of_deref_chain) {
+    for self_ty in iter::once(receiver_ty).chain(rest_of_deref_chain) {
         iterate_inherent_methods(
             self_ty,
             db,
@@ -597,7 +616,7 @@ fn iterate_method_candidates_by_receiver(
         )?
     }
 
-    for self_ty in std::iter::once(receiver_ty).chain(rest_of_deref_chain) {
+    for self_ty in iter::once(receiver_ty).chain(rest_of_deref_chain) {
         iterate_trait_method_candidates(
             self_ty,
             db,
@@ -659,8 +678,7 @@ fn iterate_trait_method_candidates(
         }
         _ => Vec::new(),
     };
-    let traits =
-        inherent_trait.chain(env_traits.into_iter()).chain(traits_in_scope.iter().copied());
+    let traits = inherent_trait.chain(env_traits).chain(traits_in_scope.iter().copied());
 
     'traits: for t in traits {
         let data = db.trait_data(t);
@@ -744,13 +762,51 @@ fn iterate_inherent_methods(
         None => return ControlFlow::Continue(()),
     };
 
+    if let Some(module_id) = visible_from_module {
+        if let Some(block_id) = module_id.containing_block() {
+            if let Some(impls) = db.inherent_impls_in_block(block_id) {
+                impls_for_self_ty(
+                    &impls,
+                    self_ty,
+                    db,
+                    env.clone(),
+                    name,
+                    receiver_ty,
+                    visible_from_module,
+                    callback,
+                )?;
+            }
+        }
+    }
+
     for krate in def_crates {
         let impls = db.inherent_impls_in_crate(krate);
+        impls_for_self_ty(
+            &impls,
+            self_ty,
+            db,
+            env.clone(),
+            name,
+            receiver_ty,
+            visible_from_module,
+            callback,
+        )?;
+    }
+    return ControlFlow::Continue(());
 
-        let impls_for_self_ty = filter_inherent_impls_for_self_ty(&impls, &self_ty.value);
-
+    fn impls_for_self_ty(
+        impls: &InherentImpls,
+        self_ty: &Canonical<Ty>,
+        db: &dyn HirDatabase,
+        env: Arc<TraitEnvironment>,
+        name: Option<&Name>,
+        receiver_ty: Option<&Canonical<Ty>>,
+        visible_from_module: Option<ModuleId>,
+        callback: &mut dyn FnMut(&Canonical<Ty>, AssocItemId) -> ControlFlow<()>,
+    ) -> ControlFlow<()> {
+        let impls_for_self_ty = filter_inherent_impls_for_self_ty(impls, &self_ty.value);
         for &impl_def in impls_for_self_ty {
-            for &item in db.impl_data(impl_def).items.iter() {
+            for &item in &db.impl_data(impl_def).items {
                 if !is_valid_candidate(
                     db,
                     env.clone(),
@@ -776,8 +832,8 @@ fn iterate_inherent_methods(
                 callback(receiver_ty, item)?;
             }
         }
+        ControlFlow::Continue(())
     }
-    ControlFlow::Continue(())
 }
 
 /// Returns the self type for the index trait call.

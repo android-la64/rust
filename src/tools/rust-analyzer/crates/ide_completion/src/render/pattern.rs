@@ -3,10 +3,10 @@
 use hir::{db::HirDatabase, HasAttrs, HasVisibility, Name, StructKind};
 use ide_db::helpers::SnippetCap;
 use itertools::Itertools;
+use syntax::SmolStr;
 
 use crate::{
     context::{ParamKind, PatternContext},
-    item::CompletionKind,
     render::RenderContext,
     CompletionItem, CompletionItemKind,
 };
@@ -26,7 +26,7 @@ pub(crate) fn render_struct_pat(
         return None;
     }
 
-    let name = local_name.unwrap_or_else(|| strukt.name(ctx.db())).to_string();
+    let name = local_name.unwrap_or_else(|| strukt.name(ctx.db())).to_smol_str();
     let pat = render_pat(&ctx, &name, strukt.kind(ctx.db()), &visible_fields, fields_omitted)?;
 
     Some(build_completion(ctx, name, pat, strukt))
@@ -44,8 +44,8 @@ pub(crate) fn render_variant_pat(
     let (visible_fields, fields_omitted) = visible_fields(&ctx, &fields, variant)?;
 
     let name = match &path {
-        Some(path) => path.to_string(),
-        None => local_name.unwrap_or_else(|| variant.name(ctx.db())).to_string(),
+        Some(path) => path.to_string().into(),
+        None => local_name.unwrap_or_else(|| variant.name(ctx.db())).to_smol_str(),
     };
     let pat = render_pat(&ctx, &name, variant.kind(ctx.db()), &visible_fields, fields_omitted)?;
 
@@ -54,15 +54,12 @@ pub(crate) fn render_variant_pat(
 
 fn build_completion(
     ctx: RenderContext<'_>,
-    name: String,
+    name: SmolStr,
     pat: String,
     def: impl HasAttrs + Copy,
 ) -> CompletionItem {
-    let mut item = CompletionItem::new(CompletionKind::Snippet, ctx.source_range(), name);
-    item.kind(CompletionItemKind::Binding)
-        .set_documentation(ctx.docs(def))
-        .set_deprecated(ctx.is_deprecated(def))
-        .detail(&pat);
+    let mut item = CompletionItem::new(CompletionItemKind::Binding, ctx.source_range(), name);
+    item.set_documentation(ctx.docs(def)).set_deprecated(ctx.is_deprecated(def)).detail(&pat);
     match ctx.snippet_cap() {
         Some(snippet_cap) => item.insert_snippet(snippet_cap, pat),
         None => item.insert_text(pat),
@@ -89,7 +86,11 @@ fn render_pat(
 
     if matches!(
         ctx.completion.pattern_ctx,
-        Some(PatternContext { is_param: Some(ParamKind::Function), .. })
+        Some(PatternContext {
+            is_param: Some(ParamKind::Function),
+            has_type_ascription: false,
+            ..
+        })
     ) {
         pat.push(':');
         pat.push(' ');

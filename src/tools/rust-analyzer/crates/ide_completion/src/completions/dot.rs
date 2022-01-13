@@ -63,9 +63,6 @@ fn complete_fields(
 ) {
     for receiver in receiver.autoderef(ctx.db) {
         for (field, ty) in receiver.fields(ctx.db) {
-            if !ctx.is_visible(&field) {
-                continue;
-            }
             f(Either::Left(field), ty);
         }
         for (i, ty) in receiver.tuple_fields(ctx.db).into_iter().enumerate() {
@@ -84,10 +81,7 @@ fn complete_methods(
         let mut seen_methods = FxHashSet::default();
         let traits_in_scope = ctx.scope.traits_in_scope();
         receiver.iterate_method_candidates(ctx.db, krate, &traits_in_scope, None, |_ty, func| {
-            if func.self_param(ctx.db).is_some()
-                && ctx.is_visible(&func)
-                && seen_methods.insert(func.name(ctx.db))
-            {
+            if func.self_param(ctx.db).is_some() && seen_methods.insert(func.name(ctx.db)) {
                 f(func);
             }
             None::<()>
@@ -99,13 +93,10 @@ fn complete_methods(
 mod tests {
     use expect_test::{expect, Expect};
 
-    use crate::{
-        tests::{check_edit, filtered_completion_list},
-        CompletionKind,
-    };
+    use crate::tests::{check_edit, completion_list_no_kw};
 
     fn check(ra_fixture: &str, expect: Expect) {
-        let actual = filtered_completion_list(ra_fixture, CompletionKind::Reference);
+        let actual = completion_list_no_kw(ra_fixture);
         expect.assert_eq(&actual);
     }
 
@@ -166,7 +157,7 @@ impl A {
 struct A { the_field: u32 }
 fn foo(a: A) { a.$0() }
 "#,
-            expect![[""]],
+            expect![[r#""#]],
         );
     }
 
@@ -405,7 +396,7 @@ fn foo(a: A) {
    a.$0
 }
 "#,
-            expect![[""]],
+            expect![[r#""#]],
         );
     }
 
@@ -654,6 +645,7 @@ impl Foo { fn foo(&self) { $0 } }"#,
                 lc self       &Foo
                 sp Self
                 st Foo
+                bt u32
                 fd self.field i32
                 me self.foo() fn(&self)
             "#]],
@@ -667,6 +659,7 @@ impl Foo { fn foo(&mut self) { $0 } }"#,
                 lc self       &mut Foo
                 sp Self
                 st Foo
+                bt u32
                 fd self.0     i32
                 me self.foo() fn(&mut self)
             "#]],

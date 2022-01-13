@@ -83,10 +83,11 @@ pub use crate::{
     attrs::{HasAttrs, Namespace},
     diagnostics::{
         AddReferenceHere, AnyDiagnostic, BreakOutsideOfLoop, InactiveCode, IncorrectCase,
-        MacroError, MismatchedArgCount, MissingFields, MissingMatchArms, MissingOkOrSomeInTailExpr,
-        MissingUnsafe, NoSuchField, RemoveThisSemicolon, ReplaceFilterMapNextWithFindMap,
-        UnimplementedBuiltinMacro, UnresolvedExternCrate, UnresolvedImport, UnresolvedMacroCall,
-        UnresolvedModule, UnresolvedProcMacro,
+        InvalidDeriveTarget, MacroError, MalformedDerive, MismatchedArgCount, MissingFields,
+        MissingMatchArms, MissingOkOrSomeInTailExpr, MissingUnsafe, NoSuchField,
+        RemoveThisSemicolon, ReplaceFilterMapNextWithFindMap, UnimplementedBuiltinMacro,
+        UnresolvedExternCrate, UnresolvedImport, UnresolvedMacroCall, UnresolvedModule,
+        UnresolvedProcMacro,
     },
     has_source::HasSource,
     semantics::{PathResolution, Semantics, SemanticsScope, TypeInfo},
@@ -181,6 +182,10 @@ impl Crate {
 
     pub fn edition(self, db: &dyn HirDatabase) -> Edition {
         db.crate_graph()[self.id].edition
+    }
+
+    pub fn version(self, db: &dyn HirDatabase) -> Option<String> {
+        db.crate_graph()[self.id].version.clone()
     }
 
     pub fn display_name(self, db: &dyn HirDatabase) -> Option<CrateDisplayName> {
@@ -312,17 +317,18 @@ impl ModuleDef {
     }
 
     pub fn name(self, db: &dyn HirDatabase) -> Option<Name> {
-        match self {
-            ModuleDef::Adt(it) => Some(it.name(db)),
-            ModuleDef::Trait(it) => Some(it.name(db)),
-            ModuleDef::Function(it) => Some(it.name(db)),
-            ModuleDef::Variant(it) => Some(it.name(db)),
-            ModuleDef::TypeAlias(it) => Some(it.name(db)),
-            ModuleDef::Module(it) => it.name(db),
-            ModuleDef::Const(it) => it.name(db),
+        let name = match self {
+            ModuleDef::Module(it) => it.name(db)?,
+            ModuleDef::Const(it) => it.name(db)?,
+            ModuleDef::Adt(it) => it.name(db),
+            ModuleDef::Trait(it) => it.name(db),
+            ModuleDef::Function(it) => it.name(db),
+            ModuleDef::Variant(it) => it.name(db),
+            ModuleDef::TypeAlias(it) => it.name(db),
             ModuleDef::Static(it) => it.name(db),
-            ModuleDef::BuiltinType(it) => Some(it.name()),
-        }
+            ModuleDef::BuiltinType(it) => it.name(),
+        };
+        Some(name)
     }
 
     pub fn diagnostics(self, db: &dyn HirDatabase) -> Vec<AnyDiagnostic> {
@@ -353,7 +359,7 @@ impl ModuleDef {
                 def.diagnostics(db, &mut acc);
             }
             None => {
-                for diag in hir_ty::diagnostics::validate_module_item(db, module.id.krate(), id) {
+                for diag in hir_ty::diagnostics::incorrect_case(db, module.id.krate(), id) {
                     acc.push(diag.into())
                 }
             }
@@ -576,7 +582,7 @@ impl Module {
                                     });
                                 for token in tokens {
                                     if token.kind() == SyntaxKind::IDENT
-                                        && token.text() == derive_name.as_str()
+                                        && token.text() == &**derive_name
                                     {
                                         precise_location = Some(token.text_range());
                                         break 'outer;
@@ -602,7 +608,12 @@ impl Module {
                         }
                     };
                     acc.push(
-                        UnresolvedProcMacro { node, precise_location, macro_name: name }.into(),
+                        UnresolvedProcMacro {
+                            node,
+                            precise_location,
+                            macro_name: name.map(Into::into),
+                        }
+                        .into(),
                     );
                 }
 
@@ -643,6 +654,36 @@ impl Module {
                         }
                         .into(),
                     );
+                }
+                DefDiagnosticKind::InvalidDeriveTarget { ast, id } => {
+                    let node = ast.to_node(db.upcast());
+                    let derive = node.attrs().nth(*id as usize);
+                    match derive {
+                        Some(derive) => {
+                            acc.push(
+                                InvalidDeriveTarget {
+                                    node: ast.with_value(SyntaxNodePtr::from(AstPtr::new(&derive))),
+                                }
+                                .into(),
+                            );
+                        }
+                        None => stdx::never!("derive diagnostic on item without derive attribute"),
+                    }
+                }
+                DefDiagnosticKind::MalformedDerive { ast, id } => {
+                    let node = ast.to_node(db.upcast());
+                    let derive = node.attrs().nth(*id as usize);
+                    match derive {
+                        Some(derive) => {
+                            acc.push(
+                                MalformedDerive {
+                                    node: ast.with_value(SyntaxNodePtr::from(AstPtr::new(&derive))),
+                                }
+                                .into(),
+                            );
+                        }
+                        None => stdx::never!("derive diagnostic on item without derive attribute"),
+                    }
                 }
             }
         }
@@ -1027,7 +1068,7 @@ impl DefWithBody {
     pub fn name(self, db: &dyn HirDatabase) -> Option<Name> {
         match self {
             DefWithBody::Function(f) => Some(f.name(db)),
-            DefWithBody::Static(s) => s.name(db),
+            DefWithBody::Static(s) => Some(s.name(db)),
             DefWithBody::Const(c) => c.name(db),
         }
     }
@@ -1241,7 +1282,7 @@ impl DefWithBody {
             DefWithBody::Static(it) => it.into(),
             DefWithBody::Const(it) => it.into(),
         };
-        for diag in hir_ty::diagnostics::validate_module_item(db, krate, def.into()) {
+        for diag in hir_ty::diagnostics::incorrect_case(db, krate, def.into()) {
             acc.push(diag.into())
         }
     }
@@ -1305,6 +1346,10 @@ impl Function {
 
     pub fn is_unsafe(self, db: &dyn HirDatabase) -> bool {
         db.function_data(self.id).is_unsafe()
+    }
+
+    pub fn is_const(self, db: &dyn HirDatabase) -> bool {
+        db.function_data(self.id).is_const()
     }
 
     pub fn is_async(self, db: &dyn HirDatabase) -> bool {
@@ -1443,6 +1488,10 @@ impl Const {
         db.const_data(self.id).name.clone()
     }
 
+    pub fn value(self, db: &dyn HirDatabase) -> Option<ast::Expr> {
+        self.source(db)?.value.body()
+    }
+
     pub fn ty(self, db: &dyn HirDatabase) -> Type {
         let data = db.const_data(self.id);
         let resolver = self.id.resolver(db.upcast());
@@ -1471,12 +1520,16 @@ impl Static {
         Module { id: self.id.lookup(db.upcast()).module(db.upcast()) }
     }
 
-    pub fn name(self, db: &dyn HirDatabase) -> Option<Name> {
+    pub fn name(self, db: &dyn HirDatabase) -> Name {
         db.static_data(self.id).name.clone()
     }
 
     pub fn is_mut(self, db: &dyn HirDatabase) -> bool {
         db.static_data(self.id).mutable
+    }
+
+    pub fn value(self, db: &dyn HirDatabase) -> Option<ast::Expr> {
+        self.source(db)?.value.body()
     }
 
     pub fn ty(self, db: &dyn HirDatabase) -> Type {
@@ -1570,6 +1623,10 @@ pub struct BuiltinType {
 }
 
 impl BuiltinType {
+    pub fn str() -> BuiltinType {
+        BuiltinType { inner: hir_def::builtin_type::BuiltinType::Str }
+    }
+
     pub fn ty(self, db: &dyn HirDatabase, module: Module) -> Type {
         let resolver = module.id.resolver(db.upcast());
         Type::new_with_resolver(db, &resolver, TyBuilder::builtin(self.inner))
@@ -1615,7 +1672,12 @@ impl MacroDef {
     pub fn name(self, db: &dyn HirDatabase) -> Option<Name> {
         match self.source(db)?.value {
             Either::Left(it) => it.name().map(|it| it.as_name()),
-            Either::Right(it) => it.name().map(|it| it.as_name()),
+            Either::Right(_) => {
+                let krate = self.id.krate;
+                let def_map = db.crate_def_map(krate);
+                let (_, name) = def_map.exported_proc_macros().find(|&(id, _)| id == self.id)?;
+                Some(name)
+            }
         }
     }
 
@@ -2202,7 +2264,7 @@ impl Impl {
             .attrs()
             .filter_map(|it| {
                 let path = ModPath::from_src(db.upcast(), it.path()?, &hygenic)?;
-                if path.as_ident()?.to_string() == "derive" {
+                if path.as_ident()?.to_smol_str() == "derive" {
                     Some(it)
                 } else {
                     None
@@ -2257,6 +2319,10 @@ impl Type {
     ) -> Type {
         let ty = TyBuilder::def_ty(db, def.into()).fill_with_unknown().build();
         Type::new(db, krate, def, ty)
+    }
+
+    pub fn new_slice(ty: Type) -> Type {
+        Type { krate: ty.krate, env: ty.env, ty: TyBuilder::slice(ty.ty) }
     }
 
     pub fn is_unit(&self) -> bool {
@@ -2380,7 +2446,7 @@ impl Type {
                 }
                 .cast(&Interner),
             ),
-            [TyVariableKind::General].iter().copied(),
+            [TyVariableKind::General].into_iter(),
         );
 
         match db.trait_solve(self.krate, goal)? {
@@ -3005,5 +3071,23 @@ impl HasCrate for Field {
 impl HasCrate for Function {
     fn krate(&self, db: &dyn HirDatabase) -> Crate {
         self.module(db).krate()
+    }
+}
+
+impl HasCrate for Const {
+    fn krate(&self, db: &dyn HirDatabase) -> Crate {
+        self.module(db).krate()
+    }
+}
+
+impl HasCrate for TypeAlias {
+    fn krate(&self, db: &dyn HirDatabase) -> Crate {
+        self.module(db).krate()
+    }
+}
+
+impl HasCrate for Type {
+    fn krate(&self, _db: &dyn HirDatabase) -> Crate {
+        self.krate.into()
     }
 }

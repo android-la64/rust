@@ -2,7 +2,7 @@
 //! metadata` or `rust-project.json`) into representation stored in the salsa
 //! database -- `CrateGraph`.
 
-use std::{collections::VecDeque, convert::TryFrom, fmt, fs, process::Command};
+use std::{collections::VecDeque, fmt, fs, process::Command};
 
 use anyhow::{format_err, Context, Result};
 use base_db::{
@@ -160,14 +160,19 @@ impl ProjectWorkspace {
                     cmd
                 })?;
 
-                let meta = CargoWorkspace::fetch_metadata(&cargo_toml, config, progress)
-                    .with_context(|| {
-                        format!(
-                            "Failed to read Cargo metadata from Cargo.toml file {}, {}",
-                            cargo_toml.display(),
-                            cargo_version
-                        )
-                    })?;
+                let meta = CargoWorkspace::fetch_metadata(
+                    &cargo_toml,
+                    cargo_toml.parent(),
+                    config,
+                    progress,
+                )
+                .with_context(|| {
+                    format!(
+                        "Failed to read Cargo metadata from Cargo.toml file {}, {}",
+                        cargo_toml.display(),
+                        cargo_version
+                    )
+                })?;
                 let cargo = CargoWorkspace::new(meta);
 
                 let sysroot = if config.no_sysroot {
@@ -189,10 +194,15 @@ impl ProjectWorkspace {
 
                 let rustc = match rustc_dir {
                     Some(rustc_dir) => Some({
-                        let meta = CargoWorkspace::fetch_metadata(&rustc_dir, config, progress)
-                            .with_context(|| {
-                                "Failed to read Cargo metadata for Rust sources".to_string()
-                            })?;
+                        let meta = CargoWorkspace::fetch_metadata(
+                            &rustc_dir,
+                            cargo_toml.parent(),
+                            config,
+                            progress,
+                        )
+                        .with_context(|| {
+                            "Failed to read Cargo metadata for Rust sources".to_string()
+                        })?;
                         CargoWorkspace::new(meta)
                     }),
                     None => None,
@@ -458,6 +468,7 @@ fn project_json_to_crate_graph(
                     file_id,
                     krate.edition,
                     krate.display_name.clone(),
+                    krate.version.clone(),
                     cfg_options.clone(),
                     cfg_options,
                     env,
@@ -665,6 +676,7 @@ fn detached_files_to_crate_graph(
             file_id,
             Edition::CURRENT,
             display_name,
+            None,
             cfg_options.clone(),
             cfg_options.clone(),
             Env::default(),
@@ -814,6 +826,7 @@ fn add_target_crate_root(
         file_id,
         edition,
         Some(display_name),
+        Some(pkg.version.to_string()),
         cfg_options,
         potential_cfg_options,
         env,
@@ -856,6 +869,7 @@ fn sysroot_to_crate_graph(
                 file_id,
                 Edition::CURRENT,
                 Some(display_name),
+                None,
                 cfg_options.clone(),
                 cfg_options.clone(),
                 env,

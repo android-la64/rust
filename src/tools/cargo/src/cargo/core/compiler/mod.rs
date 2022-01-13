@@ -21,6 +21,7 @@ mod unit;
 pub mod unit_dependencies;
 pub mod unit_graph;
 
+use std::collections::HashSet;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, File};
@@ -165,7 +166,7 @@ fn compile<'cfg>(
         let force = exec.force_rebuild(unit) || force_rebuild;
         let mut job = fingerprint::prepare_target(cx, unit, force)?;
         job.before(if job.freshness() == Freshness::Dirty {
-            let work = if unit.mode.is_doc() {
+            let work = if unit.mode.is_doc() || unit.mode.is_doc_scrape() {
                 rustdoc(cx, unit)?
             } else {
                 rustc(cx, unit, exec)?
@@ -645,6 +646,47 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
 
     if let Some(args) = cx.bcx.extra_args_for(unit) {
         rustdoc.args(args);
+    }
+
+    let metadata = cx.metadata_for_doc_units[unit];
+    rustdoc.arg("-C").arg(format!("metadata={}", metadata));
+
+    let scrape_output_path = |unit: &Unit| -> CargoResult<PathBuf> {
+        let output_dir = cx.files().deps_dir(unit);
+        Ok(output_dir.join(format!("{}.examples", unit.buildkey())))
+    };
+
+    if unit.mode.is_doc_scrape() {
+        debug_assert!(cx.bcx.scrape_units.contains(unit));
+
+        rustdoc.arg("-Zunstable-options");
+
+        rustdoc
+            .arg("--scrape-examples-output-path")
+            .arg(scrape_output_path(unit)?);
+
+        // Only scrape example for items from crates in the workspace, to reduce generated file size
+        for pkg in cx.bcx.ws.members() {
+            let names = pkg
+                .targets()
+                .iter()
+                .map(|target| target.crate_name())
+                .collect::<HashSet<_>>();
+            for name in names {
+                rustdoc.arg("--scrape-examples-target-crate").arg(name);
+            }
+        }
+    } else if cx.bcx.scrape_units.len() > 0 && cx.bcx.ws.is_member(&unit.pkg) {
+        // We only pass scraped examples to packages in the workspace
+        // since examples are only coming from reverse-dependencies of workspace packages
+
+        rustdoc.arg("-Zunstable-options");
+
+        for scrape_unit in &cx.bcx.scrape_units {
+            rustdoc
+                .arg("--with-examples")
+                .arg(scrape_output_path(scrape_unit)?);
+        }
     }
 
     build_deps_args(&mut rustdoc, cx, unit)?;

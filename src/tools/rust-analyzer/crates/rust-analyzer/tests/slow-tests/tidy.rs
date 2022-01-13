@@ -91,7 +91,7 @@ fn files_are_tidy() {
     tidy_marks.finish();
 }
 
-fn check_cargo_toml(path: &Path, text: String) -> () {
+fn check_cargo_toml(path: &Path, text: String) {
     let mut section = None;
     for (line_no, text) in text.lines().enumerate() {
         let text = text.trim();
@@ -192,6 +192,8 @@ fn deny_clippy(path: &Path, text: &str) {
         "ide_db/src/helpers/generated_lints.rs",
         // The tests test clippy lint hovers
         "ide/src/hover/tests.rs",
+        // The tests test clippy lint completions
+        "ide_completion/src/tests/attribute.rs",
     ];
     if ignore.iter().any(|p| path.ends_with(p)) {
         return;
@@ -311,6 +313,7 @@ fn check_dbg(path: &Path, text: &str) {
         "handlers/remove_dbg.rs",
         // We have .dbg postfix
         "ide_completion/src/completions/postfix.rs",
+        "ide_completion/src/completions/keyword.rs",
         "ide_completion/src/tests/proc_macros.rs",
         // The documentation in string literals may contain anything for its own purposes
         "ide_completion/src/lib.rs",
@@ -342,7 +345,7 @@ fn check_test_attrs(path: &Path, text: &str) {
         // :(
         "hir_def/src/nameres/collector.rs",
         // Long sourcegen test to generate lint completions.
-        "ide_completion/src/tests/sourcegen.rs",
+        "ide_db/src/tests/sourcegen_lints.rs",
         // Obviously needs ignore.
         "ide_assists/src/handlers/toggle_ignore.rs",
         // See above.

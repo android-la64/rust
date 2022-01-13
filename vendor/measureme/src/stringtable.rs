@@ -186,7 +186,7 @@ impl<'s> StringComponent<'s> {
                 assert!(STRING_REF_ENCODED_SIZE == 5);
 
                 bytes[0] = STRING_REF_TAG;
-                &mut bytes[1..5].copy_from_slice(&string_id.0.to_le_bytes());
+                bytes[1..5].copy_from_slice(&string_id.0.to_le_bytes());
                 &mut bytes[5..]
             }
         }
@@ -310,7 +310,7 @@ impl StringTableBuilder {
         self.index_sink.write_bytes_atomic(bytes);
     }
 
-    pub(crate) fn alloc_metadata<STR: SerializableString + ?Sized>(&self, s: &STR) {
+    pub fn alloc_metadata<STR: SerializableString + ?Sized>(&self, s: &STR) {
         let concrete_id = self.alloc(s);
         let virtual_id = StringId(METADATA_STRING_ID);
         assert!(virtual_id.is_virtual());

@@ -4,7 +4,8 @@ version = "0.0.0"
 description = "Comment and whitespace preserving parser for the Rust language"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-analyzer/rust-analyzer"
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 
 [lib]
 doctest = false
@@ -16,8 +17,8 @@ rowan = "0.14.0"
 rustc_lexer = { version = "725.0.0", package = "rustc-ap-rustc_lexer" }
 rustc-hash = "1.1.0"
 once_cell = "1.3.1"
-indexmap = "1.4.0"
-smol_str = "0.1.15"
+indexmap = "1.7.0"
+smol_str = "0.1.21"
 
 stdx = { path = "../stdx", version = "0.0.0" }
 text_edit = { path = "../text_edit", version = "0.0.0" }
@@ -29,7 +30,7 @@ rayon = "1"
 expect-test = "1.2.0-pre.1"
 proc-macro2 = "1.0.8"
 quote = "1.0.2"
-ungrammar = "=1.14.8"
+ungrammar = "=1.14.9"
 
 test_utils = { path = "../test_utils" }
 sourcegen = { path = "../sourcegen" }

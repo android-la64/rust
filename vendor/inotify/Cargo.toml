@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "inotify"
-version = "0.9.4"
+version = "0.9.6"
 authors = ["Hanno Braun <mail@hannobraun.de>", "Félix Saparelli <me@passcod.name>", "Cristian Kubis <cristian.kubis@tsunix.de>", "Frank Denis <github@pureftpd.org>"]
 exclude = ["/.travis.yml", "/inotify-rs.sublime-project"]
 description = "Idiomatic wrapper for inotify"

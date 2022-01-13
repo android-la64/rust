@@ -12,8 +12,8 @@ use ide_db::{
     SymbolKind,
 };
 use smallvec::SmallVec;
-use stdx::{format_to, impl_from, never};
-use syntax::{algo, TextRange};
+use stdx::{impl_from, never};
+use syntax::{algo, SmolStr, TextRange};
 use text_edit::TextEdit;
 
 /// `CompletionItem` describes a single completion variant in the editor pop-up.
@@ -21,12 +21,8 @@ use text_edit::TextEdit;
 /// `CompletionItem`, use `new` method and the `Builder` struct.
 #[derive(Clone)]
 pub struct CompletionItem {
-    /// Used only internally in tests, to check only specific kind of
-    /// completion (postfix, keyword, reference, etc).
-    #[allow(unused)]
-    pub(crate) completion_kind: CompletionKind,
     /// Label in the completion pop up which identifies completion.
-    label: String,
+    label: SmolStr,
     /// Range of identifier that is being completed.
     ///
     /// It should be used primarily for UI, but we also use this to convert
@@ -43,14 +39,14 @@ pub struct CompletionItem {
     is_snippet: bool,
 
     /// What item (struct, function, etc) are we completing.
-    kind: Option<CompletionItemKind>,
+    kind: CompletionItemKind,
 
     /// Lookup is used to check if completion item indeed can complete current
     /// ident.
     ///
     /// That is, in `foo.bar$0` lookup of `abracadabra` will be accepted (it
     /// contains `bar` sub sequence), and `quux` will rejected.
-    lookup: Option<String>,
+    lookup: Option<SmolStr>,
 
     /// Additional info to show in the UI pop up.
     detail: Option<String>,
@@ -92,9 +88,7 @@ impl fmt::Debug for CompletionItem {
         } else {
             s.field("text_edit", &self.text_edit);
         }
-        if let Some(kind) = self.kind().as_ref() {
-            s.field("kind", kind);
-        }
+        s.field("kind", &self.kind());
         if self.lookup() != self.label() {
             s.field("lookup", &self.lookup());
         }
@@ -218,6 +212,7 @@ impl CompletionRelevance {
     }
 }
 
+/// The type of the completion item.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionItemKind {
     SymbolKind(SymbolKind),
@@ -269,30 +264,15 @@ impl CompletionItemKind {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub(crate) enum CompletionKind {
-    /// Parser-based keyword completion.
-    Keyword,
-    /// Your usual "complete all valid identifiers".
-    Reference,
-    /// "Secret sauce" completions.
-    Magic,
-    Snippet,
-    Postfix,
-    BuiltinType,
-    Attribute,
-}
-
 impl CompletionItem {
     pub(crate) fn new(
-        completion_kind: CompletionKind,
+        kind: impl Into<CompletionItemKind>,
         source_range: TextRange,
-        label: impl Into<String>,
+        label: impl Into<SmolStr>,
     ) -> Builder {
         let label = label.into();
         Builder {
             source_range,
-            completion_kind,
             label,
             insert_text: None,
             is_snippet: false,
@@ -300,7 +280,7 @@ impl CompletionItem {
             detail: None,
             documentation: None,
             lookup: None,
-            kind: None,
+            kind: kind.into(),
             text_edit: None,
             deprecated: false,
             trigger_call_info: None,
@@ -339,7 +319,7 @@ impl CompletionItem {
         self.lookup.as_deref().unwrap_or(&self.label)
     }
 
-    pub fn kind(&self) -> Option<CompletionItemKind> {
+    pub fn kind(&self) -> CompletionItemKind {
         self.kind
     }
 
@@ -398,16 +378,15 @@ impl ImportEdit {
 #[derive(Clone)]
 pub(crate) struct Builder {
     source_range: TextRange,
-    completion_kind: CompletionKind,
     imports_to_add: SmallVec<[ImportEdit; 1]>,
-    trait_name: Option<String>,
-    label: String,
+    trait_name: Option<SmolStr>,
+    label: SmolStr,
     insert_text: Option<String>,
     is_snippet: bool,
     detail: Option<String>,
     documentation: Option<Documentation>,
-    lookup: Option<String>,
-    kind: Option<CompletionItemKind>,
+    lookup: Option<SmolStr>,
+    kind: CompletionItemKind,
     text_edit: Option<TextEdit>,
     deprecated: bool,
     trigger_call_info: Option<bool>,
@@ -421,25 +400,21 @@ impl Builder {
 
         let mut label = self.label;
         let mut lookup = self.lookup;
-        let mut insert_text = self.insert_text;
+        let insert_text = self.insert_text.unwrap_or_else(|| label.to_string());
 
         if let [import_edit] = &*self.imports_to_add {
             // snippets can have multiple imports, but normal completions only have up to one
             if let Some(original_path) = import_edit.import.original_path.as_ref() {
                 lookup = lookup.or_else(|| Some(label.clone()));
-                insert_text = insert_text.or_else(|| Some(label.clone()));
-                format_to!(label, " (use {})", original_path)
+                label = SmolStr::from(format!("{} (use {})", label, original_path));
             }
         } else if let Some(trait_name) = self.trait_name {
-            insert_text = insert_text.or_else(|| Some(label.clone()));
-            format_to!(label, " (as {})", trait_name)
+            label = SmolStr::from(format!("{} (as {})", label, trait_name));
         }
 
         let text_edit = match self.text_edit {
             Some(it) => it,
-            None => {
-                TextEdit::replace(self.source_range, insert_text.unwrap_or_else(|| label.clone()))
-            }
+            None => TextEdit::replace(self.source_range, insert_text),
         };
 
         CompletionItem {
@@ -451,7 +426,6 @@ impl Builder {
             documentation: self.documentation,
             lookup,
             kind: self.kind,
-            completion_kind: self.completion_kind,
             deprecated: self.deprecated,
             trigger_call_info: self.trigger_call_info.unwrap_or(false),
             relevance: self.relevance,
@@ -459,16 +433,16 @@ impl Builder {
             import_to_add: self.imports_to_add,
         }
     }
-    pub(crate) fn lookup_by(&mut self, lookup: impl Into<String>) -> &mut Builder {
+    pub(crate) fn lookup_by(&mut self, lookup: impl Into<SmolStr>) -> &mut Builder {
         self.lookup = Some(lookup.into());
         self
     }
-    pub(crate) fn label(&mut self, label: impl Into<String>) -> &mut Builder {
+    pub(crate) fn label(&mut self, label: impl Into<SmolStr>) -> &mut Builder {
         self.label = label.into();
         self
     }
-    pub(crate) fn trait_name(&mut self, trait_name: impl Into<String>) -> &mut Builder {
-        self.trait_name = Some(trait_name.into());
+    pub(crate) fn trait_name(&mut self, trait_name: SmolStr) -> &mut Builder {
+        self.trait_name = Some(trait_name);
         self
     }
     pub(crate) fn insert_text(&mut self, insert_text: impl Into<String>) -> &mut Builder {
@@ -477,15 +451,12 @@ impl Builder {
     }
     pub(crate) fn insert_snippet(
         &mut self,
-        _cap: SnippetCap,
+        cap: SnippetCap,
         snippet: impl Into<String>,
     ) -> &mut Builder {
+        let _ = cap;
         self.is_snippet = true;
         self.insert_text(snippet)
-    }
-    pub(crate) fn kind(&mut self, kind: impl Into<CompletionItemKind>) -> &mut Builder {
-        self.kind = Some(kind.into());
-        self
     }
     pub(crate) fn text_edit(&mut self, edit: TextEdit) -> &mut Builder {
         self.text_edit = Some(edit);

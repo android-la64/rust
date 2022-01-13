@@ -151,18 +151,15 @@ fn compute_block_scopes(
         match stmt {
             Statement::Let { pat, initializer, else_branch, .. } => {
                 if let Some(expr) = initializer {
-                    scopes.set_scope(*expr, scope);
                     compute_expr_scopes(*expr, body, scopes, scope);
                 }
                 if let Some(expr) = else_branch {
-                    scopes.set_scope(*expr, scope);
                     compute_expr_scopes(*expr, body, scopes, scope);
                 }
                 scope = scopes.new_scope(scope);
                 scopes.add_bindings(body, scope, *pat);
             }
             Statement::Expr { expr, .. } => {
-                scopes.set_scope(*expr, scope);
                 compute_expr_scopes(*expr, body, scopes, scope);
             }
         }
@@ -174,7 +171,7 @@ fn compute_block_scopes(
 
 fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope: ScopeId) {
     let make_label =
-        |label: &Option<_>| label.map(|label| (label, body.labels[label].name.clone()));
+        |label: &Option<LabelId>| label.map(|label| (label, body.labels[label].name.clone()));
 
     scopes.set_scope(expr, scope);
     match &body[expr] {
@@ -207,7 +204,7 @@ fn compute_expr_scopes(expr: ExprId, body: &Body, scopes: &mut ExprScopes, scope
         }
         Expr::Match { expr, arms } => {
             compute_expr_scopes(*expr, body, scopes, scope);
-            for arm in arms {
+            for arm in arms.iter() {
                 let mut scope = scopes.new_scope(scope);
                 scopes.add_bindings(body, scope, arm.pat);
                 match arm.guard {
@@ -282,7 +279,7 @@ mod tests {
         let actual = scopes
             .scope_chain(scope)
             .flat_map(|scope| scopes.entries(scope))
-            .map(|it| it.name().to_string())
+            .map(|it| it.name().to_smol_str())
             .collect::<Vec<_>>()
             .join("\n");
         let expected = expected.join("\n");

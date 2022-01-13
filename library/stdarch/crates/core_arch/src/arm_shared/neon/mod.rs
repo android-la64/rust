@@ -83,43 +83,43 @@ types! {
 }
 
 /// ARM-specific type containing two `int8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int8x8x2_t(pub int8x8_t, pub int8x8_t);
 /// ARM-specific type containing three `int8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int8x8x3_t(pub int8x8_t, pub int8x8_t, pub int8x8_t);
 /// ARM-specific type containing four `int8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int8x8x4_t(pub int8x8_t, pub int8x8_t, pub int8x8_t, pub int8x8_t);
 
 /// ARM-specific type containing two `int8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int8x16x2_t(pub int8x16_t, pub int8x16_t);
 /// ARM-specific type containing three `int8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int8x16x3_t(pub int8x16_t, pub int8x16_t, pub int8x16_t);
 /// ARM-specific type containing four `int8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int8x16x4_t(pub int8x16_t, pub int8x16_t, pub int8x16_t, pub int8x16_t);
 
 /// ARM-specific type containing two `uint8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint8x8x2_t(pub uint8x8_t, pub uint8x8_t);
 /// ARM-specific type containing three `uint8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint8x8x3_t(pub uint8x8_t, pub uint8x8_t, pub uint8x8_t);
 /// ARM-specific type containing four `uint8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint8x8x4_t(pub uint8x8_t, pub uint8x8_t, pub uint8x8_t, pub uint8x8_t);
 
 /// ARM-specific type containing two `uint8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint8x16x2_t(pub uint8x16_t, pub uint8x16_t);
 /// ARM-specific type containing three `uint8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint8x16x3_t(pub uint8x16_t, pub uint8x16_t, pub uint8x16_t);
 /// ARM-specific type containing four `uint8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint8x16x4_t(
     pub uint8x16_t,
     pub uint8x16_t,
@@ -128,23 +128,23 @@ pub struct uint8x16x4_t(
 );
 
 /// ARM-specific type containing two `poly8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly8x8x2_t(pub poly8x8_t, pub poly8x8_t);
 /// ARM-specific type containing three `poly8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly8x8x3_t(pub poly8x8_t, pub poly8x8_t, pub poly8x8_t);
 /// ARM-specific type containing four `poly8x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly8x8x4_t(pub poly8x8_t, pub poly8x8_t, pub poly8x8_t, pub poly8x8_t);
 
 /// ARM-specific type containing two `poly8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly8x16x2_t(pub poly8x16_t, pub poly8x16_t);
 /// ARM-specific type containing three `poly8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly8x16x3_t(pub poly8x16_t, pub poly8x16_t, pub poly8x16_t);
 /// ARM-specific type containing four `poly8x16_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly8x16x4_t(
     pub poly8x16_t,
     pub poly8x16_t,
@@ -153,33 +153,33 @@ pub struct poly8x16x4_t(
 );
 
 /// ARM-specific type containing two `int16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int16x4x2_t(pub int16x4_t, pub int16x4_t);
 /// ARM-specific type containing three `int16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int16x4x3_t(pub int16x4_t, pub int16x4_t, pub int16x4_t);
 /// ARM-specific type containing four `int16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int16x4x4_t(pub int16x4_t, pub int16x4_t, pub int16x4_t, pub int16x4_t);
 
 /// ARM-specific type containing two `int16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int16x8x2_t(pub int16x8_t, pub int16x8_t);
 /// ARM-specific type containing three `int16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int16x8x3_t(pub int16x8_t, pub int16x8_t, pub int16x8_t);
 /// ARM-specific type containing four `int16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int16x8x4_t(pub int16x8_t, pub int16x8_t, pub int16x8_t, pub int16x8_t);
 
 /// ARM-specific type containing two `uint16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint16x4x2_t(pub uint16x4_t, pub uint16x4_t);
 /// ARM-specific type containing three `uint16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint16x4x3_t(pub uint16x4_t, pub uint16x4_t, pub uint16x4_t);
 /// ARM-specific type containing four `uint16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint16x4x4_t(
     pub uint16x4_t,
     pub uint16x4_t,
@@ -188,13 +188,13 @@ pub struct uint16x4x4_t(
 );
 
 /// ARM-specific type containing two `uint16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint16x8x2_t(pub uint16x8_t, pub uint16x8_t);
 /// ARM-specific type containing three `uint16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint16x8x3_t(pub uint16x8_t, pub uint16x8_t, pub uint16x8_t);
 /// ARM-specific type containing four `uint16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint16x8x4_t(
     pub uint16x8_t,
     pub uint16x8_t,
@@ -203,13 +203,13 @@ pub struct uint16x8x4_t(
 );
 
 /// ARM-specific type containing two `poly16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly16x4x2_t(pub poly16x4_t, pub poly16x4_t);
 /// ARM-specific type containing three `poly16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly16x4x3_t(pub poly16x4_t, pub poly16x4_t, pub poly16x4_t);
 /// ARM-specific type containing four `poly16x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly16x4x4_t(
     pub poly16x4_t,
     pub poly16x4_t,
@@ -218,13 +218,13 @@ pub struct poly16x4x4_t(
 );
 
 /// ARM-specific type containing two `poly16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly16x8x2_t(pub poly16x8_t, pub poly16x8_t);
 /// ARM-specific type containing three `poly16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly16x8x3_t(pub poly16x8_t, pub poly16x8_t, pub poly16x8_t);
 /// ARM-specific type containing four `poly16x8_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly16x8x4_t(
     pub poly16x8_t,
     pub poly16x8_t,
@@ -233,33 +233,33 @@ pub struct poly16x8x4_t(
 );
 
 /// ARM-specific type containing two `int32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int32x2x2_t(pub int32x2_t, pub int32x2_t);
 /// ARM-specific type containing three `int32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int32x2x3_t(pub int32x2_t, pub int32x2_t, pub int32x2_t);
 /// ARM-specific type containing four `int32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int32x2x4_t(pub int32x2_t, pub int32x2_t, pub int32x2_t, pub int32x2_t);
 
 /// ARM-specific type containing two `int32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int32x4x2_t(pub int32x4_t, pub int32x4_t);
 /// ARM-specific type containing three `int32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int32x4x3_t(pub int32x4_t, pub int32x4_t, pub int32x4_t);
 /// ARM-specific type containing four `int32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int32x4x4_t(pub int32x4_t, pub int32x4_t, pub int32x4_t, pub int32x4_t);
 
 /// ARM-specific type containing two `uint32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint32x2x2_t(pub uint32x2_t, pub uint32x2_t);
 /// ARM-specific type containing three `uint32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint32x2x3_t(pub uint32x2_t, pub uint32x2_t, pub uint32x2_t);
 /// ARM-specific type containing four `uint32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint32x2x4_t(
     pub uint32x2_t,
     pub uint32x2_t,
@@ -268,13 +268,13 @@ pub struct uint32x2x4_t(
 );
 
 /// ARM-specific type containing two `uint32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint32x4x2_t(pub uint32x4_t, pub uint32x4_t);
 /// ARM-specific type containing three `uint32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint32x4x3_t(pub uint32x4_t, pub uint32x4_t, pub uint32x4_t);
 /// ARM-specific type containing four `uint32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint32x4x4_t(
     pub uint32x4_t,
     pub uint32x4_t,
@@ -283,13 +283,13 @@ pub struct uint32x4x4_t(
 );
 
 /// ARM-specific type containing two `float32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float32x2x2_t(pub float32x2_t, pub float32x2_t);
 /// ARM-specific type containing three `float32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float32x2x3_t(pub float32x2_t, pub float32x2_t, pub float32x2_t);
 /// ARM-specific type containing four `float32x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float32x2x4_t(
     pub float32x2_t,
     pub float32x2_t,
@@ -298,13 +298,13 @@ pub struct float32x2x4_t(
 );
 
 /// ARM-specific type containing two `float32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float32x4x2_t(pub float32x4_t, pub float32x4_t);
 /// ARM-specific type containing three `float32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float32x4x3_t(pub float32x4_t, pub float32x4_t, pub float32x4_t);
 /// ARM-specific type containing four `float32x4_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float32x4x4_t(
     pub float32x4_t,
     pub float32x4_t,
@@ -313,33 +313,33 @@ pub struct float32x4x4_t(
 );
 
 /// ARM-specific type containing four `int64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int64x1x2_t(pub int64x1_t, pub int64x1_t);
 /// ARM-specific type containing four `int64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int64x1x3_t(pub int64x1_t, pub int64x1_t, pub int64x1_t);
 /// ARM-specific type containing four `int64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int64x1x4_t(pub int64x1_t, pub int64x1_t, pub int64x1_t, pub int64x1_t);
 
 /// ARM-specific type containing four `int64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int64x2x2_t(pub int64x2_t, pub int64x2_t);
 /// ARM-specific type containing four `int64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int64x2x3_t(pub int64x2_t, pub int64x2_t, pub int64x2_t);
 /// ARM-specific type containing four `int64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct int64x2x4_t(pub int64x2_t, pub int64x2_t, pub int64x2_t, pub int64x2_t);
 
 /// ARM-specific type containing four `uint64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint64x1x2_t(pub uint64x1_t, pub uint64x1_t);
 /// ARM-specific type containing four `uint64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint64x1x3_t(pub uint64x1_t, pub uint64x1_t, pub uint64x1_t);
 /// ARM-specific type containing four `uint64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint64x1x4_t(
     pub uint64x1_t,
     pub uint64x1_t,
@@ -348,13 +348,13 @@ pub struct uint64x1x4_t(
 );
 
 /// ARM-specific type containing four `uint64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint64x2x2_t(pub uint64x2_t, pub uint64x2_t);
 /// ARM-specific type containing four `uint64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint64x2x3_t(pub uint64x2_t, pub uint64x2_t, pub uint64x2_t);
 /// ARM-specific type containing four `uint64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct uint64x2x4_t(
     pub uint64x2_t,
     pub uint64x2_t,
@@ -363,13 +363,13 @@ pub struct uint64x2x4_t(
 );
 
 /// ARM-specific type containing four `poly64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly64x1x2_t(pub poly64x1_t, pub poly64x1_t);
 /// ARM-specific type containing four `poly64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly64x1x3_t(pub poly64x1_t, pub poly64x1_t, pub poly64x1_t);
 /// ARM-specific type containing four `poly64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly64x1x4_t(
     pub poly64x1_t,
     pub poly64x1_t,
@@ -378,13 +378,13 @@ pub struct poly64x1x4_t(
 );
 
 /// ARM-specific type containing four `poly64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly64x2x2_t(pub poly64x2_t, pub poly64x2_t);
 /// ARM-specific type containing four `poly64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly64x2x3_t(pub poly64x2_t, pub poly64x2_t, pub poly64x2_t);
 /// ARM-specific type containing four `poly64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct poly64x2x4_t(
     pub poly64x2_t,
     pub poly64x2_t,
@@ -478,9 +478,6 @@ extern "unadjusted" {
     #[cfg_attr(target_arch = "arm", link_name = "llvm.arm.neon.vpadd.v8i8")]
     #[cfg_attr(target_arch = "aarch64", link_name = "llvm.aarch64.neon.addp.v8i8")]
     fn vpadd_s8_(a: int8x8_t, b: int8x8_t) -> int8x8_t;
-    #[cfg_attr(target_arch = "arm", link_name = "llvm.arm.neon.vpadd.v16i8")]
-    #[cfg_attr(target_arch = "aarch64", link_name = "llvm.aarch64.neon.addp.v16i8")]
-    fn vpaddq_s8_(a: int8x16_t, b: int8x16_t) -> int8x16_t;
 
     #[cfg_attr(target_arch = "arm", link_name = "llvm.arm.neon.vpaddls.v4i16.v8i8")]
     #[cfg_attr(
@@ -3922,6 +3919,26 @@ unsafe fn vdup_n_f32_vfp4(value: f32) -> float32x2_t {
     float32x2_t(value, value)
 }
 
+/// Load SIMD&FP register (immediate offset)
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(all(test, target_arch = "arm"), assert_instr(nop))]
+#[cfg_attr(all(test, target_arch = "aarch64"), assert_instr(nop))]
+pub unsafe fn vldrq_p128(a: *const p128) -> p128 {
+    *a
+}
+
+/// Store SIMD&FP register (immediate offset)
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(all(test, target_arch = "arm"), assert_instr(nop))]
+#[cfg_attr(all(test, target_arch = "aarch64"), assert_instr(nop))]
+pub unsafe fn vstrq_p128(a: *mut p128, b: p128) {
+    *a = b;
+}
+
 /// Duplicate vector element to vector or scalar
 #[inline]
 #[target_feature(enable = "neon")]
@@ -4787,6 +4804,66 @@ pub unsafe fn vpadalq_u32(a: uint64x2_t, b: uint32x4_t) -> uint64x2_t {
     {
         simd_add(vpaddlq_u32_(b), a)
     }
+}
+
+/// 8-bit integer matrix multiply-accumulate
+#[inline]
+#[cfg_attr(not(bootstrap), target_feature(enable = "i8mm"))]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v8"))]
+#[cfg_attr(all(test, target_arch = "arm"), assert_instr(nop))]
+#[cfg_attr(all(test, target_arch = "aarch64"), assert_instr(smmla))]
+pub unsafe fn vmmlaq_s32(a: int32x4_t, b: int8x16_t, c: int8x16_t) -> int32x4_t {
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "arm", link_name = "llvm.arm.neon.smmla.v4i32.v16i8")]
+        #[cfg_attr(
+            target_arch = "aarch64",
+            link_name = "llvm.aarch64.neon.smmla.v4i32.v16i8"
+        )]
+        fn vmmlaq_s32_(a: int32x4_t, b: int8x16_t, c: int8x16_t) -> int32x4_t;
+    }
+    vmmlaq_s32_(a, b, c)
+}
+
+/// 8-bit integer matrix multiply-accumulate
+#[inline]
+#[cfg_attr(not(bootstrap), target_feature(enable = "i8mm"))]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v8"))]
+#[cfg_attr(all(test, target_arch = "arm"), assert_instr(nop))]
+#[cfg_attr(all(test, target_arch = "aarch64"), assert_instr(ummla))]
+pub unsafe fn vmmlaq_u32(a: uint32x4_t, b: uint8x16_t, c: uint8x16_t) -> uint32x4_t {
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "arm", link_name = "llvm.arm.neon.ummla.v4i32.v16i8")]
+        #[cfg_attr(
+            target_arch = "aarch64",
+            link_name = "llvm.aarch64.neon.ummla.v4i32.v16i8"
+        )]
+        fn vmmlaq_u32_(a: uint32x4_t, b: uint8x16_t, c: uint8x16_t) -> uint32x4_t;
+    }
+    vmmlaq_u32_(a, b, c)
+}
+
+/// Unsigned and signed 8-bit integer matrix multiply-accumulate
+#[inline]
+#[cfg_attr(not(bootstrap), target_feature(enable = "i8mm"))]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v8"))]
+#[cfg_attr(all(test, target_arch = "arm"), assert_instr(nop))]
+#[cfg_attr(all(test, target_arch = "aarch64"), assert_instr(usmmla))]
+pub unsafe fn vusmmlaq_s32(a: int32x4_t, b: uint8x16_t, c: int8x16_t) -> int32x4_t {
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "arm", link_name = "llvm.arm.neon.usmmla.v4i32.v16i8")]
+        #[cfg_attr(
+            target_arch = "aarch64",
+            link_name = "llvm.aarch64.neon.usmmla.v4i32.v16i8"
+        )]
+        fn vusmmlaq_s32_(a: int32x4_t, b: uint8x16_t, c: int8x16_t) -> int32x4_t;
+    }
+    vusmmlaq_s32_(a, b, c)
 }
 
 #[cfg(test)]
@@ -5814,6 +5891,23 @@ mod tests {
         let v: f32 = 64.0;
         let e = f32x2::new(64.0, 64.0);
         let r: f32x2 = transmute(vdup_n_f32(v));
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon")]
+    unsafe fn test_vldrq_p128() {
+        let v: [p128; 2] = [1, 2];
+        let e: p128 = 2;
+        let r: p128 = vldrq_p128(v[1..].as_ptr());
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon")]
+    unsafe fn test_vstrq_p128() {
+        let v: [p128; 2] = [1, 2];
+        let e: p128 = 2;
+        let mut r: p128 = 1;
+        vstrq_p128(&mut r, v[1]);
         assert_eq!(r, e);
     }
 
@@ -10332,6 +10426,35 @@ mod tests {
         let a = u16x8::new(0, 1, 2, 3, 4, 5, 6, 7);
         let r = u16x8::new(3, 2, 1, 0, 7, 6, 5, 4);
         let e: u16x8 = transmute(vrev64q_p16(transmute(a)));
+        assert_eq!(r, e);
+    }
+    #[simd_test(enable = "neon,i8mm")]
+    unsafe fn test_vmmlaq_s32() {
+        let a: i32x4 = i32x4::new(1, 3, 4, 9);
+        let b: i8x16 = i8x16::new(1, 21, 31, 14, 5, 6, 17, 8, 9, 13, 15, 12, 13, 19, 20, 16);
+        let c: i8x16 = i8x16::new(12, 22, 3, 4, 5, 56, 7, 8, 91, 10, 11, 15, 13, 14, 17, 16);
+        let e: i32x4 = i32x4::new(1, 2, 3, 4);
+        let r: i32x4 = transmute(vmmlaq_s32(transmute(a), transmute(b), transmute(c)));
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon,i8mm")]
+    unsafe fn test_vmmlaq_u32() {
+        let a: u32x4 = u32x4::new(1, 3, 4, 9);
+        let b: i8x16 = i8x16::new(1, 21, 31, 14, 5, 6, 17, 8, 9, 13, 15, 12, 13, 19, 20, 16);
+        let c: i8x16 = i8x16::new(12, 22, 3, 4, 5, 56, 7, 8, 91, 10, 11, 15, 13, 14, 17, 16);
+        let e: u32x4 = u32x4::new(1, 2, 3, 4);
+        let r: u32x4 = transmute(vmmlaq_u32(transmute(a), transmute(b), transmute(c)));
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon,i8mm")]
+    unsafe fn test_vusmmlaq_s32() {
+        let a: i32x4 = i32x4::new(1, 3, 4, 9);
+        let b: i8x16 = i8x16::new(1, 21, 31, 14, 5, 6, 17, 8, 9, 13, 15, 12, 13, 19, 20, 16);
+        let c: i8x16 = i8x16::new(12, 22, 3, 4, 5, 56, 7, 8, 91, 10, 11, 15, 13, 14, 17, 16);
+        let e: i32x4 = i32x4::new(1, 2, 3, 4);
+        let r: i32x4 = transmute(vusmmlaq_s32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
 }

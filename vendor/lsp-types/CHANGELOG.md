@@ -1,3 +1,59 @@
+<a name="v0.91.1"></a>
+### v0.91.1 (2021-11-01)
+
+
+#### Features
+
+*   Print the name of know enumerations ([2877b6a1](https://github.com/gluon-lang/lsp-types/commit/2877b6a131ef5c28310b972126f6d1b23cd97788))
+
+
+
+<a name="v0.91.0"></a>
+## v0.91.0 (2021-10-18)
+
+
+
+
+<a name="v0.90.1"></a>
+### v0.90.1 (2021-10-11)
+
+
+#### Bug Fixes
+
+*   add missing rename_all serde attribute ([b403cba5](https://github.com/gluon-lang/lsp-types/commit/b403cba5fb568f7f1bda3ea2929822269797f7f3))
+
+
+
+<a name="v0.90.1"></a>
+### v0.90.1 (2021-10-11)
+
+
+#### Bug Fixes
+
+*   add missing rename_all serde attribute ([b403cba5](https://github.com/gluon-lang/lsp-types/commit/b403cba5fb568f7f1bda3ea2929822269797f7f3))
+
+
+
+<a name="v0.90.1"></a>
+### v0.90.1 (2021-10-11)
+
+
+#### Bug Fixes
+
+*   add missing rename_all serde attribute ([b403cba5](https://github.com/gluon-lang/lsp-types/commit/b403cba5fb568f7f1bda3ea2929822269797f7f3))
+
+
+
+<a name="v0.90.1"></a>
+### v0.90.1 (2021-10-11)
+
+
+#### Bug Fixes
+
+*   add missing rename_all serde attribute ([b403cba5](https://github.com/gluon-lang/lsp-types/commit/b403cba5fb568f7f1bda3ea2929822269797f7f3))
+
+
+
 <a name="v0.90.0"></a>
 ## v0.90.0 (2021-09-25)
 

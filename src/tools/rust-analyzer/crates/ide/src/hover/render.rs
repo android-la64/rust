@@ -1,4 +1,6 @@
 //! Logic for rendering the different hover messages
+use std::fmt::Display;
+
 use either::Either;
 use hir::{AsAssocItem, HasAttrs, HasSource, HirDisplay, Semantics, TypeInfo};
 use ide_db::{
@@ -242,7 +244,7 @@ pub(super) fn keyword(
     let docs = doc_owner.attrs(sema.db).docs()?;
     let markup = process_markup(
         sema.db,
-        Definition::ModuleDef(doc_owner.into()),
+        Definition::Module(doc_owner),
         &markup(Some(docs.into()), token.text().into(), None)?,
         config,
     );
@@ -311,14 +313,11 @@ fn definition_owner_name(db: &RootDatabase, def: &Definition) -> Option<String> 
     match def {
         Definition::Field(f) => Some(f.parent_def(db).name(db)),
         Definition::Local(l) => l.parent(db).name(db),
-        Definition::ModuleDef(md) => match md {
-            hir::ModuleDef::Function(f) => match f.as_assoc_item(db)?.container(db) {
-                hir::AssocItemContainer::Trait(t) => Some(t.name(db)),
-                hir::AssocItemContainer::Impl(i) => i.self_ty(db).as_adt().map(|adt| adt.name(db)),
-            },
-            hir::ModuleDef::Variant(e) => Some(e.parent_enum(db).name(db)),
-            _ => None,
+        Definition::Function(f) => match f.as_assoc_item(db)?.container(db) {
+            hir::AssocItemContainer::Trait(t) => Some(t.name(db)),
+            hir::AssocItemContainer::Impl(i) => i.self_ty(db).as_adt().map(|adt| adt.name(db)),
         },
+        Definition::Variant(e) => Some(e.parent_enum(db).name(db)),
         _ => None,
     }
     .map(|name| name.to_string())
@@ -351,21 +350,19 @@ pub(super) fn definition(
             it.attrs(db).docs(),
         ),
         Definition::Field(def) => label_and_docs(db, def),
-        Definition::ModuleDef(it) => match it {
-            hir::ModuleDef::Module(it) => label_and_docs(db, it),
-            hir::ModuleDef::Function(it) => label_and_docs(db, it),
-            hir::ModuleDef::Adt(it) => label_and_docs(db, it),
-            hir::ModuleDef::Variant(it) => label_and_docs(db, it),
-            hir::ModuleDef::Const(it) => label_and_docs(db, it),
-            hir::ModuleDef::Static(it) => label_and_docs(db, it),
-            hir::ModuleDef::Trait(it) => label_and_docs(db, it),
-            hir::ModuleDef::TypeAlias(it) => label_and_docs(db, it),
-            hir::ModuleDef::BuiltinType(it) => {
-                return famous_defs
-                    .and_then(|fd| builtin(fd, it))
-                    .or_else(|| Some(Markup::fenced_block(&it.name())))
-            }
-        },
+        Definition::Module(it) => label_and_docs(db, it),
+        Definition::Function(it) => label_and_docs(db, it),
+        Definition::Adt(it) => label_and_docs(db, it),
+        Definition::Variant(it) => label_and_docs(db, it),
+        Definition::Const(it) => label_value_and_docs(db, it, |it| it.value(db)),
+        Definition::Static(it) => label_value_and_docs(db, it, |it| it.value(db)),
+        Definition::Trait(it) => label_and_docs(db, it),
+        Definition::TypeAlias(it) => label_and_docs(db, it),
+        Definition::BuiltinType(it) => {
+            return famous_defs
+                .and_then(|fd| builtin(fd, it))
+                .or_else(|| Some(Markup::fenced_block(&it.name())))
+        }
         Definition::Local(it) => return local(db, it),
         Definition::SelfType(impl_def) => {
             impl_def.self_ty(db).as_adt().map(|adt| label_and_docs(db, adt))?
@@ -382,6 +379,25 @@ where
     D: HasAttrs + HirDisplay,
 {
     let label = def.display(db).to_string();
+    let docs = def.attrs(db).docs();
+    (label, docs)
+}
+
+fn label_value_and_docs<D, E, V>(
+    db: &RootDatabase,
+    def: D,
+    value_extractor: E,
+) -> (String, Option<hir::Documentation>)
+where
+    D: HasAttrs + HirDisplay,
+    E: Fn(&D) -> Option<V>,
+    V: Display,
+{
+    let label = if let Some(value) = (value_extractor)(&def) {
+        format!("{} = {}", def.display(db), value)
+    } else {
+        def.display(db).to_string()
+    };
     let docs = def.attrs(db).docs();
     (label, docs)
 }

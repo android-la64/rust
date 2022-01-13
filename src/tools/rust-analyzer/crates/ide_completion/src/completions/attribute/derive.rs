@@ -1,67 +1,129 @@
 //! Completion for derives
-use hir::HasAttrs;
+use hir::{HasAttrs, MacroDef, MacroKind};
+use ide_db::helpers::{import_assets::ImportAssets, insert_use::ImportScope, FamousDefs};
 use itertools::Itertools;
-use rustc_hash::FxHashMap;
-use syntax::ast;
+use rustc_hash::FxHashSet;
+use syntax::{ast, SmolStr, SyntaxKind};
 
 use crate::{
+    completions::flyimport::compute_fuzzy_completion_order_key,
     context::CompletionContext,
-    item::{CompletionItem, CompletionItemKind, CompletionKind},
-    Completions,
+    item::{CompletionItem, CompletionItemKind},
+    Completions, ImportEdit,
 };
 
 pub(super) fn complete_derive(
     acc: &mut Completions,
     ctx: &CompletionContext,
-    derive_input: ast::TokenTree,
+    existing_derives: &[ast::Path],
 ) {
-    if let Some(existing_derives) = super::parse_comma_sep_input(derive_input) {
-        for (derive, docs) in get_derive_names_in_scope(ctx) {
-            let (label, lookup) = if let Some(derive_completion) = DEFAULT_DERIVE_COMPLETIONS
-                .iter()
-                .find(|derive_completion| derive_completion.label == derive)
-            {
-                let mut components = vec![derive_completion.label];
-                components.extend(
-                    derive_completion
-                        .dependencies
-                        .iter()
-                        .filter(|&&dependency| !existing_derives.contains(dependency)),
-                );
-                let lookup = components.join(", ");
-                let label = components.iter().rev().join(", ");
-                (label, Some(lookup))
-            } else if existing_derives.contains(&derive) {
-                continue;
-            } else {
-                (derive, None)
-            };
-            let mut item =
-                CompletionItem::new(CompletionKind::Attribute, ctx.source_range(), label);
-            item.kind(CompletionItemKind::Attribute);
-            if let Some(docs) = docs {
-                item.documentation(docs);
-            }
-            if let Some(lookup) = lookup {
-                item.lookup_by(lookup);
-            }
-            item.add_to(acc);
+    let core = FamousDefs(&ctx.sema, ctx.krate).core();
+    let existing_derives: FxHashSet<_> = existing_derives
+        .into_iter()
+        .filter_map(|path| ctx.scope.speculative_resolve_as_mac(&path))
+        .filter(|mac| mac.kind() == MacroKind::Derive)
+        .collect();
+
+    for (name, mac) in get_derives_in_scope(ctx) {
+        if existing_derives.contains(&mac) {
+            continue;
         }
+
+        let name = name.to_smol_str();
+        let (label, lookup) = match core.zip(mac.module(ctx.db).map(|it| it.krate())) {
+            // show derive dependencies for `core`/`std` derives
+            Some((core, mac_krate)) if core == mac_krate => {
+                if let Some(derive_completion) = DEFAULT_DERIVE_DEPENDENCIES
+                    .iter()
+                    .find(|derive_completion| derive_completion.label == name)
+                {
+                    let mut components = vec![derive_completion.label];
+                    components.extend(derive_completion.dependencies.iter().filter(
+                        |&&dependency| {
+                            !existing_derives
+                                .iter()
+                                .filter_map(|it| it.name(ctx.db))
+                                .any(|it| it.to_smol_str() == dependency)
+                        },
+                    ));
+                    let lookup = components.join(", ");
+                    let label = Itertools::intersperse(components.into_iter().rev(), ", ");
+                    (SmolStr::from_iter(label), Some(lookup))
+                } else {
+                    (name, None)
+                }
+            }
+            _ => (name, None),
+        };
+
+        let mut item =
+            CompletionItem::new(CompletionItemKind::Attribute, ctx.source_range(), label);
+        if let Some(docs) = mac.docs(ctx.db) {
+            item.documentation(docs);
+        }
+        if let Some(lookup) = lookup {
+            item.lookup_by(lookup);
+        }
+        item.add_to(acc);
     }
+
+    flyimport_attribute(acc, ctx);
 }
 
-fn get_derive_names_in_scope(
-    ctx: &CompletionContext,
-) -> FxHashMap<String, Option<hir::Documentation>> {
-    let mut result = FxHashMap::default();
+fn get_derives_in_scope(ctx: &CompletionContext) -> Vec<(hir::Name, MacroDef)> {
+    let mut result = Vec::default();
     ctx.process_all_names(&mut |name, scope_def| {
         if let hir::ScopeDef::MacroDef(mac) = scope_def {
             if mac.kind() == hir::MacroKind::Derive {
-                result.insert(name.to_string(), mac.docs(ctx.db));
+                result.push((name, mac));
             }
         }
     });
     result
+}
+
+fn flyimport_attribute(acc: &mut Completions, ctx: &CompletionContext) -> Option<()> {
+    if ctx.token.kind() != SyntaxKind::IDENT {
+        return None;
+    };
+    let potential_import_name = ctx.token.to_string();
+    let module = ctx.scope.module()?;
+    let parent = ctx.token.parent()?;
+    let user_input_lowercased = potential_import_name.to_lowercase();
+    let import_assets = ImportAssets::for_fuzzy_path(
+        module,
+        None,
+        potential_import_name,
+        &ctx.sema,
+        parent.clone(),
+    )?;
+    let import_scope = ImportScope::find_insert_use_container(&parent, &ctx.sema)?;
+    acc.add_all(
+        import_assets
+            .search_for_imports(&ctx.sema, ctx.config.insert_use.prefix_kind)
+            .into_iter()
+            .filter_map(|import| match import.original_item {
+                hir::ItemInNs::Macros(mac) => Some((import, mac)),
+                _ => None,
+            })
+            .filter(|&(_, mac)| !ctx.is_item_hidden(&hir::ItemInNs::Macros(mac)))
+            .sorted_by_key(|(import, _)| {
+                compute_fuzzy_completion_order_key(&import.import_path, &user_input_lowercased)
+            })
+            .filter_map(|(import, mac)| {
+                let mut item = CompletionItem::new(
+                    CompletionItemKind::Attribute,
+                    ctx.source_range(),
+                    mac.name(ctx.db)?.to_smol_str(),
+                );
+                item.add_import(ImportEdit { import, scope: import_scope.clone() });
+                if let Some(docs) = mac.docs(ctx.db) {
+                    item.documentation(docs);
+                }
+                Some(item.build())
+            }),
+    );
+    Some(())
 }
 
 struct DeriveDependencies {
@@ -71,7 +133,7 @@ struct DeriveDependencies {
 
 /// Standard Rust derives that have dependencies
 /// (the dependencies are needed so that the main derive don't break the compilation when added)
-const DEFAULT_DERIVE_COMPLETIONS: &[DeriveDependencies] = &[
+const DEFAULT_DERIVE_DEPENDENCIES: &[DeriveDependencies] = &[
     DeriveDependencies { label: "Copy", dependencies: &["Clone"] },
     DeriveDependencies { label: "Eq", dependencies: &["PartialEq"] },
     DeriveDependencies { label: "Ord", dependencies: &["PartialOrd", "Eq", "PartialEq"] },

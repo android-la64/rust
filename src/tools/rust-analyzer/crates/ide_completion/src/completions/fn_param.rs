@@ -8,7 +8,7 @@ use syntax::{
 
 use crate::{
     context::{ParamKind, PatternContext},
-    CompletionContext, CompletionItem, CompletionItemKind, CompletionKind, Completions,
+    CompletionContext, CompletionItem, CompletionItemKind, Completions,
 };
 
 /// Complete repeated parameters, both name and type. For example, if all
@@ -30,6 +30,7 @@ pub(crate) fn complete_fn_param(acc: &mut Completions, ctx: &CompletionContext) 
         }
         func.param_list().into_iter().flat_map(|it| it.params()).for_each(|param| {
             if let Some(pat) = param.pat() {
+                // FIXME: We should be able to turn these into SmolStr without having to allocate a String
                 let text = param.syntax().text().to_string();
                 let lookup = pat.syntax().text().to_string();
                 params.entry(text).or_insert(lookup);
@@ -59,7 +60,7 @@ pub(crate) fn complete_fn_param(acc: &mut Completions, ctx: &CompletionContext) 
 
     let self_completion_items = ["self", "&self", "mut self", "&mut self"];
     if ctx.impl_def.is_some() && me?.param_list()?.params().next().is_none() {
-        self_completion_items.iter().for_each(|self_item| {
+        self_completion_items.into_iter().for_each(|self_item| {
             add_new_item_to_acc(ctx, acc, self_item.to_string(), self_item.to_string())
         });
     }
@@ -75,7 +76,7 @@ fn add_new_item_to_acc(
     label: String,
     lookup: String,
 ) {
-    let mut item = CompletionItem::new(CompletionKind::Magic, ctx.source_range(), label);
-    item.kind(CompletionItemKind::Binding).lookup_by(lookup);
+    let mut item = CompletionItem::new(CompletionItemKind::Binding, ctx.source_range(), label);
+    item.lookup_by(lookup);
     item.add_to(acc)
 }

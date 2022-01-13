@@ -6,12 +6,12 @@ use syntax::T;
 
 use crate::{
     context::PathCompletionContext, item::Builder, CompletionContext, CompletionItem,
-    CompletionItemKind, CompletionKind, Completions, SnippetScope,
+    CompletionItemKind, Completions, SnippetScope,
 };
 
 fn snippet(ctx: &CompletionContext, cap: SnippetCap, label: &str, snippet: &str) -> Builder {
-    let mut item = CompletionItem::new(CompletionKind::Snippet, ctx.source_range(), label);
-    item.insert_snippet(cap, snippet).kind(CompletionItemKind::Snippet);
+    let mut item = CompletionItem::new(CompletionItemKind::Snippet, ctx.source_range(), label);
+    item.insert_snippet(cap, snippet);
     item
 }
 
@@ -102,8 +102,7 @@ fn add_custom_completions(
     cap: SnippetCap,
     scope: SnippetScope,
 ) -> Option<()> {
-    let import_scope =
-        ImportScope::find_insert_use_container_with_macros(&ctx.token.parent()?, &ctx.sema)?;
+    let import_scope = ImportScope::find_insert_use_container(&ctx.token.parent()?, &ctx.sema)?;
     ctx.config.prefix_snippets().filter(|(_, snip)| snip.scope == scope).for_each(
         |(trigger, snip)| {
             let imports = match snip.imports(ctx, &import_scope) {

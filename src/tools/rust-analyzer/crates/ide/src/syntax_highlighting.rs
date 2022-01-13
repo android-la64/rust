@@ -303,7 +303,7 @@ fn traverse(
                 Some(it) => it,
                 _ => continue,
             };
-            let token = sema.descend_into_macros(token);
+            let token = sema.descend_into_macros_single(token);
             match token.parent() {
                 Some(parent) => {
                     // We only care Name and Name_ref
@@ -342,7 +342,7 @@ fn traverse(
             element_to_highlight.clone(),
         ) {
             if inside_attribute {
-                highlight = highlight | HlMod::Attribute;
+                highlight |= HlMod::Attribute
             }
 
             hl.add(HlRange { range, highlight, binding_hash });

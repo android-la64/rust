@@ -11,7 +11,7 @@
 
 [package]
 name = "compiler_builtins"
-version = "0.1.49"
+version = "0.1.53"
 authors = ["Jorge Aparicio <japaricious@gmail.com>"]
 links = "compiler-rt"
 include = ["/Cargo.toml", "/build.rs", "/src/*", "/examples/*", "/LICENSE.txt", "/README.md", "/compiler-rt/*", "/libm/src/math/*"]

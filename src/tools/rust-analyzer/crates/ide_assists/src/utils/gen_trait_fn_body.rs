@@ -21,6 +21,7 @@ pub(crate) fn gen_trait_fn_body(
         "Default" => gen_default_impl(adt, func),
         "Hash" => gen_hash_impl(adt, func),
         "PartialEq" => gen_partial_eq(adt, func),
+        "PartialOrd" => gen_partial_ord(adt, func),
         _ => None,
     }
 }
@@ -558,6 +559,89 @@ fn gen_partial_eq(adt: &ast::Adt, func: &ast::Fn) -> Option<()> {
                     expr = gen_eq_chain(expr, cmp);
                 }
                 make::block_expr(None, expr).indent(ast::edit::IndentLevel(1))
+            }
+
+            // No fields in the body means there's nothing to hash.
+            None => {
+                let expr = make::expr_literal("true").into();
+                make::block_expr(None, Some(expr)).indent(ast::edit::IndentLevel(1))
+            }
+        },
+    };
+
+    ted::replace(func.body()?.syntax(), body.clone_for_update().syntax());
+    Some(())
+}
+
+fn gen_partial_ord(adt: &ast::Adt, func: &ast::Fn) -> Option<()> {
+    fn gen_partial_eq_match(match_target: ast::Expr) -> Option<ast::Stmt> {
+        let mut arms = vec![];
+
+        let variant_name =
+            make::path_pat(make::ext::path_from_idents(["core", "cmp", "Ordering", "Equal"])?);
+        let lhs = make::tuple_struct_pat(make::ext::path_from_idents(["Some"])?, [variant_name]);
+        arms.push(make::match_arm(Some(lhs.into()), None, make::expr_empty_block()));
+
+        arms.push(make::match_arm(
+            [make::ident_pat(false, false, make::name("ord")).into()],
+            None,
+            make::expr_return(Some(make::expr_path(make::ext::ident_path("ord")))),
+        ));
+        let list = make::match_arm_list(arms).indent(ast::edit::IndentLevel(1));
+        Some(make::expr_stmt(make::expr_match(match_target, list)).into())
+    }
+
+    fn gen_partial_cmp_call(lhs: ast::Expr, rhs: ast::Expr) -> ast::Expr {
+        let rhs = make::expr_ref(rhs, false);
+        let method = make::name_ref("partial_cmp");
+        make::expr_method_call(lhs, method, make::arg_list(Some(rhs)))
+    }
+
+    // FIXME: return `None` if the trait carries a generic type; we can only
+    // generate this code `Self` for the time being.
+
+    let body = match adt {
+        // `PartialOrd` cannot be derived for unions, so no default impl can be provided.
+        ast::Adt::Union(_) => return None,
+        // `core::mem::Discriminant` does not implement `PartialOrd` in stable Rust today.
+        ast::Adt::Enum(_) => return None,
+        ast::Adt::Struct(strukt) => match strukt.field_list() {
+            Some(ast::FieldList::RecordFieldList(field_list)) => {
+                let mut exprs = vec![];
+                for field in field_list.fields() {
+                    let lhs = make::expr_path(make::ext::ident_path("self"));
+                    let lhs = make::expr_field(lhs, &field.name()?.to_string());
+                    let rhs = make::expr_path(make::ext::ident_path("other"));
+                    let rhs = make::expr_field(rhs, &field.name()?.to_string());
+                    let ord = gen_partial_cmp_call(lhs, rhs);
+                    exprs.push(ord);
+                }
+
+                let tail = exprs.pop();
+                let stmts = exprs
+                    .into_iter()
+                    .map(gen_partial_eq_match)
+                    .collect::<Option<Vec<ast::Stmt>>>()?;
+                make::block_expr(stmts.into_iter(), tail).indent(ast::edit::IndentLevel(1))
+            }
+
+            Some(ast::FieldList::TupleFieldList(field_list)) => {
+                let mut exprs = vec![];
+                for (i, _) in field_list.fields().enumerate() {
+                    let idx = format!("{}", i);
+                    let lhs = make::expr_path(make::ext::ident_path("self"));
+                    let lhs = make::expr_field(lhs, &idx);
+                    let rhs = make::expr_path(make::ext::ident_path("other"));
+                    let rhs = make::expr_field(rhs, &idx);
+                    let ord = gen_partial_cmp_call(lhs, rhs);
+                    exprs.push(ord);
+                }
+                let tail = exprs.pop();
+                let stmts = exprs
+                    .into_iter()
+                    .map(gen_partial_eq_match)
+                    .collect::<Option<Vec<ast::Stmt>>>()?;
+                make::block_expr(stmts.into_iter(), tail).indent(ast::edit::IndentLevel(1))
             }
 
             // No fields in the body means there's nothing to hash.

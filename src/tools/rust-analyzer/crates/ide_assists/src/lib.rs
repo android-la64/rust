@@ -122,6 +122,7 @@ mod handlers {
     mod destructure_tuple_binding;
     mod expand_glob_import;
     mod extract_function;
+    mod extract_module;
     mod extract_struct_from_enum_variant;
     mod extract_type_alias;
     mod extract_variable;
@@ -144,6 +145,7 @@ mod handlers {
     mod generate_is_empty_from_len;
     mod generate_new;
     mod generate_setter;
+    mod generate_delegate_methods;
     mod add_return_type;
     mod inline_call;
     mod inline_local_variable;
@@ -156,8 +158,10 @@ mod handlers {
     mod move_module_to_file;
     mod move_to_mod_rs;
     mod move_from_mod_rs;
+    mod promote_local_to_const;
     mod pull_assignment_up;
     mod qualify_path;
+    mod qualify_method_call;
     mod raw_string;
     mod remove_dbg;
     mod remove_mut;
@@ -171,11 +175,13 @@ mod handlers {
     mod replace_let_with_if_let;
     mod replace_qualified_name_with_use;
     mod replace_string_with_char;
+    mod replace_turbofish_with_explicit_type;
     mod split_import;
     mod sort_items;
     mod toggle_ignore;
     mod unmerge_use;
     mod unwrap_block;
+    mod unwrap_result_return_type;
     mod wrap_return_type_in_result;
 
     pub(crate) fn all() -> &'static [Handler] {
@@ -210,6 +216,7 @@ mod handlers {
             generate_constant::generate_constant,
             generate_default_from_enum_variant::generate_default_from_enum_variant,
             generate_default_from_new::generate_default_from_new,
+            generate_delegate_methods::generate_delegate_methods,
             generate_deref::generate_deref,
             generate_derive::generate_derive,
             generate_enum_is_method::generate_enum_is_method,
@@ -235,7 +242,9 @@ mod handlers {
             move_to_mod_rs::move_to_mod_rs,
             move_from_mod_rs::move_from_mod_rs,
             pull_assignment_up::pull_assignment_up,
+            promote_local_to_const::promote_local_to_const,
             qualify_path::qualify_path,
+            qualify_method_call::qualify_method_call,
             raw_string::add_hash,
             raw_string::make_usual_string,
             raw_string::remove_hash,
@@ -249,12 +258,14 @@ mod handlers {
             replace_if_let_with_match::replace_if_let_with_match,
             replace_if_let_with_match::replace_match_with_if_let,
             replace_let_with_if_let::replace_let_with_if_let,
+            replace_turbofish_with_explicit_type::replace_turbofish_with_explicit_type,
             replace_qualified_name_with_use::replace_qualified_name_with_use,
             sort_items::sort_items,
             split_import::split_import,
             toggle_ignore::toggle_ignore,
             unmerge_use::unmerge_use,
             unwrap_block::unwrap_block,
+            unwrap_result_return_type::unwrap_result_return_type,
             wrap_return_type_in_result::wrap_return_type_in_result,
             // These are manually sorted for better priorities. By default,
             // priority is determined by the size of the target range (smaller
@@ -269,6 +280,7 @@ mod handlers {
             //
             extract_variable::extract_variable,
             extract_function::extract_function,
+            extract_module::extract_module,
             //
             generate_getter::generate_getter,
             generate_getter::generate_getter_mut,

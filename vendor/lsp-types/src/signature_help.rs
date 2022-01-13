@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::{
     Documentation, MarkupKind, TextDocumentPositionParams, TextDocumentRegistrationOptions,
@@ -82,16 +81,20 @@ pub struct SignatureHelpRegistrationOptions {
     #[serde(flatten)]
     pub text_document_registration_options: TextDocumentRegistrationOptions,
 }
+
 /// Signature help options.
-#[derive(Debug, Eq, PartialEq, Clone, Deserialize_repr, Serialize_repr)]
-#[repr(u8)]
-pub enum SignatureHelpTriggerKind {
+#[derive(Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct SignatureHelpTriggerKind(i32);
+lsp_enum! {
+impl SignatureHelpTriggerKind {
     /// Signature help was invoked manually by the user or by a command.
-    Invoked = 1,
+    pub const INVOKED: SignatureHelpTriggerKind = SignatureHelpTriggerKind(1);
     ///  Signature help was triggered by a trigger character.
-    TriggerCharacter = 2,
+    pub const TRIGGER_CHARACTER: SignatureHelpTriggerKind = SignatureHelpTriggerKind(2);
     /// Signature help was triggered by the cursor moving or by the document content changing.
-    ContentChange = 3,
+    pub const CONTENT_CHANGE: SignatureHelpTriggerKind = SignatureHelpTriggerKind(3);
+}
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
@@ -154,6 +157,7 @@ pub struct SignatureHelp {
 /// can have a label, like a function-name, a doc-comment, and
 /// a set of parameters.
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SignatureInformation {
     /// The label of this signature. Will be shown in
     /// the UI.
@@ -180,6 +184,7 @@ pub struct SignatureInformation {
 /// Represents a parameter of a callable-signature. A parameter can
 /// have a label and a doc-comment.
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ParameterInformation {
     /// The label of this parameter information.
     ///

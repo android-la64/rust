@@ -81,10 +81,17 @@ fn generate_nodes(kinds: KindsSrc<'_>, grammar: &AstSrc) -> String {
         .map(|node| {
             let name = format_ident!("{}", node.name);
             let kind = format_ident!("{}", to_upper_snake_case(&node.name));
-            let traits = node.traits.iter().map(|trait_name| {
-                let trait_name = format_ident!("{}", trait_name);
-                quote!(impl ast::#trait_name for #name {})
-            });
+            let traits = node
+                .traits
+                .iter()
+                .filter(|trait_name| {
+                    // For loops have two expressions so this might collide, therefor manual impl it
+                    node.name != "ForExpr" || trait_name.as_str() != "HasLoopBody"
+                })
+                .map(|trait_name| {
+                    let trait_name = format_ident!("{}", trait_name);
+                    quote!(impl ast::#trait_name for #name {})
+                });
 
             let methods = node.fields.iter().map(|field| {
                 let method_name = field.method_name();
@@ -536,6 +543,7 @@ impl Field {
                     "?" => "question_mark",
                     "," => "comma",
                     "|" => "pipe",
+                    "~" => "tilde",
                     _ => name,
                 };
                 format_ident!("{}_token", name)
@@ -559,7 +567,7 @@ impl Field {
 
 fn lower(grammar: &Grammar) -> AstSrc {
     let mut res = AstSrc {
-        tokens: "Whitespace Comment String ByteString IntNumber FloatNumber"
+        tokens: "Whitespace Comment String ByteString IntNumber FloatNumber Ident"
             .split_ascii_whitespace()
             .map(|it| it.to_string())
             .collect::<Vec<_>>(),

@@ -63,14 +63,33 @@ impl Name {
     /// Ideally, we want a `gensym` semantics for missing names -- each missing
     /// name is equal only to itself. It's not clear how to implement this in
     /// salsa though, so we punt on that bit for a moment.
-    pub fn missing() -> Name {
-        Name::new_text("[missing name]".into())
+    pub const fn missing() -> Name {
+        Name::new_inline("[missing name]")
     }
 
+    /// Returns the tuple index this name represents if it is a tuple field.
     pub fn as_tuple_index(&self) -> Option<usize> {
         match self.0 {
             Repr::TupleField(idx) => Some(idx),
             _ => None,
+        }
+    }
+
+    /// Returns the text this name represents if it isn't a tuple field.
+    pub fn as_text(&self) -> Option<SmolStr> {
+        match &self.0 {
+            Repr::Text(it) => Some(it.clone()),
+            _ => None,
+        }
+    }
+
+    /// Returns the textual representation of this name as a [`SmolStr`].
+    /// Prefer using this over [`ToString::to_string`] if possible as this conversion is cheaper in
+    /// the general case.
+    pub fn to_smol_str(&self) -> SmolStr {
+        match &self.0 {
+            Repr::Text(it) => it.clone(),
+            Repr::TupleField(it) => SmolStr::new(&it.to_string()),
         }
     }
 }
@@ -208,28 +227,30 @@ pub mod known {
         len,
         is_empty,
         // Builtin macros
-        file,
-        column,
-        const_format_args,
-        compile_error,
-        line,
-        module_path,
+        asm,
         assert,
-        core_panic,
-        std_panic,
-        stringify,
-        concat,
+        column,
+        compile_error,
         concat_idents,
-        include,
+        concat,
+        const_format_args,
+        core_panic,
+        env,
+        file,
+        format_args_nl,
+        format_args,
+        global_asm,
         include_bytes,
         include_str,
-        format_args,
-        format_args_nl,
-        env,
-        option_env,
+        include,
+        line,
         llvm_asm,
-        asm,
-        global_asm,
+        log_syntax,
+        module_path,
+        option_env,
+        std_panic,
+        stringify,
+        trace_macros,
         // Builtin derives
         Copy,
         Clone,

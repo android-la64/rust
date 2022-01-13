@@ -49,7 +49,7 @@ with the debuginfo test suite:
 ```
 
 If you only need to test a specific subdirectory of tests for any
-given test suite, you can pass that directory to `x.py test`:
+given test suite, you can pass that directory to `./x.py test`:
 
 ```bash
 ./x.py test src/test/ui/const-generics
@@ -186,8 +186,17 @@ To run the UI test suite in NLL mode, one would use the following:
 ./x.py test src/test/ui --compare-mode=nll
 ```
 
-Other examples of compare-modes are "noopt", "migrate", and
-[revisions](./adding.html#revisions).
+The possible compare modes are:
+
+* nll - currently nll is implemented in migrate mode, this option runs with true nll.
+* polonius
+* chalk
+* split-dwarf
+* split-dwarf-single
+
+Note that compare modes are separate to [revisions](./adding.html#revisions).
+All revisions are tested when running `./x.py test src/test/ui`,
+however compare-modes must be manually run individually via the `--compare-mode` flag.
 
 ## Running tests manually
 

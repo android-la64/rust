@@ -803,7 +803,7 @@ fn output_not_captured() {
             "a/src/lib.rs",
             "
             /// ```
-            /// ☃
+            /// `
             /// ```
             pub fn foo() {}
         ",
@@ -811,9 +811,7 @@ fn output_not_captured() {
         .build();
 
     p.cargo("doc")
-        .without_status()
-        .with_stderr_contains("[..]☃")
-        .with_stderr_contains(r"[..]unknown start of token: \u{2603}")
+        .with_stderr_contains("[..]unknown start of token: `")
         .run();
 }
 
@@ -2147,4 +2145,207 @@ fn doc_fingerprint_unusual_behavior() {
     // Should not have deleted anything.
     assert!(build_doc.join("somefile").exists());
     assert!(real_doc.join("somefile").exists());
+}
+
+#[cargo_test]
+fn scrape_examples_basic() {
+    if !is_nightly() {
+        // -Z rustdoc-scrape-examples is unstable
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+            "#,
+        )
+        .file("examples/ex.rs", "fn main() { foo::foo(); }")
+        .file("src/lib.rs", "pub fn foo() {}\npub fn bar() { foo(); }")
+        .build();
+
+    p.cargo("doc -Zunstable-options -Z rustdoc-scrape-examples=all")
+        .masquerade_as_nightly_cargo()
+        .with_stderr(
+            "\
+[..] foo v0.0.1 ([CWD])
+[..] foo v0.0.1 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+
+    let doc_html = p.read_file("target/doc/foo/fn.foo.html");
+    assert!(doc_html.contains("Examples found in repository"));
+    assert!(doc_html.contains("More examples"));
+
+    // Ensure that the reverse-dependency has its sources generated
+    assert!(p.build_dir().join("doc/src/ex/ex.rs.html").exists());
+}
+
+#[cargo_test]
+fn scrape_examples_avoid_build_script_cycle() {
+    if !is_nightly() {
+        // -Z rustdoc-scrape-examples is unstable
+        return;
+    }
+
+    let p = project()
+        // package with build dependency
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+                links = "foo"
+
+                [workspace]
+                members = ["bar"]
+
+                [build-dependencies]
+                bar = {path = "bar"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file("build.rs", "fn main(){}")
+        // dependency
+        .file(
+            "bar/Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.0.1"
+                authors = []
+                links = "bar"
+            "#,
+        )
+        .file("bar/src/lib.rs", "")
+        .file("bar/build.rs", "fn main(){}")
+        .build();
+
+    p.cargo("doc --all -Zunstable-options -Z rustdoc-scrape-examples=all")
+        .masquerade_as_nightly_cargo()
+        .run();
+}
+
+#[cargo_test]
+fn scrape_examples_complex_reverse_dependencies() {
+    if !is_nightly() {
+        // -Z rustdoc-scrape-examples is unstable
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+
+                [dev-dependencies]
+                a = {path = "a", features = ["feature"]}
+                b = {path = "b"}
+
+                [workspace]
+                members = ["b"]
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file("examples/ex.rs", "fn main() { a::f(); }")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                authors = []
+
+                [lib]
+                proc-macro = true
+
+                [dependencies]
+                b = {path = "../b"}
+
+                [features]
+                feature = []
+            "#,
+        )
+        .file("a/src/lib.rs", "#[cfg(feature)] pub fn f();")
+        .file(
+            "b/Cargo.toml",
+            r#"
+                [package]
+                name = "b"
+                version = "0.0.1"
+                authors = []
+            "#,
+        )
+        .file("b/src/lib.rs", "")
+        .build();
+
+    p.cargo("doc -Zunstable-options -Z rustdoc-scrape-examples=all")
+        .masquerade_as_nightly_cargo()
+        .run();
+}
+
+#[cargo_test]
+fn scrape_examples_crate_with_dash() {
+    if !is_nightly() {
+        // -Z rustdoc-scrape-examples is unstable
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "da-sh"
+                version = "0.0.1"
+                authors = []
+            "#,
+        )
+        .file("src/lib.rs", "pub fn foo() {}")
+        .file("examples/a.rs", "fn main() { da_sh::foo(); }")
+        .build();
+
+    p.cargo("doc -Zunstable-options -Z rustdoc-scrape-examples=all")
+        .masquerade_as_nightly_cargo()
+        .run();
+
+    let doc_html = p.read_file("target/doc/da_sh/fn.foo.html");
+    assert!(doc_html.contains("Examples found in repository"));
+}
+
+#[cargo_test]
+fn scrape_examples_missing_flag() {
+    if !is_nightly() {
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "1.2.4"
+            authors = []
+        "#,
+        )
+        .file("src/lib.rs", "//! These are the docs!")
+        .build();
+    p.cargo("doc -Zrustdoc-scrape-examples")
+        .masquerade_as_nightly_cargo()
+        .with_status(101)
+        .with_stderr("error: -Z rustdoc-scrape-examples must take [..] an argument")
+        .run();
 }

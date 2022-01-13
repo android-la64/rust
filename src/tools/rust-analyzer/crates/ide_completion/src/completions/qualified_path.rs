@@ -93,18 +93,13 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
                 if ctx.in_use_tree() {
                     if let hir::ScopeDef::Unknown = def {
                         if let Some(ast::NameLike::NameRef(name_ref)) = ctx.name_syntax.as_ref() {
-                            if name_ref.syntax().text() == name.to_string().as_str() {
+                            if name_ref.syntax().text() == name.to_smol_str().as_str() {
                                 // for `use self::foo$0`, don't suggest `foo` as a completion
                                 cov_mark::hit!(dont_complete_current_use);
                                 continue;
                             }
                         }
                     }
-                }
-
-                if ctx.is_scope_def_hidden(&def) {
-                    cov_mark::hit!(qualified_path_doc_hidden);
-                    continue;
                 }
 
                 let add_resolution = match def {
@@ -167,18 +162,12 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
             if let Some(krate) = krate {
                 let traits_in_scope = ctx.scope.traits_in_scope();
                 ty.iterate_path_candidates(ctx.db, krate, &traits_in_scope, None, |_ty, item| {
-                    if !ctx.is_visible(&item) {
-                        return None;
-                    }
                     add_assoc_item(acc, ctx, item);
                     None::<()>
                 });
 
                 // Iterate assoc types separately
                 ty.iterate_assoc_items(ctx.db, krate, |item| {
-                    if !ctx.is_visible(&item) {
-                        return None;
-                    }
                     if let hir::AssocItem::TypeAlias(ty) = item {
                         acc.add_type_alias(ctx, ty)
                     }
@@ -189,9 +178,6 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
         hir::PathResolution::Def(hir::ModuleDef::Trait(t)) => {
             // Handles `Trait::assoc` as well as `<Ty as Trait>::assoc`.
             for item in t.items(ctx.db) {
-                if !ctx.is_visible(&item) {
-                    continue;
-                }
                 add_assoc_item(acc, ctx, item);
             }
         }
@@ -210,10 +196,6 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
                 let traits_in_scope = ctx.scope.traits_in_scope();
                 let mut seen = FxHashSet::default();
                 ty.iterate_path_candidates(ctx.db, krate, &traits_in_scope, None, |_ty, item| {
-                    if !ctx.is_visible(&item) {
-                        return None;
-                    }
-
                     // We might iterate candidates of a trait multiple times here, so deduplicate
                     // them.
                     if seen.insert(item) {
@@ -223,6 +205,7 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
                 });
             }
         }
+        hir::PathResolution::Macro(mac) => acc.add_macro(ctx, None, mac),
         _ => {}
     }
 }
@@ -249,13 +232,10 @@ fn add_enum_variants(acc: &mut Completions, ctx: &CompletionContext, e: hir::Enu
 mod tests {
     use expect_test::{expect, Expect};
 
-    use crate::{
-        tests::{check_edit, filtered_completion_list},
-        CompletionKind,
-    };
+    use crate::tests::{check_edit, completion_list_no_kw};
 
     fn check(ra_fixture: &str, expect: Expect) {
-        let actual = filtered_completion_list(ra_fixture, CompletionKind::Reference);
+        let actual = completion_list_no_kw(ra_fixture);
         expect.assert_eq(&actual);
     }
 

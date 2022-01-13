@@ -1,5 +1,5 @@
 //! See [`FamousDefs`].
-use hir::{Crate, Enum, Module, ScopeDef, Semantics, Trait};
+use hir::{Crate, Enum, MacroDef, Module, ScopeDef, Semantics, Trait};
 
 use crate::RootDatabase;
 
@@ -68,6 +68,22 @@ impl FamousDefs<'_, '_> {
         self.find_trait("core:ops:Deref")
     }
 
+    pub fn core_convert_AsRef(&self) -> Option<Trait> {
+        self.find_trait("core:convert:AsRef")
+    }
+
+    pub fn core_ops_ControlFlow(&self) -> Option<Enum> {
+        self.find_enum("core:ops:ControlFlow")
+    }
+
+    pub fn core_marker_Copy(&self) -> Option<Trait> {
+        self.find_trait("core:marker:Copy")
+    }
+
+    pub fn core_macros_builtin_derive(&self) -> Option<MacroDef> {
+        self.find_macro("core:macros:builtin:derive")
+    }
+
     pub fn alloc(&self) -> Option<Crate> {
         self.find_crate("alloc")
     }
@@ -98,6 +114,13 @@ impl FamousDefs<'_, '_> {
         }
     }
 
+    fn find_macro(&self, path: &str) -> Option<MacroDef> {
+        match self.find_def(path)? {
+            hir::ScopeDef::MacroDef(it) => Some(it),
+            _ => None,
+        }
+    }
+
     fn find_enum(&self, path: &str) -> Option<Enum> {
         match self.find_def(path)? {
             hir::ScopeDef::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Enum(it))) => Some(it),
@@ -116,7 +139,7 @@ impl FamousDefs<'_, '_> {
         let krate = self.1?;
         let db = self.0.db;
         let res =
-            krate.dependencies(db).into_iter().find(|dep| dep.name.to_string() == name)?.krate;
+            krate.dependencies(db).into_iter().find(|dep| dep.name.to_smol_str() == name)?.krate;
         Some(res)
     }
 
@@ -130,7 +153,7 @@ impl FamousDefs<'_, '_> {
         for segment in path {
             module = module.children(db).find_map(|child| {
                 let name = child.name(db)?;
-                if name.to_string() == segment {
+                if name.to_smol_str() == segment {
                     Some(child)
                 } else {
                     None
@@ -138,7 +161,7 @@ impl FamousDefs<'_, '_> {
             })?;
         }
         let def =
-            module.scope(db, None).into_iter().find(|(name, _def)| name.to_string() == trait_)?.1;
+            module.scope(db, None).into_iter().find(|(name, _def)| name.to_smol_str() == trait_)?.1;
         Some(def)
     }
 }

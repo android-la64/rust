@@ -31,9 +31,10 @@ fn derive_censoring() {
     check(
         r#"
 //- proc_macros: derive_identity
+//- minicore:derive
 #[attr1]
 #[derive(Foo)]
-#[derive(proc_macros::derive_identity)]
+#[derive(proc_macros::DeriveIdentity)]
 #[derive(Bar)]
 #[attr2]
 struct S;
@@ -41,7 +42,7 @@ struct S;
         expect![[r##"
 #[attr1]
 #[derive(Foo)]
-#[derive(proc_macros::derive_identity)]
+#[derive(proc_macros::DeriveIdentity)]
 #[derive(Bar)]
 #[attr2]
 struct S;

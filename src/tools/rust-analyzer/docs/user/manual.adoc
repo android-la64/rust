@@ -150,11 +150,14 @@ On Linux to install the `rust-analyzer` binary into `~/.local/bin`, these comman
 
 [source,bash]
 ----
+$ mkdir -p ~/.local/bin
 $ curl -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz | gunzip -c - > ~/.local/bin/rust-analyzer
 $ chmod +x ~/.local/bin/rust-analyzer
 ----
 
 Make sure that `~/.local/bin` is listed in the `$PATH` variable and use the appropriate URL if you're not on a `x86-64` system.
+
+You don't have to use `~/.local/bin`, any other path like `~/.cargo/bin` or `/usr/local/bin` will work just as well.
 
 Alternatively, you can install it from source using the command below.
 You'll need the latest stable version of the Rust toolchain.
@@ -173,9 +176,11 @@ On Unix, running the editor from a shell or changing the `.desktop` file to set 
 `rust-analyzer` is available in `rustup`, but only in the nightly toolchain:
 
 [source,bash]
----
+----
 $ rustup +nightly component add rust-analyzer-preview
----
+----
+
+However, in contrast to `component add clippy` or `component add rustfmt`, this does not actually place a `rust-analyzer` binary in `~/.cargo/bin`, see https://github.com/rust-lang/rustup/issues/2411[this issue].
 
 ==== Arch Linux
 
@@ -195,7 +200,8 @@ $ pacman -S rust-analyzer
 
 `rust-analyzer` is available in the GURU repository:
 
-- https://gitweb.gentoo.org/repo/proj/guru.git/tree/dev-util/rust-analyzer-bin/rust-analyzer-bin-9999.ebuild[`dev-util/rust-analyzer-bin-9999`] (the https://github.com/rust-analyzer/rust-analyzer/releases/latest[latest release] as a live binary ebuild)
+- https://gitweb.gentoo.org/repo/proj/guru.git/tree/dev-util/rust-analyzer?id=9895cea62602cfe599bd48e0fb02127411ca6e81[`dev-util/rust-analyzer`] builds from source
+- https://gitweb.gentoo.org/repo/proj/guru.git/tree/dev-util/rust-analyzer-bin?id=9895cea62602cfe599bd48e0fb02127411ca6e81[`dev-util/rust-analyzer-bin`] installs an official binary release
 
 If not already, GURU must be enabled (e.g. using `app-eselect/eselect-repository`) and sync'd before running `emerge`:
 

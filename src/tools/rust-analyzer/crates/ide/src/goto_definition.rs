@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use crate::{
     display::TryToNav, doc_links::token_as_doc_comment, FilePosition, NavigationTarget, RangeInfo,
 };
-use hir::{AsAssocItem, ModuleDef, Semantics};
+use hir::{AsAssocItem, Semantics};
 use ide_db::{
     base_db::{AnchoredPath, FileId, FileLoader},
     defs::Definition,
@@ -43,19 +43,19 @@ pub(crate) fn goto_definition(
         });
     }
     let navs = sema
-        .descend_into_macros_many(original_token.clone())
+        .descend_into_macros(original_token.clone())
         .into_iter()
         .filter_map(|token| {
             let parent = token.parent()?;
             if let Some(tt) = ast::TokenTree::cast(parent) {
                 if let x @ Some(_) =
-                    try_lookup_include_path(&sema, tt, token.clone(), position.file_id)
+                    try_lookup_include_path(sema, tt, token.clone(), position.file_id)
                 {
                     return x;
                 }
             }
             Some(
-                Definition::from_token(&sema, &token)
+                Definition::from_token(sema, &token)
                     .into_iter()
                     .flat_map(|def| {
                         try_find_trait_item_definition(sema.db, &def)
@@ -110,12 +110,7 @@ fn try_find_trait_item_definition(
     def: &Definition,
 ) -> Option<Vec<NavigationTarget>> {
     let name = def.name(db)?;
-    let assoc = match def {
-        Definition::ModuleDef(ModuleDef::Function(f)) => f.as_assoc_item(db),
-        Definition::ModuleDef(ModuleDef::Const(c)) => c.as_assoc_item(db),
-        Definition::ModuleDef(ModuleDef::TypeAlias(ty)) => ty.as_assoc_item(db),
-        _ => None,
-    }?;
+    let assoc = def.as_assoc_item(db)?;
 
     let imp = match assoc.container(db) {
         hir::AssocItemContainer::Impl(imp) => imp,
@@ -145,7 +140,7 @@ mod tests {
     fn check(ra_fixture: &str) {
         let (analysis, position, expected) = fixture::annotations(ra_fixture);
         let navs = analysis.goto_definition(position).unwrap().expect("no definition found").info;
-        if navs.len() == 0 {
+        if navs.is_empty() {
             panic!("unresolved reference")
         }
 
@@ -1371,6 +1366,7 @@ impl Twait for Stwuct {
     fn goto_def_derive_input() {
         check(
             r#"
+//- minicore:derive
 #[rustc_builtin_macro]
 pub macro Copy {}
        // ^^^^
@@ -1380,6 +1376,7 @@ struct Foo;
         );
         check(
             r#"
+//- minicore:derive
 mod foo {
     #[rustc_builtin_macro]
     pub macro Copy {}

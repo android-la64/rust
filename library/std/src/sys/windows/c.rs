@@ -734,6 +734,7 @@ if #[cfg(not(target_vendor = "uwp"))] {
             lpSecurityAttributes: LPSECURITY_ATTRIBUTES,
         ) -> BOOL;
         pub fn SetThreadStackGuarantee(_size: *mut c_ulong) -> BOOL;
+        pub fn GetWindowsDirectoryW(lpBuffer: LPWSTR, uSize: UINT) -> UINT;
     }
 }
 }
@@ -773,6 +774,7 @@ extern "system" {
     pub fn LeaveCriticalSection(CriticalSection: *mut CRITICAL_SECTION);
     pub fn DeleteCriticalSection(CriticalSection: *mut CRITICAL_SECTION);
 
+    pub fn GetSystemDirectoryW(lpBuffer: LPWSTR, uSize: UINT) -> UINT;
     pub fn RemoveDirectoryW(lpPathName: LPCWSTR) -> BOOL;
     pub fn SetFileAttributesW(lpFileName: LPCWSTR, dwFileAttributes: DWORD) -> BOOL;
     pub fn SetLastError(dwErrCode: DWORD);
@@ -977,6 +979,12 @@ extern "system" {
         cchCount2: c_int,
         bIgnoreCase: BOOL,
     ) -> c_int;
+    pub fn GetFullPathNameW(
+        lpFileName: LPCWSTR,
+        nBufferLength: DWORD,
+        lpBuffer: LPWSTR,
+        lpFilePart: *mut LPWSTR,
+    ) -> DWORD;
 }
 
 #[link(name = "ws2_32")]

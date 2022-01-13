@@ -66,6 +66,11 @@ impl GlobalState {
             message: None,
         };
 
+        if self.proc_macro_changed {
+            status.health = lsp_ext::Health::Warning;
+            status.message =
+                Some("Reload required due to source changes of a procedural macro.".into())
+        }
         if let Some(error) = self.fetch_build_data_error() {
             status.health = lsp_ext::Health::Warning;
             status.message = Some(error)
@@ -211,7 +216,7 @@ impl GlobalState {
 
         if same_workspaces {
             let (workspaces, build_scripts) = self.fetch_build_data_queue.last_op_result();
-            if Arc::ptr_eq(&workspaces, &self.workspaces) {
+            if Arc::ptr_eq(workspaces, &self.workspaces) {
                 let workspaces = workspaces
                     .iter()
                     .cloned()
@@ -417,7 +422,7 @@ impl GlobalState {
                     id,
                     Box::new(move |msg| sender.send(msg).unwrap()),
                     config.clone(),
-                    root.to_path_buf().into(),
+                    root.to_path_buf(),
                 )
             })
             .collect();

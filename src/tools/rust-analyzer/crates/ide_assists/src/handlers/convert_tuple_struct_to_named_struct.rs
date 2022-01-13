@@ -92,7 +92,7 @@ fn edit_struct_def(
     let record_fields = ast::make::record_field_list(record_fields);
     let tuple_fields_text_range = tuple_fields.syntax().text_range();
 
-    edit.edit_file(ctx.frange.file_id);
+    edit.edit_file(ctx.file_id());
 
     if let Either::Left(strukt) = strukt {
         if let Some(w) = strukt.where_clause() {
@@ -127,8 +127,8 @@ fn edit_struct_references(
     names: &[ast::Name],
 ) {
     let strukt_def = match strukt {
-        Either::Left(s) => Definition::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Struct(s))),
-        Either::Right(v) => Definition::ModuleDef(hir::ModuleDef::Variant(v)),
+        Either::Left(s) => Definition::Adt(hir::Adt::Struct(s)),
+        Either::Right(v) => Definition::Variant(v),
     };
     let usages = strukt_def.usages(&ctx.sema).include_self_refs().all();
 

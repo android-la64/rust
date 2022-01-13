@@ -9,9 +9,10 @@ extern crate self as chalk_ir;
 use crate::cast::{Cast, CastTo, Caster};
 use crate::fold::shift::Shift;
 use crate::fold::{Fold, Folder, Subst, SuperFold};
-use crate::visit::{ControlFlow, SuperVisit, Visit, VisitExt, Visitor};
+use crate::visit::{SuperVisit, Visit, VisitExt, Visitor};
 use chalk_derive::{Fold, HasInterner, SuperVisit, Visit, Zip};
 use std::marker::PhantomData;
+use std::ops::ControlFlow;
 
 pub use crate::debug::SeparatorTraitRef;
 #[macro_use(bitflags)]
@@ -301,7 +302,7 @@ pub enum Mutability {
 /// `forall<T> { Goal(T) }` (syntactical representation)
 /// `forall { Goal(?0) }` (used a DeBruijn index)
 /// `Goal(!U1)` (the quantifier was moved to the environment and replaced with a universe index)
-/// See https://rustc-dev-guide.rust-lang.org/borrow_check/region_inference.html#placeholders-and-universes for more.
+/// See <https://rustc-dev-guide.rust-lang.org/borrow_check/region_inference.html#placeholders-and-universes> for more.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UniverseIndex {
     /// The counter for the universe index, starts with 0.
@@ -2113,7 +2114,7 @@ impl<T: HasInterner> Binders<T> {
     }
 
     /// Skips the binder and returns the "bound" value as well as the skipped free variables. This
-    /// is just as risky as [`skip_binders`].
+    /// is just as risky as [`skip_binders`][Self::skip_binders].
     pub fn into_value_and_skipped_binders(self) -> (T, VariableKinds<T::Interner>) {
         (self.value, self.binders)
     }

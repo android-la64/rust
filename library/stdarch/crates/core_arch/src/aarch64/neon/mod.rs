@@ -26,13 +26,13 @@ types! {
 }
 
 /// ARM-specific type containing two `float64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float64x1x2_t(pub float64x1_t, pub float64x1_t);
 /// ARM-specific type containing three `float64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float64x1x3_t(pub float64x1_t, pub float64x1_t, pub float64x1_t);
 /// ARM-specific type containing four `float64x1_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float64x1x4_t(
     pub float64x1_t,
     pub float64x1_t,
@@ -41,13 +41,13 @@ pub struct float64x1x4_t(
 );
 
 /// ARM-specific type containing two `float64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float64x2x2_t(pub float64x2_t, pub float64x2_t);
 /// ARM-specific type containing three `float64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float64x2x3_t(pub float64x2_t, pub float64x2_t, pub float64x2_t);
 /// ARM-specific type containing four `float64x2_t` vectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct float64x2x4_t(
     pub float64x2_t,
     pub float64x2_t,
@@ -103,6 +103,8 @@ extern "unadjusted" {
     fn vpaddq_s16_(a: int16x8_t, b: int16x8_t) -> int16x8_t;
     #[link_name = "llvm.aarch64.neon.addp.v4i32"]
     fn vpaddq_s32_(a: int32x4_t, b: int32x4_t) -> int32x4_t;
+    #[link_name = "llvm.aarch64.neon.addp.v2i64"]
+    fn vpaddq_s64_(a: int64x2_t, b: int64x2_t) -> int64x2_t;
     #[link_name = "llvm.aarch64.neon.addp.v16i8"]
     fn vpaddq_s8_(a: int8x16_t, b: int8x16_t) -> int8x16_t;
 
@@ -678,7 +680,7 @@ pub unsafe fn vld1_dup_f64(ptr: *const f64) -> float64x1_t {
 /// Load multiple single-element structures to one, two, three, or four registers
 #[inline]
 #[target_feature(enable = "neon")]
-#[cfg_attr(test, assert_instr(ldr))]
+#[cfg_attr(test, assert_instr(ld1r))]
 pub unsafe fn vld1q_dup_f64(ptr: *const f64) -> float64x2_t {
     let x = vld1q_lane_f64::<0>(ptr, transmute(f64x2::splat(0.)));
     simd_shuffle2!(x, x, [0, 0])
@@ -698,7 +700,7 @@ pub unsafe fn vld1_lane_f64<const LANE: i32>(ptr: *const f64, src: float64x1_t) 
 #[inline]
 #[target_feature(enable = "neon")]
 #[rustc_legacy_const_generics(2)]
-#[cfg_attr(test, assert_instr(ldr, LANE = 1))]
+#[cfg_attr(test, assert_instr(ld1, LANE = 1))]
 pub unsafe fn vld1q_lane_f64<const LANE: i32>(ptr: *const f64, src: float64x2_t) -> float64x2_t {
     static_assert_imm1!(LANE);
     simd_insert(src, LANE as u32, *ptr)
@@ -886,7 +888,7 @@ pub unsafe fn vst1q_p16(ptr: *mut p16, a: poly16x8_t) {
 
 // Store multiple single-element structures from one, two, three, or four registers.
 #[inline]
-#[target_feature(enable = "neon")]
+#[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(str))]
 #[allow(clippy::cast_ptr_alignment)]
 pub unsafe fn vst1_p64(ptr: *mut p64, a: poly64x1_t) {
@@ -895,7 +897,7 @@ pub unsafe fn vst1_p64(ptr: *mut p64, a: poly64x1_t) {
 
 // Store multiple single-element structures from one, two, three, or four registers.
 #[inline]
-#[target_feature(enable = "neon")]
+#[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(str))]
 #[allow(clippy::cast_ptr_alignment)]
 pub unsafe fn vst1q_p64(ptr: *mut p64, a: poly64x2_t) {
@@ -1132,6 +1134,20 @@ pub unsafe fn vpaddq_s32(a: int32x4_t, b: int32x4_t) -> int32x4_t {
 #[cfg_attr(test, assert_instr(addp))]
 pub unsafe fn vpaddq_u32(a: uint32x4_t, b: uint32x4_t) -> uint32x4_t {
     transmute(vpaddq_s32_(transmute(a), transmute(b)))
+}
+/// Add pairwise
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(test, assert_instr(addp))]
+pub unsafe fn vpaddq_s64(a: int64x2_t, b: int64x2_t) -> int64x2_t {
+    vpaddq_s64_(a, b)
+}
+/// Add pairwise
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(test, assert_instr(addp))]
+pub unsafe fn vpaddq_u64(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+    transmute(vpaddq_s64_(transmute(a), transmute(b)))
 }
 /// Add pairwise
 #[inline]
@@ -2772,7 +2788,8 @@ pub unsafe fn vshld_n_u64<const N: i32>(a: u64) -> u64 {
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn vshrd_n_s64<const N: i32>(a: i64) -> i64 {
     static_assert!(N : i32 where N >= 1 && N <= 64);
-    a >> N
+    let n: i32 = if N == 64 { 63 } else { N };
+    a >> n
 }
 
 /// Unsigned shift right
@@ -2782,7 +2799,12 @@ pub unsafe fn vshrd_n_s64<const N: i32>(a: i64) -> i64 {
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn vshrd_n_u64<const N: i32>(a: u64) -> u64 {
     static_assert!(N : i32 where N >= 1 && N <= 64);
-    a >> N
+    let n: i32 = if N == 64 {
+        return 0;
+    } else {
+        N
+    };
+    a >> n
 }
 
 /// Signed shift right and accumulate
@@ -2792,7 +2814,7 @@ pub unsafe fn vshrd_n_u64<const N: i32>(a: u64) -> u64 {
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn vsrad_n_s64<const N: i32>(a: i64, b: i64) -> i64 {
     static_assert!(N : i32 where N >= 1 && N <= 64);
-    a + (b >> N)
+    a + vshrd_n_s64::<N>(b)
 }
 
 /// Unsigned shift right and accumulate
@@ -2802,7 +2824,7 @@ pub unsafe fn vsrad_n_s64<const N: i32>(a: i64, b: i64) -> i64 {
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn vsrad_n_u64<const N: i32>(a: u64, b: u64) -> u64 {
     static_assert!(N : i32 where N >= 1 && N <= 64);
-    a + (b >> N)
+    a + vshrd_n_u64::<N>(b)
 }
 
 /// Shift Left and Insert (immediate)
@@ -2985,7 +3007,24 @@ pub unsafe fn vsliq_n_p16<const N: i32>(a: poly16x8_t, b: poly16x8_t) -> poly16x
     static_assert_imm4!(N);
     transmute(vsliq_n_s16_(transmute(a), transmute(b), N))
 }
-
+/// Shift Left and Insert (immediate)
+#[inline]
+#[target_feature(enable = "neon,aes")]
+#[cfg_attr(test, assert_instr(sli, N = 1))]
+#[rustc_legacy_const_generics(2)]
+pub unsafe fn vsli_n_p64<const N: i32>(a: poly64x1_t, b: poly64x1_t) -> poly64x1_t {
+    static_assert!(N: i32 where N >= 0 && N <= 63);
+    transmute(vsli_n_s64_(transmute(a), transmute(b), N))
+}
+/// Shift Left and Insert (immediate)
+#[inline]
+#[target_feature(enable = "neon,aes")]
+#[cfg_attr(test, assert_instr(sli, N = 1))]
+#[rustc_legacy_const_generics(2)]
+pub unsafe fn vsliq_n_p64<const N: i32>(a: poly64x2_t, b: poly64x2_t) -> poly64x2_t {
+    static_assert!(N: i32 where N >= 0 && N <= 63);
+    transmute(vsliq_n_s64_(transmute(a), transmute(b), N))
+}
 /// Shift Right and Insert (immediate)
 #[inline]
 #[target_feature(enable = "neon")]
@@ -3165,6 +3204,115 @@ pub unsafe fn vsri_n_p16<const N: i32>(a: poly16x4_t, b: poly16x4_t) -> poly16x4
 pub unsafe fn vsriq_n_p16<const N: i32>(a: poly16x8_t, b: poly16x8_t) -> poly16x8_t {
     static_assert!(N: i32 where N >= 1 && N <= 16);
     transmute(vsriq_n_s16_(transmute(a), transmute(b), N))
+}
+/// Shift Right and Insert (immediate)
+#[inline]
+#[target_feature(enable = "neon,aes")]
+#[cfg_attr(test, assert_instr(sri, N = 1))]
+#[rustc_legacy_const_generics(2)]
+pub unsafe fn vsri_n_p64<const N: i32>(a: poly64x1_t, b: poly64x1_t) -> poly64x1_t {
+    static_assert!(N: i32 where N >= 1 && N <= 64);
+    transmute(vsri_n_s64_(transmute(a), transmute(b), N))
+}
+/// Shift Right and Insert (immediate)
+#[inline]
+#[target_feature(enable = "neon,aes")]
+#[cfg_attr(test, assert_instr(sri, N = 1))]
+#[rustc_legacy_const_generics(2)]
+pub unsafe fn vsriq_n_p64<const N: i32>(a: poly64x2_t, b: poly64x2_t) -> poly64x2_t {
+    static_assert!(N: i32 where N >= 1 && N <= 64);
+    transmute(vsriq_n_s64_(transmute(a), transmute(b), N))
+}
+
+/// SM3TT1A
+#[inline]
+#[target_feature(enable = "neon,sm4")]
+#[cfg_attr(test, assert_instr(sm3tt1a, IMM2 = 0))]
+#[rustc_legacy_const_generics(3)]
+pub unsafe fn vsm3tt1aq_u32<const IMM2: i32>(
+    a: uint32x4_t,
+    b: uint32x4_t,
+    c: uint32x4_t,
+) -> uint32x4_t {
+    static_assert_imm2!(IMM2);
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "aarch64", link_name = "llvm.aarch64.crypto.sm3tt1a")]
+        fn vsm3tt1aq_u32_(a: uint32x4_t, b: uint32x4_t, c: uint32x4_t, imm2: i64) -> uint32x4_t;
+    }
+    vsm3tt1aq_u32_(a, b, c, IMM2 as i64)
+}
+
+/// SM3TT1B
+#[inline]
+#[target_feature(enable = "neon,sm4")]
+#[cfg_attr(test, assert_instr(sm3tt1b, IMM2 = 0))]
+#[rustc_legacy_const_generics(3)]
+pub unsafe fn vsm3tt1bq_u32<const IMM2: i32>(
+    a: uint32x4_t,
+    b: uint32x4_t,
+    c: uint32x4_t,
+) -> uint32x4_t {
+    static_assert_imm2!(IMM2);
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "aarch64", link_name = "llvm.aarch64.crypto.sm3tt1b")]
+        fn vsm3tt1bq_u32_(a: uint32x4_t, b: uint32x4_t, c: uint32x4_t, imm2: i64) -> uint32x4_t;
+    }
+    vsm3tt1bq_u32_(a, b, c, IMM2 as i64)
+}
+
+/// SM3TT2A
+#[inline]
+#[target_feature(enable = "neon,sm4")]
+#[cfg_attr(test, assert_instr(sm3tt2a, IMM2 = 0))]
+#[rustc_legacy_const_generics(3)]
+pub unsafe fn vsm3tt2aq_u32<const IMM2: i32>(
+    a: uint32x4_t,
+    b: uint32x4_t,
+    c: uint32x4_t,
+) -> uint32x4_t {
+    static_assert_imm2!(IMM2);
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "aarch64", link_name = "llvm.aarch64.crypto.sm3tt2a")]
+        fn vsm3tt2aq_u32_(a: uint32x4_t, b: uint32x4_t, c: uint32x4_t, imm2: i64) -> uint32x4_t;
+    }
+    vsm3tt2aq_u32_(a, b, c, IMM2 as i64)
+}
+
+/// SM3TT2B
+#[inline]
+#[target_feature(enable = "neon,sm4")]
+#[cfg_attr(test, assert_instr(sm3tt2b, IMM2 = 0))]
+#[rustc_legacy_const_generics(3)]
+pub unsafe fn vsm3tt2bq_u32<const IMM2: i32>(
+    a: uint32x4_t,
+    b: uint32x4_t,
+    c: uint32x4_t,
+) -> uint32x4_t {
+    static_assert_imm2!(IMM2);
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "aarch64", link_name = "llvm.aarch64.crypto.sm3tt2b")]
+        fn vsm3tt2bq_u32_(a: uint32x4_t, b: uint32x4_t, c: uint32x4_t, imm2: i64) -> uint32x4_t;
+    }
+    vsm3tt2bq_u32_(a, b, c, IMM2 as i64)
+}
+
+/// Exclusive OR and rotate
+#[inline]
+#[target_feature(enable = "neon,sha3")]
+#[cfg_attr(test, assert_instr(xar, IMM6 = 0))]
+#[rustc_legacy_const_generics(2)]
+pub unsafe fn vxarq_u64<const IMM6: i32>(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+    static_assert_imm6!(IMM6);
+    #[allow(improper_ctypes)]
+    extern "unadjusted" {
+        #[cfg_attr(target_arch = "aarch64", link_name = "llvm.aarch64.crypto.xar")]
+        fn vxarq_u64_(a: uint64x2_t, b: uint64x2_t, n: i64) -> uint64x2_t;
+    }
+    vxarq_u64_(a, b, IMM6 as i64)
 }
 
 #[cfg(test)]
@@ -3356,6 +3504,14 @@ mod tests {
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
+    unsafe fn test_vpaddq_s64() {
+        let a = i64x2::new(1, 2);
+        let b = i64x2::new(0, -1);
+        let r: i64x2 = transmute(vpaddq_s64(transmute(a), transmute(b)));
+        let e = i64x2::new(3, -1);
+        assert_eq!(r, e);
+    }
+    #[simd_test(enable = "neon")]
     unsafe fn test_vpaddq_s8() {
         let a = i8x16::new(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
         let b = i8x16::new(
@@ -3381,6 +3537,14 @@ mod tests {
         let b = u32x4::new(17, 18, 19, 20);
         let r: u32x4 = transmute(vpaddq_u32(transmute(a), transmute(b)));
         let e = u32x4::new(1, 5, 35, 39);
+        assert_eq!(r, e);
+    }
+    #[simd_test(enable = "neon")]
+    unsafe fn test_vpaddq_u64() {
+        let a = u64x2::new(0, 1);
+        let b = u64x2::new(17, 18);
+        let r: u64x2 = transmute(vpaddq_u64(transmute(a), transmute(b)));
+        let e = u64x2::new(1, 35);
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
@@ -4804,29 +4968,6 @@ mod tests {
     }
 
     #[simd_test(enable = "neon")]
-    unsafe fn test_vst1_p64() {
-        let mut vals = [0_u64; 2];
-        let a = u64x1::new(1);
-
-        vst1_p64(vals[1..].as_mut_ptr(), transmute(a));
-
-        assert_eq!(vals[0], 0);
-        assert_eq!(vals[1], 1);
-    }
-
-    #[simd_test(enable = "neon")]
-    unsafe fn test_vst1q_p64() {
-        let mut vals = [0_u64; 3];
-        let a = u64x2::new(1, 2);
-
-        vst1q_p64(vals[1..].as_mut_ptr(), transmute(a));
-
-        assert_eq!(vals[0], 0);
-        assert_eq!(vals[1], 1);
-        assert_eq!(vals[2], 2);
-    }
-
-    #[simd_test(enable = "neon")]
     unsafe fn test_vst1_f64() {
         let mut vals = [0_f64; 2];
         let a = f64x1::new(1.);
@@ -4847,6 +4988,55 @@ mod tests {
         assert_eq!(vals[0], 0.);
         assert_eq!(vals[1], 1.);
         assert_eq!(vals[2], 2.);
+    }
+
+    #[simd_test(enable = "neon,sm4")]
+    unsafe fn test_vsm3tt1aq_u32() {
+        let a: u32x4 = u32x4::new(1, 2, 3, 4);
+        let b: u32x4 = u32x4::new(1, 2, 3, 4);
+        let c: u32x4 = u32x4::new(1, 2, 3, 4);
+        let e: u32x4 = u32x4::new(2, 1536, 4, 16395);
+        let r: u32x4 = transmute(vsm3tt1aq_u32::<0>(transmute(a), transmute(b), transmute(c)));
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon,sm4")]
+    unsafe fn test_vsm3tt1bq_u32() {
+        let a: u32x4 = u32x4::new(1, 2, 3, 4);
+        let b: u32x4 = u32x4::new(1, 2, 3, 4);
+        let c: u32x4 = u32x4::new(1, 2, 3, 4);
+        let e: u32x4 = u32x4::new(2, 1536, 4, 16392);
+        let r: u32x4 = transmute(vsm3tt1bq_u32::<0>(transmute(a), transmute(b), transmute(c)));
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon,sm4")]
+    unsafe fn test_vsm3tt2aq_u32() {
+        let a: u32x4 = u32x4::new(1, 2, 3, 4);
+        let b: u32x4 = u32x4::new(1, 2, 3, 4);
+        let c: u32x4 = u32x4::new(1, 2, 3, 4);
+        let e: u32x4 = u32x4::new(2, 1572864, 4, 1447435);
+        let r: u32x4 = transmute(vsm3tt2aq_u32::<0>(transmute(a), transmute(b), transmute(c)));
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon,sm4")]
+    unsafe fn test_vsm3tt2bq_u32() {
+        let a: u32x4 = u32x4::new(1, 2, 3, 4);
+        let b: u32x4 = u32x4::new(1, 2, 3, 4);
+        let c: u32x4 = u32x4::new(1, 2, 3, 4);
+        let e: u32x4 = u32x4::new(2, 1572864, 4, 1052680);
+        let r: u32x4 = transmute(vsm3tt2bq_u32::<0>(transmute(a), transmute(b), transmute(c)));
+        assert_eq!(r, e);
+    }
+
+    #[simd_test(enable = "neon,sha3")]
+    unsafe fn test_vxarq_u64() {
+        let a: u64x2 = u64x2::new(1, 2);
+        let b: u64x2 = u64x2::new(3, 4);
+        let e: u64x2 = u64x2::new(2, 6);
+        let r: u64x2 = transmute(vxarq_u64::<0>(transmute(a), transmute(b)));
+        assert_eq!(r, e);
     }
 }
 

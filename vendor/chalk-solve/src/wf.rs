@@ -1,3 +1,4 @@
+use std::ops::ControlFlow;
 use std::{fmt, iter};
 
 use crate::{
@@ -7,7 +8,7 @@ use chalk_ir::{
     cast::*,
     fold::shift::Shift,
     interner::Interner,
-    visit::{ControlFlow, Visit, Visitor},
+    visit::{Visit, Visitor},
     *,
 };
 use tracing::debug;
@@ -91,7 +92,7 @@ impl<'i, I: Interner> Visitor<'i, I> for InputTypeCollector<'i, I> {
                 .visit_with(self, outer_binder),
             WhereClause::Implemented(trait_ref) => trait_ref.visit_with(self, outer_binder),
             WhereClause::TypeOutlives(TypeOutlives { ty, .. }) => ty.visit_with(self, outer_binder),
-            WhereClause::LifetimeOutlives(..) => ControlFlow::CONTINUE,
+            WhereClause::LifetimeOutlives(..) => ControlFlow::Continue(()),
         }
     }
 
@@ -119,7 +120,7 @@ impl<'i, I: Interner> Visitor<'i, I> for InputTypeCollector<'i, I> {
             }
             TyKind::Str => {
                 push_ty();
-                ControlFlow::CONTINUE
+                ControlFlow::Continue(())
             }
             TyKind::Tuple(arity, substitution) => {
                 push_ty();
@@ -153,7 +154,7 @@ impl<'i, I: Interner> Visitor<'i, I> for InputTypeCollector<'i, I> {
             }
             TyKind::Never => {
                 push_ty();
-                ControlFlow::CONTINUE
+                ControlFlow::Continue(())
             }
             TyKind::Array(ty, const_) => {
                 push_ty();
@@ -174,11 +175,11 @@ impl<'i, I: Interner> Visitor<'i, I> for InputTypeCollector<'i, I> {
             }
             TyKind::Foreign(_foreign_ty) => {
                 push_ty();
-                ControlFlow::CONTINUE
+                ControlFlow::Continue(())
             }
             TyKind::Error => {
                 push_ty();
-                ControlFlow::CONTINUE
+                ControlFlow::Continue(())
             }
 
             TyKind::Dyn(clauses) => {
@@ -198,18 +199,18 @@ impl<'i, I: Interner> Visitor<'i, I> for InputTypeCollector<'i, I> {
 
             TyKind::Placeholder(_) => {
                 push_ty();
-                ControlFlow::CONTINUE
+                ControlFlow::Continue(())
             }
 
             // Type parameters do not carry any input types (so we can sort of assume they are
             // always WF).
-            TyKind::BoundVar(..) => ControlFlow::CONTINUE,
+            TyKind::BoundVar(..) => ControlFlow::Continue(()),
 
             // Higher-kinded types such as `for<'a> fn(&'a u32)` introduce their own implied
             // bounds, and these bounds will be enforced upon calling such a function. In some
             // sense, well-formedness requirements for the input types of an HKT will be enforced
             // lazily, so no need to include them here.
-            TyKind::Function(..) => ControlFlow::CONTINUE,
+            TyKind::Function(..) => ControlFlow::Continue(()),
 
             TyKind::InferenceVar(..) => {
                 panic!("unexpected inference variable in wf rules: {:?}", ty)
@@ -892,16 +893,16 @@ impl WfWellKnownConstraints {
 
     /// Verify constraints a CoerceUnsized impl.
     /// Rules for CoerceUnsized impl to be considered well-formed:
-    /// a) pointer conversions: &[mut] T -> &[mut] U, &[mut] T -> *[mut] U,
-    ///    *[mut] T -> *[mut] U are considered valid if
-    ///    1) T: Unsize<U>
+    /// 1) pointer conversions: `&[mut] T -> &[mut] U`, `&[mut] T -> *[mut] U`,
+    ///    `*[mut] T -> *[mut] U` are considered valid if
+    ///    1) `T: Unsize<U>`
     ///    2) mutability is respected, i.e. immutable -> immutable, mutable -> immutable,
     ///       mutable -> mutable conversions are allowed, immutable -> mutable is not.
-    /// b) struct conversions of structures with the same definition, `S<P0...Pn>` -> `S<Q0...Qn>`.
+    /// 2) struct conversions of structures with the same definition, `S<P0...Pn>` -> `S<Q0...Qn>`.
     ///    To check if this impl is legal, we would walk down the fields of `S`
     ///    and consider their types with both substitutes. We are looking to find
-    ///    exactly one (non-phantom) field that has changed its type (from T to U), and
-    ///    expect T to be unsizeable to U, i.e. T: CoerceUnsized<U>.
+    ///    exactly one (non-phantom) field that has changed its type (from `T` to `U`), and
+    ///    expect `T` to be unsizeable to `U`, i.e. `T: CoerceUnsized<U>`.
     ///
     ///    As an example, consider a struct
     ///    ```rust

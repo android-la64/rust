@@ -2,18 +2,13 @@
 
 mod intra_doc_links;
 
-use std::convert::{TryFrom, TryInto};
-
 use either::Either;
 use pulldown_cmark::{BrokenLink, CowStr, Event, InlineStr, LinkType, Options, Parser, Tag};
-use pulldown_cmark_to_cmark::{cmark_with_options, Options as CmarkOptions};
+use pulldown_cmark_to_cmark::{cmark_with_options, Options as CMarkOptions};
 use stdx::format_to;
 use url::Url;
 
-use hir::{
-    db::HirDatabase, Adt, AsAssocItem, AssocItem, AssocItemContainer, Crate, HasAttrs, MacroDef,
-    ModuleDef,
-};
+use hir::{db::HirDatabase, Adt, AsAssocItem, AssocItem, AssocItemContainer, Crate, HasAttrs};
 use ide_db::{
     defs::{Definition, NameClass, NameRefClass},
     helpers::pick_best_token,
@@ -34,11 +29,13 @@ use crate::{
 /// Weblink to an item's documentation.
 pub(crate) type DocumentationLink = String;
 
+const MARKDOWN_OPTIONS: Options =
+    Options::ENABLE_FOOTNOTES.union(Options::ENABLE_TABLES).union(Options::ENABLE_TASKLISTS);
+
 /// Rewrite documentation links in markdown to point to an online host (e.g. docs.rs)
 pub(crate) fn rewrite_links(db: &RootDatabase, markdown: &str, definition: Definition) -> String {
     let mut cb = broken_link_clone_cb;
-    let doc =
-        Parser::new_with_broken_link_callback(markdown, Options::ENABLE_TASKLISTS, Some(&mut cb));
+    let doc = Parser::new_with_broken_link_callback(markdown, MARKDOWN_OPTIONS, Some(&mut cb));
 
     let doc = map_links(doc, |target, title| {
         // This check is imperfect, there's some overlap between valid intra-doc links
@@ -53,10 +50,8 @@ pub(crate) fn rewrite_links(db: &RootDatabase, markdown: &str, definition: Defin
             if let Some(rewritten) = rewrite_intra_doc_link(db, definition, target, title) {
                 return rewritten;
             }
-            if let Definition::ModuleDef(def) = definition {
-                if let Some(target) = rewrite_url_link(db, Either::Left(def), target) {
-                    return (target, title.to_string());
-                }
+            if let Some(target) = rewrite_url_link(db, definition, target) {
+                return (target, title.to_string());
             }
 
             (target.to_string(), title.to_string())
@@ -67,7 +62,7 @@ pub(crate) fn rewrite_links(db: &RootDatabase, markdown: &str, definition: Defin
         doc,
         &mut out,
         None,
-        CmarkOptions { code_block_backticks: 3, ..Default::default() },
+        CMarkOptions { code_block_backticks: 3, ..Default::default() },
     )
     .ok();
     out
@@ -77,13 +72,11 @@ pub(crate) fn rewrite_links(db: &RootDatabase, markdown: &str, definition: Defin
 pub(crate) fn remove_links(markdown: &str) -> String {
     let mut drop_link = false;
 
-    let opts = Options::ENABLE_TASKLISTS | Options::ENABLE_FOOTNOTES;
-
     let mut cb = |_: BrokenLink| {
         let empty = InlineStr::try_from("").unwrap();
         Some((CowStr::Inlined(empty), CowStr::Inlined(empty)))
     };
-    let doc = Parser::new_with_broken_link_callback(markdown, opts, Some(&mut cb));
+    let doc = Parser::new_with_broken_link_callback(markdown, MARKDOWN_OPTIONS, Some(&mut cb));
     let doc = doc.filter_map(move |evt| match evt {
         Event::Start(Tag::Link(link_type, target, title)) => {
             if link_type == LinkType::Inline && target.contains("://") {
@@ -105,7 +98,7 @@ pub(crate) fn remove_links(markdown: &str) -> String {
         doc,
         &mut out,
         None,
-        CmarkOptions { code_block_backticks: 3, ..Default::default() },
+        CMarkOptions { code_block_backticks: 3, ..Default::default() },
     )
     .ok();
     out
@@ -124,7 +117,7 @@ pub(crate) fn external_docs(
         kind if kind.is_trivia() => 0,
         _ => 1,
     })?;
-    let token = sema.descend_into_macros(token);
+    let token = sema.descend_into_macros_single(token);
 
     let node = token.parent()?;
     let definition = match_ast! {
@@ -153,7 +146,7 @@ pub(crate) fn extract_definitions_from_docs(
 ) -> Vec<(TextRange, String, Option<hir::Namespace>)> {
     Parser::new_with_broken_link_callback(
         docs.as_str(),
-        Options::ENABLE_TASKLISTS,
+        MARKDOWN_OPTIONS,
         Some(&mut broken_link_clone_cb),
     )
     .into_offset_iter()
@@ -176,25 +169,27 @@ pub(crate) fn resolve_doc_path_for_def(
     def: Definition,
     link: &str,
     ns: Option<hir::Namespace>,
-) -> Option<Either<ModuleDef, MacroDef>> {
-    match def {
-        Definition::ModuleDef(def) => match def {
-            hir::ModuleDef::Module(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::Function(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::Adt(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::Variant(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::Const(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::Static(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::Trait(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::TypeAlias(it) => it.resolve_doc_path(db, link, ns),
-            hir::ModuleDef::BuiltinType(_) => None,
-        },
+) -> Option<Definition> {
+    let def = match def {
+        Definition::Module(it) => it.resolve_doc_path(db, link, ns),
+        Definition::Function(it) => it.resolve_doc_path(db, link, ns),
+        Definition::Adt(it) => it.resolve_doc_path(db, link, ns),
+        Definition::Variant(it) => it.resolve_doc_path(db, link, ns),
+        Definition::Const(it) => it.resolve_doc_path(db, link, ns),
+        Definition::Static(it) => it.resolve_doc_path(db, link, ns),
+        Definition::Trait(it) => it.resolve_doc_path(db, link, ns),
+        Definition::TypeAlias(it) => it.resolve_doc_path(db, link, ns),
         Definition::Macro(it) => it.resolve_doc_path(db, link, ns),
         Definition::Field(it) => it.resolve_doc_path(db, link, ns),
-        Definition::SelfType(_)
+        Definition::BuiltinType(_)
+        | Definition::SelfType(_)
         | Definition::Local(_)
         | Definition::GenericParam(_)
         | Definition::Label(_) => None,
+    }?;
+    match def {
+        Either::Left(def) => Some(Definition::from(def)),
+        Either::Right(def) => Some(Definition::Macro(def)),
     }
 }
 
@@ -204,17 +199,17 @@ pub(crate) fn doc_attributes(
 ) -> Option<(hir::AttrsWithOwner, Definition)> {
     match_ast! {
         match node {
-            ast::SourceFile(it)  => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Module(def)))),
-            ast::Module(it)      => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Module(def)))),
-            ast::Fn(it)          => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Function(def)))),
-            ast::Struct(it)      => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Struct(def))))),
-            ast::Union(it)       => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Union(def))))),
-            ast::Enum(it)        => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Enum(def))))),
-            ast::Variant(it)     => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Variant(def)))),
-            ast::Trait(it)       => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Trait(def)))),
-            ast::Static(it)      => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Static(def)))),
-            ast::Const(it)       => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::Const(def)))),
-            ast::TypeAlias(it)   => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::ModuleDef(hir::ModuleDef::TypeAlias(def)))),
+            ast::SourceFile(it)  => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Module(def))),
+            ast::Module(it)      => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Module(def))),
+            ast::Fn(it)          => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Function(def))),
+            ast::Struct(it)      => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Adt(hir::Adt::Struct(def)))),
+            ast::Union(it)       => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Adt(hir::Adt::Union(def)))),
+            ast::Enum(it)        => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Adt(hir::Adt::Enum(def)))),
+            ast::Variant(it)     => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Variant(def))),
+            ast::Trait(it)       => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Trait(def))),
+            ast::Static(it)      => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Static(def))),
+            ast::Const(it)       => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Const(def))),
+            ast::TypeAlias(it)   => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::TypeAlias(def))),
             ast::Impl(it)        => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::SelfType(def))),
             ast::RecordField(it) => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Field(def))),
             ast::TupleField(it)  => sema.to_def(&it).map(|def| (def.attrs(sema.db), Definition::Field(def))),
@@ -254,7 +249,7 @@ impl DocCommentToken {
         let original_start = doc_token.text_range().start();
         let relative_comment_offset = offset - original_start - prefix_len;
 
-        sema.descend_into_macros_many(doc_token).into_iter().find_map(|t| {
+        sema.descend_into_macros(doc_token).into_iter().find_map(|t| {
             let (node, descended_prefix_len) = match_ast! {
                 match t {
                     ast::Comment(comment) => (t.parent()?, TextSize::try_from(comment.prefix().len()).ok()?),
@@ -276,10 +271,7 @@ impl DocCommentToken {
             let in_expansion_relative_range = in_expansion_range - descended_prefix_len - token_start;
             // Apply relative range to the original input comment
             let absolute_range = in_expansion_relative_range + original_start + prefix_len;
-            let def = match resolve_doc_path_for_def(sema.db, def, &link, ns)? {
-                Either::Left(it) => Definition::ModuleDef(it),
-                Either::Right(it) => Definition::Macro(it),
-            };
+            let def = resolve_doc_path_for_def(sema.db, def, &link, ns)?;
             cb(def, node, absolute_range)
         })
     }
@@ -301,33 +293,8 @@ fn broken_link_clone_cb<'a, 'b>(link: BrokenLink<'a>) -> Option<(CowStr<'b>, Cow
 //
 // This should cease to be a problem if RFC2988 (Stable Rustdoc URLs) is implemented
 // https://github.com/rust-lang/rfcs/pull/2988
-fn get_doc_link(db: &RootDatabase, definition: Definition) -> Option<String> {
-    let (target, frag) = match definition {
-        Definition::ModuleDef(def) => {
-            if let Some(assoc_item) = def.as_assoc_item(db) {
-                let def = match assoc_item.container(db) {
-                    AssocItemContainer::Trait(t) => t.into(),
-                    AssocItemContainer::Impl(i) => i.self_ty(db).as_adt()?.into(),
-                };
-                let frag = get_assoc_item_fragment(db, assoc_item)?;
-                (Either::Left(def), Some(frag))
-            } else {
-                (Either::Left(def), None)
-            }
-        }
-        Definition::Field(field) => {
-            let def = match field.parent_def(db) {
-                hir::VariantDef::Struct(it) => it.into(),
-                hir::VariantDef::Union(it) => it.into(),
-                hir::VariantDef::Variant(it) => it.into(),
-            };
-            (Either::Left(def), Some(format!("structfield.{}", field.name(db))))
-        }
-        Definition::Macro(makro) => (Either::Right(makro), None),
-        // FIXME impls
-        Definition::SelfType(_) => return None,
-        Definition::Local(_) | Definition::GenericParam(_) | Definition::Label(_) => return None,
-    };
+fn get_doc_link(db: &RootDatabase, def: Definition) -> Option<String> {
+    let (target, file, frag) = filename_and_frag_for_def(db, def)?;
 
     let krate = crate_of_def(db, target)?;
     let mut url = get_doc_base_url(db, &krate)?;
@@ -336,7 +303,7 @@ fn get_doc_link(db: &RootDatabase, definition: Definition) -> Option<String> {
         url = url.join(&path).ok()?;
     }
 
-    url = url.join(&get_symbol_filename(db, target)?).ok()?;
+    url = url.join(&file).ok()?;
     url.set_fragment(frag.as_deref());
 
     Some(url.into())
@@ -354,73 +321,51 @@ fn rewrite_intra_doc_link(
     let krate = crate_of_def(db, resolved)?;
     let mut url = get_doc_base_url(db, &krate)?;
 
+    let (_, file, frag) = filename_and_frag_for_def(db, resolved)?;
     if let Some(path) = mod_path_of_def(db, resolved) {
         url = url.join(&path).ok()?;
     }
 
-    let (resolved, frag) =
-        if let Some(assoc_item) = resolved.left().and_then(|it| it.as_assoc_item(db)) {
-            let resolved = match assoc_item.container(db) {
-                AssocItemContainer::Trait(t) => t.into(),
-                AssocItemContainer::Impl(i) => i.self_ty(db).as_adt()?.into(),
-            };
-            let frag = get_assoc_item_fragment(db, assoc_item)?;
-            (Either::Left(resolved), Some(frag))
-        } else {
-            (resolved, None)
-        };
-    url = url.join(&get_symbol_filename(db, resolved)?).ok()?;
+    url = url.join(&file).ok()?;
     url.set_fragment(frag.as_deref());
 
     Some((url.into(), strip_prefixes_suffixes(title).to_string()))
 }
 
 /// Try to resolve path to local documentation via path-based links (i.e. `../gateway/struct.Shard.html`).
-fn rewrite_url_link(
-    db: &RootDatabase,
-    def: Either<ModuleDef, MacroDef>,
-    target: &str,
-) -> Option<String> {
+fn rewrite_url_link(db: &RootDatabase, def: Definition, target: &str) -> Option<String> {
     if !(target.contains('#') || target.contains(".html")) {
         return None;
     }
 
     let krate = crate_of_def(db, def)?;
     let mut url = get_doc_base_url(db, &krate)?;
+    let (def, file, frag) = filename_and_frag_for_def(db, def)?;
 
     if let Some(path) = mod_path_of_def(db, def) {
         url = url.join(&path).ok()?;
     }
 
-    url = url.join(&get_symbol_filename(db, def)?).ok()?;
+    url = url.join(&file).ok()?;
+    url.set_fragment(frag.as_deref());
     url.join(target).ok().map(Into::into)
 }
 
-fn crate_of_def(db: &RootDatabase, def: Either<ModuleDef, MacroDef>) -> Option<Crate> {
+fn crate_of_def(db: &RootDatabase, def: Definition) -> Option<Crate> {
     let krate = match def {
         // Definition::module gives back the parent module, we don't want that as it fails for root modules
-        Either::Left(ModuleDef::Module(module)) => module.krate(),
-        Either::Left(def) => def.module(db)?.krate(),
-        Either::Right(def) => def.module(db)?.krate(),
+        Definition::Module(module) => module.krate(),
+        def => def.module(db)?.krate(),
     };
     Some(krate)
 }
 
-fn mod_path_of_def(db: &RootDatabase, def: Either<ModuleDef, MacroDef>) -> Option<String> {
-    match def {
-        Either::Left(def) => def.canonical_module_path(db).map(|it| {
-            let mut path = String::new();
-            it.flat_map(|it| it.name(db)).for_each(|name| format_to!(path, "{}/", name));
-            path
-        }),
-        Either::Right(def) => {
-            def.module(db).map(|it| it.path_to_root(db).into_iter().rev()).map(|it| {
-                let mut path = String::new();
-                it.flat_map(|it| it.name(db)).for_each(|name| format_to!(path, "{}/", name));
-                path
-            })
-        }
-    }
+fn mod_path_of_def(db: &RootDatabase, def: Definition) -> Option<String> {
+    def.canonical_module_path(db).map(|it| {
+        let mut path = String::new();
+        it.flat_map(|it| it.name(db)).for_each(|name| format_to!(path, "{}/", name));
+        path
+    })
 }
 
 /// Rewrites a markdown document, applying 'callback' to each link.
@@ -467,17 +412,29 @@ fn map_links<'e>(
 /// ```
 fn get_doc_base_url(db: &RootDatabase, krate: &Crate) -> Option<Url> {
     let display_name = krate.display_name(db)?;
-    krate
-        .get_html_root_url(db)
-        .or_else(|| {
-            // Fallback to docs.rs. This uses `display_name` and can never be
-            // correct, but that's what fallbacks are about.
-            //
-            // FIXME: clicking on the link should just open the file in the editor,
-            // instead of falling back to external urls.
-            Some(format!("https://docs.rs/{krate}/*/", krate = display_name))
-        })
-        .and_then(|s| Url::parse(&s).ok()?.join(&format!("{}/", display_name)).ok())
+    let base = match &**display_name.crate_name() {
+        // std and co do not specify `html_root_url` any longer so we gotta handwrite this ourself.
+        // FIXME: Use the toolchains channel instead of nightly
+        name @ ("core" | "std" | "alloc" | "proc_macro" | "test") => {
+            format!("https://doc.rust-lang.org/nightly/{}", name)
+        }
+        _ => {
+            krate.get_html_root_url(db).or_else(|| {
+                let version = krate.version(db);
+                // Fallback to docs.rs. This uses `display_name` and can never be
+                // correct, but that's what fallbacks are about.
+                //
+                // FIXME: clicking on the link should just open the file in the editor,
+                // instead of falling back to external urls.
+                Some(format!(
+                    "https://docs.rs/{krate}/{version}/",
+                    krate = display_name,
+                    version = version.as_deref().unwrap_or("*")
+                ))
+            })?
+        }
+    };
+    Url::parse(&base).ok()?.join(&format!("{}/", display_name)).ok()
 }
 
 /// Get the filename and extension generated for a symbol by rustdoc.
@@ -486,34 +443,61 @@ fn get_doc_base_url(db: &RootDatabase, krate: &Crate) -> Option<Url> {
 /// https://doc.rust-lang.org/std/iter/trait.Iterator.html#tymethod.next
 ///                                    ^^^^^^^^^^^^^^^^^^^
 /// ```
-fn get_symbol_filename(
+fn filename_and_frag_for_def(
     db: &dyn HirDatabase,
-    definition: Either<ModuleDef, MacroDef>,
-) -> Option<String> {
-    let res = match definition {
-        Either::Left(definition) => match definition {
-            ModuleDef::Adt(adt) => match adt {
-                Adt::Struct(s) => format!("struct.{}.html", s.name(db)),
-                Adt::Enum(e) => format!("enum.{}.html", e.name(db)),
-                Adt::Union(u) => format!("union.{}.html", u.name(db)),
-            },
-            ModuleDef::Module(m) => match m.name(db) {
-                Some(name) => format!("{}/index.html", name),
-                None => String::from("index.html"),
-            },
-            ModuleDef::Trait(t) => format!("trait.{}.html", t.name(db)),
-            ModuleDef::TypeAlias(t) => format!("type.{}.html", t.name(db)),
-            ModuleDef::BuiltinType(t) => format!("primitive.{}.html", t.name()),
-            ModuleDef::Function(f) => format!("fn.{}.html", f.name(db)),
-            ModuleDef::Variant(ev) => {
-                format!("enum.{}.html#variant.{}", ev.parent_enum(db).name(db), ev.name(db))
-            }
-            ModuleDef::Const(c) => format!("const.{}.html", c.name(db)?),
-            ModuleDef::Static(s) => format!("static.{}.html", s.name(db)?),
+    def: Definition,
+) -> Option<(Definition, String, Option<String>)> {
+    if let Some(assoc_item) = def.as_assoc_item(db) {
+        let def = match assoc_item.container(db) {
+            AssocItemContainer::Trait(t) => t.into(),
+            AssocItemContainer::Impl(i) => i.self_ty(db).as_adt()?.into(),
+        };
+        let (_, file, _) = filename_and_frag_for_def(db, def)?;
+        let frag = get_assoc_item_fragment(db, assoc_item)?;
+        return Some((def, file, Some(frag)));
+    }
+
+    let res = match def {
+        Definition::Adt(adt) => match adt {
+            Adt::Struct(s) => format!("struct.{}.html", s.name(db)),
+            Adt::Enum(e) => format!("enum.{}.html", e.name(db)),
+            Adt::Union(u) => format!("union.{}.html", u.name(db)),
         },
-        Either::Right(mac) => format!("macro.{}.html", mac.name(db)?),
+        Definition::Module(m) => match m.name(db) {
+            Some(name) => format!("{}/index.html", name),
+            None => String::from("index.html"),
+        },
+        Definition::Trait(t) => format!("trait.{}.html", t.name(db)),
+        Definition::TypeAlias(t) => format!("type.{}.html", t.name(db)),
+        Definition::BuiltinType(t) => format!("primitive.{}.html", t.name()),
+        Definition::Function(f) => format!("fn.{}.html", f.name(db)),
+        Definition::Variant(ev) => {
+            format!("enum.{}.html#variant.{}", ev.parent_enum(db).name(db), ev.name(db))
+        }
+        Definition::Const(c) => format!("const.{}.html", c.name(db)?),
+        Definition::Static(s) => format!("static.{}.html", s.name(db)),
+        Definition::Macro(mac) => format!("macro.{}.html", mac.name(db)?),
+        Definition::Field(field) => {
+            let def = match field.parent_def(db) {
+                hir::VariantDef::Struct(it) => Definition::Adt(it.into()),
+                hir::VariantDef::Union(it) => Definition::Adt(it.into()),
+                hir::VariantDef::Variant(it) => Definition::Variant(it),
+            };
+            let (_, file, _) = filename_and_frag_for_def(db, def)?;
+            return Some((def, file, Some(format!("structfield.{}", field.name(db)))));
+        }
+        Definition::SelfType(impl_) => {
+            let adt = impl_.self_ty(db).as_adt()?.into();
+            let (_, file, _) = filename_and_frag_for_def(db, adt)?;
+            // FIXME fragment numbering
+            return Some((adt, file, Some(String::from("impl"))));
+        }
+        Definition::Local(_) => return None,
+        Definition::GenericParam(_) => return None,
+        Definition::Label(_) => return None,
     };
-    Some(res)
+
+    Some((def, res, None))
 }
 
 /// Get the fragment required to link to a specific field, method, associated type, or associated constant.
@@ -555,12 +539,23 @@ mod tests {
     fn external_docs_doc_url_crate() {
         check_external_docs(
             r#"
-//- /main.rs crate:main deps:test
-use test$0::Foo;
-//- /lib.rs crate:test
+//- /main.rs crate:main deps:foo
+use foo$0::Foo;
+//- /lib.rs crate:foo
 pub struct Foo;
 "#,
-            expect![[r#"https://docs.rs/test/*/test/index.html"#]],
+            expect![[r#"https://docs.rs/foo/*/foo/index.html"#]],
+        );
+    }
+
+    #[test]
+    fn external_docs_doc_url_std_crate() {
+        check_external_docs(
+            r#"
+//- /main.rs crate:std
+use self$0;
+"#,
+            expect![[r#"https://doc.rust-lang.org/nightly/std/index.html"#]],
         );
     }
 
@@ -568,9 +563,10 @@ pub struct Foo;
     fn external_docs_doc_url_struct() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub struct Fo$0o;
 "#,
-            expect![[r#"https://docs.rs/test/*/test/struct.Foo.html"#]],
+            expect![[r#"https://docs.rs/foo/*/foo/struct.Foo.html"#]],
         );
     }
 
@@ -578,11 +574,12 @@ pub struct Fo$0o;
     fn external_docs_doc_url_struct_field() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub struct Foo {
     field$0: ()
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/struct.Foo.html#structfield.field"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/struct.Foo.html#structfield.field"##]],
         );
     }
 
@@ -590,9 +587,10 @@ pub struct Foo {
     fn external_docs_doc_url_fn() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub fn fo$0o() {}
 "#,
-            expect![[r##"https://docs.rs/test/*/test/fn.foo.html"##]],
+            expect![[r#"https://docs.rs/foo/*/foo/fn.foo.html"#]],
         );
     }
 
@@ -600,21 +598,23 @@ pub fn fo$0o() {}
     fn external_docs_doc_url_impl_assoc() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub struct Foo;
 impl Foo {
     pub fn method$0() {}
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/struct.Foo.html#method.method"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/struct.Foo.html#method.method"##]],
         );
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub struct Foo;
 impl Foo {
     const CONST$0: () = ();
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/struct.Foo.html#associatedconstant.CONST"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/struct.Foo.html#associatedconstant.CONST"##]],
         );
     }
 
@@ -622,6 +622,7 @@ impl Foo {
     fn external_docs_doc_url_impl_trait_assoc() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub struct Foo;
 pub trait Trait {
     fn method() {}
@@ -630,10 +631,11 @@ impl Trait for Foo {
     pub fn method$0() {}
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/struct.Foo.html#method.method"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/struct.Foo.html#method.method"##]],
         );
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub struct Foo;
 pub trait Trait {
     const CONST: () = ();
@@ -642,10 +644,11 @@ impl Trait for Foo {
     const CONST$0: () = ();
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/struct.Foo.html#associatedconstant.CONST"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/struct.Foo.html#associatedconstant.CONST"##]],
         );
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub struct Foo;
 pub trait Trait {
     type Type;
@@ -654,7 +657,7 @@ impl Trait for Foo {
     type Type$0 = ();
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/struct.Foo.html#associatedtype.Type"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/struct.Foo.html#associatedtype.Type"##]],
         );
     }
 
@@ -662,27 +665,30 @@ impl Trait for Foo {
     fn external_docs_doc_url_trait_assoc() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub trait Foo {
     fn method$0();
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/trait.Foo.html#tymethod.method"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/trait.Foo.html#tymethod.method"##]],
         );
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub trait Foo {
     const CONST$0: ();
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/trait.Foo.html#associatedconstant.CONST"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/trait.Foo.html#associatedconstant.CONST"##]],
         );
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub trait Foo {
     type Type$0;
 }
 "#,
-            expect![[r##"https://docs.rs/test/*/test/trait.Foo.html#associatedtype.Type"##]],
+            expect![[r##"https://docs.rs/foo/*/foo/trait.Foo.html#associatedtype.Type"##]],
         );
     }
 
@@ -690,9 +696,10 @@ pub trait Foo {
     fn external_docs_trait() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 trait Trait$0 {}
 "#,
-            expect![[r#"https://docs.rs/test/*/test/trait.Trait.html"#]],
+            expect![[r#"https://docs.rs/foo/*/foo/trait.Trait.html"#]],
         )
     }
 
@@ -700,11 +707,12 @@ trait Trait$0 {}
     fn external_docs_module() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub mod foo {
     pub mod ba$0r {}
 }
 "#,
-            expect![[r#"https://docs.rs/test/*/test/foo/bar/index.html"#]],
+            expect![[r#"https://docs.rs/foo/*/foo/foo/bar/index.html"#]],
         )
     }
 
@@ -712,6 +720,7 @@ pub mod foo {
     fn external_docs_reexport_order() {
         check_external_docs(
             r#"
+//- /main.rs crate:foo
 pub mod wrapper {
     pub use module::Item;
 
@@ -724,7 +733,7 @@ fn foo() {
     let bar: wrapper::It$0em;
 }
         "#,
-            expect![[r#"https://docs.rs/test/*/test/wrapper/module/struct.Item.html"#]],
+            expect![[r#"https://docs.rs/foo/*/foo/wrapper/module/struct.Item.html"#]],
         )
     }
 
@@ -753,6 +762,7 @@ trait Trait$0 {
     fn rewrite_html_root_url() {
         check_rewrite(
             r#"
+//- /main.rs crate:foo
 #![doc(arbitrary_attribute = "test", html_root_url = "https:/example.com", arbitrary_attribute2)]
 
 pub mod foo {
@@ -761,22 +771,21 @@ pub mod foo {
 /// [Foo](foo::Foo)
 pub struct B$0ar
 "#,
-            expect![[r#"[Foo](https://example.com/test/foo/struct.Foo.html)"#]],
+            expect![[r#"[Foo](https://example.com/foo/foo/struct.Foo.html)"#]],
         );
     }
 
     #[test]
     fn rewrite_on_field() {
-        // FIXME: Should be
-        //  [Foo](https://docs.rs/test/*/test/struct.Foo.html)
         check_rewrite(
             r#"
+//- /main.rs crate:foo
 pub struct Foo {
     /// [Foo](struct.Foo.html)
     fie$0ld: ()
 }
 "#,
-            expect![[r#"[Foo](struct.Foo.html)"#]],
+            expect![[r#"[Foo](https://docs.rs/foo/*/foo/struct.Foo.html)"#]],
         );
     }
 
@@ -784,40 +793,45 @@ pub struct Foo {
     fn rewrite_struct() {
         check_rewrite(
             r#"
+//- /main.rs crate:foo
 /// [Foo]
 pub struct $0Foo;
 "#,
-            expect![[r#"[Foo](https://docs.rs/test/*/test/struct.Foo.html)"#]],
+            expect![[r#"[Foo](https://docs.rs/foo/*/foo/struct.Foo.html)"#]],
         );
         check_rewrite(
             r#"
+//- /main.rs crate:foo
 /// [`Foo`]
 pub struct $0Foo;
 "#,
-            expect![[r#"[`Foo`](https://docs.rs/test/*/test/struct.Foo.html)"#]],
+            expect![[r#"[`Foo`](https://docs.rs/foo/*/foo/struct.Foo.html)"#]],
         );
         check_rewrite(
             r#"
+//- /main.rs crate:foo
 /// [Foo](struct.Foo.html)
 pub struct $0Foo;
 "#,
-            expect![[r#"[Foo](https://docs.rs/test/*/test/struct.Foo.html)"#]],
+            expect![[r#"[Foo](https://docs.rs/foo/*/foo/struct.Foo.html)"#]],
         );
         check_rewrite(
             r#"
+//- /main.rs crate:foo
 /// [struct Foo](struct.Foo.html)
 pub struct $0Foo;
 "#,
-            expect![[r#"[struct Foo](https://docs.rs/test/*/test/struct.Foo.html)"#]],
+            expect![[r#"[struct Foo](https://docs.rs/foo/*/foo/struct.Foo.html)"#]],
         );
         check_rewrite(
             r#"
+//- /main.rs crate:foo
 /// [my Foo][foo]
 ///
 /// [foo]: Foo
 pub struct $0Foo;
 "#,
-            expect![[r#"[my Foo](https://docs.rs/test/*/test/struct.Foo.html)"#]],
+            expect![[r#"[my Foo](https://docs.rs/foo/*/foo/struct.Foo.html)"#]],
         );
     }
 
@@ -885,17 +899,17 @@ pub struct $0Foo;
     ) -> Option<Option<(Option<hir::Documentation>, Definition)>> {
         Some(match_ast! {
             match node {
-                ast::SourceFile(it)  => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Module(def)))),
-                ast::Module(it)      => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Module(def)))),
-                ast::Fn(it)          => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Function(def)))),
-                ast::Struct(it)      => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Struct(def))))),
-                ast::Union(it)       => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Union(def))))),
-                ast::Enum(it)        => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Enum(def))))),
-                ast::Variant(it)     => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Variant(def)))),
-                ast::Trait(it)       => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Trait(def)))),
-                ast::Static(it)      => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Static(def)))),
-                ast::Const(it)       => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::Const(def)))),
-                ast::TypeAlias(it)   => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::ModuleDef(hir::ModuleDef::TypeAlias(def)))),
+                ast::SourceFile(it)  => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Module(def))),
+                ast::Module(it)      => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Module(def))),
+                ast::Fn(it)          => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Function(def))),
+                ast::Struct(it)      => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Adt(hir::Adt::Struct(def)))),
+                ast::Union(it)       => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Adt(hir::Adt::Union(def)))),
+                ast::Enum(it)        => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Adt(hir::Adt::Enum(def)))),
+                ast::Variant(it)     => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Variant(def))),
+                ast::Trait(it)       => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Trait(def))),
+                ast::Static(it)      => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Static(def))),
+                ast::Const(it)       => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Const(def))),
+                ast::TypeAlias(it)   => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::TypeAlias(def))),
                 ast::Impl(it)        => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::SelfType(def))),
                 ast::RecordField(it) => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Field(def))),
                 ast::TupleField(it)  => sema.to_def(&it).map(|def| (def.docs(sema.db), Definition::Field(def))),

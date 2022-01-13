@@ -90,7 +90,7 @@ impl NavigationTarget {
     }
 
     pub(crate) fn from_module_to_decl(db: &RootDatabase, module: hir::Module) -> NavigationTarget {
-        let name = module.name(db).map(|it| it.to_string().into()).unwrap_or_default();
+        let name = module.name(db).map(|it| it.to_smol_str()).unwrap_or_default();
         if let Some(src) = module.declaration_source(db) {
             let node = src.syntax();
             let full_range = node.original_file_range(db);
@@ -196,13 +196,21 @@ impl ToNav for FileSymbol {
 impl TryToNav for Definition {
     fn try_to_nav(&self, db: &RootDatabase) -> Option<NavigationTarget> {
         match self {
+            Definition::Local(it) => Some(it.to_nav(db)),
+            Definition::Label(it) => Some(it.to_nav(db)),
+            Definition::Module(it) => Some(it.to_nav(db)),
             Definition::Macro(it) => it.try_to_nav(db),
             Definition::Field(it) => it.try_to_nav(db),
-            Definition::ModuleDef(it) => it.try_to_nav(db),
             Definition::SelfType(it) => it.try_to_nav(db),
-            Definition::Local(it) => Some(it.to_nav(db)),
             Definition::GenericParam(it) => it.try_to_nav(db),
-            Definition::Label(it) => Some(it.to_nav(db)),
+            Definition::Function(it) => it.try_to_nav(db),
+            Definition::Adt(it) => it.try_to_nav(db),
+            Definition::Variant(it) => it.try_to_nav(db),
+            Definition::Const(it) => it.try_to_nav(db),
+            Definition::Static(it) => it.try_to_nav(db),
+            Definition::Trait(it) => it.try_to_nav(db),
+            Definition::TypeAlias(it) => it.try_to_nav(db),
+            Definition::BuiltinType(_) => None,
         }
     }
 }
@@ -275,7 +283,7 @@ where
 impl ToNav for hir::Module {
     fn to_nav(&self, db: &RootDatabase) -> NavigationTarget {
         let src = self.definition_source(db);
-        let name = self.name(db).map(|it| it.to_string().into()).unwrap_or_default();
+        let name = self.name(db).map(|it| it.to_smol_str()).unwrap_or_default();
         let (syntax, focus) = match &src.value {
             ModuleSource::SourceFile(node) => (node.syntax(), None),
             ModuleSource::Module(node) => {
@@ -399,7 +407,7 @@ impl ToNav for hir::Local {
 
         let full_range = src.with_value(&node).original_file_range(db);
         let name = match self.name(db) {
-            Some(it) => it.to_string().into(),
+            Some(it) => it.to_smol_str(),
             None => "".into(),
         };
         let kind = if self.is_self(db) {
@@ -429,7 +437,7 @@ impl ToNav for hir::Label {
         let FileRange { file_id, range } = src.with_value(node).original_file_range(db);
         let focus_range =
             src.value.lifetime().and_then(|lt| lt.lifetime_ident_token()).map(|lt| lt.text_range());
-        let name = self.name(db).to_string().into();
+        let name = self.name(db).to_smol_str();
         NavigationTarget {
             file_id,
             name,
@@ -459,7 +467,7 @@ impl TryToNav for hir::TypeParam {
         .map(|it| it.syntax().text_range());
         Some(NavigationTarget {
             file_id: src.file_id.original_file(db),
-            name: self.name(db).to_string().into(),
+            name: self.name(db).to_smol_str(),
             kind: Some(SymbolKind::TypeParam),
             full_range,
             focus_range,
@@ -476,7 +484,7 @@ impl TryToNav for hir::LifetimeParam {
         let full_range = src.value.syntax().text_range();
         Some(NavigationTarget {
             file_id: src.file_id.original_file(db),
-            name: self.name(db).to_string().into(),
+            name: self.name(db).to_smol_str(),
             kind: Some(SymbolKind::LifetimeParam),
             full_range,
             focus_range: Some(full_range),
@@ -493,7 +501,7 @@ impl TryToNav for hir::ConstParam {
         let full_range = src.value.syntax().text_range();
         Some(NavigationTarget {
             file_id: src.file_id.original_file(db),
-            name: self.name(db).to_string().into(),
+            name: self.name(db).to_smol_str(),
             kind: Some(SymbolKind::ConstParam),
             full_range,
             focus_range: src.value.name().map(|n| n.syntax().text_range()),

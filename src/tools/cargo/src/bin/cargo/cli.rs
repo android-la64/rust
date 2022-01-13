@@ -15,10 +15,10 @@ lazy_static::lazy_static! {
     // Maps from commonly known external commands (not builtin to cargo) to their
     // description, for the help page. Reserved for external subcommands that are
     // core within the rust ecosystem (esp ones that might become internal in the future).
-    static ref KNOWN_EXTERNAL_COMMAND_DESCRIPTIONS: HashMap<&'static str, &'static str> = vec![
+    static ref KNOWN_EXTERNAL_COMMAND_DESCRIPTIONS: HashMap<&'static str, &'static str> = HashMap::from([
         ("clippy", "Checks a package to catch common mistakes and improve your Rust code."),
         ("fmt", "Formats all bin and lib files of the current crate using rustfmt."),
-    ].into_iter().collect();
+    ]);
 }
 
 pub fn main(config: &mut Config) -> CliResult {
@@ -261,6 +261,21 @@ fn expand_aliases(
             }
             (None, None) => {}
             (_, Some(mut alias)) => {
+                // Check if this alias is shadowing an external subcommand
+                // (binary of the form `cargo-<subcommand>`)
+                // Currently this is only a warning, but after a transition period this will become
+                // a hard error.
+                if let Some(path) = super::find_external_subcommand(config, cmd) {
+                    config.shell().warn(format!(
+                        "\
+user-defined alias `{}` is shadowing an external subcommand found at: `{}`
+This was previously accepted but is being phased out; it will become a hard error in a future release.
+For more information, see issue #10049 <https://github.com/rust-lang/cargo/issues/10049>.",
+                        cmd,
+                        path.display(),
+                    ))?;
+                }
+
                 alias.extend(
                     args.values_of("")
                         .unwrap_or_default()
@@ -438,7 +453,7 @@ See 'cargo help <command>' for more information on a specific command.\n",
             .multiple(true)
             .global(true),
         )
-        .arg(opt("quiet", "No output printed to stdout").short("q"))
+        .arg(opt("quiet", "Do not print cargo log messages").short("q"))
         .arg(
             opt("color", "Coloring: auto, always, never")
                 .value_name("WHEN")

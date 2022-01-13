@@ -136,6 +136,7 @@ impl LsifManager<'_> {
                 result: lsp_types::Hover {
                     contents: lsp_types::HoverContents::Markup(to_proto::markup_content(
                         hover.markup,
+                        ide::HoverDocFormat::Markdown,
                     )),
                     range: None,
                 },
@@ -186,7 +187,7 @@ impl LsifManager<'_> {
     }
 
     fn add_file(&mut self, file: StaticIndexedFile) {
-        let StaticIndexedFile { file_id, tokens, folds } = file;
+        let StaticIndexedFile { file_id, tokens, folds, .. } = file;
         let doc_id = self.get_file_id(file_id);
         let text = self.analysis.file_text(file_id).unwrap();
         let line_index = self.db.line_index(file_id);
@@ -247,14 +248,18 @@ impl flags::Lsif {
         let db = host.raw_database();
         let analysis = host.analysis();
 
-        let si = StaticIndex::compute(db, &analysis);
+        let si = StaticIndex::compute(&analysis);
 
         let mut lsif = LsifManager::new(&analysis, db, &vfs);
         lsif.add_vertex(lsif::Vertex::MetaData(lsif::MetaData {
             version: String::from("0.5.0"),
             project_root: lsp_types::Url::from_file_path(path).unwrap(),
             position_encoding: lsif::Encoding::Utf16,
-            tool_info: None,
+            tool_info: Some(lsp_types::lsif::ToolInfo {
+                name: "rust-analyzer".to_string(),
+                args: vec![],
+                version: Some(env!("REV").to_string()),
+            }),
         }));
         for file in si.files {
             lsif.add_file(file);

@@ -44,6 +44,15 @@ pub mod ext {
         Some(path)
     }
 
+    pub fn field_from_idents<'a>(
+        parts: impl std::iter::IntoIterator<Item = &'a str>,
+    ) -> Option<ast::Expr> {
+        let mut iter = parts.into_iter();
+        let base = expr_path(ext::ident_path(iter.next()?));
+        let expr = iter.fold(base, |base, s| expr_field(base, s));
+        Some(expr)
+    }
+
     pub fn expr_unreachable() -> ast::Expr {
         expr_from_text("unreachable!()")
     }
@@ -124,8 +133,29 @@ pub fn assoc_item_list() -> ast::AssocItemList {
     ast_from_text("impl C for D {}")
 }
 
-pub fn impl_trait(trait_: ast::Path, ty: ast::Path) -> ast::Impl {
-    ast_from_text(&format!("impl {} for {} {{}}", trait_, ty))
+pub fn impl_(
+    ty: ast::Path,
+    params: Option<ast::GenericParamList>,
+    ty_params: Option<ast::GenericParamList>,
+) -> ast::Impl {
+    let params = match params {
+        Some(params) => params.to_string(),
+        None => String::new(),
+    };
+    let ty_params = match ty_params {
+        Some(params) => params.to_string(),
+        None => String::new(),
+    };
+    ast_from_text(&format!("impl{} {}{} {{}}", params, ty, ty_params))
+}
+
+pub fn impl_trait(
+    trait_: ast::Path,
+    ty: ast::Path,
+    ty_params: Option<ast::GenericParamList>,
+) -> ast::Impl {
+    let ty_params = ty_params.map_or_else(String::new, |params| params.to_string());
+    ast_from_text(&format!("impl{2} {} for {}{2} {{}}", trait_, ty, ty_params))
 }
 
 pub(crate) fn generic_arg_list() -> ast::GenericArgList {
@@ -171,6 +201,12 @@ pub fn path_from_segments(
         format!("use {};", segments)
     })
 }
+
+pub fn join_paths(paths: impl IntoIterator<Item = ast::Path>) -> ast::Path {
+    let paths = paths.into_iter().map(|it| it.syntax().clone()).join("::");
+    ast_from_text(&format!("use {};", paths))
+}
+
 // FIXME: should not be pub
 pub fn path_from_text(text: &str) -> ast::Path {
     ast_from_text(&format!("fn main() {{ let test = {}; }}", text))
@@ -555,6 +591,19 @@ pub fn expr_stmt(expr: ast::Expr) -> ast::ExprStmt {
     ast_from_text(&format!("fn f() {{ {}{} (); }}", expr, semi))
 }
 
+pub fn item_const(
+    visibility: Option<ast::Visibility>,
+    name: ast::Name,
+    ty: ast::Type,
+    expr: ast::Expr,
+) -> ast::Const {
+    let visibility = match visibility {
+        None => String::new(),
+        Some(it) => format!("{} ", it),
+    };
+    ast_from_text(&format!("{} const {}: {} = {};", visibility, name, ty, expr))
+}
+
 pub fn param(pat: ast::Pat, ty: ast::Type) -> ast::Param {
     ast_from_text(&format!("fn f({}: {}) {{ }}", pat, ty))
 }
@@ -645,7 +694,7 @@ pub fn fn_(
     is_async: bool,
 ) -> ast::Fn {
     let type_params = match type_params {
-        Some(type_params) => format!("<{}>", type_params),
+        Some(type_params) => format!("{}", type_params),
         None => "".into(),
     };
     let ret_type = match ret_type {

@@ -21,7 +21,6 @@ export class Config {
         "highlighting",
         "updates.channel",
         "lens", // works as lens.*
-        "hoverActions", // works as hoverActions.*
     ]
         .map(opt => `${this.rootSection}.${opt}`);
 
@@ -115,6 +114,7 @@ export class Config {
             typeHints: this.get<boolean>("inlayHints.typeHints"),
             parameterHints: this.get<boolean>("inlayHints.parameterHints"),
             chainingHints: this.get<boolean>("inlayHints.chainingHints"),
+            hideNamedConstructorHints: this.get<boolean>("inlayHints.hideNamedConstructorHints"),
             smallerHints: this.get<boolean>("inlayHints.smallerHints"),
             maxLength: this.get<null | number>("inlayHints.maxLength"),
         };

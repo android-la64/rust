@@ -112,7 +112,7 @@ impl GlobalState {
             && self.config.notifications().cargo_toml_not_found
         {
             self.show_message(
-                lsp_types::MessageType::Error,
+                lsp_types::MessageType::ERROR,
                 "rust-analyzer failed to discover workspace".to_string(),
             );
         };
@@ -166,7 +166,7 @@ impl GlobalState {
             self.handle_event(event)?
         }
 
-        Err("client exited without proper shutdown sequence")?
+        return Err("client exited without proper shutdown sequence".into());
     }
 
     fn next_event(&self, inbox: &Receiver<lsp_server::Message>) -> Option<Event> {
@@ -394,7 +394,10 @@ impl GlobalState {
                                 flycheck::Progress::DidCancel => (Progress::End, None),
                                 flycheck::Progress::DidFinish(result) => {
                                     if let Err(err) = result {
-                                        tracing::error!("cargo check failed: {}", err)
+                                        self.show_message(
+                                            lsp_types::MessageType::ERROR,
+                                            format!("cargo check failed: {}", err),
+                                        );
                                     }
                                     (Progress::End, None)
                                 }
@@ -403,7 +406,10 @@ impl GlobalState {
                             // When we're running multiple flychecks, we have to include a disambiguator in
                             // the title, or the editor complains. Note that this is a user-facing string.
                             let title = if self.flycheck.len() == 1 {
-                                "cargo check".to_string()
+                                match self.config.flycheck() {
+                                    Some(config) => format!("{}", config),
+                                    None => "cargo check".to_string(),
+                                }
                             } else {
                                 format!("cargo check (#{})", id + 1)
                             };
@@ -427,7 +433,9 @@ impl GlobalState {
                 for flycheck in &self.flycheck {
                     flycheck.update();
                 }
-                self.prime_caches_queue.request_op();
+                if self.config.prefill_caches() {
+                    self.prime_caches_queue.request_op();
+                }
             }
 
             if !was_quiescent || state_changed {
@@ -506,7 +514,7 @@ impl GlobalState {
             self.last_reported_status = Some(status.clone());
 
             if let (lsp_ext::Health::Error, Some(message)) = (status.health, &status.message) {
-                self.show_message(lsp_types::MessageType::Error, message.clone());
+                self.show_message(lsp_types::MessageType::ERROR, message.clone());
             }
 
             if self.config.server_status_notification() {
@@ -558,7 +566,7 @@ impl GlobalState {
                 s.shutdown_requested = true;
                 Ok(())
             })?
-            .on_sync_mut::<lsp_ext::MemoryUsage>(|s, p| handlers::handle_memory_usage(s, p))?
+            .on_sync_mut::<lsp_ext::MemoryUsage>(handlers::handle_memory_usage)?
             .on_sync::<lsp_ext::JoinLines>(handlers::handle_join_lines)?
             .on_sync::<lsp_ext::OnEnter>(handlers::handle_on_enter)?
             .on_sync::<lsp_types::request::SelectionRangeRequest>(handlers::handle_selection_range)?
@@ -766,7 +774,6 @@ impl GlobalState {
                             if !is_cancelled(&*err) {
                                 tracing::error!("failed to compute diagnostics: {:?}", err);
                             }
-                            ()
                         })
                         .ok()
                         .map(|diags| (file_id, diags))

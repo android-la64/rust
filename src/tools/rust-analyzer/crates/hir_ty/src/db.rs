@@ -77,6 +77,9 @@ pub trait HirDatabase: DefDatabase + Upcast<dyn DefDatabase> {
     #[salsa::invoke(InherentImpls::inherent_impls_in_crate_query)]
     fn inherent_impls_in_crate(&self, krate: CrateId) -> Arc<InherentImpls>;
 
+    #[salsa::invoke(InherentImpls::inherent_impls_in_block_query)]
+    fn inherent_impls_in_block(&self, block: BlockId) -> Option<Arc<InherentImpls>>;
+
     #[salsa::invoke(TraitImpls::trait_impls_in_crate_query)]
     fn trait_impls_in_crate(&self, krate: CrateId) -> Arc<TraitImpls>;
 
@@ -159,9 +162,7 @@ pub trait HirDatabase: DefDatabase + Upcast<dyn DefDatabase> {
 fn infer_wait(db: &dyn HirDatabase, def: DefWithBodyId) -> Arc<InferenceResult> {
     let _p = profile::span("infer:wait").detail(|| match def {
         DefWithBodyId::FunctionId(it) => db.function_data(it).name.to_string(),
-        DefWithBodyId::StaticId(it) => {
-            db.static_data(it).name.clone().unwrap_or_else(Name::missing).to_string()
-        }
+        DefWithBodyId::StaticId(it) => db.static_data(it).name.clone().to_string(),
         DefWithBodyId::ConstId(it) => {
             db.const_data(it).name.clone().unwrap_or_else(Name::missing).to_string()
         }

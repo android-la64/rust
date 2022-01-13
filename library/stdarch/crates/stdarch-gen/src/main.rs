@@ -96,9 +96,9 @@ fn type_bits(t: &str) -> usize {
     }
 }
 
-fn type_exp_len(t: &str) -> usize {
+fn type_exp_len(t: &str, base_len: usize) -> usize {
     let t = type_to_sub_type(t);
-    let len = type_len(&t);
+    let len = type_len(&t) / base_len;
     match len {
         1 => 0,
         2 => 1,
@@ -242,6 +242,7 @@ fn type_to_suffix(t: &str) -> &str {
         "f64" => "d_f64",
         "p8" => "b_p8",
         "p16" => "h_p16",
+        "p128" => "q_p128",
         _ => panic!("unknown type: {}", t),
     }
 }
@@ -328,35 +329,48 @@ fn type_to_noq_n_suffix(t: &str) -> &str {
     }
 }
 
-fn type_to_lane_suffixes<'a>(out_t: &'a str, in_t: &'a str) -> String {
+fn type_to_lane_suffixes<'a>(out_t: &'a str, in_t: &'a str, re_to_out: bool) -> String {
     let mut str = String::new();
     let suf = type_to_suffix(out_t);
     if !suf.starts_with("_") {
         str.push_str(&suf[0..1]);
     }
     str.push_str("_lane");
-    str.push_str(type_to_suffix(in_t));
+    if !re_to_out {
+        str.push_str(type_to_suffix(in_t));
+    } else {
+        if type_to_suffix(in_t).starts_with("q") {
+            str.push_str("q");
+        };
+        let suf2 = type_to_noq_suffix(out_t);
+        str.push_str(suf2);
+    }
     str
 }
 
-fn type_to_signed(t: &String) -> String {
+fn type_to_rot_suffix(c_name: &str, suf: &str) -> String {
+    let ns: Vec<_> = c_name.split('_').collect();
+    assert_eq!(ns.len(), 2);
+    if suf.starts_with("q") {
+        format!("{}q_{}{}", ns[0], ns[1], &suf[1..])
+    } else {
+        format!("{}{}", c_name, suf)
+    }
+}
+
+fn type_to_signed(t: &str) -> String {
     let s = t.replace("uint", "int");
     let s = s.replace("poly", "int");
     s
 }
 
-fn type_to_unsigned(t: &str) -> &str {
-    match t {
-        "int8x8_t" | "uint8x8_t" | "poly8x8_t" => "uint8x8_t",
-        "int8x16_t" | "uint8x16_t" | "poly8x16_t" => "uint8x16_t",
-        "int16x4_t" | "uint16x4_t" | "poly16x4_t" => "uint16x4_t",
-        "int16x8_t" | "uint16x8_t" | "poly16x8_t" => "uint16x8_t",
-        "int32x2_t" | "uint32x2_t" => "uint32x2_t",
-        "int32x4_t" | "uint32x4_t" => "uint32x4_t",
-        "int64x1_t" | "uint64x1_t" | "poly64x1_t" => "uint64x1_t",
-        "int64x2_t" | "uint64x2_t" | "poly64x2_t" => "uint64x2_t",
-        _ => panic!("unknown type: {}", t),
+fn type_to_unsigned(t: &str) -> String {
+    if t.contains("uint") {
+        return t.to_string();
     }
+    let s = t.replace("int", "uint");
+    let s = s.replace("poly", "uint");
+    s
 }
 
 fn type_to_double_suffixes<'a>(out_t: &'a str, in_t: &'a str) -> String {
@@ -411,6 +425,7 @@ fn type_to_noq_suffix(t: &str) -> &str {
         "poly8x8_t" | "poly8x16_t" => "_p8",
         "poly16x4_t" | "poly16x8_t" => "_p16",
         "poly64x1_t" | "poly64x2_t" | "p64" => "_p64",
+        "p128" => "_p128",
         _ => panic!("unknown type: {}", t),
     }
 }
@@ -427,11 +442,16 @@ enum Suffix {
     OutSuffix,
     OutNSuffix,
     OutNox,
+    In1Nox,
     OutDupNox,
     OutLaneNox,
+    In1LaneNox,
     Lane,
     In2,
     In2Lane,
+    OutLane,
+    Rot,
+    RotLane,
 }
 
 #[derive(Clone, Copy)]
@@ -441,6 +461,13 @@ enum TargetFeature {
     Vfp4,
     FPArmV8,
     AES,
+    FCMA,
+    Dotprod,
+    I8MM,
+    SHA3,
+    RDM,
+    SM4,
+    FTTS,
 }
 
 #[derive(Clone, Copy)]
@@ -657,16 +684,30 @@ fn values(t: &str, vs: &[String]) -> String {
     } else if vs.len() == 1 && type_to_global_type(t) == "f64" {
         format!(": {} = {}", type_to_global_type(t), vs[0])
     } else {
-        format!(
-            ": {} = {}::new({})",
-            type_to_global_type(t),
-            type_to_global_type(t),
-            vs.iter()
-                .map(|v| map_val(type_to_global_type(t), v))
-                //.map(|v| format!("{}{}", v, type_to_native_type(t)))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
+        let s: Vec<_> = t.split('x').collect();
+        if s.len() == 3 {
+            format!(
+                ": [{}; {}] = [{}]",
+                type_to_native_type(t),
+                type_len(t),
+                vs.iter()
+                    .map(|v| map_val(type_to_global_type(t), v))
+                    //.map(|v| format!("{}{}", v, type_to_native_type(t)))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        } else {
+            format!(
+                ": {} = {}::new({})",
+                type_to_global_type(t),
+                type_to_global_type(t),
+                vs.iter()
+                    .map(|v| map_val(type_to_global_type(t), v))
+                    //.map(|v| format!("{}{}", v, type_to_native_type(t)))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
     }
 }
 
@@ -907,9 +948,27 @@ fn ext(s: &str, in_t: &[&str; 3], out_t: &str) -> String {
     s.replace("_EXT_", &type_to_ext(in_t[0], false, false, false))
         .replace("_EXT2_", &type_to_ext(out_t, false, false, false))
         .replace("_EXT3_", &type_to_ext(in_t[1], false, false, false))
+        .replace("_EXT4_", &type_to_ext(in_t[2], false, false, false))
         .replace("_EXTr3_", &type_to_ext(in_t[1], false, true, false))
         .replace("_EXTv2_", &type_to_ext(out_t, true, false, false))
+        .replace("_EXTpi8_", &type_to_ext(in_t[1], false, false, true))
         .replace("_EXTpi82_", &type_to_ext(out_t, false, false, true))
+        .replace("_EXTpi8r_", &type_to_ext(in_t[1], false, true, true))
+}
+
+fn is_vldx(name: &str) -> bool {
+    let s: Vec<_> = name.split('_').collect();
+    &name[0..3] == "vld"
+        && name[3..4].parse::<i32>().unwrap() > 1
+        && (s.last().unwrap().starts_with("s") || s.last().unwrap().starts_with("f"))
+}
+
+fn is_vstx(name: &str) -> bool {
+    let s: Vec<_> = name.split('_').collect();
+    s.len() == 2
+        && &name[0..3] == "vst"
+        && name[3..4].parse::<i32>().unwrap() > 1
+        && (s[1].starts_with("s") || s[1].starts_with("f"))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -964,6 +1023,11 @@ fn gen_aarch64(
             current_name,
             type_to_suffix(&type_to_sub_type(out_t))
         ),
+        In1Nox => format!(
+            "{}{}",
+            current_name,
+            type_to_suffix(&type_to_sub_type(in_t[1]))
+        ),
         OutDupNox => format!(
             "{}{}",
             current_name,
@@ -974,9 +1038,29 @@ fn gen_aarch64(
             current_name,
             type_to_lane_suffix(&type_to_sub_type(out_t))
         ),
-        Lane => format!("{}{}", current_name, type_to_lane_suffixes(out_t, in_t[1])),
+        In1LaneNox => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffix(&type_to_sub_type(in_t[1]))
+        ),
+        Lane => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffixes(out_t, in_t[1], false)
+        ),
         In2 => format!("{}{}", current_name, type_to_suffix(in_t[2])),
-        In2Lane => format!("{}{}", current_name, type_to_lane_suffixes(out_t, in_t[2])),
+        In2Lane => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffixes(out_t, in_t[2], false)
+        ),
+        OutLane => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffixes(out_t, in_t[2], true)
+        ),
+        Rot => type_to_rot_suffix(current_name, type_to_suffix(out_t)),
+        RotLane => type_to_rot_suffix(current_name, &type_to_lane_suffixes(out_t, in_t[2], false)),
     };
     let current_target = match target {
         Default => "neon",
@@ -984,6 +1068,13 @@ fn gen_aarch64(
         Vfp4 => "vfp4",
         FPArmV8 => "fp-armv8,v8",
         AES => "neon,aes",
+        FCMA => "neon,fcma",
+        Dotprod => "neon,dotprod",
+        I8MM => "neon,i8mm",
+        SHA3 => "neon,sha3",
+        RDM => "rdm",
+        SM4 => "neon,sm4",
+        FTTS => "neon,frintts",
     };
     let current_fn = if let Some(current_fn) = current_fn.clone() {
         if link_aarch64.is_some() {
@@ -1030,23 +1121,32 @@ fn gen_aarch64(
         };
         let (ext_inputs, ext_output) = {
             if const_aarch64.is_some() {
-                if matches!(fn_type, Fntype::Load) {
+                if !matches!(fn_type, Fntype::Normal) {
+                    let ptr_type = match fn_type {
+                        Fntype::Load => "*const i8",
+                        Fntype::Store => "*mut i8",
+                        _ => panic!("unsupported fn type"),
+                    };
                     let sub = type_to_sub_type(in_t[1]);
                     (
                         match type_sub_len(in_t[1]) {
-                            1 => format!("a: {}, n: i64, ptr: *const i8", sub),
-                            2 => format!("a: {}, b: {}, n: i64, ptr: *const i8", sub, sub),
+                            1 => format!("a: {}, n: i64, ptr: {}", sub, ptr_type),
+                            2 => format!("a: {}, b: {}, n: i64, ptr: {}", sub, sub, ptr_type),
                             3 => format!(
-                                "a: {}, b: {}, c: {}, n: i64, ptr: *const i8",
-                                sub, sub, sub
+                                "a: {}, b: {}, c: {}, n: i64, ptr: {}",
+                                sub, sub, sub, ptr_type
                             ),
                             4 => format!(
-                                "a: {}, b: {}, c: {}, d: {}, n: i64, ptr: *const i8",
-                                sub, sub, sub, sub
+                                "a: {}, b: {}, c: {}, d: {}, n: i64, ptr: {}",
+                                sub, sub, sub, sub, ptr_type
                             ),
                             _ => panic!("unsupported type: {}", in_t[1]),
                         },
-                        format!(" -> {}", out_t),
+                        if out_t != "void" {
+                            format!(" -> {}", out_t)
+                        } else {
+                            String::new()
+                        },
                     )
                 } else {
                     (
@@ -1061,19 +1161,28 @@ fn gen_aarch64(
                 }
             } else if matches!(fn_type, Fntype::Store) {
                 let sub = type_to_sub_type(in_t[1]);
-                let native = type_to_native_type(in_t[1]);
+                let ptr_type = if is_vstx(&name) {
+                    "i8".to_string()
+                } else {
+                    type_to_native_type(in_t[1])
+                };
+                let subs = match type_sub_len(in_t[1]) {
+                    1 => format!("a: {}", sub),
+                    2 => format!("a: {}, b: {}", sub, sub),
+                    3 => format!("a: {}, b: {}, c: {}", sub, sub, sub),
+                    4 => format!("a: {}, b: {}, c: {}, d: {}", sub, sub, sub, sub),
+                    _ => panic!("unsupported type: {}", in_t[1]),
+                };
+                (format!("{}, ptr: *mut {}", subs, ptr_type), String::new())
+            } else if is_vldx(&name) {
+                let ptr_type = if name.contains("dup") {
+                    type_to_native_type(out_t)
+                } else {
+                    type_to_sub_type(out_t)
+                };
                 (
-                    match type_sub_len(in_t[1]) {
-                        1 => format!("a: {}, ptr: *mut {}", sub, native),
-                        2 => format!("a: {}, b: {}, ptr: *mut {}", sub, sub, native),
-                        3 => format!("a: {}, b: {}, c: {}, ptr: *mut {}", sub, sub, sub, native),
-                        4 => format!(
-                            "a: {}, b: {}, c: {}, d: {}, ptr: *mut {}",
-                            sub, sub, sub, sub, native
-                        ),
-                        _ => panic!("unsupported type: {}", in_t[1]),
-                    },
-                    String::new(),
+                    format!("ptr: *const {}", ptr_type),
+                    format!(" -> {}", out_t),
                 )
             } else {
                 (
@@ -1185,7 +1294,7 @@ fn gen_aarch64(
     };
     let call_params = {
         if let (Some(const_aarch64), Some(_)) = (const_aarch64, link_aarch64) {
-            if matches!(fn_type, Fntype::Load) {
+            if !matches!(fn_type, Fntype::Normal) {
                 let subs = match type_sub_len(in_t[1]) {
                     1 => "b",
                     2 => "b.0, b.1",
@@ -1195,7 +1304,7 @@ fn gen_aarch64(
                 };
                 format!(
                     r#"{}
-    {}{}({}, {} as i64, a as *const i8)"#,
+    {}{}({}, {} as i64, a.cast())"#,
                     multi_calls,
                     ext_c,
                     current_fn,
@@ -1217,14 +1326,17 @@ fn gen_aarch64(
                     _ => String::new(),
                 }
             }
-        } else if matches!(fn_type, Fntype::Store) {
+        } else if link_aarch64.is_some() && matches!(fn_type, Fntype::Store) {
+            let cast = if is_vstx(&name) { ".cast()" } else { "" };
             match type_sub_len(in_t[1]) {
-                1 => format!(r#"{}{}(b, a)"#, ext_c, current_fn),
-                2 => format!(r#"{}{}(b.0, b.1, a)"#, ext_c, current_fn),
-                3 => format!(r#"{}{}(b.0, b.1, b.2, a)"#, ext_c, current_fn),
-                4 => format!(r#"{}{}(b.0, b.1, b.2, b.3, a)"#, ext_c, current_fn),
+                1 => format!(r#"{}{}(b, a{})"#, ext_c, current_fn, cast),
+                2 => format!(r#"{}{}(b.0, b.1, a{})"#, ext_c, current_fn, cast),
+                3 => format!(r#"{}{}(b.0, b.1, b.2, a{})"#, ext_c, current_fn, cast),
+                4 => format!(r#"{}{}(b.0, b.1, b.2, b.3, a{})"#, ext_c, current_fn, cast),
                 _ => panic!("unsupported type: {}", in_t[1]),
             }
+        } else if link_aarch64.is_some() && is_vldx(&name) {
+            format!(r#"{}{}(a.cast())"#, ext_c, current_fn,)
         } else {
             let trans: [&str; 2] = if link_t[3] != out_t {
                 ["transmute(", ")"]
@@ -1273,6 +1385,13 @@ fn gen_aarch64(
         fn_decl,
         call_params
     );
+    let test_target = match target {
+        I8MM => "neon,i8mm",
+        SM4 => "neon,sm4",
+        SHA3 => "neon,sha3",
+        FTTS => "neon,frintts",
+        _ => "neon",
+    };
     let test = match fn_type {
         Fntype::Normal => gen_test(
             &name,
@@ -1282,6 +1401,7 @@ fn gen_aarch64(
             [type_len(in_t[0]), type_len(in_t[1]), type_len(in_t[2])],
             type_len(out_t),
             para_num,
+            test_target,
         ),
         Fntype::Load => gen_load_test(&name, in_t, &out_t, current_tests, type_len(out_t)),
         Fntype::Store => gen_store_test(&name, in_t, &out_t, current_tests, type_len(in_t[1])),
@@ -1406,7 +1526,7 @@ fn gen_store_test(
     unsafe fn test_{}() {{"#,
         name,
     );
-    for (a, _, _, _, e) in current_tests {
+    for (a, _, _, constn, e) in current_tests {
         let a: Vec<String> = a.iter().take(type_len + 1).cloned().collect();
         let e: Vec<String> = e.iter().take(type_len).cloned().collect();
         let mut input = String::from("[");
@@ -1425,12 +1545,15 @@ fn gen_store_test(
             output.push_str(&e[i])
         }
         output.push_str("]");
+        let const_n = constn
+            .as_deref()
+            .map_or(String::new(), |n| format!("::<{}>", n.to_string()));
         let t = format!(
             r#"
         let a: [{}; {}] = {};
         let e: [{}; {}] = {};
         let mut r: [{}; {}] = [0{}; {}];
-        {}(r.as_mut_ptr(), {}(a[1..].as_ptr()));
+        {}{}(r.as_mut_ptr(), core::ptr::read_unaligned(a[1..].as_ptr().cast()));
         assert_eq!(r, e);
 "#,
             type_to_native_type(in_t[1]),
@@ -1444,7 +1567,7 @@ fn gen_store_test(
             type_to_native_type(in_t[1]),
             type_len,
             name,
-            name.replace("st", "ld"),
+            const_n,
         );
         test.push_str(&t);
     }
@@ -1466,12 +1589,13 @@ fn gen_test(
     len_in: [usize; 3],
     len_out: usize,
     para_num: i32,
+    target: &str,
 ) -> String {
     let mut test = format!(
         r#"
-    #[simd_test(enable = "neon")]
+    #[simd_test(enable = "{}")]
     unsafe fn test_{}() {{"#,
-        name,
+        target, name,
     );
     for (a, b, c, n, e) in current_tests {
         let a: Vec<String> = a.iter().take(len_in[0]).cloned().collect();
@@ -1492,6 +1616,10 @@ fn gen_test(
         } else {
             String::new()
         };
+        let r_type = match type_sub_len(out_t) {
+            1 => type_to_global_type(out_t).to_string(),
+            _ => format!("[{}; {}]", type_to_native_type(out_t), type_len(out_t)),
+        };
         let t = {
             match para_num {
                 1 => {
@@ -1504,7 +1632,7 @@ fn gen_test(
 "#,
                         values(in_t[0], &a),
                         values(out_t, &e),
-                        type_to_global_type(out_t),
+                        r_type,
                         name,
                         const_value
                     )
@@ -1521,7 +1649,7 @@ fn gen_test(
                         values(in_t[0], &a),
                         values(in_t[1], &b),
                         values(out_t, &e),
-                        type_to_global_type(out_t),
+                        r_type,
                         name,
                         const_value
                     )
@@ -1540,7 +1668,7 @@ fn gen_test(
                         values(in_t[1], &b),
                         values(in_t[2], &c),
                         values(out_t, &e),
-                        type_to_global_type(out_t),
+                        r_type,
                         name,
                         const_value
                     )
@@ -1613,6 +1741,11 @@ fn gen_arm(
             current_name,
             type_to_suffix(&type_to_sub_type(out_t))
         ),
+        In1Nox => format!(
+            "{}{}",
+            current_name,
+            type_to_suffix(&type_to_sub_type(in_t[1]))
+        ),
         OutDupNox => format!(
             "{}{}",
             current_name,
@@ -1623,9 +1756,29 @@ fn gen_arm(
             current_name,
             type_to_lane_suffix(&type_to_sub_type(out_t))
         ),
-        Lane => format!("{}{}", current_name, type_to_lane_suffixes(out_t, in_t[1])),
+        In1LaneNox => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffix(&type_to_sub_type(in_t[1]))
+        ),
+        Lane => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffixes(out_t, in_t[1], false)
+        ),
         In2 => format!("{}{}", current_name, type_to_suffix(in_t[2])),
-        In2Lane => format!("{}{}", current_name, type_to_lane_suffixes(out_t, in_t[2])),
+        In2Lane => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffixes(out_t, in_t[2], false)
+        ),
+        OutLane => format!(
+            "{}{}",
+            current_name,
+            type_to_lane_suffixes(out_t, in_t[2], true)
+        ),
+        Rot => type_to_rot_suffix(current_name, type_to_suffix(out_t)),
+        RotLane => type_to_rot_suffix(current_name, &type_to_lane_suffixes(out_t, in_t[2], false)),
     };
     let current_aarch64 = current_aarch64
         .clone()
@@ -1636,6 +1789,13 @@ fn gen_arm(
         Vfp4 => "neon",
         FPArmV8 => "neon",
         AES => "neon,aes",
+        FCMA => "neon,fcma",
+        Dotprod => "neon,dotprod",
+        I8MM => "neon,i8mm",
+        SHA3 => "neon,sha3",
+        RDM => "rdm",
+        SM4 => "neon,sm4",
+        FTTS => "neon,frintts",
     };
     let current_target_arm = match target {
         Default => "v7",
@@ -1643,6 +1803,13 @@ fn gen_arm(
         Vfp4 => "vfp4",
         FPArmV8 => "fp-armv8,v8",
         AES => "aes,v8",
+        FCMA => "v8",    // v8.3a
+        Dotprod => "v8", // v8.2a
+        I8MM => "v8,i8mm",
+        RDM => unreachable!(),
+        SM4 => unreachable!(),
+        SHA3 => unreachable!(),
+        FTTS => unreachable!(),
     };
     let current_fn = if let Some(current_fn) = current_fn.clone() {
         if link_aarch64.is_some() || link_arm.is_some() {
@@ -1752,7 +1919,12 @@ fn gen_arm(
         };
         let (arm_ext_inputs, arm_ext_output) = {
             if let Some(const_arm) = const_arm {
-                if matches!(fn_type, Fntype::Load) {
+                if !matches!(fn_type, Fntype::Normal) {
+                    let ptr_type = match fn_type {
+                        Fntype::Load => "*const i8",
+                        Fntype::Store => "*mut i8",
+                        _ => panic!("unsupported fn type"),
+                    };
                     let sub_type = type_to_sub_type(in_t[1]);
                     let inputs = match type_sub_len(in_t[1]) {
                         1 => format!("a: {}", sub_type),
@@ -1764,9 +1936,14 @@ fn gen_arm(
                         ),
                         _ => panic!("unknown type: {}", in_t[1]),
                     };
+                    let out = if out_t == "void" {
+                        String::new()
+                    } else {
+                        format!(" -> {}", out_t)
+                    };
                     (
-                        format!("ptr: *const i8, {}, n: i32, size: i32", inputs),
-                        String::new(),
+                        format!("ptr: {}, {}, n: i32, size: i32", ptr_type, inputs),
+                        out,
                     )
                 } else {
                     let (_, const_type) = if const_arm.contains(":") {
@@ -1817,9 +1994,19 @@ fn gen_arm(
                     ),
                     _ => panic!("unknown type: {}", in_t[1]),
                 };
+                let (ptr_type, size) = if is_vstx(&name) {
+                    ("i8".to_string(), ", size: i32")
+                } else {
+                    (type_to_native_type(in_t[1]), "")
+                };
                 (
-                    format!("ptr: *mut {}, {}", type_to_native_type(in_t[1]), inputs),
+                    format!("ptr: *mut {}, {}{}", ptr_type, inputs, size),
                     String::new(),
+                )
+            } else if is_vldx(&name) {
+                (
+                    format!("ptr: *const i8, size: i32"),
+                    format!(" -> {}", out_t),
                 )
             } else {
                 (String::new(), String::new())
@@ -1835,8 +2022,13 @@ fn gen_arm(
             link_arm, current_fn, arm_ext_inputs, arm_ext_output,
         ));
         let (aarch64_ext_inputs, aarch64_ext_output) = {
-            if const_aarch64.is_some() {
-                if matches!(fn_type, Fntype::Load) {
+            if let Some(const_aarch64) = const_aarch64 {
+                if !matches!(fn_type, Fntype::Normal) {
+                    let ptr_type = match fn_type {
+                        Fntype::Load => "*const i8",
+                        Fntype::Store => "*mut i8",
+                        _ => panic!("unsupported fn type"),
+                    };
                     let sub_type = type_to_sub_type(in_t[1]);
                     let mut inputs = match type_sub_len(in_t[1]) {
                         1 => format!("a: {}", sub_type,),
@@ -1848,8 +2040,26 @@ fn gen_arm(
                         ),
                         _ => panic!("unknown type: {}", in_t[1]),
                     };
-                    inputs.push_str(&format!(", n: i64, ptr: *const i8"));
-                    (inputs, format!(" -> {}", out_t))
+                    inputs.push_str(&format!(", n: i64, ptr: {}", ptr_type));
+                    let out = if out_t == "void" {
+                        String::new()
+                    } else {
+                        format!(" -> {}", out_t)
+                    };
+                    (inputs, out)
+                } else if const_aarch64.contains("dup-in_len-N as ttn") {
+                    (
+                        match para_num {
+                            1 => format!("a: {}, n: {}", in_t[0], in_t[0]),
+                            2 => format!("a: {}, b: {}, n: {}", in_t[0], in_t[1], in_t[1]),
+                            3 => format!(
+                                "a: {}, b: {}, c: {}, n: {}",
+                                in_t[0], in_t[1], in_t[2], in_t[1]
+                            ),
+                            _ => unimplemented!("unknown para_num"),
+                        },
+                        format!(" -> {}", out_t),
+                    )
                 } else {
                     (
                         match para_num {
@@ -1886,8 +2096,23 @@ fn gen_arm(
                     ),
                     _ => panic!("unknown type: {}", in_t[1]),
                 };
-                inputs.push_str(&format!(", ptr: *mut {}", type_to_native_type(in_t[0])));
+                let ptr_type = if is_vstx(&name) {
+                    "i8".to_string()
+                } else {
+                    type_to_native_type(in_t[1])
+                };
+                inputs.push_str(&format!(", ptr: *mut {}", ptr_type));
                 (inputs, String::new())
+            } else if is_vldx(&name) {
+                let ptr_type = if name.contains("dup") {
+                    type_to_native_type(out_t)
+                } else {
+                    type_to_sub_type(out_t)
+                };
+                (
+                    format!("ptr: *const {}", ptr_type),
+                    format!(" -> {}", out_t),
+                )
             } else {
                 (String::new(), String::new())
             }
@@ -1962,7 +2187,7 @@ fn gen_arm(
     let function = if separate {
         let call_arm = {
             let arm_params = if let (Some(const_arm), Some(_)) = (const_arm, link_arm) {
-                if matches!(fn_type, Fntype::Load) {
+                if !matches!(fn_type, Fntype::Normal) {
                     let subs = match type_sub_len(in_t[1]) {
                         1 => "b",
                         2 => "b.0, b.1",
@@ -1971,7 +2196,7 @@ fn gen_arm(
                         _ => "",
                     };
                     format!(
-                        "{}(a as *const i8, {}, {}, {})",
+                        "{}(a.cast(), {}, {}, {})",
                         current_fn,
                         subs,
                         constn.as_deref().unwrap(),
@@ -2008,13 +2233,27 @@ fn gen_arm(
                     _ => String::new(),
                 }
             } else if matches!(fn_type, Fntype::Store) {
+                let (cast, size) = if is_vstx(&name) {
+                    (
+                        ".cast()",
+                        format!(", {}", type_bits(&type_to_sub_type(in_t[1])) / 8),
+                    )
+                } else {
+                    ("", String::new())
+                };
                 match type_sub_len(in_t[1]) {
-                    1 => format!("{}(a, b)", current_fn),
-                    2 => format!("{}(a, b.0, b.1)", current_fn),
-                    3 => format!("{}(a, b.0, b.1, b.2)", current_fn),
-                    4 => format!("{}(a, b.0, b.1, b.2, b.3)", current_fn),
+                    1 => format!("{}(a{}, b{})", current_fn, cast, size),
+                    2 => format!("{}(a{}, b.0, b.1{})", current_fn, cast, size),
+                    3 => format!("{}(a{}, b.0, b.1, b.2{})", current_fn, cast, size),
+                    4 => format!("{}(a{}, b.0, b.1, b.2, b.3{})", current_fn, cast, size),
                     _ => String::new(),
                 }
+            } else if link_arm.is_some() && is_vldx(&name) {
+                format!(
+                    "{}(a as *const i8, {})",
+                    current_fn,
+                    type_bits(&type_to_sub_type(out_t)) / 8
+                )
             } else {
                 String::new()
             };
@@ -2028,7 +2267,7 @@ fn gen_arm(
         let call_aarch64 = {
             let aarch64_params =
                 if let (Some(const_aarch64), Some(_)) = (const_aarch64, link_aarch64) {
-                    if matches!(fn_type, Fntype::Load) {
+                    if !matches!(fn_type, Fntype::Normal) {
                         let subs = match type_sub_len(in_t[1]) {
                             1 => "b",
                             2 => "b.0, b.1",
@@ -2037,11 +2276,23 @@ fn gen_arm(
                             _ => "",
                         };
                         format!(
-                            "{}({}, {} as i64, a as *const i8)",
+                            "{}({}, {} as i64, a.cast())",
                             current_fn,
                             subs,
                             constn.as_deref().unwrap()
                         )
+                    } else if const_aarch64.contains("dup-in_len-N as ttn") {
+                        let const_aarch64 = format!("N as {}", type_to_native_type(in_t[1]));
+                        let mut cnt = String::from(in_t[1]);
+                        cnt.push_str("(");
+                        for i in 0..type_len(in_t[1]) {
+                            if i != 0 {
+                                cnt.push_str(", ");
+                            }
+                            cnt.push_str(&const_aarch64);
+                        }
+                        cnt.push_str(")");
+                        format!("{}(a, {})", current_fn, cnt)
                     } else {
                         match para_num {
                             1 => format!("{}(a, {})", current_fn, const_aarch64),
@@ -2056,13 +2307,16 @@ fn gen_arm(
                         _ => String::new(),
                     }
                 } else if matches!(fn_type, Fntype::Store) {
+                    let cast = if is_vstx(&name) { ".cast()" } else { "" };
                     match type_sub_len(in_t[1]) {
-                        1 => format!("{}(b, a)", current_fn),
-                        2 => format!("{}(b.0, b.1, a)", current_fn),
-                        3 => format!("{}(b.0, b.1, b.2, a)", current_fn),
-                        4 => format!("{}(b.0, b.1, b.2, b.3, a)", current_fn),
+                        1 => format!("{}(b, a{})", current_fn, cast),
+                        2 => format!("{}(b.0, b.1, a{})", current_fn, cast),
+                        3 => format!("{}(b.0, b.1, b.2, a{})", current_fn, cast),
+                        4 => format!("{}(b.0, b.1, b.2, b.3, a{})", current_fn, cast),
                         _ => String::new(),
                     }
+                } else if link_aarch64.is_some() && is_vldx(&name) {
+                    format!("{}(a.cast())", current_fn)
                 } else {
                     String::new()
                 };
@@ -2156,6 +2410,13 @@ fn gen_arm(
             call,
         )
     };
+    let test_target = match target {
+        I8MM => "neon,i8mm",
+        SM4 => "neon,sm4",
+        SHA3 => "neon,sha3",
+        FTTS => "neon,frintts",
+        _ => "neon",
+    };
     let test = match fn_type {
         Fntype::Normal => gen_test(
             &name,
@@ -2165,6 +2426,7 @@ fn gen_arm(
             [type_len(in_t[0]), type_len(in_t[1]), type_len(in_t[2])],
             type_len(out_t),
             para_num,
+            test_target,
         ),
         Fntype::Load => gen_load_test(&name, in_t, &out_t, current_tests, type_len(out_t)),
         Fntype::Store => gen_store_test(&name, in_t, &out_t, current_tests, type_len(in_t[1])),
@@ -2352,6 +2614,34 @@ fn get_call(
         };
         return asc(start, len);
     }
+    if fn_name.starts_with("base") {
+        let fn_format: Vec<_> = fn_name.split('-').map(|v| v.to_string()).collect();
+        assert_eq!(fn_format.len(), 3);
+        let mut s = format!("<const {}: i32> [", &fn_format[2]);
+        let base_len = fn_format[1].parse::<usize>().unwrap();
+        for i in 0..type_len(in_t[1]) / base_len {
+            for j in 0..base_len {
+                if i != 0 || j != 0 {
+                    s.push_str(", ");
+                }
+                s.push_str(&format!("{} * {} as u32", base_len, &fn_format[2]));
+                if j != 0 {
+                    s.push_str(&format!(" + {}", j));
+                }
+            }
+        }
+        s.push_str("]");
+        return s;
+    }
+    if fn_name.starts_with("as") {
+        let fn_format: Vec<_> = fn_name.split('-').map(|v| v.to_string()).collect();
+        assert_eq!(fn_format.len(), 3);
+        let t = match &*fn_format[2] {
+            "in_ttn" => type_to_native_type(in_t[1]),
+            _ => String::new(),
+        };
+        return format!("{} as {}", &fn_format[1], t);
+    }
     if fn_name.starts_with("ins") {
         let fn_format: Vec<_> = fn_name.split('-').map(|v| v.to_string()).collect();
         let n = n.unwrap();
@@ -2384,13 +2674,15 @@ fn get_call(
     if fn_name.starts_with("static_assert_imm") {
         let fn_format: Vec<_> = fn_name.split('-').map(|v| v.to_string()).collect();
         let len = match &*fn_format[1] {
-            "out_exp_len" => type_exp_len(out_t),
+            "out_exp_len" => type_exp_len(out_t, 1),
             "out_bits_exp_len" => type_bits_exp_len(out_t),
-            "in_exp_len" => type_exp_len(in_t[1]),
+            "in_exp_len" => type_exp_len(in_t[1], 1),
             "in_bits_exp_len" => type_bits_exp_len(in_t[1]),
-            "in0_exp_len" => type_exp_len(in_t[0]),
-            "in1_exp_len" => type_exp_len(in_t[1]),
-            "in2_exp_len" => type_exp_len(in_t[2]),
+            "in0_exp_len" => type_exp_len(in_t[0], 1),
+            "in1_exp_len" => type_exp_len(in_t[1], 1),
+            "in2_exp_len" => type_exp_len(in_t[2], 1),
+            "in2_rot" => type_exp_len(in_t[2], 2),
+            "in2_dot" => type_exp_len(in_t[2], 4),
             _ => 0,
         };
         if len == 0 {
@@ -2430,12 +2722,34 @@ fn get_call(
             );
         }
     }
+    if fn_name.starts_with("fix_right_shift_imm") {
+        let fn_format: Vec<_> = fn_name.split('-').map(|v| v.to_string()).collect();
+        let lim = if fn_format[2] == "bits" {
+            type_bits(in_t[1]).to_string()
+        } else {
+            fn_format[2].clone()
+        };
+        let fixed = if in_t[1].starts_with('u') {
+            format!("return vdup{nself}(0);", nself = type_to_n_suffix(in_t[1]))
+        } else {
+            (lim.parse::<i32>().unwrap() - 1).to_string()
+        };
+
+        return format!(
+            r#"let {name}: i32 = if {const_name} == {upper} {{ {fixed} }} else {{ N }};"#,
+            name = fn_format[1].to_lowercase(),
+            const_name = fn_format[1],
+            upper = lim,
+            fixed = fixed,
+        );
+    }
+
     if fn_name.starts_with("matchn") {
         let fn_format: Vec<_> = fn_name.split('-').map(|v| v.to_string()).collect();
         let len = match &*fn_format[1] {
-            "out_exp_len" => type_exp_len(out_t),
-            "in_exp_len" => type_exp_len(in_t[1]),
-            "in0_exp_len" => type_exp_len(in_t[0]),
+            "out_exp_len" => type_exp_len(out_t, 1),
+            "in_exp_len" => type_exp_len(in_t[1], 1),
+            "in0_exp_len" => type_exp_len(in_t[0], 1),
             _ => 0,
         };
         let mut call = format!("match {} & 0b{} {{\n", &fn_format[2], "1".repeat(len));
@@ -2519,6 +2833,10 @@ fn get_call(
                 re = Some((re_params[0].clone(), in_t[1].to_string()));
             } else if re_params[1] == "in_t" {
                 re = Some((re_params[0].clone(), in_t[1].to_string()));
+            } else if re_params[1] == "signed" {
+                re = Some((re_params[0].clone(), type_to_signed(in_t[1])));
+            } else if re_params[1] == "unsigned" {
+                re = Some((re_params[0].clone(), type_to_unsigned(in_t[1])));
             } else if re_params[1] == "in_t0" {
                 re = Some((re_params[0].clone(), in_t[0].to_string()));
             } else if re_params[1] == "in_t1" {
@@ -2539,6 +2857,11 @@ fn get_call(
                 ));
             } else if re_params[1] == "out_ntt" {
                 re = Some((re_params[0].clone(), native_type_to_type(out_t).to_string()));
+            } else if re_params[1] == "out_long_ntt" {
+                re = Some((
+                    re_params[0].clone(),
+                    native_type_to_long_type(out_t).to_string(),
+                ));
             } else {
                 re = Some((re_params[0].clone(), re_params[1].clone()));
             }
@@ -2566,6 +2889,12 @@ fn get_call(
             });
         return format!(r#"[{}]"#, &half[..half.len() - 2]);
     }
+    if fn_name == "a - b" {
+        return fn_name;
+    }
+    if fn_name == "-a" {
+        return fn_name;
+    }
     if fn_name.contains('-') {
         let fn_format: Vec<_> = fn_name.split('-').map(|v| v.to_string()).collect();
         assert_eq!(fn_format.len(), 3);
@@ -2590,7 +2919,9 @@ fn get_call(
         } else if fn_format[1] == "in2" {
             fn_name.push_str(type_to_suffix(in_t[2]));
         } else if fn_format[1] == "in2lane" {
-            fn_name.push_str(&type_to_lane_suffixes(out_t, in_t[2]));
+            fn_name.push_str(&type_to_lane_suffixes(out_t, in_t[2], false));
+        } else if fn_format[1] == "outlane" {
+            fn_name.push_str(&type_to_lane_suffixes(out_t, in_t[2], true));
         } else if fn_format[1] == "signed" {
             fn_name.push_str(type_to_suffix(&type_to_signed(&String::from(in_t[1]))));
         } else if fn_format[1] == "outsigned" {
@@ -2598,6 +2929,10 @@ fn get_call(
         } else if fn_format[1] == "outsignednox" {
             fn_name.push_str(&type_to_suffix(&type_to_sub_type(&type_to_signed(
                 &String::from(out_t),
+            ))));
+        } else if fn_format[1] == "in1signednox" {
+            fn_name.push_str(&type_to_suffix(&type_to_sub_type(&type_to_signed(
+                &String::from(in_t[1]),
             ))));
         } else if fn_format[1] == "outsigneddupnox" {
             fn_name.push_str(&type_to_dup_suffix(&type_to_sub_type(&type_to_signed(
@@ -2607,8 +2942,12 @@ fn get_call(
             fn_name.push_str(&type_to_lane_suffix(&type_to_sub_type(&type_to_signed(
                 &String::from(out_t),
             ))));
+        } else if fn_format[1] == "in1signedlanenox" {
+            fn_name.push_str(&type_to_lane_suffix(&type_to_sub_type(&type_to_signed(
+                &String::from(in_t[1]),
+            ))));
         } else if fn_format[1] == "unsigned" {
-            fn_name.push_str(type_to_suffix(type_to_unsigned(in_t[1])));
+            fn_name.push_str(type_to_suffix(&type_to_unsigned(in_t[1])));
         } else if fn_format[1] == "doubleself" {
             fn_name.push_str(&type_to_double_suffixes(out_t, in_t[1]));
         } else if fn_format[1] == "noq_doubleself" {
@@ -2636,6 +2975,8 @@ fn get_call(
             fn_name.push_str(type_to_suffix(native_type_to_type(in_t[1])));
         } else if fn_format[1] == "out_ntt" {
             fn_name.push_str(type_to_suffix(native_type_to_type(out_t)));
+        } else if fn_format[1] == "rot" {
+            fn_name = type_to_rot_suffix(&fn_name, type_to_suffix(out_t));
         } else {
             fn_name.push_str(&fn_format[1]);
         };
@@ -2672,6 +3013,8 @@ fn get_call(
             r#"let {}: {} = {}({});"#,
             re_name, re_type, fn_name, param_str
         )
+    } else if fn_name.starts_with("*") {
+        format!(r#"{} = {};"#, fn_name, param_str)
     } else {
         format!(r#"{}({})"#, fn_name, param_str)
     };
@@ -2827,16 +3170,26 @@ mod test {
             suffix = OutSuffix;
         } else if line.starts_with("out-nox") {
             suffix = OutNox;
+        } else if line.starts_with("in1-nox") {
+            suffix = In1Nox;
         } else if line.starts_with("out-dup-nox") {
             suffix = OutDupNox;
         } else if line.starts_with("out-lane-nox") {
             suffix = OutLaneNox;
+        } else if line.starts_with("in1-lane-nox") {
+            suffix = In1LaneNox;
         } else if line.starts_with("lane-suffixes") {
             suffix = Lane;
         } else if line.starts_with("in2-suffix") {
             suffix = In2;
         } else if line.starts_with("in2-lane-suffixes") {
             suffix = In2Lane;
+        } else if line.starts_with("out-lane-suffixes") {
+            suffix = OutLane;
+        } else if line.starts_with("rot-suffix") {
+            suffix = Rot;
+        } else if line.starts_with("rot-lane-suffixes") {
+            suffix = RotLane;
         } else if line.starts_with("a = ") {
             a = line[4..].split(',').map(|v| v.trim().to_string()).collect();
         } else if line.starts_with("b = ") {
@@ -2871,6 +3224,13 @@ mod test {
                     "vfp4" => Vfp4,
                     "fp-armv8" => FPArmV8,
                     "aes" => AES,
+                    "fcma" => FCMA,
+                    "dotprod" => Dotprod,
+                    "i8mm" => I8MM,
+                    "sha3" => SHA3,
+                    "rdm" => RDM,
+                    "sm4" => SM4,
+                    "frintts" => FTTS,
                     _ => Default,
                 },
                 _ => Default,
@@ -2975,20 +3335,22 @@ mod test {
     tests_aarch64.push('}');
     tests_aarch64.push('\n');
 
-    let arm_out_path: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap())
-        .join("src")
-        .join("arm_shared")
-        .join("neon");
+    let arm_out_path: PathBuf =
+        PathBuf::from(env::var("OUT_DIR").unwrap_or("crates/core_arch".to_string()))
+            .join("src")
+            .join("arm_shared")
+            .join("neon");
     std::fs::create_dir_all(&arm_out_path)?;
 
     let mut file_arm = File::create(arm_out_path.join(ARM_OUT))?;
     file_arm.write_all(out_arm.as_bytes())?;
     file_arm.write_all(tests_arm.as_bytes())?;
 
-    let aarch64_out_path: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap())
-        .join("src")
-        .join("aarch64")
-        .join("neon");
+    let aarch64_out_path: PathBuf =
+        PathBuf::from(env::var("OUT_DIR").unwrap_or("crates/core_arch".to_string()))
+            .join("src")
+            .join("aarch64")
+            .join("neon");
     std::fs::create_dir_all(&aarch64_out_path)?;
 
     let mut file_aarch = File::create(aarch64_out_path.join(AARCH64_OUT))?;

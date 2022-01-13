@@ -2,17 +2,12 @@
 
 use hir::{AsAssocItem, HasSource};
 use ide_db::SymbolKind;
-use syntax::{
-    ast::{Const, HasName},
-    display::const_label,
-};
+use syntax::{ast::Const, display::const_label};
 
-use crate::{
-    item::{CompletionItem, CompletionKind},
-    render::RenderContext,
-};
+use crate::{item::CompletionItem, render::RenderContext};
 
 pub(crate) fn render_const(ctx: RenderContext<'_>, const_: hir::Const) -> Option<CompletionItem> {
+    let _p = profile::span("render_const");
     ConstRender::new(ctx, const_)?.render()
 }
 
@@ -30,13 +25,12 @@ impl<'a> ConstRender<'a> {
     }
 
     fn render(self) -> Option<CompletionItem> {
-        let name = self.name()?;
+        let name = self.const_.name(self.ctx.db())?.to_smol_str();
         let detail = self.detail();
 
         let mut item =
-            CompletionItem::new(CompletionKind::Reference, self.ctx.source_range(), name.clone());
-        item.kind(SymbolKind::Const)
-            .set_documentation(self.ctx.docs(self.const_))
+            CompletionItem::new(SymbolKind::Const, self.ctx.source_range(), name.clone());
+        item.set_documentation(self.ctx.docs(self.const_))
             .set_deprecated(
                 self.ctx.is_deprecated(self.const_)
                     || self.ctx.is_deprecated_assoc_item(self.const_),
@@ -46,16 +40,12 @@ impl<'a> ConstRender<'a> {
         let db = self.ctx.db();
         if let Some(actm) = self.const_.as_assoc_item(db) {
             if let Some(trt) = actm.containing_trait_or_trait_impl(db) {
-                item.trait_name(trt.name(db).to_string());
+                item.trait_name(trt.name(db).to_smol_str());
                 item.insert_text(name);
             }
         }
 
         Some(item.build())
-    }
-
-    fn name(&self) -> Option<String> {
-        self.ast_node.name().map(|name| name.text().to_string())
     }
 
     fn detail(&self) -> String {

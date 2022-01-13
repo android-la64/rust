@@ -35,6 +35,7 @@
 //!     fmt: result
 //!     bool_impl: option, fn
 //!     add:
+//!     as_ref: sized
 
 pub mod marker {
     // region:sized
@@ -87,6 +88,10 @@ pub mod default {
     pub trait Default: Sized {
         fn default() -> Self;
     }
+    // region:derive
+    #[rustc_builtin_macro]
+    pub macro Default($item:item) {}
+    // endregion:derive
 }
 // endregion:default
 
@@ -113,8 +118,9 @@ pub mod clone {
 }
 // endregion:clone
 
-// region:from
+
 pub mod convert {
+    // region:from
     pub trait From<T>: Sized {
         fn from(_: T) -> Self;
     }
@@ -136,8 +142,14 @@ pub mod convert {
             t
         }
     }
+    // endregion:from
+
+    // region:as_ref
+    pub trait AsRef<T: ?Sized> {
+        fn as_ref(&self) -> &T;
+    }
+    // endregion:as_ref
 }
-// endregion:from
 
 pub mod ops {
     // region:coerce_unsized
@@ -609,6 +621,7 @@ pub mod prelude {
             cmp::{Eq, PartialEq},               // :eq
             cmp::{Ord, PartialOrd},             // :ord
             convert::{From, Into},              // :from
+            convert::AsRef,                     // :as_ref
             default::Default,                   // :default
             iter::{IntoIterator, Iterator},     // :iterator
             macros::builtin::derive,            // :derive

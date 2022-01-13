@@ -1,13 +1,14 @@
 //! Assorted functions shared by several assists.
 
-pub(crate) mod suggest_name;
-mod gen_trait_fn_body;
-
 use std::ops;
 
-use hir::HasSource;
-use ide_db::{helpers::SnippetCap, path_transform::PathTransform, RootDatabase};
 use itertools::Itertools;
+
+pub(crate) use gen_trait_fn_body::gen_trait_fn_body;
+use hir::{db::HirDatabase, HasSource, HirDisplay};
+use ide_db::{
+    helpers::FamousDefs, helpers::SnippetCap, path_transform::PathTransform, RootDatabase,
+};
 use stdx::format_to;
 use syntax::{
     ast::{
@@ -23,7 +24,8 @@ use syntax::{
 
 use crate::assist_context::{AssistBuilder, AssistContext};
 
-pub(crate) use gen_trait_fn_body::gen_trait_fn_body;
+pub(crate) mod suggest_name;
+mod gen_trait_fn_body;
 
 pub(crate) fn unwrap_trivial_block(block_expr: ast::BlockExpr) -> ast::Expr {
     extract_trivial_expression(&block_expr)
@@ -266,7 +268,7 @@ fn invert_special_case(expr: &ast::Expr) -> Option<ast::Expr> {
 }
 
 pub(crate) fn next_prev() -> impl Iterator<Item = Direction> {
-    [Direction::Next, Direction::Prev].iter().copied()
+    [Direction::Next, Direction::Prev].into_iter()
 }
 
 pub(crate) fn does_pat_match_variant(pat: &ast::Pat, var: &ast::Pat) -> bool {
@@ -283,6 +285,47 @@ pub(crate) fn does_pat_match_variant(pat: &ast::Pat, var: &ast::Pat) -> bool {
     let var_head = first_node_text(var);
 
     pat_head == var_head
+}
+
+pub(crate) fn does_nested_pattern(pat: &ast::Pat) -> bool {
+    let depth = calc_depth(pat, 0);
+
+    if 1 < depth {
+        return true;
+    }
+    false
+}
+
+fn calc_depth(pat: &ast::Pat, depth: usize) -> usize {
+    match pat {
+        ast::Pat::IdentPat(_)
+        | ast::Pat::BoxPat(_)
+        | ast::Pat::RestPat(_)
+        | ast::Pat::LiteralPat(_)
+        | ast::Pat::MacroPat(_)
+        | ast::Pat::OrPat(_)
+        | ast::Pat::ParenPat(_)
+        | ast::Pat::PathPat(_)
+        | ast::Pat::WildcardPat(_)
+        | ast::Pat::RangePat(_)
+        | ast::Pat::RecordPat(_)
+        | ast::Pat::RefPat(_)
+        | ast::Pat::SlicePat(_)
+        | ast::Pat::TuplePat(_)
+        | ast::Pat::ConstBlockPat(_) => depth,
+
+        // FIXME: Other patterns may also be nested. Currently it simply supports only `TupleStructPat`
+        ast::Pat::TupleStructPat(pat) => {
+            let mut max_depth = depth;
+            for p in pat.fields() {
+                let d = calc_depth(&p, depth + 1);
+                if d > max_depth {
+                    max_depth = d
+                }
+            }
+            max_depth
+        }
+    }
 }
 
 // Uses a syntax-driven approach to find any impl blocks for the struct that
@@ -466,27 +509,149 @@ pub(crate) fn add_method_to_adt(
     builder.insert(start_offset, buf);
 }
 
-pub fn useless_type_special_case(field_name: &str, field_ty: &String) -> Option<(String, String)> {
-    if field_ty == "String" {
-        cov_mark::hit!(useless_type_special_case);
-        return Some(("&str".to_string(), format!("self.{}.as_str()", field_name)));
-    }
-    if let Some(arg) = ty_ctor(field_ty, "Vec") {
-        return Some((format!("&[{}]", arg), format!("self.{}.as_slice()", field_name)));
-    }
-    if let Some(arg) = ty_ctor(field_ty, "Box") {
-        return Some((format!("&{}", arg), format!("self.{}.as_ref()", field_name)));
-    }
-    if let Some(arg) = ty_ctor(field_ty, "Option") {
-        return Some((format!("Option<&{}>", arg), format!("self.{}.as_ref()", field_name)));
-    }
-    None
+#[derive(Debug)]
+pub(crate) struct ReferenceConversion {
+    conversion: ReferenceConversionType,
+    ty: hir::Type,
 }
 
-// FIXME: This should rely on semantic info.
-fn ty_ctor(ty: &String, ctor: &str) -> Option<String> {
-    let res = ty.to_string().strip_prefix(ctor)?.strip_prefix('<')?.strip_suffix('>')?.to_string();
-    Some(res)
+#[derive(Debug)]
+enum ReferenceConversionType {
+    // reference can be stripped if the type is Copy
+    Copy,
+    // &String -> &str
+    AsRefStr,
+    // &Vec<T> -> &[T]
+    AsRefSlice,
+    // &Box<T> -> &T
+    Dereferenced,
+    // &Option<T> -> Option<&T>
+    Option,
+    // &Result<T, E> -> Result<&T, &E>
+    Result,
+}
+
+impl ReferenceConversion {
+    pub(crate) fn convert_type(&self, db: &dyn HirDatabase) -> String {
+        match self.conversion {
+            ReferenceConversionType::Copy => self.ty.display(db).to_string(),
+            ReferenceConversionType::AsRefStr => "&str".to_string(),
+            ReferenceConversionType::AsRefSlice => {
+                let type_argument_name =
+                    self.ty.type_arguments().next().unwrap().display(db).to_string();
+                format!("&[{}]", type_argument_name)
+            }
+            ReferenceConversionType::Dereferenced => {
+                let type_argument_name =
+                    self.ty.type_arguments().next().unwrap().display(db).to_string();
+                format!("&{}", type_argument_name)
+            }
+            ReferenceConversionType::Option => {
+                let type_argument_name =
+                    self.ty.type_arguments().next().unwrap().display(db).to_string();
+                format!("Option<&{}>", type_argument_name)
+            }
+            ReferenceConversionType::Result => {
+                let mut type_arguments = self.ty.type_arguments();
+                let first_type_argument_name =
+                    type_arguments.next().unwrap().display(db).to_string();
+                let second_type_argument_name =
+                    type_arguments.next().unwrap().display(db).to_string();
+                format!("Result<&{}, &{}>", first_type_argument_name, second_type_argument_name)
+            }
+        }
+    }
+
+    pub(crate) fn getter(&self, field_name: String) -> String {
+        match self.conversion {
+            ReferenceConversionType::Copy => format!("self.{}", field_name),
+            ReferenceConversionType::AsRefStr
+            | ReferenceConversionType::AsRefSlice
+            | ReferenceConversionType::Dereferenced
+            | ReferenceConversionType::Option
+            | ReferenceConversionType::Result => format!("self.{}.as_ref()", field_name),
+        }
+    }
+}
+
+// FIXME: It should return a new hir::Type, but currently constructing new types is too cumbersome
+//        and all users of this function operate on string type names, so they can do the conversion
+//        itself themselves.
+pub(crate) fn convert_reference_type(
+    ty: hir::Type,
+    db: &RootDatabase,
+    famous_defs: &FamousDefs,
+) -> Option<ReferenceConversion> {
+    handle_copy(&ty, db)
+        .or_else(|| handle_as_ref_str(&ty, db, famous_defs))
+        .or_else(|| handle_as_ref_slice(&ty, db, famous_defs))
+        .or_else(|| handle_dereferenced(&ty, db, famous_defs))
+        .or_else(|| handle_option_as_ref(&ty, db, famous_defs))
+        .or_else(|| handle_result_as_ref(&ty, db, famous_defs))
+        .map(|conversion| ReferenceConversion { ty, conversion })
+}
+
+fn handle_copy(ty: &hir::Type, db: &dyn HirDatabase) -> Option<ReferenceConversionType> {
+    ty.is_copy(db).then(|| ReferenceConversionType::Copy)
+}
+
+fn handle_as_ref_str(
+    ty: &hir::Type,
+    db: &dyn HirDatabase,
+    famous_defs: &FamousDefs,
+) -> Option<ReferenceConversionType> {
+    let module = famous_defs.1?.root_module(db);
+    let str_type = hir::BuiltinType::str().ty(db, module);
+
+    ty.impls_trait(db, famous_defs.core_convert_AsRef()?, &[str_type])
+        .then(|| ReferenceConversionType::AsRefStr)
+}
+
+fn handle_as_ref_slice(
+    ty: &hir::Type,
+    db: &dyn HirDatabase,
+    famous_defs: &FamousDefs,
+) -> Option<ReferenceConversionType> {
+    let type_argument = ty.type_arguments().next()?;
+    let slice_type = hir::Type::new_slice(type_argument);
+
+    ty.impls_trait(db, famous_defs.core_convert_AsRef()?, &[slice_type])
+        .then(|| ReferenceConversionType::AsRefSlice)
+}
+
+fn handle_dereferenced(
+    ty: &hir::Type,
+    db: &dyn HirDatabase,
+    famous_defs: &FamousDefs,
+) -> Option<ReferenceConversionType> {
+    let type_argument = ty.type_arguments().next()?;
+
+    ty.impls_trait(db, famous_defs.core_convert_AsRef()?, &[type_argument])
+        .then(|| ReferenceConversionType::Dereferenced)
+}
+
+fn handle_option_as_ref(
+    ty: &hir::Type,
+    db: &dyn HirDatabase,
+    famous_defs: &FamousDefs,
+) -> Option<ReferenceConversionType> {
+    if ty.as_adt() == famous_defs.core_option_Option()?.ty(db).as_adt() {
+        Some(ReferenceConversionType::Option)
+    } else {
+        None
+    }
+}
+
+fn handle_result_as_ref(
+    ty: &hir::Type,
+    db: &dyn HirDatabase,
+    famous_defs: &FamousDefs,
+) -> Option<ReferenceConversionType> {
+    if ty.as_adt() == famous_defs.core_result_Result()?.ty(db).as_adt() {
+        Some(ReferenceConversionType::Result)
+    } else {
+        None
+    }
 }
 
 pub(crate) fn get_methods(items: &ast::AssocItemList) -> Vec<ast::Fn> {
@@ -524,4 +689,20 @@ pub(crate) fn trimmed_text_range(source_file: &SourceFile, initial_range: TextRa
         trimmed_range = TextRange::new(trimmed_range.start(), end);
     }
     trimmed_range
+}
+
+/// Convert a list of function params to a list of arguments that can be passed
+/// into a function call.
+pub(crate) fn convert_param_list_to_arg_list(list: ast::ParamList) -> ast::ArgList {
+    let mut args = vec![];
+    for param in list.params() {
+        if let Some(ast::Pat::IdentPat(pat)) = param.pat() {
+            if let Some(name) = pat.name() {
+                let name = name.to_string();
+                let expr = make::expr_path(make::ext::ident_path(&name));
+                args.push(expr);
+            }
+        }
+    }
+    make::arg_list(args)
 }

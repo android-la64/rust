@@ -6,6 +6,7 @@ use syntax::{ast, AstNode};
 use crate::{patterns::ImmediateLocation, CompletionContext, Completions};
 
 pub(crate) fn complete_unqualified_path(acc: &mut Completions, ctx: &CompletionContext) {
+    let _p = profile::span("complete_unqualified_path");
     if ctx.is_path_disallowed() || !ctx.is_trivial_path() || ctx.has_impl_or_trait_prev_sibling() {
         return;
     }
@@ -19,11 +20,10 @@ pub(crate) fn complete_unqualified_path(acc: &mut Completions, ctx: &CompletionC
             }
         });
 
-        std::array::IntoIter::new(["self::", "super::", "crate::"])
-            .for_each(|kw| acc.add_keyword(ctx, kw));
+        ["self::", "super::", "crate::"].into_iter().for_each(|kw| acc.add_keyword(ctx, kw));
         return;
     }
-    std::array::IntoIter::new(["self", "super", "crate"]).for_each(|kw| acc.add_keyword(ctx, kw));
+    ["self", "super", "crate"].into_iter().for_each(|kw| acc.add_keyword(ctx, kw));
 
     match &ctx.completion_location {
         Some(ImmediateLocation::Visibility(_)) => return,
@@ -118,24 +118,15 @@ pub(crate) fn complete_unqualified_path(acc: &mut Completions, ctx: &CompletionC
 mod tests {
     use expect_test::{expect, Expect};
 
-    use crate::{
-        tests::{check_edit, filtered_completion_list_with_config, TEST_CONFIG},
-        CompletionConfig, CompletionKind,
-    };
+    use crate::tests::{check_edit, completion_list_no_kw};
 
     fn check(ra_fixture: &str, expect: Expect) {
-        check_with_config(TEST_CONFIG, ra_fixture, expect);
-    }
-
-    fn check_with_config(config: CompletionConfig, ra_fixture: &str, expect: Expect) {
-        let actual =
-            filtered_completion_list_with_config(config, ra_fixture, CompletionKind::Reference);
+        let actual = completion_list_no_kw(ra_fixture);
         expect.assert_eq(&actual)
     }
 
     #[test]
     fn completes_if_prefix_is_keyword() {
-        cov_mark::check!(completes_if_prefix_is_keyword);
         check_edit(
             "wherewolf",
             r#"
@@ -189,6 +180,7 @@ pub mod prelude {
 "#,
             expect![[r#"
                 md std
+                bt u32
                 st Option
             "#]],
         );
@@ -218,6 +210,7 @@ mod macros {
                 fn f()        fn()
                 ma concat!(…) #[macro_export] macro_rules! concat
                 md std
+                bt u32
             "##]],
         );
     }
@@ -246,6 +239,7 @@ pub mod prelude {
             expect![[r#"
                 md std
                 md core
+                bt u32
                 st String
             "#]],
         );
@@ -274,6 +268,7 @@ pub mod prelude {
             expect![[r#"
                 fn f() fn()
                 md std
+                bt u32
             "#]],
         );
     }

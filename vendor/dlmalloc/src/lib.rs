@@ -14,13 +14,14 @@
 #![allow(dead_code)]
 #![no_std]
 #![deny(missing_docs)]
+#![cfg_attr(target_arch = "wasm64", feature(simd_wasm64))]
 
 use core::cmp;
 use core::ptr;
 use sys::System;
 
 #[cfg(feature = "global")]
-pub use self::global::GlobalDlmalloc;
+pub use self::global::{enable_alloc_after_fork, GlobalDlmalloc};
 
 mod dlmalloc;
 #[cfg(feature = "global")]
@@ -72,19 +73,15 @@ pub unsafe trait Allocator: Send {
 /// lingering memory back to the OS. That may happen eventually though!
 pub struct Dlmalloc<A = System>(dlmalloc::Dlmalloc<A>);
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_family = "wasm")]
 #[path = "wasm.rs"]
 mod sys;
 
-#[cfg(target_os = "macos")]
-#[path = "macos.rs"]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[path = "unix.rs"]
 mod sys;
 
-#[cfg(target_os = "linux")]
-#[path = "linux.rs"]
-mod sys;
-
-#[cfg(not(any(target_os = "linux", target_os = "macos", target_arch = "wasm32")))]
+#[cfg(not(any(target_os = "linux", target_os = "macos", target_family = "wasm")))]
 #[path = "dummy.rs"]
 mod sys;
 

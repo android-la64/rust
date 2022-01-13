@@ -527,6 +527,33 @@ fn $0fun_name(n: i32) {
 }
 
 #[test]
+fn doctest_extract_module() {
+    check_doc_test(
+        "extract_module",
+        r#####"
+$0fn foo(name: i32) -> i32 {
+    name + 1
+}$0
+
+fn bar(name: i32) -> i32 {
+    name + 2
+}
+"#####,
+        r#####"
+mod modname {
+    pub(crate) fn foo(name: i32) -> i32 {
+        name + 1
+    }
+}
+
+fn bar(name: i32) -> i32 {
+    name + 2
+}
+"#####,
+    )
+}
+
+#[test]
 fn doctest_extract_struct_from_enum_variant() {
     check_doc_test(
         "extract_struct_from_enum_variant",
@@ -729,6 +756,43 @@ impl Default for Example {
 }
 
 #[test]
+fn doctest_generate_delegate_methods() {
+    check_doc_test(
+        "generate_delegate_methods",
+        r#####"
+struct Age(u8);
+impl Age {
+    fn age(&self) -> u8 {
+        self.0
+    }
+}
+
+struct Person {
+    ag$0e: Age,
+}
+"#####,
+        r#####"
+struct Age(u8);
+impl Age {
+    fn age(&self) -> u8 {
+        self.0
+    }
+}
+
+struct Person {
+    age: Age,
+}
+
+impl Person {
+    $0fn age(&self) -> u8 {
+        self.age.age()
+    }
+}
+"#####,
+    )
+}
+
+#[test]
 fn doctest_generate_deref() {
     check_doc_test(
         "generate_deref",
@@ -914,11 +978,26 @@ fn doctest_generate_getter() {
     check_doc_test(
         "generate_getter",
         r#####"
+//- minicore: as_ref
+pub struct String;
+impl AsRef<str> for String {
+    fn as_ref(&self) -> &str {
+        ""
+    }
+}
+
 struct Person {
     nam$0e: String,
 }
 "#####,
         r#####"
+pub struct String;
+impl AsRef<str> for String {
+    fn as_ref(&self) -> &str {
+        ""
+    }
+}
+
 struct Person {
     name: String,
 }
@@ -926,7 +1005,7 @@ struct Person {
 impl Person {
     /// Get a reference to the person's name.
     fn $0name(&self) -> &str {
-        self.name.as_str()
+        self.name.as_ref()
     }
 }
 "#####,
@@ -1395,6 +1474,35 @@ fn t() {}
 }
 
 #[test]
+fn doctest_promote_local_to_const() {
+    check_doc_test(
+        "promote_local_to_const",
+        r#####"
+fn main() {
+    let foo$0 = true;
+
+    if foo {
+        println!("It's true");
+    } else {
+        println!("It's false");
+    }
+}
+"#####,
+        r#####"
+fn main() {
+    const $0FOO: bool = true;
+
+    if FOO {
+        println!("It's true");
+    } else {
+        println!("It's false");
+    }
+}
+"#####,
+    )
+}
+
+#[test]
 fn doctest_pull_assignment_up() {
     check_doc_test(
         "pull_assignment_up",
@@ -1418,6 +1526,33 @@ fn main() {
     } else {
         4
     };
+}
+"#####,
+    )
+}
+
+#[test]
+fn doctest_qualify_method_call() {
+    check_doc_test(
+        "qualify_method_call",
+        r#####"
+struct Foo;
+impl Foo {
+    fn foo(&self) {}
+}
+fn main() {
+    let foo = Foo;
+    foo.fo$0o();
+}
+"#####,
+        r#####"
+struct Foo;
+impl Foo {
+    fn foo(&self) {}
+}
+fn main() {
+    let foo = Foo;
+    Foo::foo(&foo);
 }
 "#####,
     )
@@ -1742,6 +1877,25 @@ fn handle() {
 }
 
 #[test]
+fn doctest_replace_turbofish_with_explicit_type() {
+    check_doc_test(
+        "replace_turbofish_with_explicit_type",
+        r#####"
+fn make<T>() -> T { ) }
+fn main() {
+    let a = make$0::<i32>();
+}
+"#####,
+        r#####"
+fn make<T>() -> T { ) }
+fn main() {
+    let a: i32 = make();
+}
+"#####,
+    )
+}
+
+#[test]
 fn doctest_sort_items() {
     check_doc_test(
         "sort_items",
@@ -1894,6 +2048,20 @@ fn foo() {
 fn foo() {
     println!("foo");
 }
+"#####,
+    )
+}
+
+#[test]
+fn doctest_unwrap_result_return_type() {
+    check_doc_test(
+        "unwrap_result_return_type",
+        r#####"
+//- minicore: result
+fn foo() -> Result<i32>$0 { Ok(42i32) }
+"#####,
+        r#####"
+fn foo() -> i32 { 42i32 }
 "#####,
     )
 }

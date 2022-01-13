@@ -4,14 +4,15 @@
 //! for built-in attributes.
 
 use hir::HasAttrs;
-use ide_db::helpers::generated_lints::{CLIPPY_LINTS, DEFAULT_LINTS, FEATURES};
+use ide_db::helpers::generated_lints::{CLIPPY_LINTS, DEFAULT_LINTS, FEATURES, RUSTDOC_LINTS};
+use itertools::Itertools;
 use once_cell::sync::Lazy;
-use rustc_hash::{FxHashMap, FxHashSet};
-use syntax::{algo::non_trivia_sibling, ast, AstNode, Direction, NodeOrToken, SyntaxKind, T};
+use rustc_hash::FxHashMap;
+use syntax::{algo::non_trivia_sibling, ast, AstNode, Direction, SyntaxKind, T};
 
 use crate::{
     context::CompletionContext,
-    item::{CompletionItem, CompletionItemKind, CompletionKind},
+    item::{CompletionItem, CompletionItemKind},
     Completions,
 };
 
@@ -28,12 +29,16 @@ pub(crate) fn complete_attribute(acc: &mut Completions, ctx: &CompletionContext)
     };
     match (name_ref, attribute.token_tree()) {
         (Some(path), Some(token_tree)) => match path.text().as_str() {
-            "derive" => derive::complete_derive(acc, ctx, token_tree),
             "repr" => repr::complete_repr(acc, ctx, token_tree),
-            "feature" => lint::complete_lint(acc, ctx, token_tree, FEATURES),
+            "derive" => derive::complete_derive(acc, ctx, &parse_comma_sep_paths(token_tree)?),
+            "feature" => {
+                lint::complete_lint(acc, ctx, &parse_comma_sep_paths(token_tree)?, FEATURES)
+            }
             "allow" | "warn" | "deny" | "forbid" => {
-                lint::complete_lint(acc, ctx, token_tree.clone(), DEFAULT_LINTS);
-                lint::complete_lint(acc, ctx, token_tree, CLIPPY_LINTS);
+                let existing_lints = parse_comma_sep_paths(token_tree)?;
+                lint::complete_lint(acc, ctx, &existing_lints, DEFAULT_LINTS);
+                lint::complete_lint(acc, ctx, &existing_lints, CLIPPY_LINTS);
+                lint::complete_lint(acc, ctx, &existing_lints, RUSTDOC_LINTS);
             }
             "cfg" => {
                 cfg::complete_cfg(acc, ctx);
@@ -64,11 +69,10 @@ fn complete_new_attribute(acc: &mut Completions, ctx: &CompletionContext, attrib
 
     let add_completion = |attr_completion: &AttrCompletion| {
         let mut item = CompletionItem::new(
-            CompletionKind::Attribute,
+            CompletionItemKind::Attribute,
             ctx.source_range(),
             attr_completion.label,
         );
-        item.kind(CompletionItemKind::Attribute);
 
         if let Some(lookup) = attr_completion.lookup {
             item.lookup_by(lookup);
@@ -98,11 +102,10 @@ fn complete_new_attribute(acc: &mut Completions, ctx: &CompletionContext, attrib
         if let hir::ScopeDef::MacroDef(mac) = scope_def {
             if mac.kind() == hir::MacroKind::Attr {
                 let mut item = CompletionItem::new(
-                    CompletionKind::Attribute,
+                    CompletionItemKind::Attribute,
                     ctx.source_range(),
-                    name.to_string(),
+                    name.to_smol_str(),
                 );
-                item.kind(CompletionItemKind::Attribute);
                 if let Some(docs) = mac.docs(ctx.sema.db) {
                     item.documentation(docs);
                 }
@@ -172,7 +175,7 @@ macro_rules! attrs {
 #[rustfmt::skip]
 static KIND_TO_ATTRIBUTES: Lazy<FxHashMap<SyntaxKind, &[&str]>> = Lazy::new(|| {
     use SyntaxKind::*;
-    std::array::IntoIter::new([
+    [
         (
             SOURCE_FILE,
             attrs!(
@@ -224,7 +227,8 @@ static KIND_TO_ATTRIBUTES: Lazy<FxHashMap<SyntaxKind, &[&str]>> = Lazy::new(|| {
         (MATCH_ARM, attrs!()),
         (IDENT_PAT, attrs!()),
         (RECORD_PAT_FIELD, attrs!()),
-    ])
+    ]
+    .into_iter()
     .collect()
 });
 const EXPR_ATTRIBUTES: &[&str] = attrs!();
@@ -303,31 +307,38 @@ const ATTRIBUTES: &[AttrCompletion] = &[
     .prefer_inner(),
 ];
 
-fn parse_comma_sep_input(derive_input: ast::TokenTree) -> Option<FxHashSet<String>> {
-    let (l_paren, r_paren) = derive_input.l_paren_token().zip(derive_input.r_paren_token())?;
-    let mut input_derives = FxHashSet::default();
-    let mut tokens = derive_input
+fn parse_comma_sep_paths(input: ast::TokenTree) -> Option<Vec<ast::Path>> {
+    let r_paren = input.r_paren_token()?;
+    let tokens = input
         .syntax()
         .children_with_tokens()
-        .filter_map(NodeOrToken::into_token)
-        .skip_while(|token| token != &l_paren)
         .skip(1)
-        .take_while(|token| token != &r_paren)
-        .peekable();
-    let mut input = String::new();
-    while tokens.peek().is_some() {
-        for token in tokens.by_ref().take_while(|t| t.kind() != T![,]) {
-            input.push_str(token.text());
-        }
+        .take_while(|it| it.as_token() != Some(&r_paren));
+    let input_expressions = tokens.into_iter().group_by(|tok| tok.kind() == T![,]);
+    Some(
+        input_expressions
+            .into_iter()
+            .filter_map(|(is_sep, group)| (!is_sep).then(|| group))
+            .filter_map(|mut tokens| ast::Path::parse(&tokens.join("")).ok())
+            .collect::<Vec<ast::Path>>(),
+    )
+}
 
-        if !input.is_empty() {
-            input_derives.insert(input.trim().to_owned());
-        }
-
-        input.clear();
-    }
-
-    Some(input_derives)
+fn parse_comma_sep_expr(input: ast::TokenTree) -> Option<Vec<ast::Expr>> {
+    let r_paren = input.r_paren_token()?;
+    let tokens = input
+        .syntax()
+        .children_with_tokens()
+        .skip(1)
+        .take_while(|it| it.as_token() != Some(&r_paren));
+    let input_expressions = tokens.into_iter().group_by(|tok| tok.kind() == T![,]);
+    Some(
+        input_expressions
+            .into_iter()
+            .filter_map(|(is_sep, group)| (!is_sep).then(|| group))
+            .filter_map(|mut tokens| ast::Expr::parse(&tokens.join("")).ok())
+            .collect::<Vec<ast::Expr>>(),
+    )
 }
 
 #[test]

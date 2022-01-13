@@ -1,13 +1,11 @@
 //! Entry point for call-hierarchy
 
-use indexmap::IndexMap;
-
 use hir::Semantics;
 use ide_db::{
     defs::{Definition, NameClass, NameRefClass},
     helpers::pick_best_token,
     search::FileReference,
-    RootDatabase,
+    FxIndexMap, RootDatabase,
 };
 use syntax::{ast, AstNode, SyntaxKind::NAME, TextRange};
 
@@ -47,15 +45,11 @@ pub(crate) fn incoming_calls(
         .find_nodes_at_offset_with_descend(file, offset)
         .filter_map(move |node| match node {
             ast::NameLike::NameRef(name_ref) => match NameRefClass::classify(sema, &name_ref)? {
-                NameRefClass::Definition(
-                    def @ Definition::ModuleDef(hir::ModuleDef::Function(_)),
-                ) => Some(def),
+                NameRefClass::Definition(def @ Definition::Function(_)) => Some(def),
                 _ => None,
             },
             ast::NameLike::Name(name) => match NameClass::classify(sema, &name)? {
-                NameClass::Definition(def @ Definition::ModuleDef(hir::ModuleDef::Function(_))) => {
-                    Some(def)
-                }
+                NameClass::Definition(def @ Definition::Function(_)) => Some(def),
                 _ => None,
             },
             ast::NameLike::Lifetime(_) => None,
@@ -90,7 +84,7 @@ pub(crate) fn outgoing_calls(db: &RootDatabase, position: FilePosition) -> Optio
     })?;
     let mut calls = CallLocations::default();
 
-    sema.descend_into_macros_many(token)
+    sema.descend_into_macros(token)
         .into_iter()
         .filter_map(|it| it.ancestors().nth(1).and_then(ast::Item::cast))
         .filter_map(|item| match item {
@@ -129,7 +123,7 @@ pub(crate) fn outgoing_calls(db: &RootDatabase, position: FilePosition) -> Optio
 
 #[derive(Default)]
 struct CallLocations {
-    funcs: IndexMap<NavigationTarget, Vec<TextRange>>,
+    funcs: FxIndexMap<NavigationTarget, Vec<TextRange>>,
 }
 
 impl CallLocations {

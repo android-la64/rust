@@ -62,7 +62,7 @@ pub(crate) fn remove_unused_param(acc: &mut Assists, ctx: &AssistContext) -> Opt
     }
     let fn_def = {
         let func = ctx.sema.to_def(&func)?;
-        Definition::ModuleDef(func.into())
+        Definition::Function(func)
     };
 
     let param_def = {
@@ -140,7 +140,7 @@ fn process_usage(
     None
 }
 
-fn range_to_remove(node: &SyntaxNode) -> TextRange {
+pub(crate) fn range_to_remove(node: &SyntaxNode) -> TextRange {
     let up_to_comma = next_prev().find_map(|dir| {
         node.siblings_with_tokens(dir)
             .filter_map(|it| it.into_token())

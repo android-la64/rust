@@ -173,7 +173,7 @@ m!(ab$0c);
             ---
 
             Outer
-            "#]],
+        "#]],
     );
 }
 
@@ -341,6 +341,48 @@ fn main() { m::f$0oo(); }
 }
 
 #[test]
+fn hover_omits_unnamed_where_preds() {
+    check(
+        r#"
+pub fn foo(bar: impl T) { }
+
+fn main() { fo$0o(); }
+        "#,
+        expect![[r#"
+            *foo*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            pub fn foo(bar: impl T)
+            ```
+        "#]],
+    );
+    check(
+        r#"
+pub fn foo<V: AsRef<str>>(bar: impl T, baz: V) { }
+
+fn main() { fo$0o(); }
+        "#,
+        expect![[r#"
+            *foo*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            pub fn foo<V>(bar: impl T, baz: V)
+            where
+                V: AsRef<str>,
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn hover_shows_fn_signature_with_type_params() {
     check(
         r#"
@@ -503,30 +545,52 @@ fn hover_const_static() {
     check(
         r#"const foo$0: u32 = 123;"#,
         expect![[r#"
-                *foo*
+            *foo*
 
-                ```rust
-                test
-                ```
+            ```rust
+            test
+            ```
 
-                ```rust
-                const foo: u32
-                ```
-            "#]],
+            ```rust
+            const foo: u32 = 123
+            ```
+        "#]],
     );
+    check(
+        r#"
+const foo$0: u32 = {
+    let x = foo();
+    x + 100
+};"#,
+        expect![[r#"
+            *foo*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            const foo: u32 = {
+                let x = foo();
+                x + 100
+            }
+            ```
+        "#]],
+    );
+
     check(
         r#"static foo$0: u32 = 456;"#,
         expect![[r#"
-                *foo*
+            *foo*
 
-                ```rust
-                test
-                ```
+            ```rust
+            test
+            ```
 
-                ```rust
-                static foo: u32
-                ```
-            "#]],
+            ```rust
+            static foo: u32 = 456
+            ```
+        "#]],
     );
 }
 
@@ -788,16 +852,16 @@ fn main() {
 }
 "#,
         expect![[r#"
-                *C*
+            *C*
 
-                ```rust
-                test
-                ```
+            ```rust
+            test
+            ```
 
-                ```rust
-                const C: u32
-                ```
-            "#]],
+            ```rust
+            const C: u32 = 1
+            ```
+        "#]],
     )
 }
 
@@ -1111,6 +1175,39 @@ fn foo() {
                 ```
             "#]],
     );
+}
+
+#[test]
+fn test_hover_multiple_actions() {
+    check_actions(
+        r#"
+struct Bar;
+struct Foo { bar: Bar }
+
+fn foo(Foo { b$0ar }: &Foo) {}
+        "#,
+        expect![[r#"
+            [
+                GoToType(
+                    [
+                        HoverGotoTypeData {
+                            mod_path: "test::Bar",
+                            nav: NavigationTarget {
+                                file_id: FileId(
+                                    0,
+                                ),
+                                full_range: 0..11,
+                                focus_range: 7..10,
+                                name: "Bar",
+                                kind: Struct,
+                                description: "struct Bar",
+                            },
+                        },
+                    ],
+                ),
+            ]
+        "#]],
+    )
 }
 
 #[test]
@@ -1696,40 +1793,40 @@ fn test_hover_test_has_action() {
 fn foo_$0test() {}
 "#,
         expect![[r#"
-                [
-                    Reference(
-                        FilePosition {
+            [
+                Reference(
+                    FilePosition {
+                        file_id: FileId(
+                            0,
+                        ),
+                        offset: 11,
+                    },
+                ),
+                Runnable(
+                    Runnable {
+                        use_name_in_title: false,
+                        nav: NavigationTarget {
                             file_id: FileId(
                                 0,
                             ),
-                            offset: 11,
+                            full_range: 0..24,
+                            focus_range: 11..19,
+                            name: "foo_test",
+                            kind: Function,
                         },
-                    ),
-                    Runnable(
-                        Runnable {
-                            use_name_in_title: false,
-                            nav: NavigationTarget {
-                                file_id: FileId(
-                                    0,
-                                ),
-                                full_range: 0..24,
-                                focus_range: 11..19,
-                                name: "foo_test",
-                                kind: Function,
+                        kind: Test {
+                            test_id: Path(
+                                "foo_test",
+                            ),
+                            attr: TestAttr {
+                                ignore: false,
                             },
-                            kind: Test {
-                                test_id: Path(
-                                    "foo_test",
-                                ),
-                                attr: TestAttr {
-                                    ignore: false,
-                                },
-                            },
-                            cfg: None,
                         },
-                    ),
-                ]
-            "#]],
+                        cfg: None,
+                    },
+                ),
+            ]
+        "#]],
     );
 }
 
@@ -2268,8 +2365,8 @@ fn foo() {
                                     file_id: FileId(
                                         1,
                                     ),
-                                    full_range: 254..436,
-                                    focus_range: 293..299,
+                                    full_range: 276..458,
+                                    focus_range: 315..321,
                                     name: "Future",
                                     kind: Trait,
                                     description: "pub trait Future",
@@ -2724,21 +2821,21 @@ fn main() {
 }
 "#,
         expect![[r#"
-                *f*
+            *f*
 
-                ```rust
-                f: &i32
-                ```
-                ---
+            ```rust
+            f: &i32
+            ```
+            ---
 
-                ```rust
-                test::S
-                ```
+            ```rust
+            test::S
+            ```
 
-                ```rust
-                f: i32
-                ```
-            "#]],
+            ```rust
+            f: i32
+            ```
+        "#]],
     );
 }
 
@@ -3176,20 +3273,20 @@ fn foo() {
 }
 "#,
         expect![[r#"
-                *FOO*
+            *FOO*
 
-                ```rust
-                test
-                ```
+            ```rust
+            test
+            ```
 
-                ```rust
-                const FOO: usize
-                ```
+            ```rust
+            const FOO: usize = 3
+            ```
 
-                ---
+            ---
 
-                This is a doc
-            "#]],
+            This is a doc
+        "#]],
     );
 }
 
@@ -3651,6 +3748,7 @@ use crate as foo$0;
 fn hover_attribute_in_macro() {
     check(
         r#"
+//- minicore:derive
 macro_rules! identity {
     ($struct:item) => {
         $struct
@@ -3681,6 +3779,7 @@ identity!{
 fn hover_derive_input() {
     check(
         r#"
+//- minicore:derive
 #[rustc_builtin_macro]
 pub macro Copy {}
 #[derive(Copy$0)]
@@ -3700,6 +3799,7 @@ struct Foo;
     );
     check(
         r#"
+//- minicore:derive
 mod foo {
     #[rustc_builtin_macro]
     pub macro Copy {}
@@ -4125,20 +4225,20 @@ foo_macro!(
 );
 "#,
         expect![[r#"
-                *[`Foo`]*
+            *[`Foo`]*
 
-                ```rust
-                test
-                ```
+            ```rust
+            test
+            ```
 
-                ```rust
-                pub struct Foo
-                ```
+            ```rust
+            pub struct Foo
+            ```
 
-                ---
+            ---
 
-                Doc comment for [`Foo`](https://docs.rs/test/*/test/struct.Foo.html)
-            "#]],
+            Doc comment for [`Foo`](https://doc.rust-lang.org/nightly/test/struct.Foo.html)
+        "#]],
     );
 }
 
@@ -4150,19 +4250,19 @@ fn hover_intra_in_attr() {
 pub struct Foo;
 "#,
         expect![[r#"
-                *[`Foo`]*
+            *[`Foo`]*
 
-                ```rust
-                test
-                ```
+            ```rust
+            test
+            ```
 
-                ```rust
-                pub struct Foo
-                ```
+            ```rust
+            pub struct Foo
+            ```
 
-                ---
+            ---
 
-                Doc comment for [`Foo`](https://docs.rs/test/*/test/struct.Foo.html)
-            "#]],
+            Doc comment for [`Foo`](https://doc.rust-lang.org/nightly/test/struct.Foo.html)
+        "#]],
     );
 }

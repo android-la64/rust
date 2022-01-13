@@ -24,7 +24,7 @@ use ide_db::{
 use syntax::algo;
 use text_edit::TextEdit;
 
-use crate::{completions::Completions, context::CompletionContext, item::CompletionKind};
+use crate::{completions::Completions, context::CompletionContext};
 
 pub use crate::{
     config::CompletionConfig,
@@ -173,6 +173,7 @@ pub fn completions(
 }
 
 /// Resolves additional completion data at the position given.
+/// This is used for import insertion done via completions like flyimport and custom user snippets.
 pub fn resolve_completion_edits(
     db: &RootDatabase,
     config: &CompletionConfig,
@@ -181,8 +182,8 @@ pub fn resolve_completion_edits(
 ) -> Option<Vec<TextEdit>> {
     let _p = profile::span("resolve_completion_edits");
     let ctx = CompletionContext::new(db, position, config)?;
-    let position_for_import = position_for_import(&ctx, None)?;
-    let scope = ImportScope::find_insert_use_container_with_macros(position_for_import, &ctx.sema)?;
+    let position_for_import = &position_for_import(&ctx, None)?;
+    let scope = ImportScope::find_insert_use_container(position_for_import, &ctx.sema)?;
 
     let current_module = ctx.sema.scope(position_for_import).module()?;
     let current_crate = current_module.krate();

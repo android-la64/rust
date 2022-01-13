@@ -3,7 +3,8 @@ name = "hir_ty"
 version = "0.0.0"
 description = "TBD"
 license = "MIT OR Apache-2.0"
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 
 [lib]
 doctest = false
@@ -17,10 +18,10 @@ ena = "0.14.0"
 tracing = "0.1"
 rustc-hash = "1.1.0"
 scoped-tls = "1"
-chalk-solve = { version = "0.71", default-features = false }
-chalk-ir = "0.71"
-chalk-recursive = { version = "0.71", default-features = false }
-la-arena = { version = "0.2.0", path = "../../lib/arena" }
+chalk-solve = { version = "0.73", default-features = false }
+chalk-ir = "0.73"
+chalk-recursive = { version = "0.73", default-features = false }
+la-arena = { version = "0.3.0", path = "../../lib/arena" }
 once_cell = { version = "1.5.0" }
 
 stdx = { path = "../stdx", version = "0.0.0" }
