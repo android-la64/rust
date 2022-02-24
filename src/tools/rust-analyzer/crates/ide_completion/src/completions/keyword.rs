@@ -5,8 +5,9 @@
 use syntax::{SyntaxKind, T};
 
 use crate::{
-    context::PathCompletionContext, patterns::ImmediateLocation, CompletionContext, CompletionItem,
-    CompletionItemKind, Completions,
+    context::{PathCompletionContext, PathKind},
+    patterns::ImmediateLocation,
+    CompletionContext, CompletionItem, CompletionItemKind, Completions,
 };
 
 pub(crate) fn complete_expr_keyword(acc: &mut Completions, ctx: &CompletionContext) {
@@ -18,7 +19,7 @@ pub(crate) fn complete_expr_keyword(acc: &mut Completions, ctx: &CompletionConte
         cov_mark::hit!(no_keyword_completion_in_record_lit);
         return;
     }
-    if ctx.attribute_under_caret.is_some() {
+    if ctx.fake_attribute_under_caret.is_some() {
         cov_mark::hit!(no_keyword_completion_in_attr_of_expr);
         return;
     }
@@ -33,8 +34,8 @@ pub(crate) fn complete_expr_keyword(acc: &mut Completions, ctx: &CompletionConte
     let has_block_expr_parent = ctx.has_block_expr_parent();
     let expects_item = ctx.expects_item();
 
-    if let Some(ImmediateLocation::Visibility(vis)) = &ctx.completion_location {
-        if vis.in_token().is_none() {
+    if let Some(PathKind::Vis { has_in_token }) = ctx.path_kind() {
+        if !has_in_token {
             cov_mark::hit!(kw_completion_in);
             add_keyword("in", "in");
         }
@@ -228,9 +229,6 @@ fn foo(a: A) { a.$0 }
                 sn refm  &mut expr
                 sn match match expr {}
                 sn box   Box::new(expr)
-                sn ok    Ok(expr)
-                sn err   Err(expr)
-                sn some  Some(expr)
                 sn dbg   dbg!(expr)
                 sn dbgr  dbg!(&expr)
                 sn call  function(expr)
@@ -254,9 +252,6 @@ fn foo() {
                 sn refm  &mut expr
                 sn match match expr {}
                 sn box   Box::new(expr)
-                sn ok    Ok(expr)
-                sn err   Err(expr)
-                sn some  Some(expr)
                 sn dbg   dbg!(expr)
                 sn dbgr  dbg!(&expr)
                 sn call  function(expr)

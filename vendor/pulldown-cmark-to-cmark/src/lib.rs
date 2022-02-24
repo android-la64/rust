@@ -1,7 +1,11 @@
-use pulldown_cmark::{Alignment as TableAlignment, Event};
-use std::{borrow::Borrow, borrow::Cow, fmt};
+#![deny(rust_2018_idioms)]
 
-pub const SPECIAL_CHARACTERS: &[u8] = br#"#\_*<>`|[]"#;
+use std::{
+    borrow::{Borrow, Cow},
+    fmt,
+};
+
+use pulldown_cmark::{Alignment as TableAlignment, Event, LinkType};
 
 /// Similar to [Pulldown-Cmark-Alignment][Alignment], but with required
 /// traits for comparison to allow testing.
@@ -57,7 +61,7 @@ pub struct State<'a> {
 ///
 /// It's best used with its `Options::default()` implementation.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Options {
+pub struct Options<'a> {
     pub newlines_after_headline: usize,
     pub newlines_after_paragraph: usize,
     pub newlines_after_codeblock: usize,
@@ -66,21 +70,52 @@ pub struct Options {
     pub newlines_after_list: usize,
     pub newlines_after_blockquote: usize,
     pub newlines_after_rest: usize,
-    pub code_block_backticks: usize,
+    pub code_block_token_count: usize,
+    pub code_block_token: char,
+    pub list_token: char,
+    pub emphasis_token: char,
+    pub strong_token: &'a str,
 }
 
-impl Default for Options {
+const DEFAULT_OPTIONS: Options<'_> = Options {
+    newlines_after_headline: 2,
+    newlines_after_paragraph: 2,
+    newlines_after_codeblock: 2,
+    newlines_after_table: 2,
+    newlines_after_rule: 2,
+    newlines_after_list: 2,
+    newlines_after_blockquote: 2,
+    newlines_after_rest: 1,
+    code_block_token_count: 4,
+    code_block_token: '`',
+    list_token: '*',
+    emphasis_token: '*',
+    strong_token: "**",
+};
+
+impl<'a> Default for Options<'a> {
     fn default() -> Self {
-        Options {
-            newlines_after_headline: 2,
-            newlines_after_paragraph: 2,
-            newlines_after_codeblock: 2,
-            newlines_after_table: 2,
-            newlines_after_rule: 2,
-            newlines_after_list: 2,
-            newlines_after_blockquote: 2,
-            newlines_after_rest: 1,
-            code_block_backticks: 4,
+        DEFAULT_OPTIONS
+    }
+}
+
+impl<'a> Options<'a> {
+    pub fn special_characters(&self) -> Cow<'static, str> {
+        // These always need to be escaped, even if reconfigured.
+        const BASE: &str = "#\\_*<>`|[]";
+        if DEFAULT_OPTIONS.code_block_token == self.code_block_token
+            && DEFAULT_OPTIONS.list_token == self.list_token
+            && DEFAULT_OPTIONS.emphasis_token == self.emphasis_token
+            && DEFAULT_OPTIONS.strong_token == self.strong_token
+        {
+            BASE.into()
+        } else {
+            let mut s = String::from(BASE);
+            s.push(self.code_block_token);
+            s.push(self.list_token);
+            s.push(self.emphasis_token);
+            s.push_str(self.strong_token);
+            s.into()
         }
     }
 }
@@ -104,7 +139,7 @@ pub fn cmark_with_options<'a, I, E, F>(
     events: I,
     mut formatter: F,
     state: Option<State<'static>>,
-    options: Options,
+    options: Options<'_>,
 ) -> Result<State<'static>, fmt::Error>
 where
     I: Iterator<Item = E>,
@@ -112,6 +147,9 @@ where
     F: fmt::Write,
 {
     let mut state = state.unwrap_or_default();
+    let mut current_shortcut = String::new();
+    let mut inside_shortcut = false;
+    let mut shortcuts: Vec<(String, String, String)> = Vec::new();
     fn padding<'a, F>(f: &mut F, p: &[Cow<'a, str>]) -> fmt::Result
     where
         F: fmt::Write,
@@ -121,7 +159,7 @@ where
         }
         Ok(())
     }
-    fn consume_newlines<F>(f: &mut F, s: &mut State) -> fmt::Result
+    fn consume_newlines<F>(f: &mut F, s: &mut State<'_>) -> fmt::Result
     where
         F: fmt::Write,
     {
@@ -133,17 +171,20 @@ where
         Ok(())
     }
 
-    fn escape_leading_special_characters(t: &str, is_in_block_quote: bool) -> Cow<'_, str> {
+    fn escape_leading_special_characters<'a>(
+        t: &'a str,
+        is_in_block_quote: bool,
+        options: &Options<'a>,
+    ) -> Cow<'a, str> {
         if is_in_block_quote || t.is_empty() {
             return Cow::Borrowed(t);
         }
 
-        use std::convert::TryFrom;
-        let first = t.as_bytes()[0];
-        if SPECIAL_CHARACTERS.contains(&first) {
+        let first = t.chars().next().expect("at least one char");
+        if options.special_characters().contains(first) {
             let mut s = String::with_capacity(t.len() + 1);
             s.push('\\');
-            s.push(char::try_from(first as u32).expect("we know it's valid utf8"));
+            s.push(first);
             s.push_str(&t[1..]);
             Cow::Owned(s)
         } else {
@@ -151,11 +192,7 @@ where
         }
     }
 
-    fn print_text_without_trailing_newline<'a, F>(
-        t: &str,
-        f: &mut F,
-        p: &[Cow<'a, str>],
-    ) -> fmt::Result
+    fn print_text_without_trailing_newline<'a, F>(t: &str, f: &mut F, p: &[Cow<'a, str>]) -> fmt::Result
     where
         F: fmt::Write,
     {
@@ -177,18 +214,36 @@ where
     fn padding_of(l: Option<u64>) -> Cow<'static, str> {
         match l {
             None => "  ".into(),
-            Some(n) => format!("{}. ", n)
-                .chars()
-                .map(|_| ' ')
-                .collect::<String>()
-                .into(),
+            Some(n) => format!("{}. ", n).chars().map(|_| ' ').collect::<String>().into(),
         }
     }
 
+    fn close_link<F>(uri: &str, title: &str, f: &mut F, link_type: LinkType) -> fmt::Result
+    where
+        F: fmt::Write,
+    {
+        let separator = match link_type {
+            LinkType::Shortcut => ": ",
+            _ => "(",
+        };
+
+        if uri.contains(' ') {
+            write!(f, "]{}<{uri}>", separator, uri = uri)?;
+        } else {
+            write!(f, "]{}{uri}", separator, uri = uri)?;
+        }
+        if !title.is_empty() {
+            write!(f, " \"{title}\"", title = title)?;
+        }
+        if link_type != LinkType::Shortcut {
+            f.write_char(')')?;
+        }
+
+        Ok(())
+    }
+
     for event in events {
-        use pulldown_cmark::CodeBlockKind;
-        use pulldown_cmark::Event::*;
-        use pulldown_cmark::Tag::*;
+        use pulldown_cmark::{CodeBlockKind, Event::*, Tag::*};
 
         let event = event.borrow();
 
@@ -222,20 +277,18 @@ where
             Code(ref text) => {
                 if state.store_next_text {
                     state.store_next_text = false;
-                    let code = format!("`{}`", text);
+                    let code = format!("{}{}{}", options.code_block_token, text, options.code_block_token);
                     state.text_for_header = Some(code)
                 }
                 formatter
-                    .write_char('`')
+                    .write_char(options.code_block_token)
                     .and_then(|_| formatter.write_str(text))
-                    .and_then(|_| formatter.write_char('`'))
+                    .and_then(|_| formatter.write_char(options.code_block_token))
             }
             Start(ref tag) => {
                 if let List(ref list_type) = *tag {
                     state.list_stack.push(*list_type);
-                    if state.list_stack.len() > 1
-                        && state.newlines_before_start < options.newlines_after_rest
-                    {
+                    if state.list_stack.len() > 1 && state.newlines_before_start < options.newlines_after_rest {
                         state.newlines_before_start = options.newlines_after_rest;
                     }
                 }
@@ -247,7 +300,7 @@ where
                             state.padding.push(padding_of(*inner));
                             match inner {
                                 Some(n) => write!(formatter, "{}. ", n),
-                                None => formatter.write_str("* "),
+                                None => write!(formatter, "{} ", options.list_token),
                             }
                         }
                         None => Ok(()),
@@ -262,10 +315,15 @@ where
                         state.store_next_text = true;
                         formatter.write_char('|')
                     }
+                    Link(LinkType::Autolink | LinkType::Email, ..) => formatter.write_char('<'),
+                    Link(LinkType::Shortcut, ..) => {
+                        inside_shortcut = true;
+                        formatter.write_char('[')
+                    }
                     Link(..) => formatter.write_char('['),
                     Image(..) => formatter.write_str("!["),
-                    Emphasis => formatter.write_char('*'),
-                    Strong => formatter.write_str("**"),
+                    Emphasis => formatter.write_char(options.emphasis_token),
+                    Strong => formatter.write_str(options.strong_token),
                     FootnoteDefinition(ref name) => write!(formatter, "[^{}]: ", name),
                     Paragraph => Ok(()),
                     Heading(n) => {
@@ -284,17 +342,15 @@ where
                         if consumed_newlines {
                             formatter.write_str(" > ")
                         } else {
-                            formatter
-                                .write_char('\n')
-                                .and(padding(&mut formatter, &state.padding))
+                            formatter.write_char('\n').and(padding(&mut formatter, &state.padding))
                         }
                     }
                     CodeBlock(CodeBlockKind::Indented) => {
                         state.is_in_code_block = true;
-                        formatter
-                            .write_str(&"`".repeat(options.code_block_backticks))
-                            .and(formatter.write_char('\n'))
-                            .and(padding(&mut formatter, &state.padding))
+                        for _ in 0..options.code_block_token_count {
+                            formatter.write_char(options.code_block_token)?;
+                        }
+                        formatter.write_char('\n').and(padding(&mut formatter, &state.padding))
                     }
                     CodeBlock(CodeBlockKind::Fenced(ref info)) => {
                         state.is_in_code_block = true;
@@ -307,7 +363,10 @@ where
                         };
 
                         s.and_then(|_| {
-                            formatter.write_str(&"`".repeat(options.code_block_backticks))
+                            for _ in 0..options.code_block_token_count {
+                                formatter.write_char(options.code_block_token)?;
+                            }
+                            Ok(())
                         })
                         .and_then(|_| formatter.write_str(info))
                         .and_then(|_| formatter.write_char('\n'))
@@ -318,19 +377,20 @@ where
                 }
             }
             End(ref tag) => match tag {
-                Image(_, ref uri, ref title) | Link(_, ref uri, ref title) => {
-                    if uri.contains(' ') {
-                        write!(formatter, "](<{uri}>", uri = uri)?;
-                    } else {
-                        write!(formatter, "]({uri}", uri = uri)?;
+                Link(LinkType::Autolink | LinkType::Email, ..) => formatter.write_char('>'),
+                Link(LinkType::Shortcut, ref uri, ref title) => {
+                    if inside_shortcut {
+                        shortcuts.push((current_shortcut.clone(), uri.to_string(), title.to_string()));
+                        inside_shortcut = false;
+                        current_shortcut = String::new();
                     }
-                    if !title.is_empty() {
-                        write!(formatter, " \"{title}\"", title = title)?;
-                    }
-                    formatter.write_str(")")
+                    formatter.write_char(']')
                 }
-                Emphasis => formatter.write_char('*'),
-                Strong => formatter.write_str("**"),
+                Image(_, ref uri, ref title) | Link(_, ref uri, ref title) => {
+                    close_link(uri, title, &mut formatter, LinkType::Inline)
+                }
+                Emphasis => formatter.write_char(options.emphasis_token),
+                Strong => formatter.write_str(options.strong_token),
                 Heading(_) => {
                     if state.newlines_before_start < options.newlines_after_headline {
                         state.newlines_before_start = options.newlines_after_headline;
@@ -348,7 +408,10 @@ where
                         state.newlines_before_start = options.newlines_after_codeblock;
                     }
                     state.is_in_code_block = false;
-                    formatter.write_str(&"`".repeat(options.code_block_backticks))
+                    for _ in 0..options.code_block_token_count {
+                        formatter.write_char(options.code_block_token)?;
+                    }
+                    Ok(())
                 }
                 Table(_) => {
                     if state.newlines_before_start < options.newlines_after_table {
@@ -359,12 +422,10 @@ where
                     Ok(())
                 }
                 TableCell => {
-                    state
-                        .table_headers
-                        .push(match state.text_for_header.take() {
-                            Some(text) => text,
-                            None => "  ".into(),
-                        });
+                    state.table_headers.push(match state.text_for_header.take() {
+                        Some(text) => text,
+                        None => "  ".into(),
+                    });
                     Ok(())
                 }
                 ref t @ TableRow | ref t @ TableHead => {
@@ -377,23 +438,16 @@ where
                         formatter
                             .write_char('\n')
                             .and(padding(&mut formatter, &state.padding))?;
-                        for (alignment, name) in state
-                            .table_alignments
-                            .iter()
-                            .zip(state.table_headers.iter())
-                        {
+                        for (alignment, name) in state.table_alignments.iter().zip(state.table_headers.iter()) {
                             formatter.write_char('|')?;
                             // NOTE: For perfect counting, count grapheme clusters.
                             // The reason this is not done is to avoid the dependency.
                             let last_minus_one = name.chars().count().saturating_sub(1);
                             for c in 0..name.len() {
                                 formatter.write_char(
-                                    if (c == 0
-                                        && (alignment == &Alignment::Center
-                                            || alignment == &Alignment::Left))
+                                    if (c == 0 && (alignment == &Alignment::Center || alignment == &Alignment::Left))
                                         || (c == last_minus_one
-                                            && (alignment == &Alignment::Center
-                                                || alignment == &Alignment::Right))
+                                            && (alignment == &Alignment::Center || alignment == &Alignment::Right))
                                     {
                                         ':'
                                     } else {
@@ -415,9 +469,7 @@ where
                 }
                 List(_) => {
                     state.list_stack.pop();
-                    if state.list_stack.is_empty()
-                        && state.newlines_before_start < options.newlines_after_list
-                    {
+                    if state.list_stack.is_empty() && state.newlines_before_start < options.newlines_after_list {
                         state.newlines_before_start = options.newlines_after_list;
                     }
                     Ok(())
@@ -434,20 +486,19 @@ where
                 FootnoteDefinition(_) => Ok(()),
                 Strikethrough => formatter.write_str("~~"),
             },
-            HardBreak => formatter
-                .write_str("  \n")
-                .and(padding(&mut formatter, &state.padding)),
-            SoftBreak => formatter
-                .write_char('\n')
-                .and(padding(&mut formatter, &state.padding)),
+            HardBreak => formatter.write_str("  \n").and(padding(&mut formatter, &state.padding)),
+            SoftBreak => formatter.write_char('\n').and(padding(&mut formatter, &state.padding)),
             Text(ref text) => {
+                if inside_shortcut {
+                    current_shortcut.push_str(text);
+                }
                 if state.store_next_text {
                     state.store_next_text = false;
                     state.text_for_header = Some(text.to_owned().into_string())
                 }
                 consume_newlines(&mut formatter, &mut state)?;
                 print_text_without_trailing_newline(
-                    &escape_leading_special_characters(text, state.is_in_code_block),
+                    &escape_leading_special_characters(text, state.is_in_code_block, &options),
                     &mut formatter,
                     &state.padding,
                 )
@@ -464,15 +515,18 @@ where
             }
         }?
     }
+    if !shortcuts.is_empty() {
+        formatter.write_str("\n")?;
+        for shortcut in shortcuts {
+            write!(formatter, "\n[{}", shortcut.0)?;
+            close_link(&shortcut.1, &shortcut.2, &mut formatter, LinkType::Shortcut)?
+        }
+    }
     Ok(state)
 }
 
 /// As [`cmark_with_options()`], but with default [`Options`].
-pub fn cmark<'a, I, E, F>(
-    events: I,
-    formatter: F,
-    state: Option<State<'static>>,
-) -> Result<State<'static>, fmt::Error>
+pub fn cmark<'a, I, E, F>(events: I, formatter: F, state: Option<State<'static>>) -> Result<State<'static>, fmt::Error>
 where
     I: Iterator<Item = E>,
     E: Borrow<Event<'a>>,

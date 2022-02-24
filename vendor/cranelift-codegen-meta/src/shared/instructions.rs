@@ -1,10 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::cdsl::instructions::{
-    AllInstructions, InstructionBuilder as Inst, InstructionGroup, InstructionGroupBuilder,
+    AllInstructions, InstructionBuilder as Inst, InstructionGroupBuilder,
 };
 use crate::cdsl::operands::Operand;
-use crate::cdsl::type_inference::Constraint::WiderOrEq;
 use crate::cdsl::types::{LaneType, ValueType};
 use crate::cdsl::typevar::{Interval, TypeSetBuilder, TypeVar};
 use crate::shared::formats::Formats;
@@ -30,26 +29,6 @@ fn define_control_flow(
         Unconditionally jump to a basic block, passing the specified
         block arguments. The number and types of arguments must match the
         destination block.
-        "#,
-            &formats.jump,
-        )
-        .operands_in(vec![block, args])
-        .is_terminator(true)
-        .is_branch(true),
-    );
-
-    ig.push(
-        Inst::new(
-            "fallthrough",
-            r#"
-        Fall through to the next block.
-
-        This is the same as `jump`, except the destination block must be
-        the next one in the layout.
-
-        Jumps are turned into fall-through instructions by the branch
-        relaxation pass. There is no reason to use this instruction outside
-        that pass.
         "#,
             &formats.jump,
         )
@@ -213,68 +192,6 @@ fn define_control_flow(
         "An integer address type",
         TypeSetBuilder::new().ints(32..64).refs(32..64).build(),
     );
-
-    {
-        let x = &Operand::new("x", iAddr).with_doc("index into jump table");
-        let addr = &Operand::new("addr", iAddr);
-        let Size = &Operand::new("Size", &imm.uimm8).with_doc("Size in bytes");
-        let JT = &Operand::new("JT", &entities.jump_table);
-        let entry = &Operand::new("entry", iAddr).with_doc("entry of jump table");
-
-        ig.push(
-            Inst::new(
-                "jump_table_entry",
-                r#"
-    Get an entry from a jump table.
-
-    Load a serialized ``entry`` from a jump table ``JT`` at a given index
-    ``addr`` with a specific ``Size``. The retrieved entry may need to be
-    decoded after loading, depending upon the jump table type used.
-
-    Currently, the only type supported is entries which are relative to the
-    base of the jump table.
-    "#,
-                &formats.branch_table_entry,
-            )
-            .operands_in(vec![x, addr, Size, JT])
-            .operands_out(vec![entry])
-            .can_load(true),
-        );
-
-        ig.push(
-            Inst::new(
-                "jump_table_base",
-                r#"
-    Get the absolute base address of a jump table.
-
-    This is used for jump tables wherein the entries are stored relative to
-    the base of jump table. In order to use these, generated code should first
-    load an entry using ``jump_table_entry``, then use this instruction to add
-    the relative base back to it.
-    "#,
-                &formats.branch_table_base,
-            )
-            .operands_in(vec![JT])
-            .operands_out(vec![addr]),
-        );
-
-        ig.push(
-            Inst::new(
-                "indirect_jump_table_br",
-                r#"
-    Branch indirectly via a jump table entry.
-
-    Unconditionally jump via a jump table entry that was previously loaded
-    with the ``jump_table_entry`` instruction.
-    "#,
-                &formats.indirect_jump,
-            )
-            .operands_in(vec![addr, JT])
-            .is_indirect_branch(true)
-            .is_terminator(true)
-            .is_branch(true),
-        );
-    }
 
     ig.push(
         Inst::new(
@@ -767,7 +684,7 @@ pub(crate) fn define(
     formats: &Formats,
     imm: &Immediates,
     entities: &EntityRefs,
-) -> InstructionGroup {
+) {
     let mut ig = InstructionGroupBuilder::new(all_instructions);
 
     define_control_flow(&mut ig, formats, imm, entities);
@@ -1880,278 +1797,6 @@ pub(crate) fn define(
         .operands_out(vec![a]),
     );
 
-    ig.push(
-        Inst::new(
-            "spill",
-            r#"
-        Spill a register value to a stack slot.
-
-        This instruction behaves exactly like `copy`, but the result
-        value is assigned to a spill slot.
-        "#,
-            &formats.unary,
-        )
-        .operands_in(vec![x])
-        .operands_out(vec![a])
-        .can_store(true),
-    );
-
-    ig.push(
-        Inst::new(
-            "fill",
-            r#"
-        Load a register value from a stack slot.
-
-        This instruction behaves exactly like `copy`, but creates a new
-        SSA value for the spilled input value.
-        "#,
-            &formats.unary,
-        )
-        .operands_in(vec![x])
-        .operands_out(vec![a])
-        .can_load(true),
-    );
-
-    ig.push(
-        Inst::new(
-            "fill_nop",
-            r#"
-        This is identical to `fill`, except it has no encoding, since it is a no-op.
-
-        This instruction is created only during late-stage redundant-reload removal, after all
-        registers and stack slots have been assigned.  It is used to replace `fill`s that have
-        been identified as redundant.
-        "#,
-            &formats.unary,
-        )
-        .operands_in(vec![x])
-        .operands_out(vec![a])
-        .can_load(true),
-    );
-
-    let Sarg = &TypeVar::new(
-        "Sarg",
-        "Any scalar or vector type with at most 128 lanes",
-        TypeSetBuilder::new()
-            .specials(vec![crate::cdsl::types::SpecialType::StructArgument])
-            .build(),
-    );
-    let sarg_t = &Operand::new("sarg_t", Sarg);
-
-    // FIXME remove once the old style codegen backends are removed.
-    ig.push(
-        Inst::new(
-            "dummy_sarg_t",
-            r#"
-        This creates a sarg_t
-
-        This instruction is internal and should not be created by
-        Cranelift users.
-        "#,
-            &formats.nullary,
-        )
-        .operands_in(vec![])
-        .operands_out(vec![sarg_t]),
-    );
-
-    let src = &Operand::new("src", &imm.regunit);
-    let dst = &Operand::new("dst", &imm.regunit);
-
-    ig.push(
-        Inst::new(
-            "regmove",
-            r#"
-        Temporarily divert ``x`` from ``src`` to ``dst``.
-
-        This instruction moves the location of a value from one register to
-        another without creating a new SSA value. It is used by the register
-        allocator to temporarily rearrange register assignments in order to
-        satisfy instruction constraints.
-
-        The register diversions created by this instruction must be undone
-        before the value leaves the block. At the entry to a new block, all live
-        values must be in their originally assigned registers.
-        "#,
-            &formats.reg_move,
-        )
-        .operands_in(vec![x, src, dst])
-        .other_side_effects(true),
-    );
-
-    ig.push(
-        Inst::new(
-            "copy_special",
-            r#"
-        Copies the contents of ''src'' register to ''dst'' register.
-
-        This instructions copies the contents of one register to another
-        register without involving any SSA values. This is used for copying
-        special registers, e.g. copying the stack register to the frame
-        register in a function prologue.
-        "#,
-            &formats.copy_special,
-        )
-        .operands_in(vec![src, dst])
-        .other_side_effects(true),
-    );
-
-    ig.push(
-        Inst::new(
-            "copy_to_ssa",
-            r#"
-        Copies the contents of ''src'' register to ''a'' SSA name.
-
-        This instruction copies the contents of one register, regardless of its SSA name, to
-        another register, creating a new SSA name.  In that sense it is a one-sided version
-        of ''copy_special''.  This instruction is internal and should not be created by
-        Cranelift users.
-        "#,
-            &formats.copy_to_ssa,
-        )
-        .operands_in(vec![src])
-        .operands_out(vec![a])
-        .other_side_effects(true),
-    );
-
-    ig.push(
-        Inst::new(
-            "copy_nop",
-            r#"
-        Stack-slot-to-the-same-stack-slot copy, which is guaranteed to turn
-        into a no-op.  This instruction is for use only within Cranelift itself.
-
-        This instruction copies its input, preserving the value type.
-        "#,
-            &formats.unary,
-        )
-        .operands_in(vec![x])
-        .operands_out(vec![a]),
-    );
-
-    let delta = &Operand::new("delta", Int);
-
-    ig.push(
-        Inst::new(
-            "adjust_sp_down",
-            r#"
-    Subtracts ``delta`` offset value from the stack pointer register.
-
-    This instruction is used to adjust the stack pointer by a dynamic amount.
-    "#,
-            &formats.unary,
-        )
-        .operands_in(vec![delta])
-        .other_side_effects(true),
-    );
-
-    let Offset = &Operand::new("Offset", &imm.imm64).with_doc("Offset from current stack pointer");
-
-    ig.push(
-        Inst::new(
-            "adjust_sp_up_imm",
-            r#"
-    Adds ``Offset`` immediate offset value to the stack pointer register.
-
-    This instruction is used to adjust the stack pointer, primarily in function
-    prologues and epilogues. ``Offset`` is constrained to the size of a signed
-    32-bit integer.
-    "#,
-            &formats.unary_imm,
-        )
-        .operands_in(vec![Offset])
-        .other_side_effects(true),
-    );
-
-    let Offset = &Operand::new("Offset", &imm.imm64).with_doc("Offset from current stack pointer");
-
-    ig.push(
-        Inst::new(
-            "adjust_sp_down_imm",
-            r#"
-    Subtracts ``Offset`` immediate offset value from the stack pointer
-    register.
-
-    This instruction is used to adjust the stack pointer, primarily in function
-    prologues and epilogues. ``Offset`` is constrained to the size of a signed
-    32-bit integer.
-    "#,
-            &formats.unary_imm,
-        )
-        .operands_in(vec![Offset])
-        .other_side_effects(true),
-    );
-
-    let f = &Operand::new("f", iflags);
-
-    ig.push(
-        Inst::new(
-            "ifcmp_sp",
-            r#"
-    Compare ``addr`` with the stack pointer and set the CPU flags.
-
-    This is like `ifcmp` where ``addr`` is the LHS operand and the stack
-    pointer is the RHS.
-    "#,
-            &formats.unary,
-        )
-        .operands_in(vec![addr])
-        .operands_out(vec![f]),
-    );
-
-    ig.push(
-        Inst::new(
-            "regspill",
-            r#"
-        Temporarily divert ``x`` from ``src`` to ``SS``.
-
-        This instruction moves the location of a value from a register to a
-        stack slot without creating a new SSA value. It is used by the register
-        allocator to temporarily rearrange register assignments in order to
-        satisfy instruction constraints.
-
-        See also `regmove`.
-        "#,
-            &formats.reg_spill,
-        )
-        .operands_in(vec![x, src, SS])
-        .other_side_effects(true),
-    );
-
-    ig.push(
-        Inst::new(
-            "regfill",
-            r#"
-        Temporarily divert ``x`` from ``SS`` to ``dst``.
-
-        This instruction moves the location of a value from a stack slot to a
-        register without creating a new SSA value. It is used by the register
-        allocator to temporarily rearrange register assignments in order to
-        satisfy instruction constraints.
-
-        See also `regmove`.
-        "#,
-            &formats.reg_fill,
-        )
-        .operands_in(vec![x, SS, dst])
-        .other_side_effects(true),
-    );
-
-    let N =
-        &Operand::new("args", &entities.varargs).with_doc("Variable number of args for StackMap");
-
-    ig.push(
-        Inst::new(
-            "safepoint",
-            r#"
-        This instruction will provide live reference values at a point in
-        the function. It can only be used by the compiler.
-        "#,
-            &formats.multiary,
-        )
-        .operands_in(vec![N])
-        .other_side_effects(true),
-    );
-
     let x = &Operand::new("x", TxN).with_doc("Vector to split");
     let lo = &Operand::new("lo", &TxN.half_vector()).with_doc("Low-numbered lanes of `x`");
     let hi = &Operand::new("hi", &TxN.half_vector()).with_doc("High-numbered lanes of `x`");
@@ -2169,8 +1814,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![lo, hi])
-        .is_ghost(true),
+        .operands_out(vec![lo, hi]),
     );
 
     let Any128 = &TypeVar::new(
@@ -2205,8 +1849,7 @@ pub(crate) fn define(
             &formats.binary,
         )
         .operands_in(vec![x, y])
-        .operands_out(vec![a])
-        .is_ghost(true),
+        .operands_out(vec![a]),
     );
 
     let c = &Operand::new("c", &TxN.as_bool()).with_doc("Controlling vector");
@@ -2302,10 +1945,9 @@ pub(crate) fn define(
         | of     | *        | Overflow              |
         | nof    | *        | No Overflow           |
 
-        \* The unsigned version of overflow conditions have ISA-specific
-        semantics and thus have been kept as methods on the TargetIsa trait as
-        [unsigned_add_overflow_condition][isa::TargetIsa::unsigned_add_overflow_condition] and
-        [unsigned_sub_overflow_condition][isa::TargetIsa::unsigned_sub_overflow_condition].
+        \* The unsigned version of overflow condition for add has ISA-specific semantics and thus
+        has been kept as a method on the TargetIsa trait as
+        [unsigned_add_overflow_condition][crate::isa::TargetIsa::unsigned_add_overflow_condition].
 
         When this instruction compares integer vectors, it returns a boolean
         vector of lane-wise comparisons.
@@ -2454,8 +2096,7 @@ pub(crate) fn define(
         Unsigned integer multiplication, producing the high half of a
         double-length result.
 
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
+        Polymorphic over all integer types (vector and scalar).
         "#,
             &formats.binary,
         )
@@ -2470,8 +2111,7 @@ pub(crate) fn define(
         Signed integer multiplication, producing the high half of a
         double-length result.
 
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
+        Polymorphic over all integer types (vector and scalar).
         "#,
             &formats.binary,
         )
@@ -3597,9 +3237,12 @@ pub(crate) fn define(
         Inst::new(
             "fmin",
             r#"
-        Floating point minimum, propagating NaNs.
+        Floating point minimum, propagating NaNs using the WebAssembly rules.
 
-        If either operand is NaN, this returns a NaN.
+        If either operand is NaN, this returns NaN with an unspecified sign. Furthermore, if
+        each input NaN consists of a mantissa whose most significant bit is 1 and the rest is
+        0, then the output has the same form. Otherwise, the output mantissa's most significant
+        bit is 1 and the rest is unspecified.
         "#,
             &formats.binary,
         )
@@ -3629,9 +3272,12 @@ pub(crate) fn define(
         Inst::new(
             "fmax",
             r#"
-        Floating point maximum, propagating NaNs.
+        Floating point maximum, propagating NaNs using the WebAssembly rules.
 
-        If either operand is NaN, this returns a NaN.
+        If either operand is NaN, this returns NaN with an unspecified sign. Furthermore, if
+        each input NaN consists of a mantissa whose most significant bit is 1 and the rest is
+        0, then the output has the same form. Otherwise, the output mantissa's most significant
+        bit is 1 and the rest is unspecified.
         "#,
             &formats.binary,
         )
@@ -3871,8 +3517,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![a])
-        .constraints(vec![WiderOrEq(Bool.clone(), BoolTo.clone())]),
+        .operands_out(vec![a]),
     );
 
     let BoolTo = &TypeVar::new(
@@ -3899,8 +3544,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![a])
-        .constraints(vec![WiderOrEq(BoolTo.clone(), Bool.clone())]),
+        .operands_out(vec![a]),
     );
 
     let IntTo = &TypeVar::new(
@@ -3981,8 +3625,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![a])
-        .constraints(vec![WiderOrEq(Int.clone(), IntTo.clone())]),
+        .operands_out(vec![a]),
     );
 
     let I16or32or64xN = &TypeVar::new(
@@ -4043,7 +3686,7 @@ pub(crate) fn define(
         Combine `x` and `y` into a vector with twice the lanes but half the integer width while
         saturating overflowing values to the unsigned maximum and minimum.
 
-        Note that all input lanes are considered unsigned.
+        Note that all input lanes are considered unsigned: any negative values will be interpreted as unsigned, overflowing and being replaced with the unsigned maximum.
 
         The lanes will be concatenated after narrowing. For example, when `x` and `y` are `i32x4`
         and `x = [x3, x2, x1, x0]` and `y = [y3, y2, y1, y0]`, then after narrowing the value
@@ -4208,8 +3851,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![a])
-        .constraints(vec![WiderOrEq(IntTo.clone(), Int.clone())]),
+        .operands_out(vec![a]),
     );
 
     ig.push(
@@ -4229,8 +3871,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![a])
-        .constraints(vec![WiderOrEq(IntTo.clone(), Int.clone())]),
+        .operands_out(vec![a]),
     );
 
     let FloatTo = &TypeVar::new(
@@ -4263,8 +3904,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![a])
-        .constraints(vec![WiderOrEq(FloatTo.clone(), Float.clone())]),
+        .operands_out(vec![a]),
     );
 
     ig.push(
@@ -4286,8 +3926,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![a])
-        .constraints(vec![WiderOrEq(Float.clone(), FloatTo.clone())]),
+        .operands_out(vec![a]),
     );
 
     let F64x2 = &TypeVar::new(
@@ -4505,8 +4144,7 @@ pub(crate) fn define(
             &formats.unary,
         )
         .operands_in(vec![x])
-        .operands_out(vec![lo, hi])
-        .is_ghost(true),
+        .operands_out(vec![lo, hi]),
     );
 
     let NarrowInt = &TypeVar::new(
@@ -4536,8 +4174,7 @@ pub(crate) fn define(
             &formats.binary,
         )
         .operands_in(vec![lo, hi])
-        .operands_out(vec![a])
-        .is_ghost(true),
+        .operands_out(vec![a]),
     );
 
     // Instructions relating to atomic memory accesses and fences
@@ -4643,6 +4280,4 @@ pub(crate) fn define(
         )
         .other_side_effects(true),
     );
-
-    ig.build()
 }

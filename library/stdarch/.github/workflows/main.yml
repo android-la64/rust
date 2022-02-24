@@ -72,6 +72,7 @@ jobs:
         - arm-unknown-linux-gnueabihf
         - armv7-unknown-linux-gnueabihf
         - aarch64-unknown-linux-gnu
+        - riscv64gc-unknown-linux-gnu
         - powerpc64le-unknown-linux-gnu
         - mips-unknown-linux-gnu
         - mips64-unknown-linux-gnuabi64
@@ -116,7 +117,6 @@ jobs:
           os: ubuntu-latest
         - target: armv7-unknown-linux-gnueabihf
           os: ubuntu-latest
-          rustflags: -C target-feature=+neon
         - target: mips-unknown-linux-gnu
           os: ubuntu-latest
           norun: true
@@ -167,6 +167,8 @@ jobs:
         - target: thumbv7em-none-eabi
           os: ubuntu-latest
         - target: thumbv7em-none-eabihf
+          os: ubuntu-latest
+        - target: riscv64gc-unknown-linux-gnu
           os: ubuntu-latest
 
     steps:

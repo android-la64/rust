@@ -66,17 +66,12 @@ impl Project {
     }
 
     pub fn spawn_rls_async(&self) -> RlsHandle<ChildProcess> {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .worker_threads(1)
-            .enable_all()
-            .build()
-            .unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
 
         let cmd = self.rls_cmd();
-        let process = {
-            let _guard = rt.enter();
-            ChildProcess::spawn_from_command(cmd).unwrap()
-        };
+        let guard = rt.enter();
+        let process = ChildProcess::spawn_from_command(cmd).unwrap();
+        drop(guard);
         self.spawn_rls_with_params(rt, process)
     }
 

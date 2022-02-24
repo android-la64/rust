@@ -61,6 +61,16 @@ fn input_matches_const<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput) -> 
     input.constant
 }
 
+/// Lower an instruction input to a 64-bit signed constant, if possible.
+fn input_matches_sconst<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput) -> Option<i64> {
+    if let Some(imm) = input_matches_const(ctx, input) {
+        let ty = ctx.input_ty(input.insn, input.input);
+        Some(sign_extend_to_u64(imm, ty_bits(ty) as u8) as i64)
+    } else {
+        None
+    }
+}
+
 /// Return false if instruction input cannot have the value Imm, true otherwise.
 fn input_maybe_imm<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput, imm: u64) -> bool {
     if let Some(c) = input_matches_const(ctx, input) {
@@ -79,8 +89,8 @@ fn input_maybe_imm<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput, imm: u6
 
 /// Lower an instruction input to a 16-bit signed constant, if possible.
 fn input_matches_simm16<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput) -> Option<i16> {
-    if let Some(imm_value) = input_matches_const(ctx, input) {
-        if let Ok(imm) = i16::try_from(imm_value as i64) {
+    if let Some(imm_value) = input_matches_sconst(ctx, input) {
+        if let Ok(imm) = i16::try_from(imm_value) {
             return Some(imm);
         }
     }
@@ -89,8 +99,8 @@ fn input_matches_simm16<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput) ->
 
 /// Lower an instruction input to a 32-bit signed constant, if possible.
 fn input_matches_simm32<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput) -> Option<i32> {
-    if let Some(imm_value) = input_matches_const(ctx, input) {
-        if let Ok(imm) = i32::try_from(imm_value as i64) {
+    if let Some(imm_value) = input_matches_sconst(ctx, input) {
+        if let Ok(imm) = i32::try_from(imm_value) {
             return Some(imm);
         }
     }
@@ -112,8 +122,8 @@ fn negated_input_matches_simm16<C: LowerCtx<I = Inst>>(
     ctx: &mut C,
     input: InsnInput,
 ) -> Option<i16> {
-    if let Some(imm_value) = input_matches_const(ctx, input) {
-        if let Ok(imm) = i16::try_from(-(imm_value as i64)) {
+    if let Some(imm_value) = input_matches_sconst(ctx, input) {
+        if let Ok(imm) = i16::try_from(-imm_value) {
             return Some(imm);
         }
     }
@@ -125,8 +135,8 @@ fn negated_input_matches_simm32<C: LowerCtx<I = Inst>>(
     ctx: &mut C,
     input: InsnInput,
 ) -> Option<i32> {
-    if let Some(imm_value) = input_matches_const(ctx, input) {
-        if let Ok(imm) = i32::try_from(-(imm_value as i64)) {
+    if let Some(imm_value) = input_matches_sconst(ctx, input) {
+        if let Ok(imm) = i32::try_from(-imm_value) {
             return Some(imm);
         }
     }
@@ -651,16 +661,7 @@ fn lower_icmp_to_flags<C: LowerCtx<I = Inst>>(
         (false, true) => NarrowValueMode::SignExtend64,
         (false, false) => NarrowValueMode::ZeroExtend64,
     };
-    let inputs = [
-        InsnInput {
-            insn: insn,
-            input: 0,
-        },
-        InsnInput {
-            insn: insn,
-            input: 1,
-        },
-    ];
+    let inputs = [InsnInput { insn, input: 0 }, InsnInput { insn, input: 1 }];
     let ty = ctx.input_ty(insn, 0);
     let rn = put_input_in_reg(ctx, inputs[0], narrow_mode);
     if is_signed {
@@ -749,16 +750,7 @@ fn lower_icmp_to_flags<C: LowerCtx<I = Inst>>(
 fn lower_fcmp_to_flags<C: LowerCtx<I = Inst>>(ctx: &mut C, insn: IRInst) {
     let ty = ctx.input_ty(insn, 0);
     let bits = ty_bits(ty);
-    let inputs = [
-        InsnInput {
-            insn: insn,
-            input: 0,
-        },
-        InsnInput {
-            insn: insn,
-            input: 1,
-        },
-    ];
+    let inputs = [InsnInput { insn, input: 0 }, InsnInput { insn, input: 1 }];
     let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
     let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
     match bits {
@@ -963,17 +955,37 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             }
         }
         Opcode::IaddIfcout => {
-            // This only supports the operands emitted by dynamic_addr.
             let ty = ty.unwrap();
             assert!(ty == types::I32 || ty == types::I64);
-            let alu_op = choose_32_64(ty, ALUOp::Add32, ALUOp::Add64);
+            // Emit an ADD LOGICAL instruction, which sets the condition code
+            // to indicate an (unsigned) carry bit.
+            let alu_op = choose_32_64(ty, ALUOp::AddLogical32, ALUOp::AddLogical64);
             let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
             let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-            let imm = input_matches_uimm32(ctx, inputs[1]).unwrap();
-            ctx.emit(Inst::gen_move(rd, rn, ty));
-            // Note that this will emit AL(G)FI, which sets the condition
-            // code to indicate an (unsigned) carry bit.
-            ctx.emit(Inst::AluRUImm32 { alu_op, rd, imm });
+            if let Some(imm) = input_matches_uimm32(ctx, inputs[1]) {
+                ctx.emit(Inst::gen_move(rd, rn, ty));
+                ctx.emit(Inst::AluRUImm32 { alu_op, rd, imm });
+            } else if let Some(mem) = input_matches_mem(ctx, inputs[1]) {
+                ctx.emit(Inst::gen_move(rd, rn, ty));
+                ctx.emit(Inst::AluRX { alu_op, rd, mem });
+            } else if let Some(mem) = input_matches_uext32_mem(ctx, inputs[1]) {
+                ctx.emit(Inst::gen_move(rd, rn, ty));
+                ctx.emit(Inst::AluRX {
+                    alu_op: ALUOp::AddLogical64Ext32,
+                    rd,
+                    mem,
+                });
+            } else if let Some(rm) = input_matches_uext32_reg(ctx, inputs[1]) {
+                ctx.emit(Inst::gen_move(rd, rn, ty));
+                ctx.emit(Inst::AluRR {
+                    alu_op: ALUOp::AddLogical64Ext32,
+                    rd,
+                    rm,
+                });
+            } else {
+                let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
+                ctx.emit(Inst::AluRRR { alu_op, rd, rn, rm });
+            }
         }
 
         Opcode::UaddSat | Opcode::SaddSat => unimplemented!(),
@@ -2876,23 +2888,6 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
 
         Opcode::Isplit | Opcode::Iconcat => unimplemented!("Wide integer ops not implemented."),
 
-        Opcode::Spill
-        | Opcode::Fill
-        | Opcode::FillNop
-        | Opcode::Regmove
-        | Opcode::CopySpecial
-        | Opcode::CopyToSsa
-        | Opcode::CopyNop
-        | Opcode::AdjustSpDown
-        | Opcode::AdjustSpUpImm
-        | Opcode::AdjustSpDownImm
-        | Opcode::DummySargT
-        | Opcode::IfcmpSp
-        | Opcode::Regspill
-        | Opcode::Regfill => {
-            panic!("Unused opcode should not be encountered.");
-        }
-
         Opcode::Ifcmp
         | Opcode::Ffcmp
         | Opcode::Trapff
@@ -2903,23 +2898,13 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         }
 
         Opcode::Jump
-        | Opcode::Fallthrough
         | Opcode::Brz
         | Opcode::Brnz
         | Opcode::BrIcmp
         | Opcode::Brif
         | Opcode::Brff
-        | Opcode::IndirectJumpTableBr
         | Opcode::BrTable => {
             panic!("Branch opcode reached non-branch lowering logic!");
-        }
-
-        Opcode::JumpTableEntry | Opcode::JumpTableBase => {
-            panic!("Should not appear: we handle BrTable directly");
-        }
-
-        Opcode::Safepoint => {
-            panic!("safepoint instructions not used by new backend's safepoints!");
         }
 
         Opcode::IaddImm
@@ -2952,45 +2937,6 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         | Opcode::IfcmpImm => {
             panic!("ALU+imm and ALU+carry ops should not appear here!");
         }
-
-        #[cfg(feature = "x86")]
-        Opcode::X86Udivmodx
-        | Opcode::X86Sdivmodx
-        | Opcode::X86Umulx
-        | Opcode::X86Smulx
-        | Opcode::X86Cvtt2si
-        | Opcode::X86Fmin
-        | Opcode::X86Fmax
-        | Opcode::X86Push
-        | Opcode::X86Pop
-        | Opcode::X86Bsr
-        | Opcode::X86Bsf
-        | Opcode::X86Pblendw
-        | Opcode::X86Pshufd
-        | Opcode::X86Pshufb
-        | Opcode::X86Pextr
-        | Opcode::X86Pinsr
-        | Opcode::X86Insertps
-        | Opcode::X86Movsd
-        | Opcode::X86Movlhps
-        | Opcode::X86Psll
-        | Opcode::X86Psrl
-        | Opcode::X86Psra
-        | Opcode::X86Ptest
-        | Opcode::X86Pmaxs
-        | Opcode::X86Pmaxu
-        | Opcode::X86Pmins
-        | Opcode::X86Pminu
-        | Opcode::X86Pmullq
-        | Opcode::X86Pmuludq
-        | Opcode::X86Punpckh
-        | Opcode::X86Punpckl
-        | Opcode::X86Vcvtudq2ps
-        | Opcode::X86Palignr
-        | Opcode::X86ElfTlsGetAddr
-        | Opcode::X86MachoTlsGetAddr => {
-            panic!("x86-specific opcode in supposedly arch-neutral IR!");
-        }
     }
 
     Ok(())
@@ -3017,7 +2963,7 @@ fn lower_branch<C: LowerCtx<I = Inst>>(
         let op0 = ctx.data(branches[0]).opcode();
         let op1 = ctx.data(branches[1]).opcode();
 
-        assert!(op1 == Opcode::Jump || op1 == Opcode::Fallthrough);
+        assert!(op1 == Opcode::Jump);
         let taken = BranchTarget::Label(targets[0]);
         let not_taken = BranchTarget::Label(targets[1]);
 
@@ -3066,11 +3012,8 @@ fn lower_branch<C: LowerCtx<I = Inst>>(
         // Must be an unconditional branch or an indirect branch.
         let op = ctx.data(branches[0]).opcode();
         match op {
-            Opcode::Jump | Opcode::Fallthrough => {
+            Opcode::Jump => {
                 assert!(branches.len() == 1);
-                // In the Fallthrough case, the machine-independent driver
-                // fills in `targets[0]` with our fallthrough block, so this
-                // is valid for both Jump and Fallthrough.
                 ctx.emit(Inst::Jump {
                     dest: BranchTarget::Label(targets[0]),
                 });
@@ -3126,7 +3069,7 @@ fn lower_branch<C: LowerCtx<I = Inst>>(
                     info: Box::new(JTSequenceInfo {
                         default_target,
                         targets: jt_targets,
-                        targets_for_term: targets_for_term,
+                        targets_for_term,
                     }),
                 });
             }

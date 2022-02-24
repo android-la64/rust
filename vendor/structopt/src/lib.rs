@@ -7,6 +7,7 @@
 // except according to those terms.
 
 #![deny(missing_docs)]
+#![forbid(unsafe_code)]
 
 //! This crate defines the `StructOpt` trait and its custom derive.
 //!
@@ -51,6 +52,7 @@
 //!     - [Flattening subcommands](#flattening-subcommands)
 //! - [Flattening](#flattening)
 //! - [Custom string parsers](#custom-string-parsers)
+//! - [Generics](#generics)
 //!
 //!
 //!
@@ -58,7 +60,7 @@
 //!
 //! First, let's look at the example:
 //!
-//! ```should_panic
+//! ```
 //! use std::path::PathBuf;
 //! use structopt::StructOpt;
 //!
@@ -93,7 +95,10 @@
 //! }
 //!
 //! fn main() {
+//! #   /*
 //!     let opt = Opt::from_args();
+//! #   */
+//! #   let opt = Opt::from_iter(&["binary", "-o", "stdout", "input"]);
 //!     println!("{:?}", opt);
 //! }
 //! ```
@@ -132,13 +137,17 @@
 //!     They are what used to be explicit `#[structopt(raw(...))]` attrs in pre-0.3 `structopt`
 //!
 //! Every `structopt attribute` looks like comma-separated sequence of methods:
-//! ```rust,ignore
+//! ```
+//! # #[derive(structopt::StructOpt)] struct S {
+//! #
 //! #[structopt(
 //!     short, // method with no arguments - always magical
 //!     long = "--long-option", // method with one argument
 //!     required_if("out", "file"), // method with one and more args
 //!     parse(from_os_str = path::to::parser) // some magical methods have their own syntax
 //! )]
+//! #
+//! # s: () } mod path { pub(crate) mod to { pub(crate) fn parser(_: &std::ffi::OsStr) {} }}
 //! ```
 //!
 //! `#[structopt(...)]` attributes can be placed on top of `struct`, `enum`,
@@ -172,11 +181,15 @@
 //! They are the reason why `structopt` is so flexible. **Every and each method from
 //! `clap::App/Arg` can be used this way!**
 //!
-//! ```ignore
+//! ```
+//! # #[derive(structopt::StructOpt)] struct S {
+//! #
 //! #[structopt(
 //!     global = true, // name = arg form, neat for one-arg methods
 //!     required_if("out", "file") // name(arg1, arg2, ...) form.
 //! )]
+//! #
+//! # s: String }
 //! ```
 //!
 //! The first form can only be used for methods which take only one argument.
@@ -308,7 +321,7 @@
 //!
 //!     Usable only on field-level.
 //!
-//! - [`rename_all_env`](##auto-deriving-environment-variables):
+//! - [`rename_all_env`](#auto-deriving-environment-variables):
 //!     [`rename_all_env = "kebab"/"snake"/"screaming-snake"/"camel"/"pascal"/"verbatim"/"lower"/"upper"]`
 //!
 //!     Usable both on top level and field level.
@@ -433,7 +446,6 @@
 //!     /// for its type (in this case 0).
 //!     #[structopt(skip)]
 //!     skipped: u32,
-//!
 //! }
 //!
 //! # Opt::from_iter(
@@ -450,7 +462,7 @@
 //! #[derive(StructOpt)]
 //! struct Opt {
 //!     #[structopt(default_value = "", long)]
-//!     prefix: String
+//!     prefix: String,
 //! }
 //! ```
 //!
@@ -472,7 +484,7 @@
 //! struct Opt {
 //!     // just leave the `= "..."` part and structopt will figure it for you
 //!     #[structopt(default_value, long)]
-//!     prefix: String // `String` implements both `Default` and `ToString`
+//!     prefix: String, // `String` implements both `Default` and `ToString`
 //! }
 //! ```
 //!
@@ -497,8 +509,8 @@
 //! #[derive(StructOpt)]
 //! #[structopt(about = "I am a program and I work, just pass `-h`")]
 //! struct Foo {
-//!   #[structopt(short, help = "Pass `-h` and you'll see me!")]
-//!   bar: String
+//!     #[structopt(short, help = "Pass `-h` and you'll see me!")]
+//!     bar: String,
 //! }
 //! ```
 //!
@@ -511,8 +523,8 @@
 //! #[derive(StructOpt)]
 //! /// I am a program and I work, just pass `-h`
 //! struct Foo {
-//!   /// Pass `-h` and you'll see me!
-//!   bar: String
+//!     /// Pass `-h` and you'll see me!
+//!     bar: String,
 //! }
 //! ```
 //!
@@ -532,7 +544,7 @@
 //!
 //! ### `long_help` and `--help`
 //!
-//! A message passed to [`App::long_help`] or [`Arg::long_about`] will be displayed whenever
+//! A message passed to [`App::long_about`] or [`Arg::long_help`] will be displayed whenever
 //! your program is called with `--help` instead of `-h`. Of course, you can
 //! use them via raw methods as described [above](#help-messages).
 //!
@@ -553,7 +565,7 @@
 //!     /// until I'll have destroyed humanity. Enjoy your
 //!     /// pathetic existence, you mere mortals.
 //!     #[structopt(long)]
-//!     kill_all_humans: bool
+//!     kill_all_humans: bool,
 //! }
 //! ```
 //!
@@ -585,8 +597,8 @@
 //!
 //! The `-h` flag is not the same as `--help`.
 //!
-//! -h corresponds to Arg::help/App::about and requests short "summary" messages
-//! while --help corresponds to Arg::long_help/App::long_about and requests more
+//! -h corresponds to `Arg::help/App::about` and requests short "summary" messages
+//! while --help corresponds to `Arg::long_help/App::long_about` and requests more
 //! detailed, descriptive messages.
 //!
 //! It is entirely up to `clap` what happens if you used only one of
@@ -630,7 +642,7 @@
 //! Also, `structopt` will *still* remove leading and trailing blank lines so
 //! these formats are equivalent:
 //!
-//! ```ignore
+//! ```
 //! /** This is a doc comment
 //!
 //! Hello! */
@@ -644,6 +656,8 @@
 //! /// This is a doc comment
 //! ///
 //! /// Hello!
+//! #
+//! # mod m {}
 //! ```
 //! ______________
 //!
@@ -663,8 +677,8 @@
 //!
 //! #[derive(StructOpt)]
 //! struct Foo {
-//!   #[structopt(short, long, env = "PARAMETER_VALUE")]
-//!   parameter_value: String
+//!     #[structopt(short, long, env = "PARAMETER_VALUE")]
+//!     parameter_value: String,
 //! }
 //! ```
 //!
@@ -686,8 +700,8 @@
 //!
 //! #[derive(StructOpt)]
 //! struct Foo {
-//!   #[structopt(long = "secret", env = "SECRET_VALUE", hide_env_values = true)]
-//!   secret_value: String
+//!     #[structopt(long = "secret", env = "SECRET_VALUE", hide_env_values = true)]
+//!     secret_value: String,
 //! }
 //! ```
 //!
@@ -705,8 +719,8 @@
 //!
 //! #[derive(StructOpt)]
 //! struct Foo {
-//!   #[structopt(long = "secret", env)]
-//!   secret_value: String
+//!     #[structopt(long = "secret", env)]
+//!     secret_value: String,
 //! }
 //! ```
 //!
@@ -772,21 +786,21 @@
 //!         #[structopt(short)]
 //!         patch: bool,
 //!         #[structopt(parse(from_os_str))]
-//!         files: Vec<PathBuf>
+//!         files: Vec<PathBuf>,
 //!     },
 //!     Fetch {
 //!         #[structopt(long)]
 //!         dry_run: bool,
 //!         #[structopt(long)]
 //!         all: bool,
-//!         repository: Option<String>
+//!         repository: Option<String>,
 //!     },
 //!     Commit {
 //!         #[structopt(short)]
 //!         message: Option<String>,
 //!         #[structopt(short)]
-//!         all: bool
-//!     }
+//!         all: bool,
+//!     },
 //! }
 //! ```
 //!
@@ -805,22 +819,22 @@
 //!     supervising_faerie: String,
 //!     /// The faerie tree this cookie is being made in.
 //!     tree: Option<String>,
-//!     #[structopt(subcommand)]  // Note that we mark a field as a subcommand
-//!     cmd: Command
+//!     #[structopt(subcommand)] // Note that we mark a field as a subcommand
+//!     cmd: Command,
 //! }
 //!
 //! #[derive(StructOpt)]
 //! enum Command {
 //!     /// Pound acorns into flour for cookie dough.
 //!     Pound {
-//!         acorns: u32
+//!         acorns: u32,
 //!     },
 //!     /// Add magical sparkles -- the secret ingredient!
 //!     Sparkle {
 //!         #[structopt(short, parse(from_occurrences))]
 //!         magicality: u64,
 //!         #[structopt(short)]
-//!         color: String
+//!         color: String,
 //!     },
 //!     Finish(Finish),
 //! }
@@ -830,19 +844,19 @@
 //! struct Finish {
 //!     #[structopt(short)]
 //!     time: u32,
-//!     #[structopt(subcommand)]  // Note that we mark a field as a subcommand
-//!     finish_type: FinishType
+//!     #[structopt(subcommand)] // Note that we mark a field as a subcommand
+//!     finish_type: FinishType,
 //! }
 //!
 //! // subsubcommand!
 //! #[derive(StructOpt)]
 //! enum FinishType {
 //!     Glaze {
-//!         applications: u32
+//!         applications: u32,
 //!     },
 //!     Powder {
 //!         flavor: String,
-//!         dips: u32
+//!         dips: u32,
 //!     }
 //! }
 //! ```
@@ -866,14 +880,14 @@
 //! struct Foo {
 //!     file: String,
 //!     #[structopt(subcommand)]
-//!     cmd: Option<Command>
+//!     cmd: Option<Command>,
 //! }
 //!
 //! #[derive(StructOpt)]
 //! enum Command {
 //!     Bar,
 //!     Baz,
-//!     Quux
+//!     Quux,
 //! }
 //! ```
 //!
@@ -951,7 +965,7 @@
 //!     BaseCli(BaseCli),
 //!     Dex {
 //!         arg2: i32,
-//!     }
+//!     },
 //! }
 //! ```
 //!
@@ -1052,6 +1066,40 @@
 //! In the `try_from_*` variants, the function will run twice on valid input:
 //! once to validate, and once to parse. Hence, make sure the function is
 //! side-effect-free.
+//!
+//! ## Generics
+//!
+//! Generic structs and enums can be used. They require explicit trait bounds
+//! on any generic types that will be used by the `StructOpt` derive macro. In
+//! some cases, associated types will require additional bounds. See the usage
+//! of `FromStr` below for an example of this.
+//!
+//! ```
+//! # use structopt::StructOpt;
+//! use std::{fmt, str::FromStr};
+//!
+//! // a struct with single custom argument
+//! #[derive(StructOpt)]
+//! struct GenericArgs<T: FromStr> where <T as FromStr>::Err: fmt::Display + fmt::Debug {
+//!     generic_arg_1: String,
+//!     generic_arg_2: String,
+//!     custom_arg_1: T,
+//! }
+//! ```
+//!
+//! or
+//!
+//! ```
+//! # use structopt::StructOpt;
+//! // a struct with multiple custom arguments in a substructure
+//! #[derive(StructOpt)]
+//! struct GenericArgs<T: StructOpt> {
+//!     generic_arg_1: String,
+//!     generic_arg_2: String,
+//!     #[structopt(flatten)]
+//!     custom_args: T,
+//! }
+//! ```
 
 // those mains are for a reason
 #![allow(clippy::needless_doctest_main)]
@@ -1072,15 +1120,16 @@ pub use lazy_static;
 
 /// A struct that is converted from command line arguments.
 pub trait StructOpt {
-    /// Returns the corresponding `clap::App`.
+    /// Returns [`clap::App`] corresponding to the struct.
     fn clap<'a, 'b>() -> clap::App<'a, 'b>;
 
-    /// Creates the struct from `clap::ArgMatches`.  It cannot fail
-    /// with a parameter generated by `clap` by construction.
+    /// Builds the struct from [`clap::ArgMatches`]. It's guaranteed to succeed
+    /// if `matches` originates from an `App` generated by [`StructOpt::clap`] called on
+    /// the same type, otherwise it must panic.
     fn from_clap(matches: &clap::ArgMatches<'_>) -> Self;
 
-    /// Gets the struct from the command line arguments.  Print the
-    /// error message and quit the program in case of failure.
+    /// Builds the struct from the command line arguments ([`std::env::args_os`]).
+    /// Calls [`clap::Error::exit`] on failure, printing the error message and aborting the program.
     fn from_args() -> Self
     where
         Self: Sized,
@@ -1088,13 +1137,23 @@ pub trait StructOpt {
         Self::from_clap(&Self::clap().get_matches())
     }
 
+    /// Builds the struct from the command line arguments ([`std::env::args_os`]).
+    /// Unlike [`StructOpt::from_args`], returns [`clap::Error`] on failure instead of aborting the program,
+    /// so calling [`.exit`][clap::Error::exit] is up to you.
+    fn from_args_safe() -> Result<Self, clap::Error>
+    where
+        Self: Sized,
+    {
+        Self::clap()
+            .get_matches_safe()
+            .map(|matches| Self::from_clap(&matches))
+    }
+
     /// Gets the struct from any iterator such as a `Vec` of your making.
     /// Print the error message and quit the program in case of failure.
     ///
     /// **NOTE**: The first argument will be parsed as the binary name unless
-    /// [`AppSettings::NoBinaryName`] has been used.
-    ///
-    /// [`AppSettings::NoBinaryName`]: https://docs.rs/clap/2.33.0/clap/enum.AppSettings.html#variant.NoBinaryName
+    /// [`clap::AppSettings::NoBinaryName`] has been used.
     fn from_iter<I>(iter: I) -> Self
     where
         Self: Sized,
@@ -1106,14 +1165,12 @@ pub trait StructOpt {
 
     /// Gets the struct from any iterator such as a `Vec` of your making.
     ///
-    /// Returns a `clap::Error` in case of failure. This does *not* exit in the
+    /// Returns a [`clap::Error`] in case of failure. This does *not* exit in the
     /// case of `--help` or `--version`, to achieve the same behavior as
-    /// `from_iter()` you must call `.exit()` on the error value.
+    /// [`from_iter()`][StructOpt::from_iter] you must call [`.exit()`][clap::Error::exit] on the error value.
     ///
     /// **NOTE**: The first argument will be parsed as the binary name unless
-    /// [`AppSettings::NoBinaryName`] has been used.
-    ///
-    /// [`AppSettings::NoBinaryName`]: https://docs.rs/clap/2.33.0/clap/enum.AppSettings.html#variant.NoBinaryName
+    /// [`clap::AppSettings::NoBinaryName`] has been used.
     fn from_iter_safe<I>(iter: I) -> Result<Self, clap::Error>
     where
         Self: Sized,

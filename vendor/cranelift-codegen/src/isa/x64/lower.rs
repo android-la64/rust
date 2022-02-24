@@ -2,8 +2,9 @@
 
 use crate::data_value::DataValue;
 use crate::ir::{
-    condcodes::FloatCC, condcodes::IntCC, types, AbiParam, ArgumentPurpose, ExternalName,
-    Inst as IRInst, InstructionData, LibCall, Opcode, Signature, Type,
+    condcodes::{CondCode, FloatCC, IntCC},
+    types, AbiParam, ArgumentPurpose, ExternalName, Inst as IRInst, InstructionData, LibCall,
+    Opcode, Signature, Type,
 };
 use crate::isa::x64::abi::*;
 use crate::isa::x64::inst::args::*;
@@ -15,7 +16,6 @@ use crate::result::CodegenResult;
 use crate::settings::{Flags, TlsModel};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use cranelift_codegen_shared::condcodes::CondCode;
 use log::trace;
 use regalloc::{Reg, RegClass, Writable};
 use smallvec::{smallvec, SmallVec};
@@ -236,7 +236,7 @@ fn extend_input_to_reg<C: LowerCtx<I = Inst>>(
     let ext_mode = match (input_size, requested_size) {
         (a, b) if a == b => return put_input_in_reg(ctx, spec),
         (1, 8) => return put_input_in_reg(ctx, spec),
-        (a, b) => ExtMode::new(a, b).expect(&format!("invalid extension: {} -> {}", a, b)),
+        (a, b) => ExtMode::new(a, b).unwrap_or_else(|| panic!("invalid extension: {} -> {}", a, b)),
     };
 
     let src = input_to_reg_mem(ctx, spec);
@@ -4413,6 +4413,10 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             let ty = ty.unwrap();
             ctx.emit(Inst::gen_move(dst, rhs, ty));
             let sse_opcode = match (ty, op) {
+                (types::F32, Opcode::FminPseudo) => SseOpcode::Minss,
+                (types::F32, Opcode::FmaxPseudo) => SseOpcode::Maxss,
+                (types::F64, Opcode::FminPseudo) => SseOpcode::Minsd,
+                (types::F64, Opcode::FmaxPseudo) => SseOpcode::Maxsd,
                 (types::F32X4, Opcode::FminPseudo) => SseOpcode::Minps,
                 (types::F32X4, Opcode::FmaxPseudo) => SseOpcode::Maxps,
                 (types::F64X2, Opcode::FminPseudo) => SseOpcode::Minpd,
@@ -4528,8 +4532,9 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         Opcode::FcvtFromUint => {
             let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
             let ty = ty.unwrap();
-
             let input_ty = ctx.input_ty(insn, 0);
+            let output_ty = ctx.output_ty(insn, 0);
+
             if !ty.is_vector() {
                 match input_ty {
                     types::I8 | types::I16 | types::I32 => {
@@ -4572,67 +4577,71 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                     }
                     _ => panic!("unexpected input type for FcvtFromUint: {:?}", input_ty),
                 };
-            } else if let Some(uwiden) = matches_input(ctx, inputs[0], Opcode::UwidenLow) {
-                let uwiden_input = InsnInput {
-                    insn: uwiden,
-                    input: 0,
-                };
-                let src = put_input_in_reg(ctx, uwiden_input);
-                let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                let input_ty = ctx.input_ty(uwiden, 0);
-                let output_ty = ctx.output_ty(insn, 0);
+            } else if output_ty == types::F64X2 {
+                if let Some(uwiden) = matches_input(ctx, inputs[0], Opcode::UwidenLow) {
+                    let uwiden_input = InsnInput {
+                        insn: uwiden,
+                        input: 0,
+                    };
+                    let src = put_input_in_reg(ctx, uwiden_input);
+                    let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
+                    let input_ty = ctx.input_ty(uwiden, 0);
 
-                // Matches_input further obfuscates which Wasm instruction this is ultimately
-                // lowering. Check here that the types are as expected for F64x2ConvertLowI32x4U.
-                debug_assert!(input_ty == types::I32X4 || output_ty == types::F64X2);
+                    // Matches_input further obfuscates which Wasm instruction this is ultimately
+                    // lowering. Check here that the types are as expected for F64x2ConvertLowI32x4U.
+                    debug_assert!(input_ty == types::I32X4);
 
-                // Algorithm uses unpcklps to help create a float that is equivalent
-                // 0x1.0p52 + double(src). 0x1.0p52 is unique because at this exponent
-                // every value of the mantissa represents a corresponding uint32 number.
-                // When we subtract 0x1.0p52 we are left with double(src).
-                let uint_mask = ctx.alloc_tmp(types::I32X4).only_reg().unwrap();
-                ctx.emit(Inst::gen_move(dst, src, types::I32X4));
+                    // Algorithm uses unpcklps to help create a float that is equivalent
+                    // 0x1.0p52 + double(src). 0x1.0p52 is unique because at this exponent
+                    // every value of the mantissa represents a corresponding uint32 number.
+                    // When we subtract 0x1.0p52 we are left with double(src).
+                    let uint_mask = ctx.alloc_tmp(types::I32X4).only_reg().unwrap();
+                    ctx.emit(Inst::gen_move(dst, src, types::I32X4));
 
-                static UINT_MASK: [u8; 16] = [
-                    0x00, 0x00, 0x30, 0x43, 0x00, 0x00, 0x30, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00,
-                ];
+                    static UINT_MASK: [u8; 16] = [
+                        0x00, 0x00, 0x30, 0x43, 0x00, 0x00, 0x30, 0x43, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00,
+                    ];
 
-                let uint_mask_const = ctx.use_constant(VCodeConstantData::WellKnown(&UINT_MASK));
+                    let uint_mask_const =
+                        ctx.use_constant(VCodeConstantData::WellKnown(&UINT_MASK));
 
-                ctx.emit(Inst::xmm_load_const(
-                    uint_mask_const,
-                    uint_mask,
-                    types::I32X4,
-                ));
+                    ctx.emit(Inst::xmm_load_const(
+                        uint_mask_const,
+                        uint_mask,
+                        types::I32X4,
+                    ));
 
-                // Creates 0x1.0p52 + double(src)
-                ctx.emit(Inst::xmm_rm_r(
-                    SseOpcode::Unpcklps,
-                    RegMem::from(uint_mask),
-                    dst,
-                ));
+                    // Creates 0x1.0p52 + double(src)
+                    ctx.emit(Inst::xmm_rm_r(
+                        SseOpcode::Unpcklps,
+                        RegMem::from(uint_mask),
+                        dst,
+                    ));
 
-                static UINT_MASK_HIGH: [u8; 16] = [
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x30, 0x43,
-                ];
+                    static UINT_MASK_HIGH: [u8; 16] = [
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x43, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x30, 0x43,
+                    ];
 
-                let uint_mask_high_const =
-                    ctx.use_constant(VCodeConstantData::WellKnown(&UINT_MASK_HIGH));
-                let uint_mask_high = ctx.alloc_tmp(types::I32X4).only_reg().unwrap();
-                ctx.emit(Inst::xmm_load_const(
-                    uint_mask_high_const,
-                    uint_mask_high,
-                    types::I32X4,
-                ));
+                    let uint_mask_high_const =
+                        ctx.use_constant(VCodeConstantData::WellKnown(&UINT_MASK_HIGH));
+                    let uint_mask_high = ctx.alloc_tmp(types::I32X4).only_reg().unwrap();
+                    ctx.emit(Inst::xmm_load_const(
+                        uint_mask_high_const,
+                        uint_mask_high,
+                        types::I32X4,
+                    ));
 
-                // 0x1.0p52 + double(src) - 0x1.0p52
-                ctx.emit(Inst::xmm_rm_r(
-                    SseOpcode::Subpd,
-                    RegMem::from(uint_mask_high),
-                    dst,
-                ));
+                    // 0x1.0p52 + double(src) - 0x1.0p52
+                    ctx.emit(Inst::xmm_rm_r(
+                        SseOpcode::Subpd,
+                        RegMem::from(uint_mask_high),
+                        dst,
+                    ));
+                } else {
+                    panic!("Unsupported FcvtFromUint conversion types: {}", ty);
+                }
             } else {
                 assert_eq!(ctx.input_ty(insn, 0), types::I32X4);
                 let src = put_input_in_reg(ctx, inputs[0]);
@@ -5838,11 +5847,13 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             if ty_access == types::I64 {
                 ctx.emit(Inst::mov64_rm_r(rm, data));
             } else {
-                let ext_mode = ExtMode::new(ty_access.bits(), 64).expect(&format!(
-                    "invalid extension during AtomicLoad: {} -> {}",
-                    ty_access.bits(),
-                    64
-                ));
+                let ext_mode = ExtMode::new(ty_access.bits(), 64).unwrap_or_else(|| {
+                    panic!(
+                        "invalid extension during AtomicLoad: {} -> {}",
+                        ty_access.bits(),
+                        64
+                    )
+                });
                 ctx.emit(Inst::movzx_rm_r(ext_mode, rm, data));
             }
         }
@@ -6849,30 +6860,8 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             panic!("table_addr should have been removed by legalization!");
         }
 
-        Opcode::Safepoint => {
-            panic!("safepoint instructions not used by new backend's safepoints!");
-        }
-
-        Opcode::Spill
-        | Opcode::Fill
-        | Opcode::FillNop
-        | Opcode::Regmove
-        | Opcode::CopySpecial
-        | Opcode::CopyToSsa
-        | Opcode::CopyNop
-        | Opcode::AdjustSpDown
-        | Opcode::AdjustSpUpImm
-        | Opcode::AdjustSpDownImm
-        | Opcode::IfcmpSp
-        | Opcode::Regspill
-        | Opcode::Regfill
-        | Opcode::Copy
-        | Opcode::DummySargT => {
+        Opcode::Copy => {
             panic!("Unused opcode should not be encountered.");
-        }
-
-        Opcode::JumpTableEntry | Opcode::JumpTableBase => {
-            panic!("Should not appear: we handle BrTable directly");
         }
 
         Opcode::Trapz | Opcode::Trapnz | Opcode::ResumableTrapnz => {
@@ -6880,53 +6869,13 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         }
 
         Opcode::Jump
-        | Opcode::Fallthrough
         | Opcode::Brz
         | Opcode::Brnz
         | Opcode::BrIcmp
         | Opcode::Brif
         | Opcode::Brff
-        | Opcode::IndirectJumpTableBr
         | Opcode::BrTable => {
             panic!("Branch opcode reached non-branch lowering logic!");
-        }
-
-        Opcode::X86Udivmodx
-        | Opcode::X86Sdivmodx
-        | Opcode::X86Umulx
-        | Opcode::X86Smulx
-        | Opcode::X86Cvtt2si
-        | Opcode::X86Fmin
-        | Opcode::X86Fmax
-        | Opcode::X86Push
-        | Opcode::X86Pop
-        | Opcode::X86Bsr
-        | Opcode::X86Bsf
-        | Opcode::X86Pblendw
-        | Opcode::X86Pshufd
-        | Opcode::X86Pshufb
-        | Opcode::X86Pextr
-        | Opcode::X86Pinsr
-        | Opcode::X86Insertps
-        | Opcode::X86Movsd
-        | Opcode::X86Movlhps
-        | Opcode::X86Palignr
-        | Opcode::X86Psll
-        | Opcode::X86Psrl
-        | Opcode::X86Psra
-        | Opcode::X86Ptest
-        | Opcode::X86Pmaxs
-        | Opcode::X86Pmaxu
-        | Opcode::X86Pmins
-        | Opcode::X86Pminu
-        | Opcode::X86Pmullq
-        | Opcode::X86Pmuludq
-        | Opcode::X86Punpckh
-        | Opcode::X86Punpckl
-        | Opcode::X86Vcvtudq2ps
-        | Opcode::X86ElfTlsGetAddr
-        | Opcode::X86MachoTlsGetAddr => {
-            panic!("x86-specific opcode in supposedly arch-neutral IR!");
         }
 
         Opcode::Nop => {
@@ -6971,13 +6920,10 @@ impl LowerBackend for X64Backend {
                 op0,
                 op1
             );
-            assert!(op1 == Opcode::Jump || op1 == Opcode::Fallthrough);
+            assert!(op1 == Opcode::Jump);
 
             let taken = targets[0];
-            // not_taken target is the target of the second branch, even if it is a Fallthrough
-            // instruction: because we reorder blocks while we lower, the fallthrough in the new
-            // order is not (necessarily) the same as the fallthrough in CLIF. So we use the
-            // explicitly-provided target.
+            // not_taken target is the target of the second branch.
             let not_taken = targets[1];
 
             match op0 {
@@ -7129,23 +7075,6 @@ impl LowerBackend for X64Backend {
                         let cond_code = emit_cmp(ctx, ifcmp, cond_code);
                         let cc = CC::from_intcc(cond_code);
                         ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                    } else if let Some(ifcmp_sp) = matches_input(ctx, flag_input, Opcode::IfcmpSp) {
-                        let operand = put_input_in_reg(
-                            ctx,
-                            InsnInput {
-                                insn: ifcmp_sp,
-                                input: 0,
-                            },
-                        );
-                        let ty = ctx.input_ty(ifcmp_sp, 0);
-                        ctx.emit(Inst::cmp_rmi_r(
-                            OperandSize::from_ty(ty),
-                            RegMemImm::reg(regs::rsp()),
-                            operand,
-                        ));
-                        let cond_code = ctx.data(branches[0]).cond_code().unwrap();
-                        let cc = CC::from_intcc(cond_code);
-                        ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
                     } else {
                         // Should be disallowed by flags checks in verifier.
                         unimplemented!("Brif with non-ifcmp input");
@@ -7187,14 +7116,21 @@ impl LowerBackend for X64Backend {
             // Must be an unconditional branch or trap.
             let op = ctx.data(branches[0]).opcode();
             match op {
-                Opcode::Jump | Opcode::Fallthrough => {
+                Opcode::Jump => {
                     ctx.emit(Inst::jmp_known(targets[0]));
                 }
 
                 Opcode::BrTable => {
                     let jt_size = targets.len() - 1;
-                    assert!(jt_size <= u32::max_value() as usize);
+                    assert!(jt_size <= u32::MAX as usize);
                     let jt_size = jt_size as u32;
+
+                    let ty = ctx.input_ty(branches[0], 0);
+                    let ext_spec = match ty {
+                        types::I128 => panic!("BrTable unimplemented for I128"),
+                        types::I64 => ExtSpec::ZeroExtendTo64,
+                        _ => ExtSpec::ZeroExtendTo32,
+                    };
 
                     let idx = extend_input_to_reg(
                         ctx,
@@ -7202,15 +7138,18 @@ impl LowerBackend for X64Backend {
                             insn: branches[0],
                             input: 0,
                         },
-                        ExtSpec::ZeroExtendTo32,
+                        ext_spec,
                     );
 
                     // Bounds-check (compute flags from idx - jt_size) and branch to default.
-                    ctx.emit(Inst::cmp_rmi_r(
-                        OperandSize::Size32,
-                        RegMemImm::imm(jt_size),
-                        idx,
-                    ));
+                    // We only support u32::MAX entries, but we compare the full 64 bit register
+                    // when doing the bounds check.
+                    let cmp_size = if ty == types::I64 {
+                        OperandSize::Size64
+                    } else {
+                        OperandSize::Size32
+                    };
+                    ctx.emit(Inst::cmp_rmi_r(cmp_size, RegMemImm::imm(jt_size), idx));
 
                     // Emit the compound instruction that does:
                     //

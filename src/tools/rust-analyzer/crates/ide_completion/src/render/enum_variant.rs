@@ -1,10 +1,9 @@
 //! Renderer for `enum` variants.
 
-use std::iter;
-
-use hir::{HasAttrs, HirDisplay};
+use hir::{db::HirDatabase, HasAttrs, HirDisplay, StructKind};
 use ide_db::SymbolKind;
 use itertools::Itertools;
+use syntax::SmolStr;
 
 use crate::{
     item::{CompletionItem, ImportEdit},
@@ -20,102 +19,79 @@ pub(crate) fn render_variant(
     path: Option<hir::ModPath>,
 ) -> CompletionItem {
     let _p = profile::span("render_enum_variant");
-    EnumRender::new(ctx, local_name, variant, path).render(import_to_add)
+    render(ctx, local_name, variant, path, import_to_add)
 }
 
-#[derive(Debug)]
-struct EnumRender<'a> {
-    ctx: RenderContext<'a>,
+fn render(
+    ctx @ RenderContext { completion }: RenderContext<'_>,
+    local_name: Option<hir::Name>,
     variant: hir::Variant,
     path: Option<hir::ModPath>,
-    qualified_name: hir::ModPath,
-    short_qualified_name: hir::ModPath,
-    variant_kind: hir::StructKind,
+    import_to_add: Option<ImportEdit>,
+) -> CompletionItem {
+    let db = completion.db;
+    let name = local_name.unwrap_or_else(|| variant.name(db));
+    let variant_kind = variant.kind(db);
+
+    let (qualified_name, short_qualified_name, qualified) = match path {
+        Some(path) => {
+            let short = hir::ModPath::from_segments(
+                hir::PathKind::Plain,
+                path.segments().iter().skip(path.segments().len().saturating_sub(2)).cloned(),
+            );
+            (path, short, true)
+        }
+        None => (name.clone().into(), name.into(), false),
+    };
+    let qualified_name = qualified_name.to_string();
+    let short_qualified_name: SmolStr = short_qualified_name.to_string().into();
+
+    let mut item = CompletionItem::new(SymbolKind::Variant, ctx.source_range(), qualified_name);
+    item.set_documentation(variant.docs(db))
+        .set_deprecated(ctx.is_deprecated(variant))
+        .detail(detail(db, variant, variant_kind));
+
+    if let Some(import_to_add) = import_to_add {
+        item.add_import(import_to_add);
+    }
+
+    if variant_kind == hir::StructKind::Tuple {
+        cov_mark::hit!(inserts_parens_for_tuple_enums);
+        let params = Params::Anonymous(variant.fields(db).len());
+        item.add_call_parens(ctx.completion, short_qualified_name, params);
+    } else if qualified {
+        item.lookup_by(short_qualified_name);
+    }
+
+    let ty = variant.parent_enum(ctx.completion.db).ty(ctx.completion.db);
+    item.set_relevance(CompletionRelevance {
+        type_match: compute_type_match(ctx.completion, &ty),
+        ..CompletionRelevance::default()
+    });
+
+    if let Some(ref_match) = compute_ref_match(ctx.completion, &ty) {
+        item.ref_match(ref_match);
+    }
+
+    item.build()
 }
 
-impl<'a> EnumRender<'a> {
-    fn new(
-        ctx: RenderContext<'a>,
-        local_name: Option<hir::Name>,
-        variant: hir::Variant,
-        path: Option<hir::ModPath>,
-    ) -> EnumRender<'a> {
-        let name = local_name.unwrap_or_else(|| variant.name(ctx.db()));
-        let variant_kind = variant.kind(ctx.db());
+fn detail(db: &dyn HirDatabase, variant: hir::Variant, variant_kind: StructKind) -> String {
+    let detail_types = variant.fields(db).into_iter().map(|field| (field.name(db), field.ty(db)));
 
-        let (qualified_name, short_qualified_name) = match &path {
-            Some(path) => {
-                let short = hir::ModPath::from_segments(
-                    hir::PathKind::Plain,
-                    path.segments().iter().skip(path.segments().len().saturating_sub(2)).cloned(),
-                );
-                (path.clone(), short)
-            }
-            None => (
-                hir::ModPath::from_segments(hir::PathKind::Plain, iter::once(name.clone())),
-                hir::ModPath::from_segments(hir::PathKind::Plain, iter::once(name)),
-            ),
-        };
-
-        EnumRender { ctx, variant, path, qualified_name, short_qualified_name, variant_kind }
-    }
-    fn render(self, import_to_add: Option<ImportEdit>) -> CompletionItem {
-        let mut item = CompletionItem::new(
-            SymbolKind::Variant,
-            self.ctx.source_range(),
-            self.qualified_name.to_string(),
-        );
-        item.set_documentation(self.variant.docs(self.ctx.db()))
-            .set_deprecated(self.ctx.is_deprecated(self.variant))
-            .detail(self.detail());
-
-        if let Some(import_to_add) = import_to_add {
-            item.add_import(import_to_add);
+    match variant_kind {
+        hir::StructKind::Tuple | hir::StructKind::Unit => {
+            format!("({})", detail_types.format_with(", ", |(_, t), f| f(&t.display(db))))
         }
-
-        if self.variant_kind == hir::StructKind::Tuple {
-            cov_mark::hit!(inserts_parens_for_tuple_enums);
-            let params = Params::Anonymous(self.variant.fields(self.ctx.db()).len());
-            item.add_call_parens(
-                self.ctx.completion,
-                self.short_qualified_name.to_string(),
-                params,
-            );
-        } else if self.path.is_some() {
-            item.lookup_by(self.short_qualified_name.to_string());
-        }
-
-        let ty = self.variant.parent_enum(self.ctx.completion.db).ty(self.ctx.completion.db);
-        item.set_relevance(CompletionRelevance {
-            type_match: compute_type_match(self.ctx.completion, &ty),
-            ..CompletionRelevance::default()
-        });
-
-        if let Some(ref_match) = compute_ref_match(self.ctx.completion, &ty) {
-            item.ref_match(ref_match);
-        }
-
-        item.build()
-    }
-
-    fn detail(&self) -> String {
-        let detail_types = self
-            .variant
-            .fields(self.ctx.db())
-            .into_iter()
-            .map(|field| (field.name(self.ctx.db()), field.ty(self.ctx.db())));
-
-        match self.variant_kind {
-            hir::StructKind::Tuple | hir::StructKind::Unit => format!(
-                "({})",
-                detail_types.map(|(_, t)| t.display(self.ctx.db()).to_string()).format(", ")
-            ),
-            hir::StructKind::Record => format!(
-                "{{ {} }}",
-                detail_types
-                    .map(|(n, t)| format!("{}: {}", n, t.display(self.ctx.db()).to_string()))
-                    .format(", ")
-            ),
+        hir::StructKind::Record => {
+            format!(
+                "{{{}}}",
+                detail_types.format_with(", ", |(n, t), f| {
+                    f(&n)?;
+                    f(&": ")?;
+                    f(&t.display(db))
+                }),
+            )
         }
     }
 }

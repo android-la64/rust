@@ -62,11 +62,12 @@
 //!   which may be arbitrary expressions. For example:
 //!
 //!   ```rust
+//!   # use std::i32;
 //!   # use thiserror::Error;
 //!   #
 //!   #[derive(Error, Debug)]
 //!   pub enum Error {
-//!       #[error("invalid rdo_lookahead_frames {0} (expected < {})", i32::max_value())]
+//!       #[error("invalid rdo_lookahead_frames {0} (expected < {})", i32::MAX)]
 //!       InvalidLookahead(u32),
 //!   }
 //!   ```
@@ -160,6 +161,22 @@
 //!   # };
 //!   ```
 //!
+//! - If a field is both a source (named `source`, or has `#[source]` or
+//!   `#[from]` attribute) *and* is marked `#[backtrace]`, then the Error
+//!   trait's `backtrace()` method is forwarded to the source's backtrace.
+//!
+//!   ```rust
+//!   # const IGNORE: &str = stringify! {
+//!   #[derive(Error, Debug)]
+//!   pub enum MyError {
+//!       Io {
+//!           #[backtrace]
+//!           source: io::Error,
+//!       },
+//!   }
+//!   # };
+//!   ```
+//!
 //! - Errors may use `error(transparent)` to forward the source and Display
 //!   methods straight through to an underlying error without adding an
 //!   additional message. This would be appropriate for enums that need an
@@ -183,6 +200,12 @@
 //!   in application code.
 //!
 //!   [`anyhow`]: https://github.com/dtolnay/anyhow
+
+#![allow(
+    // Clippy bug: https://github.com/rust-lang/rust-clippy/issues/7421
+    clippy::doc_markdown,
+    clippy::module_name_repetitions,
+)]
 
 mod aserror;
 mod display;

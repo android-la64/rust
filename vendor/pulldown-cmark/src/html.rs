@@ -24,9 +24,9 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 
 use crate::escape::{escape_href, escape_html, StrWrite, WriteWrapper};
-use crate::parse::Event::*;
-use crate::parse::{Alignment, CodeBlockKind, Event, LinkType, Tag};
 use crate::strings::CowStr;
+use crate::Event::*;
+use crate::{Alignment, CodeBlockKind, Event, LinkType, Tag};
 
 enum TableState {
     Head,
@@ -83,7 +83,7 @@ where
         Ok(())
     }
 
-    pub fn run(mut self) -> io::Result<()> {
+    fn run(mut self) -> io::Result<()> {
         while let Some(event) = self.iter.next() {
             match event {
                 Start(tag) => {
@@ -147,13 +147,30 @@ where
                     self.write("\n<p>")
                 }
             }
-            Tag::Heading(level) => {
+            Tag::Heading(level, id, classes) => {
                 if self.end_newline {
                     self.end_newline = false;
-                    write!(&mut self.writer, "<h{}>", level)
+                    self.write("<")?;
                 } else {
-                    write!(&mut self.writer, "\n<h{}>", level)
+                    self.write("\n<")?;
                 }
+                write!(&mut self.writer, "{}", level)?;
+                if let Some(id) = id {
+                    self.write(" id=\"")?;
+                    escape_html(&mut self.writer, id)?;
+                    self.write("\"")?;
+                }
+                let mut classes = classes.iter();
+                if let Some(class) = classes.next() {
+                    self.write(" class=\"")?;
+                    escape_html(&mut self.writer, class)?;
+                    for class in classes {
+                        self.write(" ")?;
+                        escape_html(&mut self.writer, class)?;
+                    }
+                    self.write("\"")?;
+                }
+                self.write(">")
             }
             Tag::Table(alignments) => {
                 self.table_alignments = alignments;
@@ -178,9 +195,9 @@ where
                     }
                 }
                 match self.table_alignments.get(self.table_cell_index) {
-                    Some(&Alignment::Left) => self.write(" align=\"left\">"),
-                    Some(&Alignment::Center) => self.write(" align=\"center\">"),
-                    Some(&Alignment::Right) => self.write(" align=\"right\">"),
+                    Some(&Alignment::Left) => self.write(" style=\"text-align: left\">"),
+                    Some(&Alignment::Center) => self.write(" style=\"text-align: center\">"),
+                    Some(&Alignment::Right) => self.write(" style=\"text-align: right\">"),
                     _ => self.write(">"),
                 }
             }
@@ -292,8 +309,8 @@ where
             Tag::Paragraph => {
                 self.write("</p>\n")?;
             }
-            Tag::Heading(level) => {
-                self.write("</h")?;
+            Tag::Heading(level, _id, _classes) => {
+                self.write("</")?;
                 write!(&mut self.writer, "{}", level)?;
                 self.write(">\n")?;
             }

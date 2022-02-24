@@ -1,6 +1,6 @@
 use super::{
-    last_use, next_use, IntId, Intervals, Mention, MentionMap, OptimalSplitStrategy, RegUses,
-    Statistics, VirtualInterval,
+    analysis::BlockPos, last_use, next_use, IntId, Intervals, Mention, MentionMap,
+    OptimalSplitStrategy, RegUses, Statistics, VirtualInterval,
 };
 use crate::{
     data_structures::{InstPoint, Point, RegVecsAndBounds},
@@ -8,23 +8,11 @@ use crate::{
     VirtualReg, NUM_REG_CLASSES,
 };
 
-use log::{debug, info, log_enabled, trace, Level};
+use log::{debug, log_enabled, trace, Level};
 use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use std::collections::BinaryHeap;
 use std::{cmp, cmp::Ordering, fmt};
-
-macro_rules! lsra_assert {
-    ($arg:expr) => {
-        #[cfg(debug_assertions)]
-        debug_assert!($arg);
-    };
-
-    ($arg:expr, $text:expr) => {
-        #[cfg(debug_assertions)]
-        debug_assert!($arg, $text);
-    };
-}
 
 #[derive(Clone, Copy, PartialEq)]
 enum ActiveInt {
@@ -54,11 +42,12 @@ struct ActivityTracker {
 }
 
 impl ActivityTracker {
-    fn new(intervals: &Intervals) -> Self {
+    fn new(intervals: &Intervals, scratches_by_rc: &[Option<RealReg>]) -> Self {
         let mut inactive = Vec::with_capacity(intervals.fixeds.len());
         for fixed in &intervals.fixeds {
-            if !fixed.frags.is_empty() {
-                inactive.push((fixed.reg, 0))
+            let rreg = fixed.reg;
+            if !fixed.frags.is_empty() && scratches_by_rc[rreg.get_class() as usize] != Some(rreg) {
+                inactive.push((rreg, 0))
             }
         }
 
@@ -97,7 +86,7 @@ impl ActivityTracker {
                         to_delete.push(i);
                     } else {
                         // Stays active.
-                        lsra_assert!(int.covers(start), "no active to inactive transition");
+                        debug_assert!(int.covers(start), "no active to inactive transition");
                     }
                 }
 
@@ -115,12 +104,12 @@ impl ActivityTracker {
                         to_delete.push(i);
                     } else if start < frags[*fix].first {
                         // It is now inactive.
-                        lsra_assert!(!frags[*fix].contains(&start));
+                        debug_assert!(!frags[*fix].contains(&start));
                         new_inactive.push((*rreg, *fix));
                         to_delete.push(i);
                     } else {
                         // Otherwise, it's still active.
-                        lsra_assert!(frags[*fix].contains(&start));
+                        debug_assert!(frags[*fix].contains(&start));
                     }
                 }
             }
@@ -145,12 +134,12 @@ impl ActivityTracker {
                 to_delete.push(i);
             } else if start >= frags[*fix].first {
                 // It is now active.
-                lsra_assert!(frags[*fix].contains(&start));
+                debug_assert!(frags[*fix].contains(&start));
                 self.active.push(ActiveInt::Fixed((*rreg, *fix)));
                 to_delete.push(i);
             } else {
                 // Otherwise it remains inactive.
-                lsra_assert!(!frags[*fix].contains(&start));
+                debug_assert!(!frags[*fix].contains(&start));
             }
         }
 
@@ -192,18 +181,18 @@ pub(crate) fn run<F: Function>(
     func: &F,
     reg_uses: &RegVecsAndBounds,
     reg_universe: &RealRegUniverse,
-    scratches_by_rc: &Vec<Option<RealReg>>,
+    scratches_by_rc: &[Option<RealReg>],
     intervals: Intervals,
     stats: Option<Statistics>,
 ) -> Result<(Intervals, u32), RegAllocError> {
-    let mut state = State::new(opts, func, &reg_uses, intervals, stats);
-    let mut reusable = ReusableState::new(reg_universe, &scratches_by_rc);
+    let mut state = State::new(opts, func, &reg_uses, scratches_by_rc, intervals, stats);
+    let mut reusable = ReusableState::new(reg_universe, scratches_by_rc);
 
     #[cfg(debug_assertions)]
     let mut prev_start = InstPoint::min_value();
 
     while let Some(id) = state.next_unhandled() {
-        info!("main loop: allocating {}", state.intervals.get(id));
+        debug!("main loop: allocating {}", state.intervals.get(id));
 
         #[cfg(debug_assertions)]
         {
@@ -225,7 +214,11 @@ pub(crate) fn run<F: Function>(
             }
 
             if state.intervals.get(id).location.reg().is_some() {
-                state.activity.set_active(id);
+                if maybe_handle_safepoints(&mut state, id) {
+                    // Even it if may have been spilled (because of a safepoint), the parent
+                    // interval may still be active.
+                    state.activity.set_active(id);
+                }
             }
 
             // Reset reusable state.
@@ -267,10 +260,10 @@ impl<T: Copy> RegisterMapping<T> {
         let mut offset = 0;
         // Collect all the registers for the current class.
         if let Some(ref info) = reg_universe.allocable_by_class[reg_class_index] {
-            lsra_assert!(info.first <= info.last);
+            debug_assert!(info.first <= info.last);
             offset = info.first;
             for reg in &reg_universe.regs[info.first..=info.last] {
-                lsra_assert!(regs.len() == reg.0.get_index() - offset);
+                debug_assert!(regs.len() == reg.0.get_index() - offset);
                 regs.push((reg.0, initial_value));
             }
         };
@@ -322,22 +315,30 @@ impl<'a, T: Copy> std::iter::Iterator for RegisterMappingIter<'a, T> {
 impl<T> std::ops::Index<RealReg> for RegisterMapping<T> {
     type Output = T;
     fn index(&self, rreg: RealReg) -> &Self::Output {
-        lsra_assert!(
+        debug_assert!(
             rreg.get_class() as usize == self.reg_class_index,
             "trying to index a reg from the wrong class"
         );
-        lsra_assert!(Some(rreg) != self.scratch, "trying to use the scratch");
+        debug_assert!(
+            Some(rreg) != self.scratch,
+            "trying to const-use the scratch of {:?}",
+            rreg.get_class()
+        );
         &self.regs[rreg.get_index() - self.offset].1
     }
 }
 
 impl<T> std::ops::IndexMut<RealReg> for RegisterMapping<T> {
     fn index_mut(&mut self, rreg: RealReg) -> &mut Self::Output {
-        lsra_assert!(
+        debug_assert!(
             rreg.get_class() as usize == self.reg_class_index,
             "trying to index a reg from the wrong class"
         );
-        lsra_assert!(Some(rreg) != self.scratch, "trying to use the scratch");
+        debug_assert!(
+            Some(rreg) != self.scratch,
+            "trying to mut-use the scratch of {:?}",
+            rreg.get_class()
+        );
         &mut self.regs[rreg.get_index() - self.offset].1
     }
 }
@@ -427,7 +428,7 @@ impl UnhandledIntervals {
     fn next_unhandled(&mut self, _intervals: &Intervals) -> Option<IntId> {
         self.heap.pop().map(|entry| {
             let ret = entry.0;
-            lsra_assert!(_intervals.get(ret).start == entry.1);
+            debug_assert!(_intervals.get(ret).start == entry.1);
             ret
         })
     }
@@ -461,6 +462,7 @@ impl<'a, F: Function> State<'a, F> {
         opts: &'a LinearScanOptions,
         func: &'a F,
         reg_uses: &'a RegUses,
+        scratches_by_rc: &[Option<RealReg>],
         intervals: Intervals,
         stats: Option<Statistics>,
     ) -> Self {
@@ -469,7 +471,7 @@ impl<'a, F: Function> State<'a, F> {
             unhandled.insert(int.id, &intervals);
         }
 
-        let activity = ActivityTracker::new(&intervals);
+        let activity = ActivityTracker::new(&intervals, scratches_by_rc);
 
         Self {
             func,
@@ -502,7 +504,7 @@ impl<'a, F: Function> State<'a, F> {
         } else {
             let size_slot = self.func.get_spillslot_size(vreg.get_class(), vreg);
             let spill_slot = self.next_spill_slot.round_up(size_slot);
-            self.next_spill_slot = self.next_spill_slot.inc(1);
+            self.next_spill_slot = spill_slot.inc(1);
             self.spill_map.insert(vreg, spill_slot);
             spill_slot
         };
@@ -619,7 +621,7 @@ fn select_naive_reg<F: Function>(
 
     // Shortcut: if all the registers are taken, don't even bother.
     if num_free == 0 {
-        lsra_assert!(!free_until_pos
+        debug_assert!(!free_until_pos
             .iter()
             .any(|pair| pair.1 != InstPoint::min_value()));
         return None;
@@ -876,7 +878,7 @@ fn allocate_blocked_reg<F: Function>(
                 }
 
                 ActiveInt::Fixed((_reg, _fix)) => {
-                    lsra_assert!(
+                    debug_assert!(
                         _reg != best_reg
                             || state.intervals.get(cur_id).end
                                 < state.intervals.fixeds[_reg.get_index()].frags[_fix].first,
@@ -898,6 +900,49 @@ fn allocate_blocked_reg<F: Function>(
     }
 
     Ok(())
+}
+
+/// Handle safepoints by causing a spill/reload sequence across safepoint instructions, if needed.
+///
+/// Returns true if the original interval still lives in a register, after this function has been
+/// called.
+fn maybe_handle_safepoints<F: Function>(state: &mut State<F>, id: IntId) -> bool {
+    let int = state.intervals.get(id);
+    if !int.ref_typed {
+        return true;
+    }
+
+    let next_safepoint = int.safepoints().first().clone();
+    let sp_iix = match next_safepoint {
+        Some(&(sp_iix, _)) => sp_iix,
+        None => return true,
+    };
+
+    debug_assert!(int.start.iix() <= sp_iix && sp_iix <= int.end.iix());
+
+    let sp_def = InstPoint::new_def(sp_iix);
+    if let Some(prev_use) = last_use(&state.intervals.get(id), sp_def, &state.reg_uses) {
+        if prev_use == sp_def {
+            // The value is being redefined by the instruction; there's no need to keep it alive on the
+            // stack, and we can use the same register assignment before and after the safepoint.
+            return true;
+        }
+
+        // The value is not redefined by the instruction, split and spill before the safepoint.
+        split_and_spill(state, id, InstPoint::new_use(sp_iix));
+        return true;
+    }
+
+    // No use before the safepoint! Split the interval so a new child is put on the allocation
+    // queue at its next use, and spill the interval.
+    if let Some(nu) = next_use(&state.intervals.get(id), sp_def, &state.reg_uses) {
+        let child = split(state, id, nu);
+        state.insert_unhandled(child);
+    }
+
+    // Not in a register anymore.
+    state.spill(id);
+    return false;
 }
 
 /// Finds an optimal split position, whenever we're given a range of possible
@@ -1123,7 +1168,9 @@ fn split<F: Function>(state: &mut State<F>, id: IntId, at_pos: InstPoint) -> Int
 
     let vreg = int.vreg;
     let ancestor = int.ancestor;
+    let ref_typed = int.ref_typed;
 
+    // Split the register mentions.
     let parent_mentions = state.intervals.get_mut(id).mentions_mut();
     let index = parent_mentions.binary_search_by(|mention| {
         // The comparator function returns the position of the argument compared to the target.
@@ -1159,39 +1206,74 @@ fn split<F: Function>(state: &mut State<F>, id: IntId, at_pos: InstPoint) -> Int
         }
     });
 
-    let (index, may_need_fixup) = match index {
-        Ok(index) => (index, true),
-        Err(index) => (index, false),
+    let index = match index {
+        Ok(index) => index,
+        Err(index) => index,
     };
-
-    // Emulate split_off for SmallVec here.
     let mut child_mentions = MentionMap::with_capacity(parent_mentions.len() - index);
     for mention in parent_mentions.iter().skip(index) {
         child_mentions.push(mention.clone());
     }
     parent_mentions.truncate(index);
 
-    // In the situation where we split at the def point of an instruction, and the mention set
-    // contains the use point, we need to refine the sets:
-    // - the parent must still contain the use point (and the modified point if present)
-    // - the child must only contain the def point (and the modified point if present).
-    // Note that if we split at the use point of an instruction, and the mention set contains the
-    // def point, it is fine: we're not splitting between the two of them.
-    if may_need_fixup && at_pos.pt() == Point::Def && child_mentions.first().unwrap().1.is_use() {
-        let first_child_mention = child_mentions.first_mut().unwrap();
-        first_child_mention.1.remove_use();
-
-        let last_parent_mention = parent_mentions.last_mut().unwrap();
-        last_parent_mention.1.add_use();
-
-        if first_child_mention.1.is_mod() {
-            last_parent_mention.1.add_mod();
+    // Now split block boundaries.
+    let parent_boundaries = state.intervals.get(id).block_boundaries();
+    let index = parent_boundaries.binary_search_by(|boundary| {
+        let inst_range = state.func.block_insns(boundary.bix);
+        match boundary.pos {
+            BlockPos::Start => {
+                let first_inst = InstPoint::new_use(inst_range.first());
+                return first_inst.cmp(&at_pos);
+            }
+            BlockPos::End => {
+                let last_inst = InstPoint::new_def(inst_range.last());
+                return last_inst.cmp(&at_pos);
+            }
         }
-    }
+    });
 
+    // It's possible that the binary search returns Err, for the edges (if the split position is
+    // before the first block boundary, or after the last).
+    let index = match index {
+        Ok(index) => index,
+        Err(index) => index,
+    };
+    let child_boundaries = state
+        .intervals
+        .get_mut(id)
+        .block_boundaries_mut()
+        .split_off(index);
+
+    // Now split the safepoints.
+    let child_safepoints = {
+        // Remove from the parent all the safepoints that aren't included in the new bounds.
+        let mut i = 0;
+        let parent_safepoints = state.intervals.get_mut(id).safepoints_mut();
+        while let Some(&(sp_iix, _sp_ix)) = parent_safepoints.get(i) {
+            if InstPoint::new_use(sp_iix) >= child_start {
+                break;
+            }
+            i += 1;
+        }
+        let child = parent_safepoints.iter().skip(i).cloned().collect();
+        parent_safepoints.truncate(i);
+        child
+    };
+
+    trace!("child interval has safepoints {:?}", child_safepoints);
+
+    // Phew: eventually create the child interval.
     let child_id = IntId(state.intervals.num_virtual_intervals());
-    let mut child_int =
-        VirtualInterval::new(child_id, vreg, child_start, child_end, child_mentions);
+    let mut child_int = VirtualInterval::new(
+        child_id,
+        vreg,
+        child_start,
+        child_end,
+        child_mentions,
+        child_boundaries,
+        ref_typed,
+        child_safepoints,
+    );
     child_int.parent = Some(id);
     child_int.ancestor = ancestor;
 

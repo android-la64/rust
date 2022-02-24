@@ -110,7 +110,13 @@ fn machreg_to_gpr_or_vec(m: Reg) -> u32 {
     u32::try_from(m.to_real_reg().get_hw_encoding()).unwrap()
 }
 
-fn enc_arith_rrr(bits_31_21: u32, bits_15_10: u32, rd: Writable<Reg>, rn: Reg, rm: Reg) -> u32 {
+pub(crate) fn enc_arith_rrr(
+    bits_31_21: u32,
+    bits_15_10: u32,
+    rd: Writable<Reg>,
+    rn: Reg,
+    rm: Reg,
+) -> u32 {
     (bits_31_21 << 21)
         | (bits_15_10 << 10)
         | machreg_to_gpr(rd.to_reg())
@@ -243,7 +249,7 @@ fn enc_ldst_reg(
         | machreg_to_gpr_or_vec(rd)
 }
 
-fn enc_ldst_imm19(op_31_24: u32, imm19: u32, rd: Reg) -> u32 {
+pub(crate) fn enc_ldst_imm19(op_31_24: u32, imm19: u32, rd: Reg) -> u32 {
     (op_31_24 << 24) | (imm19 << 5) | machreg_to_gpr_or_vec(rd)
 }
 
@@ -320,11 +326,11 @@ fn enc_bit_rr(size: u32, opcode2: u32, opcode1: u32, rn: Reg, rd: Writable<Reg>)
         | machreg_to_gpr(rd.to_reg())
 }
 
-fn enc_br(rn: Reg) -> u32 {
+pub(crate) fn enc_br(rn: Reg) -> u32 {
     0b1101011_0000_11111_000000_00000_00000 | (machreg_to_gpr(rn) << 5)
 }
 
-fn enc_adr(off: i32, rd: Writable<Reg>) -> u32 {
+pub(crate) fn enc_adr(off: i32, rd: Writable<Reg>) -> u32 {
     let off = u32::try_from(off).unwrap();
     let immlo = off & 3;
     let immhi = (off >> 2) & ((1 << 19) - 1);
@@ -496,6 +502,33 @@ fn enc_tbl(is_extension: bool, len: u32, rd: Writable<Reg>, rn: Reg, rm: Reg) ->
 
 fn enc_dmb_ish() -> u32 {
     0xD5033BBF
+}
+
+fn enc_ldal(ty: Type, op: AtomicRMWOp, rs: Reg, rt: Writable<Reg>, rn: Reg) -> u32 {
+    assert!(machreg_to_gpr(rt.to_reg()) != 31);
+    let sz = match ty {
+        I64 => 0b11,
+        I32 => 0b10,
+        I16 => 0b01,
+        I8 => 0b00,
+        _ => unreachable!(),
+    };
+    let op = match op {
+        AtomicRMWOp::Add => 0b000,
+        AtomicRMWOp::Clr => 0b001,
+        AtomicRMWOp::Eor => 0b010,
+        AtomicRMWOp::Set => 0b011,
+        AtomicRMWOp::Smax => 0b100,
+        AtomicRMWOp::Smin => 0b101,
+        AtomicRMWOp::Umax => 0b110,
+        AtomicRMWOp::Umin => 0b111,
+    };
+    0b00_111_000_111_00000_0_000_00_00000_00000
+        | (sz << 30)
+        | (machreg_to_gpr(rs) << 16)
+        | (op << 12)
+        | (machreg_to_gpr(rn) << 5)
+        | machreg_to_gpr(rt.to_reg())
 }
 
 fn enc_ldar(ty: Type, rt: Writable<Reg>, rn: Reg) -> u32 {
@@ -1312,7 +1345,10 @@ impl MachInstEmit for Inst {
             } => {
                 sink.put4(enc_ccmp_imm(size, rn, imm, nzcv, cond));
             }
-            &Inst::AtomicRMW { ty, op } => {
+            &Inst::AtomicRMW { ty, op, rs, rt, rn } => {
+                sink.put4(enc_ldal(ty, op, rs, rt, rn));
+            }
+            &Inst::AtomicRMWLoop { ty, op } => {
                 /* Emit this:
                      again:
                       ldaxr{,b,h}  x/w27, [x25]
@@ -1334,7 +1370,7 @@ impl MachInstEmit for Inst {
                    so that we simply write in the destination, the "2nd arg for op".
                 */
                 // TODO: We should not hardcode registers here, a better idea would be to
-                // pass some scratch registers in the AtomicRMW pseudo-instruction, and use those
+                // pass some scratch registers in the AtomicRMWLoop pseudo-instruction, and use those
                 let xzr = zero_reg();
                 let x24 = xreg(24);
                 let x25 = xreg(25);
@@ -1668,15 +1704,27 @@ impl MachInstEmit for Inst {
                     VecMisc2::Neg => (0b1, 0b01011, enc_size),
                     VecMisc2::Abs => (0b0, 0b01011, enc_size),
                     VecMisc2::Fabs => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
                         (0b0, 0b01111, enc_size)
                     }
                     VecMisc2::Fneg => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
                         (0b1, 0b01111, enc_size)
                     }
                     VecMisc2::Fsqrt => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
                         (0b1, 0b11111, enc_size)
                     }
                     VecMisc2::Rev64 => {
@@ -1684,11 +1732,19 @@ impl MachInstEmit for Inst {
                         (0b0, 0b00000, enc_size)
                     }
                     VecMisc2::Fcvtzs => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
                         (0b0, 0b11011, enc_size)
                     }
                     VecMisc2::Fcvtzu => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
                         (0b1, 0b11011, enc_size)
                     }
                     VecMisc2::Scvtf => {
@@ -1700,20 +1756,36 @@ impl MachInstEmit for Inst {
                         (0b1, 0b11101, enc_size & 0b1)
                     }
                     VecMisc2::Frintn => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
                         (0b0, 0b11000, enc_size & 0b01)
                     }
                     VecMisc2::Frintz => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
-                        (0b0, 0b11001, enc_size | 0b10)
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
+                        (0b0, 0b11001, enc_size)
                     }
                     VecMisc2::Frintm => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
                         (0b0, 0b11001, enc_size & 0b01)
                     }
                     VecMisc2::Frintp => {
-                        debug_assert!(size == VectorSize::Size32x4 || size == VectorSize::Size64x2);
-                        (0b0, 0b11000, enc_size | 0b10)
+                        debug_assert!(
+                            size == VectorSize::Size32x2
+                                || size == VectorSize::Size32x4
+                                || size == VectorSize::Size64x2
+                        );
+                        (0b0, 0b11000, enc_size)
                     }
                     VecMisc2::Cnt => {
                         debug_assert!(size == VectorSize::Size8x8 || size == VectorSize::Size8x16);
@@ -2266,7 +2338,11 @@ impl MachInstEmit for Inst {
                     VecALUOp::Orr => (0b000_01110_10_1, 0b000111),
                     VecALUOp::Eor => (0b001_01110_00_1, 0b000111),
                     VecALUOp::Bsl => (0b001_01110_01_1, 0b000111),
-                    VecALUOp::Umaxp => (0b001_01110_00_1 | enc_size << 1, 0b101001),
+                    VecALUOp::Umaxp => {
+                        debug_assert_ne!(size, VectorSize::Size64x2);
+
+                        (0b001_01110_00_1 | enc_size << 1, 0b101001)
+                    }
                     VecALUOp::Add => (0b000_01110_00_1 | enc_size << 1, 0b100001),
                     VecALUOp::Sub => (0b001_01110_00_1 | enc_size << 1, 0b100001),
                     VecALUOp::Mul => {
@@ -2275,11 +2351,31 @@ impl MachInstEmit for Inst {
                     }
                     VecALUOp::Sshl => (0b000_01110_00_1 | enc_size << 1, 0b010001),
                     VecALUOp::Ushl => (0b001_01110_00_1 | enc_size << 1, 0b010001),
-                    VecALUOp::Umin => (0b001_01110_00_1 | enc_size << 1, 0b011011),
-                    VecALUOp::Smin => (0b000_01110_00_1 | enc_size << 1, 0b011011),
-                    VecALUOp::Umax => (0b001_01110_00_1 | enc_size << 1, 0b011001),
-                    VecALUOp::Smax => (0b000_01110_00_1 | enc_size << 1, 0b011001),
-                    VecALUOp::Urhadd => (0b001_01110_00_1 | enc_size << 1, 0b000101),
+                    VecALUOp::Umin => {
+                        debug_assert_ne!(size, VectorSize::Size64x2);
+
+                        (0b001_01110_00_1 | enc_size << 1, 0b011011)
+                    }
+                    VecALUOp::Smin => {
+                        debug_assert_ne!(size, VectorSize::Size64x2);
+
+                        (0b000_01110_00_1 | enc_size << 1, 0b011011)
+                    }
+                    VecALUOp::Umax => {
+                        debug_assert_ne!(size, VectorSize::Size64x2);
+
+                        (0b001_01110_00_1 | enc_size << 1, 0b011001)
+                    }
+                    VecALUOp::Smax => {
+                        debug_assert_ne!(size, VectorSize::Size64x2);
+
+                        (0b000_01110_00_1 | enc_size << 1, 0b011001)
+                    }
+                    VecALUOp::Urhadd => {
+                        debug_assert_ne!(size, VectorSize::Size64x2);
+
+                        (0b001_01110_00_1 | enc_size << 1, 0b000101)
+                    }
                     VecALUOp::Fadd => (0b000_01110_00_1, 0b110101),
                     VecALUOp::Fsub => (0b000_01110_10_1, 0b110101),
                     VecALUOp::Fdiv => (0b001_01110_00_1, 0b111111),
@@ -2694,7 +2790,7 @@ impl MachInstEmit for Inst {
                         dest: BranchTarget::Label(jump_around_label),
                     };
                     jmp.emit(sink, emit_info, state);
-                    sink.emit_island();
+                    sink.emit_island(needed_space + 4);
                     sink.bind_label(jump_around_label);
                 }
             }

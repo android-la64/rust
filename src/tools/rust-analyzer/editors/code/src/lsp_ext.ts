@@ -9,6 +9,7 @@ export interface AnalyzerStatusParams {
 }
 export const analyzerStatus = new lc.RequestType<AnalyzerStatusParams, string, void>("rust-analyzer/analyzerStatus");
 export const memoryUsage = new lc.RequestType0<string, void>("rust-analyzer/memoryUsage");
+export const shuffleCrateGraph = new lc.RequestType0<null, void>("rust-analyzer/shuffleCrateGraph");
 
 export interface ServerStatusParams {
     health: "ok" | "warning" | "error";
@@ -124,7 +125,7 @@ export interface SsrParams {
     parseOnly: boolean;
     textDocument: lc.TextDocumentIdentifier;
     position: lc.Position;
-    selections: lc.Range[];
+    selections: readonly lc.Range[];
 }
 export const ssr = new lc.RequestType<SsrParams, lc.WorkspaceEdit, void>('experimental/ssr');
 

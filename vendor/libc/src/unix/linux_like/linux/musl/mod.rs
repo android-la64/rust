@@ -24,6 +24,16 @@ pub type rlim_t = ::c_ulonglong;
 
 pub type flock64 = flock;
 
+cfg_if! {
+    if #[cfg(doc)] {
+        // Used in `linux::arch` to define ioctl constants.
+        pub(crate) type Ioctl = ::c_int;
+    } else {
+        #[doc(hidden)]
+        pub type Ioctl = ::c_int;
+    }
+}
+
 impl siginfo_t {
     pub unsafe fn si_addr(&self) -> *mut ::c_void {
         #[repr(C)]
@@ -758,6 +768,10 @@ extern "C" {
 
     pub fn adjtimex(buf: *mut ::timex) -> ::c_int;
     pub fn clock_adjtime(clk_id: ::clockid_t, buf: *mut ::timex) -> ::c_int;
+
+    pub fn ctermid(s: *mut ::c_char) -> *mut ::c_char;
+
+    pub fn memfd_create(name: *const ::c_char, flags: ::c_uint) -> ::c_int;
 }
 
 cfg_if! {
@@ -765,7 +779,8 @@ cfg_if! {
                  target_arch = "aarch64",
                  target_arch = "mips64",
                  target_arch = "powerpc64",
-                 target_arch = "s390x"))] {
+                 target_arch = "s390x",
+                 target_arch = "riscv64"))] {
         mod b64;
         pub use self::b64::*;
     } else if #[cfg(any(target_arch = "x86",

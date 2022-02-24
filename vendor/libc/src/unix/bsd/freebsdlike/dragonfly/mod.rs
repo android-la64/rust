@@ -106,11 +106,6 @@ s! {
         pub f_uid_uuid: ::uuid_t,
     }
 
-    #[deprecated(
-        since = "0.2.107",
-        note = "stat.st_blksize is an i64 and stat.st_qspare1 is replaced with \
-                stat.st_blksize in DragonFly 5.8"
-    )]
     pub struct stat {
         pub st_ino: ::ino_t,
         pub st_nlink: ::nlink_t,
@@ -128,11 +123,11 @@ s! {
         pub st_ctime_nsec: ::c_long,
         pub st_size: ::off_t,
         pub st_blocks: i64,
-        pub st_blksize: u32,
+        pub __old_st_blksize: u32,
         pub st_flags: u32,
         pub st_gen: u32,
         pub st_lspare: i32,
-        pub st_qspare1: i64,
+        pub st_blksize: i64,
         pub st_qspare2: i64,
     }
 
@@ -214,6 +209,54 @@ s! {
         pub shm_dtime: ::time_t,
         pub shm_ctime: ::time_t,
         shm_internal: *mut ::c_void,
+    }
+
+    pub struct kinfo_file {
+        pub f_size: ::size_t,
+        pub f_pid: ::pid_t,
+        pub f_uid: ::uid_t,
+        pub f_fd: ::c_int,
+        pub f_file: *mut ::c_void,
+        pub f_type: ::c_short,
+        pub f_count: ::c_int,
+        pub f_msgcount: ::c_int,
+        pub f_offset: ::off_t,
+        pub f_data: *mut ::c_void,
+        pub f_flag: ::c_uint,
+    }
+
+    pub struct kinfo_cputime {
+        pub cp_user: u64,
+        pub cp_nice: u64,
+        pub cp_sys: u64,
+        pub cp_intr: u64,
+        pub cp_idel: u64,
+        cp_unused01: u64,
+        cp_unused02: u64,
+        pub cp_sample_pc: u64,
+        pub cp_sample_sp: u64,
+        pub cp_msg: [::c_char; 32],
+    }
+
+    pub struct cpuctl_msr_args_t {
+        pub msr: ::c_int,
+        pub data: u64,
+    }
+
+    pub struct cpuctl_cpuid_args_t {
+        pub level: ::c_int,
+        pub data: [u32; 4],
+    }
+
+    pub struct cpuctl_cpuid_count_args_t {
+        pub level: ::c_int,
+        pub level_type: ::c_int,
+        pub data: [u32; 4],
+    }
+
+    pub struct cpuctl_update_args_t {
+        pub data: *mut ::c_void,
+        pub size: ::size_t,
     }
 }
 
@@ -724,9 +767,6 @@ pub const RLIMIT_POSIXLOCKS: ::c_int = 11;
 #[deprecated(since = "0.2.64", note = "Not stable across OS versions")]
 pub const RLIM_NLIMITS: ::rlim_t = 12;
 
-#[deprecated(since = "0.2.105", note = "Only exists on FreeBSD, not DragonFly BSD")]
-pub const XU_NGROUPS: ::c_int = 16;
-
 pub const Q_GETQUOTA: ::c_int = 0x300;
 pub const Q_SETQUOTA: ::c_int = 0x400;
 
@@ -862,6 +902,14 @@ pub const CTL_P1003_1B_SIGQUEUE_MAX: ::c_int = 24;
 pub const CTL_P1003_1B_TIMER_MAX: ::c_int = 25;
 pub const CTL_P1003_1B_MAXID: ::c_int = 26;
 
+pub const CPUCTL_RSMSR: ::c_int = 0xc0106301;
+pub const CPUCTL_WRMSR: ::c_int = 0xc0106302;
+pub const CPUCTL_CPUID: ::c_int = 0xc0106303;
+pub const CPUCTL_UPDATE: ::c_int = 0xc0106304;
+pub const CPUCTL_MSRSBIT: ::c_int = 0xc0106305;
+pub const CPUCTL_MSRCBIT: ::c_int = 0xc0106306;
+pub const CPUCTL_CPUID_COUNT: ::c_int = 0xc0106307;
+
 pub const EVFILT_READ: i16 = -1;
 pub const EVFILT_WRITE: i16 = -2;
 pub const EVFILT_AIO: i16 = -3;
@@ -888,11 +936,6 @@ pub const EV_EOF: u16 = 0x8000;
 pub const EV_SYSFLAGS: u16 = 0xf000;
 
 pub const FIODNAME: ::c_ulong = 0x80106678;
-#[deprecated(
-    since = "0.2.106",
-    note = "FIODGNAME is not defined on DragonFly BSD. See FIODNAME."
-)]
-pub const FIODGNAME: ::c_ulong = 0x80106678;
 
 pub const NOTE_TRIGGER: u32 = 0x01000000;
 pub const NOTE_FFNOP: u32 = 0x00000000;
@@ -1299,6 +1342,8 @@ pub const SF_XLINK: ::c_ulong = 0x01000000;
 pub const UTIME_OMIT: c_long = -2;
 pub const UTIME_NOW: c_long = -1;
 
+pub const MINCORE_SUPER: ::c_int = 0x20;
+
 const_fn! {
     {const} fn _CMSG_ALIGN(n: usize) -> usize {
         (n + 3) & !3
@@ -1375,12 +1420,11 @@ extern "C" {
 
     pub fn aio_waitcomplete(iocbp: *mut *mut aiocb, timeout: *mut ::timespec) -> ::c_int;
 
-    #[deprecated(since = "0.2.107", note = "len should be of type size_t")]
     pub fn devname_r(
         dev: ::dev_t,
         mode: ::mode_t,
         buf: *mut ::c_char,
-        len: ::c_int,
+        len: ::size_t,
     ) -> *mut ::c_char;
 
     pub fn waitid(

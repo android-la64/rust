@@ -4,7 +4,6 @@
 #![allow(unused_features)]
 #![deny(rust_2018_idioms)]
 #![feature(
-    asm,
     custom_inner_attributes,
     link_llvm_intrinsics,
     platform_intrinsics,
@@ -68,7 +67,10 @@ extern crate std_detect;
 #[path = "mod.rs"]
 mod core_arch;
 
-pub use self::core_arch::arch;
+pub mod arch {
+    pub use crate::core_arch::arch::*;
+    pub use core::arch::asm;
+}
 
 #[allow(unused_imports)]
 use core::{convert, ffi, hint, intrinsics, marker, mem, ops, ptr, sync};

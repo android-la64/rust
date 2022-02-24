@@ -20,6 +20,8 @@
 
 //! Command line tool to exercise pulldown-cmark.
 
+#![forbid(unsafe_code)]
+
 use pulldown_cmark::{html, Options, Parser};
 
 use std::env;
@@ -61,6 +63,7 @@ pub fn main() -> std::io::Result<()> {
         "enable GitHub-style strikethrough",
     );
     opts.optflag("L", "enable-tasklists", "enable GitHub-style task lists");
+    opts.optflag("P", "enable-smart-punctuation", "enable smart punctuation");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -85,6 +88,9 @@ pub fn main() -> std::io::Result<()> {
     }
     if matches.opt_present("enable-tasklists") {
         opts.insert(Options::ENABLE_TASKLISTS);
+    }
+    if matches.opt_present("enable-smart-punctuation") {
+        opts.insert(Options::ENABLE_SMART_PUNCTUATION);
     }
 
     let mut input = String::new();

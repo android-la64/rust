@@ -12,8 +12,8 @@
 [package]
 edition = "2018"
 name = "pulldown-cmark-to-cmark"
-version = "6.0.4"
-authors = ["Sebastian Thiel <byronimo@gmail.com>", "Dylan Owen <dyltotheo@gmail.com>"]
+version = "7.1.1"
+authors = ["Sebastian Thiel <byronimo@gmail.com>", "Dylan Owen <dyltotheo@gmail.com>", "Alessandro Ogier <alessandro.ogier@gmail.com>"]
 include = ["src/lib.rs", "README.md", "CHANGELOG.md"]
 description = "Convert pulldown-cmark Events back to the string they were parsed from"
 homepage = "https://github.com/Byron/pulldown-cmark-to-cmark"

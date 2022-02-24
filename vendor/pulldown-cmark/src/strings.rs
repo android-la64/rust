@@ -1,4 +1,4 @@
-use std::borrow::{Borrow, ToOwned};
+use std::borrow::{Borrow, Cow, ToOwned};
 use std::convert::{AsRef, TryFrom};
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -91,6 +91,48 @@ pub enum CowStr<'a> {
     Inlined(InlineStr),
 }
 
+#[cfg(feature = "serde")]
+mod serde_impl {
+    use super::CowStr;
+    use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+    use std::fmt;
+
+    impl<'a> Serialize for CowStr<'a> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_str(self.as_ref())
+        }
+    }
+
+    struct CowStrVisitor;
+
+    impl<'de> de::Visitor<'de> for CowStrVisitor {
+        type Value = CowStr<'de>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string")
+        }
+
+        fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(CowStr::Borrowed(v))
+        }
+    }
+
+    impl<'a, 'de: 'a> Deserialize<'de> for CowStr<'a> {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            deserializer.deserialize_str(CowStrVisitor)
+        }
+    }
+}
+
 impl<'a> AsRef<str> for CowStr<'a> {
     fn as_ref(&self) -> &str {
         self.deref()
@@ -137,6 +179,31 @@ impl<'a> From<String> for CowStr<'a> {
 impl<'a> From<char> for CowStr<'a> {
     fn from(c: char) -> Self {
         CowStr::Inlined(c.into())
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for CowStr<'a> {
+    fn from(s: Cow<'a, str>) -> Self {
+        match s {
+            Cow::Borrowed(s) => CowStr::Borrowed(s),
+            Cow::Owned(s) => CowStr::Boxed(s.into_boxed_str()),
+        }
+    }
+}
+
+impl<'a> From<CowStr<'a>> for Cow<'a, str> {
+    fn from(s: CowStr<'a>) -> Self {
+        match s {
+            CowStr::Boxed(s) => Cow::Owned(s.to_string()),
+            CowStr::Inlined(s) => Cow::Owned(s.to_string()),
+            CowStr::Borrowed(s) => Cow::Borrowed(s),
+        }
+    }
+}
+
+impl<'a> From<Cow<'a, char>> for CowStr<'a> {
+    fn from(s: Cow<'a, char>) -> Self {
+        CowStr::Inlined(InlineStr::from(*s))
     }
 }
 
@@ -239,5 +306,68 @@ mod test_special_string {
         } else {
             panic!("Expected a Inlined variant!");
         }
+    }
+
+    #[test]
+    fn cow_to_cow_str() {
+        let s = "some text";
+        let cow = Cow::Borrowed(s);
+        let actual = CowStr::from(cow);
+        let expected = CowStr::Borrowed(s);
+        assert_eq!(actual, expected);
+        assert!(variant_eq(&actual, &expected));
+
+        let s = "some text".to_string();
+        let cow: Cow<str> = Cow::Owned(s.clone());
+        let actual = CowStr::from(cow);
+        let expected = CowStr::Boxed(s.into_boxed_str());
+        assert_eq!(actual, expected);
+        assert!(variant_eq(&actual, &expected));
+    }
+
+    #[test]
+    fn cow_str_to_cow() {
+        let s = "some text";
+        let cow_str = CowStr::Borrowed(s);
+        let actual = Cow::from(cow_str);
+        let expected = Cow::Borrowed(s);
+        assert_eq!(actual, expected);
+        assert!(variant_eq(&actual, &expected));
+
+        let s = "s";
+        let inline_str: InlineStr = InlineStr::try_from(s).unwrap();
+        let cow_str = CowStr::Inlined(inline_str);
+        let actual = Cow::from(cow_str);
+        let expected: Cow<str> = Cow::Owned(s.to_string());
+        assert_eq!(actual, expected);
+        assert!(variant_eq(&actual, &expected));
+
+        let s = "s";
+        let cow_str = CowStr::Boxed(s.to_string().into_boxed_str());
+        let actual = Cow::from(cow_str);
+        let expected: Cow<str> = Cow::Owned(s.to_string());
+        assert_eq!(actual, expected);
+        assert!(variant_eq(&actual, &expected));
+    }
+
+    #[test]
+    fn cow_char_to_cow_str() {
+        let c = 'c';
+        let cow: Cow<char> = Cow::Owned(c);
+        let actual = CowStr::from(cow);
+        let expected = CowStr::Inlined(InlineStr::from(c));
+        assert_eq!(actual, expected);
+        assert!(variant_eq(&actual, &expected));
+
+        let c = 'c';
+        let cow: Cow<char> = Cow::Borrowed(&c);
+        let actual = CowStr::from(cow);
+        let expected = CowStr::Inlined(InlineStr::from(c));
+        assert_eq!(actual, expected);
+        assert!(variant_eq(&actual, &expected));
+    }
+
+    fn variant_eq<T>(a: &T, b: &T) -> bool {
+        std::mem::discriminant(a) == std::mem::discriminant(b)
     }
 }

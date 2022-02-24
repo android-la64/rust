@@ -10,8 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+rust-version = "1.40.0"
 name = "libloading"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["Simonas Kazlauskas <libloading@kazlauskas.me>"]
 description = "Bindings around the platform's dynamic library loading primitives with greatly improved memory safety."
 documentation = "https://docs.rs/libloading/"

@@ -8,7 +8,7 @@ use crate::{
 #[cfg(test)]
 use stdarch_test::assert_instr;
 
-// SSE4 rounding constans
+// SSE4 rounding constants
 /// round to nearest
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub const _MM_FROUND_TO_NEAREST_INT: i32 = 0x00;
@@ -155,11 +155,9 @@ pub unsafe fn _mm_blend_ps<const IMM4: i32>(a: __m128, b: __m128) -> __m128 {
 /// #       #[target_feature(enable = "sse4.1")]
 /// #       unsafe fn worker() {
 /// let mut float_store = vec![1.0, 1.0, 2.0, 3.0];
-/// unsafe {
-///     let simd_floats = _mm_set_ps(2.5, 5.0, 7.5, 10.0);
-///     let x: i32 = _mm_extract_ps::<2>(simd_floats);
-///     float_store.push(f32::from_bits(x as u32));
-/// }
+/// let simd_floats = _mm_set_ps(2.5, 5.0, 7.5, 10.0);
+/// let x: i32 = _mm_extract_ps::<2>(simd_floats);
+/// float_store.push(f32::from_bits(x as u32));
 /// assert_eq!(float_store, vec![1.0, 1.0, 2.0, 3.0, 5.0]);
 /// #       }
 /// #       unsafe { worker() }
@@ -832,7 +830,7 @@ pub unsafe fn _mm_round_sd<const ROUNDING: i32>(a: __m128d, b: __m128d) -> __m12
 /// using the `ROUNDING` parameter, store the result as a single-precision
 /// floating-point element in the lower element of the intrinsic result,
 /// and copies the upper 3 packed elements from `a` to the upper elements
-/// of the instrinsic result.
+/// of the intrinsic result.
 /// Rounding is done according to the rounding parameter, which can be one of:
 ///
 /// ```

@@ -9,8 +9,7 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::ops::Index;
-use std::ops::IndexMut;
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 use std::slice::{Iter, IterMut};
 
 use crate::{Function, RegUsageMapper};
@@ -561,12 +560,12 @@ pub const NUM_REG_CLASSES: usize = 5;
 impl RegClass {
     /// Convert a register class to a u32 index.
     #[inline(always)]
-    pub fn rc_to_u32(self) -> u32 {
+    pub const fn rc_to_u32(self) -> u32 {
         self as u32
     }
     /// Convert a register class to a usize index.
     #[inline(always)]
-    pub fn rc_to_usize(self) -> usize {
+    pub const fn rc_to_usize(self) -> usize {
         self as usize
     }
     /// Construct a register class from a u32.
@@ -642,7 +641,7 @@ pub struct Reg {
     bits: u32,
 }
 
-static INVALID_REG: u32 = 0xffffffff;
+const INVALID_REG: u32 = 0xffffffff;
 
 impl Reg {
     #[inline(always)]
@@ -653,7 +652,7 @@ impl Reg {
     pub fn is_real(self) -> bool {
         self.is_valid() && (self.bits & 0x8000_0000) == 0
     }
-    pub fn new_real(rc: RegClass, enc: u8, index: u8) -> Self {
+    pub const fn new_real(rc: RegClass, enc: u8, index: u8) -> Self {
         let n = (0 << 31) | (rc.rc_to_u32() << 28) | ((enc as u32) << 8) | ((index as u32) << 0);
         Reg { bits: n }
     }
@@ -664,7 +663,7 @@ impl Reg {
         let n = (1 << 31) | (rc.rc_to_u32() << 28) | (index << 0);
         Reg { bits: n }
     }
-    pub fn invalid() -> Reg {
+    pub const fn invalid() -> Reg {
         Reg { bits: INVALID_REG }
     }
     #[inline(always)]
@@ -918,7 +917,7 @@ impl Reg {
 /// error.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
-pub struct Writable<R: WritableBase> {
+pub struct Writable<R> {
     reg: R,
 }
 
@@ -932,15 +931,17 @@ impl WritableBase for Reg {}
 impl WritableBase for RealReg {}
 impl WritableBase for VirtualReg {}
 
-impl<R: WritableBase> Writable<R> {
+impl<R> Writable<R> {
     /// Create a Writable<R> from an R. The client should carefully audit where
     /// it calls this constructor to ensure correctness (see `Writable<..>`
     /// struct documentation).
     #[inline(always)]
-    pub fn from_reg(reg: R) -> Writable<R> {
+    pub const fn from_reg(reg: R) -> Writable<R> {
         Writable { reg }
     }
+}
 
+impl<R: WritableBase> Writable<R> {
     /// Get the inner Reg.
     pub fn to_reg(&self) -> R {
         self.reg
@@ -1761,29 +1762,35 @@ impl fmt::Debug for RangeFragMetrics {
 // RangeFragIxs refer, is not stored here.
 
 #[derive(Clone)]
-pub struct SortedRangeFragIxs {
-    pub frag_ixs: SmallVec<[RangeFragIx; 4]>,
-}
+pub(crate) struct SortedRangeFragIxs(SmallVec<[RangeFragIx; 4]>);
 
 impl fmt::Debug for SortedRangeFragIxs {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.frag_ixs.fmt(fmt)
+        self.0.fmt(fmt)
+    }
+}
+
+impl Deref for SortedRangeFragIxs {
+    type Target = SmallVec<[RangeFragIx; 4]>;
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
 impl SortedRangeFragIxs {
-    pub(crate) fn check(&self, fenv: &TypedIxVec<RangeFragIx, RangeFrag>) {
-        for i in 1..self.frag_ixs.len() {
-            let prev_frag = &fenv[self.frag_ixs[i - 1]];
-            let this_frag = &fenv[self.frag_ixs[i]];
+    fn check(&self, fenv: &TypedIxVec<RangeFragIx, RangeFrag>) {
+        for i in 1..self.0.len() {
+            let prev_frag = &fenv[self.0[i - 1]];
+            let this_frag = &fenv[self.0[i]];
             if cmp_range_frags(prev_frag, this_frag) != Some(Ordering::Less) {
                 panic!("SortedRangeFragIxs::check: vector not ok");
             }
         }
     }
 
-    pub fn sort(&mut self, fenv: &TypedIxVec<RangeFragIx, RangeFrag>) {
-        self.frag_ixs.sort_unstable_by(|fix_a, fix_b| {
+    fn sort(&mut self, fenv: &TypedIxVec<RangeFragIx, RangeFrag>) {
+        self.0.sort_unstable_by(|fix_a, fix_b| {
             match cmp_range_frags(&fenv[*fix_a], &fenv[*fix_b]) {
                 Some(Ordering::Less) => Ordering::Less,
                 Some(Ordering::Greater) => Ordering::Greater,
@@ -1794,29 +1801,31 @@ impl SortedRangeFragIxs {
         });
     }
 
-    pub fn new(
+    pub(crate) fn new(
         frag_ixs: SmallVec<[RangeFragIx; 4]>,
         fenv: &TypedIxVec<RangeFragIx, RangeFrag>,
     ) -> Self {
-        let mut res = SortedRangeFragIxs { frag_ixs };
-        // check the source is ordered, and clone (or sort it)
+        let mut res = Self(frag_ixs);
+        // Check the source is ordered, and clone (or sort it).
         res.sort(fenv);
         res.check(fenv);
         res
     }
 
-    pub fn unit(fix: RangeFragIx, fenv: &TypedIxVec<RangeFragIx, RangeFrag>) -> Self {
-        let mut res = SortedRangeFragIxs {
-            frag_ixs: SmallVec::<[RangeFragIx; 4]>::new(),
-        };
-        res.frag_ixs.push(fix);
+    pub(crate) fn unit(fix: RangeFragIx, fenv: &TypedIxVec<RangeFragIx, RangeFrag>) -> Self {
+        let mut res = Self(SmallVec::<[RangeFragIx; 4]>::new());
+        res.0.push(fix);
         res.check(fenv);
         res
     }
 
     /// Does this sorted list of range fragments contain the given instruction point?
-    pub fn contains_pt(&self, fenv: &TypedIxVec<RangeFragIx, RangeFrag>, pt: InstPoint) -> bool {
-        self.frag_ixs
+    pub(crate) fn contains_pt(
+        &self,
+        fenv: &TypedIxVec<RangeFragIx, RangeFrag>,
+        pt: InstPoint,
+    ) -> bool {
+        self.0
             .binary_search_by(|&ix| {
                 let frag = &fenv[ix];
                 if pt < frag.first {
@@ -1831,52 +1840,58 @@ impl SortedRangeFragIxs {
     }
 }
 
-//=============================================================================
-// Vectors of RangeFrags, sorted so that they are in ascending order, per
-// their InstPoint fields.  The RangeFrags may not overlap.
-
+/// Vectors of RangeFrags, sorted so that they are in ascending order, per
+/// their InstPoint fields.  The RangeFrags may not overlap.
 #[derive(Clone)]
-pub struct SortedRangeFrags {
-    pub frags: SmallVec<[RangeFrag; 4]>,
-}
+pub(crate) struct SortedRangeFrags(SmallVec<[RangeFrag; 4]>);
 
 impl fmt::Debug for SortedRangeFrags {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.frags.fmt(fmt)
+        self.0.fmt(fmt)
+    }
+}
+
+impl Deref for SortedRangeFrags {
+    type Target = SmallVec<[RangeFrag; 4]>;
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for SortedRangeFrags {
+    #[inline(always)]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
 impl SortedRangeFrags {
-    pub fn unit(frag: RangeFrag) -> Self {
-        let mut res = SortedRangeFrags {
-            frags: SmallVec::<[RangeFrag; 4]>::new(),
-        };
-        res.frags.push(frag);
+    pub(crate) fn unit(frag: RangeFrag) -> Self {
+        let mut res = Self(SmallVec::<[RangeFrag; 4]>::new());
+        res.0.push(frag);
         res
     }
 
-    pub fn empty() -> Self {
-        Self {
-            frags: SmallVec::<[RangeFrag; 4]>::new(),
-        }
+    pub(crate) fn empty() -> Self {
+        Self(SmallVec::<[RangeFrag; 4]>::new())
     }
 
-    pub fn overlaps(&self, other: &Self) -> bool {
-        // Since both vectors are sorted and individually non-overlapping, we
-        // can establish that they are mutually non-overlapping by walking
-        // them simultaneously and checking, at each step, that there is a
-        // unique "next lowest" frag available.
-        let frags1 = &self.frags;
-        let frags2 = &other.frags;
+    pub(crate) fn overlaps(&self, other: &Self) -> bool {
+        // Since both vectors are sorted and individually non-overlapping, we can establish that
+        // they are mutually non-overlapping by walking them simultaneously and checking, at each
+        // step, that there is a unique "next lowest" frag available.
+        let frags1 = &self.0;
+        let frags2 = &other.0;
         let n1 = frags1.len();
         let n2 = frags2.len();
         let mut c1 = 0;
         let mut c2 = 0;
         loop {
             if c1 >= n1 || c2 >= n2 {
-                // We made it to the end of one (or both) vectors without
-                // finding any conflicts.
-                return false; // "no overlaps"
+                // We made it to the end of one (or both) vectors without finding any conflicts: no
+                // overlap.
+                return false;
             }
             let f1 = &frags1[c1];
             let f2 = &frags2[c2];
@@ -1884,17 +1899,17 @@ impl SortedRangeFrags {
                 Some(Ordering::Less) => c1 += 1,
                 Some(Ordering::Greater) => c2 += 1,
                 _ => {
-                    // There's no unique "next frag" -- either they are
-                    // identical, or they overlap.  So we're done.
-                    return true; // "there's an overlap"
+                    // There's no unique "next frag" -- either they are identical, or they overlap.
+                    // So we're done.
+                    return true;
                 }
             }
         }
     }
 
     /// Does this sorted list of range fragments contain the given instruction point?
-    pub fn contains_pt(&self, pt: InstPoint) -> bool {
-        self.frags
+    pub(crate) fn contains_pt(&self, pt: InstPoint) -> bool {
+        self.0
             .binary_search_by(|frag| {
                 if pt < frag.first {
                     Ordering::Greater
@@ -2046,7 +2061,7 @@ impl SpillCost {
 #[derive(Clone)]
 pub struct RealRange {
     pub rreg: RealReg,
-    pub sorted_frags: SortedRangeFragIxs,
+    pub(crate) sorted_frags: SortedRangeFragIxs,
     pub is_ref: bool,
 }
 
@@ -2081,13 +2096,13 @@ impl RealRange {
 
 #[derive(Clone)]
 pub struct VirtualRange {
-    pub vreg: VirtualReg,
-    pub rreg: Option<RealReg>,
-    pub sorted_frags: SortedRangeFrags,
-    pub is_ref: bool,
-    pub size: u16,
-    pub total_cost: u32,
-    pub spill_cost: SpillCost, // == total_cost / size
+    pub(crate) vreg: VirtualReg,
+    pub(crate) rreg: Option<RealReg>,
+    pub(crate) sorted_frags: SortedRangeFrags,
+    pub(crate) is_ref: bool,
+    pub(crate) size: u16,
+    pub(crate) total_cost: u32,
+    pub(crate) spill_cost: SpillCost, // == total_cost / size
 }
 
 impl VirtualRange {
@@ -2118,58 +2133,68 @@ impl fmt::Debug for VirtualRange {
 //=============================================================================
 // Some auxiliary/miscellaneous data structures that are useful: RegToRangesMaps
 
-// Mappings from RealRegs and VirtualRegs to the sets of RealRanges and VirtualRanges that
-// belong to them.  These are needed for BT's coalescing analysis and for the dataflow analysis
-// that supports reftype handling.
+/// Mappings from RealRegs and VirtualRegs to the sets of RealRanges and VirtualRanges that belong
+/// to them.  These are needed for BT's coalescing analysis and for the dataflow analysis that
+/// supports reftype handling.
+pub(crate) struct RegToRangesMaps {
+    /// This maps RealReg indices to the set of RealRangeIxs for that RealReg. Valid indices are
+    /// real register indices for all non-sanitised real regs; that is,
+    /// 0..RealRegUniverse::allocable. The Vecs of RealRangeIxs are duplicate-free.
+    ///
+    /// The SmallVec capacity of 6 was chosen after quite some profiling, of Cranelift/x64/newBE
+    /// compiling ZenGarden.wasm -- a huge input, with many relatively small functions. Profiling
+    /// was performed in August 2020, using Valgrind/DHAT.
+    pub(crate) rreg_to_rlrs_map: Vec</*real reg ix, */ SmallVec<[RealRangeIx; 6]>>,
 
-pub struct RegToRangesMaps {
-    // This maps RealReg indices to the set of RealRangeIxs for that RealReg.  Valid indices are
-    // real register indices for all non-sanitised real regs; that is,
-    // 0 .. RealRegUniverse::allocable, for ".." having the Rust meaning.  The Vecs of
-    // RealRangeIxs are duplicate-free.  The SmallVec capacity of 6 was chosen after quite
-    // some profiling, of CL/x64/newBE compiling ZenGarden.wasm -- a huge input, with many
-    // relatively small functions.  Profiling was performed in August 2020, using Valgrind/DHAT.
-    pub rreg_to_rlrs_map: Vec</*real reg ix, */ SmallVec<[RealRangeIx; 6]>>,
+    /// This maps VirtualReg indices to the set of VirtualRangeIxs for that VirtualReg. Valid
+    /// indices are 0..Function::get_num_vregs(). For functions mostly translated from SSA,
+    /// most VirtualRegs will have just one VirtualRange, and there are a lot of VirtualRegs in
+    /// general. So SmallVec is a definite benefit here.
+    pub(crate) vreg_to_vlrs_map: Vec</*virtual reg ix, */ SmallVec<[VirtualRangeIx; 3]>>,
 
-    // This maps VirtualReg indices to the set of VirtualRangeIxs for that VirtualReg.  Valid
-    // indices are 0 .. Function::get_num_vregs().  For functions mostly translated from SSA,
-    // most VirtualRegs will have just one VirtualRange, and there are a lot of VirtualRegs in
-    // general.  So SmallVec is a definite benefit here.
-    pub vreg_to_vlrs_map: Vec</*virtual reg ix, */ SmallVec<[VirtualRangeIx; 3]>>,
+    /// As an optimisation heuristic for BT's coalescing analysis, these indicate which
+    /// real/virtual registers have "many" `RangeFrag`s in their live ranges. For some definition
+    /// of "many", as defined by the `many_frags_thresh` field. This is not important for overall
+    /// allocation result or correctness: it merely allows the coalescing analysis to switch
+    /// between two search strategies, one of which is fast for regs with few `RangeFrag`s (the
+    /// vast majority) and the other of which has better asymptotic behaviour for regs with many
+    /// `RangeFrag`s (in order to keep out of trouble on some pathological inputs).  These vectors
+    /// are duplicate-free but the elements may be in an arbitrary order.
+    pub(crate) rregs_with_many_frags: Vec<u32 /*RealReg index*/>,
+    /// Same as above, for virtual registers.
+    pub(crate) vregs_with_many_frags: Vec<u32 /*VirtualReg index*/>,
 
-    // As an optimisation heuristic for BT's coalescing analysis, these indicate which
-    // real/virtual registers have "many" `RangeFrag`s in their live ranges.  For some
-    // definition of "many", perhaps "200 or more".  This is not important for overall
-    // allocation result or correctness: it merely allows the coalescing analysis to switch
-    // between two search strategies, one of which is fast for regs with few `RangeFrag`s (the
-    // vast majority) and the other of which has better asymptotic behaviour for regs with many
-    // `RangeFrag`s (in order to keep out of trouble on some pathological inputs).  These
-    // vectors are duplicate-free but the elements may be in an arbitrary order.
-    pub rregs_with_many_frags: Vec<u32 /*RealReg index*/>,
-    pub vregs_with_many_frags: Vec<u32 /*VirtualReg index*/>,
-
-    // And this indicates what the thresh is actually set to.  A frag will be in
-    // `r/vregs_with_many_frags` if it has `many_frags_thresh` or more RangeFrags.
-    pub many_frags_thresh: usize,
+    /// This indicates what the threshold is actually set to.  A frag will be in
+    /// `{r,v}regs_with_many_frags` if it has `many_frags_thresh` or more RangeFrags.
+    pub(crate) many_frags_thresh: usize,
 }
 
-//=============================================================================
-// Some auxiliary/miscellaneous data structures that are useful: MoveInfo
-
-// `MoveInfoElem` holds info about the two registers connected a move: the source and destination
-// of the move, the insn performing the move, and the estimated execution frequency of the
-// containing block.  In `MoveInfo`, the moves are not presented in any particular order, but
-// they are duplicate-free in that each such instruction will be listed only once.
-
-pub struct MoveInfoElem {
-    pub dst: Reg,
-    pub src: Reg,
-    pub iix: InstIx,
-    pub est_freq: u32,
+/// `MoveInfoElem` holds info about the two registers connected a move: the source and destination
+/// of the move, the instruction performing the move, and the estimated execution frequency of the
+/// containing block.
+pub(crate) struct MoveInfoElem {
+    pub(crate) dst: Reg,
+    pub(crate) src: Reg,
+    pub(crate) iix: InstIx,
+    pub(crate) est_freq: u32,
 }
 
-pub struct MoveInfo {
-    pub moves: Vec<MoveInfoElem>,
+/// Vector of `MoveInfoElem`, presented in no particular order, but duplicate-free in that each
+/// move instruction will be listed only once.
+pub(crate) struct MoveInfo(Vec<MoveInfoElem>);
+
+impl MoveInfo {
+    pub(crate) fn new(move_info: Vec<MoveInfoElem>) -> Self {
+        Self(move_info)
+    }
+}
+
+impl Deref for MoveInfo {
+    type Target = Vec<MoveInfoElem>;
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 // Something that can be either a VirtualRangeIx or a RealRangeIx, whilst still being 32 bits

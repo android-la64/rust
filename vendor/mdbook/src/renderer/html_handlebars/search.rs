@@ -17,10 +17,10 @@ pub fn create_files(search_config: &Search, destination: &Path, book: &Book) -> 
     let mut doc_urls = Vec::with_capacity(book.sections.len());
 
     for item in book.iter() {
-        render_item(&mut index, &search_config, &mut doc_urls, item)?;
+        render_item(&mut index, search_config, &mut doc_urls, item)?;
     }
 
-    let index = write_to_json(index, &search_config, doc_urls)?;
+    let index = write_to_json(index, search_config, doc_urls)?;
     debug!("Writing search index ✓");
     if index.len() > 10_000_000 {
         warn!("searchindex.json is very large ({} bytes)", index.len());
@@ -85,7 +85,7 @@ fn render_item(
         .with_context(|| "Could not convert HTML path to str")?;
     let anchor_base = utils::fs::normalize_path(filepath);
 
-    let mut p = utils::new_cmark_parser(&chapter.content).peekable();
+    let mut p = utils::new_cmark_parser(&chapter.content, false).peekable();
 
     let mut in_heading = false;
     let max_section_depth = u32::from(search_config.heading_split_level);
@@ -99,7 +99,7 @@ fn render_item(
 
     while let Some(event) = p.next() {
         match event {
-            Event::Start(Tag::Heading(i)) if i <= max_section_depth => {
+            Event::Start(Tag::Heading(i, ..)) if i as u32 <= max_section_depth => {
                 if !heading.is_empty() {
                     // Section finished, the next heading is following now
                     // Write the data to the index, and clear it for the next section
@@ -118,7 +118,7 @@ fn render_item(
 
                 in_heading = true;
             }
-            Event::End(Tag::Heading(i)) if i <= max_section_depth => {
+            Event::End(Tag::Heading(i, ..)) if i as u32 <= max_section_depth => {
                 in_heading = false;
                 section_id = Some(utils::id_from_content(&heading));
                 breadcrumbs.push(heading.clone());
@@ -134,7 +134,7 @@ fn render_item(
                 // in an HtmlBlock tag. We must collect consecutive Html events
                 // into a block ourselves.
                 while let Some(Event::Html(html)) = p.peek() {
-                    html_block.push_str(&html);
+                    html_block.push_str(html);
                     p.next();
                 }
 
@@ -165,7 +165,12 @@ fn render_item(
         }
     }
 
-    if !heading.is_empty() {
+    if !body.is_empty() || !heading.is_empty() {
+        if heading.is_empty() {
+            if let Some(chapter) = breadcrumbs.first() {
+                heading = chapter.clone();
+            }
+        }
         // Make sure the last section is added to the index
         add_doc(
             index,

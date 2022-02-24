@@ -1,5 +1,5 @@
 //! Complete fields in record literals and patterns.
-use ide_db::{helpers::FamousDefs, SymbolKind};
+use ide_db::SymbolKind;
 use syntax::{ast::Expr, T};
 
 use crate::{
@@ -13,7 +13,7 @@ pub(crate) fn complete_record(acc: &mut Completions, ctx: &CompletionContext) ->
             | ImmediateLocation::RecordExprUpdate(record_expr),
         ) => {
             let ty = ctx.sema.type_of_expr(&Expr::RecordExpr(record_expr.clone()));
-            let default_trait = FamousDefs(&ctx.sema, ctx.krate).core_default_Default();
+            let default_trait = ctx.famous_defs().core_default_Default();
             let impl_default_trait = default_trait.zip(ty).map_or(false, |(default_trait, ty)| {
                 ty.original.impls_trait(ctx.db, default_trait, &[])
             });
@@ -59,7 +59,12 @@ pub(crate) fn complete_record_literal(
     }
 
     if let hir::Adt::Struct(strukt) = ctx.expected_type.as_ref()?.as_adt()? {
-        acc.add_struct_literal(ctx, strukt, None);
+        let module =
+            if let Some(module) = ctx.scope.module() { module } else { strukt.module(ctx.db) };
+
+        let path = module.find_use_path(ctx.db, hir::ModuleDef::from(strukt));
+
+        acc.add_struct_literal(ctx, strukt, path, None);
     }
 
     Some(())
@@ -89,6 +94,35 @@ fn create_foo(foo_desc: &FooDesc) -> () { () }
 
 fn baz() {
     let foo = create_foo(&FooDesc { bar: ${1:()} }$0);
+}
+            "#,
+        )
+    }
+
+    #[test]
+    fn literal_struct_completion_from_sub_modules() {
+        check_edit(
+            "Struct {…}",
+            r#"
+mod submod {
+    pub struct Struct {
+        pub a: u64,
+    }
+}
+
+fn f() -> submod::Struct {
+    Stru$0
+}
+            "#,
+            r#"
+mod submod {
+    pub struct Struct {
+        pub a: u64,
+    }
+}
+
+fn f() -> submod::Struct {
+    submod::Struct { a: ${1:()} }$0
 }
             "#,
         )

@@ -9,8 +9,10 @@
 use std::num::NonZeroUsize;
 use std::ops::{Add, Sub};
 
+use crate::parse::{Item, ItemBody};
+
 #[derive(Debug, Eq, PartialEq, Copy, Clone, PartialOrd)]
-pub struct TreeIndex(NonZeroUsize);
+pub(crate) struct TreeIndex(NonZeroUsize);
 
 impl TreeIndex {
     fn new(i: usize) -> Self {
@@ -41,7 +43,7 @@ impl Sub<usize> for TreeIndex {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Node<T> {
+pub(crate) struct Node<T> {
     pub child: Option<TreeIndex>,
     pub next: Option<TreeIndex>,
     pub item: T,
@@ -49,7 +51,7 @@ pub struct Node<T> {
 
 /// A tree abstraction, intended for fast building as a preorder traversal.
 #[derive(Clone)]
-pub struct Tree<T> {
+pub(crate) struct Tree<T> {
     nodes: Vec<Node<T>>,
     spine: Vec<TreeIndex>, // indices of nodes on path to current node
     cur: Option<TreeIndex>,
@@ -59,7 +61,7 @@ impl<T: Default> Tree<T> {
     // Indices start at one, so we place a dummy value at index zero.
     // The alternative would be subtracting one from every TreeIndex
     // every time we convert it to usize to index our nodes.
-    pub fn with_capacity(cap: usize) -> Tree<T> {
+    pub(crate) fn with_capacity(cap: usize) -> Tree<T> {
         let mut nodes = Vec::with_capacity(cap);
         nodes.push(Node {
             child: None,
@@ -74,12 +76,12 @@ impl<T: Default> Tree<T> {
     }
 
     /// Returns the index of the element currently in focus.
-    pub fn cur(&self) -> Option<TreeIndex> {
+    pub(crate) fn cur(&self) -> Option<TreeIndex> {
         self.cur
     }
 
     /// Append one item to the current position in the tree.
-    pub fn append(&mut self, item: T) -> TreeIndex {
+    pub(crate) fn append(&mut self, item: T) -> TreeIndex {
         let ix = self.create_node(item);
         let this = Some(ix);
 
@@ -93,7 +95,7 @@ impl<T: Default> Tree<T> {
     }
 
     /// Create an isolated node.
-    pub fn create_node(&mut self, item: T) -> TreeIndex {
+    pub(crate) fn create_node(&mut self, item: T) -> TreeIndex {
         let this = self.nodes.len();
         self.nodes.push(Node {
             child: None,
@@ -105,7 +107,7 @@ impl<T: Default> Tree<T> {
 
     /// Push down one level, so that new items become children of the current node.
     /// The new focus index is returned.
-    pub fn push(&mut self) -> TreeIndex {
+    pub(crate) fn push(&mut self) -> TreeIndex {
         let cur_ix = self.cur.unwrap();
         self.spine.push(cur_ix);
         self.cur = self[cur_ix].child;
@@ -113,19 +115,19 @@ impl<T: Default> Tree<T> {
     }
 
     /// Pop back up a level.
-    pub fn pop(&mut self) -> Option<TreeIndex> {
+    pub(crate) fn pop(&mut self) -> Option<TreeIndex> {
         let ix = Some(self.spine.pop()?);
         self.cur = ix;
         ix
     }
 
     /// Look at the parent node.
-    pub fn peek_up(&self) -> Option<TreeIndex> {
+    pub(crate) fn peek_up(&self) -> Option<TreeIndex> {
         self.spine.last().copied()
     }
 
     /// Look at grandparent node.
-    pub fn peek_grandparent(&self) -> Option<TreeIndex> {
+    pub(crate) fn peek_grandparent(&self) -> Option<TreeIndex> {
         if self.spine.len() >= 2 {
             Some(self.spine[self.spine.len() - 2])
         } else {
@@ -133,18 +135,19 @@ impl<T: Default> Tree<T> {
         }
     }
 
-    /// Returns true when there are no nodes in the tree, false otherwise.
-    pub fn is_empty(&self) -> bool {
+    /// Returns true when there are no nodes other than the root node
+    /// in the tree, false otherwise.
+    pub(crate) fn is_empty(&self) -> bool {
         self.nodes.len() <= 1
     }
 
     /// Returns the length of the spine.
-    pub fn spine_len(&self) -> usize {
+    pub(crate) fn spine_len(&self) -> usize {
         self.spine.len()
     }
 
     /// Resets the focus to the first node added to the tree, if it exists.
-    pub fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.cur = if self.is_empty() {
             None
         } else {
@@ -154,13 +157,86 @@ impl<T: Default> Tree<T> {
     }
 
     /// Walks the spine from a root node up to, but not including, the current node.
-    pub fn walk_spine(&self) -> impl std::iter::DoubleEndedIterator<Item = &TreeIndex> {
+    pub(crate) fn walk_spine(&self) -> impl std::iter::DoubleEndedIterator<Item = &TreeIndex> {
         self.spine.iter()
     }
 
     /// Moves focus to the next sibling of the given node.
-    pub fn next_sibling(&mut self, cur_ix: TreeIndex) -> Option<TreeIndex> {
+    pub(crate) fn next_sibling(&mut self, cur_ix: TreeIndex) -> Option<TreeIndex> {
         self.cur = self[cur_ix].next;
+        self.cur
+    }
+}
+
+impl Tree<Item> {
+    /// Truncates the preceding siblings to the given end position,
+    /// and returns the new current node.
+    pub(crate) fn truncate_siblings(
+        &mut self,
+        bytes: &[u8],
+        end_byte_ix: usize,
+    ) -> Option<TreeIndex> {
+        let parent_ix = self.peek_up()?;
+        let mut next_child_ix = self[parent_ix].child;
+        let mut prev_child_ix = None;
+
+        // drop or truncate children based on its range
+        while let Some(child_ix) = next_child_ix {
+            let child_end = self[child_ix].item.end;
+            if child_end < end_byte_ix {
+                // preserve this node, and go to the next
+                prev_child_ix = Some(child_ix);
+                next_child_ix = self[child_ix].next;
+                continue;
+            }
+
+            if child_end == end_byte_ix {
+                // this will be the last node
+                self[child_ix].next = None;
+                // focus to the new last child (this node)
+                self.cur = Some(child_ix);
+                break;
+            }
+
+            debug_assert!(end_byte_ix < child_end);
+            if self[child_ix].item.start == end_byte_ix {
+                // check whether the previous character is a backslash
+                let is_previous_char_backslash_escape =
+                    end_byte_ix.checked_sub(1).map_or(false, |prev| {
+                        (bytes[prev] == b'\\') && (self[child_ix].item.body == ItemBody::Text)
+                    });
+                if is_previous_char_backslash_escape {
+                    // rescue the backslash as a plain text content
+                    let last_byte_ix = end_byte_ix - 1;
+                    self[child_ix].item.start = last_byte_ix;
+                    self[child_ix].item.end = end_byte_ix;
+                    self.cur = Some(child_ix);
+                    break;
+                }
+
+                // the node will become empty. drop the node
+                if let Some(prev_child_ix) = prev_child_ix {
+                    // a preceding sibling exists
+                    self[prev_child_ix].next = None;
+                    self.cur = Some(prev_child_ix);
+                } else {
+                    // no preceding siblings. remove the node from the parent
+                    self[parent_ix].child = None;
+                    self.cur = None;
+                }
+                break;
+            }
+
+            debug_assert!(self[child_ix].item.start < end_byte_ix);
+            debug_assert!(end_byte_ix < child_end);
+            // truncate the node
+            self[child_ix].item.end = end_byte_ix;
+            self[child_ix].next = None;
+            // focus to the new last child
+            self.cur = Some(child_ix);
+            break;
+        }
+
         self.cur
     }
 }

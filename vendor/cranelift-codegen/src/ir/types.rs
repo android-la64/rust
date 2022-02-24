@@ -79,6 +79,30 @@ impl Type {
         }
     }
 
+    /// Get the (minimum, maximum) values represented by each lane in the type.
+    /// Note that these are returned as unsigned 'bit patterns'.
+    pub fn bounds(self, signed: bool) -> (u128, u128) {
+        if signed {
+            match self.lane_type() {
+                I8 => (i8::MIN as u128, i8::MAX as u128),
+                I16 => (i16::MIN as u128, i16::MAX as u128),
+                I32 => (i32::MIN as u128, i32::MAX as u128),
+                I64 => (i64::MIN as u128, i64::MAX as u128),
+                I128 => (i128::MIN as u128, i128::MAX as u128),
+                _ => unimplemented!(),
+            }
+        } else {
+            match self.lane_type() {
+                I8 => (u8::MIN as u128, u8::MAX as u128),
+                I16 => (u16::MIN as u128, u16::MAX as u128),
+                I32 => (u32::MIN as u128, u32::MAX as u128),
+                I64 => (u64::MIN as u128, u64::MAX as u128),
+                I128 => (u128::MIN, u128::MAX),
+                _ => unimplemented!(),
+            }
+        }
+    }
+
     /// Get an integer type with the requested number of bits.
     pub fn int(bits: u16) -> Option<Self> {
         match bits {
@@ -125,6 +149,21 @@ impl Type {
         } else {
             self.as_bool_pedantic()
         }
+    }
+
+    /// Get a type with the same number of lanes as this type, but with the lanes replaced by
+    /// integers of the same size.
+    ///
+    /// Scalar types follow this same rule, but `b1` is converted into `i8`
+    pub fn as_int(self) -> Self {
+        self.replace_lanes(match self.lane_type() {
+            I8 | B1 | B8 => I8,
+            I16 | B16 => I16,
+            I32 | B32 => I32,
+            I64 | B64 => I64,
+            I128 | B128 => I128,
+            _ => unimplemented!(),
+        })
     }
 
     /// Get a type with the same number of lanes as this type, but with lanes that are half the
@@ -191,6 +230,11 @@ impl Type {
             B1 | B8 | B16 | B32 | B64 | B128 => true,
             _ => false,
         }
+    }
+
+    /// Is this a vector boolean type?
+    pub fn is_bool_vector(self) -> bool {
+        self.is_vector() && self.lane_type().is_bool()
     }
 
     /// Is this a scalar integer type?
@@ -325,6 +369,19 @@ impl Type {
             Err(()) => panic!("unable to determine architecture pointer width"),
         }
     }
+
+    /// Coerces boolean types (scalar and vectors) into their integer counterparts.
+    /// B1 is converted into I8.
+    pub fn coerce_bools_to_ints(self) -> Self {
+        let is_scalar_bool = self.is_bool();
+        let is_vector_bool = self.is_vector() && self.lane_type().is_bool();
+
+        if is_scalar_bool || is_vector_bool {
+            self.as_int()
+        } else {
+            self
+        }
+    }
 }
 
 impl Display for Type {
@@ -343,7 +400,6 @@ impl Display for Type {
             f.write_str(match *self {
                 IFLAGS => "iflags",
                 FFLAGS => "fflags",
-                SARG_T => "sarg_t",
                 INVALID => panic!("INVALID encountered"),
                 _ => panic!("Unknown Type(0x{:x})", self.0),
             })
@@ -529,5 +585,14 @@ mod tests {
         assert_eq!(I32.as_bool(), B1);
         assert_eq!(I32X4.as_bool_pedantic(), B32X4);
         assert_eq!(I32.as_bool_pedantic(), B32);
+    }
+
+    #[test]
+    fn as_int() {
+        assert_eq!(B32X4.as_int(), I32X4);
+        assert_eq!(B8X8.as_int(), I8X8);
+        assert_eq!(B1.as_int(), I8);
+        assert_eq!(B8.as_int(), I8);
+        assert_eq!(B128.as_int(), I128);
     }
 }

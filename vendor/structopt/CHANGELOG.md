@@ -1,3 +1,47 @@
+# v0.3.25 (2021-10-18)
+
+* Fix duplication of aliases in subcommands [#504](https://github.com/TeXitoi/structopt/pull/504)
+
+# v0.3.25 (2021-10-18)
+
+* No changes
+
+# v0.3.23 (2021-08-30)
+
+* Update minimal rust version to 1.46 because of bitflags 1.3
+* Fixed [a bug that occurs when the type of `map` becomes ambiguous](https://github.com/TeXitoi/structopt/issues/490).
+* Add support for [skip for enum variant subcommands](https://github.com/TeXitoi/structopt/issues/493)
+
+# v0.3.22 (2021-07-04)
+
+* Add support for [generics in derive](https://github.com/TeXitoi/structopt/issues/128)
+
+# v0.3.21 (2020-11-30)
+
+* Fixed [another breakage](https://github.com/TeXitoi/structopt/issues/447)
+  when the struct is placed inside a `macro_rules!` macro.
+
+# v0.3.20 (2020-10-12)
+
+* Fixed [a breakage](https://github.com/TeXitoi/structopt/issues/439)
+  when the struct is placed inside a `macro_rules!` macro.
+
+# v0.3.19 (2020-10-08)
+
+* Added [StructOpt::from_args_safe](https://docs.rs/structopt/0.3/structopt/trait.StructOpt.html#tymethod.from_args_safe) as a shortcut for `StructOpt::from_iter_safe(std::env::args_os())`.
+* Some links in documentation have been corrected.
+
+# v0.3.18 (2020-09-23)
+
+* Unsafe code [has been forbidden](https://github.com/TeXitoi/structopt/issues/432). This makes
+  [`cargo geiger`](https://github.com/rust-secure-code/cargo-geiger) list structopt as "safe".
+  Maybe it will help somebody trying to locate a bug in their dependency tree.
+
+# v0.3.17 (2020-08-25)
+
+* Fixed [a breakage](https://github.com/TeXitoi/structopt/issues/424) with resent rustc versions
+  due to `quote_spanned` misuse.
+
 # v0.3.16 (2020-08-05)
 
 * Added [the new example](https://github.com/TeXitoi/structopt/blob/master/examples/required_if.rs).

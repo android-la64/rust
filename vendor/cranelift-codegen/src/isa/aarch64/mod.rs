@@ -4,11 +4,13 @@ use crate::ir::condcodes::IntCC;
 use crate::ir::Function;
 use crate::isa::aarch64::settings as aarch64_settings;
 use crate::isa::Builder as IsaBuilder;
-use crate::machinst::{compile, MachBackend, MachCompileResult, TargetIsaAdapter, VCode};
+use crate::machinst::{
+    compile, MachBackend, MachCompileResult, MachTextSectionBuilder, TargetIsaAdapter,
+    TextSectionBuilder, VCode,
+};
 use crate::result::CodegenResult;
 use crate::settings as shared_settings;
 use alloc::{boxed::Box, vec::Vec};
-use core::hash::{Hash, Hasher};
 use regalloc::{PrettyPrint, RealRegUniverse};
 use target_lexicon::{Aarch64Architecture, Architecture, Triple};
 
@@ -108,11 +110,6 @@ impl MachBackend for AArch64Backend {
         self.isa_flags.iter().collect()
     }
 
-    fn hash_all_flags(&self, mut hasher: &mut dyn Hasher) {
-        self.flags.hash(&mut hasher);
-        self.isa_flags.hash(&mut hasher);
-    }
-
     fn reg_universe(&self) -> &RealRegUniverse {
         &self.reg_universe
     }
@@ -121,13 +118,6 @@ impl MachBackend for AArch64Backend {
         // Unsigned `>=`; this corresponds to the carry flag set on aarch64, which happens on
         // overflow of an add.
         IntCC::UnsignedGreaterThanOrEqual
-    }
-
-    fn unsigned_sub_overflow_condition(&self) -> IntCC {
-        // unsigned `<`; this corresponds to the carry flag cleared on aarch64, which happens on
-        // underflow of a subtract (aarch64 follows a carry-cleared-on-borrow convention, the
-        // opposite of x86).
-        IntCC::UnsignedLessThan
     }
 
     #[cfg(feature = "unwind")]
@@ -160,6 +150,10 @@ impl MachBackend for AArch64Backend {
     #[cfg(feature = "unwind")]
     fn create_systemv_cie(&self) -> Option<gimli::write::CommonInformationEntry> {
         Some(inst::unwind::systemv::create_cie())
+    }
+
+    fn text_section_builder(&self, num_funcs: u32) -> Box<dyn TextSectionBuilder> {
+        Box::new(MachTextSectionBuilder::<inst::Inst>::new(num_funcs))
     }
 }
 
@@ -218,15 +212,11 @@ mod test {
         let buffer = backend.compile_function(&mut func, false).unwrap().buffer;
         let code = &buffer.data[..];
 
-        // stp x29, x30, [sp, #-16]!
-        // mov x29, sp
         // mov x1, #0x1234
         // add w0, w0, w1
-        // ldp x29, x30, [sp], #16
         // ret
         let golden = vec![
-            0xfd, 0x7b, 0xbf, 0xa9, 0xfd, 0x03, 0x00, 0x91, 0x81, 0x46, 0x82, 0xd2, 0x00, 0x00,
-            0x01, 0x0b, 0xfd, 0x7b, 0xc1, 0xa8, 0xc0, 0x03, 0x5f, 0xd6,
+            0x81, 0x46, 0x82, 0xd2, 0x00, 0x00, 0x01, 0x0b, 0xc0, 0x03, 0x5f, 0xd6,
         ];
 
         assert_eq!(code, &golden[..]);
@@ -277,8 +267,6 @@ mod test {
             .unwrap();
         let code = &result.buffer.data[..];
 
-        // stp	x29, x30, [sp, #-16]!
-        // mov	x29, sp
         // mov	x1, #0x1234                	// #4660
         // add	w0, w0, w1
         // mov	w1, w0
@@ -291,13 +279,11 @@ mod test {
         // cbnz	x1, 0x18
         // mov	x1, #0x1234                	// #4660
         // sub	w0, w0, w1
-        // ldp	x29, x30, [sp], #16
         // ret
         let golden = vec![
-            253, 123, 191, 169, 253, 3, 0, 145, 129, 70, 130, 210, 0, 0, 1, 11, 225, 3, 0, 42, 161,
-            0, 0, 181, 129, 70, 130, 210, 1, 0, 1, 11, 225, 3, 1, 42, 161, 255, 255, 181, 225, 3,
-            0, 42, 97, 255, 255, 181, 129, 70, 130, 210, 0, 0, 1, 75, 253, 123, 193, 168, 192, 3,
-            95, 214,
+            129, 70, 130, 210, 0, 0, 1, 11, 225, 3, 0, 42, 161, 0, 0, 181, 129, 70, 130, 210, 1, 0,
+            1, 11, 225, 3, 1, 42, 161, 255, 255, 181, 225, 3, 0, 42, 97, 255, 255, 181, 129, 70,
+            130, 210, 0, 0, 1, 75, 192, 3, 95, 214,
         ];
 
         assert_eq!(code, &golden[..]);

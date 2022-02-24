@@ -1,10 +1,5 @@
-#[macro_use]
-extern crate html5ever;
-#[macro_use]
-extern crate lazy_static;
-
 use html5ever::serialize::{serialize, SerializeOpts};
-use html5ever::{driver as html, QualName};
+use html5ever::{driver as html, local_name, namespace_url, ns, QualName};
 use markup5ever_rcdom::{Handle, NodeData, RcDom, SerializableHandle};
 use pulldown_cmark::{Options, Parser};
 
@@ -28,6 +23,7 @@ pub fn test_markdown_html(input: &str, output: &str, smart_punct: bool) {
     if smart_punct {
         opts.insert(Options::ENABLE_SMART_PUNCTUATION);
     }
+    opts.insert(Options::ENABLE_HEADING_ATTRIBUTES);
 
     let p = Parser::new_ext(input, opts);
     pulldown_cmark::html::push_html(&mut s, p);
@@ -35,7 +31,7 @@ pub fn test_markdown_html(input: &str, output: &str, smart_punct: bool) {
     assert_eq!(normalize_html(output), normalize_html(&s));
 }
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref WHITESPACE_RE: Regex = Regex::new(r"\s+").unwrap();
     static ref LEADING_WHITESPACE_RE: Regex = Regex::new(r"\A\s+").unwrap();
     static ref TRAILING_WHITESPACE_RE: Regex = Regex::new(r"\s+\z").unwrap();

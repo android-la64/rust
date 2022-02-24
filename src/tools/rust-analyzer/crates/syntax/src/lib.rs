@@ -40,6 +40,7 @@ pub mod ast;
 pub mod fuzz;
 pub mod utils;
 pub mod ted;
+pub mod hacks;
 
 use std::{marker::PhantomData, sync::Arc};
 
@@ -48,7 +49,6 @@ use text_edit::Indel;
 
 pub use crate::{
     ast::{AstNode, AstToken},
-    parsing::lexer::{lex_single_syntax_kind, lex_single_valid_syntax_kind, tokenize, Token},
     ptr::{AstPtr, SyntaxNodePtr},
     syntax_error::SyntaxError,
     syntax_node::{
@@ -168,61 +168,6 @@ impl SourceFile {
     }
 }
 
-// FIXME: `parse` functions shouldn't hang directly from AST nodes, and they
-// shouldn't return `Result`.
-//
-// We need a dedicated module for parser entry points, and they should always
-// return `Parse`.
-
-impl ast::Path {
-    /// Returns `text`, parsed as a path, but only if it has no errors.
-    pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_as(text, parser::ParserEntryPoint::Path)
-    }
-}
-
-impl ast::Pat {
-    /// Returns `text`, parsed as a pattern, but only if it has no errors.
-    pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_as(text, parser::ParserEntryPoint::Pattern)
-    }
-}
-
-impl ast::Expr {
-    /// Returns `text`, parsed as an expression, but only if it has no errors.
-    pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_as(text, parser::ParserEntryPoint::Expr)
-    }
-}
-
-impl ast::Item {
-    /// Returns `text`, parsed as an item, but only if it has no errors.
-    pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_as(text, parser::ParserEntryPoint::Item)
-    }
-}
-
-impl ast::Type {
-    /// Returns `text`, parsed as an type reference, but only if it has no errors.
-    pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_as(text, parser::ParserEntryPoint::Type)
-    }
-}
-
-impl ast::Attr {
-    /// Returns `text`, parsed as an attribute, but only if it has no errors.
-    pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_as(text, parser::ParserEntryPoint::Attr)
-    }
-}
-
-impl ast::Stmt {
-    /// Returns `text`, parsed as statement, but only if it has no errors.
-    pub fn parse(text: &str) -> Result<Self, ()> {
-        parsing::parse_text_as(text, parser::ParserEntryPoint::StatementOptionalSemi)
-    }
-}
-
 /// Matches a `SyntaxNode` against an `ast` type.
 ///
 /// # Example:
@@ -242,7 +187,7 @@ macro_rules! match_ast {
     (match $node:ident { $($tt:tt)* }) => { match_ast!(match ($node) { $($tt)* }) };
 
     (match ($node:expr) {
-        $( ast::$ast:ident($it:ident) => $res:expr, )*
+        $( ast::$ast:ident($it:pat) => $res:expr, )*
         _ => $catch_all:expr $(,)?
     }) => {{
         $( if let Some($it) = ast::$ast::cast($node.clone()) { $res } else )*

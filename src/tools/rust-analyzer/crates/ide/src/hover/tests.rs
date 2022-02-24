@@ -552,7 +552,7 @@ fn hover_const_static() {
             ```
 
             ```rust
-            const foo: u32 = 123
+            const foo: u32 = 123 (0x7B)
             ```
         "#]],
     );
@@ -607,9 +607,21 @@ fn main() {
                 *zz*
 
                 ```rust
-                let zz: Test<i32, u8>
+                let zz: Test<i32>
                 ```
             "#]],
+    );
+    check_hover_range(
+        r#"
+struct Test<K, T = u8> { k: K, t: T }
+
+fn main() {
+    let $0zz$0 = Test { t: 23u8, k: 33 };
+}"#,
+        expect![[r#"
+            ```rust
+            Test<i32, u8>
+            ```"#]],
     );
 }
 
@@ -811,10 +823,10 @@ fn test_hover_infer_associated_method_exact() {
     check(
         r#"
 mod wrapper {
-    struct Thing { x: u32 }
+    pub struct Thing { x: u32 }
 
     impl Thing {
-        fn new() -> Thing { Thing { x: 0 } }
+        pub fn new() -> Thing { Thing { x: 0 } }
     }
 }
 
@@ -828,9 +840,9 @@ fn main() { let foo_test = wrapper::Thing::new$0(); }
                 ```
 
                 ```rust
-                fn new() -> Thing
+                pub fn new() -> Thing
                 ```
-            "#]],
+        "#]],
     )
 }
 
@@ -1136,7 +1148,7 @@ fn foo() { let a = id!([0u32, bar($0)] ); }
 fn test_hover_through_literal_string_in_macro() {
     check(
         r#"
-macro_rules! arr { ($($tt:tt)*) => { [$($tt)*)] } }
+macro_rules! arr { ($($tt:tt)*) => { [$($tt)*] } }
 fn foo() {
     let mastered_for_itunes = "";
     let _ = arr!("Tr$0acks", &mastered_for_itunes);
@@ -2349,46 +2361,53 @@ fn foo(ar$0g: &impl Foo + Bar<S>) {}
 fn test_hover_async_block_impl_trait_has_goto_type_action() {
     check_actions(
         r#"
-//- minicore: future
+//- /main.rs crate:main deps:core
+// we don't use minicore here so that this test doesn't randomly fail
+// when someone edits minicore
 struct S;
 fn foo() {
     let fo$0o = async { S };
 }
+//- /core.rs crate:core
+pub mod future {
+    #[lang = "future_trait"]
+    pub trait Future {}
+}
 "#,
         expect![[r#"
-                [
-                    GoToType(
-                        [
-                            HoverGotoTypeData {
-                                mod_path: "core::future::Future",
-                                nav: NavigationTarget {
-                                    file_id: FileId(
-                                        1,
-                                    ),
-                                    full_range: 276..458,
-                                    focus_range: 315..321,
-                                    name: "Future",
-                                    kind: Trait,
-                                    description: "pub trait Future",
-                                },
+            [
+                GoToType(
+                    [
+                        HoverGotoTypeData {
+                            mod_path: "core::future::Future",
+                            nav: NavigationTarget {
+                                file_id: FileId(
+                                    1,
+                                ),
+                                full_range: 21..69,
+                                focus_range: 60..66,
+                                name: "Future",
+                                kind: Trait,
+                                description: "pub trait Future",
                             },
-                            HoverGotoTypeData {
-                                mod_path: "test::S",
-                                nav: NavigationTarget {
-                                    file_id: FileId(
-                                        0,
-                                    ),
-                                    full_range: 0..9,
-                                    focus_range: 7..8,
-                                    name: "S",
-                                    kind: Struct,
-                                    description: "struct S",
-                                },
+                        },
+                        HoverGotoTypeData {
+                            mod_path: "main::S",
+                            nav: NavigationTarget {
+                                file_id: FileId(
+                                    0,
+                                ),
+                                full_range: 0..110,
+                                focus_range: 108..109,
+                                name: "S",
+                                kind: Struct,
+                                description: "struct S",
                             },
-                        ],
-                    ),
-                ]
-            "#]],
+                        },
+                    ],
+                ),
+            ]
+        "#]],
     );
 }
 
@@ -3260,6 +3279,140 @@ impl<const LEN: usize> Foo<LEN$0> {}
 }
 
 #[test]
+fn hover_const_eval() {
+    check(
+        r#"
+/// This is a doc
+const FOO$0: usize = !0 & !(!0 >> 1);
+"#,
+        expect![[r#"
+            *FOO*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            const FOO: usize = 9223372036854775808 (0x8000000000000000)
+            ```
+
+            ---
+
+            This is a doc
+        "#]],
+    );
+    check(
+        r#"
+/// This is a doc
+const FOO$0: usize = {
+    let a = 3 + 2;
+    let b = a * a;
+    b
+};
+"#,
+        expect![[r#"
+            *FOO*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            const FOO: usize = 25 (0x19)
+            ```
+
+            ---
+
+            This is a doc
+        "#]],
+    );
+    check(
+        r#"
+/// This is a doc
+const FOO$0: usize = 1 << 10;
+"#,
+        expect![[r#"
+            *FOO*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            const FOO: usize = 1024 (0x400)
+            ```
+
+            ---
+
+            This is a doc
+        "#]],
+    );
+    check(
+        r#"
+/// This is a doc
+const FOO$0: usize = 2 - 3;
+"#,
+        expect![[r#"
+            *FOO*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            const FOO: usize = 2 - 3
+            ```
+
+            ---
+
+            This is a doc
+        "#]],
+    );
+    check(
+        r#"
+/// This is a doc
+const FOO$0: i32 = 2 - 3;
+"#,
+        expect![[r#"
+            *FOO*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            const FOO: i32 = -1
+            ```
+
+            ---
+
+            This is a doc
+        "#]],
+    );
+    check(
+        r#"
+/// This is a doc
+const FOO$0: usize = 1 << 100;
+"#,
+        expect![[r#"
+            *FOO*
+
+            ```rust
+            test
+            ```
+
+            ```rust
+            const FOO: usize = 1 << 100
+            ```
+
+            ---
+
+            This is a doc
+        "#]],
+    );
+}
+
+#[test]
 fn hover_const_pat() {
     check(
         r#"
@@ -3366,6 +3519,30 @@ mod return_keyword {}
                 ---
 
                 Docs for return_keyword
+            "#]],
+    );
+}
+
+#[test]
+fn hover_keyword_as_primitive() {
+    check(
+        r#"
+//- /main.rs crate:main deps:std
+type F = f$0n(i32) -> i32;
+//- /libstd.rs crate:std
+/// Docs for prim_fn
+mod prim_fn {}
+"#,
+        expect![[r#"
+                *fn*
+
+                ```rust
+                fn
+                ```
+
+                ---
+
+                Docs for prim_fn
             "#]],
     );
 }
@@ -3666,7 +3843,6 @@ fn hover_clippy_lint() {
 
 #[test]
 fn hover_attr_path_qualifier() {
-    cov_mark::check!(name_ref_classify_attr_path_qualifier);
     check(
         r#"
 //- /foo.rs crate:foo
@@ -4264,5 +4440,48 @@ pub struct Foo;
 
             Doc comment for [`Foo`](https://doc.rust-lang.org/nightly/test/struct.Foo.html)
         "#]],
+    );
+}
+
+#[test]
+fn hover_inert_attr() {
+    check(
+        r#"
+#[doc$0 = ""]
+pub struct Foo;
+"#,
+        expect![[r##"
+            *doc*
+
+            ```rust
+            #[doc]
+            ```
+
+            ---
+
+            Valid forms are:
+
+            * \#\[doc(hidden|inline|...)\]
+            * \#\[doc = string\]
+        "##]],
+    );
+    check(
+        r#"
+#[allow$0()]
+pub struct Foo;
+"#,
+        expect![[r##"
+            *allow*
+
+            ```rust
+            #[allow]
+            ```
+
+            ---
+
+            Valid forms are:
+
+            * \#\[allow(lint1, lint2, ..., /\*opt\*/ reason = "...")\]
+        "##]],
     );
 }

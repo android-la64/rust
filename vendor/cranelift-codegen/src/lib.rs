@@ -59,13 +59,14 @@ use hashbrown::{hash_map, HashMap, HashSet};
 use std::collections::{hash_map, HashMap, HashSet};
 
 pub use crate::context::Context;
-pub use crate::legalizer::legalize_function;
 pub use crate::value_label::{ValueLabelsRanges, ValueLocRange};
 pub use crate::verifier::verify_function;
 pub use crate::write::write_function;
 
 pub use cranelift_bforest as bforest;
 pub use cranelift_entity as entity;
+#[cfg(feature = "unwind")]
+pub use gimli;
 
 pub mod binemit;
 pub mod cfg_printer;
@@ -85,8 +86,8 @@ pub mod write;
 
 pub use crate::entity::packed_option;
 pub use crate::machinst::buffer::MachSrcLoc;
+pub use crate::machinst::TextSectionBuilder;
 
-mod abi;
 mod bitset;
 mod constant_hash;
 mod context;
@@ -100,18 +101,11 @@ mod licm;
 mod log;
 mod machinst;
 mod nan_canonicalization;
-mod partition_slice;
-mod postopt;
-mod predicates;
-mod redundant_reload_remover;
-mod regalloc;
 mod remove_constant_phis;
 mod result;
 mod scoped_hash_map;
 mod simple_gvn;
 mod simple_preopt;
-mod stack_layout;
-mod topo_order;
 mod unreachable_code;
 mod value_label;
 

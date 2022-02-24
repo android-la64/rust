@@ -10,7 +10,7 @@ mod parser;
 mod expander;
 mod syntax_bridge;
 mod tt_iter;
-mod subtree_source;
+mod to_parser_input;
 
 #[cfg(test)]
 mod benchmark;
@@ -24,8 +24,16 @@ use crate::{
 };
 
 // FIXME: we probably should re-think  `token_tree_to_syntax_node` interfaces
-pub use ::parser::ParserEntryPoint;
+pub use ::parser::TopEntryPoint;
 pub use tt::{Delimiter, DelimiterKind, Punct};
+
+pub use crate::{
+    syntax_bridge::{
+        parse_exprs_with_sep, parse_to_token_tree, syntax_node_to_token_tree,
+        syntax_node_to_token_tree_censored, token_tree_to_syntax_node,
+    },
+    token_map::TokenMap,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ParseError {
@@ -70,14 +78,6 @@ impl fmt::Display for ExpandError {
     }
 }
 
-pub use crate::{
-    syntax_bridge::{
-        parse_exprs_with_sep, parse_to_token_tree, syntax_node_to_token_tree,
-        syntax_node_to_token_tree_censored, token_tree_to_syntax_node,
-    },
-    token_map::TokenMap,
-};
-
 /// This struct contains AST for a single `macro_rules` definition. What might
 /// be very confusing is that AST has almost exactly the same shape as
 /// `tt::TokenTree`, but there's a crucial difference: in macro rules, `$ident`
@@ -120,12 +120,13 @@ impl Shift {
                             _ => tree_id,
                         }
                     }
-                    tt::TokenTree::Leaf(tt::Leaf::Ident(ident))
-                        if ident.id != tt::TokenId::unspecified() =>
-                    {
-                        Some(ident.id.0)
+                    tt::TokenTree::Leaf(leaf) => {
+                        let &(tt::Leaf::Ident(tt::Ident { id, .. })
+                        | tt::Leaf::Punct(tt::Punct { id, .. })
+                        | tt::Leaf::Literal(tt::Literal { id, .. })) = leaf;
+
+                        (id != tt::TokenId::unspecified()).then(|| id.0)
                     }
-                    _ => None,
                 })
                 .max()
         }
@@ -135,15 +136,15 @@ impl Shift {
     pub fn shift_all(self, tt: &mut tt::Subtree) {
         for t in &mut tt.token_trees {
             match t {
-                tt::TokenTree::Leaf(leaf) => match leaf {
-                    tt::Leaf::Ident(ident) => ident.id = self.shift(ident.id),
-                    tt::Leaf::Punct(punct) => punct.id = self.shift(punct.id),
-                    tt::Leaf::Literal(lit) => lit.id = self.shift(lit.id),
-                },
+                tt::TokenTree::Leaf(
+                    tt::Leaf::Ident(tt::Ident { id, .. })
+                    | tt::Leaf::Punct(tt::Punct { id, .. })
+                    | tt::Leaf::Literal(tt::Literal { id, .. }),
+                ) => *id = self.shift(*id),
                 tt::TokenTree::Subtree(tt) => {
                     if let Some(it) = tt.delimiter.as_mut() {
                         it.id = self.shift(it.id);
-                    };
+                    }
                     self.shift_all(tt)
                 }
             }
@@ -152,9 +153,10 @@ impl Shift {
 
     pub fn shift(self, id: tt::TokenId) -> tt::TokenId {
         if id == tt::TokenId::unspecified() {
-            return id;
+            id
+        } else {
+            tt::TokenId(id.0 + self.0)
         }
-        tt::TokenId(id.0 + self.0)
     }
 
     pub fn unshift(self, id: tt::TokenId) -> Option<tt::TokenId> {
@@ -187,8 +189,8 @@ impl DeclarativeMacro {
             }
         }
 
-        for rule in &rules {
-            validate(&rule.lhs)?;
+        for Rule { lhs, .. } in &rules {
+            validate(lhs)?;
         }
 
         Ok(DeclarativeMacro { rules, shift: Shift::new(tt) })
@@ -217,12 +219,13 @@ impl DeclarativeMacro {
             cov_mark::hit!(parse_macro_def_simple);
             let rule = Rule::parse(&mut src, false)?;
             if src.len() != 0 {
-                return Err(ParseError::Expected("remain tokens in macro def".to_string()));
+                return Err(ParseError::Expected("remaining tokens in macro def".to_string()));
             }
             rules.push(rule);
         }
-        for rule in &rules {
-            validate(&rule.lhs)?;
+
+        for Rule { lhs, .. } in &rules {
+            validate(lhs)?;
         }
 
         Ok(DeclarativeMacro { rules, shift: Shift::new(tt) })
@@ -244,6 +247,10 @@ impl DeclarativeMacro {
             Some(id) => (id, Origin::Call),
             None => (id, Origin::Def),
         }
+    }
+
+    pub fn shift(&self) -> Shift {
+        self.shift
     }
 }
 
@@ -274,28 +281,18 @@ fn validate(pattern: &MetaTemplate) -> Result<(), ParseError> {
             Op::Repeat { tokens: subtree, separator, .. } => {
                 // Checks that no repetition which could match an empty token
                 // https://github.com/rust-lang/rust/blob/a58b1ed44f5e06976de2bdc4d7dc81c36a96934f/src/librustc_expand/mbe/macro_rules.rs#L558
-
-                if separator.is_none()
-                    && subtree.iter().all(|child_op| {
-                        match child_op {
-                            Op::Var { kind, .. } => {
-                                // vis is optional
-                                if kind.as_ref().map_or(false, |it| it == "vis") {
-                                    return true;
-                                }
-                            }
-                            Op::Repeat { kind, .. } => {
-                                return matches!(
-                                    kind,
-                                    parser::RepeatKind::ZeroOrMore | parser::RepeatKind::ZeroOrOne
-                                )
-                            }
-                            Op::Leaf(_) => {}
-                            Op::Subtree { .. } => {}
-                        }
-                        false
-                    })
-                {
+                let lsh_is_empty_seq = separator.is_none() && subtree.iter().all(|child_op| {
+                    match child_op {
+                        // vis is optional
+                        Op::Var { kind: Some(kind), .. } => kind == "vis",
+                        Op::Repeat {
+                            kind: parser::RepeatKind::ZeroOrMore | parser::RepeatKind::ZeroOrOne,
+                            ..
+                        } => true,
+                        _ => false,
+                    }
+                });
+                if lsh_is_empty_seq {
                     return Err(ParseError::RepetitionEmptyTokenTree);
                 }
                 validate(subtree)?

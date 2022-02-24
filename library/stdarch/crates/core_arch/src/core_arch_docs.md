@@ -185,6 +185,8 @@ others at:
 * [`x86_64`]
 * [`arm`]
 * [`aarch64`]
+* [`riscv32`]
+* [`riscv64`]
 * [`mips`]
 * [`mips64`]
 * [`powerpc`]
@@ -196,6 +198,8 @@ others at:
 [`x86_64`]: x86_64/index.html
 [`arm`]: arm/index.html
 [`aarch64`]: aarch64/index.html
+[`riscv32`]: riscv32/index.html
+[`riscv64`]: riscv64/index.html
 [`mips`]: mips/index.html
 [`mips64`]: mips64/index.html
 [`powerpc`]: powerpc/index.html

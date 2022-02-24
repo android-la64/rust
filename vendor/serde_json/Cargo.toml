@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.31"
+rust-version = "1.36"
 name = "serde_json"
-version = "1.0.69"
+version = "1.0.73"
 authors = ["Erick Tryzelaar <erick.tryzelaar@gmail.com>", "David Tolnay <dtolnay@gmail.com>"]
 include = ["build.rs", "src/**/*.rs", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 description = "A JSON serialization file format"
@@ -35,8 +35,7 @@ version = "1.5"
 optional = true
 
 [dependencies.itoa]
-version = "0.4.3"
-default-features = false
+version = "1.0"
 
 [dependencies.ryu]
 version = "1.0"

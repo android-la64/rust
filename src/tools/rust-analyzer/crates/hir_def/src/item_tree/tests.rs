@@ -70,13 +70,13 @@ extern "C" {
             #[on_extern_block]  // AttrId { is_doc_comment: false, ast_index: 0 }
             extern "C" {
                 #[on_extern_type]  // AttrId { is_doc_comment: false, ast_index: 0 }
-                pub(self) type ExType;  // extern
+                pub(self) type ExType;
 
                 #[on_extern_static]  // AttrId { is_doc_comment: false, ast_index: 0 }
-                pub(self) static EX_STATIC: u8 = _;  // extern
+                pub(self) static EX_STATIC: u8 = _;
 
                 #[on_extern_fn]  // AttrId { is_doc_comment: false, ast_index: 0 }
-                // flags = 0x60
+                // flags = 0x20
                 pub(self) fn ex_fn() -> ();
             }
         "##]],
@@ -176,7 +176,7 @@ trait Tr: SuperTrait + 'lifetime {
             // flags = 0x2
             pub(self) fn f(
                 #[attr]  // AttrId { is_doc_comment: false, ast_index: 0 }
-                _: u8,
+                arg: u8,
                 _: (),
             ) -> ();
 
@@ -341,7 +341,7 @@ trait Tr<'a, T: 'a>: Super where Self: for<'a> Tr<'a, T> {}
             {
                 // flags = 0x2
                 pub(self) fn f<G>(
-                    _: impl Copy,
+                    arg: impl Copy,
                 ) -> impl Copy
                 where
                     G: 'a;

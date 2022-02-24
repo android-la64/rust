@@ -1,13 +1,13 @@
 //! A `Subscriber` for formatting and logging `tracing` data.
 //!
-//! ## Overview
+//! # Overview
 //!
 //! [`tracing`] is a framework for instrumenting Rust programs with context-aware,
 //! structured, event-based diagnostic information. This crate provides an
 //! implementation of the [`Subscriber`] trait that records `tracing`'s `Event`s
 //! and `Span`s by formatting them as text and logging them to stdout.
 //!
-//! ## Usage
+//! # Usage
 //!
 //! First, add this to your `Cargo.toml` file:
 //!
@@ -41,7 +41,7 @@
 //! **Note**: This should **not** be called by libraries. Libraries should use
 //! [`tracing`] to publish `tracing` `Event`s.
 //!
-//! ## Configuration
+//! # Configuration
 //!
 //! You can configure a subscriber instead of using the defaults with
 //! the following functions:
@@ -60,7 +60,7 @@
 //! You can find the configuration methods for [`FmtSubscriber`] in
 //! [`SubscriberBuilder`].
 //!
-//! ### Formatters
+//! ## Formatters
 //!
 //! The output format used by the layer and subscriber in this module is
 //! represented by implementing the [`FormatEvent`] trait, and can be
@@ -195,7 +195,44 @@
 //!   {&quot;timestamp&quot;:&quot;Oct 24 13:00:00.875&quot;,&quot;level&quot;:&quot;INFO&quot;,&quot;fields&quot;:{&quot;message&quot;:&quot;yak shaving completed&quot;,&quot;all_yaks_shaved&quot;:false},&quot;target&quot;:&quot;fmt_json&quot;}
 //!   </pre>
 //!
-//! ### Filters
+//! ### Customizing Formatters
+//!
+//! The formatting of log lines for spans and events is controlled by two
+//! traits, [`FormatEvent`] and [`FormatFields`]. The [`FormatEvent`] trait
+//! determines the overall formatting of the log line, such as what information
+//! from the event's metadata and span context is included and in what order.
+//! The [`FormatFields`] trait determines how fields &mdash; both the event's
+//! fields and fields on spans &mdash; are formatted.
+//!
+//! The [`fmt::format`] module provides several types which implement these traits,
+//! many of which expose additional configuration options to customize their
+//! output. The [`format::Format`] type implements common configuration used by
+//! all the formatters provided in this crate, and can be used as a builder to
+//! set specific formatting settings. For example:
+//!
+//! ```
+//! use tracing_subscriber::fmt;
+//!
+//! // Configure a custom event formatter
+//! let format = fmt::format()
+//!    .with_level(false) // don't include levels in formatted output
+//!    .with_target(false) // don't include targets
+//!    .with_thread_ids(true) // include the thread ID of the current thread
+//!    .with_thread_names(true) // include the name of the current thread
+//!    .compact(); // use the `Compact` formatting style.
+//!
+//! // Create a `fmt` collector that uses our custom event format, and set it
+//! // as the default.
+//! tracing_subscriber::fmt()
+//!     .event_format(format)
+//!     .init();
+//! ```
+//!
+//! However, if a specific output format is needed, other crates can
+//! also implement [`FormatEvent`] and [`FormatFields`]. See those traits'
+//! documentation for details on how to implement them.
+//!
+//! ## Filters
 //!
 //! If you want to filter the `tracing` `Events` based on environment
 //! variables, you can use the [`EnvFilter`] as follows:
@@ -257,15 +294,18 @@
 //! [`Subscriber`]:
 //!     https://docs.rs/tracing/latest/tracing/trait.Subscriber.html
 //! [`tracing`]: https://crates.io/crates/tracing
+//! [`fmt::format`]: mod@crate::fmt::format
 use std::{any::TypeId, error::Error, io};
 use tracing_core::{span, subscriber::Interest, Event, Metadata};
 
 mod fmt_layer;
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 pub mod format;
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 pub mod time;
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 pub mod writer;
-#[allow(deprecated)]
-pub use fmt_layer::LayerBuilder;
+
 pub use fmt_layer::{FmtContext, FormattedFields, Layer};
 
 use crate::layer::Layer as _;
@@ -285,6 +325,7 @@ pub use self::{
 /// A `Subscriber` that logs formatted representations of `tracing` events.
 ///
 /// This consists of an inner `Formatter` wrapped in a layer that performs filtering.
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 #[derive(Debug)]
 pub struct Subscriber<
     N = format::DefaultFields,
@@ -297,6 +338,7 @@ pub struct Subscriber<
 
 /// A `Subscriber` that logs formatted representations of `tracing` events.
 /// This type only logs formatted events; it does not perform any filtering.
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 pub type Formatter<
     N = format::DefaultFields,
     E = format::Format<format::Full>,
@@ -304,6 +346,7 @@ pub type Formatter<
 > = layer::Layered<fmt_layer::Layer<Registry, N, E, W>, Registry>;
 
 /// Configures and constructs `Subscriber`s.
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 #[derive(Debug)]
 pub struct SubscriberBuilder<
     N = format::DefaultFields,
@@ -373,12 +416,12 @@ pub struct SubscriberBuilder<
 /// })
 /// ```
 ///
-/// [`SubscriberBuilder`]: struct.SubscriberBuilder.html
-/// [formatting subscriber]: struct.Subscriber.html
-/// [`SubscriberBuilder::default()`]: struct.SubscriberBuilder.html#method.default
-/// [`init`]: struct.SubscriberBuilder.html#method.init
-/// [`try_init`]: struct.SubscriberBuilder.html#method.try_init
-/// [`finish`]: struct.SubscriberBuilder.html#method.finish
+/// [formatting subscriber]: Subscriber
+/// [`SubscriberBuilder::default()`]: SubscriberBuilder::default()
+/// [`init`]: SubscriberBuilder::init()
+/// [`try_init`]: SubscriberBuilder::try_init()
+/// [`finish`]: SubscriberBuilder::finish()
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 pub fn fmt() -> SubscriberBuilder {
     SubscriberBuilder::default()
 }
@@ -388,9 +431,9 @@ pub fn fmt() -> SubscriberBuilder {
 ///
 /// This is a shorthand for the equivalent [`Layer::default`] function.
 ///
-/// [formatting layer]: struct.Layer.html
-/// [composed]: ../layer/index.html
-/// [`Layer::default`]: struct.Layer.html#method.default
+/// [formatting layer]: Layer
+/// [composed]: crate::layer
+#[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 pub fn layer<S>() -> Layer<S> {
     Layer::default()
 }
@@ -429,7 +472,7 @@ where
     N: for<'writer> FormatFields<'writer> + 'static,
     E: FormatEvent<Registry, N> + 'static,
     F: layer::Layer<Formatter<N, E, W>> + 'static,
-    W: MakeWriter + 'static,
+    W: for<'writer> MakeWriter<'writer> + 'static,
     layer::Layered<F, Formatter<N, E, W>>: tracing_core::Subscriber,
     fmt_layer::Layer<Registry, N, E, W>: layer::Layer<Registry>,
 {
@@ -529,7 +572,7 @@ impl<N, E, F, W> SubscriberBuilder<N, E, F, W>
 where
     N: for<'writer> FormatFields<'writer> + 'static,
     E: FormatEvent<Registry, N> + 'static,
-    W: MakeWriter + 'static,
+    W: for<'writer> MakeWriter<'writer> + 'static,
     F: layer::Layer<Formatter<N, E, W>> + Send + Sync + 'static,
     fmt_layer::Layer<Registry, N, E, W>: layer::Layer<Registry> + Send + Sync + 'static,
 {
@@ -576,7 +619,7 @@ impl<N, E, F, W> From<SubscriberBuilder<N, E, F, W>> for tracing_core::Dispatch
 where
     N: for<'writer> FormatFields<'writer> + 'static,
     E: FormatEvent<Registry, N> + 'static,
-    W: MakeWriter + 'static,
+    W: for<'writer> MakeWriter<'writer> + 'static,
     F: layer::Layer<Formatter<N, E, W>> + Send + Sync + 'static,
     fmt_layer::Layer<Registry, N, E, W>: layer::Layer<Registry> + Send + Sync + 'static,
 {
@@ -591,15 +634,18 @@ where
 {
     /// Use the given [`timer`] for log message timestamps.
     ///
-    /// See [`time`] for the provided timer implementations.
+    /// See the [`time` module] for the provided timer implementations.
     ///
-    /// Note that using the `chrono` feature flag enables the
-    /// additional time formatters [`ChronoUtc`] and [`ChronoLocal`].
+    /// Note that using the `"time`"" feature flag enables the
+    /// additional time formatters [`UtcTime`] and [`LocalTime`], which use the
+    /// [`time` crate] to provide more sophisticated timestamp formatting
+    /// options.
     ///
-    /// [`time`]: ./time/index.html
-    /// [`timer`]: ./time/trait.FormatTime.html
-    /// [`ChronoUtc`]: ./time/struct.ChronoUtc.html
-    /// [`ChronoLocal`]: ./time/struct.ChronoLocal.html
+    /// [`timer`]: time::FormatTime
+    /// [`time` module]: mod@time
+    /// [`UtcTime`]: time::UtcTime
+    /// [`LocalTime`]: time::LocalTime
+    /// [`time` crate]: https://docs.rs/time/0.3
     pub fn with_timer<T2>(self, timer: T2) -> SubscriberBuilder<N, format::Format<L, T2>, F, W> {
         SubscriberBuilder {
             filter: self.filter,
@@ -985,32 +1031,12 @@ impl<N, E, F, W> SubscriberBuilder<N, E, F, W> {
     where
         E2: FormatEvent<Registry, N> + 'static,
         N: for<'writer> FormatFields<'writer> + 'static,
-        W: MakeWriter + 'static,
+        W: for<'writer> MakeWriter<'writer> + 'static,
     {
         SubscriberBuilder {
             filter: self.filter,
             inner: self.inner.event_format(fmt_event),
         }
-    }
-
-    /// Sets whether or not spans inherit their parents' field values (disabled
-    /// by default).
-    #[deprecated(since = "0.2.0", note = "this no longer does anything")]
-    pub fn inherit_fields(self, inherit_fields: bool) -> Self {
-        let _ = inherit_fields;
-        self
-    }
-
-    /// Sets the function that the subscriber being built should use to format
-    /// events that occur.
-    #[deprecated(since = "0.2.0", note = "renamed to `event_format`.")]
-    pub fn on_event<E2>(self, fmt_event: E2) -> SubscriberBuilder<N, E2, F, W>
-    where
-        E2: FormatEvent<Registry, N> + 'static,
-        N: for<'writer> FormatFields<'writer> + 'static,
-        W: MakeWriter + 'static,
-    {
-        self.event_format(fmt_event)
     }
 
     /// Sets the [`MakeWriter`] that the subscriber being built will use to write events.
@@ -1031,7 +1057,7 @@ impl<N, E, F, W> SubscriberBuilder<N, E, F, W> {
     /// [`MakeWriter`]: trait.MakeWriter.html
     pub fn with_writer<W2>(self, make_writer: W2) -> SubscriberBuilder<N, E, F, W2>
     where
-        W2: MakeWriter + 'static,
+        W2: for<'writer> MakeWriter<'writer> + 'static,
     {
         SubscriberBuilder {
             filter: self.filter,
@@ -1141,16 +1167,16 @@ mod test {
     };
     use std::{
         io,
-        sync::{Mutex, MutexGuard, TryLockError},
+        sync::{Arc, Mutex, MutexGuard, TryLockError},
     };
     use tracing_core::dispatcher::Dispatch;
 
-    pub(crate) struct MockWriter<'a> {
-        buf: &'a Mutex<Vec<u8>>,
+    pub(crate) struct MockWriter {
+        buf: Arc<Mutex<Vec<u8>>>,
     }
 
-    impl<'a> MockWriter<'a> {
-        pub(crate) fn new(buf: &'a Mutex<Vec<u8>>) -> Self {
+    impl MockWriter {
+        pub(crate) fn new(buf: Arc<Mutex<Vec<u8>>>) -> Self {
             Self { buf }
         }
 
@@ -1161,12 +1187,12 @@ mod test {
             }
         }
 
-        pub(crate) fn buf(&self) -> io::Result<MutexGuard<'a, Vec<u8>>> {
+        pub(crate) fn buf(&self) -> io::Result<MutexGuard<'_, Vec<u8>>> {
             self.buf.try_lock().map_err(Self::map_error)
         }
     }
 
-    impl<'a> io::Write for MockWriter<'a> {
+    impl io::Write for MockWriter {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.buf()?.write(buf)
         }
@@ -1176,31 +1202,36 @@ mod test {
         }
     }
 
-    #[derive(Clone)]
-    pub(crate) struct MockMakeWriter<'a> {
-        buf: &'a Mutex<Vec<u8>>,
+    #[derive(Clone, Default)]
+    pub(crate) struct MockMakeWriter {
+        buf: Arc<Mutex<Vec<u8>>>,
     }
 
-    impl<'a> MockMakeWriter<'a> {
-        pub(crate) fn new(buf: &'a Mutex<Vec<u8>>) -> Self {
+    impl MockMakeWriter {
+        pub(crate) fn new(buf: Arc<Mutex<Vec<u8>>>) -> Self {
             Self { buf }
         }
 
-        pub(crate) fn buf(&self) -> MutexGuard<'a, Vec<u8>> {
+        #[cfg(feature = "json")]
+        pub(crate) fn buf(&self) -> MutexGuard<'_, Vec<u8>> {
             self.buf.lock().unwrap()
         }
 
         pub(crate) fn get_string(&self) -> String {
-            String::from_utf8(self.buf.lock().unwrap().clone())
-                .expect("subscriber must write valid UTF-8")
+            let mut buf = self.buf.lock().expect("lock shouldn't be poisoned");
+            let string = std::str::from_utf8(&buf[..])
+                .expect("formatter should not have produced invalid utf-8")
+                .to_owned();
+            buf.clear();
+            string
         }
     }
 
-    impl<'a> MakeWriter for MockMakeWriter<'a> {
-        type Writer = MockWriter<'a>;
+    impl<'a> MakeWriter<'a> for MockMakeWriter {
+        type Writer = MockWriter;
 
-        fn make_writer(&self) -> Self::Writer {
-            MockWriter::new(self.buf)
+        fn make_writer(&'a self) -> Self::Writer {
+            MockWriter::new(self.buf.clone())
         }
     }
 

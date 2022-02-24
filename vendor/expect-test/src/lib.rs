@@ -40,8 +40,8 @@
 //!
 //! `expect!` returns an instance of `Expect` struct, which holds position
 //! information and a string literal. Use `Expect::assert_eq` for string
-//! comparison. Use `Expect::assert_debug_eq` for verbose debug comparison. Note that
-//! leading indentation is automatically removed.
+//! comparison. Use `Expect::assert_debug_eq` for verbose debug comparison. Note
+//! that leading indentation is automatically removed.
 //!
 //! ```
 //! use expect_test::expect;
@@ -65,8 +65,8 @@
 //! quickly update all the tests by running the test suite with `UPDATE_EXPECT`
 //! environmental variable set.
 //!
-//! If the expected data is too verbose to include inline, you can store it in an
-//! external file using the `expect_file!` macro:
+//! If the expected data is too verbose to include inline, you can store it in
+//! an external file using the `expect_file!` macro:
 //!
 //! ```no_run
 //! use expect_test::expect_file;
@@ -80,8 +80,8 @@
 //!
 //! # Suggested Workflows
 //!
-//! I like to use data-driven tests with `expect_test`. I usually define a single
-//! driver function `check` and then call it from individual tests:
+//! I like to use data-driven tests with `expect_test`. I usually define a
+//! single driver function `check` and then call it from individual tests:
 //!
 //! ```
 //! use expect_test::{expect, Expect};
@@ -130,11 +130,15 @@
 //!
 //! # Maintenance status
 //!
-//! The main customer of this library is rust-analyzer. The library is expected
-//! to be relatively stable, but, if the need arises, it could be significantly
-//! reworked to fit rust-analyzer better.
+//! The main customer of this library is rust-analyzer. The library is  stable,
+//! it is planned to not release any major versions past 1.0.
 //!
-//! MSRV: latest stable.
+//! ## Minimal Supported Rust Version
+//!
+//! This crate's minimum supported `rustc` version is `1.45.0`. MSRV is updated
+//! conservatively, supporting roughly 10 minor versions of `rustc`. MSRV bump
+//! is not considered semver breaking, but will require at least minor version
+//! bump.
 use std::{
     collections::HashMap,
     env, fmt, fs, mem,
@@ -144,7 +148,7 @@ use std::{
     sync::Mutex,
 };
 
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 
 const HELP: &str = "
 You can update all `expect![[]]` tests by running:
@@ -274,11 +278,92 @@ impl Expect {
             line_start += line.len();
         }
         let (literal_start, line_indent) = target_line.unwrap();
-        let literal_length =
-            file[literal_start..].find("]]").expect("Couldn't find matching `]]` for `expect![[`.");
-        let literal_range = literal_start..literal_start + literal_length;
+
+        let lit_to_eof = &file[literal_start..];
+        let lit_to_eof_trimmed = lit_to_eof.trim_start();
+
+        let literal_start = literal_start + (lit_to_eof.len() - lit_to_eof_trimmed.len());
+
+        let literal_len =
+            locate_end(lit_to_eof_trimmed).expect("Couldn't find matching `]]` for `expect![[`.");
+        let literal_range = literal_start..literal_start + literal_len;
         Location { line_indent, literal_range }
     }
+}
+
+fn locate_end(lit_to_eof: &str) -> Option<usize> {
+    assert!(lit_to_eof.chars().next().map_or(true, |c| !c.is_whitespace()));
+
+    if lit_to_eof.starts_with("]]") {
+        // expect![[ ]]
+        Some(0)
+    } else {
+        // expect![["foo"]]
+        find_str_lit_len(lit_to_eof)
+    }
+}
+
+/// Parses a string literal, returning the byte index of its last character
+/// (either a quote or a hash).
+fn find_str_lit_len(str_lit_to_eof: &str) -> Option<usize> {
+    use StrLitKind::*;
+    #[derive(Clone, Copy)]
+    enum StrLitKind {
+        Normal,
+        Raw(usize),
+    }
+
+    fn try_find_n_hashes(
+        s: &mut impl Iterator<Item = char>,
+        desired_hashes: usize,
+    ) -> Option<(usize, Option<char>)> {
+        let mut n = 0;
+        loop {
+            match s.next()? {
+                '#' => n += 1,
+                c => return Some((n, Some(c))),
+            }
+
+            if n == desired_hashes {
+                return Some((n, None));
+            }
+        }
+    }
+
+    let mut s = str_lit_to_eof.chars();
+    let kind = match s.next()? {
+        '"' => Normal,
+        'r' => {
+            let (n, c) = try_find_n_hashes(&mut s, usize::MAX)?;
+            if c != Some('"') {
+                return None;
+            }
+            Raw(n)
+        }
+        _ => return None,
+    };
+
+    let mut oldc = None;
+    loop {
+        let c = oldc.take().or_else(|| s.next())?;
+        match (c, kind) {
+            ('\\', Normal) => {
+                let _escaped = s.next()?;
+            }
+            ('"', Normal) => break,
+            ('"', Raw(0)) => break,
+            ('"', Raw(n)) => {
+                let (seen, c) = try_find_n_hashes(&mut s, n)?;
+                if seen == n {
+                    break;
+                }
+                oldc = c;
+            }
+            _ => {}
+        }
+    }
+
+    Some(str_lit_to_eof.len() - s.as_str().len())
 }
 
 impl ExpectFile {
@@ -302,8 +387,12 @@ impl ExpectFile {
         fs::write(self.abs_path(), contents).unwrap()
     }
     fn abs_path(&self) -> PathBuf {
-        let dir = Path::new(self.position).parent().unwrap();
-        WORKSPACE_ROOT.join(dir).join(&self.path)
+        if self.path.is_absolute() {
+            self.path.to_owned()
+        } else {
+            let dir = Path::new(self.position).parent().unwrap();
+            to_abs_ws_path(&dir.join(&self.path))
+        }
     }
 }
 
@@ -381,7 +470,7 @@ struct FileRuntime {
 
 impl FileRuntime {
     fn new(expect: &Expect) -> FileRuntime {
-        let path = WORKSPACE_ROOT.join(expect.position.file);
+        let path = to_abs_ws_path(Path::new(expect.position.file));
         let original_text = fs::read_to_string(&path).unwrap();
         let patchwork = Patchwork::new(original_text.clone());
         FileRuntime { path, original_text, patchwork }
@@ -474,16 +563,31 @@ fn format_patch(desired_indent: Option<usize>, patch: &str) -> String {
     buf
 }
 
-static WORKSPACE_ROOT: Lazy<PathBuf> = Lazy::new(|| {
-    let my_manifest = env::var("CARGO_MANIFEST_DIR").unwrap();
-    // Heuristic, see https://github.com/rust-lang/cargo/issues/3946
-    Path::new(&my_manifest)
-        .ancestors()
-        .filter(|it| it.join("Cargo.toml").exists())
-        .last()
-        .unwrap()
-        .to_path_buf()
-});
+fn to_abs_ws_path(path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        return path.to_owned();
+    }
+
+    static WORKSPACE_ROOT: OnceCell<PathBuf> = OnceCell::new();
+    WORKSPACE_ROOT
+        .get_or_try_init(|| {
+            let my_manifest = env::var("CARGO_MANIFEST_DIR")?;
+
+            // Heuristic, see https://github.com/rust-lang/cargo/issues/3946
+            let workspace_root = Path::new(&my_manifest)
+                .ancestors()
+                .filter(|it| it.join("Cargo.toml").exists())
+                .last()
+                .unwrap()
+                .to_path_buf();
+
+            Ok(workspace_root)
+        })
+        .unwrap_or_else(|_: env::VarError| {
+            panic!("No CARGO_MANIFEST_DIR env var and the path is relative: {}", path.display())
+        })
+        .join(path)
+}
 
 fn trim_indent(mut text: &str) -> String {
     if text.starts_with('\n') {
@@ -634,5 +738,49 @@ line1
   line2
 "#]],
         );
+    }
+
+    #[test]
+    fn test_locate() {
+        macro_rules! check_locate {
+            ($( [[$s:literal]] ),* $(,)?) => {$({
+                let lit = stringify!($s);
+                let with_trailer = format!("{} \t]]\n", lit);
+                assert_eq!(locate_end(&with_trailer), Some(lit.len()));
+            })*};
+        }
+
+        // Check that we handle string literals containing "]]" correctly.
+        check_locate!(
+            [[r#"{ arr: [[1, 2], [3, 4]], other: "foo" } "#]],
+            [["]]"]],
+            [["\"]]"]],
+            [[r#""]]"#]],
+        );
+
+        // Check `expect![[  ]]` as well.
+        assert_eq!(locate_end("]]"), Some(0));
+    }
+
+    #[test]
+    fn test_find_str_lit_len() {
+        macro_rules! check_str_lit_len {
+            ($( $s:literal ),* $(,)?) => {$({
+                let lit = stringify!($s);
+                assert_eq!(find_str_lit_len(lit), Some(lit.len()));
+            })*}
+        }
+
+        check_str_lit_len![
+            r##"foa\""#"##,
+            r##"
+
+                asdf][]]""""#
+            "##,
+            "",
+            "\"",
+            "\"\"",
+            "#\"#\"#",
+        ];
     }
 }

@@ -1,7 +1,5 @@
 // Tests for HTML spec.
 
-extern crate pulldown_cmark;
-
 use pulldown_cmark::{html, BrokenLink, Options, Parser};
 
 #[test]
@@ -238,7 +236,7 @@ fn html_test_broken_callback() {
     let mut s = String::new();
 
     let mut callback = |broken_link: BrokenLink| {
-        if broken_link.reference == "foo" || broken_link.reference == "baz" {
+        if &*broken_link.reference == "foo" || &*broken_link.reference == "baz" {
             Some(("https://replaced.example.org".into(), "some title".into()))
         } else {
             None

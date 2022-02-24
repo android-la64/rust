@@ -99,6 +99,10 @@
 #define BCRYPT_SHA256_ALGORITHM L"SHA256"
 #endif
 
+#ifndef BCRYPT_SHA384_ALGORITHM
+#define BCRYPT_SHA384_ALGORITHM L"SHA384"
+#endif
+
 #ifndef BCRYPT_SHA512_ALGORITHM
 #define BCRYPT_SHA512_ALGORITHM L"SHA512"
 #endif
@@ -225,35 +229,81 @@ _libssh2_wincng_init(void)
 {
     int ret;
 
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgRNG,
+    memset(&_libssh2_wincng, 0, sizeof(_libssh2_wincng));
+
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgRNG,
                                       BCRYPT_RNG_ALGORITHM, NULL, 0);
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgRNG = NULL;
+    }
 
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashMD5,
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashMD5,
                                       BCRYPT_MD5_ALGORITHM, NULL, 0);
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashSHA1,
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHashMD5 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashSHA1,
                                       BCRYPT_SHA1_ALGORITHM, NULL, 0);
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashSHA256,
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHashSHA1 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashSHA256,
                                       BCRYPT_SHA256_ALGORITHM, NULL, 0);
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashSHA512,
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHashSHA256 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashSHA384,
+                                      BCRYPT_SHA384_ALGORITHM, NULL, 0);
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHashSHA384 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHashSHA512,
                                       BCRYPT_SHA512_ALGORITHM, NULL, 0);
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHashSHA512 = NULL;
+    }
 
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacMD5,
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacMD5,
                                       BCRYPT_MD5_ALGORITHM, NULL,
                                       BCRYPT_ALG_HANDLE_HMAC_FLAG);
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacSHA1,
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHmacMD5 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacSHA1,
                                       BCRYPT_SHA1_ALGORITHM, NULL,
                                       BCRYPT_ALG_HANDLE_HMAC_FLAG);
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacSHA256,
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHmacSHA1 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacSHA256,
                                       BCRYPT_SHA256_ALGORITHM, NULL,
                                       BCRYPT_ALG_HANDLE_HMAC_FLAG);
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacSHA512,
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHmacSHA256 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacSHA384,
+                                      BCRYPT_SHA384_ALGORITHM, NULL,
+                                      BCRYPT_ALG_HANDLE_HMAC_FLAG);
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHmacSHA384 = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgHmacSHA512,
                                       BCRYPT_SHA512_ALGORITHM, NULL,
                                       BCRYPT_ALG_HANDLE_HMAC_FLAG);
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgHmacSHA512 = NULL;
+    }
 
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgRSA,
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgRSA,
                                       BCRYPT_RSA_ALGORITHM, NULL, 0);
-    (void)BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgDSA,
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgRSA = NULL;
+    }
+    ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgDSA,
                                       BCRYPT_DSA_ALGORITHM, NULL, 0);
+    if(!BCRYPT_SUCCESS(ret)) {
+        _libssh2_wincng.hAlgDSA = NULL;
+    }
 
     ret = BCryptOpenAlgorithmProvider(&_libssh2_wincng.hAlgAES_CBC,
                                       BCRYPT_AES_ALGORITHM, NULL, 0);
@@ -263,7 +313,10 @@ _libssh2_wincng_init(void)
                                 (PBYTE)BCRYPT_CHAIN_MODE_CBC,
                                 sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
         if(!BCRYPT_SUCCESS(ret)) {
-            (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgAES_CBC, 0);
+            ret = BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgAES_CBC, 0);
+            if(BCRYPT_SUCCESS(ret)) {
+                _libssh2_wincng.hAlgAES_CBC = NULL;
+            }
         }
     }
 
@@ -275,7 +328,10 @@ _libssh2_wincng_init(void)
                                 (PBYTE)BCRYPT_CHAIN_MODE_ECB,
                                 sizeof(BCRYPT_CHAIN_MODE_ECB), 0);
         if(!BCRYPT_SUCCESS(ret)) {
-            (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgAES_ECB, 0);
+            ret = BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgAES_ECB, 0);
+            if(BCRYPT_SUCCESS(ret)) {
+                _libssh2_wincng.hAlgAES_ECB = NULL;
+            }
         }
     }
 
@@ -287,7 +343,10 @@ _libssh2_wincng_init(void)
                                 (PBYTE)BCRYPT_CHAIN_MODE_NA,
                                 sizeof(BCRYPT_CHAIN_MODE_NA), 0);
         if(!BCRYPT_SUCCESS(ret)) {
-            (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRC4_NA, 0);
+            ret = BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRC4_NA, 0);
+            if(BCRYPT_SUCCESS(ret)) {
+                _libssh2_wincng.hAlgRC4_NA = NULL;
+            }
         }
     }
 
@@ -299,8 +358,11 @@ _libssh2_wincng_init(void)
                                 (PBYTE)BCRYPT_CHAIN_MODE_CBC,
                                 sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
         if(!BCRYPT_SUCCESS(ret)) {
-            (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlg3DES_CBC,
+            ret = BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlg3DES_CBC,
                                                0);
+            if(BCRYPT_SUCCESS(ret)) {
+                _libssh2_wincng.hAlg3DES_CBC = NULL;
+            }
         }
     }
 
@@ -314,21 +376,40 @@ _libssh2_wincng_init(void)
 void
 _libssh2_wincng_free(void)
 {
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRNG, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashMD5, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashSHA1, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashSHA256, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashSHA512, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacMD5, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacSHA1, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacSHA256, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacSHA512, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRSA, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgDSA, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgAES_CBC, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRC4_NA, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlg3DES_CBC, 0);
-    (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgDH, 0);
+    if(_libssh2_wincng.hAlgRNG)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRNG, 0);
+    if(_libssh2_wincng.hAlgHashMD5)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashMD5, 0);
+    if(_libssh2_wincng.hAlgHashSHA1)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashSHA1, 0);
+    if(_libssh2_wincng.hAlgHashSHA256)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashSHA256, 0);
+    if(_libssh2_wincng.hAlgHashSHA384)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashSHA384, 0);
+    if(_libssh2_wincng.hAlgHashSHA512)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHashSHA512, 0);
+    if(_libssh2_wincng.hAlgHmacMD5)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacMD5, 0);
+    if(_libssh2_wincng.hAlgHmacSHA1)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacSHA1, 0);
+    if(_libssh2_wincng.hAlgHmacSHA256)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacSHA256, 0);
+    if(_libssh2_wincng.hAlgHmacSHA384)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacSHA384, 0);
+    if(_libssh2_wincng.hAlgHmacSHA512)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgHmacSHA512, 0);
+    if(_libssh2_wincng.hAlgRSA)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRSA, 0);
+    if(_libssh2_wincng.hAlgDSA)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgDSA, 0);
+    if(_libssh2_wincng.hAlgAES_CBC)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgAES_CBC, 0);
+    if(_libssh2_wincng.hAlgRC4_NA)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgRC4_NA, 0);
+    if(_libssh2_wincng.hAlg3DES_CBC)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlg3DES_CBC, 0);
+    if(_libssh2_wincng.hAlgDH)
+        (void)BCryptCloseAlgorithmProvider(_libssh2_wincng.hAlgDH, 0);
 
     memset(&_libssh2_wincng, 0, sizeof(_libssh2_wincng));
 }
@@ -361,6 +442,24 @@ _libssh2_wincng_safe_free(void *buf, int len)
     free(buf);
 }
 
+/* Copy a big endian set of bits from src to dest.
+ * if the size of src is smaller than dest then pad the "left" (MSB)
+ * end with zeroes and copy the bits into the "right" (LSB) end. */
+static void
+memcpy_with_be_padding(unsigned char *dest, unsigned long dest_len,
+                       unsigned char *src, unsigned long src_len)
+{
+    if(dest_len > src_len) {
+        memset(dest, 0, dest_len - src_len);
+    }
+    memcpy((dest + dest_len) - src_len, src, src_len);
+}
+
+static int
+round_down(int number, int multiple)
+{
+    return (number / multiple) * multiple;
+}
 
 /*******************************************************************/
 /*
@@ -1945,15 +2044,17 @@ _libssh2_wincng_bignum_rand(_libssh2_bn *rnd, int bits, int top, int bottom)
 
     /* calculate significant bits in most significant byte */
     bits %= 8;
+    if(bits == 0)
+        bits = 8;
 
     /* fill most significant byte with zero padding */
-    bignum[0] &= (1 << (8 - bits)) - 1;
+    bignum[0] &= ((1 << bits) - 1);
 
-    /* set some special last bits in most significant byte */
+    /* set most significant bits in most significant byte */
     if(top == 0)
-        bignum[0] |= (1 << (7 - bits));
+        bignum[0] |= (1 << (bits - 1));
     else if(top == 1)
-        bignum[0] |= (3 << (6 - bits));
+        bignum[0] |= (3 << (bits - 2));
 
     /* make odd by setting first bit in least significant byte */
     if(bottom)
@@ -1998,6 +2099,7 @@ _libssh2_wincng_bignum_mod_exp(_libssh2_bn *r,
     offset += p->length;
 
     memcpy(key + offset, m->bignum, m->length);
+    offset = 0;
 
     ret = BCryptImportKeyPair(_libssh2_wincng.hAlgRSA, NULL,
                               BCRYPT_RSAPUBLIC_BLOB, &hKey, key, keylen, 0);
@@ -2009,9 +2111,8 @@ _libssh2_wincng_bignum_mod_exp(_libssh2_bn *r,
                 length = max(a->length, length);
                 bignum = malloc(length);
                 if(bignum) {
-                    offset = length - a->length;
-                    memset(bignum, 0, offset);
-                    memcpy(bignum + offset, a->bignum, a->length);
+                    memcpy_with_be_padding(bignum, length,
+                                           a->bignum, a->length);
 
                     ret = BCryptEncrypt(hKey, bignum, length, NULL, NULL, 0,
                                         r->bignum, r->length, &offset,
@@ -2142,6 +2243,7 @@ _libssh2_wincng_bignum_free(_libssh2_bn *bn)
     }
 }
 
+
 /*******************************************************************/
 /*
  * Windows CNG backend: Diffie-Hellman support.
@@ -2173,25 +2275,6 @@ _libssh2_dh_dtor(_libssh2_dh_ctx *dhctx)
         _libssh2_wincng_bignum_free(dhctx->bn);
         dhctx->bn = NULL;
     }
-}
-
-/* Copy a big endian set of bits from src to dest.
- * if the size of src is smaller than dest then pad the "left" (MSB)
- * end with zeroes and copy the bits into the "right" (LSB) end. */
-static void
-memcpy_with_be_padding(unsigned char *dest, unsigned long dest_len,
-                       unsigned char *src, unsigned long src_len)
-{
-    if(dest_len > src_len) {
-        memset(dest, 0, dest_len - src_len);
-    }
-    memcpy(dest + dest_len - src_len, src, src_len);
-}
-
-static int
-round_down(int number, int multiple)
-{
-    return (number / multiple) * multiple;
 }
 
 /* Generates a Diffie-Hellman key pair using base `g', prime `p' and the given

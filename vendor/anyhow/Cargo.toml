@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.34"
+rust-version = "1.38"
 name = "anyhow"
-version = "1.0.45"
+version = "1.0.51"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 description = "Flexible concrete Error type built on std::error::Error"
 documentation = "https://docs.rs/anyhow"

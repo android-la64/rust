@@ -13,9 +13,6 @@ use cranelift_module::{
     DataContext, DataDescription, DataId, FuncId, Init, Linkage, Module, ModuleCompiledFunction,
     ModuleDeclarations, ModuleError, ModuleResult, RelocRecord,
 };
-use cranelift_native;
-#[cfg(not(windows))]
-use libc;
 use log::info;
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
@@ -25,8 +22,6 @@ use std::ptr;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use target_lexicon::PointerWidth;
-#[cfg(windows)]
-use winapi;
 
 const EXECUTABLE_DATA_ALIGNMENT: u64 = 0x10;
 const WRITABLE_DATA_ALIGNMENT: u64 = 0x8;
@@ -433,6 +428,14 @@ impl JITModule {
         self.memory.readonly.set_readonly();
         self.memory.code.set_readable_and_executable();
 
+        #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
+        {
+            let cmd: libc::c_int = 32; // MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE
+
+            // Ensure that no processor has fetched a stale instruction stream.
+            unsafe { libc::syscall(libc::SYS_membarrier, cmd) };
+        }
+
         for update in self.pending_got_updates.drain(..) {
             unsafe { update.entry.as_ref() }.store(update.ptr as *mut _, Ordering::SeqCst);
         }
@@ -492,6 +495,15 @@ impl JITModule {
             module.libcall_got_entries.insert(libcall, got_entry);
             let plt_entry = module.new_plt_entry(got_entry);
             module.libcall_plt_entries.insert(libcall, plt_entry);
+        }
+
+        #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
+        {
+            let cmd: libc::c_int = 64; // MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE
+
+            // This is a requirement of the membarrier() call executed by
+            // the finalize_definitions() method.
+            unsafe { libc::syscall(libc::SYS_membarrier, cmd) };
         }
 
         module
@@ -639,7 +651,7 @@ impl Module for JITModule {
         trap_sink: &mut dyn TrapSink,
         stack_map_sink: &mut dyn StackMapSink,
     ) -> ModuleResult<ModuleCompiledFunction> {
-        info!("defining function {}: {}", id, ctx.func.display(self.isa()));
+        info!("defining function {}: {}", id, ctx.func.display());
         let CodeInfo {
             total_size: code_size,
             ..
@@ -662,7 +674,7 @@ impl Module for JITModule {
             .expect("TODO: handle OOM etc.");
 
         let mut reloc_sink = JITRelocSink::default();
-        unsafe { ctx.emit_to_memory(&*self.isa, ptr, &mut reloc_sink, trap_sink, stack_map_sink) };
+        unsafe { ctx.emit_to_memory(ptr, &mut reloc_sink, trap_sink, stack_map_sink) };
 
         self.record_function_for_perf(ptr, size, &decl.name);
         self.compiled_functions[id] = Some(CompiledBlob {
@@ -897,29 +909,5 @@ impl RelocSink for JITRelocSink {
             name: name.clone(),
             addend,
         });
-    }
-
-    fn reloc_jt(&mut self, _offset: CodeOffset, reloc: Reloc, _jt: ir::JumpTable) {
-        match reloc {
-            Reloc::X86PCRelRodata4 => {
-                // Not necessary to record this unless we are going to split apart code and its
-                // jumptbl/rodata.
-            }
-            _ => {
-                panic!("Unhandled reloc");
-            }
-        }
-    }
-
-    fn reloc_constant(&mut self, _offset: CodeOffset, reloc: Reloc, _constant: ir::ConstantOffset) {
-        match reloc {
-            Reloc::X86PCRelRodata4 => {
-                // Not necessary to record this unless we are going to split apart code and its
-                // jumptbl/rodata.
-            }
-            _ => {
-                panic!("Unhandled reloc");
-            }
-        }
     }
 }

@@ -26,7 +26,7 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
-use log::{debug, info, log_enabled, Level};
+use log::{log_enabled, trace, Level};
 use smallvec::{smallvec, SmallVec};
 
 use crate::data_structures::{
@@ -131,7 +131,7 @@ impl ToFromU32 for VirtualRangeIx {
 // it also may change the spill costs for some of the VLRs in `vlr_env` to
 // better reflect the spill cost situation in the presence of coalescing.
 #[inline(never)]
-pub fn do_coalescing_analysis<F: Function>(
+pub(crate) fn do_coalescing_analysis<F: Function>(
     func: &F,
     univ: &RealRegUniverse,
     rlr_env: &TypedIxVec<RealRangeIx, RealRange>,
@@ -144,8 +144,8 @@ pub fn do_coalescing_analysis<F: Function>(
     UnionFindEquivClasses<VirtualRangeIx>,
     TypedIxVec<InstIx, bool>,
 ) {
-    info!("");
-    info!("do_coalescing_analysis: begin");
+    trace!("");
+    trace!("do_coalescing_analysis: begin");
 
     // This function contains significant additional complexity due to the requirement to handle
     // pathological cases in reasonable time without unduly burdening the common cases.
@@ -260,7 +260,7 @@ pub fn do_coalescing_analysis<F: Function>(
         };
         let rlrixs = &reg_to_ranges_maps.rreg_to_rlrs_map[*rreg_no as usize];
         for rlrix in rlrixs {
-            for fix in &rlr_env[*rlrix].sorted_frags.frag_ixs {
+            for fix in rlr_env[*rlrix].sorted_frags.iter() {
                 let frag = &frag_env[*fix];
                 many_frags_info.sorted_firsts.push((frag.first, *rlrix));
                 many_frags_info.sorted_lasts.push((frag.last, *rlrix));
@@ -306,7 +306,7 @@ pub fn do_coalescing_analysis<F: Function>(
         };
         let vlrixs = &reg_to_ranges_maps.vreg_to_vlrs_map[*vreg_no as usize];
         for vlrix in vlrixs {
-            for frag in &vlr_env[*vlrix].sorted_frags.frags {
+            for frag in vlr_env[*vlrix].sorted_frags.iter() {
                 many_frags_info.sorted_firsts.push((frag.first, *vlrix));
                 many_frags_info.sorted_lasts.push((frag.last, *vlrix));
             }
@@ -344,7 +344,7 @@ pub fn do_coalescing_analysis<F: Function>(
         let vreg_no = vreg.get_index();
         let vlrixs = &reg_to_ranges_maps.vreg_to_vlrs_map[vreg_no];
         for vlrix in vlrixs {
-            for frag in &vlr_env[*vlrix].sorted_frags.frags {
+            for frag in vlr_env[*vlrix].sorted_frags.iter() {
                 if frag.last == point_to_find {
                     return Some(*vlrix);
                 }
@@ -352,6 +352,7 @@ pub fn do_coalescing_analysis<F: Function>(
         }
         None
     };
+
     let doesVRegHaveLastUseAt = |vreg: VirtualReg, iix: InstIx| -> Option<VirtualRangeIx> {
         let point_to_find = InstPoint::new_use(iix);
         let vreg_no = vreg.get_index();
@@ -382,7 +383,7 @@ pub fn do_coalescing_analysis<F: Function>(
         let vreg_no = vreg.get_index();
         let vlrixs = &reg_to_ranges_maps.vreg_to_vlrs_map[vreg_no];
         for vlrix in vlrixs {
-            for frag in &vlr_env[*vlrix].sorted_frags.frags {
+            for frag in vlr_env[*vlrix].sorted_frags.iter() {
                 if frag.first == point_to_find {
                     return Some(*vlrix);
                 }
@@ -390,6 +391,7 @@ pub fn do_coalescing_analysis<F: Function>(
         }
         None
     };
+
     let doesVRegHaveFirstDefAt = |vreg: VirtualReg, iix: InstIx| -> Option<VirtualRangeIx> {
         let point_to_find = InstPoint::new_def(iix);
         let vreg_no = vreg.get_index();
@@ -421,7 +423,7 @@ pub fn do_coalescing_analysis<F: Function>(
         let rlrixs = &reg_to_ranges_maps.rreg_to_rlrs_map[rreg_no];
         for rlrix in rlrixs {
             let frags = &rlr_env[*rlrix].sorted_frags;
-            for fix in &frags.frag_ixs {
+            for fix in frags.iter() {
                 let frag = &frag_env[*fix];
                 if frag.last == point_to_find {
                     return Some(*rlrix);
@@ -430,6 +432,7 @@ pub fn do_coalescing_analysis<F: Function>(
         }
         None
     };
+
     let doesRRegHaveLastUseAt = |rreg: RealReg, iix: InstIx| -> Option<RealRangeIx> {
         let point_to_find = InstPoint::new_use(iix);
         let rreg_no = rreg.get_index();
@@ -461,7 +464,7 @@ pub fn do_coalescing_analysis<F: Function>(
         let rlrixs = &reg_to_ranges_maps.rreg_to_rlrs_map[rreg_no];
         for rlrix in rlrixs {
             let frags = &rlr_env[*rlrix].sorted_frags;
-            for fix in &frags.frag_ixs {
+            for fix in frags.iter() {
                 let frag = &frag_env[*fix];
                 if frag.first == point_to_find {
                     return Some(*rlrix);
@@ -470,6 +473,7 @@ pub fn do_coalescing_analysis<F: Function>(
         }
         None
     };
+
     let doesRRegHaveFirstDefAt = |rreg: RealReg, iix: InstIx| -> Option<RealRangeIx> {
         let point_to_find = InstPoint::new_def(iix);
         let rreg_no = rreg.get_index();
@@ -529,11 +533,14 @@ pub fn do_coalescing_analysis<F: Function>(
         iix,
         est_freq,
         ..
-    } in &move_info.moves
+    } in move_info.iter()
     {
-        debug!(
+        trace!(
             "connected by moves: {:?} {:?} <- {:?} (est_freq {})",
-            iix, dst, src, est_freq
+            iix,
+            dst,
+            src,
+            est_freq
         );
         match (dst.is_virtual(), src.is_virtual()) {
             (true, true) => {
@@ -561,7 +568,7 @@ pub fn do_coalescing_analysis<F: Function>(
                         // both `vlrixSrc` and `vlrixDst`.  This is so as to reduce to
                         // zero, the cost of a VLR whose only instructions are its
                         // v-v boundary copies.
-                        debug!("reduce cost of {:?} and {:?}", vlrixSrc, vlrixDst);
+                        trace!("reduce cost of {:?} and {:?}", vlrixSrc, vlrixDst);
                         decVLRcosts.push((vlrixSrc, vlrixDst, 1 * est_freq));
                     }
                 }
@@ -629,22 +636,22 @@ pub fn do_coalescing_analysis<F: Function>(
     let vlrEquivClasses: UnionFindEquivClasses<VirtualRangeIx> =
         vlrEquivClassesUF.get_equiv_classes();
 
-    if log_enabled!(Level::Debug) {
-        debug!("Revised VLRs:");
+    if log_enabled!(Level::Trace) {
+        trace!("Revised VLRs:");
         let mut n = 0;
         for vlr in vlr_env.iter() {
-            debug!("{:<4?}   {:?}", VirtualRangeIx::new(n), vlr);
+            trace!("{:<4?}   {:?}", VirtualRangeIx::new(n), vlr);
             n += 1;
         }
 
-        debug!("Coalescing hints:");
+        trace!("Coalescing hints:");
         n = 0;
         for hints_for_one_vlr in hints.iter() {
             let mut s = "".to_string();
             for hint in hints_for_one_vlr {
                 s = s + &show_hint(hint, &univ) + &" ".to_string();
             }
-            debug!("  hintsfor {:<4?} = {}", VirtualRangeIx::new(n), s);
+            trace!("  hintsfor {:<4?} = {}", VirtualRangeIx::new(n), s);
             n += 1;
         }
 
@@ -655,18 +662,18 @@ pub fn do_coalescing_analysis<F: Function>(
                 tmpvec.reverse();
                 tmpvec.push(elem);
             }
-            debug!("  eclassof {:?} = {:?}", vlrix, tmpvec);
+            trace!("  eclassof {:?} = {:?}", vlrix, tmpvec);
         }
 
         for (b, i) in is_vv_boundary_move.iter().zip(0..) {
             if *b {
-                debug!("  vv_boundary_move at {:?}", InstIx::new(i));
+                trace!("  vv_boundary_move at {:?}", InstIx::new(i));
             }
         }
     }
 
-    info!("do_coalescing_analysis: end");
-    info!("");
+    trace!("do_coalescing_analysis: end");
+    trace!("");
 
     (hints, vlrEquivClasses, is_vv_boundary_move)
 }

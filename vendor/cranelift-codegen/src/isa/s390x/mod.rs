@@ -6,12 +6,14 @@ use crate::isa::s390x::settings as s390x_settings;
 #[cfg(feature = "unwind")]
 use crate::isa::unwind::systemv::RegisterMappingError;
 use crate::isa::Builder as IsaBuilder;
-use crate::machinst::{compile, MachBackend, MachCompileResult, TargetIsaAdapter, VCode};
+use crate::machinst::{
+    compile, MachBackend, MachCompileResult, MachTextSectionBuilder, TargetIsaAdapter,
+    TextSectionBuilder, VCode,
+};
 use crate::result::CodegenResult;
 use crate::settings as shared_settings;
 
 use alloc::{boxed::Box, vec::Vec};
-use core::hash::{Hash, Hasher};
 
 use regalloc::{PrettyPrint, RealRegUniverse, Reg};
 use target_lexicon::{Architecture, Triple};
@@ -111,11 +113,6 @@ impl MachBackend for S390xBackend {
         self.isa_flags.iter().collect()
     }
 
-    fn hash_all_flags(&self, mut hasher: &mut dyn Hasher) {
-        self.flags.hash(&mut hasher);
-        self.isa_flags.hash(&mut hasher);
-    }
-
     fn reg_universe(&self) -> &RealRegUniverse {
         &self.reg_universe
     }
@@ -127,10 +124,6 @@ impl MachBackend for S390xBackend {
         // dummy value here, which gets remapped to the correct condition
         // code mask during lowering.
         IntCC::UnsignedGreaterThan
-    }
-
-    fn unsigned_sub_overflow_condition(&self) -> IntCC {
-        unimplemented!()
     }
 
     #[cfg(feature = "unwind")]
@@ -164,6 +157,10 @@ impl MachBackend for S390xBackend {
     #[cfg(feature = "unwind")]
     fn map_reg_to_dwarf(&self, reg: Reg) -> Result<u16, RegisterMappingError> {
         inst::unwind::systemv::map_reg(reg).map(|reg| reg.0)
+    }
+
+    fn text_section_builder(&self, num_funcs: u32) -> Box<dyn TextSectionBuilder> {
+        Box::new(MachTextSectionBuilder::<inst::Inst>::new(num_funcs))
     }
 }
 

@@ -4,6 +4,7 @@ pub mod generated_lints;
 pub mod import_assets;
 pub mod insert_use;
 pub mod merge_imports;
+pub mod insert_whitespace_into_node;
 pub mod node_ext;
 pub mod rust_doc;
 
@@ -13,7 +14,7 @@ use base_db::FileId;
 use hir::{ItemInNs, MacroDef, ModuleDef, Name, PathResolution, Semantics};
 use itertools::Itertools;
 use syntax::{
-    ast::{self, make, HasLoopBody, Ident},
+    ast::{self, make, HasLoopBody},
     AstNode, AstToken, Direction, SyntaxElement, SyntaxKind, SyntaxToken, TokenAtOffset, WalkEvent,
     T,
 };
@@ -37,12 +38,11 @@ pub fn item_name(db: &RootDatabase, item: ItemInNs) -> Option<Name> {
 pub fn get_path_in_derive_attr(
     sema: &hir::Semantics<RootDatabase>,
     attr: &ast::Attr,
-    cursor: &Ident,
+    cursor: &ast::Ident,
 ) -> Option<ast::Path> {
-    let cursor = cursor.syntax();
     let path = attr.path()?;
     let tt = attr.token_tree()?;
-    if !tt.syntax().text_range().contains_range(cursor.text_range()) {
+    if !tt.syntax().text_range().contains_range(cursor.syntax().text_range()) {
         return None;
     }
     let scope = sema.scope(attr.syntax());
@@ -51,7 +51,12 @@ pub fn get_path_in_derive_attr(
     if PathResolution::Macro(derive) != resolved_attr {
         return None;
     }
+    get_path_at_cursor_in_tt(cursor)
+}
 
+/// Parses the path the identifier is part of inside a token tree.
+pub fn get_path_at_cursor_in_tt(cursor: &ast::Ident) -> Option<ast::Path> {
+    let cursor = cursor.syntax();
     let first = cursor
         .siblings_with_tokens(Direction::Prev)
         .filter_map(SyntaxElement::into_token)
@@ -62,7 +67,11 @@ pub fn get_path_in_derive_attr(
         .filter_map(SyntaxElement::into_token)
         .take_while(|tok| tok != cursor);
 
-    ast::Path::parse(&path_tokens.chain(iter::once(cursor.clone())).join("")).ok()
+    syntax::hacks::parse_expr_from_str(&path_tokens.chain(iter::once(cursor.clone())).join(""))
+        .and_then(|expr| match expr {
+            ast::Expr::PathExpr(it) => it.path(),
+            _ => None,
+        })
 }
 
 /// Parses and resolves the path at the cursor position in the given attribute, if it is a derive.
@@ -70,7 +79,7 @@ pub fn get_path_in_derive_attr(
 pub fn try_resolve_derive_input(
     sema: &hir::Semantics<RootDatabase>,
     attr: &ast::Attr,
-    cursor: &Ident,
+    cursor: &ast::Ident,
 ) -> Option<PathResolution> {
     let path = get_path_in_derive_attr(sema, attr, cursor)?;
     let scope = sema.scope(attr.syntax());
@@ -281,4 +290,49 @@ pub fn for_each_break_expr(
             }
         }
     }
+}
+
+/// Checks if the given lint is equal or is contained by the other lint which may or may not be a group.
+pub fn lint_eq_or_in_group(lint: &str, lint_is: &str) -> bool {
+    if lint == lint_is {
+        return true;
+    }
+
+    if let Some(group) = generated_lints::DEFAULT_LINT_GROUPS
+        .iter()
+        .chain(generated_lints::CLIPPY_LINT_GROUPS.iter())
+        .chain(generated_lints::RUSTDOC_LINT_GROUPS.iter())
+        .find(|&check| check.lint.label == lint_is)
+    {
+        group.children.contains(&lint)
+    } else {
+        false
+    }
+}
+
+/// Parses the input token tree as comma separated plain paths.
+pub fn parse_tt_as_comma_sep_paths(input: ast::TokenTree) -> Option<Vec<ast::Path>> {
+    let r_paren = input.r_paren_token();
+    let tokens =
+        input.syntax().children_with_tokens().skip(1).map_while(|it| match it.into_token() {
+            // seeing a keyword means the attribute is unclosed so stop parsing here
+            Some(tok) if tok.kind().is_keyword() => None,
+            // don't include the right token tree parenthesis if it exists
+            tok @ Some(_) if tok == r_paren => None,
+            // only nodes that we can find are other TokenTrees, those are unexpected in this parse though
+            None => None,
+            Some(tok) => Some(tok),
+        });
+    let input_expressions = tokens.into_iter().group_by(|tok| tok.kind() == T![,]);
+    let paths = input_expressions
+        .into_iter()
+        .filter_map(|(is_sep, group)| (!is_sep).then(|| group))
+        .filter_map(|mut tokens| {
+            syntax::hacks::parse_expr_from_str(&tokens.join("")).and_then(|expr| match expr {
+                ast::Expr::PathExpr(it) => it.path(),
+                _ => None,
+            })
+        })
+        .collect();
+    Some(paths)
 }

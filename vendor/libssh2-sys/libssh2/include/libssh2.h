@@ -235,9 +235,11 @@ typedef off_t libssh2_struct_stat_size;
 
 /* Default generate and safe prime sizes for
    diffie-hellman-group-exchange-sha1 */
-#define LIBSSH2_DH_GEX_MINGROUP     1024
-#define LIBSSH2_DH_GEX_OPTGROUP     1536
-#define LIBSSH2_DH_GEX_MAXGROUP     2048
+#define LIBSSH2_DH_GEX_MINGROUP     2048
+#define LIBSSH2_DH_GEX_OPTGROUP     4096
+#define LIBSSH2_DH_GEX_MAXGROUP     8192
+
+#define LIBSSH2_DH_MAX_MODULUS_BITS 16384
 
 /* Defaults for pty requests */
 #define LIBSSH2_TERM_WIDTH      80
@@ -503,6 +505,7 @@ typedef struct _LIBSSH2_POLLFD {
 #define LIBSSH2_ERROR_KNOWN_HOSTS               -46
 #define LIBSSH2_ERROR_CHANNEL_WINDOW_FULL       -47
 #define LIBSSH2_ERROR_KEYFILE_AUTH_FAILED       -48
+#define LIBSSH2_ERROR_RANDGEN                   -49
 
 /* this is a define to provide the old (<= 1.2.7) name */
 #define LIBSSH2_ERROR_BANNER_NONE LIBSSH2_ERROR_BANNER_RECV

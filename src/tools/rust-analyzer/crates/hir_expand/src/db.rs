@@ -215,6 +215,8 @@ fn parse_or_expand(db: &dyn AstDatabase, file_id: HirFileId) -> Option<SyntaxNod
     match file_id.0 {
         HirFileIdRepr::FileId(file_id) => Some(db.parse(file_id).tree().syntax().clone()),
         HirFileIdRepr::MacroFile(macro_file) => {
+            // FIXME: Note how we convert from `Parse` to `SyntaxNode` here,
+            // forgetting about parse errors.
             db.parse_macro_expansion(macro_file).value.map(|(it, _)| it.syntax_node())
         }
     }
@@ -497,11 +499,11 @@ fn token_tree_to_syntax_node(
     expand_to: ExpandTo,
 ) -> Result<(Parse<SyntaxNode>, mbe::TokenMap), ExpandError> {
     let entry_point = match expand_to {
-        ExpandTo::Statements => mbe::ParserEntryPoint::Statements,
-        ExpandTo::Items => mbe::ParserEntryPoint::Items,
-        ExpandTo::Pattern => mbe::ParserEntryPoint::Pattern,
-        ExpandTo::Type => mbe::ParserEntryPoint::Type,
-        ExpandTo::Expr => mbe::ParserEntryPoint::Expr,
+        ExpandTo::Statements => mbe::TopEntryPoint::MacroStmts,
+        ExpandTo::Items => mbe::TopEntryPoint::MacroItems,
+        ExpandTo::Pattern => mbe::TopEntryPoint::Pattern,
+        ExpandTo::Type => mbe::TopEntryPoint::Type,
+        ExpandTo::Expr => mbe::TopEntryPoint::Expr,
     };
     mbe::token_tree_to_syntax_node(tt, entry_point)
 }

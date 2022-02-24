@@ -1,44 +1,63 @@
-extern crate pulldown_cmark;
+use pulldown_cmark::Parser;
+
+fn parse(md: &str) {
+    let parser = Parser::new(md);
+
+    for _ in parser {}
+}
+
+#[test]
+fn test_lists_inside_code_spans() {
+    parse(
+        r"- `
+x
+**
+  *
+  `",
+    );
+}
 
 #[test]
 fn test_wrong_code_block() {
-    let markdown = r##"```
+    parse(
+        r##"```
  * ```
- "##;
-    use pulldown_cmark::Parser;
-
-    let _ = Parser::new(&markdown);
+ "##,
+    );
 }
 
 #[test]
 fn test_unterminated_link() {
-    let markdown = "[](\\";
-    use pulldown_cmark::Parser;
-
-    let parser = Parser::new(&markdown);
-    for _ in parser {}
+    parse("[](\\");
 }
 
 #[test]
 fn test_unterminated_autolink() {
-    use pulldown_cmark::Parser;
-    let _ = Parser::new("<a");
+    parse("<a");
 }
 
 #[test]
 fn test_infinite_loop() {
-    let markdown = "[<!W\n\\\n";
-    use pulldown_cmark::Parser;
-
-    let parser = Parser::new(&markdown);
-    for _ in parser {}
+    parse("[<!W\n\\\n");
 }
 
 #[test]
 fn test_html_tag() {
-    let markdown = "<script\u{feff}";
-    use pulldown_cmark::Parser;
+    parse("<script\u{feff}");
+}
 
-    let parser = Parser::new(&markdown);
-    for _ in parser {}
+// all of test_bad_slice_* were found in https://github.com/raphlinus/pulldown-cmark/issues/521
+#[test]
+fn test_bad_slice_a() {
+    parse("><a\n");
+}
+
+#[test]
+fn test_bad_slice_b() {
+    parse("><a a\n");
+}
+
+#[test]
+fn test_bad_slice_unicode() {
+    parse("><a a=\n毿>")
 }

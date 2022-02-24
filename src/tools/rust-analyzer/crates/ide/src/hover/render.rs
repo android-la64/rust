@@ -2,7 +2,7 @@
 use std::fmt::Display;
 
 use either::Either;
-use hir::{AsAssocItem, HasAttrs, HasSource, HirDisplay, Semantics, TypeInfo};
+use hir::{AsAssocItem, AttributeTemplate, HasAttrs, HasSource, HirDisplay, Semantics, TypeInfo};
 use ide_db::{
     base_db::SourceDatabase,
     defs::Definition,
@@ -237,9 +237,15 @@ pub(super) fn keyword(
     if !token.kind().is_keyword() || !config.documentation.is_some() {
         return None;
     }
-    let famous_defs = FamousDefs(sema, sema.scope(&token.parent()?).krate());
-    // std exposes {}_keyword modules with docstrings on the root to document keywords
-    let keyword_mod = format!("{}_keyword", token.text());
+    let parent = token.parent()?;
+    let famous_defs = FamousDefs(sema, sema.scope(&parent).krate());
+    let keyword_mod = if token.kind() == T![fn] && ast::FnPtrType::cast(parent).is_some() {
+        // treat fn keyword inside function pointer type as primitive
+        format!("prim_{}", token.text())
+    } else {
+        // std exposes {}_keyword modules with docstrings on the root to document keywords
+        format!("{}_keyword", token.text())
+    };
     let doc_owner = find_std_module(&famous_defs, &keyword_mod)?;
     let docs = doc_owner.attrs(sema.db).docs()?;
     let markup = process_markup(
@@ -354,7 +360,13 @@ pub(super) fn definition(
         Definition::Function(it) => label_and_docs(db, it),
         Definition::Adt(it) => label_and_docs(db, it),
         Definition::Variant(it) => label_and_docs(db, it),
-        Definition::Const(it) => label_value_and_docs(db, it, |it| it.value(db)),
+        Definition::Const(it) => label_value_and_docs(db, it, |it| {
+            let body = it.eval(db);
+            match body {
+                Ok(x) => Some(format!("{}", x)),
+                Err(_) => it.value(db).map(|x| format!("{}", x)),
+            }
+        }),
         Definition::Static(it) => label_value_and_docs(db, it, |it| it.value(db)),
         Definition::Trait(it) => label_and_docs(db, it),
         Definition::TypeAlias(it) => label_and_docs(db, it),
@@ -369,9 +381,30 @@ pub(super) fn definition(
         }
         Definition::GenericParam(it) => label_and_docs(db, it),
         Definition::Label(it) => return Some(Markup::fenced_block(&it.name(db))),
+        // FIXME: We should be able to show more info about these
+        Definition::BuiltinAttr(it) => return render_builtin_attr(db, it),
+        Definition::ToolModule(it) => return Some(Markup::fenced_block(&it.name(db))),
     };
 
     markup(docs.filter(|_| config.documentation.is_some()).map(Into::into), label, mod_path)
+}
+
+fn render_builtin_attr(db: &RootDatabase, attr: hir::BuiltinAttr) -> Option<Markup> {
+    let name = attr.name(db);
+    let desc = format!("#[{}]", name);
+
+    let AttributeTemplate { word, list, name_value_str } = attr.template(db);
+    let mut docs = "Valid forms are:".to_owned();
+    if word {
+        format_to!(docs, "\n - #\\[{}]", name);
+    }
+    if let Some(list) = list {
+        format_to!(docs, "\n - #\\[{}({})]", name, list);
+    }
+    if let Some(name_value_str) = name_value_str {
+        format_to!(docs, "\n - #\\[{} = {}]", name, name_value_str);
+    }
+    markup(Some(docs.replace('*', "\\*")), desc, None)
 }
 
 fn label_and_docs<D>(db: &RootDatabase, def: D) -> (String, Option<hir::Documentation>)
@@ -393,7 +426,7 @@ where
     E: Fn(&D) -> Option<V>,
     V: Display,
 {
-    let label = if let Some(value) = (value_extractor)(&def) {
+    let label = if let Some(value) = value_extractor(&def) {
         format!("{} = {}", def.display(db), value)
     } else {
         def.display(db).to_string()
@@ -444,7 +477,7 @@ fn find_std_module(famous_defs: &FamousDefs, name: &str) -> Option<hir::Module> 
 
 fn local(db: &RootDatabase, it: hir::Local) -> Option<Markup> {
     let ty = it.ty(db);
-    let ty = ty.display(db);
+    let ty = ty.display_truncated(db, None);
     let is_mut = if it.is_mut(db) { "mut " } else { "" };
     let desc = match it.source(db).value {
         Either::Left(ident) => {

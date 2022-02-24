@@ -1,7 +1,6 @@
 //! Completes references after dot (fields and method calls).
 
 use either::Either;
-use hir::ScopeDef;
 use rustc_hash::FxHashSet;
 
 use crate::{context::CompletionContext, patterns::ImmediateLocation, Completions};
@@ -36,24 +35,22 @@ fn complete_undotted_self(acc: &mut Completions, ctx: &CompletionContext) {
     if !ctx.is_trivial_path() || ctx.is_path_disallowed() || !ctx.expects_expression() {
         return;
     }
-    ctx.scope.process_all_names(&mut |name, def| {
-        if let ScopeDef::Local(local) = &def {
-            if local.is_self(ctx.db) {
-                let ty = local.ty(ctx.db);
-                complete_fields(ctx, &ty, |field, ty| match field {
-                    either::Either::Left(field) => {
-                        acc.add_field(ctx, Some(name.clone()), field, &ty)
-                    }
-                    either::Either::Right(tuple_idx) => {
-                        acc.add_tuple_field(ctx, Some(name.clone()), tuple_idx, &ty)
-                    }
-                });
-                complete_methods(ctx, &ty, |func| {
-                    acc.add_method(ctx, func, Some(name.clone()), None)
-                });
-            }
+    if let Some(func) = ctx.function_def.as_ref().and_then(|fn_| ctx.sema.to_def(fn_)) {
+        if let Some(self_) = func.self_param(ctx.db) {
+            let ty = self_.ty(ctx.db);
+            complete_fields(ctx, &ty, |field, ty| match field {
+                either::Either::Left(field) => {
+                    acc.add_field(ctx, Some(hir::known::SELF_PARAM), field, &ty)
+                }
+                either::Either::Right(tuple_idx) => {
+                    acc.add_tuple_field(ctx, Some(hir::known::SELF_PARAM), tuple_idx, &ty)
+                }
+            });
+            complete_methods(ctx, &ty, |func| {
+                acc.add_method(ctx, func, Some(hir::known::SELF_PARAM), None)
+            });
         }
-    });
+    }
 }
 
 fn complete_fields(
@@ -79,7 +76,14 @@ fn complete_methods(
 ) {
     if let Some(krate) = ctx.krate {
         let mut seen_methods = FxHashSet::default();
-        let traits_in_scope = ctx.scope.traits_in_scope();
+        let mut traits_in_scope = ctx.scope.visible_traits();
+
+        // Remove drop from the environment as calling `Drop::drop` is not allowed
+        if let Some(drop_trait) = ctx.famous_defs().core_ops_Drop() {
+            cov_mark::hit!(dot_remove_drop_trait);
+            traits_in_scope.remove(&drop_trait.into());
+        }
+
         receiver.iterate_method_candidates(ctx.db, krate, &traits_in_scope, None, |_ty, func| {
             if func.self_param(ctx.db).is_some() && seen_methods.insert(func.name(ctx.db)) {
                 f(func);
@@ -710,6 +714,36 @@ fn main() {
             expect![[r#"
                 me into_iter() (as IntoIterator) fn(self) -> <Self as IntoIterator>::IntoIter
             "#]],
+        )
+    }
+
+    #[test]
+    fn postfix_drop_completion() {
+        cov_mark::check!(dot_remove_drop_trait);
+        cov_mark::check!(postfix_drop_completion);
+        check_edit(
+            "drop",
+            r#"
+//- minicore: drop
+struct Vec<T>(T);
+impl<T> Drop for Vec<T> {
+    fn drop(&mut self) {}
+}
+fn main() {
+    let x = Vec(0u32)
+    x.$0;
+}
+"#,
+            r"
+struct Vec<T>(T);
+impl<T> Drop for Vec<T> {
+    fn drop(&mut self) {}
+}
+fn main() {
+    let x = Vec(0u32)
+    drop($0x);
+}
+",
         )
     }
 }

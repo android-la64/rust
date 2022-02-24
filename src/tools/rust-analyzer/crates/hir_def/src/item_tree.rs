@@ -56,6 +56,7 @@ use la_arena::{Arena, Idx, IdxRange, RawIdx};
 use profile::Count;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
+use stdx::never;
 use syntax::{ast, match_ast, SyntaxKind};
 
 use crate::{
@@ -104,24 +105,22 @@ pub struct ItemTree {
 
 impl ItemTree {
     pub(crate) fn file_item_tree_query(db: &dyn DefDatabase, file_id: HirFileId) -> Arc<ItemTree> {
-        let _p = profile::span("item_tree_query").detail(|| format!("{:?}", file_id));
-        let syntax = if let Some(node) = db.parse_or_expand(file_id) {
-            if node.kind() == SyntaxKind::ERROR {
-                // FIXME: not 100% sure why these crop up, but return an empty tree to avoid a panic
-                return Default::default();
-            }
-            node
-        } else {
-            return Default::default();
+        let _p = profile::span("file_item_tree_query").detail(|| format!("{:?}", file_id));
+        let syntax = match db.parse_or_expand(file_id) {
+            Some(node) => node,
+            None => return Default::default(),
         };
+        if never!(syntax.kind() == SyntaxKind::ERROR) {
+            // FIXME: not 100% sure why these crop up, but return an empty tree to avoid a panic
+            return Default::default();
+        }
 
-        let hygiene = Hygiene::new(db.upcast(), file_id);
-        let ctx = lower::Ctx::new(db, hygiene.clone(), file_id);
+        let ctx = lower::Ctx::new(db, file_id);
         let mut top_attrs = None;
         let mut item_tree = match_ast! {
             match syntax {
                 ast::SourceFile(file) => {
-                    top_attrs = Some(RawAttrs::new(db, &file, &hygiene));
+                    top_attrs = Some(RawAttrs::new(db, &file, ctx.hygiene()));
                     ctx.lower_module_items(&file)
                 },
                 ast::MacroItems(items) => {
@@ -131,21 +130,6 @@ impl ItemTree {
                     // The produced statements can include items, which should be added as top-level
                     // items.
                     ctx.lower_macro_stmts(stmts)
-                },
-                ast::Pat(_pat) => {
-                    // FIXME: This occurs because macros in pattern position are treated as inner
-                    // items and expanded during block DefMap computation
-                    return Default::default();
-                },
-                ast::Type(ty) => {
-                    // Types can contain inner items. We return an empty item tree in this case, but
-                    // still need to collect inner items.
-                    ctx.lower_inner_items(ty.syntax())
-                },
-                ast::Expr(e) => {
-                    // Macros can expand to expressions. We return an empty item tree in this case, but
-                    // still need to collect inner items.
-                    ctx.lower_inner_items(e.syntax())
                 },
                 _ => {
                     panic!("cannot create item tree from {:?} {}", syntax, syntax);
@@ -158,6 +142,13 @@ impl ItemTree {
         }
         item_tree.shrink_to_fit();
         Arc::new(item_tree)
+    }
+
+    fn block_item_tree(db: &dyn DefDatabase, block: BlockId) -> Arc<ItemTree> {
+        let loc = db.lookup_intern_block(block);
+        let block = loc.ast_id.to_node(db.upcast());
+        let ctx = lower::Ctx::new(db, loc.ast_id.file_id);
+        Arc::new(ctx.lower_block(&block))
     }
 
     fn shrink_to_fit(&mut self) {
@@ -183,7 +174,6 @@ impl ItemTree {
                 macro_rules,
                 macro_defs,
                 vis,
-                inner_items,
             } = &mut **data;
 
             imports.shrink_to_fit();
@@ -207,8 +197,6 @@ impl ItemTree {
             macro_defs.shrink_to_fit();
 
             vis.arena.shrink_to_fit();
-
-            inner_items.shrink_to_fit();
         }
     }
 
@@ -227,15 +215,8 @@ impl ItemTree {
         self.attrs.get(&of).unwrap_or(&RawAttrs::EMPTY)
     }
 
-    pub fn attrs(&self, db: &dyn DefDatabase, krate: CrateId, of: AttrOwner) -> Attrs {
+    pub(crate) fn attrs(&self, db: &dyn DefDatabase, krate: CrateId, of: AttrOwner) -> Attrs {
         self.raw_attrs(of).clone().filter(db, krate)
-    }
-
-    pub fn inner_items_of_block(&self, block: FileAstId<ast::BlockExpr>) -> &[ModItem] {
-        match &self.data {
-            Some(data) => data.inner_items.get(&block).map(|it| &**it).unwrap_or(&[]),
-            None => &[],
-        }
     }
 
     pub fn pretty_print(&self) -> String {
@@ -297,8 +278,6 @@ struct ItemTreeData {
     macro_defs: Arena<MacroDef>,
 
     vis: ItemVisibilities,
-
-    inner_items: FxHashMap<FileAstId<ast::BlockExpr>, SmallVec<[ModItem; 1]>>,
 }
 
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -388,13 +367,17 @@ impl TreeId {
 
     pub(crate) fn item_tree(&self, db: &dyn DefDatabase) -> Arc<ItemTree> {
         match self.block {
-            Some(_) => unreachable!("per-block ItemTrees are not yet implemented"),
+            Some(block) => ItemTree::block_item_tree(db, block),
             None => db.file_item_tree(self.file),
         }
     }
 
     pub(crate) fn file_id(self) -> HirFileId {
         self.file
+    }
+
+    pub(crate) fn is_block(self) -> bool {
+        self.block.is_some()
     }
 }
 
@@ -614,7 +597,7 @@ pub struct Function {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Param {
-    Normal(Interned<TypeRef>),
+    Normal(Option<Name>, Interned<TypeRef>),
     Varargs,
 }
 
@@ -664,7 +647,7 @@ pub struct Enum {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Const {
-    /// const _: () = ();
+    /// `None` for `const _: () = ();`
     pub name: Option<Name>,
     pub visibility: RawVisibilityId,
     pub type_ref: Interned<TypeRef>,
@@ -676,8 +659,6 @@ pub struct Static {
     pub name: Name,
     pub visibility: RawVisibilityId,
     pub mutable: bool,
-    /// Whether the static is in an `extern` block.
-    pub is_extern: bool,
     pub type_ref: Interned<TypeRef>,
     pub ast_id: FileAstId<ast::Static>,
 }
@@ -711,7 +692,6 @@ pub struct TypeAlias {
     pub bounds: Box<[Interned<TypeBound>]>,
     pub generic_params: Interned<GenericParams>,
     pub type_ref: Option<Interned<TypeRef>>,
-    pub is_extern: bool,
     pub ast_id: FileAstId<ast::TypeAlias>,
 }
 

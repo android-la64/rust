@@ -300,7 +300,7 @@
 //! [macro]: https://docs.serde.rs/serde_json/macro.json.html
 //! [`serde-json-core`]: https://github.com/rust-embedded-community/serde-json-core
 
-#![doc(html_root_url = "https://docs.rs/serde_json/1.0.69")]
+#![doc(html_root_url = "https://docs.rs/serde_json/1.0.73")]
 // Ignored clippy lints
 #![allow(
     clippy::comparison_chain,
@@ -312,6 +312,7 @@
     clippy::match_like_matches_macro,
     clippy::match_single_binding,
     clippy::needless_doctest_main,
+    clippy::needless_late_init,
     clippy::transmute_ptr_to_ptr,
     clippy::unnecessary_wraps,
     // clippy bug: https://github.com/rust-lang/rust-clippy/issues/5704

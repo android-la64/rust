@@ -8,11 +8,13 @@ use crate::ir::{condcodes::IntCC, Function};
 use crate::isa::unwind::systemv;
 use crate::isa::x64::{inst::regs::create_reg_universe_systemv, settings as x64_settings};
 use crate::isa::Builder as IsaBuilder;
-use crate::machinst::{compile, MachBackend, MachCompileResult, TargetIsaAdapter, VCode};
+use crate::machinst::{
+    compile, MachBackend, MachCompileResult, MachTextSectionBuilder, TargetIsaAdapter,
+    TextSectionBuilder, VCode,
+};
 use crate::result::CodegenResult;
 use crate::settings::{self as shared_settings, Flags};
 use alloc::{boxed::Box, vec::Vec};
-use core::hash::{Hash, Hasher};
 
 use regalloc::{PrettyPrint, RealRegUniverse, Reg};
 use target_lexicon::Triple;
@@ -92,11 +94,6 @@ impl MachBackend for X64Backend {
         self.x64_flags.iter().collect()
     }
 
-    fn hash_all_flags(&self, mut hasher: &mut dyn Hasher) {
-        self.flags.hash(&mut hasher);
-        self.x64_flags.hash(&mut hasher);
-    }
-
     fn name(&self) -> &'static str {
         "x64"
     }
@@ -112,12 +109,6 @@ impl MachBackend for X64Backend {
     fn unsigned_add_overflow_condition(&self) -> IntCC {
         // Unsigned `<`; this corresponds to the carry flag set on x86, which
         // indicates an add has overflowed.
-        IntCC::UnsignedLessThan
-    }
-
-    fn unsigned_sub_overflow_condition(&self) -> IntCC {
-        // unsigned `<`; this corresponds to the carry flag set on x86, which
-        // indicates a sub has underflowed (carry is borrow for subtract).
         IntCC::UnsignedLessThan
     }
 
@@ -157,6 +148,10 @@ impl MachBackend for X64Backend {
     #[cfg(feature = "unwind")]
     fn map_reg_to_dwarf(&self, reg: Reg) -> Result<u16, systemv::RegisterMappingError> {
         inst::unwind::systemv::map_reg(reg).map(|reg| reg.0)
+    }
+
+    fn text_section_builder(&self, num_funcs: u32) -> Box<dyn TextSectionBuilder> {
+        Box::new(MachTextSectionBuilder::<inst::Inst>::new(num_funcs))
     }
 }
 

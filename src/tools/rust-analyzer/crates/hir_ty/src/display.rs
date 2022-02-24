@@ -16,10 +16,11 @@ use hir_def::{
     path::{Path, PathKind},
     type_ref::{TraitBoundModifier, TypeBound, TypeRef},
     visibility::Visibility,
-    AssocContainerId, HasModule, Lookup, ModuleId, TraitId,
+    HasModule, ItemContainerId, Lookup, ModuleId, TraitId,
 };
 use hir_expand::{hygiene::Hygiene, name::Name};
 use itertools::Itertools;
+use syntax::SmolStr;
 
 use crate::{
     const_from_placeholder_idx,
@@ -273,11 +274,11 @@ impl HirDisplay for ProjectionTy {
 
         let trait_ = f.db.trait_data(self.trait_(f.db));
         write!(f, "<")?;
-        self.self_type_parameter(&Interner).hir_fmt(f)?;
+        self.self_type_parameter(Interner).hir_fmt(f)?;
         write!(f, " as {}", trait_.name)?;
-        if self.substitution.len(&Interner) > 1 {
+        if self.substitution.len(Interner) > 1 {
             write!(f, "<")?;
-            f.write_joined(&self.substitution.as_slice(&Interner)[1..], ", ")?;
+            f.write_joined(&self.substitution.as_slice(Interner)[1..], ", ")?;
             write!(f, ">")?;
         }
         write!(f, ">::{}", f.db.type_alias_data(from_assoc_type_id(self.associated_ty_id)).name)?;
@@ -291,7 +292,7 @@ impl HirDisplay for OpaqueTy {
             return write!(f, "{}", TYPE_HINT_TRUNCATION);
         }
 
-        self.substitution.at(&Interner, 0).hir_fmt(f)
+        self.substitution.at(Interner, 0).hir_fmt(f)
     }
 }
 
@@ -334,7 +335,7 @@ impl HirDisplay for Ty {
             return write!(f, "{}", TYPE_HINT_TRUNCATION);
         }
 
-        match self.kind(&Interner) {
+        match self.kind(Interner) {
             TyKind::Never => write!(f, "!")?,
             TyKind::Str => write!(f, "str")?,
             TyKind::Scalar(Scalar::Bool) => write!(f, "bool")?,
@@ -355,7 +356,7 @@ impl HirDisplay for Ty {
                 write!(f, "]")?;
             }
             TyKind::Raw(m, t) | TyKind::Ref(m, _, t) => {
-                if matches!(self.kind(&Interner), TyKind::Raw(..)) {
+                if matches!(self.kind(Interner), TyKind::Raw(..)) {
                     write!(
                         f,
                         "*{}",
@@ -386,7 +387,7 @@ impl HirDisplay for Ty {
                         }
                     })
                 };
-                let (preds_to_print, has_impl_fn_pred) = match t.kind(&Interner) {
+                let (preds_to_print, has_impl_fn_pred) = match t.kind(Interner) {
                     TyKind::Dyn(dyn_ty) if dyn_ty.bounds.skip_binders().interned().len() > 1 => {
                         let bounds = dyn_ty.bounds.skip_binders().interned();
                         (bounds.len(), contains_impl_fn(bounds))
@@ -405,7 +406,7 @@ impl HirDisplay for Ty {
                             let data = (*datas)
                                 .as_ref()
                                 .map(|rpit| rpit.impl_traits[idx as usize].bounds.clone());
-                            let bounds = data.substitute(&Interner, parameters);
+                            let bounds = data.substitute(Interner, parameters);
                             let mut len = bounds.skip_binders().len();
 
                             // Don't count Sized but count when it absent
@@ -455,13 +456,13 @@ impl HirDisplay for Ty {
                 }
             }
             TyKind::Tuple(_, substs) => {
-                if substs.len(&Interner) == 1 {
+                if substs.len(Interner) == 1 {
                     write!(f, "(")?;
-                    substs.at(&Interner, 0).hir_fmt(f)?;
+                    substs.at(Interner, 0).hir_fmt(f)?;
                     write!(f, ",)")?;
                 } else {
                     write!(f, "(")?;
-                    f.write_joined(&*substs.as_slice(&Interner), ", ")?;
+                    f.write_joined(&*substs.as_slice(Interner), ", ")?;
                     write!(f, ")")?;
                 }
             }
@@ -471,7 +472,7 @@ impl HirDisplay for Ty {
             }
             TyKind::FnDef(def, parameters) => {
                 let def = from_chalk(f.db, *def);
-                let sig = f.db.callable_item_signature(def).substitute(&Interner, parameters);
+                let sig = f.db.callable_item_signature(def).substitute(Interner, parameters);
                 match def {
                     CallableDefId::FunctionId(ff) => {
                         write!(f, "fn {}", f.db.function_data(ff).name)?
@@ -481,7 +482,7 @@ impl HirDisplay for Ty {
                         write!(f, "{}", f.db.enum_data(e.parent).variants[e.local_id].name)?
                     }
                 };
-                if parameters.len(&Interner) > 0 {
+                if parameters.len(Interner) > 0 {
                     let generics = generics(f.db.upcast(), def.into());
                     let (parent_params, self_param, type_params, _impl_trait_params) =
                         generics.provenance_split();
@@ -489,7 +490,7 @@ impl HirDisplay for Ty {
                     // We print all params except implicit impl Trait params. Still a bit weird; should we leave out parent and self?
                     if total_len > 0 {
                         write!(f, "<")?;
-                        f.write_joined(&parameters.as_slice(&Interner)[..total_len], ", ")?;
+                        f.write_joined(&parameters.as_slice(Interner)[..total_len], ", ")?;
                         write!(f, ">")?;
                     }
                 }
@@ -527,7 +528,7 @@ impl HirDisplay for Ty {
                     }
                 }
 
-                if parameters.len(&Interner) > 0 {
+                if parameters.len(Interner) > 0 {
                     let parameters_to_write = if f.display_target.is_source_code()
                         || f.omit_verbose_types()
                     {
@@ -536,39 +537,57 @@ impl HirDisplay for Ty {
                             .map(|generic_def_id| f.db.generic_defaults(generic_def_id))
                             .filter(|defaults| !defaults.is_empty())
                         {
-                            None => parameters.as_slice(&Interner),
+                            None => parameters.as_slice(Interner),
                             Some(default_parameters) => {
                                 let mut default_from = 0;
-                                for (i, parameter) in parameters.iter(&Interner).enumerate() {
+                                for (i, parameter) in parameters.iter(Interner).enumerate() {
                                     match (
-                                        parameter.assert_ty_ref(&Interner).kind(&Interner),
+                                        parameter.assert_ty_ref(Interner).kind(Interner),
                                         default_parameters.get(i),
                                     ) {
                                         (&TyKind::Error, _) | (_, None) => {
                                             default_from = i + 1;
                                         }
                                         (_, Some(default_parameter)) => {
-                                            let actual_default =
-                                                default_parameter.clone().substitute(
-                                                    &Interner,
-                                                    &subst_prefix(parameters, i),
-                                                );
-                                            if parameter.assert_ty_ref(&Interner) != &actual_default
+                                            let actual_default = default_parameter
+                                                .clone()
+                                                .substitute(Interner, &subst_prefix(parameters, i));
+                                            if parameter.assert_ty_ref(Interner) != &actual_default
                                             {
                                                 default_from = i + 1;
                                             }
                                         }
                                     }
                                 }
-                                &parameters.as_slice(&Interner)[0..default_from]
+                                &parameters.as_slice(Interner)[0..default_from]
                             }
                         }
                     } else {
-                        parameters.as_slice(&Interner)
+                        parameters.as_slice(Interner)
                     };
                     if !parameters_to_write.is_empty() {
                         write!(f, "<")?;
-                        f.write_joined(parameters_to_write, ", ")?;
+
+                        if f.display_target.is_source_code() {
+                            let mut first = true;
+                            for generic_arg in parameters_to_write {
+                                if !first {
+                                    write!(f, ", ")?;
+                                }
+                                first = false;
+
+                                if generic_arg.ty(Interner).map(|ty| ty.kind(Interner))
+                                    == Some(&TyKind::Error)
+                                {
+                                    write!(f, "_")?;
+                                } else {
+                                    generic_arg.hir_fmt(f)?;
+                                }
+                            }
+                        } else {
+                            f.write_joined(parameters_to_write, ", ")?;
+                        }
+
                         write!(f, ">")?;
                     }
                 }
@@ -576,7 +595,7 @@ impl HirDisplay for Ty {
             TyKind::AssociatedType(assoc_type_id, parameters) => {
                 let type_alias = from_assoc_type_id(*assoc_type_id);
                 let trait_ = match type_alias.lookup(f.db.upcast()).container {
-                    AssocContainerId::TraitId(it) => it,
+                    ItemContainerId::TraitId(it) => it,
                     _ => panic!("not an associated type"),
                 };
                 let trait_ = f.db.trait_data(trait_);
@@ -585,9 +604,9 @@ impl HirDisplay for Ty {
                 // Use placeholder associated types when the target is test (https://rust-lang.github.io/chalk/book/clauses/type_equality.html#placeholder-associated-types)
                 if f.display_target.is_test() {
                     write!(f, "{}::{}", trait_.name, type_alias_data.name)?;
-                    if parameters.len(&Interner) > 0 {
+                    if parameters.len(Interner) > 0 {
                         write!(f, "<")?;
-                        f.write_joined(&*parameters.as_slice(&Interner), ", ")?;
+                        f.write_joined(&*parameters.as_slice(Interner), ", ")?;
                         write!(f, ">")?;
                     }
                 } else {
@@ -612,7 +631,7 @@ impl HirDisplay for Ty {
                         let data = (*datas)
                             .as_ref()
                             .map(|rpit| rpit.impl_traits[idx as usize].bounds.clone());
-                        let bounds = data.substitute(&Interner, &parameters);
+                        let bounds = data.substitute(Interner, &parameters);
                         let krate = func.lookup(f.db.upcast()).module(f.db.upcast()).krate();
                         write_bounds_like_dyn_trait_with_prefix(
                             "impl",
@@ -624,7 +643,7 @@ impl HirDisplay for Ty {
                     }
                     ImplTraitId::AsyncBlockTypeImplTrait(..) => {
                         write!(f, "impl Future<Output = ")?;
-                        parameters.at(&Interner, 0).hir_fmt(f)?;
+                        parameters.at(Interner, 0).hir_fmt(f)?;
                         write!(f, ">")?;
                     }
                 }
@@ -635,11 +654,11 @@ impl HirDisplay for Ty {
                         DisplaySourceCodeError::Closure,
                     ));
                 }
-                let sig = substs.at(&Interner, 0).assert_ty_ref(&Interner).callable_sig(f.db);
+                let sig = substs.at(Interner, 0).assert_ty_ref(Interner).callable_sig(f.db);
                 if let Some(sig) = sig {
                     if sig.params().is_empty() {
                         write!(f, "||")?;
-                    } else if f.omit_verbose_types() {
+                    } else if f.should_truncate() {
                         write!(f, "|{}|", TYPE_HINT_TRUNCATION)?;
                     } else {
                         write!(f, "|")?;
@@ -666,15 +685,15 @@ impl HirDisplay for Ty {
                         let bounds =
                             f.db.generic_predicates(id.parent)
                                 .iter()
-                                .map(|pred| pred.clone().substitute(&Interner, &substs))
+                                .map(|pred| pred.clone().substitute(Interner, &substs))
                                 .filter(|wc| match &wc.skip_binders() {
                                     WhereClause::Implemented(tr) => {
-                                        &tr.self_type_parameter(&Interner) == self
+                                        &tr.self_type_parameter(Interner) == self
                                     }
                                     WhereClause::AliasEq(AliasEq {
                                         alias: AliasTy::Projection(proj),
                                         ty: _,
-                                    }) => &proj.self_type_parameter(&Interner) == self,
+                                    }) => &proj.self_type_parameter(Interner) == self,
                                     _ => false,
                                 })
                                 .collect::<Vec<_>>();
@@ -707,7 +726,7 @@ impl HirDisplay for Ty {
                         let data = (*datas)
                             .as_ref()
                             .map(|rpit| rpit.impl_traits[idx as usize].bounds.clone());
-                        let bounds = data.substitute(&Interner, &opaque_ty.substitution);
+                        let bounds = data.substitute(Interner, &opaque_ty.substitution);
                         let krate = func.lookup(f.db.upcast()).module(f.db.upcast()).krate();
                         write_bounds_like_dyn_trait_with_prefix(
                             "impl",
@@ -774,8 +793,9 @@ impl SizedByDefault {
         match self {
             Self::NotSized => false,
             Self::Sized { anchor } => {
-                let sized_trait =
-                    db.lang_item(anchor, "sized".into()).and_then(|lang_item| lang_item.as_trait());
+                let sized_trait = db
+                    .lang_item(anchor, SmolStr::new_inline("sized"))
+                    .and_then(|lang_item| lang_item.as_trait());
                 Some(trait_) == sized_trait
             }
         }
@@ -839,13 +859,13 @@ fn write_bounds_like_dyn_trait(
                 // existential) here, which is the only thing that's
                 // possible in actual Rust, and hence don't print it
                 write!(f, "{}", f.db.trait_data(trait_).name)?;
-                if let [_, params @ ..] = &*trait_ref.substitution.as_slice(&Interner) {
+                if let [_, params @ ..] = &*trait_ref.substitution.as_slice(Interner) {
                     if is_fn_trait {
                         if let Some(args) =
-                            params.first().and_then(|it| it.assert_ty_ref(&Interner).as_tuple())
+                            params.first().and_then(|it| it.assert_ty_ref(Interner).as_tuple())
                         {
                             write!(f, "(")?;
-                            f.write_joined(args.as_slice(&Interner), ", ")?;
+                            f.write_joined(args.as_slice(Interner), ", ")?;
                             write!(f, ")")?;
                         }
                     } else if !params.is_empty() {
@@ -904,16 +924,16 @@ fn fmt_trait_ref(tr: &TraitRef, f: &mut HirFormatter, use_as: bool) -> Result<()
         return write!(f, "{}", TYPE_HINT_TRUNCATION);
     }
 
-    tr.self_type_parameter(&Interner).hir_fmt(f)?;
+    tr.self_type_parameter(Interner).hir_fmt(f)?;
     if use_as {
         write!(f, " as ")?;
     } else {
         write!(f, ": ")?;
     }
     write!(f, "{}", f.db.trait_data(tr.hir_trait_id()).name)?;
-    if tr.substitution.len(&Interner) > 1 {
+    if tr.substitution.len(Interner) > 1 {
         write!(f, "<")?;
-        f.write_joined(&tr.substitution.as_slice(&Interner)[1..], ", ")?;
+        f.write_joined(&tr.substitution.as_slice(Interner)[1..], ", ")?;
         write!(f, ">")?;
     }
     Ok(())

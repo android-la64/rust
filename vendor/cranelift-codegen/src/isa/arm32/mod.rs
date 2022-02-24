@@ -3,12 +3,14 @@
 use crate::ir::condcodes::IntCC;
 use crate::ir::Function;
 use crate::isa::Builder as IsaBuilder;
-use crate::machinst::{compile, MachBackend, MachCompileResult, TargetIsaAdapter, VCode};
+use crate::machinst::{
+    compile, MachBackend, MachCompileResult, MachTextSectionBuilder, TargetIsaAdapter,
+    TextSectionBuilder, VCode,
+};
 use crate::result::CodegenResult;
 use crate::settings;
 
 use alloc::{boxed::Box, vec::Vec};
-use core::hash::{Hash, Hasher};
 use regalloc::{PrettyPrint, RealRegUniverse};
 use target_lexicon::{Architecture, ArmArchitecture, Triple};
 
@@ -98,10 +100,6 @@ impl MachBackend for Arm32Backend {
         Vec::new()
     }
 
-    fn hash_all_flags(&self, mut hasher: &mut dyn Hasher) {
-        self.flags.hash(&mut hasher);
-    }
-
     fn reg_universe(&self) -> &RealRegUniverse {
         &self.reg_universe
     }
@@ -111,9 +109,8 @@ impl MachBackend for Arm32Backend {
         IntCC::UnsignedGreaterThanOrEqual
     }
 
-    fn unsigned_sub_overflow_condition(&self) -> IntCC {
-        // Carry flag clear.
-        IntCC::UnsignedLessThan
+    fn text_section_builder(&self, num_funcs: u32) -> Box<dyn TextSectionBuilder> {
+        Box::new(MachTextSectionBuilder::<inst::Inst>::new(num_funcs))
     }
 }
 

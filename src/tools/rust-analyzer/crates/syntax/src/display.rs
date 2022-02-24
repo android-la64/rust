@@ -1,10 +1,6 @@
-//! This module contains utilities for turning SyntaxNodes and HIR types
-//! into types that may be used to render in a UI.
+//! This module contains utilities for rendering syntax nodes into a string representing their signature.
 
-use crate::{
-    ast::{self, AstNode, HasAttrs, HasGenericParams, HasName},
-    SyntaxKind::{ATTR, COMMENT},
-};
+use crate::ast::{self, HasAttrs, HasGenericParams, HasName};
 
 use ast::HasVisibility;
 use stdx::format_to;
@@ -52,28 +48,6 @@ pub fn function_declaration(node: &ast::Fn) -> String {
         format_to!(buf, "\n{}", where_clause);
     }
     buf
-}
-
-pub fn const_label(node: &ast::Const) -> String {
-    let label: String = node
-        .syntax()
-        .children_with_tokens()
-        .filter(|child| !(child.kind() == COMMENT || child.kind() == ATTR))
-        .map(|node| node.to_string())
-        .collect();
-
-    label.trim().to_owned()
-}
-
-pub fn type_label(node: &ast::TypeAlias) -> String {
-    let label: String = node
-        .syntax()
-        .children_with_tokens()
-        .filter(|child| !(child.kind() == COMMENT || child.kind() == ATTR))
-        .map(|node| node.to_string())
-        .collect();
-
-    label.trim().to_owned()
 }
 
 pub fn macro_label(node: &ast::Macro) -> String {

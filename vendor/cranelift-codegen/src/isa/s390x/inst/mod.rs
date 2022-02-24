@@ -3,7 +3,7 @@
 // Some variants are not constructed, but we still want them as options in the future.
 #![allow(dead_code)]
 
-use crate::binemit::CodeOffset;
+use crate::binemit::{Addend, CodeOffset, Reloc};
 use crate::ir::{types, ExternalName, Opcode, TrapCode, Type, ValueLabel};
 use crate::isa::unwind::UnwindInst;
 use crate::machinst::*;
@@ -55,11 +55,17 @@ pub enum ALUOp {
     Add64,
     Add64Ext16,
     Add64Ext32,
+    AddLogical32,
+    AddLogical64,
+    AddLogical64Ext32,
     Sub32,
     Sub32Ext16,
     Sub64,
     Sub64Ext16,
     Sub64Ext32,
+    SubLogical32,
+    SubLogical64,
+    SubLogical64Ext32,
     Mul32,
     Mul32Ext16,
     Mul64,
@@ -2572,8 +2578,12 @@ impl Inst {
                 let (op, have_rr) = match alu_op {
                     ALUOp::Add32 => ("ark", true),
                     ALUOp::Add64 => ("agrk", true),
+                    ALUOp::AddLogical32 => ("alrk", true),
+                    ALUOp::AddLogical64 => ("algrk", true),
                     ALUOp::Sub32 => ("srk", true),
                     ALUOp::Sub64 => ("sgrk", true),
+                    ALUOp::SubLogical32 => ("slrk", true),
+                    ALUOp::SubLogical64 => ("slgrk", true),
                     ALUOp::Mul32 => ("msrkc", true),
                     ALUOp::Mul64 => ("msgrkc", true),
                     ALUOp::And32 => ("nrk", true),
@@ -2623,9 +2633,15 @@ impl Inst {
                     ALUOp::Add32 => "ar",
                     ALUOp::Add64 => "agr",
                     ALUOp::Add64Ext32 => "agfr",
+                    ALUOp::AddLogical32 => "alr",
+                    ALUOp::AddLogical64 => "algr",
+                    ALUOp::AddLogical64Ext32 => "algfr",
                     ALUOp::Sub32 => "sr",
                     ALUOp::Sub64 => "sgr",
                     ALUOp::Sub64Ext32 => "sgfr",
+                    ALUOp::SubLogical32 => "slr",
+                    ALUOp::SubLogical64 => "slgr",
+                    ALUOp::SubLogical64Ext32 => "slgfr",
                     ALUOp::Mul32 => "msr",
                     ALUOp::Mul64 => "msgr",
                     ALUOp::Mul64Ext32 => "msgfr",
@@ -2652,11 +2668,17 @@ impl Inst {
                     ALUOp::Add64 => (None, Some("ag")),
                     ALUOp::Add64Ext16 => (None, Some("agh")),
                     ALUOp::Add64Ext32 => (None, Some("agf")),
+                    ALUOp::AddLogical32 => (Some("al"), Some("aly")),
+                    ALUOp::AddLogical64 => (None, Some("alg")),
+                    ALUOp::AddLogical64Ext32 => (None, Some("algf")),
                     ALUOp::Sub32 => (Some("s"), Some("sy")),
                     ALUOp::Sub32Ext16 => (Some("sh"), Some("shy")),
                     ALUOp::Sub64 => (None, Some("sg")),
                     ALUOp::Sub64Ext16 => (None, Some("sgh")),
                     ALUOp::Sub64Ext32 => (None, Some("sgf")),
+                    ALUOp::SubLogical32 => (Some("sl"), Some("sly")),
+                    ALUOp::SubLogical64 => (None, Some("slg")),
+                    ALUOp::SubLogical64Ext32 => (None, Some("slgf")),
                     ALUOp::Mul32 => (Some("ms"), Some("msy")),
                     ALUOp::Mul32Ext16 => (Some("mh"), Some("mhy")),
                     ALUOp::Mul64 => (None, Some("msg")),
@@ -2715,10 +2737,10 @@ impl Inst {
             }
             &Inst::AluRUImm32 { alu_op, rd, imm } => {
                 let op = match alu_op {
-                    ALUOp::Add32 => "alfi",
-                    ALUOp::Add64 => "algfi",
-                    ALUOp::Sub32 => "slfi",
-                    ALUOp::Sub64 => "slgfi",
+                    ALUOp::AddLogical32 => "alfi",
+                    ALUOp::AddLogical64 => "algfi",
+                    ALUOp::SubLogical32 => "slfi",
+                    ALUOp::SubLogical64 => "slgfi",
                     _ => unreachable!(),
                 };
                 let rd = rd.to_reg().show_rru(mb_rru);
@@ -2967,6 +2989,8 @@ impl Inst {
                 let op = match alu_op {
                     ALUOp::Add32 => "laa",
                     ALUOp::Add64 => "laag",
+                    ALUOp::AddLogical32 => "laal",
+                    ALUOp::AddLogical64 => "laalg",
                     ALUOp::And32 => "lan",
                     ALUOp::And64 => "lang",
                     ALUOp::Orr32 => "lao",
@@ -3607,6 +3631,9 @@ pub enum LabelUse {
     /// 32-bit PC relative constant offset (from address of constant itself),
     /// signed. Used in jump tables.
     PCRel32,
+    /// 32-bit PC relative constant offset (from address of call instruction),
+    /// signed. Offset is imm << 1.  Used for call relocations.
+    PCRel32Dbl,
 }
 
 impl MachInstLabelUse for LabelUse {
@@ -3617,10 +3644,13 @@ impl MachInstLabelUse for LabelUse {
     fn max_pos_range(self) -> CodeOffset {
         match self {
             // 16-bit signed immediate, left-shifted by 1.
-            LabelUse::BranchRI => (1 << 20) - 1,
-            // This can address any valid CodeOffset.
-            LabelUse::BranchRIL => 0x7fff_ffff,
+            LabelUse::BranchRI => ((1 << 15) - 1) << 1,
+            // 32-bit signed immediate, left-shifted by 1.
+            LabelUse::BranchRIL => 0xffff_fffe,
+            // 32-bit signed immediate.
             LabelUse::PCRel32 => 0x7fff_ffff,
+            // 32-bit signed immediate, left-shifted by 1, offset by 2.
+            LabelUse::PCRel32Dbl => 0xffff_fffc,
         }
     }
 
@@ -3628,10 +3658,15 @@ impl MachInstLabelUse for LabelUse {
     fn max_neg_range(self) -> CodeOffset {
         match self {
             // 16-bit signed immediate, left-shifted by 1.
-            LabelUse::BranchRI => 1 << 20,
-            // This can address any valid CodeOffset.
-            LabelUse::BranchRIL => 0x8000_0000,
+            LabelUse::BranchRI => (1 << 15) << 1,
+            // 32-bit signed immediate, left-shifted by 1.
+            // NOTE: This should be 4GB, but CodeOffset is only u32.
+            LabelUse::BranchRIL => 0xffff_ffff,
+            // 32-bit signed immediate.
             LabelUse::PCRel32 => 0x8000_0000,
+            // 32-bit signed immediate, left-shifted by 1, offset by 2.
+            // NOTE: This should be 4GB + 2, but CodeOffset is only u32.
+            LabelUse::PCRel32Dbl => 0xffff_ffff,
         }
     }
 
@@ -3641,6 +3676,7 @@ impl MachInstLabelUse for LabelUse {
             LabelUse::BranchRI => 4,
             LabelUse::BranchRIL => 6,
             LabelUse::PCRel32 => 4,
+            LabelUse::PCRel32Dbl => 4,
         }
     }
 
@@ -3664,6 +3700,11 @@ impl MachInstLabelUse for LabelUse {
                 let insn_word = insn_word.wrapping_add(pc_rel as u32);
                 buffer[0..4].clone_from_slice(&u32::to_be_bytes(insn_word));
             }
+            LabelUse::PCRel32Dbl => {
+                let insn_word = u32::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]);
+                let insn_word = insn_word.wrapping_add((pc_rel_shifted + 1) as u32);
+                buffer[0..4].clone_from_slice(&u32::to_be_bytes(insn_word));
+            }
         }
     }
 
@@ -3685,5 +3726,12 @@ impl MachInstLabelUse for LabelUse {
         _veneer_offset: CodeOffset,
     ) -> (CodeOffset, LabelUse) {
         unreachable!();
+    }
+
+    fn from_reloc(reloc: Reloc, addend: Addend) -> Option<Self> {
+        match (reloc, addend) {
+            (Reloc::S390xPCRel32Dbl, 2) => Some(LabelUse::PCRel32Dbl),
+            _ => None,
+        }
     }
 }

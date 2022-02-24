@@ -61,17 +61,15 @@
 
 use std::rc::Rc;
 
+use smallvec::{smallvec, SmallVec};
+use syntax::SmolStr;
+
 use crate::{
-    expander::{Binding, Bindings, Fragment},
+    expander::{Binding, Bindings, ExpandResult, Fragment},
     parser::{Op, RepeatKind, Separator},
     tt_iter::TtIter,
     ExpandError, MetaTemplate,
 };
-
-use super::ExpandResult;
-use parser::ParserEntryPoint::*;
-use smallvec::{smallvec, SmallVec};
-use syntax::SmolStr;
 
 impl Bindings {
     fn push_optional(&mut self, name: &SmolStr) {
@@ -573,18 +571,18 @@ fn match_loop(pattern: &MetaTemplate, src: &tt::Subtree) -> Match {
 
         if !error_items.is_empty() {
             error_recover_item = error_items.pop().map(|it| it.bindings);
-        } else if !eof_items.is_empty() {
-            error_recover_item = Some(eof_items[0].bindings.clone());
+        } else if let [state, ..] = &*eof_items {
+            error_recover_item = Some(state.bindings.clone());
         }
 
         // We need to do some post processing after the `match_loop_inner`.
         // If we reached the EOF, check that there is EXACTLY ONE possible matcher. Otherwise,
         // either the parse is ambiguous (which should never happen) or there is a syntax error.
         if src.peek_n(0).is_none() && stack.is_empty() {
-            if eof_items.len() == 1 {
+            if let [state] = &*eof_items {
                 // remove all errors, because it is the correct answer !
                 res = Match::default();
-                res.bindings = bindings_builder.build(&eof_items[0].bindings);
+                res.bindings = bindings_builder.build(&state.bindings);
             } else {
                 // Error recovery
                 if let Some(item) = error_recover_item {
@@ -600,10 +598,10 @@ fn match_loop(pattern: &MetaTemplate, src: &tt::Subtree) -> Match {
         //
         // Another possibility is that we need to call out to parse some rust nonterminal
         // (black-box) parser. However, if there is not EXACTLY ONE of these, something is wrong.
-        if (bb_items.is_empty() && next_items.is_empty())
-            || (!bb_items.is_empty() && !next_items.is_empty())
-            || bb_items.len() > 1
-        {
+        let has_leftover_tokens = (bb_items.is_empty() && next_items.is_empty())
+            || !(bb_items.is_empty() || next_items.is_empty())
+            || bb_items.len() > 1;
+        if has_leftover_tokens {
             res.unmatched_tts += src.len();
             while let Some(it) = stack.pop() {
                 src = it;
@@ -626,7 +624,11 @@ fn match_loop(pattern: &MetaTemplate, src: &tt::Subtree) -> Match {
                     stack.push(src.clone());
                     src = TtIter::new(subtree);
                 }
-                None if !stack.is_empty() => src = stack.pop().unwrap(),
+                None => {
+                    if let Some(iter) = stack.pop() {
+                        src = iter;
+                    }
+                }
                 _ => (),
             }
         }
@@ -664,41 +666,42 @@ fn match_loop(pattern: &MetaTemplate, src: &tt::Subtree) -> Match {
 fn match_leaf(lhs: &tt::Leaf, src: &mut TtIter) -> Result<(), ExpandError> {
     let rhs = match src.expect_leaf() {
         Ok(l) => l,
-        Err(()) => {
-            return Err(err!("expected leaf: `{}`", lhs));
-        }
+        Err(()) => return Err(err!("expected leaf: `{}`", lhs)),
     };
     match (lhs, rhs) {
         (
             tt::Leaf::Punct(tt::Punct { char: lhs, .. }),
             tt::Leaf::Punct(tt::Punct { char: rhs, .. }),
-        ) if lhs == rhs => (),
+        ) if lhs == rhs => Ok(()),
         (
             tt::Leaf::Ident(tt::Ident { text: lhs, .. }),
             tt::Leaf::Ident(tt::Ident { text: rhs, .. }),
-        ) if lhs == rhs => (),
+        ) if lhs == rhs => Ok(()),
         (
             tt::Leaf::Literal(tt::Literal { text: lhs, .. }),
             tt::Leaf::Literal(tt::Literal { text: rhs, .. }),
-        ) if lhs == rhs => (),
-        _ => {
-            return Err(ExpandError::UnexpectedToken);
-        }
+        ) if lhs == rhs => Ok(()),
+        _ => Err(ExpandError::UnexpectedToken),
     }
-
-    Ok(())
 }
 
 fn match_meta_var(kind: &str, input: &mut TtIter) -> ExpandResult<Option<Fragment>> {
     let fragment = match kind {
-        "path" => Path,
-        "expr" => Expr,
-        "ty" => Type,
-        "pat" | "pat_param" => Pattern, // FIXME: edition2021
-        "stmt" => Statement,
-        "block" => Block,
-        "meta" => MetaItem,
-        "item" => Item,
+        "path" => parser::PrefixEntryPoint::Path,
+        "ty" => parser::PrefixEntryPoint::Ty,
+        // FIXME: These two should actually behave differently depending on the edition.
+        //
+        // https://doc.rust-lang.org/edition-guide/rust-2021/or-patterns-macro-rules.html
+        "pat" | "pat_param" => parser::PrefixEntryPoint::Pat,
+        "stmt" => parser::PrefixEntryPoint::Stmt,
+        "block" => parser::PrefixEntryPoint::Block,
+        "meta" => parser::PrefixEntryPoint::MetaItem,
+        "item" => parser::PrefixEntryPoint::Item,
+        "expr" => {
+            return input
+                .expect_fragment(parser::PrefixEntryPoint::Expr)
+                .map(|tt| tt.map(Fragment::Expr))
+        }
         _ => {
             let tt_result = match kind {
                 "ident" => input
@@ -726,17 +729,13 @@ fn match_meta_var(kind: &str, input: &mut TtIter) -> ExpandResult<Option<Fragmen
                         .map_err(|()| err!())
                 }
                 // `vis` is optional
-                "vis" => match input.eat_vis() {
-                    Some(vis) => Ok(Some(vis)),
-                    None => Ok(None),
-                },
+                "vis" => Ok(input.expect_fragment(parser::PrefixEntryPoint::Vis).value),
                 _ => Err(ExpandError::UnexpectedToken),
             };
             return tt_result.map(|it| it.map(Fragment::Tokens)).into();
         }
     };
-    let result = input.expect_fragment(fragment);
-    result.map(|tt| if kind == "expr" { tt.map(Fragment::Expr) } else { tt.map(Fragment::Tokens) })
+    input.expect_fragment(fragment).map(|it| it.map(Fragment::Tokens))
 }
 
 fn collect_vars(buf: &mut Vec<SmolStr>, pattern: &MetaTemplate) {
@@ -896,17 +895,6 @@ impl<'a> TtIter<'a> {
             ],
         }
         .into())
-    }
-
-    fn eat_vis(&mut self) -> Option<tt::TokenTree> {
-        let mut fork = self.clone();
-        match fork.expect_fragment(Visibility) {
-            ExpandResult { value: tt, err: None } => {
-                *self = fork;
-                tt
-            }
-            ExpandResult { value: _, err: Some(_) } => None,
-        }
     }
 
     fn eat_char(&mut self, c: char) -> Option<tt::TokenTree> {

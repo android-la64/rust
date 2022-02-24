@@ -343,6 +343,14 @@ s! {
         pub sc_groups: [::gid_t; 1],
     }
 
+    pub struct uucred {
+        pub cr_unused: ::c_ushort,
+        pub cr_uid: ::uid_t,
+        pub cr_gid: ::gid_t,
+        pub cr_ngroups: ::c_int,
+        pub cr_groups: [::gid_t; NGROUPS_MAX as usize],
+    }
+
     pub struct unpcbid {
         pub unp_pid: ::pid_t,
         pub unp_euid: ::uid_t,
@@ -544,9 +552,28 @@ s! {
         pub pl_event: ::c_int,
     }
 
+    pub struct ptrace_lwpstatus {
+        pub pl_lwpid: lwpid_t,
+        pub pl_sigpend: sigset_t,
+        pub pl_sigmask: sigset_t,
+        pub pl_name: [::c_char; 20],
+        pub pl_private: *mut ::c_void,
+    }
+
     pub struct ptrace_siginfo {
         pub psi_siginfo: siginfo_t,
         pub psi_lwpid: lwpid_t,
+    }
+
+    pub struct ptrace_event {
+        pub pe_set_event: ::c_int,
+    }
+
+    pub struct sysctldesc {
+        pub descr_num: i32,
+        pub descr_ver: u32,
+        pub descr_len: u32,
+        pub descr_str: [::c_char; 1],
     }
 }
 
@@ -1985,6 +2012,15 @@ pub const PT_SYSCALLEMU: ::c_int = 15;
 pub const PT_SET_EVENT_MASK: ::c_int = 16;
 pub const PT_GET_EVENT_MASK: ::c_int = 17;
 pub const PT_GET_PROCESS_STATE: ::c_int = 18;
+pub const PT_SET_SIGINFO: ::c_int = 19;
+pub const PT_GET_SIGINFO: ::c_int = 20;
+pub const PT_RESUME: ::c_int = 21;
+pub const PT_SUSPEND: ::c_int = 23;
+pub const PT_STOP: ::c_int = 23;
+pub const PT_LWPSTATUS: ::c_int = 24;
+pub const PT_LWPNEXT: ::c_int = 25;
+pub const PT_SET_SIGPASS: ::c_int = 26;
+pub const PT_GET_SIGPASS: ::c_int = 27;
 pub const PT_FIRSTMACH: ::c_int = 32;
 
 pub const POSIX_SPAWN_RESETIDS: ::c_int = 0x01;
@@ -2011,6 +2047,8 @@ pub const KVME_FLAG_NOCOREDUMP: ::c_int = 0x000000004;
 pub const KVME_FLAG_PAGEABLE: ::c_int = 0x000000008;
 pub const KVME_FLAG_GROWS_UP: ::c_int = 0x000000010;
 pub const KVME_FLAG_GROWS_DOWN: ::c_int = 0x000000020;
+
+pub const NGROUPS_MAX: ::c_int = 16;
 
 const_fn! {
     {const} fn _ALIGN(p: usize) -> usize {

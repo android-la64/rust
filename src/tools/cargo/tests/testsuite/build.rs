@@ -1668,7 +1668,7 @@ package `test v0.0.0 ([CWD])`
 }
 
 #[cargo_test]
-/// Make sure broken symlinks don't break the build
+/// Make sure broken and loop symlinks don't break the build
 ///
 /// This test requires you to be able to make symlinks.
 /// For windows, this may require you to enable developer mode.
@@ -1681,9 +1681,17 @@ fn ignore_broken_symlinks() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/foo.rs", &main_file(r#""i am foo""#, &[]))
         .symlink("Notafile", "bar")
+        // To hit the symlink directory, we need a build script
+        // to trigger a full scan of package files.
+        .file("build.rs", &main_file(r#""build script""#, &[]))
+        .symlink_dir("a/b", "a/b/c/d/foo")
         .build();
 
-    p.cargo("build").run();
+    p.cargo("build")
+        .with_stderr_contains(
+            "[WARNING] File system loop found: [..]/a/b/c/d/foo points to an ancestor [..]/a/b",
+        )
+        .run();
     assert!(p.bin("foo").is_file());
 
     p.process(&p.bin("foo")).with_stdout("i am foo\n").run();
@@ -1760,6 +1768,25 @@ fn verbose_build() {
 fn verbose_release_build() {
     let p = project().file("src/lib.rs", "").build();
     p.cargo("build -v --release")
+        .with_stderr(
+            "\
+[COMPILING] foo v0.0.1 ([CWD])
+[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+        --emit=[..]link[..]\
+        -C opt-level=3[..]\
+        -C metadata=[..] \
+        --out-dir [..] \
+        -L dependency=[CWD]/target/release/deps`
+[FINISHED] release [optimized] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn verbose_release_build_short() {
+    let p = project().file("src/lib.rs", "").build();
+    p.cargo("build -v -r")
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])

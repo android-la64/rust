@@ -12,8 +12,8 @@
 
 [package]
 name = "libssh2-sys"
-version = "0.2.19"
-authors = ["Alex Crichton <alex@alexcrichton.com>", "Wez Furlong <wez@wezfurlong.org>"]
+version = "0.2.23"
+authors = ["Alex Crichton <alex@alexcrichton.com>", "Wez Furlong <wez@wezfurlong.org>", "Matteo Bigoi <bigo@crisidev.org>"]
 build = "build.rs"
 links = "ssh2"
 description = "Native bindings to the libssh2 library"
@@ -38,9 +38,13 @@ version = "1.0.25"
 version = "0.3.11"
 
 [features]
+openssl-on-win32 = ["openssl-sys"]
 vendored-openssl = ["openssl-sys/vendored"]
 zlib-ng-compat = ["libz-sys/zlib-ng"]
 [target."cfg(target_env = \"msvc\")".build-dependencies.vcpkg]
 version = "0.2"
 [target."cfg(unix)".dependencies.openssl-sys]
 version = "0.9.35"
+[target."cfg(windows)".dependencies.openssl-sys]
+version = "0.9.35"
+optional = true

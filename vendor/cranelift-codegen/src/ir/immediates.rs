@@ -26,6 +26,12 @@ impl IntoBytes for u8 {
     }
 }
 
+impl IntoBytes for i8 {
+    fn into_bytes(self) -> Vec<u8> {
+        vec![self as u8]
+    }
+}
+
 impl IntoBytes for i16 {
     fn into_bytes(self) -> Vec<u8> {
         self.to_le_bytes().to_vec()
@@ -288,6 +294,12 @@ pub struct Uimm32(u32);
 impl From<Uimm32> for u32 {
     fn from(val: Uimm32) -> u32 {
         val.0
+    }
+}
+
+impl From<Uimm32> for u64 {
+    fn from(val: Uimm32) -> u64 {
+        val.0.into()
     }
 }
 

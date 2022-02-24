@@ -81,8 +81,11 @@ rustup +nightly component add miri
 If `rustup` says the `miri` component is unavailable, that's because not all
 nightly releases come with all tools. Check out
 [this website](https://rust-lang.github.io/rustup-components-history) to
-determine a nightly version that comes with Miri and install that using
-`rustup toolchain install nightly-YYYY-MM-DD`.
+determine a nightly version that comes with Miri and install that using `rustup
+toolchain install nightly-YYYY-MM-DD`. Either way, all of the following commands
+assume the right toolchain is pinned via `rustup override set nightly` or
+`rustup override set nightly-YYYY-MM-DD`. (Alternatively, use `cargo
++nightly`/`cargo +nightly-YYYY-MM-DD` for each of the following commands.)
 
 Now you can run your project in Miri:
 
@@ -276,14 +279,13 @@ environment variable:
   is popped from a borrow stack (which is where the tag becomes invalid and any
   future use of it will error).  This helps you in finding out why UB is
   happening and where in your code would be a good place to look for it.
-* `-Zmiri-track-raw-pointers` makes Stacked Borrows track a pointer tag even for
-  raw pointers. This can make valid code fail to pass the checks, but also can
-  help identify latent aliasing issues in code that Miri accepts by default. You
-  can recognize false positives by `<untagged>` occurring in the message -- this
-  indicates a pointer that was cast from an integer, so Miri was unable to track
-  this pointer. Note that it is not currently guaranteed that code that works
-  with `-Zmiri-track-raw-pointers` also works without
-  `-Zmiri-track-raw-pointers`, but for the vast majority of code, this will be the case.
+* `-Zmiri-tag-raw-pointers` makes Stacked Borrows assign proper tags even for raw pointers. This can
+  make valid code using int-to-ptr casts fail to pass the checks, but also can help identify latent
+  aliasing issues in code that Miri accepts by default. You can recognize false positives by
+  `<untagged>` occurring in the message -- this indicates a pointer that was cast from an integer,
+  so Miri was unable to track this pointer. Note that it is not currently guaranteed that code that
+  works with `-Zmiri-tag-raw-pointers` also works without `-Zmiri-tag-raw-pointers`, but for the
+  vast majority of code, this will be the case.
 
 [function ABI]: https://doc.rust-lang.org/reference/items/functions.html#extern-function-qualifier
 
@@ -304,6 +306,12 @@ Moreover, Miri recognizes some environment variables:
   Miri executions, also [see "Testing the Miri driver" in `CONTRIBUTING.md`][testing-miri].
 * `MIRIFLAGS` (recognized by `cargo miri` and the test suite) defines extra
   flags to be passed to Miri.
+* `MIRI_LIB_SRC` defines the directory where Miri expects the sources of the
+  standard library that it will build and use for interpretation. This directory
+  must point to the `library` subdirectory of a `rust-lang/rust` repository
+  checkout. Note that changing files in that directory does not automatically
+  trigger a re-build of the standard library; you have to clear the Miri build
+  cache manually (on Linux, `rm -rf ~/.cache/miri`).
 * `MIRI_SYSROOT` (recognized by `cargo miri` and the test suite)
   indicates the sysroot to use.  To do the same thing with `miri`
   directly, use the `--sysroot` flag.

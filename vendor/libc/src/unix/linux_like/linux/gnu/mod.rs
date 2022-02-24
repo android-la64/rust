@@ -4,6 +4,16 @@ pub type __rlimit_resource_t = ::c_uint;
 pub type Lmid_t = ::c_long;
 pub type regoff_t = ::c_int;
 
+cfg_if! {
+    if #[cfg(doc)] {
+        // Used in `linux::arch` to define ioctl constants.
+        pub(crate) type Ioctl = ::c_ulong;
+    } else {
+        #[doc(hidden)]
+        pub type Ioctl = ::c_ulong;
+    }
+}
+
 s! {
     pub struct statx {
         pub stx_mask: u32,
@@ -587,6 +597,7 @@ pub const RTLD_DI_TLS_MODID: ::c_int = 9;
 pub const RTLD_DI_TLS_DATA: ::c_int = 10;
 
 pub const SOCK_NONBLOCK: ::c_int = O_NONBLOCK;
+pub const PIDFD_NONBLOCK: ::c_uint = O_NONBLOCK as ::c_uint;
 
 pub const SOL_RXRPC: ::c_int = 272;
 pub const SOL_PPPOL2TP: ::c_int = 273;
@@ -950,12 +961,6 @@ pub const GENL_UNS_ADMIN_PERM: ::c_int = 0x10;
 pub const GENL_ID_VFS_DQUOT: ::c_int = ::NLMSG_MIN_TYPE + 1;
 pub const GENL_ID_PMCRAID: ::c_int = ::NLMSG_MIN_TYPE + 2;
 
-pub const TIOCM_LE: ::c_int = 0x001;
-pub const TIOCM_DTR: ::c_int = 0x002;
-pub const TIOCM_RTS: ::c_int = 0x004;
-pub const TIOCM_CD: ::c_int = TIOCM_CAR;
-pub const TIOCM_RI: ::c_int = TIOCM_RNG;
-
 // elf.h
 pub const NT_PRSTATUS: ::c_int = 1;
 pub const NT_PRFPREG: ::c_int = 2;
@@ -1274,6 +1279,8 @@ extern "C" {
     pub fn explicit_bzero(s: *mut ::c_void, len: ::size_t);
     // Added in `glibc` 2.29
     pub fn reallocarray(ptr: *mut ::c_void, nmemb: ::size_t, size: ::size_t) -> *mut ::c_void;
+
+    pub fn ctermid(s: *mut ::c_char) -> *mut ::c_char;
 }
 
 extern "C" {
@@ -1327,6 +1334,8 @@ extern "C" {
     pub fn pthread_setname_np(thread: ::pthread_t, name: *const ::c_char) -> ::c_int;
 
     pub fn sethostid(hostid: ::c_long) -> ::c_int;
+
+    pub fn memfd_create(name: *const ::c_char, flags: ::c_uint) -> ::c_int;
 }
 
 extern "C" {

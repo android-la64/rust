@@ -114,7 +114,7 @@ impl ObjectBuilder {
 /// See the `ObjectBuilder` for a convenient way to construct `ObjectModule` instances.
 pub struct ObjectModule {
     isa: Box<dyn TargetIsa>,
-    object: Object,
+    object: Object<'static>,
     declarations: ModuleDeclarations,
     functions: SecondaryMap<FuncId, Option<(SymbolId, bool)>>,
     data_objects: SecondaryMap<DataId, Option<(SymbolId, bool)>>,
@@ -310,11 +310,7 @@ impl Module for ObjectModule {
         trap_sink: &mut dyn TrapSink,
         stack_map_sink: &mut dyn StackMapSink,
     ) -> ModuleResult<ModuleCompiledFunction> {
-        info!(
-            "defining function {}: {}",
-            func_id,
-            ctx.func.display(self.isa())
-        );
+        info!("defining function {}: {}", func_id, ctx.func.display());
         let CodeInfo {
             total_size: code_size,
             ..
@@ -324,7 +320,6 @@ impl Module for ObjectModule {
 
         unsafe {
             ctx.emit_to_memory(
-                &*self.isa,
                 code.as_mut_ptr(),
                 &mut reloc_sink,
                 trap_sink,
@@ -674,7 +669,7 @@ fn translate_linkage(linkage: Linkage) -> (SymbolScope, bool) {
 /// compilation.
 pub struct ObjectProduct {
     /// Object artifact with all functions and data from the module defined.
-    pub object: Object,
+    pub object: Object<'static>,
     /// Symbol IDs for functions (both declared and defined).
     pub functions: SecondaryMap<FuncId, Option<(SymbolId, bool)>>,
     /// Symbol IDs for data objects (both declared and defined).
@@ -738,29 +733,5 @@ impl RelocSink for ObjectRelocSink {
             addend,
             name: name.clone(),
         })
-    }
-
-    fn reloc_jt(&mut self, _offset: CodeOffset, reloc: Reloc, _jt: ir::JumpTable) {
-        match reloc {
-            Reloc::X86PCRelRodata4 => {
-                // Not necessary to record this unless we are going to split apart code and its
-                // jumptbl/rodata.
-            }
-            _ => {
-                panic!("Unhandled reloc");
-            }
-        }
-    }
-
-    fn reloc_constant(&mut self, _offset: CodeOffset, reloc: Reloc, _jt: ir::ConstantOffset) {
-        match reloc {
-            Reloc::X86PCRelRodata4 => {
-                // Not necessary to record this unless we are going to split apart code and its
-                // jumptbl/rodata.
-            }
-            _ => {
-                panic!("Unhandled reloc");
-            }
-        }
     }
 }

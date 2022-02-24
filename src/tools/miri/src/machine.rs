@@ -7,7 +7,6 @@ use std::fmt;
 use std::num::NonZeroU64;
 use std::time::Instant;
 
-use log::trace;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
@@ -194,7 +193,7 @@ impl MemoryExtra {
             Some(RefCell::new(stacked_borrows::GlobalState::new(
                 config.tracked_pointer_tag,
                 config.tracked_call_id,
-                config.track_raw,
+                config.tag_raw,
             )))
         } else {
             None
@@ -228,18 +227,22 @@ impl MemoryExtra {
     ) -> InterpResult<'tcx> {
         match this.tcx.sess.target.os.as_str() {
             "linux" => {
-                // "__cxa_thread_atexit_impl"
-                // This should be all-zero, pointer-sized.
-                let layout = this.machine.layouts.usize;
-                let place = this.allocate(layout, MiriMemoryKind::ExternStatic.into())?;
-                this.write_scalar(Scalar::from_machine_usize(0, this), &place.into())?;
-                Self::add_extern_static(this, "__cxa_thread_atexit_impl", place.ptr);
                 // "environ"
                 Self::add_extern_static(
                     this,
                     "environ",
                     this.machine.env_vars.environ.unwrap().ptr,
                 );
+                // A couple zero-initialized pointer-sized extern statics.
+                // Most of them are for weak symbols, which we all set to null (indicating that the
+                // symbol is not supported, and triggering fallback code which ends up calling a
+                // syscall that we do support).
+                for name in &["__cxa_thread_atexit_impl", "getrandom", "statx"] {
+                    let layout = this.machine.layouts.usize;
+                    let place = this.allocate(layout, MiriMemoryKind::ExternStatic.into())?;
+                    this.write_scalar(Scalar::from_machine_usize(0, this), &place.into())?;
+                    Self::add_extern_static(this, name, place.ptr);
+                }
             }
             "windows" => {
                 // "_tls_used"
@@ -448,7 +451,7 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         args: &[OpTy<'tcx, Tag>],
         ret: Option<(&PlaceTy<'tcx, Tag>, mir::BasicBlock)>,
         unwind: StackPopUnwind,
-    ) -> InterpResult<'tcx, Option<&'mir mir::Body<'tcx>>> {
+    ) -> InterpResult<'tcx, Option<(&'mir mir::Body<'tcx>, ty::Instance<'tcx>)>> {
         ecx.find_mir_or_eval_fn(instance, abi, args, ret, unwind)
     }
 
@@ -497,35 +500,6 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         right: &ImmTy<'tcx, Tag>,
     ) -> InterpResult<'tcx, (Scalar<Tag>, bool, ty::Ty<'tcx>)> {
         ecx.binary_ptr_op(bin_op, left, right)
-    }
-
-    fn box_alloc(
-        ecx: &mut InterpCx<'mir, 'tcx, Self>,
-        dest: &PlaceTy<'tcx, Tag>,
-    ) -> InterpResult<'tcx> {
-        trace!("box_alloc for {:?}", dest.layout.ty);
-        let layout = ecx.layout_of(dest.layout.ty.builtin_deref(false).unwrap().ty)?;
-        // First argument: `size`.
-        // (`0` is allowed here -- this is expected to be handled by the lang item).
-        let size = Scalar::from_machine_usize(layout.size.bytes(), ecx);
-
-        // Second argument: `align`.
-        let align = Scalar::from_machine_usize(layout.align.abi.bytes(), ecx);
-
-        // Call the `exchange_malloc` lang item.
-        let malloc = ecx.tcx.lang_items().exchange_malloc_fn().unwrap();
-        let malloc = ty::Instance::mono(ecx.tcx.tcx, malloc);
-        ecx.call_function(
-            malloc,
-            Abi::Rust,
-            &[size.into(), align.into()],
-            Some(dest),
-            // Don't do anything when we are done. The `statement()` function will increment
-            // the old stack frame's stmt counter to the next statement, which means that when
-            // `exchange_malloc` returns, we go on evaluating exactly where we want to be.
-            StackPopCleanup::None { cleanup: true },
-        )?;
-        Ok(())
     }
 
     fn thread_local_static_base_pointer(

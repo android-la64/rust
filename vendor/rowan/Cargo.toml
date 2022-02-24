@@ -10,16 +10,17 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "rowan"
-version = "0.14.1"
+version = "0.15.2"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 exclude = [".github/", "bors.toml", "rustfmt.toml"]
 description = "Library for generic lossless syntax trees"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-analyzer/rowan"
+resolver = "2"
 [dependencies.countme]
-version = "2.0.0"
+version = "3.0.0"
 
 [dependencies.hashbrown]
 version = "0.11.2"

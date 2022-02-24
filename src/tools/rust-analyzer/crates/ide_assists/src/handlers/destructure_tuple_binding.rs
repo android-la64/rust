@@ -3,7 +3,6 @@ use ide_db::{
     defs::Definition,
     search::{FileReference, SearchScope, UsageSearchResult},
 };
-use itertools::Itertools;
 use syntax::{
     ast::{self, AstNode, FieldExpr, HasName, IdentPat, MethodCallExpr},
     TextRange,
@@ -121,7 +120,7 @@ fn collect_data(ident_pat: IdentPat, ctx: &AssistContext) -> Option<TupleData> {
 
     let field_names = (0..field_types.len())
         .map(|i| generate_name(ctx, i, &name, &ident_pat, &usages))
-        .collect_vec();
+        .collect::<Vec<_>>();
 
     Some(TupleData { ident_pat, range, ref_type, field_names, usages })
 }
@@ -174,7 +173,7 @@ fn edit_tuple_assignment(
 
     // with sub_pattern: keep original tuple and add subpattern: `tup @ (_0, _1)`
     if in_sub_pattern {
-        let text = format!(" @ {}", tuple_pat.to_string());
+        let text = format!(" @ {}", tuple_pat);
         match ctx.config.snippet_cap {
             Some(cap) => {
                 let snip = add_cursor(&text);

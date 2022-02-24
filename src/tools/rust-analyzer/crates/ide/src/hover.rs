@@ -17,13 +17,11 @@ use itertools::Itertools;
 use syntax::{ast, match_ast, AstNode, SyntaxKind::*, SyntaxNode, SyntaxToken, T};
 
 use crate::{
-    display::TryToNav,
     doc_links::token_as_doc_comment,
     markup::Markup,
     runnables::{runnable_fn, runnable_mod},
-    FileId, FilePosition, NavigationTarget, RangeInfo, Runnable,
+    FileId, FilePosition, NavigationTarget, RangeInfo, Runnable, TryToNav,
 };
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HoverConfig {
     pub links_in_hover: bool,
@@ -96,10 +94,11 @@ pub(crate) fn hover(
     let sema = &hir::Semantics::new(db);
     let file = sema.parse(file_id).syntax().clone();
 
-    if !range.is_empty() {
+    let offset = if !range.is_empty() {
         return hover_ranged(&file, range, sema, config);
-    }
-    let offset = range.start();
+    } else {
+        range.start()
+    };
 
     let original_token = pick_best_token(file.token_at_offset(offset), |kind| match kind {
         IDENT | INT_NUMBER | LIFETIME_IDENT | T![self] | T![super] | T![crate] => 3,
@@ -339,7 +338,7 @@ fn walk_and_push_ty(
         } else if let Some(trait_) = t.as_dyn_trait() {
             push_new_def(trait_.into());
         } else if let Some(traits) = t.as_impl_traits(db) {
-            traits.into_iter().for_each(|it| push_new_def(it.into()));
+            traits.for_each(|it| push_new_def(it.into()));
         } else if let Some(trait_) = t.as_associated_type_parent_trait(db) {
             push_new_def(trait_.into());
         }

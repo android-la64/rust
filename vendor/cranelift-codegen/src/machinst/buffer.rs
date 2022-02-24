@@ -143,14 +143,17 @@
 use crate::binemit::{Addend, CodeOffset, CodeSink, Reloc, StackMap};
 use crate::ir::{ExternalName, Opcode, SourceLoc, TrapCode};
 use crate::isa::unwind::UnwindInst;
-use crate::machinst::{BlockIndex, MachInstLabelUse, VCodeConstant, VCodeConstants, VCodeInst};
+use crate::machinst::{
+    BlockIndex, MachInstLabelUse, TextSectionBuilder, VCodeConstant, VCodeConstants, VCodeInst,
+};
 use crate::timing;
 use cranelift_entity::{entity_impl, SecondaryMap};
-
 use log::trace;
 use smallvec::SmallVec;
+use std::convert::TryFrom;
 use std::mem;
 use std::string::String;
+use std::vec::Vec;
 
 /// A buffer of output to be produced, fixed up, and then emitted to a CodeSink
 /// in bulk.
@@ -247,8 +250,12 @@ pub struct MachBufferFinalized {
     pub unwind_info: SmallVec<[(CodeOffset, UnwindInst); 8]>,
 }
 
-static UNKNOWN_LABEL_OFFSET: CodeOffset = 0xffff_ffff;
-static UNKNOWN_LABEL: MachLabel = MachLabel(0xffff_ffff);
+const UNKNOWN_LABEL_OFFSET: CodeOffset = 0xffff_ffff;
+const UNKNOWN_LABEL: MachLabel = MachLabel(0xffff_ffff);
+
+/// Threshold on max length of `labels_at_this_branch` list to avoid
+/// unbounded quadratic behavior (see comment below at use-site).
+const LABEL_LIST_THRESHOLD: usize = 100;
 
 /// A label refers to some offset in a `MachBuffer`. It may not be resolved at
 /// the point at which it is used by emitted code; the buffer records "fixups"
@@ -321,8 +328,15 @@ impl<I: VCodeInst> MachBuffer<I> {
 
     /// Debug-only: check invariants of labels and branch-records described
     /// under "Branch-optimization Correctness" above.
-    #[cfg(debug)]
+    ///
+    /// These invariants are checked at branch-simplification
+    /// time. Note that they may be temporarily violated at other
+    /// times, e.g. after calling `add_{cond,uncond}_branch()` and
+    /// before emitting branch bytes.
     fn check_label_branch_invariants(&self) {
+        if !cfg!(debug_assertions) {
+            return;
+        }
         let cur_off = self.cur_offset();
         // Check that every entry in latest_branches has *correct*
         // labels_at_this_branch lists. We do not check completeness because
@@ -340,10 +354,15 @@ impl<I: VCodeInst> MachBuffer<I> {
             }
         }
 
-        // Check that every label is unresolved, or resolved at or before
-        // cur_offset. If at cur_offset, must be in `labels_at_tail`.
+        // Check that every label is unresolved, or resolved at or
+        // before cur_offset. If at cur_offset, must be in
+        // `labels_at_tail`. We skip labels that are aliased to
+        // others already.
         for (i, &off) in self.label_offsets.iter().enumerate() {
             let label = MachLabel(i as u32);
+            if self.label_aliases[i] != UNKNOWN_LABEL {
+                continue;
+            }
             debug_assert!(off == UNKNOWN_LABEL_OFFSET || off <= cur_off);
             if off == cur_off {
                 debug_assert!(
@@ -361,11 +380,6 @@ impl<I: VCodeInst> MachBuffer<I> {
                 debug_assert_eq!(self.label_aliases[l.0 as usize], UNKNOWN_LABEL);
             }
         }
-    }
-
-    #[cfg(not(debug))]
-    fn check_label_branch_invariants(&self) {
-        // Nothing.
     }
 
     /// Current offset from start of buffer.
@@ -527,7 +541,6 @@ impl<I: VCodeInst> MachBuffer<I> {
         self.optimize_branches();
 
         // Post-invariant: by `optimize_branches()` (see argument there).
-        self.check_label_branch_invariants();
     }
 
     /// Lazily clear `labels_at_tail` if the tail offset has moved beyond the
@@ -588,13 +601,12 @@ impl<I: VCodeInst> MachBuffer<I> {
             self.island_worst_case_size += kind.veneer_size();
             self.island_worst_case_size &= !(I::LabelUse::ALIGN - 1);
         }
-        let deadline = offset + kind.max_pos_range();
+        let deadline = offset.saturating_add(kind.max_pos_range());
         if deadline < self.island_deadline {
             self.island_deadline = deadline;
         }
 
         // Post-invariant: no mutations to branches/labels data structures.
-        self.check_label_branch_invariants();
     }
 
     /// Inform the buffer of an unconditional branch at the given offset,
@@ -628,7 +640,6 @@ impl<I: VCodeInst> MachBuffer<I> {
 
         // Post-invariant: we asserted branch start is current tail; the list of
         // labels at branch is cloned from list of labels at current tail.
-        self.check_label_branch_invariants();
     }
 
     /// Inform the buffer of a conditional branch at the given offset,
@@ -662,7 +673,6 @@ impl<I: VCodeInst> MachBuffer<I> {
 
         // Post-invariant: we asserted branch start is current tail; labels at
         // branch list is cloned from list of labels at current tail.
-        self.check_label_branch_invariants();
     }
 
     fn truncate_last_branch(&mut self) {
@@ -757,7 +767,6 @@ impl<I: VCodeInst> MachBuffer<I> {
         //   (see comments to `add_{cond,uncond}_branch()`).
         // - The buffer is truncated to just before the last branch, and the
         //   fixup record referring to that last branch is removed.
-        self.check_label_branch_invariants();
     }
 
     fn optimize_branches(&mut self) {
@@ -783,6 +792,24 @@ impl<I: VCodeInst> MachBuffer<I> {
             // don't move code once placed, only back up and overwrite), so
             // clear the records and finish.
             if b.end < cur_off {
+                break;
+            }
+
+            // If the "labels at this branch" list on this branch is
+            // longer than a threshold, don't do any simplification,
+            // and let the branch remain to separate those labels from
+            // the current tail. This avoids quadratic behavior (see
+            // #3468): otherwise, if a long string of "goto next;
+            // next:" patterns are emitted, all of the labels will
+            // coalesce into a long list of aliases for the current
+            // buffer tail. We must track all aliases of the current
+            // tail for correctness, but we are also allowed to skip
+            // optimization (removal) of any branch, so we take the
+            // escape hatch here and let it stand. In effect this
+            // "spreads" the many thousands of labels in the
+            // pathological case among an actual (harmless but
+            // suboptimal) instruction once per N labels.
+            if b.labels_at_this_branch.len() > LABEL_LIST_THRESHOLD {
                 break;
             }
 
@@ -1065,140 +1092,187 @@ impl<I: VCodeInst> MachBuffer<I> {
 
     /// Is an island needed within the next N bytes?
     pub fn island_needed(&self, distance: CodeOffset) -> bool {
-        let worst_case_end_of_island = self.cur_offset() + distance + self.island_worst_case_size;
-        worst_case_end_of_island > self.island_deadline
+        self.worst_case_end_of_island(distance) > self.island_deadline
     }
 
-    /// Emit all pending constants and veneers. Should only be called if
-    /// `island_needed()` returns true, i.e., if we actually reach a deadline:
-    /// otherwise, unnecessary veneers may be inserted.
-    pub fn emit_island(&mut self) {
+    /// Returns the maximal offset that islands can reach if `distance` more
+    /// bytes are appended.
+    ///
+    /// This is used to determine if veneers need insertions since jumps that
+    /// can't reach past this point must get a veneer of some form.
+    fn worst_case_end_of_island(&self, distance: CodeOffset) -> CodeOffset {
+        self.cur_offset()
+            .saturating_add(distance)
+            .saturating_add(self.island_worst_case_size)
+    }
+
+    /// Emit all pending constants and required pending veneers.
+    ///
+    /// Should only be called if `island_needed()` returns true, i.e., if we
+    /// actually reach a deadline. It's not necessarily a problem to do so
+    /// otherwise but it may result in unnecessary work during emission.
+    pub fn emit_island(&mut self, distance: CodeOffset) {
+        self.emit_island_maybe_forced(false, distance);
+    }
+
+    /// Same as `emit_island`, but an internal API with a `force_veneers`
+    /// argument to force all veneers to always get emitted for debugging.
+    fn emit_island_maybe_forced(&mut self, force_veneers: bool, distance: CodeOffset) {
         // We're going to purge fixups, so no latest-branch editing can happen
         // anymore.
         self.latest_branches.clear();
 
-        let pending_constants = mem::replace(&mut self.pending_constants, SmallVec::new());
-        for MachLabelConstant { label, align, data } in pending_constants.into_iter() {
+        // Reset internal calculations about islands since we're going to
+        // change the calculus as we apply fixups. The `forced_threshold` is
+        // used here to determine whether jumps to unknown labels will require
+        // a veneer or not.
+        let forced_threshold = self.worst_case_end_of_island(distance);
+        self.island_deadline = UNKNOWN_LABEL_OFFSET;
+        self.island_worst_case_size = 0;
+
+        // First flush out all constants so we have more labels in case fixups
+        // are applied against these labels.
+        for MachLabelConstant { label, align, data } in mem::take(&mut self.pending_constants) {
             self.align_to(align);
             self.bind_label(label);
             self.put_data(&data[..]);
         }
 
-        let fixup_records = mem::replace(&mut self.fixup_records, SmallVec::new());
-        let mut new_fixups = SmallVec::new();
-        for MachLabelFixup {
-            label,
-            offset,
-            kind,
-        } in fixup_records.into_iter()
-        {
-            trace!(
-                "emit_island: fixup for label {:?} at offset {} kind {:?}",
+        for fixup in mem::take(&mut self.fixup_records) {
+            trace!("emit_island: fixup {:?}", fixup);
+            let MachLabelFixup {
                 label,
                 offset,
-                kind
-            );
-            // We eagerly perform fixups whose label targets are known, if not out
-            // of range, to avoid unnecessary veneers.
+                kind,
+            } = fixup;
             let label_offset = self.resolve_label_offset(label);
-            let known = label_offset != UNKNOWN_LABEL_OFFSET;
-            let in_range = if known {
-                if label_offset >= offset {
-                    (label_offset - offset) <= kind.max_pos_range()
-                } else {
-                    (offset - label_offset) <= kind.max_neg_range()
-                }
-            } else {
-                false
-            };
-
-            trace!(
-                " -> label_offset = {}, known = {}, in_range = {} (pos {} neg {})",
-                label_offset,
-                known,
-                in_range,
-                kind.max_pos_range(),
-                kind.max_neg_range()
-            );
-
             let start = offset as usize;
             let end = (offset + kind.patch_size()) as usize;
-            if in_range {
-                debug_assert!(known); // implied by in_range.
-                let slice = &mut self.data[start..end];
-                trace!("patching in-range!");
-                kind.patch(slice, offset, label_offset);
-            } else if !known && !kind.supports_veneer() {
-                // Nothing for now. Keep it for next round.
-                new_fixups.push(MachLabelFixup {
-                    label,
-                    offset,
-                    kind,
-                });
-            } else if !in_range && kind.supports_veneer() {
-                // Allocate space for a veneer in the island.
-                self.align_to(I::LabelUse::ALIGN);
-                let veneer_offset = self.cur_offset();
-                trace!("making a veneer at {}", veneer_offset);
-                let slice = &mut self.data[start..end];
-                // Patch the original label use to refer to the veneer.
-                trace!(
-                    "patching original at offset {} to veneer offset {}",
-                    offset,
-                    veneer_offset
-                );
-                kind.patch(slice, offset, veneer_offset);
-                // Generate the veneer.
-                let veneer_slice = self.get_appended_space(kind.veneer_size() as usize);
-                let (veneer_fixup_off, veneer_label_use) =
-                    kind.generate_veneer(veneer_slice, veneer_offset);
-                trace!(
-                    "generated veneer; fixup offset {}, label_use {:?}",
-                    veneer_fixup_off,
-                    veneer_label_use
-                );
-                // If the label is known (but was just out of range), do the
-                // veneer label-use fixup now too; otherwise, save it for later.
-                if known {
-                    let start = veneer_fixup_off as usize;
-                    let end = (veneer_fixup_off + veneer_label_use.patch_size()) as usize;
-                    let veneer_slice = &mut self.data[start..end];
-                    trace!("doing veneer fixup right away too");
-                    veneer_label_use.patch(veneer_slice, veneer_fixup_off, label_offset);
+
+            if label_offset != UNKNOWN_LABEL_OFFSET {
+                // If the offset of the label for this fixup is known then
+                // we're going to do something here-and-now. We're either going
+                // to patch the original offset because it's an in-bounds jump,
+                // or we're going to generate a veneer, patch the fixup to jump
+                // to the veneer, and then keep going.
+                //
+                // If the label comes after the original fixup, then we should
+                // be guaranteed that the jump is in-bounds. Otherwise there's
+                // a bug somewhere because this method wasn't called soon
+                // enough. All forward-jumps are tracked and should get veneers
+                // before their deadline comes and they're unable to jump
+                // further.
+                //
+                // Otherwise if the label is before the fixup, then that's a
+                // backwards jump. If it's past the maximum negative range
+                // then we'll emit a veneer that to jump forward to which can
+                // then jump backwards.
+                let veneer_required = if label_offset >= offset {
+                    assert!((label_offset - offset) <= kind.max_pos_range());
+                    false
                 } else {
-                    new_fixups.push(MachLabelFixup {
-                        label,
-                        offset: veneer_fixup_off,
-                        kind: veneer_label_use,
-                    });
+                    (offset - label_offset) > kind.max_neg_range()
+                };
+                trace!(
+                    " -> label_offset = {}, known, required = {} (pos {} neg {})",
+                    label_offset,
+                    veneer_required,
+                    kind.max_pos_range(),
+                    kind.max_neg_range()
+                );
+
+                if (force_veneers && kind.supports_veneer()) || veneer_required {
+                    self.emit_veneer(label, offset, kind);
+                } else {
+                    let slice = &mut self.data[start..end];
+                    trace!("patching in-range!");
+                    kind.patch(slice, offset, label_offset);
                 }
             } else {
-                panic!(
-                    "Cannot support label-use {:?} (known = {}, in-range = {})",
-                    kind, known, in_range
-                );
+                // If the offset of this label is not known at this time then
+                // there's one of two possibilities:
+                //
+                // * First we may be about to exceed the maximum jump range of
+                //   this fixup. In that case a veneer is inserted to buy some
+                //   more budget for the forward-jump. It's guaranteed that the
+                //   label will eventually come after where we're at, so we know
+                //   that the forward jump is necessary.
+                //
+                // * Otherwise we're still within range of the forward jump but
+                //   the precise target isn't known yet. In that case we
+                //   enqueue the fixup to get processed later.
+                if forced_threshold - offset > kind.max_pos_range() {
+                    self.emit_veneer(label, offset, kind);
+                } else {
+                    self.use_label_at_offset(offset, label, kind);
+                }
             }
         }
-
-        self.fixup_records = new_fixups;
-        self.island_deadline = UNKNOWN_LABEL_OFFSET;
     }
 
-    /// Finish any deferred emissions and/or fixups.
-    pub fn finish(mut self) -> MachBufferFinalized {
-        let _tt = timing::vcode_emit_finish();
+    /// Emits a "veneer" the `kind` code at `offset` to jump to `label`.
+    ///
+    /// This will generate extra machine code, using `kind`, to get a
+    /// larger-jump-kind than `kind` allows. The code at `offset` is then
+    /// patched to jump to our new code, and then the new code is enqueued for
+    /// a fixup to get processed at some later time.
+    fn emit_veneer(&mut self, label: MachLabel, offset: CodeOffset, kind: I::LabelUse) {
+        // If this `kind` doesn't support a veneer then that's a bug in the
+        // backend because we need to implement support for such a veneer.
+        assert!(
+            kind.supports_veneer(),
+            "jump beyond the range of {:?} but a veneer isn't supported",
+            kind,
+        );
 
+        // Allocate space for a veneer in the island.
+        self.align_to(I::LabelUse::ALIGN);
+        let veneer_offset = self.cur_offset();
+        trace!("making a veneer at {}", veneer_offset);
+        let start = offset as usize;
+        let end = (offset + kind.patch_size()) as usize;
+        let slice = &mut self.data[start..end];
+        // Patch the original label use to refer to the veneer.
+        trace!(
+            "patching original at offset {} to veneer offset {}",
+            offset,
+            veneer_offset
+        );
+        kind.patch(slice, offset, veneer_offset);
+        // Generate the veneer.
+        let veneer_slice = self.get_appended_space(kind.veneer_size() as usize);
+        let (veneer_fixup_off, veneer_label_use) =
+            kind.generate_veneer(veneer_slice, veneer_offset);
+        trace!(
+            "generated veneer; fixup offset {}, label_use {:?}",
+            veneer_fixup_off,
+            veneer_label_use
+        );
+        // Register a new use of `label` with our new veneer fixup and offset.
+        // This'll recalculate deadlines accordingly and enqueue this fixup to
+        // get processed at some later time.
+        self.use_label_at_offset(veneer_fixup_off, label, veneer_label_use);
+    }
+
+    fn finish_emission_maybe_forcing_veneers(&mut self, force_veneers: bool) {
         while !self.pending_constants.is_empty() || !self.fixup_records.is_empty() {
             // `emit_island()` will emit any pending veneers and constants, and
             // as a side-effect, will also take care of any fixups with resolved
             // labels eagerly.
-            self.emit_island();
+            self.emit_island_maybe_forced(force_veneers, u32::MAX);
         }
 
         // Ensure that all labels have been fixed up after the last island is emitted. This is a
         // full (release-mode) assert because an unresolved label means the emitted code is
         // incorrect.
         assert!(self.fixup_records.is_empty());
+    }
+
+    /// Finish any deferred emissions and/or fixups.
+    pub fn finish(mut self) -> MachBufferFinalized {
+        let _tt = timing::vcode_emit_finish();
+
+        self.finish_emission_maybe_forcing_veneers(false);
 
         let mut srclocs = self.srclocs;
         srclocs.sort_by_key(|entry| entry.start);
@@ -1223,6 +1297,39 @@ impl<I: VCodeInst> MachBuffer<I> {
         addend: Addend,
     ) {
         let name = name.clone();
+        // FIXME(#3277): This should use `I::LabelUse::from_reloc` to optionally
+        // generate a label-use statement to track whether an island is possibly
+        // needed to escape this function to actually get to the external name.
+        // This is most likely to come up on AArch64 where calls between
+        // functions use a 26-bit signed offset which gives +/- 64MB. This means
+        // that if a function is 128MB in size and there's a call in the middle
+        // it's impossible to reach the actual target. Also, while it's
+        // technically possible to jump to the start of a function and then jump
+        // further, island insertion below always inserts islands after
+        // previously appended code so for Cranelift's own implementation this
+        // is also a problem for 64MB functions on AArch64 which start with a
+        // call instruction, those won't be able to escape.
+        //
+        // Ideally what needs to happen here is that a `LabelUse` is
+        // transparently generated (or call-sites of this function are audited
+        // to generate a `LabelUse` instead) and tracked internally. The actual
+        // relocation would then change over time if and when a veneer is
+        // inserted, where the relocation here would be patched by this
+        // `MachBuffer` to jump to the veneer. The problem, though, is that all
+        // this still needs to end up, in the case of a singular function,
+        // generating a final relocation pointing either to this particular
+        // relocation or to the veneer inserted. Additionally
+        // `MachBuffer` needs the concept of a label which will never be
+        // resolved, so `emit_island` doesn't trip over not actually ever
+        // knowning what some labels are. Currently the loop in
+        // `finish_emission_maybe_forcing_veneers` would otherwise infinitely
+        // loop.
+        //
+        // For now this means that because relocs aren't tracked at all that
+        // AArch64 functions have a rough size limits of 64MB. For now that's
+        // somewhat reasonable and the failure mode is a panic in `MachBuffer`
+        // when a relocation can't otherwise be resolved later, so it shouldn't
+        // actually result in any memory unsafety or anything like that.
         self.relocs.push(MachReloc {
             offset: self.data.len() as CodeOffset,
             srcloc,
@@ -1479,14 +1586,85 @@ impl MachBranch {
     }
 }
 
+/// Implementation of the `TextSectionBuilder` trait backed by `MachBuffer`.
+///
+/// Note that `MachBuffer` was primarily written for intra-function references
+/// of jumps between basic blocks, but it's also quite usable for entire text
+/// sections and resolving references between functions themselves. This
+/// builder interprets "blocks" as labeled functions for the purposes of
+/// resolving labels internally in the buffer.
+pub struct MachTextSectionBuilder<I: VCodeInst> {
+    buf: MachBuffer<I>,
+    next_func: u32,
+    force_veneers: bool,
+}
+
+impl<I: VCodeInst> MachTextSectionBuilder<I> {
+    pub fn new(num_funcs: u32) -> MachTextSectionBuilder<I> {
+        let mut buf = MachBuffer::new();
+        buf.reserve_labels_for_blocks(num_funcs);
+        MachTextSectionBuilder {
+            buf,
+            next_func: 0,
+            force_veneers: false,
+        }
+    }
+}
+
+impl<I: VCodeInst> TextSectionBuilder for MachTextSectionBuilder<I> {
+    fn append(&mut self, named: bool, func: &[u8], align: u32) -> u64 {
+        // Conditionally emit an island if it's necessary to resolve jumps
+        // between functions which are too far away.
+        let size = func.len() as u32;
+        if self.force_veneers || self.buf.island_needed(size) {
+            self.buf.emit_island_maybe_forced(self.force_veneers, size);
+        }
+
+        self.buf.align_to(align);
+        let pos = self.buf.cur_offset();
+        if named {
+            self.buf.bind_label(MachLabel::from_block(self.next_func));
+            self.next_func += 1;
+        }
+        self.buf.put_data(func);
+        u64::from(pos)
+    }
+
+    fn resolve_reloc(&mut self, offset: u64, reloc: Reloc, addend: Addend, target: u32) -> bool {
+        let label = MachLabel::from_block(target);
+        let offset = u32::try_from(offset).unwrap();
+        match I::LabelUse::from_reloc(reloc, addend) {
+            Some(label_use) => {
+                self.buf.use_label_at_offset(offset, label, label_use);
+                true
+            }
+            None => false,
+        }
+    }
+
+    fn force_veneers(&mut self) {
+        self.force_veneers = true;
+    }
+
+    fn finish(&mut self) -> Vec<u8> {
+        // Double-check all functions were pushed.
+        assert_eq!(self.next_func, self.buf.label_offsets.len() as u32);
+
+        // Finish up any veneers, if necessary.
+        self.buf
+            .finish_emission_maybe_forcing_veneers(self.force_veneers);
+
+        // We don't need the data any more, so return it to the caller.
+        mem::take(&mut self.buf.data).into_vec()
+    }
+}
+
 // We use an actual instruction definition to do tests, so we depend on the `arm64` feature here.
 #[cfg(all(test, feature = "arm64"))]
 mod test {
     use super::*;
-    use crate::ir::{ConstantOffset, Function, JumpTable, Value};
     use crate::isa::aarch64::inst::xreg;
     use crate::isa::aarch64::inst::{BranchTarget, CondBrKind, EmitInfo, Inst};
-    use crate::isa::TargetIsa;
     use crate::machinst::MachInstEmit;
     use crate::settings;
     use std::default::Default;
@@ -1608,7 +1786,7 @@ mod test {
         buf.bind_label(label(1));
         while buf.cur_offset() < 2000000 {
             if buf.island_needed(0) {
-                buf.emit_island();
+                buf.emit_island(0);
             }
             let inst = Inst::Nop4;
             inst.emit(&mut buf, &info, &mut state);
@@ -1630,7 +1808,23 @@ mod test {
         let mut state = Default::default();
         let inst = Inst::CondBr {
             kind: CondBrKind::NotZero(xreg(0)),
-            taken: BranchTarget::ResolvedOffset(1048576 - 4),
+
+            // This conditionally taken branch has a 19-bit constant, shifted
+            // to the left by two, giving us a 21-bit range in total. Half of
+            // this range positive so the we should be around 1 << 20 bytes
+            // away for our jump target.
+            //
+            // There are two pending fixups by the time we reach this point,
+            // one for this 19-bit jump and one for the unconditional 26-bit
+            // jump below. A 19-bit veneer is 4 bytes large and the 26-bit
+            // veneer is 20 bytes large, which means that pessimistically
+            // assuming we'll need two veneers we need 24 bytes of extra
+            // space, meaning that the actual island should come 24-bytes
+            // before the deadline.
+            taken: BranchTarget::ResolvedOffset((1 << 20) - 4 - 20),
+
+            // This branch is in-range so no veneers should be needed, it should
+            // go directly to the target.
             not_taken: BranchTarget::ResolvedOffset(2000000 + 4 - 4),
         };
         inst.emit(&mut buf2, &info, &mut state);
@@ -1894,15 +2088,12 @@ mod test {
             fn reloc_external(&mut self, _: SourceLoc, r: Reloc, _: &ExternalName, _: Addend) {
                 self.relocs.push((self.offset, r));
             }
-            fn reloc_constant(&mut self, _: Reloc, _: ConstantOffset) {}
-            fn reloc_jt(&mut self, _: Reloc, _: JumpTable) {}
             fn trap(&mut self, t: TrapCode, _: SourceLoc) {
                 self.traps.push((self.offset, t));
             }
             fn begin_jumptables(&mut self) {}
             fn begin_rodata(&mut self) {}
             fn end_codegen(&mut self) {}
-            fn add_stack_map(&mut self, _: &[Value], _: &Function, _: &dyn TargetIsa) {}
             fn add_call_site(&mut self, op: Opcode, _: SourceLoc) {
                 self.callsites.push((self.offset, op));
             }

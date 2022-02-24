@@ -135,7 +135,7 @@ fn normalize(name: &str) -> Option<String> {
 }
 
 fn is_valid_name(name: &str) -> bool {
-    match syntax::lex_single_syntax_kind(name) {
+    match parser::LexedStr::single_token(name) {
         Some((syntax::SyntaxKind::IDENT, _error)) => true,
         _ => false,
     }
@@ -243,7 +243,7 @@ fn name_of_type(ty: &hir::Type, db: &RootDatabase) -> Option<String> {
     } else if let Some(trait_) = ty.as_dyn_trait() {
         trait_name(&trait_, db)?
     } else if let Some(traits) = ty.as_impl_traits(db) {
-        let mut iter = traits.into_iter().filter_map(|t| trait_name(&t, db));
+        let mut iter = traits.filter_map(|t| trait_name(&t, db));
         let name = iter.next()?;
         if iter.next().is_some() {
             return None;

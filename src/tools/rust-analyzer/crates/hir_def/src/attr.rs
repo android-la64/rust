@@ -362,6 +362,7 @@ impl AttrsWithOwner {
                     RawAttrs::from_attrs_owner(db, src.with_value(&src.value[it.local_id]))
                 }
             },
+            AttrDefId::ExternBlockId(it) => attrs_from_item_tree(it.lookup(db).id, db),
         };
 
         let attrs = raw_attrs.filter(db, def.krate(db));
@@ -443,6 +444,7 @@ impl AttrsWithOwner {
                     .child_source(db)
                     .map(|source| ast::AnyHasAttrs::new(source[id.local_id].clone())),
             },
+            AttrDefId::ExternBlockId(id) => id.lookup(db).source(db).map(ast::AnyHasAttrs::new),
         };
 
         AttrSourceMap::new(owner.as_ref().map(|node| node as &dyn HasAttrs))
@@ -712,8 +714,7 @@ impl Attr {
         hygiene: &Hygiene,
         id: AttrId,
     ) -> Option<Attr> {
-        let (parse, _) =
-            mbe::token_tree_to_syntax_node(tt, mbe::ParserEntryPoint::MetaItem).ok()?;
+        let (parse, _) = mbe::token_tree_to_syntax_node(tt, mbe::TopEntryPoint::MetaItem).ok()?;
         let ast = ast::Meta::cast(parse.syntax_node())?;
 
         Self::from_src(db, ast, hygiene, id)

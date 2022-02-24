@@ -94,6 +94,20 @@ impl Map<String, Value> {
         self.map.get_mut(key)
     }
 
+    /// Returns the key-value pair matching the given key.
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    #[inline]
+    #[cfg(any(feature = "preserve_order", not(no_btreemap_get_key_value)))]
+    pub fn get_key_value<Q>(&self, key: &Q) -> Option<(&String, &Value)>
+    where
+        String: Borrow<Q>,
+        Q: ?Sized + Ord + Eq + Hash,
+    {
+        self.map.get_key_value(key)
+    }
+
     /// Inserts a key-value pair into the map.
     ///
     /// If the map did not have this key present, `None` is returned.
@@ -248,6 +262,19 @@ impl Map<String, Value> {
         ValuesMut {
             iter: self.map.values_mut(),
         }
+    }
+
+    /// Retains only the elements specified by the predicate.
+    ///
+    /// In other words, remove all pairs `(k, v)` such that `f(&k, &mut v)`
+    /// returns `false`.
+    #[cfg(not(no_btreemap_retain))]
+    #[inline]
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(&String, &mut Value) -> bool,
+    {
+        self.map.retain(f);
     }
 }
 

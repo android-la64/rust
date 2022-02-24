@@ -13,19 +13,14 @@ pub(crate) struct Formats {
     pub(crate) branch_icmp: Rc<InstructionFormat>,
     pub(crate) branch_int: Rc<InstructionFormat>,
     pub(crate) branch_table: Rc<InstructionFormat>,
-    pub(crate) branch_table_base: Rc<InstructionFormat>,
-    pub(crate) branch_table_entry: Rc<InstructionFormat>,
     pub(crate) call: Rc<InstructionFormat>,
     pub(crate) call_indirect: Rc<InstructionFormat>,
     pub(crate) cond_trap: Rc<InstructionFormat>,
-    pub(crate) copy_special: Rc<InstructionFormat>,
-    pub(crate) copy_to_ssa: Rc<InstructionFormat>,
     pub(crate) float_compare: Rc<InstructionFormat>,
     pub(crate) float_cond: Rc<InstructionFormat>,
     pub(crate) float_cond_trap: Rc<InstructionFormat>,
     pub(crate) func_addr: Rc<InstructionFormat>,
     pub(crate) heap_addr: Rc<InstructionFormat>,
-    pub(crate) indirect_jump: Rc<InstructionFormat>,
     pub(crate) int_compare: Rc<InstructionFormat>,
     pub(crate) int_compare_imm: Rc<InstructionFormat>,
     pub(crate) int_cond: Rc<InstructionFormat>,
@@ -37,9 +32,6 @@ pub(crate) struct Formats {
     pub(crate) load_no_offset: Rc<InstructionFormat>,
     pub(crate) multiary: Rc<InstructionFormat>,
     pub(crate) nullary: Rc<InstructionFormat>,
-    pub(crate) reg_fill: Rc<InstructionFormat>,
-    pub(crate) reg_move: Rc<InstructionFormat>,
-    pub(crate) reg_spill: Rc<InstructionFormat>,
     pub(crate) shuffle: Rc<InstructionFormat>,
     pub(crate) stack_load: Rc<InstructionFormat>,
     pub(crate) stack_store: Rc<InstructionFormat>,
@@ -177,22 +169,6 @@ impl Formats {
                 .imm(&entities.jump_table)
                 .build(),
 
-            branch_table_entry: Builder::new("BranchTableEntry")
-                .value()
-                .value()
-                .imm(&imm.uimm8)
-                .imm(&entities.jump_table)
-                .build(),
-
-            branch_table_base: Builder::new("BranchTableBase")
-                .imm(&entities.jump_table)
-                .build(),
-
-            indirect_jump: Builder::new("IndirectJump")
-                .value()
-                .imm(&entities.jump_table)
-                .build(),
-
             call: Builder::new("Call")
                 .imm(&entities.func_ref)
                 .varargs()
@@ -281,33 +257,6 @@ impl Formats {
                 .imm(&entities.table)
                 .value()
                 .imm(&imm.offset32)
-                .build(),
-
-            reg_move: Builder::new("RegMove")
-                .value()
-                .imm_with_name("src", &imm.regunit)
-                .imm_with_name("dst", &imm.regunit)
-                .build(),
-
-            copy_special: Builder::new("CopySpecial")
-                .imm_with_name("src", &imm.regunit)
-                .imm_with_name("dst", &imm.regunit)
-                .build(),
-
-            copy_to_ssa: Builder::new("CopyToSsa")
-                .imm_with_name("src", &imm.regunit)
-                .build(),
-
-            reg_spill: Builder::new("RegSpill")
-                .value()
-                .imm_with_name("src", &imm.regunit)
-                .imm_with_name("dst", &entities.stack_slot)
-                .build(),
-
-            reg_fill: Builder::new("RegFill")
-                .value()
-                .imm_with_name("src", &entities.stack_slot)
-                .imm_with_name("dst", &imm.regunit)
                 .build(),
 
             trap: Builder::new("Trap").imm(&imm.trapcode).build(),

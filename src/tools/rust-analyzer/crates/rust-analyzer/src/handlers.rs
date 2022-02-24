@@ -14,7 +14,6 @@ use ide::{
     SourceChange, TextEdit,
 };
 use ide_db::SymbolKind;
-use itertools::Itertools;
 use lsp_server::ErrorCode;
 use lsp_types::{
     CallHierarchyIncomingCall, CallHierarchyIncomingCallsParams, CallHierarchyItem,
@@ -95,6 +94,11 @@ pub(crate) fn handle_memory_usage(state: &mut GlobalState, _: ()) -> Result<Stri
         format_to!(out, "{:>8} {}\n", bytes, name);
     }
     Ok(out)
+}
+
+pub(crate) fn handle_shuffle_crate_graph(state: &mut GlobalState, _: ()) -> Result<()> {
+    state.analysis_host.shuffle_crate_graph();
+    Ok(())
 }
 
 pub(crate) fn handle_syntax_tree(
@@ -849,7 +853,7 @@ pub(crate) fn handle_completion_resolve(
         )?
         .into_iter()
         .flat_map(|edit| edit.into_iter().map(|indel| to_proto::text_edit(&line_index, indel)))
-        .collect_vec();
+        .collect::<Vec<_>>();
 
     if !all_edits_are_disjoint(&original_completion, &additional_edits) {
         return Err(LspError::new(
@@ -1081,8 +1085,13 @@ pub(crate) fn handle_code_action(
     for fix in snap.check_fixes.get(&frange.file_id).into_iter().flatten() {
         // FIXME: this mapping is awkward and shouldn't exist. Refactor
         // `snap.check_fixes` to not convert to LSP prematurely.
-        let fix_range = from_proto::text_range(&line_index, fix.range);
-        if fix_range.intersect(frange.range).is_some() {
+        let intersect_fix_range = fix
+            .ranges
+            .iter()
+            .copied()
+            .map(|range| from_proto::text_range(&line_index, range))
+            .any(|fix_range| fix_range.intersect(frange.range).is_some());
+        if intersect_fix_range {
             res.push(fix.action.clone());
         }
     }
@@ -1154,7 +1163,7 @@ pub(crate) fn handle_code_action_resolve(
 }
 
 fn parse_action_id(action_id: &str) -> Result<(usize, SingleResolve), String> {
-    let id_parts = action_id.split(':').collect_vec();
+    let id_parts = action_id.split(':').collect::<Vec<_>>();
     match id_parts.as_slice() {
         [assist_id_string, assist_kind_string, index_string] => {
             let assist_kind: AssistKind = assist_kind_string.parse()?;

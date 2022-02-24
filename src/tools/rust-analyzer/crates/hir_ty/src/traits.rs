@@ -9,6 +9,7 @@ use chalk_solve::{logging_db::LoggingRustIrDatabase, Solver};
 use base_db::CrateId;
 use hir_def::{lang_item::LangItemTarget, TraitId};
 use stdx::panic_context;
+use syntax::SmolStr;
 
 use crate::{
     db::HirDatabase, AliasEq, AliasTy, Canonical, DomainGoal, Goal, Guidance, InEnvironment,
@@ -27,7 +28,7 @@ pub(crate) struct ChalkContext<'a> {
 fn create_chalk_solver() -> chalk_recursive::RecursiveSolver<Interner> {
     let overflow_depth =
         var("CHALK_OVERFLOW_DEPTH").ok().and_then(|s| s.parse().ok()).unwrap_or(300);
-    let max_size = var("CHALK_SOLVER_MAX_SIZE").ok().and_then(|s| s.parse().ok()).unwrap_or(30);
+    let max_size = var("CHALK_SOLVER_MAX_SIZE").ok().and_then(|s| s.parse().ok()).unwrap_or(150);
     chalk_recursive::RecursiveSolver::new(overflow_depth, max_size, Some(Cache::new()))
 }
 
@@ -50,21 +51,17 @@ impl TraitEnvironment {
         TraitEnvironment {
             krate,
             traits_from_clauses: Vec::new(),
-            env: chalk_ir::Environment::new(&Interner),
+            env: chalk_ir::Environment::new(Interner),
         }
     }
 
-    pub(crate) fn traits_in_scope_from_clauses<'a>(
+    pub fn traits_in_scope_from_clauses<'a>(
         &'a self,
-        ty: &'a Ty,
+        ty: Ty,
     ) -> impl Iterator<Item = TraitId> + 'a {
-        self.traits_from_clauses.iter().filter_map(move |(self_ty, trait_id)| {
-            if self_ty == ty {
-                Some(*trait_id)
-            } else {
-                None
-            }
-        })
+        self.traits_from_clauses
+            .iter()
+            .filter_map(move |(self_ty, trait_id)| (*self_ty == ty).then(|| *trait_id))
     }
 }
 
@@ -74,7 +71,7 @@ pub(crate) fn trait_solve_query(
     krate: CrateId,
     goal: Canonical<InEnvironment<Goal>>,
 ) -> Option<Solution> {
-    let _p = profile::span("trait_solve_query").detail(|| match &goal.value.goal.data(&Interner) {
+    let _p = profile::span("trait_solve_query").detail(|| match &goal.value.goal.data(Interner) {
         GoalData::DomainGoal(DomainGoal::Holds(WhereClause::Implemented(it))) => {
             db.trait_data(it.hir_trait_id()).name.to_string()
         }
@@ -86,9 +83,9 @@ pub(crate) fn trait_solve_query(
     if let GoalData::DomainGoal(DomainGoal::Holds(WhereClause::AliasEq(AliasEq {
         alias: AliasTy::Projection(projection_ty),
         ..
-    }))) = &goal.value.goal.data(&Interner)
+    }))) = &goal.value.goal.data(Interner)
     {
-        if let TyKind::BoundVar(_) = projection_ty.self_type_parameter(&Interner).kind(&Interner) {
+        if let TyKind::BoundVar(_) = projection_ty.self_type_parameter(Interner).kind(Interner) {
             // Hack: don't ask Chalk to normalize with an unknown self type, it'll say that's impossible
             return Some(Solution::Ambig(Guidance::Unknown));
         }
@@ -173,7 +170,7 @@ pub enum FnTrait {
 }
 
 impl FnTrait {
-    fn lang_item_name(self) -> &'static str {
+    const fn lang_item_name(self) -> &'static str {
         match self {
             FnTrait::FnOnce => "fn_once",
             FnTrait::FnMut => "fn_mut",
@@ -182,7 +179,7 @@ impl FnTrait {
     }
 
     pub fn get_id(&self, db: &dyn HirDatabase, krate: CrateId) -> Option<TraitId> {
-        let target = db.lang_item(krate, self.lang_item_name().into())?;
+        let target = db.lang_item(krate, SmolStr::new_inline(self.lang_item_name()))?;
         match target {
             LangItemTarget::TraitId(t) => Some(t),
             _ => None,

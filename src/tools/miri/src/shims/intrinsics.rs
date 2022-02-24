@@ -32,7 +32,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
 
         // All supported intrinsics have a return place.
-        let intrinsic_name = &*this.tcx.item_name(instance.def_id()).as_str();
+        let intrinsic_name = this.tcx.item_name(instance.def_id());
+        let intrinsic_name = intrinsic_name.as_str();
         let (dest, ret) = match ret {
             None => throw_unsup_format!("unimplemented (diverging) intrinsic: {}", intrinsic_name),
             Some(p) => p,
@@ -305,6 +306,52 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 this.write_scalar(res, dest)?;
             }
 
+            // SIMD operations
+            #[rustfmt::skip]
+            | "simd_add"
+            | "simd_sub"
+            | "simd_mul"
+            | "simd_div"
+            | "simd_rem"
+            | "simd_shl"
+            | "simd_shr" => {
+                let &[ref left, ref right] = check_arg_count(args)?;
+                let (left, left_len) = this.operand_to_simd(left)?;
+                let (right, right_len) = this.operand_to_simd(right)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+
+                assert_eq!(dest_len, left_len);
+                assert_eq!(dest_len, right_len);
+
+                let op = match intrinsic_name {
+                    "simd_add" => mir::BinOp::Add,
+                    "simd_sub" => mir::BinOp::Sub,
+                    "simd_mul" => mir::BinOp::Mul,
+                    "simd_div" => mir::BinOp::Div,
+                    "simd_rem" => mir::BinOp::Rem,
+                    "simd_shl" => mir::BinOp::Shl,
+                    "simd_shr" => mir::BinOp::Shr,
+                    _ => unreachable!(),
+                };
+
+                for i in 0..dest_len {
+                    let left = this.read_immediate(&this.mplace_index(&left, i)?.into())?;
+                    let right = this.read_immediate(&this.mplace_index(&right, i)?.into())?;
+                    let dest = this.mplace_index(&dest, i)?;
+                    let (val, overflowed, ty) = this.overflowing_binary_op(op, &left, &right)?;
+                    assert_eq!(ty, dest.layout.ty);
+                    if matches!(op, mir::BinOp::Shl | mir::BinOp::Shr) {
+                        // Shifts have extra UB as SIMD operations that the MIR binop does not have.
+                        // See <https://github.com/rust-lang/rust/issues/91237>.
+                        if overflowed {
+                            let r_val = right.to_scalar()?.to_bits(right.layout.size)?;
+                            throw_ub_format!("overflowing shift by {} in `{}` in SIMD lane {}", r_val, intrinsic_name, i);
+                        }
+                    }
+                    this.write_scalar(val, &dest.into())?;
+                }
+            }
+
             // Atomic operations
             "atomic_load" => this.atomic_load(args, dest, AtomicReadOp::SeqCst)?,
             "atomic_load_relaxed" => this.atomic_load(args, dest, AtomicReadOp::Relaxed)?,
@@ -503,37 +550,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 this.atomic_op(args, dest, AtomicOp::Max, AtomicRwOp::AcqRel)?,
             "atomic_umax_relaxed" =>
                 this.atomic_op(args, dest, AtomicOp::Max, AtomicRwOp::Relaxed)?,
-
-            // Query type information
-            "assert_zero_valid" | "assert_uninit_valid" => {
-                let &[] = check_arg_count(args)?;
-                let ty = instance.substs.type_at(0);
-                let layout = this.layout_of(ty)?;
-                // Abort here because the caller might not be panic safe.
-                if layout.abi.is_uninhabited() {
-                    // Use this message even for the other intrinsics, as that's what codegen does
-                    throw_machine_stop!(TerminationInfo::Abort(format!(
-                        "aborted execution: attempted to instantiate uninhabited type `{}`",
-                        ty
-                    )))
-                }
-                if intrinsic_name == "assert_zero_valid"
-                    && !layout.might_permit_raw_init(this, /*zero:*/ true)
-                {
-                    throw_machine_stop!(TerminationInfo::Abort(format!(
-                        "aborted execution: attempted to zero-initialize type `{}`, which is invalid",
-                        ty
-                    )))
-                }
-                if intrinsic_name == "assert_uninit_valid"
-                    && !layout.might_permit_raw_init(this, /*zero:*/ false)
-                {
-                    throw_machine_stop!(TerminationInfo::Abort(format!(
-                        "aborted execution: attempted to leave type `{}` uninitialized, which is invalid",
-                        ty
-                    )))
-                }
-            }
 
             // Other
             "exact_div" => {

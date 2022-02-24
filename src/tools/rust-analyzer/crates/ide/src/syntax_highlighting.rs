@@ -13,11 +13,11 @@ mod html;
 mod tests;
 
 use hir::{InFile, Name, Semantics};
-use ide_db::{RootDatabase, SymbolKind};
+use ide_db::RootDatabase;
 use rustc_hash::FxHashMap;
 use syntax::{
     ast::{self, HasFormatSpecifier},
-    match_ast, AstNode, AstToken, Direction, NodeOrToken,
+    AstNode, AstToken, NodeOrToken,
     SyntaxKind::*,
     SyntaxNode, TextRange, WalkEvent, T,
 };
@@ -57,9 +57,11 @@ pub struct HlRange {
 // - For items:
 // +
 // [horizontal]
+// attribute:: Emitted for attribute macros.
 // enum:: Emitted for enums.
 // function:: Emitted for free-standing functions.
-// macro:: Emitted for macros.
+// derive:: Emitted for derive macros.
+// macro:: Emitted for function-like macros.
 // method:: Emitted for associated functions, also knowns as methods.
 // namespace:: Emitted for modules.
 // struct:: Emitted for structs.
@@ -90,6 +92,7 @@ pub struct HlRange {
 // +
 // [horizontal]
 // punctuation:: Emitted for general punctuation.
+// attributeBracket:: Emitted for attribute invocation brackets, that is the `#[` and `]` tokens.
 // angle:: Emitted for `<>` angle brackets.
 // brace:: Emitted for `{}` braces.
 // bracket:: Emitted for `[]` brackets.
@@ -97,12 +100,12 @@ pub struct HlRange {
 // colon:: Emitted for the `:` token.
 // comma:: Emitted for the `,` token.
 // dot:: Emitted for the `.` token.
-// Semi:: Emitted for the `;` token.
+// semi:: Emitted for the `;` token.
+// macroBang:: Emitted for the `!` token in macro calls.
 //
 // //-
 //
 // [horizontal]
-// attribute:: Emitted for the `#[` `]` tokens.
 // builtinAttribute:: Emitted for names to builtin attributes in attribute path, the `repr` in `#[repr(u8)]` for example.
 // builtinType:: Emitted for builtin types like `u32`, `str` and `f32`.
 // comment:: Emitted for comments.
@@ -115,6 +118,7 @@ pub struct HlRange {
 // parameter:: Emitted for non-self function parameters.
 // property:: Emitted for struct and union fields.
 // selfKeyword:: Emitted for the self function parameter and self path-specifier.
+// toolModule:: Emitted for tool modules.
 // typeParameter:: Emitted for type parameters.
 // unresolvedReference:: Emitted for unresolved references, names that rust-analyzer can't find the definition of.
 // variable:: Emitted for locals, constants and statics.
@@ -206,81 +210,69 @@ fn traverse(
     // Walk all nodes, keeping track of whether we are inside a macro or not.
     // If in macro, expand it first and highlight the expanded code.
     for event in root.value.preorder_with_tokens() {
-        let event_range = match &event {
+        let range = match &event {
             WalkEvent::Enter(it) | WalkEvent::Leave(it) => it.text_range(),
         };
 
         // Element outside of the viewport, no need to highlight
-        if range_to_highlight.intersect(event_range).is_none() {
+        if range_to_highlight.intersect(range).is_none() {
             continue;
         }
 
+        // set macro and attribute highlighting states
         match event.clone() {
-            WalkEvent::Enter(NodeOrToken::Node(node)) => {
-                match_ast! {
-                    match node {
-                        ast::MacroCall(mcall) => {
-                            if let Some(range) = macro_call_range(&mcall) {
-                                hl.add(HlRange {
-                                    range,
-                                    highlight: HlTag::Symbol(SymbolKind::Macro).into(),
-                                    binding_hash: None,
-                                });
-                            }
-                            current_macro_call = Some(mcall);
-                            continue;
-                        },
-                        ast::Macro(mac) => {
-                            macro_highlighter.init();
-                            current_macro = Some(mac);
-                            continue;
-                        },
-                        ast::Item(item) => {
-                            if sema.is_attr_macro_call(&item) {
-                                current_attr_call = Some(item);
-                            }
-                        },
-                        ast::Attr(__) => inside_attribute = true,
-                        _ => ()
-                    }
+            WalkEvent::Enter(NodeOrToken::Node(node)) => match ast::Item::cast(node.clone()) {
+                Some(ast::Item::MacroCall(mcall)) => {
+                    current_macro_call = Some(mcall);
+                    continue;
                 }
-            }
-            WalkEvent::Leave(NodeOrToken::Node(node)) => {
-                match_ast! {
-                    match node {
-                        ast::MacroCall(mcall) => {
-                            assert_eq!(current_macro_call, Some(mcall));
-                            current_macro_call = None;
-                        },
-                        ast::Macro(mac) => {
-                            assert_eq!(current_macro, Some(mac));
-                            current_macro = None;
-                            macro_highlighter = MacroHighlighter::default();
-                        },
-                        ast::Item(item) => {
-                            if current_attr_call == Some(item) {
-                                current_attr_call = None;
-                            }
-                        },
-                        ast::Attr(__) => inside_attribute = false,
-                        _ => ()
-                    }
+                Some(ast::Item::MacroRules(mac)) => {
+                    macro_highlighter.init();
+                    current_macro = Some(mac.into());
+                    continue;
                 }
-            }
+                Some(ast::Item::MacroDef(mac)) => {
+                    macro_highlighter.init();
+                    current_macro = Some(mac.into());
+                    continue;
+                }
+                Some(item) if sema.is_attr_macro_call(&item) => current_attr_call = Some(item),
+                None if ast::Attr::can_cast(node.kind()) => inside_attribute = true,
+                _ => (),
+            },
+            WalkEvent::Leave(NodeOrToken::Node(node)) => match ast::Item::cast(node.clone()) {
+                Some(ast::Item::MacroCall(mcall)) => {
+                    assert_eq!(current_macro_call, Some(mcall));
+                    current_macro_call = None;
+                }
+                Some(ast::Item::MacroRules(mac)) => {
+                    assert_eq!(current_macro, Some(mac.into()));
+                    current_macro = None;
+                    macro_highlighter = MacroHighlighter::default();
+                }
+                Some(ast::Item::MacroDef(mac)) => {
+                    assert_eq!(current_macro, Some(mac.into()));
+                    current_macro = None;
+                    macro_highlighter = MacroHighlighter::default();
+                }
+                Some(item) if current_attr_call.as_ref().map_or(false, |it| *it == item) => {
+                    current_attr_call = None
+                }
+                None if ast::Attr::can_cast(node.kind()) => inside_attribute = false,
+                _ => (),
+            },
             _ => (),
         }
 
         let element = match event {
+            WalkEvent::Enter(NodeOrToken::Token(tok)) if tok.kind() == WHITESPACE => continue,
             WalkEvent::Enter(it) => it,
-            WalkEvent::Leave(it) => {
-                if let Some(node) = it.as_node() {
-                    inject::doc_comment(hl, sema, root.with_value(node));
-                }
+            WalkEvent::Leave(NodeOrToken::Token(_)) => continue,
+            WalkEvent::Leave(NodeOrToken::Node(node)) => {
+                inject::doc_comment(hl, sema, root.with_value(&node));
                 continue;
             }
         };
-
-        let range = element.text_range();
 
         if current_macro.is_some() {
             if let Some(tok) = element.as_token() {
@@ -288,25 +280,28 @@ fn traverse(
             }
         }
 
+        // only attempt to descend if we are inside a macro call or attribute
+        // as calling `descend_into_macros_single` gets rather expensive if done for every single token
+        // additionally, do not descend into comments, descending maps down to doc attributes which get
+        // tagged as string literals.
         let descend_token = (current_macro_call.is_some() || current_attr_call.is_some())
             && element.kind() != COMMENT;
         let element_to_highlight = if descend_token {
-            // Inside a macro -- expand it first
-            let token = match element.clone().into_token() {
-                Some(it) if current_macro_call.is_some() => {
-                    let not_in_tt = it.parent().map_or(true, |it| it.kind() != TOKEN_TREE);
-                    if not_in_tt {
-                        continue;
-                    }
-                    it
-                }
-                Some(it) => it,
-                _ => continue,
+            let token = match &element {
+                NodeOrToken::Node(_) => continue,
+                NodeOrToken::Token(tok) => tok.clone(),
             };
-            let token = sema.descend_into_macros_single(token);
+            let in_mcall_outside_tt = current_macro_call.is_some()
+                && token.parent().as_ref().map(SyntaxNode::kind) != Some(TOKEN_TREE);
+            let token = match in_mcall_outside_tt {
+                // not in the macros token tree, don't attempt to descend
+                true => token,
+                false => sema.descend_into_macros_single(token),
+            };
             match token.parent() {
                 Some(parent) => {
-                    // We only care Name and Name_ref
+                    // Names and NameRefs have special semantics, use them instead of the tokens
+                    // as otherwise we won't ever visit them
                     match (token.kind(), parent.kind()) {
                         (T![ident], NAME | NAME_REF) => parent.into(),
                         (T![self] | T![super] | T![crate], NAME_REF) => parent.into(),
@@ -320,63 +315,58 @@ fn traverse(
             element.clone()
         };
 
-        if let Some(token) = element.into_token().and_then(ast::String::cast) {
-            if token.is_raw() {
-                if let Some(expanded) = element_to_highlight.as_token() {
-                    if inject::ra_fixture(hl, sema, token, expanded.clone()).is_some() {
+        // FIXME: do proper macro def highlighting https://github.com/rust-analyzer/rust-analyzer/issues/6232
+        // Skip metavariables from being highlighted to prevent keyword highlighting in them
+        if macro_highlighter.highlight(&element_to_highlight).is_some() {
+            continue;
+        }
+
+        // string highlight injections, note this does not use the descended element as proc-macros
+        // can rewrite string literals which invalidates our indices
+        if let (Some(token), Some(token_to_highlight)) =
+            (element.into_token(), element_to_highlight.as_token())
+        {
+            let string = ast::String::cast(token);
+            let string_to_highlight = ast::String::cast(token_to_highlight.clone());
+            if let Some((string, expanded_string)) = string.zip(string_to_highlight) {
+                if string.is_raw() {
+                    if inject::ra_fixture(hl, sema, &string, &expanded_string).is_some() {
                         continue;
+                    }
+                }
+                highlight_format_string(hl, &string, &expanded_string, range);
+                // Highlight escape sequences
+                if let Some(char_ranges) = string.char_ranges() {
+                    for (piece_range, _) in char_ranges.iter().filter(|(_, char)| char.is_ok()) {
+                        if string.text()[piece_range.start().into()..].starts_with('\\') {
+                            hl.add(HlRange {
+                                range: piece_range + range.start(),
+                                highlight: HlTag::EscapeSequence.into(),
+                                binding_hash: None,
+                            });
+                        }
                     }
                 }
             }
         }
 
-        if macro_highlighter.highlight(element_to_highlight.clone()).is_some() {
-            continue;
-        }
-
-        if let Some((mut highlight, binding_hash)) = highlight::element(
-            sema,
-            krate,
-            &mut bindings_shadow_count,
-            syntactic_name_ref_highlighting,
-            element_to_highlight.clone(),
-        ) {
+        // do the normal highlighting
+        let element = match element_to_highlight {
+            NodeOrToken::Node(node) => highlight::node(
+                sema,
+                krate,
+                &mut bindings_shadow_count,
+                syntactic_name_ref_highlighting,
+                node,
+            ),
+            NodeOrToken::Token(token) => highlight::token(sema, krate, token).zip(Some(None)),
+        };
+        if let Some((mut highlight, binding_hash)) = element {
             if inside_attribute {
                 highlight |= HlMod::Attribute
             }
 
             hl.add(HlRange { range, highlight, binding_hash });
         }
-
-        if let Some(string) = element_to_highlight.into_token().and_then(ast::String::cast) {
-            highlight_format_string(hl, &string, range);
-            // Highlight escape sequences
-            if let Some(char_ranges) = string.char_ranges() {
-                for (piece_range, _) in char_ranges.iter().filter(|(_, char)| char.is_ok()) {
-                    if string.text()[piece_range.start().into()..].starts_with('\\') {
-                        hl.add(HlRange {
-                            range: piece_range + range.start(),
-                            highlight: HlTag::EscapeSequence.into(),
-                            binding_hash: None,
-                        });
-                    }
-                }
-            }
-        }
     }
-}
-
-fn macro_call_range(macro_call: &ast::MacroCall) -> Option<TextRange> {
-    let path = macro_call.path()?;
-    let name_ref = path.segment()?.name_ref()?;
-
-    let range_start = name_ref.syntax().text_range().start();
-    let mut range_end = name_ref.syntax().text_range().end();
-    for sibling in path.syntax().siblings_with_tokens(Direction::Next) {
-        if let T![!] | T![ident] = sibling.kind() {
-            range_end = sibling.text_range().end();
-        }
-    }
-
-    Some(TextRange::new(range_start, range_end))
 }

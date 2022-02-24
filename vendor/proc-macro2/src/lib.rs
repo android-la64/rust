@@ -86,7 +86,7 @@
 //! a different thread.
 
 // Proc-macro2 types in rustdoc of other crates get linked to here.
-#![doc(html_root_url = "https://docs.rs/proc-macro2/1.0.32")]
+#![doc(html_root_url = "https://docs.rs/proc-macro2/1.0.34")]
 #![cfg_attr(any(proc_macro_span, super_unstable), feature(proc_macro_span))]
 #![cfg_attr(super_unstable, feature(proc_macro_def_site))]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
@@ -94,8 +94,8 @@
     clippy::cast_lossless,
     clippy::cast_possible_truncation,
     clippy::doc_markdown,
-    clippy::if_then_panic,
     clippy::items_after_statements,
+    clippy::manual_assert,
     clippy::must_use_candidate,
     clippy::needless_doctest_main,
     clippy::shadow_unrelated,
@@ -410,7 +410,7 @@ impl Span {
     /// of the macro. This is the same hygiene behavior as `macro_rules`.
     ///
     /// This function requires Rust 1.45 or later.
-    #[cfg(hygiene)]
+    #[cfg(not(no_hygiene))]
     pub fn mixed_site() -> Span {
         Span::_new(imp::Span::mixed_site())
     }

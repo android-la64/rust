@@ -83,6 +83,7 @@ Each new feature described below should explain how to use it.
     * [build-std-features](#build-std-features) — Sets features to use with the standard library.
     * [binary-dep-depinfo](#binary-dep-depinfo) — Causes the dep-info file to track binary dependencies.
     * [panic-abort-tests](#panic-abort-tests) — Allows running tests with the "abort" panic strategy.
+    * [crate-type](#crate-type) - Supports passing crate types to the compiler.
 * rustdoc
     * [`doctest-in-workspace`](#doctest-in-workspace) — Fixes workspace-relative paths when running doctests.
     * [rustdoc-map](#rustdoc-map) — Provides mappings for documentation to link to external sites like [docs.rs](https://docs.rs/).
@@ -93,7 +94,6 @@ Each new feature described below should explain how to use it.
     * [Build-plan](#build-plan) — Emits JSON information on which commands will be run.
     * [timings](#timings) — Generates a report on how long individual dependencies took to run.
     * [unit-graph](#unit-graph) — Emits JSON for Cargo's internal graph structure.
-    * [future incompat report](#future-incompat-report) — Displays a report for future incompatibilities that may error in the future.
     * [`cargo rustc --print`](#rustc---print) — Calls rustc with `--print` to display information from rustc.
 * Configuration
     * [config-cli](#config-cli) — Adds the ability to pass configuration options on the command-line.
@@ -555,6 +555,23 @@ like to stabilize it somehow!
 
 [rust-lang/rust#64158]: https://github.com/rust-lang/rust/pull/64158
 
+### crate-type
+* Tracking Issue: [#10083](https://github.com/rust-lang/cargo/issues/10083)
+* RFC: [#3180](https://github.com/rust-lang/rfcs/pull/3180)
+* Original Pull Request: [#10093](https://github.com/rust-lang/cargo/pull/10093)
+
+`cargo rustc --crate-type=lib,cdylib` forwards the `--crate-type` flag to `rustc`.
+This runs `rustc` with the corresponding
+[`--crate-type`](https://doc.rust-lang.org/rustc/command-line-arguments.html#--crate-type-a-list-of-types-of-crates-for-the-compiler-to-emit)
+flag, and compiling.
+
+When using it, it requires the `-Z unstable-options`
+command-line option:
+
+```console
+cargo rustc --crate-type lib,cdylib -Z unstable-options
+```
+
 ### config-cli
 * Tracking Issue: [#7722](https://github.com/rust-lang/cargo/issues/7722)
 
@@ -802,28 +819,6 @@ The following is a description of the JSON structure:
   "roots": [0],
 }
 ```
-
-### Profile `strip` option
-* Tracking Issue: [rust-lang/rust#72110](https://github.com/rust-lang/rust/issues/72110)
-
-This feature provides a new option in the `[profile]` section to strip either
-symbols or debuginfo from a binary. This can be enabled like so:
-
-```toml
-cargo-features = ["strip"]
-
-[package]
-# ...
-
-[profile.release]
-strip = "debuginfo"
-```
-
-Other possible string values of `strip` are `none`, `symbols`, and `off`. The default is `none`.
-
-You can also configure this option with the two absolute boolean values
-`true` and `false`. The former enables `strip` at its higher level, `symbols`,
-while the latter disables `strip` completely.
 
 ### rustdoc-map
 * Tracking Issue: [#8296](https://github.com/rust-lang/cargo/issues/8296)
@@ -1125,35 +1120,6 @@ cargo logout -Z credential-process
 [crates.io]: https://crates.io/
 [config file]: config.md
 
-### future incompat report
-* RFC: [#2834](https://github.com/rust-lang/rfcs/blob/master/text/2834-cargo-report-future-incompat.md)
-* rustc Tracking Issue: [#71249](https://github.com/rust-lang/rust/issues/71249)
-
-The `-Z future-incompat-report` flag causes Cargo to check for
-future-incompatible warnings in all dependencies. These are warnings for
-changes that may become hard errors in the future, causing the dependency to
-stop building in a future version of rustc. If any warnings are found, a small
-notice is displayed indicating that the warnings were found, and provides
-instructions on how to display a full report.
-
-A full report can be displayed with the `cargo report future-incompatibilities
--Z future-incompat-report --id ID` command, or by running the build again with
-the `--future-incompat-report` flag. The developer should then update their
-dependencies to a version where the issue is fixed, or work with the
-developers of the dependencies to help resolve the issue.
-
-This feature can be configured through a `[future-incompat-report]`
-section in `.cargo/config`. Currently, the supported options are:
-
-```
-[future-incompat-report]
-frequency = FREQUENCY
-```
-
-The supported values for `FREQUENCY` are 'always` and 'never', which control
-whether or not a message is printed out at the end of `cargo build` / `cargo check`.
-
-
 ### `cargo config`
 
 * Original Issue: [#2362](https://github.com/rust-lang/cargo/issues/2362)
@@ -1228,6 +1194,20 @@ version = "0.0.1"
 name = "foo"
 filename = "007bar"
 path = "src/main.rs"
+```
+
+### scrape-examples
+
+* RFC: [#3123](https://github.com/rust-lang/rfcs/pull/3123)
+* Tracking Issue: [#9910](https://github.com/rust-lang/cargo/issues/9910)
+
+The `-Z rustdoc-scrape-examples` argument tells Rustdoc to search crates in the current workspace
+for calls to functions. Those call-sites are then included as documentation. The flag can take an
+argument of `all` or `examples` which configures which crate in the workspace to analyze for examples.
+For instance:
+
+```
+cargo doc -Z unstable-options -Z rustdoc-scrape-examples=examples
 ```
 
 ## Stabilized and removed features
@@ -1385,17 +1365,13 @@ See [`cargo fix --edition`](../commands/cargo-fix.md) and [The Edition Guide](..
 Custom named profiles have been stabilized in the 1.57 release. See the
 [profiles chapter](profiles.md#custom-profiles) for more information.
 
+### Profile `strip` option
 
-### scrape-examples
+The profile `strip` option has been stabilized in the 1.59 release. See the
+[profiles chapter](profiles.md#strip) for more information.
 
-* RFC: [#3123](https://github.com/rust-lang/rfcs/pull/3123)
-* Tracking Issue: [#9910](https://github.com/rust-lang/cargo/issues/9910)
+### Future incompat report
 
-The `-Z rustdoc-scrape-examples` argument tells Rustdoc to search crates in the current workspace
-for calls to functions. Those call-sites are then included as documentation. The flag can take an
-argument of `all` or `examples` which configures which crate in the workspace to analyze for examples.
-For instance:
-
-```
-cargo doc -Z unstable-options -Z rustdoc-scrape-examples=examples
-```
+Support for generating a future-incompat report has been stabilized
+in the 1.59 release. See the [future incompat report chapter](future-incompat-report.md)
+for more information.

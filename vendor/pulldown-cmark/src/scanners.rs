@@ -20,13 +20,14 @@
 
 //! Scanners for fragments of CommonMark syntax
 
-use std::char;
 use std::convert::TryInto;
+use std::{char, convert::TryFrom};
 
-use crate::entities;
-use crate::parse::{Alignment, HtmlScanGuard, LinkType};
-pub use crate::puncttable::{is_ascii_punctuation, is_punctuation};
+use crate::parse::HtmlScanGuard;
+pub(crate) use crate::puncttable::{is_ascii_punctuation, is_punctuation};
 use crate::strings::CowStr;
+use crate::{entities, HeadingLevel};
+use crate::{Alignment, LinkType};
 
 use memchr::memchr;
 
@@ -99,7 +100,7 @@ const HTML_TAGS: [&str; 62] = [
 /// Analysis of the beginning of a line, including indentation and container
 /// markers.
 #[derive(Clone)]
-pub struct LineStart<'a> {
+pub(crate) struct LineStart<'a> {
     bytes: &'a [u8],
     tab_start: usize,
     ix: usize,
@@ -206,8 +207,8 @@ impl<'a> LineStart<'a> {
     /// bullet list markers, it will be one of b'-', b'+', or b'*'.
     pub(crate) fn scan_list_marker(&mut self) -> Option<(u8, u64, usize)> {
         let save = self.clone();
-        let indent = self.scan_space_upto(3);
-        if self.ix < self.bytes.len() {
+        let indent = self.scan_space_upto(4);
+        if indent < 4 && self.ix < self.bytes.len() {
             let c = self.bytes[self.ix];
             if c == b'-' || c == b'+' || c == b'*' {
                 if self.ix >= self.min_hrule_offset {
@@ -329,17 +330,11 @@ pub(crate) fn is_ascii_whitespace_no_nl(c: u8) -> bool {
 }
 
 fn is_ascii_alpha(c: u8) -> bool {
-    match c {
-        b'a'..=b'z' | b'A'..=b'Z' => true,
-        _ => false,
-    }
+    matches!(c, b'a'..=b'z' | b'A'..=b'Z')
 }
 
 fn is_ascii_alphanumeric(c: u8) -> bool {
-    match c {
-        b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' => true,
-        _ => false,
-    }
+    matches!(c, b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z')
 }
 
 fn is_ascii_letterdigitdash(c: u8) -> bool {
@@ -351,10 +346,10 @@ fn is_digit(c: u8) -> bool {
 }
 
 fn is_valid_unquoted_attr_value_char(c: u8) -> bool {
-    match c {
-        b'\'' | b'"' | b' ' | b'=' | b'>' | b'<' | b'`' | b'\n' | b'\r' => false,
-        _ => true,
-    }
+    !matches!(
+        c,
+        b'\'' | b'"' | b' ' | b'=' | b'>' | b'<' | b'`' | b'\n' | b'\r'
+    )
 }
 
 // scan a single character
@@ -505,10 +500,10 @@ pub(crate) fn scan_hrule(bytes: &[u8]) -> Result<usize, usize> {
 /// Scan an ATX heading opening sequence.
 ///
 /// Returns number of bytes in prefix and level.
-pub(crate) fn scan_atx_heading(data: &[u8]) -> Option<usize> {
+pub(crate) fn scan_atx_heading(data: &[u8]) -> Option<HeadingLevel> {
     let level = scan_ch_repeat(data, b'#');
-    if level >= 1 && level <= 6 && data.get(level).cloned().map_or(true, is_ascii_whitespace) {
-        Some(level)
+    if data.get(level).copied().map_or(true, is_ascii_whitespace) {
+        HeadingLevel::try_from(level).ok()
     } else {
         None
     }
@@ -517,14 +512,18 @@ pub(crate) fn scan_atx_heading(data: &[u8]) -> Option<usize> {
 /// Scan a setext heading underline.
 ///
 /// Returns number of bytes in line (including trailing newline) and level.
-pub(crate) fn scan_setext_heading(data: &[u8]) -> Option<(usize, u32)> {
+pub(crate) fn scan_setext_heading(data: &[u8]) -> Option<(usize, HeadingLevel)> {
     let c = *data.get(0)?;
     if !(c == b'-' || c == b'=') {
         return None;
     }
     let mut i = 1 + scan_ch_repeat(&data[1..], c);
     i += scan_blank_line(&data[i..])?;
-    let level = if c == b'=' { 1 } else { 2 };
+    let level = if c == b'=' {
+        HeadingLevel::H1
+    } else {
+        HeadingLevel::H2
+    };
     Some((i, level))
 }
 
@@ -872,7 +871,7 @@ fn scan_attribute(
     if scan_ch(&data[ix..], b'=') == 1 {
         ix += 1;
         ix = scan_whitespace_with_newline_handler(data, ix, newline_handler, buffer, buffer_ix)?;
-        ix = scan_attribute_value(&data, ix, newline_handler, buffer, buffer_ix)?;
+        ix = scan_attribute_value(data, ix, newline_handler, buffer, buffer_ix)?;
     } else if n_whitespace > 0 {
         // Leave whitespace for next attribute.
         ix -= 1;
@@ -1068,6 +1067,15 @@ pub(crate) fn scan_html_block_inner(
                     i += eol_bytes;
                     let skipped_bytes = handler(&data[i..]);
 
+                    let data_len = data.len() - i;
+
+                    debug_assert!(
+                        skipped_bytes <= data_len,
+                        "Handler tried to skip too many bytes, fed {}, skipped {}",
+                        data_len,
+                        skipped_bytes
+                    );
+
                     if skipped_bytes > 0 {
                         buffer.extend(&data[last_buf_index..i]);
                         i += skipped_bytes;
@@ -1084,7 +1092,7 @@ pub(crate) fn scan_html_block_inner(
                 // No whitespace, which is mandatory.
                 return None;
             }
-            i = scan_attribute(&data, i, newline_handler, &mut buffer, &mut last_buf_index)?;
+            i = scan_attribute(data, i, newline_handler, &mut buffer, &mut last_buf_index)?;
         }
     }
 

@@ -23,9 +23,8 @@ use crate::ir::{
     self,
     condcodes::{FloatCC, IntCC},
     trapcode::TrapCode,
-    types, Block, FuncRef, JumpTable, MemFlags, SigRef, Type, Value,
+    types, Block, FuncRef, JumpTable, MemFlags, SigRef, StackSlot, Type, Value,
 };
-use crate::isa;
 
 /// Some instructions use an external list of argument values because there is not enough space in
 /// the 16-byte `InstructionData` struct. These value lists are stored in a memory pool in
@@ -230,7 +229,6 @@ impl InstructionData {
             Self::BranchTable {
                 table, destination, ..
             } => BranchInfo::Table(table, Some(destination)),
-            Self::IndirectJump { table, .. } => BranchInfo::Table(table, None),
             _ => {
                 debug_assert!(!self.opcode().is_branch());
                 BranchInfo::NotABranch
@@ -249,7 +247,7 @@ impl InstructionData {
             | Self::BranchInt { destination, .. }
             | Self::BranchFloat { destination, .. }
             | Self::BranchIcmp { destination, .. } => Some(destination),
-            Self::BranchTable { .. } | Self::IndirectJump { .. } => None,
+            Self::BranchTable { .. } => None,
             _ => {
                 debug_assert!(!self.opcode().is_branch());
                 None
@@ -283,7 +281,7 @@ impl InstructionData {
                 ref mut destination,
                 ..
             } => Some(destination),
-            Self::BranchTable { .. } | Self::IndirectJump { .. } => None,
+            Self::BranchTable { .. } => None,
             _ => {
                 debug_assert!(!self.opcode().is_branch());
                 None
@@ -298,7 +296,7 @@ impl InstructionData {
             &InstructionData::UnaryBool { imm, .. } => Some(DataValue::from(imm)),
             // 8-bit.
             &InstructionData::BinaryImm8 { imm, .. }
-            | &InstructionData::BranchTableEntry { imm, .. } => Some(DataValue::from(imm as i8)), // Note the switch from unsigned to signed.
+            | &InstructionData::TernaryImm8 { imm, .. } => Some(DataValue::from(imm as i8)), // Note the switch from unsigned to signed.
             // 32-bit
             &InstructionData::UnaryIeee32 { imm, .. } => Some(DataValue::from(imm)),
             &InstructionData::HeapAddr { imm, .. } => {
@@ -407,6 +405,15 @@ impl InstructionData {
             | &InstructionData::Store { flags, .. }
             | &InstructionData::StoreComplex { flags, .. }
             | &InstructionData::StoreNoOffset { flags, .. } => Some(flags),
+            _ => None,
+        }
+    }
+
+    /// If this instruction references a stack slot, return it
+    pub fn stack_slot(&self) -> Option<StackSlot> {
+        match self {
+            &InstructionData::StackStore { stack_slot, .. }
+            | &InstructionData::StackLoad { stack_slot, .. } => Some(stack_slot),
             _ => None,
         }
     }

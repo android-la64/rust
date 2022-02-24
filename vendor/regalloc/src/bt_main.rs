@@ -3,7 +3,7 @@
 
 //! Core implementation of the backtracking allocator.
 
-use log::{debug, info, log_enabled, Level};
+use log::{debug, log_enabled, Level};
 use smallvec::SmallVec;
 use std::default;
 use std::fmt;
@@ -302,7 +302,7 @@ impl PerRealReg {
         let mut running_cost = SpillCost::zero();
 
         // "wlta" = would like to add
-        for wlta_frag in &would_like_to_add_vlr.sorted_frags.frags {
+        for wlta_frag in would_like_to_add_vlr.sorted_frags.iter() {
             let wlta_frag_ok = search_commitment_tree(
                 &mut running_set,
                 &mut running_cost,
@@ -723,14 +723,14 @@ pub fn alloc_main<F: Function>(
     // -------- Alloc main --------
 
     // Create initial state
-    info!("alloc_main: begin");
-    info!(
+    debug!("alloc_main: begin");
+    debug!(
         "alloc_main:   in: {} insns in {} blocks",
         func.insns().len(),
         func.blocks().len()
     );
     let num_vlrs_initial = vlr_env.len();
-    info!(
+    debug!(
         "alloc_main:   in: {} VLRs, {} RLRs",
         num_vlrs_initial,
         rlr_env.len()
@@ -798,7 +798,7 @@ pub fn alloc_main<F: Function>(
     debug!("");
     debug!("-- MAIN ALLOCATION LOOP (DI means 'direct', CO means 'coalesced'):");
 
-    info!("alloc_main:   main allocation loop: begin");
+    debug!("alloc_main:   main allocation loop: begin");
 
     // ======== BEGIN Main allocation loop ========
     let mut num_vlrs_processed = 0; // stats only
@@ -1194,7 +1194,7 @@ pub fn alloc_main<F: Function>(
         let curr_vlr_reg = curr_vlr_vreg.to_reg();
         let curr_vlr_is_ref = curr_vlr.is_ref;
 
-        for frag in &curr_vlr.sorted_frags.frags {
+        for frag in curr_vlr.sorted_frags.iter() {
             for iix in frag.first.iix().dotdot(frag.last.iix().plus(1)) {
                 let (iix_uses_curr_vlr_reg, iix_defs_curr_vlr_reg, iix_mods_curr_vlr_reg) =
                     does_inst_use_def_or_mod_reg(&reg_vecs_and_bounds, iix, curr_vlr_reg);
@@ -1334,7 +1334,7 @@ pub fn alloc_main<F: Function>(
                 assert!(src_reg.is_virtual() && dst_reg.is_virtual());
                 let dst_vreg: VirtualReg = dst_reg.to_virtual_reg();
                 let src_vreg: VirtualReg = src_reg.to_virtual_reg();
-                let bridge_eef = est_freqs[sri.bix];
+                let bridge_eef = est_freqs.cost(sri.bix);
                 match sri.kind {
                     BridgeKind::RtoU => {
                         // Reload-to-Use bridge.  Hint that we want to be
@@ -1396,7 +1396,7 @@ pub fn alloc_main<F: Function>(
     }
     // ======== END Main allocation loop ========
 
-    info!("alloc_main:   main allocation loop: end");
+    debug!("alloc_main:   main allocation loop: end");
 
     if log_enabled!(Level::Debug) {
         debug!("");
@@ -1415,7 +1415,7 @@ pub fn alloc_main<F: Function>(
     // ======== BEGIN Do spill slot coalescing ========
 
     debug!("");
-    info!("alloc_main:   create spills_n_reloads for MOVE insns");
+    debug!("alloc_main:   create spills_n_reloads for MOVE insns");
 
     // Sort `edit_list_move` by the insn with which each item is associated.
     edit_list_move.sort_unstable_by(|eli1, eli2| eli1.iix.cmp(&eli2.iix));
@@ -1493,10 +1493,10 @@ pub fn alloc_main<F: Function>(
             let vlr2 = &vlr_env[vlrix2];
             let frags1 = &vlr1.sorted_frags;
             let frags2 = &vlr2.sorted_frags;
-            assert!(frags1.frags.len() == 1);
-            assert!(frags2.frags.len() == 1);
-            let frag1 = &frags1.frags[0];
-            let frag2 = &frags2.frags[0];
+            assert!(frags1.len() == 1);
+            assert!(frags2.len() == 1);
+            let frag1 = &frags1[0];
+            let frag2 = &frags2[0];
             assert!(frag1.first.iix() == i_min_iix);
             assert!(frag1.last.iix() == i_min_iix);
             assert!(frag2.first.iix() == i_min_iix);
@@ -1559,7 +1559,7 @@ pub fn alloc_main<F: Function>(
     // ======== BEGIN Create all other spills and reloads ========
 
     debug!("");
-    info!("alloc_main:   create spills_n_reloads for other insns");
+    debug!("alloc_main:   create spills_n_reloads for other insns");
 
     // Reload and spill instructions are missing.  To generate them, go through
     // the "edit list", which contains info on both how to generate the
@@ -1571,8 +1571,8 @@ pub fn alloc_main<F: Function>(
         debug!("editlist entry (other): {:?}", eli);
         let vlr = &vlr_env[eli.vlrix];
         let vlr_sfrags = &vlr.sorted_frags;
-        assert!(vlr_sfrags.frags.len() == 1);
-        let vlr_frag = &vlr_sfrags.frags[0];
+        assert!(vlr_sfrags.len() == 1);
+        let vlr_frag = &vlr_sfrags[0];
         let rreg = vlr.rreg.expect("Gen of spill/reload: reg not assigned?!");
         let vreg = vlr.vreg;
         match eli.kind {
@@ -1580,33 +1580,33 @@ pub fn alloc_main<F: Function>(
                 debug_assert!(vlr_frag.first.pt().is_reload());
                 debug_assert!(vlr_frag.last.pt().is_use());
                 debug_assert!(vlr_frag.first.iix() == vlr_frag.last.iix());
-                let insnR = InstToInsert::Reload {
+                let reload_inst = InstToInsert::Reload {
                     to_reg: Writable::from_reg(rreg),
                     from_slot: eli.slot,
                     for_vreg: Some(vreg),
                 };
-                let whereToR = InstExtPoint::from_inst_point(vlr_frag.first);
-                spills_n_reloads.push(InstToInsertAndExtPoint::new(insnR, whereToR));
+                let where_to_reload = InstExtPoint::from_inst_point(vlr_frag.first);
+                spills_n_reloads.push(InstToInsertAndExtPoint::new(reload_inst, where_to_reload));
                 num_reloads += 1;
             }
             BridgeKind::RtoS => {
                 debug_assert!(vlr_frag.first.pt().is_reload());
                 debug_assert!(vlr_frag.last.pt().is_spill());
                 debug_assert!(vlr_frag.first.iix() == vlr_frag.last.iix());
-                let insnR = InstToInsert::Reload {
+                let reload_inst = InstToInsert::Reload {
                     to_reg: Writable::from_reg(rreg),
                     from_slot: eli.slot,
                     for_vreg: Some(vreg),
                 };
-                let whereToR = InstExtPoint::from_inst_point(vlr_frag.first);
-                let insnS = InstToInsert::Spill {
+                let where_to_reload = InstExtPoint::from_inst_point(vlr_frag.first);
+                let spill_inst = InstToInsert::Spill {
                     to_slot: eli.slot,
                     from_reg: rreg,
                     for_vreg: Some(vreg),
                 };
-                let whereToS = InstExtPoint::from_inst_point(vlr_frag.last);
-                spills_n_reloads.push(InstToInsertAndExtPoint::new(insnR, whereToR));
-                spills_n_reloads.push(InstToInsertAndExtPoint::new(insnS, whereToS));
+                let where_to_spill = InstExtPoint::from_inst_point(vlr_frag.last);
+                spills_n_reloads.push(InstToInsertAndExtPoint::new(reload_inst, where_to_reload));
+                spills_n_reloads.push(InstToInsertAndExtPoint::new(spill_inst, where_to_spill));
                 num_reloads += 1;
                 num_spills += 1;
             }
@@ -1614,13 +1614,13 @@ pub fn alloc_main<F: Function>(
                 debug_assert!(vlr_frag.first.pt().is_def());
                 debug_assert!(vlr_frag.last.pt().is_spill());
                 debug_assert!(vlr_frag.first.iix() == vlr_frag.last.iix());
-                let insnS = InstToInsert::Spill {
+                let spill_inst = InstToInsert::Spill {
                     to_slot: eli.slot,
                     from_reg: rreg,
                     for_vreg: Some(vreg),
                 };
-                let whereToS = InstExtPoint::from_inst_point(vlr_frag.last);
-                spills_n_reloads.push(InstToInsertAndExtPoint::new(insnS, whereToS));
+                let where_to_spill = InstExtPoint::from_inst_point(vlr_frag.last);
+                spills_n_reloads.push(InstToInsertAndExtPoint::new(spill_inst, where_to_spill));
                 num_spills += 1;
             }
         }
@@ -1642,7 +1642,7 @@ pub fn alloc_main<F: Function>(
     // not take account of spill or reload instructions.  Dealing with those
     // is relatively simple and happens later.
 
-    info!("alloc_main:   create frag_map");
+    debug!("alloc_main:   create frag_map");
 
     let mut frag_map = Vec::<(RangeFrag, VirtualReg, RealReg)>::new();
     // For each real register under our control ..
@@ -1657,7 +1657,7 @@ pub fn alloc_main<F: Function>(
             // All the RangeFrags in `vlr_assigned` require `vlr_assigned.reg`
             // to be mapped to the real reg `i`
             // .. collect up all its constituent RangeFrags.
-            for frag in &sorted_frags.frags {
+            for frag in sorted_frags.iter() {
                 frag_map.push((frag.clone(), *vreg, rreg));
             }
         }
@@ -1667,7 +1667,7 @@ pub fn alloc_main<F: Function>(
     let mut stackmaps = Vec::<Vec<SpillSlot>>::new();
 
     if !safepoint_insns.is_empty() {
-        info!("alloc_main:   create safepoints and stackmaps");
+        debug!("alloc_main:   create safepoints and stackmaps");
         for safepoint_iix in safepoint_insns {
             // Create the stackmap artefacts for `safepoint_iix`.  Save the stackmap (the
             // reftyped spillslots); we'll have to return it to the client as part of the
@@ -1716,18 +1716,17 @@ pub fn alloc_main<F: Function>(
         }
     }
 
-    info!("alloc_main:   edit_inst_stream");
+    debug!("alloc_main:   edit_inst_stream");
 
     let final_insns_and_targetmap_and_new_safepoints__or_err = edit_inst_stream(
         func,
-        &safepoint_insns,
         spills_n_reloads,
         &iixs_to_nop_out,
         frag_map,
         &reg_universe,
         use_checker,
+        stackmap_request,
         &stackmaps[..],
-        &reftyped_vregs[..],
     );
 
     // ======== END Create final instruction stream ========
@@ -1736,39 +1735,39 @@ pub fn alloc_main<F: Function>(
 
     match final_insns_and_targetmap_and_new_safepoints__or_err {
         Ok((ref final_insns, ..)) => {
-            info!(
+            debug!(
                 "alloc_main:   out: VLRs: {} initially, {} processed",
                 num_vlrs_initial, num_vlrs_processed
             );
-            info!(
+            debug!(
                 "alloc_main:   out: VLRs: {} evicted, {} spilled",
                 num_vlrs_evicted, num_vlrs_spilled
             );
-            info!(
+            debug!(
                 "alloc_main:   out: insns: {} total, {} spills, {} reloads, {} nopzs",
                 final_insns.len(),
                 num_spills,
                 num_reloads,
                 iixs_to_nop_out.len()
             );
-            info!(
+            debug!(
                 "alloc_main:   out: spill slots: {} used",
                 spill_slot_allocator.num_slots_in_use()
             );
         }
         Err(_) => {
-            info!("alloc_main:   allocation failed!");
+            debug!("alloc_main:   allocation failed!");
         }
     }
 
     let (final_insns, target_map, new_to_old_insn_map, new_safepoint_insns) =
         match final_insns_and_targetmap_and_new_safepoints__or_err {
             Err(e) => {
-                info!("alloc_main: fail");
+                debug!("alloc_main: fail");
                 return Err(e);
             }
             Ok(quad) => {
-                info!("alloc_main:   creating RegAllocResult");
+                debug!("alloc_main:   creating RegAllocResult");
                 quad
             }
         };
@@ -1836,7 +1835,7 @@ pub fn alloc_main<F: Function>(
         new_safepoint_insns,
     };
 
-    info!("alloc_main: end");
+    debug!("alloc_main: end");
 
     // ======== END Create the RegAllocResult ========
 

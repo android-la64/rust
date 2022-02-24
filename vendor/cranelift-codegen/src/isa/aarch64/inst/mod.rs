@@ -3,7 +3,7 @@
 // Some variants are not constructed, but we still want them as options in the future.
 #![allow(dead_code)]
 
-use crate::binemit::CodeOffset;
+use crate::binemit::{Addend, CodeOffset, Reloc};
 use crate::ir::types::{
     B1, B128, B16, B32, B64, B8, F32, F64, FFLAGS, I128, I16, I32, I64, I8, I8X16, IFLAGS, R32, R64,
 };
@@ -451,6 +451,19 @@ pub enum VecShiftImmOp {
     Sshr,
 }
 
+/// Atomic read-modify-write operations with acquire-release semantics
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum AtomicRMWOp {
+    Add,
+    Clr,
+    Eor,
+    Set,
+    Smax,
+    Smin,
+    Umax,
+    Umin,
+}
+
 /// An operation on the bits of a register. This can be paired with several instruction formats
 /// below (see `Inst`) in any combination.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -775,9 +788,20 @@ pub enum Inst {
     /// x27   (wr) old value
     /// x24   (wr) scratch reg; value afterwards has no meaning
     /// x28   (wr) scratch reg; value afterwards has no meaning
-    AtomicRMW {
+    AtomicRMWLoop {
         ty: Type, // I8, I16, I32 or I64
         op: inst_common::AtomicRmwOp,
+    },
+
+    /// An atomic read-modify-write operation. These instructions require the
+    /// Large System Extension (LSE) ISA support (FEAT_LSE). The instructions have
+    /// acquire-release semantics.
+    AtomicRMW {
+        op: AtomicRMWOp,
+        rs: Reg,
+        rt: Writable<Reg>,
+        rn: Reg,
+        ty: Type,
     },
 
     /// An atomic compare-and-swap operation. This instruction is sequentially consistent.
@@ -788,10 +812,10 @@ pub enum Inst {
         ty: Type,
     },
 
-    /// Similar to AtomicRMW, a compare-and-swap operation implemented using a load-linked
+    /// Similar to AtomicRMWLoop, a compare-and-swap operation implemented using a load-linked
     /// store-conditional loop.
     /// This instruction is sequentially consistent.
-    /// Note that the operand conventions, although very similar to AtomicRMW, are different:
+    /// Note that the operand conventions, although very similar to AtomicRMWLoop, are different:
     ///
     /// x25   (rd) address
     /// x26   (rd) expected value
@@ -846,6 +870,7 @@ pub enum Inst {
     },
 
     /// Zero-extend a SIMD & FP scalar to the full width of a vector register.
+    /// 16-bit scalars require half-precision floating-point support (FEAT_FP16).
     FpuExtend {
         rd: Writable<Reg>,
         rn: Reg,
@@ -1919,12 +1944,17 @@ fn aarch64_get_regs(inst: &Inst, collector: &mut RegUsageCollector) {
         &Inst::CCmpImm { rn, .. } => {
             collector.add_use(rn);
         }
-        &Inst::AtomicRMW { .. } => {
+        &Inst::AtomicRMWLoop { .. } => {
             collector.add_use(xreg(25));
             collector.add_use(xreg(26));
             collector.add_def(writable_xreg(24));
             collector.add_def(writable_xreg(27));
             collector.add_def(writable_xreg(28));
+        }
+        &Inst::AtomicRMW { rs, rt, rn, .. } => {
+            collector.add_use(rs);
+            collector.add_def(rt);
+            collector.add_use(rn);
         }
         &Inst::AtomicCAS { rs, rt, rn, .. } => {
             collector.add_mod(rs);
@@ -2561,8 +2591,18 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
         &mut Inst::CCmpImm { ref mut rn, .. } => {
             map_use(mapper, rn);
         }
-        &mut Inst::AtomicRMW { .. } => {
+        &mut Inst::AtomicRMWLoop { .. } => {
             // There are no vregs to map in this insn.
+        }
+        &mut Inst::AtomicRMW {
+            ref mut rs,
+            ref mut rt,
+            ref mut rn,
+            ..
+        } => {
+            map_use(mapper, rs);
+            map_def(mapper, rt);
+            map_use(mapper, rn);
         }
         &mut Inst::AtomicCAS {
             ref mut rs,
@@ -3617,7 +3657,31 @@ impl Inst {
                 let cond = cond.show_rru(mb_rru);
                 format!("ccmp {}, {}, {}, {}", rn, imm, nzcv, cond)
             }
-            &Inst::AtomicRMW { ty, op, .. } => {
+            &Inst::AtomicRMW { rs, rt, rn, ty, op } => {
+                let op = match op {
+                    AtomicRMWOp::Add => "ldaddal",
+                    AtomicRMWOp::Clr => "ldclral",
+                    AtomicRMWOp::Eor => "ldeoral",
+                    AtomicRMWOp::Set => "ldsetal",
+                    AtomicRMWOp::Smax => "ldsmaxal",
+                    AtomicRMWOp::Umax => "ldumaxal",
+                    AtomicRMWOp::Smin => "ldsminal",
+                    AtomicRMWOp::Umin => "lduminal",
+                };
+
+                let size = OperandSize::from_ty(ty);
+                let rs = show_ireg_sized(rs, mb_rru, size);
+                let rt = show_ireg_sized(rt.to_reg(), mb_rru, size);
+                let rn = rn.show_rru(mb_rru);
+
+                let ty_suffix = match ty {
+                    I8 => "b",
+                    I16 => "h",
+                    _ => "",
+                };
+                format!("{}{} {}, {}, [{}]", op, ty_suffix, rs, rt, rn)
+            }
+            &Inst::AtomicRMWLoop { ty, op, .. } => {
                 format!(
                     "atomically {{ {}_bits_at_[x25]) {:?}= x26 ; x27 = old_value_at_[x25]; x24,x28 = trash }}",
                     ty.bits(), op)
@@ -4786,13 +4850,18 @@ impl MachInstLabelUse for LabelUse {
     fn supports_veneer(self) -> bool {
         match self {
             LabelUse::Branch19 => true, // veneer is a Branch26
+            LabelUse::Branch26 => true, // veneer is a PCRel32
             _ => false,
         }
     }
 
     /// How large is the veneer, if supported?
     fn veneer_size(self) -> CodeOffset {
-        4
+        match self {
+            LabelUse::Branch19 => 4,
+            LabelUse::Branch26 => 20,
+            _ => unreachable!(),
+        }
     }
 
     /// Generate a veneer into the buffer, given that this veneer is at `veneer_offset`, and return
@@ -4810,7 +4879,47 @@ impl MachInstLabelUse for LabelUse {
                 buffer[0..4].clone_from_slice(&u32::to_le_bytes(insn_word));
                 (veneer_offset, LabelUse::Branch26)
             }
+
+            // This is promoting a 26-bit call/jump to a 32-bit call/jump to
+            // get a further range. This jump translates to a jump to a
+            // relative location based on the address of the constant loaded
+            // from here.
+            //
+            // If this path is taken from a call instruction then caller-saved
+            // registers are available (minus arguments), so x16/x17 are
+            // available. Otherwise for intra-function jumps we also reserve
+            // x16/x17 as spill-style registers. In both cases these are
+            // available for us to use.
+            LabelUse::Branch26 => {
+                let tmp1 = regs::spilltmp_reg();
+                let tmp1_w = regs::writable_spilltmp_reg();
+                let tmp2 = regs::tmp2_reg();
+                let tmp2_w = regs::writable_tmp2_reg();
+                // ldrsw x16, 16
+                let ldr = emit::enc_ldst_imm19(0b1001_1000, 16 / 4, tmp1);
+                // adr x17, 12
+                let adr = emit::enc_adr(12, tmp2_w);
+                // add x16, x16, x17
+                let add = emit::enc_arith_rrr(0b10001011_000, 0, tmp1_w, tmp1, tmp2);
+                // br x16
+                let br = emit::enc_br(tmp1);
+                buffer[0..4].clone_from_slice(&u32::to_le_bytes(ldr));
+                buffer[4..8].clone_from_slice(&u32::to_le_bytes(adr));
+                buffer[8..12].clone_from_slice(&u32::to_le_bytes(add));
+                buffer[12..16].clone_from_slice(&u32::to_le_bytes(br));
+                // the 4-byte signed immediate we'll load is after these
+                // instructions, 16-bytes in.
+                (veneer_offset + 16, LabelUse::PCRel32)
+            }
+
             _ => panic!("Unsupported label-reference type for veneer generation!"),
+        }
+    }
+
+    fn from_reloc(reloc: Reloc, addend: Addend) -> Option<LabelUse> {
+        match (reloc, addend) {
+            (Reloc::Arm64Call, 0) => Some(LabelUse::Branch26),
+            _ => None,
         }
     }
 }

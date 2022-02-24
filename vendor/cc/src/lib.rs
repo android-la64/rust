@@ -1557,6 +1557,10 @@ impl Build {
                         cmd.args.push(
                             format!("--target={}", target.replace("riscv64gc", "riscv64")).into(),
                         );
+                    } else if target.starts_with("riscv32gc-") {
+                        cmd.args.push(
+                            format!("--target={}", target.replace("riscv32gc", "riscv32")).into(),
+                        );
                     } else if target.contains("uefi") {
                         if target.contains("x86_64") {
                             cmd.args.push("--target=x86_64-unknown-windows-gnu".into());
@@ -1638,6 +1642,11 @@ impl Build {
                     && (target.contains("-linux-") || target.contains("-kmc-solid_"))
                 {
                     cmd.args.push("-march=armv7-a".into());
+
+                    if target.ends_with("eabihf") {
+                        // lowest common denominator FPU
+                        cmd.args.push("-mfpu=vfpv3-d16".into());
+                    }
                 }
 
                 // (x86 Android doesn't say "eabi")

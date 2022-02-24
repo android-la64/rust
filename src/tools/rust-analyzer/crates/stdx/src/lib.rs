@@ -5,6 +5,7 @@ use std::{cmp::Ordering, ops, time::Instant};
 mod macros;
 pub mod process;
 pub mod panic_context;
+pub mod non_empty_vec;
 
 pub use always_assert::{always, never};
 
@@ -191,6 +192,11 @@ where
             return false;
         }
     }
+}
+
+/// Returns all final segments of the argument, longest first.
+pub fn slice_tails<T>(this: &[T]) -> impl Iterator<Item = &[T]> {
+    (0..this.len()).map(|i| &this[i..])
 }
 
 #[cfg(test)]

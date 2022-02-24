@@ -70,7 +70,7 @@ pub enum DataStoreError {
   ```rust
   #[derive(Error, Debug)]
   pub enum Error {
-      #[error("invalid rdo_lookahead_frames {0} (expected < {})", i32::max_value())]
+      #[error("invalid rdo_lookahead_frames {0} (expected < {})", i32::MAX)]
       InvalidLookahead(u32),
   }
   ```
@@ -134,6 +134,20 @@ pub enum DataStoreError {
   pub struct MyError {
       msg: String,
       backtrace: Backtrace,  // automatically detected
+  }
+  ```
+
+- If a field is both a source (named `source`, or has `#[source]` or `#[from]`
+  attribute) *and* is marked `#[backtrace]`, then the Error trait's
+  `backtrace()` method is forwarded to the source's backtrace.
+
+  ```rust
+  #[derive(Error, Debug)]
+  pub enum MyError {
+      Io {
+          #[backtrace]
+          source: io::Error,
+      },
   }
   ```
 

@@ -3,17 +3,16 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 edition = "2018"
 name = "mimalloc"
-version = "0.1.26"
+version = "0.1.27"
 authors = ["Octavian Oncescu <octavonce@gmail.com>", "Vincent Rouillé <vincent@speedy37.fr>", "Thom Chiovoloni <chiovolonit@gmail.com>"]
 description = "Performance and security oriented drop-in allocator"
 readme = "README.md"
@@ -22,10 +21,11 @@ categories = ["memory-management", "api-bindings"]
 license = "MIT"
 repository = "https://github.com/purpleprotocol/mimalloc_rust"
 [dependencies.libmimalloc-sys]
-version = "0.1.22"
+version = "0.1.23"
 default-features = false
 
 [features]
+debug = ["libmimalloc-sys/debug"]
 default = ["secure"]
 local_dynamic_tls = ["libmimalloc-sys/local_dynamic_tls"]
 override = ["libmimalloc-sys/override"]

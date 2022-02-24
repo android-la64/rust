@@ -1,4 +1,3 @@
-use std::panic::{self, PanicInfo};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Once;
 
@@ -24,7 +23,7 @@ pub(crate) fn unforce_fallback() {
     initialize();
 }
 
-#[cfg(feature = "is_available")]
+#[cfg(not(no_is_available))]
 fn initialize() {
     let available = proc_macro::is_available();
     WORKS.store(available as usize + 1, Ordering::SeqCst);
@@ -54,8 +53,10 @@ fn initialize() {
 // here. For now, if a user needs to guarantee that this failure mode does
 // not occur, they need to call e.g. `proc_macro2::Span::call_site()` from
 // the main thread before launching any other threads.
-#[cfg(not(feature = "is_available"))]
+#[cfg(no_is_available)]
 fn initialize() {
+    use std::panic::{self, PanicInfo};
+
     type PanicHook = dyn Fn(&PanicInfo) + Sync + Send + 'static;
 
     let null_hook: Box<PanicHook> = Box::new(|_panic_info| { /* ignore */ });

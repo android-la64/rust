@@ -370,7 +370,7 @@ impl GlobalState {
                                     Ok(file_id) => self.diagnostics.add_check_diagnostic(
                                         file_id,
                                         diag.diagnostic,
-                                        diag.fixes,
+                                        diag.fix,
                                     ),
                                     Err(err) => {
                                         tracing::error!(
@@ -567,6 +567,7 @@ impl GlobalState {
                 Ok(())
             })?
             .on_sync_mut::<lsp_ext::MemoryUsage>(handlers::handle_memory_usage)?
+            .on_sync_mut::<lsp_ext::ShuffleCrateGraph>(handlers::handle_shuffle_crate_graph)?
             .on_sync::<lsp_ext::JoinLines>(handlers::handle_join_lines)?
             .on_sync::<lsp_ext::OnEnter>(handlers::handle_on_enter)?
             .on_sync::<lsp_types::request::SelectionRangeRequest>(handlers::handle_selection_range)?

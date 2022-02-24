@@ -14,10 +14,12 @@ use hir_def::{
     path::Path,
     resolver::{HasResolver, TypeNs},
     type_ref::{TraitBoundModifier, TypeRef},
-    AssocContainerId, GenericDefId, Lookup, TraitId, TypeAliasId, TypeParamId,
+    GenericDefId, ItemContainerId, Lookup, TraitId, TypeAliasId, TypeParamId,
 };
 use hir_expand::name::{name, Name};
 use rustc_hash::FxHashSet;
+use smallvec::{smallvec, SmallVec};
+use syntax::SmolStr;
 
 use crate::{
     db::HirDatabase, ChalkTraitId, Interner, Substitution, TraitRef, TraitRefExt, TyKind,
@@ -26,16 +28,16 @@ use crate::{
 
 pub(crate) fn fn_traits(db: &dyn DefDatabase, krate: CrateId) -> impl Iterator<Item = TraitId> {
     [
-        db.lang_item(krate, "fn".into()),
-        db.lang_item(krate, "fn_mut".into()),
-        db.lang_item(krate, "fn_once".into()),
+        db.lang_item(krate, SmolStr::new_inline("fn")),
+        db.lang_item(krate, SmolStr::new_inline("fn_mut")),
+        db.lang_item(krate, SmolStr::new_inline("fn_once")),
     ]
     .into_iter()
     .flatten()
     .flat_map(|it| it.as_trait())
 }
 
-fn direct_super_traits(db: &dyn DefDatabase, trait_: TraitId) -> Vec<TraitId> {
+fn direct_super_traits(db: &dyn DefDatabase, trait_: TraitId) -> SmallVec<[TraitId; 4]> {
     let resolver = trait_.resolver(db);
     // returning the iterator directly doesn't easily work because of
     // lifetime problems, but since there usually shouldn't be more than a
@@ -88,25 +90,25 @@ fn direct_super_trait_refs(db: &dyn HirDatabase, trait_ref: &TraitRef) -> Vec<Tr
                 // FIXME: how to correctly handle higher-ranked bounds here?
                 WhereClause::Implemented(tr) => Some(
                     tr.clone()
-                        .shifted_out_to(&Interner, DebruijnIndex::ONE)
+                        .shifted_out_to(Interner, DebruijnIndex::ONE)
                         .expect("FIXME unexpected higher-ranked trait bound"),
                 ),
                 _ => None,
             })
         })
-        .map(|pred| pred.substitute(&Interner, &trait_ref.substitution))
+        .map(|pred| pred.substitute(Interner, &trait_ref.substitution))
         .collect()
 }
 
 /// Returns an iterator over the whole super trait hierarchy (including the
 /// trait itself).
-pub fn all_super_traits(db: &dyn DefDatabase, trait_: TraitId) -> Vec<TraitId> {
+pub fn all_super_traits(db: &dyn DefDatabase, trait_: TraitId) -> SmallVec<[TraitId; 4]> {
     // we need to take care a bit here to avoid infinite loops in case of cycles
     // (i.e. if we have `trait A: B; trait B: A;`)
-    let mut result = vec![trait_];
+
+    let mut result = smallvec![trait_];
     let mut i = 0;
-    while i < result.len() {
-        let t = result[i];
+    while let Some(&t) = result.get(i) {
         // yeah this is quadratic, but trait hierarchies should be flat
         // enough that this doesn't matter
         for tt in direct_super_traits(db, t) {
@@ -268,19 +270,19 @@ impl Generics {
     /// Returns a Substitution that replaces each parameter by a bound variable.
     pub(crate) fn bound_vars_subst(&self, debruijn: DebruijnIndex) -> Substitution {
         Substitution::from_iter(
-            &Interner,
+            Interner,
             self.iter()
                 .enumerate()
-                .map(|(idx, _)| TyKind::BoundVar(BoundVar::new(debruijn, idx)).intern(&Interner)),
+                .map(|(idx, _)| TyKind::BoundVar(BoundVar::new(debruijn, idx)).intern(Interner)),
         )
     }
 
     /// Returns a Substitution that replaces each parameter by itself (i.e. `Ty::Param`).
     pub(crate) fn type_params_subst(&self, db: &dyn HirDatabase) -> Substitution {
         Substitution::from_iter(
-            &Interner,
+            Interner,
             self.iter().map(|(id, _)| {
-                TyKind::Placeholder(crate::to_placeholder_idx(db, id)).intern(&Interner)
+                TyKind::Placeholder(crate::to_placeholder_idx(db, id)).intern(Interner)
             }),
         )
     }
@@ -296,8 +298,8 @@ fn parent_generic_def(db: &dyn DefDatabase, def: GenericDefId) -> Option<Generic
     };
 
     match container {
-        AssocContainerId::ImplId(it) => Some(it.into()),
-        AssocContainerId::TraitId(it) => Some(it.into()),
-        AssocContainerId::ModuleId(_) => None,
+        ItemContainerId::ImplId(it) => Some(it.into()),
+        ItemContainerId::TraitId(it) => Some(it.into()),
+        ItemContainerId::ModuleId(_) | ItemContainerId::ExternBlockId(_) => None,
     }
 }

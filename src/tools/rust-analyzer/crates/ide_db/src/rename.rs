@@ -28,7 +28,7 @@ use hir::{AsAssocItem, FieldSource, HasSource, InFile, ModuleSource, Semantics};
 use stdx::never;
 use syntax::{
     ast::{self, HasName},
-    lex_single_syntax_kind, AstNode, SyntaxKind, TextRange, T,
+    AstNode, SyntaxKind, TextRange, T,
 };
 use text_edit::{TextEdit, TextEditBuilder};
 
@@ -115,8 +115,6 @@ impl Definition {
             Definition::Static(it) => name_range(it, sema),
             Definition::Trait(it) => name_range(it, sema),
             Definition::TypeAlias(it) => name_range(it, sema),
-            Definition::BuiltinType(_) => return None,
-            Definition::SelfType(_) => return None,
             Definition::Local(local) => {
                 let src = local.source(sema.db);
                 let name = match &src.value {
@@ -146,6 +144,10 @@ impl Definition {
                 let lifetime = src.value.lifetime()?;
                 src.with_value(lifetime.syntax()).original_file_range_opt(sema.db)
             }
+            Definition::BuiltinType(_) => return None,
+            Definition::SelfType(_) => return None,
+            Definition::BuiltinAttr(_) => return None,
+            Definition::ToolModule(_) => return None,
         };
         return res;
 
@@ -488,7 +490,7 @@ pub enum IdentifierKind {
 
 impl IdentifierKind {
     pub fn classify(new_name: &str) -> Result<IdentifierKind> {
-        match lex_single_syntax_kind(new_name) {
+        match parser::LexedStr::single_token(new_name) {
             Some(res) => match res {
                 (SyntaxKind::IDENT, _) => Ok(IdentifierKind::Ident),
                 (T![_], _) => Ok(IdentifierKind::Underscore),

@@ -32,7 +32,7 @@ mod snapshot;
 mod sparse_set;
 mod union_find;
 
-use log::{info, log_enabled, Level};
+use log::{debug, log_enabled, Level};
 use std::default;
 use std::{borrow::Cow, fmt};
 
@@ -522,16 +522,18 @@ pub fn allocate_registers_with_opts<F: Function>(
     stackmap_info: Option<&StackmapRequestInfo>,
     opts: Options,
 ) -> Result<RegAllocResult<F>, RegAllocError> {
-    info!("");
-    info!("================ regalloc.rs: BEGIN function ================");
-    if log_enabled!(Level::Info) {
-        info!("with options: {:?}", opts);
+    debug!("");
+    debug!("================ regalloc.rs: BEGIN function ================");
+
+    if log_enabled!(Level::Debug) {
+        debug!("with options: {:?}", opts);
         let strs = rreg_universe.show();
-        info!("using RealRegUniverse:");
+        debug!("using RealRegUniverse:");
         for s in strs {
-            info!("  {}", s);
+            debug!("  {}", s);
         }
     }
+
     // If stackmap support has been requested, perform some initial sanity checks.
     if let Some(&StackmapRequestInfo {
         reftype_class,
@@ -539,19 +541,14 @@ pub fn allocate_registers_with_opts<F: Function>(
         ref safepoint_insns,
     }) = stackmap_info
     {
-        if let Algorithm::LinearScan(_) = opts.algorithm {
-            return Err(RegAllocError::Other(
-                "stackmap request: not currently available for Linear Scan".to_string(),
-            ));
-        }
         if reftype_class != RegClass::I64 && reftype_class != RegClass::I32 {
             return Err(RegAllocError::Other(
                 "stackmap request: invalid reftype_class".to_string(),
             ));
         }
+
         let num_avail_vregs = func.get_num_vregs();
-        for i in 0..reftyped_vregs.len() {
-            let vreg = &reftyped_vregs[i];
+        for (i, vreg) in reftyped_vregs.iter().enumerate() {
             if vreg.get_class() != reftype_class {
                 return Err(RegAllocError::Other(
                     "stackmap request: invalid vreg class".to_string(),
@@ -568,10 +565,10 @@ pub fn allocate_registers_with_opts<F: Function>(
                 ));
             }
         }
-        let num_avail_insns = func.insns().len();
-        for i in 0..safepoint_insns.len() {
-            let safepoint_iix = safepoint_insns[i];
-            if safepoint_iix.get() as usize >= num_avail_insns {
+
+        let num_inst = func.insns().len();
+        for (i, &safepoint_iix) in safepoint_insns.iter().enumerate() {
+            if safepoint_iix.get() as usize >= num_inst {
                 return Err(RegAllocError::Other(
                     "stackmap request: out of range safepoint insn".to_string(),
                 ));
@@ -587,7 +584,8 @@ pub fn allocate_registers_with_opts<F: Function>(
                 ));
             }
         }
-        // We can't check here that reftyped regs are not changed by safepoint insns.  That is
+
+        // We can't check here that reftyped regs are not *modified* by safepoint insns. That is
         // done deep in the stackmap creation logic, for BT in `get_stackmap_artefacts_at`.
     }
 
@@ -596,9 +594,12 @@ pub fn allocate_registers_with_opts<F: Function>(
         Algorithm::Backtracking(opts) => {
             bt_main::alloc_main(func, rreg_universe, stackmap_info, run_checker, opts)
         }
-        Algorithm::LinearScan(opts) => linear_scan::run(func, rreg_universe, run_checker, opts),
+        Algorithm::LinearScan(opts) => {
+            linear_scan::run(func, rreg_universe, stackmap_info, run_checker, opts)
+        }
     };
-    info!("================ regalloc.rs: END function ================");
+
+    debug!("================ regalloc.rs: END function ================");
     res
 }
 
