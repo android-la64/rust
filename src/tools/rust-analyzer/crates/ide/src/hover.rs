@@ -9,7 +9,7 @@ use either::Either;
 use hir::{HasSource, Semantics};
 use ide_db::{
     base_db::FileRange,
-    defs::Definition,
+    defs::{Definition, IdentClass},
     helpers::{pick_best_token, FamousDefs},
     FxIndexSet, RootDatabase,
 };
@@ -129,8 +129,8 @@ pub(crate) fn hover(
         .iter()
         .filter_map(|token| {
             let node = token.parent()?;
-            let defs = Definition::from_token(sema, token);
-            Some(defs.into_iter().zip(iter::once(node).cycle()))
+            let class = IdentClass::classify_token(sema, token)?;
+            Some(class.definitions().into_iter().zip(iter::once(node).cycle()))
         })
         .flatten()
         .unique_by(|&(def, _)| def)
@@ -146,9 +146,10 @@ pub(crate) fn hover(
         if let Some(res) = render::keyword(sema, config, &original_token) {
             return Some(RangeInfo::new(original_token.text_range(), res));
         }
-        if let res @ Some(_) =
-            descended.iter().find_map(|token| hover_type_fallback(sema, config, token))
-        {
+        let res = descended
+            .iter()
+            .find_map(|token| hover_type_fallback(sema, config, token, &original_token));
+        if let res @ Some(_) = res {
             return res;
         }
     }
@@ -230,6 +231,7 @@ fn hover_type_fallback(
     sema: &Semantics<RootDatabase>,
     config: &HoverConfig,
     token: &SyntaxToken,
+    original_token: &SyntaxToken,
 ) -> Option<RangeInfo<HoverResult>> {
     let node = token
         .ancestors()
@@ -248,7 +250,10 @@ fn hover_type_fallback(
     };
 
     let res = render::type_info(sema, config, &expr_or_pat)?;
-    let range = sema.original_range(&node).range;
+    let range = sema
+        .original_range_opt(&node)
+        .map(|frange| frange.range)
+        .unwrap_or_else(|| original_token.text_range());
     Some(RangeInfo::new(range, res))
 }
 

@@ -16,7 +16,7 @@ checksum = "a7f823d141fe0a24df1e23b4af4e3c7ba9e5966ec514ea068c93024aa7deb765"
 
 [[package]]
 name = "memmap2"
-version = "0.5.0"
+version = "0.5.3"
 dependencies = [
  "libc",
  "owning_ref",

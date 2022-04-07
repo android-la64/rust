@@ -81,7 +81,6 @@ supported environment variables are:
 * `CARGO_BUILD_RUSTDOCFLAGS` — Extra `rustdoc` flags, see [`build.rustdocflags`].
 * `CARGO_BUILD_INCREMENTAL` — Incremental compilation, see [`build.incremental`].
 * `CARGO_BUILD_DEP_INFO_BASEDIR` — Dep-info relative directory, see [`build.dep-info-basedir`].
-* `CARGO_BUILD_PIPELINING` — Whether or not to use `rustc` pipelining, see [`build.pipelining`].
 * `CARGO_CARGO_NEW_VCS` — The default source control system with [`cargo new`], see [`cargo-new.vcs`].
 * `CARGO_FUTURE_INCOMPAT_REPORT_FREQUENCY` - How often we should generate a future incompat report notifcation, see [`future-incompat-report.frequency`].
 * `CARGO_HTTP_DEBUG` — Enables HTTP debugging, see [`http.debug`].
@@ -141,7 +140,6 @@ supported environment variables are:
 [`build.rustdocflags`]: config.md#buildrustdocflags
 [`build.incremental`]: config.md#buildincremental
 [`build.dep-info-basedir`]: config.md#builddep-info-basedir
-[`build.pipelining`]: config.md#buildpipelining
 [`doc.browser`]: config.md#docbrowser
 [`cargo-new.name`]: config.md#cargo-newname
 [`cargo-new.email`]: config.md#cargo-newemail
@@ -320,9 +318,9 @@ let out_dir = env::var("OUT_DIR").unwrap();
     * `CARGO_CFG_TARGET_POINTER_WIDTH=64` — The CPU [pointer width].
     * `CARGO_CFG_TARGET_ENDIAN=little` — The CPU [target endianness].
     * `CARGO_CFG_TARGET_FEATURE=mmx,sse` — List of CPU [target features] enabled.
-* `OUT_DIR` — the folder in which all output should be placed. This folder is
-              inside the build directory for the package being built, and it is
-              unique for the package in question.
+* `OUT_DIR` — the folder in which all output and intermediate artifacts should
+              be placed. This folder is inside the build directory for the
+              package being built, and it is unique for the package in question.
 * `TARGET` — the target triple that is being compiled for. Native code should be
              compiled for this triple. See the [Target Triple] description
              for more information.

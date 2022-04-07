@@ -1,24 +1,4 @@
-// MIT License
-//
-// Copyright (c) 2018 Guillaume Gomez
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
+// Take a look at the license at the top of the repository in the LICENSE file.
 
 use std::convert::TryFrom;
 use std::fmt;
@@ -321,13 +301,6 @@ impl<'a> Token<'a> {
         }
     }
 
-    fn is_media(&self, media: &str) -> bool {
-        match *self {
-            Token::SelectorElement(SelectorElement::Media(s)) => s == media,
-            _ => false,
-        }
-    }
-
     fn is_a_media(&self) -> bool {
         matches!(*self, Token::SelectorElement(SelectorElement::Media(_)))
     }
@@ -491,7 +464,7 @@ pub fn tokenize<'a>(source: &'a str) -> Result<Tokens<'a>, &'static str> {
             is_in_media = is_in_media
                 || v.last()
                     .unwrap_or(&Token::Char(ReservedChar::Space))
-                    .is_media("media");
+                    .is_a_media();
             if_match! {
                 c == ReservedChar::Quote || c == ReservedChar::DoubleQuote => {
                     if let Some(s) = get_string(source, &mut iterator, &mut pos, c) {
@@ -599,8 +572,12 @@ fn clean_tokens(mut v: Vec<Token<'_>>) -> Vec<Token<'_>> {
                     v.remove(i);
                     continue;
                 }
-            } else if i > 0 && v[i - 1] == Token::Other("and") {
-                // retain the space after an and
+            } else if i > 0
+                && (v[i - 1] == Token::Other("and")
+                    || v[i - 1] == Token::Other("or")
+                    || v[i - 1] == Token::Other("not"))
+            {
+                // retain the space after "and", "or" or "not"
             } else if (is_in_calc && v[i - 1].is_useless())
                 || !is_in_calc
                     && ((i > 0
@@ -808,6 +785,33 @@ fn check_media() {
         Token::Char(ReservedChar::Colon),
         Token::Other("red"),
         Token::Char(ReservedChar::SemiColon),
+        Token::Char(ReservedChar::CloseCurlyBrace),
+    ];
+
+    assert_eq!(tokenize(s), Ok(Tokens(expected)));
+}
+
+#[test]
+fn check_supports() {
+    let s = "@supports not (display: grid) { div { float: right; } }";
+
+    let expected = vec![
+        Token::SelectorElement(SelectorElement::Media("supports")),
+        Token::Other("not"),
+        Token::Char(ReservedChar::Space),
+        Token::Char(ReservedChar::OpenParenthese),
+        Token::Other("display"),
+        Token::Char(ReservedChar::Colon),
+        Token::Other("grid"),
+        Token::Char(ReservedChar::CloseParenthese),
+        Token::Char(ReservedChar::OpenCurlyBrace),
+        Token::SelectorElement(SelectorElement::Tag("div")),
+        Token::Char(ReservedChar::OpenCurlyBrace),
+        Token::Other("float"),
+        Token::Char(ReservedChar::Colon),
+        Token::Other("right"),
+        Token::Char(ReservedChar::SemiColon),
+        Token::Char(ReservedChar::CloseCurlyBrace),
         Token::Char(ReservedChar::CloseCurlyBrace),
     ];
 

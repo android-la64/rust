@@ -9,12 +9,13 @@ use db::TokenExpander;
 use either::Either;
 use mbe::Origin;
 use syntax::{
-    ast::{self, HasAttrs},
+    ast::{self, HasDocComments},
     AstNode, SyntaxKind, SyntaxNode, TextRange, TextSize,
 };
 
 use crate::{
     db::{self, AstDatabase},
+    fixup,
     name::{AsName, Name},
     HirFileId, HirFileIdRepr, InFile, MacroCallKind, MacroCallLoc, MacroDefKind, MacroFile,
 };
@@ -127,7 +128,7 @@ struct HygieneInfo {
     attr_input_or_mac_def_start: Option<InFile<TextSize>>,
 
     macro_def: Arc<TokenExpander>,
-    macro_arg: Arc<(tt::Subtree, mbe::TokenMap)>,
+    macro_arg: Arc<(tt::Subtree, mbe::TokenMap, fixup::SyntaxFixupUndoInfo)>,
     macro_arg_shift: mbe::Shift,
     exp_map: Arc<mbe::TokenMap>,
 }
@@ -187,7 +188,12 @@ fn make_hygiene_info(
     });
     let attr_input_or_mac_def = def.or_else(|| match loc.kind {
         MacroCallKind::Attr { ast_id, invoc_attr_index, .. } => {
-            let tt = ast_id.to_node(db).attrs().nth(invoc_attr_index as usize)?.token_tree()?;
+            let tt = ast_id
+                .to_node(db)
+                .doc_comments_and_attrs()
+                .nth(invoc_attr_index as usize)
+                .and_then(Either::left)?
+                .token_tree()?;
             Some(InFile::new(ast_id.file_id, tt))
         }
         _ => None,

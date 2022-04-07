@@ -19,7 +19,7 @@ use ide_db::{
 use syntax::{SmolStr, SyntaxKind, TextRange};
 
 use crate::{
-    context::{PathCompletionContext, PathKind},
+    context::{PathCompletionCtx, PathKind},
     item::{CompletionRelevanceTypeMatch, ImportEdit},
     render::{enum_variant::render_variant, function::render_fn, macro_::render_macro},
     CompletionContext, CompletionItem, CompletionItemKind, CompletionRelevance,
@@ -28,11 +28,15 @@ use crate::{
 #[derive(Debug)]
 pub(crate) struct RenderContext<'a> {
     completion: &'a CompletionContext<'a>,
+    is_private_editable: bool,
 }
 
 impl<'a> RenderContext<'a> {
-    pub(crate) fn new(completion: &'a CompletionContext<'a>) -> RenderContext<'a> {
-        RenderContext { completion }
+    pub(crate) fn new(
+        completion: &'a CompletionContext<'a>,
+        is_private_editable: bool,
+    ) -> RenderContext<'a> {
+        RenderContext { completion, is_private_editable }
     }
 
     fn snippet_cap(&self) -> Option<SnippetCap> {
@@ -45,6 +49,10 @@ impl<'a> RenderContext<'a> {
 
     fn source_range(&self) -> TextRange {
         self.completion.source_range()
+    }
+
+    fn completion_relevance(&self) -> CompletionRelevance {
+        CompletionRelevance { is_private_editable: self.is_private_editable, ..Default::default() }
     }
 
     fn is_deprecated(&self, def: impl HasAttrs) -> bool {
@@ -130,7 +138,7 @@ pub(crate) fn render_resolution(
     ctx: RenderContext<'_>,
     local_name: hir::Name,
     resolution: ScopeDef,
-) -> Option<CompletionItem> {
+) -> CompletionItem {
     render_resolution_(ctx, local_name, None, resolution)
 }
 
@@ -145,7 +153,7 @@ pub(crate) fn render_resolution_with_import(
         ScopeDef::ModuleDef(hir::ModuleDef::TypeAlias(t)) => t.name(ctx.completion.db),
         _ => item_name(ctx.db(), import_edit.import.original_item)?,
     };
-    render_resolution_(ctx, local_name, Some(import_edit), resolution)
+    Some(render_resolution_(ctx, local_name, Some(import_edit), resolution))
 }
 
 fn render_resolution_(
@@ -153,7 +161,7 @@ fn render_resolution_(
     local_name: hir::Name,
     import_to_add: Option<ImportEdit>,
     resolution: ScopeDef,
-) -> Option<CompletionItem> {
+) -> CompletionItem {
     let _p = profile::span("render_resolution");
     use hir::ModuleDef::*;
 
@@ -161,10 +169,10 @@ fn render_resolution_(
 
     let kind = match resolution {
         ScopeDef::ModuleDef(Function(func)) => {
-            return Some(render_fn(ctx, import_to_add, Some(local_name), func));
+            return render_fn(ctx, import_to_add, Some(local_name), func);
         }
         ScopeDef::ModuleDef(Variant(var)) if ctx.completion.pattern_ctx.is_none() => {
-            return Some(render_variant(ctx, import_to_add, Some(local_name), var, None));
+            return render_variant(ctx, import_to_add, Some(local_name), var, None);
         }
         ScopeDef::MacroDef(mac) => return render_macro(ctx, import_to_add, local_name, mac),
         ScopeDef::Unknown => {
@@ -176,7 +184,7 @@ fn render_resolution_(
             if let Some(import_to_add) = import_to_add {
                 item.add_import(import_to_add);
             }
-            return Some(item.build());
+            return item.build();
         }
 
         ScopeDef::ModuleDef(Variant(_)) => CompletionItemKind::SymbolKind(SymbolKind::Variant),
@@ -226,7 +234,7 @@ fn render_resolution_(
     // Add `<>` for generic types
     let type_path_no_ty_args = matches!(
         ctx.completion.path_context,
-        Some(PathCompletionContext { kind: Some(PathKind::Type), has_type_args: false, .. })
+        Some(PathCompletionCtx { kind: Some(PathKind::Type), has_type_args: false, .. })
     ) && ctx.completion.config.add_call_parenthesis;
     if type_path_no_ty_args {
         if let Some(cap) = ctx.snippet_cap() {
@@ -249,7 +257,7 @@ fn render_resolution_(
     if let Some(import_to_add) = import_to_add {
         item.add_import(import_to_add);
     }
-    Some(item.build())
+    item.build()
 }
 
 fn scope_def_docs(db: &RootDatabase, resolution: ScopeDef) -> Option<hir::Documentation> {
@@ -400,6 +408,7 @@ mod tests {
                 (relevance.exact_name_match, "name"),
                 (relevance.is_local, "local"),
                 (relevance.exact_postfix_snippet_match, "snippet"),
+                (relevance.is_op_method, "op_method"),
             ]
             .into_iter()
             .filter_map(|(cond, desc)| if cond { Some(desc) } else { None })
@@ -580,6 +589,8 @@ fn main() { let _: m::Spam = S$0 }
                                 Exact,
                             ),
                             is_local: false,
+                            is_op_method: false,
+                            is_private_editable: false,
                             exact_postfix_snippet_match: false,
                         },
                         trigger_call_info: true,
@@ -600,6 +611,8 @@ fn main() { let _: m::Spam = S$0 }
                                 Exact,
                             ),
                             is_local: false,
+                            is_op_method: false,
+                            is_private_editable: false,
                             exact_postfix_snippet_match: false,
                         },
                     },
@@ -685,6 +698,8 @@ fn foo() { A { the$0 } }
                                 CouldUnify,
                             ),
                             is_local: false,
+                            is_op_method: false,
+                            is_private_editable: false,
                             exact_postfix_snippet_match: false,
                         },
                     },
@@ -1151,6 +1166,22 @@ fn main() {
                 fn foo(…) []
             "#]],
         );
+        check_relevance(
+            r#"
+struct S;
+fn foo(s: &mut S) {}
+fn main() {
+    let mut ssss = S;
+    foo(&mut s$0);
+}
+            "#,
+            expect![[r#"
+                lc ssss [type+local]
+                st S []
+                fn main() []
+                fn foo(…) []
+            "#]],
+        );
     }
 
     #[test]
@@ -1331,6 +1362,46 @@ fn main() {
                 tt Sized []
             "#]],
         )
+    }
+
+    #[test]
+    fn op_function_relevances() {
+        check_relevance(
+            r#"
+#[lang = "sub"]
+trait Sub {
+    fn sub(self, other: Self) -> Self { self }
+}
+impl Sub for u32 {}
+fn foo(a: u32) { a.$0 }
+"#,
+            expect![[r#"
+                me sub(…) (as Sub) [op_method]
+            "#]],
+        );
+        check_relevance(
+            r#"
+struct Foo;
+impl Foo {
+    fn new() -> Self {}
+}
+#[lang = "eq"]
+pub trait PartialEq<Rhs: ?Sized = Self> {
+    fn eq(&self, other: &Rhs) -> bool;
+    fn ne(&self, other: &Rhs) -> bool;
+}
+
+impl PartialEq for Foo {}
+fn main() {
+    Foo::$0
+}
+"#,
+            expect![[r#"
+                fn new() []
+                me eq(…) (as PartialEq) [op_method]
+                me ne(…) (as PartialEq) [op_method]
+            "#]],
+        );
     }
 
     #[test]

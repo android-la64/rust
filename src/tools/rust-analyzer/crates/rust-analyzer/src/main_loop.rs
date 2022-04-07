@@ -9,6 +9,7 @@ use std::{
 use always_assert::always;
 use crossbeam_channel::{select, Receiver};
 use ide_db::base_db::{SourceDatabaseExt, VfsPath};
+use itertools::Itertools;
 use lsp_server::{Connection, Notification, Request};
 use lsp_types::notification::Notification as _;
 use vfs::{ChangeKind, FileId};
@@ -69,7 +70,7 @@ pub(crate) enum Task {
 #[derive(Debug)]
 pub(crate) enum PrimeCachesProgress {
     Begin,
-    Report(ide::PrimeCachesProgress),
+    Report(ide::ParallelPrimeCachesProgress),
     End { cancelled: bool },
 }
 
@@ -290,11 +291,23 @@ impl GlobalState {
                         }
                         PrimeCachesProgress::Report(report) => {
                             state = Progress::Report;
-                            message = Some(format!(
-                                "{}/{} ({})",
-                                report.n_done, report.n_total, report.on_crate
-                            ));
-                            fraction = Progress::fraction(report.n_done, report.n_total);
+
+                            message = match &report.crates_currently_indexing[..] {
+                                [crate_name] => Some(format!(
+                                    "{}/{} ({})",
+                                    report.crates_done, report.crates_total, crate_name
+                                )),
+                                [crate_name, rest @ ..] => Some(format!(
+                                    "{}/{} ({} + {} more)",
+                                    report.crates_done,
+                                    report.crates_total,
+                                    crate_name,
+                                    rest.len()
+                                )),
+                                _ => None,
+                            };
+
+                            fraction = Progress::fraction(report.crates_done, report.crates_total);
                         }
                         PrimeCachesProgress::End { cancelled } => {
                             state = Progress::End;
@@ -442,7 +455,7 @@ impl GlobalState {
                 // Refresh semantic tokens if the client supports it.
                 if self.config.semantic_tokens_refresh() {
                     self.semantic_tokens_cache.lock().clear();
-                    self.send_request::<lsp_types::request::SemanticTokensRefesh>((), |_, _| ());
+                    self.send_request::<lsp_types::request::SemanticTokensRefresh>((), |_, _| ());
                 }
 
                 // Refresh code lens if the client supports it.
@@ -492,11 +505,13 @@ impl GlobalState {
             self.fetch_build_data();
         }
         if self.prime_caches_queue.should_start_op() {
+            let num_worker_threads = self.config.prime_caches_num_threads();
+
             self.task_pool.handle.spawn_with_sender({
                 let analysis = self.snapshot().analysis;
                 move |sender| {
                     sender.send(Task::PrimeCaches(PrimeCachesProgress::Begin)).unwrap();
-                    let res = analysis.prime_caches(|progress| {
+                    let res = analysis.parallel_prime_caches(num_worker_threads, |progress| {
                         let report = PrimeCachesProgress::Report(progress);
                         sender.send(Task::PrimeCaches(report)).unwrap();
                     });
@@ -523,7 +538,7 @@ impl GlobalState {
         }
 
         let loop_duration = loop_start.elapsed();
-        if loop_duration > Duration::from_millis(100) {
+        if loop_duration > Duration::from_millis(100) && was_quiescent {
             tracing::warn!("overly long loop turn: {:?}", loop_duration);
             self.poke_rust_analyzer_developer(format!(
                 "overly long loop turn: {:?}",
@@ -731,7 +746,17 @@ impl GlobalState {
                                     // Note that json can be null according to the spec if the client can't
                                     // provide a configuration. This is handled in Config::update below.
                                     let mut config = Config::clone(&*this.config);
-                                    config.update(json.take());
+                                    if let Err(errors) = config.update(json.take()) {
+                                        let errors = errors
+                                            .iter()
+                                            .format_with("\n", |(key, e),f| {
+                                                f(key)?;
+                                                f(&": ")?;
+                                                f(e)
+                                            });
+                                        let msg= format!("Failed to deserialize config key(s):\n{}", errors);
+                                        this.show_message(lsp_types::MessageType::WARNING, msg);
+                                    }
                                     this.update_configuration(config);
                                 }
                             }

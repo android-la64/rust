@@ -5,6 +5,8 @@ use std::os::unix::io::RawFd;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{io, ptr};
 
+use crate::advice::Advice;
+
 #[cfg(any(
     all(target_os = "linux", not(target_arch = "mips")),
     target_os = "freebsd",
@@ -236,6 +238,16 @@ impl MmapInner {
     pub fn len(&self) -> usize {
         self.len
     }
+
+    pub fn advise(&self, advice: Advice) -> io::Result<()> {
+        unsafe {
+            if libc::madvise(self.ptr, self.len, advice as i32) != 0 {
+                Err(io::Error::last_os_error())
+            } else {
+                Ok(())
+            }
+        }
+    }
 }
 
 impl Drop for MmapInner {
@@ -272,10 +284,15 @@ fn page_size() -> usize {
 }
 
 pub fn file_len(file: RawFd) -> io::Result<u64> {
-    unsafe {
-        let mut stat = MaybeUninit::<libc::stat>::uninit();
+    #[cfg(not(any(target_os = "linux", target_os = "emscripten", target_os = "l4re")))]
+    use libc::{fstat, stat};
+    #[cfg(any(target_os = "linux", target_os = "emscripten", target_os = "l4re"))]
+    use libc::{fstat64 as fstat, stat64 as stat};
 
-        let result = libc::fstat(file, stat.as_mut_ptr());
+    unsafe {
+        let mut stat = MaybeUninit::<stat>::uninit();
+
+        let result = fstat(file, stat.as_mut_ptr());
         if result == 0 {
             Ok(stat.assume_init().st_size as u64)
         } else {

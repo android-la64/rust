@@ -409,6 +409,9 @@ features! {
 
     // Allow specifying different binary name apart from the crate name
     (unstable, different_binary_name, "", "reference/unstable.html#different-binary-name"),
+
+    // Allow specifying rustflags directly in a profile
+    (unstable, profile_rustflags, "", "reference/unstable.html#profile-rustflags-option"),
 }
 
 pub struct Feature {
@@ -642,7 +645,6 @@ unstable_cli_options!(
     minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum"),
     mtime_on_use: bool = ("Configure Cargo to update the mtime of used files"),
     multitarget: bool = ("Allow passing multiple `--target` flags to the cargo subcommand selected"),
-    namespaced_features: bool = ("Allow features with `dep:` prefix"),
     no_index_update: bool = ("Do not update the registry index even if the cache is outdated"),
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
     host_config: bool = ("Enable the [host] section in the .cargo/config.toml file"),
@@ -650,9 +652,7 @@ unstable_cli_options!(
     rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
     separate_nightlies: bool = (HIDDEN),
     terminal_width: Option<Option<usize>>  = ("Provide a terminal width to rustc for error truncation"),
-    timings: Option<Vec<String>>  = ("Display concurrency information"),
     unstable_options: bool = ("Allow the usage of unstable options"),
-    weak_dep_features: bool = ("Allow `dep_name?/feature` feature syntax"),
     // TODO(wcrichto): move scrape example configuration into Cargo.toml before stabilization
     // See: https://github.com/rust-lang/cargo/pull/9525#discussion_r728470927
     rustdoc_scrape_examples: Option<String> = ("Allow rustdoc to scrape examples from reverse-dependencies for documentation"),
@@ -707,6 +707,12 @@ const STABILIZED_NAMED_PROFILES: &str = "The named-profiles feature is now alway
 const STABILIZED_FUTURE_INCOMPAT_REPORT: &str =
     "The future-incompat-report feature is now always enabled.";
 
+const STABILIZED_WEAK_DEP_FEATURES: &str = "Weak dependency features are now always available.";
+
+const STABILISED_NAMESPACED_FEATURES: &str = "Namespaced features are now always available.";
+
+const STABILIZED_TIMINGS: &str = "The -Ztimings option has been stabilized as --timings.";
+
 fn deserialize_build_std<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -760,13 +766,6 @@ impl CliUnstable {
                 None | Some("yes") => Ok(true),
                 Some("no") => Ok(false),
                 Some(s) => bail!("flag -Z{} expected `no` or `yes`, found: `{}`", key, s),
-            }
-        }
-
-        fn parse_timings(value: Option<&str>) -> Vec<String> {
-            match value {
-                None => vec!["html".to_string(), "info".to_string()],
-                Some(v) => v.split(',').map(|s| s.to_string()).collect(),
             }
         }
 
@@ -844,7 +843,6 @@ impl CliUnstable {
                 self.build_std = Some(crate::core::compiler::standard_lib::parse_unstable_flag(v))
             }
             "build-std-features" => self.build_std_features = Some(parse_features(v)),
-            "timings" => self.timings = Some(parse_timings(v)),
             "doctest-xcompile" => self.doctest_xcompile = parse_empty(k, v)?,
             "doctest-in-workspace" => self.doctest_in_workspace = parse_empty(k, v)?,
             "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
@@ -873,8 +871,8 @@ impl CliUnstable {
             "multitarget" => self.multitarget = parse_empty(k, v)?,
             "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,
             "terminal-width" => self.terminal_width = Some(parse_usize_opt(v)?),
-            "namespaced-features" => self.namespaced_features = parse_empty(k, v)?,
-            "weak-dep-features" => self.weak_dep_features = parse_empty(k, v)?,
+            "namespaced-features" => stabilized_warn(k, "1.60", STABILISED_NAMESPACED_FEATURES),
+            "weak-dep-features" => stabilized_warn(k, "1.60", STABILIZED_WEAK_DEP_FEATURES),
             "credential-process" => self.credential_process = parse_empty(k, v)?,
             "rustdoc-scrape-examples" => {
                 if let Some(s) = v {
@@ -899,6 +897,7 @@ impl CliUnstable {
             "future-incompat-report" => {
                 stabilized_warn(k, "1.59.0", STABILIZED_FUTURE_INCOMPAT_REPORT)
             }
+            "timings" => stabilized_warn(k, "1.60", STABILIZED_TIMINGS),
             _ => bail!("unknown `-Z` flag specified: {}", k),
         }
 
@@ -988,7 +987,6 @@ pub fn channel() -> String {
         }
     }
     crate::version()
-        .cfg_info
-        .map(|c| c.release_channel)
+        .release_channel
         .unwrap_or_else(|| String::from("dev"))
 }

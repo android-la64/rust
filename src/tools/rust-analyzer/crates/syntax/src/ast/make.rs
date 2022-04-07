@@ -59,6 +59,28 @@ pub mod ext {
     pub fn expr_todo() -> ast::Expr {
         expr_from_text("todo!()")
     }
+    pub fn expr_ty_default(ty: &ast::Type) -> ast::Expr {
+        expr_from_text(&format!("{}::default()", ty))
+    }
+    pub fn expr_ty_new(ty: &ast::Type) -> ast::Expr {
+        expr_from_text(&format!("{}::new()", ty))
+    }
+
+    pub fn zero_number() -> ast::Expr {
+        expr_from_text("0")
+    }
+    pub fn zero_float() -> ast::Expr {
+        expr_from_text("0.0")
+    }
+    pub fn empty_str() -> ast::Expr {
+        expr_from_text(r#""""#)
+    }
+    pub fn empty_char() -> ast::Expr {
+        expr_from_text("'\x00'")
+    }
+    pub fn default_bool() -> ast::Expr {
+        expr_from_text("false")
+    }
     pub fn empty_block_expr() -> ast::BlockExpr {
         block_expr(None, None)
     }
@@ -166,6 +188,14 @@ pub fn path_segment(name_ref: ast::NameRef) -> ast::PathSegment {
     ast_from_text(&format!("use {};", name_ref))
 }
 
+pub fn path_segment_ty(type_ref: ast::Type, trait_ref: Option<ast::PathType>) -> ast::PathSegment {
+    let text = match trait_ref {
+        Some(trait_ref) => format!("fn f(x: <{} as {}>) {{}}", type_ref, trait_ref),
+        None => format!("fn f(x: <{}>) {{}}", type_ref),
+    };
+    ast_from_text(&text)
+}
+
 pub fn path_segment_self() -> ast::PathSegment {
     ast_from_text("use self;")
 }
@@ -196,9 +226,9 @@ pub fn path_from_segments(
 ) -> ast::Path {
     let segments = segments.into_iter().map(|it| it.syntax().clone()).join("::");
     ast_from_text(&if is_abs {
-        format!("use ::{};", segments)
+        format!("fn f(x: ::{}) {{}}", segments)
     } else {
-        format!("use {};", segments)
+        format!("fn f(x: {}) {{}}", segments)
     })
 }
 
@@ -291,6 +321,31 @@ pub fn block_expr(
     let mut buf = "{\n".to_string();
     for stmt in stmts.into_iter() {
         format_to!(buf, "    {}\n", stmt);
+    }
+    if let Some(tail_expr) = tail_expr {
+        format_to!(buf, "    {}\n", tail_expr);
+    }
+    buf += "}";
+    ast_from_text(&format!("fn f() {}", buf))
+}
+
+/// Ideally this function wouldn't exist since it involves manual indenting.
+/// It differs from `make::block_expr` by also supporting comments.
+///
+/// FIXME: replace usages of this with the mutable syntax tree API
+pub fn hacky_block_expr_with_comments(
+    elements: impl IntoIterator<Item = crate::SyntaxElement>,
+    tail_expr: Option<ast::Expr>,
+) -> ast::BlockExpr {
+    let mut buf = "{\n".to_string();
+    for node_or_token in elements.into_iter() {
+        match node_or_token {
+            rowan::NodeOrToken::Node(n) => format_to!(buf, "    {}\n", n),
+            rowan::NodeOrToken::Token(t) if t.kind() == SyntaxKind::COMMENT => {
+                format_to!(buf, "    {}\n", t)
+            }
+            _ => (),
+        }
     }
     if let Some(tail_expr) = tail_expr {
         format_to!(buf, "    {}\n", tail_expr);

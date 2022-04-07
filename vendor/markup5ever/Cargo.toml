@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "markup5ever"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["The html5ever Project Developers"]
 build = "build.rs"
 description = "Common code for xml5ever and html5ever"
@@ -37,15 +37,6 @@ version = "0.8"
 version = "0.4"
 [build-dependencies.phf_codegen]
 version = "0.8"
-
-[build-dependencies.serde]
-version = "1.0"
-
-[build-dependencies.serde_derive]
-version = "1.0"
-
-[build-dependencies.serde_json]
-version = "1.0"
 
 [build-dependencies.string_cache_codegen]
 version = "0.5.1"

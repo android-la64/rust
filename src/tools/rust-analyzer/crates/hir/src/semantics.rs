@@ -2,32 +2,34 @@
 
 mod source_to_def;
 
-use std::{cell::RefCell, fmt};
+use std::{cell::RefCell, fmt, iter};
 
 use base_db::{FileId, FileRange};
+use either::Either;
 use hir_def::{
     body,
     resolver::{self, HasResolver, Resolver, TypeNs},
     AsMacroCall, FunctionId, TraitId, VariantId,
 };
 use hir_expand::{name::AsName, ExpansionInfo, MacroCallId};
-use hir_ty::{associated_type_shorthand_candidates, Interner};
+use hir_ty::Interner;
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
 use syntax::{
     algo::skip_trivia_token,
-    ast::{self, HasAttrs, HasGenericParams, HasLoopBody},
-    match_ast, AstNode, Direction, SyntaxNode, SyntaxNodePtr, SyntaxToken, TextSize,
+    ast::{self, HasAttrs as _, HasGenericParams, HasLoopBody},
+    match_ast, AstNode, AstToken, Direction, SyntaxElement, SyntaxNode, SyntaxNodePtr, SyntaxToken,
+    TextSize, T,
 };
 
 use crate::{
     db::HirDatabase,
     semantics::source_to_def::{ChildContainer, SourceToDefCache, SourceToDefCtx},
-    source_analyzer::{resolve_hir_path, resolve_hir_path_as_macro, SourceAnalyzer},
-    Access, AssocItem, BuiltinAttr, Callable, ConstParam, Crate, Field, Function, HasSource,
-    HirFileId, Impl, InFile, Label, LifetimeParam, Local, MacroDef, Module, ModuleDef, Name, Path,
-    ScopeDef, ToolModule, Trait, Type, TypeAlias, TypeParam, VariantDef,
+    source_analyzer::{resolve_hir_path, SourceAnalyzer},
+    Access, AssocItem, BuiltinAttr, Callable, ConstParam, Crate, Field, Function, HasAttrs as _,
+    HasSource, HirFileId, Impl, InFile, Label, LifetimeParam, Local, MacroDef, Module, ModuleDef,
+    Name, Path, ScopeDef, ToolModule, Trait, Type, TypeAlias, TypeParam, VariantDef,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,7 +50,7 @@ pub enum PathResolution {
 }
 
 impl PathResolution {
-    fn in_type_ns(&self) -> Option<TypeNs> {
+    pub(crate) fn in_type_ns(&self) -> Option<TypeNs> {
         match self {
             PathResolution::Def(ModuleDef::Adt(adt)) => Some(TypeNs::AdtId((*adt).into())),
             PathResolution::Def(ModuleDef::BuiltinType(builtin)) => {
@@ -77,18 +79,6 @@ impl PathResolution {
                 Some(TypeNs::TypeAliasId((*alias).into()))
             }
         }
-    }
-
-    /// Returns an iterator over associated types that may be specified after this path (using
-    /// `Ty::Assoc` syntax).
-    pub fn assoc_type_shorthand_candidates<R>(
-        &self,
-        db: &dyn HirDatabase,
-        mut cb: impl FnMut(&Name, TypeAlias) -> Option<R>,
-    ) -> Option<R> {
-        associated_type_shorthand_candidates(db, self.in_type_ns()?, |name, _, id| {
-            cb(name, id.into())
-        })
     }
 }
 
@@ -217,14 +207,20 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
         self.imp.find_file(syntax_node).file_id
     }
 
+    /// Attempts to map the node out of macro expanded files returning the original file range.
+    /// If upmapping is not possible, this will fall back to the range of the macro call of the
+    /// macro file the node resides in.
     pub fn original_range(&self, node: &SyntaxNode) -> FileRange {
         self.imp.original_range(node)
     }
 
+    /// Attempts to map the node out of macro expanded files returning the original file range.
     pub fn original_range_opt(&self, node: &SyntaxNode) -> Option<FileRange> {
         self.imp.original_range_opt(node)
     }
 
+    /// Attempts to map the node out of macro expanded files.
+    /// This only work for attribute expansions, as other ones do not have nodes as input.
     pub fn original_ast_node<N: AstNode>(&self, node: N) -> Option<N> {
         self.imp.original_ast_node(node)
     }
@@ -354,8 +350,13 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
         self.imp.resolve_bind_pat_to_const(pat)
     }
 
-    // FIXME: use this instead?
-    // pub fn resolve_name_ref(&self, name_ref: &ast::NameRef) -> Option<???>;
+    pub fn resolve_derive_ident(
+        &self,
+        derive: &ast::Attr,
+        ident: &ast::Ident,
+    ) -> Option<PathResolution> {
+        self.imp.resolve_derive_ident(derive, ident)
+    }
 
     pub fn record_literal_missing_fields(&self, literal: &ast::RecordExpr) -> Vec<(Field, Type)> {
         self.imp.record_literal_missing_fields(literal)
@@ -382,8 +383,8 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
         self.imp.scope(node)
     }
 
-    pub fn scope_at_offset(&self, token: &SyntaxToken, offset: TextSize) -> SemanticsScope<'db> {
-        self.imp.scope_at_offset(&token.parent().unwrap(), offset)
+    pub fn scope_at_offset(&self, node: &SyntaxNode, offset: TextSize) -> SemanticsScope<'db> {
+        self.imp.scope_at_offset(&node, offset)
     }
 
     pub fn scope_for_def(&self, def: Trait) -> SemanticsScope<'db> {
@@ -433,17 +434,15 @@ impl<'db> SemanticsImpl<'db> {
     fn expand(&self, macro_call: &ast::MacroCall) -> Option<SyntaxNode> {
         let sa = self.analyze_no_infer(macro_call.syntax());
         let file_id = sa.expand(self.db, InFile::new(sa.file_id, macro_call))?;
-        let node = self.db.parse_or_expand(file_id)?;
-        self.cache(node.clone(), file_id);
+        let node = self.parse_or_expand(file_id)?;
         Some(node)
     }
 
     fn expand_attr_macro(&self, item: &ast::Item) -> Option<SyntaxNode> {
-        let src = self.find_file(item.syntax()).with_value(item.clone());
+        let src = self.wrap_node_infile(item.clone());
         let macro_call_id = self.with_ctx(|ctx| ctx.item_to_macro_call(src))?;
         let file_id = macro_call_id.as_file();
-        let node = self.db.parse_or_expand(file_id)?;
-        self.cache(node.clone(), file_id);
+        let node = self.parse_or_expand(file_id)?;
         Some(node)
     }
 
@@ -471,12 +470,12 @@ impl<'db> SemanticsImpl<'db> {
     }
 
     fn derive_macro_calls(&self, attr: &ast::Attr) -> Option<Vec<Option<MacroCallId>>> {
-        let item = attr.syntax().parent().and_then(ast::Item::cast)?;
-        let file_id = self.find_file(item.syntax()).file_id;
-        let item = InFile::new(file_id, &item);
+        let adt = attr.syntax().parent().and_then(ast::Adt::cast)?;
+        let file_id = self.find_file(adt.syntax()).file_id;
+        let adt = InFile::new(file_id, &adt);
         let src = InFile::new(file_id, attr.clone());
         self.with_ctx(|ctx| {
-            let res = ctx.attr_to_derive_macro_call(item, src)?;
+            let (_, res) = ctx.attr_to_derive_macro_call(adt, src)?;
             Some(res.to_vec())
         })
     }
@@ -514,8 +513,7 @@ impl<'db> SemanticsImpl<'db> {
         speculative_args: &ast::Item,
         token_to_map: SyntaxToken,
     ) -> Option<(SyntaxNode, SyntaxToken)> {
-        let file_id = self.find_file(actual_macro_call.syntax()).file_id;
-        let macro_call = InFile::new(file_id, actual_macro_call.clone());
+        let macro_call = self.wrap_node_infile(actual_macro_call.clone());
         let macro_call_id = self.with_ctx(|ctx| ctx.item_to_macro_call(macro_call))?;
         hir_expand::db::expand_speculative(
             self.db.upcast(),
@@ -735,15 +733,13 @@ impl<'db> SemanticsImpl<'db> {
     }
 
     fn original_ast_node<N: AstNode>(&self, node: N) -> Option<N> {
-        let InFile { file_id, .. } = self.find_file(node.syntax());
-        InFile::new(file_id, node).original_ast_node(self.db.upcast()).map(|it| it.value)
+        self.wrap_node_infile(node).original_ast_node(self.db.upcast()).map(|it| it.value)
     }
 
     fn diagnostics_display_range(&self, src: InFile<SyntaxNodePtr>) -> FileRange {
-        let root = self.db.parse_or_expand(src.file_id).unwrap();
-        let node = src.value.to_node(&root);
-        self.cache(root, src.file_id);
-        src.with_value(&node).original_file_range(self.db.upcast())
+        let root = self.parse_or_expand(src.file_id).unwrap();
+        let node = src.map(|it| it.to_node(&root));
+        node.as_ref().original_file_range(self.db.upcast())
     }
 
     fn token_ancestors_with_macros(
@@ -758,7 +754,17 @@ impl<'db> SemanticsImpl<'db> {
         node: SyntaxNode,
     ) -> impl Iterator<Item = SyntaxNode> + Clone + '_ {
         let node = self.find_file(&node);
-        node.ancestors_with_macros(self.db.upcast()).map(|it| it.value)
+        let db = self.db.upcast();
+        iter::successors(Some(node.cloned()), move |&InFile { file_id, ref value }| {
+            match value.parent() {
+                Some(parent) => Some(InFile::new(file_id, parent)),
+                None => {
+                    self.cache(value.clone(), file_id);
+                    file_id.call_node(db)
+                }
+            }
+        })
+        .map(|it| it.value)
     }
 
     fn ancestors_at_offset_with_macros(
@@ -778,8 +784,7 @@ impl<'db> SemanticsImpl<'db> {
             gpl.lifetime_params()
                 .find(|tp| tp.lifetime().as_ref().map(|lt| lt.text()).as_ref() == Some(&text))
         })?;
-        let file_id = self.find_file(lifetime_param.syntax()).file_id;
-        let src = InFile::new(file_id, lifetime_param);
+        let src = self.wrap_node_infile(lifetime_param);
         ToDef::to_def(self, src)
     }
 
@@ -801,8 +806,7 @@ impl<'db> SemanticsImpl<'db> {
                     .map_or(false, |lt| lt.text() == text)
             })
         })?;
-        let file_id = self.find_file(label.syntax()).file_id;
-        let src = InFile::new(file_id, label);
+        let src = self.wrap_node_infile(label);
         ToDef::to_def(self, src)
     }
 
@@ -866,7 +870,7 @@ impl<'db> SemanticsImpl<'db> {
     }
 
     fn resolve_attr_macro_call(&self, item: &ast::Item) -> Option<MacroDef> {
-        let item_in_file = self.find_file(item.syntax()).with_value(item.clone());
+        let item_in_file = self.wrap_node_infile(item.clone());
         let macro_call_id = self.with_ctx(|ctx| ctx.item_to_macro_call(item_in_file))?;
         Some(MacroDef { id: self.db.lookup_intern_macro_call(macro_call_id).def })
     }
@@ -892,6 +896,72 @@ impl<'db> SemanticsImpl<'db> {
 
     fn resolve_bind_pat_to_const(&self, pat: &ast::IdentPat) -> Option<ModuleDef> {
         self.analyze(pat.syntax()).resolve_bind_pat_to_const(self.db, pat)
+    }
+
+    fn resolve_derive_ident(
+        &self,
+        derive: &ast::Attr,
+        ident: &ast::Ident,
+    ) -> Option<PathResolution> {
+        debug_assert!(ident.syntax().parent().and_then(ast::TokenTree::cast).is_some());
+        debug_assert!(ident.syntax().ancestors().any(|anc| anc == *derive.syntax()));
+        // derive macros are always at depth 2, tokentree -> meta -> attribute
+        let syntax = ident.syntax();
+
+        let tt = derive.token_tree()?;
+        let file = self.find_file(derive.syntax());
+        let adt = derive.syntax().parent().and_then(ast::Adt::cast)?;
+        let adt_def = ToDef::to_def(self, file.with_value(adt.clone()))?;
+        let res = self.with_ctx(|ctx| {
+            let (attr_id, derives) = ctx.attr_to_derive_macro_call(
+                file.with_value(&adt),
+                file.with_value(derive.clone()),
+            )?;
+            let attrs = adt_def.attrs(self.db);
+            let mut derive_paths = attrs.get(attr_id)?.parse_path_comma_token_tree()?;
+
+            let derive_idx = tt
+                .syntax()
+                .children_with_tokens()
+                .filter_map(SyntaxElement::into_token)
+                .take_while(|tok| tok != syntax)
+                .filter(|t| t.kind() == T![,])
+                .count();
+            let path_segment_idx = syntax
+                .siblings_with_tokens(Direction::Prev)
+                .filter_map(SyntaxElement::into_token)
+                .take_while(|tok| matches!(tok.kind(), T![:] | T![ident]))
+                .filter(|tok| tok.kind() == T![ident])
+                .count();
+
+            let mut mod_path = derive_paths.nth(derive_idx)?;
+
+            if path_segment_idx < mod_path.len() {
+                // the path for the given ident is a qualifier, resolve to module if possible
+                while path_segment_idx < mod_path.len() {
+                    mod_path.pop_segment();
+                }
+                Some(Either::Left(mod_path))
+            } else {
+                // otherwise fetch the derive
+                Some(Either::Right(derives[derive_idx]))
+            }
+        })?;
+
+        match res {
+            Either::Left(path) => {
+                let len = path.len();
+                resolve_hir_path(
+                    self.db,
+                    &self.scope(derive.syntax()).resolver,
+                    &Path::from_known_path(path, vec![None; len]),
+                )
+                .filter(|res| matches!(res, PathResolution::Def(ModuleDef::Module(_))))
+            }
+            Either::Right(derive) => derive
+                .map(|call| MacroDef { id: self.db.lookup_intern_macro_call(call).def })
+                .map(PathResolution::Macro),
+        }
     }
 
     fn record_literal_missing_fields(&self, literal: &ast::RecordExpr) -> Vec<(Field, Type)> {
@@ -1001,6 +1071,11 @@ impl<'db> SemanticsImpl<'db> {
     fn lookup(&self, root_node: &SyntaxNode) -> Option<HirFileId> {
         let cache = self.cache.borrow();
         cache.get(root_node).copied()
+    }
+
+    fn wrap_node_infile<N: AstNode>(&self, node: N) -> InFile<N> {
+        let InFile { file_id, .. } = self.find_file(node.syntax());
+        InFile::new(file_id, node)
     }
 
     fn find_file<'node>(&self, node: &'node SyntaxNode) -> InFile<&'node SyntaxNode> {
@@ -1231,13 +1306,19 @@ impl<'a> SemanticsScope<'a> {
         resolve_hir_path(self.db, &self.resolver, &path)
     }
 
-    /// Resolve a path as-if it was written at the given scope. This is
-    /// necessary a heuristic, as it doesn't take hygiene into account.
-    // FIXME: This special casing solely exists for attributes for now
-    // ideally we should have a path resolution infra that properly knows about overlapping namespaces
-    pub fn speculative_resolve_as_mac(&self, path: &ast::Path) -> Option<MacroDef> {
-        let ctx = body::LowerCtx::new(self.db.upcast(), self.file_id);
-        let path = Path::from_src(path.clone(), &ctx)?;
-        resolve_hir_path_as_macro(self.db, &self.resolver, &path)
+    /// Iterates over associated types that may be specified after the given path (using
+    /// `Ty::Assoc` syntax).
+    pub fn assoc_type_shorthand_candidates<R>(
+        &self,
+        resolution: &PathResolution,
+        mut cb: impl FnMut(&Name, TypeAlias) -> Option<R>,
+    ) -> Option<R> {
+        let def = self.resolver.generic_def()?;
+        hir_ty::associated_type_shorthand_candidates(
+            self.db,
+            def,
+            resolution.in_type_ns()?,
+            |name, _, id| cb(name, id.into()),
+        )
     }
 }

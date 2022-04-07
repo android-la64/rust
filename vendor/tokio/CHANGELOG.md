@@ -1,3 +1,26 @@
+# 1.8.4 (November 15, 2021)
+
+This release backports a bug fix from 1.13.1.
+
+### Fixed
+
+- sync: fix a data race between `oneshot::Sender::send` and awaiting a
+  `oneshot::Receiver` when the oneshot has been closed ([#4226])
+
+[#4226]: https://github.com/tokio-rs/tokio/pull/4226
+
+# 1.8.3 (July 26, 2021)
+
+This release backports two fixes from 1.9.0
+
+### Fixed
+
+ - Fix leak if output of future panics on drop ([#3967])
+ - Fix leak in `LocalSet` ([#3978])
+
+[#3967]: https://github.com/tokio-rs/tokio/pull/3967
+[#3978]: https://github.com/tokio-rs/tokio/pull/3978
+
 # 1.8.2 (July 19, 2021)
 
 Fixes a missed edge case from 1.8.1.

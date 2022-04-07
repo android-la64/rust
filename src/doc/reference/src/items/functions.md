@@ -63,7 +63,7 @@ fn answer_to_life_the_universe_and_everything() -> i32 {
 ## Function parameters
 
 As with `let` bindings, function parameters are irrefutable [patterns], so any
-pattern that is valid in a let binding is also valid as an argument:
+pattern that is valid in a let binding is also valid as a parameter:
 
 ```rust
 fn first((value, _): (i32, i32)) -> i32 { value }
@@ -217,7 +217,7 @@ aborts the process by executing an illegal instruction.
 
 Functions qualified with the `const` keyword are [const functions], as are
 [tuple struct] and [tuple variant] constructors. _Const functions_  can be
-called from within [const context]s.
+called from within [const contexts].
 
 Const functions are not allowed to be [async](#async-functions), and cannot
 use the [`extern` function qualifier](#extern-function-qualifier).
@@ -317,7 +317,7 @@ other unsafe function, these conditions may extend beyond the initial
 call itself -- in the snippet above, for example, the `unsafe_example`
 function took a pointer `x` as argument, and then (when awaited)
 dereferenced that pointer. This implies that `x` would have to be
-valid until the future is finished executing, and it is the callers
+valid until the future is finished executing, and it is the caller's
 responsibility to ensure that.
 
 ## Attributes on functions
@@ -382,7 +382,7 @@ fn foo_oof(#[some_inert_attribute] arg: u8) {
 [_Type_]: ../types.md#type-expressions
 [_WhereClause_]: generics.md#where-clauses
 [_OuterAttribute_]: ../attributes.md
-[const context]: ../const_eval.md#const-context
+[const contexts]: ../const_eval.md#const-context
 [const functions]: ../const_eval.md#const-functions
 [tuple struct]: structs.md
 [tuple variant]: enumerations.md

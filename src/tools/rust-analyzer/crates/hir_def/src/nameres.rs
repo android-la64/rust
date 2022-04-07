@@ -47,6 +47,7 @@
 //! path and, upon success, we run macro expansion and "collect module" phase on
 //! the result
 
+pub mod attr_resolution;
 pub mod diagnostics;
 mod collector;
 mod mod_resolution;
@@ -64,7 +65,7 @@ use la_arena::Arena;
 use profile::Count;
 use rustc_hash::FxHashMap;
 use stdx::format_to;
-use syntax::ast;
+use syntax::{ast, SmolStr};
 
 use crate::{
     db::DefDatabase,
@@ -107,7 +108,13 @@ pub struct DefMap {
     /// (the primary purpose is to resolve derive helpers and fetch a proc-macros name)
     exported_proc_macros: FxHashMap<MacroDefId, ProcMacroDef>,
 
+    /// Custom attributes registered with `#![register_attr]`.
+    registered_attrs: Vec<SmolStr>,
+    /// Custom tool modules registered with `#![register_tool]`.
+    registered_tools: Vec<SmolStr>,
+
     edition: Edition,
+    recursion_limit: Option<u32>,
     diagnostics: Vec<DefDiagnostic>,
 }
 
@@ -266,11 +273,14 @@ impl DefMap {
             block: None,
             krate,
             edition,
+            recursion_limit: None,
             extern_prelude: FxHashMap::default(),
             exported_proc_macros: FxHashMap::default(),
             prelude: None,
             root,
             modules,
+            registered_attrs: Vec::new(),
+            registered_tools: Vec::new(),
             diagnostics: Vec::new(),
         }
     }
@@ -287,6 +297,12 @@ impl DefMap {
     }
     pub fn exported_proc_macros(&self) -> impl Iterator<Item = (MacroDefId, Name)> + '_ {
         self.exported_proc_macros.iter().map(|(id, def)| (*id, def.name.clone()))
+    }
+    pub fn registered_tools(&self) -> &[SmolStr] {
+        &self.registered_tools
+    }
+    pub fn registered_attrs(&self) -> &[SmolStr] {
+        &self.registered_attrs
     }
     pub fn root(&self) -> LocalModuleId {
         self.root
@@ -443,8 +459,11 @@ impl DefMap {
             extern_prelude,
             diagnostics,
             modules,
+            registered_attrs,
+            registered_tools,
             block: _,
             edition: _,
+            recursion_limit: _,
             krate: _,
             prelude: _,
             root: _,
@@ -454,6 +473,8 @@ impl DefMap {
         exported_proc_macros.shrink_to_fit();
         diagnostics.shrink_to_fit();
         modules.shrink_to_fit();
+        registered_attrs.shrink_to_fit();
+        registered_tools.shrink_to_fit();
         for (_, module) in modules.iter_mut() {
             module.children.shrink_to_fit();
             module.scope.shrink_to_fit();
@@ -463,6 +484,10 @@ impl DefMap {
     /// Get a reference to the def map's diagnostics.
     pub fn diagnostics(&self) -> &[DefDiagnostic] {
         self.diagnostics.as_slice()
+    }
+
+    pub fn recursion_limit(&self) -> Option<u32> {
+        self.recursion_limit
     }
 }
 

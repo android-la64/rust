@@ -799,8 +799,15 @@ impl<'a> InferenceContext<'a> {
                             ),
                         );
 
-                        let repeat_expr = &self.body.exprs[repeat];
-                        consteval::eval_usize(repeat_expr)
+                        consteval::eval_usize(
+                            repeat,
+                            consteval::ConstEvalCtx {
+                                exprs: &body.exprs,
+                                pats: &body.pats,
+                                local_data: Default::default(),
+                                infer: &mut |x| self.infer_expr(x, &expected),
+                            },
+                        )
                     }
                 };
 
@@ -989,7 +996,7 @@ impl<'a> InferenceContext<'a> {
                 self.trait_env.clone(),
                 krate,
                 &traits_in_scope,
-                self.resolver.module(),
+                self.resolver.module().into(),
                 method_name,
             )
         });

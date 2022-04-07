@@ -41,7 +41,7 @@ pub(crate) fn render_method(
 }
 
 fn render(
-    ctx @ RenderContext { completion }: RenderContext<'_>,
+    ctx @ RenderContext { completion, .. }: RenderContext<'_>,
     local_name: Option<hir::Name>,
     func: hir::Function,
     func_type: FuncType,
@@ -67,10 +67,15 @@ fn render(
     );
 
     let ret_type = func.ret_type(db);
+    let is_op_method = func
+        .as_assoc_item(ctx.db())
+        .and_then(|trait_| trait_.containing_trait_or_trait_impl(ctx.db()))
+        .map_or(false, |trait_| completion.is_ops_trait(trait_));
     item.set_relevance(CompletionRelevance {
         type_match: compute_type_match(completion, &ret_type),
         exact_name_match: compute_exact_name_match(completion, &call),
-        ..CompletionRelevance::default()
+        is_op_method,
+        ..ctx.completion_relevance()
     });
 
     if let Some(ref_match) = compute_ref_match(completion, &ret_type) {
@@ -105,7 +110,19 @@ fn render(
 
 fn detail(db: &dyn HirDatabase, func: hir::Function) -> String {
     let ret_ty = func.ret_type(db);
-    let mut detail = format!("fn({})", params_display(db, func));
+    let mut detail = String::new();
+
+    if func.is_const(db) {
+        format_to!(detail, "const ");
+    }
+    if func.is_async(db) {
+        format_to!(detail, "async ");
+    }
+    if func.is_unsafe(db) {
+        format_to!(detail, "unsafe ");
+    }
+
+    format_to!(detail, "fn({})", params_display(db, func));
     if !ret_ty.is_unit() {
         format_to!(detail, " -> {}", ret_ty.display(db));
     }

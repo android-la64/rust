@@ -64,11 +64,11 @@ use hir_expand::{
     eager::{expand_eager_macro, ErrorEmitted, ErrorSink},
     hygiene::Hygiene,
     AstId, ExpandTo, HirFileId, InFile, MacroCallId, MacroCallKind, MacroDefId, MacroDefKind,
+    UnresolvedMacro,
 };
 use item_tree::ExternBlock;
 use la_arena::Idx;
 use nameres::DefMap;
-use path::ModPath;
 use stdx::impl_from;
 use syntax::ast;
 
@@ -677,7 +677,8 @@ impl AsMacroCall for InFile<&ast::MacroCall> {
         let expands_to = hir_expand::ExpandTo::from_call_site(self.value);
         let ast_id = AstId::new(self.file_id, db.ast_id_map(self.file_id).ast_id(self.value));
         let h = Hygiene::new(db.upcast(), self.file_id);
-        let path = self.value.path().and_then(|path| path::ModPath::from_src(db, path, &h));
+        let path =
+            self.value.path().and_then(|path| path::ModPath::from_src(db.upcast(), path, &h));
 
         let path = match error_sink
             .option(path, || mbe::ExpandError::Other("malformed macro invocation".into()))
@@ -712,11 +713,6 @@ impl<T: ast::AstNode> AstIdWithPath<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct UnresolvedMacro {
-    pub path: ModPath,
-}
-
 fn macro_call_as_call_id(
     call: &AstIdWithPath<ast::MacroCall>,
     expand_to: ExpandTo,
@@ -730,16 +726,8 @@ fn macro_call_as_call_id(
 
     let res = if let MacroDefKind::BuiltInEager(..) = def.kind {
         let macro_call = InFile::new(call.ast_id.file_id, call.ast_id.to_node(db.upcast()));
-        let hygiene = Hygiene::new(db.upcast(), call.ast_id.file_id);
 
-        expand_eager_macro(
-            db.upcast(),
-            krate,
-            macro_call,
-            def,
-            &|path: ast::Path| resolver(path::ModPath::from_src(db, path, &hygiene)?),
-            error_sink,
-        )
+        expand_eager_macro(db.upcast(), krate, macro_call, def, &resolver, error_sink)?
     } else {
         Ok(def.as_lazy_macro(
             db.upcast(),
@@ -751,7 +739,7 @@ fn macro_call_as_call_id(
 }
 
 fn derive_macro_as_call_id(
-    item_attr: &AstIdWithPath<ast::Item>,
+    item_attr: &AstIdWithPath<ast::Adt>,
     derive_attr: AttrId,
     db: &dyn db::DefDatabase,
     krate: CrateId,
@@ -781,12 +769,10 @@ fn attr_macro_as_call_id(
     macro_attr: &Attr,
     db: &dyn db::DefDatabase,
     krate: CrateId,
-    def: Option<MacroDefId>,
-) -> Result<MacroCallId, UnresolvedMacro> {
+    def: MacroDefId,
+) -> MacroCallId {
     let attr_path = &item_attr.path;
-    let def = def.ok_or_else(|| UnresolvedMacro { path: attr_path.clone() })?;
-    let last_segment =
-        attr_path.segments().last().ok_or_else(|| UnresolvedMacro { path: attr_path.clone() })?;
+    let last_segment = attr_path.segments().last().expect("empty attribute path");
     let mut arg = match macro_attr.input.as_deref() {
         Some(attr::AttrInput::TokenTree(tt, map)) => (tt.clone(), map.clone()),
         _ => Default::default(),
@@ -805,5 +791,5 @@ fn attr_macro_as_call_id(
             invoc_attr_index: macro_attr.id.ast_index,
         },
     );
-    Ok(res)
+    res
 }

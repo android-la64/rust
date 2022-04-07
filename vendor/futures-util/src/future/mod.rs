@@ -9,16 +9,19 @@
 //!   from a closure that defines its return value, and [`ready`](ready()),
 //!   which constructs a future with an immediate defined value.
 
+#[doc(no_inline)]
+pub use core::future::Future;
+
 #[cfg(feature = "alloc")]
 pub use futures_core::future::{BoxFuture, LocalBoxFuture};
-pub use futures_core::future::{FusedFuture, Future, TryFuture};
+pub use futures_core::future::{FusedFuture, TryFuture};
 pub use futures_task::{FutureObj, LocalFutureObj, UnsafeFutureObj};
 
 // Extension traits and combinators
 #[allow(clippy::module_inception)]
 mod future;
 pub use self::future::{
-    Flatten, Fuse, FutureExt, Inspect, IntoStream, Map, NeverError, Then, UnitError, MapInto,
+    Flatten, Fuse, FutureExt, Inspect, IntoStream, Map, MapInto, NeverError, Then, UnitError,
 };
 
 #[deprecated(note = "This is now an alias for [Flatten](Flatten)")]
@@ -37,8 +40,8 @@ pub use self::future::{Shared, WeakShared};
 
 mod try_future;
 pub use self::try_future::{
-    AndThen, ErrInto, OkInto, InspectErr, InspectOk, IntoFuture, MapErr, MapOk, OrElse, TryFlattenStream,
-    TryFutureExt, UnwrapOrElse, MapOkOrElse, TryFlatten,
+    AndThen, ErrInto, InspectErr, InspectOk, IntoFuture, MapErr, MapOk, MapOkOrElse, OkInto,
+    OrElse, TryFlatten, TryFlattenStream, TryFutureExt, UnwrapOrElse,
 };
 
 #[cfg(feature = "sink")]
@@ -64,6 +67,9 @@ pub use self::option::OptionFuture;
 
 mod poll_fn;
 pub use self::poll_fn::{poll_fn, PollFn};
+
+mod poll_immediate;
+pub use self::poll_immediate::{poll_immediate, PollImmediate};
 
 mod ready;
 pub use self::ready::{err, ok, ready, Ready};
@@ -105,12 +111,15 @@ pub use self::select_ok::{select_ok, SelectOk};
 mod either;
 pub use self::either::Either;
 
-cfg_target_has_atomic! {
-    #[cfg(feature = "alloc")]
-    mod abortable;
-    #[cfg(feature = "alloc")]
-    pub use self::abortable::{abortable, Abortable, AbortHandle, AbortRegistration, Aborted};
-}
+#[cfg(not(futures_no_atomic_cas))]
+#[cfg(feature = "alloc")]
+mod abortable;
+#[cfg(not(futures_no_atomic_cas))]
+#[cfg(feature = "alloc")]
+pub use crate::abortable::{AbortHandle, AbortRegistration, Abortable, Aborted};
+#[cfg(not(futures_no_atomic_cas))]
+#[cfg(feature = "alloc")]
+pub use abortable::abortable;
 
 // Just a helper function to ensure the futures we're returning all have the
 // right implementations.

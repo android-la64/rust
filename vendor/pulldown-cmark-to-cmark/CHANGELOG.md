@@ -5,17 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 7.1.1 (2021-12-05)
+## 10.0.0 (2022-01-28)
 
-### Fixes
+Note that the breaking change is fixable by removing the last parameter from the `cmark()` function if it was `None`, 
+or using `cmark_resume` instead.
 
-- Multiple shortcut links are now separated by newline.
+### New Features
+
+- Formatting within links is no being preserved.
+
+### New Features (BREAKING)
+
+ - <csr-id-7166abeb0f89ee1dfb7790923d0d5fc6edc394c5/> Simplify `cmark(…)` by removing `State` parameter, introduce `cmark_resume(…)`.
+   
+   The reason for doing it this way around causing a breaking change is
+   the change of behaviour for `cmark_resume`, which now returns a state
+   instance that needs a `finalize()` call to flush certain caches.
+   
+   Currently this is only used to write link blocks, after which the state
+   is still usable for future invocations if necessary.
+   
+   That way the caller has control over where to put link blocks, or other
+   items that should be placed at the end of a logical section.
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 5 commits contributed to the release over the course of 2 calendar days.
+ - 28 days passed between releases.
+ - 1 commit where understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' where seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - write changelog prior to release ([`e9f809f`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/e9f809f45f637a385d8b4db248409195df1c9380))
+    - Merge pull request #41 from aogier/bugfix/40-shortcut_code ([`7ee11da`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/7ee11da6906bbc59c2bd91413ba617bf8104685e))
+    - Simplify `cmark(…)` by removing `State` parameter, introduce `cmark_resume(…)`. ([`7166abe`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/7166abeb0f89ee1dfb7790923d0d5fc6edc394c5))
+    - Fix changelog ([`84acaf3`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/84acaf3c4f0c77f774aa38f96ccee661d6bfe5d8))
+    - properly render shortcut links w/ code formatting ([`6a42312`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/6a423123f409612ba7798f6fcbd91373562e6aa7))
+</details>
+
+## 9.0.0 (2021-12-31)
+
+<csr-id-93f2d11e467221418748c672a3c493dcfbf9d6e7/>
+
+### Bug Fixes
+
+ - <csr-id-0a6f80d67eed9234170c95d8282cbc76ae66d47c/> Shortcut handling is now using the `State`.
+   
+   This makes resumable event processing work as expected, even though
+   the output won't be similar as it will print shortcuts right after
+   all events have been processed and it's impossible to know
+   how often it will be called.
+ - Simplify `State`.
+  
+   Use an `Option` to get rid ofa  boolean and make isuse impossible.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release.
+ - 5 days passed between releases.
+ - 2 commits where understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#39](https://github.com/Byron/pulldown-cmark-to-cmark/issues/39)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#39](https://github.com/Byron/pulldown-cmark-to-cmark/issues/39)**
+    - Shortcut handling is now using the `State` ([`0a6f80d`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/0a6f80d67eed9234170c95d8282cbc76ae66d47c))
+ * **Uncategorized**
+    - Release pulldown-cmark-to-cmark v9.0.0 ([`c14d084`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/c14d0840bcef5fe1e5f9bb5df96a12e29e0ca81b))
+    - write changelog ([`ddff119`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/ddff11953a25c9c77bd741371328a810ca678bfb))
+    - Simplify `State` ([`93f2d11`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/93f2d11e467221418748c672a3c493dcfbf9d6e7))
+    - refactor ([`c0f14c0`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/c0f14c058f3639e37ef9cd7971d9fb3965320fe7))
+    - refactor ([`9283d48`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/9283d487546bdcef57b602a782c777462d7caa19))
+</details>
+
+## 8.0.0 (2021-12-26)
+
+This release adds support for `pulldown-cmark v0.9`, [see the tracking issue](https://github.com/Byron/pulldown-cmark-to-cmark/issues/37) for more information.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release.
+ - 20 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -26,6 +112,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release pulldown-cmark-to-cmark v8.0.0 ([`cf469e2`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/cf469e28f829864350d9838424370e85ac30329c))
+    - adjust changelog prior to release ([`0ed0c69`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/0ed0c6960de20934ceebc11f8d54719c90516a45))
+    - cargo fmt ([`c696de3`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/c696de36d0d4a1dc6cfd0c86704844366009697a))
+    - Support the new Heading tag in pulldown-cmark 0.9 ([`1c9ea44`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/1c9ea447a3a43a19a93382fc8d3304556b79641e))
+</details>
+
+## 7.1.1 (2021-12-05)
+
+### Fixes
+
+- Multiple shortcut links are now separated by newline.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 10 days passed between releases.
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' where seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release pulldown-cmark-to-cmark v7.1.1 ([`e95115e`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/e95115e066a3a8bdbc1a5ca2cc422a03ba9c4f9b))
     - Update changelog prior to patch release ([`e540024`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/e540024bec698b7ebd28e76c1673f0b90c553f36))
     - fix shortcuts rendering ([`3bbc763`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/3bbc7638fa3210efa09e78d7ac423710fe9ea68e))
 </details>
@@ -43,6 +158,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <csr-read-only-do-not-edit/>
 
  - 6 commits contributed to the release.
+ - 7 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -72,6 +188,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 7 commits contributed to the release over the course of 53 calendar days.
+ - 53 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -101,6 +218,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 3 commits contributed to the release.
+ - 17 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -125,6 +243,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 3 commits contributed to the release.
+ - 75 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -147,6 +266,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 4 commits contributed to the release.
+ - 19 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -172,6 +292,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 14 commits contributed to the release over the course of 133 calendar days.
+ - 233 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -215,6 +336,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 2 commits contributed to the release over the course of 42 calendar days.
+ - 72 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -239,6 +361,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 3 commits contributed to the release.
+ - 58 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -263,6 +386,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 4 commits contributed to the release over the course of 9 calendar days.
+ - 20 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -286,6 +410,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 2 commits contributed to the release.
+ - 23 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -343,6 +468,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 10 commits contributed to the release over the course of 15 calendar days.
+ - 81 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -393,6 +519,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 8 commits contributed to the release.
+ - 60 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -419,7 +546,8 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
 <csr-read-only-do-not-edit/>
 
- - 5 commits contributed to the release over the course of 7 calendar days.
+ - 3 commits contributed to the release.
+ - 34 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -433,8 +561,6 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
     - bump version to 1.2.4 ([`ebd8e8e`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/ebd8e8e7c6b8bfe39f1435876ed7131dc3042ee6))
     - Merge pull request #7 from dylanowen/blockquotes ([`fee9004`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/fee90046b84216ede421e8cd467b2a1390ba265e))
     - updated authors ([`58e5137`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/58e51373d1d517fc5e3f71ab1540411d17c87d2d))
-    - better support for blockquotes ([`6f0e4b5`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/6f0e4b547348da8e9d1f450ccb7183a7f4334287))
-    - added blockquote test cases ([`2dd8024`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/2dd8024ba73860efcc41f637696dd0b8fdf1c42f))
 </details>
 
 ## v1.2.3 (2019-10-28)
@@ -443,7 +569,8 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release.
+ - 5 commits contributed to the release.
+ - 117 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -455,7 +582,9 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  * **Uncategorized**
     - Bump version ([`6f2382e`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/6f2382ef118afcbebe558034f63a5825870cf60b))
+    - better support for blockquotes ([`6f0e4b5`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/6f0e4b547348da8e9d1f450ccb7183a7f4334287))
     - Better approximation of contained characters ([`83fdbc0`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/83fdbc084d03a85108b13be83cf236f38e9b167e))
+    - added blockquote test cases ([`2dd8024`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/2dd8024ba73860efcc41f637696dd0b8fdf1c42f))
     - Assure to never have truly empty header fields ([`00442f9`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/00442f9df50059c9c2560086dc3c082c763718d4))
 </details>
 
@@ -486,7 +615,8 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release over the course of 73 calendar days.
+ - 3 commits contributed to the release over the course of 45 calendar days.
+ - 194 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -500,9 +630,6 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
     - Upgrade to pulldown-cmark 0.4 ([`27909e0`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/27909e0318095a03b55dab2c81a44601a1f46981))
     - Merge pull request #3 from integer32llc/pulldown-cmark-0.4 ([`a92f729`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/a92f729f872f60fe672c06df0c10923052dc4f5d))
     - Add a test that generated markdown parses equivalently ([`90f134e`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/90f134ee042614421da3cafc97bee264cbdda2b3))
-    - Update table snapshot to remove whitespace in table cells ([`148c789`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/148c7892011c6ce2d11f7da43d7a19280b9a137f))
-    - Remove trailing spaces from the table test fixture ([`c6490bc`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/c6490bc346010af103928569cb67bb05298a1468))
-    - upgrade to pulldown-cmark 0.4.1 ([`9a87b4e`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/9a87b4e328766b8754b686a8344f7155aae37c8d))
 </details>
 
 ## v1.2.0 (2018-12-20)
@@ -511,7 +638,8 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
 <csr-read-only-do-not-edit/>
 
- - 4 commits contributed to the release over the course of 299 calendar days.
+ - 7 commits contributed to the release.
+ - 309 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
@@ -523,9 +651,12 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  * **Uncategorized**
     - Bump version after supporting the latest pulldown-cmark 0.2 ([`108c355`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/108c355c252d4b2dd420812ee63cd6f002a66c95))
+    - Update table snapshot to remove whitespace in table cells ([`148c789`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/148c7892011c6ce2d11f7da43d7a19280b9a137f))
     - Merge pull request #1 from maralorn/master ([`7a4f8a5`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/7a4f8a5e72def83496ec695a8c6fa16602954b51))
+    - Remove trailing spaces from the table test fixture ([`c6490bc`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/c6490bc346010af103928569cb67bb05298a1468))
     - Bump dependency versions ([`5c7ddd5`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/5c7ddd5321cc39327d94ea6f9f64c4f6bd750fd5))
     - Add crates badge ([`b3ec0d9`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/b3ec0d990d2ba83a7fdcf73acd00d0882a5164d4))
+    - upgrade to pulldown-cmark 0.4.1 ([`9a87b4e`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/9a87b4e328766b8754b686a8344f7155aae37c8d))
 </details>
 
 ## v1.1.0 (2018-02-13)
@@ -535,6 +666,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 5 commits contributed to the release over the course of 1 calendar day.
+ - 2 days passed between releases.
  - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 

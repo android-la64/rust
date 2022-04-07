@@ -1,20 +1,21 @@
 //! Contains basic data about various HIR declarations.
 
-use std::sync::Arc;
+use std::{mem, sync::Arc};
 
-use hir_expand::{name::Name, InFile};
+use hir_expand::{name::Name, AstId, ExpandResult, HirFileId, InFile, MacroCallId};
 use syntax::ast;
 
 use crate::{
     attr::Attrs,
-    body::Expander,
+    body::{Expander, Mark},
     db::DefDatabase,
     intern::Interned,
-    item_tree::{self, AssocItem, FnFlags, ItemTreeId, ModItem, Param},
+    item_tree::{self, AssocItem, FnFlags, ItemTreeId, ModItem, Param, TreeId},
+    nameres::{attr_resolution::ResolvedAttr, DefMap},
     type_ref::{TraitRef, TypeBound, TypeRef},
     visibility::RawVisibility,
-    AssocItemId, ConstId, ConstLoc, FunctionId, FunctionLoc, HasModule, ImplId, Intern,
-    ItemContainerId, Lookup, ModuleId, StaticId, TraitId, TypeAliasId, TypeAliasLoc,
+    AssocItemId, AstIdWithPath, ConstId, ConstLoc, FunctionId, FunctionLoc, HasModule, ImplId,
+    Intern, ItemContainerId, Lookup, ModuleId, StaticId, TraitId, TypeAliasId, TypeAliasLoc,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -183,6 +184,8 @@ pub struct TraitData {
     /// method calls to this trait's methods when the receiver is an array and the crate edition is
     /// 2015 or 2018.
     pub skip_array_during_method_dispatch: bool,
+    // box it as the vec is usually empty anyways
+    pub attribute_calls: Option<Box<Vec<(AstId<ast::Item>, MacroCallId)>>>,
 }
 
 impl TraitData {
@@ -198,27 +201,24 @@ impl TraitData {
         let is_auto = tr_def.is_auto;
         let is_unsafe = tr_def.is_unsafe;
         let module_id = tr_loc.container;
-        let container = ItemContainerId::TraitId(tr);
         let visibility = item_tree[tr_def.visibility].clone();
-        let mut expander = Expander::new(db, tr_loc.id.file_id(), module_id);
         let skip_array_during_method_dispatch = item_tree
             .attrs(db, tr_loc.container.krate(), ModItem::from(tr_loc.id.value).into())
             .by_key("rustc_skip_array_during_method_dispatch")
             .exists();
 
-        let items = collect_items(
+        let mut collector = AssocItemCollector::new(
             db,
             module_id,
-            &mut expander,
-            tr_def.items.iter().copied(),
-            tr_loc.id.tree_id(),
-            container,
-            100,
+            tr_loc.id.file_id(),
+            ItemContainerId::TraitId(tr),
         );
+        collector.collect(tr_loc.id.tree_id(), &tr_def.items);
 
         Arc::new(TraitData {
             name,
-            items,
+            attribute_calls: collector.take_attr_calls(),
+            items: collector.items,
             is_auto,
             is_unsafe,
             visibility,
@@ -246,6 +246,10 @@ impl TraitData {
             _ => None,
         })
     }
+
+    pub fn attribute_calls(&self) -> impl Iterator<Item = (AstId<ast::Item>, MacroCallId)> + '_ {
+        self.attribute_calls.iter().flat_map(|it| it.iter()).copied()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -254,6 +258,8 @@ pub struct ImplData {
     pub self_ty: Interned<TypeRef>,
     pub items: Vec<AssocItemId>,
     pub is_negative: bool,
+    // box it as the vec is usually empty anyways
+    pub attribute_calls: Option<Box<Vec<(AstId<ast::Item>, MacroCallId)>>>,
 }
 
 impl ImplData {
@@ -267,21 +273,23 @@ impl ImplData {
         let self_ty = impl_def.self_ty.clone();
         let is_negative = impl_def.is_negative;
         let module_id = impl_loc.container;
-        let container = ItemContainerId::ImplId(id);
-        let mut expander = Expander::new(db, impl_loc.id.file_id(), module_id);
 
-        let items = collect_items(
+        let mut collector = AssocItemCollector::new(
             db,
             module_id,
-            &mut expander,
-            impl_def.items.iter().copied(),
-            impl_loc.id.tree_id(),
-            container,
-            100,
+            impl_loc.id.file_id(),
+            ItemContainerId::ImplId(id),
         );
-        let items = items.into_iter().map(|(_, item)| item).collect();
+        collector.collect(impl_loc.id.tree_id(), &impl_def.items);
 
-        Arc::new(ImplData { target_trait, self_ty, items, is_negative })
+        let attribute_calls = collector.take_attr_calls();
+        let items = collector.items.into_iter().map(|(_, item)| item).collect();
+
+        Arc::new(ImplData { target_trait, self_ty, items, is_negative, attribute_calls })
+    }
+
+    pub fn attribute_calls(&self) -> impl Iterator<Item = (AstId<ast::Item>, MacroCallId)> + '_ {
+        self.attribute_calls.iter().flat_map(|it| it.iter()).copied()
     }
 }
 
@@ -332,81 +340,128 @@ impl StaticData {
     }
 }
 
-fn collect_items(
-    db: &dyn DefDatabase,
-    module: ModuleId,
-    expander: &mut Expander,
-    assoc_items: impl Iterator<Item = AssocItem>,
-    tree_id: item_tree::TreeId,
+struct AssocItemCollector<'a> {
+    db: &'a dyn DefDatabase,
+    module_id: ModuleId,
+    def_map: Arc<DefMap>,
     container: ItemContainerId,
-    limit: usize,
-) -> Vec<(Name, AssocItemId)> {
-    if limit == 0 {
-        return Vec::new();
+    expander: Expander,
+
+    items: Vec<(Name, AssocItemId)>,
+    attr_calls: Vec<(AstId<ast::Item>, MacroCallId)>,
+}
+
+impl<'a> AssocItemCollector<'a> {
+    fn new(
+        db: &'a dyn DefDatabase,
+        module_id: ModuleId,
+        file_id: HirFileId,
+        container: ItemContainerId,
+    ) -> Self {
+        Self {
+            db,
+            module_id,
+            def_map: module_id.def_map(db),
+            container,
+            expander: Expander::new(db, file_id, module_id),
+
+            items: Vec::new(),
+            attr_calls: Vec::new(),
+        }
     }
 
-    let item_tree = tree_id.item_tree(db);
-    let crate_graph = db.crate_graph();
-    let cfg_options = &crate_graph[module.krate].cfg_options;
-
-    let mut items = Vec::new();
-    for item in assoc_items {
-        let attrs = item_tree.attrs(db, module.krate, ModItem::from(item).into());
-        if !attrs.is_cfg_enabled(cfg_options) {
-            continue;
+    fn take_attr_calls(&mut self) -> Option<Box<Vec<(AstId<ast::Item>, MacroCallId)>>> {
+        let attribute_calls = mem::take(&mut self.attr_calls);
+        if attribute_calls.is_empty() {
+            None
+        } else {
+            Some(Box::new(attribute_calls))
         }
+    }
 
-        match item {
-            AssocItem::Function(id) => {
-                let item = &item_tree[id];
-                let def = FunctionLoc { container, id: ItemTreeId::new(tree_id, id) }.intern(db);
-                items.push((item.name.clone(), def.into()));
-            }
-            AssocItem::Const(id) => {
-                let item = &item_tree[id];
-                let name = match item.name.clone() {
-                    Some(name) => name,
-                    None => continue,
-                };
-                let def = ConstLoc { container, id: ItemTreeId::new(tree_id, id) }.intern(db);
-                items.push((name, def.into()));
-            }
-            AssocItem::TypeAlias(id) => {
-                let item = &item_tree[id];
-                let def = TypeAliasLoc { container, id: ItemTreeId::new(tree_id, id) }.intern(db);
-                items.push((item.name.clone(), def.into()));
-            }
-            AssocItem::MacroCall(call) => {
-                let call = &item_tree[call];
-                let ast_id_map = db.ast_id_map(tree_id.file_id());
-                let root = db.parse_or_expand(tree_id.file_id()).unwrap();
-                let call = ast_id_map.get(call.ast_id).to_node(&root);
-                let _cx = stdx::panic_context::enter(format!("collect_items MacroCall: {}", call));
-                let res = expander.enter_expand(db, call);
+    fn collect(&mut self, tree_id: TreeId, assoc_items: &[AssocItem]) {
+        let item_tree = tree_id.item_tree(self.db);
 
-                if let Ok(res) = res {
-                    if let Some((mark, mac)) = res.value {
-                        let src: InFile<ast::MacroItems> = expander.to_source(mac);
-                        let tree_id = item_tree::TreeId::new(src.file_id, None);
-                        let item_tree = tree_id.item_tree(db);
-                        let iter =
-                            item_tree.top_level_items().iter().filter_map(ModItem::as_assoc_item);
-                        items.extend(collect_items(
-                            db,
-                            module,
-                            expander,
-                            iter,
-                            tree_id,
-                            container,
-                            limit - 1,
-                        ));
+        'items: for &item in assoc_items {
+            let attrs = item_tree.attrs(self.db, self.module_id.krate, ModItem::from(item).into());
+            if !attrs.is_cfg_enabled(self.expander.cfg_options()) {
+                continue;
+            }
 
-                        expander.exit(db, mark);
+            for attr in &*attrs {
+                let ast_id =
+                    AstId::new(self.expander.current_file_id(), item.ast_id(&item_tree).upcast());
+                let ast_id_with_path = AstIdWithPath { path: (*attr.path).clone(), ast_id };
+
+                if let Ok(ResolvedAttr::Macro(call_id)) = self.def_map.resolve_attr_macro(
+                    self.db,
+                    self.module_id.local_id,
+                    ast_id_with_path,
+                    attr,
+                ) {
+                    self.attr_calls.push((ast_id, call_id));
+                    let res = self.expander.enter_expand_id(self.db, call_id);
+                    self.collect_macro_items(res);
+                    continue 'items;
+                }
+            }
+
+            match item {
+                AssocItem::Function(id) => {
+                    let item = &item_tree[id];
+                    let def =
+                        FunctionLoc { container: self.container, id: ItemTreeId::new(tree_id, id) }
+                            .intern(self.db);
+                    self.items.push((item.name.clone(), def.into()));
+                }
+                AssocItem::Const(id) => {
+                    let item = &item_tree[id];
+                    let name = match item.name.clone() {
+                        Some(name) => name,
+                        None => continue,
+                    };
+                    let def =
+                        ConstLoc { container: self.container, id: ItemTreeId::new(tree_id, id) }
+                            .intern(self.db);
+                    self.items.push((name, def.into()));
+                }
+                AssocItem::TypeAlias(id) => {
+                    let item = &item_tree[id];
+                    let def = TypeAliasLoc {
+                        container: self.container,
+                        id: ItemTreeId::new(tree_id, id),
+                    }
+                    .intern(self.db);
+                    self.items.push((item.name.clone(), def.into()));
+                }
+                AssocItem::MacroCall(call) => {
+                    let call = &item_tree[call];
+                    let ast_id_map = self.db.ast_id_map(self.expander.current_file_id());
+                    let root = self.db.parse_or_expand(self.expander.current_file_id()).unwrap();
+                    let call = ast_id_map.get(call.ast_id).to_node(&root);
+                    let _cx =
+                        stdx::panic_context::enter(format!("collect_items MacroCall: {}", call));
+                    let res = self.expander.enter_expand(self.db, call);
+
+                    if let Ok(res) = res {
+                        self.collect_macro_items(res);
                     }
                 }
             }
         }
     }
 
-    items
+    fn collect_macro_items(&mut self, res: ExpandResult<Option<(Mark, ast::MacroItems)>>) {
+        if let Some((mark, mac)) = res.value {
+            let src: InFile<ast::MacroItems> = self.expander.to_source(mac);
+            let tree_id = item_tree::TreeId::new(src.file_id, None);
+            let item_tree = tree_id.item_tree(self.db);
+            let iter: Vec<_> =
+                item_tree.top_level_items().iter().filter_map(ModItem::as_assoc_item).collect();
+
+            self.collect(tree_id, &iter);
+
+            self.expander.exit(self.db, mark);
+        }
+    }
 }

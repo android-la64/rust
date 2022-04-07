@@ -1,13 +1,12 @@
 //! Completion of paths, i.e. `some::prefix::$0`.
 
-use std::iter;
-
 use hir::{ScopeDef, Trait};
 use rustc_hash::FxHashSet;
-use syntax::{ast, AstNode};
+use syntax::ast;
 
 use crate::{
-    context::{PathCompletionContext, PathKind},
+    completions::module_or_fn_macro,
+    context::{PathCompletionCtx, PathKind},
     patterns::ImmediateLocation,
     CompletionContext, Completions,
 };
@@ -16,21 +15,19 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
     if ctx.is_path_disallowed() || ctx.has_impl_or_trait_prev_sibling() {
         return;
     }
-    let (path, use_tree_parent, kind) = match ctx.path_context {
+    if ctx.pattern_ctx.is_some() {
+        return;
+    }
+    let (qualifier, kind) = match ctx.path_context {
         // let ... else, syntax would come in really handy here right now
-        Some(PathCompletionContext {
-            qualifier: Some(ref qualifier),
-            use_tree_parent,
-            kind,
-            ..
-        }) => (qualifier, use_tree_parent, kind),
+        Some(PathCompletionCtx { qualifier: Some(ref qualifier), kind, .. }) => (qualifier, kind),
         _ => return,
     };
 
     // special case `<_>::$0` as this doesn't resolve to anything.
-    if path.qualifier().is_none() {
+    if qualifier.path.qualifier().is_none() {
         if matches!(
-            path.segment().and_then(|it| it.kind()),
+            qualifier.path.segment().and_then(|it| it.kind()),
             Some(ast::PathSegmentKind::Type {
                 type_ref: Some(ast::Type::InferType(_)),
                 trait_ref: None,
@@ -46,23 +43,16 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
         }
     }
 
-    let resolution = match ctx.sema.resolve_path(path) {
+    let resolution = match &qualifier.resolution {
         Some(res) => res,
         None => return,
     };
 
-    let context_module = ctx.scope.module();
-
     match ctx.completion_location {
         Some(ImmediateLocation::ItemList | ImmediateLocation::Trait | ImmediateLocation::Impl) => {
             if let hir::PathResolution::Def(hir::ModuleDef::Module(module)) = resolution {
-                for (name, def) in module.scope(ctx.db, context_module) {
-                    if let ScopeDef::MacroDef(macro_def) = def {
-                        if macro_def.is_fn_like() {
-                            acc.add_macro(ctx, Some(name.clone()), macro_def);
-                        }
-                    }
-                    if let ScopeDef::ModuleDef(hir::ModuleDef::Module(_)) = def {
+                for (name, def) in module.scope(ctx.db, ctx.module) {
+                    if let Some(def) = module_or_fn_macro(def) {
                         acc.add_resolution(ctx, name, def);
                     }
                 }
@@ -73,81 +63,22 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
     }
 
     match kind {
-        Some(PathKind::Vis { .. }) => {
-            if let hir::PathResolution::Def(hir::ModuleDef::Module(module)) = resolution {
-                if let Some(current_module) = ctx.scope.module() {
-                    if let Some(next) = current_module
-                        .path_to_root(ctx.db)
-                        .into_iter()
-                        .take_while(|&it| it != module)
-                        .next()
-                    {
-                        if let Some(name) = next.name(ctx.db) {
-                            acc.add_resolution(ctx, name, ScopeDef::ModuleDef(next.into()));
-                        }
-                    }
-                }
-            }
+        Some(PathKind::Pat | PathKind::Attr { .. } | PathKind::Vis { .. } | PathKind::Use) => {
             return;
         }
-        Some(PathKind::Attr) => {
-            if let hir::PathResolution::Def(hir::ModuleDef::Module(module)) = resolution {
-                for (name, def) in module.scope(ctx.db, context_module) {
-                    let add_resolution = match def {
-                        ScopeDef::MacroDef(mac) => mac.is_attr(),
-                        ScopeDef::ModuleDef(hir::ModuleDef::Module(_)) => true,
-                        _ => false,
-                    };
-                    if add_resolution {
-                        acc.add_resolution(ctx, name, def);
-                    }
-                }
-            }
-            return;
+        _ => {
+            // Add associated types on type parameters and `Self`.
+            ctx.scope.assoc_type_shorthand_candidates(&resolution, |_, alias| {
+                acc.add_type_alias(ctx, alias);
+                None::<()>
+            });
         }
-        Some(PathKind::Use) => {
-            if iter::successors(Some(path.clone()), |p| p.qualifier())
-                .all(|p| p.segment().and_then(|s| s.super_token()).is_some())
-            {
-                acc.add_keyword(ctx, "super::");
-            }
-            // only show `self` in a new use-tree when the qualifier doesn't end in self
-            if use_tree_parent
-                && !matches!(
-                    path.segment().and_then(|it| it.kind()),
-                    Some(ast::PathSegmentKind::SelfKw)
-                )
-            {
-                acc.add_keyword(ctx, "self");
-            }
-        }
-        _ => (),
-    }
-
-    if !matches!(kind, Some(PathKind::Pat)) {
-        // Add associated types on type parameters and `Self`.
-        resolution.assoc_type_shorthand_candidates(ctx.db, |_, alias| {
-            acc.add_type_alias(ctx, alias);
-            None::<()>
-        });
     }
 
     match resolution {
         hir::PathResolution::Def(hir::ModuleDef::Module(module)) => {
-            let module_scope = module.scope(ctx.db, context_module);
+            let module_scope = module.scope(ctx.db, ctx.module);
             for (name, def) in module_scope {
-                if let Some(PathKind::Use) = kind {
-                    if let ScopeDef::Unknown = def {
-                        if let Some(ast::NameLike::NameRef(name_ref)) = ctx.name_syntax.as_ref() {
-                            if name_ref.syntax().text() == name.to_smol_str().as_str() {
-                                // for `use self::foo$0`, don't suggest `foo` as a completion
-                                cov_mark::hit!(dont_complete_current_use);
-                                continue;
-                            }
-                        }
-                    }
-                }
-
                 let add_resolution = match def {
                     // Don't suggest attribute macros and derives.
                     ScopeDef::MacroDef(mac) => mac.is_fn_like(),
@@ -171,13 +102,11 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
             }
         }
         hir::PathResolution::Def(
-            def
-            @
-            (hir::ModuleDef::Adt(_)
+            def @ (hir::ModuleDef::Adt(_)
             | hir::ModuleDef::TypeAlias(_)
             | hir::ModuleDef::BuiltinType(_)),
         ) => {
-            if let hir::ModuleDef::Adt(hir::Adt::Enum(e)) = def {
+            if let &hir::ModuleDef::Adt(hir::Adt::Enum(e)) = def {
                 add_enum_variants(acc, ctx, e);
             }
             let ty = match def {
@@ -191,7 +120,7 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
                     ty
                 }
                 hir::ModuleDef::BuiltinType(builtin) => {
-                    let module = match ctx.scope.module() {
+                    let module = match ctx.module {
                         Some(it) => it,
                         None => return,
                     };
@@ -207,10 +136,17 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
             let krate = ctx.krate;
             if let Some(krate) = krate {
                 let traits_in_scope = ctx.scope.visible_traits();
-                ty.iterate_path_candidates(ctx.db, krate, &traits_in_scope, None, |_ty, item| {
-                    add_assoc_item(acc, ctx, item);
-                    None::<()>
-                });
+                ty.iterate_path_candidates(
+                    ctx.db,
+                    krate,
+                    &traits_in_scope,
+                    ctx.module,
+                    None,
+                    |_ty, item| {
+                        add_assoc_item(acc, ctx, item);
+                        None::<()>
+                    },
+                );
 
                 // Iterate assoc types separately
                 ty.iterate_assoc_items(ctx.db, krate, |item| {
@@ -241,17 +177,23 @@ pub(crate) fn complete_qualified_path(acc: &mut Completions, ctx: &CompletionCon
 
                 let traits_in_scope = ctx.scope.visible_traits();
                 let mut seen = FxHashSet::default();
-                ty.iterate_path_candidates(ctx.db, krate, &traits_in_scope, None, |_ty, item| {
-                    // We might iterate candidates of a trait multiple times here, so deduplicate
-                    // them.
-                    if seen.insert(item) {
-                        add_assoc_item(acc, ctx, item);
-                    }
-                    None::<()>
-                });
+                ty.iterate_path_candidates(
+                    ctx.db,
+                    krate,
+                    &traits_in_scope,
+                    ctx.module,
+                    None,
+                    |_ty, item| {
+                        // We might iterate candidates of a trait multiple times here, so deduplicate
+                        // them.
+                        if seen.insert(item) {
+                            add_assoc_item(acc, ctx, item);
+                        }
+                        None::<()>
+                    },
+                );
             }
         }
-        hir::PathResolution::Macro(mac) => acc.add_macro(ctx, None, mac),
         _ => {}
     }
 }
@@ -615,18 +557,6 @@ fn foo() {
             expect![[r#"
                 fn new() fn() -> HashMap<K, V, RandomState>
             "#]],
-        );
-    }
-
-    #[test]
-    fn dont_complete_attr() {
-        check(
-            r#"
-mod foo { pub struct Foo; }
-#[foo::$0]
-fn f() {}
-"#,
-            expect![[""]],
         );
     }
 

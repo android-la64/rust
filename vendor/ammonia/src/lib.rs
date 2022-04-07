@@ -28,12 +28,12 @@
 //! [pulldown-cmark]: https://github.com/google/pulldown-cmark "CommonMark parser"
 
 use html5ever::interface::Attribute;
-use markup5ever_rcdom::{Handle, NodeData, RcDom, SerializableHandle};
 use html5ever::serialize::{serialize, SerializeOpts};
 use html5ever::tree_builder::{NodeOrText, TreeSink};
 use html5ever::{driver as html, local_name, namespace_url, ns, QualName};
 use lazy_static::lazy_static;
 use maplit::{hashmap, hashset};
+use markup5ever_rcdom::{Handle, NodeData, RcDom, SerializableHandle};
 use matches::matches;
 use std::borrow::{Borrow, Cow};
 use std::cmp::max;
@@ -44,11 +44,13 @@ use std::iter::IntoIterator as IntoIter;
 use std::mem::replace;
 use std::rc::Rc;
 use std::str::FromStr;
-use tendril::format_tendril;
 use tendril::stream::TendrilSink;
 use tendril::StrTendril;
+use tendril::{format_tendril, ByteTendril};
 pub use url::Url;
 
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tokenizer::{Token, TokenSink, TokenSinkResult, Tokenizer};
 pub use url;
 
 lazy_static! {
@@ -79,11 +81,40 @@ pub fn clean(src: &str) -> String {
 /// Turn an arbitrary string into unformatted HTML.
 ///
 /// This function is roughly equivalent to PHP's `htmlspecialchars` and `htmlentities`.
-/// It is maximally strict on purpose, encoding every character that has special meaning to the
+/// It is as strict as possible, encoding every character that has special meaning to the
 /// HTML parser.
+///
+/// # Warnings
 ///
 /// This function cannot be used to package strings into a `<script>` or `<style>` tag;
 /// you need a JavaScript or CSS escaper to do that.
+///
+///     // DO NOT DO THIS
+///     # use ammonia::clean_text;
+///     let untrusted = "Robert\"); abuse();//";
+///     let html = format!("<script>invoke(\"{}\")</script>", clean_text(untrusted));
+///
+/// `<textarea>` tags will strip the first newline, if present, even if that newline is encoded.
+/// If you want to build an editor that works the way most folks expect them to, you should put a
+/// newline at the beginning of the tag, like this:
+///
+///     # use ammonia::{Builder, clean_text};
+///     let untrusted = "\n\nhi!";
+///     let mut b = Builder::new();
+///     b.add_tags(&["textarea"]);
+///     // This is the bad version
+///     // The user put two newlines at the beginning, but the first one was removed
+///     let sanitized = b.clean(&format!("<textarea>{}</textarea>", clean_text(untrusted))).to_string();
+///     assert_eq!("<textarea>\nhi!</textarea>", sanitized);
+///     // This is a good version
+///     // The user put two newlines at the beginning, and we add a third one,
+///     // so the result still has two
+///     let sanitized = b.clean(&format!("<textarea>\n{}</textarea>", clean_text(untrusted))).to_string();
+///     assert_eq!("<textarea>\n\nhi!</textarea>", sanitized);
+///     // This version is also often considered good
+///     // For many applications, leading and trailing whitespace is probably unwanted
+///     let sanitized = b.clean(&format!("<textarea>{}</textarea>", clean_text(untrusted.trim()))).to_string();
+///     assert_eq!("<textarea>hi!</textarea>", sanitized);
 ///
 /// It also does not make user text safe for HTML attribute microsyntaxes such as `class` or `id`.
 /// Only use this function for places where HTML accepts unrestricted text such as `title` attributes
@@ -112,7 +143,8 @@ pub fn clean_text(src: &str) -> String {
             ' ' => "&#32;",
             '\t' => "&#9;",
             '\n' => "&#10;",
-            '\r' => "&#12;",
+            '\x0c' => "&#12;",
+            '\r' => "&#13;",
             // a spec-compliant browser will perform this replacement anyway, but the middleware might not
             '\0' => "&#65533;",
             // ALL OTHER CHARACTERS ARE PASSED THROUGH VERBATIM
@@ -124,6 +156,54 @@ pub fn clean_text(src: &str) -> String {
         ret_val.push_str(replacement);
     }
     ret_val
+}
+
+/// Determine if a given string contains HTML
+///
+/// This function is parses the full string into HTML and checks if the input contained any
+/// HTML syntax.
+///
+/// # Note
+/// This function will return positively for strings that contain invalid HTML syntax like
+/// `<g>` and even `Vec::<u8>::new()`.
+pub fn is_html(input: &str) -> bool {
+    let santok = SanitizationTokenizer::new();
+    let mut chunk = ByteTendril::new();
+    chunk.push_slice(input.as_bytes());
+    let mut input = BufferQueue::new();
+    input.push_back(chunk.try_reinterpret().unwrap());
+
+    let mut tok = Tokenizer::new(santok, Default::default());
+    let _ = tok.feed(&mut input);
+    tok.end();
+    tok.sink.was_sanitized
+}
+
+#[derive(Copy, Clone)]
+struct SanitizationTokenizer {
+    was_sanitized: bool,
+}
+
+impl SanitizationTokenizer {
+    pub fn new() -> SanitizationTokenizer {
+        SanitizationTokenizer {
+            was_sanitized: false,
+        }
+    }
+}
+
+impl TokenSink for SanitizationTokenizer {
+    type Handle = ();
+    fn process_token(&mut self, token: Token, _line_number: u64) -> TokenSinkResult<()> {
+        match token {
+            Token::CharacterTokens(_) | Token::EOFToken | Token::ParseError(_) => {}
+            _ => {
+                self.was_sanitized = true;
+            }
+        }
+        TokenSinkResult::Continue
+    }
+    fn end(&mut self) {}
 }
 
 /// An HTML sanitizer.
@@ -880,7 +960,6 @@ impl<'a> Builder<'a> {
         self
     }
 
-
     /// Add an attribute value to set on a specific element.
     ///
     /// # Examples
@@ -973,9 +1052,7 @@ impl<'a> Builder<'a> {
     ///     let mut b = ammonia::Builder::default();
     ///     b.set_tag_attribute_values(Clone::clone(&set_tag_attribute_values));
     ///     assert_eq!(set_tag_attribute_values, b.clone_set_tag_attribute_values());
-    pub fn clone_set_tag_attribute_values(
-        &self,
-    ) -> HashMap<&'a str, HashMap<&'a str, &'a str>> {
+    pub fn clone_set_tag_attribute_values(&self) -> HashMap<&'a str, HashMap<&'a str, &'a str>> {
         self.set_tag_attribute_values.clone()
     }
 
@@ -1013,7 +1090,10 @@ impl<'a> Builder<'a> {
     ///         .add_generic_attribute_prefixes(&["my-"])
     ///         .clean("<span my-attr>mess</span>").to_string();
     ///     assert_eq!("<span my-attr=\"\">mess</span>", a);
-    pub fn add_generic_attribute_prefixes<T: 'a + ?Sized + Borrow<str>, I: IntoIter<Item = &'a T>>(
+    pub fn add_generic_attribute_prefixes<
+        T: 'a + ?Sized + Borrow<str>,
+        I: IntoIter<Item = &'a T>,
+    >(
         &mut self,
         it: I,
     ) -> &mut Self {
@@ -1034,19 +1114,20 @@ impl<'a> Builder<'a> {
     ///         .rm_generic_attribute_prefixes(&["data-"])
     ///         .clean("<span code-test=\"foo\" data-test=\"cool\"></span>").to_string();
     ///     assert_eq!("<span code-test=\"foo\"></span>", a);
-    pub fn rm_generic_attribute_prefixes<'b, T: 'b + ?Sized + Borrow<str>, I: IntoIter<Item = &'b T>>(
+    pub fn rm_generic_attribute_prefixes<
+        'b,
+        T: 'b + ?Sized + Borrow<str>,
+        I: IntoIter<Item = &'b T>,
+    >(
         &mut self,
         it: I,
     ) -> &mut Self {
-        if let Some(true) =
-            self.generic_attribute_prefixes
-            .as_mut()
-            .map(|prefixes| {
-                for i in it {
-                    let _ = prefixes.remove(i.borrow());
-                }
-                prefixes.is_empty()
-            }) {
+        if let Some(true) = self.generic_attribute_prefixes.as_mut().map(|prefixes| {
+            for i in it {
+                let _ = prefixes.remove(i.borrow());
+            }
+            prefixes.is_empty()
+        }) {
             self.generic_attribute_prefixes = None;
         }
         self
@@ -1701,7 +1782,8 @@ impl<'a> Builder<'a> {
                 removed.push(node);
                 continue;
             }
-            let pass = self.clean_child(&mut node);
+            let pass_clean = self.clean_child(&mut node, url_base);
+            let pass = pass_clean && self.check_expected_namespace(&parent, &node);
             if pass {
                 self.adjust_node_attributes(&mut node, &link_rel, url_base, self.id_prefix);
                 dom.append(&parent.clone(), NodeOrText::AppendNode(node.clone()));
@@ -1745,7 +1827,7 @@ impl<'a> Builder<'a> {
     /// The root node doesn't need cleaning because we create the root node ourselves,
     /// and it doesn't get serialized, and ... it just exists to give the parser
     /// a context (in this case, a div-like block context).
-    fn clean_child(&self, child: &mut Handle) -> bool {
+    fn clean_child(&self, child: &mut Handle, url_base: Option<&Url>) -> bool {
         match child.data {
             NodeData::Text { .. } => true,
             NodeData::Comment { .. } => !self.strip_comments,
@@ -1760,12 +1842,9 @@ impl<'a> Builder<'a> {
                 if self.tags.contains(&*name.local) {
                     let attr_filter = |attr: &html5ever::Attribute| {
                         let whitelisted = self.generic_attributes.contains(&*attr.name.local)
-                            || self
-                                .generic_attribute_prefixes
-                                .as_ref()
-                                .map(|prefixes| {
-                                    prefixes.iter().any(|&p| attr.name.local.starts_with(p))
-                                }) == Some(true)
+                            || self.generic_attribute_prefixes.as_ref().map(|prefixes| {
+                                prefixes.iter().any(|&p| attr.name.local.starts_with(p))
+                            }) == Some(true)
                             || self
                                 .tag_attributes
                                 .get(&*name.local)
@@ -1792,7 +1871,13 @@ impl<'a> Builder<'a> {
                             if let Ok(url) = url {
                                 self.url_schemes.contains(url.scheme())
                             } else if url == Err(url::ParseError::RelativeUrlWithoutBase) {
-                                !matches!(self.url_relative, UrlRelative::Deny)
+                                if matches!(self.url_relative, UrlRelative::Deny) {
+                                    false
+                                } else if let Some(url_base) = url_base {
+                                    url_base.join(&*attr.value).is_ok()
+                                } else {
+                                    true
+                                }
                             } else {
                                 false
                             }
@@ -1806,6 +1891,129 @@ impl<'a> Builder<'a> {
                     false
                 }
             }
+        }
+    }
+
+    // Check for unexpected namespace changes.
+    //
+    // The issue happens if developers added to the list of allowed tags any
+    // tag which is parsed in RCDATA state, PLAINTEXT state or RAWTEXT state,
+    // that is:
+    //
+    // * title
+    // * textarea
+    // * xmp
+    // * iframe
+    // * noembed
+    // * noframes
+    // * plaintext
+    // * noscript
+    // * style
+    // * script
+    //
+    // An example in the wild is Plume, that allows iframe [1].  So in next
+    // examples I'll assume the following policy:
+    //
+    //     Builder::new()
+    //        .add_tags(&["iframe"])
+    //
+    // In HTML namespace `<iframe>` is parsed specially; that is, its content is
+    // treated as text. For instance, the following html:
+    //
+    //     <iframe><a>test
+    //
+    // Is parsed into the following DOM tree:
+    //
+    //     iframe
+    //     └─ #text: <a>test
+    //
+    // So iframe cannot have any children other than a text node.
+    //
+    // The same is not true, though, in "foreign content"; that is, within
+    // <svg> or <math> tags. The following html:
+    //
+    //     <svg><iframe><a>test
+    //
+    // is parsed differently:
+    //
+    //    svg
+    //    └─ iframe
+    //       └─ a
+    //          └─ #text: test
+    //
+    // So in SVG namespace iframe can have children.
+    //
+    // Ammonia disallows <svg> but it keeps its content after deleting it. And
+    // the parser internally keeps track of the namespace of the element. So
+    // assume we have the following snippet:
+    //
+    //     <svg><iframe><a title="</iframe><img src onerror=alert(1)>">test
+    //
+    // It is parsed into:
+    //
+    //     svg
+    //     └─ iframe
+    //        └─ a title="</iframe><img src onerror=alert(1)>"
+    //           └─ #text: test
+    //
+    // This DOM tree is harmless from ammonia point of view because the piece
+    // of code that looks like XSS is in a title attribute. Hence, the
+    // resulting "safe" HTML from ammonia would be:
+    //
+    //     <iframe><a title="</iframe><img src onerror=alert(1)>" rel="noopener
+    // noreferrer">test</a></iframe>
+    //
+    // However, at this point, the information about namespace is lost, which
+    // means that the browser will parse this snippet into:
+    //
+    //     ├─ iframe
+    //     │  └─ #text: <a title="
+    //     ├─ img src="" onerror="alert(1)"
+    //     └─ #text: " rel="noopener noreferrer">test
+    //
+    // Leading to XSS.
+    //
+    // To solve this issue, check for unexpected namespace switches after cleanup.
+    // Elements which change namespace at an unexpected point are removed.
+    // This function returns `true` if `child` should be kept, and `false` if it
+    // should be removed.
+    //
+    // [1]: https://github.com/Plume-org/Plume/blob/main/plume-models/src/safe_string.rs#L21
+    fn check_expected_namespace(&self, parent: &Handle, child: &Handle) -> bool {
+        let (parent, child) = match (&parent.data, &child.data) {
+            (NodeData::Element { name: pn, .. }, NodeData::Element { name: cn, .. }) => (pn, cn),
+            _ => return true,
+        };
+        // The only way to switch from html to svg is with the <svg> tag
+        if parent.ns == ns!(html) && child.ns == ns!(svg) {
+            child.local == local_name!("svg")
+        // The only way to switch from html to mathml is with the <math> tag
+        } else if parent.ns == ns!(html) && child.ns == ns!(mathml) {
+            child.local == local_name!("math")
+        // The only way to switch from mathml to svg/html is with a text integration point
+        } else if parent.ns == ns!(mathml) && child.ns != ns!(mathml) {
+            // https://html.spec.whatwg.org/#mathml
+            matches!(
+                &*parent.local,
+                "mi" | "mo" | "mn" | "ms" | "mtext" | "annotation-xml"
+            )
+        // The only way to switch from svg to mathml/html is with an html integration point
+        } else if parent.ns == ns!(svg) && child.ns != ns!(svg) {
+            // https://html.spec.whatwg.org/#svg-0
+            matches!(&*parent.local, "foreignObject")
+        } else if child.ns == ns!(svg) {
+            is_svg_tag(&*child.local)
+        } else if child.ns == ns!(mathml) {
+            is_mathml_tag(&*child.local)
+        } else if child.ns == ns!(html) {
+            (!is_svg_tag(&*child.local) && !is_mathml_tag(&*child.local))
+                || matches!(
+                    &*child.local,
+                    "title" | "style" | "font" | "a" | "script" | "span"
+                )
+        } else {
+            // There are no other supported ways to switch namespace
+            parent.ns == child.ns
         }
     }
 
@@ -1833,9 +2041,7 @@ impl<'a> Builder<'a> {
                 let mut attrs = attrs.borrow_mut();
                 for (&set_name, &set_value) in set_attrs {
                     // set the value of the attribute if the attribute is already present
-                    if let Some(attr) = attrs
-                        .iter_mut()
-                        .find(|attr| &*attr.name.local == set_name)
+                    if let Some(attr) = attrs.iter_mut().find(|attr| &*attr.name.local == set_name)
                     {
                         if &*attr.value != set_value {
                             attr.value = set_value.into();
@@ -1932,7 +2138,8 @@ impl<'a> Builder<'a> {
                 for attr in &mut *attrs.borrow_mut() {
                     if &attr.name.local == "class" {
                         let mut classes = vec![];
-                        for class in attr.value.split(' ') {
+                        // https://html.spec.whatwg.org/#global-attributes:classes-2
+                        for class in attr.value.split_ascii_whitespace() {
                             if allowed_values.contains(class) {
                                 classes.push(class.to_owned());
                             }
@@ -1967,6 +2174,280 @@ fn is_url_attr(element: &str, attr: &str) -> bool {
         || ((element == "button" || element == "input") && attr == "formaction")
         || (element == "a" && attr == "ping")
         || (element == "video" && attr == "poster")
+}
+
+/// Given an element name, check if it's SVG
+fn is_svg_tag(element: &str) -> bool {
+    // https://svgwg.org/svg2-draft/eltindex.html
+    match element {
+        "a"
+        | "animate"
+        | "animateMotion"
+        | "animateTransform"
+        | "circle"
+        | "clipPath"
+        | "defs"
+        | "desc"
+        | "discard"
+        | "ellipse"
+        | "feBlend"
+        | "feColorMatrix"
+        | "feComponentTransfer"
+        | "feComposite"
+        | "feConvolveMatrix"
+        | "feDiffuseLighting"
+        | "feDisplacementMap"
+        | "feDistantLight"
+        | "feDropShadow"
+        | "feFlood"
+        | "feFuncA"
+        | "feFuncB"
+        | "feFuncG"
+        | "feFuncR"
+        | "feGaussianBlur"
+        | "feImage"
+        | "feMerge"
+        | "feMergeNode"
+        | "feMorphology"
+        | "feOffset"
+        | "fePointLight"
+        | "feSpecularLighting"
+        | "feSpotLight"
+        | "feTile"
+        | "feTurbulence"
+        | "filter"
+        | "foreignObject"
+        | "g"
+        | "image"
+        | "line"
+        | "linearGradient"
+        | "marker"
+        | "mask"
+        | "metadata"
+        | "mpath"
+        | "path"
+        | "pattern"
+        | "polygon"
+        | "polyline"
+        | "radialGradient"
+        | "rect"
+        | "script"
+        | "set"
+        | "stop"
+        | "style"
+        | "svg"
+        | "switch"
+        | "symbol"
+        | "text"
+        | "textPath"
+        | "title"
+        | "tspan"
+        | "use"
+        | "view" => true,
+        _ => false,
+    }
+}
+
+/// Given an element name, check if it's Math
+fn is_mathml_tag(element: &str) -> bool {
+    // https://svgwg.org/svg2-draft/eltindex.html
+    match element {
+        "abs"
+        | "and"
+        | "annotation"
+        | "annotation-xml"
+        | "apply"
+        | "approx"
+        | "arccos"
+        | "arccosh"
+        | "arccot"
+        | "arccoth"
+        | "arccsc"
+        | "arccsch"
+        | "arcsec"
+        | "arcsech"
+        | "arcsin"
+        | "arcsinh"
+        | "arctan"
+        | "arctanh"
+        | "arg"
+        | "bind"
+        | "bvar"
+        | "card"
+        | "cartesianproduct"
+        | "cbytes"
+        | "ceiling"
+        | "cerror"
+        | "ci"
+        | "cn"
+        | "codomain"
+        | "complexes"
+        | "compose"
+        | "condition"
+        | "conjugate"
+        | "cos"
+        | "cosh"
+        | "cot"
+        | "coth"
+        | "cs"
+        | "csc"
+        | "csch"
+        | "csymbol"
+        | "curl"
+        | "declare"
+        | "degree"
+        | "determinant"
+        | "diff"
+        | "divergence"
+        | "divide"
+        | "domain"
+        | "domainofapplication"
+        | "emptyset"
+        | "eq"
+        | "equivalent"
+        | "eulergamma"
+        | "exists"
+        | "exp"
+        | "exponentiale"
+        | "factorial"
+        | "factorof"
+        | "false"
+        | "floor"
+        | "fn"
+        | "forall"
+        | "gcd"
+        | "geq"
+        | "grad"
+        | "gt"
+        | "ident"
+        | "image"
+        | "imaginary"
+        | "imaginaryi"
+        | "implies"
+        | "in"
+        | "infinity"
+        | "int"
+        | "integers"
+        | "intersect"
+        | "interval"
+        | "inverse"
+        | "lambda"
+        | "laplacian"
+        | "lcm"
+        | "leq"
+        | "limit"
+        | "list"
+        | "ln"
+        | "log"
+        | "logbase"
+        | "lowlimit"
+        | "lt"
+        | "maction"
+        | "maligngroup"
+        | "malignmark"
+        | "math"
+        | "matrix"
+        | "matrixrow"
+        | "max"
+        | "mean"
+        | "median"
+        | "menclose"
+        | "merror"
+        | "mfenced"
+        | "mfrac"
+        | "mglyph"
+        | "mi"
+        | "min"
+        | "minus"
+        | "mlabeledtr"
+        | "mlongdiv"
+        | "mmultiscripts"
+        | "mn"
+        | "mo"
+        | "mode"
+        | "moment"
+        | "momentabout"
+        | "mover"
+        | "mpadded"
+        | "mphantom"
+        | "mprescripts"
+        | "mroot"
+        | "mrow"
+        | "ms"
+        | "mscarries"
+        | "mscarry"
+        | "msgroup"
+        | "msline"
+        | "mspace"
+        | "msqrt"
+        | "msrow"
+        | "mstack"
+        | "mstyle"
+        | "msub"
+        | "msubsup"
+        | "msup"
+        | "mtable"
+        | "mtd"
+        | "mtext"
+        | "mtr"
+        | "munder"
+        | "munderover"
+        | "naturalnumbers"
+        | "neq"
+        | "none"
+        | "not"
+        | "notanumber"
+        | "notin"
+        | "notprsubset"
+        | "notsubset"
+        | "or"
+        | "otherwise"
+        | "outerproduct"
+        | "partialdiff"
+        | "pi"
+        | "piece"
+        | "piecewise"
+        | "plus"
+        | "power"
+        | "primes"
+        | "product"
+        | "prsubset"
+        | "quotient"
+        | "rationals"
+        | "real"
+        | "reals"
+        | "reln"
+        | "rem"
+        | "root"
+        | "scalarproduct"
+        | "sdev"
+        | "sec"
+        | "sech"
+        | "selector"
+        | "semantics"
+        | "sep"
+        | "set"
+        | "setdiff"
+        | "share"
+        | "sin"
+        | "sinh"
+        | "span"
+        | "subset"
+        | "sum"
+        | "tan"
+        | "tanh"
+        | "tendsto"
+        | "times"
+        | "transpose"
+        | "true"
+        | "union"
+        | "uplimit"
+        | "variance"
+        | "vector"
+        | "vectorproduct"
+        | "xor" => true,
+        _ => false,
+    }
 }
 
 fn is_url_relative(url: &str) -> bool {
@@ -2375,6 +2856,18 @@ mod test {
         );
     }
     #[test]
+    fn rewrite_url_relative_with_invalid_url() {
+        // Reduced from https://github.com/Bauke/ammonia-crash-test
+        let fragment = r##"<a href="\\"https://example.com\\"">test</a>"##;
+        let result = Builder::new()
+            .url_relative(UrlRelative::RewriteWithBase(
+                Url::parse("http://example.com/").unwrap(),
+            ))
+            .clean(fragment)
+            .to_string();
+        assert_eq!(result, r##"<a rel="noopener noreferrer">test</a>"##);
+    }
+    #[test]
     fn attribute_filter_nop() {
         let fragment = "<a href=test>Test</a>";
         let result = Builder::new()
@@ -2386,6 +2879,7 @@ mod test {
                         ("rel", "noopener noreferrer") => true,
                         _ => false,
                     },
+                    "{}",
                     value.to_string()
                 );
                 Some(value.into())
@@ -2645,6 +3139,20 @@ mod test {
         );
     }
     #[test]
+    fn allowed_classes_ascii_whitespace() {
+        // According to https://infra.spec.whatwg.org/#ascii-whitespace,
+        // TAB (\t), LF (\n), FF (\x0C), CR (\x0D) and SPACE (\x20) are
+        // considered to be ASCII whitespace. Unicode whitespace characters
+        // and VT (\x0B) aren't ASCII whitespace.
+        let fragment = "<p class=\"a\tb\nc\x0Cd\re f\x0B g\u{2000}\">";
+        let result = Builder::new()
+            .allowed_classes(hashmap![
+                "p" => hashset!["a", "b", "c", "d", "e", "f", "g"],
+            ])
+            .clean(fragment);
+        assert_eq!(result.to_string(), r#"<p class="a b c d e"></p>"#);
+    }
+    #[test]
     fn remove_non_allowed_attributes_with_tag_attribute_values() {
         let fragment = "<p data-label=\"baz\" name=\"foo\"></p>";
         let result = Builder::new()
@@ -2725,10 +3233,7 @@ mod test {
         let result = Builder::new()
             .set_tag_attribute_value("my-elem", "my-attr", "val")
             .clean(fragment);
-        assert_eq!(
-            result.to_string(),
-            "<span>hi</span>",
-        );
+        assert_eq!(result.to_string(), "<span>hi</span>",);
     }
     #[test]
     fn remove_entity_link() {
@@ -2948,6 +3453,72 @@ mod test {
     }
 
     #[test]
+    fn clean_text_spaces_test() {
+        assert_eq!(
+            clean_text("\x09\x0a\x0c\x20"),
+            "&#9;&#10;&#12;&#32;"
+        );
+    }
+
+    #[test]
+    fn ns_svg() {
+        // https://github.com/cure53/DOMPurify/pull/495
+        let fragment = r##"<svg><iframe><a title="</iframe><img src onerror=alert(1)>">test"##;
+        let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));
+        assert_eq!(
+            result.to_string(),
+            "test"
+        );
+
+        let fragment = "<svg><iframe>remove me</iframe></svg><iframe>keep me</iframe>";
+        let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));
+        assert_eq!(result.to_string(), "remove me<iframe>keep me</iframe>");
+
+        let fragment = "<svg><a>remove me</a></svg><iframe>keep me</iframe>";
+        let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));
+        assert_eq!(result.to_string(), "remove me<iframe>keep me</iframe>");
+
+        let fragment = "<svg><a>keep me</a></svg><iframe>keep me</iframe>";
+        let result = String::from(Builder::new().add_tags(&["iframe", "svg"]).clean(fragment));
+        assert_eq!(
+            result.to_string(),
+            "<svg><a rel=\"noopener noreferrer\">keep me</a></svg><iframe>keep me</iframe>"
+        );
+    }
+
+    #[test]
+    fn ns_mathml() {
+        // https://github.com/cure53/DOMPurify/pull/495
+        let fragment = "<mglyph></mglyph>";
+        let result = String::from(
+            Builder::new()
+                .add_tags(&["math", "mtext", "mglyph"])
+                .clean(fragment),
+        );
+        assert_eq!(result.to_string(), "");
+        let fragment = "<math><mtext><div><mglyph>";
+        let result = String::from(
+            Builder::new()
+                .add_tags(&["math", "mtext", "mglyph"])
+                .clean(fragment),
+        );
+        assert_eq!(
+            result.to_string(),
+            "<math><mtext><div></div></mtext></math>"
+        );
+        let fragment = "<math><mtext><mglyph>";
+        let result = String::from(
+            Builder::new()
+                .add_tags(&["math", "mtext", "mglyph"])
+                .clean(fragment),
+        );
+        assert_eq!(
+            result.to_string(),
+            "<math><mtext><mglyph></mglyph></mtext></math>"
+        );
+    }
+
+    #[test]
     fn generic_attribute_prefixes() {
         let prefix_data = ["data-"];
         let prefix_code = ["code-"];
@@ -2978,20 +3549,59 @@ mod test {
                 .add_tag_attributes("a", &["data-1"])
                 .clean(fragment),
         );
-        assert_eq!(result_cleaned, r#"<a data-1="" rel="noopener noreferrer"></a><a rel="noopener noreferrer">Hello!</a>"#);
+        assert_eq!(
+            result_cleaned,
+            r#"<a data-1="" rel="noopener noreferrer"></a><a rel="noopener noreferrer">Hello!</a>"#
+        );
         let result_allowed = String::from(
             Builder::new()
                 .add_tag_attributes("a", &["data-1"])
                 .add_generic_attribute_prefixes(&["data-"])
                 .clean(fragment),
         );
-        assert_eq!(result_allowed, r#"<a data-1="" data-2="" rel="noopener noreferrer"></a><a rel="noopener noreferrer">Hello!</a>"#);
+        assert_eq!(
+            result_allowed,
+            r#"<a data-1="" data-2="" rel="noopener noreferrer"></a><a rel="noopener noreferrer">Hello!</a>"#
+        );
         let result_allowed = String::from(
             Builder::new()
                 .add_tag_attributes("a", &["data-1", "code-1"])
                 .add_generic_attribute_prefixes(&["data-", "code-"])
                 .clean(fragment),
         );
-        assert_eq!(result_allowed, r#"<a data-1="" data-2="" code-1="" code-2="" rel="noopener noreferrer"></a><a rel="noopener noreferrer">Hello!</a>"#);
+        assert_eq!(
+            result_allowed,
+            r#"<a data-1="" data-2="" code-1="" code-2="" rel="noopener noreferrer"></a><a rel="noopener noreferrer">Hello!</a>"#
+        );
+    }
+    #[test]
+    fn lesser_than_isnt_html() {
+        let fragment = "1 < 2";
+        assert!(!is_html(fragment));
+    }
+    #[test]
+    fn dense_lesser_than_isnt_html() {
+        let fragment = "1<2";
+        assert!(!is_html(fragment));
+    }
+    #[test]
+    fn what_about_number_elements() {
+        let fragment = "foo<2>bar";
+        assert!(!is_html(fragment));
+    }
+    #[test]
+    fn turbofish_is_html_sadly() {
+        let fragment = "Vec::<u8>::new()";
+        assert!(is_html(fragment));
+    }
+    #[test]
+    fn stop_grinning() {
+        let fragment = "did you really believe me? <g>";
+        assert!(is_html(fragment));
+    }
+    #[test]
+    fn dont_be_bold() {
+        let fragment = "<b>";
+        assert!(is_html(fragment));
     }
 }

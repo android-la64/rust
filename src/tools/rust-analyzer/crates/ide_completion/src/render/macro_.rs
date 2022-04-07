@@ -1,8 +1,8 @@
 //! Renderer for macro invocations.
 
 use either::Either;
-use hir::{db::HirDatabase, Documentation, HasSource};
-use ide_db::SymbolKind;
+use hir::{Documentation, HasSource, InFile, Semantics};
+use ide_db::{RootDatabase, SymbolKind};
 use syntax::{
     display::{fn_as_proc_macro_label, macro_label},
     SmolStr,
@@ -19,25 +19,23 @@ pub(crate) fn render_macro(
     import_to_add: Option<ImportEdit>,
     name: hir::Name,
     macro_: hir::MacroDef,
-) -> Option<CompletionItem> {
+) -> CompletionItem {
     let _p = profile::span("render_macro");
     render(ctx, name, macro_, import_to_add)
 }
 
 fn render(
-    ctx @ RenderContext { completion }: RenderContext<'_>,
+    ctx @ RenderContext { completion, .. }: RenderContext<'_>,
     name: hir::Name,
     macro_: hir::MacroDef,
     import_to_add: Option<ImportEdit>,
-) -> Option<CompletionItem> {
-    let db = completion.db;
-
+) -> CompletionItem {
     let source_range = if completion.is_immediately_after_macro_bang() {
         cov_mark::hit!(completes_macro_call_if_cursor_at_bang_token);
-        completion.token.parent().map(|it| it.text_range())
+        completion.token.parent().map_or_else(|| ctx.source_range(), |it| it.text_range())
     } else {
-        Some(ctx.source_range())
-    }?;
+        ctx.source_range()
+    };
 
     let name = name.to_smol_str();
     let docs = ctx.docs(macro_);
@@ -54,8 +52,9 @@ fn render(
         label(&ctx, needs_bang, bra, ket, &name),
     );
     item.set_deprecated(ctx.is_deprecated(macro_))
-        .set_detail(detail(db, macro_))
-        .set_documentation(docs);
+        .set_detail(detail(&completion.sema, macro_))
+        .set_documentation(docs)
+        .set_relevance(ctx.completion_relevance());
 
     if let Some(import_to_add) = import_to_add {
         item.add_import(import_to_add);
@@ -79,7 +78,7 @@ fn render(
         }
     };
 
-    Some(item.build())
+    item.build()
 }
 
 fn label(
@@ -104,9 +103,11 @@ fn banged_name(name: &str) -> SmolStr {
     SmolStr::from_iter([name, "!"])
 }
 
-fn detail(db: &dyn HirDatabase, macro_: hir::MacroDef) -> Option<String> {
+fn detail(sema: &Semantics<RootDatabase>, macro_: hir::MacroDef) -> Option<String> {
     // FIXME: This is parsing the file!
-    let detail = match macro_.source(db)?.value {
+    let InFile { file_id, value } = macro_.source(sema.db)?;
+    let _ = sema.parse_or_expand(file_id);
+    let detail = match value {
         Either::Left(node) => macro_label(&node),
         Either::Right(node) => fn_as_proc_macro_label(&node),
     };

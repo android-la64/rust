@@ -5,7 +5,7 @@ use std::{fmt, hash::Hash, ops, sync::Arc};
 use base_db::CrateId;
 use cfg::{CfgExpr, CfgOptions};
 use either::Either;
-use hir_expand::{hygiene::Hygiene, name::AsName, AstId, InFile};
+use hir_expand::{hygiene::Hygiene, name::AsName, AstId, HirFileId, InFile};
 use itertools::Itertools;
 use la_arena::ArenaMap;
 use mbe::{syntax_node_to_token_tree, DelimiterKind, Punct};
@@ -72,6 +72,11 @@ impl ops::Deref for RawAttrs {
         }
     }
 }
+impl Attrs {
+    pub fn get(&self, id: AttrId) -> Option<&Attr> {
+        (**self).iter().find(|attr| attr.id == id)
+    }
+}
 
 impl ops::Deref for Attrs {
     type Target = [Attr];
@@ -97,7 +102,7 @@ impl RawAttrs {
 
     pub(crate) fn new(db: &dyn DefDatabase, owner: &dyn ast::HasAttrs, hygiene: &Hygiene) -> Self {
         let entries = collect_attrs(owner)
-            .flat_map(|(id, attr)| match attr {
+            .filter_map(|(id, attr)| match attr {
                 Either::Left(attr) => {
                     attr.meta().and_then(|meta| Attr::from_src(db, meta, hygiene, id))
                 }
@@ -247,6 +252,10 @@ impl Attrs {
         }
     }
 
+    pub fn lang(&self) -> Option<&SmolStr> {
+        self.by_key("lang").string_value()
+    }
+
     pub fn docs(&self) -> Option<Documentation> {
         let docs = self.by_key("doc").attrs().flat_map(|attr| match attr.input.as_deref()? {
             AttrInput::Literal(s) => Some(s),
@@ -382,7 +391,9 @@ impl AttrsWithOwner {
                         if let InFile { file_id, value: ModuleSource::SourceFile(file) } =
                             mod_data.definition_source(db)
                         {
-                            map.merge(AttrSourceMap::new(InFile::new(file_id, &file)));
+                            map.append_module_inline_attrs(AttrSourceMap::new(InFile::new(
+                                file_id, &file,
+                            )));
                         }
                         return map;
                     }
@@ -506,63 +517,67 @@ impl AttrsWithOwner {
 
 fn inner_attributes(
     syntax: &SyntaxNode,
-) -> Option<(impl Iterator<Item = ast::Attr>, impl Iterator<Item = ast::Comment>)> {
-    let (attrs, docs) = match_ast! {
+) -> Option<impl Iterator<Item = Either<ast::Attr, ast::Comment>>> {
+    let node = match_ast! {
         match syntax {
-            ast::SourceFile(it) => (it.attrs(), ast::CommentIter::from_syntax_node(it.syntax())),
-            ast::ExternBlock(it) => {
-                let extern_item_list = it.extern_item_list()?;
-                (extern_item_list.attrs(), ast::CommentIter::from_syntax_node(extern_item_list.syntax()))
+            ast::SourceFile(_) => syntax.clone(),
+            ast::ExternBlock(it) => it.extern_item_list()?.syntax().clone(),
+            ast::Fn(it) => it.body()?.stmt_list()?.syntax().clone(),
+            ast::Impl(it) => it.assoc_item_list()?.syntax().clone(),
+            ast::Module(it) => it.item_list()?.syntax().clone(),
+            ast::BlockExpr(it) => {
+                use syntax::SyntaxKind::{BLOCK_EXPR , EXPR_STMT};
+                // Block expressions accept outer and inner attributes, but only when they are the outer
+                // expression of an expression statement or the final expression of another block expression.
+                let may_carry_attributes = matches!(
+                    it.syntax().parent().map(|it| it.kind()),
+                     Some(BLOCK_EXPR | EXPR_STMT)
+                );
+                if !may_carry_attributes {
+                    return None
+                }
+                syntax.clone()
             },
-            ast::Fn(it) => {
-                let body = it.body()?;
-                let stmt_list = body.stmt_list()?;
-                (stmt_list.attrs(), ast::CommentIter::from_syntax_node(body.syntax()))
-            },
-            ast::Impl(it) => {
-                let assoc_item_list = it.assoc_item_list()?;
-                (assoc_item_list.attrs(), ast::CommentIter::from_syntax_node(assoc_item_list.syntax()))
-            },
-            ast::Module(it) => {
-                let item_list = it.item_list()?;
-                (item_list.attrs(), ast::CommentIter::from_syntax_node(item_list.syntax()))
-            },
-            // FIXME: BlockExpr's only accept inner attributes in specific cases
-            // Excerpt from the reference:
-            // Block expressions accept outer and inner attributes, but only when they are the outer
-            // expression of an expression statement or the final expression of another block expression.
-            ast::BlockExpr(_it) => return None,
             _ => return None,
         }
     };
-    let attrs = attrs.filter(|attr| attr.kind().is_inner());
-    let docs = docs.filter(|doc| doc.is_inner());
-    Some((attrs, docs))
+
+    let attrs = ast::AttrDocCommentIter::from_syntax_node(&node).filter(|el| match el {
+        Either::Left(attr) => attr.kind().is_inner(),
+        Either::Right(comment) => comment.is_inner(),
+    });
+    Some(attrs)
 }
 
 #[derive(Debug)]
 pub struct AttrSourceMap {
-    attrs: Vec<InFile<ast::Attr>>,
-    doc_comments: Vec<InFile<ast::Comment>>,
+    source: Vec<Either<ast::Attr, ast::Comment>>,
+    file_id: HirFileId,
+    /// If this map is for a module, this will be the [`HirFileId`] of the module's definition site,
+    /// while `file_id` will be the one of the module declaration site.
+    /// The usize is the index into `source` from which point on the entries reside in the def site
+    /// file.
+    mod_def_site_file_id: Option<(HirFileId, usize)>,
 }
 
 impl AttrSourceMap {
     fn new(owner: InFile<&dyn ast::HasAttrs>) -> Self {
-        let mut attrs = Vec::new();
-        let mut doc_comments = Vec::new();
-        for (_, attr) in collect_attrs(owner.value) {
-            match attr {
-                Either::Left(attr) => attrs.push(owner.with_value(attr)),
-                Either::Right(comment) => doc_comments.push(owner.with_value(comment)),
-            }
+        Self {
+            source: collect_attrs(owner.value).map(|(_, it)| it).collect(),
+            file_id: owner.file_id,
+            mod_def_site_file_id: None,
         }
-
-        Self { attrs, doc_comments }
     }
 
-    fn merge(&mut self, other: Self) {
-        self.attrs.extend(other.attrs);
-        self.doc_comments.extend(other.doc_comments);
+    /// Append a second source map to this one, this is required for modules, whose outline and inline
+    /// attributes can reside in different files
+    fn append_module_inline_attrs(&mut self, other: Self) {
+        assert!(self.mod_def_site_file_id.is_none() && other.mod_def_site_file_id.is_none());
+        let len = self.source.len();
+        self.source.extend(other.source);
+        if other.file_id != self.file_id {
+            self.mod_def_site_file_id = Some((other.file_id, len));
+        }
     }
 
     /// Maps the lowered `Attr` back to its original syntax node.
@@ -571,24 +586,21 @@ impl AttrSourceMap {
     ///
     /// Note that the returned syntax node might be a `#[cfg_attr]`, or a doc comment, instead of
     /// the attribute represented by `Attr`.
-    pub fn source_of(&self, attr: &Attr) -> InFile<Either<ast::Attr, ast::Comment>> {
+    pub fn source_of(&self, attr: &Attr) -> InFile<&Either<ast::Attr, ast::Comment>> {
         self.source_of_id(attr.id)
     }
 
-    fn source_of_id(&self, id: AttrId) -> InFile<Either<ast::Attr, ast::Comment>> {
-        if id.is_doc_comment {
-            self.doc_comments
-                .get(id.ast_index as usize)
-                .unwrap_or_else(|| panic!("cannot find doc comment at index {:?}", id))
-                .clone()
-                .map(Either::Right)
-        } else {
-            self.attrs
-                .get(id.ast_index as usize)
-                .unwrap_or_else(|| panic!("cannot find `Attr` at index {:?}", id))
-                .clone()
-                .map(Either::Left)
-        }
+    fn source_of_id(&self, id: AttrId) -> InFile<&Either<ast::Attr, ast::Comment>> {
+        let ast_idx = id.ast_index as usize;
+        let file_id = match self.mod_def_site_file_id {
+            Some((file_id, def_site_cut)) if def_site_cut <= ast_idx => file_id,
+            _ => self.file_id,
+        };
+
+        self.source
+            .get(ast_idx)
+            .map(|it| InFile::new(file_id, it))
+            .unwrap_or_else(|| panic!("cannot find attr at index {:?}", id))
     }
 }
 
@@ -656,8 +668,7 @@ fn get_doc_string_in_attr(it: &ast::Attr) -> Option<ast::String> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct AttrId {
-    is_doc_comment: bool,
+pub struct AttrId {
     pub(crate) ast_index: u32,
 }
 
@@ -692,7 +703,7 @@ impl Attr {
         hygiene: &Hygiene,
         id: AttrId,
     ) -> Option<Attr> {
-        let path = Interned::new(ModPath::from_src(db, ast.path()?, hygiene)?);
+        let path = Interned::new(ModPath::from_src(db.upcast(), ast.path()?, hygiene)?);
         let input = if let Some(ast::Expr::Literal(lit)) = ast.expr() {
             let value = match lit.kind() {
                 ast::LiteralKind::String(string) => string.value()?.into(),
@@ -714,17 +725,14 @@ impl Attr {
         hygiene: &Hygiene,
         id: AttrId,
     ) -> Option<Attr> {
-        let (parse, _) = mbe::token_tree_to_syntax_node(tt, mbe::TopEntryPoint::MetaItem).ok()?;
+        let (parse, _) = mbe::token_tree_to_syntax_node(tt, mbe::TopEntryPoint::MetaItem);
         let ast = ast::Meta::cast(parse.syntax_node())?;
 
         Self::from_src(db, ast, hygiene, id)
     }
 
-    /// Parses this attribute as a `#[derive]`, returns an iterator that yields all contained paths
-    /// to derive macros.
-    ///
-    /// Returns `None` when the attribute does not have a well-formed `#[derive]` attribute input.
-    pub(crate) fn parse_derive(&self) -> Option<impl Iterator<Item = ModPath> + '_> {
+    /// Parses this attribute as a token tree consisting of comma separated paths.
+    pub fn parse_path_comma_token_tree(&self) -> Option<impl Iterator<Item = ModPath> + '_> {
         let args = match self.input.as_deref() {
             Some(AttrInput::TokenTree(args, _)) => args,
             _ => return None,
@@ -740,6 +748,7 @@ impl Attr {
                 matches!(tt, tt::TokenTree::Leaf(tt::Leaf::Punct(Punct { char: ',', .. })))
             })
             .into_iter()
+            .filter(|(comma, _)| !*comma)
             .map(|(_, tts)| {
                 let segments = tts.filter_map(|tt| match tt {
                     tt::TokenTree::Leaf(tt::Leaf::Ident(id)) => Some(id.as_name()),
@@ -749,7 +758,11 @@ impl Attr {
             })
             .collect::<Vec<_>>();
 
-        return Some(paths.into_iter());
+        Some(paths.into_iter())
+    }
+
+    pub fn path(&self) -> &ModPath {
+        &self.path
     }
 
     pub fn string_value(&self) -> Option<&SmolStr> {
@@ -761,20 +774,20 @@ impl Attr {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct AttrQuery<'a> {
-    attrs: &'a Attrs,
+pub struct AttrQuery<'attr> {
+    attrs: &'attr Attrs,
     key: &'static str,
 }
 
-impl<'a> AttrQuery<'a> {
-    pub fn tt_values(self) -> impl Iterator<Item = &'a Subtree> {
+impl<'attr> AttrQuery<'attr> {
+    pub fn tt_values(self) -> impl Iterator<Item = &'attr Subtree> {
         self.attrs().filter_map(|attr| match attr.input.as_deref()? {
             AttrInput::TokenTree(it, _) => Some(it),
             _ => None,
         })
     }
 
-    pub fn string_value(self) -> Option<&'a SmolStr> {
+    pub fn string_value(self) -> Option<&'attr SmolStr> {
         self.attrs().find_map(|attr| match attr.input.as_deref()? {
             AttrInput::Literal(it) => Some(it),
             _ => None,
@@ -785,7 +798,7 @@ impl<'a> AttrQuery<'a> {
         self.attrs().next().is_some()
     }
 
-    pub fn attrs(self) -> impl Iterator<Item = &'a Attr> + Clone {
+    pub fn attrs(self) -> impl Iterator<Item = &'attr Attr> + Clone {
         let key = self.key;
         self.attrs
             .iter()
@@ -810,31 +823,16 @@ fn attrs_from_item_tree<N: ItemTreeNode>(id: ItemTreeId<N>, db: &dyn DefDatabase
 fn collect_attrs(
     owner: &dyn ast::HasAttrs,
 ) -> impl Iterator<Item = (AttrId, Either<ast::Attr, ast::Comment>)> {
-    let (inner_attrs, inner_docs) = inner_attributes(owner.syntax())
-        .map_or((None, None), |(attrs, docs)| (Some(attrs), Some(docs)));
-
-    let outer_attrs = owner.attrs().filter(|attr| attr.kind().is_outer());
-    let attrs =
-        outer_attrs.chain(inner_attrs.into_iter().flatten()).enumerate().map(|(idx, attr)| {
-            (
-                AttrId { ast_index: idx as u32, is_doc_comment: false },
-                attr.syntax().text_range().start(),
-                Either::Left(attr),
-            )
+    let inner_attrs = inner_attributes(owner.syntax()).into_iter().flatten();
+    let outer_attrs =
+        ast::AttrDocCommentIter::from_syntax_node(owner.syntax()).filter(|el| match el {
+            Either::Left(attr) => attr.kind().is_outer(),
+            Either::Right(comment) => comment.is_outer(),
         });
-
-    let outer_docs =
-        ast::CommentIter::from_syntax_node(owner.syntax()).filter(ast::Comment::is_outer);
-    let docs =
-        outer_docs.chain(inner_docs.into_iter().flatten()).enumerate().map(|(idx, docs_text)| {
-            (
-                AttrId { ast_index: idx as u32, is_doc_comment: true },
-                docs_text.syntax().text_range().start(),
-                Either::Right(docs_text),
-            )
-        });
-    // sort here by syntax node offset because the source can have doc attributes and doc strings be interleaved
-    docs.chain(attrs).sorted_by_key(|&(_, offset, _)| offset).map(|(id, _, attr)| (id, attr))
+    outer_attrs
+        .chain(inner_attrs)
+        .enumerate()
+        .map(|(id, attr)| (AttrId { ast_index: id as u32 }, attr))
 }
 
 pub(crate) fn variants_attrs_source_map(

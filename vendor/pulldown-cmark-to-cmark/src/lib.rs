@@ -5,7 +5,7 @@ use std::{
     fmt,
 };
 
-use pulldown_cmark::{Alignment as TableAlignment, Event, LinkType};
+use pulldown_cmark::{Alignment as TableAlignment, Event, HeadingLevel, LinkType};
 
 /// Similar to [Pulldown-Cmark-Alignment][Alignment], but with required
 /// traits for comparison to allow testing.
@@ -44,14 +44,17 @@ pub struct State<'a> {
     pub table_alignments: Vec<Alignment>,
     /// Keeps the current table headers, if we are currently serializing a table.
     pub table_headers: Vec<String>,
-    /// If set, the next 'text' will be stored for later use
-    pub store_next_text: bool,
     /// The last seen text when serializing a header
     pub text_for_header: Option<String>,
     /// Is set while we are handling text in a code block
     pub is_in_code_block: bool,
     /// True if the last event was html. Used to inject additional newlines to support markdown inside of HTML tags.
     pub last_was_html: bool,
+
+    /// Keeps track of the last seen shortcut/link
+    pub current_shortcut_text: Option<String>,
+    /// A list of shortcuts seen so far for later emission
+    pub shortcuts: Vec<(String, String, String)>,
 }
 
 /// Configuration for the [`cmark()`] function.
@@ -135,7 +138,7 @@ impl<'a> Options<'a> {
 /// *Returns* the [`State`] of the serialization on success. You can use it as initial state in the
 /// next call if you are halting event serialization.
 /// *Errors* are only happening if the underlying buffer fails, which is unlikely.
-pub fn cmark_with_options<'a, I, E, F>(
+pub fn cmark_resume_with_options<'a, I, E, F>(
     events: I,
     mut formatter: F,
     state: Option<State<'static>>,
@@ -147,9 +150,6 @@ where
     F: fmt::Write,
 {
     let mut state = state.unwrap_or_default();
-    let mut current_shortcut = String::new();
-    let mut inside_shortcut = false;
-    let mut shortcuts: Vec<(String, String, String)> = Vec::new();
     fn padding<'a, F>(f: &mut F, p: &[Cow<'a, str>]) -> fmt::Result
     where
         F: fmt::Write,
@@ -218,30 +218,6 @@ where
         }
     }
 
-    fn close_link<F>(uri: &str, title: &str, f: &mut F, link_type: LinkType) -> fmt::Result
-    where
-        F: fmt::Write,
-    {
-        let separator = match link_type {
-            LinkType::Shortcut => ": ",
-            _ => "(",
-        };
-
-        if uri.contains(' ') {
-            write!(f, "]{}<{uri}>", separator, uri = uri)?;
-        } else {
-            write!(f, "]{}{uri}", separator, uri = uri)?;
-        }
-        if !title.is_empty() {
-            write!(f, " \"{title}\"", title = title)?;
-        }
-        if link_type != LinkType::Shortcut {
-            f.write_char(')')?;
-        }
-
-        Ok(())
-    }
-
     for event in events {
         use pulldown_cmark::{CodeBlockKind, Event::*, Tag::*};
 
@@ -275,10 +251,12 @@ where
                 formatter.write_str("---")
             }
             Code(ref text) => {
-                if state.store_next_text {
-                    state.store_next_text = false;
+                if let Some(shortcut_text) = state.current_shortcut_text.as_mut() {
+                    shortcut_text.push_str(&format!("`{}`", text));
+                }
+                if let Some(text_for_header) = state.text_for_header.as_mut() {
                     let code = format!("{}{}{}", options.code_block_token, text, options.code_block_token);
-                    state.text_for_header = Some(code)
+                    text_for_header.push_str(&code);
                 }
                 formatter
                     .write_char(options.code_block_token)
@@ -312,12 +290,12 @@ where
                     TableHead => Ok(()),
                     TableRow => Ok(()),
                     TableCell => {
-                        state.store_next_text = true;
+                        state.text_for_header = Some(String::new());
                         formatter.write_char('|')
                     }
                     Link(LinkType::Autolink | LinkType::Email, ..) => formatter.write_char('<'),
                     Link(LinkType::Shortcut, ..) => {
-                        inside_shortcut = true;
+                        state.current_shortcut_text = Some(String::new());
                         formatter.write_char('[')
                     }
                     Link(..) => formatter.write_char('['),
@@ -326,10 +304,15 @@ where
                     Strong => formatter.write_str(options.strong_token),
                     FootnoteDefinition(ref name) => write!(formatter, "[^{}]: ", name),
                     Paragraph => Ok(()),
-                    Heading(n) => {
-                        for _ in 0..*n {
-                            formatter.write_char('#')?;
-                        }
+                    Heading(level, _, _) => {
+                        match level {
+                            HeadingLevel::H1 => formatter.write_str("#"),
+                            HeadingLevel::H2 => formatter.write_str("##"),
+                            HeadingLevel::H3 => formatter.write_str("###"),
+                            HeadingLevel::H4 => formatter.write_str("####"),
+                            HeadingLevel::H5 => formatter.write_str("#####"),
+                            HeadingLevel::H6 => formatter.write_str("######"),
+                        }?;
                         formatter.write_char(' ')
                     }
                     BlockQuote => {
@@ -379,10 +362,10 @@ where
             End(ref tag) => match tag {
                 Link(LinkType::Autolink | LinkType::Email, ..) => formatter.write_char('>'),
                 Link(LinkType::Shortcut, ref uri, ref title) => {
-                    if inside_shortcut {
-                        shortcuts.push((current_shortcut.clone(), uri.to_string(), title.to_string()));
-                        inside_shortcut = false;
-                        current_shortcut = String::new();
+                    if let Some(shortcut_text) = state.current_shortcut_text.take() {
+                        state
+                            .shortcuts
+                            .push((shortcut_text, uri.to_string(), title.to_string()));
                     }
                     formatter.write_char(']')
                 }
@@ -391,7 +374,28 @@ where
                 }
                 Emphasis => formatter.write_char(options.emphasis_token),
                 Strong => formatter.write_str(options.strong_token),
-                Heading(_) => {
+                Heading(_, id, classes) => {
+                    let emit_braces = id.is_some() || !classes.is_empty();
+                    if emit_braces {
+                        formatter.write_str(" {")?;
+                    }
+                    if let Some(id_str) = id {
+                        formatter.write_char('#')?;
+                        formatter.write_str(id_str)?;
+                        if !classes.is_empty() {
+                            formatter.write_char(' ')?;
+                        }
+                    }
+                    for (idx, class) in classes.iter().enumerate() {
+                        formatter.write_char('.')?;
+                        formatter.write_str(class)?;
+                        if idx < classes.len() - 1 {
+                            formatter.write_char(' ')?;
+                        }
+                    }
+                    if emit_braces {
+                        formatter.write_char('}')?;
+                    }
                     if state.newlines_before_start < options.newlines_after_headline {
                         state.newlines_before_start = options.newlines_after_headline;
                     }
@@ -422,10 +426,13 @@ where
                     Ok(())
                 }
                 TableCell => {
-                    state.table_headers.push(match state.text_for_header.take() {
-                        Some(text) => text,
-                        None => "  ".into(),
-                    });
+                    state.table_headers.push(
+                        state
+                            .text_for_header
+                            .take()
+                            .filter(|s| !s.is_empty())
+                            .unwrap_or_else(|| "  ".into()),
+                    );
                     Ok(())
                 }
                 ref t @ TableRow | ref t @ TableHead => {
@@ -489,12 +496,11 @@ where
             HardBreak => formatter.write_str("  \n").and(padding(&mut formatter, &state.padding)),
             SoftBreak => formatter.write_char('\n').and(padding(&mut formatter, &state.padding)),
             Text(ref text) => {
-                if inside_shortcut {
-                    current_shortcut.push_str(text);
+                if let Some(shortcut_text) = state.current_shortcut_text.as_mut() {
+                    shortcut_text.push_str(text);
                 }
-                if state.store_next_text {
-                    state.store_next_text = false;
-                    state.text_for_header = Some(text.to_owned().into_string())
+                if let Some(text_for_header) = state.text_for_header.as_mut() {
+                    text_for_header.push_str(text)
                 }
                 consume_newlines(&mut formatter, &mut state)?;
                 print_text_without_trailing_newline(
@@ -515,22 +521,72 @@ where
             }
         }?
     }
-    if !shortcuts.is_empty() {
-        formatter.write_str("\n")?;
-        for shortcut in shortcuts {
-            write!(formatter, "\n[{}", shortcut.0)?;
-            close_link(&shortcut.1, &shortcut.2, &mut formatter, LinkType::Shortcut)?
-        }
-    }
     Ok(state)
 }
 
+fn close_link<F>(uri: &str, title: &str, f: &mut F, link_type: LinkType) -> fmt::Result
+where
+    F: fmt::Write,
+{
+    let separator = match link_type {
+        LinkType::Shortcut => ": ",
+        _ => "(",
+    };
+
+    if uri.contains(' ') {
+        write!(f, "]{}<{uri}>", separator, uri = uri)?;
+    } else {
+        write!(f, "]{}{uri}", separator, uri = uri)?;
+    }
+    if !title.is_empty() {
+        write!(f, " \"{title}\"", title = title)?;
+    }
+    if link_type != LinkType::Shortcut {
+        f.write_char(')')?;
+    }
+
+    Ok(())
+}
+
+impl<'a> State<'a> {
+    pub fn finalize<F>(mut self, mut formatter: F) -> Result<Self, fmt::Error>
+    where
+        F: fmt::Write,
+    {
+        if self.shortcuts.is_empty() {
+            return Ok(self);
+        }
+
+        formatter.write_str("\n")?;
+        for shortcut in self.shortcuts.drain(..) {
+            write!(formatter, "\n[{}", shortcut.0)?;
+            close_link(&shortcut.1, &shortcut.2, &mut formatter, LinkType::Shortcut)?
+        }
+        Ok(self)
+    }
+}
+
 /// As [`cmark_with_options()`], but with default [`Options`].
-pub fn cmark<'a, I, E, F>(events: I, formatter: F, state: Option<State<'static>>) -> Result<State<'static>, fmt::Error>
+pub fn cmark<'a, I, E, F>(events: I, mut formatter: F) -> Result<State<'static>, fmt::Error>
 where
     I: Iterator<Item = E>,
     E: Borrow<Event<'a>>,
     F: fmt::Write,
 {
-    cmark_with_options(events, formatter, state, Options::default())
+    let state = cmark_resume_with_options(events, &mut formatter, Default::default(), Options::default())?;
+    state.finalize(formatter)
+}
+
+/// As [`cmark_resume_with_options()`], but with default [`Options`].
+pub fn cmark_resume<'a, I, E, F>(
+    events: I,
+    formatter: F,
+    state: Option<State<'static>>,
+) -> Result<State<'static>, fmt::Error>
+where
+    I: Iterator<Item = E>,
+    E: Borrow<Event<'a>>,
+    F: fmt::Write,
+{
+    cmark_resume_with_options(events, formatter, state, Options::default())
 }

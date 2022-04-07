@@ -7,7 +7,7 @@ mod intra_doc_links;
 
 use either::Either;
 use pulldown_cmark::{BrokenLink, CowStr, Event, InlineStr, LinkType, Options, Parser, Tag};
-use pulldown_cmark_to_cmark::{cmark_with_options, Options as CMarkOptions};
+use pulldown_cmark_to_cmark::{cmark_resume_with_options, Options as CMarkOptions};
 use stdx::format_to;
 use url::Url;
 
@@ -61,7 +61,7 @@ pub(crate) fn rewrite_links(db: &RootDatabase, markdown: &str, definition: Defin
         }
     });
     let mut out = String::new();
-    cmark_with_options(
+    cmark_resume_with_options(
         doc,
         &mut out,
         None,
@@ -97,7 +97,7 @@ pub(crate) fn remove_links(markdown: &str) -> String {
     });
 
     let mut out = String::new();
-    cmark_with_options(
+    cmark_resume_with_options(
         doc,
         &mut out,
         None,
@@ -282,13 +282,8 @@ impl DocCommentToken {
     }
 }
 
-fn broken_link_clone_cb<'a, 'b>(link: BrokenLink<'a>) -> Option<(CowStr<'b>, CowStr<'b>)> {
-    // These allocations are actually unnecessary but the lifetimes on BrokenLinkCallback are wrong
-    // this is fixed in the repo but not on the crates.io release yet
-    Some((
-        /*url*/ link.reference.to_owned().into(),
-        /*title*/ link.reference.to_owned().into(),
-    ))
+fn broken_link_clone_cb<'a>(link: BrokenLink<'a>) -> Option<(CowStr<'a>, CowStr<'a>)> {
+    Some((/*url*/ link.reference.clone(), /*title*/ link.reference))
 }
 
 // FIXME:

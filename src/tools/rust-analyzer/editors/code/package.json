@@ -36,22 +36,22 @@
         "test": "node ./out/tests/runTests.js"
     },
     "dependencies": {
-        "vscode-languageclient": "8.0.0-next.2",
-        "d3": "^7.2.0",
+        "vscode-languageclient": "8.0.0-next.8",
+        "d3": "^7.3.0",
         "d3-graphviz": "^4.0.0"
     },
     "devDependencies": {
         "@types/node": "~14.17.5",
         "@types/vscode": "~1.63.0",
-        "@typescript-eslint/eslint-plugin": "^5.5.0",
-        "@typescript-eslint/parser": "^5.5.0",
-        "@vscode/test-electron": "^1.6.2",
-        "esbuild": "^0.14.1",
-        "eslint": "^8.3.0",
+        "@typescript-eslint/eslint-plugin": "^5.10.0",
+        "@typescript-eslint/parser": "^5.10.0",
+        "@vscode/test-electron": "^2.1.1",
+        "esbuild": "^0.14.12",
+        "eslint": "^8.7.0",
         "tslib": "^2.3.0",
-        "typescript": "^4.5.2",
+        "typescript": "^4.5.5",
         "typescript-formatter": "^7.2.2",
-        "vsce": "^2.5.1"
+        "vsce": "^2.6.7"
     },
     "activationEvents": [
         "onLanguage:rust",
@@ -378,6 +378,19 @@
                     "markdownDescription": "Optional settings passed to the debug engine. Example: `{ \"lldb\": { \"terminal\":\"external\"} }`"
                 },
                 "$generated-start": {},
+                "rust-analyzer.assist.exprFillDefault": {
+                    "markdownDescription": "Placeholder for missing expressions in assists.",
+                    "default": "todo",
+                    "type": "string",
+                    "enum": [
+                        "todo",
+                        "default"
+                    ],
+                    "enumDescriptions": [
+                        "Fill missing expressions with the `todo` macro",
+                        "Fill missing expressions with reasonable defaults, `new` or `default` constructors."
+                    ]
+                },
                 "rust-analyzer.assist.importGranularity": {
                     "markdownDescription": "How imports should be grouped into use statements.",
                     "default": "crate",
@@ -867,6 +880,13 @@
                     "default": true,
                     "type": "boolean"
                 },
+                "rust-analyzer.primeCaches.numThreads": {
+                    "markdownDescription": "How many worker threads to to handle priming caches. The default `0` means to pick automatically.",
+                    "default": 0,
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 255
+                },
                 "rust-analyzer.procMacro.enable": {
                     "markdownDescription": "Enable support for procedural macros, implies `#rust-analyzer.cargo.runBuildScripts#`.",
                     "default": true,
@@ -879,6 +899,11 @@
                         "null",
                         "string"
                     ]
+                },
+                "rust-analyzer.procMacro.ignored": {
+                    "markdownDescription": "These proc-macros will be ignored when trying to expand them.\n\nThis config takes a map of crate names with the exported proc-macro names to ignore as values.",
+                    "default": {},
+                    "type": "object"
                 },
                 "rust-analyzer.runnables.overrideCargo": {
                     "markdownDescription": "Command to be executed instead of 'cargo' for runnables.",

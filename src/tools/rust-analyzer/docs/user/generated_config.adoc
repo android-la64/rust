@@ -1,3 +1,8 @@
+[[rust-analyzer.assist.exprFillDefault]]rust-analyzer.assist.exprFillDefault (default: `"todo"`)::
++
+--
+Placeholder for missing expressions in assists.
+--
 [[rust-analyzer.assist.importGranularity]]rust-analyzer.assist.importGranularity (default: `"crate"`)::
 +
 --
@@ -141,7 +146,12 @@ Only applies when `#rust-analyzer.completion.addCallParenthesis#` is set.
 --
 Whether to add parenthesis when completing functions.
 --
-[[rust-analyzer.completion.snippets]]rust-analyzer.completion.snippets (default: `{
+[[rust-analyzer.completion.snippets]]rust-analyzer.completion.snippets::
++
+--
+Default:
+----
+{
             "Arc::new": {
                 "postfix": "arc",
                 "body": "Arc::new(${receiver})",
@@ -181,10 +191,10 @@ Whether to add parenthesis when completing functions.
                 "description": "Wrap the expression in an `Option::Some`",
                 "scope": "expr"
             }
-        }`)::
-+
---
+        }
+----
 Custom completion snippets.
+
 --
 [[rust-analyzer.completion.postfix.enable]]rust-analyzer.completion.postfix.enable (default: `true`)::
 +
@@ -444,6 +454,11 @@ Number of syntax trees rust-analyzer keeps in memory. Defaults to 128.
 --
 Whether to show `can't find Cargo.toml` error message.
 --
+[[rust-analyzer.primeCaches.numThreads]]rust-analyzer.primeCaches.numThreads (default: `0`)::
++
+--
+How many worker threads to to handle priming caches. The default `0` means to pick automatically.
+--
 [[rust-analyzer.procMacro.enable]]rust-analyzer.procMacro.enable (default: `true`)::
 +
 --
@@ -454,6 +469,13 @@ Enable support for procedural macros, implies `#rust-analyzer.cargo.runBuildScri
 --
 Internal config, path to proc-macro server executable (typically,
 this is rust-analyzer itself, but we override this in tests).
+--
+[[rust-analyzer.procMacro.ignored]]rust-analyzer.procMacro.ignored (default: `{}`)::
++
+--
+These proc-macros will be ignored when trying to expand them.
+
+This config takes a map of crate names with the exported proc-macro names to ignore as values.
 --
 [[rust-analyzer.runnables.overrideCargo]]rust-analyzer.runnables.overrideCargo (default: `null`)::
 +

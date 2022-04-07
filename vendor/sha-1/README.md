@@ -4,11 +4,20 @@
 [![Docs][docs-image]][docs-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
+[![Project Chat][chat-image]][chat-link]
 [![Build Status][build-image]][build-link]
 
 Pure Rust implementation of the [SHA-1 hash function][1].
 
 [Documentation][docs-link]
+
+## 🚨 Warning: Cryptographically Broken 🚨
+
+The SHA-1 hash function should be considered cryptographically broken and
+unsuitable for further use in any security critical capacity, as it is
+[practically vulnerable to chosen-prefix collisions][2].
+
+We provide this crate for legacy interoperability purposes only.
 
 ## Minimum Supported Rust Version
 
@@ -45,9 +54,12 @@ dual licensed as above, without any additional terms or conditions.
 [docs-link]: https://docs.rs/sha-1/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260041-hashes
 [build-image]: https://github.com/RustCrypto/hashes/workflows/sha1/badge.svg?branch=master
 [build-link]: https://github.com/RustCrypto/hashes/actions?query=workflow%3Asha1
 
 [//]: # (general links)
 
 [1]: https://en.wikipedia.org/wiki/SHA-1
+[2]: https://sha-mbles.github.io/

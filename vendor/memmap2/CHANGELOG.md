@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.3] - 2022-02-10
+### Added
+- `Mmap::advise` and `MmapMut::advise`. [@nyurik](https://github.com/nyurik)
+
+## [0.5.2] - 2022-01-10
+### Added
+- `flush`, `flush_async`, `flush_range` and `flush_async_range` to `MmapRaw` matching
+  the corresponding methods on `MmapMut`.
+  [@cberner](https://github.com/cberner)
+
+## [0.5.1] - 2022-01-09
+### Fixed
+- Explicitly call `fstat64` on Linux, emscripten and l4re targets.
+  [@adamreichold](https://github.com/adamreichold)
+
 ## [0.5.0] - 2021-09-19
 ### Added
 - `MmapOptions` accepts any type that supports `RawHandle`/`RawFd` returning now.
@@ -75,7 +90,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 - `winapi` dependency. [memmap-rs/pull/89](https://github.com/danburkert/memmap-rs/pull/89)
 
-[Unreleased]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/RazrFalcon/memmap2-rs/compare/v0.3.0...v0.3.1

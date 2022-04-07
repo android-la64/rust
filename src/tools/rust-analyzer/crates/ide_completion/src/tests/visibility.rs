@@ -40,6 +40,7 @@ pub(in $0)
 
 #[test]
 fn qualified() {
+    cov_mark::check!(visibility_qualified);
     check(
         r#"
 mod foo {
@@ -50,6 +51,21 @@ mod bar {}
 "#,
         expect![[r#"
             md foo
+        "#]],
+    );
+    check(
+        r#"
+mod qux {
+    mod foo {
+        pub(in crate::$0)
+    }
+    mod baz {}
+}
+
+mod bar {}
+"#,
+        expect![[r#"
+            md qux
         "#]],
     );
     check(

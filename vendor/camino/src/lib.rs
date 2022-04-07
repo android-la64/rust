@@ -5,7 +5,7 @@
 
 //! UTF-8 encoded paths.
 //!
-//! `camino` is an extension of the `std::path` module that adds new `Utf8PathBuf` and `Utf8Path`
+//! `camino` is an extension of the `std::path` module that adds new [`Utf8PathBuf`] and [`Utf8Path`]
 //! types. These are like the standard library's [`PathBuf`] and [`Path`] types, except they are
 //! guaranteed to only contain UTF-8 encoded data. Therefore, they expose the ability to get their
 //! contents as strings, they implement `Display`, etc.
@@ -542,7 +542,7 @@ impl Utf8Path {
     /// assert!(Utf8Path::from_path(non_unicode_path).is_none(), "non-Unicode path failed");
     /// ```
     pub fn from_path(path: &Path) -> Option<&Utf8Path> {
-        path.as_os_str().to_str().map(|s| Utf8Path::new(s))
+        path.as_os_str().to_str().map(Utf8Path::new)
     }
 
     /// Converts a `Utf8Path` to a [`Path`].
@@ -1201,6 +1201,39 @@ impl Utf8Path {
     /// [`fs::Metadata::is_dir`] if it was [`Ok`].
     pub fn is_dir(&self) -> bool {
         self.0.is_dir()
+    }
+
+    /// Returns `true` if the path exists on disk and is pointing at a symbolic link.
+    ///
+    /// This function will not traverse symbolic links.
+    /// In case of a broken symbolic link this will also return true.
+    ///
+    /// If you cannot access the directory containing the file, e.g., because of a
+    /// permission error, this will return false.
+    ///
+    /// # Examples
+    ///
+    #[cfg_attr(unix, doc = "```no_run")]
+    #[cfg_attr(not(unix), doc = "```ignore")]
+    /// use camino::Utf8Path;
+    /// use std::os::unix::fs::symlink;
+    ///
+    /// let link_path = Utf8Path::new("link");
+    /// symlink("/origin_does_not_exist/", link_path).unwrap();
+    /// assert_eq!(link_path.is_symlink(), true);
+    /// assert_eq!(link_path.exists(), false);
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// This is a convenience function that coerces errors to false. If you want to
+    /// check errors, call [`Utf8Path::symlink_metadata`] and handle its [`Result`]. Then call
+    /// [`fs::Metadata::is_symlink`] if it was [`Ok`].
+    #[must_use]
+    pub fn is_symlink(&self) -> bool {
+        self.symlink_metadata()
+            .map(|m| m.file_type().is_symlink())
+            .unwrap_or(false)
     }
 
     /// Converts a `Box<Utf8Path>` into a [`Utf8PathBuf`] without copying or allocating.

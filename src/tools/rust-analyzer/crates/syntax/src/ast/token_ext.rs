@@ -14,6 +14,10 @@ impl ast::Comment {
         CommentKind::from_text(self.text())
     }
 
+    pub fn is_doc(&self) -> bool {
+        self.kind().doc.is_some()
+    }
+
     pub fn is_inner(&self) -> bool {
         self.kind().doc == Some(CommentPlacement::Inner)
     }
@@ -160,6 +164,25 @@ pub trait IsString: AstToken {
     fn close_quote_text_range(&self) -> Option<TextRange> {
         self.quote_offsets().map(|it| it.quotes.1)
     }
+    fn escaped_char_ranges(
+        &self,
+        cb: &mut dyn FnMut(TextRange, Result<char, rustc_lexer::unescape::EscapeError>),
+    ) {
+        let text_range_no_quotes = match self.text_range_between_quotes() {
+            Some(it) => it,
+            None => return,
+        };
+
+        let start = self.syntax().text_range().start();
+        let text = &self.text()[text_range_no_quotes - start];
+        let offset = text_range_no_quotes.start() - start;
+
+        unescape_literal(text, Mode::Str, &mut |range, unescaped_char| {
+            let text_range =
+                TextRange::new(range.start.try_into().unwrap(), range.end.try_into().unwrap());
+            cb(text_range + offset, unescaped_char);
+        });
+    }
 }
 
 impl IsString for ast::String {}
@@ -250,366 +273,6 @@ impl ast::ByteString {
             (false, true) => Some(Cow::Borrowed(text.as_bytes())),
             (false, false) => Some(Cow::Owned(buf)),
         }
-    }
-}
-
-#[derive(Debug)]
-pub enum FormatSpecifier {
-    Open,
-    Close,
-    Integer,
-    Identifier,
-    Colon,
-    Fill,
-    Align,
-    Sign,
-    NumberSign,
-    Zero,
-    DollarSign,
-    Dot,
-    Asterisk,
-    QuestionMark,
-}
-
-pub trait HasFormatSpecifier: AstToken {
-    fn char_ranges(
-        &self,
-    ) -> Option<Vec<(TextRange, Result<char, rustc_lexer::unescape::EscapeError>)>>;
-
-    fn lex_format_specifier<F>(&self, mut callback: F)
-    where
-        F: FnMut(TextRange, FormatSpecifier),
-    {
-        let char_ranges = match self.char_ranges() {
-            Some(char_ranges) => char_ranges,
-            None => return,
-        };
-        let mut chars = char_ranges.iter().peekable();
-
-        while let Some((range, first_char)) = chars.next() {
-            match first_char {
-                Ok('{') => {
-                    // Format specifier, see syntax at https://doc.rust-lang.org/std/fmt/index.html#syntax
-                    if let Some((_, Ok('{'))) = chars.peek() {
-                        // Escaped format specifier, `{{`
-                        chars.next();
-                        continue;
-                    }
-
-                    callback(*range, FormatSpecifier::Open);
-
-                    // check for integer/identifier
-                    match chars
-                        .peek()
-                        .and_then(|next| next.1.as_ref().ok())
-                        .copied()
-                        .unwrap_or_default()
-                    {
-                        '0'..='9' => {
-                            // integer
-                            read_integer(&mut chars, &mut callback);
-                        }
-                        c if c == '_' || c.is_alphabetic() => {
-                            // identifier
-                            read_identifier(&mut chars, &mut callback);
-                        }
-                        _ => {}
-                    }
-
-                    if let Some((_, Ok(':'))) = chars.peek() {
-                        skip_char_and_emit(&mut chars, FormatSpecifier::Colon, &mut callback);
-
-                        // check for fill/align
-                        let mut cloned = chars.clone().take(2);
-                        let first = cloned
-                            .next()
-                            .and_then(|next| next.1.as_ref().ok())
-                            .copied()
-                            .unwrap_or_default();
-                        let second = cloned
-                            .next()
-                            .and_then(|next| next.1.as_ref().ok())
-                            .copied()
-                            .unwrap_or_default();
-                        match second {
-                            '<' | '^' | '>' => {
-                                // alignment specifier, first char specifies fillment
-                                skip_char_and_emit(
-                                    &mut chars,
-                                    FormatSpecifier::Fill,
-                                    &mut callback,
-                                );
-                                skip_char_and_emit(
-                                    &mut chars,
-                                    FormatSpecifier::Align,
-                                    &mut callback,
-                                );
-                            }
-                            _ => match first {
-                                '<' | '^' | '>' => {
-                                    skip_char_and_emit(
-                                        &mut chars,
-                                        FormatSpecifier::Align,
-                                        &mut callback,
-                                    );
-                                }
-                                _ => {}
-                            },
-                        }
-
-                        // check for sign
-                        match chars
-                            .peek()
-                            .and_then(|next| next.1.as_ref().ok())
-                            .copied()
-                            .unwrap_or_default()
-                        {
-                            '+' | '-' => {
-                                skip_char_and_emit(
-                                    &mut chars,
-                                    FormatSpecifier::Sign,
-                                    &mut callback,
-                                );
-                            }
-                            _ => {}
-                        }
-
-                        // check for `#`
-                        if let Some((_, Ok('#'))) = chars.peek() {
-                            skip_char_and_emit(
-                                &mut chars,
-                                FormatSpecifier::NumberSign,
-                                &mut callback,
-                            );
-                        }
-
-                        // check for `0`
-                        let mut cloned = chars.clone().take(2);
-                        let first = cloned.next().and_then(|next| next.1.as_ref().ok()).copied();
-                        let second = cloned.next().and_then(|next| next.1.as_ref().ok()).copied();
-
-                        if first == Some('0') && second != Some('$') {
-                            skip_char_and_emit(&mut chars, FormatSpecifier::Zero, &mut callback);
-                        }
-
-                        // width
-                        match chars
-                            .peek()
-                            .and_then(|next| next.1.as_ref().ok())
-                            .copied()
-                            .unwrap_or_default()
-                        {
-                            '0'..='9' => {
-                                read_integer(&mut chars, &mut callback);
-                                if let Some((_, Ok('$'))) = chars.peek() {
-                                    skip_char_and_emit(
-                                        &mut chars,
-                                        FormatSpecifier::DollarSign,
-                                        &mut callback,
-                                    );
-                                }
-                            }
-                            c if c == '_' || c.is_alphabetic() => {
-                                read_identifier(&mut chars, &mut callback);
-
-                                if chars.peek().and_then(|next| next.1.as_ref().ok()).copied()
-                                    == Some('?')
-                                {
-                                    skip_char_and_emit(
-                                        &mut chars,
-                                        FormatSpecifier::QuestionMark,
-                                        &mut callback,
-                                    );
-                                }
-
-                                // can be either width (indicated by dollar sign, or type in which case
-                                // the next sign has to be `}`)
-                                let next =
-                                    chars.peek().and_then(|next| next.1.as_ref().ok()).copied();
-
-                                match next {
-                                    Some('$') => skip_char_and_emit(
-                                        &mut chars,
-                                        FormatSpecifier::DollarSign,
-                                        &mut callback,
-                                    ),
-                                    Some('}') => {
-                                        skip_char_and_emit(
-                                            &mut chars,
-                                            FormatSpecifier::Close,
-                                            &mut callback,
-                                        );
-                                        continue;
-                                    }
-                                    _ => continue,
-                                };
-                            }
-                            _ => {}
-                        }
-
-                        // precision
-                        if let Some((_, Ok('.'))) = chars.peek() {
-                            skip_char_and_emit(&mut chars, FormatSpecifier::Dot, &mut callback);
-
-                            match chars
-                                .peek()
-                                .and_then(|next| next.1.as_ref().ok())
-                                .copied()
-                                .unwrap_or_default()
-                            {
-                                '*' => {
-                                    skip_char_and_emit(
-                                        &mut chars,
-                                        FormatSpecifier::Asterisk,
-                                        &mut callback,
-                                    );
-                                }
-                                '0'..='9' => {
-                                    read_integer(&mut chars, &mut callback);
-                                    if let Some((_, Ok('$'))) = chars.peek() {
-                                        skip_char_and_emit(
-                                            &mut chars,
-                                            FormatSpecifier::DollarSign,
-                                            &mut callback,
-                                        );
-                                    }
-                                }
-                                c if c == '_' || c.is_alphabetic() => {
-                                    read_identifier(&mut chars, &mut callback);
-                                    if chars.peek().and_then(|next| next.1.as_ref().ok()).copied()
-                                        != Some('$')
-                                    {
-                                        continue;
-                                    }
-                                    skip_char_and_emit(
-                                        &mut chars,
-                                        FormatSpecifier::DollarSign,
-                                        &mut callback,
-                                    );
-                                }
-                                _ => {
-                                    continue;
-                                }
-                            }
-                        }
-
-                        // type
-                        match chars
-                            .peek()
-                            .and_then(|next| next.1.as_ref().ok())
-                            .copied()
-                            .unwrap_or_default()
-                        {
-                            '?' => {
-                                skip_char_and_emit(
-                                    &mut chars,
-                                    FormatSpecifier::QuestionMark,
-                                    &mut callback,
-                                );
-                            }
-                            c if c == '_' || c.is_alphabetic() => {
-                                read_identifier(&mut chars, &mut callback);
-
-                                if chars.peek().and_then(|next| next.1.as_ref().ok()).copied()
-                                    == Some('?')
-                                {
-                                    skip_char_and_emit(
-                                        &mut chars,
-                                        FormatSpecifier::QuestionMark,
-                                        &mut callback,
-                                    );
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-
-                    match chars.peek() {
-                        Some((_, Ok('}'))) => {
-                            skip_char_and_emit(&mut chars, FormatSpecifier::Close, &mut callback);
-                        }
-                        Some((_, _)) | None => continue,
-                    }
-                }
-                _ => {
-                    while let Some((_, Ok(next_char))) = chars.peek() {
-                        if next_char == &'{' {
-                            break;
-                        }
-                        chars.next();
-                    }
-                }
-            };
-        }
-
-        fn skip_char_and_emit<'a, I, F>(
-            chars: &mut std::iter::Peekable<I>,
-            emit: FormatSpecifier,
-            callback: &mut F,
-        ) where
-            I: Iterator<Item = &'a (TextRange, Result<char, rustc_lexer::unescape::EscapeError>)>,
-            F: FnMut(TextRange, FormatSpecifier),
-        {
-            let (range, _) = chars.next().unwrap();
-            callback(*range, emit);
-        }
-
-        fn read_integer<'a, I, F>(chars: &mut std::iter::Peekable<I>, callback: &mut F)
-        where
-            I: Iterator<Item = &'a (TextRange, Result<char, rustc_lexer::unescape::EscapeError>)>,
-            F: FnMut(TextRange, FormatSpecifier),
-        {
-            let (mut range, c) = chars.next().unwrap();
-            assert!(c.as_ref().unwrap().is_ascii_digit());
-            while let Some((r, Ok(next_char))) = chars.peek() {
-                if next_char.is_ascii_digit() {
-                    chars.next();
-                    range = range.cover(*r);
-                } else {
-                    break;
-                }
-            }
-            callback(range, FormatSpecifier::Integer);
-        }
-
-        fn read_identifier<'a, I, F>(chars: &mut std::iter::Peekable<I>, callback: &mut F)
-        where
-            I: Iterator<Item = &'a (TextRange, Result<char, rustc_lexer::unescape::EscapeError>)>,
-            F: FnMut(TextRange, FormatSpecifier),
-        {
-            let (mut range, c) = chars.next().unwrap();
-            assert!(c.as_ref().unwrap().is_alphabetic() || *c.as_ref().unwrap() == '_');
-            while let Some((r, Ok(next_char))) = chars.peek() {
-                if *next_char == '_' || next_char.is_ascii_digit() || next_char.is_alphabetic() {
-                    chars.next();
-                    range = range.cover(*r);
-                } else {
-                    break;
-                }
-            }
-            callback(range, FormatSpecifier::Identifier);
-        }
-    }
-}
-
-impl HasFormatSpecifier for ast::String {
-    fn char_ranges(
-        &self,
-    ) -> Option<Vec<(TextRange, Result<char, rustc_lexer::unescape::EscapeError>)>> {
-        let text = self.text();
-        let text = &text[self.text_range_between_quotes()? - self.syntax().text_range().start()];
-        let offset = self.text_range_between_quotes()?.start() - self.syntax().text_range().start();
-
-        let mut res = Vec::with_capacity(text.len());
-        unescape_literal(text, Mode::Str, &mut |range, unescaped_char| {
-            res.push((
-                TextRange::new(range.start.try_into().unwrap(), range.end.try_into().unwrap())
-                    + offset,
-                unescaped_char,
-            ));
-        });
-
-        Some(res)
     }
 }
 

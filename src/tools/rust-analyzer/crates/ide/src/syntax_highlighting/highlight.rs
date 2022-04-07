@@ -3,7 +3,7 @@
 use hir::{AsAssocItem, HasVisibility, Semantics};
 use ide_db::{
     defs::{Definition, NameClass, NameRefClass},
-    helpers::{try_resolve_derive_input, FamousDefs},
+    helpers::FamousDefs,
     RootDatabase, SymbolKind,
 };
 use rustc_hash::FxHashMap;
@@ -39,16 +39,17 @@ pub(super) fn token(
         INT_NUMBER | FLOAT_NUMBER => HlTag::NumericLiteral.into(),
         BYTE => HlTag::ByteLiteral.into(),
         CHAR => HlTag::CharLiteral.into(),
-        IDENT if parent_matches::<ast::TokenTree>(&token) => {
-            match token.ancestors().nth(2).and_then(ast::Attr::cast) {
-                Some(attr) => {
-                    match try_resolve_derive_input(sema, &attr, &ast::Ident::cast(token).unwrap()) {
-                        Some(res) => highlight_def(sema, krate, Definition::from(res)),
-                        None => HlTag::None.into(),
-                    }
-                }
-                None => HlTag::None.into(),
-            }
+        IDENT => {
+            let tt = ast::TokenTree::cast(token.parent()?)?;
+            let ident = ast::Ident::cast(token)?;
+            // from this point on we are inside a token tree, this only happens for identifiers
+            // that were not mapped down into macro invocations
+            (|| {
+                let attr = tt.parent_meta()?.parent_attr()?;
+                let res = sema.resolve_derive_ident(&attr, &ident)?;
+                Some(highlight_def(sema, krate, Definition::from(res)))
+            })()
+            .unwrap_or_else(|| HlTag::None.into())
         }
         p if p.is_punct() => punctuation(sema, token, p),
         k if k.is_keyword() => keyword(sema, token, k)?,
@@ -232,15 +233,6 @@ fn highlight_name_ref(
         Some(name_kind) => name_kind,
         None if syntactic_name_ref_highlighting => {
             return highlight_name_ref_by_syntax(name_ref, sema, krate)
-        }
-        // FIXME: Workaround for https://github.com/rust-analyzer/rust-analyzer/issues/10708
-        //
-        // Some popular proc macros (namely async_trait) will rewrite `self` in such a way that it no
-        // longer resolves via NameRefClass. If we can't be resolved, but we know we're a self token,
-        // within a function with a self param, pretend to still be `self`, rather than
-        // an unresolved reference.
-        None if name_ref.self_token().is_some() && is_in_fn_with_self_param(&name_ref) => {
-            return SymbolKind::SelfParam.into()
         }
         // FIXME: This is required for helper attributes used by proc-macros, as those do not map down
         // to anything when used.
@@ -710,15 +702,4 @@ fn parents_match(mut node: NodeOrToken<SyntaxNode, SyntaxToken>, mut kinds: &[Sy
 
 fn parent_matches<N: AstNode>(token: &SyntaxToken) -> bool {
     token.parent().map_or(false, |it| N::can_cast(it.kind()))
-}
-
-fn is_in_fn_with_self_param(node: &ast::NameRef) -> bool {
-    node.syntax()
-        .ancestors()
-        .find_map(ast::Item::cast)
-        .and_then(|item| match item {
-            ast::Item::Fn(fn_) => fn_.param_list()?.self_param(),
-            _ => None,
-        })
-        .is_some()
 }

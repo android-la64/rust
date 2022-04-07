@@ -162,6 +162,7 @@ pub struct MacroCall {
     pub(crate) syntax: SyntaxNode,
 }
 impl ast::HasAttrs for MacroCall {}
+impl ast::HasDocComments for MacroCall {}
 impl MacroCall {
     pub fn path(&self) -> Option<Path> { support::child(&self.syntax) }
     pub fn excl_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![!]) }
@@ -216,6 +217,7 @@ pub struct SourceFile {
 }
 impl ast::HasAttrs for SourceFile {}
 impl ast::HasModuleItem for SourceFile {}
+impl ast::HasDocComments for SourceFile {}
 impl SourceFile {
     pub fn shebang_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![shebang]) }
 }
@@ -227,6 +229,7 @@ pub struct Const {
 impl ast::HasAttrs for Const {}
 impl ast::HasName for Const {}
 impl ast::HasVisibility for Const {}
+impl ast::HasDocComments for Const {}
 impl Const {
     pub fn default_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![default]) }
     pub fn const_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![const]) }
@@ -246,6 +249,7 @@ impl ast::HasAttrs for Enum {}
 impl ast::HasName for Enum {}
 impl ast::HasVisibility for Enum {}
 impl ast::HasGenericParams for Enum {}
+impl ast::HasDocComments for Enum {}
 impl Enum {
     pub fn enum_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![enum]) }
     pub fn variant_list(&self) -> Option<VariantList> { support::child(&self.syntax) }
@@ -256,6 +260,7 @@ pub struct ExternBlock {
     pub(crate) syntax: SyntaxNode,
 }
 impl ast::HasAttrs for ExternBlock {}
+impl ast::HasDocComments for ExternBlock {}
 impl ExternBlock {
     pub fn abi(&self) -> Option<Abi> { support::child(&self.syntax) }
     pub fn extern_item_list(&self) -> Option<ExternItemList> { support::child(&self.syntax) }
@@ -267,6 +272,7 @@ pub struct ExternCrate {
 }
 impl ast::HasAttrs for ExternCrate {}
 impl ast::HasVisibility for ExternCrate {}
+impl ast::HasDocComments for ExternCrate {}
 impl ExternCrate {
     pub fn extern_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![extern]) }
     pub fn crate_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![crate]) }
@@ -283,6 +289,7 @@ impl ast::HasAttrs for Fn {}
 impl ast::HasName for Fn {}
 impl ast::HasVisibility for Fn {}
 impl ast::HasGenericParams for Fn {}
+impl ast::HasDocComments for Fn {}
 impl Fn {
     pub fn default_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![default]) }
     pub fn const_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![const]) }
@@ -303,6 +310,7 @@ pub struct Impl {
 impl ast::HasAttrs for Impl {}
 impl ast::HasVisibility for Impl {}
 impl ast::HasGenericParams for Impl {}
+impl ast::HasDocComments for Impl {}
 impl Impl {
     pub fn default_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![default]) }
     pub fn unsafe_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![unsafe]) }
@@ -320,6 +328,7 @@ pub struct MacroRules {
 impl ast::HasAttrs for MacroRules {}
 impl ast::HasName for MacroRules {}
 impl ast::HasVisibility for MacroRules {}
+impl ast::HasDocComments for MacroRules {}
 impl MacroRules {
     pub fn macro_rules_token(&self) -> Option<SyntaxToken> {
         support::token(&self.syntax, T![macro_rules])
@@ -335,6 +344,7 @@ pub struct MacroDef {
 impl ast::HasAttrs for MacroDef {}
 impl ast::HasName for MacroDef {}
 impl ast::HasVisibility for MacroDef {}
+impl ast::HasDocComments for MacroDef {}
 impl MacroDef {
     pub fn macro_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![macro]) }
     pub fn args(&self) -> Option<TokenTree> { support::child(&self.syntax) }
@@ -348,6 +358,7 @@ pub struct Module {
 impl ast::HasAttrs for Module {}
 impl ast::HasName for Module {}
 impl ast::HasVisibility for Module {}
+impl ast::HasDocComments for Module {}
 impl Module {
     pub fn mod_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![mod]) }
     pub fn item_list(&self) -> Option<ItemList> { support::child(&self.syntax) }
@@ -361,6 +372,7 @@ pub struct Static {
 impl ast::HasAttrs for Static {}
 impl ast::HasName for Static {}
 impl ast::HasVisibility for Static {}
+impl ast::HasDocComments for Static {}
 impl Static {
     pub fn static_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![static]) }
     pub fn mut_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![mut]) }
@@ -379,6 +391,7 @@ impl ast::HasAttrs for Struct {}
 impl ast::HasName for Struct {}
 impl ast::HasVisibility for Struct {}
 impl ast::HasGenericParams for Struct {}
+impl ast::HasDocComments for Struct {}
 impl Struct {
     pub fn struct_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![struct]) }
     pub fn semicolon_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![;]) }
@@ -394,6 +407,7 @@ impl ast::HasName for Trait {}
 impl ast::HasVisibility for Trait {}
 impl ast::HasGenericParams for Trait {}
 impl ast::HasTypeBounds for Trait {}
+impl ast::HasDocComments for Trait {}
 impl Trait {
     pub fn unsafe_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![unsafe]) }
     pub fn auto_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![auto]) }
@@ -410,6 +424,7 @@ impl ast::HasName for TypeAlias {}
 impl ast::HasVisibility for TypeAlias {}
 impl ast::HasGenericParams for TypeAlias {}
 impl ast::HasTypeBounds for TypeAlias {}
+impl ast::HasDocComments for TypeAlias {}
 impl TypeAlias {
     pub fn default_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![default]) }
     pub fn type_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![type]) }
@@ -426,6 +441,7 @@ impl ast::HasAttrs for Union {}
 impl ast::HasName for Union {}
 impl ast::HasVisibility for Union {}
 impl ast::HasGenericParams for Union {}
+impl ast::HasDocComments for Union {}
 impl Union {
     pub fn union_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![union]) }
     pub fn record_field_list(&self) -> Option<RecordFieldList> { support::child(&self.syntax) }
@@ -437,6 +453,7 @@ pub struct Use {
 }
 impl ast::HasAttrs for Use {}
 impl ast::HasVisibility for Use {}
+impl ast::HasDocComments for Use {}
 impl Use {
     pub fn use_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![use]) }
     pub fn use_tree(&self) -> Option<UseTree> { support::child(&self.syntax) }
@@ -582,6 +599,7 @@ pub struct RecordField {
 impl ast::HasAttrs for RecordField {}
 impl ast::HasName for RecordField {}
 impl ast::HasVisibility for RecordField {}
+impl ast::HasDocComments for RecordField {}
 impl RecordField {
     pub fn colon_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![:]) }
     pub fn ty(&self) -> Option<Type> { support::child(&self.syntax) }
@@ -593,6 +611,7 @@ pub struct TupleField {
 }
 impl ast::HasAttrs for TupleField {}
 impl ast::HasVisibility for TupleField {}
+impl ast::HasDocComments for TupleField {}
 impl TupleField {
     pub fn ty(&self) -> Option<Type> { support::child(&self.syntax) }
 }
@@ -614,6 +633,7 @@ pub struct Variant {
 impl ast::HasAttrs for Variant {}
 impl ast::HasName for Variant {}
 impl ast::HasVisibility for Variant {}
+impl ast::HasDocComments for Variant {}
 impl Variant {
     pub fn field_list(&self) -> Option<FieldList> { support::child(&self.syntax) }
     pub fn eq_token(&self) -> Option<SyntaxToken> { support::token(&self.syntax, T![=]) }
@@ -1526,6 +1546,7 @@ pub enum Item {
     Use(Use),
 }
 impl ast::HasAttrs for Item {}
+impl ast::HasDocComments for Item {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Stmt {
@@ -1567,6 +1588,7 @@ pub enum Adt {
     Union(Union),
 }
 impl ast::HasAttrs for Adt {}
+impl ast::HasDocComments for Adt {}
 impl ast::HasGenericParams for Adt {}
 impl ast::HasName for Adt {}
 impl ast::HasVisibility for Adt {}
@@ -1579,6 +1601,7 @@ pub enum AssocItem {
     TypeAlias(TypeAlias),
 }
 impl ast::HasAttrs for AssocItem {}
+impl ast::HasDocComments for AssocItem {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExternItem {
@@ -1588,6 +1611,7 @@ pub enum ExternItem {
     TypeAlias(TypeAlias),
 }
 impl ast::HasAttrs for ExternItem {}
+impl ast::HasDocComments for ExternItem {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GenericParam {
@@ -1608,6 +1632,12 @@ pub struct AnyHasAttrs {
     pub(crate) syntax: SyntaxNode,
 }
 impl ast::HasAttrs for AnyHasAttrs {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AnyHasDocComments {
+    pub(crate) syntax: SyntaxNode,
+}
+impl ast::HasDocComments for AnyHasDocComments {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AnyHasGenericParams {
@@ -3866,6 +3896,26 @@ impl AstNode for AnyHasAttrs {
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         Self::can_cast(syntax.kind()).then(|| AnyHasAttrs { syntax })
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.syntax }
+}
+impl AnyHasDocComments {
+    #[inline]
+    pub fn new<T: ast::HasDocComments>(node: T) -> AnyHasDocComments {
+        AnyHasDocComments { syntax: node.syntax().clone() }
+    }
+}
+impl AstNode for AnyHasDocComments {
+    fn can_cast(kind: SyntaxKind) -> bool {
+        match kind {
+            MACRO_CALL | SOURCE_FILE | CONST | ENUM | EXTERN_BLOCK | EXTERN_CRATE | FN | IMPL
+            | MACRO_RULES | MACRO_DEF | MODULE | STATIC | STRUCT | TRAIT | TYPE_ALIAS | UNION
+            | USE | RECORD_FIELD | TUPLE_FIELD | VARIANT => true,
+            _ => false,
+        }
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        Self::can_cast(syntax.kind()).then(|| AnyHasDocComments { syntax })
     }
     fn syntax(&self) -> &SyntaxNode { &self.syntax }
 }

@@ -6,7 +6,8 @@ pub fn cli() -> App {
     subcommand("report")
         .about("Generate and display various kinds of reports")
         .after_help("Run `cargo help report` for more detailed information.\n")
-        .setting(clap::AppSettings::SubcommandRequiredElseHelp)
+        .subcommand_required(true)
+        .arg_required_else_help(true)
         .subcommand(
             subcommand("future-incompatibilities")
                 .alias("future-incompat")
@@ -22,14 +23,19 @@ pub fn cli() -> App {
         )
 }
 
-pub fn exec(config: &mut Config, args: &ArgMatches<'_>) -> CliResult {
+pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
     match args.subcommand() {
-        ("future-incompatibilities", Some(args)) => report_future_incompatibilies(config, args),
-        (cmd, _) => panic!("unexpected command `{}`", cmd),
+        Some(("future-incompatibilities", args)) => report_future_incompatibilies(config, args),
+        Some((cmd, _)) => {
+            unreachable!("unexpected command {}", cmd)
+        }
+        None => {
+            unreachable!("unexpected command")
+        }
     }
 }
 
-fn report_future_incompatibilies(config: &Config, args: &ArgMatches<'_>) -> CliResult {
+fn report_future_incompatibilies(config: &Config, args: &ArgMatches) -> CliResult {
     let ws = args.workspace(config)?;
     let reports = OnDiskReports::load(&ws)?;
     let id = args

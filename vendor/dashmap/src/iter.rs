@@ -1,11 +1,11 @@
 use super::mapref::multiple::{RefMulti, RefMutMulti};
 use super::util;
-use crate::lock::{RwLockReadGuard, RwLockWriteGuard};
 use crate::t::Map;
 use crate::util::SharedValue;
 use crate::{DashMap, HashMap};
 use core::hash::{BuildHasher, Hash};
 use core::mem;
+use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
 use std::collections::hash_map;
 use std::collections::hash_map::RandomState;
 use std::sync::Arc;
@@ -118,6 +118,12 @@ pub struct Iter<'a, K, V, S = RandomState, M = DashMap<K, V, S>> {
     current: Option<GuardIter<'a, K, V, S>>,
 }
 
+impl<'a, 'i, K: Clone + Hash + Eq, V: Clone, S: Clone + BuildHasher> Clone for Iter<'i, K, V, S> {
+    fn clone(&self) -> Self {
+        Iter::new(self.map)
+    }
+}
+
 unsafe impl<'a, 'i, K, V, S, M> Send for Iter<'i, K, V, S, M>
 where
     K: 'a + Eq + Hash + Send,
@@ -157,7 +163,7 @@ impl<'a, K: Eq + Hash, V, S: 'a + BuildHasher + Clone, M: Map<'a, K, V, S>> Iter
                 if let Some((k, v)) = current.1.next() {
                     let guard = current.0.clone();
 
-                    return Some(RefMulti::new(guard, k, v.get()));
+                    return unsafe { Some(RefMulti::new(guard, k, v.get())) };
                 }
             }
 

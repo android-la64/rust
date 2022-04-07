@@ -239,7 +239,7 @@ impl HirDisplay for TypeParam {
             return Ok(());
         }
 
-        let bounds = f.db.generic_predicates_for_param(self.id, None);
+        let bounds = f.db.generic_predicates_for_param(self.id.parent, self.id, None);
         let substs = TyBuilder::type_params_subst(f.db, self.id.parent);
         let predicates: Vec<_> =
             bounds.iter().cloned().map(|b| b.substitute(Interner, &substs)).collect();
@@ -481,7 +481,7 @@ impl HirDisplay for Module {
         // FIXME: Module doesn't have visibility saved in data.
         match self.name(f.db) {
             Some(name) => write!(f, "mod {}", name),
-            None if self.crate_root(f.db) == *self => match self.krate().display_name(f.db) {
+            None if self.is_crate_root(f.db) => match self.krate().display_name(f.db) {
                 Some(name) => write!(f, "extern crate {}", name),
                 None => write!(f, "extern crate {{unknown}}"),
             },

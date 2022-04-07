@@ -1,4 +1,5 @@
 //! Runs `!Send` futures on the current thread.
+use crate::loom::sync::{Arc, Mutex};
 use crate::runtime::task::{self, JoinHandle, Task};
 use crate::sync::AtomicWaker;
 use crate::util::linked_list::{Link, LinkedList};
@@ -9,7 +10,6 @@ use std::fmt;
 use std::future::Future;
 use std::marker::PhantomData;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
 use std::task::Poll;
 
 use pin_project_lite::pin_project;
@@ -242,7 +242,7 @@ struct Tasks {
 /// LocalSet state shared between threads.
 struct Shared {
     /// Remote run queue sender
-    queue: Mutex<VecDeque<task::Notified<Arc<Shared>>>>,
+    queue: Mutex<Option<VecDeque<task::Notified<Arc<Shared>>>>>,
 
     /// Wake the `LocalSet` task
     waker: AtomicWaker,
@@ -338,7 +338,7 @@ impl LocalSet {
                     queue: VecDeque::with_capacity(INITIAL_CAPACITY),
                 }),
                 shared: Arc::new(Shared {
-                    queue: Mutex::new(VecDeque::with_capacity(INITIAL_CAPACITY)),
+                    queue: Mutex::new(Some(VecDeque::with_capacity(INITIAL_CAPACITY))),
                     waker: AtomicWaker::new(),
                 }),
             },
@@ -538,8 +538,8 @@ impl LocalSet {
                 .shared
                 .queue
                 .lock()
-                .unwrap()
-                .pop_front()
+                .as_mut()
+                .and_then(|queue| queue.pop_front())
                 .or_else(|| self.context.tasks.borrow_mut().queue.pop_front())
         } else {
             self.context
@@ -547,7 +547,14 @@ impl LocalSet {
                 .borrow_mut()
                 .queue
                 .pop_front()
-                .or_else(|| self.context.shared.queue.lock().unwrap().pop_front())
+                .or_else(|| {
+                    self.context
+                        .shared
+                        .queue
+                        .lock()
+                        .as_mut()
+                        .and_then(|queue| queue.pop_front())
+                })
         }
     }
 
@@ -611,7 +618,10 @@ impl Drop for LocalSet {
                 task.shutdown();
             }
 
-            for task in self.context.shared.queue.lock().unwrap().drain(..) {
+            // Take the queue from the Shared object to prevent pushing
+            // notifications to it in the future.
+            let queue = self.context.shared.queue.lock().take().unwrap();
+            for task in queue {
                 task.shutdown();
             }
 
@@ -661,8 +671,16 @@ impl Shared {
                 cx.tasks.borrow_mut().queue.push_back(task);
             }
             _ => {
-                self.queue.lock().unwrap().push_back(task);
-                self.waker.wake();
+                // First check whether the queue is still there (if not, the
+                // LocalSet is dropped). Then push to it if so, and if not,
+                // do nothing.
+                let mut lock = self.queue.lock();
+
+                if let Some(queue) = lock.as_mut() {
+                    queue.push_back(task);
+                    drop(lock);
+                    self.waker.wake();
+                }
             }
         });
     }

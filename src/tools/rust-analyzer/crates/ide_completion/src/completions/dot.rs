@@ -32,7 +32,7 @@ fn complete_undotted_self(acc: &mut Completions, ctx: &CompletionContext) {
     if !ctx.config.enable_self_on_the_fly {
         return;
     }
-    if !ctx.is_trivial_path() || ctx.is_path_disallowed() || !ctx.expects_expression() {
+    if ctx.is_non_trivial_path() || ctx.is_path_disallowed() || !ctx.expects_expression() {
         return;
     }
     if let Some(func) = ctx.function_def.as_ref().and_then(|fn_| ctx.sema.to_def(fn_)) {
@@ -84,12 +84,19 @@ fn complete_methods(
             traits_in_scope.remove(&drop_trait.into());
         }
 
-        receiver.iterate_method_candidates(ctx.db, krate, &traits_in_scope, None, |_ty, func| {
-            if func.self_param(ctx.db).is_some() && seen_methods.insert(func.name(ctx.db)) {
-                f(func);
-            }
-            None::<()>
-        });
+        receiver.iterate_method_candidates(
+            ctx.db,
+            krate,
+            &traits_in_scope,
+            ctx.module,
+            None,
+            |_ty, func| {
+                if func.self_param(ctx.db).is_some() && seen_methods.insert(func.name(ctx.db)) {
+                    f(func);
+                }
+                None::<()>
+            },
+        );
     }
 }
 
@@ -261,6 +268,37 @@ fn foo(a: lib::A) { a.$0 }
 "#,
             expect![[r#"
                 me pub_method() fn(&self)
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_local_impls() {
+        check(
+            r#"
+//- /lib.rs crate:lib
+pub struct A {}
+mod m {
+    impl super::A {
+        pub fn pub_module_method(&self) {}
+    }
+    fn f() {
+        impl super::A {
+            pub fn pub_foreign_local_method(&self) {}
+        }
+    }
+}
+//- /main.rs crate:main deps:lib
+fn foo(a: lib::A) {
+    impl lib::A {
+        fn local_method(&self) {}
+    }
+    a.$0
+}
+"#,
+            expect![[r#"
+                me local_method()      fn(&self)
+                me pub_module_method() fn(&self)
             "#]],
         );
     }
@@ -646,12 +684,12 @@ struct Foo { field: i32 }
 
 impl Foo { fn foo(&self) { $0 } }"#,
             expect![[r#"
+                fd self.field i32
+                me self.foo() fn(&self)
                 lc self       &Foo
                 sp Self
                 st Foo
                 bt u32
-                fd self.field i32
-                me self.foo() fn(&self)
             "#]],
         );
         check(
@@ -660,12 +698,12 @@ struct Foo(i32);
 
 impl Foo { fn foo(&mut self) { $0 } }"#,
             expect![[r#"
+                fd self.0     i32
+                me self.foo() fn(&mut self)
                 lc self       &mut Foo
                 sp Self
                 st Foo
                 bt u32
-                fd self.0     i32
-                me self.foo() fn(&mut self)
             "#]],
         );
     }

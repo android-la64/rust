@@ -3,7 +3,7 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g. crates.io) dependencies
+# to registry (e.g., crates.io) dependencies
 #
 # If you believe there's an error in this file please file an
 # issue against the rust-lang/cargo repository. If you're
@@ -13,8 +13,8 @@
 [package]
 edition = "2018"
 name = "pretty_assertions"
-version = "0.6.1"
-authors = ["Colin Kiegel <kiegel@gmx.de>", "Florent Fayolle <florent.fayolle69@gmail.com>"]
+version = "0.7.2"
+authors = ["Colin Kiegel <kiegel@gmx.de>", "Florent Fayolle <florent.fayolle69@gmail.com>", "Tom Milligan <code@tommilligan.net>"]
 description = "Overwrite `assert_eq!` and `assert_ne!` with drop-in replacements, adding colorful diffs."
 documentation = "https://docs.rs/pretty_assertions"
 readme = "README.md"
@@ -23,12 +23,12 @@ categories = ["development-tools"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/colin-kiegel/rust-pretty-assertions"
 [dependencies.ansi_term]
-version = "0.11"
+version = "0.12.1"
 
-[dependencies.difference]
-version = "2.0.0"
+[dependencies.diff]
+version = "0.1.12"
 [target."cfg(windows)".dependencies.ctor]
-version = "0.1.7"
+version = "0.1.9"
 
 [target."cfg(windows)".dependencies.output_vt100]
 version = "0.1.2"

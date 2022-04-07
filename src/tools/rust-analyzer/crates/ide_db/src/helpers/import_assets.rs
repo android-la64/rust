@@ -146,6 +146,7 @@ impl ImportAssets {
         if let Some(_) = path.qualifier() {
             return None;
         }
+
         let name = NameToImport::exact_case_sensitive(path.segment()?.name_ref()?.to_string());
         let candidate_node = attr.syntax().clone();
         Some(Self {
@@ -504,6 +505,7 @@ fn trait_applicable_items(
             current_crate,
             &trait_candidates,
             None,
+            None,
             |_, assoc| {
                 if required_assoc_items.contains(&assoc) {
                     if let AssocItem::Function(f) = assoc {
@@ -529,6 +531,7 @@ fn trait_applicable_items(
             db,
             current_crate,
             &trait_candidates,
+            None,
             None,
             |_, function| {
                 let assoc = function.as_assoc_item(db)?;

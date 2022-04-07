@@ -13,6 +13,7 @@ use semver::{self, VersionReq};
 use serde::de;
 use serde::ser;
 use serde::{Deserialize, Serialize};
+use toml_edit::easy as toml;
 use url::Url;
 
 use crate::core::compiler::{CompileKind, CompileTarget};
@@ -77,16 +78,21 @@ pub fn read_manifest_from_str(
         let pretty_filename = manifest_file
             .strip_prefix(config.cwd())
             .unwrap_or(manifest_file);
-        parse(contents, pretty_filename, config)?
+        parse_document(contents, pretty_filename, config)?
     };
 
     // Provide a helpful error message for a common user error.
     if let Some(package) = toml.get("package").or_else(|| toml.get("project")) {
         if let Some(feats) = package.get("cargo-features") {
+            let mut feats = feats.clone();
+            if let Some(value) = feats.as_value_mut() {
+                // Only keep formatting inside of the `[]` and not formatting around it
+                value.decor_mut().clear();
+            }
             bail!(
                 "cargo-features = {} was found in the wrong location: it \
                  should be set at the top of Cargo.toml before any tables",
-                toml::to_string(feats).unwrap()
+                feats.to_string()
             );
         }
     }
@@ -159,6 +165,16 @@ pub fn read_manifest_from_str(
 /// accepted and display a warning to the user in that case. The `file` and `config`
 /// parameters are only used by this fallback path.
 pub fn parse(toml: &str, _file: &Path, _config: &Config) -> CargoResult<toml::Value> {
+    // At the moment, no compatibility checks are needed.
+    toml.parse()
+        .map_err(|e| anyhow::Error::from(e).context("could not parse input as TOML"))
+}
+
+pub fn parse_document(
+    toml: &str,
+    _file: &Path,
+    _config: &Config,
+) -> CargoResult<toml_edit::Document> {
     // At the moment, no compatibility checks are needed.
     toml.parse()
         .map_err(|e| anyhow::Error::from(e).context("could not parse input as TOML"))
@@ -413,6 +429,8 @@ pub struct TomlProfile {
     pub dir_name: Option<InternedString>,
     pub inherits: Option<InternedString>,
     pub strip: Option<StringOrBool>,
+    // Note that `rustflags` is used for the cargo-feature `profile_rustflags`
+    pub rustflags: Option<Vec<InternedString>>,
     // These two fields must be last because they are sub-tables, and TOML
     // requires all non-tables to be listed first.
     pub package: Option<BTreeMap<ProfilePackageSpec, TomlProfile>>,
@@ -430,10 +448,7 @@ impl ser::Serialize for ProfilePackageSpec {
     where
         S: ser::Serializer,
     {
-        match *self {
-            ProfilePackageSpec::Spec(ref spec) => spec.serialize(s),
-            ProfilePackageSpec::All => "*".serialize(s),
-        }
+        self.to_string().serialize(s)
     }
 }
 
@@ -453,6 +468,15 @@ impl<'de> de::Deserialize<'de> for ProfilePackageSpec {
     }
 }
 
+impl fmt::Display for ProfilePackageSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProfilePackageSpec::Spec(spec) => spec.fmt(f),
+            ProfilePackageSpec::All => f.write_str("*"),
+        }
+    }
+}
+
 impl TomlProfile {
     pub fn validate(
         &self,
@@ -460,14 +484,17 @@ impl TomlProfile {
         features: &Features,
         warnings: &mut Vec<String>,
     ) -> CargoResult<()> {
+        self.validate_profile(name, features)?;
         if let Some(ref profile) = self.build_override {
             features.require(Feature::profile_overrides())?;
-            profile.validate_override("build-override", features)?;
+            profile.validate_override("build-override")?;
+            profile.validate_profile(&format!("{name}.build-override"), features)?;
         }
         if let Some(ref packages) = self.package {
             features.require(Feature::profile_overrides())?;
-            for profile in packages.values() {
-                profile.validate_override("package", features)?;
+            for (override_name, profile) in packages {
+                profile.validate_override("package")?;
+                profile.validate_profile(&format!("{name}.package.{override_name}"), features)?;
             }
         }
 
@@ -526,17 +553,6 @@ impl TomlProfile {
                     "`panic` setting of `{}` is not a valid setting, \
                      must be `unwind` or `abort`",
                     panic
-                );
-            }
-        }
-
-        if let Some(codegen_backend) = &self.codegen_backend {
-            features.require(Feature::codegen_backend())?;
-            if codegen_backend.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
-                bail!(
-                    "`profile.{}.codegen-backend` setting of `{}` is not a valid backend name.",
-                    name,
-                    codegen_backend,
                 );
             }
         }
@@ -623,7 +639,28 @@ impl TomlProfile {
         Ok(())
     }
 
-    fn validate_override(&self, which: &str, features: &Features) -> CargoResult<()> {
+    /// Validates a profile.
+    ///
+    /// This is a shallow check, which is reused for the profile itself and any overrides.
+    fn validate_profile(&self, name: &str, features: &Features) -> CargoResult<()> {
+        if let Some(codegen_backend) = &self.codegen_backend {
+            features.require(Feature::codegen_backend())?;
+            if codegen_backend.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
+                bail!(
+                    "`profile.{}.codegen-backend` setting of `{}` is not a valid backend name.",
+                    name,
+                    codegen_backend,
+                );
+            }
+        }
+        if self.rustflags.is_some() {
+            features.require(Feature::profile_rustflags())?;
+        }
+        Ok(())
+    }
+
+    /// Validation that is specific to an override.
+    fn validate_override(&self, which: &str) -> CargoResult<()> {
         if self.package.is_some() {
             bail!("package-specific profiles cannot be nested");
         }
@@ -638,9 +675,6 @@ impl TomlProfile {
         }
         if self.rpath.is_some() {
             bail!("`rpath` may not be specified in a `{}` profile", which)
-        }
-        if self.codegen_backend.is_some() {
-            features.require(Feature::codegen_backend())?;
         }
         Ok(())
     }
@@ -689,6 +723,10 @@ impl TomlProfile {
 
         if let Some(v) = profile.incremental {
             self.incremental = Some(v);
+        }
+
+        if let Some(v) = &profile.rustflags {
+            self.rustflags = Some(v.clone());
         }
 
         if let Some(other_package) = &profile.package {
@@ -1299,8 +1337,6 @@ impl TomlManifest {
             me.features.as_ref().unwrap_or(&empty_features),
             project.links.as_deref(),
         )?;
-        let unstable = config.cli_unstable();
-        summary.unstable_gate(unstable.namespaced_features, unstable.weak_dep_features)?;
 
         let metadata = ManifestMetadata {
             description: project.description.clone(),

@@ -23,6 +23,16 @@ struct SymbolOffsets {
     aux_count: u8,
 }
 
+/// Internal format to use for the `.drectve` section containing linker
+/// directives for symbol exports.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CoffExportStyle {
+    /// MSVC format supported by link.exe and LLD.
+    Msvc,
+    /// Gnu format supported by GNU LD and LLD.
+    Gnu,
+}
+
 impl<'a> Object<'a> {
     pub(crate) fn coff_section_info(
         &self,
@@ -135,6 +145,34 @@ impl<'a> Object<'a> {
         self.stub_symbols.insert(symbol_id, stub_id);
 
         stub_id
+    }
+
+    /// Appends linker directives to the `.drectve` section to tell the linker
+    /// to export all symbols with `SymbolScope::Dynamic`.
+    ///
+    /// This must be called after all symbols have been defined.
+    pub fn add_coff_exports(&mut self, style: CoffExportStyle) {
+        assert_eq!(self.format, BinaryFormat::Coff);
+
+        let mut directives = vec![];
+        for symbol in &self.symbols {
+            if symbol.scope == SymbolScope::Dynamic {
+                match style {
+                    CoffExportStyle::Msvc => directives.extend(b" /EXPORT:\""),
+                    CoffExportStyle::Gnu => directives.extend(b" -export:\""),
+                }
+                directives.extend(&symbol.name);
+                directives.extend(b"\"");
+                if symbol.kind != SymbolKind::Text {
+                    match style {
+                        CoffExportStyle::Msvc => directives.extend(b",DATA"),
+                        CoffExportStyle::Gnu => directives.extend(b",data"),
+                    }
+                }
+            }
+        }
+        let drectve = self.add_section(vec![], b".drectve".to_vec(), SectionKind::Linker);
+        self.append_section_data(drectve, &directives, 1);
     }
 
     pub(crate) fn coff_write(&self, buffer: &mut dyn WritableBuffer) -> Result<()> {
@@ -295,11 +333,52 @@ impl<'a> Object<'a> {
 
         // Write section headers.
         for (index, section) in self.sections.iter().enumerate() {
-            let mut characteristics = match section.flags {
-                SectionFlags::Coff {
-                    characteristics, ..
-                } => characteristics,
-                _ => 0,
+            let mut characteristics = if let SectionFlags::Coff {
+                characteristics, ..
+            } = section.flags
+            {
+                characteristics
+            } else {
+                match section.kind {
+                    SectionKind::Text => {
+                        coff::IMAGE_SCN_CNT_CODE
+                            | coff::IMAGE_SCN_MEM_EXECUTE
+                            | coff::IMAGE_SCN_MEM_READ
+                    }
+                    SectionKind::Data => {
+                        coff::IMAGE_SCN_CNT_INITIALIZED_DATA
+                            | coff::IMAGE_SCN_MEM_READ
+                            | coff::IMAGE_SCN_MEM_WRITE
+                    }
+                    SectionKind::UninitializedData => {
+                        coff::IMAGE_SCN_CNT_UNINITIALIZED_DATA
+                            | coff::IMAGE_SCN_MEM_READ
+                            | coff::IMAGE_SCN_MEM_WRITE
+                    }
+                    SectionKind::ReadOnlyData | SectionKind::ReadOnlyString => {
+                        coff::IMAGE_SCN_CNT_INITIALIZED_DATA | coff::IMAGE_SCN_MEM_READ
+                    }
+                    SectionKind::Debug | SectionKind::Other | SectionKind::OtherString => {
+                        coff::IMAGE_SCN_CNT_INITIALIZED_DATA
+                            | coff::IMAGE_SCN_MEM_READ
+                            | coff::IMAGE_SCN_MEM_DISCARDABLE
+                    }
+                    SectionKind::Linker => coff::IMAGE_SCN_LNK_INFO | coff::IMAGE_SCN_LNK_REMOVE,
+                    SectionKind::Common
+                    | SectionKind::Tls
+                    | SectionKind::UninitializedTls
+                    | SectionKind::TlsVariables
+                    | SectionKind::Note
+                    | SectionKind::Unknown
+                    | SectionKind::Metadata
+                    | SectionKind::Elf(_) => {
+                        return Err(Error(format!(
+                            "unimplemented section `{}` kind {:?}",
+                            section.name().unwrap_or(""),
+                            section.kind
+                        )));
+                    }
+                }
             };
             if section_offsets[index].selection != 0 {
                 characteristics |= coff::IMAGE_SCN_LNK_COMDAT;
@@ -307,46 +386,7 @@ impl<'a> Object<'a> {
             if section.relocations.len() > 0xffff {
                 characteristics |= coff::IMAGE_SCN_LNK_NRELOC_OVFL;
             }
-            characteristics |= match section.kind {
-                SectionKind::Text => {
-                    coff::IMAGE_SCN_CNT_CODE
-                        | coff::IMAGE_SCN_MEM_EXECUTE
-                        | coff::IMAGE_SCN_MEM_READ
-                }
-                SectionKind::Data => {
-                    coff::IMAGE_SCN_CNT_INITIALIZED_DATA
-                        | coff::IMAGE_SCN_MEM_READ
-                        | coff::IMAGE_SCN_MEM_WRITE
-                }
-                SectionKind::UninitializedData => {
-                    coff::IMAGE_SCN_CNT_UNINITIALIZED_DATA
-                        | coff::IMAGE_SCN_MEM_READ
-                        | coff::IMAGE_SCN_MEM_WRITE
-                }
-                SectionKind::ReadOnlyData | SectionKind::ReadOnlyString => {
-                    coff::IMAGE_SCN_CNT_INITIALIZED_DATA | coff::IMAGE_SCN_MEM_READ
-                }
-                SectionKind::Debug | SectionKind::Other | SectionKind::OtherString => {
-                    coff::IMAGE_SCN_CNT_INITIALIZED_DATA
-                        | coff::IMAGE_SCN_MEM_READ
-                        | coff::IMAGE_SCN_MEM_DISCARDABLE
-                }
-                SectionKind::Linker => coff::IMAGE_SCN_LNK_INFO | coff::IMAGE_SCN_LNK_REMOVE,
-                SectionKind::Common
-                | SectionKind::Tls
-                | SectionKind::UninitializedTls
-                | SectionKind::TlsVariables
-                | SectionKind::Note
-                | SectionKind::Unknown
-                | SectionKind::Metadata
-                | SectionKind::Elf(_) => {
-                    return Err(Error(format!(
-                        "unimplemented section `{}` kind {:?}",
-                        section.name().unwrap_or(""),
-                        section.kind
-                    )));
-                }
-            } | match section.align {
+            characteristics |= match section.align {
                 1 => coff::IMAGE_SCN_ALIGN_1BYTES,
                 2 => coff::IMAGE_SCN_ALIGN_2BYTES,
                 4 => coff::IMAGE_SCN_ALIGN_4BYTES,

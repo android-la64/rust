@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "thorin-dwp"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["David Wood <david.wood@huawei.com>"]
 description = "Library for building DWARF packages from input DWARF objects and packages"
 homepage = "https://docs.rs/thorin-dwp"
@@ -20,7 +20,7 @@ readme = "README.md"
 keywords = ["dwarf", "split-dwarf", "dwarf-package", "dwarf-object", "dwp"]
 categories = ["development-tools::debugging"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/davidtwco/thorin"
+repository = "https://github.com/rust-lang/thorin"
 
 [lib]
 name = "thorin"
@@ -30,11 +30,11 @@ version = "0.26.1"
 features = ["read", "write", "std"]
 default-features = false
 
-[dependencies.indexmap]
-version = "1.7.0"
+[dependencies.hashbrown]
+version = "0.11.2"
 
 [dependencies.object]
-version = "0.27.1"
+version = "0.28.1"
 features = ["archive", "read", "write", "compression"]
 default-features = false
 

@@ -12,13 +12,16 @@
 [package]
 edition = "2018"
 name = "windows-sys"
-version = "0.28.0"
+version = "0.32.0"
 authors = ["Microsoft"]
 description = "Rust for Windows"
-documentation = "https://microsoft.github.io/windows-docs-rs/"
 readme = "../../../.github/readme.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/microsoft/windows-rs"
+
+[package.metadata.docs.rs]
+default-target = "x86_64-pc-windows-msvc"
+all-features = true
 
 [features]
 AI = []
@@ -715,13 +718,34 @@ Win32_UI_Xaml_Diagnostics = ["Win32_UI_Xaml"]
 Win32_Web = ["Win32"]
 Win32_Web_MsHtml = ["Win32_Web"]
 default = []
+deprecated = []
+
 [target.aarch64-pc-windows-msvc.dependencies.windows_aarch64_msvc]
-version = "0.28.0"
+version = "0.32.0"
+
+[target.aarch64-uwp-windows-msvc.dependencies.windows_aarch64_msvc]
+version = "0.32.0"
+
 [target.i686-pc-windows-gnu.dependencies.windows_i686_gnu]
-version = "0.28.0"
+version = "0.32.0"
+
 [target.i686-pc-windows-msvc.dependencies.windows_i686_msvc]
-version = "0.28.0"
+version = "0.32.0"
+
+[target.i686-uwp-windows-gnu.dependencies.windows_i686_gnu]
+version = "0.32.0"
+
+[target.i686-uwp-windows-msvc.dependencies.windows_i686_msvc]
+version = "0.32.0"
+
 [target.x86_64-pc-windows-gnu.dependencies.windows_x86_64_gnu]
-version = "0.28.0"
+version = "0.32.0"
+
 [target.x86_64-pc-windows-msvc.dependencies.windows_x86_64_msvc]
-version = "0.28.0"
+version = "0.32.0"
+
+[target.x86_64-uwp-windows-gnu.dependencies.windows_x86_64_gnu]
+version = "0.32.0"
+
+[target.x86_64-uwp-windows-msvc.dependencies.windows_x86_64_msvc]
+version = "0.32.0"

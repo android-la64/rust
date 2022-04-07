@@ -21,6 +21,7 @@ mod joinable_wrapper {
 
 cfg_loom! {
     mod loom_basic_scheduler;
+    mod loom_local;
     mod loom_blocking;
     mod loom_oneshot;
     mod loom_pool;
@@ -30,6 +31,9 @@ cfg_loom! {
 
 cfg_not_loom! {
     mod queue;
+
+    #[cfg(not(miri))]
+    mod task_combinations;
 
     #[cfg(miri)]
     mod task;

@@ -281,7 +281,7 @@ We'll create a C file to call the `hello_from_rust` function and compile it by `
 C file should look like:
 
 ```c
-int main() {
+int main(void) {
     hello_from_rust();
     return 0;
 }
@@ -709,7 +709,7 @@ fn main() {
 And the code on the C side looks like this:
 
 ```c
-void register(void (*f)(int (*)(int), int)) {
+void register(int (*f)(int (*)(int), int)) {
     ...
 }
 ```

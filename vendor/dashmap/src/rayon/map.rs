@@ -1,8 +1,8 @@
-use crate::lock::RwLock;
 use crate::mapref::multiple::{RefMulti, RefMutMulti};
 use crate::util;
 use crate::{DashMap, HashMap};
 use core::hash::{BuildHasher, Hash};
+use parking_lot::RwLock;
 use rayon::iter::plumbing::UnindexedConsumer;
 use rayon::iter::{FromParallelIterator, IntoParallelIterator, ParallelExtend, ParallelIterator};
 use std::collections::hash_map::RandomState;
@@ -149,7 +149,7 @@ where
                 let guard = Arc::new(guard);
                 sref.iter().map(move |(k, v)| {
                     let guard = Arc::clone(&guard);
-                    RefMulti::new(guard, k, v.get())
+                    unsafe { RefMulti::new(guard, k, v.get()) }
                 })
             })
             .drive_unindexed(consumer)
@@ -213,7 +213,7 @@ where
                 let guard = Arc::new(guard);
                 sref.iter_mut().map(move |(k, v)| {
                     let guard = Arc::clone(&guard);
-                    RefMutMulti::new(guard, k, v.get_mut())
+                    unsafe { RefMutMulti::new(guard, k, v.get_mut()) }
                 })
             })
             .drive_unindexed(consumer)

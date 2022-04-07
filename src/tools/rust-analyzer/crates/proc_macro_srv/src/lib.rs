@@ -16,7 +16,9 @@ mod abis;
 
 use std::{
     collections::{hash_map::Entry, HashMap},
-    env, fs,
+    env,
+    ffi::OsString,
+    fs,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -38,11 +40,20 @@ impl ProcMacroSrv {
             PanicMessage(format!("failed to load macro: {}", err))
         })?;
 
-        let mut prev_env = HashMap::new();
+        let prev_env = EnvSnapshot::new();
         for (k, v) in &task.env {
-            prev_env.insert(k.as_str(), env::var_os(k));
             env::set_var(k, v);
         }
+        let prev_working_dir = match task.current_dir {
+            Some(dir) => {
+                let prev_working_dir = std::env::current_dir().ok();
+                if let Err(err) = std::env::set_current_dir(&dir) {
+                    eprintln!("Failed to set the current working dir to {}. Error: {:?}", dir, err)
+                }
+                prev_working_dir
+            }
+            None => None,
+        };
 
         let macro_body = task.macro_body.to_subtree();
         let attributes = task.attributes.map(|it| it.to_subtree());
@@ -50,10 +61,15 @@ impl ProcMacroSrv {
             .expand(&task.macro_name, &macro_body, attributes.as_ref())
             .map(|it| FlatTree::new(&it));
 
-        for (k, _) in &task.env {
-            match &prev_env[k.as_str()] {
-                Some(v) => env::set_var(k, v),
-                None => env::remove_var(k),
+        prev_env.rollback();
+
+        if let Some(dir) = prev_working_dir {
+            if let Err(err) = std::env::set_current_dir(&dir) {
+                eprintln!(
+                    "Failed to set the current working dir to {}. Error: {:?}",
+                    dir.display(),
+                    err
+                )
             }
         }
 
@@ -79,6 +95,32 @@ impl ProcMacroSrv {
             })?),
             Entry::Occupied(e) => e.into_mut(),
         })
+    }
+}
+
+struct EnvSnapshot {
+    vars: HashMap<OsString, OsString>,
+}
+
+impl EnvSnapshot {
+    fn new() -> EnvSnapshot {
+        EnvSnapshot { vars: env::vars_os().collect() }
+    }
+
+    fn rollback(self) {
+        let mut old_vars = self.vars;
+        for (name, value) in env::vars_os() {
+            let old_value = old_vars.remove(&name);
+            if old_value != Some(value) {
+                match old_value {
+                    None => env::remove_var(name),
+                    Some(old_value) => env::set_var(name, old_value),
+                }
+            }
+        }
+        for (name, old_value) in old_vars {
+            env::set_var(name, old_value)
+        }
     }
 }
 

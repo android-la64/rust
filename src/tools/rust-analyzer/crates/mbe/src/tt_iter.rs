@@ -6,15 +6,6 @@ use tt::buffer::TokenBuffer;
 
 use crate::{to_parser_input::to_parser_input, ExpandError, ExpandResult};
 
-macro_rules! err {
-    () => {
-        ExpandError::BindingError(format!(""))
-    };
-    ($($tt:tt)*) => {
-        ExpandError::BindingError(format!($($tt)*))
-    };
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct TtIter<'a> {
     pub(crate) inner: std::slice::Iter<'a, tt::TokenTree>,
@@ -114,8 +105,8 @@ impl<'a> TtIter<'a> {
             }
         }
 
-        let mut err = if !cursor.is_root() || error {
-            Some(err!("expected {:?}", entry_point))
+        let err = if error || !cursor.is_root() {
+            Some(ExpandError::BindingError(format!("expected {entry_point:?}").into()))
         } else {
             None
         };
@@ -132,9 +123,6 @@ impl<'a> TtIter<'a> {
             }
         }
         self.inner = self.inner.as_slice()[res.len()..].iter();
-        if res.is_empty() && err.is_none() {
-            err = Some(err!("no tokens consumed"));
-        }
         let res = match res.len() {
             1 => Some(res[0].cloned()),
             0 => None,

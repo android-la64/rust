@@ -110,6 +110,15 @@ static std::string getInstrProfErrString(instrprof_error Err,
   case instrprof_error::malformed:
     OS << "malformed instrumentation profile data";
     break;
+  case instrprof_error::missing_debug_info_for_correlation:
+    OS << "debug info for correlation is required";
+    break;
+  case instrprof_error::unexpected_debug_info_for_correlation:
+    OS << "debug info for correlation is not necessary";
+    break;
+  case instrprof_error::unable_to_correlate_profile:
+    OS << "unable to correlate profile";
+    break;
   case instrprof_error::invalid_prof:
     OS << "invalid profile created. Please file a bug "
           "at: " BUG_REPORT_URL
@@ -142,9 +151,6 @@ static std::string getInstrProfErrString(instrprof_error Err,
   case instrprof_error::zlib_unavailable:
     OS << "profile uses zlib compression but the profile reader was built "
           "without zlib support";
-    break;
-  default:
-    llvm_unreachable("A value of instrprof_error has no message.");
     break;
   }
 
@@ -536,8 +542,8 @@ Error readPGOFuncNameStrings(StringRef NameStrings, InstrProfSymtab &Symtab) {
 void InstrProfRecord::accumulateCounts(CountSumOrPercent &Sum) const {
   uint64_t FuncSum = 0;
   Sum.NumEntries += Counts.size();
-  for (size_t F = 0, E = Counts.size(); F < E; ++F)
-    FuncSum += Counts[F];
+  for (uint64_t Count : Counts)
+    FuncSum += Count;
   Sum.CountSum += FuncSum;
 
   for (uint32_t VK = IPVK_First; VK <= IPVK_Last; ++VK) {
@@ -660,27 +666,26 @@ void InstrProfValueSiteRecord::merge(InstrProfValueSiteRecord &Input,
   Input.sortByTargetValues();
   auto I = ValueData.begin();
   auto IE = ValueData.end();
-  for (auto J = Input.ValueData.begin(), JE = Input.ValueData.end(); J != JE;
-       ++J) {
-    while (I != IE && I->Value < J->Value)
+  for (const InstrProfValueData &J : Input.ValueData) {
+    while (I != IE && I->Value < J.Value)
       ++I;
-    if (I != IE && I->Value == J->Value) {
+    if (I != IE && I->Value == J.Value) {
       bool Overflowed;
-      I->Count = SaturatingMultiplyAdd(J->Count, Weight, I->Count, &Overflowed);
+      I->Count = SaturatingMultiplyAdd(J.Count, Weight, I->Count, &Overflowed);
       if (Overflowed)
         Warn(instrprof_error::counter_overflow);
       ++I;
       continue;
     }
-    ValueData.insert(I, *J);
+    ValueData.insert(I, J);
   }
 }
 
 void InstrProfValueSiteRecord::scale(uint64_t N, uint64_t D,
                                      function_ref<void(instrprof_error)> Warn) {
-  for (auto I = ValueData.begin(), IE = ValueData.end(); I != IE; ++I) {
+  for (InstrProfValueData &I : ValueData) {
     bool Overflowed;
-    I->Count = SaturatingMultiply(I->Count, N, &Overflowed) / D;
+    I.Count = SaturatingMultiply(I.Count, N, &Overflowed) / D;
     if (Overflowed)
       Warn(instrprof_error::counter_overflow);
   }
@@ -1135,9 +1140,13 @@ bool needsComdatForCounter(const Function &F, const Module &M) {
 bool isIRPGOFlagSet(const Module *M) {
   auto IRInstrVar =
       M->getNamedGlobal(INSTR_PROF_QUOTE(INSTR_PROF_RAW_VERSION_VAR));
-  if (!IRInstrVar || IRInstrVar->isDeclaration() ||
-      IRInstrVar->hasLocalLinkage())
+  if (!IRInstrVar || IRInstrVar->hasLocalLinkage())
     return false;
+
+  // For CSPGO+LTO, this variable might be marked as non-prevailing and we only
+  // have the decl.
+  if (IRInstrVar->isDeclaration())
+    return true;
 
   // Check if the flag is set.
   if (!IRInstrVar->hasInitializer())
@@ -1170,28 +1179,6 @@ bool canRenameComdatFunc(const Function &F, bool CheckAddressTaken) {
     return true;
   }
   return true;
-}
-
-// Create a COMDAT variable INSTR_PROF_RAW_VERSION_VAR to make the runtime
-// aware this is an ir_level profile so it can set the version flag.
-void createIRLevelProfileFlagVar(Module &M, bool IsCS,
-                                 bool InstrEntryBBEnabled) {
-  const StringRef VarName(INSTR_PROF_QUOTE(INSTR_PROF_RAW_VERSION_VAR));
-  Type *IntTy64 = Type::getInt64Ty(M.getContext());
-  uint64_t ProfileVersion = (INSTR_PROF_RAW_VERSION | VARIANT_MASK_IR_PROF);
-  if (IsCS)
-    ProfileVersion |= VARIANT_MASK_CSIR_PROF;
-  if (InstrEntryBBEnabled)
-    ProfileVersion |= VARIANT_MASK_INSTR_ENTRY;
-  auto IRLevelVersionVariable = new GlobalVariable(
-      M, IntTy64, true, GlobalValue::WeakAnyLinkage,
-      Constant::getIntegerValue(IntTy64, APInt(64, ProfileVersion)), VarName);
-  IRLevelVersionVariable->setVisibility(GlobalValue::DefaultVisibility);
-  Triple TT(M.getTargetTriple());
-  if (TT.supportsCOMDAT()) {
-    IRLevelVersionVariable->setLinkage(GlobalValue::ExternalLinkage);
-    IRLevelVersionVariable->setComdat(M.getOrInsertComdat(VarName));
-  }
 }
 
 // Create the variable for the profile file name.

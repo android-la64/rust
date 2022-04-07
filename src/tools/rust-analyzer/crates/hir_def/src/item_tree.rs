@@ -790,13 +790,25 @@ impl UseTree {
                     }
                     Some((prefix, ImportKind::Plain))
                 }
-                (Some(prefix), PathKind::Super(0)) => {
-                    // `some::path::self` == `some::path`
-                    if path.segments().is_empty() {
-                        Some((prefix, ImportKind::TypeOnly))
-                    } else {
-                        None
+                (Some(mut prefix), PathKind::Super(n))
+                    if *n > 0 && prefix.segments().is_empty() =>
+                {
+                    // `super::super` + `super::rest`
+                    match &mut prefix.kind {
+                        PathKind::Super(m) => {
+                            cov_mark::hit!(concat_super_mod_paths);
+                            *m += *n;
+                            for segment in path.segments() {
+                                prefix.push_segment(segment.clone());
+                            }
+                            Some((prefix, ImportKind::Plain))
+                        }
+                        _ => None,
                     }
+                }
+                (Some(prefix), PathKind::Super(0)) if path.segments().is_empty() => {
+                    // `some::path::self` == `some::path`
+                    Some((prefix, ImportKind::TypeOnly))
                 }
                 (Some(_), _) => None,
             }
@@ -916,6 +928,17 @@ impl From<AssocItem> for ModItem {
             AssocItem::TypeAlias(it) => it.into(),
             AssocItem::Const(it) => it.into(),
             AssocItem::MacroCall(it) => it.into(),
+        }
+    }
+}
+
+impl AssocItem {
+    pub fn ast_id(self, tree: &ItemTree) -> FileAstId<ast::AssocItem> {
+        match self {
+            AssocItem::Function(id) => tree[id].ast_id.upcast(),
+            AssocItem::TypeAlias(id) => tree[id].ast_id.upcast(),
+            AssocItem::Const(id) => tree[id].ast_id.upcast(),
+            AssocItem::MacroCall(id) => tree[id].ast_id.upcast(),
         }
     }
 }

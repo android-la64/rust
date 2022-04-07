@@ -5,7 +5,10 @@
 //!
 //! So, this modules should not be used during hir construction, it exists
 //! purely for "IDE needs".
-use std::{iter::once, sync::Arc};
+use std::{
+    iter::{self, once},
+    sync::Arc,
+};
 
 use hir_def::{
     body::{
@@ -25,7 +28,7 @@ use hir_ty::{
 };
 use syntax::{
     ast::{self, AstNode},
-    SyntaxNode, TextRange, TextSize,
+    SyntaxKind, SyntaxNode, TextRange, TextSize,
 };
 
 use crate::{
@@ -346,7 +349,11 @@ impl SourceAnalyzer {
             return match resolve_hir_path_qualifier(db, &self.resolver, &hir_path) {
                 None if is_path_of_attr => {
                     path.first_segment().and_then(|it| it.name_ref()).and_then(|name_ref| {
-                        ToolModule::by_name(&name_ref.text()).map(PathResolution::ToolModule)
+                        match self.resolver.krate() {
+                            Some(krate) => ToolModule::by_name(db, krate.into(), &name_ref.text()),
+                            None => ToolModule::builtin(&name_ref.text()),
+                        }
+                        .map(PathResolution::ToolModule)
                     })
                 }
                 res => res,
@@ -356,8 +363,10 @@ impl SourceAnalyzer {
             // in this case we have to check for inert/builtin attributes and tools and prioritize
             // resolution of attributes over other namespaces
             let name_ref = path.as_single_name_ref();
-            let builtin =
-                name_ref.as_ref().map(ast::NameRef::text).as_deref().and_then(BuiltinAttr::by_name);
+            let builtin = name_ref.as_ref().and_then(|name_ref| match self.resolver.krate() {
+                Some(krate) => BuiltinAttr::by_name(db, krate.into(), &name_ref.text()),
+                None => BuiltinAttr::builtin(&name_ref.text()),
+            });
             if let builtin @ Some(_) = builtin {
                 return builtin.map(PathResolution::BuiltinAttr);
             }
@@ -366,7 +375,11 @@ impl SourceAnalyzer {
                 // this labels any path that starts with a tool module as the tool itself, this is technically wrong
                 // but there is no benefit in differentiating these two cases for the time being
                 _ => path.first_segment().and_then(|it| it.name_ref()).and_then(|name_ref| {
-                    ToolModule::by_name(&name_ref.text()).map(PathResolution::ToolModule)
+                    match self.resolver.krate() {
+                        Some(krate) => ToolModule::by_name(db, krate.into(), &name_ref.text()),
+                        None => ToolModule::builtin(&name_ref.text()),
+                    }
+                    .map(PathResolution::ToolModule)
                 }),
             };
         }
@@ -478,14 +491,20 @@ fn scope_for_offset(
         .scope_by_expr()
         .iter()
         .filter_map(|(id, scope)| {
-            let source = source_map.expr_syntax(*id).ok()?;
-            // FIXME: correctly handle macro expansion
-            if source.file_id != offset.file_id {
-                return None;
+            let InFile { file_id, value } = source_map.expr_syntax(*id).ok()?;
+            if offset.file_id == file_id {
+                let root = db.parse_or_expand(file_id)?;
+                let node = value.to_node(&root);
+                return Some((node.syntax().text_range(), scope));
             }
-            let root = source.file_syntax(db.upcast());
-            let node = source.value.to_node(&root);
-            Some((node.syntax().text_range(), scope))
+
+            // FIXME handle attribute expansion
+            let source = iter::successors(file_id.call_node(db.upcast()), |it| {
+                it.file_id.call_node(db.upcast())
+            })
+            .find(|it| it.file_id == offset.file_id)
+            .filter(|it| it.value.kind() == SyntaxKind::MACRO_CALL)?;
+            Some((source.value.text_range(), scope))
         })
         // find containing scope
         .min_by_key(|(expr_range, _scope)| {
@@ -600,9 +619,15 @@ fn resolve_hir_path_(
             TypeNs::TraitId(it) => PathResolution::Def(Trait::from(it).into()),
         };
         match unresolved {
-            Some(unresolved) => res
-                .assoc_type_shorthand_candidates(db, |name, alias| {
-                    (name == unresolved.name).then(|| alias)
+            Some(unresolved) => resolver
+                .generic_def()
+                .and_then(|def| {
+                    hir_ty::associated_type_shorthand_candidates(
+                        db,
+                        def,
+                        res.in_type_ns()?,
+                        |name, _, id| (name == unresolved.name).then(|| id),
+                    )
                 })
                 .map(TypeAlias::from)
                 .map(Into::into)

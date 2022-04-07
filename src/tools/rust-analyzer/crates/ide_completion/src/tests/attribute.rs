@@ -17,6 +17,10 @@ fn proc_macros() {
 struct Foo;
 "#,
         expect![[r#"
+            md proc_macros
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -32,11 +36,20 @@ struct Foo;
             at derive(…)
             at repr(…)
             at non_exhaustive
-            kw self
-            kw super
-            kw crate
-            md proc_macros
         "#]],
+    )
+}
+
+#[test]
+fn proc_macros_on_comment() {
+    check(
+        r#"
+//- proc_macros: identity
+/// $0
+#[proc_macros::identity]
+struct Foo;
+"#,
+        expect![[r#""#]],
     )
 }
 
@@ -49,8 +62,7 @@ fn proc_macros_qualified() {
 struct Foo;
 "#,
         expect![[r#"
-            at input_replace pub macro input_replace
-            at identity      pub macro identity
+            at identity pub macro identity
         "#]],
     )
 }
@@ -65,15 +77,15 @@ fn with_existing_attr() {
     check(
         r#"#[no_mangle] #[$0] mcall!();"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
             at deny(…)
             at forbid(…)
             at warn(…)
-            kw self
-            kw super
-            kw crate
         "#]],
     )
 }
@@ -83,6 +95,9 @@ fn attr_on_source_file() {
     check(
         r#"#![$0]"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -103,9 +118,6 @@ fn attr_on_source_file() {
             at recursion_limit = "…"
             at type_length_limit = …
             at windows_subsystem = "…"
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -115,6 +127,9 @@ fn attr_on_module() {
     check(
         r#"#[$0] mod foo;"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -129,14 +144,14 @@ fn attr_on_module() {
             at no_mangle
             at macro_use
             at path = "…"
-            kw self
-            kw super
-            kw crate
         "#]],
     );
     check(
         r#"mod foo {#![$0]}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -150,9 +165,6 @@ fn attr_on_module() {
             at must_use
             at no_mangle
             at no_implicit_prelude
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -162,6 +174,9 @@ fn attr_on_macro_rules() {
     check(
         r#"#[$0] macro_rules! foo {}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -176,9 +191,6 @@ fn attr_on_macro_rules() {
             at no_mangle
             at macro_export
             at macro_use
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -188,6 +200,9 @@ fn attr_on_macro_def() {
     check(
         r#"#[$0] macro foo {}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -200,9 +215,6 @@ fn attr_on_macro_def() {
             at doc(alias = "…")
             at must_use
             at no_mangle
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -212,6 +224,9 @@ fn attr_on_extern_crate() {
     check(
         r#"#[$0] extern crate foo;"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -225,9 +240,6 @@ fn attr_on_extern_crate() {
             at must_use
             at no_mangle
             at macro_use
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -237,6 +249,9 @@ fn attr_on_use() {
     check(
         r#"#[$0] use foo;"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -249,9 +264,6 @@ fn attr_on_use() {
             at doc(alias = "…")
             at must_use
             at no_mangle
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -261,6 +273,9 @@ fn attr_on_type_alias() {
     check(
         r#"#[$0] type foo = ();"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -273,9 +288,6 @@ fn attr_on_type_alias() {
             at doc(alias = "…")
             at must_use
             at no_mangle
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -289,6 +301,11 @@ fn attr_on_struct() {
 struct Foo;
 "#,
         expect![[r#"
+            md core
+            at derive           pub macro derive
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -304,11 +321,6 @@ struct Foo;
             at derive(…)
             at repr(…)
             at non_exhaustive
-            kw self
-            kw super
-            kw crate
-            md core
-            at derive           pub macro derive
         "#]],
     );
 }
@@ -318,6 +330,9 @@ fn attr_on_enum() {
     check(
         r#"#[$0] enum Foo {}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -333,9 +348,6 @@ fn attr_on_enum() {
             at derive(…)
             at repr(…)
             at non_exhaustive
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -345,6 +357,9 @@ fn attr_on_const() {
     check(
         r#"#[$0] const FOO: () = ();"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -357,9 +372,6 @@ fn attr_on_const() {
             at doc(alias = "…")
             at must_use
             at no_mangle
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -369,6 +381,9 @@ fn attr_on_static() {
     check(
         r#"#[$0] static FOO: () = ()"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -386,9 +401,6 @@ fn attr_on_static() {
             at link_section = "…"
             at global_allocator
             at used
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -398,6 +410,9 @@ fn attr_on_trait() {
     check(
         r#"#[$0] trait Foo {}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -411,9 +426,6 @@ fn attr_on_trait() {
             at must_use
             at no_mangle
             at must_use
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -423,6 +435,9 @@ fn attr_on_impl() {
     check(
         r#"#[$0] impl () {}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -436,14 +451,14 @@ fn attr_on_impl() {
             at must_use
             at no_mangle
             at automatically_derived
-            kw self
-            kw super
-            kw crate
         "#]],
     );
     check(
         r#"impl () {#![$0]}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -456,9 +471,6 @@ fn attr_on_impl() {
             at doc(alias = "…")
             at must_use
             at no_mangle
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -468,6 +480,9 @@ fn attr_on_extern_block() {
     check(
         r#"#[$0] extern {}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -481,14 +496,14 @@ fn attr_on_extern_block() {
             at must_use
             at no_mangle
             at link
-            kw self
-            kw super
-            kw crate
         "#]],
     );
     check(
         r#"extern {#![$0]}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -502,9 +517,6 @@ fn attr_on_extern_block() {
             at must_use
             at no_mangle
             at link
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -514,6 +526,9 @@ fn attr_on_variant() {
     check(
         r#"enum Foo { #[$0] Bar }"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -521,9 +536,6 @@ fn attr_on_variant() {
             at forbid(…)
             at warn(…)
             at non_exhaustive
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -533,6 +545,9 @@ fn attr_on_fn() {
     check(
         r#"#[$0] fn main() {}"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
@@ -560,9 +575,6 @@ fn attr_on_fn() {
             at target_feature = "…"
             at test
             at track_caller
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -573,15 +585,15 @@ fn attr_on_expr() {
     check(
         r#"fn main() { #[$0] foo() }"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at cfg(…)
             at cfg_attr(…)
             at deny(…)
             at forbid(…)
             at warn(…)
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }
@@ -591,6 +603,9 @@ fn attr_in_source_file_end() {
     check(
         r#"#[$0]"#,
         expect![[r#"
+            kw self::
+            kw super::
+            kw crate::
             at allow(…)
             at automatically_derived
             at cfg(…)
@@ -627,9 +642,6 @@ fn attr_in_source_file_end() {
             at track_caller
             at used
             at warn(…)
-            kw self
-            kw super
-            kw crate
         "#]],
     );
 }

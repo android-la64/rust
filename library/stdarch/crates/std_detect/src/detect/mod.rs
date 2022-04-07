@@ -20,64 +20,9 @@
 use cfg_if::cfg_if;
 
 #[macro_use]
-mod error_macros;
-
-#[macro_use]
 mod macros;
 
-cfg_if! {
-    if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-        #[path = "arch/x86.rs"]
-        #[macro_use]
-        mod arch;
-    } else if #[cfg(target_arch = "arm")] {
-        #[path = "arch/arm.rs"]
-        #[macro_use]
-        mod arch;
-    } else if #[cfg(target_arch = "aarch64")] {
-        #[path = "arch/aarch64.rs"]
-        #[macro_use]
-        mod arch;
-    } else if #[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))] {
-        #[path = "arch/riscv.rs"]
-        #[macro_use]
-        mod arch;
-    } else if #[cfg(target_arch = "powerpc")] {
-        #[path = "arch/powerpc.rs"]
-        #[macro_use]
-        mod arch;
-    } else if #[cfg(target_arch = "powerpc64")] {
-        #[path = "arch/powerpc64.rs"]
-        #[macro_use]
-        mod arch;
-    } else if #[cfg(target_arch = "mips")] {
-        #[path = "arch/mips.rs"]
-        #[macro_use]
-        mod arch;
-    } else if #[cfg(target_arch = "mips64")] {
-        #[path = "arch/mips64.rs"]
-        #[macro_use]
-        mod arch;
-    } else {
-        // Unimplemented architecture:
-        #[allow(dead_code)]
-        mod arch {
-            #[doc(hidden)]
-            pub(crate) enum Feature {
-                Null
-            }
-            #[doc(hidden)]
-            pub mod __is_feature_detected {}
-
-            impl Feature {
-                #[doc(hidden)]
-                pub(crate) fn from_str(_s: &str) -> Result<Feature, ()> { Err(()) }
-                #[doc(hidden)]
-                pub(crate) fn to_str(self) -> &'static str { "" }
-            }
-        }
-    }
-}
+mod arch;
 
 // This module needs to be public because the `is_{arch}_feature_detected!`
 // macros expand calls to items within it in user crates.

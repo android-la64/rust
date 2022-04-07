@@ -31,7 +31,7 @@
 //! }
 //! ```
 
-use hir::{self, HasAttrs, HasSource};
+use hir::{self, HasAttrs};
 use ide_db::{path_transform::PathTransform, traits::get_missing_assoc_items, SymbolKind};
 use syntax::{
     ast::{self, edit_in_place::AttrsOwnerEdit},
@@ -42,7 +42,7 @@ use text_edit::TextEdit;
 
 use crate::{CompletionContext, CompletionItem, CompletionItemKind, Completions};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum ImplCompletionKind {
     All,
     Fn,
@@ -53,23 +53,22 @@ enum ImplCompletionKind {
 pub(crate) fn complete_trait_impl(acc: &mut Completions, ctx: &CompletionContext) {
     if let Some((kind, trigger, impl_def)) = completion_match(ctx.token.clone()) {
         if let Some(hir_impl) = ctx.sema.to_def(&impl_def) {
-            get_missing_assoc_items(&ctx.sema, &impl_def).into_iter().for_each(|item| match item {
-                hir::AssocItem::Function(fn_item)
-                    if kind == ImplCompletionKind::All || kind == ImplCompletionKind::Fn =>
-                {
-                    add_function_impl(&trigger, acc, ctx, fn_item, hir_impl)
+            get_missing_assoc_items(&ctx.sema, &impl_def).into_iter().for_each(|item| {
+                match (item, kind) {
+                    (
+                        hir::AssocItem::Function(fn_item),
+                        ImplCompletionKind::All | ImplCompletionKind::Fn,
+                    ) => add_function_impl(&trigger, acc, ctx, fn_item, hir_impl),
+                    (
+                        hir::AssocItem::TypeAlias(type_item),
+                        ImplCompletionKind::All | ImplCompletionKind::TypeAlias,
+                    ) => add_type_alias_impl(&trigger, acc, ctx, type_item),
+                    (
+                        hir::AssocItem::Const(const_item),
+                        ImplCompletionKind::All | ImplCompletionKind::Const,
+                    ) => add_const_impl(&trigger, acc, ctx, const_item, hir_impl),
+                    _ => {}
                 }
-                hir::AssocItem::TypeAlias(type_item)
-                    if kind == ImplCompletionKind::All || kind == ImplCompletionKind::TypeAlias =>
-                {
-                    add_type_alias_impl(&trigger, acc, ctx, type_item)
-                }
-                hir::AssocItem::Const(const_item)
-                    if kind == ImplCompletionKind::All || kind == ImplCompletionKind::Const =>
-                {
-                    add_const_impl(&trigger, acc, ctx, const_item, hir_impl)
-                }
-                _ => {}
             });
         }
     }
@@ -146,12 +145,12 @@ fn add_function_impl(
     } else {
         CompletionItemKind::SymbolKind(SymbolKind::Function)
     };
-    let mut item = CompletionItem::new(completion_kind, ctx.source_range(), label);
-    item.lookup_by(fn_name).set_documentation(func.docs(ctx.db));
 
     let range = replacement_range(ctx, fn_def_node);
+    let mut item = CompletionItem::new(completion_kind, range, label);
+    item.lookup_by(fn_name).set_documentation(func.docs(ctx.db));
 
-    if let Some(source) = func.source(ctx.db) {
+    if let Some(source) = ctx.sema.source(func) {
         let assoc_item = ast::AssocItem::Fn(source.value);
         if let Some(transformed_item) = get_transformed_assoc_item(ctx, assoc_item, impl_def) {
             let transformed_fn = match transformed_item {
@@ -189,12 +188,12 @@ fn get_transformed_assoc_item(
         target_scope,
         source_scope,
         trait_,
-        impl_def.source(ctx.db)?.value,
+        ctx.sema.source(impl_def)?.value,
     );
 
     transform.apply(assoc_item.syntax());
     if let ast::AssocItem::Fn(func) = &assoc_item {
-        func.remove_attrs_and_docs()
+        func.remove_attrs_and_docs();
     }
     Some(assoc_item)
 }
@@ -210,7 +209,7 @@ fn add_type_alias_impl(
     let snippet = format!("type {} = ", alias_name);
 
     let range = replacement_range(ctx, type_def_node);
-    let mut item = CompletionItem::new(SymbolKind::TypeAlias, ctx.source_range(), &snippet);
+    let mut item = CompletionItem::new(SymbolKind::TypeAlias, range, &snippet);
     item.text_edit(TextEdit::replace(range, snippet))
         .lookup_by(alias_name)
         .set_documentation(type_alias.docs(ctx.db));
@@ -227,7 +226,7 @@ fn add_const_impl(
     let const_name = const_.name(ctx.db).map(|n| n.to_smol_str());
 
     if let Some(const_name) = const_name {
-        if let Some(source) = const_.source(ctx.db) {
+        if let Some(source) = ctx.sema.source(const_) {
             let assoc_item = ast::AssocItem::Const(source.value);
             if let Some(transformed_item) = get_transformed_assoc_item(ctx, assoc_item, impl_def) {
                 let transformed_const = match transformed_item {
@@ -238,7 +237,7 @@ fn add_const_impl(
                 let snippet = make_const_compl_syntax(&transformed_const);
 
                 let range = replacement_range(ctx, const_def_node);
-                let mut item = CompletionItem::new(SymbolKind::Const, ctx.source_range(), &snippet);
+                let mut item = CompletionItem::new(SymbolKind::Const, range, &snippet);
                 item.text_edit(TextEdit::replace(range, snippet))
                     .lookup_by(const_name)
                     .set_documentation(const_.docs(ctx.db));

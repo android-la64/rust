@@ -41,7 +41,10 @@ fn build_completion(
         ctx.source_range(),
         SmolStr::from_iter([&name, " {…}"]),
     );
-    item.set_documentation(ctx.docs(def)).set_deprecated(ctx.is_deprecated(def)).detail(&literal);
+    item.set_documentation(ctx.docs(def))
+        .set_deprecated(ctx.is_deprecated(def))
+        .detail(&literal)
+        .set_relevance(ctx.completion_relevance());
     match ctx.snippet_cap() {
         Some(snippet_cap) => item.insert_snippet(snippet_cap, literal),
         None => item.insert_text(literal),
@@ -119,7 +122,7 @@ fn visible_fields(
     fields: &[hir::Field],
     item: impl HasAttrs,
 ) -> Option<(Vec<hir::Field>, bool)> {
-    let module = ctx.completion.scope.module()?;
+    let module = ctx.completion.module?;
     let n_fields = fields.len();
     let fields = fields
         .iter()

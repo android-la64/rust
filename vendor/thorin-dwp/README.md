@@ -3,11 +3,16 @@
 DWARF objects (`*.dwo` files; or `*.o` files with `.dwo` sections), supporting both the pre-standard
 GNU extension format for DWARF packages and the standardized format introduced in DWARF 5.
 
+`thorin` was written as part of the implementation of Split DWARF in `rustc`. A Rust implementation
+of a DWARF packaging utility is easier to integrate into the compiler and can support features like
+loading dwarf objects from archive files (or rustc's rlibs) which are helpful in supporting
+cross-crate Split DWARF packaging in `rustc`.
+
 ## Usage
 To use `thorin` in your own project, add it to your `Cargo.toml`:
 
 ```toml
-thorin-dwp = "0.1.1"
+thorin-dwp = "0.2.0"
 ```
 
 See the [`thorin-bin`](../thorin-bin/README.md) crate for an example of using `thorin`'s library
@@ -38,8 +43,9 @@ You could also call this project <code>rust-dwp</code>, if you'd prefer that.
 
 #### Author and acknowledgements
 <sup>
-<code>thorin</code> is authored by <a href="https://davidtw.co">David Wood</a> of
-<i>Huawei Technologies Research & Development (UK) Ltd</i>.
+<code>thorin</code> is authored by <a href="https://davidtw.co">David Wood</a> of <i>Huawei
+Technologies Research & Development (UK) Ltd</i>. <code>thorin</code> is maintained by the
+<a href="https://rust-lang.org/governance/teams/compiler">Rust Compiler Team</a>.
 </sup>
 
 <br>

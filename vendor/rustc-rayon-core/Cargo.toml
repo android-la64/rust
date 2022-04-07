@@ -3,17 +3,16 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 edition = "2018"
 name = "rustc-rayon-core"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Niko Matsakis <niko@alum.mit.edu>", "Josh Stone <cuviper@gmail.com>"]
 build = "build.rs"
 description = "Core APIs for Rayon - fork for rustc"
@@ -49,13 +48,10 @@ path = "tests/simple_panic.rs"
 name = "scoped_threadpool"
 path = "tests/scoped_threadpool.rs"
 [dependencies.crossbeam-deque]
-version = "0.7.2"
-
-[dependencies.crossbeam-queue]
-version = "0.2"
+version = "0.8.0"
 
 [dependencies.crossbeam-utils]
-version = "0.7"
+version = "0.8.0"
 
 [dependencies.lazy_static]
 version = "1"

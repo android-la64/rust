@@ -11,8 +11,8 @@ use std::{ffi::OsString, iter, path::PathBuf};
 
 use flycheck::FlycheckConfig;
 use ide::{
-    AssistConfig, CompletionConfig, DiagnosticsConfig, HighlightRelatedConfig, HoverConfig,
-    HoverDocFormat, InlayHintsConfig, JoinLinesConfig, Snippet, SnippetScope,
+    AssistConfig, CompletionConfig, DiagnosticsConfig, ExprFillDefaultMode, HighlightRelatedConfig,
+    HoverConfig, HoverDocFormat, InlayHintsConfig, JoinLinesConfig, Snippet, SnippetScope,
 };
 use ide_db::helpers::{
     insert_use::{ImportGranularity, InsertUseConfig, PrefixKind},
@@ -45,6 +45,8 @@ use crate::{
 // parsing the old name.
 config_data! {
     struct ConfigData {
+        /// Placeholder for missing expressions in assists.
+        assist_exprFillDefault: ExprFillDefaultDef              = "\"todo\"",
         /// How imports should be grouped into use statements.
         assist_importGranularity |
         assist_importMergeBehavior |
@@ -296,11 +298,18 @@ config_data! {
         /// Whether to show `can't find Cargo.toml` error message.
         notifications_cargoTomlNotFound: bool      = "true",
 
+        /// How many worker threads to to handle priming caches. The default `0` means to pick automatically.
+        primeCaches_numThreads: ParallelPrimeCachesNumThreads = "0",
+
         /// Enable support for procedural macros, implies `#rust-analyzer.cargo.runBuildScripts#`.
         procMacro_enable: bool                     = "true",
         /// Internal config, path to proc-macro server executable (typically,
         /// this is rust-analyzer itself, but we override this in tests).
         procMacro_server: Option<PathBuf>          = "null",
+        /// These proc-macros will be ignored when trying to expand them.
+        ///
+        /// This config takes a map of crate names with the exported proc-macro names to ignore as values.
+        procMacro_ignored: FxHashMap<Box<str>, Box<[Box<str>]>>          = "{}",
 
         /// Command to be executed instead of 'cargo' for runnables.
         runnables_overrideCargo: Option<String> = "null",
@@ -337,7 +346,7 @@ config_data! {
 
 impl Default for ConfigData {
     fn default() -> Self {
-        ConfigData::from_json(serde_json::Value::Null)
+        ConfigData::from_json(serde_json::Value::Null, &mut Vec::new())
     }
 }
 
@@ -488,16 +497,21 @@ impl Config {
             snippets: Default::default(),
         }
     }
-    pub fn update(&mut self, mut json: serde_json::Value) {
+    pub fn update(
+        &mut self,
+        mut json: serde_json::Value,
+    ) -> Result<(), Vec<(String, serde_json::Error)>> {
         tracing::info!("updating config from JSON: {:#}", json);
         if json.is_null() || json.as_object().map_or(false, |it| it.is_empty()) {
-            return;
+            return Ok(());
         }
-        self.detached_files = get_field::<Vec<PathBuf>>(&mut json, "detachedFiles", None, "[]")
-            .into_iter()
-            .map(AbsPathBuf::assert)
-            .collect();
-        self.data = ConfigData::from_json(json);
+        let mut errors = Vec::new();
+        self.detached_files =
+            get_field::<Vec<PathBuf>>(&mut json, &mut errors, "detachedFiles", None, "[]")
+                .into_iter()
+                .map(AbsPathBuf::assert)
+                .collect();
+        self.data = ConfigData::from_json(json, &mut errors);
         self.snippets.clear();
         for (name, def) in self.data.completion_snippets.iter() {
             if def.prefix.is_empty() && def.postfix.is_empty() {
@@ -519,6 +533,11 @@ impl Config {
                 Some(snippet) => self.snippets.push(snippet),
                 None => tracing::info!("Invalid snippet {}", name),
             }
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 
@@ -694,6 +713,10 @@ impl Config {
         DiagnosticsConfig {
             disable_experimental: !self.data.diagnostics_enableExperimental,
             disabled: self.data.diagnostics_disabled.clone(),
+            expr_fill_default: match self.data.assist_exprFillDefault {
+                ExprFillDefaultDef::Todo => ExprFillDefaultMode::Todo,
+                ExprFillDefaultDef::Default => ExprFillDefaultMode::Default,
+            },
         }
     }
     pub fn diagnostics_map(&self) -> DiagnosticsMapConfig {
@@ -715,6 +738,9 @@ impl Config {
             None => AbsPathBuf::assert(std::env::current_exe().ok()?),
         };
         Some((path, vec!["proc-macro".into()]))
+    }
+    pub fn dummy_replacements(&self) -> &FxHashMap<Box<str>, Box<[Box<str>]>> {
+        &self.data.procMacro_ignored
     }
     pub fn expand_proc_attr_macros(&self) -> bool {
         self.data.experimental_procAttrMacros
@@ -993,6 +1019,13 @@ impl Config {
             yield_points: self.data.highlightRelated_yieldPoints,
         }
     }
+
+    pub fn prime_caches_num_threads(&self) -> u8 {
+        match self.data.primeCaches_numThreads {
+            0 => num_cpus::get_physical().try_into().unwrap_or(u8::MAX),
+            n => n,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -1064,6 +1097,15 @@ enum ManifestOrProjectJson {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
+pub enum ExprFillDefaultDef {
+    #[serde(alias = "todo")]
+    Todo,
+    #[serde(alias = "default")]
+    Default,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
 enum ImportGranularityDef {
     Preserve,
     #[serde(alias = "none")]
@@ -1098,6 +1140,8 @@ enum WorkspaceSymbolSearchKindDef {
     AllSymbols,
 }
 
+type ParallelPrimeCachesNumThreads = u8;
+
 macro_rules! _config_data {
     (struct $name:ident {
         $(
@@ -1109,10 +1153,11 @@ macro_rules! _config_data {
         #[derive(Debug, Clone)]
         struct $name { $($field: $ty,)* }
         impl $name {
-            fn from_json(mut json: serde_json::Value) -> $name {
+            fn from_json(mut json: serde_json::Value, error_sink: &mut Vec<(String, serde_json::Error)>) -> $name {
                 $name {$(
                     $field: get_field(
                         &mut json,
+                        error_sink,
                         stringify!($field),
                         None$(.or(Some(stringify!($alias))))*,
                         $default,
@@ -1149,6 +1194,7 @@ use _config_data as config_data;
 
 fn get_field<T: DeserializeOwned>(
     json: &mut serde_json::Value,
+    error_sink: &mut Vec<(String, serde_json::Error)>,
     field: &'static str,
     alias: Option<&'static str>,
     default: &str,
@@ -1163,7 +1209,14 @@ fn get_field<T: DeserializeOwned>(
         .find_map(move |field| {
             let mut pointer = field.replace('_', "/");
             pointer.insert(0, '/');
-            json.pointer_mut(&pointer).and_then(|it| serde_json::from_value(it.take()).ok())
+            json.pointer_mut(&pointer).and_then(|it| match serde_json::from_value(it.take()) {
+                Ok(it) => Some(it),
+                Err(e) => {
+                    tracing::warn!("Failed to deserialize config field at {}: {:?}", pointer, e);
+                    error_sink.push((pointer, e));
+                    None
+                }
+            })
         })
         .unwrap_or(default)
 }
@@ -1224,6 +1277,9 @@ fn field_props(field: &str, ty: &str, doc: &[&str], default: &str) -> serde_json
             "items": { "type": "string" },
             "uniqueItems": true,
         },
+        "FxHashMap<Box<str>, Box<[Box<str>]>>" => set! {
+            "type": "object",
+        },
         "FxHashMap<String, SnippetDef>" => set! {
             "type": "object",
         },
@@ -1254,6 +1310,14 @@ fn field_props(field: &str, ty: &str, doc: &[&str], default: &str) -> serde_json
                 "Do not merge imports at all.",
                 "Merge imports from the same crate into a single `use` statement.",
                 "Merge imports from the same module into a single `use` statement."
+            ],
+        },
+        "ExprFillDefaultDef" => set! {
+            "type": "string",
+            "enum": ["todo", "default"],
+            "enumDescriptions": [
+                "Fill missing expressions with the `todo` macro",
+                "Fill missing expressions with reasonable defaults, `new` or `default` constructors."
             ],
         },
         "ImportGranularityDef" => set! {
@@ -1299,6 +1363,11 @@ fn field_props(field: &str, ty: &str, doc: &[&str], default: &str) -> serde_json
                 "Search for all symbols kinds"
             ],
         },
+        "ParallelPrimeCachesNumThreads" => set! {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 255
+        },
         _ => panic!("{}: {}", ty, default),
     }
 
@@ -1312,7 +1381,23 @@ fn manual(fields: &[(&'static str, &'static str, &[&str], &str)]) -> String {
         .map(|(field, _ty, doc, default)| {
             let name = format!("rust-analyzer.{}", field.replace("_", "."));
             let doc = doc_comment_to_string(*doc);
-            format!("[[{}]]{} (default: `{}`)::\n+\n--\n{}--\n", name, name, default, doc)
+            if default.contains('\n') {
+                format!(
+                    r#"[[{}]]{}::
++
+--
+Default:
+----
+{}
+----
+{}
+--
+"#,
+                    name, name, default, doc
+                )
+            } else {
+                format!("[[{}]]{} (default: `{}`)::\n+\n--\n{}--\n", name, name, default, doc)
+            }
         })
         .collect::<String>()
 }

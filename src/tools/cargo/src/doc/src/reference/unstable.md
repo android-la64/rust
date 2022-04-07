@@ -35,9 +35,9 @@ how the feature works:
 * `-Z` command-line flags are used to enable new functionality that may not
   have an interface, or the interface has not yet been designed, or for more
   complex features that affect multiple parts of Cargo. For example, the
-  [timings](#timings) feature can be enabled with:
+  [mtime-on-use](#mtime-on-use) feature can be enabled with:
 
-  ```cargo +nightly build -Z timings```
+  ```cargo +nightly build -Z mtime-on-use```
 
   Run `cargo -Z help` to see a list of flags available.
 
@@ -49,7 +49,6 @@ how the feature works:
   [unstable]
   mtime-on-use = true
   multitarget = true
-  timings = ["html"]
   ```
 
 Each new feature described below should explain how to use it.
@@ -69,8 +68,6 @@ Each new feature described below should explain how to use it.
     * [avoid-dev-deps](#avoid-dev-deps) — Prevents the resolver from including dev-dependencies during resolution.
     * [minimal-versions](#minimal-versions) — Forces the resolver to use the lowest compatible version instead of the highest.
     * [public-dependency](#public-dependency) — Allows dependencies to be classified as either public or private.
-    * [Namespaced features](#namespaced-features) — Separates optional dependencies into a separate namespace from regular features, and allows feature names to be the same as some dependency name.
-    * [Weak dependency features](#weak-dependency-features) — Allows setting features for dependencies without enabling optional dependencies.
 * Output behavior
     * [out-dir](#out-dir) — Adds a directory where artifacts are copied to.
     * [terminal-width](#terminal-width) — Tells rustc the width of the terminal so that long diagnostic messages can be truncated to be more readable.
@@ -89,10 +86,10 @@ Each new feature described below should explain how to use it.
     * [rustdoc-map](#rustdoc-map) — Provides mappings for documentation to link to external sites like [docs.rs](https://docs.rs/).
 * `Cargo.toml` extensions
     * [Profile `strip` option](#profile-strip-option) — Forces the removal of debug information and symbols from executables.
+    * [Profile `rustflags` option](#profile-rustflags-option) — Passed directly to rustc.
     * [per-package-target](#per-package-target) — Sets the `--target` to use for each individual package.
 * Information and metadata
     * [Build-plan](#build-plan) — Emits JSON information on which commands will be run.
-    * [timings](#timings) — Generates a report on how long individual dependencies took to run.
     * [unit-graph](#unit-graph) — Emits JSON for Cargo's internal graph structure.
     * [`cargo rustc --print`](#rustc---print) — Calls rustc with `--print` to display information from rustc.
 * Configuration
@@ -252,68 +249,6 @@ dir-name = "lto"  # Emits to target/lto instead of target/release-lto
 lto = true
 ```
 
-
-### Namespaced features
-* Original issue: [#1286](https://github.com/rust-lang/cargo/issues/1286)
-* Tracking Issue: [#5565](https://github.com/rust-lang/cargo/issues/5565)
-
-The `namespaced-features` option makes two changes to how features can be
-specified:
-
-* Features may now be defined with the same name as a dependency.
-* Optional dependencies can be explicitly enabled in the `[features]` table
-  with the `dep:` prefix, which enables the dependency without enabling a
-  feature of the same name.
-
-By default, an optional dependency `foo` will define a feature `foo =
-["dep:foo"]` *unless* `dep:foo` is mentioned in any other feature, or the
-`foo` feature is already defined. This helps prevent unnecessary boilerplate
-of listing every optional dependency, but still allows you to override the
-implicit feature.
-
-This allows two use cases that were previously not possible:
-
-* You can "hide" an optional dependency, so that external users cannot
-  explicitly enable that optional dependency.
-* There is no longer a need to create "funky" feature names to work around the
-  restriction that features cannot shadow dependency names.
-
-To enable namespaced-features, use the `-Z namespaced-features` command-line
-flag.
-
-An example of hiding an optional dependency:
-
-```toml
-[dependencies]
-regex = { version = "1.4.1", optional = true }
-lazy_static = { version = "1.4.0", optional = true }
-
-[features]
-regex = ["dep:regex", "dep:lazy_static"]
-```
-
-In this example, the "regex" feature enables both `regex` and `lazy_static`.
-The `lazy_static` feature does not exist, and a user cannot explicitly enable
-it. This helps hide internal details of how your package is implemented.
-
-An example of avoiding "funky" names:
-
-```toml
-[dependencies]
-bigdecimal = "0.1"
-chrono = "0.4"
-num-bigint = "0.2"
-serde = {version = "1.0", optional = true }
-
-[features]
-serde = ["dep:serde", "bigdecimal/serde", "chrono/serde", "num-bigint/serde"]
-```
-
-In this case, `serde` is a natural name to use for a feature, because it is
-relevant to your exported API. However, previously you would need to use a
-name like `serde1` to work around the naming limitation if you wanted to also
-enable other features.
-
 ### Build-plan
 * Tracking Issue: [#5579](https://github.com/rust-lang/cargo/issues/5579)
 
@@ -465,68 +400,6 @@ the features enabled for the standard library itself when building the standard
 library. The default enabled features, at this time, are `backtrace` and
 `panic_unwind`. This flag expects a comma-separated list and, if provided, will
 override the default list of features enabled.
-
-### timings
-* Tracking Issue: [#7405](https://github.com/rust-lang/cargo/issues/7405)
-
-The `timings` feature gives some information about how long each compilation
-takes, and tracks concurrency information over time.
-
-```sh
-cargo +nightly build -Z timings
-```
-
-The `-Ztimings` flag can optionally take a comma-separated list of the
-following values:
-
-- `html` — Saves a file called `cargo-timing.html` to the current directory
-  with a report of the compilation. Files are also saved with a timestamp in
-  the filename if you want to look at older runs.
-- `info` — Displays a message to stdout after each compilation finishes with
-  how long it took.
-- `json` — Emits some JSON information about timing information.
-
-The default if none are specified is `html,info`.
-
-#### Reading the graphs
-
-There are two graphs in the output. The "unit" graph shows the duration of
-each unit over time. A "unit" is a single compiler invocation. There are lines
-that show which additional units are "unlocked" when a unit finishes. That is,
-it shows the new units that are now allowed to run because their dependencies
-are all finished. Hover the mouse over a unit to highlight the lines. This can
-help visualize the critical path of dependencies. This may change between runs
-because the units may finish in different orders.
-
-The "codegen" times are highlighted in a lavender color. In some cases, build
-pipelining allows units to start when their dependencies are performing code
-generation. This information is not always displayed (for example, binary
-units do not show when code generation starts).
-
-The "custom build" units are `build.rs` scripts, which when run are
-highlighted in orange.
-
-The second graph shows Cargo's concurrency over time. The background
-indicates CPU usage. The three lines are:
-- "Waiting" (red) — This is the number of units waiting for a CPU slot to
-  open.
-- "Inactive" (blue) — This is the number of units that are waiting for their
-  dependencies to finish.
-- "Active" (green) — This is the number of units currently running.
-
-Note: This does not show the concurrency in the compiler itself. `rustc`
-coordinates with Cargo via the "job server" to stay within the concurrency
-limit. This currently mostly applies to the code generation phase.
-
-Tips for addressing compile times:
-- Look for slow dependencies.
-    - Check if they have features that you may wish to consider disabling.
-    - Consider trying to remove the dependency completely.
-- Look for a crate being built multiple times with different versions. Try to
-  remove the older versions from the dependency graph.
-- Split large crates into smaller pieces.
-- If there are a large number of crates bottlenecked on a single crate, focus
-  your attention on improving that one crate to improve parallelism.
 
 ### binary-dep-depinfo
 * Tracking rustc issue: [#63012](https://github.com/rust-lang/rust/issues/63012)
@@ -820,6 +693,24 @@ The following is a description of the JSON structure:
 }
 ```
 
+### Profile `rustflags` option
+* Original Issue: [rust-lang/cargo#7878](https://github.com/rust-lang/cargo/issues/7878)
+* Tracking Issue: [rust-lang/cargo#10271](https://github.com/rust-lang/cargo/issues/10271)
+
+This feature provides a new option in the `[profile]` section to specify flags
+that are passed directly to rustc.
+This can be enabled like so:
+
+```toml
+cargo-features = ["profile-rustflags"]
+
+[package]
+# ...
+
+[profile.release]
+rustflags = [ "-C", "..." ]
+```
+
 ### rustdoc-map
 * Tracking Issue: [#8296](https://github.com/rust-lang/cargo/issues/8296)
 
@@ -897,29 +788,6 @@ error[E0308]: mismatched types
 
 error: aborting due to previous error
 ```
-
-### Weak dependency features
-* Tracking Issue: [#8832](https://github.com/rust-lang/cargo/issues/8832)
-
-The `-Z weak-dep-features` command-line options enables the ability to use
-`dep_name?/feat_name` syntax in the `[features]` table. The `?` indicates that
-the optional dependency `dep_name` will not be automatically enabled. The
-feature `feat_name` will only be added if something else enables the
-`dep_name` dependency.
-
-Example:
-
-```toml
-[dependencies]
-serde = { version = "1.0.117", optional = true, default-features = false }
-
-[features]
-std = ["serde?/std"]
-```
-
-In this example, the `std` feature enables the `std` feature on the `serde`
-dependency. However, unlike the normal `serde/std` syntax, it will not enable
-the optional dependency `serde` unless something else has included it.
 
 ### per-package-target
 * Tracking Issue: [#9406](https://github.com/rust-lang/cargo/pull/9406)
@@ -1375,3 +1243,19 @@ The profile `strip` option has been stabilized in the 1.59 release. See the
 Support for generating a future-incompat report has been stabilized
 in the 1.59 release. See the [future incompat report chapter](future-incompat-report.md)
 for more information.
+
+### Namespaced features
+
+Namespaced features has been stabilized in the 1.60 release.
+See the [Features chapter](features.md#optional-dependencies) for more information.
+
+### Weak dependency features
+
+Weak dependency features has been stabilized in the 1.60 release.
+See the [Features chapter](features.md#dependency-features) for more information.
+
+### timings
+
+The `-Ztimings` option has been stabilized as `--timings` in the 1.60 release.
+(`--timings=html` and the machine-readable `--timings=json` output remain
+unstable and require `-Zunstable-options`.)

@@ -188,16 +188,23 @@ fn rename_mod(
         source_change.push_file_system_edit(move_file);
     }
 
-    if let Some(InFile { file_id, value: decl_source }) = module.declaration_source(sema.db) {
-        let file_id = file_id.original_file(sema.db);
-        match decl_source.name() {
-            Some(name) => source_change.insert_source_edit(
-                file_id,
-                TextEdit::replace(name.syntax().text_range(), new_name.to_string()),
-            ),
+    if let Some(src) = module.declaration_source(sema.db) {
+        let file_id = src.file_id.original_file(sema.db);
+        match src.value.name() {
+            Some(name) => {
+                if let Some(file_range) =
+                    src.with_value(name.syntax()).original_file_range_opt(sema.db)
+                {
+                    source_change.insert_source_edit(
+                        file_id,
+                        TextEdit::replace(file_range.range, new_name.to_string()),
+                    )
+                };
+            }
             _ => never!("Module source node is missing a name"),
         }
     }
+
     let def = Definition::Module(module);
     let usages = def.usages(sema).all();
     let ref_edits = usages.iter().map(|(&file_id, references)| {
@@ -343,6 +350,10 @@ fn source_edit_from_name_ref(
     new_name: &str,
     def: Definition,
 ) -> bool {
+    if name_ref.super_token().is_some() {
+        return true;
+    }
+
     if let Some(record_field) = ast::RecordExprField::for_name_ref(name_ref) {
         let rcf_name_ref = record_field.name_ref();
         let rcf_expr = record_field.expr();

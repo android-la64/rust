@@ -59,7 +59,10 @@ fn build_completion(
     def: impl HasAttrs + Copy,
 ) -> CompletionItem {
     let mut item = CompletionItem::new(CompletionItemKind::Binding, ctx.source_range(), name);
-    item.set_documentation(ctx.docs(def)).set_deprecated(ctx.is_deprecated(def)).detail(&pat);
+    item.set_documentation(ctx.docs(def))
+        .set_deprecated(ctx.is_deprecated(def))
+        .detail(&pat)
+        .set_relevance(ctx.completion_relevance());
     match ctx.snippet_cap() {
         Some(snippet_cap) => item.insert_snippet(snippet_cap, pat),
         None => item.insert_text(pat),
@@ -87,7 +90,7 @@ fn render_pat(
     if matches!(
         ctx.completion.pattern_ctx,
         Some(PatternContext {
-            is_param: Some(ParamKind::Function),
+            param_ctx: Some((.., ParamKind::Function(_))),
             has_type_ascription: false,
             ..
         })
@@ -144,7 +147,7 @@ fn visible_fields(
     fields: &[hir::Field],
     item: impl HasAttrs,
 ) -> Option<(Vec<hir::Field>, bool)> {
-    let module = ctx.completion.scope.module()?;
+    let module = ctx.completion.module?;
     let n_fields = fields.len();
     let fields = fields
         .iter()

@@ -108,7 +108,18 @@ impl HasName for Macro {
 
 impl HasAttrs for Macro {}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl From<ast::AssocItem> for ast::Item {
+    fn from(assoc: ast::AssocItem) -> Self {
+        match assoc {
+            ast::AssocItem::Const(it) => ast::Item::Const(it),
+            ast::AssocItem::Fn(it) => ast::Item::Fn(it),
+            ast::AssocItem::MacroCall(it) => ast::Item::MacroCall(it),
+            ast::AssocItem::TypeAlias(it) => ast::Item::TypeAlias(it),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum AttrKind {
     Inner,
     Outer,
@@ -149,14 +160,9 @@ impl ast::Attr {
     }
 
     pub fn kind(&self) -> AttrKind {
-        let first_token = self.syntax().first_token();
-        let first_token_kind = first_token.as_ref().map(SyntaxToken::kind);
-        let second_token_kind =
-            first_token.and_then(|token| token.next_token()).as_ref().map(SyntaxToken::kind);
-
-        match (first_token_kind, second_token_kind) {
-            (Some(T![#]), Some(T![!])) => AttrKind::Inner,
-            _ => AttrKind::Outer,
+        match self.excl_token() {
+            Some(_) => AttrKind::Inner,
+            None => AttrKind::Outer,
         }
     }
 
@@ -434,13 +440,10 @@ impl ast::AstNode for NameLike {
     }
 }
 
-mod __ {
-    use super::{
-        ast::{Lifetime, Name, NameRef},
-        NameLike,
-    };
+const _: () = {
+    use ast::{Lifetime, Name, NameRef};
     stdx::impl_from!(NameRef, Name, Lifetime for NameLike);
-}
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NameOrNameRef {
@@ -763,21 +766,14 @@ impl ast::HasLoopBody for ast::ForExpr {
     }
 }
 
-impl ast::HasDocComments for ast::SourceFile {}
-impl ast::HasDocComments for ast::Fn {}
-impl ast::HasDocComments for ast::Struct {}
-impl ast::HasDocComments for ast::Union {}
-impl ast::HasDocComments for ast::RecordField {}
-impl ast::HasDocComments for ast::TupleField {}
-impl ast::HasDocComments for ast::Enum {}
-impl ast::HasDocComments for ast::Variant {}
-impl ast::HasDocComments for ast::Trait {}
-impl ast::HasDocComments for ast::Module {}
-impl ast::HasDocComments for ast::Static {}
-impl ast::HasDocComments for ast::Const {}
-impl ast::HasDocComments for ast::TypeAlias {}
-impl ast::HasDocComments for ast::Impl {}
-impl ast::HasDocComments for ast::MacroRules {}
-impl ast::HasDocComments for ast::MacroDef {}
-impl ast::HasDocComments for ast::Macro {}
-impl ast::HasDocComments for ast::Use {}
+impl ast::HasAttrs for ast::AnyHasDocComments {}
+
+impl From<ast::Adt> for ast::Item {
+    fn from(it: ast::Adt) -> Self {
+        match it {
+            ast::Adt::Enum(it) => ast::Item::Enum(it),
+            ast::Adt::Struct(it) => ast::Item::Struct(it),
+            ast::Adt::Union(it) => ast::Item::Union(it),
+        }
+    }
+}

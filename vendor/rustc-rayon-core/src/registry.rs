@@ -8,8 +8,7 @@ use crate::{
     AcquireThreadHandler, DeadlockHandler, ErrorKind, ExitHandler, PanicHandler,
     ReleaseThreadHandler, StartHandler, ThreadPoolBuildError, ThreadPoolBuilder,
 };
-use crossbeam_deque::{Steal, Stealer, Worker};
-use crossbeam_queue::SegQueue;
+use crossbeam_deque::{Injector, Steal, Stealer, Worker};
 use std::any::Any;
 use std::cell::Cell;
 use std::collections::hash_map::DefaultHasher;
@@ -135,7 +134,7 @@ where
 pub struct Registry {
     thread_infos: Vec<ThreadInfo>,
     sleep: Sleep,
-    injected_jobs: SegQueue<JobRef>,
+    injected_jobs: Injector<JobRef>,
     panic_handler: Option<Box<PanicHandler>>,
     pub(crate) deadlock_handler: Option<Box<DeadlockHandler>>,
     start_handler: Option<Box<StartHandler>>,
@@ -240,7 +239,7 @@ impl Registry {
         let registry = Arc::new(Registry {
             thread_infos: stealers.into_iter().map(ThreadInfo::new).collect(),
             sleep: Sleep::new(n_threads),
-            injected_jobs: SegQueue::new(),
+            injected_jobs: Injector::new(),
             terminate_latch: CountLatch::new(),
             panic_handler: builder.take_panic_handler(),
             deadlock_handler: builder.take_deadlock_handler(),
@@ -415,13 +414,18 @@ impl Registry {
     }
 
     fn pop_injected_job(&self, worker_index: usize) -> Option<JobRef> {
-        let job = self.injected_jobs.pop().ok();
-        if job.is_some() {
-            log!(UninjectedWork {
-                worker: worker_index
-            });
+        loop {
+            match self.injected_jobs.steal() {
+                Steal::Success(job) => {
+                    log!(UninjectedWork {
+                        worker: worker_index
+                    });
+                    return Some(job);
+                }
+                Steal::Empty => return None,
+                Steal::Retry => {}
+            }
         }
-        job
     }
 
     /// If already in a worker-thread of this registry, just execute `op`.
