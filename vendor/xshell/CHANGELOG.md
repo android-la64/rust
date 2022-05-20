@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.1
+
+- `Shell::remove_path` returns `Ok` if the path does not exist (ie the function
+  is now idempotent).
+
+## 0.2.0
+
+A major release with significant changes to the API:
+
+- All global state is removed in favor of explicitly passing a `Shell` instance.
+- Some methods are renamed to better match Rust naming conventions.
+- New APIs for controlling working directory and environment.
+- MSRV is raised to 1.59.0.
+- Improved reliability across the board: the crate aims to become a dependable
+  1.0 tool in the future (no ETA).
+- This is expected to be the last *large* API reshufl.
+
 ## 0.1.17
 
 - Allow panics to transparently pass through xshell calls.

@@ -160,6 +160,7 @@ impl ChangeFixture {
                     meta.cfg,
                     meta.env,
                     Default::default(),
+                    false,
                     origin,
                 );
                 let prev = crates.insert(crate_name.clone(), crate_id);
@@ -194,6 +195,7 @@ impl ChangeFixture {
                 default_cfg,
                 Env::default(),
                 Default::default(),
+                false,
                 Default::default(),
             );
         } else {
@@ -230,6 +232,7 @@ impl ChangeFixture {
                 CfgOptions::default(),
                 Env::default(),
                 Vec::new(),
+                false,
                 CrateOrigin::Lang,
             );
 
@@ -266,6 +269,7 @@ impl ChangeFixture {
                 CfgOptions::default(),
                 Env::default(),
                 proc_macro,
+                true,
                 CrateOrigin::Lang,
             );
 
@@ -390,9 +394,9 @@ struct FileMeta {
 }
 
 fn parse_crate(crate_str: String) -> (String, CrateOrigin, Option<String>) {
-    if let Some((a, b)) = crate_str.split_once("@") {
-        let (version, origin) = match b.split_once(":") {
-            Some(("CratesIo", data)) => match data.split_once(",") {
+    if let Some((a, b)) = crate_str.split_once('@') {
+        let (version, origin) = match b.split_once(':') {
+            Some(("CratesIo", data)) => match data.split_once(',') {
                 Some((version, url)) => {
                     (version, CrateOrigin::CratesIo { repo: Some(url.to_owned()) })
                 }

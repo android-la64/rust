@@ -54,6 +54,7 @@ pub type IndexMatchedPath<'a> = dyn FnMut(&Path, &[u8]) -> i32 + 'a;
 /// All fields of an entry are public for modification and inspection. This is
 /// also how a new index entry is created.
 #[allow(missing_docs)]
+#[derive(Debug)]
 pub struct IndexEntry {
     pub ctime: IndexTime,
     pub mtime: IndexTime,
@@ -848,9 +849,6 @@ mod tests {
 
     #[test]
     fn add_then_read() {
-        let mut index = Index::new().unwrap();
-        assert!(index.add(&entry()).is_err());
-
         let mut index = Index::new().unwrap();
         let mut e = entry();
         e.path = b"foobar".to_vec();

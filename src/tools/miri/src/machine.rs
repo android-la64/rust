@@ -10,16 +10,17 @@ use std::time::Instant;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
+use rustc_ast::ast::Mutability;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_middle::{
     mir,
     ty::{
         self,
         layout::{LayoutCx, LayoutError, LayoutOf, TyAndLayout},
-        Instance, TyCtxt,
+        Instance, TyCtxt, TypeAndMut,
     },
 };
-use rustc_span::def_id::DefId;
+use rustc_span::def_id::{CrateNum, DefId};
 use rustc_span::symbol::{sym, Symbol};
 use rustc_target::abi::Size;
 use rustc_target::spec::abi::Abi;
@@ -71,8 +72,9 @@ pub enum MiriMemoryKind {
     /// Memory for args, errno, and other parts of the machine-managed environment.
     /// This memory may leak.
     Machine,
-    /// Memory for env vars. Separate from `Machine` because we clean it up and leak-check it.
-    Env,
+    /// Memory allocated by the runtime (e.g. env vars). Separate from `Machine`
+    /// because we clean it up and leak-check it.
+    Runtime,
     /// Globals copied from `tcx`.
     /// This memory may leak.
     Global,
@@ -96,7 +98,7 @@ impl MayLeak for MiriMemoryKind {
     fn may_leak(self) -> bool {
         use self::MiriMemoryKind::*;
         match self {
-            Rust | C | WinHeap | Env => false,
+            Rust | C | WinHeap | Runtime => false,
             Machine | Global | ExternStatic | Tls => true,
         }
     }
@@ -110,7 +112,7 @@ impl fmt::Display for MiriMemoryKind {
             C => write!(f, "C heap"),
             WinHeap => write!(f, "Windows heap"),
             Machine => write!(f, "machine-managed memory"),
-            Env => write!(f, "environment variable"),
+            Runtime => write!(f, "language runtime memory"),
             Global => write!(f, "global (static or const)"),
             ExternStatic => write!(f, "extern static"),
             Tls => write!(f, "thread-local static"),
@@ -203,7 +205,7 @@ impl MemoryExtra {
         MemoryExtra {
             stacked_borrows,
             data_race,
-            intptrcast: Default::default(),
+            intptrcast: RefCell::new(intptrcast::GlobalState::new(config)),
             extern_statics: FxHashMap::default(),
             rng: RefCell::new(rng),
             tracked_alloc_id: config.tracked_alloc_id,
@@ -267,18 +269,24 @@ pub struct PrimitiveLayouts<'tcx> {
     pub u8: TyAndLayout<'tcx>,
     pub u32: TyAndLayout<'tcx>,
     pub usize: TyAndLayout<'tcx>,
+    pub bool: TyAndLayout<'tcx>,
+    pub mut_raw_ptr: TyAndLayout<'tcx>,
 }
 
 impl<'mir, 'tcx: 'mir> PrimitiveLayouts<'tcx> {
     fn new(layout_cx: LayoutCx<'tcx, TyCtxt<'tcx>>) -> Result<Self, LayoutError<'tcx>> {
+        let tcx = layout_cx.tcx;
+        let mut_raw_ptr = tcx.mk_ptr(TypeAndMut { ty: tcx.types.unit, mutbl: Mutability::Mut });
         Ok(Self {
-            unit: layout_cx.layout_of(layout_cx.tcx.mk_unit())?,
-            i8: layout_cx.layout_of(layout_cx.tcx.types.i8)?,
-            i32: layout_cx.layout_of(layout_cx.tcx.types.i32)?,
-            isize: layout_cx.layout_of(layout_cx.tcx.types.isize)?,
-            u8: layout_cx.layout_of(layout_cx.tcx.types.u8)?,
-            u32: layout_cx.layout_of(layout_cx.tcx.types.u32)?,
-            usize: layout_cx.layout_of(layout_cx.tcx.types.usize)?,
+            unit: layout_cx.layout_of(tcx.mk_unit())?,
+            i8: layout_cx.layout_of(tcx.types.i8)?,
+            i32: layout_cx.layout_of(tcx.types.i32)?,
+            isize: layout_cx.layout_of(tcx.types.isize)?,
+            u8: layout_cx.layout_of(tcx.types.u8)?,
+            u32: layout_cx.layout_of(tcx.types.u32)?,
+            usize: layout_cx.layout_of(tcx.types.usize)?,
+            bool: layout_cx.layout_of(tcx.types.bool)?,
+            mut_raw_ptr: layout_cx.layout_of(mut_raw_ptr)?,
         })
     }
 }
@@ -343,10 +351,17 @@ pub struct Evaluator<'mir, 'tcx> {
     /// functionality is encountered. If `false`, an error is propagated in the Miri application context
     /// instead (default behavior)
     pub(crate) panic_on_unsupported: bool,
+
+    /// Equivalent setting as RUST_BACKTRACE on encountering an error.
+    pub(crate) backtrace_style: BacktraceStyle,
+
+    /// Crates which are considered local for the purposes of error reporting.
+    pub(crate) local_crates: Vec<CrateNum>,
 }
 
 impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
     pub(crate) fn new(config: &MiriConfig, layout_cx: LayoutCx<'tcx, TyCtxt<'tcx>>) -> Self {
+        let local_crates = helpers::get_local_crates(&layout_cx.tcx);
         let layouts =
             PrimitiveLayouts::new(layout_cx).expect("Couldn't get layouts of primitive types");
         let profiler = config.measureme_out.as_ref().map(|out| {
@@ -374,11 +389,19 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
             string_cache: Default::default(),
             exported_symbols_cache: FxHashMap::default(),
             panic_on_unsupported: config.panic_on_unsupported,
+            backtrace_style: config.backtrace_style,
+            local_crates,
         }
     }
 
     pub(crate) fn communicate(&self) -> bool {
         self.isolated_op == IsolatedOp::Allow
+    }
+
+    /// Check whether the stack frame that this `FrameInfo` refers to is part of a local crate.
+    pub(crate) fn is_local(&self, frame: &FrameInfo<'_>) -> bool {
+        let def_id = frame.instance.def_id();
+        def_id.is_local() || self.local_crates.contains(&def_id.krate)
     }
 }
 

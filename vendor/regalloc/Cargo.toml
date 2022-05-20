@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "regalloc"
-version = "0.0.32"
+version = "0.0.34"
 authors = ["The Regalloc.rs Developers"]
 description = "Modular register allocation algorithms"
 readme = "README.md"

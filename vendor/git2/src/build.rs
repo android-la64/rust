@@ -28,7 +28,7 @@ use crate::{CheckoutNotificationType, DiffFile, FileMode, Remote};
 ///     Cred::ssh_key(
 ///       username_from_url.unwrap(),
 ///       None,
-///       std::path::Path::new(&format!("{}/.ssh/id_rsa", env::var("HOME").unwrap())),
+///       Path::new(&format!("{}/.ssh/id_rsa", env::var("HOME").unwrap())),
 ///       None,
 ///     )
 ///   });
@@ -679,6 +679,8 @@ extern "C" fn notify_cb(
     })
     .unwrap_or(2)
 }
+
+unsafe impl Send for TreeUpdateBuilder {}
 
 impl Default for TreeUpdateBuilder {
     fn default() -> Self {

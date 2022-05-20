@@ -16,6 +16,8 @@
 //! and is suitable both as a memory allocator and as a global allocator.
 
 #![cfg_attr(feature = "alloc_trait", feature(allocator_api))]
+// TODO: rename the following lint on next minor bump
+#![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
 #![no_std]
 
@@ -54,6 +56,7 @@ const ALIGNOF_MAX_ALIGN_T: usize = 8;
     target_arch = "powerpc64",
     target_arch = "powerpc64le",
     target_arch = "mips64",
+    target_arch = "riscv64",
     target_arch = "s390x",
     target_arch = "sparc64"
 )))]
@@ -275,7 +278,7 @@ unsafe impl Alloc for Jemalloc {
 /// and the size reported by this function should not be depended on,
 /// since such behavior is entirely implementation-dependent.
 ///
-/// # Unsafety
+/// # Safety
 ///
 /// `ptr` must have been allocated by `Jemalloc` and must not have been freed yet.
 pub unsafe fn usable_size<T>(ptr: *const T) -> usize {

@@ -1,13 +1,13 @@
 use cranelift_codegen::binemit::Reloc;
 use cranelift_codegen::ir::ExternalName;
-use cranelift_module::RelocRecord;
+use cranelift_codegen::MachReloc;
 use std::convert::TryFrom;
 
 #[derive(Clone)]
 pub(crate) struct CompiledBlob {
     pub(crate) ptr: *mut u8,
     pub(crate) size: usize,
-    pub(crate) relocs: Vec<RelocRecord>,
+    pub(crate) relocs: Vec<MachReloc>,
 }
 
 impl CompiledBlob {
@@ -19,16 +19,17 @@ impl CompiledBlob {
     ) {
         use std::ptr::write_unaligned;
 
-        for &RelocRecord {
-            reloc,
+        for &MachReloc {
+            kind,
             offset,
+            srcloc: _,
             ref name,
             addend,
         } in &self.relocs
         {
             debug_assert!((offset as usize) < self.size);
             let at = unsafe { self.ptr.offset(isize::try_from(offset).unwrap()) };
-            match reloc {
+            match kind {
                 Reloc::Abs4 => {
                     let base = get_address(name);
                     let what = unsafe { base.offset(isize::try_from(addend).unwrap()) };
@@ -80,6 +81,27 @@ impl CompiledBlob {
                     unsafe {
                         write_unaligned(at as *mut i32, pcrel)
                     };
+                }
+                Reloc::Arm64Call => {
+                    let base = get_address(name);
+                    // The instruction is 32 bits long.
+                    let iptr = at as *mut u32;
+                    // The offset encoded in the `bl` instruction is the
+                    // number of bytes divided by 4.
+                    let diff = ((base as isize) - (at as isize)) >> 2;
+                    // Sign propagating right shift disposes of the
+                    // included bits, so the result is expected to be
+                    // either all sign bits or 0, depending on if the original
+                    // value was negative or positive.
+                    assert!((diff >> 26 == -1) || (diff >> 26 == 0));
+                    // The lower 26 bits of the `bl` instruction form the
+                    // immediate offset argument.
+                    let chop = 32 - 26;
+                    let imm26 = (diff as u32) << chop >> chop;
+                    let ins = unsafe { iptr.read_unaligned() } | imm26;
+                    unsafe {
+                        iptr.write_unaligned(ins);
+                    }
                 }
                 _ => unimplemented!(),
             }

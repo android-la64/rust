@@ -241,8 +241,7 @@ be specified multiple times, which enables all specified features.</dd>
 <dl>
 
 <dt class="option-term" id="option-cargo-bench---target"><a class="option-anchor" href="#option-cargo-bench---target"></a><code>--target</code> <em>triple</em></dt>
-<dd class="option-desc">Benchmark for the given architecture. The default is the host
-architecture. The general format of the triple is
+<dd class="option-desc">Benchmark for the given architecture. The default is the host architecture. The general format of the triple is
 <code>&lt;arch&gt;&lt;sub&gt;-&lt;vendor&gt;-&lt;sys&gt;-&lt;abi&gt;</code>. Run <code>rustc --print target-list</code> for a
 list of supported targets.</p>
 <p>This may also be specified with the <code>build.target</code>
@@ -433,6 +432,12 @@ Rust test harness runs benchmarks serially in a single thread.
 <dd class="option-desc">Number of parallel jobs to run. May also be specified with the
 <code>build.jobs</code> <a href="../reference/config.html">config value</a>. Defaults to
 the number of CPUs.</dd>
+
+
+<dt class="option-term" id="option-cargo-bench---keep-going"><a class="option-anchor" href="#option-cargo-bench---keep-going"></a><code>--keep-going</code></dt>
+<dd class="option-desc">Build as many crates in the dependency graph as possible, rather than aborting
+the build on the first one that fails to build. Unstable, requires
+<code>-Zunstable-options</code>.</dd>
 
 
 </dl>

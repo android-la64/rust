@@ -1,6 +1,7 @@
-use crate::core::compiler::{CompileKind, CompileMode, Unit};
+use crate::core::compiler::{CompileKind, CompileTarget, Unit};
+use crate::core::dependency::Artifact;
 use crate::core::resolver::features::FeaturesFor;
-use crate::core::{Feature, PackageId, PackageIdSpec, Resolve, Shell, Target, Workspace};
+use crate::core::{PackageId, PackageIdSpec, Resolve, Shell, Target, Workspace};
 use crate::util::interning::InternedString;
 use crate::util::toml::{ProfilePackageSpec, StringOrBool, TomlProfile, TomlProfiles, U32OrBool};
 use crate::util::{closest_msg, config, CargoResult, Config};
@@ -25,8 +26,6 @@ pub struct Profiles {
     /// This is here to assist with error reporting, as the `ProfileMaker`
     /// values have the inherits chains all merged together.
     original_profiles: BTreeMap<InternedString, TomlProfile>,
-    /// Whether or not unstable "named" profiles are enabled.
-    named_profiles_enabled: bool,
     /// The profile the user requested to use.
     requested_profile: InternedString,
     /// The host target for rustc being used by this `Profiles`.
@@ -43,64 +42,8 @@ impl Profiles {
         let mut profiles = merge_config_profiles(ws, requested_profile)?;
         let rustc_host = ws.config().load_global_rustc(Some(ws))?.host;
 
-        if !ws.unstable_features().is_enabled(Feature::named_profiles()) {
-            let mut profile_makers = Profiles {
-                incremental,
-                named_profiles_enabled: false,
-                dir_names: Self::predefined_dir_names(),
-                by_name: HashMap::new(),
-                original_profiles: profiles.clone(),
-                requested_profile,
-                rustc_host,
-            };
-
-            profile_makers.by_name.insert(
-                InternedString::new("dev"),
-                ProfileMaker::new(Profile::default_dev(), profiles.remove("dev")),
-            );
-            profile_makers
-                .dir_names
-                .insert(InternedString::new("dev"), InternedString::new("debug"));
-
-            profile_makers.by_name.insert(
-                InternedString::new("release"),
-                ProfileMaker::new(Profile::default_release(), profiles.remove("release")),
-            );
-            profile_makers.dir_names.insert(
-                InternedString::new("release"),
-                InternedString::new("release"),
-            );
-
-            profile_makers.by_name.insert(
-                InternedString::new("test"),
-                ProfileMaker::new(Profile::default_test(), profiles.remove("test")),
-            );
-            profile_makers
-                .dir_names
-                .insert(InternedString::new("test"), InternedString::new("debug"));
-
-            profile_makers.by_name.insert(
-                InternedString::new("bench"),
-                ProfileMaker::new(Profile::default_bench(), profiles.remove("bench")),
-            );
-            profile_makers
-                .dir_names
-                .insert(InternedString::new("bench"), InternedString::new("release"));
-
-            profile_makers.by_name.insert(
-                InternedString::new("doc"),
-                ProfileMaker::new(Profile::default_doc(), profiles.remove("doc")),
-            );
-            profile_makers
-                .dir_names
-                .insert(InternedString::new("doc"), InternedString::new("debug"));
-
-            return Ok(profile_makers);
-        }
-
         let mut profile_makers = Profiles {
             incremental,
-            named_profiles_enabled: true,
             dir_names: Self::predefined_dir_names(),
             by_name: HashMap::new(),
             original_profiles: profiles.clone(),
@@ -138,11 +81,12 @@ impl Profiles {
 
     /// Returns the hard-coded directory names for built-in profiles.
     fn predefined_dir_names() -> HashMap<InternedString, InternedString> {
-        let mut dir_names = HashMap::new();
-        dir_names.insert(InternedString::new("dev"), InternedString::new("debug"));
-        dir_names.insert(InternedString::new("test"), InternedString::new("debug"));
-        dir_names.insert(InternedString::new("bench"), InternedString::new("release"));
-        dir_names
+        [
+            (InternedString::new("dev"), InternedString::new("debug")),
+            (InternedString::new("test"), InternedString::new("debug")),
+            (InternedString::new("bench"), InternedString::new("release")),
+        ]
+        .into()
     }
 
     /// Initialize `by_name` with the two "root" profiles, `dev`, and
@@ -288,63 +232,16 @@ impl Profiles {
         is_member: bool,
         is_local: bool,
         unit_for: UnitFor,
-        mode: CompileMode,
         kind: CompileKind,
     ) -> Profile {
-        let (profile_name, inherits) = if !self.named_profiles_enabled {
-            // With the feature disabled, we degrade `--profile` back to the
-            // `--release` and `--debug` predicates, and convert back from
-            // ProfileKind::Custom instantiation.
-
-            let release = matches!(self.requested_profile.as_str(), "release" | "bench");
-
-            match mode {
-                CompileMode::Test | CompileMode::Bench | CompileMode::Doctest => {
-                    if release {
-                        (
-                            InternedString::new("bench"),
-                            Some(InternedString::new("release")),
-                        )
-                    } else {
-                        (
-                            InternedString::new("test"),
-                            Some(InternedString::new("dev")),
-                        )
-                    }
-                }
-                CompileMode::Build | CompileMode::Check { .. } | CompileMode::RunCustomBuild => {
-                    // Note: `RunCustomBuild` doesn't normally use this code path.
-                    // `build_unit_profiles` normally ensures that it selects the
-                    // ancestor's profile. However, `cargo clean -p` can hit this
-                    // path.
-                    if release {
-                        (InternedString::new("release"), None)
-                    } else {
-                        (InternedString::new("dev"), None)
-                    }
-                }
-                CompileMode::Doc { .. } | CompileMode::Docscrape => {
-                    (InternedString::new("doc"), None)
-                }
-            }
-        } else {
-            (self.requested_profile, None)
-        };
-        let maker = self.get_profile_maker(profile_name).unwrap();
-        let mut profile = maker.get_profile(Some(pkg_id), is_member, unit_for);
+        let maker = self.get_profile_maker(self.requested_profile).unwrap();
+        let mut profile = maker.get_profile(Some(pkg_id), is_member, unit_for.is_for_host());
 
         // Dealing with `panic=abort` and `panic=unwind` requires some special
         // treatment. Be sure to process all the various options here.
         match unit_for.panic_setting() {
             PanicSetting::AlwaysUnwind => profile.panic = PanicStrategy::Unwind,
             PanicSetting::ReadProfile => {}
-            PanicSetting::Inherit => {
-                if let Some(inherits) = inherits {
-                    // TODO: Fixme, broken with named profiles.
-                    let maker = self.get_profile_maker(inherits).unwrap();
-                    profile.panic = maker.get_profile(Some(pkg_id), is_member, unit_for).panic;
-                }
-            }
         }
 
         // Default macOS debug information to being stored in the "unpacked"
@@ -378,7 +275,7 @@ impl Profiles {
         if !is_local {
             profile.incremental = false;
         }
-        profile.name = profile_name;
+        profile.name = self.requested_profile;
         profile
     }
 
@@ -400,17 +297,9 @@ impl Profiles {
     /// `[Finished]` line. It is not entirely accurate, since it doesn't
     /// select for the package that was actually built.
     pub fn base_profile(&self) -> Profile {
-        let profile_name = if !self.named_profiles_enabled {
-            match self.requested_profile.as_str() {
-                "release" | "bench" => self.requested_profile,
-                _ => InternedString::new("dev"),
-            }
-        } else {
-            self.requested_profile
-        };
-
+        let profile_name = self.requested_profile;
         let maker = self.get_profile_maker(profile_name).unwrap();
-        maker.get_profile(None, true, UnitFor::new_normal())
+        maker.get_profile(None, /*is_member*/ true, /*is_for_host*/ false)
     }
 
     /// Gets the directory name for a profile, like `debug` or `release`.
@@ -498,7 +387,7 @@ impl ProfileMaker {
         &self,
         pkg_id: Option<PackageId>,
         is_member: bool,
-        unit_for: UnitFor,
+        is_for_host: bool,
     ) -> Profile {
         let mut profile = self.default.clone();
 
@@ -510,7 +399,7 @@ impl ProfileMaker {
 
         // Next start overriding those settings. First comes build dependencies
         // which default to opt-level 0...
-        if unit_for.is_for_host() {
+        if is_for_host {
             // For-host units are things like procedural macros, build scripts, and
             // their dependencies. For these units most projects simply want them
             // to compile quickly and the runtime doesn't matter too much since
@@ -526,7 +415,7 @@ impl ProfileMaker {
         // profiles, such as `[profile.release.build-override]` or
         // `[profile.release.package.foo]`
         if let Some(toml) = &self.toml {
-            merge_toml_overrides(pkg_id, is_member, unit_for, &mut profile, toml);
+            merge_toml_overrides(pkg_id, is_member, is_for_host, &mut profile, toml);
         }
         profile
     }
@@ -536,11 +425,11 @@ impl ProfileMaker {
 fn merge_toml_overrides(
     pkg_id: Option<PackageId>,
     is_member: bool,
-    unit_for: UnitFor,
+    is_for_host: bool,
     profile: &mut Profile,
     toml: &TomlProfile,
 ) {
-    if unit_for.is_for_host() {
+    if is_for_host {
         if let Some(build_override) = &toml.build_override {
             merge_profile(profile, build_override);
         }
@@ -768,29 +657,6 @@ impl Profile {
         }
     }
 
-    // NOTE: Remove the following three once `named_profiles` is default:
-
-    fn default_test() -> Profile {
-        Profile {
-            name: InternedString::new("test"),
-            ..Profile::default_dev()
-        }
-    }
-
-    fn default_bench() -> Profile {
-        Profile {
-            name: InternedString::new("bench"),
-            ..Profile::default_release()
-        }
-    }
-
-    fn default_doc() -> Profile {
-        Profile {
-            name: InternedString::new("doc"),
-            ..Profile::default_dev()
-        }
-    }
-
     /// Compares all fields except `name`, which doesn't affect compilation.
     /// This is necessary for `Unit` deduplication for things like "test" and
     /// "dev" which are essentially the same.
@@ -879,6 +745,9 @@ impl fmt::Display for Strip {
 
 /// Flags used in creating `Unit`s to indicate the purpose for the target, and
 /// to ensure the target's dependencies have the correct settings.
+///
+/// This means these are passed down from the root of the dependency tree to apply
+/// to most child dependencies.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct UnitFor {
     /// A target for `build.rs` or any of its dependencies, or a proc-macro or
@@ -932,6 +801,24 @@ pub struct UnitFor {
     /// handle test/benches inheriting from dev/release, as well as forcing
     /// `for_host` units to always unwind.
     panic_setting: PanicSetting,
+
+    /// The compile kind of the root unit for which artifact dependencies are built.
+    /// This is required particularly for the `target = "target"` setting of artifact
+    /// dependencies which mean to inherit the `--target` specified on the command-line.
+    /// However, that is a multi-value argument and root units are already created to
+    /// reflect one unit per --target. Thus we have to build one artifact with the
+    /// correct target for each of these trees.
+    /// Note that this will always be set as we don't initially know if there are
+    /// artifacts that make use of it.
+    root_compile_kind: CompileKind,
+
+    /// This is only set for artifact dependencies which have their
+    /// `<target-triple>|target` set.
+    /// If so, this information is used as part of the key for resolving their features,
+    /// allowing for target-dependent feature resolution within the entire dependency tree.
+    /// Note that this target corresponds to the target used to build the units in that
+    /// dependency tree, too, but this copy of it is specifically used for feature lookup.
+    artifact_target_for_features: Option<CompileTarget>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
@@ -943,20 +830,18 @@ enum PanicSetting {
     /// Indicates that this unit will read its `profile` setting and use
     /// whatever is configured there.
     ReadProfile,
-
-    /// This unit will ignore its `panic` setting in its profile and will
-    /// instead inherit it from the `dev` or `release` profile, as appropriate.
-    Inherit,
 }
 
 impl UnitFor {
     /// A unit for a normal target/dependency (i.e., not custom build,
     /// proc macro/plugin, or test/bench).
-    pub fn new_normal() -> UnitFor {
+    pub fn new_normal(root_compile_kind: CompileKind) -> UnitFor {
         UnitFor {
             host: false,
             host_features: false,
             panic_setting: PanicSetting::ReadProfile,
+            root_compile_kind,
+            artifact_target_for_features: None,
         }
     }
 
@@ -966,18 +851,20 @@ impl UnitFor {
     /// dependency or proc-macro (something that requires being built "on the
     /// host"). Build scripts for non-host units should use `false` because
     /// they want to use the features of the package they are running for.
-    pub fn new_host(host_features: bool) -> UnitFor {
+    pub fn new_host(host_features: bool, root_compile_kind: CompileKind) -> UnitFor {
         UnitFor {
             host: true,
             host_features,
             // Force build scripts to always use `panic=unwind` for now to
             // maximally share dependencies with procedural macros.
             panic_setting: PanicSetting::AlwaysUnwind,
+            root_compile_kind,
+            artifact_target_for_features: None,
         }
     }
 
     /// A unit for a compiler plugin or their dependencies.
-    pub fn new_compiler() -> UnitFor {
+    pub fn new_compiler(root_compile_kind: CompileKind) -> UnitFor {
         UnitFor {
             host: false,
             // The feature resolver doesn't know which dependencies are
@@ -988,6 +875,8 @@ impl UnitFor {
             // not abort the process but instead end with a reasonable error
             // message that involves catching the panic in the compiler.
             panic_setting: PanicSetting::AlwaysUnwind,
+            root_compile_kind,
+            artifact_target_for_features: None,
         }
     }
 
@@ -997,7 +886,7 @@ impl UnitFor {
     /// whether `panic=abort` is supported for tests. Historical versions of
     /// rustc did not support this, but newer versions do with an unstable
     /// compiler flag.
-    pub fn new_test(config: &Config) -> UnitFor {
+    pub fn new_test(config: &Config, root_compile_kind: CompileKind) -> UnitFor {
         UnitFor {
             host: false,
             host_features: false,
@@ -1006,18 +895,20 @@ impl UnitFor {
             // (basically avoid recompiles) but historical defaults required
             // that we always unwound.
             panic_setting: if config.cli_unstable().panic_abort_tests {
-                PanicSetting::Inherit
+                PanicSetting::ReadProfile
             } else {
                 PanicSetting::AlwaysUnwind
             },
+            root_compile_kind,
+            artifact_target_for_features: None,
         }
     }
 
     /// This is a special case for unit tests of a proc-macro.
     ///
     /// Proc-macro unit tests are forced to be run on the host.
-    pub fn new_host_test(config: &Config) -> UnitFor {
-        let mut unit_for = UnitFor::new_test(config);
+    pub fn new_host_test(config: &Config, root_compile_kind: CompileKind) -> UnitFor {
+        let mut unit_for = UnitFor::new_test(config, root_compile_kind);
         unit_for.host = true;
         unit_for.host_features = true;
         unit_for
@@ -1029,7 +920,12 @@ impl UnitFor {
     /// transition in a sticky fashion. As the dependency graph is being
     /// built, once those flags are set, they stay set for the duration of
     /// that portion of tree.
-    pub fn with_dependency(self, parent: &Unit, dep_target: &Target) -> UnitFor {
+    pub fn with_dependency(
+        self,
+        parent: &Unit,
+        dep_target: &Target,
+        root_compile_kind: CompileKind,
+    ) -> UnitFor {
         // A build script or proc-macro transitions this to being built for the host.
         let dep_for_host = dep_target.for_host();
         // This is where feature decoupling of host versus target happens.
@@ -1054,7 +950,39 @@ impl UnitFor {
             host: self.host || dep_for_host,
             host_features,
             panic_setting,
+            root_compile_kind,
+            artifact_target_for_features: self.artifact_target_for_features,
         }
+    }
+
+    pub fn for_custom_build(self) -> UnitFor {
+        UnitFor {
+            host: true,
+            host_features: self.host_features,
+            // Force build scripts to always use `panic=unwind` for now to
+            // maximally share dependencies with procedural macros.
+            panic_setting: PanicSetting::AlwaysUnwind,
+            root_compile_kind: self.root_compile_kind,
+            artifact_target_for_features: self.artifact_target_for_features,
+        }
+    }
+
+    /// Set the artifact compile target for use in features using the given `artifact`.
+    pub(crate) fn with_artifact_features(mut self, artifact: &Artifact) -> UnitFor {
+        self.artifact_target_for_features = artifact.target().and_then(|t| t.to_compile_target());
+        self
+    }
+
+    /// Set the artifact compile target as determined by a resolved compile target. This is used if `target = "target"`.
+    pub(crate) fn with_artifact_features_from_resolved_compile_kind(
+        mut self,
+        kind: Option<CompileKind>,
+    ) -> UnitFor {
+        self.artifact_target_for_features = kind.and_then(|kind| match kind {
+            CompileKind::Host => None,
+            CompileKind::Target(triple) => Some(triple),
+        });
+        self
     }
 
     /// Returns `true` if this unit is for a build script or any of its
@@ -1072,47 +1000,25 @@ impl UnitFor {
         self.panic_setting
     }
 
-    /// All possible values, used by `clean`.
-    pub fn all_values() -> &'static [UnitFor] {
-        static ALL: &[UnitFor] = &[
-            UnitFor {
-                host: false,
-                host_features: false,
-                panic_setting: PanicSetting::ReadProfile,
+    /// We might contain a parent artifact compile kind for features already, but will
+    /// gladly accept the one of this dependency as an override as it defines how
+    /// the artifact is built.
+    /// If we are an artifact but don't specify a `target`, we assume the default
+    /// compile kind that is suitable in this situation.
+    pub(crate) fn map_to_features_for(&self, dep_artifact: Option<&Artifact>) -> FeaturesFor {
+        FeaturesFor::from_for_host_or_artifact_target(
+            self.is_for_host_features(),
+            match dep_artifact {
+                Some(artifact) => artifact
+                    .target()
+                    .and_then(|t| t.to_resolved_compile_target(self.root_compile_kind)),
+                None => self.artifact_target_for_features,
             },
-            UnitFor {
-                host: true,
-                host_features: false,
-                panic_setting: PanicSetting::AlwaysUnwind,
-            },
-            UnitFor {
-                host: false,
-                host_features: false,
-                panic_setting: PanicSetting::AlwaysUnwind,
-            },
-            UnitFor {
-                host: false,
-                host_features: false,
-                panic_setting: PanicSetting::Inherit,
-            },
-            // host_features=true must always have host=true
-            // `Inherit` is not used in build dependencies.
-            UnitFor {
-                host: true,
-                host_features: true,
-                panic_setting: PanicSetting::ReadProfile,
-            },
-            UnitFor {
-                host: true,
-                host_features: true,
-                panic_setting: PanicSetting::AlwaysUnwind,
-            },
-        ];
-        ALL
+        )
     }
 
-    pub(crate) fn map_to_features_for(&self) -> FeaturesFor {
-        FeaturesFor::from_for_host(self.is_for_host_features())
+    pub(crate) fn root_compile_kind(&self) -> CompileKind {
+        self.root_compile_kind
     }
 }
 

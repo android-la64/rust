@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "clap"
-version = "3.1.5"
+version = "3.1.1"
 include = ["build.rs", "src/**/*", "Cargo.toml", "LICENSE*", "README.md", "benches/**/*", "examples/**/*"]
 description = "A simple to use, efficient, and full-featured Command Line Argument Parser"
 documentation = "https://docs.rs/clap/"
@@ -263,11 +263,6 @@ path = "examples/tutorial_derive/03_04_subcommands.rs"
 required-features = ["derive"]
 
 [[example]]
-name = "03_04_subcommands_alt_derive"
-path = "examples/tutorial_derive/03_04_subcommands_alt.rs"
-required-features = ["derive"]
-
-[[example]]
 name = "03_05_default_values_derive"
 path = "examples/tutorial_derive/03_05_default_values.rs"
 required-features = ["derive"]
@@ -349,7 +344,7 @@ optional = true
 version = "1.2"
 
 [dependencies.clap_derive]
-version = "3.1.4"
+version = "3.1.0"
 optional = true
 
 [dependencies.indexmap]
@@ -379,7 +374,7 @@ version = "0.1.12"
 optional = true
 
 [dependencies.textwrap]
-version = "0.15.0"
+version = "0.14.0"
 features = []
 default-features = false
 
@@ -424,6 +419,5 @@ unstable-doc = ["derive", "cargo", "wrap_help", "yaml", "env", "unicode", "regex
 unstable-grouped = []
 unstable-multicall = []
 unstable-replace = []
-unstable-v4 = []
 wrap_help = ["terminal_size", "textwrap/terminal_size"]
 yaml = ["yaml-rust"]

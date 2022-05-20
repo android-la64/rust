@@ -24,44 +24,7 @@ else
     export JEMALLOC_SYS_RUN_JEMALLOC_TESTS=1
 fi
 
-if [ "${VALGRIND}" = "1" ]
-then
-    case "${TARGET}" in
-        "x86_64-unknown-linux-gnu")
-            export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER=valgrind
-            ;;
-        "x86_64-apple-darwin")
-            export CARGO_TARGET_X86_64_APPLE_DARWIN_RUNNER=valgrind
-            ;;
-        *)
-            echo "Specify how to run valgrind for TARGET=${TARGET}"
-            exit 1
-            ;;
-    esac
-fi
-
-if [ "${TARGET}" = "x86_64-unknown-linux-gnu" ] || [ "${TARGET}" = "x86_64-apple-darwin" ]
-then
-    # Not using tee to avoid too much logs that exceeds travis' limit.
-    if ! cargo build -vv --target "${TARGET}" > build_no_std.txt 2>&1; then
-        tail -n 1024 build_no_std.txt
-        exit 1
-    fi
-
-    # Check that the no-std builds are not linked against a libc with default
-    # features or the `use_std` feature enabled:
-    ! grep -q "default" build_no_std.txt
-    ! grep -q "use_std" build_no_std.txt
-
-    RUST_SYS_ROOT=$(rustc --target="${TARGET}" --print sysroot)
-    RUST_LLVM_NM="${RUST_SYS_ROOT}/lib/rustlib/${TARGET}/bin/llvm-nm"
-
-    find target/ -iname '*jemalloc*.rlib' | while read -r rlib; do
-        echo "${RUST_LLVM_NM} ${rlib}"
-        ! $RUST_LLVM_NM "${rlib}" | grep "std"
-    done
-fi
-
+cargo build --target "${TARGET}"
 cargo test --target "${TARGET}"
 cargo test --target "${TARGET}" --features profiling
 cargo test --target "${TARGET}" --features debug
@@ -103,7 +66,10 @@ case "${TARGET}" in
         ;;
 esac
 
-cargo test --target "${TARGET}" -p systest
+if rustc --version | grep -v nightly >/dev/null; then
+    # systest can't be built on nightly
+    cargo test --target "${TARGET}" -p systest
+fi
 cargo test --target "${TARGET}" --manifest-path jemallocator-global/Cargo.toml
 cargo test --target "${TARGET}" \
              --manifest-path jemallocator-global/Cargo.toml \

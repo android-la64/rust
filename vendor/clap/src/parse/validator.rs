@@ -46,8 +46,7 @@ impl<'help, 'cmd, 'parser> Validator<'help, 'cmd, 'parser> {
                     self.p.cmd,
                     &o.possible_vals
                         .iter()
-                        .filter(|pv| !pv.is_hide_set())
-                        .map(PossibleValue::get_name)
+                        .filter_map(PossibleValue::get_visible_name)
                         .collect::<Vec<_>>(),
                     o,
                     Usage::new(self.p.cmd)
@@ -142,8 +141,7 @@ impl<'help, 'cmd, 'parser> Validator<'help, 'cmd, 'parser> {
                         val_str.into_owned(),
                         &arg.possible_vals
                             .iter()
-                            .filter(|pv| !pv.is_hide_set())
-                            .map(PossibleValue::get_name)
+                            .filter_map(PossibleValue::get_visible_name)
                             .collect::<Vec<_>>(),
                         arg,
                         Usage::new(self.p.cmd)
@@ -158,8 +156,7 @@ impl<'help, 'cmd, 'parser> Validator<'help, 'cmd, 'parser> {
                     self.p.cmd,
                     &arg.possible_vals
                         .iter()
-                        .filter(|pv| !pv.is_hide_set())
-                        .map(PossibleValue::get_name)
+                        .filter_map(PossibleValue::get_visible_name)
                         .collect::<Vec<_>>(),
                     arg,
                     Usage::new(self.p.cmd)
@@ -457,8 +454,7 @@ impl<'help, 'cmd, 'parser> Validator<'help, 'cmd, 'parser> {
                 self.p.cmd,
                 &a.possible_vals
                     .iter()
-                    .filter(|pv| !pv.is_hide_set())
-                    .map(PossibleValue::get_name)
+                    .filter_map(PossibleValue::get_visible_name)
                     .collect::<Vec<_>>(),
                 a,
                 Usage::new(self.p.cmd)

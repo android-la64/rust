@@ -1,8 +1,6 @@
 // See src/cargo/lib.rs for notes on these lint settings.
 #![warn(rust_2018_idioms)]
 #![allow(clippy::all)]
-#![warn(clippy::needless_borrow)]
-#![warn(clippy::redundant_clone)]
 #![cfg_attr(feature = "deny-warnings", deny(warnings))]
 
 #[macro_use]
@@ -10,6 +8,7 @@ extern crate cargo_test_macro;
 
 mod advanced_env;
 mod alt_registry;
+mod artifact_dep;
 mod bad_config;
 mod bad_manifest_path;
 mod bench;
@@ -58,6 +57,7 @@ mod git_auth;
 mod git_gc;
 mod glob_targets;
 mod help;
+mod inheritable_workspace_fields;
 mod init;
 mod install;
 mod install_upgrade;

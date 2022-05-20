@@ -68,6 +68,9 @@ pub use cranelift_entity as entity;
 #[cfg(feature = "unwind")]
 pub use gimli;
 
+#[macro_use]
+mod machinst;
+
 pub mod binemit;
 pub mod cfg_printer;
 pub mod cursor;
@@ -85,7 +88,7 @@ pub mod verifier;
 pub mod write;
 
 pub use crate::entity::packed_option;
-pub use crate::machinst::buffer::MachSrcLoc;
+pub use crate::machinst::buffer::{MachCallSite, MachReloc, MachSrcLoc, MachStackMap, MachTrap};
 pub use crate::machinst::TextSectionBuilder;
 
 mod bitset;
@@ -99,7 +102,6 @@ mod iterators;
 mod legalizer;
 mod licm;
 mod log;
-mod machinst;
 mod nan_canonicalization;
 mod remove_constant_phis;
 mod result;
@@ -108,9 +110,6 @@ mod simple_gvn;
 mod simple_preopt;
 mod unreachable_code;
 mod value_label;
-
-#[cfg(feature = "enable-peepmatic")]
-mod peepmatic;
 
 #[cfg(feature = "souper-harvest")]
 mod souper_harvest;

@@ -3,17 +3,18 @@
 use crate::{compiled_blob::CompiledBlob, memory::Memory};
 use cranelift_codegen::isa::TargetIsa;
 use cranelift_codegen::settings::Configurable;
-use cranelift_codegen::{self, ir, settings};
+use cranelift_codegen::{self, ir, settings, MachReloc};
 use cranelift_codegen::{
-    binemit::{Addend, CodeInfo, CodeOffset, Reloc, RelocSink, StackMapSink, TrapSink},
+    binemit::{CodeInfo, Reloc},
     CodegenError,
 };
 use cranelift_entity::SecondaryMap;
 use cranelift_module::{
     DataContext, DataDescription, DataId, FuncId, Init, Linkage, Module, ModuleCompiledFunction,
-    ModuleDeclarations, ModuleError, ModuleResult, RelocRecord,
+    ModuleDeclarations, ModuleError, ModuleResult,
 };
 use log::info;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::ffi::CString;
@@ -31,6 +32,7 @@ const READONLY_DATA_ALIGNMENT: u64 = 0x1;
 pub struct JITBuilder {
     isa: Box<dyn TargetIsa>,
     symbols: HashMap<String, *const u8>,
+    lookup_symbols: Vec<Box<dyn Fn(&str) -> Option<*const u8>>>,
     libcall_names: Box<dyn Fn(ir::LibCall) -> String + Send + Sync>,
     hotswap_enabled: bool,
 }
@@ -42,7 +44,9 @@ impl JITBuilder {
     /// enum to symbols. LibCalls are inserted in the IR as part of the legalization for certain
     /// floating point instructions, and for stack probes. If you don't know what to use for this
     /// argument, use `cranelift_module::default_libcall_names()`.
-    pub fn new(libcall_names: Box<dyn Fn(ir::LibCall) -> String + Send + Sync>) -> Self {
+    pub fn new(
+        libcall_names: Box<dyn Fn(ir::LibCall) -> String + Send + Sync>,
+    ) -> ModuleResult<Self> {
         let mut flag_builder = settings::builder();
         // On at least AArch64, "colocated" calls use shorter-range relocations,
         // which might not reach all definitions; we can't handle that here, so
@@ -52,8 +56,8 @@ impl JITBuilder {
         let isa_builder = cranelift_native::builder().unwrap_or_else(|msg| {
             panic!("host machine is not supported: {}", msg);
         });
-        let isa = isa_builder.finish(settings::Flags::new(flag_builder));
-        Self::with_isa(isa, libcall_names)
+        let isa = isa_builder.finish(settings::Flags::new(flag_builder))?;
+        Ok(Self::with_isa(isa, libcall_names))
     }
 
     /// Create a new `JITBuilder` with an arbitrary target. This is mainly
@@ -71,9 +75,11 @@ impl JITBuilder {
         libcall_names: Box<dyn Fn(ir::LibCall) -> String + Send + Sync>,
     ) -> Self {
         let symbols = HashMap::new();
+        let lookup_symbols = vec![Box::new(lookup_with_dlsym) as Box<_>];
         Self {
             isa,
             symbols,
+            lookup_symbols,
             libcall_names,
             hotswap_enabled: false,
         }
@@ -93,7 +99,7 @@ impl JITBuilder {
     /// back to a platform-specific search (this typically involves searching
     /// the current process for public symbols, followed by searching the
     /// platform's C runtime).
-    pub fn symbol<K>(&mut self, name: K, ptr: *const u8) -> &Self
+    pub fn symbol<K>(&mut self, name: K, ptr: *const u8) -> &mut Self
     where
         K: Into<String>,
     {
@@ -104,7 +110,7 @@ impl JITBuilder {
     /// Define multiple symbols in the internal symbol table.
     ///
     /// Using this is equivalent to calling `symbol` on each element.
-    pub fn symbols<It, K>(&mut self, symbols: It) -> &Self
+    pub fn symbols<It, K>(&mut self, symbols: It) -> &mut Self
     where
         It: IntoIterator<Item = (K, *const u8)>,
         K: Into<String>,
@@ -112,6 +118,18 @@ impl JITBuilder {
         for (name, ptr) in symbols {
             self.symbols.insert(name.into(), ptr);
         }
+        self
+    }
+
+    /// Add a symbol lookup fn.
+    ///
+    /// Symbol lookup fn's are used to lookup symbols when they couldn't be found in the internal
+    /// symbol table. Symbol lookup fn's are called in reverse of the order in which they were added.
+    pub fn symbol_lookup_fn(
+        &mut self,
+        symbol_lookup_fn: Box<dyn Fn(&str) -> Option<*const u8>>,
+    ) -> &mut Self {
+        self.lookup_symbols.push(symbol_lookup_fn);
         self
     }
 
@@ -141,7 +159,8 @@ struct GotUpdate {
 pub struct JITModule {
     isa: Box<dyn TargetIsa>,
     hotswap_enabled: bool,
-    symbols: HashMap<String, *const u8>,
+    symbols: RefCell<HashMap<String, *const u8>>,
+    lookup_symbols: Vec<Box<dyn Fn(&str) -> Option<*const u8>>>,
     libcall_names: Box<dyn Fn(ir::LibCall) -> String>,
     memory: MemoryHandle,
     declarations: ModuleDeclarations,
@@ -182,10 +201,20 @@ impl JITModule {
     }
 
     fn lookup_symbol(&self, name: &str) -> Option<*const u8> {
-        self.symbols
-            .get(name)
-            .copied()
-            .or_else(|| lookup_with_dlsym(name))
+        match self.symbols.borrow_mut().entry(name.to_owned()) {
+            std::collections::hash_map::Entry::Occupied(occ) => Some(*occ.get()),
+            std::collections::hash_map::Entry::Vacant(vac) => {
+                let ptr = self
+                    .lookup_symbols
+                    .iter()
+                    .rev() // Try last lookup function first
+                    .find_map(|lookup| lookup(name));
+                if let Some(ptr) = ptr {
+                    vac.insert(ptr);
+                }
+                ptr
+            }
+        }
     }
 
     fn new_got_entry(&mut self, val: *const u8) -> NonNull<AtomicPtr<u8>> {
@@ -275,7 +304,7 @@ impl JITModule {
                         }
                     }
                 };
-                if let Some(ptr) = self.lookup_symbol(&name) {
+                if let Some(ptr) = self.lookup_symbol(name) {
                     ptr
                 } else if linkage == Linkage::Preemptible {
                     0 as *const u8
@@ -453,7 +482,8 @@ impl JITModule {
         let mut module = Self {
             isa: builder.isa,
             hotswap_enabled: builder.hotswap_enabled,
-            symbols: builder.symbols,
+            symbols: RefCell::new(builder.symbols),
+            lookup_symbols: builder.lookup_symbols,
             libcall_names: builder.libcall_names,
             memory: MemoryHandle {
                 code: Memory::new(),
@@ -481,12 +511,7 @@ impl JITModule {
         };
         for &libcall in all_libcalls {
             let sym = (module.libcall_names)(libcall);
-            let addr = if let Some(addr) = module
-                .symbols
-                .get(&sym)
-                .copied()
-                .or_else(|| lookup_with_dlsym(&sym))
-            {
+            let addr = if let Some(addr) = module.lookup_symbol(&sym) {
                 addr
             } else {
                 continue;
@@ -648,15 +673,8 @@ impl Module for JITModule {
         &mut self,
         id: FuncId,
         ctx: &mut cranelift_codegen::Context,
-        trap_sink: &mut dyn TrapSink,
-        stack_map_sink: &mut dyn StackMapSink,
     ) -> ModuleResult<ModuleCompiledFunction> {
         info!("defining function {}: {}", id, ctx.func.display());
-        let CodeInfo {
-            total_size: code_size,
-            ..
-        } = ctx.compile(self.isa())?;
-
         let decl = self.declarations.get_function_decl(id);
         if !decl.linkage.is_definable() {
             return Err(ModuleError::InvalidImportDefinition(decl.name.clone()));
@@ -666,6 +684,11 @@ impl Module for JITModule {
             return Err(ModuleError::DuplicateDefinition(decl.name.to_owned()));
         }
 
+        let CodeInfo {
+            total_size: code_size,
+            ..
+        } = ctx.compile(self.isa())?;
+
         let size = code_size as usize;
         let ptr = self
             .memory
@@ -673,15 +696,17 @@ impl Module for JITModule {
             .allocate(size, EXECUTABLE_DATA_ALIGNMENT)
             .expect("TODO: handle OOM etc.");
 
-        let mut reloc_sink = JITRelocSink::default();
-        unsafe { ctx.emit_to_memory(ptr, &mut reloc_sink, trap_sink, stack_map_sink) };
+        unsafe { ctx.emit_to_memory(ptr) };
+        let relocs = ctx
+            .mach_compile_result
+            .as_ref()
+            .unwrap()
+            .buffer
+            .relocs()
+            .to_vec();
 
         self.record_function_for_perf(ptr, size, &decl.name);
-        self.compiled_functions[id] = Some(CompiledBlob {
-            ptr,
-            size,
-            relocs: reloc_sink.relocs,
-        });
+        self.compiled_functions[id] = Some(CompiledBlob { ptr, size, relocs });
 
         if self.isa.flags().is_pic() {
             self.pending_got_updates.push(GotUpdate {
@@ -721,7 +746,7 @@ impl Module for JITModule {
         &mut self,
         id: FuncId,
         bytes: &[u8],
-        relocs: &[RelocRecord],
+        relocs: &[MachReloc],
     ) -> ModuleResult<ModuleCompiledFunction> {
         info!("defining function {} with bytes", id);
         let total_size: u32 = match bytes.len().try_into() {
@@ -874,7 +899,7 @@ fn lookup_with_dlsym(name: &str) -> Option<*const u8> {
             // try to find the searched symbol in the currently running executable
             ptr::null_mut(),
             // try to find the searched symbol in local c runtime
-            winapi::um::libloaderapi::GetModuleHandleA(MSVCRT_DLL.as_ptr() as *const i8),
+            winapi::um::libloaderapi::GetModuleHandleA(MSVCRT_DLL.as_ptr().cast::<i8>()),
         ];
 
         for handle in &handles {
@@ -886,28 +911,5 @@ fn lookup_with_dlsym(name: &str) -> Option<*const u8> {
         }
 
         None
-    }
-}
-
-#[derive(Default)]
-struct JITRelocSink {
-    relocs: Vec<RelocRecord>,
-}
-
-impl RelocSink for JITRelocSink {
-    fn reloc_external(
-        &mut self,
-        offset: CodeOffset,
-        _srcloc: ir::SourceLoc,
-        reloc: Reloc,
-        name: &ir::ExternalName,
-        addend: Addend,
-    ) {
-        self.relocs.push(RelocRecord {
-            offset,
-            reloc,
-            name: name.clone(),
-            addend,
-        });
     }
 }

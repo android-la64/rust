@@ -5,15 +5,16 @@ use std::sync::Arc;
 
 use base_db::{impl_intern_key, salsa, CrateId, Upcast};
 use hir_def::{
-    db::DefDatabase, expr::ExprId, BlockId, ConstParamId, DefWithBodyId, FunctionId, GenericDefId,
-    ImplId, LifetimeParamId, LocalFieldId, TypeParamId, VariantId,
+    db::DefDatabase, expr::ExprId, BlockId, ConstId, ConstParamId, DefWithBodyId, FunctionId,
+    GenericDefId, ImplId, LifetimeParamId, LocalFieldId, TypeOrConstParamId, VariantId,
 };
 use la_arena::ArenaMap;
 
 use crate::{
     chalk_db,
+    consteval::{ComputedExpr, ConstEvalError},
     method_resolution::{InherentImpls, TraitImpls},
-    Binders, CallableDefId, FnDefId, ImplTraitId, InferenceResult, Interner, PolyFnSig,
+    Binders, CallableDefId, FnDefId, GenericArg, ImplTraitId, InferenceResult, Interner, PolyFnSig,
     QuantifiedWhereClause, ReturnTypeImplTraits, TraitRef, Ty, TyDefId, ValueTyDefId,
 };
 use hir_expand::name::Name;
@@ -41,6 +42,10 @@ pub trait HirDatabase: DefDatabase + Upcast<dyn DefDatabase> {
     #[salsa::invoke(crate::lower::const_param_ty_query)]
     fn const_param_ty(&self, def: ConstParamId) -> Ty;
 
+    #[salsa::invoke(crate::consteval::const_eval_query)]
+    #[salsa::cycle(crate::consteval::const_eval_recover)]
+    fn const_eval(&self, def: ConstId) -> Result<ComputedExpr, ConstEvalError>;
+
     #[salsa::invoke(crate::lower::impl_trait_query)]
     fn impl_trait(&self, def: ImplId) -> Option<Binders<TraitRef>>;
 
@@ -61,7 +66,7 @@ pub trait HirDatabase: DefDatabase + Upcast<dyn DefDatabase> {
     fn generic_predicates_for_param(
         &self,
         def: GenericDefId,
-        param_id: TypeParamId,
+        param_id: TypeOrConstParamId,
         assoc_name: Option<Name>,
     ) -> Arc<[Binders<QuantifiedWhereClause>]>;
 
@@ -73,7 +78,7 @@ pub trait HirDatabase: DefDatabase + Upcast<dyn DefDatabase> {
 
     #[salsa::invoke(crate::lower::generic_defaults_query)]
     #[salsa::cycle(crate::lower::generic_defaults_recover)]
-    fn generic_defaults(&self, def: GenericDefId) -> Arc<[Binders<Ty>]>;
+    fn generic_defaults(&self, def: GenericDefId) -> Arc<[Binders<GenericArg>]>;
 
     #[salsa::invoke(InherentImpls::inherent_impls_in_crate_query)]
     fn inherent_impls_in_crate(&self, krate: CrateId) -> Arc<InherentImpls>;
@@ -94,11 +99,12 @@ pub trait HirDatabase: DefDatabase + Upcast<dyn DefDatabase> {
     #[salsa::interned]
     fn intern_callable_def(&self, callable_def: CallableDefId) -> InternedCallableDefId;
     #[salsa::interned]
-    fn intern_type_param_id(&self, param_id: TypeParamId) -> InternedTypeParamId;
+    fn intern_type_or_const_param_id(
+        &self,
+        param_id: TypeOrConstParamId,
+    ) -> InternedTypeOrConstParamId;
     #[salsa::interned]
     fn intern_lifetime_param_id(&self, param_id: LifetimeParamId) -> InternedLifetimeParamId;
-    #[salsa::interned]
-    fn intern_const_param_id(&self, param_id: ConstParamId) -> InternedConstParamId;
     #[salsa::interned]
     fn intern_impl_trait_id(&self, id: ImplTraitId) -> InternedOpaqueTyId;
     #[salsa::interned]
@@ -186,8 +192,8 @@ fn hir_database_is_object_safe() {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InternedTypeParamId(salsa::InternId);
-impl_intern_key!(InternedTypeParamId);
+pub struct InternedTypeOrConstParamId(salsa::InternId);
+impl_intern_key!(InternedTypeOrConstParamId);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InternedLifetimeParamId(salsa::InternId);

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "cranelift-bforest"
-version = "0.78.0"
+version = "0.82.1"
 authors = ["The Cranelift Project Developers"]
 description = "A forest of B+-trees"
 documentation = "https://docs.rs/cranelift-bforest"
@@ -23,7 +23,7 @@ license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
 resolver = "2"
 [dependencies.cranelift-entity]
-version = "0.78.0"
+version = "0.82.1"
 default-features = false
 [badges.maintenance]
 status = "experimental"

@@ -67,7 +67,8 @@ pub fn mem_finalize(
                 // is a valid base (for SPOffset) which we must handle here.
                 // Also, SP needs to be the first arg, not second.
                 let add_inst = Inst::AluRRRExtend {
-                    alu_op: ALUOp::Add64,
+                    alu_op: ALUOp::Add,
+                    size: OperandSize::Size64,
                     rd: tmp,
                     rn: basereg,
                     rm: tmp.to_reg(),
@@ -669,12 +670,6 @@ impl EmitInfo {
     }
 }
 
-impl MachInstEmitInfo for EmitInfo {
-    fn flags(&self) -> &settings::Flags {
-        &self.0
-    }
-}
-
 impl MachInstEmit for Inst {
     type State = EmitState;
     type Info = EmitInfo;
@@ -688,52 +683,48 @@ impl MachInstEmit for Inst {
         let mut start_off = sink.cur_offset();
 
         match self {
-            &Inst::AluRRR { alu_op, rd, rn, rm } => {
+            &Inst::AluRRR {
+                alu_op,
+                size,
+                rd,
+                rn,
+                rm,
+            } => {
+                debug_assert!(match alu_op {
+                    ALUOp::SDiv | ALUOp::UDiv | ALUOp::SMulH | ALUOp::UMulH =>
+                        size == OperandSize::Size64,
+                    _ => true,
+                });
                 let top11 = match alu_op {
-                    ALUOp::Add32 => 0b00001011_000,
-                    ALUOp::Add64 => 0b10001011_000,
-                    ALUOp::Adc32 => 0b00011010_000,
-                    ALUOp::Adc64 => 0b10011010_000,
-                    ALUOp::AdcS32 => 0b00111010_000,
-                    ALUOp::AdcS64 => 0b10111010_000,
-                    ALUOp::Sub32 => 0b01001011_000,
-                    ALUOp::Sub64 => 0b11001011_000,
-                    ALUOp::Sbc32 => 0b01011010_000,
-                    ALUOp::Sbc64 => 0b11011010_000,
-                    ALUOp::SbcS32 => 0b01111010_000,
-                    ALUOp::SbcS64 => 0b11111010_000,
-                    ALUOp::Orr32 => 0b00101010_000,
-                    ALUOp::Orr64 => 0b10101010_000,
-                    ALUOp::And32 => 0b00001010_000,
-                    ALUOp::And64 => 0b10001010_000,
-                    ALUOp::AndS32 => 0b01101010_000,
-                    ALUOp::AndS64 => 0b11101010_000,
-                    ALUOp::Eor32 => 0b01001010_000,
-                    ALUOp::Eor64 => 0b11001010_000,
-                    ALUOp::OrrNot32 => 0b00101010_001,
-                    ALUOp::OrrNot64 => 0b10101010_001,
-                    ALUOp::AndNot32 => 0b00001010_001,
-                    ALUOp::AndNot64 => 0b10001010_001,
-                    ALUOp::EorNot32 => 0b01001010_001,
-                    ALUOp::EorNot64 => 0b11001010_001,
-                    ALUOp::AddS32 => 0b00101011_000,
-                    ALUOp::AddS64 => 0b10101011_000,
-                    ALUOp::SubS32 => 0b01101011_000,
-                    ALUOp::SubS64 => 0b11101011_000,
-                    ALUOp::SDiv64 => 0b10011010_110,
-                    ALUOp::UDiv64 => 0b10011010_110,
-                    ALUOp::RotR32 | ALUOp::Lsr32 | ALUOp::Asr32 | ALUOp::Lsl32 => 0b00011010_110,
-                    ALUOp::RotR64 | ALUOp::Lsr64 | ALUOp::Asr64 | ALUOp::Lsl64 => 0b10011010_110,
+                    ALUOp::Add => 0b00001011_000,
+                    ALUOp::Adc => 0b00011010_000,
+                    ALUOp::AdcS => 0b00111010_000,
+                    ALUOp::Sub => 0b01001011_000,
+                    ALUOp::Sbc => 0b01011010_000,
+                    ALUOp::SbcS => 0b01111010_000,
+                    ALUOp::Orr => 0b00101010_000,
+                    ALUOp::And => 0b00001010_000,
+                    ALUOp::AndS => 0b01101010_000,
+                    ALUOp::Eor => 0b01001010_000,
+                    ALUOp::OrrNot => 0b00101010_001,
+                    ALUOp::AndNot => 0b00001010_001,
+                    ALUOp::EorNot => 0b01001010_001,
+                    ALUOp::AddS => 0b00101011_000,
+                    ALUOp::SubS => 0b01101011_000,
+                    ALUOp::SDiv => 0b10011010_110,
+                    ALUOp::UDiv => 0b10011010_110,
+                    ALUOp::RotR | ALUOp::Lsr | ALUOp::Asr | ALUOp::Lsl => 0b00011010_110,
                     ALUOp::SMulH => 0b10011011_010,
                     ALUOp::UMulH => 0b10011011_110,
                 };
+                let top11 = top11 | size.sf_bit() << 10;
                 let bit15_10 = match alu_op {
-                    ALUOp::SDiv64 => 0b000011,
-                    ALUOp::UDiv64 => 0b000010,
-                    ALUOp::RotR32 | ALUOp::RotR64 => 0b001011,
-                    ALUOp::Lsr32 | ALUOp::Lsr64 => 0b001001,
-                    ALUOp::Asr32 | ALUOp::Asr64 => 0b001010,
-                    ALUOp::Lsl32 | ALUOp::Lsl64 => 0b001000,
+                    ALUOp::SDiv => 0b000011,
+                    ALUOp::UDiv => 0b000010,
+                    ALUOp::RotR => 0b001011,
+                    ALUOp::Lsr => 0b001001,
+                    ALUOp::Asr => 0b001010,
+                    ALUOp::Lsl => 0b001000,
                     ALUOp::SMulH | ALUOp::UMulH => 0b011111,
                     _ => 0b000000,
                 };
@@ -761,21 +752,19 @@ impl MachInstEmit for Inst {
             }
             &Inst::AluRRImm12 {
                 alu_op,
+                size,
                 rd,
                 rn,
                 ref imm12,
             } => {
                 let top8 = match alu_op {
-                    ALUOp::Add32 => 0b000_10001,
-                    ALUOp::Add64 => 0b100_10001,
-                    ALUOp::Sub32 => 0b010_10001,
-                    ALUOp::Sub64 => 0b110_10001,
-                    ALUOp::AddS32 => 0b001_10001,
-                    ALUOp::AddS64 => 0b101_10001,
-                    ALUOp::SubS32 => 0b011_10001,
-                    ALUOp::SubS64 => 0b111_10001,
+                    ALUOp::Add => 0b000_10001,
+                    ALUOp::Sub => 0b010_10001,
+                    ALUOp::AddS => 0b001_10001,
+                    ALUOp::SubS => 0b011_10001,
                     _ => unimplemented!("{:?}", alu_op),
                 };
+                let top8 = top8 | size.sf_bit() << 7;
                 sink.put4(enc_arith_rr_imm12(
                     top8,
                     imm12.shift_bits(),
@@ -786,56 +775,52 @@ impl MachInstEmit for Inst {
             }
             &Inst::AluRRImmLogic {
                 alu_op,
+                size,
                 rd,
                 rn,
                 ref imml,
             } => {
                 let (top9, inv) = match alu_op {
-                    ALUOp::Orr32 => (0b001_100100, false),
-                    ALUOp::Orr64 => (0b101_100100, false),
-                    ALUOp::And32 => (0b000_100100, false),
-                    ALUOp::And64 => (0b100_100100, false),
-                    ALUOp::AndS32 => (0b011_100100, false),
-                    ALUOp::AndS64 => (0b111_100100, false),
-                    ALUOp::Eor32 => (0b010_100100, false),
-                    ALUOp::Eor64 => (0b110_100100, false),
-                    ALUOp::OrrNot32 => (0b001_100100, true),
-                    ALUOp::OrrNot64 => (0b101_100100, true),
-                    ALUOp::AndNot32 => (0b000_100100, true),
-                    ALUOp::AndNot64 => (0b100_100100, true),
-                    ALUOp::EorNot32 => (0b010_100100, true),
-                    ALUOp::EorNot64 => (0b110_100100, true),
+                    ALUOp::Orr => (0b001_100100, false),
+                    ALUOp::And => (0b000_100100, false),
+                    ALUOp::AndS => (0b011_100100, false),
+                    ALUOp::Eor => (0b010_100100, false),
+                    ALUOp::OrrNot => (0b001_100100, true),
+                    ALUOp::AndNot => (0b000_100100, true),
+                    ALUOp::EorNot => (0b010_100100, true),
                     _ => unimplemented!("{:?}", alu_op),
                 };
+                let top9 = top9 | size.sf_bit() << 8;
                 let imml = if inv { imml.invert() } else { imml.clone() };
                 sink.put4(enc_arith_rr_imml(top9, imml.enc_bits(), rn, rd));
             }
 
             &Inst::AluRRImmShift {
                 alu_op,
+                size,
                 rd,
                 rn,
                 ref immshift,
             } => {
                 let amt = immshift.value();
                 let (top10, immr, imms) = match alu_op {
-                    ALUOp::RotR32 => (0b0001001110, machreg_to_gpr(rn), u32::from(amt)),
-                    ALUOp::RotR64 => (0b1001001111, machreg_to_gpr(rn), u32::from(amt)),
-                    ALUOp::Lsr32 => (0b0101001100, u32::from(amt), 0b011111),
-                    ALUOp::Lsr64 => (0b1101001101, u32::from(amt), 0b111111),
-                    ALUOp::Asr32 => (0b0001001100, u32::from(amt), 0b011111),
-                    ALUOp::Asr64 => (0b1001001101, u32::from(amt), 0b111111),
-                    ALUOp::Lsl32 => (
-                        0b0101001100,
-                        u32::from((32 - amt) % 32),
-                        u32::from(31 - amt),
-                    ),
-                    ALUOp::Lsl64 => (
-                        0b1101001101,
-                        u32::from((64 - amt) % 64),
-                        u32::from(63 - amt),
-                    ),
+                    ALUOp::RotR => (0b0001001110, machreg_to_gpr(rn), u32::from(amt)),
+                    ALUOp::Lsr => (0b0101001100, u32::from(amt), 0b011111),
+                    ALUOp::Asr => (0b0001001100, u32::from(amt), 0b011111),
+                    ALUOp::Lsl => {
+                        let bits = if size.is64() { 64 } else { 32 };
+                        (
+                            0b0101001100,
+                            u32::from((bits - amt) % bits),
+                            u32::from(bits - 1 - amt),
+                        )
+                    }
                     _ => unimplemented!("{:?}", alu_op),
+                };
+                let top10 = top10 | size.sf_bit() << 9 | size.sf_bit();
+                let imms = match alu_op {
+                    ALUOp::Lsr | ALUOp::Asr => imms | size.sf_bit() << 5,
+                    _ => imms,
                 };
                 sink.put4(
                     (top10 << 22)
@@ -848,36 +833,27 @@ impl MachInstEmit for Inst {
 
             &Inst::AluRRRShift {
                 alu_op,
+                size,
                 rd,
                 rn,
                 rm,
                 ref shiftop,
             } => {
                 let top11: u32 = match alu_op {
-                    ALUOp::Add32 => 0b000_01011000,
-                    ALUOp::Add64 => 0b100_01011000,
-                    ALUOp::AddS32 => 0b001_01011000,
-                    ALUOp::AddS64 => 0b101_01011000,
-                    ALUOp::Sub32 => 0b010_01011000,
-                    ALUOp::Sub64 => 0b110_01011000,
-                    ALUOp::SubS32 => 0b011_01011000,
-                    ALUOp::SubS64 => 0b111_01011000,
-                    ALUOp::Orr32 => 0b001_01010000,
-                    ALUOp::Orr64 => 0b101_01010000,
-                    ALUOp::And32 => 0b000_01010000,
-                    ALUOp::And64 => 0b100_01010000,
-                    ALUOp::AndS32 => 0b011_01010000,
-                    ALUOp::AndS64 => 0b111_01010000,
-                    ALUOp::Eor32 => 0b010_01010000,
-                    ALUOp::Eor64 => 0b110_01010000,
-                    ALUOp::OrrNot32 => 0b001_01010001,
-                    ALUOp::OrrNot64 => 0b101_01010001,
-                    ALUOp::EorNot32 => 0b010_01010001,
-                    ALUOp::EorNot64 => 0b110_01010001,
-                    ALUOp::AndNot32 => 0b000_01010001,
-                    ALUOp::AndNot64 => 0b100_01010001,
+                    ALUOp::Add => 0b000_01011000,
+                    ALUOp::AddS => 0b001_01011000,
+                    ALUOp::Sub => 0b010_01011000,
+                    ALUOp::SubS => 0b011_01011000,
+                    ALUOp::Orr => 0b001_01010000,
+                    ALUOp::And => 0b000_01010000,
+                    ALUOp::AndS => 0b011_01010000,
+                    ALUOp::Eor => 0b010_01010000,
+                    ALUOp::OrrNot => 0b001_01010001,
+                    ALUOp::EorNot => 0b010_01010001,
+                    ALUOp::AndNot => 0b000_01010001,
                     _ => unimplemented!("{:?}", alu_op),
                 };
+                let top11 = top11 | size.sf_bit() << 10;
                 let top11 = top11 | (u32::from(shiftop.op().bits()) << 1);
                 let bits_15_10 = u32::from(shiftop.amt().value());
                 sink.put4(enc_arith_rrr(top11, bits_15_10, rd, rn, rm));
@@ -885,34 +861,33 @@ impl MachInstEmit for Inst {
 
             &Inst::AluRRRExtend {
                 alu_op,
+                size,
                 rd,
                 rn,
                 rm,
                 extendop,
             } => {
                 let top11: u32 = match alu_op {
-                    ALUOp::Add32 => 0b00001011001,
-                    ALUOp::Add64 => 0b10001011001,
-                    ALUOp::Sub32 => 0b01001011001,
-                    ALUOp::Sub64 => 0b11001011001,
-                    ALUOp::AddS32 => 0b00101011001,
-                    ALUOp::AddS64 => 0b10101011001,
-                    ALUOp::SubS32 => 0b01101011001,
-                    ALUOp::SubS64 => 0b11101011001,
+                    ALUOp::Add => 0b00001011001,
+                    ALUOp::Sub => 0b01001011001,
+                    ALUOp::AddS => 0b00101011001,
+                    ALUOp::SubS => 0b01101011001,
                     _ => unimplemented!("{:?}", alu_op),
                 };
+                let top11 = top11 | size.sf_bit() << 10;
                 let bits_15_10 = u32::from(extendop.bits()) << 3;
                 sink.put4(enc_arith_rrr(top11, bits_15_10, rd, rn, rm));
             }
 
-            &Inst::BitRR { op, rd, rn, .. } => {
-                let size = if op.operand_size().is32() { 0b0 } else { 0b1 };
+            &Inst::BitRR {
+                op, size, rd, rn, ..
+            } => {
                 let (op1, op2) = match op {
-                    BitOp::RBit32 | BitOp::RBit64 => (0b00000, 0b000000),
-                    BitOp::Clz32 | BitOp::Clz64 => (0b00000, 0b000100),
-                    BitOp::Cls32 | BitOp::Cls64 => (0b00000, 0b000101),
+                    BitOp::RBit => (0b00000, 0b000000),
+                    BitOp::Clz => (0b00000, 0b000100),
+                    BitOp::Cls => (0b00000, 0b000101),
                 };
-                sink.put4(enc_bit_rr(size, op1, op2, rn, rd))
+                sink.put4(enc_bit_rr(size.sf_bit(), op1, op2, rn, rd))
             }
 
             &Inst::ULoad8 { rd, ref mem, flags }
@@ -1364,10 +1339,6 @@ impl MachInstEmit for Inst {
                    both the store-data and success-flag operands of stlxr.  This causes the
                    instruction's behaviour to be "CONSTRAINED UNPREDICTABLE", so we use x24
                    instead for the success-flag.
-
-                   In the case where the operation is 'xchg', the second insn is instead
-                     mov          x28, x26
-                   so that we simply write in the destination, the "2nd arg for op".
                 */
                 // TODO: We should not hardcode registers here, a better idea would be to
                 // pass some scratch registers in the AtomicRMWLoop pseudo-instruction, and use those
@@ -1389,18 +1360,17 @@ impl MachInstEmit for Inst {
                     sink.add_trap(srcloc, TrapCode::HeapOutOfBounds);
                 }
                 sink.put4(enc_ldaxr(ty, x27wr, x25)); // ldaxr x27, [x25]
+                let size = OperandSize::from_ty(ty);
 
                 match op {
-                    AtomicRmwOp::Xchg => {
-                        // mov x28, x26
-                        Inst::Mov64 { rd: x28wr, rm: x26 }.emit(sink, emit_info, state);
-                    }
+                    AtomicRmwOp::Xchg => {} // do nothing
                     AtomicRmwOp::Nand => {
                         // and x28, x27, x26
                         // mvn x28, x28
 
                         Inst::AluRRR {
-                            alu_op: ALUOp::And64,
+                            alu_op: ALUOp::And,
+                            size,
                             rd: x28wr,
                             rn: x27,
                             rm: x26,
@@ -1408,7 +1378,8 @@ impl MachInstEmit for Inst {
                         .emit(sink, emit_info, state);
 
                         Inst::AluRRR {
-                            alu_op: ALUOp::OrrNot64,
+                            alu_op: ALUOp::OrrNot,
+                            size,
                             rd: x28wr,
                             rn: xzr,
                             rm: x28,
@@ -1431,11 +1402,8 @@ impl MachInstEmit for Inst {
                         };
 
                         Inst::AluRRR {
-                            alu_op: if ty == I64 {
-                                ALUOp::SubS64
-                            } else {
-                                ALUOp::SubS32
-                            },
+                            alu_op: ALUOp::SubS,
+                            size,
                             rd: writable_zero_reg(),
                             rn: x27,
                             rm: x26,
@@ -1453,11 +1421,11 @@ impl MachInstEmit for Inst {
                     _ => {
                         // add/sub/and/orr/eor x28, x27, x26
                         let alu_op = match op {
-                            AtomicRmwOp::Add => ALUOp::Add64,
-                            AtomicRmwOp::Sub => ALUOp::Sub64,
-                            AtomicRmwOp::And => ALUOp::And64,
-                            AtomicRmwOp::Or => ALUOp::Orr64,
-                            AtomicRmwOp::Xor => ALUOp::Eor64,
+                            AtomicRmwOp::Add => ALUOp::Add,
+                            AtomicRmwOp::Sub => ALUOp::Sub,
+                            AtomicRmwOp::And => ALUOp::And,
+                            AtomicRmwOp::Or => ALUOp::Orr,
+                            AtomicRmwOp::Xor => ALUOp::Eor,
                             AtomicRmwOp::Nand
                             | AtomicRmwOp::Umin
                             | AtomicRmwOp::Umax
@@ -1468,6 +1436,7 @@ impl MachInstEmit for Inst {
 
                         Inst::AluRRR {
                             alu_op,
+                            size,
                             rd: x28wr,
                             rn: x27,
                             rm: x26,
@@ -1480,7 +1449,11 @@ impl MachInstEmit for Inst {
                 if srcloc != SourceLoc::default() {
                     sink.add_trap(srcloc, TrapCode::HeapOutOfBounds);
                 }
-                sink.put4(enc_stlxr(ty, x24wr, x28, x25)); // stlxr w24, x28, [x25]
+                if op == AtomicRmwOp::Xchg {
+                    sink.put4(enc_stlxr(ty, x24wr, x26, x25)); // stlxr w24, x26, [x25]
+                } else {
+                    sink.put4(enc_stlxr(ty, x24wr, x28, x25)); // stlxr w24, x28, [x25]
+                }
 
                 // cbnz w24, again
                 // Note, we're actually testing x24, and relying on the default zero-high-half
@@ -1989,6 +1962,19 @@ impl MachInstEmit for Inst {
                 };
                 sink.put4(template | (machreg_to_gpr(rn) << 5) | machreg_to_vec(rd.to_reg()));
             }
+            &Inst::FpuMoveFPImm { rd, imm, size } => {
+                let size_code = match size {
+                    ScalarSize::Size32 => 0b00,
+                    ScalarSize::Size64 => 0b01,
+                    _ => unimplemented!(),
+                };
+                sink.put4(
+                    0b000_11110_00_1_00_000_000100_00000_00000
+                        | size_code << 22
+                        | ((imm.enc_bits() as u32) << 13)
+                        | machreg_to_vec(rd.to_reg()),
+                );
+            }
             &Inst::MovToVec { rd, rn, idx, size } => {
                 let (imm5, shift) = match size.lane_size() {
                     ScalarSize::Size8 => (0b00001, 1),
@@ -2471,7 +2457,8 @@ impl MachInstEmit for Inst {
                 // than AND on smaller cores.
                 let imml = ImmLogic::maybe_from_u64(1, I32).unwrap();
                 Inst::AluRRImmLogic {
-                    alu_op: ALUOp::And32,
+                    alu_op: ALUOp::And,
+                    size: OperandSize::Size32,
                     rd,
                     rn,
                     imml,
@@ -2648,7 +2635,8 @@ impl MachInstEmit for Inst {
                 inst.emit(sink, emit_info, state);
                 // Add base of jump table to jump-table-sourced block offset
                 let inst = Inst::AluRRR {
-                    alu_op: ALUOp::Add64,
+                    alu_op: ALUOp::Add,
+                    size: OperandSize::Size64,
                     rd: rtmp1,
                     rn: rtmp1.to_reg(),
                     rm: rtmp2.to_reg(),
@@ -2699,7 +2687,7 @@ impl MachInstEmit for Inst {
                 inst.emit(sink, emit_info, state);
                 let srcloc = state.cur_srcloc();
                 sink.add_reloc(srcloc, Reloc::Abs8, name, offset);
-                if emit_info.flags().emit_all_ones_funcaddrs() {
+                if emit_info.0.emit_all_ones_funcaddrs() {
                     sink.put8(u64::max_value());
                 } else {
                     sink.put8(0);
@@ -2724,15 +2712,12 @@ impl MachInstEmit for Inst {
                 } else {
                     offset as u64
                 };
-                let alu_op = if offset < 0 {
-                    ALUOp::Sub64
-                } else {
-                    ALUOp::Add64
-                };
+                let alu_op = if offset < 0 { ALUOp::Sub } else { ALUOp::Add };
 
                 if let Some((idx, extendop)) = index_reg {
                     let add = Inst::AluRRRExtend {
-                        alu_op: ALUOp::Add64,
+                        alu_op: ALUOp::Add,
+                        size: OperandSize::Size64,
                         rd,
                         rn: reg,
                         rm: idx,
@@ -2749,6 +2734,7 @@ impl MachInstEmit for Inst {
                 } else if let Some(imm12) = Imm12::maybe_from_u64(abs_offset) {
                     let add = Inst::AluRRImm12 {
                         alu_op,
+                        size: OperandSize::Size64,
                         rd,
                         rn: reg,
                         imm12,
@@ -2768,6 +2754,7 @@ impl MachInstEmit for Inst {
                     }
                     let add = Inst::AluRRR {
                         alu_op,
+                        size: OperandSize::Size64,
                         rd,
                         rn: reg,
                         rm: tmp.to_reg(),

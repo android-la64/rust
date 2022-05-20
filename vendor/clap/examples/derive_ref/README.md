@@ -3,13 +3,12 @@
 1. [Overview](#overview)
 2. [Raw Attributes](#raw-attributes)
 3. [Magic Attributes](#magic-attributes)
-    1. [Command Attributes](#command-attributes)
+    1. [Command Attributes](#cmd-attributes)
     2. [Arg Attributes](#arg-attributes)
     3. [Arg Types](#arg-types)
     4. [Arg Enum Attributes](#arg-enum-attributes)
     5. [Possible Value Attributes](#possible-value-attributes)
     6. [Doc Comments](#doc-comments)
-4. [Tips](#tips)
 
 ## Overview
 
@@ -17,7 +16,7 @@ To derive `clap` types, you need to enable the `derive` feature flag.
 
 See [demo.rs](../demo.rs) and [demo.md](../demo.md) for a brief example.
 
-Let's start by breaking down the anatomy of the derive attributes:
+Let's start by breaking down what can go where:
 ```rust
 use clap::{Parser, Args, Subcommand, ArgEnum};
 
@@ -79,7 +78,6 @@ fn main() {
 - `Parser` parses arguments into a `struct` (arguments) or `enum` (subcommands).
 - `Args` allows defining a set of re-usable arguments that get merged into their parent container.
 - `Subcommand` defines available subcommands.
-  - Subcommand arguments can be defined in a struct-variant or automatically flattened with a tuple-variant.
 - `ArgEnum` allows parsing a value directly into an `enum`, erroring on unsupported values.
 
 See also the [tutorial](../tutorial_derive/README.md) and [examples](../README.md).
@@ -360,8 +358,3 @@ them.
 - Remove one leading space from each line, even if this attribute is present,
   to allow for a space between `///` and the content.
 - Remove leading and trailing blank lines
-
-## Tips
-
-- To get access to a `Command` call `CommandFactory::command` (implemented when deriving `Parser`)
-- Proactively check for bad `Command` configurations by calling `Command::debug_assert` in a test ([example](../tutorial_derive/05_01_assert.rs))

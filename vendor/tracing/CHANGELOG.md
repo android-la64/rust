@@ -1,4 +1,52 @@
-# 0.1.30 (February 3rd, 2021)
+# 0.1.32 (March 8th, 2022)
+
+This release reduces the overhead of creating and dropping disabled
+spans significantly, which should improve performance when no `tracing`
+subscriber is in use or when spans are disabled by a filter.
+
+### Fixed
+
+- **attributes**: Compilation failure with `--minimal-versions` due to a
+  too-permissive `syn` dependency ([#1960])
+
+### Changed
+
+- Reduced `Drop` overhead for disabled spans ([#1974])
+- `tracing-attributes`: updated to [0.1.20][attributes-0.1.20]
+
+[#1974]: https://github.com/tokio-rs/tracing/pull/1974
+[#1960]: https://github.com/tokio-rs/tracing/pull/1960
+[attributes-0.1.20]: https://github.com/tokio-rs/tracing/releases/tag/tracing-attributes-0.1.20
+
+# 0.1.31 (February 17th, 2022)
+
+This release increases the minimum supported Rust version (MSRV) to 1.49.0. In
+addition, it fixes some relatively rare macro bugs.
+
+### Added
+
+- Added `tracing-forest` to the list of related crates ([#1935])
+
+### Changed
+
+- Updated minimum supported Rust version (MSRV) to 1.49.0 ([#1913])
+
+### Fixed
+
+- Fixed the `warn!` macro incorrectly generating an event with the `TRACE` level
+  ([#1930])
+- Fixed macro hygiene issues when used in a crate that defines its own `concat!`
+  macro, for real this time ([#1918])
+
+Thanks to @QnnOkabayashi, @nicolaasg, and @teohhanhui for contributing to this
+release!
+
+[#1935]: https://github.com/tokio-rs/tracing/pull/1935
+[#1913]: https://github.com/tokio-rs/tracing/pull/1913
+[#1930]: https://github.com/tokio-rs/tracing/pull/1930
+[#1918]: https://github.com/tokio-rs/tracing/pull/1918
+
+# 0.1.30 (February 3rd, 2022)
 
 This release adds *experimental* support for recording structured field
 values using the [`valuable`] crate. See [this blog post][post] for

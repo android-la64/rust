@@ -1,3 +1,4 @@
+pub mod artifact;
 mod build_config;
 mod build_context;
 mod build_plan;
@@ -261,8 +262,16 @@ fn rustc(cx: &mut Context<'_, '_>, unit: &Unit, exec: &Arc<dyn Executor>) -> Car
     let fingerprint_dir = cx.files().fingerprint_dir(unit);
     let script_metadata = cx.find_build_script_metadata(unit);
     let is_local = unit.is_local();
+    let artifact = unit.artifact;
 
     return Ok(Work::new(move |state| {
+        // Artifacts are in a different location than typical units,
+        // hence we must assure the crate- and target-dependent
+        // directory is present.
+        if artifact.is_true() {
+            paths::create_dir_all(&root)?;
+        }
+
         // Only at runtime have we discovered what the extra -L and -l
         // arguments are for native libraries, so we process those here. We
         // also need to be sure to add any -L paths for our plugins to the
@@ -636,12 +645,9 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
     paths::create_dir_all(&doc_dir)?;
 
     rustdoc.arg("-o").arg(&doc_dir);
+    rustdoc.args(&features_args(cx, unit));
 
-    for feat in &unit.features {
-        rustdoc.arg("--cfg").arg(&format!("feature=\"{}\"", feat));
-    }
-
-    add_error_format_and_color(cx, &mut rustdoc, unit);
+    add_error_format_and_color(cx, &mut rustdoc);
     add_allow_features(cx, &mut rustdoc);
 
     if let Some(args) = cx.bcx.extra_args_for(unit) {
@@ -790,19 +796,9 @@ fn add_allow_features(cx: &Context<'_, '_>, cmd: &mut ProcessBuilder) {
 /// intercepting messages like rmeta artifacts, etc. rustc includes a
 /// "rendered" field in the JSON message with the message properly formatted,
 /// which Cargo will extract and display to the user.
-fn add_error_format_and_color(cx: &Context<'_, '_>, cmd: &mut ProcessBuilder, unit: &Unit) {
+fn add_error_format_and_color(cx: &Context<'_, '_>, cmd: &mut ProcessBuilder) {
     cmd.arg("--error-format=json");
-    let mut json = String::from("--json=diagnostic-rendered-ansi,artifacts");
-    if cx
-        .bcx
-        .target_data
-        .info(unit.kind)
-        .supports_json_future_incompat
-    {
-        // Emit a future-incompat report (when supported by rustc), so we can report
-        // future-incompat dependencies to the user
-        json.push_str(",future-incompat");
-    }
+    let mut json = String::from("--json=diagnostic-rendered-ansi,artifacts,future-incompat");
 
     match cx.bcx.build_config.message_format {
         MessageFormat::Short | MessageFormat::Json { short: true, .. } => {
@@ -864,23 +860,14 @@ fn build_base_args(
     edition.cmd_edition_arg(cmd);
 
     add_path_args(bcx.ws, unit, cmd);
-    add_error_format_and_color(cx, cmd, unit);
+    add_error_format_and_color(cx, cmd);
     add_allow_features(cx, cmd);
 
     let mut contains_dy_lib = false;
     if !test {
-        let mut crate_types = &crate_types
-            .iter()
-            .map(|t| t.as_str().to_string())
-            .collect::<Vec<String>>();
-        if let Some(types) = cx.bcx.rustc_crate_types_args_for(unit) {
-            crate_types = types;
-        }
-        for crate_type in crate_types.iter() {
-            cmd.arg("--crate-type").arg(crate_type);
-            if crate_type == CrateType::Dylib.as_str() {
-                contains_dy_lib = true;
-            }
+        for crate_type in crate_types {
+            cmd.arg("--crate-type").arg(crate_type.as_str());
+            contains_dy_lib |= crate_type == &CrateType::Dylib;
         }
     }
 
@@ -978,9 +965,7 @@ fn build_base_args(
         cmd.arg("--cfg").arg("test");
     }
 
-    for feat in &unit.features {
-        cmd.arg("--cfg").arg(&format!("feature=\"{}\"", feat));
-    }
+    cmd.args(&features_args(cx, unit));
 
     let meta = cx.files().metadata(unit);
     cmd.arg("-C").arg(&format!("metadata={}", meta));
@@ -1054,6 +1039,35 @@ fn build_base_args(
     Ok(())
 }
 
+/// Features with --cfg and all features with --check-cfg
+fn features_args(cx: &Context<'_, '_>, unit: &Unit) -> Vec<OsString> {
+    let mut args = Vec::with_capacity(unit.features.len() + 2);
+
+    for feat in &unit.features {
+        args.push(OsString::from("--cfg"));
+        args.push(OsString::from(format!("feature=\"{}\"", feat)));
+    }
+
+    if cx.bcx.config.cli_unstable().check_cfg_features {
+        // This generate something like this:
+        //  - values(feature)
+        //  - values(feature, "foo", "bar")
+        let mut arg = OsString::from("values(feature");
+        for (&feat, _) in unit.pkg.summary().features() {
+            arg.push(", \"");
+            arg.push(&feat);
+            arg.push("\"");
+        }
+        arg.push(")");
+
+        args.push(OsString::from("-Zunstable-options"));
+        args.push(OsString::from("--check-cfg"));
+        args.push(arg);
+    }
+
+    args
+}
+
 fn lto_args(cx: &Context<'_, '_>, unit: &Unit) -> Vec<OsString> {
     let mut result = Vec::new();
     let mut push = |arg: &str| {
@@ -1105,10 +1119,9 @@ fn build_deps_args(
         .iter()
         .any(|dep| !dep.unit.mode.is_doc() && dep.unit.target.is_linkable())
     {
-        if let Some(dep) = deps
-            .iter()
-            .find(|dep| !dep.unit.mode.is_doc() && dep.unit.target.is_lib())
-        {
+        if let Some(dep) = deps.iter().find(|dep| {
+            !dep.unit.mode.is_doc() && dep.unit.target.is_lib() && !dep.unit.artifact.is_true()
+        }) {
             bcx.config.shell().warn(format!(
                 "The package `{}` \
                  provides no linkable target. The compiler might raise an error while compiling \
@@ -1131,6 +1144,10 @@ fn build_deps_args(
 
     for arg in extern_args(cx, unit, &mut unstable_opts)? {
         cmd.arg(arg);
+    }
+
+    for (var, env) in artifact::get_env(cx, deps)? {
+        cmd.env(&var, env);
     }
 
     // This will only be set if we're already using a feature

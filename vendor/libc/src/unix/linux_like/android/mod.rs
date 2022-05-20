@@ -992,6 +992,8 @@ pub const F_TEST: ::c_int = 3;
 pub const F_TLOCK: ::c_int = 2;
 pub const F_ULOCK: ::c_int = 0;
 
+pub const F_SEAL_FUTURE_WRITE: ::c_int = 0x0010;
+
 pub const IFF_LOWER_UP: ::c_int = 0x10000;
 pub const IFF_DORMANT: ::c_int = 0x20000;
 pub const IFF_ECHO: ::c_int = 0x40000;
@@ -1525,6 +1527,8 @@ pub const B3500000: ::speed_t = 0o010016;
 pub const B4000000: ::speed_t = 0o010017;
 pub const IBSHIFT: ::tcflag_t = 16;
 
+pub const BLKIOMIN: ::c_int = 0x1278;
+pub const BLKIOOPT: ::c_int = 0x1279;
 pub const BLKSSZGET: ::c_int = 0x1268;
 pub const BLKPBSZGET: ::c_int = 0x127B;
 
@@ -2461,6 +2465,16 @@ pub const SCHED_DEADLINE: ::c_int = 6;
 pub const SCHED_RESET_ON_FORK: ::c_int = 0x40000000;
 
 pub const CLONE_PIDFD: ::c_int = 0x1000;
+
+// linux/mempolicy.h
+pub const MPOL_DEFAULT: ::c_int = 0;
+pub const MPOL_PREFERRED: ::c_int = 1;
+pub const MPOL_BIND: ::c_int = 2;
+pub const MPOL_INTERLEAVE: ::c_int = 3;
+pub const MPOL_LOCAL: ::c_int = 4;
+pub const MPOL_F_NUMA_BALANCING: ::c_int = 1 << 13;
+pub const MPOL_F_RELATIVE_NODES: ::c_int = 1 << 14;
+pub const MPOL_F_STATIC_NODES: ::c_int = 1 << 15;
 
 // bits/seek_constants.h
 pub const SEEK_DATA: ::c_int = 3;

@@ -87,6 +87,7 @@ On x86, the `.intel_syntax noprefix` mode of GAS is used by default.
 On ARM, the `.syntax unified` mode is used.
 These targets impose an additional restriction on the assembly code: any assembler state (e.g. the current section which can be changed with `.section`) must be restored to its original value at the end of the asm string.
 Assembly code that does not conform to the GAS syntax will result in assembler-specific behavior.
+Further constraints on the directives used by inline assembly are indicated by [Directives Support](#directives-support).
 
 [format-syntax]: ../std/fmt/index.html#syntax
 [rfc-2795]: https://github.com/rust-lang/rfcs/pull/2795
@@ -477,3 +478,135 @@ To avoid undefined behavior, these rules must be followed when using function-sc
   - The compiler is currently unable to detect this due to the way inline assembly is compiled, but may catch and reject this in the future.
 
 > **Note**: As a general rule, the flags covered by `preserves_flags` are those which are *not* preserved when performing a function call.
+
+### Directives Support
+
+Inline assembly supports a subset of the directives supported by both GNU AS and LLVM's internal assembler, given as follows.
+The result of using other directives is assembler-specific (and may cause an error, or may be accepted as-is).
+
+If inline assembly includes any "stateful" directive that modifies how subsequent assembly is processed, the block must undo the effects of any such directives before the inline assembly ends.
+
+The following directives are guaranteed to be supported by the assembler:
+
+- `.2byte`
+- `.4byte`
+- `.8byte`
+- `.align`
+- `.ascii`
+- `.asciz`
+- `.alt_entry`
+- `.balign`
+- `.balignl`
+- `.balignw`
+- `.balign`
+- `.balignl`
+- `.balignw`
+- `.bss`
+- `.byte`
+- `.comm`
+- `.data`
+- `.def`
+- `.double`
+- `.endef`
+- `.equ`
+- `.equiv`
+- `.eqv`
+- `.fill`
+- `.float`
+- `.globl`
+- `.global`
+- `.lcomm`
+- `.inst`
+- `.long`
+- `.octa`
+- `.option`
+- `.private_extern`
+- `.p2align`
+- `.pushsection`
+- `.popsection`
+- `.quad`
+- `.scl`
+- `.section`
+- `.set`
+- `.short`
+- `.size`
+- `.skip`
+- `.sleb128`
+- `.space`
+- `.string`
+- `.text`
+- `.type`
+- `.uleb128`
+- `.word`
+
+
+
+#### Target Specific Directive Support
+
+##### Dwarf Unwinding
+
+The following directives are supported on ELF targets that support DWARF unwind info:
+
+
+- `.cfi_adjust_cfa_offset`
+- `.cfi_def_cfa`
+- `.cfi_def_cfa_offset`
+- `.cfi_def_cfa_register`
+- `.cfi_endproc`
+- `.cfi_escape`
+- `.cfi_lsda`
+- `.cfi_offset`
+- `.cfi_personality`
+- `.cfi_register`
+- `.cfi_rel_offset`
+- `.cfi_remember_state`
+- `.cfi_restore`
+- `.cfi_restore_state`
+- `.cfi_return_column`
+- `.cfi_same_value`
+- `.cfi_sections`
+- `.cfi_signal_frame`
+- `.cfi_startproc`
+- `.cfi_undefined`
+- `.cfi_window_save`
+
+
+##### Structured Exception Handling
+
+On targets with structured exception Handling, the following additional directives are guaranteed to be supported:
+
+- `.seh_endproc`
+- `.seh_endprologue`
+- `.seh_proc`
+- `.seh_pushreg`
+- `.seh_savereg`
+- `.seh_setframe`
+- `.seh_stackalloc`
+
+
+##### x86 (32-bit and 64-bit)
+
+On x86 targets, both 32-bit and 64-bit, the following additional directives are guaranteed to be supported:
+- `.nops`
+- `.code16`
+- `.code32`
+- `.code64`
+
+
+Use of `.code16`, `.code32`, and `.code64` directives are only supported if the state is reset to the default before exiting the assembly block.
+32-bit x86 uses `.code32` by default, and x86_64 uses `.code64` by default.
+
+
+
+##### ARM (32-bit)
+
+On ARM, the following additional directives are guaranteed to be supported:
+
+- `.even`
+- `.fnstart`
+- `.fnend`
+- `.save`
+- `.movsp`
+- `.code`
+- `.thumb`
+- `.thumb_func`

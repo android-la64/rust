@@ -1,6 +1,6 @@
 use expect_test::expect;
 
-use super::{check_infer, check_types};
+use super::{check_infer, check_no_mismatches, check_types};
 
 #[test]
 fn infer_box() {
@@ -1202,14 +1202,13 @@ fn infer_array() {
 
             let b = [a, ["b"]];
             let x: [u8; 0] = [];
-            // FIXME: requires const evaluation/taking type from rhs somehow
             let y: [u8; 2+2] = [1,2,3,4];
         }
         "#,
         expect![[r#"
             8..9 'x': &str
             17..18 'y': isize
-            27..395 '{     ...,4]; }': ()
+            27..326 '{     ...,4]; }': ()
             37..38 'a': [&str; 1]
             41..44 '[x]': [&str; 1]
             42..43 'x': &str
@@ -1259,12 +1258,12 @@ fn infer_array() {
             259..262 '"b"': &str
             274..275 'x': [u8; 0]
             287..289 '[]': [u8; 0]
-            368..369 'y': [u8; _]
-            383..392 '[1,2,3,4]': [u8; 4]
-            384..385 '1': u8
-            386..387 '2': u8
-            388..389 '3': u8
-            390..391 '4': u8
+            299..300 'y': [u8; 4]
+            314..323 '[1,2,3,4]': [u8; 4]
+            315..316 '1': u8
+            317..318 '2': u8
+            319..320 '3': u8
+            321..322 '4': u8
         "#]],
     );
 }
@@ -1751,6 +1750,18 @@ fn main() {
 }
 
 #[test]
+fn const_eval_array_repeat_expr() {
+    check_types(
+        r#"
+fn main() {
+    const X: usize = 6 - 1;
+    let t = [(); X + 2];
+      //^ [(); 7]
+}"#,
+    );
+}
+
+#[test]
 fn shadowing_primitive_with_inner_items() {
     check_types(
         r#"
@@ -1950,6 +1961,52 @@ async fn main() {
             145..146 't': i32
             149..159 ''a: { 92 }': i32
             155..157 '92': i32
+        "#]],
+    )
+}
+#[test]
+fn async_block_early_return() {
+    check_infer(
+        r#"
+//- minicore: future, result, fn
+fn test<I, E, F: FnMut() -> Fut, Fut: core::future::Future<Output = Result<I, E>>>(f: F) {}
+
+fn main() {
+    async {
+        return Err(());
+        Ok(())
+    };
+    test(|| async {
+        return Err(());
+        Ok(())
+    });
+}
+        "#,
+        expect![[r#"
+            83..84 'f': F
+            89..91 '{}': ()
+            103..231 '{     ... }); }': ()
+            109..161 'async ...     }': Result<(), ()>
+            109..161 'async ...     }': impl Future<Output = Result<(), ()>>
+            125..139 'return Err(())': !
+            132..135 'Err': Err<(), ()>(()) -> Result<(), ()>
+            132..139 'Err(())': Result<(), ()>
+            136..138 '()': ()
+            149..151 'Ok': Ok<(), ()>(()) -> Result<(), ()>
+            149..155 'Ok(())': Result<(), ()>
+            152..154 '()': ()
+            167..171 'test': fn test<(), (), || -> impl Future<Output = Result<(), ()>>, impl Future<Output = Result<(), ()>>>(|| -> impl Future<Output = Result<(), ()>>)
+            167..228 'test(|...    })': ()
+            172..227 '|| asy...     }': || -> impl Future<Output = Result<(), ()>>
+            175..227 'async ...     }': Result<(), ()>
+            175..227 'async ...     }': impl Future<Output = Result<(), ()>>
+            191..205 'return Err(())': !
+            198..201 'Err': Err<(), ()>(()) -> Result<(), ()>
+            198..205 'Err(())': Result<(), ()>
+            202..204 '()': ()
+            215..217 'Ok': Ok<(), ()>(()) -> Result<(), ()>
+            215..221 'Ok(())': Result<(), ()>
+            218..220 '()': ()
         "#]],
     )
 }
@@ -2248,6 +2305,7 @@ fn generic_default_in_struct_literal() {
             176..193 'Thing ...1i32 }': Thing<i32>
             187..191 '1i32': i32
             199..240 'if let...     }': ()
+            202..221 'let Th... } = z': bool
             206..217 'Thing { t }': Thing<i32>
             214..215 't': i32
             220..221 'z': Thing<i32>
@@ -2620,6 +2678,24 @@ pub mod prelude {
     pub mod rust_2015 {
         pub struct Rust;
     }
+}
+    "#,
+    );
+}
+
+#[test]
+fn legacy_const_generics() {
+    check_no_mismatches(
+        r#"
+#[rustc_legacy_const_generics(1, 3)]
+fn mixed<const N1: &'static str, const N2: bool>(
+    a: u8,
+    b: i8,
+) {}
+
+fn f() {
+    mixed(0, "", -1, true);
+    mixed::<"", true>(0, -1);
 }
     "#,
     );

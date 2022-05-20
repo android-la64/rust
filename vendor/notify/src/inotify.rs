@@ -42,6 +42,7 @@ struct EventLoop {
 }
 
 /// Watcher implementation based on inotify
+#[derive(Debug)]
 pub struct INotifyWatcher {
     channel: crossbeam_channel::Sender<EventLoopMsg>,
     waker: Arc<mio::Waker>,
@@ -56,7 +57,10 @@ enum EventLoopMsg {
 }
 
 #[inline]
-fn send_pending_rename_event(rename_event: &mut Option<Event>, event_handler: &mut dyn EventHandler) {
+fn send_pending_rename_event(
+    rename_event: &mut Option<Event>,
+    event_handler: &mut dyn EventHandler,
+) {
     if let Some(e) = rename_event.take() {
         event_handler.handle_event(Ok(e));
     }
@@ -124,7 +128,9 @@ impl EventLoop {
 
     // Run the event loop.
     pub fn run(self) {
-        thread::spawn(|| self.event_loop_thread());
+        let _ = thread::Builder::new()
+            .name("notify-rs inotify loop".to_string())
+            .spawn(|| self.event_loop_thread());
     }
 
     fn event_loop_thread(mut self) {
@@ -414,13 +420,16 @@ impl EventLoop {
                             let event_loop_tx = self.event_loop_tx.clone();
                             let waker = self.event_loop_waker.clone();
                             let cookie = rename_event.tracker().unwrap(); // unwrap is safe because rename_event is always set with some cookie
-                            thread::spawn(move || {
-                                thread::sleep(Duration::from_millis(10)); // wait up to 10 ms for a subsequent event
-                                event_loop_tx
-                                    .send(EventLoopMsg::RenameTimeout(cookie))
-                                    .unwrap();
-                                waker.wake().unwrap();
-                            });
+                            let _ = thread::Builder::new()
+                                .name("notify-rs inotify rename".to_string())
+                                .spawn(move || {
+                                    thread::sleep(Duration::from_millis(10)); // wait up to 10 ms for a subsequent event
+
+                                    // An error here means the other end of the channel was closed, a thing that can
+                                    // happen normally.
+                                    let _ = event_loop_tx.send(EventLoopMsg::RenameTimeout(cookie));
+                                    let _ = waker.wake();
+                                });
                         }
                     }
                     Err(e) => {
@@ -490,7 +499,8 @@ impl EventLoop {
                         Error::new(ErrorKind::MaxFilesWatch)
                     } else {
                         Error::io(e)
-                    }.add_path(path))
+                    }
+                    .add_path(path))
                 }
                 Ok(w) => {
                     watchmask.remove(WatchMask::MASK_ADD);
@@ -510,14 +520,18 @@ impl EventLoop {
             None => return Err(Error::watch_not_found().add_path(path)),
             Some((w, _, is_recursive)) => {
                 if let Some(ref mut inotify) = self.inotify {
-                    inotify.rm_watch(w.clone()).map_err(|e| Error::io(e).add_path(path.clone()))?;
+                    inotify
+                        .rm_watch(w.clone())
+                        .map_err(|e| Error::io(e).add_path(path.clone()))?;
                     self.paths.remove(&w);
 
                     if is_recursive || remove_recursive {
                         let mut remove_list = Vec::new();
                         for (w, p) in &self.paths {
                             if p.starts_with(&path) {
-                                inotify.rm_watch(w.clone()).map_err(|e| Error::io(e).add_path(p.into()))?;
+                                inotify
+                                    .rm_watch(w.clone())
+                                    .map_err(|e| Error::io(e).add_path(p.into()))?;
                                 self.watches.remove(p);
                                 remove_list.push(w.clone());
                             }
@@ -535,7 +549,9 @@ impl EventLoop {
     fn remove_all_watches(&mut self) -> Result<()> {
         if let Some(ref mut inotify) = self.inotify {
             for (w, p) in &self.paths {
-                inotify.rm_watch(w.clone()).map_err(|e| Error::io(e).add_path(p.into()))?;
+                inotify
+                    .rm_watch(w.clone())
+                    .map_err(|e| Error::io(e).add_path(p.into()))?;
             }
             self.watches.clear();
             self.paths.clear();
@@ -618,6 +634,10 @@ impl Watcher for INotifyWatcher {
         self.channel.send(EventLoopMsg::Configure(config, tx))?;
         self.waker.wake()?;
         rx.recv()?
+    }
+
+    fn kind() -> crate::WatcherKind {
+        crate::WatcherKind::Inotify
     }
 }
 

@@ -33,8 +33,8 @@ use syntax::{
 use tt::{Subtree, TokenId};
 
 use crate::{
-    db::DefDatabase, nameres::ModuleSource, resolver::HasResolver, src::HasSource, test_db::TestDB,
-    AdtId, AsMacroCall, Lookup, ModuleDefId,
+    db::DefDatabase, macro_id_to_def_id, nameres::ModuleSource, resolver::HasResolver,
+    src::HasSource, test_db::TestDB, AdtId, AsMacroCall, Lookup, ModuleDefId,
 };
 
 #[track_caller]
@@ -128,7 +128,9 @@ pub fn identity_when_valid(_attr: TokenStream, item: TokenStream) -> TokenStream
             .as_call_id_with_errors(
                 &db,
                 krate,
-                |path| resolver.resolve_path_as_macro(&db, &path),
+                |path| {
+                    resolver.resolve_path_as_macro(&db, &path).map(|it| macro_id_to_def_id(&db, it))
+                },
                 &mut |err| error = Some(err),
             )
             .unwrap()
@@ -176,7 +178,7 @@ pub fn identity_when_valid(_attr: TokenStream, item: TokenStream) -> TokenStream
 
             if tree {
                 let tree = format!("{:#?}", parse.syntax_node())
-                    .split_inclusive("\n")
+                    .split_inclusive('\n')
                     .map(|line| format!("// {}", line))
                     .collect::<String>();
                 format_to!(expn_text, "\n{}", tree)
@@ -189,7 +191,7 @@ pub fn identity_when_valid(_attr: TokenStream, item: TokenStream) -> TokenStream
             if let Some((tree, map, _)) = arg.as_deref() {
                 let tt_range = call.token_tree().unwrap().syntax().text_range();
                 let mut ranges = Vec::new();
-                extract_id_ranges(&mut ranges, &map, &tree);
+                extract_id_ranges(&mut ranges, map, tree);
                 for (range, id) in ranges {
                     let idx = (tt_range.start() + range.end()).into();
                     text_edits.push((idx..idx, format!("#{}", id.0)));
@@ -267,7 +269,7 @@ fn reindent(indent: IndentLevel, pp: String) -> String {
     let mut res = lines.next().unwrap().to_string();
     for line in lines {
         if line.trim().is_empty() {
-            res.push_str(&line)
+            res.push_str(line)
         } else {
             format_to!(res, "{}{}", indent, line)
         }
@@ -302,6 +304,7 @@ fn pretty_print_macro_expansion(expn: SyntaxNode, map: Option<&TokenMap>) -> Str
             (T![fn], T!['(']) => "",
             (T![']'], _) if curr_kind.is_keyword() => " ",
             (T![']'], T![#]) => "\n",
+            (T![Self], T![::]) => "",
             _ if prev_kind.is_keyword() => " ",
             _ => "",
         };

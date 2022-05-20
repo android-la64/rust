@@ -272,7 +272,7 @@ impl UImm12Scaled {
 
 /// A shifted immediate value in 'imm12' format: supports 12 bits, shifted
 /// left by 0 or 12 places.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Imm12 {
     /// The immediate bits.
     pub bits: u16,
@@ -327,7 +327,7 @@ impl Imm12 {
 }
 
 /// An immediate for logical instructions.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ImmLogic {
     /// The actual value.
     value: u64,
@@ -583,7 +583,7 @@ impl ImmLogic {
 }
 
 /// An immediate for shift instructions.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct ImmShift {
     /// 6-bit shift amount.
     pub imm: u8,

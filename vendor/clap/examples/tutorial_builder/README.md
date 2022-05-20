@@ -605,7 +605,7 @@ OPTIONS:
 
 $ 04_04_custom
 ? failed
-error: Can only modify one version field
+error: Cam only modify one version field
 
 USAGE:
     04_04_custom[EXE] [OPTIONS] [INPUT_FILE]
@@ -617,7 +617,7 @@ Version: 2.2.3
 
 $ 04_04_custom --major --minor
 ? failed
-error: Can only modify one version field
+error: Cam only modify one version field
 
 USAGE:
     04_04_custom[EXE] [OPTIONS] [INPUT_FILE]
@@ -642,8 +642,7 @@ Doing work using input input.txt and config config.toml
 
 ## Tips
 
-- For more complex demonstration of features, see our [examples](../README.md).
-- Proactively check for bad `Command` configurations by calling `Command::debug_assert` in a test ([example](05_01_assert.rs))
+- Proactively check for bad `Command` configurations by calling `Command::debug_assert` ([example](05_01_assert.rs))
 
 ## Contributing
 

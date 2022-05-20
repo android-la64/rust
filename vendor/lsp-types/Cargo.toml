@@ -12,14 +12,24 @@
 [package]
 edition = "2018"
 name = "lsp-types"
-version = "0.92.0"
-authors = ["Markus Westerlind <marwes91@gmail.com>", "Bruno Medeiros <bruno.do.medeiros@gmail.com>"]
+version = "0.92.1"
+authors = [
+    "Markus Westerlind <marwes91@gmail.com>",
+    "Bruno Medeiros <bruno.do.medeiros@gmail.com>",
+]
 description = "Types for interaction with a language server, using VSCode's Language Server Protocol"
 documentation = "https://docs.rs/lsp-types"
 readme = "README.md"
-keywords = ["language", "server", "lsp", "vscode", "lsif"]
+keywords = [
+    "language",
+    "server",
+    "lsp",
+    "vscode",
+    "lsif",
+]
 license = "MIT"
 repository = "https://github.com/gluon-lang/lsp-types"
+
 [dependencies.bitflags]
 version = "1.0.1"
 

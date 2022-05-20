@@ -150,8 +150,9 @@ fn not_update() {
         paths::home().join(".cargo"),
     );
     let lock = cfg.acquire_package_cache_lock().unwrap();
-    let mut regsrc = RegistrySource::remote(sid, &HashSet::new(), &cfg);
-    regsrc.update().unwrap();
+    let mut regsrc = RegistrySource::remote(sid, &HashSet::new(), &cfg).unwrap();
+    regsrc.invalidate_cache();
+    regsrc.block_until_ready().unwrap();
     drop(lock);
 
     cargo_process("search postgres")
@@ -188,5 +189,29 @@ fn multiple_query_params() {
     cargo_process("search postgres sql --index")
         .arg(registry_url().to_string())
         .with_stdout_contains(SEARCH_RESULTS)
+        .run();
+}
+
+#[cargo_test]
+fn ignore_quiet() {
+    setup();
+    set_cargo_config();
+
+    cargo_process("search -q postgres")
+        .with_stdout_contains(SEARCH_RESULTS)
+        .run();
+}
+
+#[cargo_test]
+fn colored_results() {
+    setup();
+    set_cargo_config();
+
+    cargo_process("search --color=never postgres")
+        .with_stdout_does_not_contain("[..]\x1b[[..]")
+        .run();
+
+    cargo_process("search --color=always postgres")
+        .with_stdout_contains("[..]\x1b[[..]")
         .run();
 }

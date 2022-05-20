@@ -3,17 +3,16 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 edition = "2018"
 name = "tikv-jemallocator"
-version = "0.4.1"
+version = "0.4.3"
 authors = ["Alex Crichton <alex@alexcrichton.com>", "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>", "Simon Sapin <simon.sapin@exyr.org>", "Steven Fackler <sfackler@gmail.com>", "The TiKV Project Developers"]
 description = "A Rust allocator backed by jemalloc\n"
 homepage = "https://github.com/tikv/jemallocator"
@@ -38,7 +37,7 @@ default-features = false
 version = "0.4.0"
 default-features = false
 [dev-dependencies.paste]
-version = "0.1"
+version = "1"
 
 [dev-dependencies.tikv-jemalloc-ctl]
 version = "0.4"

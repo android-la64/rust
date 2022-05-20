@@ -1,11 +1,12 @@
+use std::convert::TryInto;
 use std::iter;
 
 use log::trace;
 
 use rustc_apfloat::{Float, Round};
-use rustc_middle::ty::layout::{IntegerExt, LayoutOf};
+use rustc_middle::ty::layout::{HasParamEnv, IntegerExt, LayoutOf};
 use rustc_middle::{mir, mir::BinOp, ty, ty::FloatTy};
-use rustc_target::abi::{Align, Integer};
+use rustc_target::abi::{Align, Endian, HasDataLayout, Integer, Size};
 
 use crate::*;
 use helpers::check_arg_count;
@@ -82,6 +83,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let val_byte = this.read_scalar(val_byte)?.to_u8()?;
                 let ptr = this.read_pointer(ptr)?;
                 let count = this.read_scalar(count)?.to_machine_usize(this)?;
+                // `checked_mul` enforces a too small bound (the correct one would probably be machine_isize_max),
+                // but no actual allocation can be big enough for the difference to be noticeable.
                 let byte_count = ty_layout.size.checked_mul(count, this).ok_or_else(|| {
                     err_ub_format!("overflow computing total size of `{}`", intrinsic_name)
                 })?;
@@ -90,9 +93,20 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             // Floating-point operations
+            "fabsf32" => {
+                let &[ref f] = check_arg_count(args)?;
+                let f = this.read_scalar(f)?.to_f32()?;
+                // Can be implemented in soft-floats.
+                this.write_scalar(Scalar::from_f32(f.abs()), dest)?;
+            }
+            "fabsf64" => {
+                let &[ref f] = check_arg_count(args)?;
+                let f = this.read_scalar(f)?.to_f64()?;
+                // Can be implemented in soft-floats.
+                this.write_scalar(Scalar::from_f64(f.abs()), dest)?;
+            }
             #[rustfmt::skip]
             | "sinf32"
-            | "fabsf32"
             | "cosf32"
             | "sqrtf32"
             | "expf32"
@@ -110,7 +124,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let f = f32::from_bits(this.read_scalar(f)?.to_u32()?);
                 let f = match intrinsic_name {
                     "sinf32" => f.sin(),
-                    "fabsf32" => f.abs(),
                     "cosf32" => f.cos(),
                     "sqrtf32" => f.sqrt(),
                     "expf32" => f.exp(),
@@ -129,7 +142,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             #[rustfmt::skip]
             | "sinf64"
-            | "fabsf64"
             | "cosf64"
             | "sqrtf64"
             | "expf64"
@@ -147,7 +159,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let f = f64::from_bits(this.read_scalar(f)?.to_u64()?);
                 let f = match intrinsic_name {
                     "sinf64" => f.sin(),
-                    "fabsf64" => f.abs(),
                     "cosf64" => f.cos(),
                     "sqrtf64" => f.sqrt(),
                     "expf64" => f.exp(),
@@ -316,6 +327,96 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             // SIMD operations
             #[rustfmt::skip]
+            | "simd_neg"
+            | "simd_fabs"
+            | "simd_ceil"
+            | "simd_floor"
+            | "simd_round"
+            | "simd_trunc"
+            | "simd_fsqrt" => {
+                let &[ref op] = check_arg_count(args)?;
+                let (op, op_len) = this.operand_to_simd(op)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+
+                assert_eq!(dest_len, op_len);
+
+                #[derive(Copy, Clone)]
+                enum HostFloatOp {
+                    Ceil,
+                    Floor,
+                    Round,
+                    Trunc,
+                    Sqrt,
+                }
+                #[derive(Copy, Clone)]
+                enum Op {
+                    MirOp(mir::UnOp),
+                    Abs,
+                    HostOp(HostFloatOp),
+                }
+                let which = match intrinsic_name {
+                    "simd_neg" => Op::MirOp(mir::UnOp::Neg),
+                    "simd_fabs" => Op::Abs,
+                    "simd_ceil" => Op::HostOp(HostFloatOp::Ceil),
+                    "simd_floor" => Op::HostOp(HostFloatOp::Floor),
+                    "simd_round" => Op::HostOp(HostFloatOp::Round),
+                    "simd_trunc" => Op::HostOp(HostFloatOp::Trunc),
+                    "simd_fsqrt" => Op::HostOp(HostFloatOp::Sqrt),
+                    _ => unreachable!(),
+                };
+
+                for i in 0..dest_len {
+                    let op = this.read_immediate(&this.mplace_index(&op, i)?.into())?;
+                    let dest = this.mplace_index(&dest, i)?;
+                    let val = match which {
+                        Op::MirOp(mir_op) => this.unary_op(mir_op, &op)?.to_scalar()?,
+                        Op::Abs => {
+                            // Works for f32 and f64.
+                            let ty::Float(float_ty) = op.layout.ty.kind() else {
+                                bug!("{} operand is not a float", intrinsic_name)
+                            };
+                            let op = op.to_scalar()?;
+                            match float_ty {
+                                FloatTy::F32 => Scalar::from_f32(op.to_f32()?.abs()),
+                                FloatTy::F64 => Scalar::from_f64(op.to_f64()?.abs()),
+                            }
+                        }
+                        Op::HostOp(host_op) => {
+                            let ty::Float(float_ty) = op.layout.ty.kind() else {
+                                bug!("{} operand is not a float", intrinsic_name)
+                            };
+                            // FIXME using host floats
+                            match float_ty {
+                                FloatTy::F32 => {
+                                    let f = f32::from_bits(op.to_scalar()?.to_u32()?);
+                                    let res = match host_op {
+                                        HostFloatOp::Ceil => f.ceil(),
+                                        HostFloatOp::Floor => f.floor(),
+                                        HostFloatOp::Round => f.round(),
+                                        HostFloatOp::Trunc => f.trunc(),
+                                        HostFloatOp::Sqrt => f.sqrt(),
+                                    };
+                                    Scalar::from_u32(res.to_bits())
+                                }
+                                FloatTy::F64 => {
+                                    let f = f64::from_bits(op.to_scalar()?.to_u64()?);
+                                    let res = match host_op {
+                                        HostFloatOp::Ceil => f.ceil(),
+                                        HostFloatOp::Floor => f.floor(),
+                                        HostFloatOp::Round => f.round(),
+                                        HostFloatOp::Trunc => f.trunc(),
+                                        HostFloatOp::Sqrt => f.sqrt(),
+                                    };
+                                    Scalar::from_u64(res.to_bits())
+                                }
+                            }
+
+                        }
+                    };
+                    this.write_scalar(val, &dest.into())?;
+                }
+            }
+            #[rustfmt::skip]
             | "simd_add"
             | "simd_sub"
             | "simd_mul"
@@ -324,7 +425,20 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "simd_shl"
             | "simd_shr"
             | "simd_and"
-            | "simd_or" => {
+            | "simd_or"
+            | "simd_xor"
+            | "simd_eq"
+            | "simd_ne"
+            | "simd_lt"
+            | "simd_le"
+            | "simd_gt"
+            | "simd_ge"
+            | "simd_fmax"
+            | "simd_fmin"
+            | "simd_saturating_add"
+            | "simd_saturating_sub" => {
+                use mir::BinOp;
+
                 let &[ref left, ref right] = check_arg_count(args)?;
                 let (left, left_len) = this.operand_to_simd(left)?;
                 let (right, right_len) = this.operand_to_simd(right)?;
@@ -333,16 +447,33 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 assert_eq!(dest_len, left_len);
                 assert_eq!(dest_len, right_len);
 
-                let op = match intrinsic_name {
-                    "simd_add" => mir::BinOp::Add,
-                    "simd_sub" => mir::BinOp::Sub,
-                    "simd_mul" => mir::BinOp::Mul,
-                    "simd_div" => mir::BinOp::Div,
-                    "simd_rem" => mir::BinOp::Rem,
-                    "simd_shl" => mir::BinOp::Shl,
-                    "simd_shr" => mir::BinOp::Shr,
-                    "simd_and" => mir::BinOp::BitAnd,
-                    "simd_or" => mir::BinOp::BitOr,
+                enum Op {
+                    MirOp(BinOp),
+                    SaturatingOp(BinOp),
+                    FMax,
+                    FMin,
+                }
+                let which = match intrinsic_name {
+                    "simd_add" => Op::MirOp(BinOp::Add),
+                    "simd_sub" => Op::MirOp(BinOp::Sub),
+                    "simd_mul" => Op::MirOp(BinOp::Mul),
+                    "simd_div" => Op::MirOp(BinOp::Div),
+                    "simd_rem" => Op::MirOp(BinOp::Rem),
+                    "simd_shl" => Op::MirOp(BinOp::Shl),
+                    "simd_shr" => Op::MirOp(BinOp::Shr),
+                    "simd_and" => Op::MirOp(BinOp::BitAnd),
+                    "simd_or" => Op::MirOp(BinOp::BitOr),
+                    "simd_xor" => Op::MirOp(BinOp::BitXor),
+                    "simd_eq" => Op::MirOp(BinOp::Eq),
+                    "simd_ne" => Op::MirOp(BinOp::Ne),
+                    "simd_lt" => Op::MirOp(BinOp::Lt),
+                    "simd_le" => Op::MirOp(BinOp::Le),
+                    "simd_gt" => Op::MirOp(BinOp::Gt),
+                    "simd_ge" => Op::MirOp(BinOp::Ge),
+                    "simd_fmax" => Op::FMax,
+                    "simd_fmin" => Op::FMin,
+                    "simd_saturating_add" => Op::SaturatingOp(BinOp::Add),
+                    "simd_saturating_sub" => Op::SaturatingOp(BinOp::Sub),
                     _ => unreachable!(),
                 };
 
@@ -350,18 +481,371 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     let left = this.read_immediate(&this.mplace_index(&left, i)?.into())?;
                     let right = this.read_immediate(&this.mplace_index(&right, i)?.into())?;
                     let dest = this.mplace_index(&dest, i)?;
-                    let (val, overflowed, ty) = this.overflowing_binary_op(op, &left, &right)?;
-                    assert_eq!(ty, dest.layout.ty);
-                    if matches!(op, mir::BinOp::Shl | mir::BinOp::Shr) {
-                        // Shifts have extra UB as SIMD operations that the MIR binop does not have.
-                        // See <https://github.com/rust-lang/rust/issues/91237>.
-                        if overflowed {
-                            let r_val = right.to_scalar()?.to_bits(right.layout.size)?;
-                            throw_ub_format!("overflowing shift by {} in `{}` in SIMD lane {}", r_val, intrinsic_name, i);
+                    let val = match which {
+                        Op::MirOp(mir_op) => {
+                            let (val, overflowed, ty) = this.overflowing_binary_op(mir_op, &left, &right)?;
+                            if matches!(mir_op, BinOp::Shl | BinOp::Shr) {
+                                // Shifts have extra UB as SIMD operations that the MIR binop does not have.
+                                // See <https://github.com/rust-lang/rust/issues/91237>.
+                                if overflowed {
+                                    let r_val = right.to_scalar()?.to_bits(right.layout.size)?;
+                                    throw_ub_format!("overflowing shift by {} in `{}` in SIMD lane {}", r_val, intrinsic_name, i);
+                                }
+                            }
+                            if matches!(mir_op, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
+                                // Special handling for boolean-returning operations
+                                assert_eq!(ty, this.tcx.types.bool);
+                                let val = val.to_bool().unwrap();
+                                bool_to_simd_element(val, dest.layout.size)
+                            } else {
+                                assert_ne!(ty, this.tcx.types.bool);
+                                assert_eq!(ty, dest.layout.ty);
+                                val
+                            }
                         }
-                    }
+                        Op::FMax => {
+                            fmax_op(&left, &right)?
+                        }
+                        Op::FMin => {
+                            fmin_op(&left, &right)?
+                        }
+                        Op::SaturatingOp(mir_op) => {
+                            this.saturating_arith(mir_op, &left, &right)?
+                        }
+                    };
                     this.write_scalar(val, &dest.into())?;
                 }
+            }
+            "simd_fma" => {
+                let &[ref a, ref b, ref c] = check_arg_count(args)?;
+                let (a, a_len) = this.operand_to_simd(a)?;
+                let (b, b_len) = this.operand_to_simd(b)?;
+                let (c, c_len) = this.operand_to_simd(c)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+
+                assert_eq!(dest_len, a_len);
+                assert_eq!(dest_len, b_len);
+                assert_eq!(dest_len, c_len);
+
+                for i in 0..dest_len {
+                    let a = this.read_immediate(&this.mplace_index(&a, i)?.into())?.to_scalar()?;
+                    let b = this.read_immediate(&this.mplace_index(&b, i)?.into())?.to_scalar()?;
+                    let c = this.read_immediate(&this.mplace_index(&c, i)?.into())?.to_scalar()?;
+                    let dest = this.mplace_index(&dest, i)?;
+
+                    // Works for f32 and f64.
+                    let ty::Float(float_ty) = dest.layout.ty.kind() else {
+                        bug!("{} operand is not a float", intrinsic_name)
+                    };
+                    let val = match float_ty {
+                        FloatTy::F32 =>
+                            Scalar::from_f32(a.to_f32()?.mul_add(b.to_f32()?, c.to_f32()?).value),
+                        FloatTy::F64 =>
+                            Scalar::from_f64(a.to_f64()?.mul_add(b.to_f64()?, c.to_f64()?).value),
+                    };
+                    this.write_scalar(val, &dest.into())?;
+                }
+            }
+            #[rustfmt::skip]
+            | "simd_reduce_and"
+            | "simd_reduce_or"
+            | "simd_reduce_xor"
+            | "simd_reduce_any"
+            | "simd_reduce_all"
+            | "simd_reduce_max"
+            | "simd_reduce_min" => {
+                use mir::BinOp;
+
+                let &[ref op] = check_arg_count(args)?;
+                let (op, op_len) = this.operand_to_simd(op)?;
+
+                let imm_from_bool =
+                    |b| ImmTy::from_scalar(Scalar::from_bool(b), this.machine.layouts.bool);
+
+                enum Op {
+                    MirOp(BinOp),
+                    MirOpBool(BinOp),
+                    Max,
+                    Min,
+                }
+                let which = match intrinsic_name {
+                    "simd_reduce_and" => Op::MirOp(BinOp::BitAnd),
+                    "simd_reduce_or" => Op::MirOp(BinOp::BitOr),
+                    "simd_reduce_xor" => Op::MirOp(BinOp::BitXor),
+                    "simd_reduce_any" => Op::MirOpBool(BinOp::BitOr),
+                    "simd_reduce_all" => Op::MirOpBool(BinOp::BitAnd),
+                    "simd_reduce_max" => Op::Max,
+                    "simd_reduce_min" => Op::Min,
+                    _ => unreachable!(),
+                };
+
+                // Initialize with first lane, then proceed with the rest.
+                let mut res = this.read_immediate(&this.mplace_index(&op, 0)?.into())?;
+                if matches!(which, Op::MirOpBool(_)) {
+                    // Convert to `bool` scalar.
+                    res = imm_from_bool(simd_element_to_bool(res)?);
+                }
+                for i in 1..op_len {
+                    let op = this.read_immediate(&this.mplace_index(&op, i)?.into())?;
+                    res = match which {
+                        Op::MirOp(mir_op) => {
+                            this.binary_op(mir_op, &res, &op)?
+                        }
+                        Op::MirOpBool(mir_op) => {
+                            let op = imm_from_bool(simd_element_to_bool(op)?);
+                            this.binary_op(mir_op, &res, &op)?
+                        }
+                        Op::Max => {
+                            if matches!(res.layout.ty.kind(), ty::Float(_)) {
+                                ImmTy::from_scalar(fmax_op(&res, &op)?, res.layout)
+                            } else {
+                                // Just boring integers, so NaNs to worry about
+                                if this.binary_op(BinOp::Ge, &res, &op)?.to_scalar()?.to_bool()? {
+                                    res
+                                } else {
+                                    op
+                                }
+                            }
+                        }
+                        Op::Min => {
+                            if matches!(res.layout.ty.kind(), ty::Float(_)) {
+                                ImmTy::from_scalar(fmin_op(&res, &op)?, res.layout)
+                            } else {
+                                // Just boring integers, so NaNs to worry about
+                                if this.binary_op(BinOp::Le, &res, &op)?.to_scalar()?.to_bool()? {
+                                    res
+                                } else {
+                                    op
+                                }
+                            }
+                        }
+                    };
+                }
+                this.write_immediate(*res, dest)?;
+            }
+            #[rustfmt::skip]
+            | "simd_reduce_add_ordered"
+            | "simd_reduce_mul_ordered" => {
+                use mir::BinOp;
+
+                let &[ref op, ref init] = check_arg_count(args)?;
+                let (op, op_len) = this.operand_to_simd(op)?;
+                let init = this.read_immediate(init)?;
+
+                let mir_op = match intrinsic_name {
+                    "simd_reduce_add_ordered" => BinOp::Add,
+                    "simd_reduce_mul_ordered" => BinOp::Mul,
+                    _ => unreachable!(),
+                };
+
+                let mut res = init;
+                for i in 0..op_len {
+                    let op = this.read_immediate(&this.mplace_index(&op, i)?.into())?;
+                    res = this.binary_op(mir_op, &res, &op)?;
+                }
+                this.write_immediate(*res, dest)?;
+            }
+            "simd_select" => {
+                let &[ref mask, ref yes, ref no] = check_arg_count(args)?;
+                let (mask, mask_len) = this.operand_to_simd(mask)?;
+                let (yes, yes_len) = this.operand_to_simd(yes)?;
+                let (no, no_len) = this.operand_to_simd(no)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+
+                assert_eq!(dest_len, mask_len);
+                assert_eq!(dest_len, yes_len);
+                assert_eq!(dest_len, no_len);
+
+                for i in 0..dest_len {
+                    let mask = this.read_immediate(&this.mplace_index(&mask, i)?.into())?;
+                    let yes = this.read_immediate(&this.mplace_index(&yes, i)?.into())?;
+                    let no = this.read_immediate(&this.mplace_index(&no, i)?.into())?;
+                    let dest = this.mplace_index(&dest, i)?;
+
+                    let val = if simd_element_to_bool(mask)? { yes } else { no };
+                    this.write_immediate(*val, &dest.into())?;
+                }
+            }
+            "simd_select_bitmask" => {
+                let &[ref mask, ref yes, ref no] = check_arg_count(args)?;
+                let (yes, yes_len) = this.operand_to_simd(yes)?;
+                let (no, no_len) = this.operand_to_simd(no)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+                let bitmask_len = dest_len.max(8);
+
+                assert!(mask.layout.ty.is_integral());
+                assert!(bitmask_len <= 64);
+                assert_eq!(bitmask_len, mask.layout.size.bits());
+                assert_eq!(dest_len, yes_len);
+                assert_eq!(dest_len, no_len);
+
+                let mask: u64 = this
+                    .read_scalar(mask)?
+                    .check_init()?
+                    .to_bits(mask.layout.size)?
+                    .try_into()
+                    .unwrap();
+                for i in 0..dest_len {
+                    let mask =
+                        mask & (1 << simd_bitmask_index(i, dest_len, this.data_layout().endian));
+                    let yes = this.read_immediate(&this.mplace_index(&yes, i)?.into())?;
+                    let no = this.read_immediate(&this.mplace_index(&no, i)?.into())?;
+                    let dest = this.mplace_index(&dest, i)?;
+
+                    let val = if mask != 0 { yes } else { no };
+                    this.write_immediate(*val, &dest.into())?;
+                }
+                for i in dest_len..bitmask_len {
+                    // If the mask is "padded", ensure that padding is all-zero.
+                    let mask = mask & (1 << i);
+                    if mask != 0 {
+                        throw_ub_format!(
+                            "a SIMD bitmask less than 8 bits long must be filled with 0s for the remaining bits"
+                        );
+                    }
+                }
+            }
+            #[rustfmt::skip]
+            "simd_cast" | "simd_as" => {
+                let &[ref op] = check_arg_count(args)?;
+                let (op, op_len) = this.operand_to_simd(op)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+
+                assert_eq!(dest_len, op_len);
+
+                let safe_cast = intrinsic_name == "simd_as";
+
+                for i in 0..dest_len {
+                    let op = this.read_immediate(&this.mplace_index(&op, i)?.into())?;
+                    let dest = this.mplace_index(&dest, i)?;
+
+                    let val = match (op.layout.ty.kind(), dest.layout.ty.kind()) {
+                        // Int-to-(int|float): always safe
+                        (ty::Int(_) | ty::Uint(_), ty::Int(_) | ty::Uint(_) | ty::Float(_)) =>
+                            this.misc_cast(&op, dest.layout.ty)?,
+                        // Float-to-float: always safe
+                        (ty::Float(_), ty::Float(_)) =>
+                            this.misc_cast(&op, dest.layout.ty)?,
+                        // Float-to-int in safe mode
+                        (ty::Float(_), ty::Int(_) | ty::Uint(_)) if safe_cast =>
+                            this.misc_cast(&op, dest.layout.ty)?,
+                        // Float-to-int in unchecked mode
+                        (ty::Float(FloatTy::F32), ty::Int(_) | ty::Uint(_)) if !safe_cast =>
+                            this.float_to_int_unchecked(op.to_scalar()?.to_f32()?, dest.layout.ty)?.into(),
+                        (ty::Float(FloatTy::F64), ty::Int(_) | ty::Uint(_)) if !safe_cast =>
+                            this.float_to_int_unchecked(op.to_scalar()?.to_f64()?, dest.layout.ty)?.into(),
+                        _ =>
+                            throw_unsup_format!(
+                                "Unsupported SIMD cast from element type {} to {}",
+                                op.layout.ty,
+                                dest.layout.ty
+                            ),
+                    };
+                    this.write_immediate(val, &dest.into())?;
+                }
+            }
+            "simd_shuffle" => {
+                let &[ref left, ref right, ref index] = check_arg_count(args)?;
+                let (left, left_len) = this.operand_to_simd(left)?;
+                let (right, right_len) = this.operand_to_simd(right)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+
+                // `index` is an array, not a SIMD type
+                let ty::Array(_, index_len) = index.layout.ty.kind() else {
+                    bug!("simd_shuffle index argument has non-array type {}", index.layout.ty)
+                };
+                let index_len = index_len.eval_usize(*this.tcx, this.param_env());
+
+                assert_eq!(left_len, right_len);
+                assert_eq!(index_len, dest_len);
+
+                for i in 0..dest_len {
+                    let src_index: u64 = this
+                        .read_immediate(&this.operand_index(&index, i)?.into())?
+                        .to_scalar()?
+                        .to_u32()?
+                        .into();
+                    let dest = this.mplace_index(&dest, i)?;
+
+                    let val = if src_index < left_len {
+                        this.read_immediate(&this.mplace_index(&left, src_index)?.into())?
+                    } else if src_index < left_len.checked_add(right_len).unwrap() {
+                        this.read_immediate(
+                            &this.mplace_index(&right, src_index - left_len)?.into(),
+                        )?
+                    } else {
+                        bug!(
+                            "simd_shuffle index {} is out of bounds for 2 vectors of size {}",
+                            src_index,
+                            left_len
+                        );
+                    };
+                    this.write_immediate(*val, &dest.into())?;
+                }
+            }
+            "simd_gather" => {
+                let &[ref passthru, ref ptrs, ref mask] = check_arg_count(args)?;
+                let (passthru, passthru_len) = this.operand_to_simd(passthru)?;
+                let (ptrs, ptrs_len) = this.operand_to_simd(ptrs)?;
+                let (mask, mask_len) = this.operand_to_simd(mask)?;
+                let (dest, dest_len) = this.place_to_simd(dest)?;
+
+                assert_eq!(dest_len, passthru_len);
+                assert_eq!(dest_len, ptrs_len);
+                assert_eq!(dest_len, mask_len);
+
+                for i in 0..dest_len {
+                    let passthru = this.read_immediate(&this.mplace_index(&passthru, i)?.into())?;
+                    let ptr = this.read_immediate(&this.mplace_index(&ptrs, i)?.into())?;
+                    let mask = this.read_immediate(&this.mplace_index(&mask, i)?.into())?;
+                    let dest = this.mplace_index(&dest, i)?;
+
+                    let val = if simd_element_to_bool(mask)? {
+                        let place = this.deref_operand(&ptr.into())?;
+                        this.read_immediate(&place.into())?
+                    } else {
+                        passthru
+                    };
+                    this.write_immediate(*val, &dest.into())?;
+                }
+            }
+            "simd_scatter" => {
+                let &[ref value, ref ptrs, ref mask] = check_arg_count(args)?;
+                let (value, value_len) = this.operand_to_simd(value)?;
+                let (ptrs, ptrs_len) = this.operand_to_simd(ptrs)?;
+                let (mask, mask_len) = this.operand_to_simd(mask)?;
+
+                assert_eq!(ptrs_len, value_len);
+                assert_eq!(ptrs_len, mask_len);
+
+                for i in 0..ptrs_len {
+                    let value = this.read_immediate(&this.mplace_index(&value, i)?.into())?;
+                    let ptr = this.read_immediate(&this.mplace_index(&ptrs, i)?.into())?;
+                    let mask = this.read_immediate(&this.mplace_index(&mask, i)?.into())?;
+
+                    if simd_element_to_bool(mask)? {
+                        let place = this.deref_operand(&ptr.into())?;
+                        this.write_immediate(*value, &place.into())?;
+                    }
+                }
+            }
+            "simd_bitmask" => {
+                let &[ref op] = check_arg_count(args)?;
+                let (op, op_len) = this.operand_to_simd(op)?;
+                let bitmask_len = op_len.max(8);
+
+                assert!(dest.layout.ty.is_integral());
+                assert!(bitmask_len <= 64);
+                assert_eq!(bitmask_len, dest.layout.size.bits());
+
+                let mut res = 0u64;
+                for i in 0..op_len {
+                    let op = this.read_immediate(&this.mplace_index(&op, i)?.into())?;
+                    if simd_element_to_bool(op)? {
+                        res |= 1 << simd_bitmask_index(i, op_len, this.data_layout().endian);
+                    }
+                }
+                this.write_int(res, dest)?;
             }
 
             // Atomic operations
@@ -849,5 +1333,60 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // Nothing else
             _ => bug!("`float_to_int_unchecked` called with non-int output type {:?}", dest_ty),
         })
+    }
+}
+
+fn fmax_op<'tcx>(
+    left: &ImmTy<'tcx, Tag>,
+    right: &ImmTy<'tcx, Tag>,
+) -> InterpResult<'tcx, Scalar<Tag>> {
+    assert_eq!(left.layout.ty, right.layout.ty);
+    let ty::Float(float_ty) = left.layout.ty.kind() else {
+        bug!("fmax operand is not a float")
+    };
+    let left = left.to_scalar()?;
+    let right = right.to_scalar()?;
+    Ok(match float_ty {
+        FloatTy::F32 => Scalar::from_f32(left.to_f32()?.max(right.to_f32()?)),
+        FloatTy::F64 => Scalar::from_f64(left.to_f64()?.max(right.to_f64()?)),
+    })
+}
+
+fn fmin_op<'tcx>(
+    left: &ImmTy<'tcx, Tag>,
+    right: &ImmTy<'tcx, Tag>,
+) -> InterpResult<'tcx, Scalar<Tag>> {
+    assert_eq!(left.layout.ty, right.layout.ty);
+    let ty::Float(float_ty) = left.layout.ty.kind() else {
+        bug!("fmin operand is not a float")
+    };
+    let left = left.to_scalar()?;
+    let right = right.to_scalar()?;
+    Ok(match float_ty {
+        FloatTy::F32 => Scalar::from_f32(left.to_f32()?.min(right.to_f32()?)),
+        FloatTy::F64 => Scalar::from_f64(left.to_f64()?.min(right.to_f64()?)),
+    })
+}
+
+fn bool_to_simd_element(b: bool, size: Size) -> Scalar<Tag> {
+    // SIMD uses all-1 as pattern for "true"
+    let val = if b { -1 } else { 0 };
+    Scalar::from_int(val, size)
+}
+
+fn simd_element_to_bool<'tcx>(elem: ImmTy<'tcx, Tag>) -> InterpResult<'tcx, bool> {
+    let val = elem.to_scalar()?.to_int(elem.layout.size)?;
+    Ok(match val {
+        0 => false,
+        -1 => true,
+        _ => throw_ub_format!("each element of a SIMD mask must be all-0-bits or all-1-bits"),
+    })
+}
+
+fn simd_bitmask_index(idx: u64, vec_len: u64, endianess: Endian) -> u64 {
+    assert!(idx < vec_len);
+    match endianess {
+        Endian::Little => idx,
+        Endian::Big => vec_len - 1 - idx, // reverse order of bits
     }
 }

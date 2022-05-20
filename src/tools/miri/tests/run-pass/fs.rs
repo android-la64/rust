@@ -2,16 +2,16 @@
 // compile-flags: -Zmiri-disable-isolation
 
 #![feature(rustc_private)]
+#![feature(io_error_more)]
 
 extern crate libc;
 
-use std::fs::{
-    File, create_dir, OpenOptions, remove_dir, remove_dir_all, remove_file, rename,
-};
 use std::ffi::CString;
-use std::io::{Read, Write, Error, ErrorKind, Result, Seek, SeekFrom};
-use std::path::{PathBuf, Path};
-
+use std::fs::{
+    create_dir, read_dir, remove_dir, remove_dir_all, remove_file, rename, File, OpenOptions,
+};
+use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
 
 fn main() {
     test_file();
@@ -26,6 +26,11 @@ fn main() {
     test_rename();
     test_directory();
     test_dup_stdout_stderr();
+
+    // These all require unix, if the test is changed to no longer `ignore-windows`, move these to a unix test
+    test_file_open_unix_allow_two_args();
+    test_file_open_unix_needs_three_args();
+    test_file_open_unix_extra_third_arg();
 }
 
 fn tmp() -> PathBuf {
@@ -41,7 +46,8 @@ fn tmp() -> PathBuf {
 
             #[cfg(not(windows))]
             return PathBuf::from(tmp.replace("\\", "/"));
-        }).unwrap_or_else(|_| std::env::temp_dir())
+        })
+        .unwrap_or_else(|_| std::env::temp_dir())
 }
 
 /// Prepare: compute filename and make sure the file does not exist.
@@ -93,6 +99,39 @@ fn test_file() {
     remove_file(&path).unwrap();
 }
 
+fn test_file_open_unix_allow_two_args() {
+    use std::os::unix::ffi::OsStrExt;
+
+    let path = prepare_with_content("test_file_open_unix_allow_two_args.txt", &[]);
+
+    let mut name = path.into_os_string();
+    name.push("\0");
+    let name_ptr = name.as_bytes().as_ptr().cast::<libc::c_char>();
+    let _fd = unsafe { libc::open(name_ptr, libc::O_RDONLY) };
+}
+
+fn test_file_open_unix_needs_three_args() {
+    use std::os::unix::ffi::OsStrExt;
+
+    let path = prepare_with_content("test_file_open_unix_needs_three_args.txt", &[]);
+
+    let mut name = path.into_os_string();
+    name.push("\0");
+    let name_ptr = name.as_bytes().as_ptr().cast::<libc::c_char>();
+    let _fd = unsafe { libc::open(name_ptr, libc::O_CREAT, 0o666) };
+}
+
+fn test_file_open_unix_extra_third_arg() {
+    use std::os::unix::ffi::OsStrExt;
+
+    let path = prepare_with_content("test_file_open_unix_extra_third_arg.txt", &[]);
+
+    let mut name = path.into_os_string();
+    name.push("\0");
+    let name_ptr = name.as_bytes().as_ptr().cast::<libc::c_char>();
+    let _fd = unsafe { libc::open(name_ptr, libc::O_RDONLY, 42) };
+}
+
 fn test_file_clone() {
     let bytes = b"Hello, World!\n";
     let path = prepare_with_content("miri_test_fs_file_clone.txt", bytes);
@@ -115,7 +154,10 @@ fn test_file_create_new() {
     // Creating a new file that doesn't yet exist should succeed.
     OpenOptions::new().write(true).create_new(true).open(&path).unwrap();
     // Creating a new file that already exists should fail.
-    assert_eq!(ErrorKind::AlreadyExists, OpenOptions::new().write(true).create_new(true).open(&path).unwrap_err().kind());
+    assert_eq!(
+        ErrorKind::AlreadyExists,
+        OpenOptions::new().write(true).create_new(true).open(&path).unwrap_err().kind()
+    );
     // Optionally creating a new file that already exists should succeed.
     OpenOptions::new().write(true).create(true).open(&path).unwrap();
 
@@ -235,7 +277,6 @@ fn test_symlink() {
     symlink_file.read_to_end(&mut contents).unwrap();
     assert_eq!(bytes, contents.as_slice());
 
-
     #[cfg(unix)]
     {
         use std::os::unix::ffi::OsStrExt;
@@ -250,7 +291,9 @@ fn test_symlink() {
         // Make the buf one byte larger than it needs to be,
         // and check that the last byte is not overwritten.
         let mut large_buf = vec![0xFF; expected_path.len() + 1];
-        let res = unsafe { libc::readlink(symlink_c_ptr, large_buf.as_mut_ptr().cast(), large_buf.len()) };
+        let res = unsafe {
+            libc::readlink(symlink_c_ptr, large_buf.as_mut_ptr().cast(), large_buf.len())
+        };
         // Check that the resovled path was properly written into the buf.
         assert_eq!(&large_buf[..(large_buf.len() - 1)], expected_path);
         assert_eq!(large_buf.last(), Some(&0xFF));
@@ -259,17 +302,20 @@ fn test_symlink() {
         // Test that the resolved path is truncated if the provided buffer
         // is too small.
         let mut small_buf = [0u8; 2];
-        let res = unsafe { libc::readlink(symlink_c_ptr, small_buf.as_mut_ptr().cast(), small_buf.len()) };
+        let res = unsafe {
+            libc::readlink(symlink_c_ptr, small_buf.as_mut_ptr().cast(), small_buf.len())
+        };
         assert_eq!(small_buf, &expected_path[..small_buf.len()]);
         assert_eq!(res, small_buf.len() as isize);
 
         // Test that we report a proper error for a missing path.
         let bad_path = CString::new("MIRI_MISSING_FILE_NAME").unwrap();
-        let res = unsafe { libc::readlink(bad_path.as_ptr(), small_buf.as_mut_ptr().cast(), small_buf.len()) };
+        let res = unsafe {
+            libc::readlink(bad_path.as_ptr(), small_buf.as_mut_ptr().cast(), small_buf.len())
+        };
         assert_eq!(res, -1);
         assert_eq!(Error::last_os_error().kind(), ErrorKind::NotFound);
     }
-
 
     // Test that metadata of a symbolic link is correct.
     check_metadata(bytes, &symlink_path).unwrap();
@@ -331,24 +377,30 @@ fn test_directory() {
     let path_2 = dir_path.join("test_file_2");
     drop(File::create(&path_2).unwrap());
     // Test that the files are present inside the directory
-    /* FIXME(1966) disabled due to missing readdir support
     let dir_iter = read_dir(&dir_path).unwrap();
     let mut file_names = dir_iter.map(|e| e.unwrap().file_name()).collect::<Vec<_>>();
     file_names.sort_unstable();
-    assert_eq!(file_names, vec!["test_file_1", "test_file_2"]); */
+    assert_eq!(file_names, vec!["test_file_1", "test_file_2"]);
+    // Deleting the directory should fail, since it is not empty.
+    assert_eq!(ErrorKind::DirectoryNotEmpty, remove_dir(&dir_path).unwrap_err().kind());
     // Clean up the files in the directory
     remove_file(&path_1).unwrap();
     remove_file(&path_2).unwrap();
     // Now there should be nothing left in the directory.
-    /* FIXME(1966) disabled due to missing readdir support
-    dir_iter = read_dir(&dir_path).unwrap();
+    let dir_iter = read_dir(&dir_path).unwrap();
     let file_names = dir_iter.map(|e| e.unwrap().file_name()).collect::<Vec<_>>();
-    assert!(file_names.is_empty());*/
+    assert!(file_names.is_empty());
 
     // Deleting the directory should succeed.
     remove_dir(&dir_path).unwrap();
     // Reading the metadata of a non-existent directory should fail with a "not found" error.
     assert_eq!(ErrorKind::NotFound, check_metadata(&[], &dir_path).unwrap_err().kind());
+
+    // To test remove_dir_all, re-create the directory with a file and a directory in it.
+    create_dir(&dir_path).unwrap();
+    drop(File::create(&path_1).unwrap());
+    create_dir(&path_2).unwrap();
+    remove_dir_all(&dir_path).unwrap();
 }
 
 fn test_dup_stdout_stderr() {

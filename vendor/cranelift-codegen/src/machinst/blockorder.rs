@@ -86,6 +86,7 @@ pub struct BlockLoweringOrder {
     lowered_order: Vec<LoweredBlock>,
     /// Successors for all lowered blocks, in one serialized vector. Indexed by
     /// the ranges in `lowered_succ_ranges`.
+    #[allow(dead_code)]
     lowered_succs: Vec<(Inst, LoweredBlock)>,
     /// BlockIndex values for successors for all lowered blocks, in the same
     /// order as `lowered_succs`.
@@ -96,7 +97,15 @@ pub struct BlockLoweringOrder {
     /// Mapping from CLIF BB to BlockIndex (index in lowered order). Note that
     /// some CLIF BBs may not be lowered; in particular, we skip unreachable
     /// blocks.
+    #[allow(dead_code)]
     orig_map: SecondaryMap<Block, Option<BlockIndex>>,
+    /// Cold blocks. These blocks are not reordered in the
+    /// `lowered_order` above; the lowered order must respect RPO
+    /// (uses after defs) in order for lowering to be
+    /// correct. Instead, this set is used to provide `is_cold()`,
+    /// which is used by VCode emission to sink the blocks at the last
+    /// moment (when we actually emit bytes into the MachBuffer).
+    cold_blocks: FxHashSet<BlockIndex>,
 }
 
 /// The origin of a block in the lowered block-order: either an original CLIF
@@ -382,12 +391,22 @@ impl BlockLoweringOrder {
 
         // Step 3: now that we have RPO, build the BlockIndex/BB fwd/rev maps.
         let mut lowered_order = vec![];
+        let mut cold_blocks = FxHashSet::default();
         let mut lowered_succ_ranges = vec![];
         let mut lb_to_bindex = FxHashMap::default();
         for (block, succ_range) in rpo.into_iter() {
-            lb_to_bindex.insert(block, lowered_order.len() as BlockIndex);
+            let index = lowered_order.len() as BlockIndex;
+            lb_to_bindex.insert(block, index);
             lowered_order.push(block);
             lowered_succ_ranges.push(succ_range);
+
+            if block
+                .orig_block()
+                .map(|b| f.layout.is_cold(b))
+                .unwrap_or(false)
+            {
+                cold_blocks.insert(index);
+            }
         }
 
         let lowered_succ_indices = lowered_succs
@@ -409,6 +428,7 @@ impl BlockLoweringOrder {
             lowered_succ_indices,
             lowered_succ_ranges,
             orig_map,
+            cold_blocks,
         };
         log::trace!("BlockLoweringOrder: {:?}", result);
         result
@@ -423,6 +443,11 @@ impl BlockLoweringOrder {
     pub fn succ_indices(&self, block: BlockIndex) -> &[(Inst, BlockIndex)] {
         let range = self.lowered_succ_ranges[block as usize];
         &self.lowered_succ_indices[range.0..range.1]
+    }
+
+    /// Determine whether the given lowered-block index is cold.
+    pub fn is_cold(&self, block: BlockIndex) -> bool {
+        self.cold_blocks.contains(&block)
     }
 }
 

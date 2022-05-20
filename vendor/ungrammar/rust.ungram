@@ -24,7 +24,7 @@ Name =
   'ident' | 'self'
 
 NameRef =
-  'ident' | 'int_number' | 'self' | 'super' | 'crate'
+  'ident' | 'int_number' | 'self' | 'super' | 'crate' | 'Self'
 
 Lifetime =
   'lifetime_ident'
@@ -173,7 +173,7 @@ TypeAlias =
   Attr* Visibility?
   'default'?
   'type' Name GenericParamList? (':' TypeBoundList?)? WhereClause?
-  '=' Type ';'
+  ('=' Type)? ';'
 
 Struct =
   Attr* Visibility?
@@ -210,7 +210,7 @@ VariantList =
 
 Variant =
   Attr* Visibility?
-  Name FieldList ('=' Expr)?
+  Name FieldList? ('=' Expr)?
 
 Union =
   Attr* Visibility?
@@ -229,17 +229,17 @@ Const =
   Attr* Visibility?
   'default'?
   'const' (Name | '_') ':' Type
-  '=' body:Expr ';'
+  ('=' body:Expr)? ';'
 
 Static =
   Attr* Visibility?
-  'static'? 'mut'? Name ':' Type
-  '=' body:Expr ';'
+  'static' 'mut'? Name ':' Type
+  ('=' body:Expr)? ';'
 
 Trait =
   Attr* Visibility?
   'unsafe'? 'auto'?
-  'trait' Name GenericParamList (':' TypeBoundList?)? WhereClause
+  'trait' Name GenericParamList? (':' TypeBoundList?)? WhereClause?
   AssocItemList
 
 AssocItemList =
@@ -258,7 +258,7 @@ Impl =
   AssocItemList
 
 ExternBlock =
-  Attr* Abi ExternItemList
+  Attr* 'unsafe'? Abi ExternItemList
 
 ExternItemList =
   '{' Attr* ExternItem* '}'
@@ -292,7 +292,7 @@ WhereClause =
   'where' predicates:(WherePred (',' WherePred)* ','?)
 
 WherePred =
-  ('for' GenericParamList)?  (Lifetime | Type) ':' TypeBoundList
+  ('for' GenericParamList)?  (Lifetime | Type) ':' TypeBoundList?
 
 Visibility =
   'pub' ('(' 'in'? Path ')')?
@@ -357,6 +357,8 @@ Expr =
 | TupleExpr
 | WhileExpr
 | YieldExpr
+| LetExpr
+| UnderscoreExpr
 
 Literal =
   Attr* value:(
@@ -425,7 +427,7 @@ RecordExprFieldList =
   '{'
     Attr*
     fields:(RecordExprField (',' RecordExprField)* ','?)?
-    ('..' spread:Expr)?
+    ('..' spread:Expr?)?
   '}'
 
 RecordExprField =
@@ -448,12 +450,8 @@ ClosureExpr =
   body:Expr
 
 IfExpr =
-  Attr* 'if' Condition then_branch:BlockExpr
+  Attr* 'if' condition:Expr then_branch:BlockExpr
   ('else' else_branch:(IfExpr | BlockExpr))?
-
-Condition =
-  'let' Pat '=' Expr
-| Expr
 
 LoopExpr =
   Attr* Label? 'loop'
@@ -464,7 +462,7 @@ ForExpr =
   loop_body:BlockExpr
 
 WhileExpr =
-  Attr* Label? 'while' Condition
+  Attr* Label? 'while' condition:Expr
   loop_body:BlockExpr
 
 Label =
@@ -492,13 +490,19 @@ MatchArm =
   Attr* Pat guard:MatchGuard? '=>' Expr ','?
 
 MatchGuard =
-  'if' ('let' Pat '=')? Expr
+  'if' condition:Expr
 
 ReturnExpr =
   Attr* 'return' Expr?
 
 YieldExpr =
   Attr* 'yield' Expr?
+
+LetExpr =
+  Attr* 'let' Pat '=' Expr
+
+UnderscoreExpr =
+  Attr* '_'
 
 AwaitExpr =
   Attr* Expr '.' 'await'

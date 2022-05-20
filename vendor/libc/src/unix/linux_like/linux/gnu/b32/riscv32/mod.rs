@@ -198,16 +198,11 @@ s! {
     }
 }
 
-pub const RLIM_INFINITY: ::rlim_t = !0;
+pub const O_LARGEFILE: ::c_int = 0;
 pub const VEOF: usize = 4;
 pub const RTLD_DEEPBIND: ::c_int = 0x8;
 pub const RTLD_GLOBAL: ::c_int = 0x100;
 pub const RTLD_NOLOAD: ::c_int = 0x4;
-pub const RLIMIT_RSS: ::__rlimit_resource_t = 5;
-pub const RLIMIT_AS: ::__rlimit_resource_t = 9;
-pub const RLIMIT_MEMLOCK: ::__rlimit_resource_t = 8;
-pub const RLIMIT_NOFILE: ::__rlimit_resource_t = 7;
-pub const RLIMIT_NPROC: ::__rlimit_resource_t = 6;
 pub const O_APPEND: ::c_int = 1024;
 pub const O_CREAT: ::c_int = 64;
 pub const O_EXCL: ::c_int = 128;
@@ -457,6 +452,16 @@ pub const FLUSHO: ::tcflag_t = 4096;
 pub const EXTPROC: ::tcflag_t = 65536;
 pub const __SIZEOF_PTHREAD_MUTEX_T: usize = 40;
 pub const __SIZEOF_PTHREAD_RWLOCK_T: usize = 56;
+pub const NGREG: usize = 32;
+pub const REG_PC: usize = 0;
+pub const REG_RA: usize = 1;
+pub const REG_SP: usize = 2;
+pub const REG_TP: usize = 4;
+pub const REG_S0: usize = 8;
+pub const REG_S1: usize = 9;
+pub const REG_A0: usize = 10;
+pub const REG_S2: usize = 18;
+pub const REG_NARGS: usize = 8;
 
 pub const SYS_read: ::c_long = 63;
 pub const SYS_write: ::c_long = 64;
@@ -733,6 +738,7 @@ pub const SYS_pkey_mprotect: ::c_long = 288;
 pub const SYS_pkey_alloc: ::c_long = 289;
 pub const SYS_pkey_free: ::c_long = 290;
 pub const SYS_statx: ::c_long = 291;
+pub const SYS_rseq: ::c_long = 293;
 pub const SYS_pidfd_send_signal: ::c_long = 424;
 pub const SYS_io_uring_setup: ::c_long = 425;
 pub const SYS_io_uring_enter: ::c_long = 426;
@@ -752,3 +758,10 @@ pub const SYS_faccessat2: ::c_long = 439;
 pub const SYS_process_madvise: ::c_long = 440;
 pub const SYS_epoll_pwait2: ::c_long = 441;
 pub const SYS_mount_setattr: ::c_long = 442;
+
+cfg_if! {
+    if #[cfg(libc_align)] {
+        mod align;
+        pub use self::align::*;
+    }
+}

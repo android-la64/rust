@@ -1,16 +1,27 @@
 //! Constant evaluation details
 
-use std::{collections::HashMap, convert::TryInto, fmt::Display};
-
-use chalk_ir::{IntTy, Scalar};
-use hir_def::{
-    expr::{ArithOp, BinaryOp, Expr, Literal, Pat},
-    type_ref::ConstScalar,
+use std::{
+    collections::HashMap,
+    convert::TryInto,
+    fmt::{Display, Write},
 };
-use hir_expand::name::Name;
-use la_arena::{Arena, Idx};
 
-use crate::{Const, ConstData, ConstValue, Interner, Ty, TyKind};
+use chalk_ir::{BoundVar, DebruijnIndex, GenericArgData, IntTy, Scalar};
+use hir_def::{
+    expr::{ArithOp, BinaryOp, Expr, ExprId, Literal, Pat, PatId},
+    path::ModPath,
+    resolver::{resolver_for_expr, ResolveValueResult, Resolver, ValueNs},
+    type_ref::ConstScalar,
+    ConstId, DefWithBodyId,
+};
+use la_arena::{Arena, Idx};
+use stdx::never;
+
+use crate::{
+    db::HirDatabase, infer::InferenceContext, lower::ParamLoweringMode, to_placeholder_idx,
+    utils::Generics, Const, ConstData, ConstValue, GenericArg, InferenceResult, Interner, Ty,
+    TyKind,
+};
 
 /// Extension trait for [`Const`]
 pub trait ConstExt {
@@ -41,21 +52,30 @@ impl ConstExt for Const {
 }
 
 pub struct ConstEvalCtx<'a> {
+    pub db: &'a dyn HirDatabase,
+    pub owner: DefWithBodyId,
     pub exprs: &'a Arena<Expr>,
     pub pats: &'a Arena<Pat>,
-    pub local_data: HashMap<Name, ComputedExpr>,
-    pub infer: &'a mut dyn FnMut(Idx<Expr>) -> Ty,
+    pub local_data: HashMap<PatId, ComputedExpr>,
+    infer: &'a InferenceResult,
 }
 
-#[derive(Debug, Clone)]
+impl ConstEvalCtx<'_> {
+    fn expr_ty(&mut self, expr: ExprId) -> Ty {
+        self.infer[expr].clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConstEvalError {
     NotSupported(&'static str),
-    TypeError,
+    SemanticError(&'static str),
+    Loop,
     IncompleteExpr,
     Panic(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ComputedExpr {
     Literal(Literal),
     Tuple(Box<[ComputedExpr]>),
@@ -66,31 +86,32 @@ impl Display for ComputedExpr {
         match self {
             ComputedExpr::Literal(l) => match l {
                 Literal::Int(x, _) => {
-                    if *x >= 16 {
+                    if *x >= 10 {
                         write!(f, "{} ({:#X})", x, x)
                     } else {
-                        write!(f, "{}", x)
+                        x.fmt(f)
                     }
                 }
                 Literal::Uint(x, _) => {
-                    if *x >= 16 {
+                    if *x >= 10 {
                         write!(f, "{} ({:#X})", x, x)
                     } else {
-                        write!(f, "{}", x)
+                        x.fmt(f)
                     }
                 }
-                Literal::Float(x, _) => write!(f, "{}", x),
-                Literal::Bool(x) => write!(f, "{}", x),
-                Literal::Char(x) => write!(f, "{:?}", x),
-                Literal::String(x) => write!(f, "{:?}", x),
-                Literal::ByteString(x) => write!(f, "{:?}", x),
+                Literal::Float(x, _) => x.fmt(f),
+                Literal::Bool(x) => x.fmt(f),
+                Literal::Char(x) => std::fmt::Debug::fmt(x, f),
+                Literal::String(x) => std::fmt::Debug::fmt(x, f),
+                Literal::ByteString(x) => std::fmt::Debug::fmt(x, f),
             },
             ComputedExpr::Tuple(t) => {
-                write!(f, "(")?;
+                f.write_char('(')?;
                 for x in &**t {
-                    write!(f, "{}, ", x)?;
+                    x.fmt(f)?;
+                    f.write_str(", ")?;
                 }
-                write!(f, ")")
+                f.write_char(')')
             }
         }
     }
@@ -128,12 +149,17 @@ fn is_valid(scalar: &Scalar, value: i128) -> bool {
     }
 }
 
-pub fn eval_const(expr: &Expr, ctx: &mut ConstEvalCtx<'_>) -> Result<ComputedExpr, ConstEvalError> {
+pub fn eval_const(
+    expr_id: ExprId,
+    ctx: &mut ConstEvalCtx<'_>,
+) -> Result<ComputedExpr, ConstEvalError> {
+    let expr = &ctx.exprs[expr_id];
     match expr {
+        Expr::Missing => Err(ConstEvalError::IncompleteExpr),
         Expr::Literal(l) => Ok(ComputedExpr::Literal(l.clone())),
         &Expr::UnaryOp { expr, op } => {
-            let ty = &(ctx.infer)(expr);
-            let ev = eval_const(&ctx.exprs[expr], ctx)?;
+            let ty = &ctx.expr_ty(expr);
+            let ev = eval_const(expr, ctx)?;
             match op {
                 hir_def::expr::UnaryOp::Deref => Err(ConstEvalError::NotSupported("deref")),
                 hir_def::expr::UnaryOp::Not => {
@@ -188,9 +214,9 @@ pub fn eval_const(expr: &Expr, ctx: &mut ConstEvalCtx<'_>) -> Result<ComputedExp
             }
         }
         &Expr::BinaryOp { lhs, rhs, op } => {
-            let ty = &(ctx.infer)(lhs);
-            let lhs = eval_const(&ctx.exprs[lhs], ctx)?;
-            let rhs = eval_const(&ctx.exprs[rhs], ctx)?;
+            let ty = &ctx.expr_ty(lhs);
+            let lhs = eval_const(lhs, ctx)?;
+            let rhs = eval_const(rhs, ctx)?;
             let op = op.ok_or(ConstEvalError::IncompleteExpr)?;
             let v1 = match lhs {
                 ComputedExpr::Literal(Literal::Int(v, _)) => v,
@@ -234,40 +260,40 @@ pub fn eval_const(expr: &Expr, ctx: &mut ConstEvalCtx<'_>) -> Result<ComputedExp
                     }
                     Ok(ComputedExpr::Literal(Literal::Int(r, None)))
                 }
-                BinaryOp::LogicOp(_) => Err(ConstEvalError::TypeError),
-                _ => return Err(ConstEvalError::NotSupported("bin op on this operators")),
+                BinaryOp::LogicOp(_) => Err(ConstEvalError::SemanticError("logic op on numbers")),
+                _ => Err(ConstEvalError::NotSupported("bin op on this operators")),
             }
         }
         Expr::Block { statements, tail, .. } => {
-            let mut prev_values = HashMap::<Name, Option<ComputedExpr>>::default();
+            let mut prev_values = HashMap::<PatId, Option<ComputedExpr>>::default();
             for statement in &**statements {
-                match statement {
-                    &hir_def::expr::Statement::Let { pat, initializer, .. } => {
-                        let pat = &ctx.pats[pat];
-                        let name = match pat {
-                            Pat::Bind { name, subpat, .. } if subpat.is_none() => name.clone(),
+                match *statement {
+                    hir_def::expr::Statement::Let { pat: pat_id, initializer, .. } => {
+                        let pat = &ctx.pats[pat_id];
+                        match pat {
+                            Pat::Bind { subpat, .. } if subpat.is_none() => (),
                             _ => {
                                 return Err(ConstEvalError::NotSupported("complex patterns in let"))
                             }
                         };
                         let value = match initializer {
-                            Some(x) => eval_const(&ctx.exprs[x], ctx)?,
+                            Some(x) => eval_const(x, ctx)?,
                             None => continue,
                         };
-                        if !prev_values.contains_key(&name) {
-                            let prev = ctx.local_data.insert(name.clone(), value);
-                            prev_values.insert(name, prev);
+                        if !prev_values.contains_key(&pat_id) {
+                            let prev = ctx.local_data.insert(pat_id, value);
+                            prev_values.insert(pat_id, prev);
                         } else {
-                            ctx.local_data.insert(name, value);
+                            ctx.local_data.insert(pat_id, value);
                         }
                     }
-                    &hir_def::expr::Statement::Expr { .. } => {
+                    hir_def::expr::Statement::Expr { .. } => {
                         return Err(ConstEvalError::NotSupported("this kind of statement"))
                     }
                 }
             }
             let r = match tail {
-                &Some(x) => eval_const(&ctx.exprs[x], ctx),
+                &Some(x) => eval_const(x, ctx),
                 None => Ok(ComputedExpr::Tuple(Box::new([]))),
             };
             // clean up local data, so caller will receive the exact map that passed to us
@@ -280,20 +306,49 @@ pub fn eval_const(expr: &Expr, ctx: &mut ConstEvalCtx<'_>) -> Result<ComputedExp
             r
         }
         Expr::Path(p) => {
-            let name = p.mod_path().as_ident().ok_or(ConstEvalError::NotSupported("big paths"))?;
-            let r = ctx
-                .local_data
-                .get(name)
-                .ok_or(ConstEvalError::NotSupported("Non local name resolution"))?;
-            Ok(r.clone())
+            let resolver = resolver_for_expr(ctx.db.upcast(), ctx.owner, expr_id);
+            let pr = resolver
+                .resolve_path_in_value_ns(ctx.db.upcast(), p.mod_path())
+                .ok_or(ConstEvalError::SemanticError("unresolved path"))?;
+            let pr = match pr {
+                ResolveValueResult::ValueNs(v) => v,
+                ResolveValueResult::Partial(..) => {
+                    return match ctx
+                        .infer
+                        .assoc_resolutions_for_expr(expr_id)
+                        .ok_or(ConstEvalError::SemanticError("unresolved assoc item"))?
+                    {
+                        hir_def::AssocItemId::FunctionId(_) => {
+                            Err(ConstEvalError::NotSupported("assoc function"))
+                        }
+                        hir_def::AssocItemId::ConstId(c) => ctx.db.const_eval(c),
+                        hir_def::AssocItemId::TypeAliasId(_) => {
+                            Err(ConstEvalError::NotSupported("assoc type alias"))
+                        }
+                    }
+                }
+            };
+            match pr {
+                ValueNs::LocalBinding(pat_id) => {
+                    let r = ctx
+                        .local_data
+                        .get(&pat_id)
+                        .ok_or(ConstEvalError::NotSupported("Unexpected missing local"))?;
+                    Ok(r.clone())
+                }
+                ValueNs::ConstId(id) => ctx.db.const_eval(id),
+                ValueNs::GenericParam(_) => {
+                    Err(ConstEvalError::NotSupported("const generic without substitution"))
+                }
+                _ => Err(ConstEvalError::NotSupported("path that are not const or local")),
+            }
         }
         _ => Err(ConstEvalError::NotSupported("This kind of expression")),
     }
 }
 
 pub fn eval_usize(expr: Idx<Expr>, mut ctx: ConstEvalCtx<'_>) -> Option<u64> {
-    let expr = &ctx.exprs[expr];
-    if let Ok(ce) = eval_const(&expr, &mut ctx) {
+    if let Ok(ce) = eval_const(expr, &mut ctx) {
         match ce {
             ComputedExpr::Literal(Literal::Int(x, _)) => return x.try_into().ok(),
             ComputedExpr::Literal(Literal::Uint(x, _)) => return x.try_into().ok(),
@@ -301,6 +356,57 @@ pub fn eval_usize(expr: Idx<Expr>, mut ctx: ConstEvalCtx<'_>) -> Option<u64> {
         }
     }
     None
+}
+
+pub(crate) fn path_to_const(
+    db: &dyn HirDatabase,
+    resolver: &Resolver,
+    path: &ModPath,
+    mode: ParamLoweringMode,
+    args_lazy: impl FnOnce() -> Generics,
+    debruijn: DebruijnIndex,
+) -> Option<Const> {
+    match resolver.resolve_path_in_value_ns_fully(db.upcast(), &path) {
+        Some(ValueNs::GenericParam(p)) => {
+            let ty = db.const_param_ty(p);
+            let args = args_lazy();
+            let value = match mode {
+                ParamLoweringMode::Placeholder => {
+                    ConstValue::Placeholder(to_placeholder_idx(db, p.into()))
+                }
+                ParamLoweringMode::Variable => match args.param_idx(p.into()) {
+                    Some(x) => ConstValue::BoundVar(BoundVar::new(debruijn, x)),
+                    None => {
+                        never!(
+                            "Generic list doesn't contain this param: {:?}, {}, {:?}",
+                            args,
+                            path,
+                            p
+                        );
+                        return None;
+                    }
+                },
+            };
+            Some(ConstData { ty, value }.intern(Interner))
+        }
+        _ => None,
+    }
+}
+
+pub fn unknown_const(ty: Ty) -> Const {
+    ConstData {
+        ty,
+        value: ConstValue::Concrete(chalk_ir::ConcreteConst { interned: ConstScalar::Unknown }),
+    }
+    .intern(Interner)
+}
+
+pub fn unknown_const_usize() -> Const {
+    unknown_const(TyKind::Scalar(chalk_ir::Scalar::Uint(chalk_ir::UintTy::Usize)).intern(Interner))
+}
+
+pub fn unknown_const_as_generic(ty: Ty) -> GenericArg {
+    GenericArgData::Const(unknown_const(ty)).intern(Interner)
 }
 
 /// Interns a possibly-unknown target usize
@@ -313,3 +419,61 @@ pub fn usize_const(value: Option<u64>) -> Const {
     }
     .intern(Interner)
 }
+
+pub(crate) fn const_eval_recover(
+    _: &dyn HirDatabase,
+    _: &[String],
+    _: &ConstId,
+) -> Result<ComputedExpr, ConstEvalError> {
+    Err(ConstEvalError::Loop)
+}
+
+pub(crate) fn const_eval_query(
+    db: &dyn HirDatabase,
+    const_id: ConstId,
+) -> Result<ComputedExpr, ConstEvalError> {
+    let def = const_id.into();
+    let body = db.body(def);
+    let infer = &db.infer(def);
+    let result = eval_const(
+        body.body_expr,
+        &mut ConstEvalCtx {
+            db,
+            owner: const_id.into(),
+            exprs: &body.exprs,
+            pats: &body.pats,
+            local_data: HashMap::default(),
+            infer,
+        },
+    );
+    result
+}
+
+pub(crate) fn eval_to_const<'a>(
+    expr: Idx<Expr>,
+    mode: ParamLoweringMode,
+    ctx: &mut InferenceContext<'a>,
+    args: impl FnOnce() -> Generics,
+    debruijn: DebruijnIndex,
+) -> Const {
+    if let Expr::Path(p) = &ctx.body.exprs[expr] {
+        let db = ctx.db;
+        let resolver = &ctx.resolver;
+        if let Some(c) = path_to_const(db, resolver, p.mod_path(), mode, args, debruijn) {
+            return c;
+        }
+    }
+    let body = ctx.body.clone();
+    let ctx = ConstEvalCtx {
+        db: ctx.db,
+        owner: ctx.owner,
+        exprs: &body.exprs,
+        pats: &body.pats,
+        local_data: HashMap::default(),
+        infer: &ctx.result,
+    };
+    usize_const(eval_usize(expr, ctx))
+}
+
+#[cfg(test)]
+mod tests;

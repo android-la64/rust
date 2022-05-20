@@ -501,8 +501,7 @@ impl ABIMachineSpec for S390xMachineDeps {
             insts.push(Inst::StoreMultiple64 {
                 rt: gpr(first_clobbered_gpr as u8),
                 rt2: gpr(15),
-                addr_reg: stack_reg(),
-                addr_off: SImm20::maybe_from_i64(offset).unwrap(),
+                mem: MemArg::reg_plus_off(stack_reg(), offset, MemFlags::trusted()),
             });
         }
         if flags.unwind_info() {
@@ -606,8 +605,7 @@ impl ABIMachineSpec for S390xMachineDeps {
             insts.push(Inst::LoadMultiple64 {
                 rt: writable_gpr(first_clobbered_gpr as u8),
                 rt2: writable_gpr(15),
-                addr_reg: stack_reg(),
-                addr_off: SImm20::maybe_from_i64(offset).unwrap(),
+                mem: MemArg::reg_plus_off(stack_reg(), offset, MemFlags::trusted()),
             });
         }
 
@@ -685,11 +683,11 @@ impl ABIMachineSpec for S390xMachineDeps {
         unimplemented!("StructArgs not implemented for S390X yet");
     }
 
-    fn get_number_of_spillslots_for_value(rc: RegClass, ty: Type) -> u32 {
+    fn get_number_of_spillslots_for_value(rc: RegClass) -> u32 {
         // We allocate in terms of 8-byte slots.
-        match (rc, ty) {
-            (RegClass::I64, _) => 1,
-            (RegClass::F64, _) => 1,
+        match rc {
+            RegClass::I64 => 1,
+            RegClass::F64 => 1,
             _ => panic!("Unexpected register class!"),
         }
     }

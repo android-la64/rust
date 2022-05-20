@@ -68,10 +68,11 @@ Each new feature described below should explain how to use it.
     * [avoid-dev-deps](#avoid-dev-deps) — Prevents the resolver from including dev-dependencies during resolution.
     * [minimal-versions](#minimal-versions) — Forces the resolver to use the lowest compatible version instead of the highest.
     * [public-dependency](#public-dependency) — Allows dependencies to be classified as either public or private.
+    * [workspace-inheritance](#workspace-inheritance) - Allow workspace members to share fields and dependencies
 * Output behavior
     * [out-dir](#out-dir) — Adds a directory where artifacts are copied to.
     * [terminal-width](#terminal-width) — Tells rustc the width of the terminal so that long diagnostic messages can be truncated to be more readable.
-    * [Different binary name](#different-binary-name) — Assign a name to the built binary that is seperate from the crate name.
+    * [Different binary name](#different-binary-name) — Assign a name to the built binary that is separate from the crate name.
 * Compile behavior
     * [mtime-on-use](#mtime-on-use) — Updates the last-modified timestamp on every dependency every time it is used, to provide a mechanism to delete unused artifacts.
     * [doctest-xcompile](#doctest-xcompile) — Supports running doctests with the `--target` flag.
@@ -80,7 +81,8 @@ Each new feature described below should explain how to use it.
     * [build-std-features](#build-std-features) — Sets features to use with the standard library.
     * [binary-dep-depinfo](#binary-dep-depinfo) — Causes the dep-info file to track binary dependencies.
     * [panic-abort-tests](#panic-abort-tests) — Allows running tests with the "abort" panic strategy.
-    * [crate-type](#crate-type) - Supports passing crate types to the compiler.
+    * [crate-type](#crate-type) — Supports passing crate types to the compiler.
+    * [keep-going](#keep-going) — Build as much as possible rather than aborting on the first error.
 * rustdoc
     * [`doctest-in-workspace`](#doctest-in-workspace) — Fixes workspace-relative paths when running doctests.
     * [rustdoc-map](#rustdoc-map) — Provides mappings for documentation to link to external sites like [docs.rs](https://docs.rs/).
@@ -88,6 +90,7 @@ Each new feature described below should explain how to use it.
     * [Profile `strip` option](#profile-strip-option) — Forces the removal of debug information and symbols from executables.
     * [Profile `rustflags` option](#profile-rustflags-option) — Passed directly to rustc.
     * [per-package-target](#per-package-target) — Sets the `--target` to use for each individual package.
+    * [artifact dependencies](#artifact-dependencies) - Allow build artifacts to be included into other build artifacts and build them for different targets.
 * Information and metadata
     * [Build-plan](#build-plan) — Emits JSON information on which commands will be run.
     * [unit-graph](#unit-graph) — Emits JSON for Cargo's internal graph structure.
@@ -99,6 +102,7 @@ Each new feature described below should explain how to use it.
 * Registries
     * [credential-process](#credential-process) — Adds support for fetching registry tokens from an external authentication program.
     * [`cargo logout`](#cargo-logout) — Adds the `logout` command to remove the currently saved registry token.
+    * [http-registry](#http-registry) — Adds support for fetching from http registries (`sparse+`)
 
 ### allow-features
 
@@ -234,6 +238,12 @@ or running tests for both targets:
 cargo test --target x86_64-unknown-linux-gnu --target i686-unknown-linux-gnu
 ```
 
+This can also be specified in `.cargo/config.toml` files.
+
+```toml
+[build]
+target = ["x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu"]
+```
 
 #### New `dir-name` attribute
 
@@ -445,6 +455,26 @@ command-line option:
 cargo rustc --crate-type lib,cdylib -Z unstable-options
 ```
 
+### keep-going
+* Tracking Issue: [#0](https://github.com/rust-lang/cargo/issues/10496)
+
+`cargo build --keep-going` (and similarly for `check`, `test` etc) will build as
+many crates in the dependency graph as possible, rather than aborting the build
+at the first one that fails to build.
+
+For example if the current package depends on dependencies `fails` and `works`,
+one of which fails to build, `cargo check -j1` may or may not build the one that
+succeeds (depending on which one of the two builds Cargo picked to run first),
+whereas `cargo check -j1 --keep-going` would definitely run both builds, even if
+the one run first fails.
+
+The `-Z unstable-options` command-line option must be used in order to use
+`--keep-going` while it is not yet stable:
+
+```console
+cargo check --keep-going -Z unstable-options
+```
+
 ### config-cli
 * Tracking Issue: [#7722](https://github.com/rust-lang/cargo/issues/7722)
 
@@ -508,14 +538,32 @@ CLI paths are relative to the current working directory.
 * Original Pull Request: [#9322](https://github.com/rust-lang/cargo/pull/9322)
 * Tracking Issue: [#9453](https://github.com/rust-lang/cargo/issues/9453)
 
-The `target-applies-to-host` key in a config file can be used set the desired
-behavior for passing target config flags to build scripts.
+Historically, Cargo's behavior for whether the `linker` and `rustflags`
+configuration options from environment variables and `[target]` are
+respected for build scripts, plugins, and other artifacts that are
+_always_ built for the host platform has been somewhat inconsistent.
+When `--target` is _not_ passed, Cargo respects the same `linker` and
+`rustflags` for build scripts as for all other compile artifacts. When
+`--target` _is_ passed, however, Cargo respects `linker` from
+`[target.<host triple>]`, and does not pick up any `rustflags`
+configuration. This dual behavior is confusing, but also makes it
+difficult to correctly configure builds where the host triple and the
+target triple happen to be the same, but artifacts intended to run on
+the build host should still be configured differently.
 
-It requires the `-Ztarget-applies-to-host` command-line option.
+`-Ztarget-applies-to-host` enables the top-level
+`target-applies-to-host` setting in Cargo configuration files which
+allows users to opt into different (and more consistent) behavior for
+these properties. When `target-applies-to-host` is unset, or set to
+`true`, in the configuration file, the existing Cargo behavior is
+preserved (though see `-Zhost-config`, which changes that default). When
+it is set to `false`, no options from `[target.<host triple>]`,
+`RUSTFLAGS`, or `[build]` are respected for host artifacts regardless of
+whether `--target` is passed to Cargo. To customize artifacts intended
+to be run on the host, use `[host]` ([`host-config`](#host-config)).
 
-The current default for `target-applies-to-host` is `true`, which will be
-changed to `false` in the future, if `-Zhost-config` is used the new `false`
-default will be set for `target-applies-to-host`.
+In the future, `target-applies-to-host` may end up defaulting to `false`
+to provide more sane and consistent default behavior.
 
 ```toml
 # config.toml
@@ -535,8 +583,9 @@ such as build scripts that must run on the host system instead of the target
 system when cross compiling. It supports both generic and host arch specific
 tables. Matching host arch tables take precedence over generic host tables.
 
-It requires the `-Zhost-config` and `-Ztarget-applies-to-host` command-line
-options to be set.
+It requires the `-Zhost-config` and `-Ztarget-applies-to-host`
+command-line options to be set, and that `target-applies-to-host =
+false` is set in the Cargo configuration file.
 
 ```toml
 # config.toml
@@ -544,6 +593,7 @@ options to be set.
 linker = "/path/to/host/linker"
 [host.x86_64-unknown-linux-gnu]
 linker = "/path/to/host/arch/linker"
+rustflags = ["-Clink-arg=--verbose"]
 [target.x86_64-unknown-linux-gnu]
 linker = "/path/to/target/linker"
 ```
@@ -812,6 +862,66 @@ In this example, the crate is always built for
 as a plugin for a main program that runs on the host (or provided on
 the command line) target.
 
+### artifact-dependencies
+
+* Tracking Issue: [#9096](https://github.com/rust-lang/cargo/pull/9096)
+* Original Pull Request: [#9992](https://github.com/rust-lang/cargo/pull/9992)
+
+Allow Cargo packages to depend on `bin`, `cdylib`, and `staticlib` crates, 
+and use the artifacts built by those crates at compile time.
+
+Run `cargo` with `-Z bindeps` to enable this functionality.
+
+**Example:** use _cdylib_ artifact in build script
+
+The `Cargo.toml` in the consuming package, building the `bar` library as `cdylib` 
+for a specific build target…
+
+```toml
+[build-dependencies]
+bar = { artifact = "cdylib", version = "1.0", target = "wasm32-unknown-unknown" }
+```
+
+…along with the build script in `build.rs`.
+
+```rust
+fn main() {
+  wasm::run_file(env!("CARGO_CDYLIB_FILE_BAR"));
+}
+```
+
+**Example:** use _binary_ artifact and its library in a binary
+
+The `Cargo.toml` in the consuming package, building the `bar` binary for inclusion
+as artifact while making it available as library as well…
+
+```toml
+[dependencies]
+bar = { artifact = "bin", version = "1.0", lib = true }
+```
+
+…along with the executable using `main.rs`.
+
+```rust
+fn main() {
+  bar::init();
+  command::run(env!("CARGO_BIN_FILE_BAR"));
+}
+```
+
+### http-registry
+* Tracking Issue: [9069](https://github.com/rust-lang/cargo/issues/9069)
+* RFC: [#2789](https://github.com/rust-lang/rfcs/pull/2789)
+
+The `http-registry` feature allows cargo to interact with remote registries served
+over http rather than git. These registries can be identified by urls starting with
+`sparse+http://` or `sparse+https://`.
+
+When fetching index metadata over http, cargo only downloads the metadata for relevant
+crates, which can save significant time and bandwidth.
+
+The format of the http index is identical to a checkout of a git-based index.
+
 ### credential-process
 * Tracking Issue: [#8933](https://github.com/rust-lang/cargo/issues/8933)
 * RFC: [#2730](https://github.com/rust-lang/rfcs/pull/2730)
@@ -1076,6 +1186,82 @@ For instance:
 
 ```
 cargo doc -Z unstable-options -Z rustdoc-scrape-examples=examples
+```
+
+### check-cfg-features
+
+* RFC: [#3013](https://github.com/rust-lang/rfcs/pull/3013)
+
+The `-Z check-cfg-features` argument tells Cargo to pass all possible features of a package to
+`rustc` and `rustdoc` unstable `--check-cfg` command line as `--check-cfg=values(feature, ...)`.
+This enables compile time checking of feature values in `#[cfg]`, `cfg!` and `#[cfg_attr]`.
+Note than this command line options will probably become the default when stabilizing.
+For instance:
+
+```
+cargo check -Z unstable-options -Z check-cfg-features
+```
+
+### workspace-inheritance
+
+* RFC: [#2906](https://github.com/rust-lang/rfcs/blob/master/text/2906-cargo-workspace-deduplicate.md)
+* Tracking Issue: [#8415](https://github.com/rust-lang/cargo/issues/8415)
+
+The `workspace-inheritance` feature allows workspace members to inherit fields
+and dependencies from a workspace.
+
+Example 1:
+
+```toml
+# in workspace's Cargo.toml
+[workspace.dependencies]
+log = "0.3.1"
+log2 = { version = "2.0.0", package = "log" }
+serde = { git = 'https://github.com/serde-rs/serde' }
+wasm-bindgen-cli = { path = "crates/cli" }
+```
+
+```toml
+# in a workspace member's Cargo.toml
+[dependencies]
+log.workspace = true
+log2.workspace = true
+```
+
+Example 2:
+```toml
+# in workspace's Cargo.toml
+[workspace.package]
+version = "1.2.3"
+authors = ["Nice Folks"]
+description = "..."
+documentation = "https://example.github.io/example"
+readme = "README.md"
+homepage = "https://example.com"
+repository = "https://github.com/example/example"
+license = "MIT"
+license-file = "./LICENSE"
+keywords = ["cli"]
+categories = ["development-tools"]
+publish = false
+edition = "2018"
+```
+
+```toml
+# in a workspace member's Cargo.toml
+[package]
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+license-file.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
 ```
 
 ## Stabilized and removed features

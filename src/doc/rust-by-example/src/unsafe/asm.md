@@ -56,6 +56,8 @@ In this case we put it in an arbitrary general purpose register by specifying `r
 The compiler will choose an appropriate register to insert into
 the template and will read the variable from there after the inline assembly finishes executing.
 
+[format-syntax]: https://doc.rust-lang.org/std/fmt/#syntax
+
 Let us see another example that also uses an input:
 
 ```rust
@@ -224,40 +226,46 @@ This state is generally referred to as being "clobbered".
 We need to tell the compiler about this since it may need to save and restore this state around the inline assembly block.
 
 ```rust
-use std::arch::asm;
+use core::arch::asm;
 
-let mut ebx: u32;
-let mut edx: u32;
-let mut ecx: u32;
-unsafe {
-    asm!(
-        "push rbx",
-        "cpuid",
-        "mov {0:e}, ebx",
-        "pop rbx",
-        // String is stored as ascii in ebx, edx, ecx in order
-        // Because ebx is reserved, we get a scratch register and move from
-        // ebx into it in the asm.  The asm needs to preserve the value of
-        // that register though, so it is pushed and popped around the main asm
-        // (in 64 bit mode for 64 bit processors, 32 bit processors would use ebx)
-        out(reg) ebx,
-        out("edx") edx,
-        out("ecx") ecx,
-        // EAX 0 selects CPUID parameter and manufacturer ID
-        inout("eax") 0 => _,
-    );
+fn main() {
+    // three entries of four bytes each
+    let mut name_buf = [0_u8; 12];
+    // String is stored as ascii in ebx, edx, ecx in order
+    // Because ebx is reserved, we get a scratch register and move from
+    // ebx into it in the asm.  The asm needs to preserve the value of
+    // that register though, so it is pushed and popped around the main asm
+    // (in 64 bit mode for 64 bit processors, 32 bit processors would use ebx)
+
+    unsafe {
+        asm!(
+            "push rbx",
+            "cpuid",
+            "mov [{0}], ebx",
+            "mov [{0} + 4], edx",
+            "mov [{0} + 8], ecx",
+            "pop rbx",
+            // We use a pointer to an array for storing the values to simplify
+            // the Rust code at the cost of a couple more asm instructions
+            // This is more explicit with how the asm works however, as opposed
+            // to explicit register outputs such as `out("ecx") val`
+            // The *pointer itself* is only an input even though it's written behind
+            in(reg) name_buf.as_mut_ptr(),
+            // select cpuid 0, also specify eax as clobbered
+            inout("eax") 0 => _,
+            // cpuid clobbers these registers too
+            out("ecx") _,
+            out("edx") _,
+        );
+    }
+
+    let name = core::str::from_utf8(&name_buf).unwrap();
+    println!("CPU Manufacturer ID: {}", name);
 }
-
-// Turn the resulting values into a string
-let mut s = String::with_capacity(12);
-ebx.to_ne_bytes().map(|b| s.push(char::from(b)));
-edx.to_ne_bytes().map(|b| s.push(char::from(b)));
-ecx.to_ne_bytes().map(|b| s.push(char::from(b)));
-println!("CPU Manufacturer ID: {}", s);
 ```
 
 In the example above we use the `cpuid` instruction to read the CPU manufacturer ID.
-This instruction writes to `eax` with the maximum supported `cpuid` argument and `ebx`, `esx`, and `ecx` with the CPU manufacturer ID as ASCII bytes in that order.
+This instruction writes to `eax` with the maximum supported `cpuid` argument and `ebx`, `edx`, and `ecx` with the CPU manufacturer ID as ASCII bytes in that order.
 
 Even though `eax` is never read we still need to tell the compiler that the register has been modified so that the compiler can save any values that were in these registers before the asm. This is done by declaring it as an output but with `_` instead of a variable name, which indicates that the output value is to be discarded.
 
@@ -398,10 +406,6 @@ This example shows a few things:
 
 - First, that the same number can be used as a label multiple times in the same inline block.
 - Second, that when a numeric label is used as a reference (as an instruction operand, for example), the suffixes “b” (“backward”) or ”f” (“forward”) should be added to the numeric label. It will then refer to the nearest label defined by this number in this direction.
-
-First that the same number can be used as a label multiple times in the same inline block.
-
-Second, that when a numeric label is used as a reference (as an instruction operand, for example), the suffixes b (“backward”) or f (“forward”) should be added to the numeric label. It will then refer to the nearest label defined by this number in this direction.
 
 [local labels]: https://sourceware.org/binutils/docs/as/Symbol-Names.html#Local-Labels
 [an LLVM bug]: https://bugs.llvm.org/show_bug.cgi?id=36144

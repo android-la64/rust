@@ -7,16 +7,14 @@ use crate::binemit::{Addend, CodeOffset, Reloc};
 use crate::ir::types::{
     B1, B128, B16, B32, B64, B8, F32, F64, FFLAGS, I128, I16, I32, I64, I8, I8X16, IFLAGS, R32, R64,
 };
-use crate::ir::{ExternalName, MemFlags, Opcode, SourceLoc, TrapCode, Type, ValueLabel};
-use crate::isa::unwind::UnwindInst;
+use crate::ir::{ExternalName, MemFlags, Opcode, SourceLoc, Type, ValueLabel};
 use crate::isa::CallConv;
 use crate::machinst::*;
 use crate::{settings, CodegenError, CodegenResult};
 
+use regalloc::RegUsageCollector;
 use regalloc::{PrettyPrint, RealRegUniverse, Reg, RegClass, SpillSlot, VirtualReg, Writable};
-use regalloc::{RegUsageCollector, RegUsageMapper};
 
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
 use smallvec::{smallvec, SmallVec};
@@ -40,118 +38,11 @@ mod emit_tests;
 //=============================================================================
 // Instructions (top level): definition
 
-/// An ALU operation. This can be paired with several instruction formats
-/// below (see `Inst`) in any combination.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ALUOp {
-    Add32,
-    Add64,
-    Sub32,
-    Sub64,
-    Orr32,
-    Orr64,
-    OrrNot32,
-    OrrNot64,
-    And32,
-    And64,
-    AndS32,
-    AndS64,
-    AndNot32,
-    AndNot64,
-    /// XOR (AArch64 calls this "EOR")
-    Eor32,
-    /// XOR (AArch64 calls this "EOR")
-    Eor64,
-    /// XNOR (AArch64 calls this "EOR-NOT")
-    EorNot32,
-    /// XNOR (AArch64 calls this "EOR-NOT")
-    EorNot64,
-    /// Add, setting flags
-    AddS32,
-    /// Add, setting flags
-    AddS64,
-    /// Sub, setting flags
-    SubS32,
-    /// Sub, setting flags
-    SubS64,
-    /// Signed multiply, high-word result
-    SMulH,
-    /// Unsigned multiply, high-word result
-    UMulH,
-    SDiv64,
-    UDiv64,
-    RotR32,
-    RotR64,
-    Lsr32,
-    Lsr64,
-    Asr32,
-    Asr64,
-    Lsl32,
-    Lsl64,
-    /// Add with carry
-    Adc32,
-    Adc64,
-    /// Add with carry, settings flags
-    AdcS32,
-    AdcS64,
-    /// Subtract with carry
-    Sbc32,
-    Sbc64,
-    /// Subtract with carry, settings flags
-    SbcS32,
-    SbcS64,
-}
-
-/// An ALU operation with three arguments.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ALUOp3 {
-    /// Multiply-add
-    MAdd32,
-    /// Multiply-add
-    MAdd64,
-    /// Multiply-sub
-    MSub32,
-    /// Multiply-sub
-    MSub64,
-}
-
-/// A floating-point unit (FPU) operation with one arg.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum FPUOp1 {
-    Abs32,
-    Abs64,
-    Neg32,
-    Neg64,
-    Sqrt32,
-    Sqrt64,
-    Cvt32To64,
-    Cvt64To32,
-}
-
-/// A floating-point unit (FPU) operation with two args.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum FPUOp2 {
-    Add32,
-    Add64,
-    Sub32,
-    Sub64,
-    Mul32,
-    Mul64,
-    Div32,
-    Div64,
-    Max32,
-    Max64,
-    Min32,
-    Min64,
-    /// Signed saturating add
-    Sqadd64,
-    /// Unsigned saturating add
-    Uqadd64,
-    /// Signed saturating subtract
-    Sqsub64,
-    /// Unsigned saturating subtract
-    Uqsub64,
-}
+pub use crate::isa::aarch64::lower::isle::generated_code::{
+    ALUOp, ALUOp3, AtomicRMWOp, BitOp, FPUOp1, FPUOp2, FPUOp3, FpuRoundMode, FpuToIntOp,
+    IntToFpuOp, MInst as Inst, VecALUOp, VecExtendOp, VecLanesOp, VecMisc2, VecPairOp, VecRRLongOp,
+    VecRRNarrowOp, VecRRPairLongOp, VecRRRLongOp, VecShiftImmOp,
+};
 
 /// A floating-point unit (FPU) operation with two args, a register and an immediate.
 #[derive(Copy, Clone, Debug)]
@@ -166,348 +57,13 @@ pub enum FPUOpRI {
     Sli64(FPULeftShiftImm),
 }
 
-/// A floating-point unit (FPU) operation with three args.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum FPUOp3 {
-    MAdd32,
-    MAdd64,
-}
-
-/// A conversion from an FP to an integer value.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum FpuToIntOp {
-    F32ToU32,
-    F32ToI32,
-    F32ToU64,
-    F32ToI64,
-    F64ToU32,
-    F64ToI32,
-    F64ToU64,
-    F64ToI64,
-}
-
-/// A conversion from an integer to an FP value.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum IntToFpuOp {
-    U32ToF32,
-    I32ToF32,
-    U32ToF64,
-    I32ToF64,
-    U64ToF32,
-    I64ToF32,
-    U64ToF64,
-    I64ToF64,
-}
-
-/// Modes for FP rounding ops: round down (floor) or up (ceil), or toward zero (trunc), or to
-/// nearest, and for 32- or 64-bit FP values.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum FpuRoundMode {
-    Minus32,
-    Minus64,
-    Plus32,
-    Plus64,
-    Zero32,
-    Zero64,
-    Nearest32,
-    Nearest64,
-}
-
-/// Type of vector element extensions.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecExtendOp {
-    /// Signed extension of 8-bit elements
-    Sxtl8,
-    /// Signed extension of 16-bit elements
-    Sxtl16,
-    /// Signed extension of 32-bit elements
-    Sxtl32,
-    /// Unsigned extension of 8-bit elements
-    Uxtl8,
-    /// Unsigned extension of 16-bit elements
-    Uxtl16,
-    /// Unsigned extension of 32-bit elements
-    Uxtl32,
-}
-
-/// A vector ALU operation.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecALUOp {
-    /// Signed saturating add
-    Sqadd,
-    /// Unsigned saturating add
-    Uqadd,
-    /// Signed saturating subtract
-    Sqsub,
-    /// Unsigned saturating subtract
-    Uqsub,
-    /// Compare bitwise equal
-    Cmeq,
-    /// Compare signed greater than or equal
-    Cmge,
-    /// Compare signed greater than
-    Cmgt,
-    /// Compare unsigned higher
-    Cmhs,
-    /// Compare unsigned higher or same
-    Cmhi,
-    /// Floating-point compare equal
-    Fcmeq,
-    /// Floating-point compare greater than
-    Fcmgt,
-    /// Floating-point compare greater than or equal
-    Fcmge,
-    /// Bitwise and
-    And,
-    /// Bitwise bit clear
-    Bic,
-    /// Bitwise inclusive or
-    Orr,
-    /// Bitwise exclusive or
-    Eor,
-    /// Bitwise select
-    Bsl,
-    /// Unsigned maximum pairwise
-    Umaxp,
-    /// Add
-    Add,
-    /// Subtract
-    Sub,
-    /// Multiply
-    Mul,
-    /// Signed shift left
-    Sshl,
-    /// Unsigned shift left
-    Ushl,
-    /// Unsigned minimum
-    Umin,
-    /// Signed minimum
-    Smin,
-    /// Unsigned maximum
-    Umax,
-    /// Signed maximum
-    Smax,
-    /// Unsigned rounding halving add
-    Urhadd,
-    /// Floating-point add
-    Fadd,
-    /// Floating-point subtract
-    Fsub,
-    /// Floating-point divide
-    Fdiv,
-    /// Floating-point maximum
-    Fmax,
-    /// Floating-point minimum
-    Fmin,
-    /// Floating-point multiply
-    Fmul,
-    /// Add pairwise
-    Addp,
-    /// Zip vectors (primary) [meaning, high halves]
-    Zip1,
-    /// Signed saturating rounding doubling multiply returning high half
-    Sqrdmulh,
-}
-
-/// A Vector miscellaneous operation with two registers.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecMisc2 {
-    /// Bitwise NOT
-    Not,
-    /// Negate
-    Neg,
-    /// Absolute value
-    Abs,
-    /// Floating-point absolute value
-    Fabs,
-    /// Floating-point negate
-    Fneg,
-    /// Floating-point square root
-    Fsqrt,
-    /// Reverse elements in 64-bit doublewords
-    Rev64,
-    /// Floating-point convert to signed integer, rounding toward zero
-    Fcvtzs,
-    /// Floating-point convert to unsigned integer, rounding toward zero
-    Fcvtzu,
-    /// Signed integer convert to floating-point
-    Scvtf,
-    /// Unsigned integer convert to floating-point
-    Ucvtf,
-    /// Floating point round to integral, rounding towards nearest
-    Frintn,
-    /// Floating point round to integral, rounding towards zero
-    Frintz,
-    /// Floating point round to integral, rounding towards minus infinity
-    Frintm,
-    /// Floating point round to integral, rounding towards plus infinity
-    Frintp,
-    /// Population count per byte
-    Cnt,
-    /// Compare bitwise equal to 0
-    Cmeq0,
-}
-
-/// A vector widening operation with one argument.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecRRLongOp {
-    /// Floating-point convert to higher precision long, 16-bit elements
-    Fcvtl16,
-    /// Floating-point convert to higher precision long, 32-bit elements
-    Fcvtl32,
-    /// Shift left long (by element size), 8-bit elements
-    Shll8,
-    /// Shift left long (by element size), 16-bit elements
-    Shll16,
-    /// Shift left long (by element size), 32-bit elements
-    Shll32,
-}
-
-/// A vector narrowing operation with one argument.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecRRNarrowOp {
-    /// Extract narrow, 16-bit elements
-    Xtn16,
-    /// Extract narrow, 32-bit elements
-    Xtn32,
-    /// Extract narrow, 64-bit elements
-    Xtn64,
-    /// Signed saturating extract narrow, 16-bit elements
-    Sqxtn16,
-    /// Signed saturating extract narrow, 32-bit elements
-    Sqxtn32,
-    /// Signed saturating extract narrow, 64-bit elements
-    Sqxtn64,
-    /// Signed saturating extract unsigned narrow, 16-bit elements
-    Sqxtun16,
-    /// Signed saturating extract unsigned narrow, 32-bit elements
-    Sqxtun32,
-    /// Signed saturating extract unsigned narrow, 64-bit elements
-    Sqxtun64,
-    /// Unsigned saturating extract narrow, 16-bit elements
-    Uqxtn16,
-    /// Unsigned saturating extract narrow, 32-bit elements
-    Uqxtn32,
-    /// Unsigned saturating extract narrow, 64-bit elements
-    Uqxtn64,
-    /// Floating-point convert to lower precision narrow, 32-bit elements
-    Fcvtn32,
-    /// Floating-point convert to lower precision narrow, 64-bit elements
-    Fcvtn64,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecRRRLongOp {
-    /// Signed multiply long.
-    Smull8,
-    Smull16,
-    Smull32,
-    /// Unsigned multiply long.
-    Umull8,
-    Umull16,
-    Umull32,
-    /// Unsigned multiply add long
-    Umlal8,
-    Umlal16,
-    Umlal32,
-}
-
-/// A vector operation on a pair of elements with one register.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecPairOp {
-    /// Add pair of elements
-    Addp,
-}
-
-/// 1-operand vector instruction that extends elements of the input register
-/// and operates on a pair of elements.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecRRPairLongOp {
-    /// Sign extend and add pair of elements
-    Saddlp8,
-    Saddlp16,
-    /// Unsigned extend and add pair of elements
-    Uaddlp8,
-    Uaddlp16,
-}
-
-/// An operation across the lanes of vectors.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecLanesOp {
-    /// Integer addition across a vector
-    Addv,
-    /// Unsigned minimum across a vector
-    Uminv,
-}
-
-/// A shift-by-immediate operation on each lane of a vector.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum VecShiftImmOp {
-    // Unsigned shift left
-    Shl,
-    // Unsigned shift right
-    Ushr,
-    // Signed shift right
-    Sshr,
-}
-
-/// Atomic read-modify-write operations with acquire-release semantics
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum AtomicRMWOp {
-    Add,
-    Clr,
-    Eor,
-    Set,
-    Smax,
-    Smin,
-    Umax,
-    Umin,
-}
-
-/// An operation on the bits of a register. This can be paired with several instruction formats
-/// below (see `Inst`) in any combination.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum BitOp {
-    /// Bit reverse
-    RBit32,
-    /// Bit reverse
-    RBit64,
-    Clz32,
-    Clz64,
-    Cls32,
-    Cls64,
-}
-
 impl BitOp {
-    /// What is the opcode's native width?
-    pub fn operand_size(&self) -> OperandSize {
-        match self {
-            BitOp::RBit32 | BitOp::Clz32 | BitOp::Cls32 => OperandSize::Size32,
-            _ => OperandSize::Size64,
-        }
-    }
-
     /// Get the assembly mnemonic for this opcode.
     pub fn op_str(&self) -> &'static str {
         match self {
-            BitOp::RBit32 | BitOp::RBit64 => "rbit",
-            BitOp::Clz32 | BitOp::Clz64 => "clz",
-            BitOp::Cls32 | BitOp::Cls64 => "cls",
-        }
-    }
-}
-
-impl From<(Opcode, Type)> for BitOp {
-    /// Get the BitOp from the IR opcode.
-    fn from(op_ty: (Opcode, Type)) -> BitOp {
-        match op_ty {
-            (Opcode::Bitrev, I32) => BitOp::RBit32,
-            (Opcode::Bitrev, I64) => BitOp::RBit64,
-            (Opcode::Clz, I32) => BitOp::Clz32,
-            (Opcode::Clz, I64) => BitOp::Clz64,
-            (Opcode::Cls, I32) => BitOp::Cls32,
-            (Opcode::Cls, I64) => BitOp::Cls64,
-            _ => unreachable!("Called with non-bit op!: {:?}", op_ty),
+            BitOp::RBit => "rbit",
+            BitOp::Clz => "clz",
+            BitOp::Cls => "cls",
         }
     }
 }
@@ -545,864 +101,6 @@ pub struct JTSequenceInfo {
     pub targets_for_term: Vec<MachLabel>, // needed for MachTerminator.
 }
 
-/// Instruction formats.
-#[derive(Clone, Debug)]
-pub enum Inst {
-    /// A no-op of zero size.
-    Nop0,
-
-    /// A no-op that is one instruction large.
-    Nop4,
-
-    /// An ALU operation with two register sources and a register destination.
-    AluRRR {
-        alu_op: ALUOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-    },
-    /// An ALU operation with three register sources and a register destination.
-    AluRRRR {
-        alu_op: ALUOp3,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        ra: Reg,
-    },
-    /// An ALU operation with a register source and an immediate-12 source, and a register
-    /// destination.
-    AluRRImm12 {
-        alu_op: ALUOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        imm12: Imm12,
-    },
-    /// An ALU operation with a register source and an immediate-logic source, and a register destination.
-    AluRRImmLogic {
-        alu_op: ALUOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        imml: ImmLogic,
-    },
-    /// An ALU operation with a register source and an immediate-shiftamt source, and a register destination.
-    AluRRImmShift {
-        alu_op: ALUOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        immshift: ImmShift,
-    },
-    /// An ALU operation with two register sources, one of which can be shifted, and a register
-    /// destination.
-    AluRRRShift {
-        alu_op: ALUOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        shiftop: ShiftOpAndAmt,
-    },
-    /// An ALU operation with two register sources, one of which can be {zero,sign}-extended and
-    /// shifted, and a register destination.
-    AluRRRExtend {
-        alu_op: ALUOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        extendop: ExtendOp,
-    },
-
-    /// A bit op instruction with a single register source.
-    BitRR {
-        op: BitOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// An unsigned (zero-extending) 8-bit load.
-    ULoad8 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A signed (sign-extending) 8-bit load.
-    SLoad8 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// An unsigned (zero-extending) 16-bit load.
-    ULoad16 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A signed (sign-extending) 16-bit load.
-    SLoad16 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// An unsigned (zero-extending) 32-bit load.
-    ULoad32 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A signed (sign-extending) 32-bit load.
-    SLoad32 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A 64-bit load.
-    ULoad64 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-
-    /// An 8-bit store.
-    Store8 {
-        rd: Reg,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A 16-bit store.
-    Store16 {
-        rd: Reg,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A 32-bit store.
-    Store32 {
-        rd: Reg,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A 64-bit store.
-    Store64 {
-        rd: Reg,
-        mem: AMode,
-        flags: MemFlags,
-    },
-
-    /// A store of a pair of registers.
-    StoreP64 {
-        rt: Reg,
-        rt2: Reg,
-        mem: PairAMode,
-        flags: MemFlags,
-    },
-    /// A load of a pair of registers.
-    LoadP64 {
-        rt: Writable<Reg>,
-        rt2: Writable<Reg>,
-        mem: PairAMode,
-        flags: MemFlags,
-    },
-
-    /// A MOV instruction. These are encoded as ORR's (AluRRR form) but we
-    /// keep them separate at the `Inst` level for better pretty-printing
-    /// and faster `is_move()` logic.
-    Mov64 {
-        rd: Writable<Reg>,
-        rm: Reg,
-    },
-
-    /// A 32-bit MOV. Zeroes the top 32 bits of the destination. This is
-    /// effectively an alias for an unsigned 32-to-64-bit extension.
-    Mov32 {
-        rd: Writable<Reg>,
-        rm: Reg,
-    },
-
-    /// A MOVZ with a 16-bit immediate.
-    MovZ {
-        rd: Writable<Reg>,
-        imm: MoveWideConst,
-        size: OperandSize,
-    },
-
-    /// A MOVN with a 16-bit immediate.
-    MovN {
-        rd: Writable<Reg>,
-        imm: MoveWideConst,
-        size: OperandSize,
-    },
-
-    /// A MOVK with a 16-bit immediate.
-    MovK {
-        rd: Writable<Reg>,
-        imm: MoveWideConst,
-        size: OperandSize,
-    },
-
-    /// A sign- or zero-extend operation.
-    Extend {
-        rd: Writable<Reg>,
-        rn: Reg,
-        signed: bool,
-        from_bits: u8,
-        to_bits: u8,
-    },
-
-    /// A conditional-select operation.
-    CSel {
-        rd: Writable<Reg>,
-        cond: Cond,
-        rn: Reg,
-        rm: Reg,
-    },
-
-    /// A conditional-set operation.
-    CSet {
-        rd: Writable<Reg>,
-        cond: Cond,
-    },
-
-    /// A conditional-set-mask operation.
-    CSetm {
-        rd: Writable<Reg>,
-        cond: Cond,
-    },
-
-    /// A conditional comparison with an immediate.
-    CCmpImm {
-        size: OperandSize,
-        rn: Reg,
-        imm: UImm5,
-        nzcv: NZCV,
-        cond: Cond,
-    },
-
-    /// A synthetic insn, which is a load-linked store-conditional loop, that has the overall
-    /// effect of atomically modifying a memory location in a particular way.  Because we have
-    /// no way to explain to the regalloc about earlyclobber registers, this instruction has
-    /// completely fixed operand registers, and we rely on the RA's coalescing to remove copies
-    /// in the surrounding code to the extent it can.  The sequence is both preceded and
-    /// followed by a fence which is at least as comprehensive as that of the `Fence`
-    /// instruction below.  This instruction is sequentially consistent.  The operand
-    /// conventions are:
-    ///
-    /// x25   (rd) address
-    /// x26   (rd) second operand for `op`
-    /// x27   (wr) old value
-    /// x24   (wr) scratch reg; value afterwards has no meaning
-    /// x28   (wr) scratch reg; value afterwards has no meaning
-    AtomicRMWLoop {
-        ty: Type, // I8, I16, I32 or I64
-        op: inst_common::AtomicRmwOp,
-    },
-
-    /// An atomic read-modify-write operation. These instructions require the
-    /// Large System Extension (LSE) ISA support (FEAT_LSE). The instructions have
-    /// acquire-release semantics.
-    AtomicRMW {
-        op: AtomicRMWOp,
-        rs: Reg,
-        rt: Writable<Reg>,
-        rn: Reg,
-        ty: Type,
-    },
-
-    /// An atomic compare-and-swap operation. This instruction is sequentially consistent.
-    AtomicCAS {
-        rs: Writable<Reg>,
-        rt: Reg,
-        rn: Reg,
-        ty: Type,
-    },
-
-    /// Similar to AtomicRMWLoop, a compare-and-swap operation implemented using a load-linked
-    /// store-conditional loop.
-    /// This instruction is sequentially consistent.
-    /// Note that the operand conventions, although very similar to AtomicRMWLoop, are different:
-    ///
-    /// x25   (rd) address
-    /// x26   (rd) expected value
-    /// x28   (rd) replacement value
-    /// x27   (wr) old value
-    /// x24   (wr) scratch reg; value afterwards has no meaning
-    AtomicCASLoop {
-        ty: Type, // I8, I16, I32 or I64
-    },
-
-    /// Read `access_ty` bits from address `rt`, either 8, 16, 32 or 64-bits, and put
-    /// it in `rn`, optionally zero-extending to fill a word or double word result.
-    /// This instruction is sequentially consistent.
-    LoadAcquire {
-        access_ty: Type, // I8, I16, I32 or I64
-        rt: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// Write the lowest `ty` bits of `rt` to address `rn`.
-    /// This instruction is sequentially consistent.
-    StoreRelease {
-        access_ty: Type, // I8, I16, I32 or I64
-        rt: Reg,
-        rn: Reg,
-    },
-
-    /// A memory fence.  This must provide ordering to ensure that, at a minimum, neither loads
-    /// nor stores may move forwards or backwards across the fence.  Currently emitted as "dmb
-    /// ish".  This instruction is sequentially consistent.
-    Fence,
-
-    /// FPU move. Note that this is distinct from a vector-register
-    /// move; moving just 64 bits seems to be significantly faster.
-    FpuMove64 {
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// Vector register move.
-    FpuMove128 {
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// Move to scalar from a vector element.
-    FpuMoveFromVec {
-        rd: Writable<Reg>,
-        rn: Reg,
-        idx: u8,
-        size: VectorSize,
-    },
-
-    /// Zero-extend a SIMD & FP scalar to the full width of a vector register.
-    /// 16-bit scalars require half-precision floating-point support (FEAT_FP16).
-    FpuExtend {
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: ScalarSize,
-    },
-
-    /// 1-op FPU instruction.
-    FpuRR {
-        fpu_op: FPUOp1,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// 2-op FPU instruction.
-    FpuRRR {
-        fpu_op: FPUOp2,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-    },
-
-    FpuRRI {
-        fpu_op: FPUOpRI,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// 3-op FPU instruction.
-    FpuRRRR {
-        fpu_op: FPUOp3,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        ra: Reg,
-    },
-
-    /// FPU comparison, single-precision (32 bit).
-    FpuCmp32 {
-        rn: Reg,
-        rm: Reg,
-    },
-
-    /// FPU comparison, double-precision (64 bit).
-    FpuCmp64 {
-        rn: Reg,
-        rm: Reg,
-    },
-
-    /// Floating-point load, single-precision (32 bit).
-    FpuLoad32 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// Floating-point store, single-precision (32 bit).
-    FpuStore32 {
-        rd: Reg,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// Floating-point load, double-precision (64 bit).
-    FpuLoad64 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// Floating-point store, double-precision (64 bit).
-    FpuStore64 {
-        rd: Reg,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// Floating-point/vector load, 128 bit.
-    FpuLoad128 {
-        rd: Writable<Reg>,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// Floating-point/vector store, 128 bit.
-    FpuStore128 {
-        rd: Reg,
-        mem: AMode,
-        flags: MemFlags,
-    },
-    /// A load of a pair of floating-point registers, double precision (64-bit).
-    FpuLoadP64 {
-        rt: Writable<Reg>,
-        rt2: Writable<Reg>,
-        mem: PairAMode,
-        flags: MemFlags,
-    },
-    /// A store of a pair of floating-point registers, double precision (64-bit).
-    FpuStoreP64 {
-        rt: Reg,
-        rt2: Reg,
-        mem: PairAMode,
-        flags: MemFlags,
-    },
-    /// A load of a pair of floating-point registers, 128-bit.
-    FpuLoadP128 {
-        rt: Writable<Reg>,
-        rt2: Writable<Reg>,
-        mem: PairAMode,
-        flags: MemFlags,
-    },
-    /// A store of a pair of floating-point registers, 128-bit.
-    FpuStoreP128 {
-        rt: Reg,
-        rt2: Reg,
-        mem: PairAMode,
-        flags: MemFlags,
-    },
-    LoadFpuConst64 {
-        rd: Writable<Reg>,
-        const_data: u64,
-    },
-
-    LoadFpuConst128 {
-        rd: Writable<Reg>,
-        const_data: u128,
-    },
-
-    /// Conversion: FP -> integer.
-    FpuToInt {
-        op: FpuToIntOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// Conversion: integer -> FP.
-    IntToFpu {
-        op: IntToFpuOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// FP conditional select, 32 bit.
-    FpuCSel32 {
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        cond: Cond,
-    },
-    /// FP conditional select, 64 bit.
-    FpuCSel64 {
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        cond: Cond,
-    },
-
-    /// Round to integer.
-    FpuRound {
-        op: FpuRoundMode,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// Move from a GPR to a vector register.  The scalar value is parked in the lowest lane
-    /// of the destination, and all other lanes are zeroed out.  Currently only 32- and 64-bit
-    /// transactions are supported.
-    MovToFpu {
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: ScalarSize,
-    },
-
-    /// Move to a vector element from a GPR.
-    MovToVec {
-        rd: Writable<Reg>,
-        rn: Reg,
-        idx: u8,
-        size: VectorSize,
-    },
-
-    /// Unsigned move from a vector element to a GPR.
-    MovFromVec {
-        rd: Writable<Reg>,
-        rn: Reg,
-        idx: u8,
-        size: VectorSize,
-    },
-
-    /// Signed move from a vector element to a GPR.
-    MovFromVecSigned {
-        rd: Writable<Reg>,
-        rn: Reg,
-        idx: u8,
-        size: VectorSize,
-        scalar_size: OperandSize,
-    },
-
-    /// Duplicate general-purpose register to vector.
-    VecDup {
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: VectorSize,
-    },
-
-    /// Duplicate scalar to vector.
-    VecDupFromFpu {
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: VectorSize,
-    },
-
-    /// Duplicate FP immediate to vector.
-    VecDupFPImm {
-        rd: Writable<Reg>,
-        imm: ASIMDFPModImm,
-        size: VectorSize,
-    },
-
-    /// Duplicate immediate to vector.
-    VecDupImm {
-        rd: Writable<Reg>,
-        imm: ASIMDMovModImm,
-        invert: bool,
-        size: VectorSize,
-    },
-
-    /// Vector extend.
-    VecExtend {
-        t: VecExtendOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        high_half: bool,
-    },
-
-    /// Move vector element to another vector element.
-    VecMovElement {
-        rd: Writable<Reg>,
-        rn: Reg,
-        dest_idx: u8,
-        src_idx: u8,
-        size: VectorSize,
-    },
-
-    /// Vector widening operation.
-    VecRRLong {
-        op: VecRRLongOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        high_half: bool,
-    },
-
-    /// Vector narrowing operation.
-    VecRRNarrow {
-        op: VecRRNarrowOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        high_half: bool,
-    },
-
-    /// 1-operand vector instruction that operates on a pair of elements.
-    VecRRPair {
-        op: VecPairOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// 2-operand vector instruction that produces a result with twice the
-    /// lane width and half the number of lanes.
-    VecRRRLong {
-        alu_op: VecRRRLongOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        high_half: bool,
-    },
-
-    /// 1-operand vector instruction that extends elements of the input
-    /// register and operates on a pair of elements. The output lane width
-    /// is double that of the input.
-    VecRRPairLong {
-        op: VecRRPairLongOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-    },
-
-    /// A vector ALU op.
-    VecRRR {
-        alu_op: VecALUOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        size: VectorSize,
-    },
-
-    /// Vector two register miscellaneous instruction.
-    VecMisc {
-        op: VecMisc2,
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: VectorSize,
-    },
-
-    /// Vector instruction across lanes.
-    VecLanes {
-        op: VecLanesOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: VectorSize,
-    },
-
-    /// Vector shift by immediate: Shift Left (immediate), Unsigned Shift Right (immediate),
-    /// Signed Shift Right (immediate).  These are somewhat unusual in that, for right shifts,
-    /// the allowed range of `imm` values is 1 to lane-size-in-bits, inclusive.  A zero
-    /// right-shift cannot be encoded.  Left shifts are "normal", though, having valid `imm`
-    /// values from 0 to lane-size-in-bits - 1 inclusive.
-    VecShiftImm {
-        op: VecShiftImmOp,
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: VectorSize,
-        imm: u8,
-    },
-
-    /// Vector extract - create a new vector, being the concatenation of the lowest `imm4` bytes
-    /// of `rm` followed by the uppermost `16 - imm4` bytes of `rn`.
-    VecExtract {
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        imm4: u8,
-    },
-
-    /// Table vector lookup - single register table. The table consists of 8-bit elements and is
-    /// stored in `rn`, while `rm` contains 8-bit element indices. `is_extension` specifies whether
-    /// to emit a TBX or a TBL instruction, i.e. whether to leave the elements in the destination
-    /// vector that correspond to out-of-range indices (greater than 15) unmodified or to set them
-    /// to 0.
-    VecTbl {
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        is_extension: bool,
-    },
-
-    /// Table vector lookup - two register table. The table consists of 8-bit elements and is
-    /// stored in `rn` and `rn2`, while `rm` contains 8-bit element indices. `is_extension`
-    /// specifies whether to emit a TBX or a TBL instruction, i.e. whether to leave the elements in
-    /// the destination vector that correspond to out-of-range indices (greater than 31) unmodified
-    /// or to set them to 0. The table registers `rn` and `rn2` must have consecutive numbers
-    /// modulo 32, that is v31 and v0 (in that order) are consecutive registers.
-    VecTbl2 {
-        rd: Writable<Reg>,
-        rn: Reg,
-        rn2: Reg,
-        rm: Reg,
-        is_extension: bool,
-    },
-
-    /// Load an element and replicate to all lanes of a vector.
-    VecLoadReplicate {
-        rd: Writable<Reg>,
-        rn: Reg,
-        size: VectorSize,
-    },
-
-    /// Vector conditional select, 128 bit.  A synthetic instruction, which generates a 4-insn
-    /// control-flow diamond.
-    VecCSel {
-        rd: Writable<Reg>,
-        rn: Reg,
-        rm: Reg,
-        cond: Cond,
-    },
-
-    /// Move to the NZCV flags (actually a `MSR NZCV, Xn` insn).
-    MovToNZCV {
-        rn: Reg,
-    },
-
-    /// Move from the NZCV flags (actually a `MRS Xn, NZCV` insn).
-    MovFromNZCV {
-        rd: Writable<Reg>,
-    },
-
-    /// A machine call instruction. N.B.: this allows only a +/- 128MB offset (it uses a relocation
-    /// of type `Reloc::Arm64Call`); if the destination distance is not `RelocDistance::Near`, the
-    /// code should use a `LoadExtName` / `CallInd` sequence instead, allowing an arbitrary 64-bit
-    /// target.
-    Call {
-        info: Box<CallInfo>,
-    },
-    /// A machine indirect-call instruction.
-    CallInd {
-        info: Box<CallIndInfo>,
-    },
-
-    // ---- branches (exactly one must appear at end of BB) ----
-    /// A machine return instruction.
-    Ret,
-
-    /// A placeholder instruction, generating no code, meaning that a function epilogue must be
-    /// inserted there.
-    EpiloguePlaceholder,
-
-    /// An unconditional branch.
-    Jump {
-        dest: BranchTarget,
-    },
-
-    /// A conditional branch. Contains two targets; at emission time, both are emitted, but
-    /// the MachBuffer knows to truncate the trailing branch if fallthrough. We optimize the
-    /// choice of taken/not_taken (inverting the branch polarity as needed) based on the
-    /// fallthrough at the time of lowering.
-    CondBr {
-        taken: BranchTarget,
-        not_taken: BranchTarget,
-        kind: CondBrKind,
-    },
-
-    /// A conditional trap: execute a `udf` if the condition is true. This is
-    /// one VCode instruction because it uses embedded control flow; it is
-    /// logically a single-in, single-out region, but needs to appear as one
-    /// unit to the register allocator.
-    ///
-    /// The `CondBrKind` gives the conditional-branch condition that will
-    /// *execute* the embedded `Inst`. (In the emitted code, we use the inverse
-    /// of this condition in a branch that skips the trap instruction.)
-    TrapIf {
-        kind: CondBrKind,
-        trap_code: TrapCode,
-    },
-
-    /// An indirect branch through a register, augmented with set of all
-    /// possible successors.
-    IndirectBr {
-        rn: Reg,
-        targets: Vec<MachLabel>,
-    },
-
-    /// A "break" instruction, used for e.g. traps and debug breakpoints.
-    Brk,
-
-    /// An instruction guaranteed to always be undefined and to trigger an illegal instruction at
-    /// runtime.
-    Udf {
-        trap_code: TrapCode,
-    },
-
-    /// Compute the address (using a PC-relative offset) of a memory location, using the `ADR`
-    /// instruction. Note that we take a simple offset, not a `MemLabel`, here, because `Adr` is
-    /// only used for now in fixed lowering sequences with hardcoded offsets. In the future we may
-    /// need full `MemLabel` support.
-    Adr {
-        rd: Writable<Reg>,
-        /// Offset in range -2^20 .. 2^20.
-        off: i32,
-    },
-
-    /// Raw 32-bit word, used for inline constants and jump-table entries.
-    Word4 {
-        data: u32,
-    },
-
-    /// Raw 64-bit word, used for inline constants.
-    Word8 {
-        data: u64,
-    },
-
-    /// Jump-table sequence, as one compound instruction (see note in lower_inst.rs for rationale).
-    JTSequence {
-        info: Box<JTSequenceInfo>,
-        ridx: Reg,
-        rtmp1: Writable<Reg>,
-        rtmp2: Writable<Reg>,
-    },
-
-    /// Load an inline symbol reference.
-    LoadExtName {
-        rd: Writable<Reg>,
-        name: Box<ExternalName>,
-        offset: i64,
-    },
-
-    /// Load address referenced by `mem` into `rd`.
-    LoadAddr {
-        rd: Writable<Reg>,
-        mem: AMode,
-    },
-
-    /// Marker, no-op in generated code: SP "virtual offset" is adjusted. This
-    /// controls how AMode::NominalSPOffset args are lowered.
-    VirtualSPOffsetAdj {
-        offset: i64,
-    },
-
-    /// Meta-insn, no-op in generated code: emit constant/branch veneer island
-    /// at this point (with a guard jump around it) if less than the needed
-    /// space is available before the next branch deadline. See the `MachBuffer`
-    /// implementation in `machinst/buffer.rs` for the overall algorithm. In
-    /// brief, we retain a set of "pending/unresolved label references" from
-    /// branches as we scan forward through instructions to emit machine code;
-    /// if we notice we're about to go out of range on an unresolved reference,
-    /// we stop, emit a bunch of "veneers" (branches in a form that has a longer
-    /// range, e.g. a 26-bit-offset unconditional jump), and point the original
-    /// label references to those. This is an "island" because it comes in the
-    /// middle of the code.
-    ///
-    /// This meta-instruction is a necessary part of the logic that determines
-    /// where to place islands. Ordinarily, we want to place them between basic
-    /// blocks, so we compute the worst-case size of each block, and emit the
-    /// island before starting a block if we would exceed a deadline before the
-    /// end of the block. However, some sequences (such as an inline jumptable)
-    /// are variable-length and not accounted for by this logic; so these
-    /// lowered sequences include an `EmitIsland` to trigger island generation
-    /// where necessary.
-    EmitIsland {
-        /// The needed space before the next deadline.
-        needed_space: CodeOffset,
-    },
-
-    /// A call to the `ElfTlsGetAddr` libcall. Returns address of TLS symbol in x0.
-    ElfTlsGetAddr {
-        symbol: ExternalName,
-    },
-
-    /// A definition of a value label.
-    ValueLabelMarker {
-        reg: Reg,
-        label: ValueLabel,
-    },
-
-    /// An unwind pseudo-instruction.
-    Unwind {
-        inst: UnwindInst,
-    },
-}
-
 fn count_zero_half_words(mut value: u64, num_half_words: u8) -> usize {
     let mut count = 0;
     for _ in 0..num_half_words {
@@ -1426,6 +124,10 @@ impl Inst {
     /// Create an instruction that loads a constant, using one of serveral options (MOVZ, MOVN,
     /// logical immediate, or constant pool).
     pub fn load_constant(rd: Writable<Reg>, value: u64) -> SmallVec<[Inst; 4]> {
+        // NB: this is duplicated in `lower/isle.rs` and `inst.isle` right now,
+        // if modifications are made here before this is deleted after moving to
+        // ISLE then those locations should be updated as well.
+
         if let Some(imm) = MoveWideConst::maybe_from_u64(value) {
             // 16-bit immediate (shifted by 0, 16, 32 or 48 bits) in MOVZ
             smallvec![Inst::MovZ {
@@ -1443,7 +145,8 @@ impl Inst {
         } else if let Some(imml) = ImmLogic::maybe_from_u64(value, I64) {
             // Weird logical-instruction immediate in ORI using zero register
             smallvec![Inst::AluRRImmLogic {
-                alu_op: ALUOp::Orr64,
+                alu_op: ALUOp::Orr,
+                size: OperandSize::Size64,
                 rd,
                 rn: zero_reg(),
                 imml,
@@ -1514,29 +217,35 @@ impl Inst {
     /// Create instructions that load a 32-bit floating-point constant.
     pub fn load_fp_constant32<F: FnMut(Type) -> Writable<Reg>>(
         rd: Writable<Reg>,
-        value: u32,
+        const_data: u32,
         mut alloc_tmp: F,
     ) -> SmallVec<[Inst; 4]> {
         // Note that we must make sure that all bits outside the lowest 32 are set to 0
         // because this function is also used to load wider constants (that have zeros
         // in their most significant bits).
-        if value == 0 {
+        if const_data == 0 {
             smallvec![Inst::VecDupImm {
                 rd,
                 imm: ASIMDMovModImm::zero(ScalarSize::Size32),
                 invert: false,
-                size: VectorSize::Size32x2
+                size: VectorSize::Size32x2,
+            }]
+        } else if let Some(imm) =
+            ASIMDFPModImm::maybe_from_u64(const_data.into(), ScalarSize::Size32)
+        {
+            smallvec![Inst::FpuMoveFPImm {
+                rd,
+                imm,
+                size: ScalarSize::Size32,
             }]
         } else {
-            // TODO: use FMOV immediate form when `value` has sufficiently few mantissa/exponent
-            // bits.
             let tmp = alloc_tmp(I32);
-            let mut insts = Inst::load_constant(tmp, value as u64);
+            let mut insts = Inst::load_constant(tmp, const_data as u64);
 
             insts.push(Inst::MovToFpu {
                 rd,
                 rn: tmp.to_reg(),
-                size: ScalarSize::Size64,
+                size: ScalarSize::Size32,
             });
 
             insts
@@ -1552,11 +261,23 @@ impl Inst {
         // Note that we must make sure that all bits outside the lowest 64 are set to 0
         // because this function is also used to load wider constants (that have zeros
         // in their most significant bits).
-        if let Ok(const_data) = u32::try_from(const_data) {
+        // TODO: Treat as half of a 128 bit vector and consider replicated patterns.
+        // Scalar MOVI might also be an option.
+        if const_data == 0 {
+            smallvec![Inst::VecDupImm {
+                rd,
+                imm: ASIMDMovModImm::zero(ScalarSize::Size32),
+                invert: false,
+                size: VectorSize::Size32x2,
+            }]
+        } else if let Some(imm) = ASIMDFPModImm::maybe_from_u64(const_data, ScalarSize::Size64) {
+            smallvec![Inst::FpuMoveFPImm {
+                rd,
+                imm,
+                size: ScalarSize::Size64,
+            }]
+        } else if let Ok(const_data) = u32::try_from(const_data) {
             Inst::load_fp_constant32(rd, const_data, alloc_tmp)
-        // TODO: use FMOV immediate form when `const_data` has sufficiently few mantissa/exponent
-        // bits.  Also, treat it as half of a 128-bit vector and consider replicated
-        // patterns. Scalar MOVI might also be an option.
         } else if const_data & (u32::MAX as u64) == 0 {
             let tmp = alloc_tmp(I64);
             let mut insts = Inst::load_constant(tmp, const_data);
@@ -1944,12 +665,14 @@ fn aarch64_get_regs(inst: &Inst, collector: &mut RegUsageCollector) {
         &Inst::CCmpImm { rn, .. } => {
             collector.add_use(rn);
         }
-        &Inst::AtomicRMWLoop { .. } => {
+        &Inst::AtomicRMWLoop { op, .. } => {
             collector.add_use(xreg(25));
             collector.add_use(xreg(26));
             collector.add_def(writable_xreg(24));
             collector.add_def(writable_xreg(27));
-            collector.add_def(writable_xreg(28));
+            if op != AtomicRmwOp::Xchg {
+                collector.add_def(writable_xreg(28));
+            }
         }
         &Inst::AtomicRMW { rs, rt, rn, .. } => {
             collector.add_use(rs);
@@ -2154,6 +877,9 @@ fn aarch64_get_regs(inst: &Inst, collector: &mut RegUsageCollector) {
             collector.add_def(rd);
             collector.add_use(rn);
         }
+        &Inst::FpuMoveFPImm { rd, .. } => {
+            collector.add_def(rd);
+        }
         &Inst::MovToVec { rd, rn, .. } => {
             collector.add_mod(rd);
             collector.add_use(rn);
@@ -2304,65 +1030,44 @@ fn aarch64_get_regs(inst: &Inst, collector: &mut RegUsageCollector) {
 //=============================================================================
 // Instructions: map_regs
 
-fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
-    fn map_use<RUM: RegUsageMapper>(m: &RUM, r: &mut Reg) {
-        if r.is_virtual() {
-            let new = m.get_use(r.to_virtual_reg()).unwrap().to_reg();
-            *r = new;
-        }
-    }
-
-    fn map_def<RUM: RegUsageMapper>(m: &RUM, r: &mut Writable<Reg>) {
-        if r.to_reg().is_virtual() {
-            let new = m.get_def(r.to_reg().to_virtual_reg()).unwrap().to_reg();
-            *r = Writable::from_reg(new);
-        }
-    }
-
-    fn map_mod<RUM: RegUsageMapper>(m: &RUM, r: &mut Writable<Reg>) {
-        if r.to_reg().is_virtual() {
-            let new = m.get_mod(r.to_reg().to_virtual_reg()).unwrap().to_reg();
-            *r = Writable::from_reg(new);
-        }
-    }
-
-    fn map_mem<RUM: RegUsageMapper>(m: &RUM, mem: &mut AMode) {
+pub fn aarch64_map_regs<RM: RegMapper>(inst: &mut Inst, mapper: &RM) {
+    fn map_mem<RM: RegMapper>(m: &RM, mem: &mut AMode) {
         // N.B.: we take only the pre-map here, but this is OK because the
         // only addressing modes that update registers (pre/post-increment on
         // AArch64) both read and write registers, so they are "mods" rather
         // than "defs", so must be the same in both the pre- and post-map.
         match mem {
-            &mut AMode::Unscaled(ref mut reg, ..) => map_use(m, reg),
-            &mut AMode::UnsignedOffset(ref mut reg, ..) => map_use(m, reg),
+            &mut AMode::Unscaled(ref mut reg, ..) => m.map_use(reg),
+            &mut AMode::UnsignedOffset(ref mut reg, ..) => m.map_use(reg),
             &mut AMode::RegReg(ref mut r1, ref mut r2)
             | &mut AMode::RegScaled(ref mut r1, ref mut r2, ..)
             | &mut AMode::RegScaledExtended(ref mut r1, ref mut r2, ..)
             | &mut AMode::RegExtended(ref mut r1, ref mut r2, ..) => {
-                map_use(m, r1);
-                map_use(m, r2);
+                m.map_use(r1);
+                m.map_use(r2);
             }
             &mut AMode::Label(..) => {}
-            &mut AMode::PreIndexed(ref mut r, ..) => map_mod(m, r),
-            &mut AMode::PostIndexed(ref mut r, ..) => map_mod(m, r),
+            &mut AMode::PreIndexed(ref mut r, ..) => m.map_mod(r),
+            &mut AMode::PostIndexed(ref mut r, ..) => m.map_mod(r),
             &mut AMode::FPOffset(..)
             | &mut AMode::SPOffset(..)
             | &mut AMode::NominalSPOffset(..) => {}
-            &mut AMode::RegOffset(ref mut r, ..) => map_use(m, r),
+            &mut AMode::RegOffset(ref mut r, ..) => m.map_use(r),
         };
     }
 
-    fn map_pairmem<RUM: RegUsageMapper>(m: &RUM, mem: &mut PairAMode) {
+    fn map_pairmem<RM: RegMapper>(m: &RM, mem: &mut PairAMode) {
         match mem {
-            &mut PairAMode::SignedOffset(ref mut reg, ..) => map_use(m, reg),
-            &mut PairAMode::PreIndexed(ref mut reg, ..) => map_def(m, reg),
-            &mut PairAMode::PostIndexed(ref mut reg, ..) => map_def(m, reg),
+            &mut PairAMode::SignedOffset(ref mut reg, ..) => m.map_use(reg),
+            &mut PairAMode::PreIndexed(ref mut reg, ..) => m.map_def(reg),
+            &mut PairAMode::PostIndexed(ref mut reg, ..) => m.map_def(reg),
         }
     }
 
-    fn map_br<RUM: RegUsageMapper>(m: &RUM, br: &mut CondBrKind) {
+    fn map_br<RM: RegMapper>(m: &RM, br: &mut CondBrKind) {
         match br {
-            &mut CondBrKind::Zero(ref mut reg) => map_use(m, reg),
-            &mut CondBrKind::NotZero(ref mut reg) => map_use(m, reg),
+            &mut CondBrKind::Zero(ref mut reg) => m.map_use(reg),
+            &mut CondBrKind::NotZero(ref mut reg) => m.map_use(reg),
             &mut CondBrKind::Cond(..) => {}
         };
     }
@@ -2374,9 +1079,9 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::AluRRRR {
             ref mut rd,
@@ -2385,34 +1090,34 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut ra,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
-            map_use(mapper, ra);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
+            mapper.map_use(ra);
         }
         &mut Inst::AluRRImm12 {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::AluRRImmLogic {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::AluRRImmShift {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::AluRRRShift {
             ref mut rd,
@@ -2420,9 +1125,9 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::AluRRRExtend {
             ref mut rd,
@@ -2430,24 +1135,24 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::BitRR {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::ULoad8 {
             ref mut rd,
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::SLoad8 {
@@ -2455,7 +1160,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::ULoad16 {
@@ -2463,7 +1168,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::SLoad16 {
@@ -2471,7 +1176,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::ULoad32 {
@@ -2479,7 +1184,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::SLoad32 {
@@ -2487,7 +1192,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
 
@@ -2496,7 +1201,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::Store8 {
@@ -2504,7 +1209,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rd);
+            mapper.map_use(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::Store16 {
@@ -2512,7 +1217,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rd);
+            mapper.map_use(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::Store32 {
@@ -2520,7 +1225,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rd);
+            mapper.map_use(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::Store64 {
@@ -2528,7 +1233,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rd);
+            mapper.map_use(rd);
             map_mem(mapper, mem);
         }
 
@@ -2538,8 +1243,8 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rt);
-            map_use(mapper, rt2);
+            mapper.map_use(rt);
+            mapper.map_use(rt2);
             map_pairmem(mapper, mem);
         }
         &mut Inst::LoadP64 {
@@ -2548,32 +1253,32 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rt);
-            map_def(mapper, rt2);
+            mapper.map_def(rt);
+            mapper.map_def(rt2);
             map_pairmem(mapper, mem);
         }
         &mut Inst::Mov64 {
             ref mut rd,
             ref mut rm,
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rm);
         }
         &mut Inst::Mov32 {
             ref mut rd,
             ref mut rm,
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rm);
         }
         &mut Inst::MovZ { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::MovN { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::MovK { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::CSel {
             ref mut rd,
@@ -2581,15 +1286,15 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::CSet { ref mut rd, .. } | &mut Inst::CSetm { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::CCmpImm { ref mut rn, .. } => {
-            map_use(mapper, rn);
+            mapper.map_use(rn);
         }
         &mut Inst::AtomicRMWLoop { .. } => {
             // There are no vregs to map in this insn.
@@ -2600,9 +1305,9 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rn,
             ..
         } => {
-            map_use(mapper, rs);
-            map_def(mapper, rt);
-            map_use(mapper, rn);
+            mapper.map_use(rs);
+            mapper.map_def(rt);
+            mapper.map_use(rn);
         }
         &mut Inst::AtomicCAS {
             ref mut rs,
@@ -2610,9 +1315,9 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rn,
             ..
         } => {
-            map_mod(mapper, rs);
-            map_use(mapper, rt);
-            map_use(mapper, rn);
+            mapper.map_mod(rs);
+            mapper.map_use(rt);
+            mapper.map_use(rn);
         }
         &mut Inst::AtomicCASLoop { .. } => {
             // There are no vregs to map in this insn.
@@ -2622,55 +1327,55 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rt);
-            map_use(mapper, rn);
+            mapper.map_def(rt);
+            mapper.map_use(rn);
         }
         &mut Inst::StoreRelease {
             ref mut rt,
             ref mut rn,
             ..
         } => {
-            map_use(mapper, rt);
-            map_use(mapper, rn);
+            mapper.map_use(rt);
+            mapper.map_use(rn);
         }
         &mut Inst::Fence {} => {}
         &mut Inst::FpuMove64 {
             ref mut rd,
             ref mut rn,
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::FpuMove128 {
             ref mut rd,
             ref mut rn,
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::FpuMoveFromVec {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::FpuExtend {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::FpuRR {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::FpuRRR {
             ref mut rd,
@@ -2678,9 +1383,9 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::FpuRRI {
             fpu_op,
@@ -2689,10 +1394,10 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ..
         } => {
             match fpu_op {
-                FPUOpRI::UShr32(..) | FPUOpRI::UShr64(..) => map_def(mapper, rd),
-                FPUOpRI::Sli32(..) | FPUOpRI::Sli64(..) => map_mod(mapper, rd),
+                FPUOpRI::UShr32(..) | FPUOpRI::UShr64(..) => mapper.map_def(rd),
+                FPUOpRI::Sli32(..) | FPUOpRI::Sli64(..) => mapper.map_mod(rd),
             }
-            map_use(mapper, rn);
+            mapper.map_use(rn);
         }
         &mut Inst::FpuRRRR {
             ref mut rd,
@@ -2701,34 +1406,34 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut ra,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
-            map_use(mapper, ra);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
+            mapper.map_use(ra);
         }
         &mut Inst::VecMisc {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecLanes {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecShiftImm {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecExtract {
             ref mut rd,
@@ -2736,9 +1441,9 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::VecTbl {
             ref mut rd,
@@ -2746,13 +1451,13 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             is_extension,
         } => {
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
 
             if is_extension {
-                map_mod(mapper, rd);
+                mapper.map_mod(rd);
             } else {
-                map_def(mapper, rd);
+                mapper.map_def(rd);
             }
         }
         &mut Inst::VecTbl2 {
@@ -2762,14 +1467,14 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             is_extension,
         } => {
-            map_use(mapper, rn);
-            map_use(mapper, rn2);
-            map_use(mapper, rm);
+            mapper.map_use(rn);
+            mapper.map_use(rn2);
+            mapper.map_use(rm);
 
             if is_extension {
-                map_mod(mapper, rd);
+                mapper.map_mod(rd);
             } else {
-                map_def(mapper, rd);
+                mapper.map_def(rd);
             }
         }
         &mut Inst::VecLoadReplicate {
@@ -2777,8 +1482,8 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecCSel {
             ref mut rd,
@@ -2786,30 +1491,30 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::FpuCmp32 {
             ref mut rn,
             ref mut rm,
         } => {
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::FpuCmp64 {
             ref mut rn,
             ref mut rm,
         } => {
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::FpuLoad32 {
             ref mut rd,
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::FpuLoad64 {
@@ -2817,7 +1522,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::FpuLoad128 {
@@ -2825,7 +1530,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::FpuStore32 {
@@ -2833,7 +1538,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rd);
+            mapper.map_use(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::FpuStore64 {
@@ -2841,7 +1546,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rd);
+            mapper.map_use(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::FpuStore128 {
@@ -2849,7 +1554,7 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rd);
+            mapper.map_use(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::FpuLoadP64 {
@@ -2858,8 +1563,8 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rt);
-            map_def(mapper, rt2);
+            mapper.map_def(rt);
+            mapper.map_def(rt2);
             map_pairmem(mapper, mem);
         }
         &mut Inst::FpuStoreP64 {
@@ -2868,8 +1573,8 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rt);
-            map_use(mapper, rt2);
+            mapper.map_use(rt);
+            mapper.map_use(rt2);
             map_pairmem(mapper, mem);
         }
         &mut Inst::FpuLoadP128 {
@@ -2878,8 +1583,8 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_def(mapper, rt);
-            map_def(mapper, rt2);
+            mapper.map_def(rt);
+            mapper.map_def(rt2);
             map_pairmem(mapper, mem);
         }
         &mut Inst::FpuStoreP128 {
@@ -2888,31 +1593,31 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut mem,
             ..
         } => {
-            map_use(mapper, rt);
-            map_use(mapper, rt2);
+            mapper.map_use(rt);
+            mapper.map_use(rt2);
             map_pairmem(mapper, mem);
         }
         &mut Inst::LoadFpuConst64 { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::LoadFpuConst128 { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::FpuToInt {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::IntToFpu {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::FpuCSel32 {
             ref mut rd,
@@ -2920,9 +1625,9 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::FpuCSel64 {
             ref mut rd,
@@ -2930,33 +1635,36 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rm,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::FpuRound {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::MovToFpu {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
+        }
+        &mut Inst::FpuMoveFPImm { ref mut rd, .. } => {
+            mapper.map_def(rd);
         }
         &mut Inst::MovToVec {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_mod(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_mod(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::MovFromVec {
             ref mut rd,
@@ -2968,54 +1676,54 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecDup {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecDupFromFpu {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecDupFPImm { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::VecDupImm { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::VecExtend {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecMovElement {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_mod(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_mod(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecRRLong {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecRRNarrow {
             ref mut rd,
@@ -3023,12 +1731,12 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             high_half,
             ..
         } => {
-            map_use(mapper, rn);
+            mapper.map_use(rn);
 
             if high_half {
-                map_mod(mapper, rd);
+                mapper.map_mod(rd);
             } else {
-                map_def(mapper, rd);
+                mapper.map_def(rd);
             }
         }
         &mut Inst::VecRRPair {
@@ -3036,8 +1744,8 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecRRRLong {
             alu_op,
@@ -3048,20 +1756,20 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
         } => {
             match alu_op {
                 VecRRRLongOp::Umlal8 | VecRRRLongOp::Umlal16 | VecRRRLongOp::Umlal32 => {
-                    map_mod(mapper, rd)
+                    mapper.map_mod(rd)
                 }
-                _ => map_def(mapper, rd),
+                _ => mapper.map_def(rd),
             };
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::VecRRPairLong {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::VecRRR {
             alu_op,
@@ -3071,58 +1779,58 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ..
         } => {
             if alu_op == VecALUOp::Bsl {
-                map_mod(mapper, rd);
+                mapper.map_mod(rd);
             } else {
-                map_def(mapper, rd);
+                mapper.map_def(rd);
             }
-            map_use(mapper, rn);
-            map_use(mapper, rm);
+            mapper.map_use(rn);
+            mapper.map_use(rm);
         }
         &mut Inst::MovToNZCV { ref mut rn } => {
-            map_use(mapper, rn);
+            mapper.map_use(rn);
         }
         &mut Inst::MovFromNZCV { ref mut rd } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::Extend {
             ref mut rd,
             ref mut rn,
             ..
         } => {
-            map_def(mapper, rd);
-            map_use(mapper, rn);
+            mapper.map_def(rd);
+            mapper.map_use(rn);
         }
         &mut Inst::Jump { .. } => {}
         &mut Inst::Call { ref mut info } => {
             for r in info.uses.iter_mut() {
-                map_use(mapper, r);
+                mapper.map_use(r);
             }
             for r in info.defs.iter_mut() {
-                map_def(mapper, r);
+                mapper.map_def(r);
             }
         }
         &mut Inst::Ret | &mut Inst::EpiloguePlaceholder => {}
         &mut Inst::CallInd { ref mut info, .. } => {
             for r in info.uses.iter_mut() {
-                map_use(mapper, r);
+                mapper.map_use(r);
             }
             for r in info.defs.iter_mut() {
-                map_def(mapper, r);
+                mapper.map_def(r);
             }
-            map_use(mapper, &mut info.rn);
+            mapper.map_use(&mut info.rn);
         }
         &mut Inst::CondBr { ref mut kind, .. } => {
             map_br(mapper, kind);
         }
         &mut Inst::IndirectBr { ref mut rn, .. } => {
-            map_use(mapper, rn);
+            mapper.map_use(rn);
         }
         &mut Inst::Nop0 | &mut Inst::Nop4 | &mut Inst::Brk | &mut Inst::Udf { .. } => {}
         &mut Inst::TrapIf { ref mut kind, .. } => {
             map_br(mapper, kind);
         }
         &mut Inst::Adr { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::Word4 { .. } | &mut Inst::Word8 { .. } => {}
         &mut Inst::JTSequence {
@@ -3131,25 +1839,25 @@ fn aarch64_map_regs<RUM: RegUsageMapper>(inst: &mut Inst, mapper: &RUM) {
             ref mut rtmp2,
             ..
         } => {
-            map_use(mapper, ridx);
-            map_def(mapper, rtmp1);
-            map_def(mapper, rtmp2);
+            mapper.map_use(ridx);
+            mapper.map_def(rtmp1);
+            mapper.map_def(rtmp2);
         }
         &mut Inst::LoadExtName { ref mut rd, .. } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
         }
         &mut Inst::LoadAddr {
             ref mut rd,
             ref mut mem,
         } => {
-            map_def(mapper, rd);
+            mapper.map_def(rd);
             map_mem(mapper, mem);
         }
         &mut Inst::VirtualSPOffsetAdj { .. } => {}
         &mut Inst::EmitIsland { .. } => {}
         &mut Inst::ElfTlsGetAddr { .. } => {}
         &mut Inst::ValueLabelMarker { ref mut reg, .. } => {
-            map_use(mapper, reg);
+            mapper.map_use(reg);
         }
         &mut Inst::Unwind { .. } => {}
     }
@@ -3165,7 +1873,7 @@ impl MachInst for Inst {
         aarch64_get_regs(self, collector)
     }
 
-    fn map_regs<RUM: RegUsageMapper>(&mut self, mapper: &RUM) {
+    fn map_regs<RM: RegMapper>(&mut self, mapper: &RM) {
         aarch64_map_regs(self, mapper);
     }
 
@@ -3313,10 +2021,6 @@ impl MachInst for Inst {
         }
     }
 
-    fn reg_universe(flags: &settings::Flags) -> RealRegUniverse {
-        create_reg_universe(flags)
-    }
-
     fn worst_case_size() -> CodeOffset {
         // The maximum size, in bytes, of any `Inst`'s emitted code. We have at least one case of
         // an 8-instruction sequence (saturating int-to-float conversions) with three embedded
@@ -3373,58 +2077,45 @@ impl PrettyPrint for Inst {
 
 impl Inst {
     fn print_with_state(&self, mb_rru: Option<&RealRegUniverse>, state: &mut EmitState) -> String {
-        fn op_name_size(alu_op: ALUOp) -> (&'static str, OperandSize) {
+        fn op_name(alu_op: ALUOp) -> &'static str {
             match alu_op {
-                ALUOp::Add32 => ("add", OperandSize::Size32),
-                ALUOp::Add64 => ("add", OperandSize::Size64),
-                ALUOp::Sub32 => ("sub", OperandSize::Size32),
-                ALUOp::Sub64 => ("sub", OperandSize::Size64),
-                ALUOp::Orr32 => ("orr", OperandSize::Size32),
-                ALUOp::Orr64 => ("orr", OperandSize::Size64),
-                ALUOp::And32 => ("and", OperandSize::Size32),
-                ALUOp::And64 => ("and", OperandSize::Size64),
-                ALUOp::AndS32 => ("ands", OperandSize::Size32),
-                ALUOp::AndS64 => ("ands", OperandSize::Size64),
-                ALUOp::Eor32 => ("eor", OperandSize::Size32),
-                ALUOp::Eor64 => ("eor", OperandSize::Size64),
-                ALUOp::AddS32 => ("adds", OperandSize::Size32),
-                ALUOp::AddS64 => ("adds", OperandSize::Size64),
-                ALUOp::SubS32 => ("subs", OperandSize::Size32),
-                ALUOp::SubS64 => ("subs", OperandSize::Size64),
-                ALUOp::SMulH => ("smulh", OperandSize::Size64),
-                ALUOp::UMulH => ("umulh", OperandSize::Size64),
-                ALUOp::SDiv64 => ("sdiv", OperandSize::Size64),
-                ALUOp::UDiv64 => ("udiv", OperandSize::Size64),
-                ALUOp::AndNot32 => ("bic", OperandSize::Size32),
-                ALUOp::AndNot64 => ("bic", OperandSize::Size64),
-                ALUOp::OrrNot32 => ("orn", OperandSize::Size32),
-                ALUOp::OrrNot64 => ("orn", OperandSize::Size64),
-                ALUOp::EorNot32 => ("eon", OperandSize::Size32),
-                ALUOp::EorNot64 => ("eon", OperandSize::Size64),
-                ALUOp::RotR32 => ("ror", OperandSize::Size32),
-                ALUOp::RotR64 => ("ror", OperandSize::Size64),
-                ALUOp::Lsr32 => ("lsr", OperandSize::Size32),
-                ALUOp::Lsr64 => ("lsr", OperandSize::Size64),
-                ALUOp::Asr32 => ("asr", OperandSize::Size32),
-                ALUOp::Asr64 => ("asr", OperandSize::Size64),
-                ALUOp::Lsl32 => ("lsl", OperandSize::Size32),
-                ALUOp::Lsl64 => ("lsl", OperandSize::Size64),
-                ALUOp::Adc32 => ("adc", OperandSize::Size32),
-                ALUOp::Adc64 => ("adc", OperandSize::Size64),
-                ALUOp::AdcS32 => ("adcs", OperandSize::Size32),
-                ALUOp::AdcS64 => ("adcs", OperandSize::Size64),
-                ALUOp::Sbc32 => ("sbc", OperandSize::Size32),
-                ALUOp::Sbc64 => ("sbc", OperandSize::Size64),
-                ALUOp::SbcS32 => ("sbcs", OperandSize::Size32),
-                ALUOp::SbcS64 => ("sbcs", OperandSize::Size64),
+                ALUOp::Add => "add",
+                ALUOp::Sub => "sub",
+                ALUOp::Orr => "orr",
+                ALUOp::And => "and",
+                ALUOp::AndS => "ands",
+                ALUOp::Eor => "eor",
+                ALUOp::AddS => "adds",
+                ALUOp::SubS => "subs",
+                ALUOp::SMulH => "smulh",
+                ALUOp::UMulH => "umulh",
+                ALUOp::SDiv => "sdiv",
+                ALUOp::UDiv => "udiv",
+                ALUOp::AndNot => "bic",
+                ALUOp::OrrNot => "orn",
+                ALUOp::EorNot => "eon",
+                ALUOp::RotR => "ror",
+                ALUOp::Lsr => "lsr",
+                ALUOp::Asr => "asr",
+                ALUOp::Lsl => "lsl",
+                ALUOp::Adc => "adc",
+                ALUOp::AdcS => "adcs",
+                ALUOp::Sbc => "sbc",
+                ALUOp::SbcS => "sbcs",
             }
         }
 
         match self {
             &Inst::Nop0 => "nop-zero-len".to_string(),
             &Inst::Nop4 => "nop".to_string(),
-            &Inst::AluRRR { alu_op, rd, rn, rm } => {
-                let (op, size) = op_name_size(alu_op);
+            &Inst::AluRRR {
+                alu_op,
+                size,
+                rd,
+                rn,
+                rm,
+            } => {
+                let op = op_name(alu_op);
                 let rd = show_ireg_sized(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, size);
                 let rm = show_ireg_sized(rm, mb_rru, size);
@@ -3452,15 +2143,16 @@ impl Inst {
             }
             &Inst::AluRRImm12 {
                 alu_op,
+                size,
                 rd,
                 rn,
                 ref imm12,
             } => {
-                let (op, size) = op_name_size(alu_op);
+                let op = op_name(alu_op);
                 let rd = show_ireg_sized(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, size);
 
-                if imm12.bits == 0 && alu_op == ALUOp::Add64 {
+                if imm12.bits == 0 && alu_op == ALUOp::Add && size.is64() {
                     // special-case MOV (used for moving into SP).
                     format!("mov {}, {}", rd, rn)
                 } else {
@@ -3470,11 +2162,12 @@ impl Inst {
             }
             &Inst::AluRRImmLogic {
                 alu_op,
+                size,
                 rd,
                 rn,
                 ref imml,
             } => {
-                let (op, size) = op_name_size(alu_op);
+                let op = op_name(alu_op);
                 let rd = show_ireg_sized(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, size);
                 let imml = imml.show_rru(mb_rru);
@@ -3482,11 +2175,12 @@ impl Inst {
             }
             &Inst::AluRRImmShift {
                 alu_op,
+                size,
                 rd,
                 rn,
                 ref immshift,
             } => {
-                let (op, size) = op_name_size(alu_op);
+                let op = op_name(alu_op);
                 let rd = show_ireg_sized(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, size);
                 let immshift = immshift.show_rru(mb_rru);
@@ -3494,12 +2188,13 @@ impl Inst {
             }
             &Inst::AluRRRShift {
                 alu_op,
+                size,
                 rd,
                 rn,
                 rm,
                 ref shiftop,
             } => {
-                let (op, size) = op_name_size(alu_op);
+                let op = op_name(alu_op);
                 let rd = show_ireg_sized(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, size);
                 let rm = show_ireg_sized(rm, mb_rru, size);
@@ -3508,20 +2203,20 @@ impl Inst {
             }
             &Inst::AluRRRExtend {
                 alu_op,
+                size,
                 rd,
                 rn,
                 rm,
                 ref extendop,
             } => {
-                let (op, size) = op_name_size(alu_op);
+                let op = op_name(alu_op);
                 let rd = show_ireg_sized(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, size);
                 let rm = show_ireg_sized(rm, mb_rru, size);
                 let extendop = extendop.show_rru(mb_rru);
                 format!("{} {}, {}, {}, {}", op, rd, rn, rm, extendop)
             }
-            &Inst::BitRR { op, rd, rn } => {
-                let size = op.operand_size();
+            &Inst::BitRR { op, size, rd, rn } => {
                 let op = op.op_str();
                 let rd = show_ireg_sized(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, size);
@@ -3682,9 +2377,60 @@ impl Inst {
                 format!("{}{} {}, {}, [{}]", op, ty_suffix, rs, rt, rn)
             }
             &Inst::AtomicRMWLoop { ty, op, .. } => {
-                format!(
-                    "atomically {{ {}_bits_at_[x25]) {:?}= x26 ; x27 = old_value_at_[x25]; x24,x28 = trash }}",
-                    ty.bits(), op)
+                let ty_suffix = match ty {
+                    I8 => "b",
+                    I16 => "h",
+                    _ => "",
+                };
+                let size = OperandSize::from_ty(ty);
+                let r_status = show_ireg_sized(xreg(24), mb_rru, OperandSize::Size32);
+                let r_arg2 = show_ireg_sized(xreg(26), mb_rru, size);
+                let r_tmp = show_ireg_sized(xreg(27), mb_rru, size);
+                let mut r_dst = show_ireg_sized(xreg(28), mb_rru, size);
+
+                let mut loop_str: String = "1: ".to_string();
+                loop_str.push_str(&format!("ldaxr{} {}, [x25]; ", ty_suffix, r_tmp));
+
+                let op_str = match op {
+                    inst_common::AtomicRmwOp::Add => "add",
+                    inst_common::AtomicRmwOp::Sub => "sub",
+                    inst_common::AtomicRmwOp::Xor => "eor",
+                    inst_common::AtomicRmwOp::Or => "orr",
+                    inst_common::AtomicRmwOp::And => "and",
+                    _ => "",
+                };
+
+                if op_str.is_empty() {
+                    match op {
+                        inst_common::AtomicRmwOp::Xchg => r_dst = r_arg2,
+                        inst_common::AtomicRmwOp::Nand => {
+                            loop_str.push_str(&format!("and {}, {}, {}; ", r_dst, r_tmp, r_arg2));
+                            loop_str.push_str(&format!("mvn {}, {}; ", r_dst, r_dst));
+                        }
+                        _ => {
+                            loop_str.push_str(&format!("cmp {}, {}; ", r_tmp, r_arg2));
+                            let cond = match op {
+                                inst_common::AtomicRmwOp::Smin => "lt",
+                                inst_common::AtomicRmwOp::Smax => "gt",
+                                inst_common::AtomicRmwOp::Umin => "lo",
+                                inst_common::AtomicRmwOp::Umax => "hi",
+                                _ => unreachable!(),
+                            };
+                            loop_str.push_str(&format!(
+                                "csel {}, {}, {}, {}; ",
+                                r_dst, r_tmp, r_arg2, cond
+                            ));
+                        }
+                    };
+                } else {
+                    loop_str.push_str(&format!("{} {}, {}, {}; ", op_str, r_dst, r_tmp, r_arg2));
+                }
+                loop_str.push_str(&format!(
+                    "stlxr{} {}, {}, [x25]; ",
+                    ty_suffix, r_status, r_dst
+                ));
+                loop_str.push_str(&format!("cbnz {}, 1b", r_status));
+                loop_str
             }
             &Inst::AtomicCAS { rs, rt, rn, ty } => {
                 let op = match ty {
@@ -3992,6 +2738,12 @@ impl Inst {
                 let rd = show_vreg_scalar(rd.to_reg(), mb_rru, size);
                 let rn = show_ireg_sized(rn, mb_rru, operand_size);
                 format!("fmov {}, {}", rd, rn)
+            }
+            &Inst::FpuMoveFPImm { rd, imm, size } => {
+                let imm = imm.show_rru(mb_rru);
+                let rd = show_vreg_scalar(rd.to_reg(), mb_rru, size);
+
+                format!("fmov {}, {}", rd, imm)
             }
             &Inst::MovToVec { rd, rn, idx, size } => {
                 let rd = show_vreg_element(rd.to_reg(), mb_rru, idx, size);
@@ -4689,15 +3441,12 @@ impl Inst {
                 } else {
                     offset as u64
                 };
-                let alu_op = if offset < 0 {
-                    ALUOp::Sub64
-                } else {
-                    ALUOp::Add64
-                };
+                let alu_op = if offset < 0 { ALUOp::Sub } else { ALUOp::Add };
 
                 if let Some((idx, extendop)) = index_reg {
                     let add = Inst::AluRRRExtend {
-                        alu_op: ALUOp::Add64,
+                        alu_op: ALUOp::Add,
+                        size: OperandSize::Size64,
                         rd,
                         rn: reg,
                         rm: idx,
@@ -4711,6 +3460,7 @@ impl Inst {
                 } else if let Some(imm12) = Imm12::maybe_from_u64(abs_offset) {
                     let add = Inst::AluRRImm12 {
                         alu_op,
+                        size: OperandSize::Size64,
                         rd,
                         rn: reg,
                         imm12,
@@ -4723,6 +3473,7 @@ impl Inst {
                     }
                     let add = Inst::AluRRR {
                         alu_op,
+                        size: OperandSize::Size64,
                         rd,
                         rn: reg,
                         rm: tmp.to_reg(),

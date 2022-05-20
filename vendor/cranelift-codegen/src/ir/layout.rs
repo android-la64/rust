@@ -469,6 +469,19 @@ impl Layout {
     pub fn next_block(&self, block: Block) -> Option<Block> {
         self.blocks[block].next.expand()
     }
+
+    /// Mark a block as "cold".
+    ///
+    /// This will try to move it out of the ordinary path of execution
+    /// when lowered to machine code.
+    pub fn set_cold(&mut self, block: Block) {
+        self.blocks[block].cold = true;
+    }
+
+    /// Is the given block cold?
+    pub fn is_cold(&self, block: Block) -> bool {
+        self.blocks[block].cold
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -478,9 +491,10 @@ struct BlockNode {
     first_inst: PackedOption<Inst>,
     last_inst: PackedOption<Inst>,
     seq: SequenceNumber,
+    cold: bool,
 }
 
-/// Iterate over blocks in layout order. See `Layout::blocks()`.
+/// Iterate over blocks in layout order. See [crate::ir::layout::Layout::blocks].
 pub struct Blocks<'f> {
     layout: &'f Layout,
     next: Option<Block>,

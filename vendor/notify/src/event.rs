@@ -12,7 +12,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 /// An event describing open or close operations on files.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum AccessMode {
@@ -33,7 +33,7 @@ pub enum AccessMode {
 }
 
 /// An event describing non-mutating access operations on files.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "kind", content = "mode"))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
@@ -55,7 +55,7 @@ pub enum AccessKind {
 }
 
 /// An event describing creation operations on files.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "kind"))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
@@ -74,7 +74,7 @@ pub enum CreateKind {
 }
 
 /// An event emitted when the data content of a file is changed.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum DataChange {
@@ -92,7 +92,7 @@ pub enum DataChange {
 }
 
 /// An event emitted when the metadata of a file or folder is changed.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum MetadataKind {
@@ -122,7 +122,7 @@ pub enum MetadataKind {
 }
 
 /// An event emitted when the name of a file or folder is changed.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum RenameMode {
@@ -169,7 +169,7 @@ pub enum ModifyKind {
 }
 
 /// An event describing removal operations on files.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "kind"))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
@@ -346,14 +346,14 @@ pub struct Event {
 }
 
 /// Additional attributes of the event.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct EventAttributes {
     #[cfg_attr(feature = "serde", serde(flatten))]
     inner: Option<Box<EventAttributesInner>>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct EventAttributesInner {
     /// Tracking ID for events that are related.
@@ -426,7 +426,7 @@ impl EventAttributes {
 
     /// Retrieves the Notify flag for an event directly, if present.
     pub fn flag(&self) -> Option<Flag> {
-        self.inner.as_ref().and_then(|inner| inner.flag.clone())
+        self.inner.as_ref().and_then(|inner| inner.flag)
     }
 
     /// Retrieves the additional info for an event directly, if present.
@@ -479,7 +479,7 @@ impl EventAttributes {
 ///
 /// This attribute is used to flag certain kinds of events that Notify either marks or generates in
 /// particular ways.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum Flag {
     /*

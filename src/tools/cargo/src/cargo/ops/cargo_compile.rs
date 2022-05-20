@@ -26,9 +26,9 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use crate::core::compiler::unit_dependencies::build_unit_dependencies;
+use crate::core::compiler::unit_dependencies::{build_unit_dependencies, IsArtifact};
 use crate::core::compiler::unit_graph::{self, UnitDep, UnitGraph};
-use crate::core::compiler::{standard_lib, TargetInfo};
+use crate::core::compiler::{standard_lib, CrateType, TargetInfo};
 use crate::core::compiler::{BuildConfig, BuildContext, Compilation, Context};
 use crate::core::compiler::{CompileKind, CompileMode, CompileTarget, RustcTargetData, Unit};
 use crate::core::compiler::{DefaultExecutor, Executor, UnitInterner};
@@ -85,8 +85,10 @@ pub struct CompileOptions {
 
 impl CompileOptions {
     pub fn new(config: &Config, mode: CompileMode) -> CargoResult<CompileOptions> {
+        let jobs = None;
+        let keep_going = false;
         Ok(CompileOptions {
-            build_config: BuildConfig::new(config, None, &[], mode)?,
+            build_config: BuildConfig::new(config, jobs, keep_going, &[], mode)?,
             cli_features: CliFeatures::new_all(false),
             spec: ops::Packages::Packages(Vec::new()),
             filter: CompileFilter::Default {
@@ -505,6 +507,10 @@ pub fn create_bcx<'a, 'cfg>(
         interner,
     )?;
 
+    if let Some(args) = target_rustc_crate_types {
+        override_rustc_crate_types(&mut units, args, interner)?;
+    }
+
     let mut scrape_units = match rustdoc_scrape_examples {
         Some(arg) => {
             let filter = match arg.as_str() {
@@ -648,28 +654,6 @@ pub fn create_bcx<'a, 'cfg>(
         }
     }
 
-    let mut crate_types = HashMap::new();
-    if let Some(args) = target_rustc_crate_types {
-        if units.len() != 1 {
-            anyhow::bail!(
-                "crate types to rustc can only be passed to one \
-                 target, consider filtering\nthe package by passing, \
-                 e.g., `--lib` or `--example` to specify a single target"
-            );
-        }
-        match units[0].target.kind() {
-            TargetKind::Lib(_) | TargetKind::ExampleLib(_) => {
-                crate_types.insert(units[0].clone(), args.clone());
-            }
-            _ => {
-                anyhow::bail!(
-                    "crate types can only be specified for libraries and example libraries.\n\
-                    Binaries, tests, and benchmarks are always the `bin` crate type"
-                );
-            }
-        }
-    }
-
     if honor_rust_version {
         // Remove any pre-release identifiers for easier comparison
         let current_version = &target_data.rustc.version;
@@ -706,7 +690,6 @@ pub fn create_bcx<'a, 'cfg>(
         build_config,
         profiles,
         extra_compiler_args,
-        crate_types,
         target_data,
         units,
         unit_graph,
@@ -996,9 +979,67 @@ fn generate_targets(
 ) -> CargoResult<Vec<Unit>> {
     let config = ws.config();
     // Helper for creating a list of `Unit` structures
-    let new_unit =
-        |units: &mut HashSet<Unit>, pkg: &Package, target: &Target, target_mode: CompileMode| {
-            let unit_for = if target_mode.is_any_test() {
+    let new_unit = |units: &mut HashSet<Unit>,
+                    pkg: &Package,
+                    target: &Target,
+                    initial_target_mode: CompileMode| {
+        // Custom build units are added in `build_unit_dependencies`.
+        assert!(!target.is_custom_build());
+        let target_mode = match initial_target_mode {
+            CompileMode::Test => {
+                if target.is_example() && !filter.is_specific() && !target.tested() {
+                    // Examples are included as regular binaries to verify
+                    // that they compile.
+                    CompileMode::Build
+                } else {
+                    CompileMode::Test
+                }
+            }
+            CompileMode::Build => match *target.kind() {
+                TargetKind::Test => CompileMode::Test,
+                TargetKind::Bench => CompileMode::Bench,
+                _ => CompileMode::Build,
+            },
+            // `CompileMode::Bench` is only used to inform `filter_default_targets`
+            // which command is being used (`cargo bench`). Afterwards, tests
+            // and benches are treated identically. Switching the mode allows
+            // de-duplication of units that are essentially identical. For
+            // example, `cargo build --all-targets --release` creates the units
+            // (lib profile:bench, mode:test) and (lib profile:bench, mode:bench)
+            // and since these are the same, we want them to be de-duplicated in
+            // `unit_dependencies`.
+            CompileMode::Bench => CompileMode::Test,
+            _ => initial_target_mode,
+        };
+
+        let is_local = pkg.package_id().source_id().is_path();
+
+        // No need to worry about build-dependencies, roots are never build dependencies.
+        let features_for = FeaturesFor::from_for_host(target.proc_macro());
+        let features = resolved_features.activated_features(pkg.package_id(), features_for);
+
+        // If `--target` has not been specified, then the unit
+        // graph is built almost like if `--target $HOST` was
+        // specified. See `rebuild_unit_graph_shared` for more on
+        // why this is done. However, if the package has its own
+        // `package.target` key, then this gets used instead of
+        // `$HOST`
+        let explicit_kinds = if let Some(k) = pkg.manifest().forced_kind() {
+            vec![k]
+        } else {
+            requested_kinds
+                .iter()
+                .map(|kind| match kind {
+                    CompileKind::Host => {
+                        pkg.manifest().default_kind().unwrap_or(explicit_host_kind)
+                    }
+                    CompileKind::Target(t) => CompileKind::Target(*t),
+                })
+                .collect()
+        };
+
+        for kind in explicit_kinds.iter() {
+            let unit_for = if initial_target_mode.is_any_test() {
                 // NOTE: the `UnitFor` here is subtle. If you have a profile
                 // with `panic` set, the `panic` flag is cleared for
                 // tests/benchmarks and their dependencies. If this
@@ -1017,90 +1058,34 @@ fn generate_targets(
                 //
                 // Forcing the lib to be compiled three times during `cargo
                 // test` is probably also not desirable.
-                UnitFor::new_test(config)
+                UnitFor::new_test(config, *kind)
             } else if target.for_host() {
                 // Proc macro / plugin should not have `panic` set.
-                UnitFor::new_compiler()
+                UnitFor::new_compiler(*kind)
             } else {
-                UnitFor::new_normal()
+                UnitFor::new_normal(*kind)
             };
-            // Custom build units are added in `build_unit_dependencies`.
-            assert!(!target.is_custom_build());
-            let target_mode = match target_mode {
-                CompileMode::Test => {
-                    if target.is_example() && !filter.is_specific() && !target.tested() {
-                        // Examples are included as regular binaries to verify
-                        // that they compile.
-                        CompileMode::Build
-                    } else {
-                        CompileMode::Test
-                    }
-                }
-                CompileMode::Build => match *target.kind() {
-                    TargetKind::Test => CompileMode::Test,
-                    TargetKind::Bench => CompileMode::Bench,
-                    _ => CompileMode::Build,
-                },
-                // `CompileMode::Bench` is only used to inform `filter_default_targets`
-                // which command is being used (`cargo bench`). Afterwards, tests
-                // and benches are treated identically. Switching the mode allows
-                // de-duplication of units that are essentially identical. For
-                // example, `cargo build --all-targets --release` creates the units
-                // (lib profile:bench, mode:test) and (lib profile:bench, mode:bench)
-                // and since these are the same, we want them to be de-duplicated in
-                // `unit_dependencies`.
-                CompileMode::Bench => CompileMode::Test,
-                _ => target_mode,
-            };
-
-            let is_local = pkg.package_id().source_id().is_path();
-
-            // No need to worry about build-dependencies, roots are never build dependencies.
-            let features_for = FeaturesFor::from_for_host(target.proc_macro());
-            let features = resolved_features.activated_features(pkg.package_id(), features_for);
-
-            // If `--target` has not been specified, then the unit
-            // graph is built almost like if `--target $HOST` was
-            // specified. See `rebuild_unit_graph_shared` for more on
-            // why this is done. However, if the package has its own
-            // `package.target` key, then this gets used instead of
-            // `$HOST`
-            let explicit_kinds = if let Some(k) = pkg.manifest().forced_kind() {
-                vec![k]
-            } else {
-                requested_kinds
-                    .iter()
-                    .map(|kind| match kind {
-                        CompileKind::Host => {
-                            pkg.manifest().default_kind().unwrap_or(explicit_host_kind)
-                        }
-                        CompileKind::Target(t) => CompileKind::Target(*t),
-                    })
-                    .collect()
-            };
-
-            for kind in explicit_kinds.iter() {
-                let profile = profiles.get_profile(
-                    pkg.package_id(),
-                    ws.is_member(pkg),
-                    is_local,
-                    unit_for,
-                    target_mode,
-                    *kind,
-                );
-                let unit = interner.intern(
-                    pkg,
-                    target,
-                    profile,
-                    kind.for_target(target),
-                    target_mode,
-                    features.clone(),
-                    /*is_std*/ false,
-                    /*dep_hash*/ 0,
-                );
-                units.insert(unit);
-            }
-        };
+            let profile = profiles.get_profile(
+                pkg.package_id(),
+                ws.is_member(pkg),
+                is_local,
+                unit_for,
+                *kind,
+            );
+            let unit = interner.intern(
+                pkg,
+                target,
+                profile,
+                kind.for_target(target),
+                target_mode,
+                features.clone(),
+                /*is_std*/ false,
+                /*dep_hash*/ 0,
+                IsArtifact::No,
+            );
+            units.insert(unit);
+        }
+    };
 
     // Create a list of proposed targets.
     let mut proposals: Vec<Proposal<'_>> = Vec::new();
@@ -1429,7 +1414,7 @@ pub fn resolve_all_features(
     package_id: PackageId,
 ) -> HashSet<String> {
     let mut features: HashSet<String> = resolved_features
-        .activated_features(package_id, FeaturesFor::NormalOrDev)
+        .activated_features(package_id, FeaturesFor::NormalOrDevOrArtifactTarget(None))
         .iter()
         .map(|s| s.to_string())
         .collect();
@@ -1658,6 +1643,7 @@ fn traverse_and_share(
         unit.features.clone(),
         unit.is_std,
         new_dep_hash,
+        unit.artifact,
     );
     assert!(memo.insert(unit.clone(), new_unit.clone()).is_none());
     new_graph.entry(new_unit.clone()).or_insert(new_deps);
@@ -1866,4 +1852,51 @@ fn remove_duplicate_doc(
         visit(unit, unit_graph, &mut visited);
     }
     unit_graph.retain(|unit, _| visited.contains(unit));
+}
+
+/// Override crate types for given units.
+///
+/// This is primarily used by `cargo rustc --crate-type`.
+fn override_rustc_crate_types(
+    units: &mut [Unit],
+    args: &[String],
+    interner: &UnitInterner,
+) -> CargoResult<()> {
+    if units.len() != 1 {
+        anyhow::bail!(
+            "crate types to rustc can only be passed to one \
+            target, consider filtering\nthe package by passing, \
+            e.g., `--lib` or `--example` to specify a single target"
+        );
+    }
+
+    let unit = &units[0];
+    let override_unit = |f: fn(Vec<CrateType>) -> TargetKind| {
+        let crate_types = args.iter().map(|s| s.into()).collect();
+        let mut target = unit.target.clone();
+        target.set_kind(f(crate_types));
+        interner.intern(
+            &unit.pkg,
+            &target,
+            unit.profile.clone(),
+            unit.kind,
+            unit.mode,
+            unit.features.clone(),
+            unit.is_std,
+            unit.dep_hash,
+            unit.artifact,
+        )
+    };
+    units[0] = match unit.target.kind() {
+        TargetKind::Lib(_) => override_unit(TargetKind::Lib),
+        TargetKind::ExampleLib(_) => override_unit(TargetKind::ExampleLib),
+        _ => {
+            anyhow::bail!(
+                "crate types can only be specified for libraries and example libraries.\n\
+                Binaries, tests, and benchmarks are always the `bin` crate type"
+            );
+        }
+    };
+
+    Ok(())
 }

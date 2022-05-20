@@ -43,7 +43,7 @@ mod traps;
 pub use crate::data_context::{DataContext, DataDescription, Init};
 pub use crate::module::{
     DataId, FuncId, FuncOrDataId, Linkage, Module, ModuleCompiledFunction, ModuleDeclarations,
-    ModuleError, ModuleResult, RelocRecord,
+    ModuleError, ModuleResult,
 };
 pub use crate::traps::TrapSite;
 
@@ -73,6 +73,7 @@ pub fn default_libcall_names() -> Box<dyn Fn(ir::LibCall) -> String + Send + Syn
         ir::LibCall::Memcpy => "memcpy".to_owned(),
         ir::LibCall::Memset => "memset".to_owned(),
         ir::LibCall::Memmove => "memmove".to_owned(),
+        ir::LibCall::Memcmp => "memcmp".to_owned(),
 
         ir::LibCall::ElfTlsGetAddr => "__tls_get_addr".to_owned(),
     })

@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.42.0"
+rust-version = "1.49.0"
 name = "tracing-attributes"
-version = "0.1.19"
+version = "0.1.20"
 authors = ["Tokio Contributors <team@tokio.rs>", "Eliza Weisman <eliza@buoyant.io>", "David Barsky <dbarsky@amazon.com>"]
 description = "Procedural macro attributes for automatically instrumenting functions.\n"
 homepage = "https://tokio.rs"
@@ -32,7 +32,7 @@ version = "1"
 version = "1"
 
 [dependencies.syn]
-version = "1"
+version = "1.0.43"
 features = ["full", "parsing", "printing", "visit", "visit-mut", "clone-impls", "extra-traits", "proc-macro"]
 default-features = false
 [dev-dependencies.async-trait]

@@ -377,6 +377,11 @@ OPTIONS
            <https://doc.rust-lang.org/cargo/reference/config.html>. Defaults to
            the number of CPUs.
 
+       --keep-going
+           Build as many crates in the dependency graph as possible, rather
+           than aborting the build on the first one that fails to build.
+           Unstable, requires -Zunstable-options.
+
        --future-incompat-report
            Displays a future-incompat report for any future-incompatible
            warnings produced during execution of this command
@@ -407,5 +412,7 @@ EXAMPLES
               cargo test --test int_test_name -- modname::test_name
 
 SEE ALSO
-       cargo(1), cargo-bench(1)
+       cargo(1), cargo-bench(1), types of tests
+       <https://doc.rust-lang.org/cargo/reference/cargo-targets.html#tests>,
+       how to write tests <https://doc.rust-lang.org/rustc/tests/index.html>
 

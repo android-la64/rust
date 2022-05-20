@@ -1346,6 +1346,7 @@ fn test_no_run() {
             "\
 [COMPILING] foo v0.0.1 ([CWD])
 [FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[EXECUTABLE] unittests src/lib.rs (target/debug/deps/foo-[..][EXE])
 ",
         )
         .run();
@@ -2001,6 +2002,7 @@ fn example_bin_same_name() {
 [RUNNING] `rustc [..]`
 [RUNNING] `rustc [..]`
 [FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[EXECUTABLE] `[..]/target/debug/deps/foo-[..][EXE]`
 ",
         )
         .run();
@@ -2536,6 +2538,9 @@ fn bin_does_not_rebuild_tests() {
 [RUNNING] `rustc [..] src/main.rs [..]`
 [RUNNING] `rustc [..] src/main.rs [..]`
 [FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[EXECUTABLE] `[..]/target/debug/deps/foo-[..][EXE]`
+[EXECUTABLE] `[..]/target/debug/deps/foo-[..][EXE]`
+[EXECUTABLE] `[..]/target/debug/deps/foo-[..][EXE]`
 ",
         )
         .run();
@@ -2594,6 +2599,7 @@ fn selective_test_optional_dep() {
 [RUNNING] `rustc [..] a/src/lib.rs [..]`
 [RUNNING] `rustc [..] a/src/lib.rs [..]`
 [FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[EXECUTABLE] `[..]/target/debug/deps/a-[..][EXE]`
 ",
         )
         .run();
@@ -4491,5 +4497,81 @@ fn test_workspaces_cwd() {
         .with_stderr_contains("[DOCTEST] deep-crate")
         .with_stdout_contains("test test_unit_deep_cwd ... ok")
         .with_stdout_contains("test test_integration_deep_cwd ... ok")
+        .run();
+}
+
+#[cfg_attr(windows, ignore)] // weird normalization issue with windows and cargo-test-support
+#[cargo_test]
+fn check_cfg_features() {
+    if !is_nightly() {
+        // --check-cfg is a nightly only rustc command line
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+
+                [features]
+                f_a = []
+                f_b = []
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("test -v -Z check-cfg-features")
+        .masquerade_as_nightly_cargo()
+        .with_stderr(
+            "\
+[COMPILING] foo v0.1.0 [..]
+[RUNNING] `rustc [..] --check-cfg 'values(feature, \"f_a\", \"f_b\")' [..]
+[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[RUNNING] [..]
+",
+        )
+        .run();
+}
+
+#[cfg_attr(windows, ignore)] // weird normalization issue with windows and cargo-test-support
+#[cargo_test]
+fn check_cfg_features_doc() {
+    if !is_nightly() {
+        // --check-cfg is a nightly only rustc and rustdoc command line
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+
+                [features]
+                default = ["f_a"]
+                f_a = []
+                f_b = []
+            "#,
+        )
+        .file("src/lib.rs", "#[allow(dead_code)] fn foo() {}")
+        .build();
+
+    p.cargo("test -v --doc -Z check-cfg-features")
+        .masquerade_as_nightly_cargo()
+        .with_stderr(
+            "\
+[COMPILING] foo v0.1.0 [..]
+[RUNNING] `rustc [..] --check-cfg 'values(feature, \"default\", \"f_a\", \"f_b\")' [..]
+[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[DOCTEST] foo
+[RUNNING] `rustdoc [..] --check-cfg 'values(feature, \"default\", \"f_a\", \"f_b\")' [..]
+",
+        )
         .run();
 }

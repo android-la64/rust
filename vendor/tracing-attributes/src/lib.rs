@@ -6,7 +6,7 @@
 //!
 //! Note that this macro is also re-exported by the main `tracing` crate.
 //!
-//! *Compiler support: [requires `rustc` 1.42+][msrv]*
+//! *Compiler support: [requires `rustc` 1.49+][msrv]*
 //!
 //! [msrv]: #supported-rust-versions
 //!
@@ -16,7 +16,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! tracing-attributes = "0.1.19"
+//! tracing-attributes = "0.1.20"
 //! ```
 //!
 //! The [`#[instrument]`][instrument] attribute can now be added to a function
@@ -41,7 +41,7 @@
 //! ## Supported Rust Versions
 //!
 //! Tracing is built against the latest stable release. The minimum supported
-//! version is 1.42. The current Tracing version is not guaranteed to build on
+//! version is 1.49. The current Tracing version is not guaranteed to build on
 //! Rust versions earlier than the minimum supported version.
 //!
 //! Tracing follows the same compiler support policies as the rest of the Tokio
@@ -52,7 +52,7 @@
 //! supported compiler version is not considered a semver breaking change as
 //! long as doing so complies with this policy.
 //!
-#![doc(html_root_url = "https://docs.rs/tracing-attributes/0.1.19")]
+#![doc(html_root_url = "https://docs.rs/tracing-attributes/0.1.20")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/tokio-rs/tracing/master/assets/logo-type.png",
     issue_tracker_base_url = "https://github.com/tokio-rs/tracing/issues/"

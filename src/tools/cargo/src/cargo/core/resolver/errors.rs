@@ -1,4 +1,5 @@
 use std::fmt;
+use std::task::Poll;
 
 use crate::core::{Dependency, PackageId, Registry, Summary};
 use crate::util::lev_distance::lev_distance;
@@ -95,7 +96,15 @@ pub(super) fn activation_error(
 
         msg.push_str("\nversions that meet the requirements `");
         msg.push_str(&dep.version_req().to_string());
-        msg.push_str("` are: ");
+        msg.push_str("` ");
+
+        if let Some(v) = dep.version_req().locked_version() {
+            msg.push_str("(locked to ");
+            msg.push_str(&v.to_string());
+            msg.push_str(") ");
+        }
+
+        msg.push_str("are: ");
         msg.push_str(
             &candidates
                 .iter()
@@ -212,15 +221,23 @@ pub(super) fn activation_error(
     // give an error message that nothing was found.
     //
     // Maybe the user mistyped the ver_req? Like `dep="2"` when `dep="0.2"`
-    // was meant. So we re-query the registry with `deb="*"` so we can
+    // was meant. So we re-query the registry with `dep="*"` so we can
     // list a few versions that were actually found.
     let all_req = semver::VersionReq::parse("*").unwrap();
     let mut new_dep = dep.clone();
     new_dep.set_version_req(all_req);
-    let mut candidates = match registry.query_vec(&new_dep, false) {
-        Ok(candidates) => candidates,
-        Err(e) => return to_resolve_err(e),
+
+    let mut candidates = loop {
+        match registry.query_vec(&new_dep, false) {
+            Poll::Ready(Ok(candidates)) => break candidates,
+            Poll::Ready(Err(e)) => return to_resolve_err(e),
+            Poll::Pending => match registry.block_until_ready() {
+                Ok(()) => continue,
+                Err(e) => return to_resolve_err(e),
+            },
+        }
     };
+
     candidates.sort_unstable_by(|a, b| b.version().cmp(a.version()));
 
     let mut msg =
@@ -239,12 +256,19 @@ pub(super) fn activation_error(
                 versions.join(", ")
             };
 
+            let locked_version = dep
+                .version_req()
+                .locked_version()
+                .map(|v| format!(" (locked to {})", v))
+                .unwrap_or_default();
+
             let mut msg = format!(
-                "failed to select a version for the requirement `{} = \"{}\"`\n\
+                "failed to select a version for the requirement `{} = \"{}\"`{}\n\
                  candidate versions found which didn't match: {}\n\
                  location searched: {}\n",
                 dep.package_name(),
                 dep.version_req(),
+                locked_version,
                 versions,
                 registry.describe_source(dep.source_id()),
             );
@@ -254,7 +278,7 @@ pub(super) fn activation_error(
             // If we have a path dependency with a locked version, then this may
             // indicate that we updated a sub-package and forgot to run `cargo
             // update`. In this case try to print a helpful error!
-            if dep.source_id().is_path() && dep.version_req().to_string().starts_with('=') {
+            if dep.source_id().is_path() && dep.version_req().is_locked() {
                 msg.push_str(
                     "\nconsider running `cargo update` to update \
                      a path dependency's locked version",
@@ -269,10 +293,17 @@ pub(super) fn activation_error(
         } else {
             // Maybe the user mistyped the name? Like `dep-thing` when `Dep_Thing`
             // was meant. So we try asking the registry for a `fuzzy` search for suggestions.
-            let mut candidates = Vec::new();
-            if let Err(e) = registry.query(&new_dep, &mut |s| candidates.push(s), true) {
-                return to_resolve_err(e);
+            let mut candidates = loop {
+                match registry.query_vec(&new_dep, true) {
+                    Poll::Ready(Ok(candidates)) => break candidates,
+                    Poll::Ready(Err(e)) => return to_resolve_err(e),
+                    Poll::Pending => match registry.block_until_ready() {
+                        Ok(()) => continue,
+                        Err(e) => return to_resolve_err(e),
+                    },
+                }
             };
+
             candidates.sort_unstable_by_key(|a| a.name());
             candidates.dedup_by(|a, b| a.name() == b.name());
             let mut candidates: Vec<_> = candidates

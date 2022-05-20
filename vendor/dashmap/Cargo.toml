@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "dashmap"
-version = "5.1.0"
+version = "5.2.0"
 authors = ["Acrimon <joel.wejdenstal@gmail.com>"]
 description = "Blazing fast concurrent HashMap for Rust."
 homepage = "https://github.com/xacrimon/dashmap"

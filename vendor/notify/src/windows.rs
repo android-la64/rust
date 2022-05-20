@@ -15,7 +15,7 @@ use winapi::um::synchapi;
 use winapi::um::winbase::{self, INFINITE, WAIT_OBJECT_0};
 use winapi::um::winnt::{self, FILE_NOTIFY_INFORMATION, HANDLE};
 
-use crate::event::*;
+use crate::{event::*, WatcherKind};
 use crate::{Config, Error, EventHandler, RecursiveMode, Result, Watcher};
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use std::collections::HashMap;
@@ -54,6 +54,7 @@ enum Action {
     Configure(Config, Sender<Result<bool>>),
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum MetaEvent {
     SingleWatchComplete,
     WatcherAwakened,
@@ -83,18 +84,20 @@ impl ReadDirectoryChangesServer {
         let (action_tx, action_rx) = unbounded();
         // it is, in fact, ok to send the semaphore across threads
         let sem_temp = wakeup_sem as u64;
-        thread::spawn(move || {
-            let wakeup_sem = sem_temp as HANDLE;
-            let server = ReadDirectoryChangesServer {
-                rx: action_rx,
-                event_handler,
-                meta_tx,
-                cmd_tx,
-                watches: HashMap::new(),
-                wakeup_sem,
-            };
-            server.run();
-        });
+        let _ = thread::Builder::new()
+            .name("notify-rs windows loop".to_string())
+            .spawn(move || {
+                let wakeup_sem = sem_temp as HANDLE;
+                let server = ReadDirectoryChangesServer {
+                    rx: action_rx,
+                    event_handler,
+                    meta_tx,
+                    cmd_tx,
+                    watches: HashMap::new(),
+                    wakeup_sem,
+                };
+                server.run();
+            });
         action_tx
     }
 
@@ -145,9 +148,10 @@ impl ReadDirectoryChangesServer {
     fn add_watch(&mut self, path: PathBuf, is_recursive: bool) -> Result<PathBuf> {
         // path must exist and be either a file or directory
         if !path.is_dir() && !path.is_file() {
-            return Err(Error::generic(
-                "Input watch path is neither a file nor a directory.",
-            ).add_path(path));
+            return Err(
+                Error::generic("Input watch path is neither a file nor a directory.")
+                    .add_path(path),
+            );
         }
 
         let (watching_file, dir_target) = {
@@ -181,7 +185,8 @@ impl ReadDirectoryChangesServer {
                     Error::generic(
                         "You attempted to watch a single file, but parent \
                          directory could not be opened.",
-                    ).add_path(path)
+                    )
+                    .add_path(path)
                 } else {
                     // TODO: Call GetLastError for better error info?
                     Error::path_not_found().add_path(path)
@@ -396,6 +401,7 @@ unsafe extern "system" fn handle_event(
 }
 
 /// Watcher implementation based on ReadDirectoryChanges
+#[derive(Debug)]
 pub struct ReadDirectoryChangesWatcher {
     tx: Sender<Action>,
     cmd_rx: Receiver<Result<PathBuf>>,
@@ -415,7 +421,8 @@ impl ReadDirectoryChangesWatcher {
             return Err(Error::generic("Failed to create wakeup semaphore."));
         }
 
-        let action_tx = ReadDirectoryChangesServer::start(event_handler, meta_tx, cmd_tx, wakeup_sem);
+        let action_tx =
+            ReadDirectoryChangesServer::start(event_handler, meta_tx, cmd_tx, wakeup_sem);
 
         Ok(ReadDirectoryChangesWatcher {
             tx: action_tx,
@@ -511,6 +518,10 @@ impl Watcher for ReadDirectoryChangesWatcher {
         let (tx, rx) = bounded(1);
         self.tx.send(Action::Configure(config, tx))?;
         rx.recv()?
+    }
+
+    fn kind() -> crate::WatcherKind {
+        WatcherKind::ReadDirectoryChangesWatcher
     }
 }
 

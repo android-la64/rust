@@ -1677,6 +1677,153 @@ Caused by:
 }
 
 #[cargo_test]
+fn dev_dependencies_conflicting_warning() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2018"
+
+                [dev-dependencies]
+                a = {path = "a"}
+                [dev_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("build")
+        .with_stderr_contains(
+"[WARNING] conflicting between `dev-dependencies` and `dev_dependencies` in the `foo` package.\n
+        `dev_dependencies` is ignored and not recommended for use in the future"
+        )
+        .run();
+}
+
+#[cargo_test]
+fn build_dependencies_conflicting_warning() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2018"
+
+                [build-dependencies]
+                a = {path = "a"}
+                [build_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("build")
+        .with_stderr_contains(
+"[WARNING] conflicting between `build-dependencies` and `build_dependencies` in the `foo` package.\n
+        `build_dependencies` is ignored and not recommended for use in the future"
+        )
+        .run();
+}
+
+#[cargo_test]
+fn lib_crate_types_conflicting_warning() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.5.0"
+                authors = ["wycats@example.com"]
+
+                [lib]
+                name = "foo"
+                crate-type = ["rlib", "dylib"]
+                crate_type = ["staticlib", "dylib"]
+            "#,
+        )
+        .file("src/lib.rs", "pub fn foo() {}")
+        .build();
+    p.cargo("build")
+        .with_stderr_contains(
+"[WARNING] conflicting between `crate-type` and `crate_type` in the `foo` library target.\n
+        `crate_type` is ignored and not recommended for use in the future",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn examples_crate_types_conflicting_warning() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.5.0"
+                authors = ["wycats@example.com"]
+
+                [[example]]
+                name = "ex"
+                path = "examples/ex.rs"
+                crate-type = ["rlib", "dylib"]
+                crate_type = ["proc_macro"]
+                [[example]]
+                name = "goodbye"
+                path = "examples/ex-goodbye.rs"
+                crate-type = ["rlib", "dylib"]
+                crate_type = ["rlib", "staticlib"]
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "examples/ex.rs",
+            r#"
+                fn main() { println!("ex"); }
+            "#,
+        )
+        .file(
+            "examples/ex-goodbye.rs",
+            r#"
+                fn main() { println!("goodbye"); }
+            "#,
+        )
+        .build();
+    p.cargo("build")
+        .with_stderr_contains(
+            "\
+[WARNING] conflicting between `crate-type` and `crate_type` in the `ex` example target.\n
+        `crate_type` is ignored and not recommended for use in the future
+[WARNING] conflicting between `crate-type` and `crate_type` in the `goodbye` example target.\n
+        `crate_type` is ignored and not recommended for use in the future",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn self_dependency() {
     let p = project()
         .file(
@@ -2836,6 +2983,88 @@ fn cargo_platform_specific_dependency() {
         .build();
 
     p.cargo("build").run();
+
+    assert!(p.bin("foo").is_file());
+    p.cargo("test").run();
+}
+
+#[cargo_test]
+fn cargo_platform_specific_dependency_build_dependencies_conflicting_warning() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    [project]
+                    name = "foo"
+                    version = "0.5.0"
+                    authors = ["wycats@example.com"]
+                    build = "build.rs"
+
+                    [target.{host}.build-dependencies]
+                    build = {{ path = "build" }}
+                    [target.{host}.build_dependencies]
+                    build = {{ path = "build" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "build.rs",
+            "extern crate build; fn main() { build::build(); }",
+        )
+        .file("build/Cargo.toml", &basic_manifest("build", "0.5.0"))
+        .file("build/src/lib.rs", "pub fn build() {}")
+        .build();
+
+    p.cargo("build")
+        .with_stderr_contains(
+        format!("[WARNING] conflicting between `build-dependencies` and `build_dependencies` in the `{}` platform target.\n
+        `build_dependencies` is ignored and not recommended for use in the future", host)
+        )
+        .run();
+
+    assert!(p.bin("foo").is_file());
+}
+
+#[cargo_test]
+fn cargo_platform_specific_dependency_dev_dependencies_conflicting_warning() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    [project]
+                    name = "foo"
+                    version = "0.5.0"
+                    authors = ["wycats@example.com"]
+
+                    [target.{host}.dev-dependencies]
+                    dev = {{ path = "dev" }}
+                    [target.{host}.dev_dependencies]
+                    dev = {{ path = "dev" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "tests/foo.rs",
+            "extern crate dev; #[test] fn foo() { dev::dev() }",
+        )
+        .file("dev/Cargo.toml", &basic_manifest("dev", "0.5.0"))
+        .file("dev/src/lib.rs", "pub fn dev() {}")
+        .build();
+
+    p.cargo("build")
+        .with_stderr_contains(
+        format!("[WARNING] conflicting between `dev-dependencies` and `dev_dependencies` in the `{}` platform target.\n
+        `dev_dependencies` is ignored and not recommended for use in the future", host)
+        )
+        .run();
 
     assert!(p.bin("foo").is_file());
     p.cargo("test").run();
@@ -4542,6 +4771,54 @@ fn cdylib_final_outputs() {
 }
 
 #[cargo_test]
+// NOTE: Windows MSVC and wasm32-unknown-emscripten do not use metadata. Skip them.
+// See <https://github.com/rust-lang/cargo/issues/9325#issuecomment-1030662699>
+#[cfg(not(all(target_os = "windows", target_env = "msvc")))]
+fn no_dep_info_collision_when_cdylib_and_bin_coexist() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "1.0.0"
+
+            [lib]
+            crate-type = ["cdylib"]
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("build -v")
+        .with_stderr_unordered(
+            "\
+[COMPILING] foo v1.0.0 ([CWD])
+[RUNNING] `rustc [..] --crate-type bin [..] -C metadata=[..]`
+[RUNNING] `rustc [..] --crate-type cdylib [..] -C metadata=[..]`
+[FINISHED] [..]
+",
+        )
+        .run();
+
+    let deps_dir = p.target_debug_dir().join("deps");
+    assert!(deps_dir.join("foo.d").exists());
+    let dep_info_count = deps_dir
+        .read_dir()
+        .unwrap()
+        .filter(|e| {
+            let filename = e.as_ref().unwrap().file_name();
+            let filename = filename.to_str().unwrap();
+            filename.starts_with("foo") && filename.ends_with(".d")
+        })
+        .count();
+    // cdylib -> foo.d
+    // bin -> foo-<meta>.d
+    assert_eq!(dep_info_count, 2);
+}
+
+#[cargo_test]
 fn deterministic_cfg_flags() {
     // This bug is non-deterministic.
 
@@ -5672,7 +5949,6 @@ fn close_output() {
 hello stderr!
 [ERROR] [..]
 [WARNING] build failed, waiting for other jobs to finish...
-[ERROR] [..]
 ",
         &stderr,
         None,
@@ -5947,4 +6223,168 @@ fn primary_package_env_var() {
         .build();
 
     foo.cargo("test").run();
+}
+
+#[cfg_attr(windows, ignore)] // weird normalization issue with windows and cargo-test-support
+#[cargo_test]
+fn check_cfg_features() {
+    if !is_nightly() {
+        // --check-cfg is a nightly only rustc command line
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+
+                [features]
+                f_a = []
+                f_b = []
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("build -v -Z check-cfg-features")
+        .masquerade_as_nightly_cargo()
+        .with_stderr(
+            "\
+[COMPILING] foo v0.1.0 [..]
+[RUNNING] `rustc [..] --check-cfg 'values(feature, \"f_a\", \"f_b\")' [..]
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cfg_attr(windows, ignore)] // weird normalization issue with windows and cargo-test-support
+#[cargo_test]
+fn check_cfg_features_with_deps() {
+    if !is_nightly() {
+        // --check-cfg is a nightly only rustc command line
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                bar = { path = "bar/" }
+
+                [features]
+                f_a = []
+                f_b = []
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/src/lib.rs", "#[allow(dead_code)] fn bar() {}")
+        .build();
+
+    p.cargo("build -v -Z check-cfg-features")
+        .masquerade_as_nightly_cargo()
+        .with_stderr(
+            "\
+[COMPILING] bar v0.1.0 [..]
+[RUNNING] `rustc [..] --check-cfg 'values(feature)' [..]
+[COMPILING] foo v0.1.0 [..]
+[RUNNING] `rustc --crate-name foo [..] --check-cfg 'values(feature, \"f_a\", \"f_b\")' [..]
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cfg_attr(windows, ignore)] // weird normalization issue with windows and cargo-test-support
+#[cargo_test]
+fn check_cfg_features_with_opt_deps() {
+    if !is_nightly() {
+        // --check-cfg is a nightly only rustc command line
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                bar = { path = "bar/", optional = true }
+
+                [features]
+                default = ["bar"]
+                f_a = []
+                f_b = []
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/src/lib.rs", "#[allow(dead_code)] fn bar() {}")
+        .build();
+
+    p.cargo("build -v -Z check-cfg-features")
+        .masquerade_as_nightly_cargo()
+        .with_stderr(
+            "\
+[COMPILING] bar v0.1.0 [..]
+[RUNNING] `rustc [..] --check-cfg 'values(feature)' [..]
+[COMPILING] foo v0.1.0 [..]
+[RUNNING] `rustc --crate-name foo [..] --check-cfg 'values(feature, \"bar\", \"default\", \"f_a\", \"f_b\")' [..]
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cfg_attr(windows, ignore)] // weird normalization issue with windows and cargo-test-support
+#[cargo_test]
+fn check_cfg_features_with_namespaced_features() {
+    if !is_nightly() {
+        // --check-cfg is a nightly only rustc command line
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                bar = { path = "bar/", optional = true }
+
+                [features]
+                f_a = ["dep:bar"]
+                f_b = []
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/src/lib.rs", "#[allow(dead_code)] fn bar() {}")
+        .build();
+
+    p.cargo("build -v -Z check-cfg-features")
+        .masquerade_as_nightly_cargo()
+        .with_stderr(
+            "\
+[COMPILING] foo v0.1.0 [..]
+[RUNNING] `rustc --crate-name foo [..] --check-cfg 'values(feature, \"f_a\", \"f_b\")' [..]
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
 }

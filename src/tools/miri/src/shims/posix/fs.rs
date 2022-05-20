@@ -15,7 +15,8 @@ use rustc_middle::ty::{self, layout::LayoutOf};
 use rustc_target::abi::{Align, Size};
 
 use crate::*;
-use helpers::{check_arg_count, immty_from_int_checked, immty_from_uint_checked};
+use helpers::check_arg_count;
+use shims::os_str::os_str_to_bytes;
 use shims::time::system_time_to_duration;
 
 #[derive(Debug)]
@@ -317,45 +318,32 @@ trait EvalContextExtPrivate<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, '
         let (created_sec, created_nsec) = metadata.created.unwrap_or((0, 0));
         let (modified_sec, modified_nsec) = metadata.modified.unwrap_or((0, 0));
 
-        let dev_t_layout = this.libc_ty_layout("dev_t")?;
-        let mode_t_layout = this.libc_ty_layout("mode_t")?;
-        let nlink_t_layout = this.libc_ty_layout("nlink_t")?;
-        let ino_t_layout = this.libc_ty_layout("ino_t")?;
-        let uid_t_layout = this.libc_ty_layout("uid_t")?;
-        let gid_t_layout = this.libc_ty_layout("gid_t")?;
-        let time_t_layout = this.libc_ty_layout("time_t")?;
-        let long_layout = this.libc_ty_layout("c_long")?;
-        let off_t_layout = this.libc_ty_layout("off_t")?;
-        let blkcnt_t_layout = this.libc_ty_layout("blkcnt_t")?;
-        let blksize_t_layout = this.libc_ty_layout("blksize_t")?;
-        let uint32_t_layout = this.libc_ty_layout("uint32_t")?;
-
-        let imms = [
-            immty_from_uint_checked(0u128, dev_t_layout)?, // st_dev
-            immty_from_uint_checked(mode, mode_t_layout)?, // st_mode
-            immty_from_uint_checked(0u128, nlink_t_layout)?, // st_nlink
-            immty_from_uint_checked(0u128, ino_t_layout)?, // st_ino
-            immty_from_uint_checked(0u128, uid_t_layout)?, // st_uid
-            immty_from_uint_checked(0u128, gid_t_layout)?, // st_gid
-            immty_from_uint_checked(0u128, dev_t_layout)?, // st_rdev
-            immty_from_uint_checked(0u128, uint32_t_layout)?, // padding
-            immty_from_uint_checked(access_sec, time_t_layout)?, // st_atime
-            immty_from_uint_checked(access_nsec, long_layout)?, // st_atime_nsec
-            immty_from_uint_checked(modified_sec, time_t_layout)?, // st_mtime
-            immty_from_uint_checked(modified_nsec, long_layout)?, // st_mtime_nsec
-            immty_from_uint_checked(0u128, time_t_layout)?, // st_ctime
-            immty_from_uint_checked(0u128, long_layout)?,  // st_ctime_nsec
-            immty_from_uint_checked(created_sec, time_t_layout)?, // st_birthtime
-            immty_from_uint_checked(created_nsec, long_layout)?, // st_birthtime_nsec
-            immty_from_uint_checked(metadata.size, off_t_layout)?, // st_size
-            immty_from_uint_checked(0u128, blkcnt_t_layout)?, // st_blocks
-            immty_from_uint_checked(0u128, blksize_t_layout)?, // st_blksize
-            immty_from_uint_checked(0u128, uint32_t_layout)?, // st_flags
-            immty_from_uint_checked(0u128, uint32_t_layout)?, // st_gen
-        ];
-
         let buf = this.deref_operand(buf_op)?;
-        this.write_packed_immediates(&buf, &imms)?;
+        this.write_int_fields_named(
+            &[
+                ("st_dev", 0),
+                ("st_mode", mode.into()),
+                ("st_nlink", 0),
+                ("st_ino", 0),
+                ("st_uid", 0),
+                ("st_gid", 0),
+                ("st_rdev", 0),
+                ("st_atime", access_sec.into()),
+                ("st_atime_nsec", access_nsec.into()),
+                ("st_mtime", modified_sec.into()),
+                ("st_mtime_nsec", modified_nsec.into()),
+                ("st_ctime", 0),
+                ("st_ctime_nsec", 0),
+                ("st_birthtime", created_sec.into()),
+                ("st_birthtime_nsec", created_nsec.into()),
+                ("st_size", metadata.size.into()),
+                ("st_blocks", 0),
+                ("st_blksize", 0),
+                ("st_flags", 0),
+                ("st_gen", 0),
+            ],
+            &buf,
+        )?;
 
         Ok(0)
     }
@@ -421,6 +409,22 @@ trait EvalContextExtPrivate<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, '
     }
 }
 
+/// An open directory, tracked by DirHandler.
+#[derive(Debug)]
+pub struct OpenDir {
+    /// The directory reader on the host.
+    read_dir: ReadDir,
+    /// The most recent entry returned by readdir()
+    entry: Pointer<Option<Tag>>,
+}
+
+impl OpenDir {
+    fn new(read_dir: ReadDir) -> Self {
+        // We rely on `free` being a NOP on null pointers.
+        Self { read_dir, entry: Pointer::null() }
+    }
+}
+
 #[derive(Debug)]
 pub struct DirHandler {
     /// Directory iterators used to emulate libc "directory streams", as used in opendir, readdir,
@@ -432,7 +436,7 @@ pub struct DirHandler {
     /// the corresponding ReadDir iterator from this map, and information from the next
     /// directory entry is returned. When closedir is called, the ReadDir iterator is removed from
     /// the map.
-    streams: FxHashMap<u64, ReadDir>,
+    streams: FxHashMap<u64, OpenDir>,
     /// ID number to be used by the next call to opendir
     next_id: u64,
 }
@@ -441,7 +445,7 @@ impl DirHandler {
     fn insert_new(&mut self, read_dir: ReadDir) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.streams.try_insert(id, read_dir).unwrap();
+        self.streams.try_insert(id, OpenDir::new(read_dir)).unwrap();
         id
     }
 }
@@ -474,23 +478,18 @@ fn maybe_sync_file(
 
 impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
 pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
-    fn open(
-        &mut self,
-        path_op: &OpTy<'tcx, Tag>,
-        flag_op: &OpTy<'tcx, Tag>,
-        mode_op: &OpTy<'tcx, Tag>,
-    ) -> InterpResult<'tcx, i32> {
+    fn open(&mut self, args: &[OpTy<'tcx, Tag>]) -> InterpResult<'tcx, i32> {
+        if args.len() < 2 || args.len() > 3 {
+            throw_ub_format!(
+                "incorrect number of arguments for `open`: got {}, expected 2 or 3",
+                args.len()
+            );
+        }
+
         let this = self.eval_context_mut();
 
-        let flag = this.read_scalar(flag_op)?.to_i32()?;
-
-        // Get the mode.  On macOS, the argument type `mode_t` is actually `u16`, but
-        // C integer promotion rules mean that on the ABI level, it gets passed as `u32`
-        // (see https://github.com/rust-lang/rust/issues/71915).
-        let mode = this.read_scalar(mode_op)?.to_u32()?;
-        if mode != 0o666 {
-            throw_unsup_format!("non-default mode 0o{:o} is not supported", mode);
-        }
+        let path_op = &args[0];
+        let flag = this.read_scalar(&args[1])?.to_i32()?;
 
         let mut options = OpenOptions::new();
 
@@ -535,6 +534,22 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
         let o_creat = this.eval_libc_i32("O_CREAT")?;
         if flag & o_creat != 0 {
+            // Get the mode.  On macOS, the argument type `mode_t` is actually `u16`, but
+            // C integer promotion rules mean that on the ABI level, it gets passed as `u32`
+            // (see https://github.com/rust-lang/rust/issues/71915).
+            let mode = if let Some(arg) = args.get(2) {
+                this.read_scalar(arg)?.to_u32()?
+            } else {
+                throw_ub_format!(
+                    "incorrect number of arguments for `open` with `O_CREAT`: got {}, expected 3",
+                    args.len()
+                );
+            };
+
+            if mode != 0o666 {
+                throw_unsup_format!("non-default mode 0o{:o} is not supported", mode);
+            }
+
             mirror |= o_creat;
 
             let o_excl = this.eval_libc_i32("O_EXCL")?;
@@ -926,7 +941,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // `syscall` function is untyped. This means that all the `statx` parameters are provided
         // as `isize`s instead of having the proper types. Thus, we have to recover the layout of
         // `statxbuf_op` by using the `libc::statx` struct type.
-        let statxbuf_place = {
+        let statxbuf = {
             // FIXME: This long path is required because `libc::statx` is an struct and also a
             // function and `resolve_path` is returning the latter.
             let statx_ty = this
@@ -1036,44 +1051,55 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             })
             .unwrap_or(Ok((0, 0)))?;
 
-        let __u32_layout = this.libc_ty_layout("__u32")?;
-        let __u64_layout = this.libc_ty_layout("__u64")?;
-        let __u16_layout = this.libc_ty_layout("__u16")?;
-
-        // Now we transform all this fields into `ImmTy`s and write them to `statxbuf`. We write a
-        // zero for the unavailable fields.
-        let imms = [
-            immty_from_uint_checked(mask, __u32_layout)?, // stx_mask
-            immty_from_uint_checked(0u128, __u32_layout)?, // stx_blksize
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_attributes
-            immty_from_uint_checked(0u128, __u32_layout)?, // stx_nlink
-            immty_from_uint_checked(0u128, __u32_layout)?, // stx_uid
-            immty_from_uint_checked(0u128, __u32_layout)?, // stx_gid
-            immty_from_uint_checked(mode, __u16_layout)?, // stx_mode
-            immty_from_uint_checked(0u128, __u16_layout)?, // statx padding
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_ino
-            immty_from_uint_checked(metadata.size, __u64_layout)?, // stx_size
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_blocks
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_attributes
-            immty_from_uint_checked(access_sec, __u64_layout)?, // stx_atime.tv_sec
-            immty_from_uint_checked(access_nsec, __u32_layout)?, // stx_atime.tv_nsec
-            immty_from_uint_checked(0u128, __u32_layout)?, // statx_timestamp padding
-            immty_from_uint_checked(created_sec, __u64_layout)?, // stx_btime.tv_sec
-            immty_from_uint_checked(created_nsec, __u32_layout)?, // stx_btime.tv_nsec
-            immty_from_uint_checked(0u128, __u32_layout)?, // statx_timestamp padding
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_ctime.tv_sec
-            immty_from_uint_checked(0u128, __u32_layout)?, // stx_ctime.tv_nsec
-            immty_from_uint_checked(0u128, __u32_layout)?, // statx_timestamp padding
-            immty_from_uint_checked(modified_sec, __u64_layout)?, // stx_mtime.tv_sec
-            immty_from_uint_checked(modified_nsec, __u32_layout)?, // stx_mtime.tv_nsec
-            immty_from_uint_checked(0u128, __u32_layout)?, // statx_timestamp padding
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_rdev_major
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_rdev_minor
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_dev_major
-            immty_from_uint_checked(0u128, __u64_layout)?, // stx_dev_minor
-        ];
-
-        this.write_packed_immediates(&statxbuf_place, &imms)?;
+        // Now we write everything to `statxbuf`. We write a zero for the unavailable fields.
+        this.write_int_fields_named(
+            &[
+                ("stx_mask", mask.into()),
+                ("stx_blksize", 0),
+                ("stx_attributes", 0),
+                ("stx_nlink", 0),
+                ("stx_uid", 0),
+                ("stx_gid", 0),
+                ("stx_mode", mode.into()),
+                ("stx_ino", 0),
+                ("stx_size", metadata.size.into()),
+                ("stx_blocks", 0),
+                ("stx_attributes_mask", 0),
+                ("stx_rdev_major", 0),
+                ("stx_rdev_minor", 0),
+                ("stx_dev_major", 0),
+                ("stx_dev_minor", 0),
+            ],
+            &statxbuf,
+        )?;
+        this.write_int_fields(
+            &[
+                access_sec.into(),  // stx_atime.tv_sec
+                access_nsec.into(), // stx_atime.tv_nsec
+            ],
+            &this.mplace_field_named(&statxbuf, "stx_atime")?,
+        )?;
+        this.write_int_fields(
+            &[
+                created_sec.into(),  // stx_btime.tv_sec
+                created_nsec.into(), // stx_btime.tv_nsec
+            ],
+            &this.mplace_field_named(&statxbuf, "stx_btime")?,
+        )?;
+        this.write_int_fields(
+            &[
+                0.into(), // stx_ctime.tv_sec
+                0.into(), // stx_ctime.tv_nsec
+            ],
+            &this.mplace_field_named(&statxbuf, "stx_ctime")?,
+        )?;
+        this.write_int_fields(
+            &[
+                modified_sec.into(),  // stx_mtime.tv_sec
+                modified_nsec.into(), // stx_mtime.tv_nsec
+            ],
+            &this.mplace_field_named(&statxbuf, "stx_mtime")?,
+        )?;
 
         Ok(0)
     }
@@ -1196,33 +1222,30 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
     }
 
-    fn linux_readdir64_r(
-        &mut self,
-        dirp_op: &OpTy<'tcx, Tag>,
-        entry_op: &OpTy<'tcx, Tag>,
-        result_op: &OpTy<'tcx, Tag>,
-    ) -> InterpResult<'tcx, i32> {
+    fn linux_readdir64(&mut self, dirp_op: &OpTy<'tcx, Tag>) -> InterpResult<'tcx, Scalar<Tag>> {
         let this = self.eval_context_mut();
 
-        this.assert_target_os("linux", "readdir64_r");
+        this.assert_target_os("linux", "readdir64");
 
         let dirp = this.read_scalar(dirp_op)?.to_machine_usize(this)?;
 
         // Reject if isolation is enabled.
         if let IsolatedOp::Reject(reject_with) = this.machine.isolated_op {
-            this.reject_in_isolation("`readdir64_r`", reject_with)?;
-            // Set error code as "EBADF" (bad fd)
-            return this.handle_not_found();
+            this.reject_in_isolation("`readdir`", reject_with)?;
+            let eacc = this.eval_libc("EBADF")?;
+            this.set_last_error(eacc)?;
+            return Ok(Scalar::null_ptr(this));
         }
 
-        let dir_iter = this.machine.dir_handler.streams.get_mut(&dirp).ok_or_else(|| {
-            err_unsup_format!("the DIR pointer passed to readdir64_r did not come from opendir")
+        let open_dir = this.machine.dir_handler.streams.get_mut(&dirp).ok_or_else(|| {
+            err_unsup_format!("the DIR pointer passed to readdir64 did not come from opendir")
         })?;
-        match dir_iter.next() {
+
+        let entry = match open_dir.read_dir.next() {
             Some(Ok(dir_entry)) => {
-                // Write into entry, write pointer to result, return 0 on success.
-                // The name is written with write_os_str_to_c_str, while the rest of the
-                // dirent64 struct is written using write_packed_immediates.
+                // Write the directory entry into a newly allocated buffer.
+                // The name is written with write_bytes, while the rest of the
+                // dirent64 struct is written using write_int_fields.
 
                 // For reference:
                 // pub struct dirent64 {
@@ -1233,26 +1256,17 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 //     pub d_name: [c_char; 256],
                 // }
 
-                let entry_place = this.deref_operand(entry_op)?;
-                let name_place = this.mplace_field(&entry_place, 4)?;
+                let mut name = dir_entry.file_name(); // not a Path as there are no separators!
+                name.push("\0"); // Add a NUL terminator
+                let name_bytes = os_str_to_bytes(&name)?;
+                let name_len = u64::try_from(name_bytes.len()).unwrap();
 
-                let file_name = dir_entry.file_name(); // not a Path as there are no separators!
-                let (name_fits, _) = this.write_os_str_to_c_str(
-                    &file_name,
-                    name_place.ptr,
-                    name_place.layout.size.bytes(),
-                )?;
-                if !name_fits {
-                    throw_unsup_format!(
-                        "a directory entry had a name too large to fit in libc::dirent64"
-                    );
-                }
+                let dirent64_layout = this.libc_ty_layout("dirent64")?;
+                let d_name_offset = dirent64_layout.fields.offset(4 /* d_name */).bytes();
+                let size = d_name_offset.checked_add(name_len).unwrap();
 
-                let entry_place = this.deref_operand(entry_op)?;
-                let ino64_t_layout = this.libc_ty_layout("ino64_t")?;
-                let off64_t_layout = this.libc_ty_layout("off64_t")?;
-                let c_ushort_layout = this.libc_ty_layout("c_ushort")?;
-                let c_uchar_layout = this.libc_ty_layout("c_uchar")?;
+                let entry =
+                    this.malloc(size, /*zero_init:*/ false, MiriMemoryKind::Runtime)?;
 
                 // If the host is a Unix system, fill in the inode number with its real value.
                 // If not, use 0 as a fallback value.
@@ -1263,36 +1277,36 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
                 let file_type = this.file_type_to_d_type(dir_entry.file_type())?;
 
-                let imms = [
-                    immty_from_uint_checked(ino, ino64_t_layout)?, // d_ino
-                    immty_from_uint_checked(0u128, off64_t_layout)?, // d_off
-                    immty_from_uint_checked(0u128, c_ushort_layout)?, // d_reclen
-                    immty_from_int_checked(file_type, c_uchar_layout)?, // d_type
-                ];
-                this.write_packed_immediates(&entry_place, &imms)?;
+                this.write_int_fields(
+                    &[
+                        ino.into(),       // d_ino
+                        0,                // d_off
+                        size.into(),      // d_reclen
+                        file_type.into(), // d_type
+                    ],
+                    &MPlaceTy::from_aligned_ptr(entry, dirent64_layout),
+                )?;
 
-                let result_place = this.deref_operand(result_op)?;
-                this.write_scalar(this.read_scalar(entry_op)?, &result_place.into())?;
+                let name_ptr = entry.offset(Size::from_bytes(d_name_offset), this)?;
+                this.memory.write_bytes(name_ptr, name_bytes.iter().copied())?;
 
-                Ok(0)
+                entry
             }
             None => {
-                // end of stream: return 0, assign *result=NULL
-                this.write_null(&this.deref_operand(result_op)?.into())?;
-                Ok(0)
+                // end of stream: return NULL
+                Pointer::null()
             }
-            Some(Err(e)) =>
-                match e.raw_os_error() {
-                    // return positive error number on error
-                    Some(error) => Ok(error),
-                    None => {
-                        throw_unsup_format!(
-                            "the error {} couldn't be converted to a return value",
-                            e
-                        )
-                    }
-                },
-        }
+            Some(Err(e)) => {
+                this.set_last_error_from_io_error(e.kind())?;
+                Pointer::null()
+            }
+        };
+
+        let open_dir = this.machine.dir_handler.streams.get_mut(&dirp).unwrap();
+        let old_entry = std::mem::replace(&mut open_dir.entry, entry);
+        this.free(old_entry, MiriMemoryKind::Runtime)?;
+
+        Ok(Scalar::from_maybe_pointer(entry, this))
     }
 
     fn macos_readdir_r(
@@ -1314,14 +1328,14 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             return this.handle_not_found();
         }
 
-        let dir_iter = this.machine.dir_handler.streams.get_mut(&dirp).ok_or_else(|| {
+        let open_dir = this.machine.dir_handler.streams.get_mut(&dirp).ok_or_else(|| {
             err_unsup_format!("the DIR pointer passed to readdir_r did not come from opendir")
         })?;
-        match dir_iter.next() {
+        match open_dir.read_dir.next() {
             Some(Ok(dir_entry)) => {
                 // Write into entry, write pointer to result, return 0 on success.
                 // The name is written with write_os_str_to_c_str, while the rest of the
-                // dirent struct is written using write_packed_Immediates.
+                // dirent struct is written using write_int_fields.
 
                 // For reference:
                 // pub struct dirent {
@@ -1349,10 +1363,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 }
 
                 let entry_place = this.deref_operand(entry_op)?;
-                let ino_t_layout = this.libc_ty_layout("ino_t")?;
-                let off_t_layout = this.libc_ty_layout("off_t")?;
-                let c_ushort_layout = this.libc_ty_layout("c_ushort")?;
-                let c_uchar_layout = this.libc_ty_layout("c_uchar")?;
 
                 // If the host is a Unix system, fill in the inode number with its real value.
                 // If not, use 0 as a fallback value.
@@ -1363,14 +1373,16 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
                 let file_type = this.file_type_to_d_type(dir_entry.file_type())?;
 
-                let imms = [
-                    immty_from_uint_checked(ino, ino_t_layout)?,      // d_ino
-                    immty_from_uint_checked(0u128, off_t_layout)?,    // d_seekoff
-                    immty_from_uint_checked(0u128, c_ushort_layout)?, // d_reclen
-                    immty_from_uint_checked(file_name_len, c_ushort_layout)?, // d_namlen
-                    immty_from_int_checked(file_type, c_uchar_layout)?, // d_type
-                ];
-                this.write_packed_immediates(&entry_place, &imms)?;
+                this.write_int_fields(
+                    &[
+                        ino.into(),           // d_ino
+                        0,                    // d_seekoff
+                        0,                    // d_reclen
+                        file_name_len.into(), // d_namlen
+                        file_type.into(),     // d_type
+                    ],
+                    &entry_place,
+                )?;
 
                 let result_place = this.deref_operand(result_op)?;
                 this.write_scalar(this.read_scalar(entry_op)?, &result_place.into())?;
@@ -1408,8 +1420,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             return this.handle_not_found();
         }
 
-        if let Some(dir_iter) = this.machine.dir_handler.streams.remove(&dirp) {
-            drop(dir_iter);
+        if let Some(open_dir) = this.machine.dir_handler.streams.remove(&dirp) {
+            this.free(open_dir.entry, MiriMemoryKind::Runtime)?;
+            drop(open_dir);
             Ok(0)
         } else {
             this.handle_not_found()

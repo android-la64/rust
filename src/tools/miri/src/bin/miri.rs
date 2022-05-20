@@ -15,7 +15,6 @@ use std::num::NonZeroU64;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use hex::FromHexError;
 use log::debug;
 
 use rustc_data_structures::sync::Lrc;
@@ -28,6 +27,8 @@ use rustc_middle::{
     ty::{query::ExternProviders, TyCtxt},
 };
 use rustc_session::{config::ErrorOutputType, search_paths::PathKind, CtfeBacktrace};
+
+use miri::BacktraceStyle;
 
 struct MiriCompilerCalls {
     miri_config: miri::MiriConfig,
@@ -362,6 +363,10 @@ fn main() {
                 "-Zmiri-tag-raw-pointers" => {
                     miri_config.tag_raw = true;
                 }
+                "-Zmiri-strict-provenance" => {
+                    miri_config.strict_provenance = true;
+                    miri_config.tag_raw = true;
+                }
                 "-Zmiri-track-raw-pointers" => {
                     eprintln!(
                         "WARNING: -Zmiri-track-raw-pointers has been renamed to -Zmiri-tag-raw-pointers, the old name is deprecated."
@@ -375,27 +380,21 @@ fn main() {
                     if miri_config.seed.is_some() {
                         panic!("Cannot specify -Zmiri-seed multiple times!");
                     }
-                    let seed_raw = hex::decode(arg.strip_prefix("-Zmiri-seed=").unwrap())
-                        .unwrap_or_else(|err| match err {
-                            FromHexError::InvalidHexCharacter { .. } => panic!(
-                                "-Zmiri-seed should only contain valid hex digits [0-9a-fA-F]"
-                            ),
-                            FromHexError::OddLength =>
-                                panic!("-Zmiri-seed should have an even number of digits"),
-                            err => panic!("unknown error decoding -Zmiri-seed as hex: {:?}", err),
-                        });
-                    if seed_raw.len() > 8 {
-                        panic!("-Zmiri-seed must be at most 8 bytes, was {}", seed_raw.len());
-                    }
-
-                    let mut bytes = [0; 8];
-                    bytes[..seed_raw.len()].copy_from_slice(&seed_raw);
-                    miri_config.seed = Some(u64::from_be_bytes(bytes));
+                    let seed = u64::from_str_radix(arg.strip_prefix("-Zmiri-seed=").unwrap(), 16)
+                        .unwrap_or_else(|_| panic!(
+                            "-Zmiri-seed should only contain valid hex digits [0-9a-fA-F] and fit into a u64 (max 16 characters)"
+                        ));
+                    miri_config.seed = Some(seed);
                 }
                 arg if arg.starts_with("-Zmiri-env-exclude=") => {
                     miri_config
                         .excluded_env_vars
                         .push(arg.strip_prefix("-Zmiri-env-exclude=").unwrap().to_owned());
+                }
+                arg if arg.starts_with("-Zmiri-env-forward=") => {
+                    miri_config
+                        .forwarded_env_vars
+                        .push(arg.strip_prefix("-Zmiri-env-forward=").unwrap().to_owned());
                 }
                 arg if arg.starts_with("-Zmiri-track-pointer-tag=") => {
                     let id: u64 =
@@ -461,6 +460,14 @@ fn main() {
                 arg if arg.starts_with("-Zmiri-measureme=") => {
                     let measureme_out = arg.strip_prefix("-Zmiri-measureme=").unwrap();
                     miri_config.measureme_out = Some(measureme_out.to_string());
+                }
+                arg if arg.starts_with("-Zmiri-backtrace=") => {
+                    miri_config.backtrace_style = match arg.strip_prefix("-Zmiri-backtrace=") {
+                        Some("0") => BacktraceStyle::Off,
+                        Some("1") => BacktraceStyle::Short,
+                        Some("full") => BacktraceStyle::Full,
+                        _ => panic!("-Zmiri-backtrace may only be 0, 1, or full"),
+                    };
                 }
                 _ => {
                     // Forward to rustc.

@@ -4,7 +4,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! notify = "5.0.0-pre.13"
+//! notify = "5.0.0-pre.14"
 //! ```
 //!
 //! ## Serde
@@ -12,7 +12,7 @@
 //! Events are serialisable via [serde] if the `serde` feature is enabled:
 //!
 //! ```toml
-//! notify = { version = "5.0.0-pre.13", features = ["serde"] }
+//! notify = { version = "5.0.0-pre.14", features = ["serde"] }
 //! ```
 //!
 //! [serde]: https://serde.rs
@@ -105,18 +105,21 @@ pub use error::{Error, ErrorKind, Result};
 pub use event::{Event, EventKind};
 use std::path::Path;
 
-#[cfg(all(target_os = "macos", feature = "macos_fsevent"))]
+#[cfg(all(target_os = "macos", not(feature = "macos_kqueue")))]
 pub use crate::fsevent::FsEventWatcher;
 #[cfg(target_os = "linux")]
 pub use crate::inotify::INotifyWatcher;
-#[cfg(target_os = "freebsd")]
+#[cfg(any(
+    target_os = "freebsd",
+    all(target_os = "macos", feature = "macos_kqueue")
+))]
 pub use crate::kqueue::KqueueWatcher;
 pub use null::NullWatcher;
 pub use poll::PollWatcher;
 #[cfg(target_os = "windows")]
 pub use windows::ReadDirectoryChangesWatcher;
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "macos_kqueue")))]
 pub mod fsevent;
 #[cfg(target_os = "linux")]
 pub mod inotify;
@@ -182,6 +185,24 @@ impl EventHandler for std::sync::mpsc::Sender<Result<Event>> {
     }
 }
 
+/// Watcher kind enumeration
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum WatcherKind {
+    /// inotify backend (linux)
+    Inotify,
+    /// FS-Event backend (mac)
+    Fsevent,
+    /// KQueue backend (bsd,mac)
+    Kqueue,
+    /// Polling based backend (fallback)
+    PollWatcher,
+    /// Windows backend
+    ReadDirectoryChangesWatcher,
+    /// Fake watcher for testing
+    NullWatcher,
+}
+
 /// Type that can deliver file activity notifications
 ///
 /// Watcher is implemented per platform using the best implementation available on that platform.
@@ -189,7 +210,9 @@ impl EventHandler for std::sync::mpsc::Sender<Result<Event>> {
 /// that should work on any platform.
 pub trait Watcher {
     /// Create a new watcher.
-    fn new<F: EventHandler>(event_handler: F) -> Result<Self> where Self: Sized;
+    fn new<F: EventHandler>(event_handler: F) -> Result<Self>
+    where
+        Self: Sized;
     /// Begin watching a new path.
     ///
     /// If the `path` is a directory, `recursive_mode` will be evaluated. If `recursive_mode` is
@@ -227,19 +250,27 @@ pub trait Watcher {
     fn configure(&mut self, _option: Config) -> Result<bool> {
         Ok(false)
     }
+
+    /// Returns the watcher kind, allowing to perform backend-specific tasks
+    fn kind() -> WatcherKind
+    where
+        Self: Sized;
 }
 
 /// The recommended `Watcher` implementation for the current platform
 #[cfg(target_os = "linux")]
 pub type RecommendedWatcher = INotifyWatcher;
 /// The recommended `Watcher` implementation for the current platform
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "macos_kqueue")))]
 pub type RecommendedWatcher = FsEventWatcher;
 /// The recommended `Watcher` implementation for the current platform
 #[cfg(target_os = "windows")]
 pub type RecommendedWatcher = ReadDirectoryChangesWatcher;
 /// The recommended `Watcher` implementation for the current platform
-#[cfg(target_os = "freebsd")]
+#[cfg(any(
+    target_os = "freebsd",
+    all(target_os = "macos", feature = "macos_kqueue")
+))]
 pub type RecommendedWatcher = KqueueWatcher;
 /// The recommended `Watcher` implementation for the current platform
 #[cfg(not(any(

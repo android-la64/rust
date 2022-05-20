@@ -57,6 +57,16 @@ pub enum IsolatedOp {
     Allow,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum BacktraceStyle {
+    /// Prints a terser backtrace which ideally only contains relevant information.
+    Short,
+    /// Prints a backtrace with all possible information.
+    Full,
+    /// Prints only the frame that the error occurs in.
+    Off,
+}
+
 /// Configuration needed to spawn a Miri instance.
 #[derive(Clone)]
 pub struct MiriConfig {
@@ -76,6 +86,8 @@ pub struct MiriConfig {
     pub ignore_leaks: bool,
     /// Environment variables that should always be isolated from the host.
     pub excluded_env_vars: Vec<String>,
+    /// Environment variables that should always be forwarded from the host.
+    pub forwarded_env_vars: Vec<String>,
     /// Command-line arguments passed to the interpreted program.
     pub args: Vec<String>,
     /// The seed to use when non-determinism or randomness are required (e.g. ptr-to-int cast, `getrandom()`).
@@ -96,8 +108,13 @@ pub struct MiriConfig {
     /// If `Some`, enable the `measureme` profiler, writing results to a file
     /// with the specified prefix.
     pub measureme_out: Option<String>,
-    /// Panic when unsupported functionality is encountered
+    /// Panic when unsupported functionality is encountered.
     pub panic_on_unsupported: bool,
+    /// Which style to use for printing backtraces.
+    pub backtrace_style: BacktraceStyle,
+    /// Whether to enforce "strict provenance" rules. Enabling this means int2ptr casts return
+    /// pointers with an invalid provenance, i.e., not valid for any memory access.
+    pub strict_provenance: bool,
 }
 
 impl Default for MiriConfig {
@@ -111,6 +128,7 @@ impl Default for MiriConfig {
             isolated_op: IsolatedOp::Reject(RejectOpWith::Abort),
             ignore_leaks: false,
             excluded_env_vars: vec![],
+            forwarded_env_vars: vec![],
             args: vec![],
             seed: None,
             tracked_pointer_tag: None,
@@ -121,6 +139,8 @@ impl Default for MiriConfig {
             cmpxchg_weak_failure_rate: 0.8,
             measureme_out: None,
             panic_on_unsupported: false,
+            backtrace_style: BacktraceStyle::Short,
+            strict_provenance: false,
         }
     }
 }
@@ -145,7 +165,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
         MemoryExtra::new(&config),
     );
     // Complete initialization.
-    EnvVars::init(&mut ecx, config.excluded_env_vars)?;
+    EnvVars::init(&mut ecx, config.excluded_env_vars, config.forwarded_env_vars)?;
     MemoryExtra::init_extern_statics(&mut ecx)?;
 
     // Make sure we have MIR. We check MIR for some stable monomorphic function in libcore.

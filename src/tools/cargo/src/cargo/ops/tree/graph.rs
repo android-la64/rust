@@ -233,9 +233,33 @@ impl<'a> Graph<'a> {
 
         let mut dupes: Vec<(&Node, usize)> = packages
             .into_iter()
-            .filter(|(_name, indexes)| indexes.len() > 1)
+            .filter(|(_name, indexes)| {
+                indexes
+                    .into_iter()
+                    .map(|(node, _)| {
+                        match node {
+                            Node::Package {
+                                package_id,
+                                features,
+                                ..
+                            } => {
+                                // Do not treat duplicates on the host or target as duplicates.
+                                Node::Package {
+                                    package_id: package_id.clone(),
+                                    features: features.clone(),
+                                    kind: CompileKind::Host,
+                                }
+                            }
+                            _ => unreachable!(),
+                        }
+                    })
+                    .collect::<HashSet<_>>()
+                    .len()
+                    > 1
+            })
             .flat_map(|(_name, indexes)| indexes)
             .collect();
+
         // For consistent output.
         dupes.sort_unstable();
         dupes.into_iter().map(|(_node, i)| i).collect()
@@ -301,7 +325,8 @@ fn add_pkg(
     let node_features = resolved_features.activated_features(package_id, features_for);
     let node_kind = match features_for {
         FeaturesFor::HostDep => CompileKind::Host,
-        FeaturesFor::NormalOrDev => requested_kind,
+        FeaturesFor::NormalOrDevOrArtifactTarget(Some(target)) => CompileKind::Target(target),
+        FeaturesFor::NormalOrDevOrArtifactTarget(None) => requested_kind,
     };
     let node = Node::Package {
         package_id,

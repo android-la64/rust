@@ -135,6 +135,11 @@ impl SourceId {
                 Ok(SourceId::new(SourceKind::Registry, url, None)?
                     .with_precise(Some("locked".to_string())))
             }
+            "sparse" => {
+                let url = string.into_url()?;
+                Ok(SourceId::new(SourceKind::Registry, url, None)?
+                    .with_precise(Some("locked".to_string())))
+            }
             "path" => {
                 let url = url.into_url()?;
                 SourceId::new(SourceKind::Path, url, None)
@@ -201,7 +206,7 @@ impl SourceId {
         })
     }
 
-    /// Gets the `SourceId` associated with given name of the remote regsitry.
+    /// Gets the `SourceId` associated with given name of the remote registry.
     pub fn alt_registry(config: &Config, key: &str) -> CargoResult<SourceId> {
         let url = config.get_registry_index(key)?;
         Ok(SourceId::wrap(SourceIdInner {
@@ -301,7 +306,7 @@ impl SourceId {
                 self,
                 yanked_whitelist,
                 config,
-            ))),
+            )?)),
             SourceKind::LocalRegistry => {
                 let path = match self.inner.url.to_file_path() {
                     Ok(p) => p,
@@ -574,7 +579,7 @@ impl PartialOrd for SourceKind {
 // (1.53) #9397 was created to fix the regression introduced by #9133 relative
 // to the current stable (1.51).
 //
-// That's all a long winded way of saying "it's wierd that git deps hash first
+// That's all a long winded way of saying "it's weird that git deps hash first
 // and are sorted last, but it's the way it is right now". The author of this
 // comment chose to handwrite the `Ord` implementation instead of the `Hash`
 // implementation, but it's only required that at most one of them is

@@ -7,8 +7,10 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Write};
-use std::net::TcpListener;
+use std::net::{SocketAddr, TcpListener};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use tar::{Builder, Header};
 use url::Url;
@@ -331,6 +333,7 @@ pub struct Dependency {
     name: String,
     vers: String,
     kind: String,
+    artifact: Option<(String, Option<String>)>,
     target: Option<String>,
     features: Vec<String>,
     registry: Option<String>,
@@ -365,6 +368,165 @@ pub fn init() {
 /// Variant of `init` that initializes the "alternative" registry.
 pub fn alt_init() {
     RegistryBuilder::new().alternative(true).build();
+}
+
+pub struct RegistryServer {
+    done: Arc<AtomicBool>,
+    server: Option<thread::JoinHandle<()>>,
+    addr: SocketAddr,
+}
+
+impl RegistryServer {
+    pub fn addr(&self) -> SocketAddr {
+        self.addr
+    }
+}
+
+impl Drop for RegistryServer {
+    fn drop(&mut self) {
+        self.done.store(true, Ordering::SeqCst);
+        // NOTE: we can't actually await the server since it's blocked in accept()
+        let _ = self.server.take();
+    }
+}
+
+#[must_use]
+pub fn serve_registry(registry_path: PathBuf) -> RegistryServer {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let done = Arc::new(AtomicBool::new(false));
+    let done2 = done.clone();
+
+    let t = thread::spawn(move || {
+        let mut line = String::new();
+        'server: while !done2.load(Ordering::SeqCst) {
+            let (socket, _) = listener.accept().unwrap();
+            // Let's implement a very naive static file HTTP server.
+            let mut buf = BufReader::new(socket);
+
+            // First, the request line:
+            // GET /path HTTPVERSION
+            line.clear();
+            if buf.read_line(&mut line).unwrap() == 0 {
+                // Connection terminated.
+                continue;
+            }
+
+            assert!(line.starts_with("GET "), "got non-GET request: {}", line);
+            let path = PathBuf::from(
+                line.split_whitespace()
+                    .skip(1)
+                    .next()
+                    .unwrap()
+                    .trim_start_matches('/'),
+            );
+
+            let file = registry_path.join(path);
+            if file.exists() {
+                // Grab some other headers we may care about.
+                let mut if_modified_since = None;
+                let mut if_none_match = None;
+                loop {
+                    line.clear();
+                    if buf.read_line(&mut line).unwrap() == 0 {
+                        continue 'server;
+                    }
+
+                    if line == "\r\n" {
+                        // End of headers.
+                        line.clear();
+                        break;
+                    }
+
+                    let value = line
+                        .splitn(2, ':')
+                        .skip(1)
+                        .next()
+                        .map(|v| v.trim())
+                        .unwrap();
+
+                    if line.starts_with("If-Modified-Since:") {
+                        if_modified_since = Some(value.to_owned());
+                    } else if line.starts_with("If-None-Match:") {
+                        if_none_match = Some(value.trim_matches('"').to_owned());
+                    }
+                }
+
+                // Now grab info about the file.
+                let data = fs::read(&file).unwrap();
+                let etag = Sha256::new().update(&data).finish_hex();
+                let last_modified = format!("{:?}", file.metadata().unwrap().modified().unwrap());
+
+                // Start to construct our response:
+                let mut any_match = false;
+                let mut all_match = true;
+                if let Some(expected) = if_none_match {
+                    if etag != expected {
+                        all_match = false;
+                    } else {
+                        any_match = true;
+                    }
+                }
+                if let Some(expected) = if_modified_since {
+                    // NOTE: Equality comparison is good enough for tests.
+                    if last_modified != expected {
+                        all_match = false;
+                    } else {
+                        any_match = true;
+                    }
+                }
+
+                // Write out the main response line.
+                if any_match && all_match {
+                    buf.get_mut()
+                        .write_all(b"HTTP/1.1 304 Not Modified\r\n")
+                        .unwrap();
+                } else {
+                    buf.get_mut().write_all(b"HTTP/1.1 200 OK\r\n").unwrap();
+                }
+                // TODO: Support 451 for crate index deletions.
+
+                // Write out other headers.
+                buf.get_mut()
+                    .write_all(format!("Content-Length: {}\r\n", data.len()).as_bytes())
+                    .unwrap();
+                buf.get_mut()
+                    .write_all(format!("ETag: \"{}\"\r\n", etag).as_bytes())
+                    .unwrap();
+                buf.get_mut()
+                    .write_all(format!("Last-Modified: {}\r\n", last_modified).as_bytes())
+                    .unwrap();
+
+                // And finally, write out the body.
+                buf.get_mut().write_all(b"\r\n").unwrap();
+                buf.get_mut().write_all(&data).unwrap();
+            } else {
+                loop {
+                    line.clear();
+                    if buf.read_line(&mut line).unwrap() == 0 {
+                        // Connection terminated.
+                        continue 'server;
+                    }
+
+                    if line == "\r\n" {
+                        break;
+                    }
+                }
+
+                buf.get_mut()
+                    .write_all(b"HTTP/1.1 404 Not Found\r\n\r\n")
+                    .unwrap();
+                buf.get_mut().write_all(b"\r\n").unwrap();
+            }
+            buf.get_mut().flush().unwrap();
+        }
+    });
+
+    RegistryServer {
+        addr,
+        server: Some(t),
+        done,
+    }
 }
 
 /// Creates a new on-disk registry.
@@ -591,6 +753,7 @@ impl Package {
                     "features": dep.features,
                     "default_features": true,
                     "target": dep.target,
+                    "artifact": dep.artifact,
                     "optional": dep.optional,
                     "kind": dep.kind,
                     "registry": registry_url,
@@ -744,6 +907,12 @@ impl Package {
             "#,
                 target, kind, dep.name, dep.vers
             ));
+            if let Some((artifact, target)) = &dep.artifact {
+                manifest.push_str(&format!("artifact = \"{}\"\n", artifact));
+                if let Some(target) = &target {
+                    manifest.push_str(&format!("target = \"{}\"\n", target))
+                }
+            }
             if let Some(registry) = &dep.registry {
                 assert_eq!(registry, "alternative");
                 manifest.push_str(&format!("registry-index = \"{}\"", alt_registry_url()));
@@ -799,6 +968,7 @@ impl Dependency {
             name: name.to_string(),
             vers: vers.to_string(),
             kind: "normal".to_string(),
+            artifact: None,
             target: None,
             features: Vec::new(),
             package: None,
@@ -822,6 +992,13 @@ impl Dependency {
     /// Changes this to `[target.$target.dependencies]`.
     pub fn target(&mut self, target: &str) -> &mut Self {
         self.target = Some(target.to_string());
+        self
+    }
+
+    /// Change the artifact to be of the given kind, like "bin", or "staticlib",
+    /// along with a specific target triple if provided.
+    pub fn artifact(&mut self, kind: &str, target: Option<String>) -> &mut Self {
+        self.artifact = Some((kind.to_string(), target));
         self
     }
 

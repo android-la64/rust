@@ -12,12 +12,12 @@
 [package]
 edition = "2018"
 name = "chalk-derive"
-version = "0.76.0"
+version = "0.81.0"
 authors = ["Rust Compiler Team", "Chalk developers"]
 description = "A helper crate for use by chalk crates for `derive` macros."
 readme = "README.md"
 keywords = ["compiler", "traits", "prolog"]
-license = "Apache-2.0/MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/chalk"
 
 [lib]

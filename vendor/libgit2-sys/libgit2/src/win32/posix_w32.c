@@ -9,12 +9,10 @@
 
 #include "../posix.h"
 #include "../futils.h"
-#include "path.h"
+#include "fs_path.h"
 #include "path_w32.h"
 #include "utf-conv.h"
-#include "repository.h"
 #include "reparse.h"
-#include "buffer.h"
 #include <errno.h>
 #include <io.h>
 #include <fcntl.h>
@@ -415,21 +413,21 @@ int p_readlink(const char *path, char *buf, size_t bufsiz)
 
 static bool target_is_dir(const char *target, const char *path)
 {
-	git_buf resolved = GIT_BUF_INIT;
+	git_str resolved = GIT_STR_INIT;
 	git_win32_path resolved_w;
 	bool isdir = true;
 
-	if (git_path_is_absolute(target))
+	if (git_fs_path_is_absolute(target))
 		git_win32_path_from_utf8(resolved_w, target);
-	else if (git_path_dirname_r(&resolved, path) < 0 ||
-		 git_path_apply_relative(&resolved, target) < 0 ||
+	else if (git_fs_path_dirname_r(&resolved, path) < 0 ||
+		 git_fs_path_apply_relative(&resolved, target) < 0 ||
 		 git_win32_path_from_utf8(resolved_w, resolved.ptr) < 0)
 		goto out;
 
 	isdir = GetFileAttributesW(resolved_w) & FILE_ATTRIBUTE_DIRECTORY;
 
 out:
-	git_buf_dispose(&resolved);
+	git_str_dispose(&resolved);
 	return isdir;
 }
 
@@ -443,7 +441,7 @@ int p_symlink(const char *target, const char *path)
 	 * not want to use `git_win32_path_from_utf8` for converting the target,
 	 * as that function will automatically pre-pend the current working
 	 * directory in case the path is not absolute. As Git will instead use
-	 * relative symlinks, this is not someting we want.
+	 * relative symlinks, this is not something we want.
 	 */
 	if (git_win32_path_from_utf8(path_w, path) < 0 ||
 	    git_win32_path_relative_from_utf8(target_w, target) < 0)
@@ -662,7 +660,7 @@ int p_getcwd(char *buffer_out, size_t size)
 		return -1;
 	}
 
-	git_path_mkposix(buffer_out);
+	git_fs_path_mkposix(buffer_out);
 	return 0;
 }
 
@@ -822,7 +820,7 @@ char *p_realpath(const char *orig_path, char *buffer)
 	if (git_win32_path_to_utf8(buffer, buffer_w) < 0)
 		return NULL;
 
-	git_path_mkposix(buffer);
+	git_fs_path_mkposix(buffer);
 
 	return buffer;
 }
@@ -860,20 +858,6 @@ int p_snprintf(char *buffer, size_t count, const char *format, ...)
 	va_end(va);
 
 	return r;
-}
-
-/* TODO: wut? */
-int p_mkstemp(char *tmp_path)
-{
-#if defined(_MSC_VER) && _MSC_VER >= 1500
-	if (_mktemp_s(tmp_path, strlen(tmp_path) + 1) != 0)
-		return -1;
-#else
-	if (_mktemp(tmp_path) == NULL)
-		return -1;
-#endif
-
-	return p_open(tmp_path, O_RDWR | O_CREAT | O_EXCL, 0744); /* -V536 */
 }
 
 int p_access(const char *path, mode_t mode)
@@ -1003,7 +987,7 @@ ssize_t p_pread(int fd, void *data, size_t size, off64_t offset)
 	/* Fail if the final offset would have overflowed to match POSIX semantics. */
 	if (!git__is_ssizet(size) || git__add_int64_overflow(&final_offset, offset, (int64_t)size)) {
 		errno = EINVAL;
-		return -1;	
+		return -1;
 	}
 
 	/*
@@ -1038,7 +1022,7 @@ ssize_t p_pwrite(int fd, const void *data, size_t size, off64_t offset)
 	/* Fail if the final offset would have overflowed to match POSIX semantics. */
 	if (!git__is_ssizet(size) || git__add_int64_overflow(&final_offset, offset, (int64_t)size)) {
 		errno = EINVAL;
-		return -1;	
+		return -1;
 	}
 
 	/*

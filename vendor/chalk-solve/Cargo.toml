@@ -12,24 +12,24 @@
 [package]
 edition = "2018"
 name = "chalk-solve"
-version = "0.76.0"
+version = "0.81.0"
 authors = ["Rust Compiler Team", "Chalk developers"]
 description = "Combines the chalk-engine with chalk-ir"
 readme = "README.md"
 keywords = ["compiler", "traits", "prolog"]
-license = "Apache-2.0/MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/chalk"
 [dependencies.chalk-derive]
-version = "=0.76.0"
+version = "=0.81.0"
 
 [dependencies.chalk-ir]
-version = "=0.76.0"
+version = "=0.81.0"
 
 [dependencies.ena]
 version = "0.14.0"
 
 [dependencies.indexmap]
-version = "1.7.0"
+version = "1.8.0"
 
 [dependencies.itertools]
 version = "0.10.0"

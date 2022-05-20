@@ -1797,6 +1797,21 @@ pub(crate) fn define(
         .operands_out(vec![a]),
     );
 
+    ig.push(
+        Inst::new(
+            "ifcmp_sp",
+            r#"
+    Compare ``addr`` with the stack pointer and set the CPU flags.
+
+    This is like `ifcmp` where ``addr`` is the LHS operand and the stack
+    pointer is the RHS.
+    "#,
+            &formats.unary,
+        )
+        .operands_in(vec![addr])
+        .operands_out(vec![flags]),
+    );
+
     let x = &Operand::new("x", TxN).with_doc("Vector to split");
     let lo = &Operand::new("lo", &TxN.half_vector()).with_doc("Low-numbered lanes of `x`");
     let hi = &Operand::new("hi", &TxN.half_vector()).with_doc("High-numbered lanes of `x`");
@@ -3020,12 +3035,14 @@ pub(crate) fn define(
         Two IEEE 754-2008 floating point numbers, `x` and `y`, relate to each
         other in exactly one of four ways:
 
+        ```text
         == ==========================================
         UN Unordered when one or both numbers is NaN.
         EQ When `x = y`. (And `0.0 = -0.0`).
         LT When `x < y`.
         GT When `x > y`.
         == ==========================================
+        ```
 
         The 14 `floatcc` condition codes each correspond to a subset of
         the four relations, except for the empty set which would always be
@@ -3034,6 +3051,7 @@ pub(crate) fn define(
         The condition codes are divided into 7 'ordered' conditions which don't
         include UN, and 7 unordered conditions which all include UN.
 
+        ```text
         +-------+------------+---------+------------+-------------------------+
         |Ordered             |Unordered             |Condition                |
         +=======+============+=========+============+=========================+
@@ -3051,6 +3069,7 @@ pub(crate) fn define(
         +-------+------------+---------+------------+-------------------------+
         |ge     |GT | EQ     |uge      |UN | GT | EQ|Greater than or equal    |
         +-------+------------+---------+------------+-------------------------+
+        ```
 
         The standard C comparison operators, `<, <=, >, >=`, are all ordered,
         so they are false if either operand is NaN. The C equality operator,
@@ -3058,6 +3077,7 @@ pub(crate) fn define(
         inverse it is *unordered*. They map to the `floatcc` condition
         codes as follows:
 
+        ```text
         ==== ====== ============
         C    `Cond` Subset
         ==== ====== ============
@@ -3068,6 +3088,7 @@ pub(crate) fn define(
         `>`  gt     GT
         `>=` ge     GT | EQ
         ==== ====== ============
+        ```
 
         This subset of condition codes also corresponds to the WebAssembly
         floating point comparisons of the same name.

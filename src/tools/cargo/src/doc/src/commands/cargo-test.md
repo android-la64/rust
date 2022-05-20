@@ -250,8 +250,7 @@ be specified multiple times, which enables all specified features.</dd>
 <dl>
 
 <dt class="option-term" id="option-cargo-test---target"><a class="option-anchor" href="#option-cargo-test---target"></a><code>--target</code> <em>triple</em></dt>
-<dd class="option-desc">Test for the given architecture. The default is the host
-architecture. The general format of the triple is
+<dd class="option-desc">Test for the given architecture. The default is the host architecture. The general format of the triple is
 <code>&lt;arch&gt;&lt;sub&gt;-&lt;vendor&gt;-&lt;sys&gt;-&lt;abi&gt;</code>. Run <code>rustc --print target-list</code> for a
 list of supported targets.</p>
 <p>This may also be specified with the <code>build.target</code>
@@ -456,6 +455,12 @@ includes an option to control the number of threads used:
 the number of CPUs.</dd>
 
 
+<dt class="option-term" id="option-cargo-test---keep-going"><a class="option-anchor" href="#option-cargo-test---keep-going"></a><code>--keep-going</code></dt>
+<dd class="option-desc">Build as many crates in the dependency graph as possible, rather than aborting
+the build on the first one that fails to build. Unstable, requires
+<code>-Zunstable-options</code>.</dd>
+
+
 <dt class="option-term" id="option-cargo-test---future-incompat-report"><a class="option-anchor" href="#option-cargo-test---future-incompat-report"></a><code>--future-incompat-report</code></dt>
 <dd class="option-desc">Displays a future-incompat report for any future-incompatible warnings
 produced during execution of this command</p>
@@ -492,4 +497,4 @@ details on environment variables that Cargo reads.
        cargo test --test int_test_name -- modname::test_name
 
 ## SEE ALSO
-[cargo(1)](cargo.html), [cargo-bench(1)](cargo-bench.html)
+[cargo(1)](cargo.html), [cargo-bench(1)](cargo-bench.html), [types of tests](../reference/cargo-targets.html#tests), [how to write tests](https://doc.rust-lang.org/rustc/tests/index.html)

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "racer"
-version = "2.2.0"
+version = "2.2.1"
 authors = ["Phil Dawes <phil@phildawes.net>", "The Racer developers"]
 description = "Code completion for Rust"
 homepage = "https://github.com/racer-rust/racer"

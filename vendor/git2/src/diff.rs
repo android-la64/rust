@@ -1170,7 +1170,7 @@ impl<'a> std::fmt::Debug for DiffHunk<'a> {
 }
 
 impl DiffStats {
-    /// Get the total number of files chaned in a diff.
+    /// Get the total number of files changed in a diff.
     pub fn files_changed(&self) -> usize {
         unsafe { raw::git_diff_stats_files_changed(&*self.raw) as usize }
     }
@@ -1452,7 +1452,7 @@ impl DiffFindOptions {
         self
     }
 
-    /// Similarity of modified to be glegible rename source (default 50)
+    /// Similarity of modified to be eligible rename source (default 50)
     pub fn rename_from_rewrite_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
         self.raw.rename_from_rewrite_threshold = thresh;
         self

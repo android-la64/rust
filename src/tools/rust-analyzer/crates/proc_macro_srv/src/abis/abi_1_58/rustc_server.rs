@@ -97,9 +97,13 @@ impl Extend<TokenStream> for TokenStream {
     }
 }
 
+#[derive(Clone)]
+pub struct SourceFile {
+    // FIXME stub
+}
+
 type Level = super::proc_macro::Level;
 type LineColumn = super::proc_macro::LineColumn;
-type SourceFile = super::proc_macro::SourceFile;
 
 /// A structure representing a diagnostic message and associated children
 /// messages.
@@ -594,16 +598,15 @@ impl server::Literal for Rustc {
 }
 
 impl server::SourceFile for Rustc {
-    fn eq(&mut self, file1: &Self::SourceFile, file2: &Self::SourceFile) -> bool {
-        file1.eq(file2)
+    // FIXME these are all stubs
+    fn eq(&mut self, _file1: &Self::SourceFile, _file2: &Self::SourceFile) -> bool {
+        true
     }
-    fn path(&mut self, file: &Self::SourceFile) -> String {
-        String::from(
-            file.path().to_str().expect("non-UTF8 file path in `proc_macro::SourceFile::path`"),
-        )
+    fn path(&mut self, _file: &Self::SourceFile) -> String {
+        String::new()
     }
-    fn is_real(&mut self, file: &Self::SourceFile) -> bool {
-        file.is_real()
+    fn is_real(&mut self, _file: &Self::SourceFile) -> bool {
+        true
     }
 }
 
@@ -646,8 +649,7 @@ impl server::Span for Rustc {
         tt::TokenId::unspecified()
     }
     fn source_file(&mut self, _span: Self::Span) -> Self::SourceFile {
-        // let MySpanData(span) = self.span_interner.get(span.0);
-        unimplemented!()
+        SourceFile {}
     }
     fn save_span(&mut self, _span: Self::Span) -> usize {
         // FIXME stub
@@ -681,8 +683,9 @@ impl server::Span for Rustc {
         // FIXME handle span
         LineColumn { line: 0, column: 0 }
     }
-    fn join(&mut self, _first: Self::Span, _second: Self::Span) -> Option<Self::Span> {
-        None
+    fn join(&mut self, first: Self::Span, _second: Self::Span) -> Option<Self::Span> {
+        // Just return the first span again, because some macros will unwrap the result.
+        Some(first)
     }
     fn resolved_at(&mut self, _span: Self::Span, _at: Self::Span) -> Self::Span {
         // FIXME handle span

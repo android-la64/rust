@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "cranelift-object"
-version = "0.78.0"
+version = "0.82.1"
 authors = ["The Cranelift Project Developers"]
 description = "Emit Cranelift output to native object files with `object`"
 documentation = "https://docs.rs/cranelift-object"
@@ -24,12 +24,12 @@ resolver = "2"
 version = "1.0"
 
 [dependencies.cranelift-codegen]
-version = "0.78.0"
+version = "0.82.1"
 features = ["std"]
 default-features = false
 
 [dependencies.cranelift-module]
-version = "0.78.0"
+version = "0.82.1"
 
 [dependencies.log]
 version = "0.4.6"
@@ -43,9 +43,9 @@ default-features = false
 [dependencies.target-lexicon]
 version = "0.12"
 [dev-dependencies.cranelift-entity]
-version = "0.78.0"
+version = "0.82.1"
 
 [dev-dependencies.cranelift-frontend]
-version = "0.78.0"
+version = "0.82.1"
 [badges.maintenance]
 status = "experimental"

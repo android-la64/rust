@@ -144,18 +144,51 @@ endian-sensitive code.
 ### Running Miri on CI
 
 To run Miri on CI, make sure that you handle the case where the latest nightly
-does not ship the Miri component because it currently does not build.  For
-example, you can use the following snippet to always test with the latest
-nightly that *does* come with Miri:
+does not ship the Miri component because it currently does not build. `rustup
+toolchain install --component` knows how to handle this situation, so the
+following snippet should always work:
 
 ```sh
-MIRI_NIGHTLY=nightly-$(curl -s https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu/miri)
-echo "Installing latest nightly with Miri: $MIRI_NIGHTLY"
-rustup set profile minimal
-rustup override set "$MIRI_NIGHTLY"
-rustup component add miri
+rustup toolchain install nightly --component miri
+rustup override set nightly
 
 cargo miri test
+```
+
+Here is an example job for GitHub Actions:
+
+```yaml
+  miri:
+    name: "Miri"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup
+      - name: Test with Miri
+        run: cargo miri test
+```
+
+The explicit `cargo miri setup` helps to keep the output of the actual test step
+clean.
+
+### Testing for alignment issues
+
+Miri can sometimes miss misaligned accesses since allocations can "happen to be"
+aligned just right. You can use `-Zmiri-symbolic-alignment-check` to definitely
+catch all such issues, but that flag will also cause false positives when code
+does manual pointer arithmetic to account for alignment. Another alternative is
+to call Miri with various values for `-Zmiri-seed`; that will alter the
+randomness that is used to determine allocation base addresses. The following
+snippet calls Miri in a loop with different values for the seed:
+
+```
+for seed in $({ echo obase=16; seq 255; } | bc); do
+  MIRIFLAGS=-Zmiri-seed=$seed cargo miri test || { echo "Last seed: $seed"; break; };
+done
 ```
 
 ### Common Problems
@@ -163,7 +196,7 @@ cargo miri test
 When using the above instructions, you may encounter a number of confusing compiler
 errors.
 
-### "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+#### "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
 
 You may see this when trying to get Miri to display a backtrace. By default, Miri
 doesn't expose any environment to the program, so running
@@ -236,10 +269,14 @@ environment variable:
   execution with a "permission denied" error being returned to the program.
   `warn` prints a full backtrace when that happen; `warn-nobacktrace` is less
   verbose. `hide` hides the warning entirely.
-* `-Zmiri-env-exclude=<var>` keeps the `var` environment variable isolated from
-  the host so that it cannot be accessed by the program.  Can be used multiple
-  times to exclude several variables.  On Windows, the `TERM` environment
-  variable is excluded by default.
+* `-Zmiri-env-exclude=<var>` keeps the `var` environment variable isolated from the host so that it
+  cannot be accessed by the program. Can be used multiple times to exclude several variables. The
+  `TERM` environment variable is excluded by default to [speed up the test
+  harness](https://github.com/rust-lang/miri/issues/1702). This has no effect unless
+  `-Zmiri-disable-validation` is also set.
+* `-Zmiri-env-forward=<var>` forwards the `var` environment variable to the interpreted program. Can
+  be used multiple times to forward several variables. This has no effect if
+  `-Zmiri-disable-validation` is set.
 * `-Zmiri-ignore-leaks` disables the memory leak checker, and also allows some
   remaining threads to exist when the main thread exits.
 * `-Zmiri-measureme=<name>` enables `measureme` profiling for the interpreted program.
@@ -257,6 +294,10 @@ environment variable:
   entropy.  The default seed is 0.  **NOTE**: This entropy is not good enough
   for cryptographic use!  Do not generate secret keys in Miri or perform other
   kinds of cryptographic operations that rely on proper random numbers.
+* `-Zmiri-strict-provenance` enables [strict
+  provenance](https://github.com/rust-lang/rust/issues/95228) checking in Miri. This means that
+  casting an integer to a pointer yields a result with 'invalid' provenance, i.e., with provenance
+  that cannot be used for any memory access. Also implies `-Zmiri-tag-raw-pointers`.
 * `-Zmiri-symbolic-alignment-check` makes the alignment check more strict.  By
   default, alignment is checked by casting the pointer to an integer, and making
   sure that is a multiple of the alignment.  This can lead to cases where a
@@ -338,9 +379,12 @@ binaries, and as such worth documenting:
   directory after loading all the source files, but before commencing
   interpretation. This is useful if the interpreted program wants a different
   working directory at run-time than at build-time.
+* `MIRI_LOCAL_CRATES` is set by `cargo-miri` to tell the Miri driver which
+  crates should be given special treatment in diagnostics, in addition to the
+  crate currently being compiled.
 * `MIRI_VERBOSE` when set to any value tells the various `cargo-miri` phases to
   perform verbose logging.
-  
+
 [testing-miri]: CONTRIBUTING.md#testing-the-miri-driver
 
 ## Miri `extern` functions
@@ -358,23 +402,28 @@ extern "Rust" {
     /// `ptr` has to point to the beginning of an allocated block.
     fn miri_static_root(ptr: *const u8);
 
+    // Miri-provided extern function to get the amount of frames in the current backtrace.
+    // The `flags` argument must be `0`.
+    fn miri_backtrace_size(flags: u64) -> usize;
+
     /// Miri-provided extern function to obtain a backtrace of the current call stack.
-    /// This returns a boxed slice of pointers - each pointer is an opaque value
-    /// that is only useful when passed to `miri_resolve_frame`
-    /// The `flags` argument must be `0`.
-    fn miri_get_backtrace(flags: u64) -> Box<[*mut ()]>;
+    /// This writes a slice of pointers into `buf` - each pointer is an opaque value
+    /// that is only useful when passed to `miri_resolve_frame`.
+    /// `buf` must have `miri_backtrace_size(0) * pointer_size` bytes of space.
+    /// The `flags` argument must be `1`.
+    fn miri_get_backtrace(flags: u64, buf: *mut *mut ());
 
     /// Miri-provided extern function to resolve a frame pointer obtained
-    /// from `miri_get_backtrace`. The `flags` argument must be `0`,
+    /// from `miri_get_backtrace`. The `flags` argument must be `1`,
     /// and `MiriFrame` should be declared as follows:
     ///
     /// ```rust
     /// #[repr(C)]
     /// struct MiriFrame {
-    ///     // The name of the function being executed, encoded in UTF-8
-    ///     name: Box<[u8]>,
-    ///     // The filename of the function being executed, encoded in UTF-8
-    ///     filename: Box<[u8]>,
+    ///     // The size of the name of the function being executed, encoded in UTF-8
+    ///     name_len: usize,
+    ///     // The size of filename of the function being executed, encoded in UTF-8
+    ///     filename_len: usize,
     ///     // The line number currently being executed in `filename`, starting from '1'.
     ///     lineno: u32,
     ///     // The column number currently being executed in `filename`, starting from '1'.
@@ -389,6 +438,11 @@ extern "Rust" {
     /// The fields must be declared in exactly the same order as they appear in `MiriFrame` above.
     /// This function can be called on any thread (not just the one which obtained `frame`).
     fn miri_resolve_frame(frame: *mut (), flags: u64) -> MiriFrame;
+
+    /// Miri-provided extern function to get the name and filename of the frame provided by `miri_resolve_frame`.
+    /// `name_buf` and `filename_buf` should be allocated with the `name_len` and `filename_len` fields of `MiriFrame`.
+    /// The flags argument must be `0`.
+    fn miri_resolve_frame_names(ptr: *mut (), flags: u64, name_buf: *mut u8, filename_buf: *mut u8);
 
     /// Miri-provided extern function to begin unwinding with the given payload.
     ///
@@ -453,6 +507,10 @@ Definite bugs found:
 * [`encoding_rs` doing out-of-bounds pointer arithmetic](https://github.com/hsivonen/encoding_rs/pull/53)
 * [TiKV using `Vec::from_raw_parts` incorrectly](https://github.com/tikv/agatedb/pull/24)
 * Incorrect doctests for [`AtomicPtr`](https://github.com/rust-lang/rust/pull/84052) and [`Box::from_raw_in`](https://github.com/rust-lang/rust/pull/84053)
+* [Insufficient alignment in `ThinVec`](https://github.com/Gankra/thin-vec/pull/27)
+* [`crossbeam-epoch` calling `assume_init` on a partly-initialized `MaybeUninit`](https://github.com/crossbeam-rs/crossbeam/pull/779)
+* [`integer-encoding` dereferencing a misaligned pointer](https://github.com/dermesser/integer-encoding-rs/pull/23)
+* [`rkyv` constructing a `Box<[u8]>` from an overaligned allocation](https://github.com/rkyv/rkyv/commit/a9417193a34757e12e24263178be8b2eebb72456)
 
 Violations of [Stacked Borrows] found that are likely bugs (but Stacked Borrows is currently just an experiment):
 

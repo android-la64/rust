@@ -38,1308 +38,58 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         None
     };
 
+    if let Ok(()) = super::lower::isle::lower(ctx, flags, isa_flags, &outputs, insn) {
+        return Ok(());
+    }
+
+    let implemented_in_isle = |ctx: &mut C| -> ! {
+        unreachable!(
+            "implemented in ISLE: inst = `{}`, type = `{:?}`",
+            ctx.dfg().display_inst(insn),
+            ty
+        );
+    };
+
     match op {
-        Opcode::Iconst | Opcode::Bconst | Opcode::Null => {
-            let value = ctx.get_constant(insn).unwrap();
-            // Sign extend constant if necessary
-            let value = match ty.unwrap() {
-                I8 => (((value as i64) << 56) >> 56) as u64,
-                I16 => (((value as i64) << 48) >> 48) as u64,
-                I32 => (((value as i64) << 32) >> 32) as u64,
-                I64 | R64 => value,
-                ty if ty.is_bool() => value,
-                ty => {
-                    return Err(CodegenError::Unsupported(format!(
-                        "{}: Unsupported type: {:?}",
-                        op, ty
-                    )))
-                }
-            };
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            lower_constant_u64(ctx, rd, value);
-        }
-        Opcode::F32const => {
-            let value = f32::from_bits(ctx.get_constant(insn).unwrap() as u32);
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            lower_constant_f32(ctx, rd, value);
-        }
-        Opcode::F64const => {
-            let value = f64::from_bits(ctx.get_constant(insn).unwrap());
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            lower_constant_f64(ctx, rd, value);
-        }
-        Opcode::Iadd => {
-            match ty.unwrap() {
-                ty if ty.is_vector() => {
-                    let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                    let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-                    let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                    ctx.emit(Inst::VecRRR {
-                        rd,
-                        rn,
-                        rm,
-                        alu_op: VecALUOp::Add,
-                        size: VectorSize::from_ty(ty),
-                    });
-                }
-                I128 => {
-                    let lhs = put_input_in_regs(ctx, inputs[0]);
-                    let rhs = put_input_in_regs(ctx, inputs[1]);
-                    let dst = get_output_reg(ctx, outputs[0]);
-                    assert_eq!(lhs.len(), 2);
-                    assert_eq!(rhs.len(), 2);
-                    assert_eq!(dst.len(), 2);
+        Opcode::Iconst | Opcode::Bconst | Opcode::Null => implemented_in_isle(ctx),
 
-                    // adds    x0, x0, x2
-                    // adc     x1, x1, x3
+        Opcode::F32const | Opcode::F64const => unreachable!(
+            "Should never see constant ops at top level lowering entry
+            point, as constants are rematerialized at use-sites"
+        ),
 
-                    ctx.emit(Inst::AluRRR {
-                        alu_op: ALUOp::AddS64,
-                        rd: dst.regs()[0],
-                        rn: lhs.regs()[0],
-                        rm: rhs.regs()[0],
-                    });
-                    ctx.emit(Inst::AluRRR {
-                        alu_op: ALUOp::Adc64,
-                        rd: dst.regs()[1],
-                        rn: lhs.regs()[1],
-                        rm: rhs.regs()[1],
-                    });
-                }
-                ty => {
-                    let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                    let mul_insn = if let Some(mul_insn) =
-                        maybe_input_insn(ctx, inputs[1], Opcode::Imul)
-                    {
-                        Some((mul_insn, 0))
-                    } else if let Some(mul_insn) = maybe_input_insn(ctx, inputs[0], Opcode::Imul) {
-                        Some((mul_insn, 1))
-                    } else {
-                        None
-                    };
-                    // If possible combine mul + add into madd.
-                    if let Some((insn, addend_idx)) = mul_insn {
-                        let alu_op = choose_32_64(ty, ALUOp3::MAdd32, ALUOp3::MAdd64);
-                        let rn_input = InsnInput { insn, input: 0 };
-                        let rm_input = InsnInput { insn, input: 1 };
-
-                        let rn = put_input_in_reg(ctx, rn_input, NarrowValueMode::None);
-                        let rm = put_input_in_reg(ctx, rm_input, NarrowValueMode::None);
-                        let ra = put_input_in_reg(ctx, inputs[addend_idx], NarrowValueMode::None);
-
-                        ctx.emit(Inst::AluRRRR {
-                            alu_op,
-                            rd,
-                            rn,
-                            rm,
-                            ra,
-                        });
-                    } else {
-                        let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                        let (rm, negated) = put_input_in_rse_imm12_maybe_negated(
-                            ctx,
-                            inputs[1],
-                            ty_bits(ty),
-                            NarrowValueMode::None,
-                        );
-                        let alu_op = if !negated {
-                            choose_32_64(ty, ALUOp::Add32, ALUOp::Add64)
-                        } else {
-                            choose_32_64(ty, ALUOp::Sub32, ALUOp::Sub64)
-                        };
-                        ctx.emit(alu_inst_imm12(alu_op, rd, rn, rm));
-                    }
-                }
-            }
-        }
-        Opcode::Isub => {
-            let ty = ty.unwrap();
-            if ty == I128 {
-                let lhs = put_input_in_regs(ctx, inputs[0]);
-                let rhs = put_input_in_regs(ctx, inputs[1]);
-                let dst = get_output_reg(ctx, outputs[0]);
-                assert_eq!(lhs.len(), 2);
-                assert_eq!(rhs.len(), 2);
-                assert_eq!(dst.len(), 2);
-
-                // subs    x0, x0, x2
-                // sbc     x1, x1, x3
-
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::SubS64,
-                    rd: dst.regs()[0],
-                    rn: lhs.regs()[0],
-                    rm: rhs.regs()[0],
-                });
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::Sbc64,
-                    rd: dst.regs()[1],
-                    rn: lhs.regs()[1],
-                    rm: rhs.regs()[1],
-                });
-            } else {
-                let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                if !ty.is_vector() {
-                    let (rm, negated) = put_input_in_rse_imm12_maybe_negated(
-                        ctx,
-                        inputs[1],
-                        ty_bits(ty),
-                        NarrowValueMode::None,
-                    );
-                    let alu_op = if !negated {
-                        choose_32_64(ty, ALUOp::Sub32, ALUOp::Sub64)
-                    } else {
-                        choose_32_64(ty, ALUOp::Add32, ALUOp::Add64)
-                    };
-                    ctx.emit(alu_inst_imm12(alu_op, rd, rn, rm));
-                } else {
-                    let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-                    ctx.emit(Inst::VecRRR {
-                        rd,
-                        rn,
-                        rm,
-                        alu_op: VecALUOp::Sub,
-                        size: VectorSize::from_ty(ty),
-                    });
-                }
-            }
-        }
+        Opcode::Iadd => implemented_in_isle(ctx),
+        Opcode::Isub => implemented_in_isle(ctx),
         Opcode::UaddSat | Opcode::SaddSat | Opcode::UsubSat | Opcode::SsubSat => {
-            let ty = ty.unwrap();
-
-            if !ty.is_vector() || ty_bits(ty) > 128 {
-                return Err(CodegenError::Unsupported(format!(
-                    "{}: Unsupported type: {:?}",
-                    op, ty
-                )));
-            }
-
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-            let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-
-            let alu_op = match op {
-                Opcode::UaddSat => VecALUOp::Uqadd,
-                Opcode::SaddSat => VecALUOp::Sqadd,
-                Opcode::UsubSat => VecALUOp::Uqsub,
-                Opcode::SsubSat => VecALUOp::Sqsub,
-                _ => unreachable!(),
-            };
-
-            ctx.emit(Inst::VecRRR {
-                rd,
-                rn,
-                rm,
-                alu_op,
-                size: VectorSize::from_ty(ty),
-            });
+            implemented_in_isle(ctx)
         }
 
-        Opcode::Ineg => {
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let ty = ty.unwrap();
-            if !ty.is_vector() {
-                let rn = zero_reg();
-                let rm = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                let alu_op = choose_32_64(ty, ALUOp::Sub32, ALUOp::Sub64);
-                ctx.emit(Inst::AluRRR { alu_op, rd, rn, rm });
-            } else {
-                let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                ctx.emit(Inst::VecMisc {
-                    op: VecMisc2::Neg,
-                    rd,
-                    rn,
-                    size: VectorSize::from_ty(ty),
-                });
-            }
-        }
+        Opcode::Ineg => implemented_in_isle(ctx),
 
-        Opcode::Imul => {
-            let ty = ty.unwrap();
-            if ty == I128 {
-                let lhs = put_input_in_regs(ctx, inputs[0]);
-                let rhs = put_input_in_regs(ctx, inputs[1]);
-                let dst = get_output_reg(ctx, outputs[0]);
-                assert_eq!(lhs.len(), 2);
-                assert_eq!(rhs.len(), 2);
-                assert_eq!(dst.len(), 2);
+        Opcode::Imul => implemented_in_isle(ctx),
 
-                // 128bit mul formula:
-                //   dst_lo = lhs_lo * rhs_lo
-                //   dst_hi = umulhi(lhs_lo, rhs_lo) + (lhs_lo * rhs_hi) + (lhs_hi * rhs_lo)
-                //
-                // We can convert the above formula into the following
-                // umulh   dst_hi, lhs_lo, rhs_lo
-                // madd    dst_hi, lhs_lo, rhs_hi, dst_hi
-                // madd    dst_hi, lhs_hi, rhs_lo, dst_hi
-                // mul     dst_lo, lhs_lo, rhs_lo
+        Opcode::Umulhi | Opcode::Smulhi => implemented_in_isle(ctx),
 
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::UMulH,
-                    rd: dst.regs()[1],
-                    rn: lhs.regs()[0],
-                    rm: rhs.regs()[0],
-                });
-                ctx.emit(Inst::AluRRRR {
-                    alu_op: ALUOp3::MAdd64,
-                    rd: dst.regs()[1],
-                    rn: lhs.regs()[0],
-                    rm: rhs.regs()[1],
-                    ra: dst.regs()[1].to_reg(),
-                });
-                ctx.emit(Inst::AluRRRR {
-                    alu_op: ALUOp3::MAdd64,
-                    rd: dst.regs()[1],
-                    rn: lhs.regs()[1],
-                    rm: rhs.regs()[0],
-                    ra: dst.regs()[1].to_reg(),
-                });
-                ctx.emit(Inst::AluRRRR {
-                    alu_op: ALUOp3::MAdd64,
-                    rd: dst.regs()[0],
-                    rn: lhs.regs()[0],
-                    rm: rhs.regs()[0],
-                    ra: zero_reg(),
-                });
-            } else if ty.is_vector() {
-                for ext_op in &[
-                    Opcode::SwidenLow,
-                    Opcode::SwidenHigh,
-                    Opcode::UwidenLow,
-                    Opcode::UwidenHigh,
-                ] {
-                    if let Some((alu_op, rn, rm, high_half)) =
-                        match_vec_long_mul(ctx, insn, *ext_op)
-                    {
-                        let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                        ctx.emit(Inst::VecRRRLong {
-                            alu_op,
-                            rd,
-                            rn,
-                            rm,
-                            high_half,
-                        });
-                        return Ok(());
-                    }
-                }
-                if ty == I64X2 {
-                    lower_i64x2_mul(ctx, insn);
-                } else {
-                    let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                    let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-                    let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                    ctx.emit(Inst::VecRRR {
-                        alu_op: VecALUOp::Mul,
-                        rd,
-                        rn,
-                        rm,
-                        size: VectorSize::from_ty(ty),
-                    });
-                }
-            } else {
-                let alu_op = choose_32_64(ty, ALUOp3::MAdd32, ALUOp3::MAdd64);
-                let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-                let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                ctx.emit(Inst::AluRRRR {
-                    alu_op,
-                    rd,
-                    rn,
-                    rm,
-                    ra: zero_reg(),
-                });
-            }
-        }
+        Opcode::Udiv | Opcode::Sdiv | Opcode::Urem | Opcode::Srem => implemented_in_isle(ctx),
 
-        Opcode::Umulhi | Opcode::Smulhi => {
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let is_signed = op == Opcode::Smulhi;
-            let input_ty = ctx.input_ty(insn, 0);
-            assert!(ctx.input_ty(insn, 1) == input_ty);
-            assert!(ctx.output_ty(insn, 0) == input_ty);
+        Opcode::Uextend | Opcode::Sextend => implemented_in_isle(ctx),
 
-            match input_ty {
-                I64 => {
-                    let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                    let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-                    let alu_op = if is_signed {
-                        ALUOp::SMulH
-                    } else {
-                        ALUOp::UMulH
-                    };
-                    ctx.emit(Inst::AluRRR { alu_op, rd, rn, rm });
-                }
-                I32 | I16 | I8 => {
-                    let narrow_mode = if is_signed {
-                        NarrowValueMode::SignExtend64
-                    } else {
-                        NarrowValueMode::ZeroExtend64
-                    };
-                    let rn = put_input_in_reg(ctx, inputs[0], narrow_mode);
-                    let rm = put_input_in_reg(ctx, inputs[1], narrow_mode);
-                    let ra = zero_reg();
-                    ctx.emit(Inst::AluRRRR {
-                        alu_op: ALUOp3::MAdd64,
-                        rd,
-                        rn,
-                        rm,
-                        ra,
-                    });
-                    let shift_op = if is_signed {
-                        ALUOp::Asr64
-                    } else {
-                        ALUOp::Lsr64
-                    };
-                    let shift_amt = match input_ty {
-                        I32 => 32,
-                        I16 => 16,
-                        I8 => 8,
-                        _ => unreachable!(),
-                    };
-                    ctx.emit(Inst::AluRRImmShift {
-                        alu_op: shift_op,
-                        rd,
-                        rn: rd.to_reg(),
-                        immshift: ImmShift::maybe_from_u64(shift_amt).unwrap(),
-                    });
-                }
-                _ => {
-                    return Err(CodegenError::Unsupported(format!(
-                        "{}: Unsupported type: {:?}",
-                        op, input_ty
-                    )));
-                }
-            }
-        }
-
-        Opcode::Udiv | Opcode::Sdiv | Opcode::Urem | Opcode::Srem => {
-            let ty = ty.unwrap();
-
-            if ty.is_vector() || ty_bits(ty) > 64 {
-                return Err(CodegenError::Unsupported(format!(
-                    "{}: Unsupported type: {:?}",
-                    op, ty
-                )));
-            }
-
-            let is_signed = match op {
-                Opcode::Udiv | Opcode::Urem => false,
-                Opcode::Sdiv | Opcode::Srem => true,
-                _ => unreachable!(),
-            };
-            let is_rem = match op {
-                Opcode::Udiv | Opcode::Sdiv => false,
-                Opcode::Urem | Opcode::Srem => true,
-                _ => unreachable!(),
-            };
-            let narrow_mode = if is_signed {
-                NarrowValueMode::SignExtend64
-            } else {
-                NarrowValueMode::ZeroExtend64
-            };
-            // TODO: Add SDiv32 to implement 32-bit directly, rather
-            // than extending the input.
-            let div_op = if is_signed {
-                ALUOp::SDiv64
-            } else {
-                ALUOp::UDiv64
-            };
-
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let rn = put_input_in_reg(ctx, inputs[0], narrow_mode);
-            let rm = put_input_in_reg(ctx, inputs[1], narrow_mode);
-            // The div instruction does not trap on divide by zero or signed overflow
-            // so checks are inserted below.
-            //
-            //   div rd, rn, rm
-            ctx.emit(Inst::AluRRR {
-                alu_op: div_op,
-                rd,
-                rn,
-                rm,
-            });
-
-            if is_rem {
-                // Remainder (rn % rm) is implemented as:
-                //
-                //   tmp = rn / rm
-                //   rd = rn - (tmp*rm)
-                //
-                // use 'rd' for tmp and you have:
-                //
-                //   div rd, rn, rm       ; rd = rn / rm
-                //   cbnz rm, #8          ; branch over trap
-                //   udf                  ; divide by zero
-                //   msub rd, rd, rm, rn  ; rd = rn - rd * rm
-
-                // Check for divide by 0.
-                let trap_code = TrapCode::IntegerDivisionByZero;
-                ctx.emit(Inst::TrapIf {
-                    trap_code,
-                    kind: CondBrKind::Zero(rm),
-                });
-
-                ctx.emit(Inst::AluRRRR {
-                    alu_op: ALUOp3::MSub64,
-                    rd,
-                    rn: rd.to_reg(),
-                    rm,
-                    ra: rn,
-                });
-            } else {
-                if div_op == ALUOp::SDiv64 {
-                    //   cbnz rm, #8
-                    //   udf ; divide by zero
-                    //   cmn rm, 1
-                    //   ccmp rn, 1, #nzcv, eq
-                    //   b.vc #8
-                    //   udf ; signed overflow
-
-                    // Check for divide by 0.
-                    let trap_code = TrapCode::IntegerDivisionByZero;
-                    ctx.emit(Inst::TrapIf {
-                        trap_code,
-                        kind: CondBrKind::Zero(rm),
-                    });
-
-                    // Check for signed overflow. The only case is min_value / -1.
-                    // The following checks must be done in 32-bit or 64-bit, depending
-                    // on the input type. Even though the initial div instruction is
-                    // always done in 64-bit currently.
-                    let size = OperandSize::from_ty(ty);
-                    // Check RHS is -1.
-                    ctx.emit(Inst::AluRRImm12 {
-                        alu_op: choose_32_64(ty, ALUOp::AddS32, ALUOp::AddS64),
-                        rd: writable_zero_reg(),
-                        rn: rm,
-                        imm12: Imm12::maybe_from_u64(1).unwrap(),
-                    });
-                    // Check LHS is min_value, by subtracting 1 and branching if
-                    // there is overflow.
-                    ctx.emit(Inst::CCmpImm {
-                        size,
-                        rn,
-                        imm: UImm5::maybe_from_u8(1).unwrap(),
-                        nzcv: NZCV::new(false, false, false, false),
-                        cond: Cond::Eq,
-                    });
-                    let trap_code = TrapCode::IntegerOverflow;
-                    ctx.emit(Inst::TrapIf {
-                        trap_code,
-                        kind: CondBrKind::Cond(Cond::Vs),
-                    });
-                } else {
-                    //   cbnz rm, #8
-                    //   udf ; divide by zero
-
-                    // Check for divide by 0.
-                    let trap_code = TrapCode::IntegerDivisionByZero;
-                    ctx.emit(Inst::TrapIf {
-                        trap_code,
-                        kind: CondBrKind::Zero(rm),
-                    });
-                }
-            }
-        }
-
-        Opcode::Uextend | Opcode::Sextend => {
-            let output_ty = ty.unwrap();
-
-            if output_ty.is_vector() {
-                return Err(CodegenError::Unsupported(format!(
-                    "{}: Unsupported type: {:?}",
-                    op, output_ty
-                )));
-            }
-
-            if op == Opcode::Uextend {
-                let inputs = ctx.get_input_as_source_or_const(inputs[0].insn, inputs[0].input);
-                if let Some((atomic_load, 0)) = inputs.inst {
-                    if ctx.data(atomic_load).opcode() == Opcode::AtomicLoad {
-                        let output_ty = ty.unwrap();
-                        assert!(output_ty == I32 || output_ty == I64);
-                        let rt = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                        emit_atomic_load(ctx, rt, atomic_load);
-                        ctx.sink_inst(atomic_load);
-                        return Ok(());
-                    }
-                }
-            }
-            let input_ty = ctx.input_ty(insn, 0);
-            let from_bits = ty_bits(input_ty) as u8;
-            let to_bits = ty_bits(output_ty) as u8;
-            let to_bits = std::cmp::max(32, to_bits);
-            assert!(from_bits <= to_bits);
-
-            let signed = op == Opcode::Sextend;
-            let dst = get_output_reg(ctx, outputs[0]);
-            let src =
-                if let Some(extract_insn) = maybe_input_insn(ctx, inputs[0], Opcode::Extractlane) {
-                    put_input_in_regs(
-                        ctx,
-                        InsnInput {
-                            insn: extract_insn,
-                            input: 0,
-                        },
-                    )
-                } else {
-                    put_input_in_regs(ctx, inputs[0])
-                };
-
-            let needs_extend = from_bits < to_bits && to_bits <= 64;
-            // For i128, we want to extend the lower half, except if it is already 64 bits.
-            let needs_lower_extend = to_bits > 64 && from_bits < 64;
-            let pass_through_lower = to_bits > 64 && !needs_lower_extend;
-
-            if needs_extend || needs_lower_extend {
-                let rn = src.regs()[0];
-                let rd = dst.regs()[0];
-
-                if let Some(extract_insn) = maybe_input_insn(ctx, inputs[0], Opcode::Extractlane) {
-                    let idx =
-                        if let InstructionData::BinaryImm8 { imm, .. } = ctx.data(extract_insn) {
-                            *imm
-                        } else {
-                            unreachable!();
-                        };
-
-                    let size = VectorSize::from_ty(ctx.input_ty(extract_insn, 0));
-
-                    if signed {
-                        let scalar_size = OperandSize::from_ty(output_ty);
-
-                        ctx.emit(Inst::MovFromVecSigned {
-                            rd,
-                            rn,
-                            idx,
-                            size,
-                            scalar_size,
-                        });
-                    } else {
-                        ctx.emit(Inst::MovFromVec { rd, rn, idx, size });
-                    }
-                } else {
-                    // If we reach this point, we weren't able to incorporate the extend as
-                    // a register-mode on another instruction, so we have a 'None'
-                    // narrow-value/extend mode here, and we emit the explicit instruction.
-                    let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                    ctx.emit(Inst::Extend {
-                        rd,
-                        rn,
-                        signed,
-                        from_bits,
-                        to_bits: std::cmp::min(64, to_bits),
-                    });
-                }
-            } else if pass_through_lower {
-                ctx.emit(Inst::gen_move(dst.regs()[0], src.regs()[0], I64));
-            }
-
-            if output_ty == I128 {
-                if signed {
-                    ctx.emit(Inst::AluRRImmShift {
-                        alu_op: ALUOp::Asr64,
-                        rd: dst.regs()[1],
-                        rn: dst.regs()[0].to_reg(),
-                        immshift: ImmShift::maybe_from_u64(63).unwrap(),
-                    });
-                } else {
-                    lower_constant_u64(ctx, dst.regs()[1], 0);
-                }
-            }
-        }
-
-        Opcode::Bnot => {
-            let out_regs = get_output_reg(ctx, outputs[0]);
-            let ty = ty.unwrap();
-            if ty == I128 {
-                // TODO: We can merge this block with the one below once we support immlogic here
-                let in_regs = put_input_in_regs(ctx, inputs[0]);
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::OrrNot64,
-                    rd: out_regs.regs()[0],
-                    rn: zero_reg(),
-                    rm: in_regs.regs()[0],
-                });
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::OrrNot64,
-                    rd: out_regs.regs()[1],
-                    rn: zero_reg(),
-                    rm: in_regs.regs()[1],
-                });
-            } else if !ty.is_vector() {
-                let rd = out_regs.only_reg().unwrap();
-                let rm = put_input_in_rs_immlogic(ctx, inputs[0], NarrowValueMode::None);
-                let alu_op = choose_32_64(ty, ALUOp::OrrNot32, ALUOp::OrrNot64);
-                // NOT rd, rm ==> ORR_NOT rd, zero, rm
-                ctx.emit(alu_inst_immlogic(alu_op, rd, zero_reg(), rm));
-            } else {
-                let rd = out_regs.only_reg().unwrap();
-                let rm = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                ctx.emit(Inst::VecMisc {
-                    op: VecMisc2::Not,
-                    rd,
-                    rn: rm,
-                    size: VectorSize::from_ty(ty),
-                });
-            }
-        }
+        Opcode::Bnot => implemented_in_isle(ctx),
 
         Opcode::Band
         | Opcode::Bor
         | Opcode::Bxor
         | Opcode::BandNot
         | Opcode::BorNot
-        | Opcode::BxorNot => {
-            let out_regs = get_output_reg(ctx, outputs[0]);
-            let ty = ty.unwrap();
-            if ty == I128 {
-                // TODO: Support immlogic here
-                let lhs = put_input_in_regs(ctx, inputs[0]);
-                let rhs = put_input_in_regs(ctx, inputs[1]);
-                let alu_op = match op {
-                    Opcode::Band => ALUOp::And64,
-                    Opcode::Bor => ALUOp::Orr64,
-                    Opcode::Bxor => ALUOp::Eor64,
-                    Opcode::BandNot => ALUOp::AndNot64,
-                    Opcode::BorNot => ALUOp::OrrNot64,
-                    Opcode::BxorNot => ALUOp::EorNot64,
-                    _ => unreachable!(),
-                };
+        | Opcode::BxorNot => implemented_in_isle(ctx),
 
-                ctx.emit(Inst::AluRRR {
-                    alu_op,
-                    rd: out_regs.regs()[0],
-                    rn: lhs.regs()[0],
-                    rm: rhs.regs()[0],
-                });
-                ctx.emit(Inst::AluRRR {
-                    alu_op,
-                    rd: out_regs.regs()[1],
-                    rn: lhs.regs()[1],
-                    rm: rhs.regs()[1],
-                });
-            } else if !ty.is_vector() {
-                let rd = out_regs.only_reg().unwrap();
-                let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                let rm = put_input_in_rs_immlogic(ctx, inputs[1], NarrowValueMode::None);
-                let alu_op = match op {
-                    Opcode::Band => choose_32_64(ty, ALUOp::And32, ALUOp::And64),
-                    Opcode::Bor => choose_32_64(ty, ALUOp::Orr32, ALUOp::Orr64),
-                    Opcode::Bxor => choose_32_64(ty, ALUOp::Eor32, ALUOp::Eor64),
-                    Opcode::BandNot => choose_32_64(ty, ALUOp::AndNot32, ALUOp::AndNot64),
-                    Opcode::BorNot => choose_32_64(ty, ALUOp::OrrNot32, ALUOp::OrrNot64),
-                    Opcode::BxorNot => choose_32_64(ty, ALUOp::EorNot32, ALUOp::EorNot64),
-                    _ => unreachable!(),
-                };
-                ctx.emit(alu_inst_immlogic(alu_op, rd, rn, rm));
-            } else {
-                let alu_op = match op {
-                    Opcode::Band => VecALUOp::And,
-                    Opcode::BandNot => VecALUOp::Bic,
-                    Opcode::Bor => VecALUOp::Orr,
-                    Opcode::Bxor => VecALUOp::Eor,
-                    _ => unreachable!(),
-                };
+        Opcode::Ishl | Opcode::Ushr | Opcode::Sshr => implemented_in_isle(ctx),
 
-                let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-                let rd = out_regs.only_reg().unwrap();
+        Opcode::Rotr | Opcode::Rotl => implemented_in_isle(ctx),
 
-                ctx.emit(Inst::VecRRR {
-                    alu_op,
-                    rd,
-                    rn,
-                    rm,
-                    size: VectorSize::from_ty(ty),
-                });
-            }
-        }
+        Opcode::Bitrev | Opcode::Clz | Opcode::Cls | Opcode::Ctz => implemented_in_isle(ctx),
 
-        Opcode::Ishl | Opcode::Ushr | Opcode::Sshr => {
-            let out_regs = get_output_reg(ctx, outputs[0]);
-            let ty = ty.unwrap();
-            if ty == I128 {
-                let src = put_input_in_regs(ctx, inputs[0]);
-                let amt = lower_shift_amt(ctx, inputs[1], ty, out_regs.regs()[0]).unwrap_reg();
-
-                match op {
-                    Opcode::Ishl => emit_shl_i128(ctx, src, out_regs, amt),
-                    Opcode::Ushr => {
-                        emit_shr_i128(ctx, src, out_regs, amt, /* is_signed = */ false)
-                    }
-                    Opcode::Sshr => {
-                        emit_shr_i128(ctx, src, out_regs, amt, /* is_signed = */ true)
-                    }
-                    _ => unreachable!(),
-                };
-            } else if !ty.is_vector() {
-                let rd = out_regs.only_reg().unwrap();
-                let size = OperandSize::from_bits(ty_bits(ty));
-                let narrow_mode = match (op, size) {
-                    (Opcode::Ishl, _) => NarrowValueMode::None,
-                    (Opcode::Ushr, OperandSize::Size64) => NarrowValueMode::ZeroExtend64,
-                    (Opcode::Ushr, OperandSize::Size32) => NarrowValueMode::ZeroExtend32,
-                    (Opcode::Sshr, OperandSize::Size64) => NarrowValueMode::SignExtend64,
-                    (Opcode::Sshr, OperandSize::Size32) => NarrowValueMode::SignExtend32,
-                    _ => unreachable!(),
-                };
-                let rn = put_input_in_reg(ctx, inputs[0], narrow_mode);
-                let rm = lower_shift_amt(ctx, inputs[1], ty, out_regs.regs()[0]);
-                let alu_op = match op {
-                    Opcode::Ishl => choose_32_64(ty, ALUOp::Lsl32, ALUOp::Lsl64),
-                    Opcode::Ushr => choose_32_64(ty, ALUOp::Lsr32, ALUOp::Lsr64),
-                    Opcode::Sshr => choose_32_64(ty, ALUOp::Asr32, ALUOp::Asr64),
-                    _ => unreachable!(),
-                };
-                ctx.emit(alu_inst_immshift(alu_op, rd, rn, rm));
-            } else {
-                let rd = out_regs.only_reg().unwrap();
-                let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-                let size = VectorSize::from_ty(ty);
-                let (alu_op, is_right_shift) = match op {
-                    Opcode::Ishl => (VecALUOp::Sshl, false),
-                    Opcode::Ushr => (VecALUOp::Ushl, true),
-                    Opcode::Sshr => (VecALUOp::Sshl, true),
-                    _ => unreachable!(),
-                };
-
-                let rm = if is_right_shift {
-                    // Right shifts are implemented with a negative left shift.
-                    let tmp = ctx.alloc_tmp(I32).only_reg().unwrap();
-                    let rm = put_input_in_reg(ctx, inputs[1], NarrowValueMode::None);
-                    let rn = zero_reg();
-                    ctx.emit(Inst::AluRRR {
-                        alu_op: ALUOp::Sub32,
-                        rd: tmp,
-                        rn,
-                        rm,
-                    });
-                    tmp.to_reg()
-                } else {
-                    put_input_in_reg(ctx, inputs[1], NarrowValueMode::None)
-                };
-
-                ctx.emit(Inst::VecDup { rd, rn: rm, size });
-
-                ctx.emit(Inst::VecRRR {
-                    alu_op,
-                    rd,
-                    rn,
-                    rm: rd.to_reg(),
-                    size,
-                });
-            }
-        }
-
-        Opcode::Rotr | Opcode::Rotl => {
-            // aarch64 doesn't have a left-rotate instruction, but a left rotation of K places is
-            // effectively a right rotation of N - K places, if N is the integer's bit size. We
-            // implement left rotations with this trick.
-            //
-            // For a 32-bit or 64-bit rotate-right, we can use the ROR instruction directly.
-            //
-            // For a < 32-bit rotate-right, we synthesize this as:
-            //
-            //    rotr rd, rn, rm
-            //
-            //       =>
-            //
-            //    zero-extend rn, <32-or-64>
-            //    and tmp_masked_rm, rm, <bitwidth - 1>
-            //    sub tmp1, tmp_masked_rm, <bitwidth>
-            //    sub tmp1, zero, tmp1  ; neg
-            //    lsr tmp2, rn, tmp_masked_rm
-            //    lsl rd, rn, tmp1
-            //    orr rd, rd, tmp2
-            //
-            // For a constant amount, we can instead do:
-            //
-            //    zero-extend rn, <32-or-64>
-            //    lsr tmp2, rn, #<shiftimm>
-            //    lsl rd, rn, <bitwidth - shiftimm>
-            //    orr rd, rd, tmp2
-
-            let is_rotl = op == Opcode::Rotl;
-
-            let ty = ty.unwrap();
-            let ty_bits_size = ty_bits(ty) as u8;
-
-            if ty.is_vector() {
-                return Err(CodegenError::Unsupported(format!(
-                    "{}: Unsupported type: {:?}",
-                    op, ty
-                )));
-            }
-
-            // TODO: We can do much better codegen if we have a constant amt
-            if ty == I128 {
-                let dst = get_output_reg(ctx, outputs[0]);
-                let src = put_input_in_regs(ctx, inputs[0]);
-                let amt_src = put_input_in_regs(ctx, inputs[1]).regs()[0];
-
-                let tmp = ctx.alloc_tmp(I128);
-                let inv_amt = ctx.alloc_tmp(I64).only_reg().unwrap();
-
-                lower_constant_u64(ctx, inv_amt, 128);
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::Sub64,
-                    rd: inv_amt,
-                    rn: inv_amt.to_reg(),
-                    rm: amt_src,
-                });
-
-                if is_rotl {
-                    // rotl
-                    // (shl.i128 tmp, amt)
-                    // (ushr.i128 dst, 128-amt)
-
-                    emit_shl_i128(ctx, src, tmp, amt_src);
-                    emit_shr_i128(
-                        ctx,
-                        src,
-                        dst,
-                        inv_amt.to_reg(),
-                        /* is_signed = */ false,
-                    );
-                } else {
-                    // rotr
-                    // (ushr.i128 tmp, amt)
-                    // (shl.i128 dst, 128-amt)
-
-                    emit_shr_i128(ctx, src, tmp, amt_src, /* is_signed = */ false);
-                    emit_shl_i128(ctx, src, dst, inv_amt.to_reg());
-                }
-
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::Orr64,
-                    rd: dst.regs()[0],
-                    rn: dst.regs()[0].to_reg(),
-                    rm: tmp.regs()[0].to_reg(),
-                });
-                ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::Orr64,
-                    rd: dst.regs()[1],
-                    rn: dst.regs()[1].to_reg(),
-                    rm: tmp.regs()[1].to_reg(),
-                });
-
-                return Ok(());
-            }
-
-            let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let rn = put_input_in_reg(
-                ctx,
-                inputs[0],
-                if ty_bits_size <= 32 {
-                    NarrowValueMode::ZeroExtend32
-                } else {
-                    NarrowValueMode::ZeroExtend64
-                },
-            );
-            let rm = put_input_in_reg_immshift(ctx, inputs[1], ty_bits(ty));
-
-            if ty_bits_size == 32 || ty_bits_size == 64 {
-                let alu_op = choose_32_64(ty, ALUOp::RotR32, ALUOp::RotR64);
-                match rm {
-                    ResultRegImmShift::ImmShift(mut immshift) => {
-                        if is_rotl {
-                            immshift.imm = ty_bits_size.wrapping_sub(immshift.value());
-                        }
-                        immshift.imm &= ty_bits_size - 1;
-                        ctx.emit(Inst::AluRRImmShift {
-                            alu_op,
-                            rd,
-                            rn,
-                            immshift,
-                        });
-                    }
-
-                    ResultRegImmShift::Reg(rm) => {
-                        let rm = if is_rotl {
-                            // Really ty_bits_size - rn, but the upper bits of the result are
-                            // ignored (because of the implicit masking done by the instruction),
-                            // so this is equivalent to negating the input.
-                            let alu_op = choose_32_64(ty, ALUOp::Sub32, ALUOp::Sub64);
-                            let tmp = ctx.alloc_tmp(ty).only_reg().unwrap();
-                            ctx.emit(Inst::AluRRR {
-                                alu_op,
-                                rd: tmp,
-                                rn: zero_reg(),
-                                rm,
-                            });
-                            tmp.to_reg()
-                        } else {
-                            rm
-                        };
-                        ctx.emit(Inst::AluRRR { alu_op, rd, rn, rm });
-                    }
-                }
-            } else {
-                debug_assert!(ty_bits_size < 32);
-
-                match rm {
-                    ResultRegImmShift::Reg(reg) => {
-                        let reg = if is_rotl {
-                            // Really ty_bits_size - rn, but the upper bits of the result are
-                            // ignored (because of the implicit masking done by the instruction),
-                            // so this is equivalent to negating the input.
-                            let tmp = ctx.alloc_tmp(I32).only_reg().unwrap();
-                            ctx.emit(Inst::AluRRR {
-                                alu_op: ALUOp::Sub32,
-                                rd: tmp,
-                                rn: zero_reg(),
-                                rm: reg,
-                            });
-                            tmp.to_reg()
-                        } else {
-                            reg
-                        };
-
-                        // Explicitly mask the rotation count.
-                        let tmp_masked_rm = ctx.alloc_tmp(I32).only_reg().unwrap();
-                        ctx.emit(Inst::AluRRImmLogic {
-                            alu_op: ALUOp::And32,
-                            rd: tmp_masked_rm,
-                            rn: reg,
-                            imml: ImmLogic::maybe_from_u64((ty_bits_size - 1) as u64, I32).unwrap(),
-                        });
-                        let tmp_masked_rm = tmp_masked_rm.to_reg();
-
-                        let tmp1 = ctx.alloc_tmp(I32).only_reg().unwrap();
-                        let tmp2 = ctx.alloc_tmp(I32).only_reg().unwrap();
-                        ctx.emit(Inst::AluRRImm12 {
-                            alu_op: ALUOp::Sub32,
-                            rd: tmp1,
-                            rn: tmp_masked_rm,
-                            imm12: Imm12::maybe_from_u64(ty_bits_size as u64).unwrap(),
-                        });
-                        ctx.emit(Inst::AluRRR {
-                            alu_op: ALUOp::Sub32,
-                            rd: tmp1,
-                            rn: zero_reg(),
-                            rm: tmp1.to_reg(),
-                        });
-                        ctx.emit(Inst::AluRRR {
-                            alu_op: ALUOp::Lsr32,
-                            rd: tmp2,
-                            rn,
-                            rm: tmp_masked_rm,
-                        });
-                        ctx.emit(Inst::AluRRR {
-                            alu_op: ALUOp::Lsl32,
-                            rd,
-                            rn,
-                            rm: tmp1.to_reg(),
-                        });
-                        ctx.emit(Inst::AluRRR {
-                            alu_op: ALUOp::Orr32,
-                            rd,
-                            rn: rd.to_reg(),
-                            rm: tmp2.to_reg(),
-                        });
-                    }
-
-                    ResultRegImmShift::ImmShift(mut immshift) => {
-                        if is_rotl {
-                            immshift.imm = ty_bits_size.wrapping_sub(immshift.value());
-                        }
-                        immshift.imm &= ty_bits_size - 1;
-
-                        let tmp1 = ctx.alloc_tmp(I32).only_reg().unwrap();
-                        ctx.emit(Inst::AluRRImmShift {
-                            alu_op: ALUOp::Lsr32,
-                            rd: tmp1,
-                            rn,
-                            immshift: immshift.clone(),
-                        });
-
-                        let amount = immshift.value() & (ty_bits_size - 1);
-                        let opp_shift =
-                            ImmShift::maybe_from_u64(ty_bits_size as u64 - amount as u64).unwrap();
-                        ctx.emit(Inst::AluRRImmShift {
-                            alu_op: ALUOp::Lsl32,
-                            rd,
-                            rn,
-                            immshift: opp_shift,
-                        });
-
-                        ctx.emit(Inst::AluRRR {
-                            alu_op: ALUOp::Orr32,
-                            rd,
-                            rn: rd.to_reg(),
-                            rm: tmp1.to_reg(),
-                        });
-                    }
-                }
-            }
-        }
-
-        Opcode::Bitrev | Opcode::Clz | Opcode::Cls | Opcode::Ctz => {
-            let ty = ty.unwrap();
-            let op_ty = match ty {
-                I8 | I16 | I32 => I32,
-                I64 | I128 => I64,
-                _ => {
-                    return Err(CodegenError::Unsupported(format!(
-                        "{}: Unsupported type: {:?}",
-                        op, ty
-                    )))
-                }
-            };
-            let bitop = match op {
-                Opcode::Clz | Opcode::Cls | Opcode::Bitrev => BitOp::from((op, op_ty)),
-                Opcode::Ctz => BitOp::from((Opcode::Bitrev, op_ty)),
-                _ => unreachable!(),
-            };
-
-            if ty == I128 {
-                let out_regs = get_output_reg(ctx, outputs[0]);
-                let in_regs = put_input_in_regs(ctx, inputs[0]);
-
-                let in_lo = in_regs.regs()[0];
-                let in_hi = in_regs.regs()[1];
-                let out_lo = out_regs.regs()[0];
-                let out_hi = out_regs.regs()[1];
-
-                if op == Opcode::Bitrev || op == Opcode::Ctz {
-                    ctx.emit(Inst::BitRR {
-                        rd: out_hi,
-                        rn: in_lo,
-                        op: bitop,
-                    });
-                    ctx.emit(Inst::BitRR {
-                        rd: out_lo,
-                        rn: in_hi,
-                        op: bitop,
-                    });
-                }
-
-                if op == Opcode::Ctz {
-                    // We have reduced the problem to a clz by reversing the inputs previouly
-                    emit_clz_i128(ctx, out_regs.map(|r| r.to_reg()), out_regs);
-                } else if op == Opcode::Clz {
-                    emit_clz_i128(ctx, in_regs, out_regs);
-                } else if op == Opcode::Cls {
-                    // cls out_hi, in_hi
-                    // cls out_lo, in_lo
-                    // eon sign_eq, in_hi, in_lo
-                    // lsr sign_eq, sign_eq, #63
-                    // madd out_lo, out_lo, sign_eq, sign_eq
-                    // cmp out_hi, #63
-                    // csel out_lo, out_lo, xzr, eq
-                    // add  out_lo, out_lo, out_hi
-                    // mov  out_hi, 0
-
-                    let sign_eq = ctx.alloc_tmp(I64).only_reg().unwrap();
-                    let xzr = writable_zero_reg();
-
-                    ctx.emit(Inst::BitRR {
-                        rd: out_lo,
-                        rn: in_lo,
-                        op: bitop,
-                    });
-                    ctx.emit(Inst::BitRR {
-                        rd: out_hi,
-                        rn: in_hi,
-                        op: bitop,
-                    });
-                    ctx.emit(Inst::AluRRR {
-                        alu_op: ALUOp::EorNot64,
-                        rd: sign_eq,
-                        rn: in_hi,
-                        rm: in_lo,
-                    });
-                    ctx.emit(Inst::AluRRImmShift {
-                        alu_op: ALUOp::Lsr64,
-                        rd: sign_eq,
-                        rn: sign_eq.to_reg(),
-                        immshift: ImmShift::maybe_from_u64(63).unwrap(),
-                    });
-                    ctx.emit(Inst::AluRRRR {
-                        alu_op: ALUOp3::MAdd64,
-                        rd: out_lo,
-                        rn: out_lo.to_reg(),
-                        rm: sign_eq.to_reg(),
-                        ra: sign_eq.to_reg(),
-                    });
-                    ctx.emit(Inst::AluRRImm12 {
-                        alu_op: ALUOp::SubS64,
-                        rd: xzr,
-                        rn: out_hi.to_reg(),
-                        imm12: Imm12::maybe_from_u64(63).unwrap(),
-                    });
-                    ctx.emit(Inst::CSel {
-                        cond: Cond::Eq,
-                        rd: out_lo,
-                        rn: out_lo.to_reg(),
-                        rm: xzr.to_reg(),
-                    });
-                    ctx.emit(Inst::AluRRR {
-                        alu_op: ALUOp::Add64,
-                        rd: out_lo,
-                        rn: out_lo.to_reg(),
-                        rm: out_hi.to_reg(),
-                    });
-                    lower_constant_u64(ctx, out_hi, 0);
-                }
-            } else {
-                let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                let needs_zext = match op {
-                    Opcode::Bitrev | Opcode::Ctz => false,
-                    Opcode::Clz | Opcode::Cls => true,
-                    _ => unreachable!(),
-                };
-                let narrow_mode = if needs_zext && ty_bits(ty) == 64 {
-                    NarrowValueMode::ZeroExtend64
-                } else if needs_zext {
-                    NarrowValueMode::ZeroExtend32
-                } else {
-                    NarrowValueMode::None
-                };
-                let rn = put_input_in_reg(ctx, inputs[0], narrow_mode);
-
-                ctx.emit(Inst::BitRR { rd, rn, op: bitop });
-
-                // Both bitrev and ctz use a bit-reverse (rbit) instruction; ctz to reduce the problem
-                // to a clz, and bitrev as the main operation.
-                if op == Opcode::Bitrev || op == Opcode::Ctz {
-                    // Reversing an n-bit value (n < 32) with a 32-bit bitrev instruction will place
-                    // the reversed result in the highest n bits, so we need to shift them down into
-                    // place.
-                    let right_shift = match ty {
-                        I8 => Some(24),
-                        I16 => Some(16),
-                        I32 => None,
-                        I64 => None,
-                        _ => unreachable!(),
-                    };
-                    if let Some(s) = right_shift {
-                        ctx.emit(Inst::AluRRImmShift {
-                            alu_op: ALUOp::Lsr32,
-                            rd,
-                            rn: rd.to_reg(),
-                            immshift: ImmShift::maybe_from_u64(s).unwrap(),
-                        });
-                    }
-                }
-
-                if op == Opcode::Ctz {
-                    ctx.emit(Inst::BitRR {
-                        op: BitOp::from((Opcode::Clz, op_ty)),
-                        rd,
-                        rn: rd.to_reg(),
-                    });
-                }
-            }
-        }
-
-        Opcode::Popcnt => {
-            let ty = ty.unwrap();
-
-            if ty.is_vector() {
-                let lane_type = ty.lane_type();
-                let rd = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-                let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-
-                if lane_type != I8 {
-                    return Err(CodegenError::Unsupported(format!(
-                        "Unsupported SIMD vector lane type: {:?}",
-                        lane_type
-                    )));
-                }
-
-                ctx.emit(Inst::VecMisc {
-                    op: VecMisc2::Cnt,
-                    rd,
-                    rn,
-                    size: VectorSize::from_ty(ty),
-                });
-            } else {
-                let out_regs = get_output_reg(ctx, outputs[0]);
-                let in_regs = put_input_in_regs(ctx, inputs[0]);
-                let size = if ty == I128 {
-                    ScalarSize::Size64
-                } else {
-                    ScalarSize::from_operand_size(OperandSize::from_ty(ty))
-                };
-
-                let vec_size = if ty == I128 {
-                    VectorSize::Size8x16
-                } else {
-                    VectorSize::Size8x8
-                };
-
-                let tmp = ctx.alloc_tmp(I8X16).only_reg().unwrap();
-
-                // fmov tmp, in_lo
-                // if ty == i128:
-                //     mov tmp.d[1], in_hi
-                //
-                // cnt tmp.16b, tmp.16b / cnt tmp.8b, tmp.8b
-                // addv tmp, tmp.16b / addv tmp, tmp.8b / addp tmp.8b, tmp.8b, tmp.8b / (no instruction for 8-bit inputs)
-                //
-                // umov out_lo, tmp.b[0]
-                // if ty == i128:
-                //     mov out_hi, 0
-
-                ctx.emit(Inst::MovToFpu {
-                    rd: tmp,
-                    rn: in_regs.regs()[0],
-                    size,
-                });
-
-                if ty == I128 {
-                    ctx.emit(Inst::MovToVec {
-                        rd: tmp,
-                        rn: in_regs.regs()[1],
-                        idx: 1,
-                        size: VectorSize::Size64x2,
-                    });
-                }
-
-                ctx.emit(Inst::VecMisc {
-                    op: VecMisc2::Cnt,
-                    rd: tmp,
-                    rn: tmp.to_reg(),
-                    size: vec_size,
-                });
-
-                match ScalarSize::from_ty(ty) {
-                    ScalarSize::Size8 => {}
-                    ScalarSize::Size16 => {
-                        // ADDP is usually cheaper than ADDV.
-                        ctx.emit(Inst::VecRRR {
-                            alu_op: VecALUOp::Addp,
-                            rd: tmp,
-                            rn: tmp.to_reg(),
-                            rm: tmp.to_reg(),
-                            size: VectorSize::Size8x8,
-                        });
-                    }
-                    ScalarSize::Size32 | ScalarSize::Size64 | ScalarSize::Size128 => {
-                        ctx.emit(Inst::VecLanes {
-                            op: VecLanesOp::Addv,
-                            rd: tmp,
-                            rn: tmp.to_reg(),
-                            size: vec_size,
-                        });
-                    }
-                }
-
-                ctx.emit(Inst::MovFromVec {
-                    rd: out_regs.regs()[0],
-                    rn: tmp.to_reg(),
-                    idx: 0,
-                    size: VectorSize::Size8x16,
-                });
-
-                if ty == I128 {
-                    lower_constant_u64(ctx, out_regs.regs()[1], 0);
-                }
-            }
-        }
+        Opcode::Popcnt => implemented_in_isle(ctx),
 
         Opcode::Load
         | Opcode::Uload8
@@ -1613,7 +363,8 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
 
         Opcode::AtomicLoad => {
             let rt = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            emit_atomic_load(ctx, rt, insn);
+            let inst = emit_atomic_load(ctx, rt, insn);
+            ctx.emit(inst);
         }
 
         Opcode::AtomicStore => {
@@ -1659,16 +410,17 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                 lower_fcmp_or_ffcmp_to_flags(ctx, fcmp_insn);
                 cond
             } else {
-                let (cmp_op, narrow_mode) = if ty_bits(ctx.input_ty(insn, 0)) > 32 {
-                    (ALUOp::SubS64, NarrowValueMode::ZeroExtend64)
+                let (size, narrow_mode) = if ty_bits(ctx.input_ty(insn, 0)) > 32 {
+                    (OperandSize::Size64, NarrowValueMode::ZeroExtend64)
                 } else {
-                    (ALUOp::SubS32, NarrowValueMode::ZeroExtend32)
+                    (OperandSize::Size32, NarrowValueMode::ZeroExtend32)
                 };
 
                 let rcond = put_input_in_reg(ctx, inputs[0], narrow_mode);
                 // cmp rcond, #0
                 ctx.emit(Inst::AluRRR {
-                    alu_op: cmp_op,
+                    alu_op: ALUOp::SubS,
+                    size,
                     rd: writable_zero_reg(),
                     rn: rcond,
                     rm: zero_reg(),
@@ -1756,21 +508,24 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                 let rm = put_input_in_reg(ctx, inputs[2], NarrowValueMode::None);
                 // AND rTmp, rn, rcond
                 ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::And64,
+                    alu_op: ALUOp::And,
+                    size: OperandSize::Size64,
                     rd: tmp,
                     rn,
                     rm: rcond,
                 });
                 // BIC rd, rm, rcond
                 ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::AndNot64,
+                    alu_op: ALUOp::AndNot,
+                    size: OperandSize::Size64,
                     rd,
                     rn: rm,
                     rm: rcond,
                 });
                 // ORR rd, rd, rTmp
                 ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::Orr64,
+                    alu_op: ALUOp::Orr,
+                    size: OperandSize::Size64,
                     rd,
                     rn: rd.to_reg(),
                     rm: tmp.to_reg(),
@@ -1820,16 +575,22 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             let (alu_op, const_value) = match op {
                 Opcode::IsNull => {
                     // cmp rn, #0
-                    (choose_32_64(ty, ALUOp::SubS32, ALUOp::SubS64), 0)
+                    (ALUOp::SubS, 0)
                 }
                 Opcode::IsInvalid => {
                     // cmn rn, #1
-                    (choose_32_64(ty, ALUOp::AddS32, ALUOp::AddS64), 1)
+                    (ALUOp::AddS, 1)
                 }
                 _ => unreachable!(),
             };
             let const_value = ResultRSEImm12::Imm12(Imm12::maybe_from_u64(const_value).unwrap());
-            ctx.emit(alu_inst_imm12(alu_op, writable_zero_reg(), rn, const_value));
+            ctx.emit(alu_inst_imm12(
+                alu_op,
+                ty,
+                writable_zero_reg(),
+                rn,
+                const_value,
+            ));
             materialize_bool_result(ctx, insn, rd, Cond::Eq);
         }
 
@@ -1904,7 +665,8 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             let output = get_output_reg(ctx, outputs[0]);
 
             ctx.emit(Inst::AluRRImmLogic {
-                alu_op: ALUOp::And32,
+                alu_op: ALUOp::And,
+                size: OperandSize::Size32,
                 rd: output.regs()[0],
                 rn: input.regs()[0],
                 imml: ImmLogic::maybe_from_u64(1, I32).unwrap(),
@@ -2413,7 +1175,8 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             });
 
             ctx.emit(Inst::AluRRImm12 {
-                alu_op: ALUOp::SubS64,
+                alu_op: ALUOp::SubS,
+                size: OperandSize::Size64,
                 rd: writable_zero_reg(),
                 rn: rd.to_reg(),
                 imm12: Imm12::zero(),
@@ -2516,7 +1279,8 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                         size: VectorSize::Size64x2,
                     });
                     ctx.emit(Inst::AluRRImmShift {
-                        alu_op: ALUOp::Lsl64,
+                        alu_op: ALUOp::Lsl,
+                        size: OperandSize::Size64,
                         rd: tmp_r0,
                         rn: tmp_r0.to_reg(),
                         immshift: ImmShift { imm: 4 },
@@ -2571,7 +1335,8 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                         size: VectorSize::Size64x2,
                     });
                     ctx.emit(Inst::AluRRImmShift {
-                        alu_op: ALUOp::Lsl64,
+                        alu_op: ALUOp::Lsl,
+                        size: OperandSize::Size64,
                         rd: tmp_r0,
                         rn: tmp_r0.to_reg(),
                         immshift: ImmShift { imm: 2 },
@@ -2621,19 +1386,22 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                         size: VectorSize::Size64x2,
                     });
                     ctx.emit(Inst::AluRRImmShift {
-                        alu_op: ALUOp::Lsr64,
+                        alu_op: ALUOp::Lsr,
+                        size: OperandSize::Size64,
                         rd: dst_r,
                         rn: dst_r.to_reg(),
                         immshift: ImmShift::maybe_from_u64(63).unwrap(),
                     });
                     ctx.emit(Inst::AluRRImmShift {
-                        alu_op: ALUOp::Lsr64,
+                        alu_op: ALUOp::Lsr,
+                        size: OperandSize::Size64,
                         rd: tmp_r0,
                         rn: tmp_r0.to_reg(),
                         immshift: ImmShift::maybe_from_u64(63).unwrap(),
                     });
                     ctx.emit(Inst::AluRRRShift {
-                        alu_op: ALUOp::Add32,
+                        alu_op: ALUOp::Add,
+                        size: OperandSize::Size32,
                         rd: dst_r,
                         rn: dst_r.to_reg(),
                         rm: tmp_r0.to_reg(),
@@ -3504,8 +2272,7 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
             let rm = put_input_in_rse_imm12(ctx, inputs[1], NarrowValueMode::None);
             let ty = ty.unwrap();
-            let alu_op = choose_32_64(ty, ALUOp::AddS32, ALUOp::AddS64);
-            ctx.emit(alu_inst_imm12(alu_op, rd, rn, rm));
+            ctx.emit(alu_inst_imm12(ALUOp::AddS, ty, rd, rn, rm));
         }
 
         Opcode::IaddImm
@@ -3744,7 +2511,7 @@ pub(crate) fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             });
         }
 
-        Opcode::ConstAddr | Opcode::Vconcat | Opcode::Vsplit => {
+        Opcode::ConstAddr | Opcode::Vconcat | Opcode::Vsplit | Opcode::IfcmpSp => {
             return Err(CodegenError::Unsupported(format!(
                 "Unimplemented lowering: {}",
                 op
@@ -3821,7 +2588,8 @@ pub(crate) fn lower_branch<C: LowerCtx<I = Inst>>(
                         let tmp = ctx.alloc_tmp(I64).only_reg().unwrap();
                         let input = put_input_in_regs(ctx, flag_input);
                         ctx.emit(Inst::AluRRR {
-                            alu_op: ALUOp::Orr64,
+                            alu_op: ALUOp::Orr,
+                            size: OperandSize::Size64,
                             rd: tmp,
                             rn: input.regs()[0],
                             rm: input.regs()[1],
@@ -3959,7 +2727,8 @@ pub(crate) fn lower_branch<C: LowerCtx<I = Inst>>(
                 // branch to default target below.
                 if let Some(imm12) = Imm12::maybe_from_u64(jt_size as u64) {
                     ctx.emit(Inst::AluRRImm12 {
-                        alu_op: ALUOp::SubS32,
+                        alu_op: ALUOp::SubS,
+                        size: OperandSize::Size32,
                         rd: writable_zero_reg(),
                         rn: ridx,
                         imm12,
@@ -3967,7 +2736,8 @@ pub(crate) fn lower_branch<C: LowerCtx<I = Inst>>(
                 } else {
                     lower_constant_u64(ctx, rtmp1, jt_size as u64);
                     ctx.emit(Inst::AluRRR {
-                        alu_op: ALUOp::SubS32,
+                        alu_op: ALUOp::SubS,
+                        size: OperandSize::Size32,
                         rd: writable_zero_reg(),
                         rn: ridx,
                         rm: rtmp1.to_reg(),

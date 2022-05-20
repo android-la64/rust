@@ -11,12 +11,18 @@
 
 [package]
 name = "minifier"
-version = "0.0.42"
+version = "0.0.43"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 description = "Minifier tool/lib for JS/CSS/JSON files"
 documentation = "https://docs.rs/minifier-rs"
 readme = "README.md"
-keywords = ["minify", "minifier", "JS", "HTML", "CSS"]
+keywords = [
+    "minify",
+    "minifier",
+    "JS",
+    "HTML",
+    "CSS",
+]
 license = "MIT"
 repository = "https://github.com/GuillaumeGomez/minifier-rs"
 
@@ -26,6 +32,7 @@ name = "minifier"
 [[bin]]
 name = "minifier"
 doc = false
+
 [dependencies.macro-utils]
 version = "^0.1"
 
@@ -35,6 +42,7 @@ optional = true
 
 [features]
 html = ["regex"]
+
 [badges.appveyor]
 repository = "GuillaumeGomez/minifier-rs"
 service = "github"

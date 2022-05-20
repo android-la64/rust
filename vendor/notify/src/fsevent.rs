@@ -21,6 +21,7 @@ use fsevent_sys as fs;
 use fsevent_sys::core_foundation as cf;
 use std::collections::HashMap;
 use std::ffi::CStr;
+use std::fmt;
 use std::os::raw;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -66,6 +67,20 @@ pub struct FsEventWatcher {
     event_handler: Arc<Mutex<dyn EventHandler>>,
     runloop: Option<(cf::CFRunLoopRef, thread::JoinHandle<()>)>,
     recursive_info: HashMap<PathBuf, bool>,
+}
+
+impl fmt::Debug for FsEventWatcher {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("FsEventWatcher")
+            .field("paths", &self.paths)
+            .field("since_when", &self.since_when)
+            .field("latency", &self.latency)
+            .field("flags", &self.flags)
+            .field("event_handler", &Arc::as_ptr(&self.event_handler))
+            .field("runloop", &self.runloop)
+            .field("recursive_info", &self.recursive_info)
+            .finish()
+    }
 }
 
 // CFMutableArrayRef is a type alias to *mut libc::c_void, so FsEventWatcher is not Send/Sync
@@ -172,9 +187,11 @@ fn translate_flags(flags: StreamFlags, precise: bool) -> Vec<Event> {
         });
     }
 
+    // FSEvents provides no mechanism to associate the old and new sides of a
+    // rename event.
     if flags.contains(StreamFlags::ITEM_RENAMED) {
         evs.push(Event::new(EventKind::Modify(ModifyKind::Name(
-            RenameMode::From,
+            RenameMode::Any,
         ))));
     }
 
@@ -347,6 +364,7 @@ impl FsEventWatcher {
         if !path.exists() {
             return Err(Error::path_not_found().add_path(path.into()));
         }
+        let canonical_path = path.to_path_buf().canonicalize()?;
         let str_path = path.to_str().unwrap();
         unsafe {
             let mut err: cf::CFErrorRef = ptr::null_mut();
@@ -360,10 +378,8 @@ impl FsEventWatcher {
             cf::CFArrayAppendValue(self.paths, cf_path);
             cf::CFRelease(cf_path);
         }
-        self.recursive_info.insert(
-            path.to_path_buf().canonicalize().unwrap(),
-            recursive_mode.is_recursive(),
-        );
+        self.recursive_info
+            .insert(canonical_path, recursive_mode.is_recursive());
         Ok(())
     }
 
@@ -416,30 +432,32 @@ impl FsEventWatcher {
         // channel to pass runloop around
         let (rl_tx, rl_rx) = unbounded();
 
-        let thread_handle = thread::spawn(move || {
-            let stream = stream.0;
+        let thread_handle = thread::Builder::new()
+            .name("notify-rs fsevents loop".to_string())
+            .spawn(move || {
+                let stream = stream.0;
 
-            unsafe {
-                let cur_runloop = cf::CFRunLoopGetCurrent();
+                unsafe {
+                    let cur_runloop = cf::CFRunLoopGetCurrent();
 
-                fs::FSEventStreamScheduleWithRunLoop(
-                    stream,
-                    cur_runloop,
-                    cf::kCFRunLoopDefaultMode,
-                );
-                fs::FSEventStreamStart(stream);
+                    fs::FSEventStreamScheduleWithRunLoop(
+                        stream,
+                        cur_runloop,
+                        cf::kCFRunLoopDefaultMode,
+                    );
+                    fs::FSEventStreamStart(stream);
 
-                // the calling to CFRunLoopRun will be terminated by CFRunLoopStop call in drop()
-                rl_tx
-                    .send(CFSendWrapper(cur_runloop))
-                    .expect("Unable to send runloop to watcher");
+                    // the calling to CFRunLoopRun will be terminated by CFRunLoopStop call in drop()
+                    rl_tx
+                        .send(CFSendWrapper(cur_runloop))
+                        .expect("Unable to send runloop to watcher");
 
-                cf::CFRunLoopRun();
-                fs::FSEventStreamStop(stream);
-                fs::FSEventStreamInvalidate(stream);
-                fs::FSEventStreamRelease(stream);
-            }
-        });
+                    cf::CFRunLoopRun();
+                    fs::FSEventStreamStop(stream);
+                    fs::FSEventStreamInvalidate(stream);
+                    fs::FSEventStreamRelease(stream);
+                }
+            })?;
         // block until runloop has been sent
         self.runloop = Some((rl_rx.recv().unwrap().0, thread_handle));
 
@@ -541,6 +559,10 @@ impl Watcher for FsEventWatcher {
         let (tx, rx) = unbounded();
         self.configure_raw_mode(config, tx);
         rx.recv()?
+    }
+
+    fn kind() -> crate::WatcherKind {
+        crate::WatcherKind::Fsevent
     }
 }
 

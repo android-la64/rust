@@ -60,7 +60,7 @@ fn main() {
                 let mut cmd = Cli::command();
                 cmd.error(
                     ErrorKind::ArgumentConflict,
-                    "Can only modify one version field",
+                    "Cam only modify one version field",
                 )
                 .exit();
             }

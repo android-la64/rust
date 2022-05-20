@@ -8,6 +8,7 @@ use std::path::Path;
 /// Stub `Watcher` implementation
 ///
 /// Events are never delivered from this watcher.
+#[derive(Debug)]
 pub struct NullWatcher;
 
 impl Watcher for NullWatcher {
@@ -19,7 +20,14 @@ impl Watcher for NullWatcher {
         Ok(())
     }
 
-    fn new<F: crate::EventHandler>(event_handler: F) -> Result<Self> where Self: Sized {
+    fn new<F: crate::EventHandler>(event_handler: F) -> Result<Self>
+    where
+        Self: Sized,
+    {
         Ok(NullWatcher)
+    }
+
+    fn kind() -> crate::WatcherKind {
+        crate::WatcherKind::NullWatcher
     }
 }

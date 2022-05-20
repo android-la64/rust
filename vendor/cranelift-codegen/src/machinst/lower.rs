@@ -11,13 +11,15 @@ use crate::fx::{FxHashMap, FxHashSet};
 use crate::inst_predicates::{has_lowering_side_effect, is_constant_64bit};
 use crate::ir::instructions::BranchInfo;
 use crate::ir::{
-    ArgumentPurpose, Block, Constant, ConstantData, ExternalName, Function, GlobalValueData, Inst,
-    InstructionData, MemFlags, Opcode, Signature, SourceLoc, Type, Value, ValueDef,
-    ValueLabelAssignments, ValueLabelStart,
+    types::{FFLAGS, IFLAGS},
+    ArgumentPurpose, Block, Constant, ConstantData, DataFlowGraph, ExternalName, Function,
+    GlobalValue, GlobalValueData, Inst, InstructionData, MemFlags, Opcode, Signature, SourceLoc,
+    Type, Value, ValueDef, ValueLabelAssignments, ValueLabelStart,
 };
 use crate::machinst::{
-    writable_value_regs, ABICallee, BlockIndex, BlockLoweringOrder, LoweredBlock, MachLabel, VCode,
-    VCodeBuilder, VCodeConstant, VCodeConstantData, VCodeConstants, VCodeInst, ValueRegs,
+    non_writable_value_regs, writable_value_regs, ABICallee, BlockIndex, BlockLoweringOrder,
+    LoweredBlock, MachLabel, VCode, VCodeBuilder, VCodeConstant, VCodeConstantData, VCodeConstants,
+    VCodeInst, ValueRegs,
 };
 use crate::CodegenResult;
 use alloc::boxed::Box;
@@ -61,6 +63,8 @@ pub trait LowerCtx {
     /// The instruction type for which this lowering framework is instantiated.
     type I: VCodeInst;
 
+    fn dfg(&self) -> &DataFlowGraph;
+
     // Function-level queries:
 
     /// Get the `ABICallee`.
@@ -89,6 +93,11 @@ pub trait LowerCtx {
     /// Get the symbol name, relocation distance estimate, and offset for a
     /// symbol_value instruction.
     fn symbol_value<'b>(&'b self, ir_inst: Inst) -> Option<(&'b ExternalName, RelocDistance, i64)>;
+    /// Likewise, but starting with a GlobalValue identifier.
+    fn symbol_value_data<'b>(
+        &'b self,
+        global_value: GlobalValue,
+    ) -> Option<(&'b ExternalName, RelocDistance, i64)>;
     /// Returns the memory flags of a given memory access.
     fn memflags(&self, ir_inst: Inst) -> Option<MemFlags>;
     /// Get the source location for a given instruction.
@@ -102,6 +111,8 @@ pub trait LowerCtx {
     fn num_outputs(&self, ir_inst: Inst) -> usize;
     /// Get the type for an instruction's input.
     fn input_ty(&self, ir_inst: Inst, idx: usize) -> Type;
+    /// Get the type for a value.
+    fn value_ty(&self, val: Value) -> Type;
     /// Get the type for an instruction's output.
     fn output_ty(&self, ir_inst: Inst, idx: usize) -> Type;
     /// Get the value of a constant instruction (`iconst`, etc.) as a 64-bit
@@ -124,8 +135,15 @@ pub trait LowerCtx {
     /// instruction's result(s) must have *no* uses remaining, because it will
     /// not be codegen'd (it has been integrated into the current instruction).
     fn get_input_as_source_or_const(&self, ir_inst: Inst, idx: usize) -> NonRegInput;
+    /// Like `get_input_as_source_or_const` but with a `Value`.
+    fn get_value_as_source_or_const(&self, value: Value) -> NonRegInput;
+    /// Resolves a particular input of an instruction to the `Value` that it is
+    /// represented with.
+    fn input_as_value(&self, ir_inst: Inst, idx: usize) -> Value;
     /// Put the `idx`th input into register(s) and return the assigned register.
     fn put_input_in_regs(&mut self, ir_inst: Inst, idx: usize) -> ValueRegs<Reg>;
+    /// Put the given value into register(s) and return the assigned register.
+    fn put_value_in_regs(&mut self, value: Value) -> ValueRegs<Reg>;
     /// Get the `idx`th output register(s) of the given IR instruction. When
     /// `backend.lower_inst_to_regs(ctx, inst)` is called, it is expected that
     /// the backend will write results to these output register(s).  This
@@ -315,14 +333,10 @@ fn alloc_vregs<I: VCodeInst>(
     let regs = match regclasses {
         &[rc0] => ValueRegs::one(Reg::new_virtual(rc0, v)),
         &[rc0, rc1] => ValueRegs::two(Reg::new_virtual(rc0, v), Reg::new_virtual(rc1, v + 1)),
-        #[cfg(feature = "arm32")]
-        &[rc0, rc1, rc2, rc3] => ValueRegs::four(
-            Reg::new_virtual(rc0, v),
-            Reg::new_virtual(rc1, v + 1),
-            Reg::new_virtual(rc2, v + 2),
-            Reg::new_virtual(rc3, v + 3),
-        ),
-        _ => panic!("Value must reside in 1, 2 or 4 registers"),
+        // We can extend this if/when we support 32-bit targets; e.g.,
+        // an i128 on a 32-bit machine will need up to four machine regs
+        // for a `Value`.
+        _ => panic!("Value must reside in 1 or 2 registers"),
     };
     for (&reg_ty, &reg) in tys.iter().zip(regs.regs().iter()) {
         vcode.set_vreg_type(reg.to_virtual_reg(), reg_ty);
@@ -1002,34 +1016,138 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
 
         Ok((vcode, stack_map_info))
     }
+}
 
-    fn put_value_in_regs(&mut self, val: Value) -> ValueRegs<Reg> {
-        log::trace!("put_value_in_reg: val {}", val);
-        let mut regs = self.value_regs[val];
-        log::trace!(" -> regs {:?}", regs);
-        assert!(regs.is_valid());
+impl<'func, I: VCodeInst> LowerCtx for Lower<'func, I> {
+    type I = I;
 
-        self.value_lowered_uses[val] += 1;
-
-        // Pinned-reg hack: if backend specifies a fixed pinned register, use it
-        // directly when we encounter a GetPinnedReg op, rather than lowering
-        // the actual op, and do not return the source inst to the caller; the
-        // value comes "out of the ether" and we will not force generation of
-        // the superfluous move.
-        if let ValueDef::Result(i, 0) = self.f.dfg.value_def(val) {
-            if self.f.dfg[i].opcode() == Opcode::GetPinnedReg {
-                if let Some(pr) = self.pinned_reg {
-                    regs = ValueRegs::one(pr);
-                }
-            }
-        }
-
-        regs
+    fn dfg(&self) -> &DataFlowGraph {
+        &self.f.dfg
     }
 
-    /// Get the actual inputs for a value. This is the implementation for
-    /// `get_input()` but starting from the SSA value, which is not exposed to
-    /// the backend.
+    fn abi(&mut self) -> &mut dyn ABICallee<I = I> {
+        self.vcode.abi()
+    }
+
+    fn retval(&self, idx: usize) -> ValueRegs<Writable<Reg>> {
+        writable_value_regs(self.retval_regs[idx])
+    }
+
+    fn get_vm_context(&self) -> Option<Reg> {
+        self.vm_context
+    }
+
+    fn data(&self, ir_inst: Inst) -> &InstructionData {
+        &self.f.dfg[ir_inst]
+    }
+
+    fn ty(&self, ir_inst: Inst) -> Type {
+        self.f.dfg.ctrl_typevar(ir_inst)
+    }
+
+    fn call_target<'b>(&'b self, ir_inst: Inst) -> Option<(&'b ExternalName, RelocDistance)> {
+        match &self.f.dfg[ir_inst] {
+            &InstructionData::Call { func_ref, .. }
+            | &InstructionData::FuncAddr { func_ref, .. } => {
+                let funcdata = &self.f.dfg.ext_funcs[func_ref];
+                let dist = funcdata.reloc_distance();
+                Some((&funcdata.name, dist))
+            }
+            _ => None,
+        }
+    }
+
+    fn call_sig<'b>(&'b self, ir_inst: Inst) -> Option<&'b Signature> {
+        match &self.f.dfg[ir_inst] {
+            &InstructionData::Call { func_ref, .. } => {
+                let funcdata = &self.f.dfg.ext_funcs[func_ref];
+                Some(&self.f.dfg.signatures[funcdata.signature])
+            }
+            &InstructionData::CallIndirect { sig_ref, .. } => Some(&self.f.dfg.signatures[sig_ref]),
+            _ => None,
+        }
+    }
+
+    fn symbol_value<'b>(&'b self, ir_inst: Inst) -> Option<(&'b ExternalName, RelocDistance, i64)> {
+        match &self.f.dfg[ir_inst] {
+            &InstructionData::UnaryGlobalValue { global_value, .. } => {
+                self.symbol_value_data(global_value)
+            }
+            _ => None,
+        }
+    }
+
+    fn symbol_value_data<'b>(
+        &'b self,
+        global_value: GlobalValue,
+    ) -> Option<(&'b ExternalName, RelocDistance, i64)> {
+        let gvdata = &self.f.global_values[global_value];
+        match gvdata {
+            &GlobalValueData::Symbol {
+                ref name,
+                ref offset,
+                ..
+            } => {
+                let offset = offset.bits();
+                let dist = gvdata.maybe_reloc_distance().unwrap();
+                Some((name, dist, offset))
+            }
+            _ => None,
+        }
+    }
+
+    fn memflags(&self, ir_inst: Inst) -> Option<MemFlags> {
+        match &self.f.dfg[ir_inst] {
+            &InstructionData::AtomicCas { flags, .. } => Some(flags),
+            &InstructionData::AtomicRmw { flags, .. } => Some(flags),
+            &InstructionData::Load { flags, .. }
+            | &InstructionData::LoadComplex { flags, .. }
+            | &InstructionData::LoadNoOffset { flags, .. }
+            | &InstructionData::Store { flags, .. }
+            | &InstructionData::StoreComplex { flags, .. } => Some(flags),
+            &InstructionData::StoreNoOffset { flags, .. } => Some(flags),
+            _ => None,
+        }
+    }
+
+    fn srcloc(&self, ir_inst: Inst) -> SourceLoc {
+        self.f.srclocs[ir_inst]
+    }
+
+    fn num_inputs(&self, ir_inst: Inst) -> usize {
+        self.f.dfg.inst_args(ir_inst).len()
+    }
+
+    fn num_outputs(&self, ir_inst: Inst) -> usize {
+        self.f.dfg.inst_results(ir_inst).len()
+    }
+
+    fn input_ty(&self, ir_inst: Inst, idx: usize) -> Type {
+        self.value_ty(self.input_as_value(ir_inst, idx))
+    }
+
+    fn value_ty(&self, val: Value) -> Type {
+        self.f.dfg.value_type(val)
+    }
+
+    fn output_ty(&self, ir_inst: Inst, idx: usize) -> Type {
+        self.f.dfg.value_type(self.f.dfg.inst_results(ir_inst)[idx])
+    }
+
+    fn get_constant(&self, ir_inst: Inst) -> Option<u64> {
+        self.inst_constants.get(&ir_inst).cloned()
+    }
+
+    fn input_as_value(&self, ir_inst: Inst, idx: usize) -> Value {
+        let val = self.f.dfg.inst_args(ir_inst)[idx];
+        self.f.dfg.resolve_aliases(val)
+    }
+
+    fn get_input_as_source_or_const(&self, ir_inst: Inst, idx: usize) -> NonRegInput {
+        let val = self.input_as_value(ir_inst, idx);
+        self.get_value_as_source_or_const(val)
+    }
+
     fn get_value_as_source_or_const(&self, val: Value) -> NonRegInput {
         log::trace!(
             "get_input_for_val: val {} at cur_inst {:?} cur_scan_entry_color {:?}",
@@ -1092,125 +1210,64 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
 
         NonRegInput { inst, constant }
     }
-}
-
-impl<'func, I: VCodeInst> LowerCtx for Lower<'func, I> {
-    type I = I;
-
-    fn abi(&mut self) -> &mut dyn ABICallee<I = I> {
-        self.vcode.abi()
-    }
-
-    fn retval(&self, idx: usize) -> ValueRegs<Writable<Reg>> {
-        writable_value_regs(self.retval_regs[idx])
-    }
-
-    fn get_vm_context(&self) -> Option<Reg> {
-        self.vm_context
-    }
-
-    fn data(&self, ir_inst: Inst) -> &InstructionData {
-        &self.f.dfg[ir_inst]
-    }
-
-    fn ty(&self, ir_inst: Inst) -> Type {
-        self.f.dfg.ctrl_typevar(ir_inst)
-    }
-
-    fn call_target<'b>(&'b self, ir_inst: Inst) -> Option<(&'b ExternalName, RelocDistance)> {
-        match &self.f.dfg[ir_inst] {
-            &InstructionData::Call { func_ref, .. }
-            | &InstructionData::FuncAddr { func_ref, .. } => {
-                let funcdata = &self.f.dfg.ext_funcs[func_ref];
-                let dist = funcdata.reloc_distance();
-                Some((&funcdata.name, dist))
-            }
-            _ => None,
-        }
-    }
-
-    fn call_sig<'b>(&'b self, ir_inst: Inst) -> Option<&'b Signature> {
-        match &self.f.dfg[ir_inst] {
-            &InstructionData::Call { func_ref, .. } => {
-                let funcdata = &self.f.dfg.ext_funcs[func_ref];
-                Some(&self.f.dfg.signatures[funcdata.signature])
-            }
-            &InstructionData::CallIndirect { sig_ref, .. } => Some(&self.f.dfg.signatures[sig_ref]),
-            _ => None,
-        }
-    }
-
-    fn symbol_value<'b>(&'b self, ir_inst: Inst) -> Option<(&'b ExternalName, RelocDistance, i64)> {
-        match &self.f.dfg[ir_inst] {
-            &InstructionData::UnaryGlobalValue { global_value, .. } => {
-                let gvdata = &self.f.global_values[global_value];
-                match gvdata {
-                    &GlobalValueData::Symbol {
-                        ref name,
-                        ref offset,
-                        ..
-                    } => {
-                        let offset = offset.bits();
-                        let dist = gvdata.maybe_reloc_distance().unwrap();
-                        Some((name, dist, offset))
-                    }
-                    _ => None,
-                }
-            }
-            _ => None,
-        }
-    }
-
-    fn memflags(&self, ir_inst: Inst) -> Option<MemFlags> {
-        match &self.f.dfg[ir_inst] {
-            &InstructionData::AtomicCas { flags, .. } => Some(flags),
-            &InstructionData::AtomicRmw { flags, .. } => Some(flags),
-            &InstructionData::Load { flags, .. }
-            | &InstructionData::LoadComplex { flags, .. }
-            | &InstructionData::LoadNoOffset { flags, .. }
-            | &InstructionData::Store { flags, .. }
-            | &InstructionData::StoreComplex { flags, .. } => Some(flags),
-            &InstructionData::StoreNoOffset { flags, .. } => Some(flags),
-            _ => None,
-        }
-    }
-
-    fn srcloc(&self, ir_inst: Inst) -> SourceLoc {
-        self.f.srclocs[ir_inst]
-    }
-
-    fn num_inputs(&self, ir_inst: Inst) -> usize {
-        self.f.dfg.inst_args(ir_inst).len()
-    }
-
-    fn num_outputs(&self, ir_inst: Inst) -> usize {
-        self.f.dfg.inst_results(ir_inst).len()
-    }
-
-    fn input_ty(&self, ir_inst: Inst, idx: usize) -> Type {
-        let val = self.f.dfg.inst_args(ir_inst)[idx];
-        let val = self.f.dfg.resolve_aliases(val);
-        self.f.dfg.value_type(val)
-    }
-
-    fn output_ty(&self, ir_inst: Inst, idx: usize) -> Type {
-        self.f.dfg.value_type(self.f.dfg.inst_results(ir_inst)[idx])
-    }
-
-    fn get_constant(&self, ir_inst: Inst) -> Option<u64> {
-        self.inst_constants.get(&ir_inst).cloned()
-    }
-
-    fn get_input_as_source_or_const(&self, ir_inst: Inst, idx: usize) -> NonRegInput {
-        let val = self.f.dfg.inst_args(ir_inst)[idx];
-        let val = self.f.dfg.resolve_aliases(val);
-        self.get_value_as_source_or_const(val)
-    }
 
     fn put_input_in_regs(&mut self, ir_inst: Inst, idx: usize) -> ValueRegs<Reg> {
         let val = self.f.dfg.inst_args(ir_inst)[idx];
-        let val = self.f.dfg.resolve_aliases(val);
         self.put_value_in_regs(val)
+    }
+
+    fn put_value_in_regs(&mut self, val: Value) -> ValueRegs<Reg> {
+        let val = self.f.dfg.resolve_aliases(val);
+        log::trace!("put_value_in_regs: val {}", val);
+
+        // Assert that the value is not `iflags`/`fflags`-typed; these
+        // cannot be reified into normal registers. TODO(#3249)
+        // eventually remove the `iflags` type altogether!
+        let ty = self.f.dfg.value_type(val);
+        assert!(ty != IFLAGS && ty != FFLAGS);
+
+        // If the value is a constant, then (re)materialize it at each use. This
+        // lowers register pressure.
+        if let Some(c) = self
+            .f
+            .dfg
+            .value_def(val)
+            .inst()
+            .and_then(|inst| self.get_constant(inst))
+        {
+            let regs = self.alloc_tmp(ty);
+            log::trace!(" -> regs {:?}", regs);
+            assert!(regs.is_valid());
+
+            let insts = I::gen_constant(regs, c.into(), ty, |ty| {
+                self.alloc_tmp(ty).only_reg().unwrap()
+            });
+            for inst in insts {
+                self.emit(inst);
+            }
+            return non_writable_value_regs(regs);
+        }
+
+        let mut regs = self.value_regs[val];
+        log::trace!(" -> regs {:?}", regs);
+        assert!(regs.is_valid());
+
+        self.value_lowered_uses[val] += 1;
+
+        // Pinned-reg hack: if backend specifies a fixed pinned register, use it
+        // directly when we encounter a GetPinnedReg op, rather than lowering
+        // the actual op, and do not return the source inst to the caller; the
+        // value comes "out of the ether" and we will not force generation of
+        // the superfluous move.
+        if let ValueDef::Result(i, 0) = self.f.dfg.value_def(val) {
+            if self.f.dfg[i].opcode() == Opcode::GetPinnedReg {
+                if let Some(pr) = self.pinned_reg {
+                    regs = ValueRegs::one(pr);
+                }
+            }
+        }
+
+        regs
     }
 
     fn get_output(&self, ir_inst: Inst, idx: usize) -> ValueRegs<Writable<Reg>> {
@@ -1264,8 +1321,8 @@ impl<'func, I: VCodeInst> LowerCtx for Lower<'func, I> {
     fn get_immediate(&self, ir_inst: Inst) -> Option<DataValue> {
         let inst_data = self.data(ir_inst);
         match inst_data {
-            InstructionData::Shuffle { mask, .. } => {
-                let buffer = self.f.dfg.immediates.get(mask.clone()).unwrap().as_slice();
+            InstructionData::Shuffle { imm, .. } => {
+                let buffer = self.f.dfg.immediates.get(imm.clone()).unwrap().as_slice();
                 let value = DataValue::V128(buffer.try_into().expect("a 16-byte data buffer"));
                 Some(value)
             }

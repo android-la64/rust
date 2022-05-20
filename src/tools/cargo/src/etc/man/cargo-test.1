@@ -253,8 +253,7 @@ Do not activate the \fBdefault\fR feature of the selected packages.
 .sp
 \fB\-\-target\fR \fItriple\fR
 .RS 4
-Test for the given architecture. The default is the host
-architecture. The general format of the triple is
+Test for the given architecture. The default is the host architecture. The general format of the triple is
 \fB<arch><sub>\-<vendor>\-<sys>\-<abi>\fR\&. Run \fBrustc \-\-print target\-list\fR for a
 list of supported targets.
 .sp
@@ -479,6 +478,13 @@ Number of parallel jobs to run. May also be specified with the
 the number of CPUs.
 .RE
 .sp
+\fB\-\-keep\-going\fR
+.RS 4
+Build as many crates in the dependency graph as possible, rather than aborting
+the build on the first one that fails to build. Unstable, requires
+\fB\-Zunstable\-options\fR\&.
+.RE
+.sp
 \fB\-\-future\-incompat\-report\fR
 .RS 4
 Displays a future\-incompat report for any future\-incompatible warnings
@@ -530,4 +536,4 @@ cargo test \-\-test int_test_name \-\- modname::test_name
 .RE
 .RE
 .SH "SEE ALSO"
-\fBcargo\fR(1), \fBcargo\-bench\fR(1)
+\fBcargo\fR(1), \fBcargo\-bench\fR(1), \fItypes of tests\fR <https://doc.rust\-lang.org/cargo/reference/cargo\-targets.html#tests>, \fIhow to write tests\fR <https://doc.rust\-lang.org/rustc/tests/index.html>

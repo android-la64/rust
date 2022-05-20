@@ -419,7 +419,10 @@ pub trait ABIMachineSpec {
 
     /// Generates extra unwind instructions for a new frame  for this
     /// architecture, whether the frame has a prologue sequence or not.
-    fn gen_debug_frame_info(_flags: &settings::Flags) -> SmallInstVec<Self::I> {
+    fn gen_debug_frame_info(
+        _flags: &settings::Flags,
+        _isa_flags: &Vec<settings::Value>,
+    ) -> SmallInstVec<Self::I> {
         // By default, generates nothing.
         smallvec![]
     }
@@ -502,9 +505,8 @@ pub trait ABIMachineSpec {
         size: usize,
     ) -> SmallVec<[Self::I; 8]>;
 
-    /// Get the number of spillslots required for the given register-class and
-    /// type.
-    fn get_number_of_spillslots_for_value(rc: RegClass, ty: Type) -> u32;
+    /// Get the number of spillslots required for the given register-class.
+    fn get_number_of_spillslots_for_value(rc: RegClass) -> u32;
 
     /// Get the current virtual-SP offset from an instruction-emission state.
     fn get_virtual_sp_offset_from_state(s: &<Self::I as MachInstEmit>::State) -> i64;
@@ -620,6 +622,8 @@ pub struct ABICalleeImpl<M: ABIMachineSpec> {
     call_conv: isa::CallConv,
     /// The settings controlling this function's compilation.
     flags: settings::Flags,
+    /// The ISA-specific flag values controlling this function's compilation.
+    isa_flags: Vec<settings::Value>,
     /// Whether or not this function is a "leaf", meaning it calls no other
     /// functions
     is_leaf: bool,
@@ -658,9 +662,24 @@ fn get_special_purpose_param_register(
     }
 }
 
+fn ty_from_class(class: RegClass) -> Type {
+    match class {
+        RegClass::I32 => I32,
+        RegClass::I64 => I64,
+        RegClass::F32 => F32,
+        RegClass::F64 => F64,
+        RegClass::V128 => I8X16,
+        _ => panic!("Unknown regclass: {:?}", class),
+    }
+}
+
 impl<M: ABIMachineSpec> ABICalleeImpl<M> {
     /// Create a new body ABI instance.
-    pub fn new(f: &ir::Function, flags: settings::Flags) -> CodegenResult<Self> {
+    pub fn new(
+        f: &ir::Function,
+        flags: settings::Flags,
+        isa_flags: Vec<settings::Value>,
+    ) -> CodegenResult<Self> {
         log::trace!("ABI: func signature {:?}", f.signature);
 
         let ir_sig = ensure_struct_return_ptr_is_returned(&f.signature);
@@ -727,6 +746,7 @@ impl<M: ABIMachineSpec> ABICalleeImpl<M> {
             ret_area_ptr: None,
             call_conv,
             flags,
+            isa_flags,
             is_leaf: f.is_leaf(),
             stack_limit,
             probestack_min_frame,
@@ -853,26 +873,6 @@ fn generate_gv<M: ABIMachineSpec>(
             return into_reg.to_reg();
         }
         ref other => panic!("global value for stack limit not supported: {}", other),
-    }
-}
-
-/// Return a type either from an optional type hint, or if not, from the default
-/// type associated with the given register's class. This is used to generate
-/// loads/spills appropriately given the type of value loaded/stored (which may
-/// be narrower than the spillslot). We usually have the type because the
-/// regalloc usually provides the vreg being spilled/reloaded, and we know every
-/// vreg's type. However, the regalloc *can* request a spill/reload without an
-/// associated vreg when needed to satisfy a safepoint (which requires all
-/// ref-typed values, even those in real registers in the original vcode, to be
-/// in spillslots).
-fn ty_from_ty_hint_or_reg_class<M: ABIMachineSpec>(r: Reg, ty: Option<Type>) -> Type {
-    match (ty, r.get_class()) {
-        // If the type is provided
-        (Some(t), _) => t,
-        // If no type is provided, this should be a register spill for a
-        // safepoint, so we only expect I32/I64 (integer) registers.
-        (None, rc) if rc == M::word_reg_class() => M::word_type(),
-        _ => panic!("Unexpected register class!"),
     }
 }
 
@@ -1203,14 +1203,6 @@ impl<M: ABIMachineSpec> ABICallee for ABICalleeImpl<M> {
         let sp_off = self.stackslots_size as i64 + spill_off;
         log::trace!("load_spillslot: slot {:?} -> sp_off {}", slot, sp_off);
 
-        // Integer types smaller than word size have been spilled as words below,
-        // and therefore must be reloaded in the same type.
-        let ty = if ty.is_int() && ty.bytes() < M::word_bytes() {
-            M::word_type()
-        } else {
-            ty
-        };
-
         gen_load_stack_multi::<M>(StackAMode::NominalSPOffset(sp_off, ty), into_regs, ty)
     }
 
@@ -1226,18 +1218,6 @@ impl<M: ABIMachineSpec> ABICallee for ABICalleeImpl<M> {
         let spill_off = islot * M::word_bytes() as i64;
         let sp_off = self.stackslots_size as i64 + spill_off;
         log::trace!("store_spillslot: slot {:?} -> sp_off {}", slot, sp_off);
-
-        // When reloading from a spill slot, we might have lost information about real integer
-        // types. For instance, on the x64 backend, a zero-extension can become spurious and
-        // optimized into a move, causing vregs of types I32 and I64 to share the same coalescing
-        // equivalency class. As a matter of fact, such a value can be spilled as an I32 and later
-        // reloaded as an I64; to make sure the high bits are always defined, do a word-sized store
-        // all the time, in this case.
-        let ty = if ty.is_int() && ty.bytes() < M::word_bytes() {
-            M::word_type()
-        } else {
-            ty
-        };
 
         gen_store_stack_multi::<M>(StackAMode::NominalSPOffset(sp_off, ty), from_regs, ty)
     }
@@ -1296,7 +1276,7 @@ impl<M: ABIMachineSpec> ABICallee for ABICalleeImpl<M> {
                 self.fixed_frame_storage_size,
             );
 
-            insts.extend(M::gen_debug_frame_info(&self.flags).into_iter());
+            insts.extend(M::gen_debug_frame_info(&self.flags, &self.isa_flags).into_iter());
 
             if self.setup_frame {
                 // set up frame
@@ -1383,25 +1363,20 @@ impl<M: ABIMachineSpec> ABICallee for ABICalleeImpl<M> {
         self.sig.stack_arg_space as u32
     }
 
-    fn get_spillslot_size(&self, rc: RegClass, ty: Type) -> u32 {
-        M::get_number_of_spillslots_for_value(rc, ty)
+    fn get_spillslot_size(&self, rc: RegClass) -> u32 {
+        M::get_number_of_spillslots_for_value(rc)
     }
 
-    fn gen_spill(&self, to_slot: SpillSlot, from_reg: RealReg, ty: Option<Type>) -> Self::I {
-        let ty = ty_from_ty_hint_or_reg_class::<M>(from_reg.to_reg(), ty);
+    fn gen_spill(&self, to_slot: SpillSlot, from_reg: RealReg) -> Self::I {
+        let ty = ty_from_class(from_reg.to_reg().get_class());
         self.store_spillslot(to_slot, ty, ValueRegs::one(from_reg.to_reg()))
             .into_iter()
             .next()
             .unwrap()
     }
 
-    fn gen_reload(
-        &self,
-        to_reg: Writable<RealReg>,
-        from_slot: SpillSlot,
-        ty: Option<Type>,
-    ) -> Self::I {
-        let ty = ty_from_ty_hint_or_reg_class::<M>(to_reg.to_reg().to_reg(), ty);
+    fn gen_reload(&self, to_reg: Writable<RealReg>, from_slot: SpillSlot) -> Self::I {
+        let ty = ty_from_class(to_reg.to_reg().get_class());
         self.load_spillslot(
             from_slot,
             ty,

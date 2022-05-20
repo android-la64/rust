@@ -6,17 +6,23 @@ use std::slice;
 
 use std::ffi::CString;
 
-use libc::{c_char, c_int, c_void, size_t};
+use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
-use crate::{raw, Error, IndexerProgress, Mempack, Object, ObjectType, Oid, Progress};
+use crate::{
+    raw, Error, IndexerProgress, Mempack, Object, ObjectType, OdbLookupFlags, Oid, Progress,
+};
 
 /// A structure to represent a git object database
 pub struct Odb<'repo> {
     raw: *mut raw::git_odb,
     _marker: marker::PhantomData<Object<'repo>>,
 }
+
+// `git_odb` uses locking and atomics internally.
+unsafe impl<'repo> Send for Odb<'repo> {}
+unsafe impl<'repo> Sync for Odb<'repo> {}
 
 impl<'repo> Binding for Odb<'repo> {
     type Raw = *mut raw::git_odb;
@@ -182,6 +188,11 @@ impl<'repo> Odb<'repo> {
         unsafe { raw::git_odb_exists(self.raw, oid.raw()) != 0 }
     }
 
+    /// Checks if the object database has an object, with extended flags.
+    pub fn exists_ext(&self, oid: Oid, flags: OdbLookupFlags) -> bool {
+        unsafe { raw::git_odb_exists_ext(self.raw, oid.raw(), flags.bits() as c_uint) != 0 }
+    }
+
     /// Potentially finds an object that starts with the given prefix.
     pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
         unsafe {
@@ -322,6 +333,10 @@ pub struct OdbReader<'repo> {
     _marker: marker::PhantomData<Object<'repo>>,
 }
 
+// `git_odb_stream` is not thread-safe internally, so it can't use `Sync`, but moving it to another
+// thread and continuing to read will work.
+unsafe impl<'repo> Send for OdbReader<'repo> {}
+
 impl<'repo> Binding for OdbReader<'repo> {
     type Raw = *mut raw::git_odb_stream;
 
@@ -362,6 +377,10 @@ pub struct OdbWriter<'repo> {
     raw: *mut raw::git_odb_stream,
     _marker: marker::PhantomData<Object<'repo>>,
 }
+
+// `git_odb_stream` is not thread-safe internally, so it can't use `Sync`, but moving it to another
+// thread and continuing to write will work.
+unsafe impl<'repo> Send for OdbWriter<'repo> {}
 
 impl<'repo> OdbWriter<'repo> {
     /// Finish writing to an ODB stream

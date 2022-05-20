@@ -1,7 +1,5 @@
 use std::cmp::Ordering;
 
-use os_str_bytes::RawOsStr;
-
 use crate::build::arg::ArgProvider;
 use crate::mkeymap::KeyType;
 use crate::util::Id;
@@ -688,16 +686,7 @@ fn assert_defaults<'d>(
 
             if let Some(validator) = arg.validator.as_ref() {
                 let mut validator = validator.lock().unwrap();
-                if let Some(delim) = arg.get_value_delimiter() {
-                    for part in default_s.split(delim) {
-                        if let Err(err) = validator(part) {
-                            panic!(
-                                "Argument `{}`'s {}={} failed validation: {}",
-                                arg.name, field, part, err
-                            );
-                        }
-                    }
-                } else if let Err(err) = validator(default_s) {
+                if let Err(err) = validator(default_s) {
                     panic!(
                         "Argument `{}`'s {}={} failed validation: {}",
                         arg.name, field, default_s, err
@@ -708,17 +697,7 @@ fn assert_defaults<'d>(
 
         if let Some(validator) = arg.validator_os.as_ref() {
             let mut validator = validator.lock().unwrap();
-            if let Some(delim) = arg.get_value_delimiter() {
-                let default_os = RawOsStr::new(default_os);
-                for part in default_os.split(delim) {
-                    if let Err(err) = validator(&part.to_os_str()) {
-                        panic!(
-                            "Argument `{}`'s {}={:?} failed validation: {}",
-                            arg.name, field, part, err
-                        );
-                    }
-                }
-            } else if let Err(err) = validator(default_os) {
+            if let Err(err) = validator(default_os) {
                 panic!(
                     "Argument `{}`'s {}={:?} failed validation: {}",
                     arg.name, field, default_os, err
