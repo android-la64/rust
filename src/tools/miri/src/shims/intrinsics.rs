@@ -1,4 +1,3 @@
-use std::convert::TryInto;
 use std::iter;
 
 use log::trace;
@@ -44,13 +43,13 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         match intrinsic_name {
             // Miri overwriting CTFE intrinsics.
             "ptr_guaranteed_eq" => {
-                let &[ref left, ref right] = check_arg_count(args)?;
+                let [left, right] = check_arg_count(args)?;
                 let left = this.read_immediate(left)?;
                 let right = this.read_immediate(right)?;
                 this.binop_ignore_overflow(mir::BinOp::Eq, &left, &right, dest)?;
             }
             "ptr_guaranteed_ne" => {
-                let &[ref left, ref right] = check_arg_count(args)?;
+                let [left, right] = check_arg_count(args)?;
                 let left = this.read_immediate(left)?;
                 let right = this.read_immediate(right)?;
                 this.binop_ignore_overflow(mir::BinOp::Ne, &left, &right, dest)?;
@@ -66,18 +65,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             // Raw memory accesses
             "volatile_load" => {
-                let &[ref place] = check_arg_count(args)?;
+                let [place] = check_arg_count(args)?;
                 let place = this.deref_operand(place)?;
                 this.copy_op(&place.into(), dest)?;
             }
             "volatile_store" => {
-                let &[ref place, ref dest] = check_arg_count(args)?;
+                let [place, dest] = check_arg_count(args)?;
                 let place = this.deref_operand(place)?;
                 this.copy_op(dest, &place.into())?;
             }
 
             "write_bytes" | "volatile_set_memory" => {
-                let &[ref ptr, ref val_byte, ref count] = check_arg_count(args)?;
+                let [ptr, val_byte, count] = check_arg_count(args)?;
                 let ty = instance.substs.type_at(0);
                 let ty_layout = this.layout_of(ty)?;
                 let val_byte = this.read_scalar(val_byte)?.to_u8()?;
@@ -88,19 +87,21 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let byte_count = ty_layout.size.checked_mul(count, this).ok_or_else(|| {
                     err_ub_format!("overflow computing total size of `{}`", intrinsic_name)
                 })?;
-                this.memory
-                    .write_bytes(ptr, iter::repeat(val_byte).take(byte_count.bytes() as usize))?;
+                this.write_bytes_ptr(
+                    ptr,
+                    iter::repeat(val_byte).take(byte_count.bytes() as usize),
+                )?;
             }
 
             // Floating-point operations
             "fabsf32" => {
-                let &[ref f] = check_arg_count(args)?;
+                let [f] = check_arg_count(args)?;
                 let f = this.read_scalar(f)?.to_f32()?;
                 // Can be implemented in soft-floats.
                 this.write_scalar(Scalar::from_f32(f.abs()), dest)?;
             }
             "fabsf64" => {
-                let &[ref f] = check_arg_count(args)?;
+                let [f] = check_arg_count(args)?;
                 let f = this.read_scalar(f)?.to_f64()?;
                 // Can be implemented in soft-floats.
                 this.write_scalar(Scalar::from_f64(f.abs()), dest)?;
@@ -119,7 +120,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "truncf32"
             | "roundf32"
             => {
-                let &[ref f] = check_arg_count(args)?;
+                let [f] = check_arg_count(args)?;
                 // FIXME: Using host floats.
                 let f = f32::from_bits(this.read_scalar(f)?.to_u32()?);
                 let f = match intrinsic_name {
@@ -154,7 +155,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "truncf64"
             | "roundf64"
             => {
-                let &[ref f] = check_arg_count(args)?;
+                let [f] = check_arg_count(args)?;
                 // FIXME: Using host floats.
                 let f = f64::from_bits(this.read_scalar(f)?.to_u64()?);
                 let f = match intrinsic_name {
@@ -182,7 +183,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "fdiv_fast"
             | "frem_fast"
             => {
-                let &[ref a, ref b] = check_arg_count(args)?;
+                let [a, b] = check_arg_count(args)?;
                 let a = this.read_immediate(a)?;
                 let b = this.read_immediate(b)?;
                 let op = match intrinsic_name {
@@ -227,7 +228,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "maxnumf32"
             | "copysignf32"
             => {
-                let &[ref a, ref b] = check_arg_count(args)?;
+                let [a, b] = check_arg_count(args)?;
                 let a = this.read_scalar(a)?.to_f32()?;
                 let b = this.read_scalar(b)?.to_f32()?;
                 let res = match intrinsic_name {
@@ -244,7 +245,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "maxnumf64"
             | "copysignf64"
             => {
-                let &[ref a, ref b] = check_arg_count(args)?;
+                let [a, b] = check_arg_count(args)?;
                 let a = this.read_scalar(a)?.to_f64()?;
                 let b = this.read_scalar(b)?.to_f64()?;
                 let res = match intrinsic_name {
@@ -257,7 +258,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             "powf32" => {
-                let &[ref f, ref f2] = check_arg_count(args)?;
+                let [f, f2] = check_arg_count(args)?;
                 // FIXME: Using host floats.
                 let f = f32::from_bits(this.read_scalar(f)?.to_u32()?);
                 let f2 = f32::from_bits(this.read_scalar(f2)?.to_u32()?);
@@ -265,7 +266,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             "powf64" => {
-                let &[ref f, ref f2] = check_arg_count(args)?;
+                let [f, f2] = check_arg_count(args)?;
                 // FIXME: Using host floats.
                 let f = f64::from_bits(this.read_scalar(f)?.to_u64()?);
                 let f2 = f64::from_bits(this.read_scalar(f2)?.to_u64()?);
@@ -273,7 +274,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             "fmaf32" => {
-                let &[ref a, ref b, ref c] = check_arg_count(args)?;
+                let [a, b, c] = check_arg_count(args)?;
                 let a = this.read_scalar(a)?.to_f32()?;
                 let b = this.read_scalar(b)?.to_f32()?;
                 let c = this.read_scalar(c)?.to_f32()?;
@@ -282,7 +283,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             "fmaf64" => {
-                let &[ref a, ref b, ref c] = check_arg_count(args)?;
+                let [a, b, c] = check_arg_count(args)?;
                 let a = this.read_scalar(a)?.to_f64()?;
                 let b = this.read_scalar(b)?.to_f64()?;
                 let c = this.read_scalar(c)?.to_f64()?;
@@ -291,7 +292,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             "powif32" => {
-                let &[ref f, ref i] = check_arg_count(args)?;
+                let [f, i] = check_arg_count(args)?;
                 // FIXME: Using host floats.
                 let f = f32::from_bits(this.read_scalar(f)?.to_u32()?);
                 let i = this.read_scalar(i)?.to_i32()?;
@@ -299,7 +300,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             "powif64" => {
-                let &[ref f, ref i] = check_arg_count(args)?;
+                let [f, i] = check_arg_count(args)?;
                 // FIXME: Using host floats.
                 let f = f64::from_bits(this.read_scalar(f)?.to_u64()?);
                 let i = this.read_scalar(i)?.to_i32()?;
@@ -307,7 +308,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             "float_to_int_unchecked" => {
-                let &[ref val] = check_arg_count(args)?;
+                let [val] = check_arg_count(args)?;
                 let val = this.read_immediate(val)?;
 
                 let res = match val.layout.ty.kind() {
@@ -334,7 +335,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "simd_round"
             | "simd_trunc"
             | "simd_fsqrt" => {
-                let &[ref op] = check_arg_count(args)?;
+                let [op] = check_arg_count(args)?;
                 let (op, op_len) = this.operand_to_simd(op)?;
                 let (dest, dest_len) = this.place_to_simd(dest)?;
 
@@ -436,10 +437,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "simd_fmax"
             | "simd_fmin"
             | "simd_saturating_add"
-            | "simd_saturating_sub" => {
+            | "simd_saturating_sub"
+            | "simd_arith_offset" => {
                 use mir::BinOp;
 
-                let &[ref left, ref right] = check_arg_count(args)?;
+                let [left, right] = check_arg_count(args)?;
                 let (left, left_len) = this.operand_to_simd(left)?;
                 let (right, right_len) = this.operand_to_simd(right)?;
                 let (dest, dest_len) = this.place_to_simd(dest)?;
@@ -452,6 +454,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     SaturatingOp(BinOp),
                     FMax,
                     FMin,
+                    WrappingOffset,
                 }
                 let which = match intrinsic_name {
                     "simd_add" => Op::MirOp(BinOp::Add),
@@ -474,6 +477,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     "simd_fmin" => Op::FMin,
                     "simd_saturating_add" => Op::SaturatingOp(BinOp::Add),
                     "simd_saturating_sub" => Op::SaturatingOp(BinOp::Sub),
+                    "simd_arith_offset" => Op::WrappingOffset,
                     _ => unreachable!(),
                 };
 
@@ -503,21 +507,31 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                                 val
                             }
                         }
+                        Op::SaturatingOp(mir_op) => {
+                            this.saturating_arith(mir_op, &left, &right)?
+                        }
+                        Op::WrappingOffset => {
+                            let ptr = this.scalar_to_ptr(left.to_scalar()?)?;
+                            let offset_count = right.to_scalar()?.to_machine_isize(this)?;
+                            let pointee_ty = left.layout.ty.builtin_deref(true).unwrap().ty;
+
+                            let pointee_size = i64::try_from(this.layout_of(pointee_ty)?.size.bytes()).unwrap();
+                            let offset_bytes = offset_count.wrapping_mul(pointee_size);
+                            let offset_ptr = ptr.wrapping_signed_offset(offset_bytes, this);
+                            Scalar::from_maybe_pointer(offset_ptr, this)
+                        }
                         Op::FMax => {
                             fmax_op(&left, &right)?
                         }
                         Op::FMin => {
                             fmin_op(&left, &right)?
                         }
-                        Op::SaturatingOp(mir_op) => {
-                            this.saturating_arith(mir_op, &left, &right)?
-                        }
                     };
                     this.write_scalar(val, &dest.into())?;
                 }
             }
             "simd_fma" => {
-                let &[ref a, ref b, ref c] = check_arg_count(args)?;
+                let [a, b, c] = check_arg_count(args)?;
                 let (a, a_len) = this.operand_to_simd(a)?;
                 let (b, b_len) = this.operand_to_simd(b)?;
                 let (c, c_len) = this.operand_to_simd(c)?;
@@ -556,7 +570,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "simd_reduce_min" => {
                 use mir::BinOp;
 
-                let &[ref op] = check_arg_count(args)?;
+                let [op] = check_arg_count(args)?;
                 let (op, op_len) = this.operand_to_simd(op)?;
 
                 let imm_from_bool =
@@ -628,7 +642,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             | "simd_reduce_mul_ordered" => {
                 use mir::BinOp;
 
-                let &[ref op, ref init] = check_arg_count(args)?;
+                let [op, init] = check_arg_count(args)?;
                 let (op, op_len) = this.operand_to_simd(op)?;
                 let init = this.read_immediate(init)?;
 
@@ -646,7 +660,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 this.write_immediate(*res, dest)?;
             }
             "simd_select" => {
-                let &[ref mask, ref yes, ref no] = check_arg_count(args)?;
+                let [mask, yes, no] = check_arg_count(args)?;
                 let (mask, mask_len) = this.operand_to_simd(mask)?;
                 let (yes, yes_len) = this.operand_to_simd(yes)?;
                 let (no, no_len) = this.operand_to_simd(no)?;
@@ -667,7 +681,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 }
             }
             "simd_select_bitmask" => {
-                let &[ref mask, ref yes, ref no] = check_arg_count(args)?;
+                let [mask, yes, no] = check_arg_count(args)?;
                 let (yes, yes_len) = this.operand_to_simd(yes)?;
                 let (no, no_len) = this.operand_to_simd(no)?;
                 let (dest, dest_len) = this.place_to_simd(dest)?;
@@ -707,7 +721,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
             #[rustfmt::skip]
             "simd_cast" | "simd_as" => {
-                let &[ref op] = check_arg_count(args)?;
+                let [op] = check_arg_count(args)?;
                 let (op, op_len) = this.operand_to_simd(op)?;
                 let (dest, dest_len) = this.place_to_simd(dest)?;
 
@@ -745,7 +759,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 }
             }
             "simd_shuffle" => {
-                let &[ref left, ref right, ref index] = check_arg_count(args)?;
+                let [left, right, index] = check_arg_count(args)?;
                 let (left, left_len) = this.operand_to_simd(left)?;
                 let (right, right_len) = this.operand_to_simd(right)?;
                 let (dest, dest_len) = this.place_to_simd(dest)?;
@@ -761,7 +775,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
                 for i in 0..dest_len {
                     let src_index: u64 = this
-                        .read_immediate(&this.operand_index(&index, i)?.into())?
+                        .read_immediate(&this.operand_index(index, i)?)?
                         .to_scalar()?
                         .to_u32()?
                         .into();
@@ -784,7 +798,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 }
             }
             "simd_gather" => {
-                let &[ref passthru, ref ptrs, ref mask] = check_arg_count(args)?;
+                let [passthru, ptrs, mask] = check_arg_count(args)?;
                 let (passthru, passthru_len) = this.operand_to_simd(passthru)?;
                 let (ptrs, ptrs_len) = this.operand_to_simd(ptrs)?;
                 let (mask, mask_len) = this.operand_to_simd(mask)?;
@@ -810,7 +824,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 }
             }
             "simd_scatter" => {
-                let &[ref value, ref ptrs, ref mask] = check_arg_count(args)?;
+                let [value, ptrs, mask] = check_arg_count(args)?;
                 let (value, value_len) = this.operand_to_simd(value)?;
                 let (ptrs, ptrs_len) = this.operand_to_simd(ptrs)?;
                 let (mask, mask_len) = this.operand_to_simd(mask)?;
@@ -830,7 +844,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 }
             }
             "simd_bitmask" => {
-                let &[ref op] = check_arg_count(args)?;
+                let [op] = check_arg_count(args)?;
                 let (op, op_len) = this.operand_to_simd(op)?;
                 let bitmask_len = op_len.max(8);
 
@@ -1049,14 +1063,14 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             // Other
             "exact_div" => {
-                let &[ref num, ref denom] = check_arg_count(args)?;
+                let [num, denom] = check_arg_count(args)?;
                 this.exact_div(&this.read_immediate(num)?, &this.read_immediate(denom)?, dest)?;
             }
 
             "try" => return this.handle_try(args, dest, ret),
 
             "breakpoint" => {
-                let &[] = check_arg_count(args)?;
+                let [] = check_arg_count(args)?;
                 // normally this would raise a SIGTRAP, which aborts if no debugger is connected
                 throw_machine_stop!(TerminationInfo::Abort("Trace/breakpoint trap".to_string()))
             }
@@ -1077,7 +1091,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
 
-        let &[ref place] = check_arg_count(args)?;
+        let [place] = check_arg_count(args)?;
         let place = this.deref_operand(place)?;
 
         // make sure it fits into a scalar; otherwise it cannot be atomic
@@ -1087,7 +1101,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // even if the type they wrap would be less aligned (e.g. AtomicU64 on 32bit must
         // be 8-aligned).
         let align = Align::from_bytes(place.layout.size.bytes()).unwrap();
-        this.memory.check_ptr_access_align(
+        this.check_ptr_access_align(
             place.ptr,
             place.layout.size,
             align,
@@ -1105,7 +1119,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
 
-        let &[ref place, ref val] = check_arg_count(args)?;
+        let [place, val] = check_arg_count(args)?;
         let place = this.deref_operand(place)?;
         let val = this.read_scalar(val)?; // make sure it fits into a scalar; otherwise it cannot be atomic
 
@@ -1113,7 +1127,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // even if the type they wrap would be less aligned (e.g. AtomicU64 on 32bit must
         // be 8-aligned).
         let align = Align::from_bytes(place.layout.size.bytes()).unwrap();
-        this.memory.check_ptr_access_align(
+        this.check_ptr_access_align(
             place.ptr,
             place.layout.size,
             align,
@@ -1130,7 +1144,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         args: &[OpTy<'tcx, Tag>],
         atomic: AtomicFenceOp,
     ) -> InterpResult<'tcx> {
-        let &[] = check_arg_count(args)?;
+        let [] = check_arg_count(args)?;
         let _ = atomic;
         //FIXME: compiler fences are currently ignored
         Ok(())
@@ -1142,7 +1156,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         atomic: AtomicFenceOp,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        let &[] = check_arg_count(args)?;
+        let [] = check_arg_count(args)?;
         this.validate_atomic_fence(atomic)?;
         Ok(())
     }
@@ -1156,7 +1170,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
 
-        let &[ref place, ref rhs] = check_arg_count(args)?;
+        let [place, rhs] = check_arg_count(args)?;
         let place = this.deref_operand(place)?;
 
         if !place.layout.ty.is_integral() {
@@ -1168,7 +1182,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // even if the type they wrap would be less aligned (e.g. AtomicU64 on 32bit must
         // be 8-aligned).
         let align = Align::from_bytes(place.layout.size.bytes()).unwrap();
-        this.memory.check_ptr_access_align(
+        this.check_ptr_access_align(
             place.ptr,
             place.layout.size,
             align,
@@ -1178,12 +1192,12 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         match atomic_op {
             AtomicOp::Min => {
                 let old = this.atomic_min_max_scalar(&place, rhs, true, atomic)?;
-                this.write_immediate(*old, &dest)?; // old value is returned
+                this.write_immediate(*old, dest)?; // old value is returned
                 Ok(())
             }
             AtomicOp::Max => {
                 let old = this.atomic_min_max_scalar(&place, rhs, false, atomic)?;
-                this.write_immediate(*old, &dest)?; // old value is returned
+                this.write_immediate(*old, dest)?; // old value is returned
                 Ok(())
             }
             AtomicOp::MirOp(op, neg) => {
@@ -1202,7 +1216,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
 
-        let &[ref place, ref new] = check_arg_count(args)?;
+        let [place, new] = check_arg_count(args)?;
         let place = this.deref_operand(place)?;
         let new = this.read_scalar(new)?;
 
@@ -1210,7 +1224,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // even if the type they wrap would be less aligned (e.g. AtomicU64 on 32bit must
         // be 8-aligned).
         let align = Align::from_bytes(place.layout.size.bytes()).unwrap();
-        this.memory.check_ptr_access_align(
+        this.check_ptr_access_align(
             place.ptr,
             place.layout.size,
             align,
@@ -1232,7 +1246,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
 
-        let &[ref place, ref expect_old, ref new] = check_arg_count(args)?;
+        let [place, expect_old, new] = check_arg_count(args)?;
         let place = this.deref_operand(place)?;
         let expect_old = this.read_immediate(expect_old)?; // read as immediate for the sake of `binary_op()`
         let new = this.read_scalar(new)?;
@@ -1241,7 +1255,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // even if the type they wrap would be less aligned (e.g. AtomicU64 on 32bit must
         // be 8-aligned).
         let align = Align::from_bytes(place.layout.size.bytes()).unwrap();
-        this.memory.check_ptr_access_align(
+        this.check_ptr_access_align(
             place.ptr,
             place.layout.size,
             align,

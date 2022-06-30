@@ -11,7 +11,7 @@ use rustc_lexer::unescape::{
 
 use crate::{
     algo,
-    ast::{self, HasVisibility},
+    ast::{self, HasAttrs, HasVisibility},
     match_ast, AstNode, SyntaxError,
     SyntaxKind::{CONST, FN, INT_NUMBER, TYPE_ALIAS},
     SyntaxNode, SyntaxToken, TextSize, T,
@@ -119,8 +119,15 @@ fn validate_literal(literal: ast::Literal, acc: &mut Vec<SyntaxError>) {
         text.rfind(end_delimiter).and_then(|end| text.get(prefix_len..end))
     }
 
-    let token = literal.token();
-    let text = token.text();
+    let token = literal.value();
+    let text;
+    let text = match &token {
+        rowan::NodeOrToken::Node(node) => {
+            text = node.text().to_string();
+            &*text
+        }
+        rowan::NodeOrToken::Token(token) => token.text(),
+    };
 
     // FIXME: lift this lambda refactor to `fn` (https://github.com/rust-analyzer/rust-analyzer/pull/2834#discussion_r366199205)
     let mut push_err = |prefix_len, (off, err): (usize, unescape::EscapeError)| {
@@ -151,12 +158,12 @@ fn validate_literal(literal: ast::Literal, acc: &mut Vec<SyntaxError>) {
                 }
             }
         }
-        ast::LiteralKind::Char => {
+        ast::LiteralKind::Char(_) => {
             if let Some(Err(e)) = unquote(text, 1, '\'').map(unescape_char) {
                 push_err(1, e);
             }
         }
-        ast::LiteralKind::Byte => {
+        ast::LiteralKind::Byte(_) => {
             if let Some(Err(e)) = unquote(text, 2, '\'').map(unescape_byte) {
                 push_err(2, e);
             }
@@ -231,7 +238,9 @@ fn validate_visibility(vis: ast::Visibility, errors: &mut Vec<SyntaxError>) {
         Some(it) => it,
         None => return,
     };
-    if impl_def.trait_().is_some() {
+    // FIXME: disable validation if there's an attribute, since some proc macros use this syntax.
+    // ideally the validation would run only on the fully expanded code, then this wouldn't be necessary.
+    if impl_def.trait_().is_some() && impl_def.attrs().next().is_none() {
         errors.push(SyntaxError::new("Unnecessary visibility qualifier", vis.syntax.text_range()));
     }
 }

@@ -12,47 +12,70 @@
 [package]
 edition = "2018"
 name = "toml_edit"
-version = "0.13.4"
-authors = ["Andronik Ordian <write@reusable.software>", "Ed Page <eopage@gmail.com>"]
-include = ["src/**/*", "Cargo.toml", "LICENSE*", "README.md", "examples/**/*", "benches/**/*", "tests/**/*"]
+version = "0.14.3"
+authors = [
+    "Andronik Ordian <write@reusable.software>",
+    "Ed Page <eopage@gmail.com>",
+]
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "LICENSE*",
+    "README.md",
+    "examples/**/*",
+    "benches/**/*",
+    "tests/**/*",
+]
 description = "Yet another format-preserving TOML parser."
 documentation = "https://docs.rs/toml_edit"
 readme = "README.md"
 keywords = ["toml"]
-categories = ["encoding", "parser-implementations", "parsing"]
+categories = [
+    "encoding",
+    "parser-implementations",
+    "parsing",
+]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/ordian/toml_edit"
+
 [package.metadata.docs.rs]
 features = ["easy"]
+
 [[package.metadata.release.pre-release-replacements]]
 file = "CHANGELOG.md"
-min = 1
-replace = "{{version}}"
 search = "Unreleased"
-
-[[package.metadata.release.pre-release-replacements]]
-exactly = 1
-file = "CHANGELOG.md"
-replace = "...{{tag_name}}"
-search = "\\.\\.\\.HEAD"
-
-[[package.metadata.release.pre-release-replacements]]
-file = "CHANGELOG.md"
+replace = "{{version}}"
 min = 1
-replace = "{{date}}"
+
+[[package.metadata.release.pre-release-replacements]]
+file = "CHANGELOG.md"
+search = '\.\.\.HEAD'
+replace = "...{{tag_name}}"
+exactly = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "CHANGELOG.md"
 search = "ReleaseDate"
+replace = "{{date}}"
+min = 1
 
 [[package.metadata.release.pre-release-replacements]]
-exactly = 1
 file = "CHANGELOG.md"
-replace = "<!-- next-header -->\n## [Unreleased] - ReleaseDate\n"
 search = "<!-- next-header -->"
+replace = """
+<!-- next-header -->
+## [Unreleased] - ReleaseDate
+"""
+exactly = 1
 
 [[package.metadata.release.pre-release-replacements]]
-exactly = 1
 file = "CHANGELOG.md"
-replace = "<!-- next-url -->\n[Unreleased]: https://github.com/ordian/toml_edit/compare/{{tag_name}}...HEAD"
 search = "<!-- next-url -->"
+replace = """
+<!-- next-url -->
+[Unreleased]: https://github.com/ordian/toml_edit/compare/{{tag_name}}...HEAD"""
+exactly = 1
+
 [profile.dev]
 opt-level = 1
 
@@ -90,6 +113,7 @@ harness = false
 [[bench]]
 name = "linear"
 harness = false
+
 [dependencies.combine]
 version = "4.6.3"
 
@@ -100,24 +124,27 @@ version = "1.7"
 version = "0.10"
 
 [dependencies.kstring]
-version = "1"
+version = "2.0.0"
 features = ["max_inline"]
+optional = true
 
 [dependencies.serde]
 version = "1"
 features = ["derive"]
 optional = true
+
 [dev-dependencies.criterion]
 version = "0.3"
-
-[dev-dependencies.fs_snapshot]
-version = "0.1.1"
 
 [dev-dependencies.pretty_assertions]
 version = "1.0.0"
 
 [dev-dependencies.serde_json]
 version = "1.0.44"
+
+[dev-dependencies.snapbox]
+version = "0.2.9"
+features = ["harness"]
 
 [dev-dependencies.toml]
 version = "0.5"
@@ -128,3 +155,4 @@ version = "0.3"
 [features]
 default = []
 easy = ["serde"]
+perf = ["kstring"]

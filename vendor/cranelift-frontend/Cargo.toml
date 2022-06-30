@@ -10,9 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "cranelift-frontend"
-version = "0.82.1"
+version = "0.83.0"
 authors = ["The Cranelift Project Developers"]
 description = "Cranelift IR builder helper"
 documentation = "https://docs.rs/cranelift-frontend"
@@ -21,8 +21,9 @@ categories = ["no-std"]
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
 resolver = "2"
+
 [dependencies.cranelift-codegen]
-version = "0.82.1"
+version = "0.83.0"
 default-features = false
 
 [dependencies.hashbrown]
@@ -40,8 +41,12 @@ version = "1.6.1"
 version = "0.12"
 
 [features]
-core = ["hashbrown", "cranelift-codegen/core"]
+core = [
+    "hashbrown",
+    "cranelift-codegen/core",
+]
 default = ["std"]
 std = ["cranelift-codegen/std"]
+
 [badges.maintenance]
 status = "experimental"

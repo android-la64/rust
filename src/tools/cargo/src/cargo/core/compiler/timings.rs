@@ -13,7 +13,6 @@ use anyhow::Context as _;
 use cargo_util::paths;
 use std::collections::HashMap;
 use std::io::{BufWriter, Write};
-use std::thread::available_parallelism;
 use std::time::{Duration, Instant, SystemTime};
 
 pub struct Timings<'cfg> {
@@ -30,7 +29,7 @@ pub struct Timings<'cfg> {
     start_str: String,
     /// A summary of the root units.
     ///
-    /// Tuples of `(package_description, target_descrptions)`.
+    /// Tuples of `(package_description, target_descriptions)`.
     root_targets: Vec<(String, Vec<String>)>,
     /// The build profile.
     profile: String,
@@ -381,9 +380,6 @@ impl<'cfg> Timings<'cfg> {
         };
         let total_time = format!("{:.1}s{}", duration, time_human);
         let max_concurrency = self.concurrency.iter().map(|c| c.active).max().unwrap();
-        let num_cpus = available_parallelism()
-            .map(|x| x.get().to_string())
-            .unwrap_or_else(|_| "n/a".into());
         let max_rustc_concurrency = self
             .concurrency
             .iter()
@@ -446,7 +442,7 @@ impl<'cfg> Timings<'cfg> {
             self.total_fresh + self.total_dirty,
             max_concurrency,
             bcx.build_config.jobs,
-            num_cpus,
+            num_cpus::get(),
             self.start_str,
             total_time,
             rustc_info,
@@ -733,6 +729,7 @@ h1 {
 <body>
 
 <h1>Cargo Build Timings</h1>
+See <a href="https://doc.rust-lang.org/nightly/cargo/reference/timings.html">Documentation</a>
 "#;
 
 static HTML_CANVAS: &str = r#"

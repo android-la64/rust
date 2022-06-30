@@ -12,19 +12,29 @@
 [package]
 edition = "2018"
 name = "mdbook"
-version = "0.4.15"
-authors = ["Mathieu David <mathieudavid@mathieudavid.org>", "Michael-F-Bryan <michaelfbryan@gmail.com>", "Matt Ickstadt <mattico8@gmail.com>"]
+version = "0.4.18"
+authors = [
+    "Mathieu David <mathieudavid@mathieudavid.org>",
+    "Michael-F-Bryan <michaelfbryan@gmail.com>",
+    "Matt Ickstadt <mattico8@gmail.com>",
+]
 exclude = ["/guide/*"]
 description = "Creates a book from markdown files"
 documentation = "http://rust-lang.github.io/mdBook/index.html"
 readme = "README.md"
-keywords = ["book", "gitbook", "rustbook", "markdown"]
+keywords = [
+    "book",
+    "gitbook",
+    "rustbook",
+    "markdown",
+]
 license = "MPL-2.0"
 repository = "https://github.com/rust-lang/mdBook"
 
 [[bin]]
 name = "mdbook"
 doc = false
+
 [dependencies.ammonia]
 version = "3"
 optional = true
@@ -36,7 +46,11 @@ version = "1.0.28"
 version = "0.4"
 
 [dependencies.clap]
-version = "2.24"
+version = "3.0"
+features = ["cargo"]
+
+[dependencies.clap_complete]
+version = "3.0"
 
 [dependencies.elasticlunr-rs]
 version = "2.3"
@@ -74,10 +88,11 @@ optional = true
 version = "0.5"
 
 [dependencies.pulldown-cmark]
-version = "0.9.0"
+version = "0.9.1"
+default-features = false
 
 [dependencies.regex]
-version = "1.0.0"
+version = "1.5.5"
 
 [dependencies.serde]
 version = "1.0"
@@ -96,7 +111,10 @@ version = "3.0"
 
 [dependencies.tokio]
 version = "1"
-features = ["macros", "rt-multi-thread"]
+features = [
+    "macros",
+    "rt-multi-thread",
+]
 optional = true
 
 [dependencies.toml]
@@ -110,6 +128,7 @@ version = "0.3.1"
 features = ["websocket"]
 optional = true
 default-features = false
+
 [dev-dependencies.assert_cmd]
 version = "1"
 
@@ -123,13 +142,27 @@ version = "0.6"
 version = "0.5"
 
 [dev-dependencies.semver]
-version = "0.11.0"
+version = "1.0"
 
 [dev-dependencies.walkdir]
 version = "2.0"
 
 [features]
-default = ["watch", "serve", "search"]
-search = ["elasticlunr-rs", "ammonia"]
-serve = ["futures-util", "tokio", "warp"]
-watch = ["notify", "gitignore"]
+default = [
+    "watch",
+    "serve",
+    "search",
+]
+search = [
+    "elasticlunr-rs",
+    "ammonia",
+]
+serve = [
+    "futures-util",
+    "tokio",
+    "warp",
+]
+watch = [
+    "notify",
+    "gitignore",
+]

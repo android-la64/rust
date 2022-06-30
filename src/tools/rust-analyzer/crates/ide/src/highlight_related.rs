@@ -5,9 +5,8 @@ use ide_db::{
     helpers::pick_best_token,
     search::{FileReference, ReferenceCategory, SearchScope},
     syntax_helpers::node_ext::{for_each_break_and_continue_expr, for_each_tail_expr, walk_expr},
-    RootDatabase,
+    FxHashSet, RootDatabase,
 };
-use rustc_hash::FxHashSet;
 use syntax::{
     ast::{self, HasLoopBody},
     match_ast, AstNode,
@@ -156,7 +155,7 @@ fn highlight_exit_points(
                     highlights.push(HighlightedRange { category: None, range: token.text_range() });
                 }
             }
-            ast::Expr::MethodCallExpr(_) | ast::Expr::CallExpr(_) | ast::Expr::MacroCall(_) => {
+            ast::Expr::MethodCallExpr(_) | ast::Expr::CallExpr(_) | ast::Expr::MacroExpr(_) => {
                 if sema.type_of_expr(&expr).map_or(false, |ty| ty.original.is_never()) {
                     highlights.push(HighlightedRange {
                         category: None,

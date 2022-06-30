@@ -24,8 +24,6 @@ use crate::tokenizer;
 use crate::tokenizer::states as tok_state;
 use crate::tokenizer::{Doctype, EndTag, StartTag, Tag, TokenSink, TokenSinkResult};
 
-use crate::util::str::is_ascii_whitespace;
-
 use std::borrow::Cow::Borrowed;
 use std::collections::VecDeque;
 use std::default::Default;
@@ -33,12 +31,12 @@ use std::iter::{Enumerate, Rev};
 use std::mem::replace;
 use std::{fmt, slice};
 
-use log::{Level, debug, log_enabled, warn};
-use mac::{format_if, matches, _tt_as_expr_hack};
 use crate::tokenizer::states::{RawData, RawKind};
 use crate::tree_builder::tag_sets::*;
 use crate::tree_builder::types::*;
 use crate::util::str::to_escaped_string;
+use log::{debug, log_enabled, warn, Level};
+use mac::{_tt_as_expr_hack, format_if, matches};
 
 pub use self::PushFlag::*;
 
@@ -362,7 +360,7 @@ where
                     token = t;
                 },
                 SplitWhitespace(mut buf) => {
-                    let p = buf.pop_front_char_run(is_ascii_whitespace);
+                    let p = buf.pop_front_char_run(|c| c.is_ascii_whitespace());
                     let (first, is_ws) = unwrap_or_return!(p, tokenizer::TokenSinkResult::Continue);
                     let status = if is_ws { Whitespace } else { NotWhitespace };
                     token = CharacterTokens(status, first);
@@ -1429,7 +1427,7 @@ where
             return false;
         }
 
-        if self.open_elems.len() == 0 {
+        if self.open_elems.is_empty() {
             return false;
         }
 

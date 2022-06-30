@@ -60,6 +60,7 @@ BoxMeUp
 BTreeSet
 BuildHasher
 Cacher
+cacher
 Cagain
 callsite
 CamelCase
@@ -169,6 +170,7 @@ filesystem
 Filesystem
 filesystem's
 filesystems
+filmmaking
 Firefox
 FnMut
 FnOnce
@@ -373,6 +375,7 @@ println
 priv
 proc
 proto
+pseudocode
 pthreads
 pushups
 QuitMessage
@@ -429,6 +432,7 @@ SelectBox
 semver
 SemVer
 serde
+ShirtColor
 ShlAssign
 ShrAssign
 shouldn

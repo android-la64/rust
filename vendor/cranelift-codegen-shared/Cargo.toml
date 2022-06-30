@@ -10,9 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "cranelift-codegen-shared"
-version = "0.82.1"
+version = "0.83.0"
 authors = ["The Cranelift Project Developers"]
 description = "For code shared between cranelift-codegen-meta and cranelift-codegen"
 readme = "README.md"

@@ -57,8 +57,11 @@ in your program, and cannot run all programs:
   executions.
 * Miri runs the program as a platform-independent interpreter, so the program
   has no access to most platform-specific APIs or FFI. A few APIs have been
-  implemented (such as printing to stdout) but most have not: for example, Miri
-  currently does not support SIMD or networking.
+  implemented (such as printing to stdout, accessing environment variables, and
+  basic file system access) but most have not: for example, Miri currently does
+  not support networking. System API support varies between targets; if you run
+  on Windows it is a good idea to use `--target x86_64-unknown-linux-gnu` to get
+  better support.
 * Threading support is not finished yet. E.g., weak memory effects are not
   emulated and spin loops (without syscalls) just loop forever. There is no
   threading support on Windows.
@@ -162,7 +165,7 @@ Here is an example job for GitHub Actions:
     name: "Miri"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install Miri
         run: |
           rustup toolchain install nightly --component miri
@@ -297,7 +300,8 @@ environment variable:
 * `-Zmiri-strict-provenance` enables [strict
   provenance](https://github.com/rust-lang/rust/issues/95228) checking in Miri. This means that
   casting an integer to a pointer yields a result with 'invalid' provenance, i.e., with provenance
-  that cannot be used for any memory access. Also implies `-Zmiri-tag-raw-pointers`.
+  that cannot be used for any memory access. Also implies `-Zmiri-tag-raw-pointers` and
+  `-Zmiri-check-number-validity`.
 * `-Zmiri-symbolic-alignment-check` makes the alignment check more strict.  By
   default, alignment is checked by casting the pointer to an integer, and making
   sure that is a multiple of the alignment.  This can lead to cases where a
@@ -310,16 +314,20 @@ environment variable:
   ensure alignment.  (The standard library `align_to` method works fine in both
   modes; under symbolic alignment it only fills the middle slice when the
   allocation guarantees sufficient alignment.)
-* `-Zmiri-track-alloc-id=<id>` shows a backtrace when the given allocation is
+* `-Zmiri-track-alloc-id=<id1>,<id2>,...` shows a backtrace when the given allocations are
   being allocated or freed.  This helps in debugging memory leaks and
-  use after free bugs.
-* `-Zmiri-track-call-id=<id>` shows a backtrace when the given call id is
+  use after free bugs. Specifying this argument multiple times does not overwrite the previous
+  values, instead it appends its values to the list. Listing an id multiple times has no effect.
+* `-Zmiri-track-call-id=<id1>,<id2>,...` shows a backtrace when the given call ids are
   assigned to a stack frame.  This helps in debugging UB related to Stacked
-  Borrows "protectors".
-* `-Zmiri-track-pointer-tag=<tag>` shows a backtrace when the given pointer tag
+  Borrows "protectors". Specifying this argument multiple times does not overwrite the previous
+  values, instead it appends its values to the list. Listing an id multiple times has no effect.
+* `-Zmiri-track-pointer-tag=<tag1>,<tag2>,...` shows a backtrace when a given pointer tag
   is popped from a borrow stack (which is where the tag becomes invalid and any
   future use of it will error).  This helps you in finding out why UB is
   happening and where in your code would be a good place to look for it.
+  Specifying this argument multiple times does not overwrite the previous
+  values, instead it appends its values to the list. Listing a tag multiple times has no effect.
 * `-Zmiri-tag-raw-pointers` makes Stacked Borrows assign proper tags even for raw pointers. This can
   make valid code using int-to-ptr casts fail to pass the checks, but also can help identify latent
   aliasing issues in code that Miri accepts by default. You can recognize false positives by
@@ -353,9 +361,10 @@ Moreover, Miri recognizes some environment variables:
   checkout. Note that changing files in that directory does not automatically
   trigger a re-build of the standard library; you have to clear the Miri build
   cache manually (on Linux, `rm -rf ~/.cache/miri`).
-* `MIRI_SYSROOT` (recognized by `cargo miri` and the test suite)
-  indicates the sysroot to use.  To do the same thing with `miri`
-  directly, use the `--sysroot` flag.
+* `MIRI_SYSROOT` (recognized by `cargo miri` and the test suite) indicates the
+  sysroot to use. Only set this if you do not want to use the automatically
+  created sysroot. (The `miri` driver sysroot is controlled via the `--sysroot`
+  flag instead.)
 * `MIRI_TEST_TARGET` (recognized by the test suite) indicates which target
   architecture to test against.  `miri` and `cargo miri` accept the `--target`
   flag for the same purpose.
@@ -531,6 +540,12 @@ Violations of [Stacked Borrows] found that are likely bugs (but Stacked Borrows 
 * [`VecDeque::iter_mut` creating overlapping mutable references](https://github.com/rust-lang/rust/issues/74029)
 * [Various standard library aliasing issues involving raw pointers](https://github.com/rust-lang/rust/pull/78602)
 * [`<[T]>::copy_within` using a loan after invalidating it](https://github.com/rust-lang/rust/pull/85610)
+
+## Scientific papers employing Miri
+
+* [Stacked Borrows: An Aliasing Model for Rust](https://plv.mpi-sws.org/rustbelt/stacked-borrows/)
+* [Using Lightweight Formal Methods to Validate a Key-Value Storage Node in Amazon S3](https://www.amazon.science/publications/using-lightweight-formal-methods-to-validate-a-key-value-storage-node-in-amazon-s3)
+* [SyRust: Automatic Testing of Rust Libraries with Semantic-Aware Program Synthesis](https://dl.acm.org/doi/10.1145/3453483.3454084)
 
 ## License
 

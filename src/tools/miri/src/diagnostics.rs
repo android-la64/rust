@@ -182,10 +182,8 @@ pub fn report_error<'tcx, 'mir>(
                     "Undefined Behavior",
                 ResourceExhaustion(_) =>
                     "resource exhaustion",
-                InvalidProgram(InvalidProgramInfo::ReferencedConstant) =>
+                InvalidProgram(InvalidProgramInfo::AlreadyReported(_) | InvalidProgramInfo::Layout(..)) =>
                     "post-monomorphization error",
-                InvalidProgram(InvalidProgramInfo::AlreadyReported(_)) =>
-                    "error occurred",
                 kind =>
                     bug!("This error should be impossible in Miri: {:?}", kind),
             };
@@ -196,7 +194,7 @@ pub fn report_error<'tcx, 'mir>(
                 Unsupported(_) =>
                     vec![(None, format!("this is likely not a bug in the program; it indicates that the program performed an operation that the interpreter does not support"))],
                 UndefinedBehavior(UndefinedBehaviorInfo::AlignmentCheckFailed { .. })
-                    if ecx.memory.extra.check_alignment == AlignmentCheck::Symbolic
+                    if ecx.machine.check_alignment == AlignmentCheck::Symbolic
                 =>
                     vec![
                         (None, format!("this usually indicates that your program performed an invalid operation and caused Undefined Behavior")),
@@ -251,7 +249,7 @@ pub fn report_error<'tcx, 'mir>(
                 access.uninit_offset.bytes(),
                 access.uninit_offset.bytes() + access.uninit_size.bytes(),
             );
-            eprintln!("{:?}", ecx.memory.dump_alloc(*alloc_id));
+            eprintln!("{:?}", ecx.dump_alloc(*alloc_id));
         }
         _ => {}
     }
@@ -296,7 +294,7 @@ fn report_msg<'mir, 'tcx>(
     // Show help messages.
     if !helps.is_empty() {
         // Add visual separator before backtrace.
-        helps.last_mut().unwrap().1.push_str("\n");
+        helps.last_mut().unwrap().1.push('\n');
         for (span_data, help) in helps {
             if let Some(span_data) = span_data {
                 err.span_help(span_data.span(), &help);
@@ -414,11 +412,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                                 )
                             }
                         },
-                    CreatedCallId(id) => format!("function call with id {}", id),
-                    CreatedAlloc(AllocId(id)) => format!("created allocation with id {}", id),
-                    FreedAlloc(AllocId(id)) => format!("freed allocation with id {}", id),
+                    CreatedCallId(id) => format!("function call with id {id}"),
+                    CreatedAlloc(AllocId(id)) => format!("created allocation with id {id}"),
+                    FreedAlloc(AllocId(id)) => format!("freed allocation with id {id}"),
                     RejectedIsolatedOp(ref op) =>
-                        format!("{} was made to return an error due to isolation", op),
+                        format!("{op} was made to return an error due to isolation"),
                 };
 
                 let (title, diag_level) = match e {

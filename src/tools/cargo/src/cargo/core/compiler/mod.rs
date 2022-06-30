@@ -645,7 +645,8 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
     paths::create_dir_all(&doc_dir)?;
 
     rustdoc.arg("-o").arg(&doc_dir);
-    rustdoc.args(&features_args(cx, unit));
+    rustdoc.args(&features_args(unit));
+    rustdoc.args(&check_cfg_args(cx, unit));
 
     add_error_format_and_color(cx, &mut rustdoc);
     add_allow_features(cx, &mut rustdoc);
@@ -682,7 +683,7 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
                 rustdoc.arg("--scrape-examples-target-crate").arg(name);
             }
         }
-    } else if cx.bcx.scrape_units.len() > 0 && cx.bcx.ws.is_member(&unit.pkg) {
+    } else if cx.bcx.scrape_units.len() > 0 && cx.bcx.ws.unit_needs_doc_scrape(unit) {
         // We only pass scraped examples to packages in the workspace
         // since examples are only coming from reverse-dependencies of workspace packages
 
@@ -754,7 +755,7 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
 // The --crate-version flag could have already been passed in RUSTDOCFLAGS
 // or as an extra compiler argument for rustdoc
 fn crate_version_flag_already_present(rustdoc: &ProcessBuilder) -> bool {
-    rustdoc.get_args().iter().any(|flag| {
+    rustdoc.get_args().any(|flag| {
         flag.to_str()
             .map_or(false, |flag| flag.starts_with(RUSTDOC_CRATE_VERSION_FLAG))
     })
@@ -965,7 +966,8 @@ fn build_base_args(
         cmd.arg("--cfg").arg("test");
     }
 
-    cmd.args(&features_args(cx, unit));
+    cmd.args(&features_args(unit));
+    cmd.args(&check_cfg_args(cx, unit));
 
     let meta = cx.files().metadata(unit);
     cmd.arg("-C").arg(&format!("metadata={}", meta));
@@ -1039,33 +1041,56 @@ fn build_base_args(
     Ok(())
 }
 
-/// Features with --cfg and all features with --check-cfg
-fn features_args(cx: &Context<'_, '_>, unit: &Unit) -> Vec<OsString> {
-    let mut args = Vec::with_capacity(unit.features.len() + 2);
+/// All active features for the unit passed as --cfg
+fn features_args(unit: &Unit) -> Vec<OsString> {
+    let mut args = Vec::with_capacity(unit.features.len() * 2);
 
     for feat in &unit.features {
         args.push(OsString::from("--cfg"));
         args.push(OsString::from(format!("feature=\"{}\"", feat)));
     }
 
-    if cx.bcx.config.cli_unstable().check_cfg_features {
-        // This generate something like this:
-        //  - values(feature)
-        //  - values(feature, "foo", "bar")
-        let mut arg = OsString::from("values(feature");
-        for (&feat, _) in unit.pkg.summary().features() {
-            arg.push(", \"");
-            arg.push(&feat);
-            arg.push("\"");
-        }
-        arg.push(")");
-
-        args.push(OsString::from("-Zunstable-options"));
-        args.push(OsString::from("--check-cfg"));
-        args.push(arg);
-    }
-
     args
+}
+
+/// Generate the --check-cfg arguments for the unit
+fn check_cfg_args(cx: &Context<'_, '_>, unit: &Unit) -> Vec<OsString> {
+    if let Some((features, well_known_names, well_known_values)) =
+        cx.bcx.config.cli_unstable().check_cfg
+    {
+        let mut args = Vec::with_capacity(unit.pkg.summary().features().len() * 2 + 4);
+        args.push(OsString::from("-Zunstable-options"));
+
+        if features {
+            // This generate something like this:
+            //  - values(feature)
+            //  - values(feature, "foo", "bar")
+            let mut arg = OsString::from("values(feature");
+            for (&feat, _) in unit.pkg.summary().features() {
+                arg.push(", \"");
+                arg.push(&feat);
+                arg.push("\"");
+            }
+            arg.push(")");
+
+            args.push(OsString::from("--check-cfg"));
+            args.push(arg);
+        }
+
+        if well_known_names {
+            args.push(OsString::from("--check-cfg"));
+            args.push(OsString::from("names()"));
+        }
+
+        if well_known_values {
+            args.push(OsString::from("--check-cfg"));
+            args.push(OsString::from("values()"));
+        }
+
+        args
+    } else {
+        Vec::new()
+    }
 }
 
 fn lto_args(cx: &Context<'_, '_>, unit: &Unit) -> Vec<OsString> {

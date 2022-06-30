@@ -1,5 +1,17 @@
 # Unreleased
 
+# 3.2.0
+
+* chore: bump MSRV to 1.49.0
+* chore: update to html5ever 0.26
+* chore: switch from lazy_static to once_cell
+* feature: add `Builder::empty()` constructor
+
+# 3.1.4
+
+* chore: use `#[non_exhaustive]` instead of hidden variant for `UrlRelative` policy
+* chore: remove unnecessary dependency on third-party `matches!` macro
+
 # 3.1.3
 
 * fix: incorrect FF/CR handling in `clean_text`

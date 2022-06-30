@@ -6,7 +6,7 @@
 .SH "NAME"
 cargo\-install \- Build and install a Rust binary
 .SH "SYNOPSIS"
-\fBcargo install\fR [\fIoptions\fR] \fIcrate\fR\&...
+\fBcargo install\fR [\fIoptions\fR] \fIcrate\fR[@\fIversion\fR]\&...
 .br
 \fBcargo install\fR [\fIoptions\fR] \fB\-\-path\fR \fIpath\fR
 .br
@@ -209,6 +209,7 @@ selected package.
 See \fIthe features documentation\fR <https://doc.rust\-lang.org/cargo/reference/features.html#command\-line\-feature\-options>
 for more details.
 .sp
+\fB\-F\fR \fIfeatures\fR, 
 \fB\-\-features\fR \fIfeatures\fR
 .RS 4
 Space or comma separated list of features to activate. Features of workspace

@@ -39,7 +39,7 @@ _cargo()
 	local opt_common="$opt_help $opt_verbose $opt_quiet $opt_color"
 	local opt_pkg_spec='-p --package --all --exclude --workspace'
 	local opt_pkg='-p --package'
-	local opt_feat='--features --all-features --no-default-features'
+	local opt_feat='-F --features --all-features --no-default-features'
 	local opt_mani='--manifest-path'
 	local opt_parallel='-j --jobs --keep-going'
 	local opt_force='-f --force'
@@ -48,6 +48,7 @@ _cargo()
 	local opt_targets="--lib --bin --bins --example --examples --test --tests --bench --benches --all-targets"
 
 	local opt___nocmd="$opt_common -V --version --list --explain"
+	local opt__add="$opt_common -p --package --features --default-features --no-default-features $opt_mani --optional --no-optional --rename --dry-run --path --git --branch --tag --rev --registry --dev --build --target"
 	local opt__bench="$opt_common $opt_pkg_spec $opt_feat $opt_mani $opt_lock $opt_parallel $opt_targets --message-format --target --no-run --no-fail-fast --target-dir"
 	local opt__build="$opt_common $opt_pkg_spec $opt_feat $opt_mani $opt_lock $opt_parallel $opt_targets --message-format --target --release --profile --target-dir"
 	local opt__b="$opt__build"
@@ -87,7 +88,7 @@ _cargo()
 	local opt__vendor="$opt_common $opt_mani $opt_lock $opt_sync --no-delete --respect-source-config --versioned-dirs"
 	local opt__verify_project="$opt_common $opt_mani $opt_lock"
 	local opt__version="$opt_common $opt_lock"
-	local opt__yank="$opt_common $opt_lock --vers --undo --index --token --registry"
+	local opt__yank="$opt_common $opt_lock --version --undo --index --token --registry"
 	local opt__libtest="--help --include-ignored --ignored --test --bench --list --logfile --nocapture --test-threads --skip -q --quiet --exact --color --format"
 
 	if [[ $cword -gt $dd_i ]]; then

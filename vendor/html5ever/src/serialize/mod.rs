@@ -53,8 +53,7 @@ impl Default for SerializeOpts {
 #[derive(Default)]
 struct ElemInfo {
     html_name: Option<LocalName>,
-    ignore_children: bool,
-    processed_first_child: bool,
+    ignore_children: bool
 }
 
 pub struct HtmlSerializer<Wr: Write> {
@@ -82,18 +81,17 @@ impl<Wr: Write> HtmlSerializer<Wr> {
             TraversalScope::ChildrenOnly(Some(ref n)) => Some(tagname(n)),
         };
         HtmlSerializer {
-            writer: writer,
-            opts: opts,
+            writer,
+            opts,
             stack: vec![ElemInfo {
-                html_name: html_name,
+                html_name,
                 ignore_children: false,
-                processed_first_child: false,
             }],
         }
     }
 
     fn parent(&mut self) -> &mut ElemInfo {
-        if self.stack.len() == 0 {
+        if self.stack.is_empty() {
             if self.opts.create_missing_parent {
                 warn!("ElemInfo stack empty, creating new parent");
                 self.stack.push(Default::default());
@@ -131,9 +129,8 @@ impl<Wr: Write> Serializer for HtmlSerializer<Wr> {
 
         if self.parent().ignore_children {
             self.stack.push(ElemInfo {
-                html_name: html_name,
+                html_name,
                 ignore_children: true,
-                processed_first_child: false,
             });
             return Ok(());
         }
@@ -189,12 +186,9 @@ impl<Wr: Write> Serializer for HtmlSerializer<Wr> {
                 _ => false,
             };
 
-        self.parent().processed_first_child = true;
-
         self.stack.push(ElemInfo {
-            html_name: html_name,
-            ignore_children: ignore_children,
-            processed_first_child: false,
+            html_name,
+            ignore_children,
         });
 
         Ok(())

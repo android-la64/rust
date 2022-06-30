@@ -12,21 +12,29 @@
 [package]
 edition = "2018"
 name = "chalk-recursive"
-version = "0.81.0"
-authors = ["Rust Compiler Team", "Chalk developers"]
+version = "0.82.0"
+authors = [
+    "Rust Compiler Team",
+    "Chalk developers",
+]
 description = "Recursive solver for the Chalk project"
 readme = "README.md"
-keywords = ["compiler", "traits", "prolog"]
+keywords = [
+    "compiler",
+    "traits",
+    "prolog",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/chalk"
+
 [dependencies.chalk-derive]
-version = "=0.81.0"
+version = "=0.82.0"
 
 [dependencies.chalk-ir]
-version = "=0.81.0"
+version = "=0.82.0"
 
 [dependencies.chalk-solve]
-version = "=0.81.0"
+version = "=0.82.0"
 default-features = false
 
 [dependencies.rustc-hash]

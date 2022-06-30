@@ -10,15 +10,19 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "cranelift-codegen"
-version = "0.82.1"
+version = "0.83.0"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
 documentation = "https://docs.rs/cranelift-codegen"
 readme = "README.md"
-keywords = ["compile", "compiler", "jit"]
+keywords = [
+    "compile",
+    "compiler",
+    "jit",
+]
 categories = ["no-std"]
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
@@ -27,18 +31,19 @@ resolver = "2"
 [[bench]]
 name = "x64-evex-encoding"
 harness = false
+
 [dependencies.bincode]
 version = "1.2.1"
 optional = true
 
 [dependencies.cranelift-bforest]
-version = "0.82.1"
+version = "0.83.0"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.82.1"
+version = "0.83.0"
 
 [dependencies.cranelift-entity]
-version = "0.82.1"
+version = "0.83.0"
 
 [dependencies.gimli]
 version = "0.26.0"
@@ -71,13 +76,15 @@ optional = true
 
 [dependencies.target-lexicon]
 version = "0.12"
+
 [dev-dependencies.criterion]
 version = "0.3"
+
 [build-dependencies.cranelift-codegen-meta]
-version = "0.82.1"
+version = "0.83.0"
 
 [build-dependencies.cranelift-isle]
-version = "=0.82.1"
+version = "=0.83.0"
 optional = true
 
 [build-dependencies.miette]
@@ -86,20 +93,42 @@ features = ["fancy"]
 optional = true
 
 [features]
-all-arch = ["x86", "arm64", "s390x"]
+all-arch = [
+    "x86",
+    "arm64",
+    "s390x",
+]
 arm64 = []
 completely-skip-isle-for-ci-deterministic-check = []
 core = ["hashbrown"]
-default = ["std", "unwind"]
-enable-serde = ["serde", "regalloc/enable-serde", "cranelift-entity/enable-serde"]
+default = [
+    "std",
+    "unwind",
+]
+enable-serde = [
+    "serde",
+    "regalloc/enable-serde",
+    "cranelift-entity/enable-serde",
+]
 experimental_x64 = []
-rebuild-isle = ["cranelift-isle", "miette", "cranelift-codegen-meta/rebuild-isle"]
-regalloc-snapshot = ["bincode", "regalloc/enable-serde"]
+rebuild-isle = [
+    "cranelift-isle",
+    "miette",
+    "cranelift-codegen-meta/rebuild-isle",
+]
+regalloc-snapshot = [
+    "bincode",
+    "regalloc/enable-serde",
+]
 s390x = []
-souper-harvest = ["souper-ir", "souper-ir/stringify"]
+souper-harvest = [
+    "souper-ir",
+    "souper-ir/stringify",
+]
 std = []
 testing_hooks = []
 unwind = ["gimli"]
 x86 = []
+
 [badges.maintenance]
 status = "experimental"

@@ -1,5 +1,4 @@
 use std::collections::{hash_map::Entry, HashMap, VecDeque};
-use std::convert::TryFrom;
 use std::num::NonZeroU32;
 use std::ops::Not;
 
@@ -144,6 +143,8 @@ struct Futex {
 struct FutexWaiter {
     /// The thread that is waiting on this futex.
     thread: ThreadId,
+    /// The bitset used by FUTEX_*_BITSET, or u32::MAX for other operations.
+    bitset: u32,
 }
 
 /// The state of all synchronization variables.
@@ -242,7 +243,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             mutex.owner = Some(thread);
         }
         mutex.lock_count = mutex.lock_count.checked_add(1).unwrap();
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             data_race.validate_lock_acquire(&mutex.data_race, thread);
         }
     }
@@ -268,7 +269,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 mutex.owner = None;
                 // The mutex is completely unlocked. Try transfering ownership
                 // to another thread.
-                if let Some(data_race) = &this.memory.extra.data_race {
+                if let Some(data_race) = &this.machine.data_race {
                     data_race.validate_lock_release(&mut mutex.data_race, current_owner);
                 }
                 this.mutex_dequeue_and_lock(id);
@@ -328,7 +329,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let rwlock = &mut this.machine.threads.sync.rwlocks[id];
         let count = rwlock.readers.entry(reader).or_insert(0);
         *count = count.checked_add(1).expect("the reader counter overflowed");
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             data_race.validate_lock_acquire(&rwlock.data_race, reader);
         }
     }
@@ -352,7 +353,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
             Entry::Vacant(_) => return false, // we did not even own this lock
         }
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             data_race.validate_lock_release_shared(&mut rwlock.data_race_reader, reader);
         }
 
@@ -385,7 +386,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         trace!("rwlock_writer_lock: {:?} now held by {:?}", id, writer);
         let rwlock = &mut this.machine.threads.sync.rwlocks[id];
         rwlock.writer = Some(writer);
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             data_race.validate_lock_acquire(&rwlock.data_race, writer);
         }
     }
@@ -405,7 +406,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // Release memory to both reader and writer vector clocks
             //  since this writer happens-before both the union of readers once they are finished
             //  and the next writer
-            if let Some(data_race) = &this.memory.extra.data_race {
+            if let Some(data_race) = &this.machine.data_race {
                 data_race.validate_lock_release(&mut rwlock.data_race, current_writer);
                 data_race.validate_lock_release(&mut rwlock.data_race_reader, current_writer);
             }
@@ -465,7 +466,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
         let current_thread = this.get_active_thread();
         let condvar = &mut this.machine.threads.sync.condvars[id];
-        let data_race = &this.memory.extra.data_race;
+        let data_race = &this.machine.data_race;
 
         // Each condvar signal happens-before the end of the condvar wake
         if let Some(data_race) = data_race {
@@ -473,7 +474,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
         condvar.waiters.pop_front().map(|waiter| {
             if let Some(data_race) = data_race {
-                data_race.validate_lock_acquire(&mut condvar.data_race, waiter.thread);
+                data_race.validate_lock_acquire(&condvar.data_race, waiter.thread);
             }
             (waiter.thread, waiter.mutex)
         })
@@ -486,31 +487,33 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         this.machine.threads.sync.condvars[id].waiters.retain(|waiter| waiter.thread != thread);
     }
 
-    fn futex_wait(&mut self, addr: u64, thread: ThreadId) {
+    fn futex_wait(&mut self, addr: u64, thread: ThreadId, bitset: u32) {
         let this = self.eval_context_mut();
         let futex = &mut this.machine.threads.sync.futexes.entry(addr).or_default();
         let waiters = &mut futex.waiters;
         assert!(waiters.iter().all(|waiter| waiter.thread != thread), "thread is already waiting");
-        waiters.push_back(FutexWaiter { thread });
+        waiters.push_back(FutexWaiter { thread, bitset });
     }
 
-    fn futex_wake(&mut self, addr: u64) -> Option<ThreadId> {
+    fn futex_wake(&mut self, addr: u64, bitset: u32) -> Option<ThreadId> {
         let this = self.eval_context_mut();
         let current_thread = this.get_active_thread();
         let futex = &mut this.machine.threads.sync.futexes.get_mut(&addr)?;
-        let data_race = &this.memory.extra.data_race;
+        let data_race = &this.machine.data_race;
 
         // Each futex-wake happens-before the end of the futex wait
         if let Some(data_race) = data_race {
             data_race.validate_lock_release(&mut futex.data_race, current_thread);
         }
-        let res = futex.waiters.pop_front().map(|waiter| {
+
+        // Wake up the first thread in the queue that matches any of the bits in the bitset.
+        futex.waiters.iter().position(|w| w.bitset & bitset != 0).map(|i| {
+            let waiter = futex.waiters.remove(i).unwrap();
             if let Some(data_race) = data_race {
                 data_race.validate_lock_acquire(&futex.data_race, waiter.thread);
             }
             waiter.thread
-        });
-        res
+        })
     }
 
     fn futex_remove_waiter(&mut self, addr: u64, thread: ThreadId) {

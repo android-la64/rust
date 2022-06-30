@@ -1,8 +1,8 @@
 // Copyright (C) Michael Howell and others
 // this library is released under the same terms as Rust itself.
 
-#![forbid(unsafe_code)]
-#![forbid(missing_docs)]
+#![deny(unsafe_code)]
+#![deny(missing_docs)]
 
 //! Ammonia is a whitelist-based HTML sanitization library. It is designed to
 //! prevent cross-site scripting, layout breaking, and clickjacking caused
@@ -27,14 +27,20 @@
 //! [html5ever]: https://github.com/servo/html5ever "The HTML parser in Servo"
 //! [pulldown-cmark]: https://github.com/google/pulldown-cmark "CommonMark parser"
 
+
+#[cfg(ammonia_unstable)]
+pub mod rcdom;
+
+#[cfg(not(ammonia_unstable))]
+mod rcdom;
+
 use html5ever::interface::Attribute;
 use html5ever::serialize::{serialize, SerializeOpts};
 use html5ever::tree_builder::{NodeOrText, TreeSink};
 use html5ever::{driver as html, local_name, namespace_url, ns, QualName};
-use lazy_static::lazy_static;
 use maplit::{hashmap, hashset};
-use markup5ever_rcdom::{Handle, NodeData, RcDom, SerializableHandle};
-use matches::matches;
+use once_cell::sync::Lazy;
+use rcdom::{Handle, NodeData, RcDom, SerializableHandle};
 use std::borrow::{Borrow, Cow};
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
@@ -53,9 +59,7 @@ use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::{Token, TokenSink, TokenSinkResult, Tokenizer};
 pub use url;
 
-lazy_static! {
-    static ref AMMONIA: Builder<'static> = Builder::default();
-}
+static AMMONIA: Lazy<Builder<'static>> = Lazy::new(|| Builder::default());
 
 /// Clean HTML with a conservative set of defaults.
 ///
@@ -1670,6 +1674,35 @@ impl<'a> Builder<'a> {
         Self::default()
     }
 
+    /// Constructs a [`Builder`] instance configured with no allowed tags.
+    ///
+    /// # Examples
+    ///
+    ///     use ammonia::{Builder, Url, UrlRelative};
+    ///     # use std::error::Error;
+    ///
+    ///     # fn do_main() -> Result<(), Box<Error>> {
+    ///     let input = "<!-- comments will be stripped -->This is an <a href=.>Ammonia</a> example using <a href=struct.Builder.html#method.new onclick=xss>the <code onmouseover=xss>empty()</code> function</a>.";
+    ///     let output = "This is an Ammonia example using the empty() function.";
+    ///
+    ///     let result = Builder::empty() // <--
+    ///         .url_relative(UrlRelative::RewriteWithBase(Url::parse("https://docs.rs/ammonia/1.0/ammonia/")?))
+    ///         .clean(input)
+    ///         .to_string();
+    ///     assert_eq!(result, output);
+    ///     # Ok(())
+    ///     # }
+    ///     # fn main() { do_main().unwrap() }
+    ///
+    /// [default options]: fn.clean.html
+    /// [`Builder`]: struct.Builder.html
+    pub fn empty() -> Self {
+        Self {
+            tags: hashset![],
+            ..Self::default()
+        }
+    }
+
     /// Sanitizes an HTML fragment in a string according to the configured options.
     ///
     /// # Examples
@@ -2517,6 +2550,7 @@ fn is_url_relative(url: &str) -> bool {
 /// This function is only applied to relative URLs.
 /// To filter all of the URLs,
 /// use the not-yet-implemented Content Security Policy.
+#[non_exhaustive]
 pub enum UrlRelative {
     /// Relative URLs will be completely stripped from the document.
     Deny,
@@ -2526,10 +2560,6 @@ pub enum UrlRelative {
     RewriteWithBase(Url),
     /// Rewrite URLs with a custom function.
     Custom(Box<dyn UrlRelativeEvaluate>),
-    // Do not allow the user to exhaustively match on UrlRelative,
-    // because we may add new items to it later.
-    #[doc(hidden)]
-    __NonExhaustive,
 }
 
 impl fmt::Debug for UrlRelative {
@@ -2541,7 +2571,6 @@ impl fmt::Debug for UrlRelative {
                 write!(f, "UrlRelative::RewriteWithBase({})", base)
             }
             UrlRelative::Custom(_) => write!(f, "UrlRelative::Custom"),
-            UrlRelative::__NonExhaustive => unreachable!(),
         }
     }
 }
@@ -2600,12 +2629,10 @@ where
 /// This type is opaque to insulate the caller from breaking changes in the `html5ever` interface.
 ///
 /// Note that this type wraps an `html5ever` DOM tree. `ammonia` does not support streaming, so
-/// the complete fragment needs to be stored in memory during processing. Currently, `Document`
-/// is backed by an [`html5ever::rcdom::Node`] object.
+/// the complete fragment needs to be stored in memory during processing.
 ///
 /// [`String`]: https://doc.rust-lang.org/nightly/std/string/struct.String.html
 /// [`Write`]: https://doc.rust-lang.org/nightly/std/io/trait.Write.html
-/// [`html5ever::rcdom::Node`]: ../markup5ever/rcdom/struct.Node.html
 ///
 /// # Examples
 ///
@@ -2680,7 +2707,7 @@ impl Document {
         serialize(writer, &inner, opts)
     }
 
-    /// Exposes the `Document` instance as an [`html5ever::rcdom::Handle`][h].
+    /// Exposes the `Document` instance as an [`rcdom::Handle`].
     ///
     /// This method returns the inner object backing the `Document` instance. This allows
     /// making further changes to the DOM without introducing redundant serialization and
@@ -2692,8 +2719,6 @@ impl Document {
     ///
     /// For this method to be accessible, a `cfg` flag is required. The easiest way is to
     /// use the `RUSTFLAGS` environment variable:
-    ///
-    /// [h]: ../markup5ever/rcdom/type.Handle.html
     ///
     /// ```text
     /// RUSTFLAGS='--cfg ammonia_unstable' cargo build
@@ -3454,10 +3479,7 @@ mod test {
 
     #[test]
     fn clean_text_spaces_test() {
-        assert_eq!(
-            clean_text("\x09\x0a\x0c\x20"),
-            "&#9;&#10;&#12;&#32;"
-        );
+        assert_eq!(clean_text("\x09\x0a\x0c\x20"), "&#9;&#10;&#12;&#32;");
     }
 
     #[test]
@@ -3465,10 +3487,7 @@ mod test {
         // https://github.com/cure53/DOMPurify/pull/495
         let fragment = r##"<svg><iframe><a title="</iframe><img src onerror=alert(1)>">test"##;
         let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));
-        assert_eq!(
-            result.to_string(),
-            "test"
-        );
+        assert_eq!(result.to_string(), "test");
 
         let fragment = "<svg><iframe>remove me</iframe></svg><iframe>keep me</iframe>";
         let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));

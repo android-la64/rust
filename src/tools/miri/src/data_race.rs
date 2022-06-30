@@ -79,7 +79,6 @@ use crate::{
 };
 
 pub type AllocExtra = VClockAlloc;
-pub type MemoryExtra = GlobalState;
 
 /// Valid atomic read-write operations, alias of atomic::Ordering (not non-exhaustive).
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -563,7 +562,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: MiriEvalContextExt<'mir, 'tcx> {
 
         this.allow_data_races_mut(|this| this.write_immediate(**new_val, &(*place).into()))?;
 
-        this.validate_atomic_rmw(&place, atomic)?;
+        this.validate_atomic_rmw(place, atomic)?;
 
         // Return the old value.
         Ok(old)
@@ -596,9 +595,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: MiriEvalContextExt<'mir, 'tcx> {
         let eq = this.binary_op(mir::BinOp::Eq, &old, expect_old)?;
         // If the operation would succeed, but is "weak", fail some portion
         // of the time, based on `rate`.
-        let rate = this.memory.extra.cmpxchg_weak_failure_rate;
+        let rate = this.machine.cmpxchg_weak_failure_rate;
         let cmpxchg_success = eq.to_scalar()?.to_bool()?
-            && (!can_fail_spuriously || this.memory.extra.rng.get_mut().gen::<f64>() < rate);
+            && (!can_fail_spuriously || this.machine.rng.get_mut().gen::<f64>() < rate);
         let res = Immediate::ScalarPair(
             old.to_scalar_or_uninit(),
             Scalar::from_bool(cmpxchg_success).into(),
@@ -690,7 +689,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: MiriEvalContextExt<'mir, 'tcx> {
     /// Update the data-race detector for an atomic fence on the current thread.
     fn validate_atomic_fence(&mut self, atomic: AtomicFenceOp) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        if let Some(data_race) = &mut this.memory.extra.data_race {
+        if let Some(data_race) = &mut this.machine.data_race {
             data_race.maybe_perform_sync_operation(move |index, mut clocks| {
                 log::trace!("Atomic fence on {:?} with ordering {:?}", index, atomic);
 
@@ -725,7 +724,7 @@ pub struct VClockAlloc {
 impl VClockAlloc {
     /// Create a new data-race detector for newly allocated memory.
     pub fn new_allocation(
-        global: &MemoryExtra,
+        global: &GlobalState,
         len: Size,
         kind: MemoryKind<MiriMemoryKind>,
     ) -> VClockAlloc {
@@ -785,7 +784,7 @@ impl VClockAlloc {
                     None
                 }
             })
-            .map(|idx| VectorIdx::new(idx))
+            .map(VectorIdx::new)
     }
 
     /// Report a data-race found in the program.
@@ -796,7 +795,7 @@ impl VClockAlloc {
     #[cold]
     #[inline(never)]
     fn report_data_race<'tcx>(
-        global: &MemoryExtra,
+        global: &GlobalState,
         range: &MemoryCellClocks,
         action: &str,
         is_atomic: bool,
@@ -950,13 +949,13 @@ trait EvalContextPrivExt<'mir, 'tcx: 'mir>: MiriEvalContextExt<'mir, 'tcx> {
     #[inline]
     fn allow_data_races_ref<R>(&self, op: impl FnOnce(&MiriEvalContext<'mir, 'tcx>) -> R) -> R {
         let this = self.eval_context_ref();
-        let old = if let Some(data_race) = &this.memory.extra.data_race {
+        let old = if let Some(data_race) = &this.machine.data_race {
             data_race.multi_threaded.replace(false)
         } else {
             false
         };
         let result = op(this);
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             data_race.multi_threaded.set(old);
         }
         result
@@ -971,13 +970,13 @@ trait EvalContextPrivExt<'mir, 'tcx: 'mir>: MiriEvalContextExt<'mir, 'tcx> {
         op: impl FnOnce(&mut MiriEvalContext<'mir, 'tcx>) -> R,
     ) -> R {
         let this = self.eval_context_mut();
-        let old = if let Some(data_race) = &this.memory.extra.data_race {
+        let old = if let Some(data_race) = &this.machine.data_race {
             data_race.multi_threaded.replace(false)
         } else {
             false
         };
         let result = op(this);
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             data_race.multi_threaded.set(old);
         }
         result
@@ -997,19 +996,18 @@ trait EvalContextPrivExt<'mir, 'tcx: 'mir>: MiriEvalContextExt<'mir, 'tcx> {
         ) -> Result<(), DataRace>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_ref();
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             if data_race.multi_threaded.get() {
                 let size = place.layout.size;
-                let (alloc_id, base_offset, ptr) = this.memory.ptr_get_alloc(place.ptr)?;
+                let (alloc_id, base_offset, _tag) = this.ptr_get_alloc_id(place.ptr)?;
                 // Load and log the atomic operation.
                 // Note that atomic loads are possible even from read-only allocations, so `get_alloc_extra_mut` is not an option.
-                let alloc_meta =
-                    &this.memory.get_alloc_extra(alloc_id)?.data_race.as_ref().unwrap();
+                let alloc_meta = &this.get_alloc_extra(alloc_id)?.data_race.as_ref().unwrap();
                 log::trace!(
                     "Atomic op({}) with ordering {:?} on {:?} (size={})",
                     description,
                     &atomic,
-                    ptr,
+                    place.ptr,
                     size.bytes()
                 );
 
@@ -1041,7 +1039,7 @@ trait EvalContextPrivExt<'mir, 'tcx: 'mir>: MiriEvalContextExt<'mir, 'tcx> {
                     {
                         log::trace!(
                             "Updated atomic memory({:?}, size={}) to {:#?}",
-                            ptr,
+                            place.ptr,
                             size.bytes(),
                             range.atomic_ops
                         );
@@ -1412,7 +1410,7 @@ impl GlobalState {
     /// incremented.
     pub fn validate_lock_acquire(&self, lock: &VClock, thread: ThreadId) {
         let (_, mut clocks) = self.load_thread_state_mut(thread);
-        clocks.clock.join(&lock);
+        clocks.clock.join(lock);
     }
 
     /// Release a lock handle, express that this happens-before

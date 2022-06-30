@@ -259,6 +259,28 @@ impl InlineTable {
             .and_then(|kv| kv.value.as_value_mut())
     }
 
+    /// Return references to the key-value pair stored for key, if it is present, else None.
+    pub fn get_key_value<'a>(&'a self, key: &str) -> Option<(&'a Key, &'a Item)> {
+        self.items.get(key).and_then(|kv| {
+            if !kv.value.is_none() {
+                Some((&kv.key, &kv.value))
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Return mutable references to the key-value pair stored for key, if it is present, else None.
+    pub fn get_key_value_mut<'a>(&'a mut self, key: &str) -> Option<(KeyMut<'a>, &'a mut Item)> {
+        self.items.get_mut(key).and_then(|kv| {
+            if !kv.value.is_none() {
+                Some((kv.key.as_mut(), &mut kv.value))
+            } else {
+                None
+            }
+        })
+    }
+
     /// Returns true iff the table contains given key.
     pub fn contains_key(&self, key: &str) -> bool {
         if let Some(kv) = self.items.get(key) {
@@ -398,11 +420,40 @@ impl TableLike for InlineTable {
     fn clear(&mut self) {
         self.clear();
     }
+    fn entry<'a>(&'a mut self, key: &str) -> crate::Entry<'a> {
+        // Accept a `&str` rather than an owned type to keep `InternalString`, well, internal
+        match self.items.entry(key.into()) {
+            indexmap::map::Entry::Occupied(entry) => {
+                crate::Entry::Occupied(crate::OccupiedEntry { entry })
+            }
+            indexmap::map::Entry::Vacant(entry) => {
+                crate::Entry::Vacant(crate::VacantEntry { entry, key: None })
+            }
+        }
+    }
+    fn entry_format<'a>(&'a mut self, key: &Key) -> crate::Entry<'a> {
+        // Accept a `&Key` to be consistent with `entry`
+        match self.items.entry(key.get().into()) {
+            indexmap::map::Entry::Occupied(entry) => {
+                crate::Entry::Occupied(crate::OccupiedEntry { entry })
+            }
+            indexmap::map::Entry::Vacant(entry) => crate::Entry::Vacant(crate::VacantEntry {
+                entry,
+                key: Some(key.to_owned()),
+            }),
+        }
+    }
     fn get<'s>(&'s self, key: &str) -> Option<&'s Item> {
         self.items.get(key).map(|kv| &kv.value)
     }
     fn get_mut<'s>(&'s mut self, key: &str) -> Option<&'s mut Item> {
         self.items.get_mut(key).map(|kv| &mut kv.value)
+    }
+    fn get_key_value<'a>(&'a self, key: &str) -> Option<(&'a Key, &'a Item)> {
+        self.get_key_value(key)
+    }
+    fn get_key_value_mut<'a>(&'a mut self, key: &str) -> Option<(KeyMut<'a>, &'a mut Item)> {
+        self.get_key_value_mut(key)
     }
     fn contains_key(&self, key: &str) -> bool {
         self.contains_key(key)
@@ -507,6 +558,11 @@ impl<'a> InlineOccupiedEntry<'a> {
     /// ```
     pub fn key(&self) -> &str {
         self.entry.key().as_str()
+    }
+
+    /// Gets a mutable reference to the entry key
+    pub fn key_mut(&mut self) -> KeyMut<'_> {
+        self.entry.get_mut().key.as_mut()
     }
 
     /// Gets a reference to the value in the entry.

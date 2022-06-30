@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::convert::{TryFrom, TryInto};
 use std::fs::{
     read_dir, remove_dir, remove_file, rename, DirBuilder, File, FileType, OpenOptions, ReadDir,
 };
@@ -15,7 +14,6 @@ use rustc_middle::ty::{self, layout::LayoutOf};
 use rustc_target::abi::{Align, Size};
 
 use crate::*;
-use helpers::check_arg_count;
 use shims::os_str::os_str_to_bytes;
 use shims::time::system_time_to_duration;
 
@@ -34,7 +32,7 @@ trait FileDescriptor: std::fmt::Debug {
         bytes: &mut [u8],
     ) -> InterpResult<'tcx, io::Result<usize>>;
     fn write<'tcx>(
-        &mut self,
+        &self,
         communicate_allowed: bool,
         bytes: &[u8],
     ) -> InterpResult<'tcx, io::Result<usize>>;
@@ -48,12 +46,12 @@ trait FileDescriptor: std::fmt::Debug {
         _communicate_allowed: bool,
     ) -> InterpResult<'tcx, io::Result<i32>>;
 
-    fn dup<'tcx>(&mut self) -> io::Result<Box<dyn FileDescriptor>>;
+    fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>>;
 }
 
 impl FileDescriptor for FileHandle {
     fn as_file_handle<'tcx>(&self) -> InterpResult<'tcx, &FileHandle> {
-        Ok(&self)
+        Ok(self)
     }
 
     fn read<'tcx>(
@@ -66,12 +64,12 @@ impl FileDescriptor for FileHandle {
     }
 
     fn write<'tcx>(
-        &mut self,
+        &self,
         communicate_allowed: bool,
         bytes: &[u8],
     ) -> InterpResult<'tcx, io::Result<usize>> {
         assert!(communicate_allowed, "isolation should have prevented even opening a file");
-        Ok(self.file.write(bytes))
+        Ok((&mut &self.file).write(bytes))
     }
 
     fn seek<'tcx>(
@@ -109,7 +107,7 @@ impl FileDescriptor for FileHandle {
         }
     }
 
-    fn dup<'tcx>(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
+    fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
         let duplicated = self.file.try_clone()?;
         Ok(Box::new(FileHandle { file: duplicated, writable: self.writable }))
     }
@@ -133,7 +131,7 @@ impl FileDescriptor for io::Stdin {
     }
 
     fn write<'tcx>(
-        &mut self,
+        &self,
         _communicate_allowed: bool,
         _bytes: &[u8],
     ) -> InterpResult<'tcx, io::Result<usize>> {
@@ -155,7 +153,7 @@ impl FileDescriptor for io::Stdin {
         throw_unsup_format!("stdin cannot be closed");
     }
 
-    fn dup<'tcx>(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
+    fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
         Ok(Box::new(io::stdin()))
     }
 }
@@ -174,12 +172,12 @@ impl FileDescriptor for io::Stdout {
     }
 
     fn write<'tcx>(
-        &mut self,
+        &self,
         _communicate_allowed: bool,
         bytes: &[u8],
     ) -> InterpResult<'tcx, io::Result<usize>> {
         // We allow writing to stderr even with isolation enabled.
-        let result = Write::write(self, bytes);
+        let result = Write::write(&mut { self }, bytes);
         // Stdout is buffered, flush to make sure it appears on the
         // screen.  This is the write() syscall of the interpreted
         // program, we want it to correspond to a write() syscall on
@@ -205,7 +203,7 @@ impl FileDescriptor for io::Stdout {
         throw_unsup_format!("stdout cannot be closed");
     }
 
-    fn dup<'tcx>(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
+    fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
         Ok(Box::new(io::stdout()))
     }
 }
@@ -224,13 +222,13 @@ impl FileDescriptor for io::Stderr {
     }
 
     fn write<'tcx>(
-        &mut self,
+        &self,
         _communicate_allowed: bool,
         bytes: &[u8],
     ) -> InterpResult<'tcx, io::Result<usize>> {
         // We allow writing to stderr even with isolation enabled.
         // No need to flush, stderr is not buffered.
-        Ok(Write::write(self, bytes))
+        Ok(Write::write(&mut { self }, bytes))
     }
 
     fn seek<'tcx>(
@@ -248,7 +246,7 @@ impl FileDescriptor for io::Stderr {
         throw_unsup_format!("stderr cannot be closed");
     }
 
-    fn dup<'tcx>(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
+    fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
         Ok(Box::new(io::stderr()))
     }
 }
@@ -479,16 +477,16 @@ fn maybe_sync_file(
 impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
 pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     fn open(&mut self, args: &[OpTy<'tcx, Tag>]) -> InterpResult<'tcx, i32> {
-        if args.len() < 2 || args.len() > 3 {
+        if args.len() < 2 {
             throw_ub_format!(
-                "incorrect number of arguments for `open`: got {}, expected 2 or 3",
+                "incorrect number of arguments for `open`: got {}, expected at least 2",
                 args.len()
             );
         }
 
         let this = self.eval_context_mut();
 
-        let path_op = &args[0];
+        let path = this.read_pointer(&args[0])?;
         let flag = this.read_scalar(&args[1])?.to_i32()?;
 
         let mut options = OpenOptions::new();
@@ -541,7 +539,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 this.read_scalar(arg)?.to_u32()?
             } else {
                 throw_ub_format!(
-                    "incorrect number of arguments for `open` with `O_CREAT`: got {}, expected 3",
+                    "incorrect number of arguments for `open` with `O_CREAT`: got {}, expected at least 3",
                     args.len()
                 );
             };
@@ -572,7 +570,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             throw_unsup_format!("unsupported flags {:#x}", flag & !mirror);
         }
 
-        let path = this.read_path_from_c_str(this.read_pointer(path_op)?)?;
+        let path = this.read_path_from_c_str(path)?;
 
         // Reject if isolation is enabled.
         if let IsolatedOp::Reject(reject_with) = this.machine.isolated_op {
@@ -614,7 +612,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // `FD_CLOEXEC` value without checking if the flag is set for the file because `std`
             // always sets this flag when opening a file. However we still need to check that the
             // file itself is open.
-            let &[_, _] = check_arg_count(args)?;
             if this.machine.file_handler.handles.contains_key(&fd) {
                 Ok(this.eval_libc_i32("FD_CLOEXEC")?)
             } else {
@@ -627,8 +624,13 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // because exec() isn't supported. The F_DUPFD and F_DUPFD_CLOEXEC commands only
             // differ in whether the FD_CLOEXEC flag is pre-set on the new file descriptor,
             // thus they can share the same implementation here.
-            let &[_, _, ref start] = check_arg_count(args)?;
-            let start = this.read_scalar(start)?.to_i32()?;
+            if args.len() < 3 {
+                throw_ub_format!(
+                    "incorrect number of arguments for fcntl with cmd=`F_DUPFD`/`F_DUPFD_CLOEXEC`: got {}, expected at least 3",
+                    args.len()
+                );
+            }
+            let start = this.read_scalar(&args[2])?.to_i32()?;
 
             let fh = &mut this.machine.file_handler;
 
@@ -643,14 +645,13 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                         }
                     }
                 }
-                None => return this.handle_not_found(),
+                None => this.handle_not_found(),
             }
         } else if this.tcx.sess.target.os == "macos" && cmd == this.eval_libc_i32("F_FULLFSYNC")? {
-            let &[_, _] = check_arg_count(args)?;
             if let Some(file_descriptor) = this.machine.file_handler.handles.get(&fd) {
                 // FIXME: Support fullfsync for all FDs
                 let FileHandle { file, writable } = file_descriptor.as_file_handle()?;
-                let io_result = maybe_sync_file(&file, *writable, File::sync_all);
+                let io_result = maybe_sync_file(file, *writable, File::sync_all);
                 this.try_unwrap_io_result(io_result)
             } else {
                 this.handle_not_found()
@@ -681,7 +682,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         trace!("Reading from FD {}, size {}", fd, count);
 
         // Check that the *entire* buffer is actually valid memory.
-        this.memory.check_ptr_access_align(
+        this.check_ptr_access_align(
             buf,
             Size::from_bytes(count),
             Align::ONE,
@@ -707,7 +708,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             match result {
                 Ok(read_bytes) => {
                     // If reading to `bytes` did not fail, we write those bytes to the buffer.
-                    this.memory.write_bytes(buf, bytes)?;
+                    this.write_bytes_ptr(buf, bytes)?;
                     Ok(read_bytes)
                 }
                 Err(e) => {
@@ -727,7 +728,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // Isolation check is done via `FileDescriptor` trait.
 
         // Check that the *entire* buffer is actually valid memory.
-        this.memory.check_ptr_access_align(
+        this.check_ptr_access_align(
             buf,
             Size::from_bytes(count),
             Align::ONE,
@@ -739,10 +740,10 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let count = count.min(this.machine_isize_max() as u64).min(isize::MAX as u64);
         let communicate = this.machine.communicate();
 
-        if let Some(file_descriptor) = this.machine.file_handler.handles.get_mut(&fd) {
-            let bytes = this.memory.read_bytes(buf, Size::from_bytes(count))?;
+        if let Some(file_descriptor) = this.machine.file_handler.handles.get(&fd) {
+            let bytes = this.read_bytes_ptr(buf, Size::from_bytes(count))?;
             let result =
-                file_descriptor.write(communicate, &bytes)?.map(|c| i64::try_from(c).unwrap());
+                file_descriptor.write(communicate, bytes)?.map(|c| i64::try_from(c).unwrap());
             this.try_unwrap_io_result(result)
         } else {
             this.handle_not_found()
@@ -919,15 +920,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         dirfd_op: &OpTy<'tcx, Tag>,    // Should be an `int`
         pathname_op: &OpTy<'tcx, Tag>, // Should be a `const char *`
         flags_op: &OpTy<'tcx, Tag>,    // Should be an `int`
-        _mask_op: &OpTy<'tcx, Tag>,    // Should be an `unsigned int`
+        mask_op: &OpTy<'tcx, Tag>,     // Should be an `unsigned int`
         statxbuf_op: &OpTy<'tcx, Tag>, // Should be a `struct statx *`
     ) -> InterpResult<'tcx, i32> {
         let this = self.eval_context_mut();
 
         this.assert_target_os("linux", "statx");
 
-        let statxbuf_ptr = this.read_pointer(statxbuf_op)?;
+        let dirfd = this.read_scalar(dirfd_op)?.to_i32()?;
         let pathname_ptr = this.read_pointer(pathname_op)?;
+        let flags = this.read_scalar(flags_op)?.to_i32()?;
+        let _mask = this.read_scalar(mask_op)?.to_u32()?;
+        let statxbuf_ptr = this.read_pointer(statxbuf_op)?;
 
         // If the statxbuf or pathname pointers are null, the function fails with `EFAULT`.
         if this.ptr_is_null(statxbuf_ptr)? || this.ptr_is_null(pathname_ptr)? {
@@ -953,9 +957,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         let path = this.read_path_from_c_str(pathname_ptr)?.into_owned();
         // See <https://github.com/rust-lang/rust/pull/79196> for a discussion of argument sizes.
-        let flags = this.read_scalar(flags_op)?.to_i32()?;
         let empty_path_flag = flags & this.eval_libc("AT_EMPTY_PATH")?.to_i32()? != 0;
-        let dirfd = this.read_scalar(dirfd_op)?.to_i32()?;
         // We only support:
         // * interpreting `path` as an absolute directory,
         // * interpreting `path` as a path relative to `dirfd` when the latter is `AT_FDCWD`, or
@@ -1166,7 +1168,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         #[cfg(unix)]
         {
             use std::os::unix::fs::DirBuilderExt;
-            builder.mode(mode.into());
+            builder.mode(mode);
         }
 
         let result = builder.create(path).map(|_| 0i32);
@@ -1288,7 +1290,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 )?;
 
                 let name_ptr = entry.offset(Size::from_bytes(d_name_offset), this)?;
-                this.memory.write_bytes(name_ptr, name_bytes.iter().copied())?;
+                this.write_bytes_ptr(name_ptr, name_bytes.iter().copied())?;
 
                 entry
             }
@@ -1489,7 +1491,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         if let Some(file_descriptor) = this.machine.file_handler.handles.get(&fd) {
             // FIXME: Support fsync for all FDs
             let FileHandle { file, writable } = file_descriptor.as_file_handle()?;
-            let io_result = maybe_sync_file(&file, *writable, File::sync_all);
+            let io_result = maybe_sync_file(file, *writable, File::sync_all);
             this.try_unwrap_io_result(io_result)
         } else {
             this.handle_not_found()
@@ -1511,7 +1513,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         if let Some(file_descriptor) = this.machine.file_handler.handles.get(&fd) {
             // FIXME: Support fdatasync for all FDs
             let FileHandle { file, writable } = file_descriptor.as_file_handle()?;
-            let io_result = maybe_sync_file(&file, *writable, File::sync_data);
+            let io_result = maybe_sync_file(file, *writable, File::sync_data);
             this.try_unwrap_io_result(io_result)
         } else {
             this.handle_not_found()
@@ -1556,7 +1558,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         if let Some(file_descriptor) = this.machine.file_handler.handles.get(&fd) {
             // FIXME: Support sync_data_range for all FDs
             let FileHandle { file, writable } = file_descriptor.as_file_handle()?;
-            let io_result = maybe_sync_file(&file, *writable, File::sync_data);
+            let io_result = maybe_sync_file(file, *writable, File::sync_data);
             this.try_unwrap_io_result(io_result)
         } else {
             this.handle_not_found()
@@ -1597,7 +1599,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 }
                 // 'readlink' truncates the resolved path if
                 // the provided buffer is not large enough.
-                this.memory.write_bytes(buf, path_bytes.iter().copied())?;
+                this.write_bytes_ptr(buf, path_bytes.iter().copied())?;
                 Ok(path_bytes.len().try_into().unwrap())
             }
             Err(e) => {

@@ -8,7 +8,7 @@ use stdx::format_to;
 use syntax::{
     algo,
     ast::{self, HasArgList},
-    AstNode, Direction, SyntaxToken, TextRange, TextSize,
+    match_ast, AstNode, Direction, SyntaxToken, TextRange, TextSize,
 };
 
 use crate::RootDatabase;
@@ -66,12 +66,26 @@ pub(crate) fn signature_help(db: &RootDatabase, position: FilePosition) -> Optio
         .and_then(|tok| algo::skip_trivia_token(tok, Direction::Prev))?;
     let token = sema.descend_into_macros_single(token);
 
-    if let Some(help) = signature_help_for_call(&sema, &token) {
-        return Some(help);
-    }
-
-    if let Some(help) = signature_help_for_generics(&sema, &token) {
-        return Some(help);
+    for node in token.ancestors() {
+        match_ast! {
+            match node {
+                ast::ArgList(arg_list) => {
+                    let cursor_outside = arg_list.r_paren_token().as_ref() == Some(&token);
+                    if cursor_outside {
+                        return None;
+                    }
+                    return signature_help_for_call(&sema, token);
+                },
+                ast::GenericArgList(garg_list) => {
+                    let cursor_outside = garg_list.r_angle_token().as_ref() == Some(&token);
+                    if cursor_outside {
+                        return None;
+                    }
+                    return signature_help_for_generics(&sema, token);
+                },
+                _ => (),
+            }
+        }
     }
 
     None
@@ -79,7 +93,7 @@ pub(crate) fn signature_help(db: &RootDatabase, position: FilePosition) -> Optio
 
 fn signature_help_for_call(
     sema: &Semantics<RootDatabase>,
-    token: &SyntaxToken,
+    token: SyntaxToken,
 ) -> Option<SignatureHelp> {
     // Find the calling expression and its NameRef
     let mut node = token.parent()?;
@@ -104,16 +118,21 @@ fn signature_help_for_call(
         node = node.parent()?;
     };
 
-    let (callable, active_parameter) = callable_for_node(sema, &calling_node, token)?;
+    let (callable, active_parameter) = callable_for_node(sema, &calling_node, &token)?;
 
     let mut res =
         SignatureHelp { doc: None, signature: String::new(), parameters: vec![], active_parameter };
 
     let db = sema.db;
+    let mut fn_params = None;
     match callable.kind() {
         hir::CallableKind::Function(func) => {
             res.doc = func.docs(db).map(|it| it.into());
             format_to!(res.signature, "fn {}", func.name(db));
+            fn_params = Some(match func.self_param(db) {
+                Some(_self) => func.params_without_self(db),
+                None => func.assoc_fn_params(db),
+            });
         }
         hir::CallableKind::TupleStruct(strukt) => {
             res.doc = strukt.docs(db).map(|it| it.into());
@@ -137,7 +156,7 @@ fn signature_help_for_call(
             format_to!(res.signature, "{}", self_param)
         }
         let mut buf = String::new();
-        for (pat, ty) in callable.params(db) {
+        for (idx, (pat, ty)) in callable.params(db).into_iter().enumerate() {
             buf.clear();
             if let Some(pat) = pat {
                 match pat {
@@ -145,18 +164,31 @@ fn signature_help_for_call(
                     Either::Right(pat) => format_to!(buf, "{}: ", pat),
                 }
             }
-            format_to!(buf, "{}", ty.display(db));
+            // APITs (argument position `impl Trait`s) are inferred as {unknown} as the user is
+            // in the middle of entering call arguments.
+            // In that case, fall back to render definitions of the respective parameters.
+            // This is overly conservative: we do not substitute known type vars
+            // (see FIXME in tests::impl_trait) and falling back on any unknowns.
+            match (ty.contains_unknown(), fn_params.as_deref()) {
+                (true, Some(fn_params)) => format_to!(buf, "{}", fn_params[idx].ty().display(db)),
+                _ => format_to!(buf, "{}", ty.display(db)),
+            }
             res.push_call_param(&buf);
         }
     }
     res.signature.push(')');
 
+    let mut render = |ret_type: hir::Type| {
+        if !ret_type.is_unit() {
+            format_to!(res.signature, " -> {}", ret_type.display(db));
+        }
+    };
     match callable.kind() {
+        hir::CallableKind::Function(func) if callable.return_type().contains_unknown() => {
+            render(func.ret_type(db))
+        }
         hir::CallableKind::Function(_) | hir::CallableKind::Closure => {
-            let ret_type = callable.return_type();
-            if !ret_type.is_unit() {
-                format_to!(res.signature, " -> {}", ret_type.display(db));
-            }
+            render(callable.return_type())
         }
         hir::CallableKind::TupleStruct(_) | hir::CallableKind::TupleEnumVariant(_) => {}
     }
@@ -165,7 +197,7 @@ fn signature_help_for_call(
 
 fn signature_help_for_generics(
     sema: &Semantics<RootDatabase>,
-    token: &SyntaxToken,
+    token: SyntaxToken,
 ) -> Option<SignatureHelp> {
     let parent = token.parent()?;
     let arg_list = parent
@@ -198,9 +230,6 @@ fn signature_help_for_generics(
             | hir::PathResolution::Def(hir::ModuleDef::Macro(_))
             | hir::PathResolution::Def(hir::ModuleDef::Module(_))
             | hir::PathResolution::Def(hir::ModuleDef::Static(_)) => return None,
-            hir::PathResolution::AssocItem(hir::AssocItem::Function(it)) => it.into(),
-            hir::PathResolution::AssocItem(hir::AssocItem::TypeAlias(it)) => it.into(),
-            hir::PathResolution::AssocItem(hir::AssocItem::Const(_)) => return None,
             hir::PathResolution::BuiltinAttr(_)
             | hir::PathResolution::ToolModule(_)
             | hir::PathResolution::Local(_)
@@ -423,8 +452,8 @@ fn foo<T, U: Copy + Display>(x: T, y: U) -> u32
 fn bar() { foo($03, ); }
 "#,
             expect![[r#"
-                fn foo(x: i32, y: {unknown}) -> u32
-                       ^^^^^^  ------------
+                fn foo(x: i32, y: U) -> u32
+                       ^^^^^^  ----
             "#]],
         );
     }
@@ -437,7 +466,7 @@ fn foo<T>() -> T where T: Copy + Display {}
 fn bar() { foo($0); }
 "#,
             expect![[r#"
-                fn foo() -> {unknown}
+                fn foo() -> T
             "#]],
         );
     }
@@ -636,26 +665,21 @@ pub fn do_it() {
     fn test_fn_signature_with_docs_from_actix() {
         check(
             r#"
-struct WriteHandler<E>;
-
-impl<E> WriteHandler<E> {
-    /// Method is called when writer emits error.
-    ///
-    /// If this method returns `ErrorAction::Continue` writer processing
-    /// continues otherwise stream processing stops.
-    fn error(&mut self, err: E, ctx: &mut Self::Context) -> Running {
-        Running::Stop
-    }
-
+trait Actor {
+    /// Actor execution context type
+    type Context;
+}
+trait WriteHandler<E>
+where
+    Self: Actor
+{
     /// Method is called when writer finishes.
     ///
     /// By default this method stops actor's `Context`.
-    fn finished(&mut self, ctx: &mut Self::Context) {
-        ctx.stop()
-    }
+    fn finished(&mut self, ctx: &mut Self::Context) {}
 }
 
-pub fn foo(mut r: WriteHandler<()>) {
+fn foo(mut r: impl WriteHandler<()>) {
     r.finished($0);
 }
 "#,
@@ -664,8 +688,8 @@ pub fn foo(mut r: WriteHandler<()>) {
 
                 By default this method stops actor's `Context`.
                 ------
-                fn finished(&mut self, ctx: &mut {unknown})
-                                       ^^^^^^^^^^^^^^^^^^^
+                fn finished(&mut self, ctx: &mut <impl WriteHandler<()> as Actor>::Context)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             "#]],
         );
     }
@@ -678,6 +702,28 @@ fn foo(x: u32, y: u32) -> u32 {x + y}
 fn bar() { foo $0 (3, ); }
 "#,
             expect![[""]],
+        );
+    }
+
+    #[test]
+    fn outside_of_arg_list() {
+        check(
+            r#"
+fn foo(a: u8) {}
+fn f() {
+    foo(123)$0
+}
+"#,
+            expect![[]],
+        );
+        check(
+            r#"
+fn foo<T>(a: u8) {}
+fn f() {
+    foo::<u32>$0()
+}
+"#,
+            expect![[]],
         );
     }
 
@@ -1030,6 +1076,25 @@ fn f() {
     }
 
     #[test]
+    fn test_generic_param_in_method_call() {
+        check(
+            r#"
+struct Foo;
+impl Foo {
+    fn test<V>(&mut self, val: V) {}
+}
+fn sup() {
+    Foo.test($0)
+}
+"#,
+            expect![[r#"
+                fn test(&mut self, val: V)
+                                   ^^^^^^
+            "#]],
+        );
+    }
+
+    #[test]
     fn test_generic_kinds() {
         check(
             r#"
@@ -1055,6 +1120,25 @@ fn f() {
             expect![[r#"
                 fn callee<'a, const A: u8, T, const C: u8>
                           --  ^^^^^^^^^^^  -  -----------
+            "#]],
+        );
+    }
+
+    #[test]
+    fn impl_trait() {
+        // FIXME: Substitute type vars in impl trait (`U` -> `i8`)
+        check(
+            r#"
+trait Trait<T> {}
+struct Wrap<T>(T);
+fn foo<U>(x: Wrap<impl Trait<U>>) {}
+fn f() {
+    foo::<i8>($0)
+}
+"#,
+            expect![[r#"
+                fn foo(x: Wrap<impl Trait<U>>)
+                       ^^^^^^^^^^^^^^^^^^^^^^
             "#]],
         );
     }

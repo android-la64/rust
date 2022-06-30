@@ -51,8 +51,8 @@ _cargo() {
     )
 
     features=(
-        '(--all-features)--features=[specify features to activate]:feature'
-        '(--features)--all-features[activate all available features]'
+        '(--all-features)'{-F+,--features=}'[specify features to activate]:feature'
+        '(--features -F)--all-features[activate all available features]'
         "--no-default-features[don't build the default features]"
     )
 
@@ -66,6 +66,26 @@ _cargo() {
         args)
             curcontext="${curcontext%:*}-${words[1]}:"
             case ${words[1]} in
+                add)
+                    _arguments -s -A "^--" $common $manifest $registry \
+                        {-F+,--features=}'[specify features to activate]:feature'
+                        "--default-features[enable the default features]"
+                        "--no-default-features[don't enable the default features]"
+                        "--optional[mark the dependency as optional]"
+                        "--no-optional[mark the dependency as required]"
+                        "--dev[add as a dev dependency]"
+                        "--build[add as a build dependency]"
+                        "--target=[add as a dependency to the given target platform]"
+                        "--rename=[rename the dependency]"
+                        "--dry-run[don't actually write the manifest]"
+                        '--branch=[branch to use when adding from git]:branch' \
+                        '--git=[specify URL from which to add the crate]:url:_urls' \
+                        '--path=[local filesystem path to crate to add]: :_directories' \
+                        '--rev=[specific commit to use when adding from git]:commit' \
+                        '--tag=[tag to use when adding from git]:tag' \
+                        '1: :_guard "^-*" "crate name"' \
+                        '*:args:_default'
+                        ;;
                 bench)
                     _arguments -s -A "^--" $common $parallel $features $msgfmt $triple $target $manifest \
                         "${command_scope_spec[@]}" \
@@ -155,7 +175,7 @@ _cargo() {
                         '--rev=[specific commit to use when installing from git]:commit' \
                         '--root=[directory to install packages into]: :_directories' \
                         '--tag=[tag to use when installing from git]:tag' \
-                        '--vers=[version to install from crates.io]:version' \
+                        '--version=[version to install from crates.io]:version' \
                         '--list[list all installed packages and their versions]' \
                         '*: :_guard "^-*" "crate"'
                         ;;
@@ -312,7 +332,7 @@ _cargo() {
 
                 yank)
                     _arguments -s -S $common $registry \
-                        '--vers=[specify yank version]:version' \
+                        '--version=[specify yank version]:version' \
                         '--undo[undo a yank, putting a version back into the index]' \
                         '--index=[specify registry index to yank from]:registry index' \
                         '--token=[specify API token to use when authenticating]:token' \

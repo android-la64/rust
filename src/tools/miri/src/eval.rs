@@ -1,6 +1,5 @@
 //! Main evaluator loop and setting up the initial stack frame.
 
-use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::iter;
 
@@ -15,6 +14,8 @@ use rustc_middle::ty::{
 use rustc_target::spec::abi::Abi;
 
 use rustc_session::config::EntryFnType;
+
+use std::collections::HashSet;
 
 use crate::*;
 
@@ -92,12 +93,12 @@ pub struct MiriConfig {
     pub args: Vec<String>,
     /// The seed to use when non-determinism or randomness are required (e.g. ptr-to-int cast, `getrandom()`).
     pub seed: Option<u64>,
-    /// The stacked borrows pointer id to report about
-    pub tracked_pointer_tag: Option<PtrId>,
-    /// The stacked borrows call ID to report about
-    pub tracked_call_id: Option<CallId>,
-    /// The allocation id to report about.
-    pub tracked_alloc_id: Option<AllocId>,
+    /// The stacked borrows pointer ids to report about
+    pub tracked_pointer_tags: HashSet<PtrId>,
+    /// The stacked borrows call IDs to report about
+    pub tracked_call_ids: HashSet<CallId>,
+    /// The allocation ids to report about.
+    pub tracked_alloc_ids: HashSet<AllocId>,
     /// Whether to track raw pointers in stacked borrows.
     pub tag_raw: bool,
     /// Determine if data race detection should be enabled
@@ -131,9 +132,9 @@ impl Default for MiriConfig {
             forwarded_env_vars: vec![],
             args: vec![],
             seed: None,
-            tracked_pointer_tag: None,
-            tracked_call_id: None,
-            tracked_alloc_id: None,
+            tracked_pointer_tags: HashSet::default(),
+            tracked_call_ids: HashSet::default(),
+            tracked_alloc_ids: HashSet::default(),
             tag_raw: false,
             data_race_detector: true,
             cmpxchg_weak_failure_rate: 0.8,
@@ -153,7 +154,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
     tcx: TyCtxt<'tcx>,
     entry_id: DefId,
     entry_type: EntryFnType,
-    config: MiriConfig,
+    config: &MiriConfig,
 ) -> InterpResult<'tcx, (InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>, MPlaceTy<'tcx, Tag>)> {
     let param_env = ty::ParamEnv::reveal_all();
     let layout_cx = LayoutCx { tcx, param_env };
@@ -161,12 +162,10 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
         tcx,
         rustc_span::source_map::DUMMY_SP,
         param_env,
-        Evaluator::new(&config, layout_cx),
-        MemoryExtra::new(&config),
+        Evaluator::new(config, layout_cx),
     );
-    // Complete initialization.
-    EnvVars::init(&mut ecx, config.excluded_env_vars, config.forwarded_env_vars)?;
-    MemoryExtra::init_extern_statics(&mut ecx)?;
+    // Some parts of initialization require a full `InterpCx`.
+    Evaluator::late_init(&mut ecx, config)?;
 
     // Make sure we have MIR. We check MIR for some stable monomorphic function in libcore.
     let sentinel = ecx.resolve_path(&["core", "ascii", "escape_default"]);
@@ -260,7 +259,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
             .unwrap()
             .unwrap();
 
-            let main_ptr = ecx.memory.create_fn_alloc(FnVal::Instance(entry_instance));
+            let main_ptr = ecx.create_fn_alloc_ptr(FnVal::Instance(entry_instance));
 
             ecx.call_function(
                 start_instance,
@@ -296,7 +295,7 @@ pub fn eval_entry<'tcx>(
     // Copy setting before we move `config`.
     let ignore_leaks = config.ignore_leaks;
 
-    let (mut ecx, ret_place) = match create_ecx(tcx, entry_id, entry_type, config) {
+    let (mut ecx, ret_place) = match create_ecx(tcx, entry_id, entry_type, &config) {
         Ok(v) => v,
         Err(err) => {
             err.print_backtrace();
@@ -354,7 +353,7 @@ pub fn eval_entry<'tcx>(
                 }
                 // Check for memory leaks.
                 info!("Additonal static roots: {:?}", ecx.machine.static_roots);
-                let leaks = ecx.memory.leak_report(&ecx.machine.static_roots);
+                let leaks = ecx.leak_report(&ecx.machine.static_roots);
                 if leaks != 0 {
                     tcx.sess.err("the evaluated program leaked memory");
                     tcx.sess.note_without_error("pass `-Zmiri-ignore-leaks` to disable this check");

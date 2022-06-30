@@ -315,19 +315,24 @@ impl Config {
         self.home_path.join("git")
     }
 
+    /// Gets the Cargo base directory for all registry information (`<cargo_home>/registry`).
+    pub fn registry_base_path(&self) -> Filesystem {
+        self.home_path.join("registry")
+    }
+
     /// Gets the Cargo registry index directory (`<cargo_home>/registry/index`).
     pub fn registry_index_path(&self) -> Filesystem {
-        self.home_path.join("registry").join("index")
+        self.registry_base_path().join("index")
     }
 
     /// Gets the Cargo registry cache directory (`<cargo_home>/registry/path`).
     pub fn registry_cache_path(&self) -> Filesystem {
-        self.home_path.join("registry").join("cache")
+        self.registry_base_path().join("cache")
     }
 
     /// Gets the Cargo registry source directory (`<cargo_home>/registry/src`).
     pub fn registry_source_path(&self) -> Filesystem {
-        self.home_path.join("registry").join("src")
+        self.registry_base_path().join("src")
     }
 
     /// Gets the default Cargo registry.
@@ -1244,9 +1249,27 @@ impl Config {
                     );
                 }
 
-                let toml_v = toml::from_document(doc).with_context(|| {
+                let toml_v: toml::Value = toml::from_document(doc).with_context(|| {
                     format!("failed to parse value from --config argument `{arg}`")
                 })?;
+
+                if toml_v
+                    .get("registry")
+                    .and_then(|v| v.as_table())
+                    .and_then(|t| t.get("token"))
+                    .is_some()
+                {
+                    bail!("registry.token cannot be set through --config for security reasons");
+                } else if let Some((k, _)) = toml_v
+                    .get("registries")
+                    .and_then(|v| v.as_table())
+                    .and_then(|t| t.iter().find(|(_, v)| v.get("token").is_some()))
+                {
+                    bail!(
+                        "registries.{}.token cannot be set through --config for security reasons",
+                        k
+                    );
+                }
 
                 CV::from_toml(Definition::Cli, toml_v)
                     .with_context(|| format!("failed to convert --config argument `{arg}`"))?

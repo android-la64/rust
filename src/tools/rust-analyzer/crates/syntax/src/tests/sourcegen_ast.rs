@@ -11,7 +11,7 @@ use std::{
 use itertools::Itertools;
 use proc_macro2::{Punct, Spacing};
 use quote::{format_ident, quote};
-use ungrammar::{rust_grammar, Grammar, Rule};
+use ungrammar::{Grammar, Rule};
 
 use crate::tests::ast_src::{
     AstEnumSrc, AstNodeSrc, AstSrc, Cardinality, Field, KindsSrc, KINDS_SRC,
@@ -24,7 +24,8 @@ fn sourcegen_ast() {
         sourcegen::project_root().join("crates/parser/src/syntax_kind/generated.rs");
     sourcegen::ensure_file_contents(syntax_kinds_file.as_path(), &syntax_kinds);
 
-    let grammar = rust_grammar();
+    let grammar =
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/rust.ungram")).parse().unwrap();
     let ast = lower(&grammar);
 
     let ast_tokens = generate_tokens(&ast);
@@ -461,6 +462,10 @@ fn generate_syntax_kinds(grammar: KindsSrc<'_>) -> String {
             [lifetime_ident] => { $crate::SyntaxKind::LIFETIME_IDENT };
             [ident] => { $crate::SyntaxKind::IDENT };
             [shebang] => { $crate::SyntaxKind::SHEBANG };
+            [float_number_part] => { $crate::SyntaxKind::FLOAT_NUMBER_PART };
+            [float_number_start_0] => { $crate::SyntaxKind::FLOAT_NUMBER_START_0 };
+            [float_number_start_1] => { $crate::SyntaxKind::FLOAT_NUMBER_START_1 };
+            [float_number_start_2] => { $crate::SyntaxKind::FLOAT_NUMBER_START_2 };
         }
         pub use T;
     };
@@ -584,7 +589,7 @@ impl Field {
 
 fn lower(grammar: &Grammar) -> AstSrc {
     let mut res = AstSrc {
-        tokens: "Whitespace Comment String ByteString IntNumber FloatNumber Ident"
+        tokens: "Whitespace Comment String ByteString IntNumber FloatNumberPart Char Byte Ident"
             .split_ascii_whitespace()
             .map(|it| it.to_string())
             .collect::<Vec<_>>(),

@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use crate::*;
 use rustc_middle::ty::layout::LayoutOf;
 use rustc_target::spec::abi::Abi;
@@ -41,7 +39,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let old_thread_id = this.set_active_thread(new_thread_id);
 
         // Perform the function pointer load in the new thread frame.
-        let instance = this.memory.get_fn(fn_ptr)?.as_instance()?;
+        let instance = this.get_ptr_fn(fn_ptr)?.as_instance()?;
 
         // Note: the returned value is currently ignored (see the FIXME in
         // pthread_join below) because the Rust standard library does not use
@@ -97,20 +95,27 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         this.write_scalar(Scalar::from_uint(thread_id.to_u32(), dest.layout.size), dest)
     }
 
-    fn prctl(
-        &mut self,
-        option: &OpTy<'tcx, Tag>,
-        arg2: &OpTy<'tcx, Tag>,
-        _arg3: &OpTy<'tcx, Tag>,
-        _arg4: &OpTy<'tcx, Tag>,
-        _arg5: &OpTy<'tcx, Tag>,
-    ) -> InterpResult<'tcx, i32> {
+    fn prctl(&mut self, args: &[OpTy<'tcx, Tag>]) -> InterpResult<'tcx, i32> {
         let this = self.eval_context_mut();
         this.assert_target_os("linux", "prctl");
 
-        let option = this.read_scalar(option)?.to_i32()?;
+        if args.is_empty() {
+            throw_ub_format!(
+                "incorrect number of arguments for `prctl`: got {}, expected at least 1",
+                args.len()
+            );
+        }
+
+        let option = this.read_scalar(&args[0])?.to_i32()?;
         if option == this.eval_libc_i32("PR_SET_NAME")? {
-            let address = this.read_pointer(arg2)?;
+            if args.len() < 2 {
+                throw_ub_format!(
+                    "incorrect number of arguments for `prctl` with `PR_SET_NAME`: got {}, expected at least 2",
+                    args.len()
+                );
+            }
+
+            let address = this.read_pointer(&args[1])?;
             let mut name = this.read_c_str(address)?.to_owned();
             // The name should be no more than 16 bytes, including the null
             // byte. Since `read_c_str` returns the string without the null
@@ -118,11 +123,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             name.truncate(15);
             this.set_active_thread_name(name);
         } else if option == this.eval_libc_i32("PR_GET_NAME")? {
-            let address = this.read_pointer(arg2)?;
+            if args.len() < 2 {
+                throw_ub_format!(
+                    "incorrect number of arguments for `prctl` with `PR_SET_NAME`: got {}, expected at least 2",
+                    args.len()
+                );
+            }
+
+            let address = this.read_pointer(&args[1])?;
             let mut name = this.get_active_thread_name().to_vec();
             name.push(0u8);
             assert!(name.len() <= 16);
-            this.memory.write_bytes(address, name)?;
+            this.write_bytes_ptr(address, name)?;
         } else {
             throw_unsup_format!("unsupported prctl option {}", option);
         }

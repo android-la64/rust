@@ -2561,6 +2561,91 @@ fn scrape_examples_missing_flag() {
 }
 
 #[cargo_test]
+fn scrape_examples_configure_profile() {
+    if !is_nightly() {
+        // -Z rustdoc-scrape-examples is unstable
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+
+                [profile.dev]
+                panic = "abort"
+            "#,
+        )
+        .file("examples/ex.rs", "fn main() { foo::foo(); }")
+        .file("src/lib.rs", "pub fn foo() {}\npub fn bar() { foo(); }")
+        .build();
+
+    p.cargo("doc -Zunstable-options -Z rustdoc-scrape-examples=all")
+        .masquerade_as_nightly_cargo()
+        .run();
+
+    let doc_html = p.read_file("target/doc/foo/fn.foo.html");
+    assert!(doc_html.contains("Examples found in repository"));
+    assert!(doc_html.contains("More examples"));
+}
+
+#[cargo_test]
+fn scrape_examples_issue_10545() {
+    if !is_nightly() {
+        // -Z rustdoc-scrape-examples is unstable
+        return;
+    }
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"                
+                [workspace]
+                resolver = "2"
+                members = ["a", "b"]              
+            "#,
+        )
+        .file(
+            "a/Cargo.toml",
+            r#"
+            [package]
+            name = "a"
+            version = "0.0.1"
+            authors = []
+            edition = "2021"
+
+            [features]
+            default = ["foo"]
+            foo = []
+        "#,
+        )
+        .file("a/src/lib.rs", "")
+        .file(
+            "b/Cargo.toml",
+            r#"
+                [package]
+                name = "b"
+                version = "0.0.1"
+                authors = []
+                edition = "2021"
+
+                [lib]
+                proc-macro = true
+            "#,
+        )
+        .file("b/src/lib.rs", "")
+        .build();
+
+    p.cargo("doc -Zunstable-options -Z rustdoc-scrape-examples=all")
+        .masquerade_as_nightly_cargo()
+        .run();
+}
+
+#[cargo_test]
 fn lib_before_bin() {
     // Checks that the library is documented before the binary.
     // Previously they were built concurrently, which can cause issues
@@ -2698,39 +2783,23 @@ fn doc_lib_false_dep() {
     assert!(!p.build_dir().join("doc/bar").exists());
 }
 
-#[cfg_attr(windows, ignore)] // weird normalization issue with windows and cargo-test-support
 #[cargo_test]
-fn doc_check_cfg_features() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustdoc command line
-        return;
-    }
-
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-                [project]
-                name = "foo"
-                version = "0.1.0"
-
-                [features]
-                default = ["f_a"]
-                f_a = []
-                f_b = []
-            "#,
-        )
-        .file("src/lib.rs", "#[allow(dead_code)] fn foo() {}")
-        .build();
-
-    p.cargo("doc -v -Z check-cfg-features")
-        .masquerade_as_nightly_cargo()
+fn link_to_private_item() {
+    let main = r#"
+    //! [bar]
+    #[allow(dead_code)]
+    fn bar() {}
+    "#;
+    let p = project().file("src/lib.rs", main).build();
+    p.cargo("doc")
+        .with_stderr_contains("[..] documentation for `foo` links to private item `bar`")
+        .run();
+    // Check that binaries don't emit a private_intra_doc_links warning.
+    fs::rename(p.root().join("src/lib.rs"), p.root().join("src/main.rs")).unwrap();
+    p.cargo("doc")
         .with_stderr(
-            "\
-[DOCUMENTING] foo v0.1.0 [..]
-[RUNNING] `rustdoc [..] --check-cfg 'values(feature, \"default\", \"f_a\", \"f_b\")' [..]
-[FINISHED] [..]
-",
+            "[DOCUMENTING] foo [..]\n\
+             [FINISHED] [..]",
         )
         .run();
 }

@@ -8,6 +8,7 @@
 // except according to those terms.
 
 use crate::{Atom, StaticAtomSet};
+#[cfg(feature = "serde_support")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
 use std::fmt;
@@ -38,7 +39,7 @@ impl<Static: StaticAtomSet> PartialEq<Atom<Static>> for str {
 
 impl<Static: StaticAtomSet> PartialEq<String> for Atom<Static> {
     fn eq(&self, other: &String) -> bool {
-        &self[..] == &other[..]
+        self[..] == other[..]
     }
 }
 
@@ -65,10 +66,11 @@ impl<Static: StaticAtomSet> fmt::Display for Atom<Static> {
 
 impl<Static: StaticAtomSet> AsRef<str> for Atom<Static> {
     fn as_ref(&self) -> &str {
-        &self
+        self
     }
 }
 
+#[cfg(feature = "serde_support")]
 impl<Static: StaticAtomSet> Serialize for Atom<Static> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -79,12 +81,39 @@ impl<Static: StaticAtomSet> Serialize for Atom<Static> {
     }
 }
 
+#[cfg(feature = "serde_support")]
 impl<'a, Static: StaticAtomSet> Deserialize<'a> for Atom<Static> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'a>,
     {
-        let string: String = Deserialize::deserialize(deserializer)?;
-        Ok(Atom::from(string))
+        use serde::de;
+        use std::marker::PhantomData;
+
+        struct AtomVisitor<Static: StaticAtomSet>(PhantomData<Static>);
+
+        impl<'de, Static: StaticAtomSet> de::Visitor<'de> for AtomVisitor<Static> {
+            type Value = Atom<Static>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                write!(formatter, "an Atom")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(Atom::from(v))
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(Atom::from(v))
+            }
+        }
+
+        deserializer.deserialize_str(AtomVisitor(PhantomData))
     }
 }

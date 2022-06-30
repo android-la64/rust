@@ -36,7 +36,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         // There are some more lang items we want to hook that CTFE does not hook (yet).
         if this.tcx.lang_items().align_offset_fn() == Some(instance.def.def_id()) {
-            let &[ref ptr, ref align] = check_arg_count(args)?;
+            let [ptr, align] = check_arg_count(args)?;
             if this.align_offset(ptr, align, ret, unwind)? {
                 return Ok(None);
             }
@@ -69,7 +69,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
         let (dest, ret) = ret.unwrap();
 
-        if this.memory.extra.check_alignment != AlignmentCheck::Symbolic {
+        if this.machine.check_alignment != AlignmentCheck::Symbolic {
             // Just use actual implementation.
             return Ok(false);
         }
@@ -83,10 +83,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
 
         let ptr = this.read_pointer(ptr_op)?;
-        if let Ok(ptr) = ptr.into_pointer_or_addr() {
+        if let Ok((alloc_id, _offset, _)) = this.ptr_try_get_alloc_id(ptr) {
             // Only do anything if we can identify the allocation this goes to.
-            let (_, cur_align) =
-                this.memory.get_size_and_align(ptr.provenance.alloc_id, AllocCheck::MaybeDead)?;
+            let (_, cur_align) = this.get_alloc_size_and_align(alloc_id, AllocCheck::MaybeDead)?;
             if cur_align.bytes() >= req_align {
                 // If the allocation alignment is at least the required alignment we use the
                 // real implementation.

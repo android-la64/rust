@@ -77,9 +77,13 @@ fn try_main() -> Result<()> {
                 println!("{}", flags::RustAnalyzer::HELP);
                 return Ok(());
             }
-            run_server()?
+            with_extra_thread("rust-analyzer server thread", run_server)?;
         }
-        flags::RustAnalyzerCmd::ProcMacro(flags::ProcMacro) => proc_macro_srv::cli::run()?,
+        flags::RustAnalyzerCmd::ProcMacro(flags::ProcMacro) => {
+            with_extra_thread("rust-analyzer proc-macro expander", || {
+                proc_macro_srv::cli::run().map_err(Into::into)
+            })?;
+        }
         flags::RustAnalyzerCmd::Parse(cmd) => cmd.run()?,
         flags::RustAnalyzerCmd::Symbols(cmd) => cmd.run()?,
         flags::RustAnalyzerCmd::Highlight(cmd) => cmd.run()?,
@@ -119,11 +123,30 @@ fn setup_logging(log_file: Option<&Path>) -> Result<()> {
         None => None,
     };
     let filter = env::var("RA_LOG").ok();
-    logger::Logger::new(log_file, filter.as_deref()).install()?;
+    // deliberately enable all `error` logs if the user has not set RA_LOG, as there is usually useful
+    // information in there for debugging
+    logger::Logger::new(log_file, filter.as_deref().or(Some("error"))).install()?;
 
     profile::init();
 
     Ok(())
+}
+
+const STACK_SIZE: usize = 1024 * 1024 * 8;
+
+/// Parts of rust-analyzer can use a lot of stack space, and some operating systems only give us
+/// 1 MB by default (eg. Windows), so this spawns a new thread with hopefully sufficient stack
+/// space.
+fn with_extra_thread(
+    thread_name: impl Into<String>,
+    f: impl FnOnce() -> Result<()> + Send + 'static,
+) -> Result<()> {
+    let handle =
+        std::thread::Builder::new().name(thread_name.into()).stack_size(STACK_SIZE).spawn(f)?;
+    match handle.join() {
+        Ok(res) => res,
+        Err(panic) => std::panic::resume_unwind(panic),
+    }
 }
 
 fn run_server() -> Result<()> {
@@ -150,7 +173,17 @@ fn run_server() -> Result<()> {
 
     let mut config = Config::new(root_path, initialize_params.capabilities);
     if let Some(json) = initialize_params.initialization_options {
-        let _ = config.update(json);
+        if let Err(e) = config.update(json) {
+            use lsp_types::{
+                notification::{Notification, ShowMessage},
+                MessageType, ShowMessageParams,
+            };
+            let not = lsp_server::Notification::new(
+                ShowMessage::METHOD.to_string(),
+                ShowMessageParams { typ: MessageType::WARNING, message: e.to_string() },
+            );
+            connection.sender.send(lsp_server::Message::Notification(not)).unwrap();
+        }
     }
 
     let server_capabilities = rust_analyzer::server_capabilities(&config);
@@ -161,7 +194,11 @@ fn run_server() -> Result<()> {
             name: String::from("rust-analyzer"),
             version: Some(String::from(env!("REV"))),
         }),
-        offset_encoding: if supports_utf8(&config.caps) { Some("utf-8".to_string()) } else { None },
+        offset_encoding: if supports_utf8(config.caps()) {
+            Some("utf-8".to_string())
+        } else {
+            None
+        },
     };
 
     let initialize_result = serde_json::to_value(initialize_result).unwrap();
@@ -183,7 +220,7 @@ fn run_server() -> Result<()> {
                     .collect::<Vec<_>>()
             })
             .filter(|workspaces| !workspaces.is_empty())
-            .unwrap_or_else(|| vec![config.root_path.clone()]);
+            .unwrap_or_else(|| vec![config.root_path().clone()]);
 
         let discovered = ProjectManifest::discover_all(&workspace_roots);
         tracing::info!("discovered projects: {:?}", discovered);

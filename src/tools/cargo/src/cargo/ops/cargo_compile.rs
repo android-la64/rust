@@ -174,13 +174,13 @@ impl Packages {
         };
         if specs.is_empty() {
             if ws.is_virtual() {
-                anyhow::bail!(
+                bail!(
                     "manifest path `{}` contains no package: The manifest is virtual, \
                      and the workspace has no members.",
                     ws.root().display()
                 )
             }
-            anyhow::bail!("no packages to compile")
+            bail!("no packages to compile")
         }
         Ok(specs)
     }
@@ -401,19 +401,8 @@ pub fn create_bcx<'a, 'cfg>(
     } = resolve;
 
     let std_resolve_features = if let Some(crates) = &config.cli_unstable().build_std {
-        if build_config.build_plan {
-            config
-                .shell()
-                .warn("-Zbuild-std does not currently fully support --build-plan")?;
-        }
-        if build_config.requested_kinds[0].is_host() {
-            // TODO: This should eventually be fixed. Unfortunately it is not
-            // easy to get the host triple in BuildConfig. Consider changing
-            // requested_target to an enum, or some other approach.
-            anyhow::bail!("-Zbuild-std requires --target");
-        }
         let (std_package_set, std_resolve, std_features) =
-            standard_lib::resolve_std(ws, &target_data, &build_config.requested_kinds, crates)?;
+            standard_lib::resolve_std(ws, &target_data, &build_config, crates)?;
         pkg_set.add_set(std_package_set);
         Some((std_resolve, std_features))
     } else {
@@ -546,23 +535,15 @@ pub fn create_bcx<'a, 'cfg>(
                 &profiles,
                 interner,
             )?
+            .into_iter()
+            // Proc macros should not be scraped for functions, since they only export macros
+            .filter(|unit| !unit.target.proc_macro())
+            .collect::<Vec<_>>()
         }
         None => Vec::new(),
     };
 
-    let std_roots = if let Some(crates) = &config.cli_unstable().build_std {
-        // Only build libtest if it looks like it is needed.
-        let mut crates = crates.clone();
-        if !crates.iter().any(|c| c == "test")
-            && units
-                .iter()
-                .any(|unit| unit.mode.is_rustc_test() && unit.target.harness())
-        {
-            // Only build libtest when libstd is built (libtest depends on libstd)
-            if crates.iter().any(|c| c == "std") {
-                crates.push("test".to_string());
-            }
-        }
+    let std_roots = if let Some(crates) = standard_lib::std_crates(config, Some(&units)) {
         let (std_resolve, std_features) = std_resolve_features.as_ref().unwrap();
         standard_lib::generate_std_roots(
             &crates,
@@ -642,6 +623,12 @@ pub fn create_bcx<'a, 'cfg>(
             if rustdoc_document_private_items || unit.target.is_bin() {
                 let mut args = extra_args.take().unwrap_or_default();
                 args.push("--document-private-items".into());
+                if unit.target.is_bin() {
+                    // This warning only makes sense if it's possible to document private items
+                    // sometimes and ignore them at other times. But cargo consistently passes
+                    // `--document-private-items`, so the warning isn't useful.
+                    args.push("-Arustdoc::private-intra-doc-links".into());
+                }
                 extra_args = Some(args);
             }
 
@@ -815,7 +802,7 @@ impl CompileFilter {
     /// Constructs a filter that includes all test targets.
     ///
     /// Being different from the behavior of [`CompileFilter::Default`], this
-    /// function only recongnizes test targets, which means cargo might compile
+    /// function only recognizes test targets, which means cargo might compile
     /// all targets with `tested` flag on, whereas [`CompileFilter::Default`]
     /// may include additional example targets to ensure they can be compiled.
     ///

@@ -184,6 +184,9 @@ pub use workspace_symbols::*;
 
 pub mod lsif;
 
+mod trace;
+pub use trace::*;
+
 /* ----------------- Auxiliary types ----------------- */
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
@@ -202,6 +205,24 @@ pub struct CancelParams {
 }
 
 /* ----------------- Basic JSON Structures ----------------- */
+
+/// The LSP any type
+///
+/// @since 3.17.0
+#[cfg(feature = "proposed")]
+pub type LSPAny = serde_json::Value;
+
+/// LSP object definition.
+///
+/// @since 3.17.0
+#[cfg(feature = "proposed")]
+pub type LSPObject = serde_json::Map<String, serde_json::Value>;
+
+/// LSP arrays.
+///
+/// @since 3.17.0
+#[cfg(feature = "proposed")]
+pub type LSPArray = Vec<serde_json::Value>;
 
 /// Position in a text document expressed as zero-based line and character offset.
 /// A position is between two characters like an 'insert' cursor in a editor.
@@ -996,7 +1017,7 @@ pub struct InitializeParams {
     /// The initial trace setting. If omitted trace is disabled ('off').
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace: Option<TraceOption>,
+    pub trace: Option<TraceValue>,
 
     /// The workspace folders configured in the client when the server starts.
     /// This property is only available if the client supports workspace folders.
@@ -1032,22 +1053,6 @@ pub struct ClientInfo {
 
 #[derive(Debug, PartialEq, Clone, Copy, Deserialize, Serialize)]
 pub struct InitializedParams {}
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Deserialize, Serialize)]
-pub enum TraceOption {
-    #[serde(rename = "off")]
-    Off,
-    #[serde(rename = "messages")]
-    Messages,
-    #[serde(rename = "verbose")]
-    Verbose,
-}
-
-impl Default for TraceOption {
-    fn default() -> TraceOption {
-        TraceOption::Off
-    }
-}
 
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
 pub struct GenericRegistrationOptions {
@@ -1253,10 +1258,9 @@ pub struct WorkspaceClientCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_operations: Option<WorkspaceFileOperationsClientCapabilities>,
 
-
     #[serde(skip_serializing_if = "Option::is_none")]
-		#[cfg(feature = "proposed")]
-		pub inlay_hint: Option<InlayHintWorkspaceClientCapabilities>,
+    #[cfg(feature = "proposed")]
+    pub inlay_hint: Option<InlayHintWorkspaceClientCapabilities>,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Default, Deserialize, Serialize)]

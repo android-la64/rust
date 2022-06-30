@@ -4,7 +4,6 @@ use rustc_middle::ty::layout::LayoutOf as _;
 use rustc_middle::ty::{self, Instance};
 use rustc_span::{BytePos, Loc, Symbol};
 use rustc_target::{abi::Size, spec::abi::Abi};
-use std::convert::TryInto as _;
 
 impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
 pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
@@ -16,7 +15,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         dest: &PlaceTy<'tcx, Tag>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        let &[ref flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+        let [flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
 
         let flags = this.read_scalar(flags)?.to_u64()?;
         if flags != 0 {
@@ -64,7 +63,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 // to reconstruct the needed frame information in `handle_miri_resolve_frame`.
                 // Note that we never actually read or write anything from/to this pointer -
                 // all of the data is represented by the pointer value itself.
-                let fn_ptr = this.memory.create_fn_alloc(FnVal::Instance(instance));
+                let fn_ptr = this.create_fn_alloc_ptr(FnVal::Instance(instance));
                 fn_ptr.wrapping_offset(Size::from_bytes(pos.0), this)
             })
             .collect();
@@ -78,7 +77,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // storage for pointers is allocated by miri
             // deallocating the slice is undefined behavior with a custom global allocator
             0 => {
-                let &[_flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+                let [_flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
 
                 let alloc = this.allocate(array_layout, MiriMemoryKind::Rust.into())?;
 
@@ -96,7 +95,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
             // storage for pointers is allocated by the caller
             1 => {
-                let &[_flags, ref buf] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+                let [_flags, buf] = this.check_shim(abi, Abi::Rust, link_name, args)?;
 
                 let buf_place = this.deref_operand(buf)?;
 
@@ -125,7 +124,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         let ptr = this.read_pointer(ptr)?;
         // Take apart the pointer, we need its pieces.
-        let (alloc_id, offset, ptr) = this.memory.ptr_get_alloc(ptr)?;
+        let (alloc_id, offset, _tag) = this.ptr_get_alloc_id(ptr)?;
 
         let fn_instance =
             if let Some(GlobalAlloc::Function(instance)) = this.tcx.get_global_alloc(alloc_id) {
@@ -151,7 +150,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         dest: &PlaceTy<'tcx, Tag>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        let &[ref ptr, ref flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+        let [ptr, flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
 
         let flags = this.read_scalar(flags)?.to_u64()?;
 
@@ -159,7 +158,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         // Reconstruct the original function pointer,
         // which we pass to user code.
-        let fn_ptr = this.memory.create_fn_alloc(FnVal::Instance(fn_instance));
+        let fn_ptr = this.create_fn_alloc_ptr(FnVal::Instance(fn_instance));
 
         let num_fields = dest.layout.fields.count();
 
@@ -234,7 +233,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
 
-        let &[ref ptr, ref flags, ref name_ptr, ref filename_ptr] =
+        let [ptr, flags, name_ptr, filename_ptr] =
             this.check_shim(abi, Abi::Rust, link_name, args)?;
 
         let flags = this.read_scalar(flags)?.to_u64()?;
@@ -244,8 +243,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         let (_, _, name, filename) = this.resolve_frame_pointer(ptr)?;
 
-        this.memory.write_bytes(this.read_pointer(name_ptr)?, name.bytes())?;
-        this.memory.write_bytes(this.read_pointer(filename_ptr)?, filename.bytes())?;
+        this.write_bytes_ptr(this.read_pointer(name_ptr)?, name.bytes())?;
+        this.write_bytes_ptr(this.read_pointer(filename_ptr)?, filename.bytes())?;
 
         Ok(())
     }

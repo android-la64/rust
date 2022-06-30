@@ -9,10 +9,9 @@ use ide_db::{
     defs::Definition,
     helpers::visit_file_defs,
     search::SearchScope,
-    RootDatabase, SymbolKind,
+    FxHashMap, FxHashSet, RootDatabase, SymbolKind,
 };
 use itertools::Itertools;
-use rustc_hash::{FxHashMap, FxHashSet};
 use stdx::{always, format_to};
 use syntax::{
     ast::{self, AstNode, HasAttrs as _},
@@ -226,7 +225,11 @@ fn find_related_tests(
     search_scope: Option<SearchScope>,
     tests: &mut FxHashSet<Runnable>,
 ) {
-    let defs = references::find_defs(sema, syntax, position.offset);
+    // FIXME: why is this using references::find_defs, this should use ide_db::search
+    let defs = match references::find_defs(sema, syntax, position.offset) {
+        Some(defs) => defs,
+        None => return,
+    };
     for def in defs {
         let defs = def
             .usages(sema)
@@ -432,7 +435,8 @@ fn module_def_doctest(db: &RootDatabase, def: Definition) -> Option<Runnable> {
                             ty_args.format_with(", ", |ty, cb| cb(&ty.display(db)))
                         );
                     }
-                    return Some(format!(r#""{}::{}""#, path, def_name));
+                    format_to!(path, "::{}", def_name);
+                    return Some(path);
                 }
             }
         }
@@ -474,7 +478,7 @@ impl TestAttr {
     }
 }
 
-const RUSTDOC_FENCE: &str = "```";
+const RUSTDOC_FENCES: [&str; 2] = ["```", "~~~"];
 const RUSTDOC_CODE_BLOCK_ATTRIBUTES_RUNNABLE: &[&str] =
     &["", "rust", "should_panic", "edition2015", "edition2018", "edition2021"];
 
@@ -483,7 +487,9 @@ fn has_runnable_doc_test(attrs: &hir::Attrs) -> bool {
         let mut in_code_block = false;
 
         for line in String::from(doc).lines() {
-            if let Some(header) = line.strip_prefix(RUSTDOC_FENCE) {
+            if let Some(header) =
+                RUSTDOC_FENCES.into_iter().find_map(|fence| line.strip_prefix(fence))
+            {
                 in_code_block = !in_code_block;
 
                 if in_code_block
@@ -972,7 +978,7 @@ impl Data {
                         },
                         kind: DocTest {
                             test_id: Path(
-                                "\"Data::foo\"",
+                                "Data::foo",
                             ),
                         },
                         cfg: None,
@@ -1366,7 +1372,7 @@ impl Foo {
                         },
                         kind: DocTest {
                             test_id: Path(
-                                "\"foo::Foo::foo\"",
+                                "foo::Foo::foo",
                             ),
                         },
                         cfg: None,
@@ -2072,7 +2078,7 @@ impl<T, U> Foo<T, U> {
                         },
                         kind: DocTest {
                             test_id: Path(
-                                "\"Foo<T, U>::t\"",
+                                "Foo<T, U>::t",
                             ),
                         },
                         cfg: None,

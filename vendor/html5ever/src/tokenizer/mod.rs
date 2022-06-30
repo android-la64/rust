@@ -23,8 +23,8 @@ use self::char_ref::{CharRef, CharRefTokenizer};
 
 use crate::util::str::lower_ascii_letter;
 
-use log::debug;
-use mac::{format_if, matches, _tt_as_expr_hack};
+use log::{debug, trace};
+use mac::{_tt_as_expr_hack, format_if, matches};
 use markup5ever::{namespace_url, ns, small_char_set};
 use std::borrow::Cow::{self, Borrowed};
 use std::collections::BTreeMap;
@@ -180,15 +180,15 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
         let state = opts.initial_state.unwrap_or(states::Data);
         let discard_bom = opts.discard_bom;
         Tokenizer {
-            opts: opts,
-            sink: sink,
-            state: state,
+            opts,
+            sink,
+            state,
             char_ref_tokenizer: None,
             at_eof: false,
             current_char: '\0',
             reconsume: false,
             ignore_lf: false,
-            discard_bom: discard_bom,
+            discard_bom,
             current_tag_kind: StartTag,
             current_tag_name: StrTendril::new(),
             current_tag_self_closing: false,
@@ -276,7 +276,7 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
             self.emit_error(Cow::Owned(msg));
         }
 
-        debug!("got character {}", c);
+        trace!("got character {}", c);
         self.current_char = c;
         Some(c)
     }
@@ -300,13 +300,13 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
         // It shouldn't matter because the fallback `FromSet` case should
         // always do the same thing as the `NotFromSet` case.
         if self.opts.exact_errors || self.reconsume || self.ignore_lf {
-            return self.get_char(input).map(|x| FromSet(x));
+            return self.get_char(input).map(FromSet);
         }
 
         let d = input.pop_except_from(set);
-        debug!("got characters {:?}", d);
+        trace!("got characters {:?}", d);
         match d {
-            Some(FromSet(c)) => self.get_preprocessed_char(c, input).map(|x| FromSet(x)),
+            Some(FromSet(c)) => self.get_preprocessed_char(c, input).map(FromSet),
 
             // NB: We don't set self.current_char for a run of characters not
             // in the set.  It shouldn't matter for the codepaths that use
@@ -431,7 +431,7 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
 
         let token = TagToken(Tag {
             kind: self.current_tag_kind,
-            name: name,
+            name,
             self_closing: self.current_tag_self_closing,
             attrs: replace(&mut self.current_tag_attrs, vec![]),
         });
@@ -495,7 +495,7 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
     }
 
     fn finish_attribute(&mut self) {
-        if self.current_attr_name.len() == 0 {
+        if self.current_attr_name.is_empty() {
             return;
         }
 
@@ -530,7 +530,7 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
         self.process_token_and_continue(DoctypeToken(doctype));
     }
 
-    fn doctype_id<'a>(&'a mut self, kind: DoctypeIdKind) -> &'a mut Option<StrTendril> {
+    fn doctype_id(&mut self, kind: DoctypeIdKind) -> &mut Option<StrTendril> {
         match kind {
             Public => &mut self.current_doctype.public_id,
             System => &mut self.current_doctype.system_id,
@@ -575,37 +575,37 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
 
 // Shorthand for common state machine behaviors.
 macro_rules! shorthand (
-    ( $me:ident : emit $c:expr                     ) => ( $me.emit_char($c);                                   );
-    ( $me:ident : create_tag $kind:ident $c:expr   ) => ( $me.create_tag($kind, $c);                           );
-    ( $me:ident : push_tag $c:expr                 ) => ( $me.current_tag_name.push_char($c);                  );
-    ( $me:ident : discard_tag                      ) => ( $me.discard_tag();                                   );
-    ( $me:ident : discard_char $input:expr         ) => ( $me.discard_char($input);                            );
-    ( $me:ident : push_temp $c:expr                ) => ( $me.temp_buf.push_char($c);                          );
-    ( $me:ident : emit_temp                        ) => ( $me.emit_temp_buf();                                 );
-    ( $me:ident : clear_temp                       ) => ( $me.clear_temp_buf();                                );
-    ( $me:ident : create_attr $c:expr              ) => ( $me.create_attribute($c);                            );
-    ( $me:ident : push_name $c:expr                ) => ( $me.current_attr_name.push_char($c);                 );
-    ( $me:ident : push_value $c:expr               ) => ( $me.current_attr_value.push_char($c);                );
-    ( $me:ident : append_value $c:expr             ) => ( $me.current_attr_value.push_tendril($c);             );
-    ( $me:ident : push_comment $c:expr             ) => ( $me.current_comment.push_char($c);                   );
-    ( $me:ident : append_comment $c:expr           ) => ( $me.current_comment.push_slice($c);                  );
-    ( $me:ident : emit_comment                     ) => ( $me.emit_current_comment();                          );
-    ( $me:ident : clear_comment                    ) => ( $me.current_comment.clear();                         );
-    ( $me:ident : create_doctype                   ) => ( $me.current_doctype = Doctype::new();                );
-    ( $me:ident : push_doctype_name $c:expr        ) => ( option_push(&mut $me.current_doctype.name, $c);      );
-    ( $me:ident : push_doctype_id $k:ident $c:expr ) => ( option_push($me.doctype_id($k), $c);                 );
-    ( $me:ident : clear_doctype_id $k:ident        ) => ( $me.clear_doctype_id($k);                            );
-    ( $me:ident : force_quirks                     ) => ( $me.current_doctype.force_quirks = true;             );
-    ( $me:ident : emit_doctype                     ) => ( $me.emit_current_doctype();                          );
-    ( $me:ident : error                            ) => ( $me.bad_char_error();                                );
-    ( $me:ident : error_eof                        ) => ( $me.bad_eof_error();                                 );
+    ( $me:ident : emit $c:expr                     ) => ( $me.emit_char($c)                                   );
+    ( $me:ident : create_tag $kind:ident $c:expr   ) => ( $me.create_tag($kind, $c)                           );
+    ( $me:ident : push_tag $c:expr                 ) => ( $me.current_tag_name.push_char($c)                  );
+    ( $me:ident : discard_tag                      ) => ( $me.discard_tag()                                   );
+    ( $me:ident : discard_char $input:expr         ) => ( $me.discard_char($input)                            );
+    ( $me:ident : push_temp $c:expr                ) => ( $me.temp_buf.push_char($c)                          );
+    ( $me:ident : emit_temp                        ) => ( $me.emit_temp_buf()                                 );
+    ( $me:ident : clear_temp                       ) => ( $me.clear_temp_buf()                                );
+    ( $me:ident : create_attr $c:expr              ) => ( $me.create_attribute($c)                            );
+    ( $me:ident : push_name $c:expr                ) => ( $me.current_attr_name.push_char($c)                 );
+    ( $me:ident : push_value $c:expr               ) => ( $me.current_attr_value.push_char($c)                );
+    ( $me:ident : append_value $c:expr             ) => ( $me.current_attr_value.push_tendril($c)             );
+    ( $me:ident : push_comment $c:expr             ) => ( $me.current_comment.push_char($c)                   );
+    ( $me:ident : append_comment $c:expr           ) => ( $me.current_comment.push_slice($c)                  );
+    ( $me:ident : emit_comment                     ) => ( $me.emit_current_comment()                          );
+    ( $me:ident : clear_comment                    ) => ( $me.current_comment.clear()                         );
+    ( $me:ident : create_doctype                   ) => ( $me.current_doctype = Doctype::new()                );
+    ( $me:ident : push_doctype_name $c:expr        ) => ( option_push(&mut $me.current_doctype.name, $c)      );
+    ( $me:ident : push_doctype_id $k:ident $c:expr ) => ( option_push($me.doctype_id($k), $c)                 );
+    ( $me:ident : clear_doctype_id $k:ident        ) => ( $me.clear_doctype_id($k)                            );
+    ( $me:ident : force_quirks                     ) => ( $me.current_doctype.force_quirks = true             );
+    ( $me:ident : emit_doctype                     ) => ( $me.emit_current_doctype()                          );
+    ( $me:ident : error                            ) => ( $me.bad_char_error()                                );
+    ( $me:ident : error_eof                        ) => ( $me.bad_eof_error()                                 );
 );
 
 // Tracing of tokenizer actions.  This adds significant bloat and compile time,
 // so it's behind a cfg flag.
 #[cfg(trace_tokenizer)]
 macro_rules! sh_trace ( ( $me:ident : $($cmds:tt)* ) => ({
-    debug!("  {:s}", stringify!($($cmds)*));
+    trace!("  {:s}", stringify!($($cmds)*));
     shorthand!($me:expr : $($cmds)*);
 }));
 
@@ -644,7 +644,7 @@ macro_rules! go (
     ( $me:ident : eof ) => ({ $me.emit_eof(); return ProcessResult::Suspend; });
 
     // If nothing else matched, it's a single command
-    ( $me:ident : $($cmd:tt)+ ) => ( sh_trace!($me: $($cmd)+); );
+    ( $me:ident : $($cmd:tt)+ ) => ( sh_trace!($me: $($cmd)+) );
 
     // or nothing.
     ( $me:ident : ) => (());
@@ -683,12 +683,13 @@ impl<Sink: TokenSink> Tokenizer<Sink> {
     // Run the state machine for a while.
     // Return true if we should be immediately re-invoked
     // (this just simplifies control flow vs. break / continue).
+    #[allow(clippy::never_loop)]
     fn step(&mut self, input: &mut BufferQueue) -> ProcessResult<Sink::Handle> {
         if self.char_ref_tokenizer.is_some() {
             return self.step_char_ref_tokenizer(input);
         }
 
-        debug!("processing in state {:?}", self.state);
+        trace!("processing in state {:?}", self.state);
         match self.state {
             //§ data-state
             states::Data => loop {
@@ -1632,7 +1633,7 @@ mod test {
         let name = LocalName::from(&*token);
         let token = TagToken(Tag {
             kind: tagkind,
-            name: name,
+            name,
             self_closing: false,
             attrs: vec![],
         });

@@ -140,7 +140,7 @@ fn atom_pat(p: &mut Parser, recovery_set: TokenSet) -> Option<CompletedMarker> {
 }
 
 fn is_literal_pat_start(p: &Parser) -> bool {
-    p.at(T![-]) && (p.nth(1) == INT_NUMBER || p.nth(1) == FLOAT_NUMBER)
+    p.at(T![-]) && (p.nth(1) == INT_NUMBER || p.nth(1) == FLOAT_NUMBER_PART)
         || p.at_ts(expressions::LITERAL_FIRST)
 }
 
@@ -223,19 +223,15 @@ fn record_pat_field(p: &mut Parser) {
             p.bump(T![:]);
             pattern(p);
         }
-        T![.] => {
-            if p.at(T![..]) {
-                p.bump(T![..]);
-            } else {
-                ident_pat(p, false);
-            }
-        }
         T![box] => {
             // FIXME: not all box patterns should be allowed
             box_pat(p);
         }
-        _ => {
+        T![ref] | T![mut] | IDENT => {
             ident_pat(p, false);
+        }
+        _ => {
+            p.err_and_bump("expected identifier");
         }
     }
 }
@@ -405,10 +401,11 @@ fn pat_list(p: &mut Parser, ket: SyntaxKind) {
 //     let ref mut f @ g @ _ = ();
 // }
 fn ident_pat(p: &mut Parser, with_at: bool) -> CompletedMarker {
+    assert!(matches!(p.current(), T![ref] | T![mut] | IDENT));
     let m = p.start();
     p.eat(T![ref]);
     p.eat(T![mut]);
-    name(p);
+    name_r(p, PAT_RECOVERY_SET);
     if with_at && p.eat(T![@]) {
         pattern_single(p);
     }

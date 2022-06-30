@@ -42,16 +42,13 @@
 > [^fn-param-2015]: Function parameters with only a type are only allowed
 >   in an associated function of a [trait item] in the 2015 edition.
 
-A _function_ consists of a [block], along with a name and a set of parameters.
-Other than a name, all these are optional. Functions are declared with the
-keyword `fn`. Functions may declare a set of *input* [*variables*][variables]
-as parameters, through which the caller passes arguments into the function, and
-the *output* [*type*][type] of the value the function will return to its caller
-on completion.
+A _function_ consists of a [block], along with a name, a set of parameters, and an output type.
+Other than a name, all these are optional.
+Functions are declared with the keyword `fn`.
+Functions may declare a set of *input* [*variables*][variables] as parameters, through which the caller passes arguments into the function, and the *output* [*type*][type] of the value the function will return to its caller on completion.
+If the output type is not explicitly stated, it is the [unit type].
 
-When referred to, a _function_ yields a first-class *value* of the
-corresponding zero-sized [*function item type*], which
-when called evaluates to a direct call to the function.
+When referred to, a _function_ yields a first-class *value* of the corresponding zero-sized [*function item type*], which when called evaluates to a direct call to the function.
 
 For example, this is a simple function:
 ```rust
@@ -219,8 +216,9 @@ Functions qualified with the `const` keyword are [const functions], as are
 [tuple struct] and [tuple variant] constructors. _Const functions_  can be
 called from within [const contexts].
 
-Const functions are not allowed to be [async](#async-functions), and cannot
-use the [`extern` function qualifier](#extern-function-qualifier).
+Const functions may use the [`extern`] function qualifier, but only with the `"Rust"` and `"C"` ABIs.
+
+Const functions are not allowed to be [async](#async-functions).
 
 ## Async functions
 
@@ -386,11 +384,13 @@ fn foo_oof(#[some_inert_attribute] arg: u8) {
 [const functions]: ../const_eval.md#const-functions
 [tuple struct]: structs.md
 [tuple variant]: enumerations.md
+[`extern`]: #extern-function-qualifier
 [external block]: external-blocks.md
 [path]: ../paths.md
 [block]: ../expressions/block-expr.md
 [variables]: ../variables.md
 [type]: ../types.md#type-expressions
+[unit type]: ../types/tuple.md
 [*function item type*]: ../types/function-item.md
 [Trait]: traits.md
 [attributes]: ../attributes.md

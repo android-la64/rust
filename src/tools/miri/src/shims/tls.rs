@@ -99,7 +99,7 @@ impl<'tcx> TlsData<'tcx> {
             Some(TlsEntry { data, .. }) => {
                 let value = data.get(&thread_id).copied();
                 trace!("TLS key {} for thread {:?} loaded: {:?}", key, thread_id, value);
-                Ok(value.unwrap_or_else(|| Scalar::null_ptr(cx).into()))
+                Ok(value.unwrap_or_else(|| Scalar::null_ptr(cx)))
             }
             None => throw_ub_format!("loading from a non-existing TLS key: {}", key),
         }
@@ -249,7 +249,7 @@ trait EvalContextPrivExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             "p_thread_callback",
         ])?;
         let thread_callback =
-            this.memory.get_fn(this.scalar_to_ptr(thread_callback))?.as_instance()?;
+            this.get_ptr_fn(this.scalar_to_ptr(thread_callback)?)?.as_instance()?;
 
         // The signature of this function is `unsafe extern "system" fn(h: c::LPVOID, dwReason: c::DWORD, pv: c::LPVOID)`.
         let reason = this.eval_path_scalar(&["std", "sys", "windows", "c", "DLL_THREAD_DETACH"])?;
@@ -304,7 +304,7 @@ trait EvalContextPrivExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         assert!(this.has_terminated(active_thread), "running TLS dtors for non-terminated thread");
         // Fetch next dtor after `key`.
-        let last_key = this.machine.tls.dtors_running[&active_thread].last_dtor_key.clone();
+        let last_key = this.machine.tls.dtors_running[&active_thread].last_dtor_key;
         let dtor = match this.machine.tls.fetch_tls_dtor(last_key, active_thread) {
             dtor @ Some(_) => dtor,
             // We ran each dtor once, start over from the beginning.

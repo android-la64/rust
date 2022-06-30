@@ -1,5 +1,5 @@
 // ignore-windows: Concurrency on Windows is not supported yet.
-// compile-flags: -Zmiri-strict-provenance -Zmiri-check-number-validity
+// compile-flags: -Zmiri-strict-provenance
 
 //! The main purpose of this test is to check that if we take a pointer to
 //! thread's `t1` thread-local `A` and send it to another thread `t2`,
@@ -16,6 +16,10 @@ static mut A: u8 = 0;
 static mut B: u8 = 0;
 static mut C: u8 = 0;
 
+// Regression test for https://github.com/rust-lang/rust/issues/96191.
+#[thread_local]
+static READ_ONLY: u8 = 42;
+
 unsafe fn get_a_ref() -> *mut u8 {
     &mut A
 }
@@ -25,6 +29,8 @@ struct Sender(*mut u8);
 unsafe impl Send for Sender {}
 
 fn main() {
+    let _val = READ_ONLY;
+
     let ptr = unsafe {
         let x = get_a_ref();
         *x = 5;

@@ -10,9 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "cranelift-module"
-version = "0.82.1"
+version = "0.83.0"
 authors = ["The Cranelift Project Developers"]
 description = "Support for linking functions and data with Cranelift"
 documentation = "https://docs.rs/cranelift-module"
@@ -21,11 +21,12 @@ categories = ["no-std"]
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
 resolver = "2"
+
 [dependencies.anyhow]
 version = "1.0"
 
 [dependencies.cranelift-codegen]
-version = "0.82.1"
+version = "0.83.0"
 default-features = false
 
 [dependencies.hashbrown]
@@ -33,8 +34,12 @@ version = "0.9.1"
 optional = true
 
 [features]
-core = ["hashbrown", "cranelift-codegen/core"]
+core = [
+    "hashbrown",
+    "cranelift-codegen/core",
+]
 default = ["std"]
 std = ["cranelift-codegen/std"]
+
 [badges.maintenance]
 status = "experimental"

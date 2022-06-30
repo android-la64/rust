@@ -6,7 +6,8 @@ cargo-yank - Remove a pushed crate from the index
 
 ## SYNOPSIS
 
-`cargo yank` [_options_] `--vers` _version_ [_crate_]
+`cargo yank` [_options_] _crate_@_version_\
+`cargo yank` [_options_] `--version` _version_ [_crate_]
 
 ## DESCRIPTION
 
@@ -31,6 +32,7 @@ current directory.
 <dl>
 
 <dt class="option-term" id="option-cargo-yank---vers"><a class="option-anchor" href="#option-cargo-yank---vers"></a><code>--vers</code> <em>version</em></dt>
+<dt class="option-term" id="option-cargo-yank---version"><a class="option-anchor" href="#option-cargo-yank---version"></a><code>--version</code> <em>version</em></dt>
 <dd class="option-desc">The version to yank or un-yank.</dd>
 
 
@@ -139,7 +141,7 @@ details on environment variables that Cargo reads.
 
 1. Yank a crate from the index:
 
-       cargo yank --vers 1.0.7 foo
+       cargo yank foo@1.0.7
 
 ## SEE ALSO
 [cargo(1)](cargo.html), [cargo-login(1)](cargo-login.html), [cargo-publish(1)](cargo-publish.html)

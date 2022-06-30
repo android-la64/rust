@@ -17,20 +17,56 @@ pub(crate) const LITERAL_FIRST: TokenSet = TokenSet::new(&[
     T![true],
     T![false],
     INT_NUMBER,
-    FLOAT_NUMBER,
+    FLOAT_NUMBER_START_0,
+    FLOAT_NUMBER_START_1,
+    FLOAT_NUMBER_START_2,
     BYTE,
     CHAR,
     STRING,
     BYTE_STRING,
 ]);
 
+pub(crate) const FLOAT_LITERAL_FIRST: TokenSet =
+    TokenSet::new(&[FLOAT_NUMBER_START_0, FLOAT_NUMBER_START_1, FLOAT_NUMBER_START_2]);
+
 pub(crate) fn literal(p: &mut Parser) -> Option<CompletedMarker> {
     if !p.at_ts(LITERAL_FIRST) {
         return None;
     }
     let m = p.start();
-    p.bump_any();
+    if p.at_ts(FLOAT_LITERAL_FIRST) {
+        float_literal(p);
+    } else {
+        // Everything else is just one token.
+        p.bump_any();
+    }
     Some(m.complete(p, LITERAL))
+}
+
+// test float_literal
+// fn f() {
+//     0.0;
+//     1.;
+//     0e0;
+//     0e0f32;
+//     1.23f64;
+// }
+pub(crate) fn float_literal(p: &mut Parser) {
+    // Floats can be up to 3 tokens. The first token indicates how many there are.
+    let f = p.start();
+    if p.at(FLOAT_NUMBER_START_0) {
+        p.bump(FLOAT_NUMBER_START_0);
+    } else if p.at(FLOAT_NUMBER_START_1) {
+        p.bump(FLOAT_NUMBER_START_1);
+        p.bump(DOT);
+    } else if p.at(FLOAT_NUMBER_START_2) {
+        p.bump(FLOAT_NUMBER_START_2);
+        p.bump(DOT);
+        p.bump(FLOAT_NUMBER_PART);
+    } else {
+        unreachable!();
+    }
+    f.complete(p, FLOAT_LITERAL);
 }
 
 // E.g. for after the break in `if break {}`, this should not match
@@ -71,16 +107,8 @@ pub(super) fn atom_expr(p: &mut Parser, r: Restrictions) -> Option<(CompletedMar
     let done = match p.current() {
         T!['('] => tuple_expr(p),
         T!['['] => array_expr(p),
-        T![|] => closure_expr(p),
-        T![static] | T![async] | T![move] if la == T![|] => closure_expr(p),
-        T![static] | T![async] if la == T![move] && p.nth(2) == T![|] => closure_expr(p),
-        T![static] if la == T![async] && p.nth(2) == T![|] => closure_expr(p),
-        T![static] if la == T![async] && p.nth(2) == T![move] && p.nth(3) == T![|] => {
-            closure_expr(p)
-        }
         T![if] => if_expr(p),
         T![let] => let_expr(p),
-
         T![_] => {
             // test destructuring_assignment_wildcard_pat
             // fn foo() {
@@ -91,12 +119,16 @@ pub(super) fn atom_expr(p: &mut Parser, r: Restrictions) -> Option<(CompletedMar
             p.bump(T![_]);
             m.complete(p, UNDERSCORE_EXPR)
         }
-
         T![loop] => loop_expr(p, None),
         T![box] => box_expr(p, None),
-        T![for] => for_expr(p, None),
         T![while] => while_expr(p, None),
         T![try] => try_block_expr(p, None),
+        T![match] => match_expr(p),
+        T![return] => return_expr(p),
+        T![yield] => yield_expr(p),
+        T![continue] => continue_expr(p),
+        T![break] => break_expr(p, r),
+
         LIFETIME_IDENT if la == T![:] => {
             let m = p.start();
             label(p);
@@ -121,27 +153,21 @@ pub(super) fn atom_expr(p: &mut Parser, r: Restrictions) -> Option<(CompletedMar
                 }
             }
         }
-        T![async] if la == T!['{'] || (la == T![move] && p.nth(2) == T!['{']) => {
+        // test effect_blocks
+        // fn f() { unsafe { } }
+        // fn f() { const { } }
+        // fn f() { async { } }
+        // fn f() { async move { } }
+        T![const] | T![unsafe] | T![async] if la == T!['{'] => {
+            let m = p.start();
+            p.bump_any();
+            stmt_list(p);
+            m.complete(p, BLOCK_EXPR)
+        }
+        T![async] if la == T![move] && p.nth(2) == T!['{'] => {
             let m = p.start();
             p.bump(T![async]);
             p.eat(T![move]);
-            stmt_list(p);
-            m.complete(p, BLOCK_EXPR)
-        }
-        T![match] => match_expr(p),
-        // test unsafe_block
-        // fn f() { unsafe { } }
-        T![unsafe] if la == T!['{'] => {
-            let m = p.start();
-            p.bump(T![unsafe]);
-            stmt_list(p);
-            m.complete(p, BLOCK_EXPR)
-        }
-        // test const_block
-        // fn f() { const { } }
-        T![const] if la == T!['{'] => {
-            let m = p.start();
-            p.bump(T![const]);
             stmt_list(p);
             m.complete(p, BLOCK_EXPR)
         }
@@ -156,10 +182,11 @@ pub(super) fn atom_expr(p: &mut Parser, r: Restrictions) -> Option<(CompletedMar
             stmt_list(p);
             m.complete(p, BLOCK_EXPR)
         }
-        T![return] => return_expr(p),
-        T![yield] => yield_expr(p),
-        T![continue] => continue_expr(p),
-        T![break] => break_expr(p, r),
+
+        T![static] | T![async] | T![move] | T![|] => closure_expr(p),
+        T![for] if la == T![<] => closure_expr(p),
+        T![for] => for_expr(p, None),
+
         _ => {
             p.err_recover("expected expression", EXPR_RECOVERY_SET);
             return None;
@@ -254,25 +281,30 @@ fn array_expr(p: &mut Parser) -> CompletedMarker {
 //     static move || {};
 //     static async || {};
 //     static async move || {};
+//     for<'a> || {};
+//     for<'a> move || {};
 // }
 fn closure_expr(p: &mut Parser) -> CompletedMarker {
-    assert!(
-        p.at(T![|])
-            || (p.at(T![move]) && p.nth(1) == T![|])
-            || (p.at(T![async]) && p.nth(1) == T![|])
-            || (p.at(T![async]) && p.nth(1) == T![move] && p.nth(2) == T![|])
-            || (p.at(T![static]) && p.nth(1) == T![|])
-            || (p.at(T![static]) && p.nth(1) == T![move] && p.nth(2) == T![|])
-            || (p.at(T![static]) && p.nth(1) == T![async] && p.nth(2) == T![|])
-            || (p.at(T![static])
-                && p.nth(1) == T![async]
-                && p.nth(2) == T![move]
-                && p.nth(3) == T![|])
-    );
+    assert!(match p.current() {
+        T![static] | T![async] | T![move] | T![|] => true,
+        T![for] => p.nth(1) == T![<],
+        _ => false,
+    });
+
     let m = p.start();
+
+    if p.at(T![for]) {
+        types::for_binder(p);
+    }
+
     p.eat(T![static]);
     p.eat(T![async]);
     p.eat(T![move]);
+
+    if !p.at(T![|]) {
+        p.error("expected `|`");
+        return m.complete(p, CLOSURE_EXPR);
+    }
     params::param_list_closure(p);
     if opt_ret_type(p) {
         // test lambda_ret_block
@@ -605,6 +637,7 @@ fn try_block_expr(p: &mut Parser, m: Option<Marker>) -> CompletedMarker {
     if p.nth_at(1, T![!]) {
         // test try_macro_fallback
         // fn foo() { try!(Ok(())); }
+        let macro_call = p.start();
         let path = p.start();
         let path_segment = p.start();
         let name_ref = p.start();
@@ -613,7 +646,8 @@ fn try_block_expr(p: &mut Parser, m: Option<Marker>) -> CompletedMarker {
         path_segment.complete(p, PATH_SEGMENT);
         path.complete(p, PATH);
         let _block_like = items::macro_call_after_excl(p);
-        return m.complete(p, MACRO_CALL);
+        macro_call.complete(p, MACRO_CALL);
+        return m.complete(p, MACRO_EXPR);
     }
 
     p.bump(T![try]);

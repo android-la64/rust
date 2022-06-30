@@ -2,7 +2,6 @@
 
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
-use std::convert::TryFrom;
 use std::num::TryFromIntError;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -11,6 +10,7 @@ use log::trace;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_hir::def_id::DefId;
 use rustc_index::vec::{Idx, IndexVec};
+use rustc_middle::mir::Mutability;
 
 use crate::sync::SynchronizationState;
 use crate::*;
@@ -58,7 +58,7 @@ impl Idx for ThreadId {
 impl TryFrom<u64> for ThreadId {
     type Error = TryFromIntError;
     fn try_from(id: u64) -> Result<Self, Self::Error> {
-        u32::try_from(id).map(|id_u32| Self(id_u32))
+        u32::try_from(id).map(Self)
     }
 }
 
@@ -69,8 +69,8 @@ impl From<u32> for ThreadId {
 }
 
 impl ThreadId {
-    pub fn to_u32_scalar<'tcx>(&self) -> Scalar<Tag> {
-        Scalar::from_u32(u32::try_from(self.0).unwrap())
+    pub fn to_u32_scalar(&self) -> Scalar<Tag> {
+        Scalar::from_u32(self.0)
     }
 }
 
@@ -235,7 +235,7 @@ impl<'mir, 'tcx> Default for ThreadManager<'mir, 'tcx> {
         threads.push(main_thread);
         Self {
             active_thread: ThreadId::new(0),
-            threads: threads,
+            threads,
             sync: SynchronizationState::default(),
             thread_local_alloc_ids: Default::default(),
             yield_active_thread: false,
@@ -456,7 +456,7 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
                 // Delete this static from the map and from memory.
                 // We cannot free directly here as we cannot use `?` in this context.
                 free_tls_statics.push(alloc_id);
-                return false;
+                false
             });
         }
         // Set the thread into a terminated state in the data-race detector
@@ -474,7 +474,7 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
                 thread.state = ThreadState::Enabled;
             }
         }
-        return free_tls_statics;
+        free_tls_statics
     }
 
     /// Decide which action to take next and on which thread.
@@ -572,9 +572,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 throw_unsup_format!("foreign thread-local statics are not supported");
             }
             let allocation = tcx.eval_static_initializer(def_id)?;
+            let mut allocation = allocation.inner().clone();
+            // This allocation will be deallocated when the thread dies, so it is not in read-only memory.
+            allocation.mutability = Mutability::Mut;
             // Create a fresh allocation with this content.
-            let new_alloc =
-                this.memory.allocate_with(allocation.inner().clone(), MiriMemoryKind::Tls.into());
+            let new_alloc = this.allocate_raw_ptr(allocation, MiriMemoryKind::Tls.into());
             this.machine.threads.set_thread_local_alloc(def_id, new_alloc);
             Ok(new_alloc)
         }
@@ -584,7 +586,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     fn create_thread(&mut self) -> ThreadId {
         let this = self.eval_context_mut();
         let id = this.machine.threads.create_thread();
-        if let Some(data_race) = &mut this.memory.extra.data_race {
+        if let Some(data_race) = &mut this.machine.data_race {
             data_race.thread_created(id);
         }
         id
@@ -599,14 +601,14 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     #[inline]
     fn join_thread(&mut self, joined_thread_id: ThreadId) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        this.machine.threads.join_thread(joined_thread_id, this.memory.extra.data_race.as_mut())?;
+        this.machine.threads.join_thread(joined_thread_id, this.machine.data_race.as_mut())?;
         Ok(())
     }
 
     #[inline]
     fn set_active_thread(&mut self, thread_id: ThreadId) -> ThreadId {
         let this = self.eval_context_mut();
-        if let Some(data_race) = &this.memory.extra.data_race {
+        if let Some(data_race) = &this.machine.data_race {
             data_race.thread_set_active(thread_id);
         }
         this.machine.threads.set_active_thread_id(thread_id)
@@ -669,7 +671,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     #[inline]
     fn set_active_thread_name(&mut self, new_thread_name: Vec<u8>) {
         let this = self.eval_context_mut();
-        if let Some(data_race) = &mut this.memory.extra.data_race {
+        if let Some(data_race) = &mut this.machine.data_race {
             if let Ok(string) = String::from_utf8(new_thread_name.clone()) {
                 data_race.thread_set_name(this.machine.threads.active_thread, string);
             }
@@ -753,7 +755,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     #[inline]
     fn schedule(&mut self) -> InterpResult<'tcx, SchedulingAction> {
         let this = self.eval_context_mut();
-        let data_race = &this.memory.extra.data_race;
+        let data_race = &this.machine.data_race;
         this.machine.threads.schedule(data_race)
     }
 
@@ -764,8 +766,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     #[inline]
     fn thread_terminated(&mut self) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        for ptr in this.machine.threads.thread_terminated(this.memory.extra.data_race.as_mut()) {
-            this.memory.deallocate(ptr.into(), None, MiriMemoryKind::Tls.into())?;
+        for ptr in this.machine.threads.thread_terminated(this.machine.data_race.as_mut()) {
+            this.deallocate_ptr(ptr.into(), None, MiriMemoryKind::Tls.into())?;
         }
         Ok(())
     }

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
+import * as lc from 'vscode-languageclient/node';
 import * as os from "os";
 
 import * as commands from './commands';
-import { activateInlayHints } from './inlay_hints';
 import { Ctx } from './ctx';
 import { Config } from './config';
 import { log, isValidExecutable, isRustDocument } from './util';
@@ -15,16 +15,20 @@ let ctx: Ctx | undefined;
 
 const RUST_PROJECT_CONTEXT_NAME = "inRustProject";
 
-export async function activate(context: vscode.ExtensionContext) {
+export interface RustAnalyzerExtensionApi {
+    client: lc.LanguageClient;
+}
+
+export async function activate(context: vscode.ExtensionContext): Promise<RustAnalyzerExtensionApi> {
     // VS Code doesn't show a notification when an extension fails to activate
     // so we do it ourselves.
-    await tryActivate(context).catch(err => {
+    return await tryActivate(context).catch(err => {
         void vscode.window.showErrorMessage(`Cannot activate rust-analyzer: ${err.message}`);
         throw err;
     });
 }
 
-async function tryActivate(context: vscode.ExtensionContext) {
+async function tryActivate(context: vscode.ExtensionContext): Promise<RustAnalyzerExtensionApi> {
     const config = new Config(context);
     const state = new PersistentState(context.globalState);
     const serverPath = await bootstrap(context, config, state).catch(err => {
@@ -54,7 +58,6 @@ async function tryActivate(context: vscode.ExtensionContext) {
     }
     await initCommonContext(context, ctx);
 
-    activateInlayHints(ctx);
     warnAboutExtensionConflicts();
 
     ctx.pushCleanup(configureLanguage());
@@ -64,6 +67,10 @@ async function tryActivate(context: vscode.ExtensionContext) {
         null,
         ctx.subscriptions,
     );
+
+    return {
+        client: ctx.client
+    };
 }
 
 async function initCommonContext(context: vscode.ExtensionContext, ctx: Ctx) {
@@ -114,6 +121,7 @@ async function initCommonContext(context: vscode.ExtensionContext, ctx: Ctx) {
     ctx.registerCommand('parentModule', commands.parentModule);
     ctx.registerCommand('syntaxTree', commands.syntaxTree);
     ctx.registerCommand('viewHir', commands.viewHir);
+    ctx.registerCommand('viewFileText', commands.viewFileText);
     ctx.registerCommand('viewItemTree', commands.viewItemTree);
     ctx.registerCommand('viewCrateGraph', commands.viewCrateGraph);
     ctx.registerCommand('viewFullCrateGraph', commands.viewFullCrateGraph);

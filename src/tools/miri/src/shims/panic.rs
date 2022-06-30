@@ -51,7 +51,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         trace!("miri_start_panic: {:?}", this.frame().instance);
 
         // Get the raw pointer stored in arg[0] (the panic payload).
-        let &[ref payload] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+        let [payload] = this.check_shim(abi, Abi::Rust, link_name, args)?;
         let payload = this.read_scalar(payload)?.check_init()?;
         let thread = this.active_thread_mut();
         assert!(thread.panic_payload.is_none(), "the panic runtime should avoid double-panics");
@@ -59,7 +59,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         // Jump to the unwind block to begin unwinding.
         this.unwind_to_block(unwind)?;
-        return Ok(());
+        Ok(())
     }
 
     /// Handles the `try` intrinsic, the underlying implementation of `std::panicking::try`.
@@ -83,13 +83,13 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // a pointer to `Box<dyn Any + Send + 'static>`.
 
         // Get all the arguments.
-        let &[ref try_fn, ref data, ref catch_fn] = check_arg_count(args)?;
+        let [try_fn, data, catch_fn] = check_arg_count(args)?;
         let try_fn = this.read_pointer(try_fn)?;
         let data = this.read_scalar(data)?.check_init()?;
         let catch_fn = this.read_scalar(catch_fn)?.check_init()?;
 
         // Now we make a function call, and pass `data` as first and only argument.
-        let f_instance = this.memory.get_fn(try_fn)?.as_instance()?;
+        let f_instance = this.get_ptr_fn(try_fn)?.as_instance()?;
         trace!("try_fn: {:?}", f_instance);
         let ret_place = MPlaceTy::dangling(this.machine.layouts.unit).into();
         this.call_function(
@@ -112,7 +112,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 Some(CatchUnwindData { catch_fn, data, dest: *dest, ret });
         }
 
-        return Ok(());
+        Ok(())
     }
 
     fn handle_stack_pop(
@@ -123,7 +123,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
 
         trace!("handle_stack_pop(extra = {:?}, unwinding = {})", extra, unwinding);
-        if let Some(stacked_borrows) = &this.memory.extra.stacked_borrows {
+        if let Some(stacked_borrows) = &this.machine.stacked_borrows {
             stacked_borrows.borrow_mut().end_call(extra.call_id);
         }
 
@@ -146,7 +146,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             // Push the `catch_fn` stackframe.
             let f_instance =
-                this.memory.get_fn(this.scalar_to_ptr(catch_unwind.catch_fn))?.as_instance()?;
+                this.get_ptr_fn(this.scalar_to_ptr(catch_unwind.catch_fn)?)?.as_instance()?;
             trace!("catch_fn: {:?}", f_instance);
             let ret_place = MPlaceTy::dangling(this.machine.layouts.unit).into();
             this.call_function(

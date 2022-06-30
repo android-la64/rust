@@ -8,7 +8,7 @@ cargo-install - Build and install a Rust binary
 
 ## SYNOPSIS
 
-`cargo install` [_options_] _crate_...\
+`cargo install` [_options_] _crate_[@_version_]...\
 `cargo install` [_options_] `--path` _path_\
 `cargo install` [_options_] `--git` _url_ [_crate_...]\
 `cargo install` [_options_] `--list`
@@ -179,6 +179,7 @@ for more details.
 
 <dl>
 
+<dt class="option-term" id="option-cargo-install--F"><a class="option-anchor" href="#option-cargo-install--F"></a><code>-F</code> <em>features</em></dt>
 <dt class="option-term" id="option-cargo-install---features"><a class="option-anchor" href="#option-cargo-install---features"></a><code>--features</code> <em>features</em></dt>
 <dd class="option-desc">Space or comma separated list of features to activate. Features of workspace
 members may be enabled with <code>package-name/feature-name</code> syntax. This flag may

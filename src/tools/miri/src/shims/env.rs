@@ -1,7 +1,7 @@
-use std::convert::TryFrom;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::io::ErrorKind;
+use std::mem;
 
 use rustc_const_eval::interpret::Pointer;
 use rustc_data_structures::fx::FxHashMap;
@@ -38,20 +38,20 @@ pub struct EnvVars<'tcx> {
 impl<'tcx> EnvVars<'tcx> {
     pub(crate) fn init<'mir>(
         ecx: &mut InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
-        mut excluded_env_vars: Vec<String>,
-        forwarded_env_vars: Vec<String>,
+        config: &MiriConfig,
     ) -> InterpResult<'tcx> {
-        let target_os = ecx.tcx.sess.target.os.as_str();
+        let target_os = ecx.tcx.sess.target.os.as_ref();
         // HACK: Exclude `TERM` var to avoid terminfo trying to open the termcap file.
         // This is (a) very slow and (b) does not work on Windows.
+        let mut excluded_env_vars = config.excluded_env_vars.clone();
         excluded_env_vars.push("TERM".to_owned());
 
         // Skip the loop entirely if we don't want to forward anything.
-        if ecx.machine.communicate() || !forwarded_env_vars.is_empty() {
+        if ecx.machine.communicate() || !config.forwarded_env_vars.is_empty() {
             for (name, value) in env::vars_os() {
                 let forward = match ecx.machine.communicate() {
-                    true => !excluded_env_vars.iter().any(|v| v.as_str() == &name),
-                    false => forwarded_env_vars.iter().any(|v| v.as_str() == &name),
+                    true => !excluded_env_vars.iter().any(|v| **v == name),
+                    false => config.forwarded_env_vars.iter().any(|v| **v == name),
                 };
                 if forward {
                     let var_ptr = match target_os {
@@ -64,7 +64,7 @@ impl<'tcx> EnvVars<'tcx> {
                                 unsupported
                             ),
                     };
-                    ecx.machine.env_vars.map.insert(OsString::from(name), var_ptr);
+                    ecx.machine.env_vars.map.insert(name, var_ptr);
                 }
             }
         }
@@ -75,13 +75,14 @@ impl<'tcx> EnvVars<'tcx> {
         ecx: &mut InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
     ) -> InterpResult<'tcx> {
         // Deallocate individual env vars.
-        for (_name, ptr) in ecx.machine.env_vars.map.drain() {
-            ecx.memory.deallocate(ptr, None, MiriMemoryKind::Runtime.into())?;
+        let env_vars = mem::take(&mut ecx.machine.env_vars.map);
+        for (_name, ptr) in env_vars {
+            ecx.deallocate_ptr(ptr, None, MiriMemoryKind::Runtime.into())?;
         }
         // Deallocate environ var list.
         let environ = ecx.machine.env_vars.environ.unwrap();
         let old_vars_ptr = ecx.read_pointer(&environ.into())?;
-        ecx.memory.deallocate(old_vars_ptr, None, MiriMemoryKind::Runtime.into())?;
+        ecx.deallocate_ptr(old_vars_ptr, None, MiriMemoryKind::Runtime.into())?;
         Ok(())
     }
 }
@@ -199,7 +200,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         this.assert_target_os("windows", "FreeEnvironmentStringsW");
 
         let env_block_ptr = this.read_pointer(env_block_op)?;
-        let result = this.memory.deallocate(env_block_ptr, None, MiriMemoryKind::Runtime.into());
+        let result = this.deallocate_ptr(env_block_ptr, None, MiriMemoryKind::Runtime.into());
         // If the function succeeds, the return value is nonzero.
         Ok(result.is_ok() as i32)
     }
@@ -209,7 +210,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         name_op: &OpTy<'tcx, Tag>,
         value_op: &OpTy<'tcx, Tag>,
     ) -> InterpResult<'tcx, i32> {
-        let mut this = self.eval_context_mut();
+        let this = self.eval_context_mut();
         let target_os = &this.tcx.sess.target.os;
         assert!(
             target_os == "linux" || target_os == "macos",
@@ -228,9 +229,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
         }
         if let Some((name, value)) = new {
-            let var_ptr = alloc_env_var_as_c_str(&name, &value, &mut this)?;
+            let var_ptr = alloc_env_var_as_c_str(&name, &value, this)?;
             if let Some(var) = this.machine.env_vars.map.insert(name, var_ptr) {
-                this.memory.deallocate(var, None, MiriMemoryKind::Runtime.into())?;
+                this.deallocate_ptr(var, None, MiriMemoryKind::Runtime.into())?;
             }
             this.update_environ()?;
             Ok(0) // return zero on success
@@ -248,7 +249,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         name_op: &OpTy<'tcx, Tag>,  // LPCWSTR
         value_op: &OpTy<'tcx, Tag>, // LPCWSTR
     ) -> InterpResult<'tcx, i32> {
-        let mut this = self.eval_context_mut();
+        let this = self.eval_context_mut();
         this.assert_target_os("windows", "SetEnvironmentVariableW");
 
         let name_ptr = this.read_pointer(name_op)?;
@@ -267,15 +268,15 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         } else if this.ptr_is_null(value_ptr)? {
             // Delete environment variable `{name}`
             if let Some(var) = this.machine.env_vars.map.remove(&name) {
-                this.memory.deallocate(var, None, MiriMemoryKind::Runtime.into())?;
+                this.deallocate_ptr(var, None, MiriMemoryKind::Runtime.into())?;
                 this.update_environ()?;
             }
             Ok(1) // return non-zero on success
         } else {
             let value = this.read_os_str_from_wide_str(value_ptr)?;
-            let var_ptr = alloc_env_var_as_wide_str(&name, &value, &mut this)?;
+            let var_ptr = alloc_env_var_as_wide_str(&name, &value, this)?;
             if let Some(var) = this.machine.env_vars.map.insert(name, var_ptr) {
-                this.memory.deallocate(var, None, MiriMemoryKind::Runtime.into())?;
+                this.deallocate_ptr(var, None, MiriMemoryKind::Runtime.into())?;
             }
             this.update_environ()?;
             Ok(1) // return non-zero on success
@@ -300,7 +301,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
         if let Some(old) = success {
             if let Some(var) = old {
-                this.memory.deallocate(var, None, MiriMemoryKind::Runtime.into())?;
+                this.deallocate_ptr(var, None, MiriMemoryKind::Runtime.into())?;
             }
             this.update_environ()?;
             Ok(0)
@@ -324,8 +325,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             "`getcwd` is only available for the UNIX target family"
         );
 
-        let buf = this.read_pointer(&buf_op)?;
-        let size = this.read_scalar(&size_op)?.to_machine_usize(&*this.tcx)?;
+        let buf = this.read_pointer(buf_op)?;
+        let size = this.read_scalar(size_op)?.to_machine_usize(&*this.tcx)?;
 
         if let IsolatedOp::Reject(reject_with) = this.machine.isolated_op {
             this.reject_in_isolation("`getcwd`", reject_with)?;
@@ -436,7 +437,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // Deallocate the old environ list, if any.
         if let Some(environ) = this.machine.env_vars.environ {
             let old_vars_ptr = this.read_pointer(&environ.into())?;
-            this.memory.deallocate(old_vars_ptr, None, MiriMemoryKind::Runtime.into())?;
+            this.deallocate_ptr(old_vars_ptr, None, MiriMemoryKind::Runtime.into())?;
         } else {
             // No `environ` allocated yet, let's do that.
             // This is memory backing an extern static, hence `ExternStatic`, not `Env`.

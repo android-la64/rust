@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::convert::TryFrom;
 use std::ffi::{OsStr, OsString};
 use std::iter;
 use std::path::{Path, PathBuf};
@@ -79,7 +78,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             Ok(OsString::from_wide(&u16_vec[..]))
         }
         #[cfg(not(windows))]
-        pub fn u16vec_to_osstring<'tcx, 'a>(u16_vec: Vec<u16>) -> InterpResult<'tcx, OsString> {
+        pub fn u16vec_to_osstring<'tcx>(u16_vec: Vec<u16>) -> InterpResult<'tcx, OsString> {
             let s = String::from_utf16(&u16_vec[..])
                 .map_err(|_| err_unsup_format!("{:?} is not a valid utf-16 string", u16_vec))?;
             Ok(s.into())
@@ -108,8 +107,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             return Ok((false, string_length));
         }
         self.eval_context_mut()
-            .memory
-            .write_bytes(ptr, bytes.iter().copied().chain(iter::once(0u8)))?;
+            .write_bytes_ptr(ptr, bytes.iter().copied().chain(iter::once(0u8)))?;
         Ok((true, string_length))
     }
 
@@ -152,8 +150,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let size2 = Size::from_bytes(2);
         let this = self.eval_context_mut();
         let mut alloc = this
-            .memory
-            .get_mut(ptr, size2 * string_length, Align::from_bytes(2).unwrap())?
+            .get_ptr_alloc_mut(ptr, size2 * string_length, Align::from_bytes(2).unwrap())?
             .unwrap(); // not a ZST, so we will get a result
         for (offset, wchar) in u16_vec.into_iter().chain(iter::once(0x0000)).enumerate() {
             let offset = u64::try_from(offset).unwrap();

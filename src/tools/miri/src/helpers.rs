@@ -1,4 +1,5 @@
-use std::convert::{TryFrom, TryInto};
+pub mod convert;
+
 use std::mem;
 use std::num::NonZeroUsize;
 use std::time::Duration;
@@ -22,8 +23,29 @@ use crate::*;
 
 impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
 
+const UNIX_IO_ERROR_TABLE: &[(std::io::ErrorKind, &str)] = {
+    use std::io::ErrorKind::*;
+    &[
+        (ConnectionRefused, "ECONNREFUSED"),
+        (ConnectionReset, "ECONNRESET"),
+        (PermissionDenied, "EPERM"),
+        (BrokenPipe, "EPIPE"),
+        (NotConnected, "ENOTCONN"),
+        (ConnectionAborted, "ECONNABORTED"),
+        (AddrNotAvailable, "EADDRNOTAVAIL"),
+        (AddrInUse, "EADDRINUSE"),
+        (NotFound, "ENOENT"),
+        (Interrupted, "EINTR"),
+        (InvalidInput, "EINVAL"),
+        (TimedOut, "ETIMEDOUT"),
+        (AlreadyExists, "EEXIST"),
+        (WouldBlock, "EWOULDBLOCK"),
+        (DirectoryNotEmpty, "ENOTEMPTY"),
+    ]
+};
+
 /// Gets an instance for a path.
-fn try_resolve_did<'mir, 'tcx>(tcx: TyCtxt<'tcx>, path: &[&str]) -> Option<DefId> {
+fn try_resolve_did<'tcx>(tcx: TyCtxt<'tcx>, path: &[&str]) -> Option<DefId> {
     tcx.crates(()).iter().find(|&&krate| tcx.crate_name(krate).as_str() == path[0]).and_then(
         |krate| {
             let krate = DefId { krate: *krate, index: CRATE_DEF_INDEX };
@@ -31,7 +53,7 @@ fn try_resolve_did<'mir, 'tcx>(tcx: TyCtxt<'tcx>, path: &[&str]) -> Option<DefId
             let mut path_it = path.iter().skip(1).peekable();
 
             while let Some(segment) = path_it.next() {
-                for item in mem::replace(&mut items, Default::default()).iter() {
+                for item in mem::take(&mut items).iter() {
                     if item.ident.name.as_str() == *segment {
                         if path_it.peek().is_none() {
                             return Some(item.res.def_id());
@@ -63,7 +85,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let cid = GlobalId { instance, promoted: None };
         let const_val = this.eval_to_allocation(cid)?;
         let const_val = this.read_scalar(&const_val.into())?;
-        return Ok(const_val.check_init()?);
+        const_val.check_init()
     }
 
     /// Helper function to get a `libc` constant as a `Scalar`.
@@ -176,7 +198,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     /// Get the `Place` for a local
     fn local_place(&mut self, local: mir::Local) -> InterpResult<'tcx, PlaceTy<'tcx, Tag>> {
         let this = self.eval_context_mut();
-        let place = mir::Place { local: local, projection: List::empty() };
+        let place = mir::Place { local, projection: List::empty() };
         this.eval_place(place)
     }
 
@@ -199,11 +221,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             getrandom::getrandom(&mut data)
                 .map_err(|err| err_unsup_format!("host getrandom failed: {}", err))?;
         } else {
-            let rng = this.memory.extra.rng.get_mut();
+            let rng = this.machine.rng.get_mut();
             rng.fill_bytes(&mut data);
         }
 
-        this.memory.write_bytes(ptr, data.iter().copied())
+        this.write_bytes_ptr(ptr, data.iter().copied())
     }
 
     /// Call a function: Push the stack frame and pass the arguments.
@@ -251,8 +273,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     /// Visits the memory covered by `place`, sensitive to freezing: the 2nd parameter
     /// of `action` will be true if this is frozen, false if this is in an `UnsafeCell`.
     /// The range is relative to `place`.
-    ///
-    /// Assumes that the `place` has a proper pointer in it.
     fn visit_freeze_sensitive(
         &self,
         place: &MPlaceTy<'tcx, Tag>,
@@ -270,33 +290,30 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // Store how far we proceeded into the place so far. Everything to the left of
         // this offset has already been handled, in the sense that the frozen parts
         // have had `action` called on them.
-        let ptr = place.ptr.into_pointer_or_addr().unwrap();
-        let start_offset = ptr.into_parts().1 as Size; // we just compare offsets, the abs. value never matters
-        let mut cur_offset = start_offset;
+        let start_addr = place.ptr.addr();
+        let mut cur_addr = start_addr;
         // Called when we detected an `UnsafeCell` at the given offset and size.
         // Calls `action` and advances `cur_ptr`.
-        let mut unsafe_cell_action = |unsafe_cell_ptr: Pointer<Option<Tag>>,
+        let mut unsafe_cell_action = |unsafe_cell_ptr: &Pointer<Option<Tag>>,
                                       unsafe_cell_size: Size| {
-            let unsafe_cell_ptr = unsafe_cell_ptr.into_pointer_or_addr().unwrap();
-            debug_assert_eq!(unsafe_cell_ptr.provenance, ptr.provenance);
             // We assume that we are given the fields in increasing offset order,
             // and nothing else changes.
-            let unsafe_cell_offset = unsafe_cell_ptr.into_parts().1 as Size; // we just compare offsets, the abs. value never matters
-            assert!(unsafe_cell_offset >= cur_offset);
-            let frozen_size = unsafe_cell_offset - cur_offset;
+            let unsafe_cell_addr = unsafe_cell_ptr.addr();
+            assert!(unsafe_cell_addr >= cur_addr);
+            let frozen_size = unsafe_cell_addr - cur_addr;
             // Everything between the cur_ptr and this `UnsafeCell` is frozen.
             if frozen_size != Size::ZERO {
-                action(alloc_range(cur_offset - start_offset, frozen_size), /*frozen*/ true)?;
+                action(alloc_range(cur_addr - start_addr, frozen_size), /*frozen*/ true)?;
             }
-            cur_offset += frozen_size;
+            cur_addr += frozen_size;
             // This `UnsafeCell` is NOT frozen.
             if unsafe_cell_size != Size::ZERO {
                 action(
-                    alloc_range(cur_offset - start_offset, unsafe_cell_size),
+                    alloc_range(cur_addr - start_addr, unsafe_cell_size),
                     /*frozen*/ false,
                 )?;
             }
-            cur_offset += unsafe_cell_size;
+            cur_addr += unsafe_cell_size;
             // Done
             Ok(())
         };
@@ -308,13 +325,13 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     trace!("unsafe_cell_action on {:?}", place.ptr);
                     // We need a size to go on.
                     let unsafe_cell_size = this
-                        .size_and_align_of_mplace(&place)?
+                        .size_and_align_of_mplace(place)?
                         .map(|(size, _)| size)
                         // for extern types, just cover what we can
                         .unwrap_or_else(|| place.layout.size);
                     // Now handle this `UnsafeCell`, unless it is empty.
                     if unsafe_cell_size != Size::ZERO {
-                        unsafe_cell_action(place.ptr, unsafe_cell_size)
+                        unsafe_cell_action(&place.ptr, unsafe_cell_size)
                     } else {
                         Ok(())
                     }
@@ -324,7 +341,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
         // The part between the end_ptr and the end of the place is also frozen.
         // So pretend there is a 0-sized `UnsafeCell` at the end.
-        unsafe_cell_action(place.ptr.wrapping_offset(size, this), Size::ZERO)?;
+        unsafe_cell_action(&place.ptr.offset(size, this)?, Size::ZERO)?;
         // Done!
         return Ok(());
 
@@ -347,7 +364,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             #[inline(always)]
             fn ecx(&self) -> &MiriEvalContext<'mir, 'tcx> {
-                &self.ecx
+                self.ecx
             }
 
             // Hook to detect `UnsafeCell`.
@@ -408,9 +425,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                         let mut places =
                             fields.collect::<InterpResult<'tcx, Vec<MPlaceTy<'tcx, Tag>>>>()?;
                         // we just compare offsets, the abs. value never matters
-                        places.sort_by_key(|place| {
-                            place.ptr.into_pointer_or_addr().unwrap().into_parts().1 as Size
-                        });
+                        places.sort_by_key(|place| place.ptr.addr());
                         self.walk_aggregate(place, places.into_iter().map(Ok))
                     }
                     FieldsShape::Union { .. } | FieldsShape::Primitive => {
@@ -503,39 +518,21 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         this.read_scalar(&errno_place.into())?.check_init()
     }
 
-    /// Sets the last OS error using a `std::io::ErrorKind`. This function tries to produce the most
-    /// similar OS error from the `std::io::ErrorKind` and sets it as the last OS error.
-    fn set_last_error_from_io_error(&mut self, err_kind: std::io::ErrorKind) -> InterpResult<'tcx> {
-        use std::io::ErrorKind::*;
-        let this = self.eval_context_mut();
+    /// This function tries to produce the most similar OS error from the `std::io::ErrorKind`
+    /// as a platform-specific errnum.
+    fn io_error_to_errnum(&self, err_kind: std::io::ErrorKind) -> InterpResult<'tcx, Scalar<Tag>> {
+        let this = self.eval_context_ref();
         let target = &this.tcx.sess.target;
-        let target_os = &target.os;
-        let last_error = if target.families.contains(&"unix".to_owned()) {
-            this.eval_libc(match err_kind {
-                ConnectionRefused => "ECONNREFUSED",
-                ConnectionReset => "ECONNRESET",
-                PermissionDenied => "EPERM",
-                BrokenPipe => "EPIPE",
-                NotConnected => "ENOTCONN",
-                ConnectionAborted => "ECONNABORTED",
-                AddrNotAvailable => "EADDRNOTAVAIL",
-                AddrInUse => "EADDRINUSE",
-                NotFound => "ENOENT",
-                Interrupted => "EINTR",
-                InvalidInput => "EINVAL",
-                TimedOut => "ETIMEDOUT",
-                AlreadyExists => "EEXIST",
-                WouldBlock => "EWOULDBLOCK",
-                DirectoryNotEmpty => "ENOTEMPTY",
-                _ => {
-                    throw_unsup_format!(
-                        "io error {:?} cannot be translated into a raw os error",
-                        err_kind
-                    )
+        if target.families.iter().any(|f| f == "unix") {
+            for &(kind, name) in UNIX_IO_ERROR_TABLE {
+                if err_kind == kind {
+                    return this.eval_libc(name);
                 }
-            })?
-        } else if target.families.contains(&"windows".to_owned()) {
+            }
+            throw_unsup_format!("io error {:?} cannot be translated into a raw os error", err_kind)
+        } else if target.families.iter().any(|f| f == "windows") {
             // FIXME: we have to finish implementing the Windows equivalent of this.
+            use std::io::ErrorKind::*;
             this.eval_windows(
                 "c",
                 match err_kind {
@@ -547,14 +544,38 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                             err_kind
                         ),
                 },
-            )?
+            )
         } else {
             throw_unsup_format!(
-                "setting the last OS error from an io::Error is unsupported for {}.",
-                target_os
+                "converting io::Error into errnum is unsupported for OS {}",
+                target.os
             )
-        };
-        this.set_last_error(last_error)
+        }
+    }
+
+    /// The inverse of `io_error_to_errnum`.
+    fn errnum_to_io_error(&self, errnum: Scalar<Tag>) -> InterpResult<'tcx, std::io::ErrorKind> {
+        let this = self.eval_context_ref();
+        let target = &this.tcx.sess.target;
+        if target.families.iter().any(|f| f == "unix") {
+            let errnum = errnum.to_i32()?;
+            for &(kind, name) in UNIX_IO_ERROR_TABLE {
+                if errnum == this.eval_libc_i32(name)? {
+                    return Ok(kind);
+                }
+            }
+            throw_unsup_format!("raw errnum {:?} cannot be translated into io::Error", errnum)
+        } else {
+            throw_unsup_format!(
+                "converting errnum into io::Error is unsupported for OS {}",
+                target.os
+            )
+        }
+    }
+
+    /// Sets the last OS error using a `std::io::ErrorKind`.
+    fn set_last_error_from_io_error(&mut self, err_kind: std::io::ErrorKind) -> InterpResult<'tcx> {
+        self.set_last_error(self.io_error_to_errnum(err_kind)?)
     }
 
     /// Helper function that consumes an `std::io::Result<T>` and returns an
@@ -612,10 +633,10 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     /// `EINVAL` in this case.
     fn read_timespec(&mut self, tp: &MPlaceTy<'tcx, Tag>) -> InterpResult<'tcx, Option<Duration>> {
         let this = self.eval_context_mut();
-        let seconds_place = this.mplace_field(&tp, 0)?;
+        let seconds_place = this.mplace_field(tp, 0)?;
         let seconds_scalar = this.read_scalar(&seconds_place.into())?;
         let seconds = seconds_scalar.to_machine_isize(this)?;
-        let nanoseconds_place = this.mplace_field(&tp, 1)?;
+        let nanoseconds_place = this.mplace_field(tp, 1)?;
         let nanoseconds_scalar = this.read_scalar(&nanoseconds_place.into())?;
         let nanoseconds = nanoseconds_scalar.to_machine_isize(this)?;
 
@@ -645,17 +666,17 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         loop {
             // FIXME: We are re-getting the allocation each time around the loop.
             // Would be nice if we could somehow "extend" an existing AllocRange.
-            let alloc = this.memory.get(ptr.offset(len, this)?.into(), size1, Align::ONE)?.unwrap(); // not a ZST, so we will get a result
+            let alloc = this.get_ptr_alloc(ptr.offset(len, this)?, size1, Align::ONE)?.unwrap(); // not a ZST, so we will get a result
             let byte = alloc.read_scalar(alloc_range(Size::ZERO, size1))?.to_u8()?;
             if byte == 0 {
                 break;
             } else {
-                len = len + size1;
+                len += size1;
             }
         }
 
         // Step 2: get the bytes.
-        this.memory.read_bytes(ptr.into(), len)
+        this.read_bytes_ptr(ptr, len)
     }
 
     fn read_wide_str(&self, mut ptr: Pointer<Option<Tag>>) -> InterpResult<'tcx, Vec<u16>> {
@@ -667,7 +688,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         loop {
             // FIXME: We are re-getting the allocation each time around the loop.
             // Would be nice if we could somehow "extend" an existing AllocRange.
-            let alloc = this.memory.get(ptr.into(), size2, align2)?.unwrap(); // not a ZST, so we will get a result
+            let alloc = this.get_ptr_alloc(ptr, size2, align2)?.unwrap(); // not a ZST, so we will get a result
             let wchar = alloc.read_scalar(alloc_range(Size::ZERO, size2))?.to_u16()?;
             if wchar == 0 {
                 break;
@@ -711,7 +732,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // message is slightly different here to make automated analysis easier
             let error_msg = format!("unsupported Miri functionality: {}", error_msg.as_ref());
             this.start_panic(error_msg.as_ref(), StackPopUnwind::Skip)?;
-            return Ok(());
+            Ok(())
         } else {
             throw_unsup_format!("{}", error_msg.as_ref());
         }
@@ -750,8 +771,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     /// Mark a machine allocation that was just created as immutable.
     fn mark_immutable(&mut self, mplace: &MemPlace<Tag>) {
         let this = self.eval_context_mut();
-        this.memory
-            .mark_immutable(mplace.ptr.into_pointer_or_addr().unwrap().provenance.alloc_id)
+        // This got just allocated, so there definitely is a pointer here.
+        this.alloc_mark_immutable(mplace.ptr.into_pointer_or_addr().unwrap().provenance.alloc_id)
             .unwrap();
     }
 }
@@ -782,7 +803,7 @@ pub fn get_local_crates(tcx: &TyCtxt<'_>) -> Vec<CrateNum> {
     // Convert the local crate names from the passed-in config into CrateNums so that they can
     // be looked up quickly during execution
     let local_crate_names = std::env::var("MIRI_LOCAL_CRATES")
-        .map(|crates| crates.split(",").map(|krate| krate.to_string()).collect::<Vec<_>>())
+        .map(|crates| crates.split(',').map(|krate| krate.to_string()).collect::<Vec<_>>())
         .unwrap_or_default();
     let mut local_crates = Vec::new();
     for &crate_num in tcx.crates(()) {

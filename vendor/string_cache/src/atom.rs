@@ -10,7 +10,7 @@
 use crate::dynamic_set::{Entry, DYNAMIC_SET};
 use crate::static_sets::StaticAtomSet;
 use debug_unreachable::debug_unreachable;
-use phf_shared;
+
 use std::borrow::Cow;
 use std::cmp::Ordering::{self, Equal};
 use std::fmt;
@@ -149,6 +149,22 @@ impl<Static: StaticAtomSet> Atom<Static> {
             _ => unsafe { debug_unreachable!() },
         }
     }
+
+    pub fn try_static(string_to_add: &str) -> Option<Self> {
+        Self::try_static_internal(string_to_add).ok()
+    }
+
+    fn try_static_internal(string_to_add: &str) -> Result<Self, phf_shared::Hashes> {
+        let static_set = Static::get();
+        let hash = phf_shared::hash(&*string_to_add, &static_set.key);
+        let index = phf_shared::get_index(&hash, static_set.disps, static_set.atoms.len());
+
+        if static_set.atoms[index as usize] == string_to_add {
+            Ok(Self::pack_static(index))
+        } else {
+            Err(hash)
+        }
+    }
 }
 
 impl<Static: StaticAtomSet> Default for Atom<Static> {
@@ -170,13 +186,7 @@ impl<Static: StaticAtomSet> Hash for Atom<Static> {
 
 impl<'a, Static: StaticAtomSet> From<Cow<'a, str>> for Atom<Static> {
     fn from(string_to_add: Cow<'a, str>) -> Self {
-        let static_set = Static::get();
-        let hash = phf_shared::hash(&*string_to_add, &static_set.key);
-        let index = phf_shared::get_index(&hash, static_set.disps, static_set.atoms.len());
-
-        if static_set.atoms[index as usize] == string_to_add {
-            Self::pack_static(index)
-        } else {
+        Self::try_static_internal(&*string_to_add).unwrap_or_else(|hash| {
             let len = string_to_add.len();
             if len <= MAX_INLINE_LEN {
                 let mut data: u64 = (INLINE_TAG as u64) | ((len as u64) << LEN_OFFSET);
@@ -191,7 +201,7 @@ impl<'a, Static: StaticAtomSet> From<Cow<'a, str>> for Atom<Static> {
                 }
             } else {
                 let ptr: std::ptr::NonNull<Entry> =
-                    DYNAMIC_SET.lock().unwrap().insert(string_to_add, hash.g);
+                    DYNAMIC_SET.lock().insert(string_to_add, hash.g);
                 let data = ptr.as_ptr() as u64;
                 debug_assert!(0 == data & TAG_MASK);
                 Atom {
@@ -200,7 +210,7 @@ impl<'a, Static: StaticAtomSet> From<Cow<'a, str>> for Atom<Static> {
                     phantom: PhantomData,
                 }
             }
-        }
+        })
     }
 }
 
@@ -229,7 +239,6 @@ impl<Static> Drop for Atom<Static> {
         fn drop_slow<Static>(this: &mut Atom<Static>) {
             DYNAMIC_SET
                 .lock()
-                .unwrap()
                 .remove(this.unsafe_data.get() as *mut Entry);
         }
     }

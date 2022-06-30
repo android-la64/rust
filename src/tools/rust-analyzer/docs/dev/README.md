@@ -13,7 +13,7 @@ To learn more about how rust-analyzer works, see [./architecture.md](./architect
 It also explains the high-level layout of the source code.
 Do skim through that document.
 
-We also publish rustdoc docs to pages: https://rust-analyzer.github.io/rust-analyzer/ide/.
+We also publish rustdoc docs to pages: https://rust-lang.github.io/rust-analyzer/ide/.
 Note though, that the internal documentation is very incomplete.
 
 Various organizational and process issues are discussed in this document.
@@ -66,7 +66,7 @@ If `cargo test` passes locally, that's a good sign that CI will be green as well
 The only exception is that some long-running tests are skipped locally by default.
 Use `env RUN_SLOW_TESTS=1 cargo test` to run the full suite.
 
-We use bors-ng to enforce the [not rocket science](https://graydon2.dreamwidth.org/1597.html) rule.
+We use bors to enforce the [not rocket science](https://graydon2.dreamwidth.org/1597.html) rule.
 
 ## Launching rust-analyzer
 
