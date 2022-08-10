@@ -1,0 +1,7 @@
+{
+  "imports": [
+    {
+      "path": "toolchain/android_rust"
+    }
+  ]
+}
