@@ -15,6 +15,8 @@ use syntax::{ast, AstNode, AstToken, SyntaxKind::*, SyntaxToken, TextRange, T};
 //
 // Navigates to the definition of an identifier.
 //
+// For outline modules, this will navigate to the source file of the module.
+//
 // |===
 // | Editor  | Shortcut
 //
@@ -1008,6 +1010,22 @@ trait Iterator {
 }
 
 fn f() -> impl Iterator<Item$0 = u8> {}
+"#,
+        );
+    }
+
+    #[test]
+    fn goto_def_for_super_assoc_ty_in_path() {
+        check(
+            r#"
+trait Super {
+    type Item;
+       //^^^^
+}
+
+trait Sub: Super {}
+
+fn f() -> impl Sub<Item$0 = u8> {}
 "#,
         );
     }

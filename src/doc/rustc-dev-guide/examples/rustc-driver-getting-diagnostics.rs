@@ -1,9 +1,9 @@
 #![feature(rustc_private)]
 
 // NOTE: For the example to compile, you will need to first run the following:
-//   rustup component add rustc-dev
+//   rustup component add rustc-dev llvm-tools-preview
 
-// version: 1.61.0-nightly (68369a041 2022-02-22)
+// version: 1.62.0-nightly (7c4b47696 2022-04-30)
 
 extern crate rustc_error_codes;
 extern crate rustc_errors;
@@ -57,8 +57,13 @@ fn main() {
         },
         // This program contains a type error.
         input: config::Input::Str {
-            name: source_map::FileName::Custom("main.rs".to_string()),
-            input: "fn main() { let x: &str = 1; }".to_string(),
+            name: source_map::FileName::Custom("main.rs".into()),
+            input: "
+fn main() {
+    let x: &str = 1;
+}
+"
+            .into(),
         },
         // Redirect the diagnostic output of the compiler to a buffer.
         diagnostic_output: rustc_session::DiagnosticOutput::Raw(Box::from(DiagnosticSink(
@@ -87,5 +92,5 @@ fn main() {
     });
     // Read buffered diagnostics.
     let diagnostics = String::from_utf8(buffer.lock().unwrap().clone()).unwrap();
-    println!("{}", diagnostics);
+    println!("{diagnostics}");
 }

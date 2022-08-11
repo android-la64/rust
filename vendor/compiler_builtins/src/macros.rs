@@ -61,6 +61,35 @@ macro_rules! public_test_dep {
 macro_rules! intrinsics {
     () => ();
 
+    // Support cfg_attr:
+    (
+        #[cfg_attr($e:meta, $($attr:tt)*)]
+        $(#[$($attrs:tt)*])*
+        pub extern $abi:tt fn $name:ident( $($argname:ident: $ty:ty),* ) $(-> $ret:ty)? {
+            $($body:tt)*
+        }
+        $($rest:tt)*
+    ) => (
+        #[cfg($e)]
+        intrinsics! {
+            #[$($attr)*]
+            $(#[$($attrs)*])*
+            pub extern $abi fn $name($($argname: $ty),*) $(-> $ret)? {
+                $($body)*
+            }
+        }
+
+        #[cfg(not($e))]
+        intrinsics! {
+            $(#[$($attrs)*])*
+            pub extern $abi fn $name($($argname: $ty),*) $(-> $ret)? {
+                $($body)*
+            }
+        }
+
+        intrinsics!($($rest)*);
+    );
+
     // Right now there's a bunch of architecture-optimized intrinsics in the
     // stock compiler-rt implementation. Not all of these have been ported over
     // to Rust yet so when the `c` feature of this crate is enabled we fall back
@@ -82,7 +111,6 @@ macro_rules! intrinsics {
 
         $($rest:tt)*
     ) => (
-
         #[cfg($name = "optimized-c")]
         pub extern $abi fn $name( $($argname: $ty),* ) $(-> $ret)? {
             extern $abi {
@@ -297,6 +325,36 @@ macro_rules! intrinsics {
             $(#[$($attr)*])*
             #[cfg_attr(not(feature = "mangled-names"), no_mangle)]
             pub unsafe extern $abi fn $name( $($argname: $ty),* ) $(-> $ret)? {
+                $($body)*
+            }
+        }
+
+        intrinsics!($($rest)*);
+    );
+
+    // For division and modulo, AVR uses a custom calling convention¹ that does
+    // not match our definitions here. Ideally we would just use hand-written
+    // naked functions, but that's quite a lot of code to port² - so for the
+    // time being we are just ignoring the problematic functions, letting
+    // avr-gcc (which is required to compile to AVR anyway) link them from
+    // libgcc.
+    //
+    // ¹ https://gcc.gnu.org/wiki/avr-gcc (see "Exceptions to the Calling
+    //   Convention")
+    // ² https://github.com/gcc-mirror/gcc/blob/31048012db98f5ec9c2ba537bfd850374bdd771f/libgcc/config/avr/lib1funcs.S
+    (
+        #[avr_skip]
+        $(#[$($attr:tt)*])*
+        pub extern $abi:tt fn $name:ident( $($argname:ident:  $ty:ty),* ) $(-> $ret:ty)? {
+            $($body:tt)*
+        }
+
+        $($rest:tt)*
+    ) => (
+        #[cfg(not(target_arch = "avr"))]
+        intrinsics! {
+            $(#[$($attr)*])*
+            pub extern $abi fn $name( $($argname: $ty),* ) $(-> $ret)? {
                 $($body)*
             }
         }

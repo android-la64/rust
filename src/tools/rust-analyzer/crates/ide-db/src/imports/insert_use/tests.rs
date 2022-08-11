@@ -6,6 +6,24 @@ use test_utils::{assert_eq_text, CURSOR_MARKER};
 use super::*;
 
 #[test]
+fn trailing_comment_in_empty_file() {
+    check(
+        "foo::bar",
+        r#"
+struct Struct;
+// 0 = 1
+"#,
+        r#"
+use foo::bar;
+
+struct Struct;
+// 0 = 1
+"#,
+        ImportGranularity::Crate,
+    );
+}
+
+#[test]
 fn respects_cfg_attr_fn() {
     check(
         r"bar::Bar",
@@ -431,6 +449,17 @@ fn inserts_after_single_line_comments() {
         "foo::bar::Baz",
         "// Represents a possible license header and/or general module comments",
         r#"// Represents a possible license header and/or general module comments
+
+use foo::bar::Baz;"#,
+    );
+}
+
+#[test]
+fn inserts_after_shebang() {
+    check_none(
+        "foo::bar::Baz",
+        "#!/usr/bin/env rust",
+        r#"#!/usr/bin/env rust
 
 use foo::bar::Baz;"#,
     );

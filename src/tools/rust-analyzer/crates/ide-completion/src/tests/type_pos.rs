@@ -90,6 +90,37 @@ fn x<'lt, T, const C: usize>() -> $0
 }
 
 #[test]
+fn fn_return_type_no_local_items() {
+    check(
+        r#"
+fn foo() -> B$0 {
+    struct Bar;
+    enum Baz {}
+    union Bax {
+        i: i32,
+        f: f32
+    }
+}
+"#,
+        expect![[r#"
+        en Enum
+        ma makro!(…) macro_rules! makro
+        md module
+        st Record
+        st Tuple
+        st Unit
+        tt Trait
+        un Union
+        bt u32
+        it ()
+        kw crate::
+        kw self::
+        kw super::
+    "#]],
+    )
+}
+
+#[test]
 fn inferred_type_const() {
     check(
         r#"
@@ -336,9 +367,13 @@ fn foo<'lt, T, const C: usize>() {
 
 #[test]
 fn completes_types_and_const_in_arg_list() {
+    cov_mark::check!(complete_assoc_type_in_generics_list);
     check(
         r#"
-trait Trait2 {
+trait Trait1 {
+    type Super;
+}
+trait Trait2: Trait1 {
     type Foo;
 }
 
@@ -348,14 +383,16 @@ fn foo<'lt, T: Trait2<$0>, const CONST_PARAM: usize>(_: T) {}
             ct CONST
             cp CONST_PARAM
             en Enum
-            ma makro!(…)          macro_rules! makro
+            ma makro!(…)            macro_rules! makro
             md module
             st Record
             st Tuple
             st Unit
             tt Trait
+            tt Trait1
             tt Trait2
-            ta Foo =  (as Trait2) type Foo
+            ta Foo =  (as Trait2)   type Foo
+            ta Super =  (as Trait1) type Super
             tp T
             un Union
             bt u32
@@ -383,6 +420,38 @@ fn foo<'lt, T: Trait2<self::$0>, const CONST_PARAM: usize>(_: T) {}
             tt Trait
             tt Trait2
             un Union
+        "#]],
+    );
+}
+
+#[test]
+fn no_assoc_completion_outside_type_bounds() {
+    check(
+        r#"
+struct S;
+trait Tr<T> {
+    type Ty;
+}
+
+impl Tr<$0
+    "#,
+        expect![[r#"
+            ct CONST
+            en Enum
+            ma makro!(…) macro_rules! makro
+            md module
+            sp Self
+            st Record
+            st S
+            st Tuple
+            st Unit
+            tt Tr
+            tt Trait
+            un Union
+            bt u32
+            kw crate::
+            kw self::
+            kw super::
         "#]],
     );
 }

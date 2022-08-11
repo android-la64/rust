@@ -24,7 +24,9 @@ function run_tests {
   if [ -z "${MIRI_TEST_TARGET+exists}" ]; then
     # Only for host architecture: tests with optimizations (`-O` is what cargo passes, but crank MIR
     # optimizations up all the way).
-    MIRIFLAGS="-O -Zmir-opt-level=4" ./miri test --locked
+    # Optimizations change diagnostics (mostly backtraces), so we don't check them
+    #FIXME(#2155): we want to only run the pass and panic tests here, not the fail tests.
+    MIRIFLAGS="-O -Zmir-opt-level=4" MIRI_SKIP_UI_CHECKS=1 ./miri test --locked -- tests/{pass,panic}
   fi
 
   # On Windows, there is always "python", not "python3" or "python2".
@@ -55,7 +57,6 @@ case $HOST_TARGET in
     ;;
   i686-pc-windows-msvc)
     MIRI_TEST_TARGET=x86_64-unknown-linux-gnu run_tests
-    MIRI_TEST_TARGET=x86_64-apple-darwin run_tests
     ;;
   *)
     echo "FATAL: unknown OS"

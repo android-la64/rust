@@ -54,7 +54,7 @@ use hir_def::{
 };
 use hir_expand::{name::name, MacroCallKind};
 use hir_ty::{
-    autoderef,
+    all_super_traits, autoderef,
     consteval::{unknown_const_as_generic, ComputedExpr, ConstEvalError, ConstExt},
     diagnostics::BodyValidationDiagnostic,
     method_resolution::{self, TyFingerprint},
@@ -62,9 +62,9 @@ use hir_ty::{
     subst_prefix,
     traits::FnTrait,
     AliasEq, AliasTy, BoundVar, CallableDefId, CallableSig, Canonical, CanonicalVarKinds, Cast,
-    DebruijnIndex, GenericArgData, InEnvironment, Interner, ParamKind, QuantifiedWhereClause,
-    Scalar, Solution, Substitution, TraitEnvironment, TraitRefExt, Ty, TyBuilder, TyDefId, TyExt,
-    TyKind, TyVariableKind, WhereClause,
+    ClosureId, DebruijnIndex, GenericArgData, InEnvironment, Interner, ParamKind,
+    QuantifiedWhereClause, Scalar, Solution, Substitution, TraitEnvironment, TraitRefExt, Ty,
+    TyBuilder, TyDefId, TyExt, TyKind, TyVariableKind, WhereClause,
 };
 use itertools::Itertools;
 use nameres::diagnostics::DefDiagnosticKind;
@@ -627,37 +627,46 @@ fn emit_def_diagnostic(db: &dyn HirDatabase, acc: &mut Vec<AnyDiagnostic>, diag:
             );
         }
 
-        DefDiagnosticKind::UnresolvedProcMacro { ast } => {
-            let mut precise_location = None;
-            let (node, macro_name) = match ast {
+        DefDiagnosticKind::UnresolvedProcMacro { ast, krate } => {
+            let (node, precise_location, macro_name, kind) = match ast {
                 MacroCallKind::FnLike { ast_id, .. } => {
                     let node = ast_id.to_node(db.upcast());
-                    (ast_id.with_value(SyntaxNodePtr::from(AstPtr::new(&node))), None)
+                    (
+                        ast_id.with_value(SyntaxNodePtr::from(AstPtr::new(&node))),
+                        node.path().map(|it| it.syntax().text_range()),
+                        node.path().and_then(|it| it.segment()).map(|it| it.to_string()),
+                        MacroKind::ProcMacro,
+                    )
                 }
                 MacroCallKind::Derive { ast_id, derive_attr_index, derive_index } => {
                     let node = ast_id.to_node(db.upcast());
-
                     // Compute the precise location of the macro name's token in the derive
                     // list.
                     let token = (|| {
-                        let derive_attr = node.attrs().nth(*derive_attr_index as usize)?;
-                        derive_attr
+                        let derive_attr = node
+                            .doc_comments_and_attrs()
+                            .nth(*derive_attr_index as usize)
+                            .and_then(Either::left)?;
+                        let token_tree = derive_attr.meta()?.token_tree()?;
+                        let group_by = token_tree
                             .syntax()
                             .children_with_tokens()
                             .filter_map(|elem| match elem {
                                 syntax::NodeOrToken::Token(tok) => Some(tok),
                                 _ => None,
                             })
-                            .group_by(|t| t.kind() == T![,])
+                            .group_by(|t| t.kind() == T![,]);
+                        let (_, mut group) = group_by
                             .into_iter()
                             .filter(|&(comma, _)| !comma)
-                            .nth(*derive_index as usize)
-                            .and_then(|(_, mut g)| g.find(|t| t.kind() == T![ident]))
+                            .nth(*derive_index as usize)?;
+                        group.find(|t| t.kind() == T![ident])
                     })();
-                    precise_location = token.as_ref().map(|tok| tok.text_range());
                     (
                         ast_id.with_value(SyntaxNodePtr::from(AstPtr::new(&node))),
+                        token.as_ref().map(|tok| tok.text_range()),
                         token.as_ref().map(ToString::to_string),
+                        MacroKind::Derive,
                     )
                 }
                 MacroCallKind::Attr { ast_id, invoc_attr_index, .. } => {
@@ -667,17 +676,23 @@ fn emit_def_diagnostic(db: &dyn HirDatabase, acc: &mut Vec<AnyDiagnostic>, diag:
                         .nth((*invoc_attr_index) as usize)
                         .and_then(Either::left)
                         .unwrap_or_else(|| panic!("cannot find attribute #{}", invoc_attr_index));
+
                     (
                         ast_id.with_value(SyntaxNodePtr::from(AstPtr::new(&attr))),
+                        Some(attr.syntax().text_range()),
                         attr.path()
                             .and_then(|path| path.segment())
                             .and_then(|seg| seg.name_ref())
                             .as_ref()
                             .map(ToString::to_string),
+                        MacroKind::Attr,
                     )
                 }
             };
-            acc.push(UnresolvedProcMacro { node, precise_location, macro_name }.into());
+            acc.push(
+                UnresolvedProcMacro { node, precise_location, macro_name, kind, krate: *krate }
+                    .into(),
+            );
         }
 
         DefDiagnosticKind::UnresolvedMacroCall { ast, path } => {
@@ -1150,6 +1165,8 @@ impl DefWithBody {
                         node: node.clone().map(|it| it.into()),
                         precise_location: None,
                         macro_name: None,
+                        kind: MacroKind::ProcMacro,
+                        krate: None,
                     }
                     .into(),
                 ),
@@ -1466,6 +1483,7 @@ impl Function {
 }
 
 // Note: logically, this belongs to `hir_ty`, but we are not using it there yet.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Access {
     Shared,
     Exclusive,
@@ -1674,6 +1692,11 @@ impl Trait {
 
     pub fn items(self, db: &dyn HirDatabase) -> Vec<AssocItem> {
         db.trait_data(self.id).items.iter().map(|(_name, it)| (*it).into()).collect()
+    }
+
+    pub fn items_with_supertraits(self, db: &dyn HirDatabase) -> Vec<AssocItem> {
+        let traits = all_super_traits(db.upcast(), self.into());
+        traits.iter().flat_map(|tr| Trait::from(*tr).items(db)).collect()
     }
 
     pub fn is_auto(self, db: &dyn HirDatabase) -> bool {
@@ -2813,10 +2836,14 @@ impl Type {
     }
 
     pub fn as_callable(&self, db: &dyn HirDatabase) -> Option<Callable> {
-        let def = self.ty.callable_def(db);
+        let callee = match self.ty.kind(Interner) {
+            TyKind::Closure(id, _) => Callee::Closure(*id),
+            TyKind::Function(_) => Callee::FnPtr,
+            _ => Callee::Def(self.ty.callable_def(db)?),
+        };
 
         let sig = self.ty.callable_sig(db)?;
-        Some(Callable { ty: self.clone(), sig, def, is_bound_method: false })
+        Some(Callable { ty: self.clone(), sig, callee, is_bound_method: false })
     }
 
     pub fn is_closure(&self) -> bool {
@@ -3259,13 +3286,19 @@ impl Type {
     }
 }
 
-// FIXME: closures
 #[derive(Debug)]
 pub struct Callable {
     ty: Type,
     sig: CallableSig,
-    def: Option<CallableDefId>,
+    callee: Callee,
     pub(crate) is_bound_method: bool,
+}
+
+#[derive(Debug)]
+enum Callee {
+    Def(CallableDefId),
+    Closure(ClosureId),
+    FnPtr,
 }
 
 pub enum CallableKind {
@@ -3273,20 +3306,23 @@ pub enum CallableKind {
     TupleStruct(Struct),
     TupleEnumVariant(Variant),
     Closure,
+    FnPtr,
 }
 
 impl Callable {
     pub fn kind(&self) -> CallableKind {
-        match self.def {
-            Some(CallableDefId::FunctionId(it)) => CallableKind::Function(it.into()),
-            Some(CallableDefId::StructId(it)) => CallableKind::TupleStruct(it.into()),
-            Some(CallableDefId::EnumVariantId(it)) => CallableKind::TupleEnumVariant(it.into()),
-            None => CallableKind::Closure,
+        use Callee::*;
+        match self.callee {
+            Def(CallableDefId::FunctionId(it)) => CallableKind::Function(it.into()),
+            Def(CallableDefId::StructId(it)) => CallableKind::TupleStruct(it.into()),
+            Def(CallableDefId::EnumVariantId(it)) => CallableKind::TupleEnumVariant(it.into()),
+            Closure(_) => CallableKind::Closure,
+            FnPtr => CallableKind::FnPtr,
         }
     }
     pub fn receiver_param(&self, db: &dyn HirDatabase) -> Option<ast::SelfParam> {
-        let func = match self.def {
-            Some(CallableDefId::FunctionId(it)) if self.is_bound_method => it,
+        let func = match self.callee {
+            Callee::Def(CallableDefId::FunctionId(it)) if self.is_bound_method => it,
             _ => return None,
         };
         let src = func.lookup(db.upcast()).source(db.upcast());
@@ -3306,8 +3342,9 @@ impl Callable {
             .iter()
             .skip(if self.is_bound_method { 1 } else { 0 })
             .map(|ty| self.ty.derived(ty.clone()));
-        let patterns = match self.def {
-            Some(CallableDefId::FunctionId(func)) => {
+        let map_param = |it: ast::Param| it.pat().map(Either::Right);
+        let patterns = match self.callee {
+            Callee::Def(CallableDefId::FunctionId(func)) => {
                 let src = func.lookup(db.upcast()).source(db.upcast());
                 src.value.param_list().map(|param_list| {
                     param_list
@@ -3315,9 +3352,20 @@ impl Callable {
                         .map(|it| Some(Either::Left(it)))
                         .filter(|_| !self.is_bound_method)
                         .into_iter()
-                        .chain(param_list.params().map(|it| it.pat().map(Either::Right)))
+                        .chain(param_list.params().map(map_param))
                 })
             }
+            Callee::Closure(closure_id) => match closure_source(db, closure_id) {
+                Some(src) => src.param_list().map(|param_list| {
+                    param_list
+                        .self_param()
+                        .map(|it| Some(Either::Left(it)))
+                        .filter(|_| !self.is_bound_method)
+                        .into_iter()
+                        .chain(param_list.params().map(map_param))
+                }),
+                None => None,
+            },
             _ => None,
         };
         patterns.into_iter().flatten().chain(iter::repeat(None)).zip(types).collect()
@@ -3325,6 +3373,24 @@ impl Callable {
     pub fn return_type(&self) -> Type {
         self.ty.derived(self.sig.ret().clone())
     }
+}
+
+fn closure_source(db: &dyn HirDatabase, closure: ClosureId) -> Option<ast::ClosureExpr> {
+    let (owner, expr_id) = db.lookup_intern_closure(closure.into());
+    let (_, source_map) = db.body_with_source_map(owner);
+    let ast = source_map.expr_syntax(expr_id).ok()?;
+    let root = ast.file_syntax(db.upcast());
+    let expr = ast.value.to_node(&root);
+    match expr {
+        ast::Expr::ClosureExpr(it) => Some(it),
+        _ => None,
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum BindingMode {
+    Move,
+    Ref(Mutability),
 }
 
 /// For IDE only

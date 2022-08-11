@@ -12,7 +12,7 @@
 
 use std::sync::Arc;
 
-use ide::{Change, CompletionConfig, FilePosition, TextSize};
+use ide::{CallableSnippets, Change, CompletionConfig, FilePosition, TextSize};
 use ide_db::{
     imports::insert_use::{ImportGranularity, InsertUseConfig},
     SnippetCap,
@@ -31,7 +31,7 @@ fn integrated_highlighting_benchmark() {
 
     // Load rust-analyzer itself.
     let workspace_to_load = project_root();
-    let file = "./crates/ide_db/src/apply_change.rs";
+    let file = "./crates/ide-db/src/apply_change.rs";
 
     let cargo_config = CargoConfig::default();
     let load_cargo_config = LoadCargoConfig {
@@ -135,8 +135,7 @@ fn integrated_completion_benchmark() {
             enable_imports_on_the_fly: true,
             enable_self_on_the_fly: true,
             enable_private_editable: true,
-            add_call_parenthesis: true,
-            add_call_argument_snippets: true,
+            callable: Some(CallableSnippets::FillArguments),
             snippet_cap: SnippetCap::new(true),
             insert_use: InsertUseConfig {
                 granularity: ImportGranularity::Crate,
@@ -149,7 +148,7 @@ fn integrated_completion_benchmark() {
         };
         let position =
             FilePosition { file_id, offset: TextSize::try_from(completion_offset).unwrap() };
-        analysis.completions(&config, position).unwrap();
+        analysis.completions(&config, position, None).unwrap();
     }
 
     let completion_offset = {
@@ -173,8 +172,7 @@ fn integrated_completion_benchmark() {
             enable_imports_on_the_fly: true,
             enable_self_on_the_fly: true,
             enable_private_editable: true,
-            add_call_parenthesis: true,
-            add_call_argument_snippets: true,
+            callable: Some(CallableSnippets::FillArguments),
             snippet_cap: SnippetCap::new(true),
             insert_use: InsertUseConfig {
                 granularity: ImportGranularity::Crate,
@@ -187,7 +185,7 @@ fn integrated_completion_benchmark() {
         };
         let position =
             FilePosition { file_id, offset: TextSize::try_from(completion_offset).unwrap() };
-        analysis.completions(&config, position).unwrap();
+        analysis.completions(&config, position, None).unwrap();
     }
 }
 

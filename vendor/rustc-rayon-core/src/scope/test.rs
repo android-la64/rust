@@ -1,6 +1,6 @@
 use crate::unwind;
 use crate::ThreadPoolBuilder;
-use crate::{scope, scope_fifo, Scope};
+use crate::{scope, scope_fifo, Scope, ScopeFifo};
 use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
 use std::cmp;
@@ -120,13 +120,13 @@ fn random_tree1(depth: usize, rng: &mut XorShiftRng) -> Tree<u32> {
     let children = if depth == 0 {
         vec![]
     } else {
-        (0..rng.gen_range(0, 4)) // somewhere between 0 and 3 children at each level
+        (0..rng.gen_range(0..4)) // somewhere between 0 and 3 children at each level
             .map(|_| random_tree1(depth - 1, rng))
             .collect()
     };
 
     Tree {
-        value: rng.gen_range(0, 1_000_000),
+        value: rng.gen_range(0..1_000_000),
         children,
     }
 }
@@ -245,7 +245,7 @@ fn panic_propagate_still_execute_3() {
     let mut x = false;
     match unwind::halt_unwinding(|| {
         scope(|s| {
-            s.spawn(|_| x = true); // spanwed job should still execute despite later panic
+            s.spawn(|_| x = true); // spawned job should still execute despite later panic
             panic!("Hello, world!");
         });
     }) {
@@ -293,7 +293,7 @@ macro_rules! test_order {
 
 #[test]
 fn lifo_order() {
-    // In the absense of stealing, `scope()` runs its `spawn()` jobs in LIFO order.
+    // In the absence of stealing, `scope()` runs its `spawn()` jobs in LIFO order.
     let vec = test_order!(scope => spawn);
     let expected: Vec<i32> = (0..100).rev().collect(); // LIFO -> reversed
     assert_eq!(vec, expected);
@@ -301,7 +301,7 @@ fn lifo_order() {
 
 #[test]
 fn fifo_order() {
-    // In the absense of stealing, `scope_fifo()` runs its `spawn_fifo()` jobs in FIFO order.
+    // In the absence of stealing, `scope_fifo()` runs its `spawn_fifo()` jobs in FIFO order.
     let vec = test_order!(scope_fifo => spawn_fifo);
     let expected: Vec<i32> = (0..100).collect(); // FIFO -> natural order
     assert_eq!(vec, expected);
@@ -335,7 +335,7 @@ macro_rules! test_nested_order {
 
 #[test]
 fn nested_lifo_order() {
-    // In the absense of stealing, `scope()` runs its `spawn()` jobs in LIFO order.
+    // In the absence of stealing, `scope()` runs its `spawn()` jobs in LIFO order.
     let vec = test_nested_order!(scope => spawn, scope => spawn);
     let expected: Vec<i32> = (0..100).rev().collect(); // LIFO -> reversed
     assert_eq!(vec, expected);
@@ -343,7 +343,7 @@ fn nested_lifo_order() {
 
 #[test]
 fn nested_fifo_order() {
-    // In the absense of stealing, `scope_fifo()` runs its `spawn_fifo()` jobs in FIFO order.
+    // In the absence of stealing, `scope_fifo()` runs its `spawn_fifo()` jobs in FIFO order.
     let vec = test_nested_order!(scope_fifo => spawn_fifo, scope_fifo => spawn_fifo);
     let expected: Vec<i32> = (0..100).collect(); // FIFO -> natural order
     assert_eq!(vec, expected);
@@ -432,4 +432,84 @@ fn mixed_fifo_lifo_order() {
     let vec = test_mixed_order!(scope_fifo => spawn_fifo, scope => spawn);
     let expected = vec![-3, 0, -2, 1, -1, 2, 3];
     assert_eq!(vec, expected);
+}
+
+#[test]
+fn static_scope() {
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    let mut range = 0..100;
+    let sum = range.clone().sum();
+    let iter = &mut range;
+
+    COUNTER.store(0, Ordering::Relaxed);
+    scope(|s: &Scope<'static>| {
+        // While we're allowed the locally borrowed iterator,
+        // the spawns must be static.
+        for i in iter {
+            s.spawn(move |_| {
+                COUNTER.fetch_add(i, Ordering::Relaxed);
+            });
+        }
+    });
+
+    assert_eq!(COUNTER.load(Ordering::Relaxed), sum);
+}
+
+#[test]
+fn static_scope_fifo() {
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    let mut range = 0..100;
+    let sum = range.clone().sum();
+    let iter = &mut range;
+
+    COUNTER.store(0, Ordering::Relaxed);
+    scope_fifo(|s: &ScopeFifo<'static>| {
+        // While we're allowed the locally borrowed iterator,
+        // the spawns must be static.
+        for i in iter {
+            s.spawn_fifo(move |_| {
+                COUNTER.fetch_add(i, Ordering::Relaxed);
+            });
+        }
+    });
+
+    assert_eq!(COUNTER.load(Ordering::Relaxed), sum);
+}
+
+#[test]
+fn mixed_lifetime_scope() {
+    fn increment<'slice, 'counter>(counters: &'slice [&'counter AtomicUsize]) {
+        scope(move |s: &Scope<'counter>| {
+            // We can borrow 'slice here, but the spawns can only borrow 'counter.
+            for &c in counters {
+                s.spawn(move |_| {
+                    c.fetch_add(1, Ordering::Relaxed);
+                });
+            }
+        });
+    }
+
+    let counter = AtomicUsize::new(0);
+    increment(&[&counter; 100]);
+    assert_eq!(counter.into_inner(), 100);
+}
+
+#[test]
+fn mixed_lifetime_scope_fifo() {
+    fn increment<'slice, 'counter>(counters: &'slice [&'counter AtomicUsize]) {
+        scope_fifo(move |s: &ScopeFifo<'counter>| {
+            // We can borrow 'slice here, but the spawns can only borrow 'counter.
+            for &c in counters {
+                s.spawn_fifo(move |_| {
+                    c.fetch_add(1, Ordering::Relaxed);
+                });
+            }
+        });
+    }
+
+    let counter = AtomicUsize::new(0);
+    increment(&[&counter; 100]);
+    assert_eq!(counter.into_inner(), 100);
 }

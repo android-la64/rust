@@ -1,174 +1,33 @@
-//! Completes keywords, except:
-//! - `self`, `super` and `crate`, as these are considered part of path completions.
-//! - `await`, as this is a postfix completion we handle this in the postfix completions.
+//! Completes `where` and `for` keywords.
 
-use syntax::T;
+use syntax::ast::{self, Item};
 
-use crate::{
-    context::{PathCompletionCtx, PathKind},
-    patterns::ImmediateLocation,
-    CompletionContext, CompletionItem, CompletionItemKind, Completions,
-};
+use crate::{CompletionContext, Completions};
 
-pub(crate) fn complete_expr_keyword(acc: &mut Completions, ctx: &CompletionContext) {
-    if matches!(ctx.completion_location, Some(ImmediateLocation::RecordExpr(_))) {
-        cov_mark::hit!(no_keyword_completion_in_record_lit);
-        return;
-    }
-    if ctx.is_non_trivial_path() {
-        cov_mark::hit!(no_keyword_completion_in_non_trivial_path);
-        return;
-    }
-    if ctx.pattern_ctx.is_some() {
-        return;
-    }
+pub(crate) fn complete_special_keywords(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    keyword_item: &ast::Item,
+) {
+    let mut add_keyword = |kw, snippet| acc.add_keyword_snippet(ctx, kw, snippet);
 
-    let mut add_keyword = |kw, snippet| add_keyword(acc, ctx, kw, snippet);
-
-    let expects_assoc_item = ctx.expects_assoc_item();
-    let has_block_expr_parent = ctx.has_block_expr_parent();
-    let expects_item = ctx.expects_item();
-
-    if let Some(PathKind::Vis { .. }) = ctx.path_kind() {
-        return;
-    }
-    if ctx.has_unfinished_impl_or_trait_prev_sibling() {
-        add_keyword("where", "where");
-        if ctx.has_impl_prev_sibling() {
-            add_keyword("for", "for");
-        }
-        return;
-    }
-    if ctx.previous_token_is(T![unsafe]) {
-        if expects_item || expects_assoc_item || has_block_expr_parent {
-            add_keyword("fn", "fn $1($2) {\n    $0\n}")
-        }
-
-        if expects_item || has_block_expr_parent {
-            add_keyword("trait", "trait $1 {\n    $0\n}");
-            add_keyword("impl", "impl $1 {\n    $0\n}");
-        }
-
-        return;
-    }
-
-    if !ctx.has_visibility_prev_sibling()
-        && (expects_item || ctx.expects_non_trait_assoc_item() || ctx.expect_field())
-    {
-        add_keyword("pub(crate)", "pub(crate)");
-        add_keyword("pub(super)", "pub(super)");
-        add_keyword("pub", "pub");
-    }
-
-    if expects_item || expects_assoc_item || has_block_expr_parent {
-        add_keyword("unsafe", "unsafe");
-        add_keyword("fn", "fn $1($2) {\n    $0\n}");
-        add_keyword("const", "const $0");
-        add_keyword("type", "type $0");
-    }
-
-    if expects_item || has_block_expr_parent {
-        if !ctx.has_visibility_prev_sibling() {
-            add_keyword("impl", "impl $1 {\n    $0\n}");
-            add_keyword("extern", "extern $0");
-        }
-        add_keyword("use", "use $0");
-        add_keyword("trait", "trait $1 {\n    $0\n}");
-        add_keyword("static", "static $0");
-        add_keyword("mod", "mod $0");
-    }
-
-    if expects_item || has_block_expr_parent {
-        add_keyword("enum", "enum $1 {\n    $0\n}");
-        add_keyword("struct", "struct $0");
-        add_keyword("union", "union $1 {\n    $0\n}");
-    }
-
-    if ctx.expects_type() {
-        return;
-    }
-
-    if ctx.expects_expression() {
-        if !has_block_expr_parent {
-            add_keyword("unsafe", "unsafe {\n    $0\n}");
-        }
-        add_keyword("match", "match $1 {\n    $0\n}");
-        add_keyword("while", "while $1 {\n    $0\n}");
-        add_keyword("while let", "while let $1 = $2 {\n    $0\n}");
-        add_keyword("loop", "loop {\n    $0\n}");
-        add_keyword("if", "if $1 {\n    $0\n}");
-        add_keyword("if let", "if let $1 = $2 {\n    $0\n}");
-        add_keyword("for", "for $1 in $2 {\n    $0\n}");
-        add_keyword("true", "true");
-        add_keyword("false", "false");
-    }
-
-    if ctx.previous_token_is(T![if]) || ctx.previous_token_is(T![while]) || has_block_expr_parent {
-        add_keyword("let", "let");
-    }
-
-    if ctx.after_if() {
-        add_keyword("else", "else {\n    $0\n}");
-        add_keyword("else if", "else if $1 {\n    $0\n}");
-    }
-
-    if ctx.expects_ident_ref_expr() {
-        add_keyword("mut", "mut ");
-    }
-
-    let (can_be_stmt, in_loop_body) = match ctx.path_context() {
-        Some(&PathCompletionCtx {
-            is_absolute_path: false,
-            kind: PathKind::Expr { in_block_expr, in_loop_body, .. },
-            ..
-        }) => (in_block_expr, in_loop_body),
-        _ => return,
-    };
-
-    if in_loop_body {
-        if can_be_stmt {
-            add_keyword("continue", "continue;");
-            add_keyword("break", "break;");
-        } else {
-            add_keyword("continue", "continue");
-            add_keyword("break", "break");
-        }
-    }
-
-    let fn_def = match &ctx.function_def {
-        Some(it) => it,
-        None => return,
-    };
-
-    add_keyword(
-        "return",
-        match (can_be_stmt, fn_def.ret_type().is_some()) {
-            (true, true) => "return $0;",
-            (true, false) => "return;",
-            (false, true) => "return $0",
-            (false, false) => "return",
-        },
-    )
-}
-
-fn add_keyword(acc: &mut Completions, ctx: &CompletionContext, kw: &str, snippet: &str) {
-    let mut item = CompletionItem::new(CompletionItemKind::Keyword, ctx.source_range(), kw);
-
-    match ctx.config.snippet_cap {
-        Some(cap) => {
-            if snippet.ends_with('}') && ctx.incomplete_let {
-                // complete block expression snippets with a trailing semicolon, if inside an incomplete let
-                cov_mark::hit!(let_semi);
-                item.insert_snippet(cap, format!("{};", snippet));
-            } else {
-                item.insert_snippet(cap, snippet);
+    match keyword_item {
+        Item::Impl(it) => {
+            if it.for_token().is_none() && it.trait_().is_none() && it.self_ty().is_some() {
+                add_keyword("for", "for");
             }
+            add_keyword("where", "where");
         }
-        None => {
-            item.insert_text(if snippet.contains('$') { kw } else { snippet });
+        Item::Enum(_)
+        | Item::Fn(_)
+        | Item::Struct(_)
+        | Item::Trait(_)
+        | Item::TypeAlias(_)
+        | Item::Union(_) => {
+            add_keyword("where", "where");
         }
-    };
-    item.add_to(acc);
+        _ => (),
+    }
 }
 
 #[cfg(test)]

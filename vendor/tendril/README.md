@@ -3,9 +3,9 @@
 **Warning**: This library is at a very early stage of development, and it
 contains a substantial amount of `unsafe` code. Use at your own risk!
 
-[![Build Status](https://travis-ci.org/servo/tendril.svg?branch=master)](https://travis-ci.org/servo/tendril)
+[![Build Status](https://github.com/servo/tendril/workflows/CI/badge.svg)](https://github.com/servo/tendril/actions)
 
-[API Documentation](http://doc.servo.org/tendril/index.html)
+[API Documentation](https://doc.servo.org/tendril/index.html)
 
 ## Introduction
 
@@ -31,7 +31,8 @@ to go over the limit.
 
 ## Formats and encoding
 
-`Tendril` uses [phantom types](http://rustbyexample.com/generics/phantom.html)
+`Tendril` uses
+[phantom types](https://doc.rust-lang.org/stable/rust-by-example/generics/phantom.html)
 to track a buffer's format. This determines at compile time which
 operations are available on a given tendril. For example, `Tendril<UTF8>` and
 `Tendril<Bytes>` can be borrowed as `&str` and `&[u8]` respectively.
@@ -39,26 +40,6 @@ operations are available on a given tendril. For example, `Tendril<UTF8>` and
 `Tendril` also integrates with
 [rust-encoding](https://github.com/lifthrasiir/rust-encoding) and has
 preliminary support for [WTF-8][] buffers.
-
-## C interface
-
-`Tendril` provides a C API, which allows Rust to efficiently exchange buffers
-with C or any other language.
-
-```c
-#include "tendril.h"
-
-int main() {
-    tendril t = TENDRIL_INIT;
-    tendril_sprintf(&t, "Hello, %d!\n", 2015);
-    tendril_fwrite(&t, stdout);
-    some_rust_library(t);  // transfer ownership
-    return 0;
-}
-```
-
-See the [API documentation](https://github.com/kmcallister/tendril/blob/master/capi/include/tendril.h#L18)
-and the [test program](https://github.com/kmcallister/tendril/blob/master/capi/ctest/test.c).
 
 ## Plans for the future
 
@@ -107,9 +88,9 @@ metadata is chosen by the API consumer; it defaults to `()`, which has size
 zero. For any non-inline string, we can provide the associated metadata as well
 as a byte offset.
 
-[NonZero]: http://doc.rust-lang.org/core/nonzero/struct.NonZero.html
+[NonZero]: https://doc.rust-lang.org/core/nonzero/struct.NonZero.html
 [html5ever]: https://github.com/servo/html5ever
-[WTF-8]: http://simonsapin.github.io/wtf-8/
-[rope]: http://en.wikipedia.org/wiki/Rope_%28data_structure%29
-[persistent data structure]: http://en.wikipedia.org/wiki/Persistent_data_structure
-[2-3 finger tree]: http://staff.city.ac.uk/~ross/papers/FingerTree.html
+[WTF-8]: https://simonsapin.github.io/wtf-8/
+[rope]: https://en.wikipedia.org/wiki/Rope_%28data_structure%29
+[persistent data structure]: https://en.wikipedia.org/wiki/Persistent_data_structure
+[2-3 finger tree]: https://www.staff.city.ac.uk/~ross/papers/FingerTree.html

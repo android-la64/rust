@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "curl-sys"
-version = "0.4.51+curl-7.80.0"
+version = "0.4.55+curl-7.83.1"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 build = "build.rs"
 links = "curl"
@@ -25,6 +25,7 @@ repository = "https://github.com/alexcrichton/curl-rust"
 [lib]
 name = "curl_sys"
 path = "lib.rs"
+
 [dependencies.libc]
 version = "0.2.2"
 
@@ -37,11 +38,11 @@ version = "1.0.18"
 features = ["libc"]
 default-features = false
 
-[dependencies.mesalink]
-version = "1.1.0-cratesio"
-features = ["client_apis", "error_strings", "tls13", "aesgcm", "chachapoly", "x25519", "ecdh", "ecdsa", "verifier"]
+[dependencies.rustls-ffi]
+version = "0.8"
+features = ["no_log_capture"]
 optional = true
-default-features = false
+
 [build-dependencies.cc]
 version = "1.0"
 
@@ -52,22 +53,35 @@ version = "0.3.3"
 default = ["ssl"]
 force-system-lib-on-osx = []
 http2 = ["libnghttp2-sys"]
+mesalink = []
+ntlm = []
 poll_7_68_0 = []
 protocol-ftp = []
+rustls = ["rustls-ffi"]
 spnego = []
 ssl = ["openssl-sys"]
 static-curl = []
 static-ssl = ["openssl-sys/vendored"]
 upkeep_7_62_0 = []
-zlib-ng-compat = ["libz-sys/zlib-ng", "static-curl"]
+zlib-ng-compat = [
+    "libz-sys/zlib-ng",
+    "static-curl",
+]
+
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies.openssl-sys]
 version = "0.9"
 optional = true
+
 [target."cfg(target_env = \"msvc\")".build-dependencies.vcpkg]
 version = "0.2"
+
 [target."cfg(windows)".dependencies.winapi]
 version = "0.3"
-features = ["winsock2", "ws2def"]
+features = [
+    "winsock2",
+    "ws2def",
+]
+
 [badges.appveyor]
 repository = "alexcrichton/curl-rust"
 

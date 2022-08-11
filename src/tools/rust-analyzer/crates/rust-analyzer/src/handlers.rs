@@ -45,6 +45,7 @@ use crate::{
 
 pub(crate) fn handle_workspace_reload(state: &mut GlobalState, _: ()) -> Result<()> {
     state.proc_macro_client = None;
+    state.proc_macro_changed = false;
     state.fetch_workspaces_queue.request_op("reload workspace request".to_string());
     state.fetch_build_data_queue.request_op("reload workspace request".to_string());
     Ok(())
@@ -276,7 +277,7 @@ pub(crate) fn handle_on_enter(
 pub(crate) fn handle_on_type_formatting(
     snap: GlobalStateSnapshot,
     params: lsp_types::DocumentOnTypeFormattingParams,
-) -> Result<Option<Vec<lsp_types::TextEdit>>> {
+) -> Result<Option<Vec<lsp_ext::SnippetTextEdit>>> {
     let _p = profile::span("handle_on_type_formatting");
     let mut position = from_proto::file_position(&snap, params.text_document_position)?;
     let line_index = snap.file_line_index(position.file_id)?;
@@ -299,16 +300,17 @@ pub(crate) fn handle_on_type_formatting(
         return Ok(None);
     }
 
-    let edit = snap.analysis.on_char_typed(position, char_typed)?;
+    let edit =
+        snap.analysis.on_char_typed(position, char_typed, snap.config.typing_autoclose_angle())?;
     let edit = match edit {
         Some(it) => it,
         None => return Ok(None),
     };
 
     // This should be a single-file edit
-    let (_, edit) = edit.source_file_edits.into_iter().next().unwrap();
+    let (_, text_edit) = edit.source_file_edits.into_iter().next().unwrap();
 
-    let change = to_proto::text_edit_vec(&line_index, edit);
+    let change = to_proto::snippet_text_edit_vec(&line_index, edit.is_snippet, text_edit);
     Ok(Some(change))
 }
 
@@ -795,27 +797,27 @@ pub(crate) fn handle_completion(
     let _p = profile::span("handle_completion");
     let text_document_position = params.text_document_position.clone();
     let position = from_proto::file_position(&snap, params.text_document_position)?;
-    let completion_triggered_after_single_colon = {
-        let mut res = false;
-        if let Some(ctx) = params.context {
-            if ctx.trigger_character.as_deref() == Some(":") {
-                let source_file = snap.analysis.parse(position.file_id)?;
-                let left_token =
-                    source_file.syntax().token_at_offset(position.offset).left_biased();
-                match left_token {
-                    Some(left_token) => res = left_token.kind() == T![:],
-                    None => res = true,
-                }
-            }
+    let completion_trigger_character =
+        params.context.and_then(|ctx| ctx.trigger_character).and_then(|s| s.chars().next());
+
+    if Some(':') == completion_trigger_character {
+        let source_file = snap.analysis.parse(position.file_id)?;
+        let left_token = source_file.syntax().token_at_offset(position.offset).left_biased();
+        let completion_triggered_after_single_colon = match left_token {
+            Some(left_token) => left_token.kind() == T![:],
+            None => true,
+        };
+        if completion_triggered_after_single_colon {
+            return Ok(None);
         }
-        res
-    };
-    if completion_triggered_after_single_colon {
-        return Ok(None);
     }
 
     let completion_config = &snap.config.completion();
-    let items = match snap.analysis.completions(completion_config, position)? {
+    let items = match snap.analysis.completions(
+        completion_config,
+        position,
+        completion_trigger_character,
+    )? {
         None => return Ok(None),
         Some(items) => items,
     };
@@ -911,8 +913,8 @@ pub(crate) fn handle_signature_help(
         Some(it) => it,
         None => return Ok(None),
     };
-    let concise = !snap.config.call_info_full();
-    let res = to_proto::signature_help(help, concise, snap.config.signature_help_label_offsets());
+    let config = snap.config.call_info();
+    let res = to_proto::signature_help(help, config, snap.config.signature_help_label_offsets());
     Ok(Some(res))
 }
 
@@ -1215,7 +1217,7 @@ pub(crate) fn handle_code_lens(
                 .unwrap_or(false),
             annotate_runnables: lens_config.runnable(),
             annotate_impls: lens_config.implementations,
-            annotate_references: lens_config.refs,
+            annotate_references: lens_config.refs_adt,
             annotate_method_references: lens_config.method_refs,
             annotate_enum_variant_references: lens_config.enum_variant_refs,
         },
@@ -1343,9 +1345,47 @@ pub(crate) fn handle_inlay_hints(
         snap.analysis
             .inlay_hints(&inlay_hints_config, file_id, Some(range))?
             .into_iter()
-            .map(|it| to_proto::inlay_hint(inlay_hints_config.render_colons, &line_index, it))
+            .map(|it| {
+                to_proto::inlay_hint(&snap, &line_index, inlay_hints_config.render_colons, it)
+            })
             .collect(),
     ))
+}
+
+pub(crate) fn handle_inlay_hints_resolve(
+    snap: GlobalStateSnapshot,
+    mut hint: InlayHint,
+) -> Result<InlayHint> {
+    let _p = profile::span("handle_inlay_hints_resolve");
+    let data = match hint.data.take() {
+        Some(it) => it,
+        None => return Ok(hint),
+    };
+
+    let resolve_data: lsp_ext::InlayHintResolveData = serde_json::from_value(data)?;
+
+    let file_range = from_proto::file_range(
+        &snap,
+        resolve_data.text_document,
+        match resolve_data.position {
+            PositionOrRange::Position(pos) => Range::new(pos, pos),
+            PositionOrRange::Range(range) => range,
+        },
+    )?;
+    let info = match snap.analysis.hover(&snap.config.hover(), file_range)? {
+        None => return Ok(hint),
+        Some(info) => info,
+    };
+
+    let markup_kind =
+        snap.config.hover().documentation.map_or(ide::HoverDocFormat::Markdown, |kind| kind);
+
+    // FIXME: hover actions?
+    hint.tooltip = Some(lsp_types::InlayHintTooltip::MarkupContent(to_proto::markup_content(
+        info.info.markup,
+        markup_kind,
+    )));
+    Ok(hint)
 }
 
 pub(crate) fn handle_call_hierarchy_prepare(

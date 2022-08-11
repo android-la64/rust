@@ -4,6 +4,16 @@
  
   - …
 
+## annotate-snippets 0.9.1 (September 4, 2021)
+
+  - Fix character split when strip code. (#37)
+  - Fix off by one error in multiline highlighting. (#42)
+  - Fix display of annotation for double width characters. (#46)
+
+## annotate-snippets 0.9.0 (June 28, 2020)
+
+  - Add strip code to the left and right of long lines. (#36)
+
 ## annotate-snippets 0.8.0 (April 14, 2020)
 
   - Replace `ansi_term` with `yansi-term` for improved performance. (#30)

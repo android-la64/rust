@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.6
+
+Fixes:
+
+* marks `Vnode` enum `non_exhaustive` to fix backwards compatibility in 1.x
+
+## 1.0.5
+
+Adds:
+
+* docs.rs support
+* added new enum variants specific to FreeBSD (broke backwards compatibility)
+
+Fixes:
+
+* Fixes broken 32bit builds
+
 ## 1.0.4
 
 Fixes:

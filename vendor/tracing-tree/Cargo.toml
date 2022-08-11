@@ -12,8 +12,11 @@
 [package]
 edition = "2018"
 name = "tracing-tree"
-version = "0.2.0"
-authors = ["David Barsky <me@davidbarsky.com>", "Nathan Whitaker"]
+version = "0.2.1"
+authors = [
+    "David Barsky <me@davidbarsky.com>",
+    "Nathan Whitaker",
+]
 description = "A Tracing Layer which prints a tree of spans and events."
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -22,6 +25,7 @@ repository = "https://github.com/davidbarsky/tracing-tree"
 [[test]]
 name = "ui"
 harness = false
+
 [dependencies.ansi_term]
 version = "0.12"
 
@@ -37,8 +41,13 @@ optional = true
 
 [dependencies.tracing-subscriber]
 version = "0.3"
-features = ["registry", "fmt", "std"]
+features = [
+    "registry",
+    "fmt",
+    "std",
+]
 default-features = false
+
 [dev-dependencies.assert_cmd]
 version = "1"
 

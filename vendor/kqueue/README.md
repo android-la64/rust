@@ -1,7 +1,8 @@
 # kqueue
 
 [![Gitlab Pipelines](https://gitlab.com/worr/rust-kqueue/badges/master/pipeline.svg)](https://gitlab.com/worr/rust-kqueue/-/commits/master)
-[![Travis Build Status](https://travis-ci.com/worr/rust-kqueue.svg?branch=master)](https://travis-ci.com/worr/rust-kqueue)
+[![Travis Build
+Status](https://travis-ci.com/worr/rust-kqueue.svg?branch=master)](https://travis-ci.com/gitlab/worr/rust-kqueue)
 
 `kqueue(2)` library for rust
 
@@ -13,9 +14,7 @@ abstraction over similar APIs in cross-platform code.
 
 ## Docs
 
-I don't recommend using https://docs.rs for documentation, since the builds
-aren't done on BSD nodes. I host documentation at
-https://docs.worrbase.com/rust/kqueue/ .
+Docs are mirrored here: https://docs.worrbase.com/rust/kqueue/ .
 
 ## Examples
 

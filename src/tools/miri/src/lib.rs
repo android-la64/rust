@@ -5,21 +5,21 @@
 #![feature(try_blocks)]
 #![feature(let_else)]
 #![feature(io_error_more)]
+#![feature(yeet_expr)]
 #![warn(rust_2018_idioms)]
 #![allow(
-    clippy::cast_lossless,
     clippy::collapsible_else_if,
     clippy::collapsible_if,
     clippy::comparison_chain,
     clippy::enum_variant_names,
     clippy::field_reassign_with_default,
-    clippy::from_over_into,
-    clippy::if_same_then_else,
     clippy::manual_map,
-    clippy::needless_lifetimes,
     clippy::new_without_default,
     clippy::single_match,
-    clippy::useless_format
+    clippy::useless_format,
+    clippy::derive_partial_eq_without_eq,
+    clippy::derive_hash_xor_eq,
+    clippy::too_many_arguments
 )]
 
 extern crate rustc_apfloat;
@@ -34,7 +34,7 @@ extern crate rustc_session;
 extern crate rustc_span;
 extern crate rustc_target;
 
-mod data_race;
+mod concurrency;
 mod diagnostics;
 mod eval;
 mod helpers;
@@ -66,7 +66,7 @@ pub use crate::shims::time::EvalContextExt as _;
 pub use crate::shims::tls::{EvalContextExt as _, TlsData};
 pub use crate::shims::EvalContextExt as _;
 
-pub use crate::data_race::{
+pub use crate::concurrency::data_race::{
     AtomicFenceOp, AtomicReadOp, AtomicRwOp, AtomicWriteOp,
     EvalContextExt as DataRaceEvalContextExt,
 };
@@ -77,10 +77,11 @@ pub use crate::diagnostics::{
 pub use crate::eval::{
     create_ecx, eval_entry, AlignmentCheck, BacktraceStyle, IsolatedOp, MiriConfig, RejectOpWith,
 };
-pub use crate::helpers::EvalContextExt as HelpersEvalContextExt;
+pub use crate::helpers::{CurrentSpan, EvalContextExt as HelpersEvalContextExt};
+pub use crate::intptrcast::ProvenanceMode;
 pub use crate::machine::{
-    AllocExtra, Evaluator, FrameData, MiriEvalContext, MiriEvalContextExt, MiriMemoryKind, Tag,
-    NUM_CPUS, PAGE_SIZE, STACK_ADDR, STACK_SIZE,
+    AllocExtra, ConcreteTag, Evaluator, FrameData, MiriEvalContext, MiriEvalContextExt,
+    MiriMemoryKind, Tag, NUM_CPUS, PAGE_SIZE, STACK_ADDR, STACK_SIZE,
 };
 pub use crate::mono_hash_map::MonoHashMap;
 pub use crate::operator::EvalContextExt as OperatorEvalContextExt;

@@ -12,6 +12,7 @@ use rustc_hir::def_id::DefId;
 use rustc_index::vec::{Idx, IndexVec};
 use rustc_middle::mir::Mutability;
 
+use crate::concurrency::data_race;
 use crate::sync::SynchronizationState;
 use crate::*;
 
@@ -263,7 +264,7 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
     }
 
     /// Borrow the stack of the active thread.
-    fn active_thread_stack(&self) -> &[Frame<'mir, 'tcx, Tag, FrameData<'tcx>>] {
+    pub fn active_thread_stack(&self) -> &[Frame<'mir, 'tcx, Tag, FrameData<'tcx>>] {
         &self.threads[self.active_thread].stack
     }
 
@@ -518,16 +519,26 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
             return Ok(SchedulingAction::ExecuteTimeoutCallback);
         }
         // No callbacks scheduled, pick a regular thread to execute.
-        // We need to pick a new thread for execution.
-        for (id, thread) in self.threads.iter_enumerated() {
+        // The active thread blocked or yielded. So we go search for another enabled thread.
+        // Curcially, we start searching at the current active thread ID, rather than at 0, since we
+        // want to avoid always scheduling threads 0 and 1 without ever making progress in thread 2.
+        //
+        // `skip(N)` means we start iterating at thread N, so we skip 1 more to start just *after*
+        // the active thread. Then after that we look at `take(N)`, i.e., the threads *before* the
+        // active thread.
+        let threads = self
+            .threads
+            .iter_enumerated()
+            .skip(self.active_thread.index() + 1)
+            .chain(self.threads.iter_enumerated().take(self.active_thread.index()));
+        for (id, thread) in threads {
+            debug_assert_ne!(self.active_thread, id);
             if thread.state == ThreadState::Enabled {
-                if !self.yield_active_thread || id != self.active_thread {
-                    self.active_thread = id;
-                    if let Some(data_race) = data_race {
-                        data_race.thread_set_active(self.active_thread);
-                    }
-                    break;
+                self.active_thread = id;
+                if let Some(data_race) = data_race {
+                    data_race.thread_set_active(self.active_thread);
                 }
+                break;
             }
         }
         self.yield_active_thread = false;
@@ -576,7 +587,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // This allocation will be deallocated when the thread dies, so it is not in read-only memory.
             allocation.mutability = Mutability::Mut;
             // Create a fresh allocation with this content.
-            let new_alloc = this.allocate_raw_ptr(allocation, MiriMemoryKind::Tls.into());
+            let new_alloc = this.allocate_raw_ptr(allocation, MiriMemoryKind::Tls.into())?;
             this.machine.threads.set_thread_local_alloc(def_id, new_alloc);
             Ok(new_alloc)
         }
@@ -704,6 +715,16 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     fn yield_active_thread(&mut self) {
         let this = self.eval_context_mut();
         this.machine.threads.yield_active_thread();
+    }
+
+    #[inline]
+    fn maybe_preempt_active_thread(&mut self) {
+        use rand::Rng as _;
+
+        let this = self.eval_context_mut();
+        if this.machine.rng.get_mut().gen_bool(this.machine.preemption_rate) {
+            this.yield_active_thread();
+        }
     }
 
     #[inline]

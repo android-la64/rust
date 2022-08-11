@@ -30,9 +30,9 @@ use crate::{
     db::HirDatabase,
     semantics::source_to_def::{ChildContainer, SourceToDefCache, SourceToDefCtx},
     source_analyzer::{resolve_hir_path, SourceAnalyzer},
-    Access, BuiltinAttr, Callable, ConstParam, Crate, Field, Function, HasSource, HirFileId, Impl,
-    InFile, Label, LifetimeParam, Local, Macro, Module, ModuleDef, Name, Path, ScopeDef,
-    ToolModule, Trait, Type, TypeAlias, TypeParam, VariantDef,
+    Access, BindingMode, BuiltinAttr, Callable, ConstParam, Crate, Field, Function, HasSource,
+    HirFileId, Impl, InFile, Label, LifetimeParam, Local, Macro, Module, ModuleDef, Name, Path,
+    ScopeDef, ToolModule, Trait, Type, TypeAlias, TypeParam, VariantDef,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -208,14 +208,14 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
         self.imp.descend_into_macros(token)
     }
 
-    /// Descend the token into macrocalls to all its mapped counterparts.
+    /// Descend the token into macrocalls to all its mapped counterparts that have the same text as the input token.
     ///
-    /// Returns the original non descended token if none of the mapped counterparts have the same syntax kind.
-    pub fn descend_into_macros_with_same_kind(
+    /// Returns the original non descended token if none of the mapped counterparts have the same text.
+    pub fn descend_into_macros_with_same_text(
         &self,
         token: SyntaxToken,
     ) -> SmallVec<[SyntaxToken; 1]> {
-        self.imp.descend_into_macros_with_same_kind(token)
+        self.imp.descend_into_macros_with_same_text(token)
     }
 
     /// Maps a node down by mapping its first and last token down.
@@ -334,6 +334,14 @@ impl<'db, DB: HirDatabase> Semantics<'db, DB> {
 
     pub fn type_of_self(&self, param: &ast::SelfParam) -> Option<Type> {
         self.imp.type_of_self(param)
+    }
+
+    pub fn pattern_adjustments(&self, pat: &ast::Pat) -> SmallVec<[Type; 1]> {
+        self.imp.pattern_adjustments(pat)
+    }
+
+    pub fn binding_mode_of_pat(&self, pat: &ast::IdentPat) -> Option<BindingMode> {
+        self.imp.binding_mode_of_pat(pat)
     }
 
     pub fn resolve_method_call(&self, call: &ast::MethodCallExpr) -> Option<Function> {
@@ -610,7 +618,7 @@ impl<'db> SemanticsImpl<'db> {
 
         if first == last {
             self.descend_into_macros_impl(first, &mut |InFile { value, .. }| {
-                if let Some(node) = value.ancestors().find_map(N::cast) {
+                if let Some(node) = value.parent_ancestors().find_map(N::cast) {
                     res.push(node)
                 }
                 false
@@ -658,11 +666,11 @@ impl<'db> SemanticsImpl<'db> {
         res
     }
 
-    fn descend_into_macros_with_same_kind(&self, token: SyntaxToken) -> SmallVec<[SyntaxToken; 1]> {
-        let kind = token.kind();
+    fn descend_into_macros_with_same_text(&self, token: SyntaxToken) -> SmallVec<[SyntaxToken; 1]> {
+        let text = token.text();
         let mut res = smallvec![];
         self.descend_into_macros_impl(token.clone(), &mut |InFile { value, .. }| {
-            if value.kind() == kind {
+            if value.text() == text {
                 res.push(value);
             }
             false
@@ -729,7 +737,7 @@ impl<'db> SemanticsImpl<'db> {
             let was_not_remapped = (|| {
                 // are we inside an attribute macro call
                 let containing_attribute_macro_call = self.with_ctx(|ctx| {
-                    token.value.ancestors().filter_map(ast::Item::cast).find_map(|item| {
+                    token.value.parent_ancestors().filter_map(ast::Item::cast).find_map(|item| {
                         if item.attrs().next().is_none() {
                             // Don't force populate the dyn cache for items that don't have an attribute anyways
                             return None;
@@ -750,7 +758,12 @@ impl<'db> SemanticsImpl<'db> {
                 // or are we inside a function-like macro call
                 if let Some(tt) =
                     // FIXME replace map.while_some with take_while once stable
-                    token.value.ancestors().map(ast::TokenTree::cast).while_some().last()
+                    token
+                        .value
+                        .parent_ancestors()
+                        .map(ast::TokenTree::cast)
+                        .while_some()
+                        .last()
                 {
                     let parent = tt.syntax().parent()?;
                     // check for derive attribute here
@@ -949,6 +962,16 @@ impl<'db> SemanticsImpl<'db> {
 
     fn type_of_self(&self, param: &ast::SelfParam) -> Option<Type> {
         self.analyze(param.syntax())?.type_of_self(self.db, param)
+    }
+
+    fn pattern_adjustments(&self, pat: &ast::Pat) -> SmallVec<[Type; 1]> {
+        self.analyze(pat.syntax())
+            .and_then(|it| it.pattern_adjustments(self.db, pat))
+            .unwrap_or_default()
+    }
+
+    fn binding_mode_of_pat(&self, pat: &ast::IdentPat) -> Option<BindingMode> {
+        self.analyze(pat.syntax())?.binding_mode_of_pat(self.db, pat)
     }
 
     fn resolve_method_call(&self, call: &ast::MethodCallExpr) -> Option<FunctionId> {

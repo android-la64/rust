@@ -36,7 +36,9 @@ impl<'a> Project<'a> {
                     // Loading standard library is costly, let's ignore it by default
                     "noSysroot": true,
                     // Can't use test binary as rustc wrapper.
-                    "useRustcWrapperForBuildScripts": false,
+                    "buildScripts": {
+                        "useRustcWrapper": false
+                    },
                 }
             }),
         }
@@ -137,7 +139,7 @@ impl<'a> Project<'a> {
             },
         );
         config.discovered_projects = Some(discovered_projects);
-        let _ = config.update(self.config);
+        config.update(self.config).expect("invalid config");
 
         Server::new(tmp_dir, config)
     }
@@ -358,7 +360,7 @@ fn find_mismatch<'a>(expected: &'a Value, actual: &'a Value) -> Option<(&'a Valu
             let l = sorted_values(l);
             let r = sorted_values(r);
 
-            l.into_iter().zip(r).filter_map(|(l, r)| find_mismatch(l, r)).next()
+            l.into_iter().zip(r).find_map(|(l, r)| find_mismatch(l, r))
         }
         (Value::Null, Value::Null) => None,
         // magic string literal "{...}" acts as wildcard for any sub-JSON

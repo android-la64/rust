@@ -1,121 +1,107 @@
-//! The different types of `Any` for use in a map.
-//!
-//! This stuff is all based on `std::any`, but goes a little further, with `CloneAny` being a
-//! cloneable `Any` and with the `Send` and `Sync` bounds possible on both `Any` and `CloneAny`.
-
-use std::fmt;
-use std::any::Any as StdAny;
+use core::fmt;
+use core::any::{Any, TypeId};
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
 
 #[doc(hidden)]
 pub trait CloneToAny {
-    /// Clone `self` into a new `Box<CloneAny>` object.
-    fn clone_to_any(&self) -> Box<CloneAny>;
-
-    /// Clone `self` into a new `Box<CloneAny + Send>` object.
-    fn clone_to_any_send(&self) -> Box<CloneAny + Send> where Self: Send;
-
-    /// Clone `self` into a new `Box<CloneAny + Sync>` object.
-    fn clone_to_any_sync(&self) -> Box<CloneAny + Sync> where Self: Sync;
-
-    /// Clone `self` into a new `Box<CloneAny + Send + Sync>` object.
-    fn clone_to_any_send_sync(&self) -> Box<CloneAny + Send + Sync> where Self: Send + Sync;
+    /// Clone `self` into a new `Box<dyn CloneAny>` object.
+    fn clone_to_any(&self) -> Box<dyn CloneAny>;
 }
 
 impl<T: Any + Clone> CloneToAny for T {
     #[inline]
-    fn clone_to_any(&self) -> Box<CloneAny> {
+    fn clone_to_any(&self) -> Box<dyn CloneAny> {
         Box::new(self.clone())
     }
-
-    #[inline]
-    fn clone_to_any_send(&self) -> Box<CloneAny + Send> where Self: Send {
-        Box::new(self.clone())
-    }
-
-    #[inline]
-    fn clone_to_any_sync(&self) -> Box<CloneAny + Sync> where Self: Sync {
-        Box::new(self.clone())
-    }
-
-    #[inline]
-    fn clone_to_any_send_sync(&self) -> Box<CloneAny + Send + Sync> where Self: Send + Sync {
-        Box::new(self.clone())
-    }
-}
-
-macro_rules! define {
-    (CloneAny) => {
-        /// A type to emulate dynamic typing.
-        ///
-        /// Every type with no non-`'static` references implements `Any`.
-        define!(CloneAny remainder);
-    };
-    (Any) => {
-        /// A type to emulate dynamic typing with cloning.
-        ///
-        /// Every type with no non-`'static` references that implements `Clone` implements `Any`.
-        define!(Any remainder);
-    };
-    ($t:ident remainder) => {
-        /// See the [`std::any` documentation](https://doc.rust-lang.org/std/any/index.html) for
-        /// more details on `Any` in general.
-        ///
-        /// This trait is not `std::any::Any` but rather a type extending that for this library’s
-        /// purposes so that it can be combined with marker traits like 
-        /// <code><a class=trait title=core::marker::Send
-        /// href=http://doc.rust-lang.org/std/marker/trait.Send.html>Send</a></code> and
-        /// <code><a class=trait title=core::marker::Sync
-        /// href=http://doc.rust-lang.org/std/marker/trait.Sync.html>Sync</a></code>.
-        ///
-        define!($t trait);
-    };
-    (CloneAny trait) => {
-        /// See also [`Any`](trait.Any.html) for a version without the `Clone` requirement.
-        pub trait CloneAny: Any + CloneToAny { }
-        impl<T: StdAny + Clone> CloneAny for T { }
-    };
-    (Any trait) => {
-        /// See also [`CloneAny`](trait.CloneAny.html) for a cloneable version of this trait.
-        pub trait Any: StdAny { }
-        impl<T: StdAny> Any for T { }
-    };
 }
 
 macro_rules! impl_clone {
-    ($t:ty, $method:ident) => {
+    ($t:ty) => {
         impl Clone for Box<$t> {
             #[inline]
             fn clone(&self) -> Box<$t> {
-                (**self).$method()
+                // SAFETY: this dance is to reapply any Send/Sync marker. I’m not happy about this
+                // approach, given that I used to do it in safe code, but then came a dodgy
+                // future-compatibility warning where_clauses_object_safety, which is spurious for
+                // auto traits but still super annoying (future-compatibility lints seem to mean
+                // your bin crate needs a corresponding allow!). Although I explained my plight¹
+                // and it was all explained and agreed upon, no action has been taken. So I finally
+                // caved and worked around it by doing it this way, which matches what’s done for
+                // core::any², so it’s probably not *too* bad.
+                //
+                // ¹ https://github.com/rust-lang/rust/issues/51443#issuecomment-421988013
+                // ² https://github.com/rust-lang/rust/blob/e7825f2b690c9a0d21b6f6d84c404bb53b151b38/library/alloc/src/boxed.rs#L1613-L1616
+                let clone: Box<dyn CloneAny> = (**self).clone_to_any();
+                let raw: *mut dyn CloneAny = Box::into_raw(clone);
+                unsafe { Box::from_raw(raw as *mut $t) }
+            }
+        }
+
+        impl fmt::Debug for $t {
+            #[inline]
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.pad(stringify!($t))
             }
         }
     }
 }
 
-#[allow(missing_docs)]  // Bogus warning (it’s not public outside the crate), ☹
-pub trait UncheckedAnyExt: Any {
-    unsafe fn downcast_ref_unchecked<T: Any>(&self) -> &T;
-    unsafe fn downcast_mut_unchecked<T: Any>(&mut self) -> &mut T;
-    unsafe fn downcast_unchecked<T: Any>(self: Box<Self>) -> Box<T>;
+/// Methods for downcasting from an `Any`-like trait object.
+///
+/// This should only be implemented on trait objects for subtraits of `Any`, though you can
+/// implement it for other types and it’ll work fine, so long as your implementation is correct.
+pub trait Downcast {
+    /// Gets the `TypeId` of `self`.
+    fn type_id(&self) -> TypeId;
+
+    // Note the bound through these downcast methods is 'static, rather than the inexpressible
+    // concept of Self-but-as-a-trait (where Self is `dyn Trait`). This is sufficient, exceeding
+    // TypeId’s requirements. Sure, you *can* do CloneAny.downcast_unchecked::<NotClone>() and the
+    // type system won’t protect you, but that doesn’t introduce any unsafety: the method is
+    // already unsafe because you can specify the wrong type, and if this were exposing safe
+    // downcasting, CloneAny.downcast::<NotClone>() would just return an error, which is just as
+    // correct.
+    //
+    // Now in theory we could also add T: ?Sized, but that doesn’t play nicely with the common
+    // implementation, so I’m doing without it.
+
+    /// Downcast from `&Any` to `&T`, without checking the type matches.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `T` matches the trait object, on pain of *undefined behaviour*.
+    unsafe fn downcast_ref_unchecked<T: 'static>(&self) -> &T;
+
+    /// Downcast from `&mut Any` to `&mut T`, without checking the type matches.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `T` matches the trait object, on pain of *undefined behaviour*.
+    unsafe fn downcast_mut_unchecked<T: 'static>(&mut self) -> &mut T;
+
+    /// Downcast from `Box<Any>` to `Box<T>`, without checking the type matches.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `T` matches the trait object, on pain of *undefined behaviour*.
+    unsafe fn downcast_unchecked<T: 'static>(self: Box<Self>) -> Box<T>;
 }
 
-#[doc(hidden)]
 /// A trait for the conversion of an object into a boxed trait object.
-pub trait IntoBox<A: ?Sized + UncheckedAnyExt>: Any {
+pub trait IntoBox<A: ?Sized + Downcast>: Any {
     /// Convert self into the appropriate boxed form.
     fn into_box(self) -> Box<A>;
 }
 
 macro_rules! implement {
-    ($base:ident, $(+ $bounds:ident)*) => {
-        impl fmt::Debug for $base $(+ $bounds)* {
+    ($any_trait:ident $(+ $auto_traits:ident)*) => {
+        impl Downcast for dyn $any_trait $(+ $auto_traits)* {
             #[inline]
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.pad(stringify!($base $(+ $bounds)*))
+            fn type_id(&self) -> TypeId {
+                self.type_id()
             }
-        }
 
-        impl UncheckedAnyExt for $base $(+ $bounds)* {
             #[inline]
             unsafe fn downcast_ref_unchecked<T: 'static>(&self) -> &T {
                 &*(self as *const Self as *const T)
@@ -132,27 +118,28 @@ macro_rules! implement {
             }
         }
 
-        impl<T: $base $(+ $bounds)*> IntoBox<$base $(+ $bounds)*> for T {
+        impl<T: $any_trait $(+ $auto_traits)*> IntoBox<dyn $any_trait $(+ $auto_traits)*> for T {
             #[inline]
-            fn into_box(self) -> Box<$base $(+ $bounds)*> {
+            fn into_box(self) -> Box<dyn $any_trait $(+ $auto_traits)*> {
                 Box::new(self)
             }
         }
     }
 }
 
-define!(Any);
-implement!(Any,);
-implement!(Any, + Send);
-implement!(Any, + Sync);
-implement!(Any, + Send + Sync);
-implement!(CloneAny,);
-implement!(CloneAny, + Send);
-implement!(CloneAny, + Sync);
-implement!(CloneAny, + Send + Sync);
+implement!(Any);
+implement!(Any + Send);
+implement!(Any + Send + Sync);
 
-define!(CloneAny);
-impl_clone!(CloneAny, clone_to_any);
-impl_clone!((CloneAny + Send), clone_to_any_send);
-impl_clone!((CloneAny + Sync), clone_to_any_sync);
-impl_clone!((CloneAny + Send + Sync), clone_to_any_send_sync);
+/// [`Any`], but with cloning.
+///
+/// Every type with no non-`'static` references that implements `Clone` implements `CloneAny`.
+/// See [`core::any`] for more details on `Any` in general.
+pub trait CloneAny: Any + CloneToAny { }
+impl<T: Any + Clone> CloneAny for T { }
+implement!(CloneAny);
+implement!(CloneAny + Send);
+implement!(CloneAny + Send + Sync);
+impl_clone!(dyn CloneAny);
+impl_clone!(dyn CloneAny + Send);
+impl_clone!(dyn CloneAny + Send + Sync);

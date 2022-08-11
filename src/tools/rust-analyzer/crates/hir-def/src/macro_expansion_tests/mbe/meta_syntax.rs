@@ -56,6 +56,9 @@ macro_rules! f2 { ($i:) => ($i) }
 f2!();
 macro_rules! f3 { ($i:_) => () }
 f3!();
+
+macro_rules! m1 { ($$i) => () }
+m1!();
 "#,
         expect![[r#"
 macro_rules! i1 { invalid }
@@ -74,13 +77,16 @@ macro_rules! f2 { ($i:) => ($i) }
 /* error: invalid macro definition: missing fragment specifier */
 macro_rules! f3 { ($i:_) => () }
 /* error: invalid macro definition: missing fragment specifier */
+
+macro_rules! m1 { ($$i) => () }
+/* error: invalid macro definition: `$$` is not allowed on the pattern side */
 "#]],
     )
 }
 
 #[test]
 fn test_rustc_issue_57597() {
-    // <https://github.com/rust-lang/rust/blob/master/src/test/ui/macros/issue-57597.rs>
+    // <https://github.com/rust-lang/rust/blob/master/src/test/ui/issues/issue-57597.rs>
     check(
         r#"
 macro_rules! m0 { ($($($i:ident)?)+) => {}; }

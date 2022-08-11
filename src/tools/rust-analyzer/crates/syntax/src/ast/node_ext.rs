@@ -432,6 +432,13 @@ impl NameLike {
             _ => None,
         }
     }
+    pub fn text(&self) -> TokenText {
+        match self {
+            NameLike::NameRef(name_ref) => name_ref.text(),
+            NameLike::Name(name) => name.text(),
+            NameLike::Lifetime(lifetime) => lifetime.text(),
+        }
+    }
 }
 
 impl ast::AstNode for NameLike {
@@ -503,6 +510,10 @@ impl ast::RecordPatField {
         }
     }
 
+    pub fn parent_record_pat(&self) -> ast::RecordPat {
+        self.syntax().ancestors().find_map(ast::RecordPat::cast).unwrap()
+    }
+
     /// Deals with field init shorthand
     pub fn field_name(&self) -> Option<NameOrNameRef> {
         if let Some(name_ref) = self.name_ref() {
@@ -555,9 +566,7 @@ impl ast::FieldExpr {
         self.syntax
             .children_with_tokens()
             // FIXME: Accepting floats here to reject them in validation later
-            .find(|c| {
-                c.kind() == SyntaxKind::INT_NUMBER || c.kind() == SyntaxKind::FLOAT_NUMBER_PART
-            })
+            .find(|c| c.kind() == SyntaxKind::INT_NUMBER || c.kind() == SyntaxKind::FLOAT_NUMBER)
             .as_ref()
             .and_then(SyntaxElement::as_token)
             .cloned()

@@ -7,9 +7,9 @@
 
 use arrayvec::ArrayVec;
 use hir::{
-    Adt, AsAssocItem, AssocItem, BuiltinAttr, BuiltinType, Const, Field, Function, GenericParam,
-    HasVisibility, Impl, ItemInNs, Label, Local, Macro, Module, ModuleDef, Name, PathResolution,
-    Semantics, Static, ToolModule, Trait, TypeAlias, Variant, Visibility,
+    Adt, AsAssocItem, AssocItem, BuiltinAttr, BuiltinType, Const, Crate, Field, Function,
+    GenericParam, HasVisibility, Impl, ItemInNs, Label, Local, Macro, Module, ModuleDef, Name,
+    PathResolution, Semantics, Static, ToolModule, Trait, TypeAlias, Variant, Visibility,
 };
 use stdx::impl_from;
 use syntax::{
@@ -44,6 +44,13 @@ pub enum Definition {
 impl Definition {
     pub fn canonical_module_path(&self, db: &RootDatabase) -> Option<impl Iterator<Item = Module>> {
         self.module(db).map(|it| it.path_to_root(db).into_iter().rev())
+    }
+
+    pub fn krate(&self, db: &RootDatabase) -> Option<Crate> {
+        Some(match self {
+            Definition::Module(m) => m.krate(),
+            _ => self.module(db)?.krate(),
+        })
     }
 
     pub fn module(&self, db: &RootDatabase) -> Option<Module> {
@@ -386,9 +393,8 @@ impl NameRefClass {
                     let containing_path = name_ref.syntax().ancestors().find_map(ast::Path::cast)?;
                     let resolved = sema.resolve_path(&containing_path)?;
                     if let PathResolution::Def(ModuleDef::Trait(tr)) = resolved {
-                        // FIXME: resolve in supertraits
                         if let Some(ty) = tr
-                            .items(sema.db)
+                            .items_with_supertraits(sema.db)
                             .iter()
                             .filter_map(|&assoc| match assoc {
                                 hir::AssocItem::TypeAlias(it) => Some(it),

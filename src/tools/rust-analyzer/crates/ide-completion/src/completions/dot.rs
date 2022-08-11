@@ -3,30 +3,28 @@
 use ide_db::FxHashSet;
 
 use crate::{
-    context::{CompletionContext, DotAccess, NameRefContext, PathCompletionCtx, PathKind},
-    Completions,
+    context::{
+        CompletionContext, DotAccess, DotAccessKind, PathCompletionCtx, PathKind, Qualified,
+    },
+    CompletionItem, CompletionItemKind, Completions,
 };
 
 /// Complete dot accesses, i.e. fields or methods.
-pub(crate) fn complete_dot(acc: &mut Completions, ctx: &CompletionContext) {
-    let (dot_access, dot_receiver) = match ctx.nameref_ctx() {
-        Some(NameRefContext {
-            dot_access:
-                Some(
-                    access @ (DotAccess::Method { receiver: Some(receiver), .. }
-                    | DotAccess::Field { receiver: Some(receiver), .. }),
-                ),
-            ..
-        }) => (access, receiver),
-        _ => return complete_undotted_self(acc, ctx),
-    };
-
-    let receiver_ty = match ctx.sema.type_of_expr(dot_receiver) {
-        Some(ty) => ty.original,
+pub(crate) fn complete_dot(acc: &mut Completions, ctx: &CompletionContext, dot_access: &DotAccess) {
+    let receiver_ty = match dot_access {
+        DotAccess { receiver_ty: Some(receiver_ty), .. } => &receiver_ty.original,
         _ => return,
     };
 
-    if let DotAccess::Method { .. } = dot_access {
+    // Suggest .await syntax for types that implement Future trait
+    if receiver_ty.impls_future(ctx.db) {
+        let mut item =
+            CompletionItem::new(CompletionItemKind::Keyword, ctx.source_range(), "await");
+        item.detail("expr.await");
+        item.add_to(acc);
+    }
+
+    if let DotAccessKind::Method { .. } = dot_access.kind {
         cov_mark::hit!(test_no_struct_field_completion_for_method_call);
     } else {
         complete_fields(
@@ -40,35 +38,34 @@ pub(crate) fn complete_dot(acc: &mut Completions, ctx: &CompletionContext) {
     complete_methods(ctx, &receiver_ty, |func| acc.add_method(ctx, func, None, None));
 }
 
-fn complete_undotted_self(acc: &mut Completions, ctx: &CompletionContext) {
+pub(crate) fn complete_undotted_self(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    path_ctx: &PathCompletionCtx,
+) {
     if !ctx.config.enable_self_on_the_fly {
         return;
     }
-    match ctx.path_context() {
-        Some(PathCompletionCtx {
-            is_absolute_path: false,
-            qualifier: None,
-            kind: PathKind::Expr { .. },
+    let self_param = match path_ctx {
+        PathCompletionCtx {
+            qualified: Qualified::No,
+            kind: PathKind::Expr { self_param: Some(self_param), .. },
             ..
-        }) if !ctx.is_path_disallowed() => {}
+        } if path_ctx.is_trivial_path() && ctx.qualifier_ctx.none() => self_param,
         _ => return,
-    }
+    };
 
-    if let Some(func) = ctx.function_def.as_ref().and_then(|fn_| ctx.sema.to_def(fn_)) {
-        if let Some(self_) = func.self_param(ctx.db) {
-            let ty = self_.ty(ctx.db);
-            complete_fields(
-                acc,
-                ctx,
-                &ty,
-                |acc, field, ty| acc.add_field(ctx, Some(hir::known::SELF_PARAM), field, &ty),
-                |acc, field, ty| acc.add_tuple_field(ctx, Some(hir::known::SELF_PARAM), field, &ty),
-            );
-            complete_methods(ctx, &ty, |func| {
-                acc.add_method(ctx, func, Some(hir::known::SELF_PARAM), None)
-            });
-        }
-    }
+    let ty = self_param.ty(ctx.db);
+    complete_fields(
+        acc,
+        ctx,
+        &ty,
+        |acc, field, ty| acc.add_field(ctx, Some(hir::known::SELF_PARAM), field, &ty),
+        |acc, field, ty| acc.add_tuple_field(ctx, Some(hir::known::SELF_PARAM), field, &ty),
+    );
+    complete_methods(ctx, &ty, |func| {
+        acc.add_method(ctx, func, Some(hir::known::SELF_PARAM), None)
+    });
 }
 
 fn complete_fields(
@@ -114,10 +111,17 @@ fn complete_methods(
 mod tests {
     use expect_test::{expect, Expect};
 
-    use crate::tests::{check_edit, completion_list_no_kw};
+    use crate::tests::{
+        check_edit, completion_list_no_kw, completion_list_no_kw_with_private_editable,
+    };
 
     fn check(ra_fixture: &str, expect: Expect) {
         let actual = completion_list_no_kw(ra_fixture);
+        expect.assert_eq(&actual);
+    }
+
+    fn check_with_private_editable(ra_fixture: &str, expect: Expect) {
+        let actual = completion_list_no_kw_with_private_editable(ra_fixture);
         expect.assert_eq(&actual);
     }
 
@@ -199,10 +203,7 @@ pub mod m {
 fn foo(a: lib::m::A) { a.$0 }
 "#,
             expect![[r#"
-                fd crate_field   u32
-                fd private_field u32
-                fd pub_field     u32
-                fd super_field   u32
+                fd pub_field u32
             "#]],
         );
 
@@ -257,12 +258,110 @@ mod m {
 fn foo(a: lib::A) { a.$0 }
 "#,
             expect![[r#"
+                me pub_method() fn(&self)
+            "#]],
+        );
+        check(
+            r#"
+//- /lib.rs crate:lib new_source_root:library
+pub struct A {}
+mod m {
+    impl super::A {
+        fn private_method(&self) {}
+        pub(crate) fn crate_method(&self) {}
+        pub fn pub_method(&self) {}
+    }
+}
+//- /main.rs crate:main deps:lib new_source_root:local
+fn foo(a: lib::A) { a.$0 }
+"#,
+            expect![[r#"
+                me pub_method() fn(&self)
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_visibility_filtering_with_private_editable_enabled() {
+        check_with_private_editable(
+            r#"
+//- /lib.rs crate:lib new_source_root:local
+pub mod m {
+    pub struct A {
+        private_field: u32,
+        pub pub_field: u32,
+        pub(crate) crate_field: u32,
+        pub(super) super_field: u32,
+    }
+}
+//- /main.rs crate:main deps:lib new_source_root:local
+fn foo(a: lib::m::A) { a.$0 }
+"#,
+            expect![[r#"
+                fd crate_field   u32
+                fd private_field u32
+                fd pub_field     u32
+                fd super_field   u32
+            "#]],
+        );
+
+        check_with_private_editable(
+            r#"
+//- /lib.rs crate:lib new_source_root:library
+pub mod m {
+    pub struct A {
+        private_field: u32,
+        pub pub_field: u32,
+        pub(crate) crate_field: u32,
+        pub(super) super_field: u32,
+    }
+}
+//- /main.rs crate:main deps:lib new_source_root:local
+fn foo(a: lib::m::A) { a.$0 }
+"#,
+            expect![[r#"
+                fd pub_field u32
+            "#]],
+        );
+
+        check_with_private_editable(
+            r#"
+//- /lib.rs crate:lib new_source_root:library
+pub mod m {
+    pub struct A(
+        i32,
+        pub f64,
+    );
+}
+//- /main.rs crate:main deps:lib new_source_root:local
+fn foo(a: lib::m::A) { a.$0 }
+"#,
+            expect![[r#"
+                fd 1 f64
+            "#]],
+        );
+
+        check_with_private_editable(
+            r#"
+//- /lib.rs crate:lib new_source_root:local
+pub struct A {}
+mod m {
+    impl super::A {
+        fn private_method(&self) {}
+        pub(crate) fn crate_method(&self) {}
+        pub fn pub_method(&self) {}
+    }
+}
+//- /main.rs crate:main deps:lib new_source_root:local
+fn foo(a: lib::A) { a.$0 }
+"#,
+            expect![[r#"
                 me crate_method()   fn(&self)
                 me private_method() fn(&self)
                 me pub_method()     fn(&self)
             "#]],
         );
-        check(
+        check_with_private_editable(
             r#"
 //- /lib.rs crate:lib new_source_root:library
 pub struct A {}
@@ -792,25 +891,5 @@ fn main() {
 }
 ",
         )
-    }
-
-    #[test]
-    fn tuple_index_completion() {
-        check(
-            r#"
-struct I;
-impl I {
-    fn i_method(&self) {}
-}
-struct S((), I);
-
-fn f(s: S) {
-    s.1.$0
-}
-"#,
-            expect![[r#"
-                me i_method() fn(&self)
-            "#]],
-        );
     }
 }

@@ -61,7 +61,7 @@
 //! If you'd like to build a custom parallel iterator, or to write your own
 //! combinator, then check out the [split] function and the [plumbing] module.
 //!
-//! [regular iterator]: http://doc.rust-lang.org/std/iter/trait.Iterator.html
+//! [regular iterator]: https://doc.rust-lang.org/std/iter/trait.Iterator.html
 //! [`ParallelIterator`]: trait.ParallelIterator.html
 //! [`IndexedParallelIterator`]: trait.IndexedParallelIterator.html
 //! [split]: fn.split.html
@@ -84,11 +84,16 @@ use self::private::Try;
 pub use either::Either;
 use std::cmp::{self, Ordering};
 use std::iter::{Product, Sum};
-use std::ops::Fn;
+use std::ops::{Fn, RangeBounds};
+
+pub mod plumbing;
+
+#[cfg(test)]
+mod test;
 
 // There is a method to the madness here:
 //
-// - Most of these modules are private but expose certain types to the end-user
+// - These modules are private but expose certain types to the end-user
 //   (e.g., `enumerate::Enumerate`) -- specifically, the types that appear in the
 //   public API surface of the `ParallelIterator` traits.
 // - In **this** module, those public types are always used unprefixed, which forces
@@ -97,94 +102,96 @@ use std::ops::Fn;
 //   e.g. `find::find()`, are always used **prefixed**, so that they
 //   can be readily distinguished.
 
-mod par_bridge;
-pub use self::par_bridge::{IterBridge, ParallelBridge};
-
 mod chain;
+mod chunks;
+mod cloned;
+mod collect;
+mod copied;
+mod empty;
+mod enumerate;
+mod extend;
+mod filter;
+mod filter_map;
 mod find;
 mod find_first_last;
-pub use self::chain::Chain;
-mod chunks;
-pub use self::chunks::Chunks;
-mod collect;
-mod enumerate;
-pub use self::enumerate::Enumerate;
-mod filter;
-pub use self::filter::Filter;
-mod filter_map;
-pub use self::filter_map::FilterMap;
 mod flat_map;
-pub use self::flat_map::FlatMap;
+mod flat_map_iter;
 mod flatten;
-pub use self::flatten::Flatten;
+mod flatten_iter;
 mod fold;
 mod for_each;
 mod from_par_iter;
-pub mod plumbing;
-pub use self::fold::{Fold, FoldWith};
-mod try_fold;
-pub use self::try_fold::{TryFold, TryFoldWith};
+mod inspect;
+mod interleave;
+mod interleave_shortest;
+mod intersperse;
+mod len;
+mod map;
+mod map_with;
+mod multizip;
+mod noop;
+mod once;
+mod panic_fuse;
+mod par_bridge;
+mod positions;
+mod product;
 mod reduce;
+mod repeat;
+mod rev;
 mod skip;
+mod splitter;
+mod sum;
+mod take;
+mod try_fold;
 mod try_reduce;
 mod try_reduce_with;
-pub use self::skip::Skip;
-mod splitter;
-pub use self::splitter::{split, Split};
-mod take;
-pub use self::take::Take;
-mod map;
-pub use self::map::Map;
-mod map_with;
-pub use self::map_with::{MapInit, MapWith};
-mod zip;
-pub use self::zip::Zip;
-mod zip_eq;
-pub use self::zip_eq::ZipEq;
-mod multizip;
-pub use self::multizip::MultiZip;
-mod interleave;
-pub use self::interleave::Interleave;
-mod interleave_shortest;
-pub use self::interleave_shortest::InterleaveShortest;
-mod intersperse;
-pub use self::intersperse::Intersperse;
-mod update;
-pub use self::update::Update;
-
-mod noop;
-mod rev;
-pub use self::rev::Rev;
-mod len;
-pub use self::len::{MaxLen, MinLen};
-
-mod cloned;
-pub use self::cloned::Cloned;
-mod copied;
-pub use self::copied::Copied;
-
-mod product;
-mod sum;
-
-mod inspect;
-pub use self::inspect::Inspect;
-mod panic_fuse;
-pub use self::panic_fuse::PanicFuse;
-mod while_some;
-pub use self::while_some::WhileSome;
-mod extend;
-mod repeat;
 mod unzip;
-pub use self::repeat::{repeat, Repeat};
-pub use self::repeat::{repeatn, RepeatN};
+mod update;
+mod while_some;
+mod zip;
+mod zip_eq;
 
-mod empty;
-pub use self::empty::{empty, Empty};
-mod once;
-pub use self::once::{once, Once};
+pub use self::{
+    chain::Chain,
+    chunks::Chunks,
+    cloned::Cloned,
+    copied::Copied,
+    empty::{empty, Empty},
+    enumerate::Enumerate,
+    filter::Filter,
+    filter_map::FilterMap,
+    flat_map::FlatMap,
+    flat_map_iter::FlatMapIter,
+    flatten::Flatten,
+    flatten_iter::FlattenIter,
+    fold::{Fold, FoldWith},
+    inspect::Inspect,
+    interleave::Interleave,
+    interleave_shortest::InterleaveShortest,
+    intersperse::Intersperse,
+    len::{MaxLen, MinLen},
+    map::Map,
+    map_with::{MapInit, MapWith},
+    multizip::MultiZip,
+    once::{once, Once},
+    panic_fuse::PanicFuse,
+    par_bridge::{IterBridge, ParallelBridge},
+    positions::Positions,
+    repeat::{repeat, repeatn, Repeat, RepeatN},
+    rev::Rev,
+    skip::Skip,
+    splitter::{split, Split},
+    take::Take,
+    try_fold::{TryFold, TryFoldWith},
+    update::Update,
+    while_some::WhileSome,
+    zip::Zip,
+    zip_eq::ZipEq,
+};
 
-#[cfg(test)]
-mod test;
+mod step_by;
+#[cfg(has_step_by_rev)]
+pub use self::step_by::StepBy;
 
 /// `IntoParallelIterator` implements the conversion to a [`ParallelIterator`].
 ///
@@ -450,10 +457,10 @@ pub trait ParallelIterator: Sized + Send {
     fn try_for_each<OP, R>(self, op: OP) -> R
     where
         OP: Fn(Self::Item) -> R + Sync + Send,
-        R: Try<Ok = ()> + Send,
+        R: Try<Output = ()> + Send,
     {
-        fn ok<R: Try<Ok = ()>>(_: (), _: ()) -> R {
-            R::from_ok(())
+        fn ok<R: Try<Output = ()>>(_: (), _: ()) -> R {
+            R::from_output(())
         }
 
         self.map(op).try_reduce(<()>::default, ok)
@@ -490,10 +497,10 @@ pub trait ParallelIterator: Sized + Send {
     where
         OP: Fn(&mut T, Self::Item) -> R + Sync + Send,
         T: Send + Clone,
-        R: Try<Ok = ()> + Send,
+        R: Try<Output = ()> + Send,
     {
-        fn ok<R: Try<Ok = ()>>(_: (), _: ()) -> R {
-            R::from_ok(())
+        fn ok<R: Try<Output = ()>>(_: (), _: ()) -> R {
+            R::from_output(())
         }
 
         self.map_with(init, op).try_reduce(<()>::default, ok)
@@ -532,10 +539,10 @@ pub trait ParallelIterator: Sized + Send {
     where
         OP: Fn(&mut T, Self::Item) -> R + Sync + Send,
         INIT: Fn() -> T + Sync + Send,
-        R: Try<Ok = ()> + Send,
+        R: Try<Output = ()> + Send,
     {
-        fn ok<R: Try<Ok = ()>>(_: (), _: ()) -> R {
-            R::from_ok(())
+        fn ok<R: Try<Output = ()>>(_: (), _: ()) -> R {
+            R::from_output(())
         }
 
         self.map_init(init, op).try_reduce(<()>::default, ok)
@@ -818,8 +825,10 @@ pub trait ParallelIterator: Sized + Send {
         FilterMap::new(self, filter_op)
     }
 
-    /// Applies `map_op` to each item of this iterator to get nested iterators,
-    /// producing a new iterator that flattens these back into one.
+    /// Applies `map_op` to each item of this iterator to get nested parallel iterators,
+    /// producing a new parallel iterator that flattens these back into one.
+    ///
+    /// See also [`flat_map_iter`](#method.flat_map_iter).
     ///
     /// # Examples
     ///
@@ -842,7 +851,56 @@ pub trait ParallelIterator: Sized + Send {
         FlatMap::new(self, map_op)
     }
 
-    /// An adaptor that flattens iterable `Item`s into one large iterator
+    /// Applies `map_op` to each item of this iterator to get nested serial iterators,
+    /// producing a new parallel iterator that flattens these back into one.
+    ///
+    /// # `flat_map_iter` versus `flat_map`
+    ///
+    /// These two methods are similar but behave slightly differently. With [`flat_map`],
+    /// each of the nested iterators must be a parallel iterator, and they will be further
+    /// split up with nested parallelism. With `flat_map_iter`, each nested iterator is a
+    /// sequential `Iterator`, and we only parallelize _between_ them, while the items
+    /// produced by each nested iterator are processed sequentially.
+    ///
+    /// When choosing between these methods, consider whether nested parallelism suits the
+    /// potential iterators at hand. If there's little computation involved, or its length
+    /// is much less than the outer parallel iterator, then it may perform better to avoid
+    /// the overhead of parallelism, just flattening sequentially with `flat_map_iter`.
+    /// If there is a lot of computation, potentially outweighing the outer parallel
+    /// iterator, then the nested parallelism of `flat_map` may be worthwhile.
+    ///
+    /// [`flat_map`]: #method.flat_map
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// use std::cell::RefCell;
+    ///
+    /// let a = [[1, 2], [3, 4], [5, 6], [7, 8]];
+    ///
+    /// let par_iter = a.par_iter().flat_map_iter(|a| {
+    ///     // The serial iterator doesn't have to be thread-safe, just its items.
+    ///     let cell_iter = RefCell::new(a.iter().cloned());
+    ///     std::iter::from_fn(move || cell_iter.borrow_mut().next())
+    /// });
+    ///
+    /// let vec: Vec<_> = par_iter.collect();
+    ///
+    /// assert_eq!(&vec[..], &[1, 2, 3, 4, 5, 6, 7, 8]);
+    /// ```
+    fn flat_map_iter<F, SI>(self, map_op: F) -> FlatMapIter<Self, F>
+    where
+        F: Fn(Self::Item) -> SI + Sync + Send,
+        SI: IntoIterator,
+        SI::Item: Send,
+    {
+        FlatMapIter::new(self, map_op)
+    }
+
+    /// An adaptor that flattens parallel-iterable `Item`s into one large iterator.
+    ///
+    /// See also [`flatten_iter`](#method.flatten_iter).
     ///
     /// # Examples
     ///
@@ -859,6 +917,30 @@ pub trait ParallelIterator: Sized + Send {
         Self::Item: IntoParallelIterator,
     {
         Flatten::new(self)
+    }
+
+    /// An adaptor that flattens serial-iterable `Item`s into one large iterator.
+    ///
+    /// See also [`flatten`](#method.flatten) and the analogous comparison of
+    /// [`flat_map_iter` versus `flat_map`](#flat_map_iter-versus-flat_map).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let x: Vec<Vec<_>> = vec![vec![1, 2], vec![3, 4]];
+    /// let iters: Vec<_> = x.into_iter().map(Vec::into_iter).collect();
+    /// let y: Vec<_> = iters.into_par_iter().flatten_iter().collect();
+    ///
+    /// assert_eq!(y, vec![1, 2, 3, 4]);
+    /// ```
+    fn flatten_iter(self) -> FlattenIter<Self>
+    where
+        Self::Item: IntoIterator,
+        <Self::Item as IntoIterator>::Item: Send,
+    {
+        FlattenIter::new(self)
     }
 
     /// Reduces the items in the iterator into one item using `op`.
@@ -983,7 +1065,7 @@ pub trait ParallelIterator: Sized + Send {
     where
         OP: Fn(T, T) -> Self::Item + Sync + Send,
         ID: Fn() -> T + Sync + Send,
-        Self::Item: Try<Ok = T>,
+        Self::Item: Try<Output = T>,
     {
         try_reduce::try_reduce(self, identity, op)
     }
@@ -1026,7 +1108,7 @@ pub trait ParallelIterator: Sized + Send {
     fn try_reduce_with<T, OP>(self, op: OP) -> Option<Self::Item>
     where
         OP: Fn(T, T) -> Self::Item + Sync + Send,
-        Self::Item: Try<Ok = T>,
+        Self::Item: Try<Output = T>,
     {
         try_reduce_with::try_reduce_with(self, op)
     }
@@ -1200,7 +1282,7 @@ pub trait ParallelIterator: Sized + Send {
         FoldWith::new(self, init, fold_op)
     }
 
-    /// Perform a fallible parallel fold.
+    /// Performs a fallible parallel fold.
     ///
     /// This is a variation of [`fold()`] for operations which can fail with
     /// `Option::None` or `Result::Err`.  The first such failure stops
@@ -1229,12 +1311,12 @@ pub trait ParallelIterator: Sized + Send {
     where
         F: Fn(T, Self::Item) -> R + Sync + Send,
         ID: Fn() -> T + Sync + Send,
-        R: Try<Ok = T> + Send,
+        R: Try<Output = T> + Send,
     {
         TryFold::new(self, identity, fold_op)
     }
 
-    /// Perform a fallible parallel fold with a cloneable `init` value.
+    /// Performs a fallible parallel fold with a cloneable `init` value.
     ///
     /// This combines the `init` semantics of [`fold_with()`] and the failure
     /// semantics of [`try_fold()`].
@@ -1255,7 +1337,7 @@ pub trait ParallelIterator: Sized + Send {
     fn try_fold_with<F, T, R>(self, init: T, fold_op: F) -> TryFoldWith<Self, R, F>
     where
         F: Fn(T, Self::Item) -> R + Sync + Send,
-        R: Try<Ok = T> + Send,
+        R: Try<Output = T> + Send,
         T: Clone + Send,
     {
         TryFoldWith::new(self, init, fold_op)
@@ -1652,9 +1734,9 @@ pub trait ParallelIterator: Sized + Send {
     ///
     /// let c = ["lol", "NaN", "5", "5"];
     ///
-    /// let first_number = c.par_iter().find_map_first(|s| s.parse().ok());
+    /// let found_number = c.par_iter().find_map_any(|s| s.parse().ok());
     ///
-    /// assert_eq!(first_number, Some(5));
+    /// assert_eq!(found_number, Some(5));
     /// ```
     fn find_map_any<P, R>(self, predicate: P) -> Option<R>
     where
@@ -1720,9 +1802,9 @@ pub trait ParallelIterator: Sized + Send {
     ///
     /// let c = ["lol", "NaN", "2", "5"];
     ///
-    /// let first_number = c.par_iter().find_map_last(|s| s.parse().ok());
+    /// let last_number = c.par_iter().find_map_last(|s| s.parse().ok());
     ///
-    /// assert_eq!(first_number, Some(5));
+    /// assert_eq!(last_number, Some(5));
     /// ```
     fn find_map_last<P, R>(self, predicate: P) -> Option<R>
     where
@@ -1860,13 +1942,18 @@ pub trait ParallelIterator: Sized + Send {
         PanicFuse::new(self)
     }
 
-    /// Create a fresh collection containing all the element produced
+    /// Creates a fresh collection containing all the elements produced
     /// by this parallel iterator.
     ///
-    /// You may prefer to use `collect_into_vec()`, which allocates more
-    /// efficiently with precise knowledge of how many elements the
-    /// iterator contains, and even allows you to reuse an existing
-    /// vector's backing store rather than allocating a fresh vector.
+    /// You may prefer [`collect_into_vec()`] implemented on
+    /// [`IndexedParallelIterator`], if your underlying iterator also implements
+    /// it. [`collect_into_vec()`] allocates efficiently with precise knowledge
+    /// of how many elements the iterator contains, and even allows you to reuse
+    /// an existing vector's backing store rather than allocating a fresh vector.
+    ///
+    /// [`IndexedParallelIterator`]: trait.IndexedParallelIterator.html
+    /// [`collect_into_vec()`]:
+    ///     trait.IndexedParallelIterator.html#method.collect_into_vec
     ///
     /// # Examples
     ///
@@ -1878,6 +1965,79 @@ pub trait ParallelIterator: Sized + Send {
     /// let async_vec: Vec<_> = (0..100).into_par_iter().collect();
     ///
     /// assert_eq!(sync_vec, async_vec);
+    /// ```
+    ///
+    /// You can collect a pair of collections like [`unzip`](#method.unzip)
+    /// for paired items:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let a = [(0, 1), (1, 2), (2, 3), (3, 4)];
+    /// let (first, second): (Vec<_>, Vec<_>) = a.into_par_iter().collect();
+    ///
+    /// assert_eq!(first, [0, 1, 2, 3]);
+    /// assert_eq!(second, [1, 2, 3, 4]);
+    /// ```
+    ///
+    /// Or like [`partition_map`](#method.partition_map) for `Either` items:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// use rayon::iter::Either;
+    ///
+    /// let (left, right): (Vec<_>, Vec<_>) = (0..8).into_par_iter().map(|x| {
+    ///     if x % 2 == 0 {
+    ///         Either::Left(x * 4)
+    ///     } else {
+    ///         Either::Right(x * 3)
+    ///     }
+    /// }).collect();
+    ///
+    /// assert_eq!(left, [0, 8, 16, 24]);
+    /// assert_eq!(right, [3, 9, 15, 21]);
+    /// ```
+    ///
+    /// You can even collect an arbitrarily-nested combination of pairs and `Either`:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// use rayon::iter::Either;
+    ///
+    /// let (first, (left, right)): (Vec<_>, (Vec<_>, Vec<_>))
+    ///     = (0..8).into_par_iter().map(|x| {
+    ///         if x % 2 == 0 {
+    ///             (x, Either::Left(x * 4))
+    ///         } else {
+    ///             (-x, Either::Right(x * 3))
+    ///         }
+    ///     }).collect();
+    ///
+    /// assert_eq!(first, [0, -1, 2, -3, 4, -5, 6, -7]);
+    /// assert_eq!(left, [0, 8, 16, 24]);
+    /// assert_eq!(right, [3, 9, 15, 21]);
+    /// ```
+    ///
+    /// All of that can _also_ be combined with short-circuiting collection of
+    /// `Result` or `Option` types:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// use rayon::iter::Either;
+    ///
+    /// let result: Result<(Vec<_>, (Vec<_>, Vec<_>)), _>
+    ///     = (0..8).into_par_iter().map(|x| {
+    ///         if x > 5 {
+    ///             Err(x)
+    ///         } else if x % 2 == 0 {
+    ///             Ok((x, Either::Left(x * 4)))
+    ///         } else {
+    ///             Ok((-x, Either::Right(x * 3)))
+    ///         }
+    ///     }).collect();
+    ///
+    /// let error = result.unwrap_err();
+    /// assert!(error == 6 || error == 7);
     /// ```
     fn collect<C>(self) -> C
     where
@@ -1938,7 +2098,7 @@ pub trait ParallelIterator: Sized + Send {
     /// Note: unlike the standard `Iterator::partition`, this allows distinct
     /// collection types for the left and right items.  This is more flexible,
     /// but may require new type annotations when converting sequential code
-    /// that used type inferrence assuming the two were the same.
+    /// that used type inference assuming the two were the same.
     ///
     /// # Examples
     ///
@@ -2043,7 +2203,7 @@ pub trait ParallelIterator: Sized + Send {
     /// See the [README] for more details on the internals of parallel
     /// iterators.
     ///
-    /// [README]: README.md
+    /// [README]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
     where
         C: UnindexedConsumer<Self::Item>;
@@ -2134,7 +2294,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
         collect::unzip_into_vecs(self, left, right);
     }
 
-    /// Iterate over tuples `(A, B)`, where the items `A` are from
+    /// Iterates over tuples `(A, B)`, where the items `A` are from
     /// this iterator and `B` are from the iterator given as argument.
     /// Like the `zip` method on ordinary iterators, if the two
     /// iterators are of unequal length, you only get the items they
@@ -2189,7 +2349,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
         ZipEq::new(self, zip_op_iter)
     }
 
-    /// Interleave elements of this iterator and the other given
+    /// Interleaves elements of this iterator and the other given
     /// iterator. Alternately yields elements from this iterator and
     /// the given iterator, until both are exhausted. If one iterator
     /// is exhausted before the other, the last elements are provided
@@ -2211,7 +2371,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
         Interleave::new(self, other.into_par_iter())
     }
 
-    /// Interleave elements of this iterator and the other given
+    /// Interleaves elements of this iterator and the other given
     /// iterator, until one is exhausted.
     ///
     /// # Examples
@@ -2230,7 +2390,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
         InterleaveShortest::new(self, other.into_par_iter())
     }
 
-    /// Split an iterator up into fixed-size chunks.
+    /// Splits an iterator up into fixed-size chunks.
     ///
     /// Returns an iterator that returns `Vec`s of the given number of elements.
     /// If the number of elements in the iterator is not divisible by `chunk_size`,
@@ -2426,6 +2586,30 @@ pub trait IndexedParallelIterator: ParallelIterator {
         Enumerate::new(self)
     }
 
+    /// Creates an iterator that steps by the given amount
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///use rayon::prelude::*;
+    ///
+    /// let range = (3..10);
+    /// let result: Vec<i32> = range
+    ///    .into_par_iter()
+    ///    .step_by(3)
+    ///    .collect();
+    ///
+    /// assert_eq!(result, [3, 6, 9])
+    /// ```
+    ///
+    /// # Compatibility
+    ///
+    /// This method is only available on Rust 1.38 or greater.
+    #[cfg(has_step_by_rev)]
+    fn step_by(self, step: usize) -> StepBy<Self> {
+        StepBy::new(self, step)
+    }
+
     /// Creates an iterator that skips the first `n` elements.
     ///
     /// # Examples
@@ -2579,6 +2763,31 @@ pub trait IndexedParallelIterator: ParallelIterator {
         self.position_any(predicate)
     }
 
+    /// Searches for items in the parallel iterator that match the given
+    /// predicate, and returns their indices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let primes = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+    ///
+    /// // Find the positions of primes congruent to 1 modulo 6
+    /// let p1mod6: Vec<_> = primes.par_iter().positions(|&p| p % 6 == 1).collect();
+    /// assert_eq!(p1mod6, [3, 5, 7]); // primes 7, 13, and 19
+    ///
+    /// // Find the positions of primes congruent to 5 modulo 6
+    /// let p5mod6: Vec<_> = primes.par_iter().positions(|&p| p % 6 == 5).collect();
+    /// assert_eq!(p5mod6, [2, 4, 6, 8, 9]); // primes 5, 11, 17, 23, and 29
+    /// ```
+    fn positions<P>(self, predicate: P) -> Positions<Self, P>
+    where
+        P: Fn(Self::Item) -> bool + Sync + Send,
+    {
+        Positions::new(self, predicate)
+    }
+
     /// Produces a new iterator with the elements of this iterator in
     /// reverse order.
     ///
@@ -2599,7 +2808,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     }
 
     /// Sets the minimum length of iterators desired to process in each
-    /// thread.  Rayon will not split any smaller than this length, but
+    /// rayon job.  Rayon will not split any smaller than this length, but
     /// of course an iterator could already be smaller to begin with.
     ///
     /// Producers like `zip` and `interleave` will use greater of the two
@@ -2625,7 +2834,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     }
 
     /// Sets the maximum length of iterators desired to process in each
-    /// thread.  Rayon will try to split at least below this length,
+    /// rayon job.  Rayon will try to split at least below this length,
     /// unless that would put it below the length from `with_min_len()`.
     /// For example, given min=10 and max=15, a length of 16 will not be
     /// split any further.
@@ -2681,7 +2890,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// See the [README] for more details on the internals of parallel
     /// iterators.
     ///
-    /// [README]: README.md
+    /// [README]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
     fn drive<C: Consumer<Self::Item>>(self, consumer: C) -> C::Result;
 
     /// Internal method used to define the behavior of this parallel
@@ -2698,7 +2907,7 @@ pub trait IndexedParallelIterator: ParallelIterator {
     /// See the [README] for more details on the internals of parallel
     /// iterators.
     ///
-    /// [README]: README.md
+    /// [README]: https://github.com/rayon-rs/rayon/blob/master/src/iter/plumbing/README.md
     fn with_producer<CB: ProducerCallback<Self::Item>>(self, callback: CB) -> CB::Output;
 }
 
@@ -2815,53 +3024,287 @@ where
         I: IntoParallelIterator<Item = T>;
 }
 
+/// `ParallelDrainFull` creates a parallel iterator that moves all items
+/// from a collection while retaining the original capacity.
+///
+/// Types which are indexable typically implement [`ParallelDrainRange`]
+/// instead, where you can drain fully with `par_drain(..)`.
+///
+/// [`ParallelDrainRange`]: trait.ParallelDrainRange.html
+pub trait ParallelDrainFull {
+    /// The draining parallel iterator type that will be created.
+    type Iter: ParallelIterator<Item = Self::Item>;
+
+    /// The type of item that the parallel iterator will produce.
+    /// This is usually the same as `IntoParallelIterator::Item`.
+    type Item: Send;
+
+    /// Returns a draining parallel iterator over an entire collection.
+    ///
+    /// When the iterator is dropped, all items are removed, even if the
+    /// iterator was not fully consumed. If the iterator is leaked, for example
+    /// using `std::mem::forget`, it is unspecified how many items are removed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// use std::collections::{BinaryHeap, HashSet};
+    ///
+    /// let squares: HashSet<i32> = (0..10).map(|x| x * x).collect();
+    ///
+    /// let mut heap: BinaryHeap<_> = squares.iter().copied().collect();
+    /// assert_eq!(
+    ///     // heaps are drained in arbitrary order
+    ///     heap.par_drain()
+    ///         .inspect(|x| assert!(squares.contains(x)))
+    ///         .count(),
+    ///     squares.len(),
+    /// );
+    /// assert!(heap.is_empty());
+    /// assert!(heap.capacity() >= squares.len());
+    /// ```
+    fn par_drain(self) -> Self::Iter;
+}
+
+/// `ParallelDrainRange` creates a parallel iterator that moves a range of items
+/// from a collection while retaining the original capacity.
+///
+/// Types which are not indexable may implement [`ParallelDrainFull`] instead.
+///
+/// [`ParallelDrainFull`]: trait.ParallelDrainFull.html
+pub trait ParallelDrainRange<Idx = usize> {
+    /// The draining parallel iterator type that will be created.
+    type Iter: ParallelIterator<Item = Self::Item>;
+
+    /// The type of item that the parallel iterator will produce.
+    /// This is usually the same as `IntoParallelIterator::Item`.
+    type Item: Send;
+
+    /// Returns a draining parallel iterator over a range of the collection.
+    ///
+    /// When the iterator is dropped, all items in the range are removed, even
+    /// if the iterator was not fully consumed. If the iterator is leaked, for
+    /// example using `std::mem::forget`, it is unspecified how many items are
+    /// removed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    ///
+    /// let squares: Vec<i32> = (0..10).map(|x| x * x).collect();
+    ///
+    /// println!("RangeFull");
+    /// let mut vec = squares.clone();
+    /// assert!(vec.par_drain(..)
+    ///            .eq(squares.par_iter().copied()));
+    /// assert!(vec.is_empty());
+    /// assert!(vec.capacity() >= squares.len());
+    ///
+    /// println!("RangeFrom");
+    /// let mut vec = squares.clone();
+    /// assert!(vec.par_drain(5..)
+    ///            .eq(squares[5..].par_iter().copied()));
+    /// assert_eq!(&vec[..], &squares[..5]);
+    /// assert!(vec.capacity() >= squares.len());
+    ///
+    /// println!("RangeTo");
+    /// let mut vec = squares.clone();
+    /// assert!(vec.par_drain(..5)
+    ///            .eq(squares[..5].par_iter().copied()));
+    /// assert_eq!(&vec[..], &squares[5..]);
+    /// assert!(vec.capacity() >= squares.len());
+    ///
+    /// println!("RangeToInclusive");
+    /// let mut vec = squares.clone();
+    /// assert!(vec.par_drain(..=5)
+    ///            .eq(squares[..=5].par_iter().copied()));
+    /// assert_eq!(&vec[..], &squares[6..]);
+    /// assert!(vec.capacity() >= squares.len());
+    ///
+    /// println!("Range");
+    /// let mut vec = squares.clone();
+    /// assert!(vec.par_drain(3..7)
+    ///            .eq(squares[3..7].par_iter().copied()));
+    /// assert_eq!(&vec[..3], &squares[..3]);
+    /// assert_eq!(&vec[3..], &squares[7..]);
+    /// assert!(vec.capacity() >= squares.len());
+    ///
+    /// println!("RangeInclusive");
+    /// let mut vec = squares.clone();
+    /// assert!(vec.par_drain(3..=7)
+    ///            .eq(squares[3..=7].par_iter().copied()));
+    /// assert_eq!(&vec[..3], &squares[..3]);
+    /// assert_eq!(&vec[3..], &squares[8..]);
+    /// assert!(vec.capacity() >= squares.len());
+    /// ```
+    fn par_drain<R: RangeBounds<Idx>>(self, range: R) -> Self::Iter;
+}
+
 /// We hide the `Try` trait in a private module, as it's only meant to be a
 /// stable clone of the standard library's `Try` trait, as yet unstable.
 mod private {
+    use std::convert::Infallible;
+    use std::task::Poll;
+
+    #[cfg(has_control_flow)]
+    pub(crate) use std::ops::ControlFlow;
+
+    #[cfg(not(has_control_flow))]
+    #[allow(missing_debug_implementations)]
+    pub enum ControlFlow<B, C = ()> {
+        Continue(C),
+        Break(B),
+    }
+
+    use self::ControlFlow::{Break, Continue};
+
     /// Clone of `std::ops::Try`.
     ///
     /// Implementing this trait is not permitted outside of `rayon`.
     pub trait Try {
         private_decl! {}
 
-        type Ok;
-        type Error;
-        fn into_result(self) -> Result<Self::Ok, Self::Error>;
-        fn from_ok(v: Self::Ok) -> Self;
-        fn from_error(v: Self::Error) -> Self;
+        type Output;
+        type Residual;
+
+        fn from_output(output: Self::Output) -> Self;
+
+        fn from_residual(residual: Self::Residual) -> Self;
+
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output>;
+    }
+
+    #[cfg(has_control_flow)]
+    impl<B, C> Try for ControlFlow<B, C> {
+        private_impl! {}
+
+        type Output = C;
+        type Residual = ControlFlow<B, Infallible>;
+
+        fn from_output(output: Self::Output) -> Self {
+            Continue(output)
+        }
+
+        fn from_residual(residual: Self::Residual) -> Self {
+            match residual {
+                Break(b) => Break(b),
+                Continue(_) => unreachable!(),
+            }
+        }
+
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Continue(c) => Continue(c),
+                Break(b) => Break(Break(b)),
+            }
+        }
     }
 
     impl<T> Try for Option<T> {
         private_impl! {}
 
-        type Ok = T;
-        type Error = ();
+        type Output = T;
+        type Residual = Option<Infallible>;
 
-        fn into_result(self) -> Result<T, ()> {
-            self.ok_or(())
+        fn from_output(output: Self::Output) -> Self {
+            Some(output)
         }
-        fn from_ok(v: T) -> Self {
-            Some(v)
+
+        fn from_residual(residual: Self::Residual) -> Self {
+            match residual {
+                None => None,
+                Some(_) => unreachable!(),
+            }
         }
-        fn from_error(_: ()) -> Self {
-            None
+
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Some(c) => Continue(c),
+                None => Break(None),
+            }
         }
     }
 
     impl<T, E> Try for Result<T, E> {
         private_impl! {}
 
-        type Ok = T;
-        type Error = E;
+        type Output = T;
+        type Residual = Result<Infallible, E>;
 
-        fn into_result(self) -> Result<T, E> {
-            self
+        fn from_output(output: Self::Output) -> Self {
+            Ok(output)
         }
-        fn from_ok(v: T) -> Self {
-            Ok(v)
+
+        fn from_residual(residual: Self::Residual) -> Self {
+            match residual {
+                Err(e) => Err(e),
+                Ok(_) => unreachable!(),
+            }
         }
-        fn from_error(v: E) -> Self {
-            Err(v)
+
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Ok(c) => Continue(c),
+                Err(e) => Break(Err(e)),
+            }
+        }
+    }
+
+    impl<T, E> Try for Poll<Result<T, E>> {
+        private_impl! {}
+
+        type Output = Poll<T>;
+        type Residual = Result<Infallible, E>;
+
+        fn from_output(output: Self::Output) -> Self {
+            output.map(Ok)
+        }
+
+        fn from_residual(residual: Self::Residual) -> Self {
+            match residual {
+                Err(e) => Poll::Ready(Err(e)),
+                Ok(_) => unreachable!(),
+            }
+        }
+
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Poll::Pending => Continue(Poll::Pending),
+                Poll::Ready(Ok(c)) => Continue(Poll::Ready(c)),
+                Poll::Ready(Err(e)) => Break(Err(e)),
+            }
+        }
+    }
+
+    impl<T, E> Try for Poll<Option<Result<T, E>>> {
+        private_impl! {}
+
+        type Output = Poll<Option<T>>;
+        type Residual = Result<Infallible, E>;
+
+        fn from_output(output: Self::Output) -> Self {
+            match output {
+                Poll::Ready(o) => Poll::Ready(o.map(Ok)),
+                Poll::Pending => Poll::Pending,
+            }
+        }
+
+        fn from_residual(residual: Self::Residual) -> Self {
+            match residual {
+                Err(e) => Poll::Ready(Some(Err(e))),
+                Ok(_) => unreachable!(),
+            }
+        }
+
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Poll::Pending => Continue(Poll::Pending),
+                Poll::Ready(None) => Continue(Poll::Ready(None)),
+                Poll::Ready(Some(Ok(c))) => Continue(Poll::Ready(Some(c))),
+                Poll::Ready(Some(Err(e))) => Break(Err(e)),
+            }
         }
     }
 }

@@ -34,15 +34,16 @@ use hir_ty::{
     Adjust, Adjustment, AutoBorrow, InferenceResult, Interner, Substitution, TyExt,
     TyLoweringContext,
 };
+use smallvec::SmallVec;
 use syntax::{
     ast::{self, AstNode},
     SyntaxKind, SyntaxNode, TextRange, TextSize,
 };
 
 use crate::{
-    db::HirDatabase, semantics::PathResolution, Adt, AssocItem, BuiltinAttr, BuiltinType, Const,
-    Field, Function, Local, Macro, ModuleDef, Static, Struct, ToolModule, Trait, Type, TypeAlias,
-    Variant,
+    db::HirDatabase, semantics::PathResolution, Adt, AssocItem, BindingMode, BuiltinAttr,
+    BuiltinType, Const, Field, Function, Local, Macro, ModuleDef, Static, Struct, ToolModule,
+    Trait, Type, TypeAlias, Variant,
 };
 
 /// `SourceAnalyzer` is a convenience wrapper which exposes HIR API in terms of
@@ -66,7 +67,10 @@ impl SourceAnalyzer {
         let scopes = db.expr_scopes(def);
         let scope = match offset {
             None => scope_for(&scopes, &source_map, node),
-            Some(offset) => scope_for_offset(db, &scopes, &source_map, node.with_value(offset)),
+            Some(offset) => {
+                let file_id = node.file_id.original_file(db.upcast());
+                scope_for_offset(db, &scopes, &source_map, InFile::new(file_id.into(), offset))
+            }
         };
         let resolver = resolver_for_scope(db.upcast(), def, scope);
         SourceAnalyzer {
@@ -87,7 +91,10 @@ impl SourceAnalyzer {
         let scopes = db.expr_scopes(def);
         let scope = match offset {
             None => scope_for(&scopes, &source_map, node),
-            Some(offset) => scope_for_offset(db, &scopes, &source_map, node.with_value(offset)),
+            Some(offset) => {
+                let file_id = node.file_id.original_file(db.upcast());
+                scope_for_offset(db, &scopes, &source_map, InFile::new(file_id.into(), offset))
+            }
         };
         let resolver = resolver_for_scope(db.upcast(), def, scope);
         SourceAnalyzer { resolver, def: Some((def, body, source_map)), infer: None, file_id }
@@ -182,7 +189,7 @@ impl SourceAnalyzer {
         let coerced = infer
             .pat_adjustments
             .get(&pat_id)
-            .and_then(|adjusts| adjusts.last().map(|adjust| adjust.target.clone()));
+            .and_then(|adjusts| adjusts.last().map(|adjust| adjust.clone()));
         let ty = infer[pat_id].clone();
         let mk_ty = |ty| Type::new_with_resolver(db, &self.resolver, ty);
         Some((mk_ty(ty), coerced.map(mk_ty)))
@@ -197,6 +204,38 @@ impl SourceAnalyzer {
         let pat_id = self.body_source_map()?.node_self_param(src)?;
         let ty = self.infer.as_ref()?[pat_id].clone();
         Some(Type::new_with_resolver(db, &self.resolver, ty))
+    }
+
+    pub(crate) fn binding_mode_of_pat(
+        &self,
+        _db: &dyn HirDatabase,
+        pat: &ast::IdentPat,
+    ) -> Option<BindingMode> {
+        let pat_id = self.pat_id(&pat.clone().into())?;
+        let infer = self.infer.as_ref()?;
+        infer.pat_binding_modes.get(&pat_id).map(|bm| match bm {
+            hir_ty::BindingMode::Move => BindingMode::Move,
+            hir_ty::BindingMode::Ref(hir_ty::Mutability::Mut) => BindingMode::Ref(Mutability::Mut),
+            hir_ty::BindingMode::Ref(hir_ty::Mutability::Not) => {
+                BindingMode::Ref(Mutability::Shared)
+            }
+        })
+    }
+    pub(crate) fn pattern_adjustments(
+        &self,
+        db: &dyn HirDatabase,
+        pat: &ast::Pat,
+    ) -> Option<SmallVec<[Type; 1]>> {
+        let pat_id = self.pat_id(&pat)?;
+        let infer = self.infer.as_ref()?;
+        Some(
+            infer
+                .pat_adjustments
+                .get(&pat_id)?
+                .iter()
+                .map(|ty| Type::new_with_resolver(db, &self.resolver, ty.clone()))
+                .collect(),
+        )
     }
 
     pub(crate) fn resolve_method_call(
@@ -567,13 +606,11 @@ fn scope_for_offset(
             .filter(|it| it.value.kind() == SyntaxKind::MACRO_CALL)?;
             Some((source.value.text_range(), scope))
         })
-        // find containing scope
-        .min_by_key(|(expr_range, _scope)| {
-            (
-                !(expr_range.start() <= offset.value && offset.value <= expr_range.end()),
-                expr_range.len(),
-            )
+        .filter(|(expr_range, _scope)| {
+            expr_range.start() <= offset.value && offset.value <= expr_range.end()
         })
+        // find containing scope
+        .min_by_key(|(expr_range, _scope)| expr_range.len())
         .map(|(expr_range, scope)| {
             adjust(db, scopes, source_map, expr_range, offset).unwrap_or(*scope)
         })

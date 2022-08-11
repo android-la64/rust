@@ -1,20 +1,20 @@
-import * as vscode from 'vscode';
-import * as lc from 'vscode-languageclient/node';
-import * as ra from './lsp_ext';
+import * as vscode from "vscode";
+import * as lc from "vscode-languageclient/node";
+import * as ra from "./lsp_ext";
 
-import { Config } from './config';
-import { createClient } from './client';
-import { isRustEditor, RustEditor } from './util';
-import { ServerStatusParams } from './lsp_ext';
+import { Config } from "./config";
+import { createClient } from "./client";
+import { isRustEditor, RustEditor } from "./util";
+import { ServerStatusParams } from "./lsp_ext";
 
 export type Workspace =
-    {
-        kind: 'Workspace Folder';
-    }
     | {
-        kind: 'Detached Files';
-        files: vscode.TextDocument[];
-    };
+          kind: "Workspace Folder";
+      }
+    | {
+          kind: "Detached Files";
+          files: vscode.TextDocument[];
+      };
 
 export class Ctx {
     private constructor(
@@ -22,18 +22,16 @@ export class Ctx {
         private readonly extCtx: vscode.ExtensionContext,
         readonly client: lc.LanguageClient,
         readonly serverPath: string,
-        readonly statusBar: vscode.StatusBarItem,
-    ) {
-
-    }
+        readonly statusBar: vscode.StatusBarItem
+    ) {}
 
     static async create(
         config: Config,
         extCtx: vscode.ExtensionContext,
         serverPath: string,
-        workspace: Workspace,
+        workspace: Workspace
     ): Promise<Ctx> {
-        const client = createClient(serverPath, workspace, config.serverExtraEnv);
+        const client = await createClient(serverPath, workspace, config.serverExtraEnv);
 
         const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         extCtx.subscriptions.push(statusBar);
@@ -52,9 +50,7 @@ export class Ctx {
 
     get activeRustEditor(): RustEditor | undefined {
         const editor = vscode.window.activeTextEditor;
-        return editor && isRustEditor(editor)
-            ? editor
-            : undefined;
+        return editor && isRustEditor(editor) ? editor : undefined;
     }
 
     get visibleRustEditors(): RustEditor[] {
@@ -81,27 +77,35 @@ export class Ctx {
     }
 
     setServerStatus(status: ServerStatusParams) {
-        this.statusBar.tooltip = status.message ?? "Ready";
         let icon = "";
         switch (status.health) {
             case "ok":
+                this.statusBar.tooltip = status.message ?? "Ready";
+                this.statusBar.command = undefined;
                 this.statusBar.color = undefined;
+                this.statusBar.backgroundColor = undefined;
                 break;
             case "warning":
                 this.statusBar.tooltip += "\nClick to reload.";
                 this.statusBar.command = "rust-analyzer.reloadWorkspace";
-                this.statusBar.color = new vscode.ThemeColor("notificationsWarningIcon.foreground");
+                this.statusBar.color = new vscode.ThemeColor("statusBarItem.warningForeground");
+                this.statusBar.backgroundColor = new vscode.ThemeColor(
+                    "statusBarItem.warningBackground"
+                );
                 icon = "$(warning) ";
                 break;
             case "error":
                 this.statusBar.tooltip += "\nClick to reload.";
                 this.statusBar.command = "rust-analyzer.reloadWorkspace";
-                this.statusBar.color = new vscode.ThemeColor("notificationsErrorIcon.foreground");
+                this.statusBar.color = new vscode.ThemeColor("statusBarItem.errorForeground");
+                this.statusBar.backgroundColor = new vscode.ThemeColor(
+                    "statusBarItem.errorBackground"
+                );
                 icon = "$(error) ";
                 break;
         }
         if (!status.quiescent) icon = "$(sync~spin) ";
-        this.statusBar.text = `${icon} rust-analyzer`;
+        this.statusBar.text = `${icon}rust-analyzer`;
     }
 
     pushCleanup(d: Disposable) {

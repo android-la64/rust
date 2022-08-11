@@ -175,6 +175,7 @@ pub struct Config {
     pub build_command: Option<String>,
     /// DEPRECATED: Use `crate_blacklist` instead.
     pub use_crate_blacklist: Option<bool>,
+    pub ignore_deprecation_warning: bool,
 }
 
 impl Default for Config {
@@ -205,6 +206,7 @@ impl Default for Config {
             rustfmt_path: None,
             build_command: None,
             use_crate_blacklist: None,
+            ignore_deprecation_warning: false,
         };
         result.normalise();
         result
@@ -243,7 +245,7 @@ impl Config {
 
         if let serde_json::Value::Object(map) = val {
             let seq = serde::de::value::MapDeserializer::new(map.iter().filter_map(|(k, v)| {
-                use heck::SnakeCase;
+                use heck::ToSnakeCase;
                 let snake_case = k.to_snake_case();
                 let vec = dups.entry(snake_case.clone()).or_default();
                 vec.push(k.to_string());

@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -30,7 +30,6 @@
 #include "tool_binmode.h"
 #include "tool_cfgable.h"
 #include "tool_cb_prg.h"
-#include "tool_convert.h"
 #include "tool_filetime.h"
 #include "tool_formparse.h"
 #include "tool_getparam.h"
@@ -138,6 +137,7 @@ static const struct LongShort aliases[]= {
   {"$h", "retry-delay",              ARG_STRING},
   {"$i", "retry-max-time",           ARG_STRING},
   {"$k", "proxy-negotiate",          ARG_BOOL},
+  {"$l", "form-escape",              ARG_BOOL},
   {"$m", "ftp-account",              ARG_STRING},
   {"$n", "proxy-anyauth",            ARG_BOOL},
   {"$o", "trace-time",               ARG_BOOL},
@@ -229,6 +229,7 @@ static const struct LongShort aliases[]= {
   {"da", "data-ascii",               ARG_STRING},
   {"db", "data-binary",              ARG_STRING},
   {"de", "data-urlencode",           ARG_STRING},
+  {"df", "json",                     ARG_STRING},
   {"D",  "dump-header",              ARG_FILENAME},
   {"e",  "referer",                  ARG_STRING},
   {"E",  "cert",                     ARG_FILENAME},
@@ -283,6 +284,7 @@ static const struct LongShort aliases[]= {
   {"fb", "styled-output",            ARG_BOOL},
   {"fc", "mail-rcpt-allowfails",     ARG_BOOL},
   {"fd", "fail-with-body",           ARG_BOOL},
+  {"fe", "remove-on-error",          ARG_BOOL},
   {"F",  "form",                     ARG_STRING},
   {"Fs", "form-string",              ARG_STRING},
   {"g",  "globoff",                  ARG_BOOL},
@@ -312,6 +314,7 @@ static const struct LongShort aliases[]= {
   {"O",  "remote-name",              ARG_NONE},
   {"Oa", "remote-name-all",          ARG_BOOL},
   {"Ob", "output-dir",               ARG_STRING},
+  {"Oc", "clobber",                  ARG_BOOL},
   {"p",  "proxytunnel",              ARG_BOOL},
   {"P",  "ftp-port",                 ARG_STRING},
   {"q",  "disable",                  ARG_BOOL},
@@ -417,10 +420,9 @@ void parse_cert_parameter(const char *cert_parameter,
          separator, but we try to detect when it is used for a file name! On
          windows. */
 #ifdef WIN32
-      if(param_place &&
-          (param_place == &cert_parameter[1]) &&
-          (cert_parameter[2] == '\\' || cert_parameter[2] == '/') &&
-          (ISALPHA(cert_parameter[0])) ) {
+      if((param_place == &cert_parameter[1]) &&
+         (cert_parameter[2] == '\\' || cert_parameter[2] == '/') &&
+         (ISALPHA(cert_parameter[0])) ) {
         /* colon in the second column, followed by a backslash, and the
            first character is an alphabetic letter:
 
@@ -653,10 +655,14 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
     case '*': /* options without a short option */
       switch(subletter) {
       case '4': /* --dns-ipv4-addr */
+        if(!curlinfo->ares_num) /* c-ares is needed for this */
+          return PARAM_LIBCURL_DOESNT_SUPPORT;
         /* addr in dot notation */
         GetStr(&config->dns_ipv4_addr, nextarg);
         break;
       case '6': /* --dns-ipv6-addr */
+        if(!curlinfo->ares_num) /* c-ares is needed for this */
+          return PARAM_LIBCURL_DOESNT_SUPPORT;
         /* addr in dot notation */
         GetStr(&config->dns_ipv6_addr, nextarg);
         break;
@@ -668,6 +674,7 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         break;
       case 'B': /* OAuth 2.0 bearer token */
         GetStr(&config->oauth_bearer, nextarg);
+        cleanarg(nextarg);
         config->authtype |= CURLAUTH_BEARER;
         break;
       case 'c': /* connect-timeout */
@@ -683,6 +690,8 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         GetStr(&config->cipher_list, nextarg);
         break;
       case 'D': /* --dns-interface */
+        if(!curlinfo->ares_num) /* c-ares is needed for this */
+          return PARAM_LIBCURL_DOESNT_SUPPORT;
         /* interface name */
         GetStr(&config->dns_interface, nextarg);
         break;
@@ -696,6 +705,8 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         config->disable_epsv = (!toggle)?TRUE:FALSE;
         break;
       case 'F': /* --dns-servers */
+        if(!curlinfo->ares_num) /* c-ares is needed for this */
+          return PARAM_LIBCURL_DOESNT_SUPPORT;
         /* IP addrs of DNS servers */
         GetStr(&config->dns_servers, nextarg);
         break;
@@ -986,6 +997,12 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
           config->proxynegotiate = toggle;
         else
           return PARAM_LIBCURL_DOESNT_SUPPORT;
+        break;
+
+      case 'l': /* --form-escape */
+        config->mime_options &= ~CURLMIMEOPT_FORMESCAPE;
+        if(toggle)
+          config->mime_options |= CURLMIMEOPT_FORMESCAPE;
         break;
 
       case 'm': /* --ftp-account */
@@ -1370,7 +1387,7 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
       size_t size = 0;
       bool raw_mode = (subletter == 'r');
 
-      if(subletter == 'e') { /* --data-urlencode*/
+      if(subletter == 'e') { /* --data-urlencode */
         /* [name]=[content], we encode the content part only
          * [name]@[file name]
          *
@@ -1473,7 +1490,8 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
                   "an empty POST.\n", nextarg);
         }
 
-        if(subletter == 'b')
+        if((subletter == 'b') || /* --data-binary */
+           (subletter == 'f') /* --json */)
           /* forced binary */
           err = file2memory(&postdata, &size, file);
         else {
@@ -1500,16 +1518,8 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         if(postdata)
           size = strlen(postdata);
       }
-
-#ifdef CURL_DOES_CONVERSIONS
-      if(subletter != 'b') {
-        /* NOT forced binary, convert to ASCII */
-        if(convert_to_network(postdata, strlen(postdata))) {
-          Curl_safefree(postdata);
-          return PARAM_NO_MEM;
-        }
-      }
-#endif
+      if(subletter == 'f')
+        config->jsoned = TRUE;
 
       if(config->postfields) {
         /* we already have a string, we append this one with a separating
@@ -1524,13 +1534,21 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
           return PARAM_NO_MEM;
         }
         memcpy(config->postfields, oldpost, (size_t)oldlen);
-        /* use byte value 0x26 for '&' to accommodate non-ASCII platforms */
-        config->postfields[oldlen] = '\x26';
-        memcpy(&config->postfields[oldlen + 1], postdata, size);
-        config->postfields[oldlen + 1 + size] = '\0';
+        if(subletter != 'f') {
+          /* skip this treatment for --json */
+          /* use byte value 0x26 for '&' to accommodate non-ASCII platforms */
+          config->postfields[oldlen] = '\x26';
+          memcpy(&config->postfields[oldlen + 1], postdata, size);
+          config->postfields[oldlen + 1 + size] = '\0';
+          config->postfieldsize += size + 1;
+        }
+        else {
+          memcpy(&config->postfields[oldlen], postdata, size);
+          config->postfields[oldlen + size] = '\0';
+          config->postfieldsize += size;
+        }
         Curl_safefree(oldpost);
         Curl_safefree(postdata);
-        config->postfieldsize += size + 1;
       }
       else {
         config->postfields = postdata;
@@ -1610,16 +1628,20 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         GetStr(&config->crlfile, nextarg);
         break;
       case 'k': /* TLS username */
-        if(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)
-          GetStr(&config->tls_username, nextarg);
-        else
+        if(!(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)) {
+          cleanarg(nextarg);
           return PARAM_LIBCURL_DOESNT_SUPPORT;
+        }
+        GetStr(&config->tls_username, nextarg);
+        cleanarg(nextarg);
         break;
       case 'l': /* TLS password */
-        if(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)
-          GetStr(&config->tls_password, nextarg);
-        else
+        if(!(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)) {
+          cleanarg(nextarg);
           return PARAM_LIBCURL_DOESNT_SUPPORT;
+        }
+        GetStr(&config->tls_password, nextarg);
+        cleanarg(nextarg);
         break;
       case 'm': /* TLS authentication type */
         if(curlinfo->features & CURL_VERSION_TLSAUTH_SRP) {
@@ -1680,17 +1702,21 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         break;
 
       case 'u': /* TLS username for proxy */
-        if(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)
-          GetStr(&config->proxy_tls_username, nextarg);
-        else
+        if(!(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)) {
+          cleanarg(nextarg);
           return PARAM_LIBCURL_DOESNT_SUPPORT;
+        }
+        GetStr(&config->proxy_tls_username, nextarg);
+        cleanarg(nextarg);
         break;
 
       case 'v': /* TLS password for proxy */
-        if(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)
-          GetStr(&config->proxy_tls_password, nextarg);
-        else
+        if(!(curlinfo->features & CURL_VERSION_TLSAUTH_SRP)) {
+          cleanarg(nextarg);
           return PARAM_LIBCURL_DOESNT_SUPPORT;
+        }
+        GetStr(&config->proxy_tls_password, nextarg);
+        cleanarg(nextarg);
         break;
 
       case 'w': /* TLS authentication type for proxy */
@@ -1805,7 +1831,10 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
       case 'd': /* --fail-with-body */
         config->failwithbody = toggle;
         break;
-      default: /* --fail (hard on errors)  */
+      case 'e': /* --remove-on-error */
+        config->rm_partial = toggle;
+        break;
+       default: /* --fail (hard on errors)  */
         config->failonerror = toggle;
         break;
       }
@@ -1918,9 +1947,10 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         config->insecure_ok = toggle;
       break;
     case 'K': /* parse config file */
-      if(parseconfig(nextarg, global))
-        warnf(global, "error trying read config from the '%s' file\n",
-              nextarg);
+      if(parseconfig(nextarg, global)) {
+        errorf(global, "cannot read config from '%s'\n", nextarg);
+        return PARAM_READ_ERROR;
+      }
       break;
     case 'l':
       config->dirlistonly = toggle; /* only list the names of the FTP dir */
@@ -1970,10 +2000,7 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
     case 'N':
       /* disable the output I/O buffering. note that the option is called
          --buffer but is mostly used in the negative form: --no-buffer */
-      if(longopt)
-        config->nobuffer = (!toggle)?TRUE:FALSE;
-      else
-        config->nobuffer = toggle;
+      config->nobuffer = longopt ? !toggle : TRUE;
       break;
     case 'O': /* --remote-name */
       if(subletter == 'a') { /* --remote-name-all */
@@ -1982,6 +2009,10 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
       }
       else if(subletter == 'b') { /* --output-dir */
         GetStr(&config->output_dir, nextarg);
+        break;
+      }
+      else if(subletter == 'c') { /* --clobber / --no-clobber */
+        config->file_clobber_mode = toggle ? CLOBBER_ALWAYS : CLOBBER_NEVER;
         break;
       }
       /* FALLTHROUGH */
@@ -2012,6 +2043,10 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
 
       /* fill in the outfile */
       if('o' == letter) {
+        if(!*nextarg) {
+          warnf(global, "output file name has no length\n");
+          return PARAM_BAD_USE;
+        }
         GetStr(&url->outfile, nextarg);
         url->flags &= ~GETOUT_USEREMOTE; /* switch off */
       }
@@ -2343,6 +2378,7 @@ ParameterError parse_args(struct GlobalConfig *global, int argc,
           : NULL;
 
         result = getparameter(orig_opt, nextarg, &passarg, global, config);
+
         curlx_unicodefree(nextarg);
         config = global->last;
         if(result == PARAM_NEXT_OPERATION) {

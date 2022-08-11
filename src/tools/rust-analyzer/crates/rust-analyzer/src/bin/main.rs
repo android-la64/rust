@@ -70,19 +70,17 @@ fn try_main() -> Result<()> {
                 return Ok(());
             }
             if cmd.version {
-                println!("rust-analyzer {}", env!("REV"));
+                println!("rust-analyzer {}", rust_analyzer::version());
                 return Ok(());
             }
             if cmd.help {
                 println!("{}", flags::RustAnalyzer::HELP);
                 return Ok(());
             }
-            with_extra_thread("rust-analyzer server thread", run_server)?;
+            with_extra_thread("LspServer", run_server)?;
         }
         flags::RustAnalyzerCmd::ProcMacro(flags::ProcMacro) => {
-            with_extra_thread("rust-analyzer proc-macro expander", || {
-                proc_macro_srv::cli::run().map_err(Into::into)
-            })?;
+            with_extra_thread("MacroExpander", || proc_macro_srv::cli::run().map_err(Into::into))?;
         }
         flags::RustAnalyzerCmd::Parse(cmd) => cmd.run()?,
         flags::RustAnalyzerCmd::Symbols(cmd) => cmd.run()?,
@@ -150,14 +148,14 @@ fn with_extra_thread(
 }
 
 fn run_server() -> Result<()> {
-    tracing::info!("server version {} will start", env!("REV"));
+    tracing::info!("server version {} will start", rust_analyzer::version());
 
     let (connection, io_threads) = Connection::stdio();
 
     let (initialize_id, initialize_params) = connection.initialize_start()?;
     tracing::info!("InitializeParams: {}", initialize_params);
     let initialize_params =
-        from_json::<lsp_types::InitializeParams>("InitializeParams", initialize_params)?;
+        from_json::<lsp_types::InitializeParams>("InitializeParams", &initialize_params)?;
 
     let root_path = match initialize_params
         .root_uri
@@ -192,7 +190,7 @@ fn run_server() -> Result<()> {
         capabilities: server_capabilities,
         server_info: Some(lsp_types::ServerInfo {
             name: String::from("rust-analyzer"),
-            version: Some(String::from(env!("REV"))),
+            version: Some(rust_analyzer::version().to_string()),
         }),
         offset_encoding: if supports_utf8(config.caps()) {
             Some("utf-8".to_string())

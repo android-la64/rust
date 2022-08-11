@@ -12,14 +12,10 @@ edition = "2018"
 name = "racer"
 path = "src/racer/lib.rs"
 
-[profile.release]
-debug = false # because of #1005
-
 [dependencies]
 bitflags = "1.0"
 log = "0.4"
 env_logger = "0.7.1"
-clap = "2.32"
 lazy_static = "1.2"
 humantime = "2.0.0"
 derive_more = "0.99.2"

@@ -241,6 +241,27 @@ impl<'a> chalk_solve::RustIrDatabase<Interner> for ChalkContext<'a> {
                             .intern(Interner),
                         ),
                     });
+                    let mut binder = vec![];
+                    binder.push(crate::wrap_empty_binders(impl_bound));
+                    let sized_trait = self
+                        .db
+                        .lang_item(self.krate, SmolStr::new_inline("sized"))
+                        .and_then(|item| item.as_trait());
+                    if let Some(sized_trait_) = sized_trait {
+                        let sized_bound = WhereClause::Implemented(TraitRef {
+                            trait_id: to_chalk_trait_id(sized_trait_),
+                            // Self type as the first parameter.
+                            substitution: Substitution::from1(
+                                Interner,
+                                TyKind::BoundVar(BoundVar {
+                                    debruijn: DebruijnIndex::INNERMOST,
+                                    index: 0,
+                                })
+                                .intern(Interner),
+                            ),
+                        });
+                        binder.push(crate::wrap_empty_binders(sized_bound));
+                    }
                     let proj_bound = WhereClause::AliasEq(AliasEq {
                         alias: AliasTy::Projection(ProjectionTy {
                             associated_ty_id: to_assoc_type_id(future_output),
@@ -255,11 +276,9 @@ impl<'a> chalk_solve::RustIrDatabase<Interner> for ChalkContext<'a> {
                         ty: TyKind::BoundVar(BoundVar { debruijn: DebruijnIndex::ONE, index: 0 })
                             .intern(Interner),
                     });
+                    binder.push(crate::wrap_empty_binders(proj_bound));
                     let bound = OpaqueTyDatumBound {
-                        bounds: make_single_type_binders(vec![
-                            crate::wrap_empty_binders(impl_bound),
-                            crate::wrap_empty_binders(proj_bound),
-                        ]),
+                        bounds: make_single_type_binders(binder),
                         where_clauses: chalk_ir::Binders::empty(Interner, vec![]),
                     };
                     // The opaque type has 1 parameter.
@@ -410,8 +429,10 @@ pub(crate) fn associated_ty_data_query(
     let resolver = hir_def::resolver::HasResolver::resolver(type_alias, db.upcast());
     let ctx = crate::TyLoweringContext::new(db, &resolver)
         .with_type_param_mode(crate::lower::ParamLoweringMode::Variable);
-    let self_ty =
-        TyKind::BoundVar(BoundVar::new(crate::DebruijnIndex::INNERMOST, 0)).intern(Interner);
+    let pro_ty = TyBuilder::assoc_type_projection(db, type_alias)
+        .fill_with_bound_vars(crate::DebruijnIndex::INNERMOST, 0)
+        .build();
+    let self_ty = TyKind::Alias(AliasTy::Projection(pro_ty)).intern(Interner);
     let mut bounds: Vec<_> = type_alias_data
         .bounds
         .iter()

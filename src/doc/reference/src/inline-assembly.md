@@ -41,7 +41,7 @@ The following ABNF specifies the general syntax:
 ```text
 format_string := STRING_LITERAL / RAW_STRING_LITERAL
 dir_spec := "in" / "out" / "lateout" / "inout" / "inlateout"
-reg_spec := <register class> / "<explicit register>"
+reg_spec := <register class> / "\"" <explicit register> "\""
 operand_expr := expr / "_" / expr "=>" expr / expr "=>" "_"
 reg_operand := dir_spec "(" reg_spec ")" operand_expr
 operand := reg_operand
@@ -162,6 +162,7 @@ Here is the list of currently supported register classes:
 | x86 | `kreg0` | `k0` | Only clobbers |
 | x86 | `x87_reg` | `st([0-7])` | Only clobbers |
 | x86 | `mmx_reg` | `mm[0-7]` | Only clobbers |
+| x86-64 | `tmm_reg` | `tmm[0-7]` | Only clobbers |
 | AArch64 | `reg` | `x[0-30]` | `r` |
 | AArch64 | `vreg` | `v[0-31]` | `w` |
 | AArch64 | `vreg_low16` | `v[0-15]` | `x` |
@@ -185,7 +186,7 @@ Here is the list of currently supported register classes:
 >
 > - On x86-64 the high byte registers (e.g. `ah`) are not available in the `reg_byte` register class.
 >
-> - Some register classes are marked as "Only clobbers" which means that they cannot be used for inputs or outputs, only clobbers of the form `out("reg") _` or `lateout("reg") _`.
+> - Some register classes are marked as "Only clobbers" which means that registers in these classes cannot be used for inputs or outputs, only clobbers of the form `out(<explicit register>) _` or `lateout(<explicit register>) _`.
 
 Each register class has constraints on which value types they can be used with.
 This is necessary because the way a value is loaded into a register depends on its type.
@@ -204,6 +205,7 @@ The availability of supported types for a particular register class may depend o
 | x86 | `kreg` | `avx512bw` | `i32`, `i64` |
 | x86 | `mmx_reg` | N/A | Only clobbers |
 | x86 | `x87_reg` | N/A | Only clobbers |
+| x86 | `tmm_reg` | N/A | Only clobbers |
 | AArch64 | `reg` | None | `i8`, `i16`, `i32`, `f32`, `i64`, `f64` |
 | AArch64 | `vreg` | `neon` | `i8`, `i16`, `i32`, `f32`, `i64`, `f64`, <br> `i8x8`, `i16x4`, `i32x2`, `i64x1`, `f32x2`, `f64x1`, <br> `i8x16`, `i16x8`, `i32x4`, `i64x2`, `f32x4`, `f64x2` |
 | AArch64 | `preg` | N/A | Only clobbers |
@@ -356,7 +358,7 @@ If all references to an operand already have modifiers then the warning is suppr
 ## ABI clobbers
 
 The `clobber_abi` keyword can be used to apply a default set of clobbers to an `asm!` block.
-This will automatically insert the necessary clobber constraints as needed for calling a function with a particular calling convention: if the calling convention does not fully preserve the value of a register across a call then a `lateout("reg") _` is implicitly added to the operands list.
+This will automatically insert the necessary clobber constraints as needed for calling a function with a particular calling convention: if the calling convention does not fully preserve the value of a register across a call then `lateout("...") _` is implicitly added to the operands list (where the `...` is replaced by the register's name).
 
 `clobber_abi` may be specified any number of times. It will insert a clobber for all unique registers in the union of all specified calling conventions.
 
@@ -367,8 +369,8 @@ The following ABIs can be used with `clobber_abi`:
 | Architecture | ABI name | Clobbered registers |
 | ------------ | -------- | ------------------- |
 | x86-32 | `"C"`, `"system"`, `"efiapi"`, `"cdecl"`, `"stdcall"`, `"fastcall"` | `ax`, `cx`, `dx`, `xmm[0-7]`, `mm[0-7]`, `k[0-7]`, `st([0-7])` |
-| x86-64 | `"C"`, `"system"` (on Windows), `"efiapi"`, `"win64"` | `ax`, `cx`, `dx`, `r[8-11]`, `xmm[0-31]`, `mm[0-7]`, `k[0-7]`, `st([0-7])` |
-| x86-64 | `"C"`, `"system"` (on non-Windows), `"sysv64"` | `ax`, `cx`, `dx`, `si`, `di`, `r[8-11]`, `xmm[0-31]`, `mm[0-7]`, `k[0-7]`, `st([0-7])` |
+| x86-64 | `"C"`, `"system"` (on Windows), `"efiapi"`, `"win64"` | `ax`, `cx`, `dx`, `r[8-11]`, `xmm[0-31]`, `mm[0-7]`, `k[0-7]`, `st([0-7])`, `tmm[0-7]` |
+| x86-64 | `"C"`, `"system"` (on non-Windows), `"sysv64"` | `ax`, `cx`, `dx`, `si`, `di`, `r[8-11]`, `xmm[0-31]`, `mm[0-7]`, `k[0-7]`, `st([0-7])`, `tmm[0-7]` |
 | AArch64 | `"C"`, `"system"`, `"efiapi"` | `x[0-17]`, `x18`\*, `x30`, `v[0-31]`, `p[0-15]`, `ffr` |
 | ARM | `"C"`, `"system"`, `"efiapi"`, `"aapcs"` | `r[0-3]`, `r12`, `r14`, `s[0-15]`, `d[0-7]`, `d[16-31]` |
 | RISC-V | `"C"`, `"system"`, `"efiapi"` | `x1`, `x[5-7]`, `x[10-17]`, `x[28-31]`, `f[0-7]`, `f[10-17]`, `f[28-31]`, `v[0-31]` |

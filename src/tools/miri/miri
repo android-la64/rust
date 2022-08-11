@@ -40,7 +40,7 @@ TARGET=$(rustc --version --verbose | grep "^host:" | cut -d ' ' -f 2)
 SYSROOT=$(rustc --print sysroot)
 LIBDIR=$SYSROOT/lib/rustlib/$TARGET/lib
 # macOS does not have a useful readlink/realpath so we have to use Python instead...
-MIRIDIR=$(dirname "$(python -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$0")")
+MIRIDIR=$(dirname "$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$0")")
 if ! test -d "$LIBDIR"; then
     echo "Something went wrong determining the library dir."
     echo "I got $LIBDIR but that does not exist."
@@ -115,7 +115,7 @@ install|install-debug)
     ;;
 check|check-debug)
     # Check, and let caller control flags.
-    cargo check $CARGO_BUILD_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml "$@"
+    cargo check $CARGO_BUILD_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml --all-targets "$@"
     cargo check $CARGO_BUILD_FLAGS --manifest-path "$MIRIDIR"/cargo-miri/Cargo.toml "$@"
     ;;
 build|build-debug)
@@ -123,13 +123,19 @@ build|build-debug)
     cargo build $CARGO_BUILD_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml "$@"
     cargo build $CARGO_BUILD_FLAGS --manifest-path "$MIRIDIR"/cargo-miri/Cargo.toml "$@"
     ;;
-test|test-debug)
+test|test-debug|bless|bless-debug)
     # First build and get a sysroot.
     cargo build $CARGO_BUILD_FLAGS
     find_sysroot
+    case "$COMMAND" in
+    bless|bless-debug)
+        export MIRI_BLESS="Gesundheit"
+        ;;
+    esac
     # Then test, and let caller control flags.
-    # Only in root project as `cargo-miri` has no tests.
-    exec cargo test $CARGO_BUILD_FLAGS "$@"
+    # Only in root project and ui_test as `cargo-miri` has no tests.
+    cargo test $CARGO_BUILD_FLAGS "$@"
+    cargo test $CARGO_BUILD_FLAGS --manifest-path ui_test/Cargo.toml "$@"
     ;;
 run|run-debug)
     # Scan for "--target" to set the "MIRI_TEST_TARGET" env var so

@@ -3,9 +3,9 @@ use super::*;
 use std::cmp;
 
 /// `MinLen` is an iterator that imposes a minimum length on iterator splits.
-/// This struct is created by the [`min_len()`] method on [`IndexedParallelIterator`]
+/// This struct is created by the [`with_min_len()`] method on [`IndexedParallelIterator`]
 ///
-/// [`min_len()`]: trait.IndexedParallelIterator.html#method.min_len
+/// [`with_min_len()`]: trait.IndexedParallelIterator.html#method.with_min_len
 /// [`IndexedParallelIterator`]: trait.IndexedParallelIterator.html
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 #[derive(Debug, Clone)]
@@ -18,7 +18,7 @@ impl<I> MinLen<I>
 where
     I: IndexedParallelIterator,
 {
-    /// Create a new `MinLen` iterator.
+    /// Creates a new `MinLen` iterator.
     pub(super) fn new(base: I, min: usize) -> Self {
         MinLen { base, min }
     }
@@ -137,9 +137,9 @@ where
 }
 
 /// `MaxLen` is an iterator that imposes a maximum length on iterator splits.
-/// This struct is created by the [`max_len()`] method on [`IndexedParallelIterator`]
+/// This struct is created by the [`with_max_len()`] method on [`IndexedParallelIterator`]
 ///
-/// [`max_len()`]: trait.IndexedParallelIterator.html#method.max_len
+/// [`with_max_len()`]: trait.IndexedParallelIterator.html#method.with_max_len
 /// [`IndexedParallelIterator`]: trait.IndexedParallelIterator.html
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 #[derive(Debug, Clone)]
@@ -152,7 +152,7 @@ impl<I> MaxLen<I>
 where
     I: IndexedParallelIterator,
 {
-    /// Create a new `MaxLen` iterator.
+    /// Creates a new `MaxLen` iterator.
     pub(super) fn new(base: I, max: usize) -> Self {
         MaxLen { base, max }
     }

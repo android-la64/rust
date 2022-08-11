@@ -15,14 +15,14 @@ use rustc_middle::middle::{
 use rustc_middle::mir;
 use rustc_middle::ty;
 use rustc_session::config::CrateType;
-use rustc_span::{symbol::sym, Symbol};
+use rustc_span::Symbol;
 use rustc_target::{
     abi::{Align, Size},
     spec::abi::Abi,
 };
 
 use super::backtrace::EvalContextExt as _;
-use crate::helpers::convert::Truncate;
+use crate::helpers::{convert::Truncate, target_os_is_unix};
 use crate::*;
 
 /// Returned by `emulate_foreign_item_by_name`.
@@ -42,7 +42,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     /// Returns the minimum alignment for the target architecture for allocations of the given size.
     fn min_align(&self, size: u64, kind: MiriMemoryKind) -> Align {
         let this = self.eval_context_ref();
-        // List taken from `libstd/sys_common/alloc.rs`.
+        // List taken from `library/std/src/sys/common/alloc.rs`.
+        // This list should be kept in sync with the one from libstd.
         let min_align = match this.tcx.sess.target.arch.as_ref() {
             "x86" | "arm" | "mips" | "powerpc" | "powerpc64" | "asmjs" | "wasm32" => 8,
             "x86_64" | "aarch64" | "mips64" | "s390x" | "sparc64" => 16,
@@ -231,22 +232,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         def_id: DefId,
         abi: Abi,
         args: &[OpTy<'tcx, Tag>],
-        ret: Option<(&PlaceTy<'tcx, Tag>, mir::BasicBlock)>,
+        dest: &PlaceTy<'tcx, Tag>,
+        ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx, Option<(&'mir mir::Body<'tcx>, ty::Instance<'tcx>)>> {
         let this = self.eval_context_mut();
-        let attrs = this.tcx.get_attrs(def_id);
-        let link_name = this
-            .tcx
-            .sess
-            .first_attr_value_str_by_name(attrs, sym::link_name)
-            .unwrap_or_else(|| this.tcx.item_name(def_id));
+        let link_name = this.item_link_name(def_id);
         let tcx = this.tcx.tcx;
 
         // First: functions that diverge.
-        let (dest, ret) = match ret {
+        let ret = match ret {
             None =>
-                match &*link_name.as_str() {
+                match link_name.as_str() {
                     "miri_start_panic" => {
                         // `check_shim` happens inside `handle_miri_start_panic`.
                         this.handle_miri_start_panic(abi, link_name, args, unwind)?;
@@ -262,7 +259,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                         let panic_impl_id = tcx.lang_items().panic_impl().unwrap();
                         let panic_impl_instance = ty::Instance::mono(tcx, panic_impl_id);
                         return Ok(Some((
-                            &*this.load_mir(panic_impl_instance.def, None)?,
+                            this.load_mir(panic_impl_instance.def, None)?,
                             panic_impl_instance,
                         )));
                     }
@@ -364,7 +361,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         // Here we dispatch all the shims for foreign functions. If you have a platform specific
         // shim, add it to the corresponding submodule.
-        match &*link_name.as_str() {
+        match link_name.as_str() {
             // Miri-specific extern functions
             "miri_static_root" => {
                 let [ptr] = this.check_shim(abi, Abi::Rust, link_name, args)?;
@@ -576,7 +573,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let [f] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 // FIXME: Using host floats.
                 let f = f32::from_bits(this.read_scalar(f)?.to_u32()?);
-                let f = match &*link_name.as_str() {
+                let f = match link_name.as_str() {
                     "cbrtf" => f.cbrt(),
                     "coshf" => f.cosh(),
                     "sinhf" => f.sinh(),
@@ -599,7 +596,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 // FIXME: Using host floats.
                 let f1 = f32::from_bits(this.read_scalar(f1)?.to_u32()?);
                 let f2 = f32::from_bits(this.read_scalar(f2)?.to_u32()?);
-                let n = match &*link_name.as_str() {
+                let n = match link_name.as_str() {
                     "_hypotf" | "hypotf" => f1.hypot(f2),
                     "atan2f" => f1.atan2(f2),
                     _ => bug!(),
@@ -618,7 +615,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let [f] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 // FIXME: Using host floats.
                 let f = f64::from_bits(this.read_scalar(f)?.to_u64()?);
-                let f = match &*link_name.as_str() {
+                let f = match link_name.as_str() {
                     "cbrt" => f.cbrt(),
                     "cosh" => f.cosh(),
                     "sinh" => f.sinh(),
@@ -639,7 +636,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 // FIXME: Using host floats.
                 let f1 = f64::from_bits(this.read_scalar(f1)?.to_u64()?);
                 let f2 = f64::from_bits(this.read_scalar(f2)?.to_u64()?);
-                let n = match &*link_name.as_str() {
+                let n = match link_name.as_str() {
                     "_hypot" | "hypot" => f1.hypot(f2),
                     "atan2" => f1.atan2(f2),
                     _ => bug!(),
@@ -705,7 +702,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             // Platform-specific shims
             _ => match this.tcx.sess.target.os.as_ref() {
-                "linux" | "macos" => return shims::posix::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest, ret),
+                target if target_os_is_unix(target) => return shims::unix::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest, ret),
                 "windows" => return shims::windows::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest, ret),
                 target => throw_unsup_format!("the target `{}` is not supported", target),
             }

@@ -45,7 +45,7 @@ fn client_test_infer_bin() {
     let diag = rls.wait_for_diagnostics();
 
     assert!(diag.uri.as_str().ends_with("src/main.rs"));
-    assert!(diag.diagnostics[0].message.contains("struct is never constructed: `UnusedBin`"));
+    assert!(diag.diagnostics[0].message.contains("struct `UnusedBin` is never constructed"));
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn client_test_infer_lib() {
     let diag = rls.wait_for_diagnostics();
 
     assert!(diag.uri.as_str().ends_with("src/lib.rs"));
-    assert!(diag.diagnostics[0].message.contains("struct is never constructed: `UnusedLib`"));
+    assert!(diag.diagnostics[0].message.contains("struct `UnusedLib` is never constructed"));
 }
 
 #[test]
@@ -74,7 +74,7 @@ fn client_test_infer_custom_bin() {
     let diag = rls.wait_for_diagnostics();
 
     assert!(diag.uri.as_str().ends_with("src/custom_bin.rs"));
-    assert!(diag.diagnostics[0].message.contains("struct is never constructed: `UnusedCustomBin`"));
+    assert!(diag.diagnostics[0].message.contains("struct `UnusedCustomBin` is never constructed"));
 }
 
 /// Test includes window/progress regression testing
@@ -989,24 +989,42 @@ fn client_lens_run() {
         },
     );
 
-    let expected = CodeLens {
-        command: Some(Command {
-            command: "rls.run".to_string(),
-            title: "Run test".to_string(),
-            arguments: Some(vec![json!({
-                "args": [ "test", "--", "--nocapture", "test_foo" ],
-                "binary": "cargo",
-                "env": { "RUST_BACKTRACE": "short" }
-            })]),
-        }),
-        data: None,
-        range: Range {
-            start: Position { line: 4, character: 3 },
-            end: Position { line: 4, character: 11 },
+    let expected = vec![
+        CodeLens {
+            command: Some(Command {
+                command: "rls.run".to_string(),
+                title: "Run test".to_string(),
+                arguments: Some(vec![json!({
+                    "args": [ "test", "--", "--nocapture", "test_foo" ],
+                    "binary": "cargo",
+                    "env": { "RUST_BACKTRACE": "short" }
+                })]),
+            }),
+            data: None,
+            range: Range {
+                start: Position { line: 4, character: 3 },
+                end: Position { line: 4, character: 11 },
+            },
         },
-    };
+        CodeLens {
+            command: Some(Command {
+                command: "rls.run".to_string(),
+                title: "Run test".to_string(),
+                arguments: Some(vec![json!({
+                    "args": [ "test", "--", "--nocapture", "test_bar"],
+                    "binary": "cargo",
+                    "env": { "RUST_BACKTRACE": "short" }
+                })]),
+            }),
+            data: None,
+            range: Range {
+                start: Position { line: 9, character: 3 },
+                end: Position { line: 9, character: 11 },
+            },
+        },
+    ];
 
-    assert_eq!(lens, Some(vec![expected]));
+    assert_eq!(lens, Some(expected));
 }
 
 #[test]
@@ -1961,7 +1979,7 @@ fn client_infer_lib() {
     assert!(diag.uri.as_str().ends_with("src/lib.rs"));
     assert_eq!(diag.diagnostics.len(), 1);
     assert_eq!(diag.diagnostics[0].severity, Some(DiagnosticSeverity::Warning));
-    assert!(diag.diagnostics[0].message.contains("struct is never constructed: `UnusedLib`"));
+    assert!(diag.diagnostics[0].message.contains("struct `UnusedLib` is never constructed"));
 }
 
 #[test]
@@ -1981,7 +1999,7 @@ fn client_omit_init_build() {
     std::thread::sleep(std::time::Duration::from_secs(1));
     rls.block_on(response).unwrap().unwrap();
 
-    assert_eq!(rls.messages().iter().count(), 1);
+    assert_eq!(rls.messages().iter().count(), 2);
 }
 
 #[test]
@@ -2193,22 +2211,22 @@ fn client_init_impl(convert_case: fn(&str) -> String) {
 
 #[test]
 fn client_init_with_configuration_mixed_case() {
-    client_init_impl(heck::MixedCase::to_mixed_case);
+    client_init_impl(heck::ToLowerCamelCase::to_lower_camel_case);
 }
 
 #[test]
 fn client_init_with_configuration_camel_case() {
-    client_init_impl(heck::CamelCase::to_camel_case);
+    client_init_impl(heck::ToUpperCamelCase::to_upper_camel_case);
 }
 
 #[test]
 fn client_init_with_configuration_snake_case() {
-    client_init_impl(heck::SnakeCase::to_snake_case);
+    client_init_impl(heck::ToSnakeCase::to_snake_case);
 }
 
 #[test]
 fn client_init_with_configuration_kebab_case() {
-    client_init_impl(heck::KebabCase::to_kebab_case);
+    client_init_impl(heck::ToKebabCase::to_kebab_case);
 }
 
 #[test]

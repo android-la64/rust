@@ -218,7 +218,7 @@ impl<'a> InferenceContext<'a> {
                 self.diverges = Diverges::Maybe;
                 TyBuilder::unit()
             }
-            Expr::Lambda { body, args, ret_type, arg_types } => {
+            Expr::Closure { body, args, ret_type, arg_types } => {
                 assert_eq!(args.len(), arg_types.len());
 
                 let mut sig_tys = Vec::new();
@@ -558,7 +558,7 @@ impl<'a> InferenceContext<'a> {
                 }
                 .intern(Interner)
             }
-            &Expr::Box { expr } => self.infer_expr_box(expr),
+            &Expr::Box { expr } => self.infer_expr_box(expr, expected),
             Expr::UnaryOp { expr, op } => {
                 let inner_ty = self.infer_expr_inner(*expr, &Expectation::none());
                 let inner_ty = self.resolve_ty_shallow(&inner_ty);
@@ -786,10 +786,23 @@ impl<'a> InferenceContext<'a> {
         ty
     }
 
-    fn infer_expr_box(&mut self, inner_expr: ExprId) -> chalk_ir::Ty<Interner> {
-        let inner_ty = self.infer_expr_inner(inner_expr, &Expectation::none());
-        if let Some(box_) = self.resolve_boxed_box() {
-            TyBuilder::adt(self.db, box_)
+    fn infer_expr_box(&mut self, inner_expr: ExprId, expected: &Expectation) -> Ty {
+        if let Some(box_id) = self.resolve_boxed_box() {
+            let table = &mut self.table;
+            let inner_exp = expected
+                .to_option(table)
+                .as_ref()
+                .map(|e| e.as_adt())
+                .flatten()
+                .filter(|(e_adt, _)| e_adt == &box_id)
+                .map(|(_, subts)| {
+                    let g = subts.at(Interner, 0);
+                    Expectation::rvalue_hint(table, Ty::clone(g.assert_ty_ref(Interner)))
+                })
+                .unwrap_or_else(Expectation::none);
+
+            let inner_ty = self.infer_expr_inner(inner_expr, &inner_exp);
+            TyBuilder::adt(self.db, box_id)
                 .push(inner_ty)
                 .fill_with_defaults(self.db, || self.table.new_type_var())
                 .build()
@@ -1045,7 +1058,7 @@ impl<'a> InferenceContext<'a> {
             for (idx, ((&arg, param_ty), expected_ty)) in
                 args.iter().zip(param_iter).zip(expected_iter).enumerate()
             {
-                let is_closure = matches!(&self.body[arg], Expr::Lambda { .. });
+                let is_closure = matches!(&self.body[arg], Expr::Closure { .. });
                 if is_closure != check_closures {
                     continue;
                 }
@@ -1198,28 +1211,28 @@ impl<'a> InferenceContext<'a> {
     }
 
     /// Returns the argument indices to skip.
-    fn check_legacy_const_generics(&mut self, callee: Ty, args: &[ExprId]) -> Vec<u32> {
+    fn check_legacy_const_generics(&mut self, callee: Ty, args: &[ExprId]) -> Box<[u32]> {
         let (func, subst) = match callee.kind(Interner) {
             TyKind::FnDef(fn_id, subst) => {
                 let callable = CallableDefId::from_chalk(self.db, *fn_id);
                 let func = match callable {
                     CallableDefId::FunctionId(f) => f,
-                    _ => return Vec::new(),
+                    _ => return Default::default(),
                 };
                 (func, subst)
             }
-            _ => return Vec::new(),
+            _ => return Default::default(),
         };
 
         let data = self.db.function_data(func);
         if data.legacy_const_generics_indices.is_empty() {
-            return Vec::new();
+            return Default::default();
         }
 
         // only use legacy const generics if the param count matches with them
         if data.params.len() + data.legacy_const_generics_indices.len() != args.len() {
             if args.len() <= data.params.len() {
-                return Vec::new();
+                return Default::default();
             } else {
                 // there are more parameters than there should be without legacy
                 // const params; use them

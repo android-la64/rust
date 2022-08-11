@@ -26,7 +26,7 @@ use crate::{
     mem_docs::MemDocs,
     op_queue::OpQueue,
     reload::{self, SourceRootConfig},
-    thread_pool::TaskPool,
+    task_pool::TaskPool,
     to_proto::url_from_abs_path,
     Result,
 };
@@ -199,6 +199,10 @@ impl GlobalState {
                     if file.is_created_or_deleted() {
                         has_structure_changes = true;
                     }
+                }
+
+                if !file.exists() {
+                    self.diagnostics.clear_native_for(file.file_id);
                 }
 
                 let text = if file.exists() {

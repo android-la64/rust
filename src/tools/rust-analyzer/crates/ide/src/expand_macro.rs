@@ -46,10 +46,10 @@ pub(crate) fn expand_macro(db: &RootDatabase, position: FilePosition) -> Option<
             return None;
         }
 
-        let name = descended.ancestors().filter_map(ast::Path::cast).last()?.to_string();
+        let name = descended.parent_ancestors().filter_map(ast::Path::cast).last()?.to_string();
         // up map out of the #[derive] expansion
         let token = hir::InFile::new(hir_file, descended).upmap(db)?.value;
-        let attr = token.ancestors().find_map(ast::Attr::cast)?;
+        let attr = token.parent_ancestors().find_map(ast::Attr::cast)?;
         let expansions = sema.expand_derive_macro(&attr)?;
         let idx = attr
             .token_tree()?
@@ -69,7 +69,7 @@ pub(crate) fn expand_macro(db: &RootDatabase, position: FilePosition) -> Option<
 
     // FIXME: Intermix attribute and bang! expansions
     // currently we only recursively expand one of the two types
-    let mut anc = tok.ancestors();
+    let mut anc = tok.parent_ancestors();
     let (name, expanded, kind) = loop {
         let node = anc.next()?;
 
@@ -238,6 +238,23 @@ fn main() {
     }
 
     #[test]
+    fn macro_expand_underscore() {
+        check(
+            r#"
+macro_rules! bar {
+    ($i:tt) => { for _ in 0..$i {} }
+}
+fn main() {
+    ba$0r!(42);
+}
+"#,
+            expect![[r#"
+                bar
+                for _ in 0..42{}"#]],
+        );
+    }
+
+    #[test]
     fn macro_expand_recursive_expansion() {
         check(
             r#"
@@ -255,7 +272,6 @@ f$0oo!();
             expect![[r#"
                 foo
                 fn b(){}
-
             "#]],
         );
     }
@@ -279,8 +295,7 @@ f$0oo!();
                 fn some_thing() -> u32 {
                   let a = 0;
                   a+10
-                }
-            "#]],
+                }"#]],
         );
     }
 
@@ -341,8 +356,7 @@ fn main() {
 "#,
             expect![[r#"
                 match_ast
-                {}
-            "#]],
+                {}"#]],
         );
     }
 
@@ -385,7 +399,7 @@ fn main() {
 "#,
             expect![[r#"
                 foo
-                0 "#]],
+                0"#]],
         );
     }
 
@@ -403,8 +417,7 @@ fn main() {
 "#,
             expect![[r#"
                 foo
-                fn f<T>(_: &dyn ::std::marker::Copy){}
-            "#]],
+                fn f<T>(_: &dyn ::std::marker::Copy){}"#]],
         );
     }
 
@@ -422,7 +435,6 @@ struct Foo {}
             expect![[r#"
                 Clone
                 impl < >core::clone::Clone for Foo< >{}
-
             "#]],
         );
     }
@@ -440,7 +452,6 @@ struct Foo {}
             expect![[r#"
                 Copy
                 impl < >core::marker::Copy for Foo< >{}
-
             "#]],
         );
     }
@@ -457,7 +468,6 @@ struct Foo {}
             expect![[r#"
                 Copy
                 impl < >core::marker::Copy for Foo< >{}
-
             "#]],
         );
         check(
@@ -470,7 +480,6 @@ struct Foo {}
             expect![[r#"
                 Clone
                 impl < >core::clone::Clone for Foo< >{}
-
             "#]],
         );
     }

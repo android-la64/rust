@@ -319,17 +319,49 @@ impl ast::IntNumber {
             Some(suffix)
         }
     }
+
+    pub fn float_value(&self) -> Option<f64> {
+        let (_, text, _) = self.split_into_parts();
+        text.parse::<f64>().ok()
+    }
 }
 
-impl ast::FloatNumberPart {
-    pub fn suffix(&self) -> Option<&str> {
+impl ast::FloatNumber {
+    pub fn split_into_parts(&self) -> (&str, &str) {
         let text = self.text();
+        let mut float_text = self.text();
+        let mut suffix = "";
         let mut indices = text.char_indices();
-        let (mut suffix_start, c) = indices.by_ref().find(|(_, c)| c.is_ascii_alphabetic())?;
-        if c == 'e' || c == 'E' {
-            suffix_start = indices.find(|(_, c)| c.is_ascii_alphabetic())?.0;
+        if let Some((mut suffix_start, c)) = indices.by_ref().find(|(_, c)| c.is_ascii_alphabetic())
+        {
+            if c == 'e' || c == 'E' {
+                if let Some(suffix_start_tuple) = indices.find(|(_, c)| c.is_ascii_alphabetic()) {
+                    suffix_start = suffix_start_tuple.0;
+
+                    float_text = &text[..suffix_start];
+                    suffix = &text[suffix_start..];
+                }
+            } else {
+                float_text = &text[..suffix_start];
+                suffix = &text[suffix_start..];
+            }
         }
-        Some(&text[suffix_start..])
+
+        (float_text, suffix)
+    }
+
+    pub fn suffix(&self) -> Option<&str> {
+        let (_, suffix) = self.split_into_parts();
+        if suffix.is_empty() {
+            None
+        } else {
+            Some(suffix)
+        }
+    }
+
+    pub fn value(&self) -> Option<f64> {
+        let (text, _) = self.split_into_parts();
+        text.parse::<f64>().ok()
     }
 }
 
@@ -355,24 +387,14 @@ impl Radix {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::{self, make};
+    use crate::ast::{self, make, FloatNumber, IntNumber};
 
     fn check_float_suffix<'a>(lit: &str, expected: impl Into<Option<&'a str>>) {
-        let suffix = match make::literal(lit).kind() {
-            ast::LiteralKind::FloatNumber(f) => f.suffix(),
-            // `1f32` lexes as an INT_NUMBER
-            ast::LiteralKind::IntNumber(i) => i.suffix().map(|s| s.to_string()),
-            e => unreachable!("{e:?}"),
-        };
-        assert_eq!(suffix.as_deref(), expected.into());
+        assert_eq!(FloatNumber { syntax: make::tokens::literal(lit) }.suffix(), expected.into());
     }
 
     fn check_int_suffix<'a>(lit: &str, expected: impl Into<Option<&'a str>>) {
-        let i = match make::literal(lit).kind() {
-            ast::LiteralKind::IntNumber(i) => i,
-            _ => unreachable!(),
-        };
-        assert_eq!(i.suffix(), expected.into());
+        assert_eq!(IntNumber { syntax: make::tokens::literal(lit) }.suffix(), expected.into());
     }
 
     #[test]
@@ -400,11 +422,12 @@ mod tests {
     }
 
     fn check_string_value<'a>(lit: &str, expected: impl Into<Option<&'a str>>) {
-        let s = match make::literal(&format!("\"{}\"", lit)).kind() {
-            ast::LiteralKind::String(s) => s,
-            _ => unreachable!(),
-        };
-        assert_eq!(s.value().as_deref(), expected.into());
+        assert_eq!(
+            ast::String { syntax: make::tokens::literal(&format!("\"{}\"", lit)) }
+                .value()
+                .as_deref(),
+            expected.into()
+        );
     }
 
     #[test]

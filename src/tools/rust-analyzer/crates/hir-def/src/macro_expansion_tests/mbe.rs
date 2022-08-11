@@ -47,6 +47,58 @@ struct#10 MyTraitMap2#32 {#13
 }
 
 #[test]
+fn token_mapping_floats() {
+    // Regression test for https://github.com/rust-lang/rust-analyzer/issues/12216
+    // (and related issues)
+    check(
+        r#"
+// +tokenids
+macro_rules! f {
+    ($($tt:tt)*) => {
+        $($tt)*
+    };
+}
+
+// +tokenids
+f! {
+    fn main() {
+        1;
+        1.0;
+        let x = 1;
+    }
+}
+
+
+"#,
+        expect![[r##"
+// call ids will be shifted by Shift(18)
+// +tokenids
+macro_rules! f {#0
+    (#1$#2(#3$#4tt#5:#6tt#7)#3*#8)#1 =#9>#10 {#11
+        $#12(#13$#14tt#15)#13*#16
+    }#11;#17
+}#0
+
+// // +tokenids
+// f! {
+//     fn#1 main#2() {
+//         1#5;#6
+//         1.0#7;#8
+//         let#9 x#10 =#11 1#12;#13
+//     }
+// }
+fn#19 main#20(#21)#21 {#22
+    1#23;#24
+    1.0#25;#26
+    let#27 x#28 =#29 1#30;#31
+}#22
+
+
+"##]],
+    );
+}
+
+#[test]
 fn mbe_smoke_test() {
     check(
         r#"
@@ -1490,5 +1542,73 @@ macro_rules! error {
 #[error]
 struct Foo;
 "##]],
+    )
+}
+
+#[test]
+fn test_dollar_dollar() {
+    check(
+        r#"
+macro_rules! register_struct { ($Struct:ident) => {
+    macro_rules! register_methods { ($$($method:ident),*) => {
+        macro_rules! implement_methods { ($$$$($$val:expr),*) => {
+            struct $Struct;
+            impl $Struct { $$(fn $method() -> &'static [u32] { &[$$$$($$$$val),*] })*}
+        }}
+    }}
+}}
+
+register_struct!(Foo);
+register_methods!(alpha, beta);
+implement_methods!(1, 2, 3);
+"#,
+        expect![[r#"
+macro_rules! register_struct { ($Struct:ident) => {
+    macro_rules! register_methods { ($$($method:ident),*) => {
+        macro_rules! implement_methods { ($$$$($$val:expr),*) => {
+            struct $Struct;
+            impl $Struct { $$(fn $method() -> &'static [u32] { &[$$$$($$$$val),*] })*}
+        }}
+    }}
+}}
+
+macro_rules !register_methods {
+    ($($method: ident), *) = > {
+        macro_rules!implement_methods {
+            ($$($val: expr), *) = > {
+                struct Foo;
+                impl Foo {
+                    $(fn $method()-> & 'static[u32] {
+                        &[$$($$val), *]
+                    }
+                    )*
+                }
+            }
+        }
+    }
+}
+macro_rules !implement_methods {
+    ($($val: expr), *) = > {
+        struct Foo;
+        impl Foo {
+            fn alpha()-> & 'static[u32] {
+                &[$($val), *]
+            }
+            fn beta()-> & 'static[u32] {
+                &[$($val), *]
+            }
+        }
+    }
+}
+struct Foo;
+impl Foo {
+    fn alpha() -> & 'static[u32] {
+        &[1, 2, 3]
+    }
+    fn beta() -> & 'static[u32] {
+        &[1, 2, 3]
+    }
+}
+"#]],
     )
 }

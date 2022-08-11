@@ -2,10 +2,9 @@
 
 use hir::Documentation;
 use ide_db::{imports::insert_use::ImportScope, SnippetCap};
-use syntax::T;
 
 use crate::{
-    context::{ItemListKind, PathCompletionCtx, PathKind},
+    context::{ItemListKind, PathCompletionCtx, PathKind, Qualified},
     item::Builder,
     CompletionContext, CompletionItem, CompletionItemKind, Completions, SnippetScope,
 };
@@ -16,14 +15,17 @@ fn snippet(ctx: &CompletionContext, cap: SnippetCap, label: &str, snippet: &str)
     item
 }
 
-pub(crate) fn complete_expr_snippet(acc: &mut Completions, ctx: &CompletionContext) {
-    let &can_be_stmt = match ctx.path_context() {
-        Some(PathCompletionCtx {
-            is_absolute_path: false,
-            qualifier: None,
+pub(crate) fn complete_expr_snippet(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    path_ctx: &PathCompletionCtx,
+) {
+    let &can_be_stmt = match path_ctx {
+        PathCompletionCtx {
+            qualified: Qualified::No,
             kind: PathKind::Expr { in_block_expr, .. },
             ..
-        }) => in_block_expr,
+        } => in_block_expr,
         _ => return,
     };
 
@@ -42,20 +44,23 @@ pub(crate) fn complete_expr_snippet(acc: &mut Completions, ctx: &CompletionConte
     }
 }
 
-pub(crate) fn complete_item_snippet(acc: &mut Completions, ctx: &CompletionContext) {
-    let path_kind = match ctx.path_context() {
-        Some(PathCompletionCtx {
-            is_absolute_path: false,
-            qualifier: None,
+pub(crate) fn complete_item_snippet(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    path_ctx: &PathCompletionCtx,
+) {
+    let path_kind = match path_ctx {
+        PathCompletionCtx {
+            qualified: Qualified::No,
             kind: kind @ (PathKind::Item { .. } | PathKind::Expr { in_block_expr: true, .. }),
             ..
-        }) => kind,
+        } => kind,
         _ => return,
     };
-    if ctx.previous_token_is(T![unsafe]) || ctx.has_unfinished_impl_or_trait_prev_sibling() {
+    if !ctx.qualifier_ctx.none() {
         return;
     }
-    if ctx.has_visibility_prev_sibling() {
+    if ctx.qualifier_ctx.vis_node.is_some() {
         return; // technically we could do some of these snippet completions if we were to put the
                 // attributes before the vis node.
     }

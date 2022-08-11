@@ -1,6 +1,7 @@
 use std::{
     cmp,
     fmt::{self, Display, Write},
+    iter::once,
 };
 
 pub mod style;
@@ -131,7 +132,7 @@ impl<'a> DisplayList<'a> {
         for fragment in label {
             match fragment.style {
                 DisplayTextStyle::Regular => fragment.content.fmt(f)?,
-                DisplayTextStyle::Emphasis => emphasis_style.paint(&fragment.content, f)?,
+                DisplayTextStyle::Emphasis => emphasis_style.paint(fragment.content, f)?,
             }
         }
         Ok(())
@@ -198,7 +199,68 @@ impl<'a> DisplayList<'a> {
             DisplaySourceLine::Empty => Ok(()),
             DisplaySourceLine::Content { text, .. } => {
                 f.write_char(' ')?;
-                text.fmt(f)
+                if let Some(margin) = self.margin {
+                    let line_len = text.chars().count();
+                    let mut left = margin.left(line_len);
+                    let right = margin.right(line_len);
+
+                    if margin.was_cut_left() {
+                        // We have stripped some code/whitespace from the beginning, make it clear.
+                        "...".fmt(f)?;
+                        left += 3;
+                    }
+
+                    // On long lines, we strip the source line, accounting for unicode.
+                    let mut taken = 0;
+                    let cut_right = if margin.was_cut_right(line_len) {
+                        taken += 3;
+                        true
+                    } else {
+                        false
+                    };
+                    // Specifies that it will end on the next character, so it will return
+                    // until the next one to the final condition.
+                    let mut ended = false;
+                    let range = text
+                        .char_indices()
+                        .skip(left)
+                        // Complete char iterator with final character
+                        .chain(once((text.len(), '\0')))
+                        // Take until the next one to the final condition
+                        .take_while(|(_, ch)| {
+                            // Fast return to iterate over final byte position
+                            if ended {
+                                return false;
+                            }
+                            // Make sure that the trimming on the right will fall within the terminal width.
+                            // FIXME: `unicode_width` sometimes disagrees with terminals on how wide a `char` is.
+                            // For now, just accept that sometimes the code line will be longer than desired.
+                            taken += unicode_width::UnicodeWidthChar::width(*ch).unwrap_or(1);
+                            if taken > right - left {
+                                ended = true;
+                            }
+                            true
+                        })
+                        // Reduce to start and end byte position
+                        .fold((None, 0), |acc, (i, _)| {
+                            if acc.0.is_some() {
+                                (acc.0, i)
+                            } else {
+                                (Some(i), i)
+                            }
+                        });
+
+                    // Format text with margins
+                    text[range.0.expect("One character at line")..range.1].fmt(f)?;
+
+                    if cut_right {
+                        // We have stripped some code after the right-most span end, make it clear we did so.
+                        "...".fmt(f)?;
+                    }
+                    Ok(())
+                } else {
+                    text.fmt(f)
+                }
             }
             DisplaySourceLine::Annotation {
                 range,
@@ -236,7 +298,7 @@ impl<'a> DisplayList<'a> {
                     f,
                 )?;
 
-                if !is_annotation_empty(&annotation) {
+                if !is_annotation_empty(annotation) {
                     f.write_char(' ')?;
                     color.paint_fn(
                         Box::new(|f| {
@@ -299,18 +361,15 @@ impl<'a> DisplayList<'a> {
                 if *source_aligned {
                     if *continuation {
                         format_repeat_char(' ', lineno_width + 3, f)?;
-                        self.format_annotation(annotation, *continuation, false, f)
                     } else {
                         let lineno_color = self.stylesheet.get_style(StyleClass::LineNo);
                         format_repeat_char(' ', lineno_width, f)?;
                         f.write_char(' ')?;
                         lineno_color.paint("=", f)?;
                         f.write_char(' ')?;
-                        self.format_annotation(annotation, *continuation, false, f)
                     }
-                } else {
-                    self.format_annotation(annotation, *continuation, false, f)
                 }
+                self.format_annotation(annotation, *continuation, false, f)
             }
         }
     }

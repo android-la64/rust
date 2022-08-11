@@ -18,7 +18,7 @@ use syntax::{
 
 use crate::{
     completions::module_or_attr,
-    context::{CompletionContext, IdentContext, PathCompletionCtx, PathKind, PathQualifierCtx},
+    context::{CompletionContext, PathCompletionCtx, PathKind, Qualified},
     item::CompletionItem,
     Completions,
 };
@@ -34,11 +34,9 @@ pub(crate) use self::derive::complete_derive;
 pub(crate) fn complete_known_attribute_input(
     acc: &mut Completions,
     ctx: &CompletionContext,
+    fake_attribute_under_caret: &ast::Attr,
 ) -> Option<()> {
-    let attribute = match &ctx.ident_ctx {
-        IdentContext::UnexpandedAttrTT { fake_attribute_under_caret: Some(it) } => it,
-        _ => return None,
-    };
+    let attribute = fake_attribute_under_caret;
     let name_ref = match attribute.path() {
         Some(p) => Some(p.as_single_name_ref()?),
         None => None,
@@ -71,27 +69,29 @@ pub(crate) fn complete_known_attribute_input(
     Some(())
 }
 
-pub(crate) fn complete_attribute(acc: &mut Completions, ctx: &CompletionContext) {
-    let (is_absolute_path, qualifier, is_inner, annotated_item_kind) = match ctx.path_context() {
-        Some(&PathCompletionCtx {
+pub(crate) fn complete_attribute(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    path_ctx: &PathCompletionCtx,
+) {
+    let (qualified, is_inner, annotated_item_kind) = match path_ctx {
+        &PathCompletionCtx {
             kind: PathKind::Attr { kind, annotated_item_kind },
-            is_absolute_path,
-            ref qualifier,
+            ref qualified,
             ..
-        }) => (is_absolute_path, qualifier, kind == AttrKind::Inner, annotated_item_kind),
+        } => (qualified, kind == AttrKind::Inner, annotated_item_kind),
         _ => return,
     };
 
-    match qualifier {
-        Some(PathQualifierCtx { resolution, is_super_chain, .. }) => {
+    match qualified {
+        Qualified::With {
+            resolution: Some(hir::PathResolution::Def(hir::ModuleDef::Module(module))),
+            is_super_chain,
+            ..
+        } => {
             if *is_super_chain {
                 acc.add_keyword(ctx, "super::");
             }
-
-            let module = match resolution {
-                Some(hir::PathResolution::Def(hir::ModuleDef::Module(it))) => it,
-                _ => return,
-            };
 
             for (name, def) in module.scope(ctx.db, Some(ctx.module)) {
                 if let Some(def) = module_or_attr(ctx.db, def) {
@@ -101,9 +101,9 @@ pub(crate) fn complete_attribute(acc: &mut Completions, ctx: &CompletionContext)
             return;
         }
         // fresh use tree with leading colon2, only show crate roots
-        None if is_absolute_path => acc.add_crate_roots(ctx),
+        Qualified::Absolute => acc.add_crate_roots(ctx),
         // only show modules in a fresh UseTree
-        None => {
+        Qualified::No => {
             ctx.process_all_names(&mut |name, def| {
                 if let Some(def) = module_or_attr(ctx.db, def) {
                     acc.add_resolution(ctx, name, def);
@@ -111,6 +111,7 @@ pub(crate) fn complete_attribute(acc: &mut Completions, ctx: &CompletionContext)
             });
             acc.add_nameref_keywords_with_colon(ctx);
         }
+        Qualified::Infer | Qualified::With { .. } => {}
     }
 
     let attributes = annotated_item_kind.and_then(|kind| {
