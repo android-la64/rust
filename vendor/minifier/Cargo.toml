@@ -10,8 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2021"
 name = "minifier"
-version = "0.0.43"
+version = "0.2.1"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 description = "Minifier tool/lib for JS/CSS/JSON files"
 documentation = "https://docs.rs/minifier-rs"
@@ -25,6 +26,17 @@ keywords = [
 ]
 license = "MIT"
 repository = "https://github.com/GuillaumeGomez/minifier-rs"
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.release.package."*"]
+opt-level = 3
+codegen-units = 1
 
 [lib]
 name = "minifier"
@@ -33,11 +45,8 @@ name = "minifier"
 name = "minifier"
 doc = false
 
-[dependencies.macro-utils]
-version = "^0.1"
-
 [dependencies.regex]
-version = "1.0"
+version = "1.5.5"
 optional = true
 
 [features]

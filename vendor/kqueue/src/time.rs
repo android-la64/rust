@@ -1,7 +1,10 @@
 use libc::timespec;
 use std::time::Duration;
 
-#[cfg(not(all(target_os = "freebsd", target_arch = "x86")))]
+#[cfg(not(all(
+    any(target_os = "freebsd", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "powerpc")
+)))]
 pub(crate) fn duration_to_timespec(d: Duration) -> timespec {
     let tv_sec = d.as_secs() as i64;
     let tv_nsec = d.subsec_nanos() as i64;
@@ -17,7 +20,10 @@ pub(crate) fn duration_to_timespec(d: Duration) -> timespec {
     timespec { tv_sec, tv_nsec }
 }
 
-#[cfg(all(target_os = "freebsd", target_arch = "x86"))]
+#[cfg(all(
+    any(target_os = "freebsd", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "powerpc")
+))]
 pub(crate) fn duration_to_timespec(d: Duration) -> timespec {
     let tv_sec = d.as_secs() as i32;
     let tv_nsec = d.subsec_nanos() as i32;

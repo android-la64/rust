@@ -12,12 +12,10 @@ use ide_db::{
 use syntax::{AstNode, SyntaxKind::*, SyntaxToken, TextRange, T};
 
 use crate::{
-    hover::hover_for_definition, Analysis, Fold, HoverConfig, HoverDocFormat, HoverResult,
-    InlayHint, InlayHintsConfig, TryToNav,
-};
-use crate::{
+    hover::hover_for_definition,
     moniker::{crate_for_file, def_to_moniker, MonikerResult},
-    LifetimeElisionHints,
+    Analysis, Fold, HoverConfig, HoverDocFormat, HoverResult, InlayHint, InlayHintsConfig,
+    TryToNav,
 };
 
 /// A static representation of fully analyzed source code.
@@ -111,12 +109,15 @@ impl StaticIndex<'_> {
                     type_hints: true,
                     parameter_hints: true,
                     chaining_hints: true,
-                    closure_return_type_hints: true,
-                    lifetime_elision_hints: LifetimeElisionHints::Never,
-                    reborrow_hints: false,
+                    closure_return_type_hints: crate::ClosureReturnTypeHints::WithBlock,
+                    lifetime_elision_hints: crate::LifetimeElisionHints::Never,
+                    reborrow_hints: crate::ReborrowHints::Never,
                     hide_named_constructor_hints: false,
+                    hide_closure_initialization_hints: false,
                     param_names_for_lifetime_elision_hints: false,
+                    binding_mode_hints: false,
                     max_length: Some(25),
+                    closing_brace_hints_min_lines: Some(25),
                 },
                 file_id,
                 None,

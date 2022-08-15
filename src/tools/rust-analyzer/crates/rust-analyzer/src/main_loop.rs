@@ -19,7 +19,7 @@ use crate::{
     from_proto,
     global_state::{file_id_to_url, url_to_file_id, GlobalState},
     handlers, lsp_ext,
-    lsp_utils::{apply_document_changes, is_cancelled, notification_is, Progress},
+    lsp_utils::{apply_document_changes, notification_is, Progress},
     mem_docs::DocumentData,
     reload::{self, BuildDataProgress, ProjectWorkspaceProgress},
     Result,
@@ -60,6 +60,7 @@ enum Event {
 #[derive(Debug)]
 pub(crate) enum Task {
     Response(lsp_server::Response),
+    Retry(lsp_server::Request),
     Diagnostics(Vec<(FileId, Vec<lsp_types::Diagnostic>)>),
     PrimeCaches(PrimeCachesProgress),
     FetchWorkspace(ProjectWorkspaceProgress),
@@ -196,7 +197,7 @@ impl GlobalState {
         let was_quiescent = self.is_quiescent();
         match event {
             Event::Lsp(msg) => match msg {
-                lsp_server::Message::Request(req) => self.on_request(loop_start, req)?,
+                lsp_server::Message::Request(req) => self.on_new_request(loop_start, req),
                 lsp_server::Message::Notification(not) => {
                     self.on_notification(not)?;
                 }
@@ -208,6 +209,7 @@ impl GlobalState {
                 loop {
                     match task {
                         Task::Response(response) => self.respond(response),
+                        Task::Retry(req) => self.on_request(req),
                         Task::Diagnostics(diagnostics_per_file) => {
                             for (file_id, diagnostics) in diagnostics_per_file {
                                 self.diagnostics.set_native_diagnostics(file_id, diagnostics)
@@ -370,11 +372,13 @@ impl GlobalState {
                 loop {
                     match task {
                         flycheck::Message::AddDiagnostic { workspace_root, diagnostic } => {
+                            let snap = self.snapshot();
                             let diagnostics =
                                 crate::diagnostics::to_proto::map_rust_diagnostic_to_lsp(
                                     &self.config.diagnostics_map(),
                                     &diagnostic,
                                     &workspace_root,
+                                    &snap,
                                 );
                             for diag in diagnostics {
                                 match url_to_file_id(&self.vfs.read().0, &diag.url) {
@@ -551,17 +555,19 @@ impl GlobalState {
         Ok(())
     }
 
-    fn on_request(&mut self, request_received: Instant, req: Request) -> Result<()> {
+    fn on_new_request(&mut self, request_received: Instant, req: Request) {
         self.register_request(&req, request_received);
+        self.on_request(req);
+    }
 
+    fn on_request(&mut self, req: Request) {
         if self.shutdown_requested {
             self.respond(lsp_server::Response::new_err(
                 req.id,
                 lsp_server::ErrorCode::InvalidRequest as i32,
                 "Shutdown already requested.".to_owned(),
             ));
-
-            return Ok(());
+            return;
         }
 
         // Avoid flashing a bunch of unresolved references during initial load.
@@ -571,21 +577,21 @@ impl GlobalState {
                 lsp_server::ErrorCode::ContentModified as i32,
                 "waiting for cargo metadata or cargo check".to_owned(),
             ));
-            return Ok(());
+            return;
         }
 
         RequestDispatcher { req: Some(req), global_state: self }
             .on_sync_mut::<lsp_types::request::Shutdown>(|s, ()| {
                 s.shutdown_requested = true;
                 Ok(())
-            })?
-            .on_sync_mut::<lsp_ext::ReloadWorkspace>(handlers::handle_workspace_reload)?
-            .on_sync_mut::<lsp_ext::MemoryUsage>(handlers::handle_memory_usage)?
-            .on_sync_mut::<lsp_ext::ShuffleCrateGraph>(handlers::handle_shuffle_crate_graph)?
-            .on_sync::<lsp_ext::JoinLines>(handlers::handle_join_lines)?
-            .on_sync::<lsp_ext::OnEnter>(handlers::handle_on_enter)?
-            .on_sync::<lsp_types::request::SelectionRangeRequest>(handlers::handle_selection_range)?
-            .on_sync::<lsp_ext::MatchingBrace>(handlers::handle_matching_brace)?
+            })
+            .on_sync_mut::<lsp_ext::ReloadWorkspace>(handlers::handle_workspace_reload)
+            .on_sync_mut::<lsp_ext::MemoryUsage>(handlers::handle_memory_usage)
+            .on_sync_mut::<lsp_ext::ShuffleCrateGraph>(handlers::handle_shuffle_crate_graph)
+            .on_sync::<lsp_ext::JoinLines>(handlers::handle_join_lines)
+            .on_sync::<lsp_ext::OnEnter>(handlers::handle_on_enter)
+            .on_sync::<lsp_types::request::SelectionRangeRequest>(handlers::handle_selection_range)
+            .on_sync::<lsp_ext::MatchingBrace>(handlers::handle_matching_brace)
             .on::<lsp_ext::AnalyzerStatus>(handlers::handle_analyzer_status)
             .on::<lsp_ext::SyntaxTree>(handlers::handle_syntax_tree)
             .on::<lsp_ext::ViewHir>(handlers::handle_view_hir)
@@ -603,13 +609,14 @@ impl GlobalState {
             .on::<lsp_ext::OpenCargoToml>(handlers::handle_open_cargo_toml)
             .on::<lsp_ext::MoveItem>(handlers::handle_move_item)
             .on::<lsp_ext::WorkspaceSymbol>(handlers::handle_workspace_symbol)
-            .on::<lsp_types::request::OnTypeFormatting>(handlers::handle_on_type_formatting)
+            .on::<lsp_ext::OnTypeFormatting>(handlers::handle_on_type_formatting)
             .on::<lsp_types::request::DocumentSymbolRequest>(handlers::handle_document_symbol)
             .on::<lsp_types::request::GotoDefinition>(handlers::handle_goto_definition)
             .on::<lsp_types::request::GotoDeclaration>(handlers::handle_goto_declaration)
             .on::<lsp_types::request::GotoImplementation>(handlers::handle_goto_implementation)
             .on::<lsp_types::request::GotoTypeDefinition>(handlers::handle_goto_type_definition)
             .on::<lsp_types::request::InlayHintRequest>(handlers::handle_inlay_hints)
+            .on::<lsp_types::request::InlayHintResolveRequest>(handlers::handle_inlay_hints_resolve)
             .on::<lsp_types::request::Completion>(handlers::handle_completion)
             .on::<lsp_types::request::ResolveCompletionItem>(handlers::handle_completion_resolve)
             .on::<lsp_types::request::CodeLensRequest>(handlers::handle_code_lens)
@@ -641,8 +648,8 @@ impl GlobalState {
             .on::<lsp_types::request::WillRenameFiles>(handlers::handle_will_rename_files)
             .on::<lsp_ext::Ssr>(handlers::handle_ssr)
             .finish();
-        Ok(())
     }
+
     fn on_notification(&mut self, not: Notification) -> Result<()> {
         NotificationDispatcher { not: Some(not), global_state: self }
             .on::<lsp_types::notification::Cancel>(|this, params| {
@@ -661,11 +668,11 @@ impl GlobalState {
             })?
             .on::<lsp_types::notification::DidOpenTextDocument>(|this, params| {
                 if let Ok(path) = from_proto::vfs_path(&params.text_document.uri) {
-                    if this
+                    let already_exists = this
                         .mem_docs
                         .insert(path.clone(), DocumentData::new(params.text_document.version))
-                        .is_err()
-                    {
+                        .is_err();
+                    if already_exists {
                         tracing::error!("duplicate DidOpenTextDocument: {}", path)
                     }
                     this.vfs
@@ -684,7 +691,7 @@ impl GlobalState {
                             doc.version = params.text_document.version;
                         }
                         None => {
-                            tracing::error!("unexpected DidChangeTextDocument: {}; send DidOpenTextDocument first", path);
+                            tracing::error!("unexpected DidChangeTextDocument: {}", path);
                             return Ok(());
                         }
                     };
@@ -718,7 +725,8 @@ impl GlobalState {
                 }
                 if let Ok(abs_path) = from_proto::abs_path(&params.text_document.uri) {
                     if reload::should_refresh_for_change(&abs_path, ChangeKind::Modify) {
-                        this.fetch_workspaces_queue.request_op(format!("DidSaveTextDocument {}", abs_path.display()));
+                        this.fetch_workspaces_queue
+                            .request_op(format!("DidSaveTextDocument {}", abs_path.display()));
                     }
                 }
                 Ok(())
@@ -747,7 +755,10 @@ impl GlobalState {
                                     // provide a configuration. This is handled in Config::update below.
                                     let mut config = Config::clone(&*this.config);
                                     if let Err(error) = config.update(json.take()) {
-                                        this.show_message(lsp_types::MessageType::WARNING, error.to_string());
+                                        this.show_message(
+                                            lsp_types::MessageType::WARNING,
+                                            error.to_string(),
+                                        );
                                     }
                                     this.update_configuration(config);
                                 }
@@ -788,11 +799,6 @@ impl GlobalState {
                 .into_iter()
                 .filter_map(|file_id| {
                     handlers::publish_diagnostics(&snapshot, file_id)
-                        .map_err(|err| {
-                            if !is_cancelled(&*err) {
-                                tracing::error!("failed to compute diagnostics: {:?}", err);
-                            }
-                        })
                         .ok()
                         .map(|diags| (file_id, diags))
                 })

@@ -104,6 +104,7 @@ mod handlers {
     pub(crate) type Handler = fn(&mut Assists, &AssistContext) -> Option<()>;
 
     mod add_explicit_type;
+    mod add_label_to_loop;
     mod add_lifetime_to_type;
     mod add_missing_impl_members;
     mod add_turbo_fish;
@@ -115,6 +116,7 @@ mod handlers {
     mod convert_integer_literal;
     mod convert_into_to_from;
     mod convert_iter_for_each_to_for;
+    mod convert_let_else_to_match;
     mod convert_tuple_struct_to_named_struct;
     mod convert_to_guarded_return;
     mod convert_while_to_loop;
@@ -138,6 +140,7 @@ mod handlers {
     mod generate_documentation_template;
     mod generate_enum_is_method;
     mod generate_enum_projection_method;
+    mod generate_enum_variant;
     mod generate_from_impl_for_enum;
     mod generate_function;
     mod generate_getter;
@@ -191,6 +194,7 @@ mod handlers {
         &[
             // These are alphabetic for the foolish consistency
             add_explicit_type::add_explicit_type,
+            add_label_to_loop::add_label_to_loop,
             add_missing_match_arms::add_missing_match_arms,
             add_lifetime_to_type::add_lifetime_to_type,
             add_return_type::add_return_type,
@@ -205,6 +209,7 @@ mod handlers {
             convert_into_to_from::convert_into_to_from,
             convert_iter_for_each_to_for::convert_iter_for_each_to_for,
             convert_iter_for_each_to_for::convert_for_loop_with_for_each,
+            convert_let_else_to_match::convert_let_else_to_match,
             convert_to_guarded_return::convert_to_guarded_return,
             convert_tuple_struct_to_named_struct::convert_tuple_struct_to_named_struct,
             convert_while_to_loop::convert_while_to_loop,
@@ -221,9 +226,11 @@ mod handlers {
             generate_default_from_new::generate_default_from_new,
             generate_derive::generate_derive,
             generate_documentation_template::generate_documentation_template,
+            generate_documentation_template::generate_doc_example,
             generate_enum_is_method::generate_enum_is_method,
             generate_enum_projection_method::generate_enum_as_method,
             generate_enum_projection_method::generate_enum_try_into_method,
+            generate_enum_variant::generate_enum_variant,
             generate_from_impl_for_enum::generate_from_impl_for_enum,
             generate_function::generate_function,
             generate_impl::generate_impl,

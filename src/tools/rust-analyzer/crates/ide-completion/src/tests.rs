@@ -36,7 +36,10 @@ use stdx::{format_to, trim_indent};
 use syntax::{AstNode, NodeOrToken, SyntaxElement};
 use test_utils::assert_eq_text;
 
-use crate::{resolve_completion_edits, CompletionConfig, CompletionItem, CompletionItemKind};
+use crate::{
+    resolve_completion_edits, CallableSnippets, CompletionConfig, CompletionItem,
+    CompletionItemKind,
+};
 
 /// Lots of basic item definitions
 const BASE_ITEMS_FIXTURE: &str = r#"
@@ -62,9 +65,8 @@ pub(crate) const TEST_CONFIG: CompletionConfig = CompletionConfig {
     enable_postfix_completions: true,
     enable_imports_on_the_fly: true,
     enable_self_on_the_fly: true,
-    enable_private_editable: true,
-    add_call_parenthesis: true,
-    add_call_argument_snippets: true,
+    enable_private_editable: false,
+    callable: Some(CallableSnippets::FillArguments),
     snippet_cap: SnippetCap::new(true),
     insert_use: InsertUseConfig {
         granularity: ImportGranularity::Crate,
@@ -77,20 +79,34 @@ pub(crate) const TEST_CONFIG: CompletionConfig = CompletionConfig {
 };
 
 pub(crate) fn completion_list(ra_fixture: &str) -> String {
-    completion_list_with_config(TEST_CONFIG, ra_fixture, true)
+    completion_list_with_config(TEST_CONFIG, ra_fixture, true, None)
 }
 
 pub(crate) fn completion_list_no_kw(ra_fixture: &str) -> String {
-    completion_list_with_config(TEST_CONFIG, ra_fixture, false)
+    completion_list_with_config(TEST_CONFIG, ra_fixture, false, None)
+}
+
+pub(crate) fn completion_list_no_kw_with_private_editable(ra_fixture: &str) -> String {
+    let mut config = TEST_CONFIG.clone();
+    config.enable_private_editable = true;
+    completion_list_with_config(config, ra_fixture, false, None)
+}
+
+pub(crate) fn completion_list_with_trigger_character(
+    ra_fixture: &str,
+    trigger_character: Option<char>,
+) -> String {
+    completion_list_with_config(TEST_CONFIG, ra_fixture, true, trigger_character)
 }
 
 fn completion_list_with_config(
     config: CompletionConfig,
     ra_fixture: &str,
     include_keywords: bool,
+    trigger_character: Option<char>,
 ) -> String {
     // filter out all but one builtintype completion for smaller test outputs
-    let items = get_all_items(config, ra_fixture);
+    let items = get_all_items(config, ra_fixture, trigger_character);
     let mut bt_seen = false;
     let items = items
         .into_iter()
@@ -124,7 +140,7 @@ pub(crate) fn do_completion_with_config(
     code: &str,
     kind: CompletionItemKind,
 ) -> Vec<CompletionItem> {
-    get_all_items(config, code)
+    get_all_items(config, code, None)
         .into_iter()
         .filter(|c| c.kind() == kind)
         .sorted_by(|l, r| l.label().cmp(r.label()))
@@ -171,7 +187,7 @@ pub(crate) fn check_edit_with_config(
     let ra_fixture_after = trim_indent(ra_fixture_after);
     let (db, position) = position(ra_fixture_before);
     let completions: Vec<CompletionItem> =
-        crate::completions(&db, &config, position).unwrap().into();
+        crate::completions(&db, &config, position, None).unwrap().into();
     let (completion,) = completions
         .iter()
         .filter(|it| it.lookup() == what)
@@ -212,9 +228,14 @@ pub(crate) fn check_pattern_is_applicable(code: &str, check: impl FnOnce(SyntaxE
     assert!(check(NodeOrToken::Token(token)));
 }
 
-pub(crate) fn get_all_items(config: CompletionConfig, code: &str) -> Vec<CompletionItem> {
+pub(crate) fn get_all_items(
+    config: CompletionConfig,
+    code: &str,
+    trigger_character: Option<char>,
+) -> Vec<CompletionItem> {
     let (db, position) = position(code);
-    let res = crate::completions(&db, &config, position).map_or_else(Vec::default, Into::into);
+    let res = crate::completions(&db, &config, position, trigger_character)
+        .map_or_else(Vec::default, Into::into);
     // validate
     res.iter().for_each(|it| {
         let sr = it.source_range();

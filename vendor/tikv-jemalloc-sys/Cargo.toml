@@ -12,26 +12,37 @@
 [package]
 edition = "2018"
 name = "tikv-jemalloc-sys"
-version = "0.4.3+5.2.1-patched.2"
-authors = ["Alex Crichton <alex@alexcrichton.com>", "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>", "The TiKV Project Developers"]
+version = "0.5.0+5.3.0"
+authors = [
+    "Alex Crichton <alex@alexcrichton.com>",
+    "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
+    "The TiKV Project Developers",
+]
 build = "build.rs"
 links = "jemalloc"
-description = "Rust FFI bindings to jemalloc\n"
+description = """
+Rust FFI bindings to jemalloc
+"""
 homepage = "https://github.com/tikv/jemallocator"
 documentation = "https://docs.rs/tikv-jemallocator-sys"
 readme = "README.md"
-keywords = ["allocator", "jemalloc"]
+keywords = [
+    "allocator",
+    "jemalloc",
+]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/tikv/jemallocator"
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "jemallocator_docs"]
 
-[lib]
-test = false
-bench = false
+[package.metadata.docs.rs]
+rustdoc-args = [
+    "--cfg",
+    "jemallocator_docs",
+]
+
 [dependencies.libc]
 version = "^0.2.8"
 default-features = false
+
 [build-dependencies.cc]
 version = "^1.0.13"
 
@@ -47,6 +58,7 @@ disable_initial_exec_tls = []
 profiling = []
 stats = []
 unprefixed_malloc_on_supported_platforms = []
+
 [badges.codecov]
 repository = "tikv/jemallocator"
 
@@ -58,6 +70,3 @@ repository = "tikv/jemallocator"
 
 [badges.maintenance]
 status = "actively-developed"
-
-[badges.travis-ci]
-repository = "tikv/jemallocator"

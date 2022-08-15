@@ -12,14 +12,23 @@
 [package]
 edition = "2018"
 name = "expect-test"
-version = "1.2.2"
+version = "1.3.0"
 authors = ["rust-analyzer developers"]
-exclude = ["./github", "bors.toml", "rustfmt.toml"]
+exclude = [
+    "./github",
+    "bors.toml",
+    "rustfmt.toml",
+]
 description = "Minimalistic snapshot testing library"
-keywords = ["snapshot", "testing", "expect"]
+keywords = [
+    "snapshot",
+    "testing",
+    "expect",
+]
 categories = ["development-tools::testing"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-analyzer/expect-test"
+
 [dependencies.dissimilar]
 version = "1"
 

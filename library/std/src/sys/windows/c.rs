@@ -276,6 +276,7 @@ pub const STATUS_INVALID_PARAMETER: NTSTATUS = 0xc000000d_u32 as _;
 
 pub const STATUS_PENDING: NTSTATUS = 0x103 as _;
 pub const STATUS_END_OF_FILE: NTSTATUS = 0xC0000011_u32 as _;
+pub const STATUS_NOT_IMPLEMENTED: NTSTATUS = 0xC0000002_u32 as _;
 
 // Equivalent to the `NT_SUCCESS` C preprocessor macro.
 // See: https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/using-ntstatus-values
@@ -325,7 +326,9 @@ union IO_STATUS_BLOCK_union {
 }
 impl Default for IO_STATUS_BLOCK_union {
     fn default() -> Self {
-        Self { Pointer: ptr::null_mut() }
+        let mut this = Self { Pointer: ptr::null_mut() };
+        this.Status = STATUS_PENDING;
+        this
     }
 }
 #[repr(C)]
@@ -333,6 +336,16 @@ impl Default for IO_STATUS_BLOCK_union {
 pub struct IO_STATUS_BLOCK {
     u: IO_STATUS_BLOCK_union,
     pub Information: usize,
+}
+impl IO_STATUS_BLOCK {
+    pub fn status(&self) -> NTSTATUS {
+        // SAFETY: If `self.u.Status` was set then this is obviously safe.
+        // If `self.u.Pointer` was set then this is the equivalent to converting
+        // the pointer to an integer, which is also safe.
+        // Currently the only safe way to construct `IO_STATUS_BLOCK` outside of
+        // this module is to call the `default` method, which sets the `Status`.
+        unsafe { self.u.Status }
+    }
 }
 
 pub type LPOVERLAPPED_COMPLETION_ROUTINE = unsafe extern "system" fn(
@@ -788,6 +801,10 @@ if #[cfg(not(target_vendor = "uwp"))] {
 
     #[link(name = "advapi32")]
     extern "system" {
+        // Forbidden when targeting UWP
+        #[link_name = "SystemFunction036"]
+        pub fn RtlGenRandom(RandomBuffer: *mut u8, RandomBufferLength: ULONG) -> BOOLEAN;
+
         // Allowed but unused by UWP
         pub fn OpenProcessToken(
             ProcessHandle: HANDLE,
@@ -1260,7 +1277,7 @@ compat_fn! {
         EaBuffer: *mut c_void,
         EaLength: ULONG
     ) -> NTSTATUS {
-        panic!("`NtCreateFile` not available");
+        STATUS_NOT_IMPLEMENTED
     }
     pub fn NtReadFile(
         FileHandle: BorrowedHandle<'_>,
@@ -1273,7 +1290,7 @@ compat_fn! {
         ByteOffset: Option<&LARGE_INTEGER>,
         Key: Option<&ULONG>
     ) -> NTSTATUS {
-        panic!("`NtReadFile` not available");
+        STATUS_NOT_IMPLEMENTED
     }
     pub fn NtWriteFile(
         FileHandle: BorrowedHandle<'_>,
@@ -1286,12 +1303,12 @@ compat_fn! {
         ByteOffset: Option<&LARGE_INTEGER>,
         Key: Option<&ULONG>
     ) -> NTSTATUS {
-        panic!("`NtWriteFile` not available");
+        STATUS_NOT_IMPLEMENTED
     }
     pub fn RtlNtStatusToDosError(
         Status: NTSTATUS
     ) -> ULONG {
-        panic!("`RtlNtStatusToDosError` not available");
+        Status as ULONG
     }
     pub fn NtCreateKeyedEvent(
         KeyedEventHandle: LPHANDLE,

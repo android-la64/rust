@@ -1,5 +1,3 @@
-use kqueue;
-use libc;
 use std::env;
 use std::io::Result;
 
@@ -23,7 +21,7 @@ fn watch_pid(pid: libc::pid_t) -> Result<()> {
 }
 
 fn main() {
-    if let Some(pid) = env::args().skip(1).next() {
+    if let Some(pid) = env::args().nth(1) {
         if let Ok(npid) = pid.parse::<libc::pid_t>() {
             if let Err(err) = watch_pid(npid) {
                 println!("{:?}", err);

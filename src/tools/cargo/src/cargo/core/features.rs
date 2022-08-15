@@ -158,7 +158,7 @@ impl Edition {
     ///
     /// This requires a static value due to the way clap works, otherwise I
     /// would have built this dynamically.
-    pub const CLI_VALUES: &'static [&'static str] = &["2015", "2018", "2021"];
+    pub const CLI_VALUES: [&'static str; 3] = ["2015", "2018", "2021"];
 
     /// Returns the first version that a particular edition was released on
     /// stable.
@@ -641,7 +641,7 @@ unstable_cli_options!(
     build_std_features: Option<Vec<String>>  = ("Configure features enabled for the standard library itself when building the standard library"),
     config_include: bool = ("Enable the `include` key in config files"),
     credential_process: bool = ("Add a config setting to fetch registry authentication tokens by calling an external process"),
-    check_cfg: Option<(/*features:*/ bool, /*well_known_names:*/ bool, /*well_known_values:*/ bool)> = ("Specify scope of compile-time checking of `cfg` names/values"),
+    check_cfg: Option<(/*features:*/ bool, /*well_known_names:*/ bool, /*well_known_values:*/ bool, /*output:*/ bool)> = ("Specify scope of compile-time checking of `cfg` names/values"),
     doctest_in_workspace: bool = ("Compile doctests with paths relative to the workspace root"),
     doctest_xcompile: bool = ("Compile and run doctests for non-host target using runner config"),
     dual_proc_macros: bool = ("Build proc-macros for both the host and the target"),
@@ -653,7 +653,7 @@ unstable_cli_options!(
     no_index_update: bool = ("Do not update the registry index even if the cache is outdated"),
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
     host_config: bool = ("Enable the [host] section in the .cargo/config.toml file"),
-    http_registry: bool = ("Support HTTP-based crate registries"),
+    sparse_registry: bool = ("Support plain-HTTP-based crate registries"),
     target_applies_to_host: bool = ("Enable the `target-applies-to-host` key in the .cargo/config.toml file"),
     rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
     separate_nightlies: bool = (HIDDEN),
@@ -783,22 +783,29 @@ impl CliUnstable {
             }
         }
 
-        fn parse_check_cfg(value: Option<&str>) -> CargoResult<Option<(bool, bool, bool)>> {
+        fn parse_check_cfg(value: Option<&str>) -> CargoResult<Option<(bool, bool, bool, bool)>> {
             if let Some(value) = value {
                 let mut features = false;
                 let mut well_known_names = false;
                 let mut well_known_values = false;
+                let mut output = false;
 
                 for e in value.split(',') {
                     match e {
                         "features" => features = true,
                         "names" => well_known_names = true,
                         "values" => well_known_values = true,
-                        _ => bail!("flag -Zcheck-cfg only takes `features`, `names` or `values` as valid inputs"),
+                        "output" => output = true,
+                        _ => bail!("flag -Zcheck-cfg only takes `features`, `names`, `values` or `output` as valid inputs"),
                     }
                 }
 
-                Ok(Some((features, well_known_names, well_known_values)))
+                Ok(Some((
+                    features,
+                    well_known_names,
+                    well_known_values,
+                    output,
+                )))
             } else {
                 Ok(None)
             }
@@ -900,7 +907,7 @@ impl CliUnstable {
             "multitarget" => self.multitarget = parse_empty(k, v)?,
             "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,
             "terminal-width" => self.terminal_width = Some(parse_usize_opt(v)?),
-            "http-registry" => self.http_registry = parse_empty(k, v)?,
+            "sparse-registry" => self.sparse_registry = parse_empty(k, v)?,
             "namespaced-features" => stabilized_warn(k, "1.60", STABILISED_NAMESPACED_FEATURES),
             "weak-dep-features" => stabilized_warn(k, "1.60", STABILIZED_WEAK_DEP_FEATURES),
             "credential-process" => self.credential_process = parse_empty(k, v)?,

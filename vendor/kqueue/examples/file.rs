@@ -1,4 +1,3 @@
-use kqueue;
 use std::env;
 use std::io::Result;
 
@@ -24,7 +23,7 @@ fn watch_file(filename: &str) -> Result<()> {
 }
 
 fn main() {
-    if let Some(filename) = env::args().skip(1).next() {
+    if let Some(filename) = env::args().nth(1) {
         if let Err(err) = watch_file(&filename) {
             println!("{:?}", err);
         }

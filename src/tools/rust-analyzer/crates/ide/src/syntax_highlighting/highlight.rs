@@ -27,18 +27,10 @@ pub(super) fn token(sema: &Semantics<RootDatabase>, token: SyntaxToken) -> Optio
 
     let highlight: Highlight = match token.kind() {
         STRING | BYTE_STRING => HlTag::StringLiteral.into(),
-        INT_NUMBER if token.ancestors().nth(1).map(|it| it.kind()) == Some(FIELD_EXPR) => {
+        INT_NUMBER if token.parent_ancestors().nth(1).map(|it| it.kind()) == Some(FIELD_EXPR) => {
             SymbolKind::Field.into()
         }
-        INT_NUMBER | FLOAT_NUMBER_PART | FLOAT_NUMBER_START_0 | FLOAT_NUMBER_START_1
-        | FLOAT_NUMBER_START_2 => HlTag::NumericLiteral.into(),
-        DOT if matches!(
-            token.prev_token().map(|n| n.kind()),
-            Some(FLOAT_NUMBER_START_1 | FLOAT_NUMBER_START_2)
-        ) =>
-        {
-            HlTag::NumericLiteral.into()
-        }
+        INT_NUMBER | FLOAT_NUMBER => HlTag::NumericLiteral.into(),
         BYTE => HlTag::ByteLiteral.into(),
         CHAR => HlTag::CharLiteral.into(),
         IDENT if token.parent().and_then(ast::TokenTree::cast).is_some() => {
@@ -474,10 +466,7 @@ fn highlight_def(sema: &Semantics<RootDatabase>, krate: hir::Crate, def: Definit
         Definition::ToolModule(_) => Highlight::new(HlTag::Symbol(SymbolKind::ToolModule)),
     };
 
-    let def_crate = def.module(db).map(hir::Module::krate).or_else(|| match def {
-        Definition::Module(module) => Some(module.krate()),
-        _ => None,
-    });
+    let def_crate = def.krate(db);
     let is_from_other_crate = def_crate != Some(krate);
     let is_from_builtin_crate = def_crate.map_or(false, |def_crate| def_crate.is_builtin(db));
     let is_builtin_type = matches!(def, Definition::BuiltinType(_));

@@ -5,23 +5,16 @@ use ide_db::FxHashSet;
 use syntax::ast::Pat;
 
 use crate::{
-    context::{PathCompletionCtx, PathQualifierCtx, PatternRefutability},
+    context::{PathCompletionCtx, PathKind, PatternContext, PatternRefutability, Qualified},
     CompletionContext, Completions,
 };
 
 /// Completes constants and paths in unqualified patterns.
-pub(crate) fn complete_pattern(acc: &mut Completions, ctx: &CompletionContext) {
-    let patctx = match &ctx.pattern_ctx {
-        Some(ctx) => ctx,
-        _ => return,
-    };
-    let refutable = patctx.refutability == PatternRefutability::Refutable;
-
-    if let Some(path_ctx) = ctx.path_context() {
-        pattern_path_completion(acc, ctx, path_ctx);
-        return;
-    }
-
+pub(crate) fn complete_pattern(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    patctx: &PatternContext,
+) {
     match patctx.parent_pat.as_ref() {
         Some(Pat::RangePat(_) | Pat::BoxPat(_)) => (),
         Some(Pat::RefPat(r)) => {
@@ -47,15 +40,26 @@ pub(crate) fn complete_pattern(acc: &mut Completions, ctx: &CompletionContext) {
         }
     }
 
+    if patctx.record_pat.is_some() {
+        return;
+    }
+
+    let refutable = patctx.refutability == PatternRefutability::Refutable;
     let single_variant_enum = |enum_: hir::Enum| ctx.db.enum_data(enum_.into()).variants.len() == 1;
 
     if let Some(hir::Adt::Enum(e)) =
         ctx.expected_type.as_ref().and_then(|ty| ty.strip_references().as_adt())
     {
         if refutable || single_variant_enum(e) {
-            super::enum_variants_with_paths(acc, ctx, e, |acc, ctx, variant, path| {
-                acc.add_qualified_variant_pat(ctx, variant, path);
-            });
+            super::enum_variants_with_paths(
+                acc,
+                ctx,
+                e,
+                &patctx.impl_,
+                |acc, ctx, variant, path| {
+                    acc.add_qualified_variant_pat(ctx, variant, path);
+                },
+            );
         }
     }
 
@@ -104,21 +108,19 @@ pub(crate) fn complete_pattern(acc: &mut Completions, ctx: &CompletionContext) {
     });
 }
 
-fn pattern_path_completion(
+pub(crate) fn pattern_path_completion(
     acc: &mut Completions,
     ctx: &CompletionContext,
-    PathCompletionCtx { qualifier, is_absolute_path, .. }: &PathCompletionCtx,
+    PathCompletionCtx { qualified, kind, .. }: &PathCompletionCtx,
 ) {
-    match qualifier {
-        Some(PathQualifierCtx { resolution, is_super_chain, .. }) => {
+    if !matches!(kind, PathKind::Pat { .. }) {
+        return;
+    }
+    match qualified {
+        Qualified::With { resolution: Some(resolution), is_super_chain, .. } => {
             if *is_super_chain {
                 acc.add_keyword(ctx, "super::");
             }
-
-            let resolution = match resolution {
-                Some(it) => it,
-                None => return,
-            };
 
             match resolution {
                 hir::PathResolution::Def(hir::ModuleDef::Module(module)) => {
@@ -193,8 +195,8 @@ fn pattern_path_completion(
             }
         }
         // qualifier can only be none here if we are in a TuplePat or RecordPat in which case special characters have to follow the path
-        None if *is_absolute_path => acc.add_crate_roots(ctx),
-        None => {
+        Qualified::Absolute => acc.add_crate_roots(ctx),
+        Qualified::No => {
             ctx.process_all_names(&mut |name, res| {
                 // FIXME: properly filter here
                 if let ScopeDef::ModuleDef(_) = res {
@@ -204,5 +206,6 @@ fn pattern_path_completion(
 
             acc.add_nameref_keywords_with_colon(ctx);
         }
+        Qualified::Infer | Qualified::With { .. } => {}
     }
 }

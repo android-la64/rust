@@ -1,17 +1,14 @@
 // Std
-use std::{
-    borrow::Cow,
-    cmp,
-    fmt::Write as _,
-    io::{self, Write},
-    usize,
-};
+use std::borrow::Cow;
+use std::cmp;
+use std::fmt::Write as _;
+use std::io::{self, Write};
+use std::usize;
 
 // Internal
-use crate::{
-    build::{display_arg_val, Arg, Command},
-    output::{fmt::Colorizer, Usage},
-};
+use crate::builder::{display_arg_val, Arg, Command};
+use crate::output::{fmt::Colorizer, Usage};
+use crate::PossibleValue;
 
 // Third party
 use indexmap::IndexSet;
@@ -31,6 +28,15 @@ pub(crate) struct Help<'help, 'cmd, 'writer> {
 
 // Public Functions
 impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
+    #[cfg(feature = "unstable-v4")]
+    const DEFAULT_TEMPLATE: &'static str = "\
+        {before-help}{name} {version}\n\
+        {author-with-newline}{about-with-newline}\n\
+        {usage-heading}\n    {usage}\n\
+        \n\
+        {all-args}{after-help}\
+    ";
+    #[cfg(not(feature = "unstable-v4"))]
     const DEFAULT_TEMPLATE: &'static str = "\
         {before-help}{bin} {version}\n\
         {author-with-newline}{about-with-newline}\n\
@@ -39,6 +45,13 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
         {all-args}{after-help}\
     ";
 
+    #[cfg(feature = "unstable-v4")]
+    const DEFAULT_NO_ARGS_TEMPLATE: &'static str = "\
+        {before-help}{name} {version}\n\
+        {author-with-newline}{about-with-newline}\n\
+        {usage-heading}\n    {usage}{after-help}\
+    ";
+    #[cfg(not(feature = "unstable-v4"))]
     const DEFAULT_NO_ARGS_TEMPLATE: &'static str = "\
         {before-help}{bin} {version}\n\
         {author-with-newline}{about-with-newline}\n\
@@ -52,7 +65,7 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
         usage: &'cmd Usage<'help, 'cmd>,
         use_long: bool,
     ) -> Self {
-        debug!("Help::new");
+        debug!("Help::new cmd={}, use_long={}", cmd.get_name(), use_long);
         let term_w = match cmd.get_term_width() {
             Some(0) => usize::MAX,
             Some(w) => w,
@@ -161,7 +174,12 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
             .filter(|arg| should_show_arg(self.use_long, *arg))
         {
             if arg.longest_filter() {
-                longest = longest.max(display_width(arg.to_string().as_str()));
+                longest = longest.max(display_width(&arg.to_string()));
+                debug!(
+                    "Help::write_args_unsorted: arg={:?} longest={}",
+                    arg.get_id(),
+                    longest
+                );
             }
             arg_v.push(arg)
         }
@@ -176,8 +194,8 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
     }
 
     /// Sorts arguments by length and display order and write their help to the wrapped stream.
-    fn write_args(&mut self, args: &[&Arg<'help>]) -> io::Result<()> {
-        debug!("Help::write_args");
+    fn write_args(&mut self, args: &[&Arg<'help>], _category: &str) -> io::Result<()> {
+        debug!("Help::write_args {}", _category);
         // The shortest an arg can legally be is 2 (i.e. '-x')
         let mut longest = 2;
         let mut ord_v = Vec::new();
@@ -190,9 +208,12 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
             should_show_arg(self.use_long, *arg)
         }) {
             if arg.longest_filter() {
-                debug!("Help::write_args: Current Longest...{}", longest);
-                longest = longest.max(display_width(arg.to_string().as_str()));
-                debug!("Help::write_args: New Longest...{}", longest);
+                longest = longest.max(display_width(&arg.to_string()));
+                debug!(
+                    "Help::write_args: arg={:?} longest={}",
+                    arg.get_id(),
+                    longest
+                );
             }
 
             // Formatting key like this to ensure that:
@@ -237,7 +258,18 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
     ) -> io::Result<()> {
         let spec_vals = &self.spec_vals(arg);
 
-        self.write_arg_inner(arg, spec_vals, next_line_help, longest)?;
+        self.short(arg)?;
+        self.long(arg)?;
+        self.val(arg)?;
+        self.align_to_about(arg, next_line_help, longest)?;
+
+        let about = if self.use_long {
+            arg.long_help.or(arg.help).unwrap_or("")
+        } else {
+            arg.help.or(arg.long_help).unwrap_or("")
+        };
+
+        self.help(Some(arg), about, spec_vals, next_line_help, longest)?;
 
         if !last_arg {
             self.none("\n")?;
@@ -317,35 +349,41 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
         next_line_help: bool,
         longest: usize,
     ) -> io::Result<()> {
-        debug!("Help::align_to_about: arg={}", arg.name);
-        debug!("Help::align_to_about: Has switch...");
-        if self.use_long {
+        debug!(
+            "Help::align_to_about: arg={}, next_line_help={}, longest={}",
+            arg.name, next_line_help, longest
+        );
+        if self.use_long || next_line_help {
             // long help prints messages on the next line so it doesn't need to align text
             debug!("Help::align_to_about: printing long help so skip alignment");
         } else if !arg.is_positional() {
-            debug!("Yes");
-            debug!("Help::align_to_about: nlh...{:?}", next_line_help);
-            if !next_line_help {
-                let self_len = display_width(arg.to_string().as_str());
-                // subtract ourself
-                let mut spcs = longest - self_len;
-                // Since we're writing spaces from the tab point we first need to know if we
-                // had a long and short, or just short
-                if arg.long.is_some() {
-                    // Only account 4 after the val
-                    spcs += 4;
-                } else {
-                    // Only account for ', --' + 4 after the val
-                    spcs += 8;
-                }
+            let self_len = display_width(&arg.to_string());
+            // Since we're writing spaces from the tab point we first need to know if we
+            // had a long and short, or just short
+            let padding = if arg.long.is_some() {
+                // Only account 4 after the val
+                4
+            } else {
+                // Only account for ', --' + 4 after the val
+                8
+            };
+            let spcs = longest + padding - self_len;
+            debug!(
+                "Help::align_to_about: positional=false arg_len={}, spaces={}",
+                self_len, spcs
+            );
 
-                self.spaces(spcs)?;
-            }
-        } else if !next_line_help {
-            debug!("No, and not next_line");
-            self.spaces(longest + 4 - display_width(&arg.to_string()))?;
+            self.spaces(spcs)?;
         } else {
-            debug!("No");
+            let self_len = display_width(&arg.to_string());
+            let padding = 4;
+            let spcs = longest + padding - self_len;
+            debug!(
+                "Help::align_to_about: positional=true arg_len={}, spaces={}",
+                self_len, spcs
+            );
+
+            self.spaces(spcs)?;
         }
         Ok(())
     }
@@ -385,7 +423,7 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
     /// Writes argument's help to the wrapped stream.
     fn help(
         &mut self,
-        is_not_positional: bool,
+        arg: Option<&Arg<'help>>,
         about: &str,
         spec_vals: &str,
         next_line_help: bool,
@@ -401,7 +439,7 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
             longest + 12
         };
 
-        let too_long = spaces + display_width(about) + display_width(spec_vals) >= self.term_w;
+        let too_long = spaces + display_width(&help) >= self.term_w;
 
         // Is help on next line, if so then indent
         if next_line_help {
@@ -423,46 +461,96 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
         if let Some(part) = help.lines().next() {
             self.none(part)?;
         }
-        for part in help.lines().skip(1) {
-            self.none("\n")?;
-            if next_line_help {
-                self.none(format!("{}{}{}", TAB, TAB, TAB))?;
-            } else if is_not_positional {
-                self.spaces(longest + 12)?;
-            } else {
-                self.spaces(longest + 8)?;
-            }
-            self.none(part)?;
-        }
-        Ok(())
-    }
 
-    /// Writes help for an argument to the wrapped stream.
-    fn write_arg_inner(
-        &mut self,
-        arg: &Arg<'help>,
-        spec_vals: &str,
-        next_line_help: bool,
-        longest: usize,
-    ) -> io::Result<()> {
-        self.short(arg)?;
-        self.long(arg)?;
-        self.val(arg)?;
-        self.align_to_about(arg, next_line_help, longest)?;
-
-        let about = if self.use_long {
-            arg.long_help.or(arg.help).unwrap_or("")
+        // indent of help
+        let spaces = if next_line_help {
+            TAB_WIDTH * 3
+        } else if let Some(true) = arg.map(|a| a.is_positional()) {
+            longest + TAB_WIDTH * 2
         } else {
-            arg.help.or(arg.long_help).unwrap_or("")
+            longest + TAB_WIDTH * 3
         };
 
-        self.help(
-            !arg.is_positional(),
-            about,
-            spec_vals,
-            next_line_help,
-            longest,
-        )?;
+        for part in help.lines().skip(1) {
+            self.none("\n")?;
+            self.spaces(spaces)?;
+            self.none(part)?;
+        }
+
+        #[cfg(feature = "unstable-v4")]
+        if let Some(arg) = arg {
+            const DASH_SPACE: usize = "- ".len();
+            const COLON_SPACE: usize = ": ".len();
+            let possible_vals = arg.get_possible_values2();
+            if self.use_long
+                && !arg.is_hide_possible_values_set()
+                && possible_vals.iter().any(PossibleValue::should_show_help)
+            {
+                debug!("Help::help: Found possible vals...{:?}", possible_vals);
+                if !help.is_empty() {
+                    self.none("\n\n")?;
+                    self.spaces(spaces)?;
+                }
+                self.none("Possible values:")?;
+                let longest = possible_vals
+                    .iter()
+                    .filter_map(|f| f.get_visible_quoted_name().map(|name| display_width(&name)))
+                    .max()
+                    .expect("Only called with possible value");
+                let help_longest = possible_vals
+                    .iter()
+                    .filter_map(|f| f.get_visible_help().map(display_width))
+                    .max()
+                    .expect("Only called with possible value with help");
+                // should new line
+                let taken = longest + spaces + DASH_SPACE;
+
+                let possible_value_new_line =
+                    self.term_w >= taken && self.term_w < taken + COLON_SPACE + help_longest;
+
+                let spaces = spaces + TAB_WIDTH - DASH_SPACE;
+                let spaces_help = if possible_value_new_line {
+                    spaces + DASH_SPACE
+                } else {
+                    spaces + longest + DASH_SPACE + COLON_SPACE
+                };
+
+                for pv in possible_vals.iter().filter(|pv| !pv.is_hide_set()) {
+                    self.none("\n")?;
+                    self.spaces(spaces)?;
+                    self.none("- ")?;
+                    self.good(pv.get_name())?;
+                    if let Some(help) = pv.get_help() {
+                        debug!("Help::help: Possible Value help");
+
+                        if possible_value_new_line {
+                            self.none(":\n")?;
+                            self.spaces(spaces_help)?;
+                        } else {
+                            self.none(": ")?;
+                            // To align help messages
+                            self.spaces(longest - display_width(pv.get_name()))?;
+                        }
+
+                        let avail_chars = if self.term_w > spaces_help {
+                            self.term_w - spaces_help
+                        } else {
+                            usize::MAX
+                        };
+
+                        let help = text_wrapper(help, avail_chars);
+                        let mut help = help.lines();
+
+                        self.none(help.next().unwrap_or_default())?;
+                        for part in help {
+                            self.none("\n")?;
+                            self.spaces(spaces_help)?;
+                            self.none(part)?;
+                        }
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
@@ -515,7 +603,7 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
                 spec_vals.push(env_info);
             }
         }
-        if !a.is_hide_default_value_set() && !a.default_vals.is_empty() {
+        if a.is_takes_value_set() && !a.is_hide_default_value_set() && !a.default_vals.is_empty() {
             debug!(
                 "Help::spec_vals: Found default value...[{:?}]",
                 a.default_vals
@@ -572,24 +660,18 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
             }
         }
 
-        if !a.is_hide_possible_values_set() && !a.possible_vals.is_empty() {
-            debug!(
-                "Help::spec_vals: Found possible vals...{:?}",
-                a.possible_vals
-            );
+        let possible_vals = a.get_possible_values2();
+        if !(a.is_hide_possible_values_set()
+            || possible_vals.is_empty()
+            || cfg!(feature = "unstable-v4")
+                && self.use_long
+                && possible_vals.iter().any(PossibleValue::should_show_help))
+        {
+            debug!("Help::spec_vals: Found possible vals...{:?}", possible_vals);
 
-            let pvs = a
-                .possible_vals
+            let pvs = possible_vals
                 .iter()
-                .filter_map(|value| {
-                    if value.is_hide_set() {
-                        None
-                    } else if value.get_name().contains(char::is_whitespace) {
-                        Some(format!("{:?}", value.get_name()))
-                    } else {
-                        Some(value.get_name().to_string())
-                    }
-                })
+                .filter_map(PossibleValue::get_visible_quoted_name)
                 .collect::<Vec<_>>()
                 .join(", ");
 
@@ -670,7 +752,7 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
             .unwrap_or("");
 
         self.subcmd(sc_str, next_line_help, longest)?;
-        self.help(false, about, spec_vals, next_line_help, longest)
+        self.help(None, about, spec_vals, next_line_help, longest)
     }
 
     fn sc_spec_vals(&self, a: &Command) -> String {
@@ -774,7 +856,7 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
                 self.none("\n\n")?;
             }
             self.warning("OPTIONS:\n")?;
-            self.write_args(&non_pos)?;
+            self.write_args(&non_pos, "OPTIONS")?;
             first = false;
         }
         if !custom_headings.is_empty() {
@@ -796,7 +878,7 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
                         self.none("\n\n")?;
                     }
                     self.warning(format!("{}:\n", heading))?;
-                    self.write_args(&args)?;
+                    self.write_args(&args, heading)?;
                     first = false
                 }
             }
@@ -878,6 +960,22 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
     }
 
     /// Writes binary name of a Parser Object to the wrapped stream.
+    fn write_display_name(&mut self) -> io::Result<()> {
+        debug!("Help::write_display_name");
+
+        let display_name = text_wrapper(
+            &self
+                .cmd
+                .get_display_name()
+                .unwrap_or_else(|| self.cmd.get_name())
+                .replace("{n}", "\n"),
+            self.term_w,
+        );
+        self.good(&display_name)?;
+        Ok(())
+    }
+
+    /// Writes binary name of a Parser Object to the wrapped stream.
     fn write_bin_name(&mut self) -> io::Result<()> {
         debug!("Help::write_bin_name");
 
@@ -944,6 +1042,9 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
         for part in parts {
             tags! {
                 match part {
+                    "name" => {
+                        self.write_display_name()?;
+                    }
                     "bin" => {
                         self.write_bin_name()?;
                     }
@@ -980,10 +1081,10 @@ impl<'help, 'cmd, 'writer> Help<'help, 'cmd, 'writer> {
                     "options" => {
                         // Include even those with a heading as we don't have a good way of
                         // handling help_heading in the template.
-                        self.write_args(&self.cmd.get_non_positionals().collect::<Vec<_>>())?;
+                        self.write_args(&self.cmd.get_non_positionals().collect::<Vec<_>>(), "options")?;
                     }
                     "positionals" => {
-                        self.write_args(&self.cmd.get_positionals().collect::<Vec<_>>())?;
+                        self.write_args(&self.cmd.get_positionals().collect::<Vec<_>>(), "positionals")?;
                     }
                     "subcommands" => {
                         self.write_subcommands(self.cmd)?;
@@ -1011,6 +1112,7 @@ pub(crate) fn dimensions() -> Option<(usize, usize)> {
 }
 
 const TAB: &str = "    ";
+const TAB_WIDTH: usize = 4;
 
 pub(crate) enum HelpWriter<'writer> {
     Normal(&'writer mut dyn Write),
@@ -1032,7 +1134,9 @@ fn should_show_subcommand(subcommand: &Command) -> bool {
 }
 
 fn text_wrapper(help: &str, width: usize) -> String {
-    let wrapper = textwrap::Options::new(width).break_words(false);
+    let wrapper = textwrap::Options::new(width)
+        .break_words(false)
+        .word_splitter(textwrap::WordSplitter::NoHyphenation);
     help.lines()
         .map(|line| textwrap::fill(line, &wrapper))
         .collect::<Vec<String>>()

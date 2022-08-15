@@ -1,6 +1,6 @@
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
@@ -13,8 +13,8 @@ extern crate tendril;
 
 use std::borrow::ToOwned;
 
-use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
+use rand::Rng;
 use tendril::StrTendril;
 
 fn fuzz() {
@@ -25,7 +25,7 @@ fn fuzz() {
     let mut string_slices = vec![];
     let mut tendril_slices = vec![];
 
-    for _ in 1 .. 100_000 {
+    for _ in 1..100_000 {
         if buf_string.len() > (1 << 30) {
             buf_string.truncate(0);
             buf_tendril.clear();
@@ -33,7 +33,7 @@ fn fuzz() {
 
         let dist_action = Range::new(0, 100);
         match dist_action.ind_sample(&mut rng) {
-            0...15 => {
+            0..=15 => {
                 let (start, end) = random_slice(&mut rng, TEXT);
                 let snip = &TEXT[start..end];
                 buf_string.push_str(snip);
@@ -41,7 +41,7 @@ fn fuzz() {
                 assert_eq!(&*buf_string, &*buf_tendril);
             }
 
-            16...31 => {
+            16..=31 => {
                 let (start, end) = random_slice(&mut rng, &buf_string);
                 let snip = &buf_string[start..end].to_owned();
                 buf_string.push_str(&snip);
@@ -49,21 +49,21 @@ fn fuzz() {
                 assert_eq!(&*buf_string, &*buf_tendril);
             }
 
-            32...47 => {
+            32..=47 => {
                 let lenstr = format!("[length = {}]", buf_tendril.len());
                 buf_string.push_str(&lenstr);
                 buf_tendril.push_slice(&lenstr);
                 assert_eq!(&*buf_string, &*buf_tendril);
             }
 
-            48...63 => {
+            48..=63 => {
                 let n = random_boundary(&mut rng, &buf_string);
                 buf_tendril.pop_front(n as u32);
                 buf_string = buf_string[n..].to_owned();
                 assert_eq!(&*buf_string, &*buf_tendril);
             }
 
-            64...79 => {
+            64..=79 => {
                 let new_len = random_boundary(&mut rng, &buf_string);
                 let n = buf_string.len() - new_len;
                 buf_string.truncate(new_len);
@@ -71,14 +71,14 @@ fn fuzz() {
                 assert_eq!(&*buf_string, &*buf_tendril);
             }
 
-            80...90 => {
+            80..=90 => {
                 let (start, end) = random_slice(&mut rng, &buf_string);
                 buf_string = buf_string[start..end].to_owned();
                 buf_tendril = buf_tendril.subtendril(start as u32, (end - start) as u32);
                 assert_eq!(&*buf_string, &*buf_tendril);
             }
 
-            91...96 => {
+            91..=96 => {
                 let c = rng.gen();
                 buf_string.push(c);
                 assert!(buf_tendril.try_push_char(c).is_ok());
@@ -96,7 +96,10 @@ fn fuzz() {
                 string_slices.push(buf_string[start..end].to_owned());
                 tendril_slices.push(buf_tendril.subtendril(start as u32, (end - start) as u32));
                 assert_eq!(string_slices.len(), tendril_slices.len());
-                assert!(string_slices.iter().zip(tendril_slices.iter()).all(|(s,t)| **s == **t));
+                assert!(string_slices
+                    .iter()
+                    .zip(tendril_slices.iter())
+                    .all(|(s, t)| **s == **t));
             }
         }
     }
@@ -104,7 +107,7 @@ fn fuzz() {
 
 fn random_boundary<R: Rng>(rng: &mut R, text: &str) -> usize {
     loop {
-        let i = Range::new(0, text.len()+1).ind_sample(rng);
+        let i = Range::new(0, text.len() + 1).ind_sample(rng);
         if text.is_char_boundary(i) {
             return i;
         }
@@ -113,8 +116,8 @@ fn random_boundary<R: Rng>(rng: &mut R, text: &str) -> usize {
 
 fn random_slice<R: Rng>(rng: &mut R, text: &str) -> (usize, usize) {
     loop {
-        let start = Range::new(0, text.len()+1).ind_sample(rng);
-        let end = Range::new(start, text.len()+1).ind_sample(rng);
+        let start = Range::new(0, text.len() + 1).ind_sample(rng);
+        let end = Range::new(start, text.len() + 1).ind_sample(rng);
         if !text.is_char_boundary(start) {
             continue;
         }

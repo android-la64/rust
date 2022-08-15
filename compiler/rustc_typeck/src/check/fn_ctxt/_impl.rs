@@ -4,6 +4,7 @@ use crate::astconv::{
 };
 use crate::check::callee::{self, DeferredCallResolution};
 use crate::check::method::{self, MethodCallee, SelfSource};
+use crate::check::rvalue_scopes;
 use crate::check::{BreakableCtxt, Diverges, Expectation, FnCtxt, LocalTy};
 
 use rustc_data_structures::captures::Captures;
@@ -620,6 +621,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         self.normalize_associated_types_in(span, field.ty(self.tcx, substs))
     }
 
+    pub(in super::super) fn resolve_rvalue_scopes(&self, def_id: DefId) {
+        let scope_tree = self.tcx.region_scope_tree(def_id);
+        let rvalue_scopes = { rvalue_scopes::resolve_rvalue_scopes(self, &scope_tree, def_id) };
+        let mut typeck_results = self.inh.typeck_results.borrow_mut();
+        typeck_results.rvalue_scopes = rvalue_scopes;
+    }
+
     pub(in super::super) fn resolve_generator_interiors(&self, def_id: DefId) {
         let mut generators = self.deferred_generator_interiors.borrow_mut();
         for (body_id, interior, kind) in generators.drain(..) {
@@ -755,9 +763,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         expected_ret: Expectation<'tcx>,
         formal_ret: Ty<'tcx>,
         formal_args: &[Ty<'tcx>],
-    ) -> Vec<Ty<'tcx>> {
+    ) -> Option<Vec<Ty<'tcx>>> {
         let formal_ret = self.resolve_vars_with_obligations(formal_ret);
-        let Some(ret_ty) = expected_ret.only_has_type(self) else { return vec![]; };
+        let ret_ty = expected_ret.only_has_type(self)?;
 
         // HACK(oli-obk): This is a hack to keep RPIT and TAIT in sync wrt their behaviour.
         // Without it, the inference
@@ -779,7 +787,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 if let ty::subst::GenericArgKind::Type(ty) = ty.unpack() {
                     if let ty::Opaque(def_id, _) = *ty.kind() {
                         if self.infcx.opaque_type_origin(def_id, DUMMY_SP).is_some() {
-                            return vec![];
+                            return None;
                         }
                     }
                 }
@@ -820,7 +828,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
                 // Record all the argument types, with the substitutions
                 // produced from the above subtyping unification.
-                Ok(formal_args.iter().map(|&ty| self.resolve_vars_if_possible(ty)).collect())
+                Ok(Some(formal_args.iter().map(|&ty| self.resolve_vars_if_possible(ty)).collect()))
             })
             .unwrap_or_default();
         debug!(?formal_args, ?formal_ret, ?expect_args, ?expected_ret);
@@ -1220,6 +1228,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     None
                 }
             }),
+            |_| {},
         );
 
         if let Res::Local(hid) = res {
@@ -1301,7 +1310,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                                 err.span_suggestion(
                                     span,
                                     "use curly brackets",
-                                    String::from("Self { /* fields */ }"),
+                                    "Self { /* fields */ }",
                                     Applicability::HasPlaceholders,
                                 );
                             }
@@ -1486,7 +1495,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     }
 
     /// Add all the obligations that are required, substituting and normalized appropriately.
-    crate fn add_required_obligations(&self, span: Span, def_id: DefId, substs: &SubstsRef<'tcx>) {
+    pub(crate) fn add_required_obligations(
+        &self,
+        span: Span,
+        def_id: DefId,
+        substs: &SubstsRef<'tcx>,
+    ) {
         self.add_required_obligations_with_code(
             span,
             def_id,

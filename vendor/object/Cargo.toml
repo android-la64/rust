@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "object"
-version = "0.28.4"
+version = "0.29.0"
 exclude = [
     "/.github",
     "/testfiles",
@@ -55,7 +55,7 @@ version = "1"
 optional = true
 
 [dependencies.hashbrown]
-version = "0.11"
+version = "0.12.0"
 features = ["ahash"]
 optional = true
 default-features = false

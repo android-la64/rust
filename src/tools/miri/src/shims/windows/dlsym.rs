@@ -15,9 +15,10 @@ pub enum Dlsym {
 impl Dlsym {
     // Returns an error for unsupported symbols, and None if this symbol
     // should become a NULL pointer (pretend it does not exist).
-    pub fn from_str(name: &str) -> InterpResult<'static, Option<Dlsym>> {
+    pub fn from_str<'tcx>(name: &str) -> InterpResult<'tcx, Option<Dlsym>> {
         Ok(match name {
             "GetSystemTimePreciseAsFileTime" => None,
+            "SetThreadDescription" => None,
             "NtWriteFile" => Some(Dlsym::NtWriteFile),
             _ => throw_unsup_format!("unsupported Windows dlsym: {}", name),
         })
@@ -31,10 +32,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         dlsym: Dlsym,
         abi: Abi,
         args: &[OpTy<'tcx, Tag>],
-        ret: Option<(&PlaceTy<'tcx, Tag>, mir::BasicBlock)>,
+        dest: &PlaceTy<'tcx, Tag>,
+        ret: Option<mir::BasicBlock>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        let (dest, ret) = ret.expect("we don't support any diverging dlsym");
+        let ret = ret.expect("we don't support any diverging dlsym");
         assert!(this.tcx.sess.target.os == "windows");
 
         this.check_abi(abi, Abi::System { unwind: false })?;
@@ -75,7 +77,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     use std::io::{self, Write};
 
                     let buf_cont = this.read_bytes_ptr(buf, Size::from_bytes(u64::from(n)))?;
-                    let res = if handle == -11 {
+                    let res = if this.machine.mute_stdout_stderr {
+                        Ok(buf_cont.len())
+                    } else if handle == -11 {
                         io::stdout().write(buf_cont)
                     } else {
                         io::stderr().write(buf_cont)

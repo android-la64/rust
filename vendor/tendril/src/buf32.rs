@@ -1,12 +1,12 @@
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
 //! Provides an unsafe owned buffer type, used in implementing `Tendril`.
 
-use std::{mem, ptr, u32, slice};
+use std::{mem, ptr, slice, u32};
 
 use OFLOW;
 
@@ -27,7 +27,7 @@ fn bytes_to_vec_capacity<H>(x: u32) -> usize {
     let header = mem::size_of::<H>();
     debug_assert!(header > 0);
     let x = (x as usize).checked_add(header).expect(OFLOW);
-    // Integer ceil http://stackoverflow.com/a/2745086/1162888
+    // Integer ceil https://stackoverflow.com/a/2745086/1162888
     1 + ((x - 1) / header)
 }
 
@@ -52,7 +52,11 @@ impl<H> Buf32<H> {
 
     #[inline]
     pub unsafe fn destroy(self) {
-        mem::drop(Vec::from_raw_parts(self.ptr, 1, bytes_to_vec_capacity::<H>(self.cap)));
+        mem::drop(Vec::from_raw_parts(
+            self.ptr,
+            1,
+            bytes_to_vec_capacity::<H>(self.cap),
+        ));
     }
 
     #[inline(always)]

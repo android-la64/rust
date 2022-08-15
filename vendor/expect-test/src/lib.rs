@@ -14,7 +14,7 @@
 //! use expect_test::expect;
 //!
 //! let actual = 2 + 2;
-//! let expected = expect![["5"]];
+//! let expected = expect!["5"]; // or expect![["5"]]
 //! expected.assert_eq(&actual.to_string())
 //! ```
 //!
@@ -25,16 +25,16 @@
 //! ```no_run
 //! # use expect_test::expect;
 //! let actual = 2 + 2;
-//! let expected = expect![["4"]];
+//! let expected = expect!["4"];
 //! expected.assert_eq(&actual.to_string())
 //! ```
 //!
 //! This becomes very useful when you have a lot of tests with verbose and
 //! potentially changing expected output.
 //!
-//! Under the hood, `expect!` macro uses `file!` and `line!` to record source
-//! position at compile time. At runtime, this position is used to patch the
-//! file in-place, if `UPDATE_EXPECT` is set.
+//! Under the hood, the `expect!` macro uses `file!`, `line!` and `column!` to
+//! record source position at compile time. At runtime, this position is used
+//! to patch the file in-place, if `UPDATE_EXPECT` is set.
 //!
 //! # Guide
 //!
@@ -141,6 +141,7 @@
 //! bump.
 use std::{
     collections::HashMap,
+    convert::TryInto,
     env, fmt, fs, mem,
     ops::Range,
     panic,
@@ -151,7 +152,7 @@ use std::{
 use once_cell::sync::{Lazy, OnceCell};
 
 const HELP: &str = "
-You can update all `expect![[]]` tests by running:
+You can update all `expect!` tests by running:
 
     env UPDATE_EXPECT=1 cargo test
 
@@ -169,11 +170,13 @@ fn update_expect() -> bool {
 /// expect![["
 ///     Foo { value: 92 }
 /// "]];
+/// expect![r#"{"Foo": 92}"#];
 /// ```
 ///
 /// Leading indentation is stripped.
 #[macro_export]
 macro_rules! expect {
+    [$data:literal] => { $crate::expect![[$data]] };
     [[$data:literal]] => {$crate::Expect {
         position: $crate::Position {
             file: file!(),
@@ -183,6 +186,7 @@ macro_rules! expect {
         data: $data,
         indent: true,
     }};
+    [] => { $crate::expect![[""]] };
     [[]] => { $crate::expect![[""]] };
 }
 
@@ -237,6 +241,40 @@ impl fmt::Display for Position {
     }
 }
 
+#[derive(Clone, Copy)]
+enum StrLitKind {
+    Normal,
+    Raw(usize),
+}
+
+impl StrLitKind {
+    fn write_start(self, w: &mut impl std::fmt::Write) -> std::fmt::Result {
+        match self {
+            Self::Normal => write!(w, "\""),
+            Self::Raw(n) => {
+                write!(w, "r")?;
+                for _ in 0..n {
+                    write!(w, "#")?;
+                }
+                write!(w, "\"")
+            }
+        }
+    }
+
+    fn write_end(self, w: &mut impl std::fmt::Write) -> std::fmt::Result {
+        match self {
+            Self::Normal => write!(w, "\""),
+            Self::Raw(n) => {
+                write!(w, "\"")?;
+                for _ in 0..n {
+                    write!(w, "#")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
 impl Expect {
     /// Checks if this expect is equal to `actual`.
     pub fn assert_eq(&self, actual: &str) {
@@ -256,6 +294,11 @@ impl Expect {
         self.indent = yes;
     }
 
+    /// Returns the content of this expect.
+    pub fn data(&self) -> &str {
+        self.data
+    }
+
     fn trimmed(&self) -> String {
         if !self.data.contains('\n') {
             return self.data.to_string();
@@ -268,9 +311,27 @@ impl Expect {
         let mut line_start = 0;
         for (i, line) in lines_with_ends(file).enumerate() {
             if i == self.position.line as usize - 1 {
-                let pat = "expect![[";
-                let offset = line.find(pat).unwrap();
-                let literal_start = line_start + offset + pat.len();
+                // `column` points to the first character of the macro invocation:
+                //
+                //    expect![[r#""#]]        expect![""]
+                //    ^       ^               ^       ^
+                //  column   offset                 offset
+                //
+                // Seek past the exclam, then skip any whitespace and
+                // the macro delimiter to get to our argument.
+                let byte_offset = line
+                    .char_indices()
+                    .skip((self.position.column - 1).try_into().unwrap())
+                    .skip_while(|&(_, c)| c != '!')
+                    .skip(1) // !
+                    .skip_while(|&(_, c)| c.is_whitespace())
+                    .skip(1) // [({
+                    .skip_while(|&(_, c)| c.is_whitespace())
+                    .next()
+                    .expect("Failed to parse macro invocation")
+                    .0;
+
+                let literal_start = line_start + byte_offset;
                 let indent = line.chars().take_while(|&it| it == ' ').count();
                 target_line = Some((literal_start, indent));
                 break;
@@ -285,21 +346,30 @@ impl Expect {
         let literal_start = literal_start + (lit_to_eof.len() - lit_to_eof_trimmed.len());
 
         let literal_len =
-            locate_end(lit_to_eof_trimmed).expect("Couldn't find matching `]]` for `expect![[`.");
+            locate_end(lit_to_eof_trimmed).expect("Couldn't find closing delimiter for `expect!`.");
         let literal_range = literal_start..literal_start + literal_len;
         Location { line_indent, literal_range }
     }
 }
 
-fn locate_end(lit_to_eof: &str) -> Option<usize> {
-    assert!(lit_to_eof.chars().next().map_or(true, |c| !c.is_whitespace()));
+fn locate_end(arg_start_to_eof: &str) -> Option<usize> {
+    match arg_start_to_eof.chars().next()? {
+        c if c.is_whitespace() => panic!("skip whitespace before calling `locate_end`"),
 
-    if lit_to_eof.starts_with("]]") {
-        // expect![[ ]]
-        Some(0)
-    } else {
-        // expect![["foo"]]
-        find_str_lit_len(lit_to_eof)
+        // expect![[]]
+        '[' => {
+            let str_start_to_eof = arg_start_to_eof[1..].trim_start();
+            let str_len = find_str_lit_len(str_start_to_eof)?;
+            let str_end_to_eof = &str_start_to_eof[str_len..];
+            let closing_brace_offset = str_end_to_eof.find(']')?;
+            Some((arg_start_to_eof.len() - str_end_to_eof.len()) + closing_brace_offset + 1)
+        }
+
+        // expect![] | expect!{} | expect!()
+        ']' | '}' | ')' => Some(0),
+
+        // expect!["..."] | expect![r#"..."#]
+        _ => find_str_lit_len(arg_start_to_eof),
     }
 }
 
@@ -307,11 +377,6 @@ fn locate_end(lit_to_eof: &str) -> Option<usize> {
 /// (either a quote or a hash).
 fn find_str_lit_len(str_lit_to_eof: &str) -> Option<usize> {
     use StrLitKind::*;
-    #[derive(Clone, Copy)]
-    enum StrLitKind {
-        Normal,
-        Raw(usize),
-    }
 
     fn try_find_n_hashes(
         s: &mut impl Iterator<Item = char>,
@@ -487,6 +552,8 @@ impl FileRuntime {
 #[derive(Debug)]
 struct Location {
     line_indent: usize,
+
+    /// The byte range of the argument to `expect!`, including the inner `[]` if it exists.
     literal_range: Range<usize>,
 }
 
@@ -520,25 +587,34 @@ impl Patchwork {
     }
 }
 
-fn format_patch(desired_indent: Option<usize>, patch: &str) -> String {
-    let mut max_hashes = 0;
-    let mut cur_hashes = 0;
-    for byte in patch.bytes() {
-        if byte != b'#' {
-            cur_hashes = 0;
-            continue;
-        }
-        cur_hashes += 1;
-        max_hashes = max_hashes.max(cur_hashes);
+fn lit_kind_for_patch(patch: &str) -> StrLitKind {
+    let has_dquote = patch.chars().any(|c| c == '"');
+    if !has_dquote {
+        let has_bslash_or_newline = patch.chars().any(|c| matches!(c, '\\' | '\n'));
+        return if has_bslash_or_newline {
+            StrLitKind::Raw(1)
+        } else {
+            StrLitKind::Normal
+        };
     }
-    let hashes = &"#".repeat(max_hashes + 1);
+
+    // Find the maximum number of hashes that follow a double quote in the string.
+    // We need to use one more than that to delimit the string.
+    let leading_hashes = |s: &str| s.chars().take_while(|&c| c == '#').count();
+    let max_hashes = patch.split('"').map(leading_hashes).max().unwrap();
+    StrLitKind::Raw(max_hashes + 1)
+}
+
+fn format_patch(desired_indent: Option<usize>, patch: &str) -> String {
+    let lit_kind = lit_kind_for_patch(patch);
     let indent = desired_indent.map(|it| " ".repeat(it));
     let is_multiline = patch.contains('\n');
 
     let mut buf = String::new();
-    buf.push('r');
-    buf.push_str(hashes);
-    buf.push('"');
+    if matches!(lit_kind, StrLitKind::Raw(_)) {
+        buf.push('[');
+    }
+    lit_kind.write_start(&mut buf).unwrap();
     if is_multiline {
         buf.push('\n');
     }
@@ -558,8 +634,10 @@ fn format_patch(desired_indent: Option<usize>, patch: &str) -> String {
             buf.push_str(indent);
         }
     }
-    buf.push('"');
-    buf.push_str(hashes);
+    lit_kind.write_end(&mut buf).unwrap();
+    if matches!(lit_kind, StrLitKind::Raw(_)) {
+        buf.push(']');
+    }
     buf
 }
 
@@ -652,25 +730,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_trivial_assert() {
+        expect!["5"].assert_eq("5");
+    }
+
+    #[test]
     fn test_format_patch() {
         let patch = format_patch(None, "hello\nworld\n");
         expect![[r##"
-            r#"
+            [r#"
             hello
             world
-            "#"##]]
+            "#]"##]]
         .assert_eq(&patch);
+
+        let patch = format_patch(None, r"hello\tworld");
+        expect![[r##"[r#"hello\tworld"#]"##]].assert_eq(&patch);
+
+        let patch = format_patch(None, "{\"foo\": 42}");
+        expect![[r##"[r#"{"foo": 42}"#]"##]].assert_eq(&patch);
 
         let patch = format_patch(Some(0), "hello\nworld\n");
         expect![[r##"
-            r#"
+            [r#"
                 hello
                 world
-            "#"##]]
+            "#]"##]]
         .assert_eq(&patch);
 
         let patch = format_patch(Some(4), "single line");
-        expect![[r##"r#"single line"#"##]].assert_eq(&patch);
+        expect![[r#""single line""#]].assert_eq(&patch);
     }
 
     #[test]

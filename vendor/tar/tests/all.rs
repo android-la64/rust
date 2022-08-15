@@ -11,7 +11,7 @@ use std::iter::repeat;
 use std::path::{Path, PathBuf};
 
 use filetime::FileTime;
-use tar::{Archive, Builder, EntryType, Header, HeaderMode};
+use tar::{Archive, Builder, Entries, EntryType, Header, HeaderMode};
 use tempfile::{Builder as TempBuilder, TempDir};
 
 macro_rules! t {
@@ -203,11 +203,7 @@ fn large_filename() {
     assert!(entries.next().is_none());
 }
 
-#[test]
-fn reading_entries() {
-    let rdr = Cursor::new(tar!("reading_files.tar"));
-    let mut ar = Archive::new(rdr);
-    let mut entries = t!(ar.entries());
+fn reading_entries_common<R: Read>(mut entries: Entries<R>) {
     let mut a = t!(entries.next().unwrap());
     assert_eq!(&*a.header().path_bytes(), b"a");
     let mut s = String::new();
@@ -216,13 +212,74 @@ fn reading_entries() {
     s.truncate(0);
     t!(a.read_to_string(&mut s));
     assert_eq!(s, "");
-    let mut b = t!(entries.next().unwrap());
 
+    let mut b = t!(entries.next().unwrap());
     assert_eq!(&*b.header().path_bytes(), b"b");
     s.truncate(0);
     t!(b.read_to_string(&mut s));
     assert_eq!(s, "b\nb\nb\nb\nb\nb\nb\nb\nb\nb\nb\n");
     assert!(entries.next().is_none());
+}
+
+#[test]
+fn reading_entries() {
+    let rdr = Cursor::new(tar!("reading_files.tar"));
+    let mut ar = Archive::new(rdr);
+    reading_entries_common(t!(ar.entries()));
+}
+
+#[test]
+fn reading_entries_with_seek() {
+    let rdr = Cursor::new(tar!("reading_files.tar"));
+    let mut ar = Archive::new(rdr);
+    reading_entries_common(t!(ar.entries_with_seek()));
+}
+
+struct LoggingReader<R> {
+    inner: R,
+    read_bytes: u64,
+}
+
+impl<R> LoggingReader<R> {
+    fn new(reader: R) -> LoggingReader<R> {
+        LoggingReader {
+            inner: reader,
+            read_bytes: 0,
+        }
+    }
+}
+
+impl<T: Read> Read for LoggingReader<T> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.inner.read(buf).map(|i| {
+            self.read_bytes += i as u64;
+            i
+        })
+    }
+}
+
+impl<T: Seek> Seek for LoggingReader<T> {
+    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
+        self.inner.seek(pos)
+    }
+}
+
+#[test]
+fn skipping_entries_with_seek() {
+    let mut reader = LoggingReader::new(Cursor::new(tar!("reading_files.tar")));
+    let mut ar_reader = Archive::new(&mut reader);
+    let files: Vec<_> = t!(ar_reader.entries())
+        .map(|entry| entry.unwrap().path().unwrap().to_path_buf())
+        .collect();
+
+    let mut seekable_reader = LoggingReader::new(Cursor::new(tar!("reading_files.tar")));
+    let mut ar_seekable_reader = Archive::new(&mut seekable_reader);
+    let files_seekable: Vec<_> = t!(ar_seekable_reader.entries_with_seek())
+        .map(|entry| entry.unwrap().path().unwrap().to_path_buf())
+        .collect();
+
+    assert!(files == files_seekable);
+    assert!(seekable_reader.read_bytes < reader.read_bytes);
 }
 
 fn check_dirtree(td: &TempDir) {
@@ -858,6 +915,49 @@ fn long_linkname_trailing_nul() {
 }
 
 #[test]
+fn long_linkname_gnu() {
+    for t in [tar::EntryType::Symlink, tar::EntryType::Link] {
+        let mut b = Builder::new(Vec::<u8>::new());
+        let mut h = Header::new_gnu();
+        h.set_entry_type(t);
+        h.set_size(0);
+        let path = "usr/lib/.build-id/05/159ed904e45ff5100f7acd3d3b99fa7e27e34f";
+        let target = "../../../../usr/lib64/qt5/plugins/wayland-graphics-integration-server/libqt-wayland-compositor-xcomposite-egl.so";
+        t!(b.append_link(&mut h, path, target));
+
+        let contents = t!(b.into_inner());
+        let mut a = Archive::new(&contents[..]);
+
+        let e = &t!(t!(a.entries()).next().unwrap());
+        assert_eq!(e.header().entry_type(), t);
+        assert_eq!(e.path().unwrap().to_str().unwrap(), path);
+        assert_eq!(e.link_name().unwrap().unwrap().to_str().unwrap(), target);
+    }
+}
+
+#[test]
+fn linkname_literal() {
+    for t in [tar::EntryType::Symlink, tar::EntryType::Link] {
+        let mut b = Builder::new(Vec::<u8>::new());
+        let mut h = Header::new_gnu();
+        h.set_entry_type(t);
+        h.set_size(0);
+        let path = "usr/lib/systemd/systemd-sysv-install";
+        let target = "../../..//sbin/chkconfig";
+        h.set_link_name_literal(target).unwrap();
+        t!(b.append_data(&mut h, path, std::io::empty()));
+
+        let contents = t!(b.into_inner());
+        let mut a = Archive::new(&contents[..]);
+
+        let e = &t!(t!(a.entries()).next().unwrap());
+        assert_eq!(e.header().entry_type(), t);
+        assert_eq!(e.path().unwrap().to_str().unwrap(), path);
+        assert_eq!(e.link_name().unwrap().unwrap().to_str().unwrap(), target);
+    }
+}
+
+#[test]
 fn encoded_long_name_has_trailing_nul() {
     let td = t!(TempBuilder::new().prefix("tar-rs").tempdir());
     let path = td.path().join("foo");
@@ -1244,4 +1344,44 @@ fn tar_directory_containing_special_files() {
     // CI systems seem to have issues with creating a chr device
     t!(ar.append_path("null"));
     t!(ar.finish());
+}
+
+#[test]
+fn header_size_overflow() {
+    // maximal file size doesn't overflow anything
+    let mut ar = Builder::new(Vec::new());
+    let mut header = Header::new_gnu();
+    header.set_size(u64::MAX);
+    header.set_cksum();
+    ar.append(&mut header, "x".as_bytes()).unwrap();
+    let result = t!(ar.into_inner());
+    let mut ar = Archive::new(&result[..]);
+    let mut e = ar.entries().unwrap();
+    let err = e.next().unwrap().err().unwrap();
+    assert!(
+        err.to_string().contains("size overflow"),
+        "bad error: {}",
+        err
+    );
+
+    // back-to-back entries that would overflow also don't panic
+    let mut ar = Builder::new(Vec::new());
+    let mut header = Header::new_gnu();
+    header.set_size(1_000);
+    header.set_cksum();
+    ar.append(&mut header, &[0u8; 1_000][..]).unwrap();
+    let mut header = Header::new_gnu();
+    header.set_size(u64::MAX - 513);
+    header.set_cksum();
+    ar.append(&mut header, "x".as_bytes()).unwrap();
+    let result = t!(ar.into_inner());
+    let mut ar = Archive::new(&result[..]);
+    let mut e = ar.entries().unwrap();
+    e.next().unwrap().unwrap();
+    let err = e.next().unwrap().err().unwrap();
+    assert!(
+        err.to_string().contains("size overflow"),
+        "bad error: {}",
+        err
+    );
 }

@@ -11,6 +11,9 @@ use std::time::Duration;
 
 pub use kqueue_sys::constants::*;
 
+mod os;
+use crate::os::vnode;
+
 mod time;
 use crate::time::duration_to_timespec;
 
@@ -54,6 +57,7 @@ pub struct Watcher {
 /// These are OS-specific, and may not all be supported on your platform. Check
 /// `kqueue(2)` for more information.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Vnode {
     /// The file was deleted
     Delete,
@@ -78,6 +82,15 @@ pub enum Vnode {
 
     /// Access to the file was revoked with `revoke(2)` or the fs was unmounted
     Revoke,
+
+    /// File was opened by a process (FreeBSD-specific)
+    Open,
+
+    /// File was closed and the descriptor had write access (FreeBSD-specific)
+    CloseWrite,
+
+    /// File was closed and the descriptor had read access (FreeBSD-specific)
+    Close,
 }
 
 /// Process events
@@ -106,7 +119,6 @@ pub enum Proc {
     Child(libc::pid_t),
 }
 
-// These need to be OS specific
 /// Event-specific data returned with the event.
 ///
 /// Like much of this library, this is OS-specific. Check `kqueue(2)` for more
@@ -173,6 +185,9 @@ impl Default for KqueueOpts {
     }
 }
 
+// We don't have enough information to turn a `usize` into
+// an `Ident`, so we only implement `Into<usize>` here.
+#[allow(clippy::from_over_into)]
 impl Into<usize> for Ident {
     fn into(self) -> usize {
         match self {
@@ -318,18 +333,19 @@ impl Watcher {
     }
 
     fn delete_kevents(&self, ident: Ident, filter: EventFilter) -> Result<()> {
-        let mut kev: Vec<kevent> = Vec::with_capacity(1);
-        kev.push(kevent::new(
+        let kev = vec![kevent::new(
             ident.as_usize(),
             filter,
             EventFlag::EV_DELETE,
             FilterFlag::empty(),
-        ));
+        )];
 
         let ret = unsafe {
             kevent(
                 self.queue,
                 kev.as_ptr(),
+                // On NetBSD, this is passed as a usize, not i32
+                #[allow(clippy::useless_conversion)]
                 (kev.len() as i32).try_into().unwrap(),
                 ptr::null_mut(),
                 0,
@@ -446,6 +462,8 @@ impl Watcher {
             kevent(
                 self.queue,
                 kevs.as_ptr(),
+                // On NetBSD, this is passed as a usize, not i32
+                #[allow(clippy::useless_conversion)]
                 (kevs.len() as i32).try_into().unwrap(),
                 ptr::null_mut(),
                 0,
@@ -603,7 +621,8 @@ impl Event {
                 } else if ev.fflags.contains(FilterFlag::NOTE_REVOKE) {
                     Vnode::Revoke
                 } else {
-                    panic!("not supported")
+                    // This handles any filter flags that are OS-specific
+                    vnode::handle_vnode_extras(ev.fflags)
                 };
 
                 EventData::Vnode(inner)
@@ -644,10 +663,7 @@ impl Event {
 
     #[doc(hidden)]
     pub fn is_err(&self) -> bool {
-        match self.data {
-            EventData::Error(_) => true,
-            _ => false,
-        }
+        matches!(self.data, EventData::Error(_))
     }
 }
 
@@ -672,214 +688,226 @@ mod tests {
     use std::io::Write;
     use std::os::unix::io::{AsRawFd, FromRawFd};
     use std::path::Path;
-    use tempfile;
+    use std::thread;
+    use std::time;
+
+    #[cfg(target_os = "freebsd")]
+    use std::process;
 
     #[test]
     fn test_new_watcher() {
-        let mut watcher = Watcher::new().unwrap();
-        let file = tempfile::tempfile().unwrap();
+        let mut watcher = Watcher::new().expect("new failed");
+        let file = tempfile::tempfile().expect("Couldn't create tempfile");
 
-        assert!(
-            watcher
-                .add_file(&file, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
-                .is_ok(),
-            "add failed"
-        );
-        assert!(watcher.watch().is_ok(), "watch failed");
+        watcher
+            .add_file(&file, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
+            .expect("add failed");
+        watcher.watch().expect("watch failed");
     }
 
     #[test]
     fn test_filename() {
-        let mut watcher = match Watcher::new() {
-            Ok(wat) => wat,
-            Err(_) => panic!("new failed"),
-        };
+        let mut watcher = Watcher::new().expect("new failed");
+        let file = tempfile::NamedTempFile::new().expect("Couldn't create tempfile");
 
-        let file = tempfile::NamedTempFile::new().unwrap();
+        watcher
+            .add_filename(
+                file.path(),
+                EventFilter::EVFILT_VNODE,
+                FilterFlag::NOTE_WRITE,
+            )
+            .expect("add failed");
+        watcher.watch().expect("watch failed");
 
-        assert!(
-            watcher
-                .add_filename(
-                    file.path(),
-                    EventFilter::EVFILT_VNODE,
-                    FilterFlag::NOTE_WRITE
-                )
-                .is_ok(),
-            "add failed"
-        );
-        assert!(watcher.watch().is_ok(), "watch failed");
+        let mut new_file = fs::OpenOptions::new()
+            .write(true)
+            .open(file.path())
+            .expect("open failed");
 
-        let mut new_file = match fs::OpenOptions::new().write(true).open(file.path()) {
-            Ok(fil) => fil,
-            Err(_) => panic!("open failed"),
-        };
+        new_file.write_all(b"foo").expect("write failed");
 
-        assert!(new_file.write_all(b"foo").is_ok(), "write failed");
-        let ev = watcher.iter().next().unwrap();
-        match ev.data {
-            EventData::Vnode(Vnode::Write) => assert!(true),
-            _ => assert!(false),
-        };
+        thread::sleep(time::Duration::from_secs(1));
+
+        let ev = watcher.iter().next().expect("Could not get a watch");
+        assert!(matches!(ev.data, EventData::Vnode(Vnode::Write)));
 
         match ev.ident {
             Ident::Filename(_, name) => assert!(Path::new(&name) == file.path()),
-            _ => assert!(false),
+            _ => panic!(),
         };
     }
 
     #[test]
     fn test_file() {
-        let mut watcher = match Watcher::new() {
-            Ok(wat) => wat,
-            Err(_) => panic!("new failed"),
-        };
+        let mut watcher = Watcher::new().expect("new failed");
+        let mut file = tempfile::tempfile().expect("Could not create tempfile");
 
-        let mut file = tempfile::tempfile().unwrap();
+        watcher
+            .add_file(&file, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
+            .expect("add failed");
+        watcher.watch().expect("watch failed");
+        file.write_all(b"foo").expect("write failed");
 
-        assert!(
-            watcher
-                .add_file(&file, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
-                .is_ok(),
-            "add failed"
-        );
-        assert!(watcher.watch().is_ok(), "watch failed");
-        assert!(file.write_all(b"foo").is_ok(), "write failed");
-        let ev = watcher.iter().next().unwrap();
-        match ev.data {
-            EventData::Vnode(Vnode::Write) => assert!(true),
-            _ => assert!(false),
-        };
+        thread::sleep(time::Duration::from_secs(1));
 
-        match ev.ident {
-            Ident::Fd(_) => assert!(true),
-            _ => assert!(false),
-        };
+        let ev = watcher.iter().next().expect("Didn't get an event");
+
+        assert!(matches!(ev.data, EventData::Vnode(Vnode::Write)));
+        assert!(matches!(ev.ident, Ident::Fd(_)));
     }
 
     #[test]
     fn test_delete_filename() {
-        let mut watcher = match Watcher::new() {
-            Ok(wat) => wat,
-            Err(_) => panic!("new failed"),
-        };
+        let mut watcher = Watcher::new().expect("new failed");
 
-        let file = tempfile::NamedTempFile::new().unwrap();
+        let file = tempfile::NamedTempFile::new().expect("Could not create tempfile");
         let filename = file.path();
 
-        assert!(
-            watcher
-                .add_filename(filename, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
-                .is_ok(),
-            "add failed"
-        );
-        assert!(watcher.watch().is_ok(), "watch failed");
-        assert!(
-            watcher
-                .remove_filename(filename, EventFilter::EVFILT_VNODE)
-                .is_ok(),
-            "delete failed"
-        );
+        watcher
+            .add_filename(filename, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
+            .expect("add failed");
+        watcher.watch().expect("watch failed");
+        watcher
+            .remove_filename(filename, EventFilter::EVFILT_VNODE)
+            .expect("delete failed");
     }
 
     #[test]
     fn test_dupe() {
-        let mut watcher = match Watcher::new() {
-            Ok(wat) => wat,
-            Err(_) => panic!("new failed"),
-        };
-
-        let file = tempfile::NamedTempFile::new().unwrap();
+        let mut watcher = Watcher::new().expect("new failed");
+        let file = tempfile::NamedTempFile::new().expect("Couldn't create tempfile");
         let filename = file.path();
 
-        assert!(
-            watcher
-                .add_filename(filename, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
-                .is_ok(),
-            "add failed"
-        );
-        assert!(
-            watcher
-                .add_filename(filename, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
-                .is_ok(),
-            "second add failed"
-        );
+        watcher
+            .add_filename(filename, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
+            .expect("add failed");
+        watcher
+            .add_filename(filename, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
+            .expect("second add failed");
 
-        assert!(watcher.watched.len() == 1);
+        assert_eq!(
+            watcher.watched.len(),
+            1,
+            "Did not get an expected number of events"
+        );
     }
 
     #[test]
     fn test_two_files() {
+        let mut watcher = Watcher::new().expect("new failed");
+
+        let mut first_file = tempfile::tempfile().expect("Unable to create first temporary file");
+        let mut second_file = tempfile::tempfile().expect("Unable to create second temporary file");
+
+        watcher
+            .add_file(
+                &first_file,
+                EventFilter::EVFILT_VNODE,
+                FilterFlag::NOTE_WRITE,
+            )
+            .expect("add failed");
+
+        watcher
+            .add_file(
+                &second_file,
+                EventFilter::EVFILT_VNODE,
+                FilterFlag::NOTE_WRITE,
+            )
+            .expect("add failed");
+
+        watcher.watch().expect("watch failed");
+        first_file.write_all(b"foo").expect("first write failed");
+        second_file.write_all(b"foo").expect("second write failed");
+
+        thread::sleep(time::Duration::from_secs(1));
+
+        watcher.iter().next().expect("didn't get any events");
+        watcher.iter().next().expect("didn't get any events");
+    }
+
+    #[test]
+    fn test_nested_kqueue() {
+        let mut watcher = Watcher::new().expect("Failed to create main watcher");
+        let mut nested_watcher = Watcher::new().expect("Failed to create nested watcher");
+
+        let kqueue_file = unsafe { fs::File::from_raw_fd(nested_watcher.as_raw_fd()) };
+        watcher
+            .add_file(&kqueue_file, EventFilter::EVFILT_READ, FilterFlag::empty())
+            .expect("add_file failed for main watcher");
+
+        let mut file = tempfile::tempfile().expect("Couldn't create tempfile");
+        nested_watcher
+            .add_file(&file, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)
+            .expect("add_file failed for nested watcher");
+
+        watcher.watch().expect("watch failed on main watcher");
+        nested_watcher
+            .watch()
+            .expect("watch failed on nested watcher");
+
+        file.write_all(b"foo").expect("write failed");
+
+        thread::sleep(time::Duration::from_secs(1));
+
+        watcher.iter().next().expect("didn't get any events");
+        nested_watcher.iter().next().expect("didn't get any events");
+    }
+
+    #[test]
+    #[cfg(target_os = "freebsd")]
+    fn test_close_read() {
+        let mut watcher = Watcher::new().expect("new failed");
+
+        {
+            let file = tempfile::NamedTempFile::new().expect("temporary file failed to create");
+            watcher
+                .add_filename(
+                    file.path(),
+                    EventFilter::EVFILT_VNODE,
+                    FilterFlag::NOTE_CLOSE,
+                )
+                .expect("add failed");
+            watcher.watch().expect("watch failed");
+
+            // we launch this in a separate process since it appears that FreeBSD does not fire
+            // off a NOTE_CLOSE(_WRITE)? event for the same process closing a file descriptor.
+            process::Command::new("cat")
+                .arg(file.path())
+                .spawn()
+                .expect("should spawn a file");
+            thread::sleep(time::Duration::from_secs(1));
+        }
+        let ev = watcher.iter().next().expect("did not receive event");
+        assert!(matches!(ev.data, EventData::Vnode(Vnode::Close)));
+    }
+
+    #[test]
+    #[cfg(target_os = "freebsd")]
+    fn test_close_write() {
         let mut watcher = match Watcher::new() {
             Ok(wat) => wat,
             Err(_) => panic!("new failed"),
         };
 
-        let mut first_file = tempfile::tempfile().unwrap();
-        let mut second_file = tempfile::tempfile().unwrap();
-
-        assert!(
+        {
+            let file = tempfile::NamedTempFile::new().expect("couldn't create tempfile");
             watcher
-                .add_file(
-                    &first_file,
+                .add_filename(
+                    file.path(),
                     EventFilter::EVFILT_VNODE,
-                    FilterFlag::NOTE_WRITE
+                    FilterFlag::NOTE_CLOSE_WRITE,
                 )
-                .is_ok(),
-            "add failed"
-        );
+                .expect("add failed");
+            watcher.watch().expect("watch failed");
 
-        assert!(
-            watcher
-                .add_file(
-                    &second_file,
-                    EventFilter::EVFILT_VNODE,
-                    FilterFlag::NOTE_WRITE
-                )
-                .is_ok(),
-            "add failed"
-        );
-
-        assert!(watcher.watch().is_ok(), "watch failed");
-        assert!(first_file.write_all(b"foo").is_ok(), "write failed");
-        assert!(second_file.write_all(b"foo").is_ok(), "write failed");
-        assert!(watcher.iter().next().is_some());
-        assert!(watcher.iter().next().is_some());
-    }
-
-    #[test]
-    fn test_nested_kqueue() {
-        let mut watcher = match Watcher::new() {
-            Ok(wat) => wat,
-            Err(_) => panic!("new failed for main watcher"),
-        };
-        let mut nested_watcher = match Watcher::new() {
-            Ok(wat) => wat,
-            Err(_) => panic!("new failed for nested watcher"),
-        };
-
-        let kqueue_file = unsafe { fs::File::from_raw_fd(nested_watcher.as_raw_fd()) };
-        assert!(
-            watcher
-                .add_file(&kqueue_file, EventFilter::EVFILT_READ, FilterFlag::empty())
-                .is_ok(),
-            "add_file failed for main watcher"
-        );
-
-        let mut file = tempfile::tempfile().unwrap();
-        assert!(
-            nested_watcher
-                .add_file(&file, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE,)
-                .is_ok(),
-            "add_file failed for nested watcher"
-        );
-
-        assert!(watcher.watch().is_ok(), "watch failed on main watcher");
-        assert!(
-            nested_watcher.watch().is_ok(),
-            "watch failed on nested watcher"
-        );
-        assert!(file.write_all(b"foo").is_ok(), "write failed");
-        assert!(watcher.iter().next().is_some());
-        assert!(nested_watcher.iter().next().is_some());
+            // See above for rationale as to why we use a separate process here
+            process::Command::new("cat")
+                .arg(file.path())
+                .spawn()
+                .expect("should spawn a file");
+            thread::sleep(time::Duration::from_secs(1));
+        }
+        let ev = watcher.iter().next().expect("didn't get an event");
+        assert!(matches!(ev.data, EventData::Vnode(Vnode::CloseWrite)));
     }
 }

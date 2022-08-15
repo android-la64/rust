@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "annotate-snippets"
-version = "0.8.0"
+version = "0.9.1"
 authors = ["Zibi Braniecki <gandalf@mozilla.com>"]
 description = "Library for building code annotations"
 readme = "README.md"
@@ -24,6 +24,9 @@ repository = "https://github.com/rust-lang/annotate-snippets-rs"
 [[bench]]
 name = "simple"
 harness = false
+[dependencies.unicode-width]
+version = "0.1"
+
 [dependencies.yansi-term]
 version = "0.1"
 optional = true

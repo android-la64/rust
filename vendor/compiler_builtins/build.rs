@@ -193,7 +193,6 @@ mod c {
             ("__absvsi2", "absvsi2.c"),
             ("__addvdi3", "addvdi3.c"),
             ("__addvsi3", "addvsi3.c"),
-            ("apple_versioning", "apple_versioning.c"),
             ("__clzdi2", "clzdi2.c"),
             ("__clzsi2", "clzsi2.c"),
             ("__cmpdi2", "cmpdi2.c"),
@@ -281,10 +280,7 @@ mod c {
 
         if target_env == "msvc" {
             if target_arch == "x86_64" {
-                sources.extend(&[
-                    ("__floatdisf", "x86_64/floatdisf.c"),
-                    ("__floatdixf", "x86_64/floatdixf.c"),
-                ]);
+                sources.extend(&[("__floatdixf", "x86_64/floatdixf.c")]);
             }
         } else {
             // None of these seem to be used on x86_64 windows, and they've all
@@ -292,10 +288,7 @@ mod c {
             if target_os != "windows" {
                 if target_arch == "x86_64" {
                     sources.extend(&[
-                        ("__floatdisf", "x86_64/floatdisf.c"),
                         ("__floatdixf", "x86_64/floatdixf.c"),
-                        ("__floatundidf", "x86_64/floatundidf.S"),
-                        ("__floatundisf", "x86_64/floatundisf.S"),
                         ("__floatundixf", "x86_64/floatundixf.S"),
                     ]);
                 }
@@ -306,11 +299,7 @@ mod c {
                     ("__ashldi3", "i386/ashldi3.S"),
                     ("__ashrdi3", "i386/ashrdi3.S"),
                     ("__divdi3", "i386/divdi3.S"),
-                    ("__floatdidf", "i386/floatdidf.S"),
-                    ("__floatdisf", "i386/floatdisf.S"),
                     ("__floatdixf", "i386/floatdixf.S"),
-                    ("__floatundidf", "i386/floatundidf.S"),
-                    ("__floatundisf", "i386/floatundisf.S"),
                     ("__floatundixf", "i386/floatundixf.S"),
                     ("__lshrdi3", "i386/lshrdi3.S"),
                     ("__moddi3", "i386/moddi3.S"),
@@ -487,6 +476,16 @@ mod c {
 
         if llvm_target[0] == "thumbv7m" || llvm_target[0] == "thumbv7em" {
             sources.remove(&["__aeabi_cdcmp", "__aeabi_cfcmp"]);
+        }
+
+        // Android uses emulated TLS so we need a runtime support function.
+        if target_os == "android" {
+            sources.extend(&[("__emutls_get_address", "emutls.c")]);
+
+            // Work around a bug in the NDK headers (fixed in
+            // https://r.android.com/2038949 which will be released in a future
+            // NDK version) by providing a definition of LONG_BIT.
+            cfg.define("LONG_BIT", "(8 * sizeof(long))");
         }
 
         // When compiling the C code we require the user to tell us where the

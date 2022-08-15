@@ -20,11 +20,15 @@ for example:
   or an invalid enum discriminant)
 * **Experimental**: Violations of the [Stacked Borrows] rules governing aliasing
   for reference types
-* **Experimental**: Data races (but no weak memory effects)
+* **Experimental**: Data races
 
 On top of that, Miri will also tell you about memory leaks: when there is memory
 still allocated at the end of the execution, and that memory is not reachable
 from a global `static`, Miri will raise an error.
+
+Miri supports almost all Rust language features; in particular, unwinding and
+concurrency are properly supported (including some experimental emulation of
+weak memory effects, i.e., reads can return outdated values).
 
 You can use Miri to emulate programs on other targets, e.g. to ensure that
 byte-level data manipulation works correctly both on little-endian and
@@ -44,8 +48,7 @@ in your program, and cannot run all programs:
   positives here, so if your program runs fine in Miri right now that is by no
   means a guarantee that it is UB-free when these questions get answered.
 
-    In particular, Miri does currently not check that integers/floats are
-  initialized or that references point to valid data.
+    In particular, Miri does currently not check that references point to valid data.
 * If the program relies on unspecified details of how data is laid out, it will
   still run fine in Miri -- but might break (including causing UB) on different
   compiler versions or different platforms.
@@ -62,9 +65,9 @@ in your program, and cannot run all programs:
   not support networking. System API support varies between targets; if you run
   on Windows it is a good idea to use `--target x86_64-unknown-linux-gnu` to get
   better support.
-* Threading support is not finished yet. E.g., weak memory effects are not
-  emulated and spin loops (without syscalls) just loop forever. There is no
-  threading support on Windows.
+* Weak memory emulation may produce weak behaivours unobservable by compiled
+  programs running on real hardware when `SeqCst` fences are used, and it cannot
+  produce all behaviors possibly observable on real hardware.
 
 [rust]: https://www.rust-lang.org/
 [mir]: https://github.com/rust-lang/rfcs/blob/master/text/1211-mir.md
@@ -194,6 +197,28 @@ for seed in $({ echo obase=16; seq 255; } | bc); do
 done
 ```
 
+### Supported targets
+
+Miri does not support all targets supported by Rust. The good news, however, is
+that no matter your host OS/platform, it is easy to run code for *any* target
+using `--target`!
+
+The following targets are tested on CI and thus should always work (to the
+degree documented below):
+
+- The best-supported target is `x86_64-unknown-linux-gnu`. Miri releases are
+  blocked on things working with this target. Most other Linux targets should
+  also work well; we do run the test suite on `i686-unknown-linux-gnu` as a
+  32bit target and `mips64-unknown-linux-gnuabi64` as a big-endian target.
+- `x86_64-apple-darwin` should work basically as well as Linux. We also test
+  `aarch64-apple-darwin`. However, we might ship Miri with a nightly even when
+  some features on these targets regress.
+- `x86_64-pc-windows-msvc` works, but supports fewer features than the Linux and
+  Apple targets. For example, file system access and concurrency are not
+  supported on Windows. We also test `i686-pc-windows-msvc`, with the same
+  reduced feature set. We might ship Miri with a nightly even when some features
+  on these targets regress.
+
 ### Common Problems
 
 When using the above instructions, you may encounter a number of confusing compiler
@@ -236,32 +261,14 @@ up the sysroot.  If you are using `miri` (the Miri driver) directly, see the
 [miri-flags]: #miri--z-flags-and-environment-variables
 
 Miri adds its own set of `-Z` flags, which are usually set via the `MIRIFLAGS`
-environment variable:
+environment variable. We first document the most relevant and most commonly used flags:
 
-* `-Zmiri-check-number-validity` enables checking of integer and float validity
-  (e.g., they must be initialized and not carry pointer provenance) as part of
-  enforcing validity invariants. This has no effect when
-  `-Zmiri-disable-validation` is present.
 * `-Zmiri-compare-exchange-weak-failure-rate=<rate>` changes the failure rate of
   `compare_exchange_weak` operations. The default is `0.8` (so 4 out of 5 weak ops will fail).
   You can change it to any value between `0.0` and `1.0`, where `1.0` means it
-  will always fail and `0.0` means it will never fail.
-* `-Zmiri-disable-abi-check` disables checking [function ABI]. Using this flag
-  is **unsound**.
-* `-Zmiri-disable-alignment-check` disables checking pointer alignment, so you
-  can focus on other failures, but it means Miri can miss bugs in your program.
-  Using this flag is **unsound**.
-* `-Zmiri-disable-data-race-detector` disables checking for data races.  Using
-  this flag is **unsound**.
-* `-Zmiri-disable-stacked-borrows` disables checking the experimental
-  [Stacked Borrows] aliasing rules.  This can make Miri run faster, but it also
-  means no aliasing violations will be detected.  Using this flag is **unsound**
-  (but the affected soundness rules are experimental).
-* `-Zmiri-disable-validation` disables enforcing validity invariants, which are
-  enforced by default.  This is mostly useful to focus on other failures (such
-  as out-of-bounds accesses) first.  Setting this flag means Miri can miss bugs
-  in your program.  However, this can also help to make Miri run faster.  Using
-  this flag is **unsound**.
+  will always fail and `0.0` means it will never fail. Note than setting it to
+  `1.0` will likely cause hangs, since it means programs using
+  `compare_exchange_weak` cannot make progress.
 * `-Zmiri-disable-isolation` disables host isolation.  As a consequence,
   the program has access to host resources such as environment variables, file
   systems, and randomness.
@@ -276,32 +283,84 @@ environment variable:
   cannot be accessed by the program. Can be used multiple times to exclude several variables. The
   `TERM` environment variable is excluded by default to [speed up the test
   harness](https://github.com/rust-lang/miri/issues/1702). This has no effect unless
-  `-Zmiri-disable-validation` is also set.
+  `-Zmiri-disable-isolation` is also set.
 * `-Zmiri-env-forward=<var>` forwards the `var` environment variable to the interpreted program. Can
   be used multiple times to forward several variables. This has no effect if
-  `-Zmiri-disable-validation` is set.
+  `-Zmiri-disable-isolation` is set.
 * `-Zmiri-ignore-leaks` disables the memory leak checker, and also allows some
   remaining threads to exist when the main thread exits.
+* `-Zmiri-preemption-rate` configures the probability that at the end of a basic block, the active
+  thread will be preempted. The default is `0.01` (i.e., 1%). Setting this to `0` disables
+  preemption.
+* `-Zmiri-seed=<hex>` configures the seed of the RNG that Miri uses to resolve non-determinism. This
+  RNG is used to pick base addresses for allocations, to determine preemption and failure of
+  `compare_exchange_weak`, and to control store buffering for weak memory emulation. When isolation
+  is enabled (the default), this is also used to emulate system entropy. The default seed is 0. You
+  can increase test coverage by running Miri multiple times with different seeds. **NOTE**: This
+  entropy is not good enough for cryptographic use! Do not generate secret keys in Miri or perform
+  other kinds of cryptographic operations that rely on proper random numbers.
+* `-Zmiri-strict-provenance` enables [strict
+  provenance](https://github.com/rust-lang/rust/issues/95228) checking in Miri. This means that
+  casting an integer to a pointer yields a result with 'invalid' provenance, i.e., with provenance
+  that cannot be used for any memory access. Also implies `-Zmiri-tag-raw-pointers`.
+
+The remaining flags are for advanced use only, and more likely to change or be removed.
+Some of these are **unsound**, which means they can lead
+to Miri failing to detect cases of undefined behavior in a program.
+
+* `-Zmiri-allow-uninit-numbers` disables the check to ensure that number types (integer and float
+  types) always hold initialized data. (They must still be initialized when any actual operation,
+  such as arithmetic, is performed.) Using this flag is **unsound** and
+  [deprecated](https://github.com/rust-lang/miri/issues/2187). This has no effect when
+  `-Zmiri-disable-validation` is present.
+* `-Zmiri-allow-ptr-int-transmute` makes Miri more accepting of transmutation between pointers and
+  integers via `mem::transmute` or union/pointer type punning. This has two effects: it disables the
+  check against integers storing a pointer (i.e., data with provenance), thus allowing
+  pointer-to-integer transmutation, and it treats integer-to-pointer transmutation as equivalent to
+  a cast. Using this flag is **unsound** and
+  [deprecated](https://github.com/rust-lang/miri/issues/2188).
+* `-Zmiri-disable-abi-check` disables checking [function ABI]. Using this flag
+  is **unsound**.
+* `-Zmiri-disable-alignment-check` disables checking pointer alignment, so you
+  can focus on other failures, but it means Miri can miss bugs in your program.
+  Using this flag is **unsound**.
+* `-Zmiri-disable-data-race-detector` disables checking for data races.  Using
+  this flag is **unsound**. This implies `-Zmiri-disable-weak-memory-emulation`.
+* `-Zmiri-disable-stacked-borrows` disables checking the experimental
+  [Stacked Borrows] aliasing rules.  This can make Miri run faster, but it also
+  means no aliasing violations will be detected.  Using this flag is **unsound**
+  (but the affected soundness rules are experimental).
+* `-Zmiri-disable-validation` disables enforcing validity invariants, which are
+  enforced by default.  This is mostly useful to focus on other failures (such
+  as out-of-bounds accesses) first.  Setting this flag means Miri can miss bugs
+  in your program.  However, this can also help to make Miri run faster.  Using
+  this flag is **unsound**.
+* `-Zmiri-disable-weak-memory-emulation` disables the emulation of some C++11 weak
+  memory effects.
 * `-Zmiri-measureme=<name>` enables `measureme` profiling for the interpreted program.
    This can be used to find which parts of your program are executing slowly under Miri.
    The profile is written out to a file with the prefix `<name>`, and can be processed
    using the tools in the repository https://github.com/rust-lang/measureme.
+* `-Zmiri-mute-stdout-stderr` silently ignores all writes to stdout and stderr,
+  but reports to the program that it did actually write. This is useful when you
+  are not interested in the actual program's output, but only want to see Miri's
+  errors and warnings.
 * `-Zmiri-panic-on-unsupported` will makes some forms of unsupported functionality,
   such as FFI and unsupported syscalls, panic within the context of the emulated
   application instead of raising an error within the context of Miri (and halting
   execution). Note that code might not expect these operations to ever panic, so
   this flag can lead to strange (mis)behavior.
-* `-Zmiri-seed=<hex>` configures the seed of the RNG that Miri uses to resolve
-  non-determinism.  This RNG is used to pick base addresses for allocations.
-  When isolation is enabled (the default), this is also used to emulate system
-  entropy.  The default seed is 0.  **NOTE**: This entropy is not good enough
-  for cryptographic use!  Do not generate secret keys in Miri or perform other
-  kinds of cryptographic operations that rely on proper random numbers.
-* `-Zmiri-strict-provenance` enables [strict
-  provenance](https://github.com/rust-lang/rust/issues/95228) checking in Miri. This means that
-  casting an integer to a pointer yields a result with 'invalid' provenance, i.e., with provenance
-  that cannot be used for any memory access. Also implies `-Zmiri-tag-raw-pointers` and
-  `-Zmiri-check-number-validity`.
+* `-Zmiri-permissive-provenance` is **experimental**. This will make Miri do a
+  best-effort attempt to implement the semantics of
+  [`expose_addr`](https://doc.rust-lang.org/nightly/std/primitive.pointer.html#method.expose_addr)
+  and
+  [`ptr::from_exposed_addr`](https://doc.rust-lang.org/nightly/std/ptr/fn.from_exposed_addr.html)
+  for pointer-to-int and int-to-pointer casts, respectively. This will
+  necessarily miss some bugs as those semantics are not efficiently
+  implementable in a sanitizer, but it will only miss bugs that concerns
+  memory/pointers which is subject to these operations. Also note that this flag
+  is currently incompatible with Stacked Borrows, so you will have to also pass
+  `-Zmiri-disable-stacked-borrows` to use this.
 * `-Zmiri-symbolic-alignment-check` makes the alignment check more strict.  By
   default, alignment is checked by casting the pointer to an integer, and making
   sure that is a multiple of the alignment.  This can lead to cases where a
@@ -368,6 +427,11 @@ Moreover, Miri recognizes some environment variables:
 * `MIRI_TEST_TARGET` (recognized by the test suite) indicates which target
   architecture to test against.  `miri` and `cargo miri` accept the `--target`
   flag for the same purpose.
+* `MIRI_BLESS` (recognized by the test suite) overwrite all `stderr` and `stdout` files
+  instead of checking whether the output matches.
+* `MIRI_SKIP_UI_CHECKS` (recognized by the test suite) don't check whether the
+  `stderr` or `stdout` files match the actual output. Useful for the rustc test suite
+  which has subtle differences that we don't care about.
 
 The following environment variables are *internal* and must not be used by
 anyone but Miri itself. They are used to communicate between different Miri
@@ -475,15 +539,15 @@ GitHub or use the [Miri stream on the Rust Zulip][zulip].
 
 This project began as part of an undergraduate research course in 2015 by
 @solson at the [University of Saskatchewan][usask].  There are [slides] and a
-[report] available from that project.  In 2016, @oli-obk joined to prepare miri
+[report] available from that project.  In 2016, @oli-obk joined to prepare Miri
 for eventually being used as const evaluator in the Rust compiler itself
 (basically, for `const` and `static` stuff), replacing the old evaluator that
 worked directly on the AST.  In 2017, @RalfJung did an internship with Mozilla
-and began developing miri towards a tool for detecting undefined behavior, and
-also using miri as a way to explore the consequences of various possible
-definitions for undefined behavior in Rust.  @oli-obk's move of the miri engine
+and began developing Miri towards a tool for detecting undefined behavior, and
+also using Miri as a way to explore the consequences of various possible
+definitions for undefined behavior in Rust.  @oli-obk's move of the Miri engine
 into the compiler finally came to completion in early 2018.  Meanwhile, later
-that year, @RalfJung did a second internship, developing miri further with
+that year, @RalfJung did a second internship, developing Miri further with
 support for checking basic type invariants and verifying that references are
 used according to their aliasing restrictions.
 

@@ -1,28 +1,39 @@
 //! Completion for use trees
 
 use hir::ScopeDef;
-use ide_db::FxHashSet;
+use ide_db::{FxHashSet, SymbolKind};
 use syntax::{ast, AstNode};
 
 use crate::{
-    context::{CompletionContext, NameRefContext, PathCompletionCtx, PathKind, PathQualifierCtx},
+    context::{
+        CompletionContext, NameRefContext, NameRefKind, PathCompletionCtx, PathKind, Qualified,
+    },
     item::Builder,
-    CompletionRelevance, Completions,
+    CompletionItem, CompletionItemKind, CompletionRelevance, Completions,
 };
 
-pub(crate) fn complete_use_tree(acc: &mut Completions, ctx: &CompletionContext) {
-    let (&is_absolute_path, qualifier, name_ref) = match ctx.nameref_ctx() {
-        Some(NameRefContext {
-            path_ctx:
-                Some(PathCompletionCtx { kind: PathKind::Use, is_absolute_path, qualifier, .. }),
+pub(crate) fn complete_use_tree(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    name_ref_ctx: &NameRefContext,
+) {
+    let (qualified, name_ref, use_tree_parent) = match name_ref_ctx {
+        NameRefContext {
+            kind:
+                NameRefKind::Path(PathCompletionCtx {
+                    kind: PathKind::Use,
+                    qualified,
+                    use_tree_parent,
+                    ..
+                }),
             nameref,
             ..
-        }) => (is_absolute_path, qualifier, nameref),
+        } => (qualified, nameref, use_tree_parent),
         _ => return,
     };
 
-    match qualifier {
-        Some(PathQualifierCtx { path, resolution, is_super_chain, use_tree_parent, .. }) => {
+    match qualified {
+        Qualified::With { path, resolution: Some(resolution), is_super_chain } => {
             if *is_super_chain {
                 acc.add_keyword(ctx, "super::");
             }
@@ -36,13 +47,8 @@ pub(crate) fn complete_use_tree(acc: &mut Completions, ctx: &CompletionContext) 
                 acc.add_keyword(ctx, "self");
             }
 
-            let resolution = match resolution {
-                Some(it) => it,
-                None => return,
-            };
-
             let mut already_imported_names = FxHashSet::default();
-            if let Some(list) = ctx.token.ancestors().find_map(ast::UseTreeList::cast) {
+            if let Some(list) = ctx.token.parent_ancestors().find_map(ast::UseTreeList::cast) {
                 let use_tree = list.parent_use_tree();
                 if use_tree.path().as_ref() == Some(path) {
                     for tree in list.use_trees().filter(|tree| tree.is_simple_path()) {
@@ -97,19 +103,37 @@ pub(crate) fn complete_use_tree(acc: &mut Completions, ctx: &CompletionContext) 
             }
         }
         // fresh use tree with leading colon2, only show crate roots
-        None if is_absolute_path => {
+        Qualified::Absolute => {
             cov_mark::hit!(use_tree_crate_roots_only);
             acc.add_crate_roots(ctx);
         }
-        // only show modules in a fresh UseTree
-        None => {
-            cov_mark::hit!(unqualified_path_only_modules_in_import);
+        // only show modules and non-std enum in a fresh UseTree
+        Qualified::No => {
+            cov_mark::hit!(unqualified_path_selected_only);
             ctx.process_all_names(&mut |name, res| {
-                if let ScopeDef::ModuleDef(hir::ModuleDef::Module(_)) = res {
-                    acc.add_resolution(ctx, name, res);
-                }
+                match res {
+                    ScopeDef::ModuleDef(hir::ModuleDef::Module(_)) => {
+                        acc.add_resolution(ctx, name, res);
+                    }
+                    ScopeDef::ModuleDef(hir::ModuleDef::Adt(hir::Adt::Enum(e))) => {
+                        // exclude prelude enum
+                        let is_builtin =
+                            res.krate(ctx.db).map_or(false, |krate| krate.is_builtin(ctx.db));
+
+                        if !is_builtin {
+                            let item = CompletionItem::new(
+                                CompletionItemKind::SymbolKind(SymbolKind::Enum),
+                                ctx.source_range(),
+                                format!("{}::", e.name(ctx.db)),
+                            );
+                            acc.add(item.build());
+                        }
+                    }
+                    _ => {}
+                };
             });
             acc.add_nameref_keywords_with_colon(ctx);
         }
+        Qualified::Infer | Qualified::With { resolution: None, .. } => {}
     }
 }

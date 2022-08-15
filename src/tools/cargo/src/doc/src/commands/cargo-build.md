@@ -66,6 +66,16 @@ When no target selection options are given, `cargo build` will build all
 binary and library targets of the selected packages. Binaries are skipped if
 they have `required-features` that are missing.
 
+Binary targets are automatically built if there is an integration test or
+benchmark being selected to build. This allows an integration
+test to execute the binary to exercise and test its behavior. 
+The `CARGO_BIN_EXE_<name>`
+[environment variable](../reference/environment-variables.html#environment-variables-cargo-sets-for-crates)
+is set when the integration test is built so that it can use the
+[`env` macro](https://doc.rust-lang.org/std/macro.env.html) to locate the
+executable.
+
+
 Passing target selection flags will build only the specified
 targets. 
 
@@ -352,6 +362,10 @@ begins with <code>+</code>, it will be interpreted as a rustup toolchain name (s
 as <code>+stable</code> or <code>+nightly</code>).
 See the <a href="https://rust-lang.github.io/rustup/overrides.html">rustup documentation</a>
 for more information about how toolchain overrides work.</dd>
+
+
+<dt class="option-term" id="option-cargo-build---config"><a class="option-anchor" href="#option-cargo-build---config"></a><code>--config</code> KEY=VALUE</dt>
+<dd class="option-desc">Overrides a Cargo configuration value.</dd>
 
 
 <dt class="option-term" id="option-cargo-build--h"><a class="option-anchor" href="#option-cargo-build--h"></a><code>-h</code></dt>

@@ -338,7 +338,10 @@ struct Foo { bar: Bar }
 struct Bar(u32);
 fn outer(Foo { bar$0 }: Foo) {}
 "#,
-        expect![[r#""#]],
+        expect![[r#"
+            kw mut
+            kw ref
+        "#]],
     )
 }
 
@@ -432,7 +435,7 @@ fn foo() {
 }
 "#,
         expect![[r#"
-            ev TupleVariant(…) TupleVariant
+            ev TupleVariant TupleVariant
         "#]],
     );
     check_empty(
@@ -447,7 +450,7 @@ fn foo() {
 }
 "#,
         expect![[r#"
-            ev RecordVariant {…} RecordVariant
+            ev RecordVariant RecordVariant
         "#]],
     );
 }

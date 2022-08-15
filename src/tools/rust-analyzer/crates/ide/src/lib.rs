@@ -80,7 +80,10 @@ pub use crate::{
     folding_ranges::{Fold, FoldKind},
     highlight_related::{HighlightRelatedConfig, HighlightedRange},
     hover::{HoverAction, HoverConfig, HoverDocFormat, HoverGotoTypeData, HoverResult},
-    inlay_hints::{InlayHint, InlayHintsConfig, InlayKind, LifetimeElisionHints},
+    inlay_hints::{
+        ClosureReturnTypeHints, InlayHint, InlayHintsConfig, InlayKind, InlayTooltip,
+        LifetimeElisionHints, ReborrowHints,
+    },
     join_lines::JoinLinesConfig,
     markup::Markup,
     moniker::{MonikerKind, MonikerResult, PackageInformation},
@@ -102,8 +105,8 @@ pub use ide_assists::{
     Assist, AssistConfig, AssistId, AssistKind, AssistResolveStrategy, SingleResolve,
 };
 pub use ide_completion::{
-    CompletionConfig, CompletionItem, CompletionItemKind, CompletionRelevance, Snippet,
-    SnippetScope,
+    CallableSnippets, CompletionConfig, CompletionItem, CompletionItemKind, CompletionRelevance,
+    Snippet, SnippetScope,
 };
 pub use ide_db::{
     base_db::{
@@ -230,7 +233,7 @@ impl Analysis {
             cfg_options.clone(),
             cfg_options,
             Env::default(),
-            Default::default(),
+            Ok(Vec::new()),
             false,
             CrateOrigin::CratesIo { repo: None },
         );
@@ -340,11 +343,16 @@ impl Analysis {
         &self,
         position: FilePosition,
         char_typed: char,
+        autoclose: bool,
     ) -> Cancellable<Option<SourceChange>> {
         // Fast path to not even parse the file.
         if !typing::TRIGGER_CHARS.contains(char_typed) {
             return Ok(None);
         }
+        if char_typed == '<' && !autoclose {
+            return Ok(None);
+        }
+
         self.with_db(|db| typing::on_char_typed(db, position, char_typed))
     }
 
@@ -540,8 +548,11 @@ impl Analysis {
         &self,
         config: &CompletionConfig,
         position: FilePosition,
+        trigger_character: Option<char>,
     ) -> Cancellable<Option<Vec<CompletionItem>>> {
-        self.with_db(|db| ide_completion::completions(db, config, position).map(Into::into))
+        self.with_db(|db| {
+            ide_completion::completions(db, config, position, trigger_character).map(Into::into)
+        })
     }
 
     /// Resolves additional completion data at the position given.

@@ -103,6 +103,29 @@ impl Trait<u32> for () {
 }
 
 #[test]
+fn doctest_add_label_to_loop() {
+    check_doc_test(
+        "add_label_to_loop",
+        r#####"
+fn main() {
+    loop$0 {
+        break;
+        continue;
+    }
+}
+"#####,
+        r#####"
+fn main() {
+    'l: loop {
+        break 'l;
+        continue 'l;
+    }
+}
+"#####,
+    )
+}
+
+#[test]
 fn doctest_add_lifetime_to_type() {
     check_doc_test(
         "add_lifetime_to_type",
@@ -359,6 +382,26 @@ fn main() {
     for (x, y) in iter {
         println!("x: {}, y: {}", x, y);
     }
+}
+"#####,
+    )
+}
+
+#[test]
+fn doctest_convert_let_else_to_match() {
+    check_doc_test(
+        "convert_let_else_to_match",
+        r#####"
+fn main() {
+    let Ok(mut x) = f() else$0 { return };
+}
+"#####,
+        r#####"
+fn main() {
+    let mut x = match f() {
+        Ok(x) => x,
+        _ => return,
+    };
 }
 "#####,
     )
@@ -799,6 +842,7 @@ fn doctest_generate_deref() {
     check_doc_test(
         "generate_deref",
         r#####"
+//- minicore: deref, deref_mut
 struct A;
 struct B {
    $0a: A
@@ -810,7 +854,7 @@ struct B {
    a: A
 }
 
-impl std::ops::Deref for B {
+impl core::ops::Deref for B {
     type Target = A;
 
     fn deref(&self) -> &Self::Target {
@@ -842,30 +886,55 @@ struct Point {
 }
 
 #[test]
-fn doctest_generate_documentation_template() {
+fn doctest_generate_doc_example() {
     check_doc_test(
-        "generate_documentation_template",
+        "generate_doc_example",
         r#####"
-pub fn my_$0func(a: i32, b: i32) -> Result<(), std::io::Error> {
-    unimplemented!()
-}
+/// Adds two numbers.$0
+pub fn add(a: i32, b: i32) -> i32 { a + b }
 "#####,
         r#####"
-/// .
+/// Adds two numbers.
 ///
 /// # Examples
 ///
 /// ```
-/// use test::my_func;
+/// use test::add;
 ///
-/// assert_eq!(my_func(a, b), );
+/// assert_eq!(add(a, b), );
 /// ```
-///
-/// # Errors
-///
-/// This function will return an error if .
-pub fn my_func(a: i32, b: i32) -> Result<(), std::io::Error> {
-    unimplemented!()
+pub fn add(a: i32, b: i32) -> i32 { a + b }
+"#####,
+    )
+}
+
+#[test]
+fn doctest_generate_documentation_template() {
+    check_doc_test(
+        "generate_documentation_template",
+        r#####"
+pub struct S;
+impl S {
+    pub unsafe fn set_len$0(&mut self, len: usize) -> Result<(), std::io::Error> {
+        /* ... */
+    }
+}
+"#####,
+        r#####"
+pub struct S;
+impl S {
+    /// Sets the length of this [`S`].
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if .
+    ///
+    /// # Safety
+    ///
+    /// .
+    pub unsafe fn set_len(&mut self, len: usize) -> Result<(), std::io::Error> {
+        /* ... */
+    }
 }
 "#####,
     )
@@ -961,6 +1030,32 @@ impl Value {
 }
 
 #[test]
+fn doctest_generate_enum_variant() {
+    check_doc_test(
+        "generate_enum_variant",
+        r#####"
+enum Countries {
+    Ghana,
+}
+
+fn main() {
+    let country = Countries::Lesotho$0;
+}
+"#####,
+        r#####"
+enum Countries {
+    Ghana,
+    Lesotho,
+}
+
+fn main() {
+    let country = Countries::Lesotho;
+}
+"#####,
+    )
+}
+
+#[test]
 fn doctest_generate_from_impl_for_enum() {
     check_doc_test(
         "generate_from_impl_for_enum",
@@ -1036,8 +1131,6 @@ struct Person {
 }
 
 impl Person {
-    /// Get a reference to the person's name.
-    #[must_use]
     fn $0name(&self) -> &str {
         self.name.as_ref()
     }
@@ -1061,8 +1154,6 @@ struct Person {
 }
 
 impl Person {
-    /// Get a mutable reference to the person's name.
-    #[must_use]
     fn $0name_mut(&mut self) -> &mut String {
         &mut self.name
     }
@@ -1160,7 +1251,6 @@ struct Person {
 }
 
 impl Person {
-    /// Set the person's name.
     fn set_name(&mut self, name: String) {
         self.name = name;
     }

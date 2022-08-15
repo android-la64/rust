@@ -21,9 +21,21 @@ level = 0
 [output.linkcheck]
 command = "ci/linkcheck.sh"
 follow-web-links = true
-exclude = [ "crates\\.io", "gcc\\.godbolt\\.org", "youtube\\.com", "youtu\\.be", "dl\\.acm\\.org", "cs\\.bgu\\.ac\\.il", "www\\.amazon\\.com", "www\\.rustaceans\\.org", "play\\.rust-lang\\.org" ]
+exclude = [
+    "crates\\.io",
+    "gcc\\.godbolt\\.org",
+    "youtube\\.com",
+    "youtu\\.be",
+    "dl\\.acm\\.org",
+    "cs\\.bgu\\.ac\\.il",
+    "www\\.amazon\\.com",
+    "www\\.rustaceans\\.org",
+    "play\\.rust-lang\\.org",
+    "tomlee\\.co"
+]
 cache-timeout = 86400
 warning-policy = "error"
 
 [output.html.redirect]
 "/compiletest.html" = "tests/compiletest.html"
+"/diagnostics/sessiondiagnostic.html" = "diagnostics/diagnostic-structs.html"

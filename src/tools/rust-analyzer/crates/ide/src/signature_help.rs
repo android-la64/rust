@@ -1,8 +1,10 @@
 //! This module provides primitives for showing type and function parameter information when editing
 //! a call or use-site.
 
+use std::collections::BTreeSet;
+
 use either::Either;
-use hir::{GenericParam, HasAttrs, HirDisplay, Semantics};
+use hir::{AssocItem, GenericParam, HasAttrs, HirDisplay, Semantics, Trait};
 use ide_db::{active_parameter::callable_for_node, base_db::FilePosition};
 use stdx::format_to;
 use syntax::{
@@ -66,7 +68,7 @@ pub(crate) fn signature_help(db: &RootDatabase, position: FilePosition) -> Optio
         .and_then(|tok| algo::skip_trivia_token(tok, Direction::Prev))?;
     let token = sema.descend_into_macros_single(token);
 
-    for node in token.ancestors() {
+    for node in token.parent_ancestors() {
         match_ast! {
             match node {
                 ast::ArgList(arg_list) => {
@@ -129,7 +131,7 @@ fn signature_help_for_call(
         hir::CallableKind::Function(func) => {
             res.doc = func.docs(db).map(|it| it.into());
             format_to!(res.signature, "fn {}", func.name(db));
-            fn_params = Some(match func.self_param(db) {
+            fn_params = Some(match callable.receiver_param(db) {
                 Some(_self) => func.params_without_self(db),
                 None => func.assoc_fn_params(db),
             });
@@ -147,7 +149,7 @@ fn signature_help_for_call(
                 variant.name(db)
             );
         }
-        hir::CallableKind::Closure => (),
+        hir::CallableKind::Closure | hir::CallableKind::FnPtr => (),
     }
 
     res.signature.push('(');
@@ -187,7 +189,7 @@ fn signature_help_for_call(
         hir::CallableKind::Function(func) if callable.return_type().contains_unknown() => {
             render(func.ret_type(db))
         }
-        hir::CallableKind::Function(_) | hir::CallableKind::Closure => {
+        hir::CallableKind::Function(_) | hir::CallableKind::Closure | hir::CallableKind::FnPtr => {
             render(callable.return_type())
         }
         hir::CallableKind::TupleStruct(_) | hir::CallableKind::TupleEnumVariant(_) => {}
@@ -316,9 +318,50 @@ fn signature_help_for_generics(
         format_to!(buf, "{}", param.display(db));
         res.push_generic_param(&buf);
     }
+    if let hir::GenericDef::Trait(tr) = generics_def {
+        add_assoc_type_bindings(db, &mut res, tr, arg_list);
+    }
     res.signature.push('>');
 
     Some(res)
+}
+
+fn add_assoc_type_bindings(
+    db: &RootDatabase,
+    res: &mut SignatureHelp,
+    tr: Trait,
+    args: ast::GenericArgList,
+) {
+    if args.syntax().ancestors().find_map(ast::TypeBound::cast).is_none() {
+        // Assoc type bindings are only valid in type bound position.
+        return;
+    }
+
+    let present_bindings = args
+        .generic_args()
+        .filter_map(|arg| match arg {
+            ast::GenericArg::AssocTypeArg(arg) => arg.name_ref().map(|n| n.to_string()),
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+
+    let mut buf = String::new();
+    for binding in &present_bindings {
+        buf.clear();
+        format_to!(buf, "{} = …", binding);
+        res.push_generic_param(&buf);
+    }
+
+    for item in tr.items_with_supertraits(db) {
+        if let AssocItem::TypeAlias(ty) = item {
+            let name = ty.name(db).to_smol_str();
+            if !present_bindings.contains(&*name) {
+                buf.clear();
+                format_to!(buf, "{} = …", name);
+                res.push_generic_param(&buf);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -368,10 +411,11 @@ mod tests {
                         panic!("parameter ranges out of order: {:?}", sig_help.parameter_ranges())
                     });
                     rendered.extend(iter::repeat(' ').take(gap as usize));
-                    let width = u32::from(range.end() - range.start());
+                    let param_text = &sig_help.signature[*range];
+                    let width = param_text.chars().count(); // …
                     let marker = if is_active { '^' } else { '-' };
-                    rendered.extend(iter::repeat(marker).take(width as usize));
-                    offset += gap + width;
+                    rendered.extend(iter::repeat(marker).take(width));
+                    offset += gap + u32::from(range.len());
                 }
                 if !sig_help.parameter_ranges().is_empty() {
                     format_to!(rendered, "\n");
@@ -870,8 +914,8 @@ fn main() {
 }
         "#,
             expect![[r#"
-                (S) -> i32
-                 ^
+                (s: S) -> i32
+                 ^^^^
             "#]],
         )
     }
@@ -1125,6 +1169,134 @@ fn f() {
     }
 
     #[test]
+    fn test_trait_assoc_types() {
+        check(
+            r#"
+trait Trait<'a, T> {
+    type Assoc;
+}
+fn f() -> impl Trait<(), $0
+            "#,
+            expect![[r#"
+                trait Trait<'a, T, Assoc = …>
+                            --  -  ^^^^^^^^^
+            "#]],
+        );
+        check(
+            r#"
+trait Iterator {
+    type Item;
+}
+fn f() -> impl Iterator<$0
+            "#,
+            expect![[r#"
+                trait Iterator<Item = …>
+                               ^^^^^^^^
+            "#]],
+        );
+        check(
+            r#"
+trait Iterator {
+    type Item;
+}
+fn f() -> impl Iterator<Item = $0
+            "#,
+            expect![[r#"
+                trait Iterator<Item = …>
+                               ^^^^^^^^
+            "#]],
+        );
+        check(
+            r#"
+trait Tr {
+    type A;
+    type B;
+}
+fn f() -> impl Tr<$0
+            "#,
+            expect![[r#"
+                trait Tr<A = …, B = …>
+                         ^^^^^  -----
+            "#]],
+        );
+        check(
+            r#"
+trait Tr {
+    type A;
+    type B;
+}
+fn f() -> impl Tr<B$0
+            "#,
+            expect![[r#"
+                trait Tr<A = …, B = …>
+                         ^^^^^  -----
+            "#]],
+        );
+        check(
+            r#"
+trait Tr {
+    type A;
+    type B;
+}
+fn f() -> impl Tr<B = $0
+            "#,
+            expect![[r#"
+                trait Tr<B = …, A = …>
+                         ^^^^^  -----
+            "#]],
+        );
+        check(
+            r#"
+trait Tr {
+    type A;
+    type B;
+}
+fn f() -> impl Tr<B = (), $0
+            "#,
+            expect![[r#"
+                trait Tr<B = …, A = …>
+                         -----  ^^^^^
+            "#]],
+        );
+    }
+
+    #[test]
+    fn test_supertrait_assoc() {
+        check(
+            r#"
+trait Super {
+    type SuperTy;
+}
+trait Sub: Super + Super {
+    type SubTy;
+}
+fn f() -> impl Sub<$0
+            "#,
+            expect![[r#"
+                trait Sub<SubTy = …, SuperTy = …>
+                          ^^^^^^^^^  -----------
+            "#]],
+        );
+    }
+
+    #[test]
+    fn no_assoc_types_outside_type_bounds() {
+        check(
+            r#"
+trait Tr<T> {
+    type Assoc;
+}
+
+impl Tr<$0
+        "#,
+            expect![[r#"
+            trait Tr<T>
+                     ^
+        "#]],
+        );
+    }
+
+    #[test]
     fn impl_trait() {
         // FIXME: Substitute type vars in impl trait (`U` -> `i8`)
         check(
@@ -1139,6 +1311,22 @@ fn f() {
             expect![[r#"
                 fn foo(x: Wrap<impl Trait<U>>)
                        ^^^^^^^^^^^^^^^^^^^^^^
+            "#]],
+        );
+    }
+
+    #[test]
+    fn fully_qualified_syntax() {
+        check(
+            r#"
+fn f() {
+    trait A { fn foo(&self, other: Self); }
+    A::foo(&self$0, other);
+}
+"#,
+            expect![[r#"
+                fn foo(self: &Self, other: Self)
+                       ^^^^^^^^^^^  -----------
             "#]],
         );
     }

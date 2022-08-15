@@ -123,13 +123,16 @@ libcurl and the system-wide SSL library. Some of this behavior can be customized
 with various Cargo features:
 
 - `ssl`: Enable SSL/TLS support using the platform-default TLS backend. On Windows this is [Schannel], on macOS [Secure Transport], and [OpenSSL] (or equivalent) on all other platforms.  Enabled by default.
-- `mesalink`: Enable SSL/TLS support via [MesaLink], an alternative TLS backend written in Rust based on [Rustls]. MesaLink is always statically linked. Disabled by default.
+- `rustls` Enable SSL/TLS support via [Rustls], a well-received alternative TLS backend written in Rust. Rustls is always statically linked. Disabled by default.
+
+  Note that Rustls support is experimental within Curl itself and may have significant bugs, so we don't offer any sort of stability guarantee with this feature.
 - `http2`: Enable HTTP/2 support via libnghttp2. Disabled by default.
 - `static-curl`: Use a bundled libcurl version and statically link to it. Disabled by default.
 - `static-ssl`: Use a bundled OpenSSL version and statically link to it. Only applies on platforms that use OpenSSL. Disabled by default.
 - `spnego`: Enable SPNEGO support. Disabled by default.
 - `upkeep_7_62_0`: Enable curl_easy_upkeep() support, introduced in curl 7.62.0. Disabled by default.
 - `poll_7_68_0`: Enable curl_multi_poll()/curl_multi_wakeup() support, requires curl 7.68.0 or later. Disabled by default.
+- `ntlm`: Enable NTLM support in curl. Disabled by default.
 
 ## Version Support
 
@@ -165,7 +168,6 @@ details.
 
 
 [libcurl]: https://curl.haxx.se/libcurl/
-[MesaLink]: https://mesalink.io/
 [OpenSSL]: https://www.openssl.org/
 [Rustls]: https://github.com/ctz/rustls
 [Schannel]: https://docs.microsoft.com/en-us/windows/win32/com/schannel

@@ -1,3 +1,7 @@
+#![allow(clippy::useless_format, clippy::derive_partial_eq_without_eq)]
+
+mod version;
+
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Write as _;
@@ -8,11 +12,10 @@ use std::ops::Not;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 
+use rustc_version::VersionMeta;
 use serde::{Deserialize, Serialize};
 
-use rustc_version::VersionMeta;
-
-const XARGO_MIN_VERSION: (u32, u32, u32) = (0, 3, 23);
+use version::*;
 
 const CARGO_MIRI_HELP: &str = r#"Runs binary crates and tests in Miri
 
@@ -95,6 +98,9 @@ fn show_version() {
     // Only use `option_env` on vergen variables to ensure the build succeeds
     // when vergen failed to find the git info.
     if let Some(sha) = option_env!("VERGEN_GIT_SHA_SHORT") {
+        // This `unwrap` can never fail because if VERGEN_GIT_SHA_SHORT exists, then so does
+        // VERGEN_GIT_COMMIT_DATE.
+        #[allow(clippy::option_env_unwrap)]
         write!(&mut version, " ({} {})", sha, option_env!("VERGEN_GIT_COMMIT_DATE").unwrap())
             .unwrap();
     }
@@ -134,16 +140,14 @@ impl<I: Iterator<Item = String>> Iterator for ArgSplitFlagValue<'_, I> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let arg = self.args.next()?;
-        if arg.starts_with(self.name) {
+        if let Some(suffix) = arg.strip_prefix(self.name) {
             // Strip leading `name`.
-            let suffix = &arg[self.name.len()..];
             if suffix.is_empty() {
                 // This argument is exactly `name`; the next one is the value.
                 return self.args.next().map(Ok);
-            } else if suffix.starts_with('=') {
+            } else if let Some(suffix) = suffix.strip_prefix('=') {
                 // This argument is `name=value`; get the value.
-                // Strip leading `=`.
-                return Some(Ok(suffix[1..].to_owned()));
+                return Some(Ok(suffix.to_owned()));
             }
         }
         Some(Err(arg))
@@ -254,7 +258,7 @@ fn xargo_version() -> Option<(u32, u32, u32)> {
     let line = out
         .stderr
         .lines()
-        .nth(0)
+        .next()
         .expect("malformed `xargo --version` output: not at least one line")
         .expect("malformed `xargo --version` output: error reading first line");
     let (name, version) = {
@@ -284,7 +288,7 @@ fn xargo_version() -> Option<(u32, u32, u32)> {
         .expect("malformed `xargo --version` output: not a patch version piece")
         .parse()
         .expect("malformed `xargo --version` output: patch version is not an integer");
-    if !version_pieces.next().is_none() {
+    if version_pieces.next().is_some() {
         panic!("malformed `xargo --version` output: more than three pieces in version");
     }
     Some((major, minor, patch))
@@ -310,7 +314,7 @@ fn ask_to_run(mut cmd: Command, ask: bool, text: &str) {
         println!("Running `{:?}` to {}.", cmd, text);
     }
 
-    if cmd.status().expect(&format!("failed to execute {:?}", cmd)).success().not() {
+    if cmd.status().unwrap_or_else(|_| panic!("failed to execute {:?}", cmd)).success().not() {
         show_error(format!("failed to {}", text));
     }
 }
@@ -498,10 +502,11 @@ fn get_cargo_metadata() -> Metadata {
     for arg in ArgSplitFlagValue::new(
         env::args().skip(3), // skip the program name, "miri" and "run" / "test"
         config_flag,
-    ) {
-        if let Ok(config) = arg {
-            cmd.arg(config_flag).arg(config);
-        }
+    )
+    // Only look at `Ok`
+    .flatten()
+    {
+        cmd.arg(config_flag).arg(arg);
     }
     let mut child = cmd
         .stdin(process::Stdio::null())
@@ -523,11 +528,11 @@ fn get_cargo_metadata() -> Metadata {
 /// Additionally, somewhere between cargo metadata and TyCtxt, '-' gets replaced with '_' so we
 /// make that same transformation here.
 fn local_crates(metadata: &Metadata) -> String {
-    assert!(metadata.workspace_members.len() > 0);
+    assert!(!metadata.workspace_members.is_empty());
     let mut local_crates = String::new();
     for member in &metadata.workspace_members {
-        let name = member.split(" ").nth(0).unwrap();
-        let name = name.replace("-", "_");
+        let name = member.split(' ').next().unwrap();
+        let name = name.replace('-', "_");
         local_crates.push_str(&name);
         local_crates.push(',');
     }
@@ -633,6 +638,14 @@ fn phase_cargo_miri(mut args: env::Args) {
         );
     }
     cmd.env("RUSTC_WRAPPER", &cargo_miri_path);
+    // Having both `RUSTC_WRAPPER` and `RUSTC` set does some odd things, so let's avoid that.
+    // See <https://github.com/rust-lang/miri/issues/2238>.
+    if env::var_os("RUSTC").is_some() && env::var_os("MIRI").is_none() {
+        println!(
+            "WARNING: Ignoring `RUSTC` environment variable; set `MIRI` if you want to control the binary used as the driver."
+        );
+    }
+    cmd.env_remove("RUSTC");
 
     let runner_env_name =
         |triple: &str| format!("CARGO_TARGET_{}_RUNNER", triple.to_uppercase().replace('-', "_"));
@@ -707,7 +720,7 @@ fn phase_rustc(mut args: env::Args, phase: RustcPhase) {
                 get_arg_flag_value("--crate-name").unwrap(),
                 // This is technically a `-C` flag but the prefix seems unique enough...
                 // (and cargo passes this before the filename so it should be unique)
-                get_arg_flag_value("extra-filename").unwrap_or(String::new()),
+                get_arg_flag_value("extra-filename").unwrap_or_default(),
                 suffix,
             ));
             path
@@ -807,11 +820,10 @@ fn phase_rustc(mut args: env::Args, phase: RustcPhase) {
         // Forward arguments, but remove "link" from "--emit" to make this a check-only build.
         let emit_flag = "--emit";
         while let Some(arg) = args.next() {
-            if arg.starts_with(emit_flag) {
+            if let Some(val) = arg.strip_prefix(emit_flag) {
                 // Patch this argument. First, extract its value.
-                let val = &arg[emit_flag.len()..];
-                assert!(val.starts_with("="), "`cargo` should pass `--emit=X` as one argument");
-                let val = &val[1..];
+                let val =
+                    val.strip_prefix('=').expect("`cargo` should pass `--emit=X` as one argument");
                 let mut val: Vec<_> = val.split(',').collect();
                 // Now make sure "link" is not in there, but "metadata" is.
                 if let Some(i) = val.iter().position(|&s| s == "link") {
@@ -936,14 +948,19 @@ fn phase_runner(binary: &Path, binary_args: env::Args, phase: RunnerPhase) {
     while let Some(arg) = args.next() {
         if arg == "--extern" {
             forward_patched_extern_arg(&mut args, &mut cmd);
-        } else if arg.starts_with(error_format_flag) {
-            let suffix = &arg[error_format_flag.len()..];
+        } else if let Some(suffix) = arg.strip_prefix(error_format_flag) {
             assert!(suffix.starts_with('='));
             // Drop this argument.
-        } else if arg.starts_with(json_flag) {
-            let suffix = &arg[json_flag.len()..];
+        } else if let Some(suffix) = arg.strip_prefix(json_flag) {
             assert!(suffix.starts_with('='));
-            // Drop this argument.
+            // This is how we pass through --color=always. We detect that Cargo is detecting rustc
+            // to emit the diagnostic structure that Cargo would consume from rustc to emit colored
+            // diagnostics, and ask rustc to emit them.
+            // See https://github.com/rust-lang/miri/issues/2037
+            if arg.split(',').any(|a| a == "diagnostic-rendered-ansi") {
+                cmd.arg("--color=always");
+            }
+            // But aside from remembering that colored output was requested, drop this argument.
         } else {
             cmd.arg(arg);
         }
@@ -1061,6 +1078,19 @@ fn main() {
     // Skip binary name.
     args.next().unwrap();
 
+    // Dispatch to `cargo-miri` phase. There are four phases:
+    // - When we are called via `cargo miri`, we run as the frontend and invoke the underlying
+    //   cargo. We set RUSTDOC, RUSTC_WRAPPER and CARGO_TARGET_RUNNER to ourselves.
+    // - When we are executed due to RUSTDOC, we run rustdoc and set both `--test-builder` and
+    //   `--runtool` to ourselves.
+    // - When we are executed due to RUSTC_WRAPPER (or as the rustdoc test builder), we build crates
+    //   or store the flags of binary crates for later interpretation.
+    // - When we are executed due to CARGO_TARGET_RUNNER (or as the rustdoc runtool), we start
+    //   interpretation based on the flags that were stored earlier.
+    //
+    // Additionally, we also set ourselves as RUSTC when calling xargo to build the sysroot, which
+    // has to be treated slightly differently than when we build regular crates.
+
     // Dispatch running as part of sysroot compilation.
     if env::var_os("MIRI_CALLED_FROM_XARGO").is_some() {
         phase_rustc(args, RustcPhase::Setup);
@@ -1092,14 +1122,6 @@ fn main() {
         return;
     }
 
-    // Dispatch to `cargo-miri` phase. There are three phases:
-    // - When we are called via `cargo miri`, we run as the frontend and invoke the underlying
-    //   cargo. We set RUSTC_WRAPPER and CARGO_TARGET_RUNNER to ourselves.
-    // - When we are executed due to RUSTC_WRAPPER, we build crates or store the flags of
-    //   binary crates for later interpretation.
-    // - When we are executed due to CARGO_TARGET_RUNNER, we start interpretation based on the
-    //   flags that were stored earlier.
-    // On top of that, we are also called as RUSTDOC, but that is just a stub currently.
     match args.next().as_deref() {
         Some("miri") => phase_cargo_miri(args),
         Some("rustc") => phase_rustc(args, RustcPhase::Build),

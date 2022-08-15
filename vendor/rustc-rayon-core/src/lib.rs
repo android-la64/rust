@@ -1,5 +1,30 @@
+//! Rayon-core houses the core stable APIs of Rayon.
 //!
-//! [Under construction](https://github.com/rayon-rs/rayon/issues/231)
+//! These APIs have been mirrored in the Rayon crate and it is recommended to use these from there.
+//!
+//! [`join`] is used to take two closures and potentially run them in parallel.
+//!   - It will run in parallel if task B gets stolen before task A can finish.
+//!   - It will run sequentially if task A finishes before task B is stolen and can continue on task B.
+//!
+//! [`scope`] creates a scope in which you can run any number of parallel tasks.
+//! These tasks can spawn nested tasks and scopes, but given the nature of work stealing, the order of execution can not be guaranteed.
+//! The scope will exist until all tasks spawned within the scope have been completed.
+//!
+//! [`spawn`] add a task into the 'static' or 'global' scope, or a local scope created by the [`scope()`] function.
+//!
+//! [`ThreadPool`] can be used to create your own thread pools (using [`ThreadPoolBuilder`]) or to customize the global one.
+//! Tasks spawned within the pool (using [`install()`], [`join()`], etc.) will be added to a deque,
+//! where it becomes available for work stealing from other threads in the local threadpool.
+//!
+//! [`join`]: fn.join.html
+//! [`scope`]: fn.scope.html
+//! [`scope()`]: fn.scope.html
+//! [`spawn`]: fn.spawn.html
+//! [`ThreadPool`]: struct.threadpool.html
+//! [`install()`]: struct.ThreadPool.html#method.install
+//! [`spawn()`]: struct.ThreadPool.html#method.spawn
+//! [`join()`]: struct.ThreadPool.html#method.join
+//! [`ThreadPoolBuilder`]: struct.ThreadPoolBuilder.html
 //!
 //! ## Restricting multiple versions
 //!
@@ -19,7 +44,8 @@
 //! conflicting requirements will need to be resolved before the build will
 //! succeed.
 
-#![doc(html_root_url = "https://docs.rs/rayon-core/1.7")]
+#![doc(html_root_url = "https://docs.rs/rayon-core/1.9")]
+#![warn(rust_2018_idioms)]
 
 use std::any::Any;
 use std::env;
@@ -43,7 +69,6 @@ mod sleep;
 mod spawn;
 mod thread_pool;
 mod unwind;
-mod util;
 mod worker_local;
 
 mod compile_fail;
@@ -54,8 +79,8 @@ pub mod tlv;
 pub use self::join::{join, join_context};
 pub use self::registry::ThreadBuilder;
 pub use self::registry::{mark_blocked, mark_unblocked, Registry};
-pub use self::scope::{scope, Scope};
-pub use self::scope::{scope_fifo, ScopeFifo};
+pub use self::scope::{in_place_scope, scope, Scope};
+pub use self::scope::{in_place_scope_fifo, scope_fifo, ScopeFifo};
 pub use self::spawn::{spawn, spawn_fifo};
 pub use self::thread_pool::current_thread_has_pending_tasks;
 pub use self::thread_pool::current_thread_index;
@@ -63,6 +88,17 @@ pub use self::thread_pool::ThreadPool;
 pub use worker_local::WorkerLocal;
 
 use self::registry::{CustomSpawn, DefaultSpawn, ThreadSpawn};
+
+/// Returns the maximum number of threads that Rayon supports in a single thread-pool.
+///
+/// If a higher thread count is requested by calling `ThreadPoolBuilder::num_threads` or by setting
+/// the `RAYON_NUM_THREADS` environment variable, then it will be reduced to this maximum.
+///
+/// The value may vary between different targets, and is subject to change in new Rayon versions.
+pub fn max_num_threads() -> usize {
+    // We are limited by the bits available in the sleep counter's `AtomicUsize`.
+    crate::sleep::THREADS_MAX
+}
 
 /// Returns the number of threads in the current registry. If this
 /// code is executing within a Rayon thread-pool, then this will be
@@ -221,7 +257,7 @@ impl<S> ThreadPoolBuilder<S>
 where
     S: ThreadSpawn,
 {
-    /// Create a new `ThreadPool` initialized using this configuration.
+    /// Creates a new `ThreadPool` initialized using this configuration.
     pub fn build(self) -> Result<ThreadPool, ThreadPoolBuildError> {
         ThreadPool::build(self)
     }
@@ -251,7 +287,7 @@ where
 }
 
 impl ThreadPoolBuilder {
-    /// Create a scoped `ThreadPool` initialized using this configuration.
+    /// Creates a scoped `ThreadPool` initialized using this configuration.
     ///
     /// This is a convenience function for building a pool using [`crossbeam::scope`]
     /// to spawn threads in a [`spawn_handler`](#method.spawn_handler).
@@ -324,7 +360,7 @@ impl ThreadPoolBuilder {
 }
 
 impl<S> ThreadPoolBuilder<S> {
-    /// Set a custom function for spawning threads.
+    /// Sets a custom function for spawning threads.
     ///
     /// Note that the threads will not exit until after the pool is dropped. It
     /// is up to the caller to wait for thread termination if that is important
@@ -435,7 +471,7 @@ impl<S> ThreadPoolBuilder<S> {
         Some(f(index))
     }
 
-    /// Set a closure which takes a thread index and returns
+    /// Sets a closure which takes a thread index and returns
     /// the thread's name.
     pub fn thread_name<F>(mut self, closure: F) -> Self
     where
@@ -445,7 +481,7 @@ impl<S> ThreadPoolBuilder<S> {
         self
     }
 
-    /// Set the number of threads to be used in the rayon threadpool.
+    /// Sets the number of threads to be used in the rayon threadpool.
     ///
     /// If you specify a non-zero number of threads using this
     /// function, then the resulting thread-pools are guaranteed to
@@ -470,7 +506,7 @@ impl<S> ThreadPoolBuilder<S> {
     /// **Old environment variable:** `RAYON_NUM_THREADS` is a one-to-one
     /// replacement of the now deprecated `RAYON_RS_NUM_CPUS` environment
     /// variable. If both variables are specified, `RAYON_NUM_THREADS` will
-    /// be prefered.
+    /// be preferred.
     pub fn num_threads(mut self, num_threads: usize) -> Self {
         self.num_threads = num_threads;
         self
@@ -508,7 +544,7 @@ impl<S> ThreadPoolBuilder<S> {
         self.stack_size
     }
 
-    /// Set the stack size of the worker threads
+    /// Sets the stack size of the worker threads
     pub fn stack_size(mut self, stack_size: usize) -> Self {
         self.stack_size = Some(stack_size);
         self
@@ -599,7 +635,7 @@ impl<S> ThreadPoolBuilder<S> {
         self.start_handler.take()
     }
 
-    /// Set a callback to be invoked on thread start.
+    /// Sets a callback to be invoked on thread start.
     ///
     /// The closure is passed the index of the thread on which it is invoked.
     /// Note that this same closure may be invoked multiple times in parallel.
@@ -618,7 +654,7 @@ impl<S> ThreadPoolBuilder<S> {
         self.exit_handler.take()
     }
 
-    /// Set a callback to be invoked on thread exit.
+    /// Sets a callback to be invoked on thread exit.
     ///
     /// The closure is passed the index of the thread on which it is invoked.
     /// Note that this same closure may be invoked multiple times in parallel.
@@ -713,22 +749,31 @@ impl ThreadPoolBuildError {
     }
 }
 
+const GLOBAL_POOL_ALREADY_INITIALIZED: &str =
+    "The global thread pool has already been initialized.";
+
 impl Error for ThreadPoolBuildError {
+    #[allow(deprecated)]
     fn description(&self) -> &str {
         match self.kind {
-            ErrorKind::GlobalPoolAlreadyInitialized => {
-                "The global thread pool has already been initialized."
-            }
+            ErrorKind::GlobalPoolAlreadyInitialized => GLOBAL_POOL_ALREADY_INITIALIZED,
             ErrorKind::IOError(ref e) => e.description(),
+        }
+    }
+
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self.kind {
+            ErrorKind::GlobalPoolAlreadyInitialized => None,
+            ErrorKind::IOError(e) => Some(e),
         }
     }
 }
 
 impl fmt::Display for ThreadPoolBuildError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.kind {
-            ErrorKind::IOError(ref e) => e.fmt(f),
-            _ => self.description().fmt(f),
+        match &self.kind {
+            ErrorKind::GlobalPoolAlreadyInitialized => GLOBAL_POOL_ALREADY_INITIALIZED.fmt(f),
+            ErrorKind::IOError(e) => e.fmt(f),
         }
     }
 }

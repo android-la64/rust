@@ -7,7 +7,8 @@ use log::trace;
 use rustc_middle::ty;
 use rustc_span::{source_map::DUMMY_SP, Span, SpanData, Symbol};
 
-use crate::stacked_borrows::{AccessKind, SbTag};
+use crate::helpers::HexRange;
+use crate::stacked_borrows::{diagnostics::TagHistory, AccessKind, SbTag};
 use crate::*;
 
 /// Details of premature program termination.
@@ -15,10 +16,10 @@ pub enum TerminationInfo {
     Exit(i64),
     Abort(String),
     UnsupportedInIsolation(String),
-    ExperimentalUb {
+    StackedBorrowsUb {
         msg: String,
         help: Option<String>,
-        url: String,
+        history: Option<TagHistory>,
     },
     Deadlock,
     MultipleSymbolDefinitions {
@@ -41,7 +42,7 @@ impl fmt::Display for TerminationInfo {
             Exit(code) => write!(f, "the evaluated program completed with exit code {}", code),
             Abort(msg) => write!(f, "{}", msg),
             UnsupportedInIsolation(msg) => write!(f, "{}", msg),
-            ExperimentalUb { msg, .. } => write!(f, "{}", msg),
+            StackedBorrowsUb { msg, .. } => write!(f, "{}", msg),
             Deadlock => write!(f, "the evaluated program deadlocked"),
             MultipleSymbolDefinitions { link_name, .. } =>
                 write!(f, "multiple definitions of symbol `{}`", link_name),
@@ -144,7 +145,7 @@ pub fn report_error<'tcx, 'mir>(
                 Exit(code) => return Some(*code),
                 Abort(_) => Some("abnormal termination"),
                 UnsupportedInIsolation(_) => Some("unsupported operation"),
-                ExperimentalUb { .. } => Some("Undefined Behavior"),
+                StackedBorrowsUb { .. } => Some("Undefined Behavior"),
                 Deadlock => Some("deadlock"),
                 MultipleSymbolDefinitions { .. } | SymbolShimClashing { .. } => None,
             };
@@ -155,12 +156,47 @@ pub fn report_error<'tcx, 'mir>(
                         (None, format!("pass the flag `-Zmiri-disable-isolation` to disable isolation;")),
                         (None, format!("or pass `-Zmiri-isolation-error=warn` to configure Miri to return an error code from isolated operations (if supported for that operation) and continue with a warning")),
                     ],
-                ExperimentalUb { url, help, .. } => {
+                StackedBorrowsUb { help, history, .. } => {
+                    let url = "https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md";
                     msg.extend(help.clone());
-                    vec![
-                        (None, format!("this indicates a potential bug in the program: it performed an invalid operation, but the rules it violated are still experimental")),
-                        (None, format!("see {} for further information", url))
-                    ]
+                    let mut helps = vec![
+                        (None, format!("this indicates a potential bug in the program: it performed an invalid operation, but the Stacked Borrows rules it violated are still experimental")),
+                        (None, format!("see {url} for further information")),
+                    ];
+                    match history {
+                        Some(TagHistory::Tagged {tag, created: (created_range, created_span), invalidated, protected }) => {
+                            let msg = format!("{:?} was created by a retag at offsets {}", tag, HexRange(*created_range));
+                            helps.push((Some(*created_span), msg));
+                            if let Some((invalidated_range, invalidated_span)) = invalidated {
+                                let msg = format!("{:?} was later invalidated at offsets {}", tag, HexRange(*invalidated_range));
+                                helps.push((Some(*invalidated_span), msg));
+                            }
+                            if let Some((protecting_tag, protecting_tag_span, protection_span)) = protected {
+                                helps.push((Some(*protecting_tag_span), format!("{:?} was protected due to {:?} which was created here", tag, protecting_tag)));
+                                helps.push((Some(*protection_span), "this protector is live for this call".to_string()));
+                            }
+                        }
+                        Some(TagHistory::Untagged{ recently_created, recently_invalidated, matching_created, protected }) => {
+                            if let Some((range, span)) = recently_created {
+                                let msg = format!("tag was most recently created at offsets {}", HexRange(*range));
+                                helps.push((Some(*span), msg));
+                            }
+                            if let Some((range, span)) = recently_invalidated {
+                                let msg = format!("tag was later invalidated at offsets {}", HexRange(*range));
+                                helps.push((Some(*span), msg));
+                            }
+                            if let Some((range, span)) = matching_created {
+                                let msg = format!("this tag was also created here at offsets {}", HexRange(*range));
+                                helps.push((Some(*span), msg));
+                            }
+                            if let Some((protecting_tag, protecting_tag_span, protection_span)) = protected {
+                                helps.push((Some(*protecting_tag_span), format!("{:?} was protected due to a tag which was created here", protecting_tag)));
+                                helps.push((Some(*protection_span), "this protector is live for this call".to_string()));
+                            }
+                        }
+                        None => {}
+                    }
+                    helps
                 }
                 MultipleSymbolDefinitions { first, first_crate, second, second_crate, .. } =>
                     vec![
@@ -182,16 +218,27 @@ pub fn report_error<'tcx, 'mir>(
                     "Undefined Behavior",
                 ResourceExhaustion(_) =>
                     "resource exhaustion",
-                InvalidProgram(InvalidProgramInfo::AlreadyReported(_) | InvalidProgramInfo::Layout(..)) =>
+                InvalidProgram(
+                    InvalidProgramInfo::AlreadyReported(_) |
+                    InvalidProgramInfo::Layout(..) |
+                    InvalidProgramInfo::ReferencedConstant
+                ) =>
                     "post-monomorphization error",
                 kind =>
                     bug!("This error should be impossible in Miri: {:?}", kind),
             };
             #[rustfmt::skip]
             let helps = match e.kind() {
-                Unsupported(UnsupportedOpInfo::ThreadLocalStatic(_) | UnsupportedOpInfo::ReadExternStatic(_)) =>
+                Unsupported(
+                    UnsupportedOpInfo::ThreadLocalStatic(_) |
+                    UnsupportedOpInfo::ReadExternStatic(_)
+                ) =>
                     panic!("Error should never be raised by Miri: {:?}", e.kind()),
-                Unsupported(_) =>
+                Unsupported(
+                    UnsupportedOpInfo::Unsupported(_) |
+                    UnsupportedOpInfo::PartialPointerOverwrite(_) |
+                    UnsupportedOpInfo::ReadPointerAsBytes
+                ) =>
                     vec![(None, format!("this is likely not a bug in the program; it indicates that the program performed an operation that the interpreter does not support"))],
                 UndefinedBehavior(UndefinedBehaviorInfo::AlignmentCheckFailed { .. })
                     if ecx.machine.check_alignment == AlignmentCheck::Symbolic
@@ -205,7 +252,8 @@ pub fn report_error<'tcx, 'mir>(
                         (None, format!("this indicates a bug in the program: it performed an invalid operation, and caused Undefined Behavior")),
                         (None, format!("see https://doc.rust-lang.org/nightly/reference/behavior-considered-undefined.html for further information")),
                     ],
-                _ => vec![],
+                InvalidProgram(_) | ResourceExhaustion(_) | MachineStop(_) =>
+                    vec![],
             };
             (Some(title), helps)
         }
@@ -235,7 +283,7 @@ pub fn report_error<'tcx, 'mir>(
     for (i, frame) in ecx.active_thread_stack().iter().enumerate() {
         trace!("-------------------");
         trace!("Frame {}", i);
-        trace!("    return: {:?}", frame.return_place.map(|p| *p));
+        trace!("    return: {:?}", *frame.return_place);
         for (i, local) in frame.locals.iter().enumerate() {
             trace!("    local {}: {:?}", i, local.value);
         }

@@ -4,7 +4,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! notify = "5.0.0-pre.14"
+//! notify = "5.0.0-pre.15"
 //! ```
 //!
 //! ## Serde
@@ -12,7 +12,7 @@
 //! Events are serialisable via [serde] if the `serde` feature is enabled:
 //!
 //! ```toml
-//! notify = { version = "5.0.0-pre.14", features = ["serde"] }
+//! notify = { version = "5.0.0-pre.15", features = ["serde"] }
 //! ```
 //!
 //! [serde]: https://serde.rs
@@ -111,6 +111,9 @@ pub use crate::fsevent::FsEventWatcher;
 pub use crate::inotify::INotifyWatcher;
 #[cfg(any(
     target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "dragonflybsd",
     all(target_os = "macos", feature = "macos_kqueue")
 ))]
 pub use crate::kqueue::KqueueWatcher;
@@ -269,6 +272,9 @@ pub type RecommendedWatcher = ReadDirectoryChangesWatcher;
 /// The recommended `Watcher` implementation for the current platform
 #[cfg(any(
     target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "dragonflybsd",
     all(target_os = "macos", feature = "macos_kqueue")
 ))]
 pub type RecommendedWatcher = KqueueWatcher;
@@ -277,7 +283,10 @@ pub type RecommendedWatcher = KqueueWatcher;
     target_os = "linux",
     target_os = "macos",
     target_os = "windows",
-    target_os = "freebsd"
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "dragonflybsd"
 )))]
 pub type RecommendedWatcher = PollWatcher;
 
@@ -300,5 +309,36 @@ mod tests {
     #[test]
     fn test_object_safe() {
         let _watcher: &dyn Watcher = &NullWatcher;
+    }
+
+    #[test]
+    fn test_debug_impl() {
+        macro_rules! assert_debug_impl {
+            ($t:ty) => {{
+                trait NeedsDebug: std::fmt::Debug {}
+                impl NeedsDebug for $t {}
+            }};
+        }
+
+        assert_debug_impl!(Config);
+        assert_debug_impl!(Error);
+        assert_debug_impl!(ErrorKind);
+        assert_debug_impl!(event::AccessKind);
+        assert_debug_impl!(event::AccessMode);
+        assert_debug_impl!(event::CreateKind);
+        assert_debug_impl!(event::DataChange);
+        assert_debug_impl!(event::EventAttributes);
+        assert_debug_impl!(event::Flag);
+        assert_debug_impl!(event::MetadataKind);
+        assert_debug_impl!(event::ModifyKind);
+        assert_debug_impl!(event::RemoveKind);
+        assert_debug_impl!(event::RenameMode);
+        assert_debug_impl!(Event);
+        assert_debug_impl!(EventKind);
+        assert_debug_impl!(NullWatcher);
+        assert_debug_impl!(PollWatcher);
+        assert_debug_impl!(RecommendedWatcher);
+        assert_debug_impl!(RecursiveMode);
+        assert_debug_impl!(WatcherKind);
     }
 }

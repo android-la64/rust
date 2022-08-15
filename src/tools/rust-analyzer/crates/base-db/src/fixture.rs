@@ -159,7 +159,7 @@ impl ChangeFixture {
                     meta.cfg.clone(),
                     meta.cfg,
                     meta.env,
-                    Default::default(),
+                    Ok(Vec::new()),
                     false,
                     origin,
                 );
@@ -194,7 +194,7 @@ impl ChangeFixture {
                 default_cfg.clone(),
                 default_cfg,
                 Env::default(),
-                Default::default(),
+                Ok(Vec::new()),
                 false,
                 CrateOrigin::CratesIo { repo: None },
             );
@@ -231,7 +231,7 @@ impl ChangeFixture {
                 CfgOptions::default(),
                 CfgOptions::default(),
                 Env::default(),
-                Vec::new(),
+                Ok(Vec::new()),
                 false,
                 CrateOrigin::Lang(LangCrateOrigin::Core),
             );
@@ -268,7 +268,7 @@ impl ChangeFixture {
                 CfgOptions::default(),
                 CfgOptions::default(),
                 Env::default(),
-                proc_macro,
+                Ok(proc_macro),
                 true,
                 CrateOrigin::CratesIo { repo: None },
             );
@@ -408,6 +408,7 @@ fn parse_crate(crate_str: String) -> (String, CrateOrigin, Option<String>) {
     } else {
         let crate_origin = match &*crate_str {
             "std" => CrateOrigin::Lang(LangCrateOrigin::Std),
+            "core" => CrateOrigin::Lang(LangCrateOrigin::Core),
             _ => CrateOrigin::CratesIo { repo: None },
         };
         (crate_str, crate_origin, None)

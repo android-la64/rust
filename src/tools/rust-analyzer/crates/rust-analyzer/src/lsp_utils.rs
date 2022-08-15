@@ -1,7 +1,6 @@
 //! Utilities for LSP-related boilerplate code.
-use std::{error::Error, ops::Range, sync::Arc};
+use std::{ops::Range, sync::Arc};
 
-use ide_db::base_db::Cancelled;
 use lsp_server::Notification;
 
 use crate::{
@@ -13,10 +12,6 @@ use crate::{
 
 pub(crate) fn invalid_params_error(message: String) -> LspError {
     LspError { code: lsp_server::ErrorCode::InvalidParams as i32, message }
-}
-
-pub(crate) fn is_cancelled(e: &(dyn Error + 'static)) -> bool {
-    e.downcast_ref::<Cancelled>().is_some()
 }
 
 pub(crate) fn notification_is<N: lsp_types::notification::Notification>(
@@ -79,7 +74,7 @@ impl GlobalState {
     /// panicky is a good idea, let's see if we can keep our awesome bleeding
     /// edge users from being upset!
     pub(crate) fn poke_rust_analyzer_developer(&mut self, message: String) {
-        let from_source_build = env!("REV").contains("dev");
+        let from_source_build = option_env!("POKE_RA_DEVS").is_some();
         let profiling_enabled = std::env::var("RA_PROFILE").is_ok();
         if from_source_build || profiling_enabled {
             self.show_message(lsp_types::MessageType::ERROR, message)

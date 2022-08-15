@@ -4,23 +4,59 @@ use hir::ScopeDef;
 use ide_db::FxHashSet;
 
 use crate::{
-    context::{PathCompletionCtx, PathKind, PathQualifierCtx},
+    context::{PathCompletionCtx, PathKind, Qualified},
     CompletionContext, Completions,
 };
 
-pub(crate) fn complete_expr_path(acc: &mut Completions, ctx: &CompletionContext) {
+pub(crate) fn complete_expr_path(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    path_ctx: &PathCompletionCtx,
+) {
     let _p = profile::span("complete_expr_path");
-    if ctx.is_path_disallowed() {
+    if !ctx.qualifier_ctx.none() {
         return;
     }
-
-    let (&is_absolute_path, qualifier) = match ctx.path_context() {
-        Some(PathCompletionCtx {
-            kind: PathKind::Expr { .. },
-            is_absolute_path,
-            qualifier,
+    let (
+        qualified,
+        in_block_expr,
+        in_loop_body,
+        is_func_update,
+        after_if_expr,
+        wants_mut_token,
+        in_condition,
+        ty,
+        incomplete_let,
+        impl_,
+    ) = match path_ctx {
+        &PathCompletionCtx {
+            kind:
+                PathKind::Expr {
+                    in_block_expr,
+                    in_loop_body,
+                    after_if_expr,
+                    in_condition,
+                    incomplete_let,
+                    ref ref_expr_parent,
+                    ref is_func_update,
+                    ref innermost_ret_ty,
+                    ref impl_,
+                    ..
+                },
+            ref qualified,
             ..
-        }) => (is_absolute_path, qualifier),
+        } => (
+            qualified,
+            in_block_expr,
+            in_loop_body,
+            is_func_update.is_some(),
+            after_if_expr,
+            ref_expr_parent.as_ref().map(|it| it.mut_token().is_none()).unwrap_or(false),
+            in_condition,
+            innermost_ret_ty,
+            incomplete_let,
+            impl_,
+        ),
         _ => return,
     };
 
@@ -34,20 +70,15 @@ pub(crate) fn complete_expr_path(acc: &mut Completions, ctx: &CompletionContext)
         }
     };
 
-    match qualifier {
-        Some(PathQualifierCtx { is_infer_qualifier, resolution, .. }) => {
-            if *is_infer_qualifier {
-                ctx.traits_in_scope()
-                    .0
-                    .into_iter()
-                    .flat_map(|it| hir::Trait::from(it).items(ctx.sema.db))
-                    .for_each(|item| add_assoc_item(acc, ctx, item));
-                return;
-            }
-            let resolution = match resolution {
-                Some(it) => it,
-                None => return,
-            };
+    match qualified {
+        Qualified::Infer => ctx
+            .traits_in_scope()
+            .0
+            .into_iter()
+            .flat_map(|it| hir::Trait::from(it).items(ctx.sema.db))
+            .for_each(|item| add_assoc_item(acc, ctx, item)),
+        Qualified::With { resolution: None, .. } => {}
+        Qualified::With { resolution: Some(resolution), .. } => {
             // Add associated types on type parameters and `Self`.
             ctx.scope.assoc_type_shorthand_candidates(resolution, |_, alias| {
                 acc.add_type_alias(ctx, alias);
@@ -147,21 +178,110 @@ pub(crate) fn complete_expr_path(acc: &mut Completions, ctx: &CompletionContext)
                 _ => (),
             }
         }
-        None if is_absolute_path => acc.add_crate_roots(ctx),
-        None => {
+        Qualified::Absolute => acc.add_crate_roots(ctx),
+        Qualified::No => {
             acc.add_nameref_keywords_with_colon(ctx);
-            if let Some(hir::Adt::Enum(e)) =
+            if let Some(adt) =
                 ctx.expected_type.as_ref().and_then(|ty| ty.strip_references().as_adt())
             {
-                super::enum_variants_with_paths(acc, ctx, e, |acc, ctx, variant, path| {
-                    acc.add_qualified_enum_variant(ctx, variant, path)
-                });
+                let self_ty = (|| ctx.sema.to_def(impl_.as_ref()?)?.self_ty(ctx.db).as_adt())();
+                let complete_self = self_ty == Some(adt);
+
+                match adt {
+                    hir::Adt::Struct(strukt) => {
+                        let path = ctx
+                            .module
+                            .find_use_path(ctx.db, hir::ModuleDef::from(strukt))
+                            .filter(|it| it.len() > 1);
+
+                        acc.add_struct_literal(ctx, strukt, path, None);
+
+                        if complete_self {
+                            acc.add_struct_literal(ctx, strukt, None, Some(hir::known::SELF_TYPE));
+                        }
+                    }
+                    hir::Adt::Union(un) => {
+                        let path = ctx
+                            .module
+                            .find_use_path(ctx.db, hir::ModuleDef::from(un))
+                            .filter(|it| it.len() > 1);
+
+                        acc.add_union_literal(ctx, un, path, None);
+                        if complete_self {
+                            acc.add_union_literal(ctx, un, None, Some(hir::known::SELF_TYPE));
+                        }
+                    }
+                    hir::Adt::Enum(e) => {
+                        super::enum_variants_with_paths(
+                            acc,
+                            ctx,
+                            e,
+                            impl_,
+                            |acc, ctx, variant, path| {
+                                acc.add_qualified_enum_variant(ctx, variant, path)
+                            },
+                        );
+                    }
+                }
             }
             ctx.process_all_names(&mut |name, def| {
                 if scope_def_applicable(def) {
                     acc.add_resolution(ctx, name, def);
                 }
             });
+
+            if !is_func_update {
+                let mut add_keyword =
+                    |kw, snippet| acc.add_keyword_snippet_expr(ctx, kw, snippet, incomplete_let);
+
+                if !in_block_expr {
+                    add_keyword("unsafe", "unsafe {\n    $0\n}");
+                }
+                add_keyword("match", "match $1 {\n    $0\n}");
+                add_keyword("while", "while $1 {\n    $0\n}");
+                add_keyword("while let", "while let $1 = $2 {\n    $0\n}");
+                add_keyword("loop", "loop {\n    $0\n}");
+                add_keyword("if", "if $1 {\n    $0\n}");
+                add_keyword("if let", "if let $1 = $2 {\n    $0\n}");
+                add_keyword("for", "for $1 in $2 {\n    $0\n}");
+                add_keyword("true", "true");
+                add_keyword("false", "false");
+
+                if in_condition || in_block_expr {
+                    add_keyword("let", "let");
+                }
+
+                if after_if_expr {
+                    add_keyword("else", "else {\n    $0\n}");
+                    add_keyword("else if", "else if $1 {\n    $0\n}");
+                }
+
+                if wants_mut_token {
+                    add_keyword("mut", "mut ");
+                }
+
+                if in_loop_body {
+                    if in_block_expr {
+                        add_keyword("continue", "continue;");
+                        add_keyword("break", "break;");
+                    } else {
+                        add_keyword("continue", "continue");
+                        add_keyword("break", "break");
+                    }
+                }
+
+                if let Some(ty) = ty {
+                    add_keyword(
+                        "return",
+                        match (in_block_expr, ty.is_unit()) {
+                            (true, true) => "return ;",
+                            (true, false) => "return;",
+                            (false, true) => "return $0",
+                            (false, false) => "return",
+                        },
+                    );
+                }
+            }
         }
     }
 }

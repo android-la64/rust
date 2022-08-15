@@ -186,6 +186,7 @@ use crate::util::{restricted_names, CargoResult, Config, Filesystem, OptVersionR
 
 const PACKAGE_SOURCE_LOCK: &str = ".cargo-ok";
 pub const CRATES_IO_INDEX: &str = "https://github.com/rust-lang/crates.io-index";
+pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
 pub const CRATES_IO_REGISTRY: &str = "crates-io";
 pub const CRATES_IO_DOMAIN: &str = "crates.io";
 const CRATE_TEMPLATE: &str = "{crate}";
@@ -546,10 +547,7 @@ impl<'cfg> RegistrySource<'cfg> {
     ) -> CargoResult<RegistrySource<'cfg>> {
         let name = short_name(source_id);
         let ops = if source_id.url().scheme().starts_with("sparse+") {
-            if !config.cli_unstable().http_registry {
-                anyhow::bail!("Usage of HTTP-based registries requires `-Z http-registry`");
-            }
-            Box::new(http_remote::HttpRegistry::new(source_id, config, &name)) as Box<_>
+            Box::new(http_remote::HttpRegistry::new(source_id, config, &name)?) as Box<_>
         } else {
             Box::new(remote::RemoteRegistry::new(source_id, config, &name)) as Box<_>
         };

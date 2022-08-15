@@ -17,7 +17,7 @@ use ide_db::{
 use syntax::{SmolStr, SyntaxKind, TextRange};
 
 use crate::{
-    context::{PathCompletionCtx, PathKind},
+    context::{IdentContext, NameRefContext, NameRefKind, PathCompletionCtx, PathKind},
     item::{Builder, CompletionRelevanceTypeMatch},
     render::{function::render_fn, literal::render_variant_lit, macro_::render_macro},
     CompletionContext, CompletionItem, CompletionItemKind, CompletionRelevance,
@@ -65,9 +65,28 @@ impl<'a> RenderContext<'a> {
         }
     }
 
+    fn is_immediately_after_macro_bang(&self) -> bool {
+        self.completion.token.kind() == SyntaxKind::BANG
+            && self
+                .completion
+                .token
+                .parent()
+                .map_or(false, |it| it.kind() == SyntaxKind::MACRO_CALL)
+    }
+
+    pub(crate) fn path_is_call(&self) -> bool {
+        matches!(
+            self.completion.ident_ctx,
+            IdentContext::NameRef(NameRefContext {
+                kind: NameRefKind::Path(PathCompletionCtx { has_call_parens: true, .. }),
+                ..
+            })
+        )
+    }
+
     fn is_deprecated(&self, def: impl HasAttrs) -> bool {
         let attrs = def.attrs(self.db());
-        attrs.by_key("deprecated").exists() || attrs.by_key("rustc_deprecated").exists()
+        attrs.by_key("deprecated").exists()
     }
 
     fn is_deprecated_assoc_item(&self, as_assoc_item: impl AsAssocItem) -> bool {
@@ -199,7 +218,7 @@ fn render_resolution_(
             let ctx = ctx.import_to_add(import_to_add);
             return render_fn(ctx, Some(local_name), func);
         }
-        ScopeDef::ModuleDef(Variant(var)) if ctx.completion.pattern_ctx.is_none() => {
+        ScopeDef::ModuleDef(Variant(var)) => {
             let ctx = ctx.clone().import_to_add(import_to_add.clone());
             if let Some(item) = render_variant_lit(ctx, Some(local_name.clone()), var, None) {
                 return item;
@@ -272,9 +291,16 @@ fn render_resolution_simple_(
 
     // Add `<>` for generic types
     let type_path_no_ty_args = matches!(
-        ctx.completion.path_context(),
-        Some(PathCompletionCtx { kind: PathKind::Type, has_type_args: false, .. })
-    ) && ctx.completion.config.add_call_parenthesis;
+        ctx.completion.ident_ctx,
+        IdentContext::NameRef(NameRefContext {
+            kind: NameRefKind::Path(PathCompletionCtx {
+                kind: PathKind::Type { .. },
+                has_type_args: false,
+                ..
+            }),
+            ..
+        })
+    ) && ctx.completion.config.callable.is_some();
     if type_path_no_ty_args {
         if let Some(cap) = ctx.snippet_cap() {
             let has_non_default_type_params = match resolution {
@@ -397,7 +423,7 @@ mod tests {
 
     #[track_caller]
     fn check_relevance_for_kinds(ra_fixture: &str, kinds: &[CompletionItemKind], expect: Expect) {
-        let mut actual = get_all_items(TEST_CONFIG, ra_fixture);
+        let mut actual = get_all_items(TEST_CONFIG, ra_fixture, None);
         actual.retain(|it| kinds.contains(&it.kind()));
         actual.sort_by_key(|it| cmp::Reverse(it.relevance().score()));
         check_relevance_(actual, expect);
@@ -405,7 +431,7 @@ mod tests {
 
     #[track_caller]
     fn check_relevance(ra_fixture: &str, expect: Expect) {
-        let mut actual = get_all_items(TEST_CONFIG, ra_fixture);
+        let mut actual = get_all_items(TEST_CONFIG, ra_fixture, None);
         actual.retain(|it| it.kind() != CompletionItemKind::Snippet);
         actual.retain(|it| it.kind() != CompletionItemKind::Keyword);
         actual.retain(|it| it.kind() != CompletionItemKind::BuiltinType);
@@ -675,8 +701,6 @@ fn main() { let _: m::Spam = S$0 }
             r#"
 #[deprecated]
 fn something_deprecated() {}
-#[rustc_deprecated(since = "1.0.0")]
-fn something_else_deprecated() {}
 
 fn main() { som$0 }
 "#,
@@ -685,8 +709,8 @@ fn main() { som$0 }
                 [
                     CompletionItem {
                         label: "main()",
-                        source_range: 127..130,
-                        delete: 127..130,
+                        source_range: 56..59,
+                        delete: 56..59,
                         insert: "main()$0",
                         kind: SymbolKind(
                             Function,
@@ -696,25 +720,13 @@ fn main() { som$0 }
                     },
                     CompletionItem {
                         label: "something_deprecated()",
-                        source_range: 127..130,
-                        delete: 127..130,
+                        source_range: 56..59,
+                        delete: 56..59,
                         insert: "something_deprecated()$0",
                         kind: SymbolKind(
                             Function,
                         ),
                         lookup: "something_deprecated",
-                        detail: "fn()",
-                        deprecated: true,
-                    },
-                    CompletionItem {
-                        label: "something_else_deprecated()",
-                        source_range: 127..130,
-                        delete: 127..130,
-                        insert: "something_else_deprecated()$0",
-                        kind: SymbolKind(
-                            Function,
-                        ),
-                        lookup: "something_else_deprecated",
                         detail: "fn()",
                         deprecated: true,
                     },
@@ -938,7 +950,6 @@ fn main() -> RawIdentTable {
 
     #[test]
     fn no_parens_in_use_item() {
-        cov_mark::check!(no_parens_in_use_item);
         check_edit(
             "foo",
             r#"
@@ -1100,6 +1111,8 @@ fn go(world: &WorldSnapshot) { go(w$0) }
 "#,
             expect![[r#"
                 lc world [type+name+local]
+                st WorldSnapshot {…} []
+                st &WorldSnapshot {…} [type]
                 st WorldSnapshot []
                 fn go(…) []
             "#]],
@@ -1198,6 +1211,8 @@ fn main() {
                 lc s [name+local]
                 lc &mut s [type+name+local]
                 st S []
+                st &mut S [type]
+                st S []
                 fn main() []
                 fn foo(…) []
             "#]],
@@ -1267,6 +1282,8 @@ fn main() {
                 lc m [local]
                 lc t [local]
                 lc &t [type+local]
+                st S []
+                st &S [type]
                 st T []
                 st S []
                 fn main() []
@@ -1312,6 +1329,8 @@ fn main() {
                 lc m [local]
                 lc t [local]
                 lc &mut t [type+local]
+                st S []
+                st &mut S [type]
                 st T []
                 st S []
                 fn main() []
@@ -1406,6 +1425,8 @@ fn main() {
 }
 "#,
             expect![[r#"
+                st S []
+                st &S [type]
                 st T []
                 st S []
                 fn main() []

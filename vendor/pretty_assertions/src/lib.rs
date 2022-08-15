@@ -62,11 +62,26 @@
 //!   you include.
 //! * `assert_ne` is also switched to multi-line presentation, but does _not_ show
 //!   a diff.
+//!
+//! ## Features
+//!
+//! Features provided by the crate are:
+//!
+//! - `std`: Use the Rust standard library. Enabled by default.
+//!   Exactly one of `std` and `alloc` is required.
+//! - `alloc`: Use the `alloc` crate.
+//!   Exactly one of `std` and `alloc` is required.
+//! - `unstable`: opt-in to unstable features that may not follow Semantic Versioning.
+//!   Implmenetion behind this feature is subject to change without warning between patch versions.
 
+#![cfg_attr(not(feature = "std"), no_std)]
 #![deny(clippy::all, missing_docs, unsafe_code)]
 
+#[cfg(feature = "alloc")]
+#[macro_use]
+extern crate alloc;
 pub use ansi_term::Style;
-use std::fmt::{self, Debug, Display};
+use core::fmt::{self, Debug, Display};
 
 mod printer;
 
@@ -126,12 +141,82 @@ where
     }
 }
 
+/// A comparison of two strings.
+///
+/// In contrast to [`Comparison`], which uses the [`core::fmt::Debug`] representation,
+/// `StrComparison` uses the string values directly, resulting in multi-line output for multiline strings.
+///
+/// ```
+/// use pretty_assertions::StrComparison;
+///
+/// print!("{}", StrComparison::new("foo\nbar", "foo\nbaz"));
+/// ```
+///
+/// ## Value type bounds
+///
+/// Any value that can be referenced as a [`str`] via [`AsRef`] may be used:
+///
+/// ```
+/// use pretty_assertions::StrComparison;
+///
+/// #[derive(PartialEq)]
+/// struct MyString(String);
+///
+/// impl AsRef<str> for MyString {
+///     fn as_ref(&self) -> &str {
+///         &self.0
+///     }
+/// }
+///
+/// print!(
+///     "{}",
+///     StrComparison::new(
+///         &MyString("foo\nbar".to_owned()),
+///         &MyString("foo\nbaz".to_owned()),
+///     ),
+/// );
+/// ```
+///
+/// The values may have different types, although in practice they are usually the same.
+pub struct StrComparison<'a, TLeft, TRight>
+where
+    TLeft: ?Sized,
+    TRight: ?Sized,
+{
+    left: &'a TLeft,
+    right: &'a TRight,
+}
+
+impl<'a, TLeft, TRight> StrComparison<'a, TLeft, TRight>
+where
+    TLeft: AsRef<str> + ?Sized,
+    TRight: AsRef<str> + ?Sized,
+{
+    /// Store two values to be compared in future.
+    ///
+    /// Expensive diffing is deferred until calling `Debug::fmt`.
+    pub fn new(left: &'a TLeft, right: &'a TRight) -> StrComparison<'a, TLeft, TRight> {
+        StrComparison { left, right }
+    }
+}
+
+impl<'a, TLeft, TRight> Display for StrComparison<'a, TLeft, TRight>
+where
+    TLeft: AsRef<str> + ?Sized,
+    TRight: AsRef<str> + ?Sized,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        printer::write_header(f)?;
+        printer::write_lines(f, self.left.as_ref(), self.right.as_ref())
+    }
+}
+
 /// Asserts that two expressions are equal to each other (using [`PartialEq`]).
 ///
 /// On panic, this macro will print a diff derived from [`Debug`] representation of
 /// each value.
 ///
-/// This is a drop in replacement for [`std::assert_eq!`].
+/// This is a drop in replacement for [`core::assert_eq!`].
 /// You can provide a custom panic message if desired.
 ///
 /// # Examples
@@ -147,32 +232,70 @@ where
 /// ```
 #[macro_export]
 macro_rules! assert_eq {
-    ($left:expr , $right:expr,) => ({
-        $crate::assert_eq!($left, $right)
+    ($left:expr, $right:expr$(,)?) => ({
+        $crate::assert_eq!(@ $left, $right, "", "");
     });
-    ($left:expr , $right:expr) => ({
+    ($left:expr, $right:expr, $($arg:tt)*) => ({
+        $crate::assert_eq!(@ $left, $right, ": ", $($arg)+);
+    });
+    (@ $left:expr, $right:expr, $maybe_colon:expr, $($arg:tt)*) => ({
         match (&($left), &($right)) {
             (left_val, right_val) => {
                 if !(*left_val == *right_val) {
-                    ::std::panic!("assertion failed: `(left == right)`\
-                          \n\
-                          \n{}\
-                          \n",
-                           $crate::Comparison::new(left_val, right_val))
+                    use $crate::private::CreateComparison;
+                    ::core::panic!("assertion failed: `(left == right)`{}{}\
+                       \n\
+                       \n{}\
+                       \n",
+                       $maybe_colon,
+                       format_args!($($arg)*),
+                       (left_val, right_val).create_comparison()
+                    )
                 }
             }
         }
     });
-    ($left:expr , $right:expr, $($arg:tt)*) => ({
+}
+
+/// Asserts that two expressions are equal to each other (using [`PartialEq`]).
+///
+/// On panic, this macro will print a diff derived from each value's [`str`] representation.
+/// See [`StrComparison`] for further details.
+///
+/// This is a drop in replacement for [`core::assert_eq!`].
+/// You can provide a custom panic message if desired.
+///
+/// # Examples
+///
+/// ```
+/// use pretty_assertions::assert_str_eq;
+///
+/// let a = "foo\nbar";
+/// let b = ["foo", "bar"].join("\n");
+/// assert_str_eq!(a, b);
+///
+/// assert_str_eq!(a, b, "we are testing concatenation with {} and {}", a, b);
+/// ```
+#[macro_export]
+macro_rules! assert_str_eq {
+    ($left:expr, $right:expr$(,)?) => ({
+        $crate::assert_str_eq!(@ $left, $right, "", "");
+    });
+    ($left:expr, $right:expr, $($arg:tt)*) => ({
+        $crate::assert_str_eq!(@ $left, $right, ": ", $($arg)+);
+    });
+    (@ $left:expr, $right:expr, $maybe_colon:expr, $($arg:tt)*) => ({
         match (&($left), &($right)) {
             (left_val, right_val) => {
                 if !(*left_val == *right_val) {
-                    ::std::panic!("assertion failed: `(left == right)`: {}\
-                          \n\
-                          \n{}\
-                          \n",
-                           format_args!($($arg)*),
-                           $crate::Comparison::new(left_val, right_val))
+                    ::core::panic!("assertion failed: `(left == right)`{}{}\
+                       \n\
+                       \n{}\
+                       \n",
+                       $maybe_colon,
+                       format_args!($($arg)*),
+                       $crate::StrComparison::new(left_val, right_val)
+                    )
                 }
             }
         }
@@ -184,7 +307,7 @@ macro_rules! assert_eq {
 /// On panic, this macro will print the values of the expressions with their
 /// [`Debug`] representations.
 ///
-/// This is a drop in replacement for [`std::assert_ne!`].
+/// This is a drop in replacement for [`core::assert_ne!`].
 /// You can provide a custom panic message if desired.
 ///
 /// # Examples
@@ -200,276 +323,146 @@ macro_rules! assert_eq {
 /// ```
 #[macro_export]
 macro_rules! assert_ne {
-    ($left:expr, $right:expr) => ({
-        $crate::assert_ne!(@ $left, $right, "", "");
-    });
-    ($left:expr, $right:expr,) => ({
+    ($left:expr, $right:expr$(,)?) => ({
         $crate::assert_ne!(@ $left, $right, "", "");
     });
     ($left:expr, $right:expr, $($arg:tt)+) => ({
         $crate::assert_ne!(@ $left, $right, ": ", $($arg)+);
     });
-    (@ $left:expr, $right:expr, $maybe_semicolon:expr, $($arg:tt)+) => ({
+    (@ $left:expr, $right:expr, $maybe_colon:expr, $($arg:tt)+) => ({
         match (&($left), &($right)) {
             (left_val, right_val) => {
                 if *left_val == *right_val {
-                  let left_dbg = ::std::format!("{:?}", &*left_val);
-                  let right_dbg = ::std::format!("{:?}", &*right_val);
-                  if left_dbg != right_dbg {
-
-                      ::std::panic!("assertion failed: `(left != right)`{}{}\
-                            \n\
-                            \n{}\
-                            \n{}: According to the `PartialEq` implementation, both of the values \
-                              are partially equivalent, even if the `Debug` outputs differ.\
-                            \n\
-                            \n",
-                             $maybe_semicolon,
-                             format_args!($($arg)+),
-                             $crate::Comparison::new(left_val, right_val),
-                             $crate::Style::new()
-                                 .bold()
-                                 .underline()
-                                 .paint("Note"))
-                  }
-
-                  ::std::panic!("assertion failed: `(left != right)`{}{}\
+                    ::core::panic!("assertion failed: `(left != right)`{}{}\
                         \n\
                         \n{}:\
                         \n{:#?}\
                         \n\
                         \n",
-                         $maybe_semicolon,
-                         format_args!($($arg)+),
-                         $crate::Style::new().bold().paint("Both sides"),
-                         left_val)
+                        $maybe_colon,
+                        format_args!($($arg)+),
+                        $crate::Style::new().bold().paint("Both sides"),
+                        left_val
+                    )
                 }
             }
         }
     });
 }
 
-#[cfg(test)]
-#[allow(clippy::eq_op)]
-#[no_implicit_prelude]
-mod test {
-    mod assert_eq {
-        use ::std::string::{String, ToString};
-
-        #[test]
-        fn passes() {
-            let a = "some value";
-            crate::assert_eq!(a, a);
+/// Asserts that a value matches a pattern.
+///
+/// On panic, this macro will print a diff derived from [`Debug`] representation of
+/// the value, and a string representation of the pattern.
+///
+/// This is a drop in replacement for [`core::assert_matches::assert_matches!`].
+/// You can provide a custom panic message if desired.
+///
+/// # Examples
+///
+/// ```
+/// use pretty_assertions::assert_matches;
+///
+/// let a = Some(3);
+/// assert_matches!(a, Some(_));
+///
+/// assert_matches!(a, Some(value) if value > 2, "we are testing {:?} with a pattern", a);
+/// ```
+///
+/// # Features
+///
+/// Requires the `unstable` feature to be enabled.
+///
+/// **Please note:** implementation under the `unstable` feature may be changed between
+/// patch versions without warning.
+#[cfg(feature = "unstable")]
+#[macro_export]
+macro_rules! assert_matches {
+    ($left:expr, $( $pattern:pat )|+ $( if $guard: expr )? $(,)?) => ({
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                $crate::assert_matches!(
+                    @
+                    left_val,
+                    ::core::stringify!($($pattern)|+ $(if $guard)?),
+                    "",
+                    ""
+                );
+            }
+        }
+    });
+    ($left:expr, $( $pattern:pat )|+ $( if $guard: expr )?, $($arg:tt)+) => ({
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                $crate::assert_matches!(
+                    @
+                    left_val,
+                    ::core::stringify!($($pattern)|+ $(if $guard)?),
+                    ": ",
+                    $($arg)+
+                );
+            }
         }
 
-        #[test]
-        fn passes_unsized() {
-            let a: &[u8] = b"e";
-            crate::assert_eq!(*a, *a);
+    });
+    (@ $left:expr, $right:expr, $maybe_colon:expr, $($arg:tt)*) => ({
+        match (&($left), &($right)) {
+            (left_val, right_val) => {
+                // Use the Display implementation to display the pattern,
+                // as using Debug would add another layer of quotes to the output.
+                struct Pattern<'a>(&'a str);
+                impl ::core::fmt::Debug for Pattern<'_> {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        ::core::fmt::Display::fmt(self.0, f)
+                    }
+                }
+
+                ::core::panic!("assertion failed: `(left matches right)`{}{}\
+                   \n\
+                   \n{}\
+                   \n",
+                   $maybe_colon,
+                   format_args!($($arg)*),
+                   $crate::Comparison::new(left_val, &Pattern(right_val))
+                )
+            }
         }
+    });
+}
 
-        #[test]
-        fn passes_comparable_types() {
-            let s0: &'static str = "foo";
-            let s1: String = "foo".to_string();
-            crate::assert_eq!(s0, s1);
-        }
+// Not public API. Used by the expansion of this crate's assert macros.
+#[doc(hidden)]
+pub mod private {
+    #[cfg(feature = "alloc")]
+    use alloc::string::String;
 
-        #[test]
-        #[should_panic(expected = r#"assertion failed: `(left == right)`
+    pub trait CompareAsStrByDefault: AsRef<str> {}
+    impl CompareAsStrByDefault for str {}
+    impl CompareAsStrByDefault for String {}
+    impl<T: CompareAsStrByDefault + ?Sized> CompareAsStrByDefault for &T {}
 
-[1mDiff[0m [31m< left[0m / [32mright >[0m :
-[31m<[0m[1;48;5;52;31m666[0m
-[32m>[0m[1;48;5;22;32m999[0m
+    pub trait CreateComparison {
+        type Comparison;
+        fn create_comparison(self) -> Self::Comparison;
+    }
 
-"#)]
-        fn fails() {
-            crate::assert_eq!(666, 999);
-        }
-
-        #[test]
-        #[should_panic(expected = r#"assertion failed: `(left == right)`
-
-[1mDiff[0m [31m< left[0m / [32mright >[0m :
-[31m<[0m[1;48;5;52;31m666[0m
-[32m>[0m[1;48;5;22;32m999[0m
-
-"#)]
-        fn fails_trailing_comma() {
-            crate::assert_eq!(666, 999,);
-        }
-
-        #[test]
-        #[should_panic(expected = r#"assertion failed: `(left == right)`
-
-[1mDiff[0m [31m< left[0m / [32mright >[0m :
- [
-     101,
-[32m>    101,[0m
- ]
-
-"#)]
-        fn fails_unsized() {
-            let a: &[u8] = b"e";
-            let b: &[u8] = b"ee";
-            crate::assert_eq!(*a, *b);
-        }
-
-        #[test]
-        #[should_panic(
-            expected = r#"assertion failed: `(left == right)`: custom panic message
-
-[1mDiff[0m [31m< left[0m / [32mright >[0m :
-[31m<[0m[1;48;5;52;31m666[0m
-[32m>[0m[1;48;5;22;32m999[0m
-
-"#
-        )]
-        fn fails_custom() {
-            crate::assert_eq!(666, 999, "custom panic message");
-        }
-
-        #[test]
-        #[should_panic(
-            expected = r#"assertion failed: `(left == right)`: custom panic message
-
-[1mDiff[0m [31m< left[0m / [32mright >[0m :
-[31m<[0m[1;48;5;52;31m666[0m
-[32m>[0m[1;48;5;22;32m999[0m
-
-"#
-        )]
-        fn fails_custom_trailing_comma() {
-            crate::assert_eq!(666, 999, "custom panic message",);
+    impl<'a, T, U> CreateComparison for &'a (T, U) {
+        type Comparison = crate::Comparison<'a, T, U>;
+        fn create_comparison(self) -> Self::Comparison {
+            crate::Comparison::new(&self.0, &self.1)
         }
     }
 
-    mod assert_ne {
-        use ::std::string::{String, ToString};
-
-        #[test]
-        fn passes() {
-            let a = "a";
-            let b = "b";
-            crate::assert_ne!(a, b);
-        }
-
-        #[test]
-        fn passes_unsized() {
-            let a: &[u8] = b"e";
-            let b: &[u8] = b"ee";
-            crate::assert_ne!(*a, *b);
-        }
-
-        #[test]
-        fn passes_comparable_types() {
-            let s0: &'static str = "foo";
-            let s1: String = "bar".to_string();
-            crate::assert_ne!(s0, s1);
-        }
-
-        #[test]
-        #[should_panic(expected = r#"assertion failed: `(left != right)`
-
-[1mBoth sides[0m:
-666
-"#)]
-        fn fails() {
-            crate::assert_ne!(666, 666);
-        }
-
-        #[test]
-        #[should_panic(expected = r#"assertion failed: `(left != right)`
-
-[1mBoth sides[0m:
-666
-"#)]
-        fn fails_trailing_comma() {
-            crate::assert_ne!(666, 666,);
-        }
-
-        #[test]
-        #[should_panic(expected = r#"assertion failed: `(left != right)`
-
-[1mBoth sides[0m:
-[
-    101,
-]
-
-"#)]
-        fn fails_unsized() {
-            let a: &[u8] = b"e";
-            crate::assert_ne!(*a, *a);
-        }
-
-        #[test]
-        #[should_panic(
-            expected = r#"assertion failed: `(left != right)`: custom panic message
-
-[1mBoth sides[0m:
-666
-"#
-        )]
-        fn fails_custom() {
-            crate::assert_ne!(666, 666, "custom panic message");
-        }
-
-        #[test]
-        #[should_panic(
-            expected = r#"assertion failed: `(left != right)`: custom panic message
-
-[1mBoth sides[0m:
-666
-"#
-        )]
-        fn fails_custom_trailing_comma() {
-            crate::assert_ne!(666, 666, "custom panic message",);
-        }
-
-        // If the values are equal but their debug outputs are not
-        // show a specific warning
-
-        #[test]
-        #[should_panic(expected = r#"assertion failed: `(left != right)`
-
-[1mDiff[0m [31m< left[0m / [32mright >[0m :
-[31m<[0m[1;48;5;52;31m-[0m[31m0.0[0m
-[32m>0.0[0m
-
-[1;4mNote[0m: According to the `PartialEq` implementation, both of the values are partially equivalent, even if the `Debug` outputs differ.
-
-"#)]
-        fn assert_ne_partial() {
-            // Workaround for https://github.com/rust-lang/rust/issues/47619
-            // can be removed, when we require rust 1.25 or higher
-            struct Foo(f32);
-
-            use ::std::fmt;
-            impl fmt::Debug for Foo {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    ::std::write!(f, "{:.1?}", self.0)
-                }
-            }
-
-            impl ::std::cmp::PartialEq for Foo {
-                fn eq(&self, other: &Self) -> bool {
-                    self.0 == other.0
-                }
-            }
-
-            crate::assert_ne!(Foo(-0.0), Foo(0.0));
-        }
-
-        // Regression tests
-
-        #[test]
-        #[should_panic]
-        fn assert_ne_non_empty_return() {
-            fn not_zero(x: u32) -> u32 {
-                crate::assert_ne!(x, 0);
-                x
-            }
-            not_zero(0);
+    impl<'a, T, U> CreateComparison for (&'a T, &'a U)
+    where
+        T: CompareAsStrByDefault + ?Sized,
+        U: CompareAsStrByDefault + ?Sized,
+    {
+        type Comparison = crate::StrComparison<'a, T, U>;
+        fn create_comparison(self) -> Self::Comparison {
+            crate::StrComparison::new(self.0, self.1)
         }
     }
 }

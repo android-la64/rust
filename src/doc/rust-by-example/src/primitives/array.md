@@ -6,9 +6,9 @@ at compile time, is part of their type signature `[T; length]`.
 
 Slices are similar to arrays, but their length is not known at compile time.
 Instead, a slice is a two-word object, the first word is a pointer to the data,
-and the second word is the length of the slice. The word size is the same as 
-usize, determined by the processor architecture eg 64 bits on an x86-64. 
-Slices can be used to borrow a section of an array, and have the type signature 
+and the second word is the length of the slice. The word size is the same as
+usize, determined by the processor architecture e.g. 64 bits on an x86-64.
+Slices can be used to borrow a section of an array, and have the type signature
 `&[T]`.
 
 ```rust,editable,ignore,mdbook-runnable
@@ -52,6 +52,17 @@ fn main() {
     let empty_array: [u32; 0] = [];
     assert_eq!(&empty_array, &[]);
     assert_eq!(&empty_array, &[][..]); // same but more verbose
+
+    // Arrays can be safely accessed using `.get`, which returns an
+    // `Option`. This can be matched as shown below, or used with
+    // `.expect()` if you would like the program to exit with a nice
+    // message instead of happily continue.
+    for i in 0..xs.len() + 1 { // OOPS, one element too far
+        match xs.get(i) {
+            Some(xval) => println!("{}: {}", i, xval),
+            None => println!("Slow down! {} is too far!", i),
+        }
+    }
 
     // Out of bound indexing causes compile error
     //println!("{}", xs[5]);

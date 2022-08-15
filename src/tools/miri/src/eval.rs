@@ -77,8 +77,10 @@ pub struct MiriConfig {
     pub stacked_borrows: bool,
     /// Controls alignment checking.
     pub check_alignment: AlignmentCheck,
-    /// Controls integer and float validity (e.g., initialization) checking.
-    pub check_number_validity: bool,
+    /// Controls integer and float validity initialization checking.
+    pub allow_uninit_numbers: bool,
+    /// Controls how we treat ptr2int and int2ptr transmutes.
+    pub allow_ptr_int_transmute: bool,
     /// Controls function [ABI](Abi) checking.
     pub check_abi: bool,
     /// Action for an op requiring communication with the host.
@@ -103,6 +105,8 @@ pub struct MiriConfig {
     pub tag_raw: bool,
     /// Determine if data race detection should be enabled
     pub data_race_detector: bool,
+    /// Determine if weak memory emulation should be enabled. Requires data race detection to be enabled
+    pub weak_memory_emulation: bool,
     /// Rate of spurious failures for compare_exchange_weak atomic operations,
     /// between 0.0 and 1.0, defaulting to 0.8 (80% chance of failure).
     pub cmpxchg_weak_failure_rate: f64,
@@ -113,9 +117,13 @@ pub struct MiriConfig {
     pub panic_on_unsupported: bool,
     /// Which style to use for printing backtraces.
     pub backtrace_style: BacktraceStyle,
-    /// Whether to enforce "strict provenance" rules. Enabling this means int2ptr casts return
-    /// pointers with an invalid provenance, i.e., not valid for any memory access.
-    pub strict_provenance: bool,
+    /// Which provenance to use for int2ptr casts
+    pub provenance_mode: ProvenanceMode,
+    /// Whether to ignore any output by the program. This is helpful when debugging miri
+    /// as its messages don't get intermingled with the program messages.
+    pub mute_stdout_stderr: bool,
+    /// The probability of the active thread being preempted at the end of each basic block.
+    pub preemption_rate: f64,
 }
 
 impl Default for MiriConfig {
@@ -124,7 +132,8 @@ impl Default for MiriConfig {
             validate: true,
             stacked_borrows: true,
             check_alignment: AlignmentCheck::Int,
-            check_number_validity: false,
+            allow_uninit_numbers: false,
+            allow_ptr_int_transmute: false,
             check_abi: true,
             isolated_op: IsolatedOp::Reject(RejectOpWith::Abort),
             ignore_leaks: false,
@@ -137,11 +146,14 @@ impl Default for MiriConfig {
             tracked_alloc_ids: HashSet::default(),
             tag_raw: false,
             data_race_detector: true,
-            cmpxchg_weak_failure_rate: 0.8,
+            weak_memory_emulation: true,
+            cmpxchg_weak_failure_rate: 0.8, // 80%
             measureme_out: None,
             panic_on_unsupported: false,
             backtrace_style: BacktraceStyle::Short,
-            strict_provenance: false,
+            provenance_mode: ProvenanceMode::Legacy,
+            mute_stdout_stderr: false,
+            preemption_rate: 0.01, // 1%
         }
     }
 }
@@ -164,19 +176,28 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
         param_env,
         Evaluator::new(config, layout_cx),
     );
+
+    // Capture the current interpreter stack state (which should be empty) so that we can emit
+    // allocation-tracking and tag-tracking diagnostics for allocations which are part of the
+    // early runtime setup.
+    let info = ecx.preprocess_diagnostics();
+
     // Some parts of initialization require a full `InterpCx`.
     Evaluator::late_init(&mut ecx, config)?;
 
     // Make sure we have MIR. We check MIR for some stable monomorphic function in libcore.
-    let sentinel = ecx.resolve_path(&["core", "ascii", "escape_default"]);
-    if !tcx.is_mir_available(sentinel.def.def_id()) {
-        tcx.sess.fatal("the current sysroot was built without `-Zalways-encode-mir`. Use `cargo miri setup` to prepare a sysroot that is suitable for Miri.");
+    let sentinel = ecx.try_resolve_path(&["core", "ascii", "escape_default"]);
+    if !matches!(sentinel, Some(s) if tcx.is_mir_available(s.def.def_id())) {
+        tcx.sess.fatal(
+            "the current sysroot was built without `-Zalways-encode-mir`, or libcore seems missing. \
+            Use `cargo miri setup` to prepare a sysroot that is suitable for Miri."
+        );
     }
 
-    // Setup first stack-frame
+    // Setup first stack frame.
     let entry_instance = ty::Instance::mono(tcx, entry_id);
 
-    // First argument is constructed later, because its skipped if the entry function uses #[start]
+    // First argument is constructed later, because it's skipped if the entry function uses #[start].
 
     // Second argument (argc): length of `config.args`.
     let argc = Scalar::from_machine_usize(u64::try_from(config.args.len()).unwrap(), &ecx);
@@ -265,7 +286,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
                 start_instance,
                 Abi::Rust,
                 &[Scalar::from_pointer(main_ptr, &ecx).into(), argc.into(), argv],
-                Some(&ret_place.into()),
+                &ret_place.into(),
                 StackPopCleanup::Root { cleanup: true },
             )?;
         }
@@ -274,11 +295,15 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
                 entry_instance,
                 Abi::Rust,
                 &[argc.into(), argv],
-                Some(&ret_place.into()),
+                &ret_place.into(),
                 StackPopCleanup::Root { cleanup: true },
             )?;
         }
     }
+
+    // Emit any diagnostics related to the setup process for the runtime, so that when the
+    // interpreter loop starts there are no unprocessed diagnostics.
+    ecx.process_diagnostics(info);
 
     Ok((ecx, ret_place))
 }
@@ -337,7 +362,12 @@ pub fn eval_entry<'tcx>(
     })();
 
     // Machine cleanup.
-    EnvVars::cleanup(&mut ecx).unwrap();
+    // Execution of the program has halted so any memory access we do here
+    // cannot produce a real data race. If we do not do something to disable
+    // data race detection here, some uncommon combination of errors will
+    // cause a data race to be detected:
+    // https://github.com/rust-lang/miri/issues/2020
+    ecx.allow_data_races_mut(|ecx| EnvVars::cleanup(ecx).unwrap());
 
     // Process the result.
     match res {
@@ -373,7 +403,7 @@ pub fn eval_entry<'tcx>(
 /// The string will be UTF-16 encoded and NUL terminated.
 ///
 /// Panics if the zeroth argument contains the `"` character because doublequotes
-/// in argv[0] cannot be encoded using the standard command line parsing rules.
+/// in `argv[0]` cannot be encoded using the standard command line parsing rules.
 ///
 /// Further reading:
 /// * [Parsing C++ command-line arguments](https://docs.microsoft.com/en-us/cpp/cpp/main-function-command-line-args?view=msvc-160#parsing-c-command-line-arguments)
@@ -467,6 +497,6 @@ mod tests {
         let cmd = String::from_utf16_lossy(&args_to_utf16_command_string(
             [r"C:\Program Files\", "arg1", "arg 2", "arg \" 3"].iter(),
         ));
-        assert_eq!(cmd.trim_end_matches("\0"), r#""C:\Program Files\" arg1 "arg 2" "arg \" 3""#);
+        assert_eq!(cmd.trim_end_matches('\0'), r#""C:\Program Files\" arg1 "arg 2" "arg \" 3""#);
     }
 }

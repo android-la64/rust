@@ -4,8 +4,8 @@ use std::{collections::HashMap, path::PathBuf};
 
 use lsp_types::request::Request;
 use lsp_types::{
-    notification::Notification, CodeActionKind, PartialResultParams, Position, Range,
-    TextDocumentIdentifier, WorkDoneProgressParams,
+    notification::Notification, CodeActionKind, DocumentOnTypeFormattingParams,
+    PartialResultParams, Position, Range, TextDocumentIdentifier, WorkDoneProgressParams,
 };
 use serde::{Deserialize, Serialize};
 
@@ -512,10 +512,29 @@ pub enum WorkspaceSymbolSearchKind {
     AllSymbols,
 }
 
+/// The document on type formatting request is sent from the client to
+/// the server to format parts of the document during typing.  This is
+/// almost same as lsp_types::request::OnTypeFormatting, but the
+/// result has SnippetTextEdit in it instead of TextEdit.
+#[derive(Debug)]
+pub enum OnTypeFormatting {}
+
+impl Request for OnTypeFormatting {
+    type Params = DocumentOnTypeFormattingParams;
+    type Result = Option<Vec<SnippetTextEdit>>;
+    const METHOD: &'static str = "textDocument/onTypeFormatting";
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CompletionResolveData {
     pub position: lsp_types::TextDocumentPositionParams,
     pub imports: Vec<CompletionImport>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InlayHintResolveData {
+    pub text_document: TextDocumentIdentifier,
+    pub position: PositionOrRange,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

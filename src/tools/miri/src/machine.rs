@@ -24,11 +24,15 @@ use rustc_middle::{
     },
 };
 use rustc_span::def_id::{CrateNum, DefId};
-use rustc_span::symbol::{sym, Symbol};
+use rustc_span::Symbol;
 use rustc_target::abi::Size;
 use rustc_target::spec::abi::Abi;
 
-use crate::*;
+use crate::{
+    concurrency::{data_race, weak_memory},
+    shims::unix::FileHandler,
+    *,
+};
 
 // Some global facts about the emulated machine.
 pub const PAGE_SIZE: u64 = 4 * 1024; // FIXME: adjust to target architecture
@@ -89,10 +93,10 @@ pub enum MiriMemoryKind {
     Tls,
 }
 
-impl Into<MemoryKind<MiriMemoryKind>> for MiriMemoryKind {
+impl From<MiriMemoryKind> for MemoryKind<MiriMemoryKind> {
     #[inline(always)]
-    fn into(self) -> MemoryKind<MiriMemoryKind> {
-        MemoryKind::Machine(self)
+    fn from(kind: MiriMemoryKind) -> MemoryKind<MiriMemoryKind> {
+        MemoryKind::Machine(kind)
     }
 }
 
@@ -125,7 +129,13 @@ impl fmt::Display for MiriMemoryKind {
 
 /// Pointer provenance (tag).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Tag {
+pub enum Tag {
+    Concrete(ConcreteTag),
+    Wildcard,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ConcreteTag {
     pub alloc_id: AllocId,
     /// Stacked Borrows tag.
     pub sb: SbTag,
@@ -133,8 +143,8 @@ pub struct Tag {
 
 #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
 static_assert_size!(Pointer<Tag>, 24);
-#[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
-static_assert_size!(Pointer<Option<Tag>>, 24);
+// #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
+// static_assert_size!(Pointer<Option<Tag>>, 24);
 #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
 static_assert_size!(ScalarMaybeUninit<Tag>, 32);
 
@@ -148,18 +158,31 @@ impl Provenance for Tag {
     fn fmt(ptr: &Pointer<Self>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (tag, addr) = ptr.into_parts(); // address is absolute
         write!(f, "0x{:x}", addr.bytes())?;
-        // Forward `alternate` flag to `alloc_id` printing.
-        if f.alternate() {
-            write!(f, "[{:#?}]", tag.alloc_id)?;
-        } else {
-            write!(f, "[{:?}]", tag.alloc_id)?;
+
+        match tag {
+            Tag::Concrete(tag) => {
+                // Forward `alternate` flag to `alloc_id` printing.
+                if f.alternate() {
+                    write!(f, "[{:#?}]", tag.alloc_id)?;
+                } else {
+                    write!(f, "[{:?}]", tag.alloc_id)?;
+                }
+                // Print Stacked Borrows tag.
+                write!(f, "{:?}", tag.sb)?;
+            }
+            Tag::Wildcard => {
+                write!(f, "[Wildcard]")?;
+            }
         }
-        // Print Stacked Borrows tag.
-        write!(f, "{:?}", tag.sb)
+
+        Ok(())
     }
 
-    fn get_alloc_id(self) -> AllocId {
-        self.alloc_id
+    fn get_alloc_id(self) -> Option<AllocId> {
+        match self {
+            Tag::Concrete(concrete) => Some(concrete.alloc_id),
+            Tag::Wildcard => None,
+        }
     }
 }
 
@@ -171,15 +194,20 @@ pub struct AllocExtra {
     /// Data race detection via the use of a vector-clock,
     ///  this is only added if it is enabled.
     pub data_race: Option<data_race::AllocExtra>,
+    /// Weak memory emulation via the use of store buffers,
+    ///  this is only added if it is enabled.
+    pub weak_memory: Option<weak_memory::AllocExtra>,
 }
 
 /// Precomputed layouts of primitive types
 pub struct PrimitiveLayouts<'tcx> {
     pub unit: TyAndLayout<'tcx>,
     pub i8: TyAndLayout<'tcx>,
+    pub i16: TyAndLayout<'tcx>,
     pub i32: TyAndLayout<'tcx>,
     pub isize: TyAndLayout<'tcx>,
     pub u8: TyAndLayout<'tcx>,
+    pub u16: TyAndLayout<'tcx>,
     pub u32: TyAndLayout<'tcx>,
     pub usize: TyAndLayout<'tcx>,
     pub bool: TyAndLayout<'tcx>,
@@ -193,9 +221,11 @@ impl<'mir, 'tcx: 'mir> PrimitiveLayouts<'tcx> {
         Ok(Self {
             unit: layout_cx.layout_of(tcx.mk_unit())?,
             i8: layout_cx.layout_of(tcx.types.i8)?,
+            i16: layout_cx.layout_of(tcx.types.i16)?,
             i32: layout_cx.layout_of(tcx.types.i32)?,
             isize: layout_cx.layout_of(tcx.types.isize)?,
             u8: layout_cx.layout_of(tcx.types.u8)?,
+            u16: layout_cx.layout_of(tcx.types.u16)?,
             u32: layout_cx.layout_of(tcx.types.u32)?,
             usize: layout_cx.layout_of(tcx.types.usize)?,
             bool: layout_cx.layout_of(tcx.types.bool)?,
@@ -232,14 +262,20 @@ pub struct Evaluator<'mir, 'tcx> {
     /// Whether to enforce the validity invariant.
     pub(crate) validate: bool,
 
-    /// Whether to enforce validity (e.g., initialization) of integers and floats.
-    pub(crate) enforce_number_validity: bool,
+    /// Whether to allow uninitialized numbers (integers and floats).
+    pub(crate) allow_uninit_numbers: bool,
+
+    /// Whether to allow ptr2int transmutes, and whether to allow *dereferencing* the result of an
+    /// int2ptr transmute.
+    pub(crate) allow_ptr_int_transmute: bool,
 
     /// Whether to enforce [ABI](Abi) of function calls.
     pub(crate) enforce_abi: bool,
 
-    pub(crate) file_handler: shims::posix::FileHandler,
-    pub(crate) dir_handler: shims::posix::DirHandler,
+    /// The table of file descriptors.
+    pub(crate) file_handler: shims::unix::FileHandler,
+    /// The table of directory descriptors.
+    pub(crate) dir_handler: shims::unix::DirHandler,
 
     /// The "time anchor" for this machine's monotone clock (for `Instant` simulation).
     pub(crate) time_anchor: Instant,
@@ -291,11 +327,20 @@ pub struct Evaluator<'mir, 'tcx> {
 
     /// Failure rate of compare_exchange_weak, between 0.0 and 1.0
     pub(crate) cmpxchg_weak_failure_rate: f64,
+
+    /// Corresponds to -Zmiri-mute-stdout-stderr and doesn't write the output but acts as if it succeeded.
+    pub(crate) mute_stdout_stderr: bool,
+
+    /// Whether weak memory emulation is enabled
+    pub(crate) weak_memory: bool,
+
+    /// The probability of the active thread being preempted at the end of each basic block.
+    pub(crate) preemption_rate: f64,
 }
 
 impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
     pub(crate) fn new(config: &MiriConfig, layout_cx: LayoutCx<'tcx, TyCtxt<'tcx>>) -> Self {
-        let local_crates = helpers::get_local_crates(&layout_cx.tcx);
+        let local_crates = helpers::get_local_crates(layout_cx.tcx);
         let layouts =
             PrimitiveLayouts::new(layout_cx).expect("Couldn't get layouts of primitive types");
         let profiler = config.measureme_out.as_ref().map(|out| {
@@ -325,9 +370,10 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
             tls: TlsData::default(),
             isolated_op: config.isolated_op,
             validate: config.validate,
-            enforce_number_validity: config.check_number_validity,
+            allow_uninit_numbers: config.allow_uninit_numbers,
+            allow_ptr_int_transmute: config.allow_ptr_int_transmute,
             enforce_abi: config.check_abi,
-            file_handler: Default::default(),
+            file_handler: FileHandler::new(config.mute_stdout_stderr),
             dir_handler: Default::default(),
             time_anchor: Instant::now(),
             layouts,
@@ -344,6 +390,9 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
             tracked_alloc_ids: config.tracked_alloc_ids.clone(),
             check_alignment: config.check_alignment,
             cmpxchg_weak_failure_rate: config.cmpxchg_weak_failure_rate,
+            mute_stdout_stderr: config.mute_stdout_stderr,
+            weak_memory: config.weak_memory_emulation,
+            preemption_rate: config.preemption_rate,
         }
     }
 
@@ -380,7 +429,8 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
                 // Most of them are for weak symbols, which we all set to null (indicating that the
                 // symbol is not supported, and triggering fallback code which ends up calling a
                 // syscall that we do support).
-                for name in &["__cxa_thread_atexit_impl", "getrandom", "statx"] {
+                for name in &["__cxa_thread_atexit_impl", "getrandom", "statx", "__clock_gettime64"]
+                {
                     let layout = this.machine.layouts.usize;
                     let place = this.allocate(layout, MiriMemoryKind::ExternStatic.into())?;
                     this.write_scalar(Scalar::from_machine_usize(0, this), &place.into())?;
@@ -464,8 +514,13 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     }
 
     #[inline(always)]
-    fn enforce_number_validity(ecx: &MiriEvalContext<'mir, 'tcx>) -> bool {
-        ecx.machine.enforce_number_validity
+    fn enforce_number_init(ecx: &MiriEvalContext<'mir, 'tcx>) -> bool {
+        !ecx.machine.allow_uninit_numbers
+    }
+
+    #[inline(always)]
+    fn enforce_number_no_provenance(ecx: &MiriEvalContext<'mir, 'tcx>) -> bool {
+        !ecx.machine.allow_ptr_int_transmute
     }
 
     #[inline(always)]
@@ -479,10 +534,11 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         instance: ty::Instance<'tcx>,
         abi: Abi,
         args: &[OpTy<'tcx, Tag>],
-        ret: Option<(&PlaceTy<'tcx, Tag>, mir::BasicBlock)>,
+        dest: &PlaceTy<'tcx, Tag>,
+        ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx, Option<(&'mir mir::Body<'tcx>, ty::Instance<'tcx>)>> {
-        ecx.find_mir_or_eval_fn(instance, abi, args, ret, unwind)
+        ecx.find_mir_or_eval_fn(instance, abi, args, dest, ret, unwind)
     }
 
     #[inline(always)]
@@ -491,10 +547,11 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         fn_val: Dlsym,
         abi: Abi,
         args: &[OpTy<'tcx, Tag>],
-        ret: Option<(&PlaceTy<'tcx, Tag>, mir::BasicBlock)>,
+        dest: &PlaceTy<'tcx, Tag>,
+        ret: Option<mir::BasicBlock>,
         _unwind: StackPopUnwind,
     ) -> InterpResult<'tcx> {
-        ecx.call_dlsym(fn_val, abi, args, ret)
+        ecx.call_dlsym(fn_val, abi, args, dest, ret)
     }
 
     #[inline(always)]
@@ -502,10 +559,11 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         ecx: &mut MiriEvalContext<'mir, 'tcx>,
         instance: ty::Instance<'tcx>,
         args: &[OpTy<'tcx, Tag>],
-        ret: Option<(&PlaceTy<'tcx, Tag>, mir::BasicBlock)>,
+        dest: &PlaceTy<'tcx, Tag>,
+        ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx> {
-        ecx.call_intrinsic(instance, args, ret, unwind)
+        ecx.call_intrinsic(instance, args, dest, ret, unwind)
     }
 
     #[inline(always)]
@@ -543,15 +601,15 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         ecx: &MiriEvalContext<'mir, 'tcx>,
         def_id: DefId,
     ) -> InterpResult<'tcx, Pointer<Tag>> {
-        let attrs = ecx.tcx.get_attrs(def_id);
-        let link_name = match ecx.tcx.sess.first_attr_value_str_by_name(attrs, sym::link_name) {
-            Some(name) => name,
-            None => ecx.tcx.item_name(def_id),
-        };
+        let link_name = ecx.item_link_name(def_id);
         if let Some(&ptr) = ecx.machine.extern_statics.get(&link_name) {
             Ok(ptr)
         } else {
-            throw_unsup_format!("`extern` static {:?} is not supported by Miri", def_id)
+            throw_unsup_format!(
+                "`extern` static `{}` from crate `{}` is not supported by Miri",
+                ecx.tcx.def_path_str(def_id),
+                ecx.tcx.crate_name(def_id.krate),
+            )
         }
     }
 
@@ -560,7 +618,7 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         id: AllocId,
         alloc: Cow<'b, Allocation>,
         kind: Option<MemoryKind<Self::MemoryKind>>,
-    ) -> Cow<'b, Allocation<Self::PointerTag, Self::AllocExtra>> {
+    ) -> InterpResult<'tcx, Cow<'b, Allocation<Self::PointerTag, Self::AllocExtra>>> {
         if ecx.machine.tracked_alloc_ids.contains(&id) {
             register_diagnostic(NonHaltingDiagnostic::CreatedAlloc(id));
         }
@@ -568,7 +626,13 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         let kind = kind.expect("we set our STATIC_KIND so this cannot be None");
         let alloc = alloc.into_owned();
         let stacks = if let Some(stacked_borrows) = &ecx.machine.stacked_borrows {
-            Some(Stacks::new_allocation(id, alloc.size(), stacked_borrows, kind))
+            Some(Stacks::new_allocation(
+                id,
+                alloc.size(),
+                stacked_borrows,
+                kind,
+                ecx.machine.current_span(),
+            ))
         } else {
             None
         };
@@ -577,33 +641,81 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         } else {
             None
         };
+        let buffer_alloc = if ecx.machine.weak_memory {
+            Some(weak_memory::AllocExtra::new_allocation())
+        } else {
+            None
+        };
         let alloc: Allocation<Tag, Self::AllocExtra> = alloc.convert_tag_add_extra(
             &ecx.tcx,
-            AllocExtra { stacked_borrows: stacks, data_race: race_alloc },
-            |ptr| Evaluator::tag_alloc_base_pointer(ecx, ptr),
-        );
-        Cow::Owned(alloc)
+            AllocExtra {
+                stacked_borrows: stacks,
+                data_race: race_alloc,
+                weak_memory: buffer_alloc,
+            },
+            |ptr| ecx.global_base_pointer(ptr),
+        )?;
+        Ok(Cow::Owned(alloc))
     }
 
     fn tag_alloc_base_pointer(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         ptr: Pointer<AllocId>,
     ) -> Pointer<Tag> {
+        if cfg!(debug_assertions) {
+            // The machine promises to never call us on thread-local or extern statics.
+            let alloc_id = ptr.provenance;
+            match ecx.tcx.get_global_alloc(alloc_id) {
+                Some(GlobalAlloc::Static(def_id)) if ecx.tcx.is_thread_local_static(def_id) => {
+                    panic!("tag_alloc_base_pointer called on thread-local static")
+                }
+                Some(GlobalAlloc::Static(def_id)) if ecx.tcx.is_foreign_item(def_id) => {
+                    panic!("tag_alloc_base_pointer called on extern static")
+                }
+                _ => {}
+            }
+        }
         let absolute_addr = intptrcast::GlobalStateInner::rel_ptr_to_addr(ecx, ptr);
         let sb_tag = if let Some(stacked_borrows) = &ecx.machine.stacked_borrows {
             stacked_borrows.borrow_mut().base_tag(ptr.provenance)
         } else {
             SbTag::Untagged
         };
-        Pointer::new(Tag { alloc_id: ptr.provenance, sb: sb_tag }, Size::from_bytes(absolute_addr))
+        Pointer::new(
+            Tag::Concrete(ConcreteTag { alloc_id: ptr.provenance, sb: sb_tag }),
+            Size::from_bytes(absolute_addr),
+        )
     }
 
     #[inline(always)]
-    fn ptr_from_addr(
+    fn ptr_from_addr_cast(
+        ecx: &MiriEvalContext<'mir, 'tcx>,
+        addr: u64,
+    ) -> InterpResult<'tcx, Pointer<Option<Self::PointerTag>>> {
+        Ok(intptrcast::GlobalStateInner::ptr_from_addr_cast(ecx, addr))
+    }
+
+    #[inline(always)]
+    fn ptr_from_addr_transmute(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         addr: u64,
     ) -> Pointer<Option<Self::PointerTag>> {
-        intptrcast::GlobalStateInner::ptr_from_addr(addr, ecx)
+        intptrcast::GlobalStateInner::ptr_from_addr_transmute(ecx, addr)
+    }
+
+    fn expose_ptr(
+        ecx: &mut InterpCx<'mir, 'tcx, Self>,
+        ptr: Pointer<Self::PointerTag>,
+    ) -> InterpResult<'tcx> {
+        match ptr.provenance {
+            Tag::Concrete(concrete) =>
+                intptrcast::GlobalStateInner::expose_addr(ecx, concrete.alloc_id),
+            Tag::Wildcard => {
+                // No need to do anything for wildcard pointers as
+                // their provenances have already been previously exposed.
+            }
+        }
+        Ok(())
     }
 
     /// Convert a pointer with provenance into an allocation-offset pair,
@@ -611,9 +723,16 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     fn ptr_get_alloc(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         ptr: Pointer<Self::PointerTag>,
-    ) -> (AllocId, Size, Self::TagExtra) {
+    ) -> Option<(AllocId, Size, Self::TagExtra)> {
         let rel = intptrcast::GlobalStateInner::abs_ptr_to_rel(ecx, ptr);
-        (ptr.provenance.alloc_id, rel, ptr.provenance.sb)
+
+        rel.map(|(alloc_id, size)| {
+            let sb = match ptr.provenance {
+                Tag::Concrete(ConcreteTag { sb, .. }) => sb,
+                Tag::Wildcard => SbTag::Untagged,
+            };
+            (alloc_id, size, sb)
+        })
     }
 
     #[inline(always)]
@@ -633,10 +752,13 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
                 tag,
                 range,
                 machine.stacked_borrows.as_ref().unwrap(),
-            )
-        } else {
-            Ok(())
+                machine.current_span(),
+            )?;
         }
+        if let Some(weak_memory) = &alloc_extra.weak_memory {
+            weak_memory.memory_accessed(range, machine.data_race.as_ref().unwrap());
+        }
+        Ok(())
     }
 
     #[inline(always)]
@@ -655,11 +777,14 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
                 alloc_id,
                 tag,
                 range,
-                machine.stacked_borrows.as_mut().unwrap(),
-            )
-        } else {
-            Ok(())
+                machine.stacked_borrows.as_ref().unwrap(),
+                machine.current_span(),
+            )?;
         }
+        if let Some(weak_memory) = &alloc_extra.weak_memory {
+            weak_memory.memory_accessed(range, machine.data_race.as_ref().unwrap());
+        }
+        Ok(())
     }
 
     #[inline(always)]
@@ -681,7 +806,7 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
                 alloc_id,
                 tag,
                 range,
-                machine.stacked_borrows.as_mut().unwrap(),
+                machine.stacked_borrows.as_ref().unwrap(),
             )
         } else {
             Ok(())
@@ -736,6 +861,11 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         ecx: &'a mut InterpCx<'mir, 'tcx, Self>,
     ) -> &'a mut Vec<Frame<'mir, 'tcx, Self::PointerTag, Self::FrameExtra>> {
         ecx.active_thread_stack_mut()
+    }
+
+    fn before_terminator(ecx: &mut InterpCx<'mir, 'tcx, Self>) -> InterpResult<'tcx> {
+        ecx.maybe_preempt_active_thread();
+        Ok(())
     }
 
     #[inline(always)]

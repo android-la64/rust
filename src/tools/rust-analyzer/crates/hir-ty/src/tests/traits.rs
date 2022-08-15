@@ -1,7 +1,7 @@
 use cov_mark::check;
 use expect_test::expect;
 
-use super::{check, check_infer, check_infer_with_mismatches, check_types};
+use super::{check, check_infer, check_infer_with_mismatches, check_no_mismatches, check_types};
 
 #[test]
 fn infer_await() {
@@ -79,6 +79,61 @@ async fn test() {
 //  ^ impl Future<Output = Option<u64>>
 }
 "#,
+    );
+}
+
+#[test]
+fn auto_sized_async_block() {
+    check_no_mismatches(
+        r#"
+//- minicore: future, sized
+
+use core::future::Future;
+struct MyFut<Fut>(Fut);
+
+impl<Fut> Future for MyFut<Fut>
+where Fut: Future
+{
+    type Output = Fut::Output;
+}
+async fn reproduction() -> usize {
+    let f = async {999usize};
+    MyFut(f).await
+}
+    "#,
+    );
+    check_no_mismatches(
+        r#"
+//- minicore: future
+//#11815
+#[lang = "sized"]
+pub trait Sized {}
+
+#[lang = "unsize"]
+pub trait Unsize<T: ?Sized> {}
+
+#[lang = "coerce_unsized"]
+pub trait CoerceUnsized<T> {}
+
+pub unsafe trait Allocator {}
+
+pub struct Global;
+unsafe impl Allocator for Global {}
+
+#[lang = "owned_box"]
+#[fundamental]
+pub struct Box<T: ?Sized, A: Allocator = Global>;
+
+impl<T: ?Sized + Unsize<U>, U: ?Sized, A: Allocator> CoerceUnsized<Box<U, A>> for Box<T, A> {}
+
+fn send() ->  Box<dyn Future<Output = ()> + Send + 'static>{
+    box async move {}
+}
+
+fn not_send() -> Box<dyn Future<Output = ()> + 'static> {
+    box async move {}
+}
+    "#,
     );
 }
 
@@ -2999,15 +3054,15 @@ fn foo() {
             216..217 's': Option<i32>
             220..224 'None': Option<i32>
             234..235 'f': Box<dyn FnOnce(&Option<i32>)>
-            269..282 'box (|ps| {})': Box<|{unknown}| -> ()>
-            274..281 '|ps| {}': |{unknown}| -> ()
-            275..277 'ps': {unknown}
+            269..282 'box (|ps| {})': Box<|&Option<i32>| -> ()>
+            274..281 '|ps| {}': |&Option<i32>| -> ()
+            275..277 'ps': &Option<i32>
             279..281 '{}': ()
             288..289 'f': Box<dyn FnOnce(&Option<i32>)>
             288..293 'f(&s)': ()
             290..292 '&s': &Option<i32>
             291..292 's': Option<i32>
-            269..282: expected Box<dyn FnOnce(&Option<i32>)>, got Box<|{unknown}| -> ()>
+            269..282: expected Box<dyn FnOnce(&Option<i32>)>, got Box<|&Option<i32>| -> ()>
         "#]],
     );
 }
@@ -3313,6 +3368,42 @@ fn foo() {
 pub trait Deserialize {
     fn deserialize() -> u8;
 }"#,
+    );
+}
+
+#[test]
+fn bin_op_with_rhs_is_self_for_assoc_bound() {
+    check_no_mismatches(
+        r#"//- minicore: eq
+        fn repro<T>(t: T) -> bool
+where
+    T: Request,
+    T::Output: Convertable,
+{
+    let a = execute(&t).convert();
+    let b = execute(&t).convert();
+    a.eq(&b);
+    let a = execute(&t).convert2();
+    let b = execute(&t).convert2();
+    a.eq(&b)
+}
+fn execute<T>(t: &T) -> T::Output
+where
+    T: Request,
+{
+    <T as Request>::output()
+}
+trait Convertable {
+    type TraitSelf: PartialEq<Self::TraitSelf>;
+    type AssocAsDefaultSelf: PartialEq;
+    fn convert(self) -> Self::AssocAsDefaultSelf;
+    fn convert2(self) -> Self::TraitSelf;
+}
+trait Request {
+    type Output;
+    fn output() -> Self::Output;
+}
+     "#,
     );
 }
 

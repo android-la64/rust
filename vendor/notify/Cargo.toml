@@ -10,9 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 name = "notify"
-version = "5.0.0-pre.14"
+version = "5.0.0-pre.15"
 authors = ["Félix Saparelli <me@passcod.name>", "Daniel Faust <hessijames@gmail.com>"]
 exclude = ["/clippy.toml", ".github/*"]
 description = "Cross-platform filesystem notification library"
@@ -23,6 +24,7 @@ keywords = ["events", "filesystem", "notify", "watch"]
 categories = ["filesystem"]
 license = "CC0-1.0 OR Artistic-2.0"
 repository = "https://github.com/notify-rs/notify.git"
+resolver = "2"
 [dependencies.bitflags]
 version = "1.0.4"
 
@@ -44,6 +46,9 @@ optional = true
 version = "2.0.1"
 [dev-dependencies.futures]
 version = "0.3"
+
+[dev-dependencies.nix]
+version = "0.23.1"
 
 [dev-dependencies.serde_json]
 version = "1.0.39"

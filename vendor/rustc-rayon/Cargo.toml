@@ -12,28 +12,41 @@
 [package]
 edition = "2018"
 name = "rustc-rayon"
-version = "0.3.2"
-authors = ["Niko Matsakis <niko@alum.mit.edu>", "Josh Stone <cuviper@gmail.com>"]
-exclude = ["/ci/*", "/scripts/*", "/.travis.yml", "/appveyor.yml", "/bors.toml"]
+version = "0.4.0"
+authors = [
+    "Niko Matsakis <niko@alum.mit.edu>",
+    "Josh Stone <cuviper@gmail.com>",
+]
+exclude = [
+    "/ci/*",
+    "/scripts/*",
+    "/.github/*",
+    "/bors.toml",
+]
 description = "Simple work-stealing parallelism for Rust - fork for rustc"
 documentation = "https://docs.rs/rustc-rayon/"
 readme = "README.md"
-keywords = ["parallel", "thread", "concurrency", "join", "performance"]
+keywords = [
+    "parallel",
+    "thread",
+    "concurrency",
+    "join",
+    "performance",
+]
 categories = ["concurrency"]
-license = "Apache-2.0/MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/rustc-rayon"
+
 [dependencies.crossbeam-deque]
-version = "0.8.0"
+version = "0.8.1"
 
 [dependencies.either]
 version = "1.0"
 default-features = false
 
 [dependencies.rayon-core]
-version = "0.3"
+version = "0.4"
 package = "rustc-rayon-core"
-[dev-dependencies.doc-comment]
-version = "0.3"
 
 [dev-dependencies.docopt]
 version = "1"
@@ -42,11 +55,14 @@ version = "1"
 version = "1"
 
 [dev-dependencies.rand]
-version = "0.7"
+version = "0.8"
 
 [dev-dependencies.rand_xorshift]
-version = "0.2"
+version = "0.3"
 
 [dev-dependencies.serde]
 version = "1.0.85"
 features = ["derive"]
+
+[build-dependencies.autocfg]
+version = "1"

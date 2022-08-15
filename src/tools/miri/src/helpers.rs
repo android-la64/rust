@@ -13,7 +13,7 @@ use rustc_middle::ty::{
     layout::{LayoutOf, TyAndLayout},
     List, TyCtxt,
 };
-use rustc_span::{def_id::CrateNum, Symbol};
+use rustc_span::{def_id::CrateNum, sym, Span, Symbol};
 use rustc_target::abi::{Align, FieldsShape, Size, Variants};
 use rustc_target::spec::abi::Abi;
 
@@ -70,11 +70,16 @@ fn try_resolve_did<'tcx>(tcx: TyCtxt<'tcx>, path: &[&str]) -> Option<DefId> {
 }
 
 pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+    /// Gets an instance for a path; fails gracefully if the path does not exist.
+    fn try_resolve_path(&self, path: &[&str]) -> Option<ty::Instance<'tcx>> {
+        let did = try_resolve_did(self.eval_context_ref().tcx.tcx, path)?;
+        Some(ty::Instance::mono(self.eval_context_ref().tcx.tcx, did))
+    }
+
     /// Gets an instance for a path.
     fn resolve_path(&self, path: &[&str]) -> ty::Instance<'tcx> {
-        let did = try_resolve_did(self.eval_context_ref().tcx.tcx, path)
-            .unwrap_or_else(|| panic!("failed to find required Rust item: {:?}", path));
-        ty::Instance::mono(self.eval_context_ref().tcx.tcx, did)
+        self.try_resolve_path(path)
+            .unwrap_or_else(|| panic!("failed to find required Rust item: {:?}", path))
     }
 
     /// Evaluates the scalar at the specified path. Returns Some(val)
@@ -235,7 +240,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         f: ty::Instance<'tcx>,
         caller_abi: Abi,
         args: &[Immediate<Tag>],
-        dest: Option<&PlaceTy<'tcx, Tag>>,
+        dest: &PlaceTy<'tcx, Tag>,
         stack_pop: StackPopCleanup,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
@@ -250,7 +255,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
 
         // Push frame.
-        let mir = &*this.load_mir(f.def, None)?;
+        let mir = this.load_mir(f.def, None)?;
         this.push_stack_frame(f, mir, dest, stack_pop)?;
 
         // Initialize arguments.
@@ -488,6 +493,17 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         )
     }
 
+    /// Helper function used inside the shims of foreign functions to assert that the target OS
+    /// is part of the UNIX family. It panics showing a message with the `name` of the foreign function
+    /// if this is not the case.
+    fn assert_target_os_is_unix(&self, name: &str) {
+        assert!(
+            target_os_is_unix(self.eval_context_ref().tcx.sess.target.os.as_ref()),
+            "`{}` is only available for supported UNIX family targets",
+            name,
+        );
+    }
+
     /// Get last error variable as a place, lazily allocating thread-local storage for it if
     /// necessary.
     fn last_error_place(&mut self) -> InterpResult<'tcx, MPlaceTy<'tcx, Tag>> {
@@ -597,6 +613,23 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
     }
 
+    /// Calculates the MPlaceTy given the offset and layout of an access on an operand
+    fn deref_operand_and_offset(
+        &self,
+        op: &OpTy<'tcx, Tag>,
+        offset: u64,
+        layout: TyAndLayout<'tcx>,
+    ) -> InterpResult<'tcx, MPlaceTy<'tcx, Tag>> {
+        let this = self.eval_context_ref();
+        let op_place = this.deref_operand(op)?;
+        let offset = Size::from_bytes(offset);
+
+        // Ensure that the access is within bounds.
+        assert!(op_place.layout.size >= offset + layout.size);
+        let value_place = op_place.offset(offset, MemPlaceMeta::None, layout, this)?;
+        Ok(value_place)
+    }
+
     fn read_scalar_at_offset(
         &self,
         op: &OpTy<'tcx, Tag>,
@@ -604,11 +637,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         layout: TyAndLayout<'tcx>,
     ) -> InterpResult<'tcx, ScalarMaybeUninit<Tag>> {
         let this = self.eval_context_ref();
-        let op_place = this.deref_operand(op)?;
-        let offset = Size::from_bytes(offset);
-        // Ensure that the following read at an offset is within bounds
-        assert!(op_place.layout.size >= offset + layout.size);
-        let value_place = op_place.offset(offset, MemPlaceMeta::None, layout, this)?;
+        let value_place = this.deref_operand_and_offset(op, offset, layout)?;
         this.read_scalar(&value_place.into())
     }
 
@@ -620,11 +649,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         layout: TyAndLayout<'tcx>,
     ) -> InterpResult<'tcx, ()> {
         let this = self.eval_context_mut();
-        let op_place = this.deref_operand(op)?;
-        let offset = Size::from_bytes(offset);
-        // Ensure that the following read at an offset is within bounds
-        assert!(op_place.layout.size >= offset + layout.size);
-        let value_place = op_place.offset(offset, MemPlaceMeta::None, layout, this)?;
+        let value_place = this.deref_operand_and_offset(op, offset, layout)?;
         this.write_scalar(value, &value_place.into())
     }
 
@@ -667,7 +692,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // FIXME: We are re-getting the allocation each time around the loop.
             // Would be nice if we could somehow "extend" an existing AllocRange.
             let alloc = this.get_ptr_alloc(ptr.offset(len, this)?, size1, Align::ONE)?.unwrap(); // not a ZST, so we will get a result
-            let byte = alloc.read_scalar(alloc_range(Size::ZERO, size1))?.to_u8()?;
+            let byte = alloc.read_integer(Size::ZERO, size1)?.to_u8()?;
             if byte == 0 {
                 break;
             } else {
@@ -689,7 +714,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // FIXME: We are re-getting the allocation each time around the loop.
             // Would be nice if we could somehow "extend" an existing AllocRange.
             let alloc = this.get_ptr_alloc(ptr, size2, align2)?.unwrap(); // not a ZST, so we will get a result
-            let wchar = alloc.read_scalar(alloc_range(Size::ZERO, size2))?.to_u16()?;
+            let wchar = alloc.read_integer(Size::ZERO, size2)?.to_u16()?;
             if wchar == 0 {
                 break;
             } else {
@@ -715,10 +740,22 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
     fn frame_in_std(&self) -> bool {
         let this = self.eval_context_ref();
-        this.tcx.lang_items().start_fn().map_or(false, |start_fn| {
-            this.tcx.def_path(this.frame().instance.def_id()).krate
-                == this.tcx.def_path(start_fn).krate
-        })
+        let Some(start_fn) = this.tcx.lang_items().start_fn() else {
+            // no_std situations
+            return false;
+        };
+        let frame = this.frame();
+        // Make an attempt to get at the instance of the function this is inlined from.
+        let instance: Option<_> = try {
+            let scope = frame.current_source_info()?.scope;
+            let inlined_parent = frame.body.source_scopes[scope].inlined_parent_scope?;
+            let source = &frame.body.source_scopes[inlined_parent];
+            source.inlined.expect("inlined_parent_scope points to scope without inline info").0
+        };
+        // Fall back to the instance of the function itself.
+        let instance = instance.unwrap_or(frame.instance);
+        // Now check if this is in the same crate as start_fn.
+        this.tcx.def_path(instance.def_id()).krate == this.tcx.def_path(start_fn).krate
     }
 
     /// Handler that should be called when unsupported functionality is encountered.
@@ -772,8 +809,53 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     fn mark_immutable(&mut self, mplace: &MemPlace<Tag>) {
         let this = self.eval_context_mut();
         // This got just allocated, so there definitely is a pointer here.
-        this.alloc_mark_immutable(mplace.ptr.into_pointer_or_addr().unwrap().provenance.alloc_id)
-            .unwrap();
+        let provenance = mplace.ptr.into_pointer_or_addr().unwrap().provenance;
+        this.alloc_mark_immutable(provenance.get_alloc_id().unwrap()).unwrap();
+    }
+
+    fn item_link_name(&self, def_id: DefId) -> Symbol {
+        let tcx = self.eval_context_ref().tcx;
+        match tcx.get_attrs(def_id, sym::link_name).filter_map(|a| a.value_str()).next() {
+            Some(name) => name,
+            None => tcx.item_name(def_id),
+        }
+    }
+}
+
+impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
+    pub fn current_span(&self) -> CurrentSpan<'_, 'mir, 'tcx> {
+        CurrentSpan { span: None, machine: self }
+    }
+}
+
+/// A `CurrentSpan` should be created infrequently (ideally once) per interpreter step. It does
+/// nothing on creation, but when `CurrentSpan::get` is called, searches the current stack for the
+/// topmost frame which corresponds to a local crate, and returns the current span in that frame.
+/// The result of that search is cached so that later calls are approximately free.
+#[derive(Clone)]
+pub struct CurrentSpan<'a, 'mir, 'tcx> {
+    span: Option<Span>,
+    machine: &'a Evaluator<'mir, 'tcx>,
+}
+
+impl<'a, 'mir, 'tcx> CurrentSpan<'a, 'mir, 'tcx> {
+    pub fn get(&mut self) -> Span {
+        *self.span.get_or_insert_with(|| Self::current_span(self.machine))
+    }
+
+    #[inline(never)]
+    fn current_span(machine: &Evaluator<'_, '_>) -> Span {
+        machine
+            .threads
+            .active_thread_stack()
+            .iter()
+            .rev()
+            .find(|frame| {
+                let def_id = frame.instance.def_id();
+                def_id.is_local() || machine.local_crates.contains(&def_id.krate)
+            })
+            .map(|frame| frame.current_span())
+            .unwrap_or(rustc_span::DUMMY_SP)
     }
 }
 
@@ -790,7 +872,7 @@ where
     throw_ub_format!("incorrect number of arguments: got {}, expected {}", args.len(), N)
 }
 
-pub fn isolation_abort_error(name: &str) -> InterpResult<'static> {
+pub fn isolation_abort_error<'tcx>(name: &str) -> InterpResult<'tcx> {
     throw_machine_stop!(TerminationInfo::UnsupportedInIsolation(format!(
         "{} not available when isolation is enabled",
         name,
@@ -799,7 +881,7 @@ pub fn isolation_abort_error(name: &str) -> InterpResult<'static> {
 
 /// Retrieve the list of local crates that should have been passed by cargo-miri in
 /// MIRI_LOCAL_CRATES and turn them into `CrateNum`s.
-pub fn get_local_crates(tcx: &TyCtxt<'_>) -> Vec<CrateNum> {
+pub fn get_local_crates(tcx: TyCtxt<'_>) -> Vec<CrateNum> {
     // Convert the local crate names from the passed-in config into CrateNums so that they can
     // be looked up quickly during execution
     let local_crate_names = std::env::var("MIRI_LOCAL_CRATES")
@@ -814,4 +896,19 @@ pub fn get_local_crates(tcx: &TyCtxt<'_>) -> Vec<CrateNum> {
         }
     }
     local_crates
+}
+
+/// Formats an AllocRange like [0x1..0x3], for use in diagnostics.
+pub struct HexRange(pub AllocRange);
+
+impl std::fmt::Display for HexRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{:#x}..{:#x}]", self.0.start.bytes(), self.0.end().bytes())
+    }
+}
+
+/// Helper function used inside the shims of foreign functions to check that
+/// `target_os` is a supported UNIX OS.
+pub fn target_os_is_unix(target_os: &str) -> bool {
+    matches!(target_os, "linux" | "macos")
 }

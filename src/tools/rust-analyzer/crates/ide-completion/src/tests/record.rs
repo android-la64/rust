@@ -9,7 +9,6 @@ fn check(ra_fixture: &str, expect: Expect) {
 
 #[test]
 fn without_default_impl() {
-    cov_mark::check!(no_keyword_completion_in_record_lit);
     check(
         r#"
 struct Struct { foo: u32, bar: usize }
@@ -41,6 +40,8 @@ fn foo(s: Struct) {
 "#,
         expect![[r#"
             fd bar u32
+            kw mut
+            kw ref
         "#]],
     );
 }
@@ -58,6 +59,8 @@ fn foo(e: Enum) {
 "#,
         expect![[r#"
             fd bar u32
+            kw mut
+            kw ref
         "#]],
     );
 }
@@ -93,6 +96,8 @@ fn foo(f: Struct) {
 ",
         expect![[r#"
             fd field u32
+            kw mut
+            kw ref
         "#]],
     );
 }
@@ -100,7 +105,6 @@ fn foo(f: Struct) {
 #[test]
 fn functional_update() {
     // FIXME: This should filter out all completions that do not have the type `Foo`
-    // FIXME: Fields should not show up after `.`
     check(
         r#"
 //- minicore:default
@@ -156,8 +160,6 @@ fn main() {
 "#,
         expect![[r#"
             fd ..Default::default()
-            fd foo1                 u32
-            fd foo2                 u32
             fn main()               fn()
             lc foo                  Foo
             lc thing                i32
@@ -168,19 +170,8 @@ fn main() {
             tt Sized
             bt u32
             kw crate::
-            kw false
-            kw for
-            kw if
-            kw if let
-            kw loop
-            kw match
-            kw return
             kw self::
             kw super::
-            kw true
-            kw unsafe
-            kw while
-            kw while let
         "#]],
     );
     check(
@@ -198,8 +189,6 @@ fn main() {
 }
 "#,
         expect![[r#"
-            fd foo1                   u32
-            fd foo2                   u32
             fn default() (as Default) fn() -> Self
         "#]],
     );

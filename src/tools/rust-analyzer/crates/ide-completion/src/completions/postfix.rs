@@ -5,7 +5,7 @@ mod format_like;
 use hir::{Documentation, HasAttrs};
 use ide_db::{imports::insert_use::ImportScope, ty_filter::TryEnum, SnippetCap};
 use syntax::{
-    ast::{self, AstNode, LiteralKind},
+    ast::{self, AstNode, AstToken},
     SyntaxKind::{EXPR_STMT, STMT_LIST},
     TextRange, TextSize,
 };
@@ -13,43 +13,35 @@ use text_edit::TextEdit;
 
 use crate::{
     completions::postfix::format_like::add_format_like_completions,
-    context::{CompletionContext, DotAccess, NameRefContext},
+    context::{CompletionContext, DotAccess, DotAccessKind},
     item::{Builder, CompletionRelevancePostfixMatch},
     CompletionItem, CompletionItemKind, CompletionRelevance, Completions, SnippetScope,
 };
 
-pub(crate) fn complete_postfix(acc: &mut Completions, ctx: &CompletionContext) {
+pub(crate) fn complete_postfix(
+    acc: &mut Completions,
+    ctx: &CompletionContext,
+    dot_access: &DotAccess,
+) {
     if !ctx.config.enable_postfix_completions {
         return;
     }
 
-    let (dot_receiver, receiver_is_ambiguous_float_literal) = match ctx.nameref_ctx() {
-        Some(NameRefContext {
-            dot_access: Some(DotAccess::Method { receiver: Some(it), .. }),
-            ..
-        }) => (it, false),
-        Some(NameRefContext {
-            dot_access:
-                Some(DotAccess::Field { receiver: Some(it), receiver_is_ambiguous_float_literal }),
-            ..
-        }) => (it, *receiver_is_ambiguous_float_literal),
+    let (dot_receiver, receiver_ty, receiver_is_ambiguous_float_literal) = match dot_access {
+        DotAccess { receiver_ty: Some(ty), receiver: Some(it), kind, .. } => (
+            it,
+            &ty.original,
+            match *kind {
+                DotAccessKind::Field { receiver_is_ambiguous_float_literal } => {
+                    receiver_is_ambiguous_float_literal
+                }
+                DotAccessKind::Method { .. } => false,
+            },
+        ),
         _ => return,
     };
 
     let receiver_text = get_receiver_text(dot_receiver, receiver_is_ambiguous_float_literal);
-
-    let receiver_ty = match ctx.sema.type_of_expr(dot_receiver) {
-        Some(it) => it.original,
-        None => return,
-    };
-
-    // Suggest .await syntax for types that implement Future trait
-    if receiver_ty.impls_future(ctx.db) {
-        let mut item =
-            CompletionItem::new(CompletionItemKind::Keyword, ctx.source_range(), "await");
-        item.detail("expr.await");
-        item.add_to(acc);
-    }
 
     let cap = match ctx.config.snippet_cap {
         Some(it) => it,
@@ -194,7 +186,7 @@ pub(crate) fn complete_postfix(acc: &mut Completions, ctx: &CompletionContext) {
     }
 
     if let ast::Expr::Literal(literal) = dot_receiver.clone() {
-        if let LiteralKind::String(literal_text) = literal.kind() {
+        if let Some(literal_text) = ast::String::cast(literal.token()) {
             add_format_like_completions(acc, ctx, &dot_receiver, cap, &literal_text);
         }
     }

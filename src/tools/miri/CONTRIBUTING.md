@@ -1,6 +1,6 @@
 # Contribution Guide
 
-If you want to hack on miri yourself, great!  Here are some resources you might
+If you want to hack on Miri yourself, great!  Here are some resources you might
 find useful.
 
 ## Getting started
@@ -27,6 +27,11 @@ install that exact version of rustc as a toolchain:
 ```
 This will set up a rustup toolchain called `miri` and set it as an override for
 the current directory.
+
+If you want to also have `clippy` installed, you need to run this:
+```
+./rustup-toolchain "" -c clippy
+```
 
 [`rustup-toolchain-install-master`]: https://github.com/kennytm/rustup-toolchain-install-master
 
@@ -89,6 +94,20 @@ MIRI_LOG=rustc_mir::interpret=info,miri::stacked_borrows ./miri run tests/run-pa
 In addition, you can set `MIRI_BACKTRACE=1` to get a backtrace of where an
 evaluation error was originally raised.
 
+#### UI testing
+
+We use ui-testing in Miri, meaning we generate `.stderr` and `.stdout` files for the output
+produced by Miri. You can use `./miri bless` to automatically (re)generate these files when
+you add new tests or change how Miri presents certain output.
+
+Note that when you also use `MIRIFLAGS` to change optimizations and similar, the ui output
+will change in unexpected ways. In order to still be able
+to run the other checks while ignoring the ui output, use `MIRI_SKIP_UI_CHECKS=1 ./miri test`.
+
+For more info on how to configure ui tests see [the documentation on the ui test crate][ui_test]
+
+[ui_test]: ui_test/README.md
+
 ### Testing `cargo miri`
 
 Working with the driver directly gives you full control, but you also lose all
@@ -115,7 +134,8 @@ build Miri yourself, the Miri shipped by `rustup` will work. All you have to do
 is set the `MIRI_LIB_SRC` environment variable to the `library` folder of a
 `rust-lang/rust` repository checkout. Note that changing files in that directory
 does not automatically trigger a re-build of the standard library; you have to
-clear the Miri build cache manually (on Linux, `rm -rf ~/.cache/miri`).
+clear the Miri build cache manually (on Linux, `rm -rf ~/.cache/miri`;
+and on Windows, `rmdir /S "%LOCALAPPDATA%\rust-lang\miri\cache"`).
 
 ## Configuring `rust-analyzer`
 
@@ -183,7 +203,7 @@ A big part of the Miri driver lives in rustc, so working on Miri will sometimes
 require using a locally built rustc. The bug you want to fix may actually be on
 the rustc side, or you just need to get more detailed trace of the execution
 than what is possible with release builds -- in both cases, you should develop
-miri against a rustc you compiled yourself, with debug assertions (and hence
+Miri against a rustc you compiled yourself, with debug assertions (and hence
 tracing) enabled.
 
 The setup for a local rustc works as follows:
@@ -191,7 +211,7 @@ The setup for a local rustc works as follows:
 # Clone the rust-lang/rust repo.
 git clone https://github.com/rust-lang/rust rustc
 cd rustc
-# Create a config.toml with defaults for working on miri.
+# Create a config.toml with defaults for working on Miri.
 ./x.py setup compiler
  # Now edit `config.toml` and under `[rust]` set `debug-assertions = true`.
 
@@ -205,6 +225,15 @@ rustup toolchain link stage2 build/x86_64-unknown-linux-gnu/stage2
 # Now cd to your Miri directory, then configure rustup
 rustup override set stage2
 ```
+
+Important: You need to delete the Miri cache when you change the stdlib; otherwise the
+old, chached version will be used. On Linux, the cache is located at `~/.cache/miri`,
+and on Windows, it is located at `%LOCALAPPDATA%\rust-lang\miri\cache`; the exact
+location is printed after the library build: "A libstd for Miri is now available in ...".
+
+Note: `./x.py --stage 2 compiler/rustc` currently errors with `thread 'main'
+panicked at 'fs::read(stamp) failed with No such file or directory (os error 2)`,
+you can simply ignore that error; Miri will build anyway.
 
 For more information about building and configuring a local compiler,
 see <https://rustc-dev-guide.rust-lang.org/building/how-to-build-and-run.html>.

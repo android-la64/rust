@@ -1,6 +1,6 @@
 //! Type inference for patterns.
 
-use std::iter::repeat;
+use std::iter::repeat_with;
 
 use chalk_ir::Mutability;
 use hir_def::{
@@ -11,9 +11,7 @@ use hir_def::{
 use hir_expand::name::Name;
 
 use crate::{
-    infer::{
-        Adjust, Adjustment, AutoBorrow, BindingMode, Expectation, InferenceContext, TypeMismatch,
-    },
+    infer::{BindingMode, Expectation, InferenceContext, TypeMismatch},
     lower::lower_to_chalk_mutability,
     static_lifetime, ConcreteConst, ConstValue, Interner, Substitution, Ty, TyBuilder, TyExt,
     TyKind,
@@ -44,7 +42,7 @@ impl<'a> InferenceContext<'a> {
             Some(idx) => subpats.split_at(idx),
             None => (subpats, &[][..]),
         };
-        let post_idx_offset = field_tys.iter().count() - post.len();
+        let post_idx_offset = field_tys.iter().count().saturating_sub(post.len());
 
         let pre_iter = pre.iter().enumerate();
         let post_iter = (post_idx_offset..).zip(post.iter());
@@ -105,10 +103,7 @@ impl<'a> InferenceContext<'a> {
         if is_non_ref_pat(&self.body, pat) {
             let mut pat_adjustments = Vec::new();
             while let Some((inner, _lifetime, mutability)) = expected.as_reference() {
-                pat_adjustments.push(Adjustment {
-                    target: expected.clone(),
-                    kind: Adjust::Borrow(AutoBorrow::Ref(mutability)),
-                });
+                pat_adjustments.push(expected.clone());
                 expected = self.resolve_ty_shallow(inner);
                 default_bm = match default_bm {
                     BindingMode::Move => BindingMode::Ref(mutability),
@@ -145,15 +140,28 @@ impl<'a> InferenceContext<'a> {
                     }
                     None => ((&args[..], &[][..]), 0),
                 };
-                let err_ty = self.err_ty();
-                let mut expectations_iter =
-                    expectations.iter().map(|a| a.assert_ty_ref(Interner)).chain(repeat(&err_ty));
-                let mut infer_pat = |(&pat, ty)| self.infer_pat(pat, ty, default_bm);
+                let mut expectations_iter = expectations
+                    .iter()
+                    .cloned()
+                    .map(|a| a.assert_ty_ref(Interner).clone())
+                    .chain(repeat_with(|| self.table.new_type_var()));
 
                 let mut inner_tys = Vec::with_capacity(n_uncovered_patterns + args.len());
-                inner_tys.extend(pre.iter().zip(expectations_iter.by_ref()).map(&mut infer_pat));
-                inner_tys.extend(expectations_iter.by_ref().take(n_uncovered_patterns).cloned());
-                inner_tys.extend(post.iter().zip(expectations_iter).map(infer_pat));
+
+                inner_tys
+                    .extend(expectations_iter.by_ref().take(n_uncovered_patterns + args.len()));
+
+                // Process pre
+                for (ty, pat) in inner_tys.iter_mut().zip(pre) {
+                    *ty = self.infer_pat(*pat, ty, default_bm);
+                }
+
+                // Process post
+                for (ty, pat) in
+                    inner_tys.iter_mut().skip(pre.len() + n_uncovered_patterns).zip(post)
+                {
+                    *ty = self.infer_pat(*pat, ty, default_bm);
+                }
 
                 TyKind::Tuple(inner_tys.len(), Substitution::from_iter(Interner, inner_tys))
                     .intern(Interner)

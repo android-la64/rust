@@ -96,13 +96,12 @@ Each new feature described below should explain how to use it.
     * [unit-graph](#unit-graph) — Emits JSON for Cargo's internal graph structure.
     * [`cargo rustc --print`](#rustc---print) — Calls rustc with `--print` to display information from rustc.
 * Configuration
-    * [config-cli](#config-cli) — Adds the ability to pass configuration options on the command-line.
     * [config-include](#config-include) — Adds the ability for config files to include other files.
     * [`cargo config`](#cargo-config) — Adds a new subcommand for viewing config files.
 * Registries
     * [credential-process](#credential-process) — Adds support for fetching registry tokens from an external authentication program.
     * [`cargo logout`](#cargo-logout) — Adds the `logout` command to remove the currently saved registry token.
-    * [http-registry](#http-registry) — Adds support for fetching from http registries (`sparse+`)
+    * [sparse-registry](#sparse-registry) — Adds support for fetching from static-file HTTP registries (`sparse+`)
 
 ### allow-features
 
@@ -473,40 +472,6 @@ The `-Z unstable-options` command-line option must be used in order to use
 
 ```console
 cargo check --keep-going -Z unstable-options
-```
-
-### config-cli
-* Tracking Issue: [#7722](https://github.com/rust-lang/cargo/issues/7722)
-
-The `--config` CLI option allows arbitrary config values to be passed
-in via the command-line. The argument should be in TOML syntax of KEY=VALUE:
-
-```console
-cargo +nightly -Zunstable-options --config net.git-fetch-with-cli=true fetch
-```
-
-The `--config` option may be specified multiple times, in which case the
-values are merged in left-to-right order, using the same merging logic that
-multiple config files use. CLI values take precedence over environment
-variables, which take precedence over config files.
-
-Some examples of what it looks like using Bourne shell syntax:
-
-```console
-# Most shells will require escaping.
-cargo --config http.proxy=\"http://example.com\" …
-
-# Spaces may be used.
-cargo --config "net.git-fetch-with-cli = true" …
-
-# TOML array example. Single quotes make it easier to read and write.
-cargo --config 'build.rustdocflags = ["--html-in-header", "header.html"]' …
-
-# Example of a complex TOML key.
-cargo --config "target.'cfg(all(target_arch = \"arm\", target_os = \"none\"))'.runner = 'my-runner'" …
-
-# Example of overriding a profile setting.
-cargo --config profile.dev.package.image.opt-level=3 …
 ```
 
 ### config-include
@@ -909,18 +874,18 @@ fn main() {
 }
 ```
 
-### http-registry
+### sparse-registry
 * Tracking Issue: [9069](https://github.com/rust-lang/cargo/issues/9069)
 * RFC: [#2789](https://github.com/rust-lang/rfcs/pull/2789)
 
-The `http-registry` feature allows cargo to interact with remote registries served
-over http rather than git. These registries can be identified by urls starting with
+The `sparse-registry` feature allows cargo to interact with remote registries served
+over plain HTTP rather than git. These registries can be identified by urls starting with
 `sparse+http://` or `sparse+https://`.
 
-When fetching index metadata over http, cargo only downloads the metadata for relevant
+When fetching index metadata over HTTP, Cargo only downloads the metadata for relevant
 crates, which can save significant time and bandwidth.
 
-The format of the http index is identical to a checkout of a git-based index.
+The format of the sparse index is identical to a checkout of a git-based index.
 
 ### credential-process
 * Tracking Issue: [#8933](https://github.com/rust-lang/cargo/issues/8933)
@@ -1201,6 +1166,7 @@ It's values are:
     Note than this command line options will probably become the default when stabilizing.
  - `names`: enables well known names checking via `--check-cfg=names()`.
  - `values`: enables well known values checking via `--check-cfg=values()`.
+ - `output`: enable the use of `rustc-check-cfg` in build script.
 
 For instance:
 
@@ -1210,6 +1176,29 @@ cargo check -Z unstable-options -Z check-cfg=names
 cargo check -Z unstable-options -Z check-cfg=values
 cargo check -Z unstable-options -Z check-cfg=features,names,values
 ```
+
+Or for `output`:
+
+```rust,no_run
+// build.rs
+println!("cargo:rustc-check-cfg=names(foo, bar)");
+```
+
+```
+cargo check -Z unstable-options -Z check-cfg=output
+```
+
+### `cargo:rustc-check-cfg=CHECK_CFG`
+
+The `rustc-check-cfg` instruction tells Cargo to pass the given value to the
+`--check-cfg` flag to the compiler. This may be used for compile-time
+detection of unexpected conditional compilation name and/or values.
+
+This can only be used in combination with `-Zcheck-cfg=output` otherwise it is ignored
+with a warning.
+
+If you want to integrate with Cargo features, use `-Zcheck-cfg=features` instead of
+trying to do it manually with this option.
 
 ### workspace-inheritance
 
@@ -1574,3 +1563,9 @@ See the [Features chapter](features.md#dependency-features) for more information
 The `-Ztimings` option has been stabilized as `--timings` in the 1.60 release.
 (`--timings=html` and the machine-readable `--timings=json` output remain
 unstable and require `-Zunstable-options`.)
+
+### config-cli
+
+The `--config` CLI option has been stabilized in the 1.63 release. See
+the [config documentation](config.html#command-line-overrides) for more
+information.

@@ -8,6 +8,7 @@ use rustc_target::spec::abi::Abi;
 use crate::*;
 use shims::foreign_items::EmulateByNameResult;
 use shims::windows::sync::EvalContextExt as _;
+use smallvec::SmallVec;
 
 impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
 pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
@@ -27,7 +28,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // DWORD = ULONG = u32
         // BOOL = i32
         // BOOLEAN = u8
-        match &*link_name.as_str() {
+        match link_name.as_str() {
             // Environment related shims
             "GetEnvironmentVariableW" => {
                 let [name, buf, size] =
@@ -119,10 +120,56 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     system_info.ptr,
                     iter::repeat(0u8).take(system_info.layout.size.bytes() as usize),
                 )?;
+                // Set selected fields.
+                let word_layout = this.machine.layouts.u16;
+                let dword_layout = this.machine.layouts.u32;
+                let usize_layout = this.machine.layouts.usize;
+
+                // Using `mplace_field` is error-prone, see: https://github.com/rust-lang/miri/issues/2136.
+                // Pointer fields have different sizes on different targets.
+                // To avoid all these issue we calculate the offsets ourselves.
+                let field_sizes = [
+                    word_layout.size,  // 0,  wProcessorArchitecture      : WORD
+                    word_layout.size,  // 1,  wReserved                   : WORD
+                    dword_layout.size, // 2,  dwPageSize                  : DWORD
+                    usize_layout.size, // 3,  lpMinimumApplicationAddress : LPVOID
+                    usize_layout.size, // 4,  lpMaximumApplicationAddress : LPVOID
+                    usize_layout.size, // 5,  dwActiveProcessorMask       : DWORD_PTR
+                    dword_layout.size, // 6,  dwNumberOfProcessors        : DWORD
+                    dword_layout.size, // 7,  dwProcessorType             : DWORD
+                    dword_layout.size, // 8,  dwAllocationGranularity     : DWORD
+                    word_layout.size,  // 9,  wProcessorLevel             : WORD
+                    word_layout.size,  // 10, wProcessorRevision          : WORD
+                ];
+                let field_offsets: SmallVec<[Size; 11]> = field_sizes
+                    .iter()
+                    .copied()
+                    .scan(Size::ZERO, |a, x| {
+                        let res = Some(*a);
+                        *a += x;
+                        res
+                    })
+                    .collect();
+
+                // Set page size.
+                let page_size = system_info.offset(
+                    field_offsets[2],
+                    MemPlaceMeta::None,
+                    dword_layout,
+                    &this.tcx,
+                )?;
+                this.write_scalar(
+                    Scalar::from_int(PAGE_SIZE, dword_layout.size),
+                    &page_size.into(),
+                )?;
                 // Set number of processors.
-                let dword_size = Size::from_bytes(4);
-                let num_cpus = this.mplace_field(&system_info, 6)?;
-                this.write_scalar(Scalar::from_int(NUM_CPUS, dword_size), &num_cpus.into())?;
+                let num_cpus = system_info.offset(
+                    field_offsets[6],
+                    MemPlaceMeta::None,
+                    dword_layout,
+                    &this.tcx,
+                )?;
+                this.write_scalar(Scalar::from_int(NUM_CPUS, dword_layout.size), &num_cpus.into())?;
             }
 
             // Thread-local storage
@@ -367,6 +414,15 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 );
                 // There is only one thread, so this always succeeds and returns TRUE.
                 this.write_scalar(Scalar::from_i32(1), dest)?;
+            }
+            "GetCurrentThread" if this.frame_in_std() => {
+                let [] = this.check_shim(abi, Abi::System { unwind: false }, link_name, args)?;
+                this.write_scalar(Scalar::from_machine_isize(1, this), dest)?;
+            }
+            "GetCurrentProcessId" if this.frame_in_std() => {
+                let [] = this.check_shim(abi, Abi::System { unwind: false }, link_name, args)?;
+                let result = this.GetCurrentProcessId()?;
+                this.write_scalar(Scalar::from_u32(result), dest)?;
             }
 
             _ => return Ok(EmulateByNameResult::NotSupported),

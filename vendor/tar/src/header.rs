@@ -420,6 +420,8 @@ impl Header {
     /// in the appropriate format. May fail if the link name is too long or if
     /// the path specified is not Unicode and this is a Windows platform. Will
     /// strip out any "." path component, which signifies the current directory.
+    ///
+    /// To use GNU long link names, prefer instead [`crate::Builder::append_link`].
     pub fn set_link_name<P: AsRef<Path>>(&mut self, p: P) -> io::Result<()> {
         self._set_link_name(p.as_ref())
     }
@@ -431,6 +433,18 @@ impl Header {
                 format!("{} when setting link name for {}", err, self.path_lossy()),
             )
         })
+    }
+
+    /// Sets the link name for this header without any transformation.
+    ///
+    /// This function is like [`Self::set_link_name`] but accepts an arbitrary byte array.
+    /// Hence it will not perform any canonicalization, such as replacing duplicate `//` with `/`.
+    pub fn set_link_name_literal<P: AsRef<[u8]>>(&mut self, p: P) -> io::Result<()> {
+        self._set_link_name_literal(p.as_ref())
+    }
+
+    fn _set_link_name_literal(&mut self, bytes: &[u8]) -> io::Result<()> {
+        copy_into(&mut self.as_old_mut().linkname, bytes)
     }
 
     /// Returns the mode bits for this file
@@ -741,8 +755,9 @@ impl Header {
                 //
                 // We just need things to be deterministic here so just pick
                 // something that isn't zero. This time, chosen after careful
-                // deliberation, corresponds to Nov 29, 1973.
-                self.set_mtime(123456789);
+                // deliberation, corresponds to Jul 23, 2006 -- the date of the
+                // first commit for what would become Rust.
+                self.set_mtime(1153704088);
 
                 self.set_uid(0);
                 self.set_gid(0);
