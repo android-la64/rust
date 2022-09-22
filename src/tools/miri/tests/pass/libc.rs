@@ -1,23 +1,20 @@
-// ignore-windows: No libc on Windows
-// compile-flags: -Zmiri-disable-isolation
-
+//@ignore-target-windows: No libc on Windows
+//@compile-flags: -Zmiri-disable-isolation
 #![feature(rustc_private)]
 
-extern crate libc;
+use std::fs::{remove_file, File};
+use std::os::unix::io::AsRawFd;
 
-#[cfg(target_os = "linux")]
 fn tmp() -> std::path::PathBuf {
     std::env::var("MIRI_TEMP")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| std::env::temp_dir())
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
 fn test_posix_fadvise() {
     use std::convert::TryInto;
-    use std::fs::{remove_file, File};
     use std::io::Write;
-    use std::os::unix::io::AsRawFd;
 
     let path = tmp().join("miri_test_libc_posix_fadvise.txt");
     // Cleanup before test
@@ -42,11 +39,9 @@ fn test_posix_fadvise() {
     assert_eq!(result, 0);
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux"))]
 fn test_sync_file_range() {
-    use std::fs::{remove_file, File};
     use std::io::Write;
-    use std::os::unix::io::AsRawFd;
 
     let path = tmp().join("miri_test_libc_sync_file_range.txt");
     // Cleanup before test.
@@ -208,7 +203,7 @@ fn test_rwlock_libc_static_initializer() {
 /// Test whether the `prctl` shim correctly sets the thread name.
 ///
 /// Note: `prctl` exists only on Linux.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux"))]
 fn test_prctl_thread_name() {
     use libc::c_long;
     use std::ffi::CString;
@@ -218,7 +213,8 @@ fn test_prctl_thread_name() {
             libc::prctl(libc::PR_GET_NAME, buf.as_mut_ptr(), 0 as c_long, 0 as c_long, 0 as c_long),
             0,
         );
-        assert_eq!(b"<unnamed>\0", &buf);
+        // Rust runtime might set thread name, so we allow two options here.
+        assert!(&buf[..10] == b"<unnamed>\0" || &buf[..5] == b"main\0");
         let thread_name = CString::new("hello").expect("CString::new failed");
         assert_eq!(
             libc::prctl(
@@ -258,9 +254,9 @@ fn test_prctl_thread_name() {
 
 /// Tests whether each thread has its own `__errno_location`.
 fn test_thread_local_errno() {
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "linux")]
     use libc::__errno_location;
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "freebsd"))]
     use libc::__error as __errno_location;
 
     unsafe {
@@ -277,7 +273,7 @@ fn test_thread_local_errno() {
 }
 
 /// Tests whether clock support exists at all
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux"))]
 fn test_clocks() {
     let mut tp = std::mem::MaybeUninit::<libc::timespec>::uninit();
     let is_error = unsafe { libc::clock_gettime(libc::CLOCK_REALTIME, tp.as_mut_ptr()) };
@@ -290,11 +286,57 @@ fn test_clocks() {
     assert_eq!(is_error, 0);
 }
 
+fn test_posix_gettimeofday() {
+    let mut tp = std::mem::MaybeUninit::<libc::timeval>::uninit();
+    let tz = std::ptr::null_mut::<libc::timezone>();
+    #[cfg(target_os = "macos")] // `tz` has a different type on macOS
+    let tz = tz as *mut libc::c_void;
+    let is_error = unsafe { libc::gettimeofday(tp.as_mut_ptr(), tz) };
+    assert_eq!(is_error, 0);
+    let tv = unsafe { tp.assume_init() };
+    assert!(tv.tv_sec > 0);
+    assert!(tv.tv_usec >= 0); // Theoretically this could be 0.
+
+    // Test that non-null tz returns an error.
+    let mut tz = std::mem::MaybeUninit::<libc::timezone>::uninit();
+    let tz_ptr = tz.as_mut_ptr();
+    #[cfg(target_os = "macos")] // `tz` has a different type on macOS
+    let tz_ptr = tz_ptr as *mut libc::c_void;
+    let is_error = unsafe { libc::gettimeofday(tp.as_mut_ptr(), tz_ptr) };
+    assert_eq!(is_error, -1);
+}
+
+fn test_isatty() {
+    // Testing whether our isatty shim returns the right value would require controlling whether
+    // these streams are actually TTYs, which is hard.
+    // For now, we just check that these calls are supported at all.
+    unsafe {
+        libc::isatty(libc::STDIN_FILENO);
+        libc::isatty(libc::STDOUT_FILENO);
+        libc::isatty(libc::STDERR_FILENO);
+
+        // But when we open a file, it is definitely not a TTY.
+        let path = tmp().join("notatty.txt");
+        // Cleanup before test.
+        remove_file(&path).ok();
+        let file = File::create(&path).unwrap();
+
+        assert_eq!(libc::isatty(file.as_raw_fd()), 0);
+        assert_eq!(std::io::Error::last_os_error().raw_os_error().unwrap(), libc::ENOTTY);
+
+        // Cleanup after test.
+        drop(file);
+        remove_file(&path).unwrap();
+    }
+}
+
 fn main() {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     test_posix_fadvise();
 
-    #[cfg(target_os = "linux")]
+    test_posix_gettimeofday();
+
+    #[cfg(any(target_os = "linux"))]
     test_sync_file_range();
 
     test_mutex_libc_init_recursive();
@@ -302,14 +344,16 @@ fn main() {
     test_mutex_libc_init_errorcheck();
     test_rwlock_libc_static_initializer();
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux"))]
     test_mutex_libc_static_initializer_recursive();
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux"))]
     test_prctl_thread_name();
 
     test_thread_local_errno();
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux"))]
     test_clocks();
+
+    test_isatty();
 }

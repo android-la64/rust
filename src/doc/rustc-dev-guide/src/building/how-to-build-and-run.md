@@ -1,10 +1,7 @@
 # How to Build and Run the Compiler
 
 The compiler is built using a tool called `x.py`. You will need to
-have Python installed to run it. But before we get to that, if you're going to
-be hacking on `rustc`, you'll want to tweak the configuration of the compiler.
-The default configuration is oriented towards running the compiler as a user,
-not a developer.
+have Python installed to run it.
 
 For instructions on how to install Python and other prerequisites,
 see [the next page](./prerequisites.md).
@@ -66,7 +63,7 @@ If you set `download-ci-llvm = true`, in some circumstances, such as when
 updating the version of LLVM used by `rustc`, you may want to temporarily
 disable this feature. See the ["Updating LLVM" section] for more.
 
-["Updating LLVM" section]: https://rustc-dev-guide.rust-lang.org/backend/updating-llvm.html?highlight=download-ci-llvm#feature-updates
+["Updating LLVM" section]: ../backend/updating-llvm.md#feature-updates
 
 If you have already built `rustc` and you change settings related to LLVM, then you may have to
 execute `rm -rf build` for subsequent configuration changes to take effect. Note that `./x.py
@@ -138,34 +135,23 @@ Once you've created a `config.toml`, you are now ready to run
 probably the best "go to" command for building a local rust:
 
 ```bash
-./x.py build -i library/std
+./x.py build library
 ```
 
-This may *look* like it only builds `std`, but that is not the case.
+This may *look* like it only builds the standard library, but that is not the case.
 What this command does is the following:
 
-- Build `std` using the stage0 compiler (using incremental)
-- Build `rustc` using the stage0 compiler (using incremental)
+- Build `std` using the stage0 compiler
+- Build `rustc` using the stage0 compiler
   - This produces the stage1 compiler
-- Build `std` using the stage1 compiler (cannot use incremental)
+- Build `std` using the stage1 compiler
 
 This final product (stage1 compiler + libs built using that compiler)
 is what you need to build other Rust programs (unless you use `#![no_std]` or
 `#![no_core]`).
 
-The command includes the `-i` switch which enables incremental compilation.
-This will be used to speed up the first two steps of the process:
-in particular, if you make a small change, we ought to be able to use your old
-results to make producing the stage1 **compiler** faster.
-
-Unfortunately, incremental cannot be used to speed up making the
-stage1 libraries.  This is because incremental only works when you run
-the *same compiler* twice in a row.  In this case, we are building a
-*new stage1 compiler* every time. Therefore, the old incremental
-results may not apply. **As a result, you will probably find that
-building the stage1 `std` is a bottleneck for you** -- but fear not,
-there is a (hacky) workaround.  See [the section on "recommended
-workflows"](./suggested.md) below.
+You will probably find that building the stage1 `std` is a bottleneck for you** -- but fear not,
+there is a (hacky) workaround. See [the section on "recommended workflows"](./suggested.md) below.
 
 Note that this whole command just gives you a subset of the full `rustc`
 build. The **full** `rustc` build (what you get with `./x.py build
@@ -185,13 +171,8 @@ the compiler unless you are planning to use a recently added nightly feature.
 Instead, you can just build using the bootstrap compiler.
 
 ```bash
-./x.py build --stage 0 library/std
+./x.py build --stage 0 library
 ```
-
-Sometimes you might just want to test if the part you’re working on can
-compile. Using these commands you can test that it compiles before doing
-a bigger build to make sure it works with the compiler. As shown before
-you can also pass flags at the end such as `--stage`.
 
 ## Creating a rustup toolchain
 
@@ -239,6 +220,50 @@ fall back to using `cargo` from the installed `nightly`, `beta`, or `stable` too
 `rustup install nightly` if you haven't already.  See the
 [rustup documentation on custom toolchains](https://rust-lang.github.io/rustup/concepts/toolchains.html#custom-toolchains).
 
+## Building targets for cross-compilation
+
+To produce a compiler that can cross-compile for other targets,
+pass any number of `target` flags to `x.py build`.
+For example, if your host platform is `x86_64-unknown-linux-gnu`
+and your cross-compilation target is `wasm32-wasi`, you can build with:
+
+```bash
+./x.py build --target x86_64-unknown-linux-gnu --target wasm32-wasi
+```
+
+Note that if you want the resulting compiler to be able to build crates that
+involve proc macros or build scripts, you must be sure to explicitly build target support for the
+host platform (in this case, `x86_64-unknown-linux-gnu`).
+
+If you want to always build for other targets without needing to pass flags to `x.py build`,
+you can configure this in the `[build]` section of your `config.toml` like so:
+
+```toml
+[build]
+target = ["x86_64-unknown-linux-gnu", "wasm32-wasi"]
+```
+
+Note that building for some targets requires having external dependencies installed
+(e.g. building musl targets requires a local copy of musl).
+Any target-specific configuration (e.g. the path to a local copy of musl)
+will need to be provided by your `config.toml`.
+Please see `config.toml.example` for information on target-specific configuration keys.
+
+For examples of the complete configuration necessary to build a target, please visit
+[the rustc book](https://doc.rust-lang.org/rustc/platform-support.html),
+select any target under the "Platform Support" heading on the left,
+and see the section related to building a compiler for that target.
+For targets without a corresponding page in the rustc book,
+it may be useful to [inspect the Dockerfiles](../tests/docker.md)
+that the Rust infrastructure itself uses to set up and configure cross-compilation.
+
+If you have followed the directions from the prior section on creating a rustup toolchain,
+then once you have built your compiler you will be able to use it to cross-compile like so:
+
+```bash
+cargo +stage1 build --target wasm32-wasi
+```
+
 ## Other `x.py` commands
 
 Here are a few other useful `x.py` commands. We'll cover some of them in detail
@@ -251,7 +276,7 @@ in other sections:
     `rustdoc` (which doesn't take too long)
 - Running tests (see the [section on running tests](../tests/running.html) for
   more details):
-  - `./x.py test library/std` – runs the `#[test]` tests from `std`
+  - `./x.py test library/std` – runs the unit tests and integration tests from `std`
   - `./x.py test src/test/ui` – runs the `ui` test suite
   - `./x.py test src/test/ui/const-generics` - runs all the tests in
   the `const-generics/` subdirectory of the `ui` test suite

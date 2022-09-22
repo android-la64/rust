@@ -1,5 +1,5 @@
 #![feature(rustc_private, stmt_expr_attributes)]
-#![allow(clippy::manual_range_contains)]
+#![allow(clippy::manual_range_contains, clippy::useless_format)]
 
 extern crate rustc_data_structures;
 extern crate rustc_driver;
@@ -27,7 +27,7 @@ use rustc_middle::{
     },
     ty::{query::ExternProviders, TyCtxt},
 };
-use rustc_session::{search_paths::PathKind, CtfeBacktrace};
+use rustc_session::{config::CrateType, search_paths::PathKind, CtfeBacktrace};
 
 use miri::{BacktraceStyle, ProvenanceMode};
 
@@ -60,6 +60,10 @@ impl rustc_driver::Callbacks for MiriCompilerCalls {
 
         queries.global_ctxt().unwrap().peek_mut().enter(|tcx| {
             init_late_loggers(tcx);
+            if !tcx.sess.crate_types().contains(&CrateType::Executable) {
+                tcx.sess.fatal("miri only makes sense on bin crates");
+            }
+
             let (entry_def_id, entry_type) = if let Some(entry_def) = tcx.entry_fn(()) {
                 entry_def
             } else {
@@ -143,6 +147,11 @@ impl rustc_driver::Callbacks for MiriBeRustCompilerCalls {
     }
 }
 
+fn show_error(msg: String) -> ! {
+    eprintln!("fatal error: {}", msg);
+    std::process::exit(1)
+}
+
 fn init_early_loggers() {
     // Note that our `extern crate log` is *not* the same as rustc's; as a result, we have to
     // initialize them both, and we always initialize `miri`'s first.
@@ -199,9 +208,9 @@ fn init_late_loggers(tcx: TyCtxt<'_>) {
     }
 }
 
-/// Returns the "default sysroot" that Miri will use if no `--sysroot` flag is set.
+/// Returns the "default sysroot" that Miri will use for host things if no `--sysroot` flag is set.
 /// Should be a compile-time constant.
-fn compile_time_sysroot() -> Option<String> {
+fn host_sysroot() -> Option<String> {
     if option_env!("RUSTC_STAGE").is_some() {
         // This is being built as part of rustc, and gets shipped with rustup.
         // We can rely on the sysroot computation in librustc_session.
@@ -214,38 +223,69 @@ fn compile_time_sysroot() -> Option<String> {
     let home = option_env!("RUSTUP_HOME").or(option_env!("MULTIRUST_HOME"));
     let toolchain = option_env!("RUSTUP_TOOLCHAIN").or(option_env!("MULTIRUST_TOOLCHAIN"));
     Some(match (home, toolchain) {
-        (Some(home), Some(toolchain)) => format!("{}/toolchains/{}", home, toolchain),
-        _ =>
-            option_env!("RUST_SYSROOT")
-                .expect(
+        (Some(home), Some(toolchain)) => {
+            // Check that at runtime, we are still in this toolchain (if there is any toolchain).
+            if let Some(toolchain_runtime) =
+                env::var_os("RUSTUP_TOOLCHAIN").or_else(|| env::var_os("MULTIRUST_TOOLCHAIN"))
+            {
+                if toolchain_runtime != toolchain {
+                    show_error(format!(
+                        "This Miri got built with local toolchain `{toolchain}`, but now is being run under a different toolchain. \n\
+                        Make sure to run Miri in the toolchain it got built with, e.g. via `cargo +{toolchain} miri`."
+                    ));
+                }
+            }
+            format!("{}/toolchains/{}", home, toolchain)
+        }
+        _ => option_env!("RUST_SYSROOT")
+            .unwrap_or_else(|| {
+                show_error(format!(
                     "To build Miri without rustup, set the `RUST_SYSROOT` env var at build time",
-                )
-                .to_owned(),
+                ))
+            })
+            .to_owned(),
     })
 }
 
 /// Execute a compiler with the given CLI arguments and callbacks.
 fn run_compiler(
     mut args: Vec<String>,
+    target_crate: bool,
     callbacks: &mut (dyn rustc_driver::Callbacks + Send),
-    insert_default_args: bool,
 ) -> ! {
     // Make sure we use the right default sysroot. The default sysroot is wrong,
     // because `get_or_default_sysroot` in `librustc_session` bases that on `current_exe`.
     //
-    // Make sure we always call `compile_time_sysroot` as that also does some sanity-checks
-    // of the environment we were built in.
-    // FIXME: Ideally we'd turn a bad build env into a compile-time error via CTFE or so.
-    if let Some(sysroot) = compile_time_sysroot() {
-        let sysroot_flag = "--sysroot";
-        if !args.iter().any(|e| e == sysroot_flag) {
+    // Make sure we always call `host_sysroot` as that also does some sanity-checks
+    // of the environment we were built in and whether it matches what we are running in.
+    let host_default_sysroot = host_sysroot();
+    // Now see if we even need to set something.
+    let sysroot_flag = "--sysroot";
+    if !args.iter().any(|e| e == sysroot_flag) {
+        // No sysroot was set, let's see if we have a custom default we want to configure.
+        let default_sysroot = if target_crate {
+            // Using the built-in default here would be plain wrong, so we *require*
+            // the env var to make sure things make sense.
+            Some(env::var("MIRI_SYSROOT").unwrap_or_else(|_| {
+                show_error(format!(
+                    "Miri was invoked in 'target' mode without `MIRI_SYSROOT` or `--sysroot` being set"
+                ))
+            }))
+        } else {
+            host_default_sysroot
+        };
+        if let Some(sysroot) = default_sysroot {
             // We need to overwrite the default that librustc_session would compute.
             args.push(sysroot_flag.to_owned());
             args.push(sysroot);
         }
     }
 
-    if insert_default_args {
+    // Don't insert `MIRI_DEFAULT_ARGS`, in particular, `--cfg=miri`, if we are building
+    // a "host" crate. That may cause procedural macros (and probably build scripts) to
+    // depend on Miri-only symbols, such as `miri_resolve_frame`:
+    // https://github.com/rust-lang/miri/issues/1760
+    if target_crate {
         // Some options have different defaults in Miri than in plain rustc; apply those by making
         // them the first arguments after the binary name (but later arguments can overwrite them).
         args.splice(1..1, miri::MIRI_DEFAULT_ARGS.iter().map(ToString::to_string));
@@ -283,13 +323,8 @@ fn main() {
         // We cannot use `rustc_driver::main` as we need to adjust the CLI arguments.
         run_compiler(
             env::args().collect(),
+            target_crate,
             &mut MiriBeRustCompilerCalls { target_crate },
-            // Don't insert `MIRI_DEFAULT_ARGS`, in particular, `--cfg=miri`, if we are building
-            // a "host" crate. That may cause procedural macros (and probably build scripts) to
-            // depend on Miri-only symbols, such as `miri_resolve_frame`:
-            // https://github.com/rust-lang/miri/issues/1760
-            #[rustfmt::skip]
-            /* insert_default_args: */ target_crate,
         )
     }
 
@@ -328,18 +363,6 @@ fn main() {
                 "WARNING: the flag `-Zmiri-check-number-validity` no longer has any effect \
                         since it is now enabled by default"
             );
-        } else if arg == "-Zmiri-allow-uninit-numbers" {
-            eprintln!(
-                "WARNING: `-Zmiri-allow-uninit-numbers` is deprecated and planned to be removed. \
-                Please let us know at <https://github.com/rust-lang/miri/issues/2187> if you rely on this flag."
-            );
-            miri_config.allow_uninit_numbers = true;
-        } else if arg == "-Zmiri-allow-ptr-int-transmute" {
-            eprintln!(
-                "WARNING: `-Zmiri-allow-ptr-int-transmute` is deprecated and planned to be removed. \
-                Please let us know at <https://github.com/rust-lang/miri/issues/2188> if you rely on this flag."
-            );
-            miri_config.allow_ptr_int_transmute = true;
         } else if arg == "-Zmiri-disable-abi-check" {
             miri_config.check_abi = false;
         } else if arg == "-Zmiri-disable-isolation" {
@@ -351,6 +374,8 @@ fn main() {
             miri_config.isolated_op = miri::IsolatedOp::Allow;
         } else if arg == "-Zmiri-disable-weak-memory-emulation" {
             miri_config.weak_memory_emulation = false;
+        } else if arg == "-Zmiri-track-weak-memory-loads" {
+            miri_config.track_outdated_loads = true;
         } else if let Some(param) = arg.strip_prefix("-Zmiri-isolation-error=") {
             if matches!(isolation_enabled, Some(false)) {
                 panic!("-Zmiri-isolation-error cannot be used along with -Zmiri-disable-isolation");
@@ -374,20 +399,19 @@ fn main() {
         } else if arg == "-Zmiri-panic-on-unsupported" {
             miri_config.panic_on_unsupported = true;
         } else if arg == "-Zmiri-tag-raw-pointers" {
-            miri_config.tag_raw = true;
+            eprintln!("WARNING: `-Zmiri-tag-raw-pointers` has no effect; it is enabled by default");
         } else if arg == "-Zmiri-strict-provenance" {
             miri_config.provenance_mode = ProvenanceMode::Strict;
-            miri_config.tag_raw = true;
         } else if arg == "-Zmiri-permissive-provenance" {
             miri_config.provenance_mode = ProvenanceMode::Permissive;
-            miri_config.tag_raw = true;
         } else if arg == "-Zmiri-mute-stdout-stderr" {
             miri_config.mute_stdout_stderr = true;
+        } else if arg == "-Zmiri-retag-fields" {
+            miri_config.retag_fields = true;
         } else if arg == "-Zmiri-track-raw-pointers" {
             eprintln!(
-                "WARNING: -Zmiri-track-raw-pointers has been renamed to -Zmiri-tag-raw-pointers, the old name is deprecated."
+                "WARNING: `-Zmiri-track-raw-pointers` has no effect; it is enabled by default"
             );
-            miri_config.tag_raw = true;
         } else if let Some(param) = arg.strip_prefix("-Zmiri-seed=") {
             if miri_config.seed.is_some() {
                 panic!("Cannot specify -Zmiri-seed multiple times!");
@@ -410,7 +434,7 @@ fn main() {
                         err
                     ),
             };
-            for id in ids.into_iter().map(miri::PtrId::new) {
+            for id in ids.into_iter().map(miri::SbTag::new) {
                 if let Some(id) = id {
                     miri_config.tracked_pointer_tags.insert(id);
                 } else {
@@ -468,6 +492,15 @@ fn main() {
                     ),
             };
             miri_config.preemption_rate = rate;
+        } else if arg == "-Zmiri-report-progress" {
+            // This makes it take a few seconds between progress reports on my laptop.
+            miri_config.report_progress = Some(1_000_000);
+        } else if let Some(param) = arg.strip_prefix("-Zmiri-report-progress=") {
+            let interval = match param.parse::<u32>() {
+                Ok(i) => i,
+                Err(err) => panic!("-Zmiri-report-progress requires a `u32`: {}", err),
+            };
+            miri_config.report_progress = Some(interval);
         } else if let Some(param) = arg.strip_prefix("-Zmiri-measureme=") {
             miri_config.measureme_out = Some(param.to_string());
         } else if let Some(param) = arg.strip_prefix("-Zmiri-backtrace=") {
@@ -485,9 +518,5 @@ fn main() {
 
     debug!("rustc arguments: {:?}", rustc_args);
     debug!("crate arguments: {:?}", miri_config.args);
-    run_compiler(
-        rustc_args,
-        &mut MiriCompilerCalls { miri_config },
-        /* insert_default_args: */ true,
-    )
+    run_compiler(rustc_args, /* target_crate: */ true, &mut MiriCompilerCalls { miri_config })
 }

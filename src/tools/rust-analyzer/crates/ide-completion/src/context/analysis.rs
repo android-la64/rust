@@ -11,23 +11,24 @@ use syntax::{
 };
 
 use crate::context::{
-    CompletionContext, DotAccess, DotAccessKind, IdentContext, ItemListKind, LifetimeContext,
-    LifetimeKind, NameContext, NameKind, NameRefContext, NameRefKind, ParamKind, PathCompletionCtx,
-    PathKind, PatternContext, PatternRefutability, Qualified, QualifierCtx, TypeAscriptionTarget,
-    TypeLocation, COMPLETION_MARKER,
+    AttrCtx, CompletionAnalysis, CompletionContext, DotAccess, DotAccessKind, ExprCtx,
+    ItemListKind, LifetimeContext, LifetimeKind, NameContext, NameKind, NameRefContext,
+    NameRefKind, ParamContext, ParamKind, PathCompletionCtx, PathKind, PatternContext,
+    PatternRefutability, Qualified, QualifierCtx, TypeAscriptionTarget, TypeLocation,
+    COMPLETION_MARKER,
 };
 
 impl<'a> CompletionContext<'a> {
     /// Expand attributes and macro calls at the current cursor position for both the original file
     /// and fake file repeatedly. As soon as one of the two expansions fail we stop so the original
     /// and speculative states stay in sync.
-    pub(super) fn expand_and_fill(
+    pub(super) fn expand_and_analyze(
         &mut self,
         mut original_file: SyntaxNode,
         mut speculative_file: SyntaxNode,
         mut offset: TextSize,
         mut fake_ident_token: SyntaxToken,
-    ) -> Option<()> {
+    ) -> Option<CompletionAnalysis> {
         let _p = profile::span("CompletionContext::expand_and_fill");
         let mut derive_ctx = None;
 
@@ -157,15 +158,56 @@ impl<'a> CompletionContext<'a> {
             break 'expansion;
         }
 
-        self.fill(&original_file, speculative_file, offset, derive_ctx)
+        self.analyze(&original_file, speculative_file, offset, derive_ctx)
     }
 
     /// Calculate the expected type and name of the cursor position.
-    fn expected_type_and_name(&self) -> (Option<Type>, Option<NameOrNameRef>) {
+    fn expected_type_and_name(
+        &self,
+        name_like: &ast::NameLike,
+    ) -> (Option<Type>, Option<NameOrNameRef>) {
         let mut node = match self.token.parent() {
             Some(it) => it,
             None => return (None, None),
         };
+
+        let strip_refs = |mut ty: Type| match name_like {
+            ast::NameLike::NameRef(n) => {
+                let p = match n.syntax().parent() {
+                    Some(it) => it,
+                    None => return ty,
+                };
+                let top_syn = match_ast! {
+                    match p {
+                        ast::FieldExpr(e) => e
+                            .syntax()
+                            .ancestors()
+                            .map_while(ast::FieldExpr::cast)
+                            .last()
+                            .map(|it| it.syntax().clone()),
+                        ast::PathSegment(e) => e
+                            .syntax()
+                            .ancestors()
+                            .skip(1)
+                            .take_while(|it| ast::Path::can_cast(it.kind()) || ast::PathExpr::can_cast(it.kind()))
+                            .find_map(ast::PathExpr::cast)
+                            .map(|it| it.syntax().clone()),
+                        _ => None
+                    }
+                };
+                let top_syn = match top_syn {
+                    Some(it) => it,
+                    None => return ty,
+                };
+                for _ in top_syn.ancestors().skip(1).map_while(ast::RefExpr::cast) {
+                    cov_mark::hit!(expected_type_fn_param_ref);
+                    ty = ty.strip_reference();
+                }
+                ty
+            }
+            _ => ty,
+        };
+
         loop {
             break match_ast! {
                 match node {
@@ -198,13 +240,9 @@ impl<'a> CompletionContext<'a> {
                             self.token.clone(),
                         ).map(|ap| {
                             let name = ap.ident().map(NameOrNameRef::Name);
-                            let ty = if has_ref(&self.token) {
-                                cov_mark::hit!(expected_type_fn_param_ref);
-                                ap.ty.remove_ref()
-                            } else {
-                                Some(ap.ty)
-                            };
-                            (ty, name)
+
+                            let ty = strip_refs(ap.ty);
+                            (Some(ty), name)
                         })
                         .unwrap_or((None, None))
                     },
@@ -254,7 +292,9 @@ impl<'a> CompletionContext<'a> {
                     // match foo { $0 }
                     // match foo { ..., pat => $0 }
                     ast::MatchExpr(it) => {
-                        let ty = if self.previous_token_is(T![=>]) {
+                        let on_arrow = previous_non_trivia_token(self.token.clone()).map_or(false, |it| T![=>] == it.kind());
+
+                        let ty = if on_arrow {
                             // match foo { ..., pat => $0 }
                             cov_mark::hit!(expected_type_match_arm_body_without_leading_char);
                             cov_mark::hit!(expected_type_match_arm_body_with_leading_char);
@@ -309,13 +349,13 @@ impl<'a> CompletionContext<'a> {
 
     /// Fill the completion context, this is what does semantic reasoning about the surrounding context
     /// of the completion location.
-    fn fill(
+    fn analyze(
         &mut self,
         original_file: &SyntaxNode,
         file_with_fake_ident: SyntaxNode,
         offset: TextSize,
         derive_ctx: Option<(SyntaxNode, SyntaxNode, TextSize, ast::Attr)>,
-    ) -> Option<()> {
+    ) -> Option<CompletionAnalysis> {
         let fake_ident_token = file_with_fake_ident.token_at_offset(offset).right_biased()?;
         let syntax_element = NodeOrToken::Token(fake_ident_token);
         if is_in_token_of_for_loop(syntax_element.clone()) {
@@ -326,11 +366,6 @@ impl<'a> CompletionContext<'a> {
             // such that this special case becomes unnecessary
             return None;
         }
-
-        self.previous_token =
-            syntax_element.clone().into_token().and_then(previous_non_trivia_token);
-
-        (self.expected_type, self.expected_name) = self.expected_type_and_name();
 
         // Overwrite the path kind for derives
         if let Some((original_file, file_with_fake_ident, offset, origin_attr)) = derive_ctx {
@@ -351,8 +386,7 @@ impl<'a> CompletionContext<'a> {
                             .collect(),
                     };
                 }
-                self.ident_ctx = IdentContext::NameRef(nameref_ctx);
-                return Some(());
+                return Some(CompletionAnalysis::NameRef(nameref_ctx));
             }
             return None;
         }
@@ -360,62 +394,59 @@ impl<'a> CompletionContext<'a> {
         let name_like = match find_node_at_offset(&file_with_fake_ident, offset) {
             Some(it) => it,
             None => {
-                if let Some(original) = ast::String::cast(self.original_token.clone()) {
-                    self.ident_ctx = IdentContext::String {
-                        original,
-                        expanded: ast::String::cast(self.token.clone()),
-                    };
-                } else {
-                    // Fix up trailing whitespace problem
-                    // #[attr(foo = $0
-                    let token = if self.token.kind() == SyntaxKind::WHITESPACE {
-                        self.previous_token.as_ref()?
+                let analysis =
+                    if let Some(original) = ast::String::cast(self.original_token.clone()) {
+                        CompletionAnalysis::String {
+                            original,
+                            expanded: ast::String::cast(self.token.clone()),
+                        }
                     } else {
-                        &self.token
+                        // Fix up trailing whitespace problem
+                        // #[attr(foo = $0
+                        let token =
+                            syntax::algo::skip_trivia_token(self.token.clone(), Direction::Prev)?;
+                        let p = token.parent()?;
+                        if p.kind() == SyntaxKind::TOKEN_TREE
+                            && p.ancestors().any(|it| it.kind() == SyntaxKind::META)
+                        {
+                            let colon_prefix = previous_non_trivia_token(self.token.clone())
+                                .map_or(false, |it| T![:] == it.kind());
+                            CompletionAnalysis::UnexpandedAttrTT {
+                                fake_attribute_under_caret: syntax_element
+                                    .ancestors()
+                                    .find_map(ast::Attr::cast),
+                                colon_prefix,
+                            }
+                        } else {
+                            return None;
+                        }
                     };
-                    let p = token.parent()?;
-                    if p.kind() == SyntaxKind::TOKEN_TREE
-                        && p.ancestors().any(|it| it.kind() == SyntaxKind::META)
-                    {
-                        self.ident_ctx = IdentContext::UnexpandedAttrTT {
-                            fake_attribute_under_caret: syntax_element
-                                .ancestors()
-                                .find_map(ast::Attr::cast),
-                        };
-                    } else {
-                        return None;
-                    }
-                }
-                return Some(());
+                return Some(analysis);
             }
         };
-
-        match name_like {
-            ast::NameLike::Lifetime(lifetime) => {
-                self.ident_ctx = IdentContext::Lifetime(Self::classify_lifetime(
-                    &self.sema,
-                    original_file,
-                    lifetime,
-                )?);
-            }
+        (self.expected_type, self.expected_name) = self.expected_type_and_name(&name_like);
+        let analysis = match name_like {
+            ast::NameLike::Lifetime(lifetime) => CompletionAnalysis::Lifetime(
+                Self::classify_lifetime(&self.sema, original_file, lifetime)?,
+            ),
             ast::NameLike::NameRef(name_ref) => {
                 let parent = name_ref.syntax().parent()?;
                 let (nameref_ctx, qualifier_ctx) =
                     Self::classify_name_ref(&self.sema, &original_file, name_ref, parent.clone())?;
 
                 self.qualifier_ctx = qualifier_ctx;
-                self.ident_ctx = IdentContext::NameRef(nameref_ctx);
+                CompletionAnalysis::NameRef(nameref_ctx)
             }
             ast::NameLike::Name(name) => {
                 let name_ctx = Self::classify_name(&self.sema, original_file, name)?;
-                self.ident_ctx = IdentContext::Name(name_ctx);
+                CompletionAnalysis::Name(name_ctx)
             }
-        }
-        Some(())
+        };
+        Some(analysis)
     }
 
     fn classify_lifetime(
-        _sema: &Semantics<RootDatabase>,
+        _sema: &Semantics<'_, RootDatabase>,
         original_file: &SyntaxNode,
         lifetime: ast::Lifetime,
     ) -> Option<LifetimeContext> {
@@ -442,7 +473,7 @@ impl<'a> CompletionContext<'a> {
     }
 
     fn classify_name(
-        sema: &Semantics<RootDatabase>,
+        sema: &Semantics<'_, RootDatabase>,
         original_file: &SyntaxNode,
         name: ast::Name,
     ) -> Option<NameContext> {
@@ -482,7 +513,7 @@ impl<'a> CompletionContext<'a> {
     }
 
     fn classify_name_ref(
-        sema: &Semantics<RootDatabase>,
+        sema: &Semantics<'_, RootDatabase>,
         original_file: &SyntaxNode,
         name_ref: ast::NameRef,
         parent: SyntaxNode,
@@ -493,12 +524,15 @@ impl<'a> CompletionContext<'a> {
             |kind| (NameRefContext { nameref: nameref.clone(), kind }, Default::default());
 
         if let Some(record_field) = ast::RecordExprField::for_field_name(&name_ref) {
+            let dot_prefix = previous_non_trivia_token(name_ref.syntax().clone())
+                .map_or(false, |it| T![.] == it.kind());
+
             return find_node_in_file_compensated(
                 sema,
                 original_file,
                 &record_field.parent_record_lit(),
             )
-            .map(NameRefKind::RecordExpr)
+            .map(|expr| NameRefKind::RecordExpr { expr, dot_prefix })
             .map(make_res);
         }
         if let Some(record_field) = ast::RecordPatField::for_field_name_ref(&name_ref) {
@@ -558,7 +592,8 @@ impl<'a> CompletionContext<'a> {
             has_call_parens: false,
             has_macro_bang: false,
             qualified: Qualified::No,
-            parent: path.parent_path(),
+            parent: None,
+            path: path.clone(),
             kind: PathKind::Item { kind: ItemListKind::SourceFile },
             has_type_args: false,
             use_tree_parent: false,
@@ -764,17 +799,27 @@ impl<'a> CompletionContext<'a> {
                 .map_or(false, |it| it.semicolon_token().is_none());
             let impl_ = fetch_immediate_impl(sema, original_file, expr.syntax());
 
+            let in_match_guard = match it.parent().and_then(ast::MatchArm::cast) {
+                Some(arm) => arm
+                    .fat_arrow_token()
+                    .map_or(true, |arrow| it.text_range().start() < arrow.text_range().start()),
+                None => false,
+            };
+
             PathKind::Expr {
-                in_block_expr,
-                in_loop_body,
-                after_if_expr,
-                in_condition,
-                ref_expr_parent,
-                is_func_update,
-                innermost_ret_ty,
-                self_param,
-                incomplete_let,
-                impl_,
+                expr_ctx: ExprCtx {
+                    in_block_expr,
+                    in_loop_body,
+                    after_if_expr,
+                    in_condition,
+                    ref_expr_parent,
+                    is_func_update,
+                    innermost_ret_ty,
+                    self_param,
+                    incomplete_let,
+                    impl_,
+                    in_match_guard,
+                },
             }
         };
         let make_path_kind_type = |ty: ast::Type| {
@@ -782,90 +827,125 @@ impl<'a> CompletionContext<'a> {
             PathKind::Type { location: location.unwrap_or(TypeLocation::Other) }
         };
 
+        let mut kind_macro_call = |it: ast::MacroCall| {
+            path_ctx.has_macro_bang = it.excl_token().is_some();
+            let parent = it.syntax().parent()?;
+            // Any path in an item list will be treated as a macro call by the parser
+            let kind = match_ast! {
+                match parent {
+                    ast::MacroExpr(expr) => make_path_kind_expr(expr.into()),
+                    ast::MacroPat(it) => PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into())},
+                    ast::MacroType(ty) => make_path_kind_type(ty.into()),
+                    ast::ItemList(_) => PathKind::Item { kind: ItemListKind::Module },
+                    ast::AssocItemList(_) => PathKind::Item { kind: match parent.parent() {
+                        Some(it) => match_ast! {
+                            match it {
+                                ast::Trait(_) => ItemListKind::Trait,
+                                ast::Impl(it) => if it.trait_().is_some() {
+                                    ItemListKind::TraitImpl(find_node_in_file_compensated(sema, original_file, &it))
+                                } else {
+                                    ItemListKind::Impl
+                                },
+                                _ => return None
+                            }
+                        },
+                        None => return None,
+                    } },
+                    ast::ExternItemList(_) => PathKind::Item { kind: ItemListKind::ExternBlock },
+                    ast::SourceFile(_) => PathKind::Item { kind: ItemListKind::SourceFile },
+                    _ => return None,
+                }
+            };
+            Some(kind)
+        };
+        let make_path_kind_attr = |meta: ast::Meta| {
+            let attr = meta.parent_attr()?;
+            let kind = attr.kind();
+            let attached = attr.syntax().parent()?;
+            let is_trailing_outer_attr = kind != AttrKind::Inner
+                && non_trivia_sibling(attr.syntax().clone().into(), syntax::Direction::Next)
+                    .is_none();
+            let annotated_item_kind =
+                if is_trailing_outer_attr { None } else { Some(attached.kind()) };
+            Some(PathKind::Attr { attr_ctx: AttrCtx { kind, annotated_item_kind } })
+        };
+
         // Infer the path kind
         let parent = path.syntax().parent()?;
         let kind = match_ast! {
-                match parent {
-                    ast::PathType(it) => make_path_kind_type(it.into()),
-                    ast::PathExpr(it) => {
-                        if let Some(p) = it.syntax().parent() {
-                            if ast::ExprStmt::can_cast(p.kind()) {
-                                if let Some(kind) = inbetween_body_and_decl_check(p) {
-                                    return Some(make_res(NameRefKind::Keyword(kind)));
-                                }
+            match parent {
+                ast::PathType(it) => make_path_kind_type(it.into()),
+                ast::PathExpr(it) => {
+                    if let Some(p) = it.syntax().parent() {
+                        if ast::ExprStmt::can_cast(p.kind()) {
+                            if let Some(kind) = inbetween_body_and_decl_check(p) {
+                                return Some(make_res(NameRefKind::Keyword(kind)));
                             }
                         }
+                    }
 
-                        path_ctx.has_call_parens = it.syntax().parent().map_or(false, |it| ast::CallExpr::can_cast(it.kind()));
+                    path_ctx.has_call_parens = it.syntax().parent().map_or(false, |it| ast::CallExpr::can_cast(it.kind()));
 
-                        make_path_kind_expr(it.into())
-                    },
-                    ast::TupleStructPat(it) => {
-                        path_ctx.has_call_parens = true;
-                        PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into())}
-                    },
-                    ast::RecordPat(it) => {
-                        path_ctx.has_call_parens = true;
-                        PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into())}
-                    },
-                    ast::PathPat(it) => {
-                        PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into())}
-                    },
-                    ast::MacroCall(it) => {
-                        // A macro call in this position is usually a result of parsing recovery, so check that
-                        if let Some(kind) = inbetween_body_and_decl_check(it.syntax().clone()) {
-                            return Some(make_res(NameRefKind::Keyword(kind)));
+                    make_path_kind_expr(it.into())
+                },
+                ast::TupleStructPat(it) => {
+                    path_ctx.has_call_parens = true;
+                    PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into()) }
+                },
+                ast::RecordPat(it) => {
+                    path_ctx.has_call_parens = true;
+                    PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into()) }
+                },
+                ast::PathPat(it) => {
+                    PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into())}
+                },
+                ast::MacroCall(it) => {
+                    // A macro call in this position is usually a result of parsing recovery, so check that
+                    if let Some(kind) = inbetween_body_and_decl_check(it.syntax().clone()) {
+                        return Some(make_res(NameRefKind::Keyword(kind)));
+                    }
+
+                    kind_macro_call(it)?
+                },
+                ast::Meta(meta) => make_path_kind_attr(meta)?,
+                ast::Visibility(it) => PathKind::Vis { has_in_token: it.in_token().is_some() },
+                ast::UseTree(_) => PathKind::Use,
+                // completing inside a qualifier
+                ast::Path(parent) => {
+                    path_ctx.parent = Some(parent.clone());
+                    let parent = iter::successors(Some(parent), |it| it.parent_path()).last()?.syntax().parent()?;
+                    match_ast! {
+                        match parent {
+                            ast::PathType(it) => make_path_kind_type(it.into()),
+                            ast::PathExpr(it) => {
+                                path_ctx.has_call_parens = it.syntax().parent().map_or(false, |it| ast::CallExpr::can_cast(it.kind()));
+
+                                make_path_kind_expr(it.into())
+                            },
+                            ast::TupleStructPat(it) => {
+                                path_ctx.has_call_parens = true;
+                                PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into()) }
+                            },
+                            ast::RecordPat(it) => {
+                                path_ctx.has_call_parens = true;
+                                PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into()) }
+                            },
+                            ast::PathPat(it) => {
+                                PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into())}
+                            },
+                            ast::MacroCall(it) => {
+                                kind_macro_call(it)?
+                            },
+                            ast::Meta(meta) => make_path_kind_attr(meta)?,
+                            ast::Visibility(it) => PathKind::Vis { has_in_token: it.in_token().is_some() },
+                            ast::UseTree(_) => PathKind::Use,
+                            ast::RecordExpr(it) => make_path_kind_expr(it.into()),
+                            _ => return None,
                         }
-
-                        path_ctx.has_macro_bang = it.excl_token().is_some();
-                        let parent = it.syntax().parent()?;
-                        // Any path in an item list will be treated as a macro call by the parser
-                        match_ast! {
-                            match parent {
-                                ast::MacroExpr(expr) => make_path_kind_expr(expr.into()),
-                                ast::MacroPat(it) => PathKind::Pat { pat_ctx: pattern_context_for(sema, original_file, it.into())},
-                                ast::MacroType(ty) => make_path_kind_type(ty.into()),
-                                ast::ItemList(_) => PathKind::Item { kind: ItemListKind::Module },
-                                ast::AssocItemList(_) => PathKind::Item { kind: match parent.parent() {
-                                    Some(it) => match_ast! {
-                                        match it {
-                                            ast::Trait(_) => ItemListKind::Trait,
-                                            ast::Impl(it) => if it.trait_().is_some() {
-                                                ItemListKind::TraitImpl(find_node_in_file_compensated(sema, original_file, &it))
-                                            } else {
-                                                ItemListKind::Impl
-                                            },
-                                            _ => return None
-                                        }
-                                    },
-                                    None => return None,
-                                } },
-                                ast::ExternItemList(_) => PathKind::Item { kind: ItemListKind::ExternBlock },
-                                ast::SourceFile(_) => PathKind::Item { kind: ItemListKind::SourceFile },
-                                _ => return None,
-                            }
-                        }
-                    },
-                    ast::Meta(meta) => {
-                        let attr = meta.parent_attr()?;
-                        let kind = attr.kind();
-                        let attached = attr.syntax().parent()?;
-                        let is_trailing_outer_attr = kind != AttrKind::Inner
-                            && non_trivia_sibling(attr.syntax().clone().into(), syntax::Direction::Next).is_none();
-                        let annotated_item_kind = if is_trailing_outer_attr {
-                            None
-                        } else {
-                            Some(attached.kind())
-                        };
-                        PathKind::Attr {
-                            kind,
-                            annotated_item_kind,
-                        }
-                    },
-                    ast::Visibility(it) => PathKind::Vis { has_in_token: it.in_token().is_some() },
-                    ast::UseTree(_) => PathKind::Use,
-                    _ => return None,
-
+                    }
+                },
+                ast::RecordExpr(it) => make_path_kind_expr(it.into()),
+                _ => return None,
             }
         };
 
@@ -873,34 +953,53 @@ impl<'a> CompletionContext<'a> {
         path_ctx.has_type_args = segment.generic_arg_list().is_some();
 
         // calculate the qualifier context
-        if let Some((path, use_tree_parent)) = path_or_use_tree_qualifier(&path) {
+        if let Some((qualifier, use_tree_parent)) = path_or_use_tree_qualifier(&path) {
             path_ctx.use_tree_parent = use_tree_parent;
             if !use_tree_parent && segment.coloncolon_token().is_some() {
                 path_ctx.qualified = Qualified::Absolute;
             } else {
-                let path = path
+                let qualifier = qualifier
                     .segment()
                     .and_then(|it| find_node_in_file(original_file, &it))
                     .map(|it| it.parent_path());
-                if let Some(path) = path {
-                    // `<_>::$0`
-                    let is_infer_qualifier = path.qualifier().is_none()
-                        && matches!(
-                            path.segment().and_then(|it| it.kind()),
-                            Some(ast::PathSegmentKind::Type {
-                                type_ref: Some(ast::Type::InferType(_)),
-                                trait_ref: None,
-                            })
-                        );
+                if let Some(qualifier) = qualifier {
+                    let type_anchor = match qualifier.segment().and_then(|it| it.kind()) {
+                        Some(ast::PathSegmentKind::Type {
+                            type_ref: Some(type_ref),
+                            trait_ref,
+                        }) if qualifier.qualifier().is_none() => Some((type_ref, trait_ref)),
+                        _ => None,
+                    };
 
-                    path_ctx.qualified = if is_infer_qualifier {
-                        Qualified::Infer
+                    path_ctx.qualified = if let Some((ty, trait_ref)) = type_anchor {
+                        let ty = match ty {
+                            ast::Type::InferType(_) => None,
+                            ty => sema.resolve_type(&ty),
+                        };
+                        let trait_ = trait_ref.and_then(|it| sema.resolve_trait(&it.path()?));
+                        Qualified::TypeAnchor { ty, trait_ }
                     } else {
-                        let res = sema.resolve_path(&path);
-                        let is_super_chain =
-                            iter::successors(Some(path.clone()), |p| p.qualifier())
-                                .all(|p| p.segment().and_then(|s| s.super_token()).is_some());
-                        Qualified::With { path, resolution: res, is_super_chain }
+                        let res = sema.resolve_path(&qualifier);
+
+                        // For understanding how and why super_chain_len is calculated the way it
+                        // is check the documentation at it's definition
+                        let mut segment_count = 0;
+                        let super_count =
+                            iter::successors(Some(qualifier.clone()), |p| p.qualifier())
+                                .take_while(|p| {
+                                    p.segment()
+                                        .and_then(|s| {
+                                            segment_count += 1;
+                                            s.super_token()
+                                        })
+                                        .is_some()
+                                })
+                                .count();
+
+                        let super_chain_len =
+                            if segment_count > super_count { None } else { Some(super_count) };
+
+                        Qualified::With { path: qualifier, resolution: res, super_chain_len }
                     }
                 };
             }
@@ -914,7 +1013,7 @@ impl<'a> CompletionContext<'a> {
         if path_ctx.is_trivial_path() {
             // fetch the full expression that may have qualifiers attached to it
             let top_node = match path_ctx.kind {
-                PathKind::Expr { in_block_expr: true, .. } => {
+                PathKind::Expr { expr_ctx: ExprCtx { in_block_expr: true, .. } } => {
                     parent.ancestors().find(|it| ast::PathExpr::can_cast(it.kind())).and_then(|p| {
                         let parent = p.parent()?;
                         if ast::StmtList::can_cast(parent.kind()) {
@@ -969,11 +1068,11 @@ impl<'a> CompletionContext<'a> {
 }
 
 fn pattern_context_for(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     original_file: &SyntaxNode,
     pat: ast::Pat,
 ) -> PatternContext {
-    let mut is_param = None;
+    let mut param_ctx = None;
     let (refutability, has_type_ascription) =
     pat
         .syntax()
@@ -986,7 +1085,7 @@ fn pattern_context_for(
                     ast::LetStmt(let_) => return (PatternRefutability::Irrefutable, let_.ty().is_some()),
                     ast::Param(param) => {
                         let has_type_ascription = param.ty().is_some();
-                        is_param = (|| {
+                        param_ctx = (|| {
                             let fake_param_list = param.syntax().parent().and_then(ast::ParamList::cast)?;
                             let param_list = find_node_in_file_compensated(sema, original_file, &fake_param_list)?;
                             let param_list_owner = param_list.syntax().parent()?;
@@ -997,7 +1096,9 @@ fn pattern_context_for(
                                     _ => return None,
                                 }
                             };
-                            Some((param_list, param, kind))
+                            Some(ParamContext {
+                                param_list, param, kind
+                            })
                         })();
                         return (PatternRefutability::Irrefutable, has_type_ascription)
                     },
@@ -1016,7 +1117,7 @@ fn pattern_context_for(
 
     PatternContext {
         refutability,
-        param_ctx: is_param,
+        param_ctx,
         has_type_ascription,
         parent_pat: pat.syntax().parent().and_then(ast::Pat::cast),
         mut_token,
@@ -1027,7 +1128,7 @@ fn pattern_context_for(
 }
 
 fn fetch_immediate_impl(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     original_file: &SyntaxNode,
     node: &SyntaxNode,
 ) -> Option<ast::Impl> {
@@ -1065,7 +1166,7 @@ fn find_node_in_file<N: AstNode>(syntax: &SyntaxNode, node: &N) -> Option<N> {
 /// for the offset introduced by the fake ident.
 /// This is wrong if `node` comes before the insertion point! Use `find_node_in_file` instead.
 fn find_node_in_file_compensated<N: AstNode>(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     in_file: &SyntaxNode,
     node: &N,
 ) -> Option<N> {
@@ -1073,7 +1174,7 @@ fn find_node_in_file_compensated<N: AstNode>(
 }
 
 fn ancestors_in_file_compensated<'sema>(
-    sema: &'sema Semantics<RootDatabase>,
+    sema: &'sema Semantics<'_, RootDatabase>,
     in_file: &SyntaxNode,
     node: &SyntaxNode,
 ) -> Option<impl Iterator<Item = SyntaxNode> + 'sema> {
@@ -1097,7 +1198,7 @@ fn ancestors_in_file_compensated<'sema>(
 /// for the offset introduced by the fake ident..
 /// This is wrong if `node` comes before the insertion point! Use `find_node_in_file` instead.
 fn find_opt_node_in_file_compensated<N: AstNode>(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     syntax: &SyntaxNode,
     node: Option<N>,
 ) -> Option<N> {
@@ -1111,19 +1212,6 @@ fn path_or_use_tree_qualifier(path: &ast::Path) -> Option<(ast::Path, bool)> {
     let use_tree_list = path.syntax().ancestors().find_map(ast::UseTreeList::cast)?;
     let use_tree = use_tree_list.syntax().parent().and_then(ast::UseTree::cast)?;
     Some((use_tree.path()?, true))
-}
-
-fn has_ref(token: &SyntaxToken) -> bool {
-    let mut token = token.clone();
-    for skip in [SyntaxKind::IDENT, SyntaxKind::WHITESPACE, T![mut]] {
-        if token.kind() == skip {
-            token = match token.prev_token() {
-                Some(it) => it,
-                None => return false,
-            }
-        }
-    }
-    token.kind() == T![&]
 }
 
 pub(crate) fn is_in_token_of_for_loop(element: SyntaxElement) -> bool {
@@ -1176,8 +1264,12 @@ pub(crate) fn is_in_loop_body(node: &SyntaxNode) -> bool {
         .is_some()
 }
 
-fn previous_non_trivia_token(token: SyntaxToken) -> Option<SyntaxToken> {
-    let mut token = token.prev_token();
+fn previous_non_trivia_token(e: impl Into<SyntaxElement>) -> Option<SyntaxToken> {
+    let mut token = match e.into() {
+        SyntaxElement::Node(n) => n.first_token()?,
+        SyntaxElement::Token(t) => t,
+    }
+    .prev_token();
     while let Some(inner) = token {
         if !inner.kind().is_trivia() {
             return Some(inner);

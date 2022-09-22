@@ -75,7 +75,7 @@ struct ExpandCtx<'a> {
 }
 
 fn expand_subtree(
-    ctx: &mut ExpandCtx,
+    ctx: &mut ExpandCtx<'_>,
     template: &MetaTemplate,
     delimiter: Option<Delimiter>,
     arena: &mut Vec<tt::TokenTree>,
@@ -103,6 +103,23 @@ fn expand_subtree(
                 err = err.or(e);
                 push_fragment(arena, fragment)
             }
+            Op::Ignore { name, id } => {
+                // Expand the variable, but ignore the result. This registers the repetition count.
+                expand_var(ctx, name, *id);
+            }
+            Op::Index { depth } => {
+                let index = ctx
+                    .nesting
+                    .get(ctx.nesting.len() - 1 - (*depth as usize))
+                    .map_or(0, |nest| nest.idx);
+                arena.push(
+                    tt::Leaf::Literal(tt::Literal {
+                        text: index.to_string().into(),
+                        id: tt::TokenId::unspecified(),
+                    })
+                    .into(),
+                );
+            }
         }
     }
     // drain the elements added in this instance of expand_subtree
@@ -110,7 +127,7 @@ fn expand_subtree(
     ExpandResult { value: tt::Subtree { delimiter, token_trees: tts }, err }
 }
 
-fn expand_var(ctx: &mut ExpandCtx, v: &SmolStr, id: tt::TokenId) -> ExpandResult<Fragment> {
+fn expand_var(ctx: &mut ExpandCtx<'_>, v: &SmolStr, id: tt::TokenId) -> ExpandResult<Fragment> {
     // We already handle $crate case in mbe parser
     debug_assert!(v != "crate");
 
@@ -146,7 +163,7 @@ fn expand_var(ctx: &mut ExpandCtx, v: &SmolStr, id: tt::TokenId) -> ExpandResult
 }
 
 fn expand_repeat(
-    ctx: &mut ExpandCtx,
+    ctx: &mut ExpandCtx<'_>,
     template: &MetaTemplate,
     kind: RepeatKind,
     separator: &Option<Separator>,

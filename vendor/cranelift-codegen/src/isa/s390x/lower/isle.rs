@@ -14,11 +14,10 @@ use crate::settings::Flags;
 use crate::{
     ir::{
         condcodes::*, immediates::*, types::*, AtomicRmwOp, Endianness, Inst, InstructionData,
-        StackSlot, TrapCode, Value, ValueLabel, ValueList,
+        StackSlot, TrapCode, Value, ValueList,
     },
-    isa::s390x::inst::s390x_map_regs,
     isa::unwind::UnwindInst,
-    machinst::{InsnOutput, LowerCtx},
+    machinst::{InsnOutput, LowerCtx, VCodeConstant, VCodeConstantData},
 };
 use std::boxed::Box;
 use std::cell::Cell;
@@ -43,15 +42,9 @@ pub(crate) fn lower<C>(
 where
     C: LowerCtx<I = MInst>,
 {
-    lower_common(
-        lower_ctx,
-        flags,
-        isa_flags,
-        outputs,
-        inst,
-        |cx, insn| generated_code::constructor_lower(cx, insn),
-        s390x_map_regs,
-    )
+    lower_common(lower_ctx, flags, isa_flags, outputs, inst, |cx, insn| {
+        generated_code::constructor_lower(cx, insn)
+    })
 }
 
 /// The main entry point for branch lowering with ISLE.
@@ -65,15 +58,9 @@ pub(crate) fn lower_branch<C>(
 where
     C: LowerCtx<I = MInst>,
 {
-    lower_common(
-        lower_ctx,
-        flags,
-        isa_flags,
-        &[],
-        branch,
-        |cx, insn| generated_code::constructor_lower_branch(cx, insn, &targets.to_vec()),
-        s390x_map_regs,
-    )
+    lower_common(lower_ctx, flags, isa_flags, &[], branch, |cx, insn| {
+        generated_code::constructor_lower_branch(cx, insn, &targets.to_vec())
+    })
 }
 
 impl<C> generated_code::Context for IsleContext<'_, C, Flags, IsaFlags, 6>
@@ -239,7 +226,8 @@ where
     fn u64_from_value(&mut self, val: Value) -> Option<u64> {
         let inst = self.lower_ctx.dfg().value_def(val).inst()?;
         let constant = self.lower_ctx.get_constant(inst)?;
-        Some(constant)
+        let ty = self.lower_ctx.output_ty(inst, 0);
+        Some(zero_extend_to_u64(constant, self.ty_bits(ty).unwrap()))
     }
 
     #[inline]
@@ -261,7 +249,10 @@ where
         let inst = self.lower_ctx.dfg().value_def(val).inst()?;
         let constant = self.lower_ctx.get_constant(inst)?;
         let ty = self.lower_ctx.output_ty(inst, 0);
-        Some(super::sign_extend_to_u64(constant, self.ty_bits(ty)))
+        Some(super::sign_extend_to_u64(
+            constant,
+            self.ty_bits(ty).unwrap(),
+        ))
     }
 
     #[inline]
@@ -340,7 +331,7 @@ where
 
     #[inline]
     fn mask_amt_imm(&mut self, ty: Type, amt: i64) -> u8 {
-        let mask = self.ty_bits(ty) - 1;
+        let mask = self.ty_bits(ty).unwrap() - 1;
         (amt as u8) & mask
     }
 
@@ -499,9 +490,9 @@ where
     }
 
     #[inline]
-    fn same_reg(&mut self, src: Reg, dst: WritableReg) -> Option<()> {
+    fn same_reg(&mut self, dst: WritableReg, src: Reg) -> Option<Reg> {
         if dst.to_reg() == src {
-            Some(())
+            Some(src)
         } else {
             None
         }
@@ -510,7 +501,7 @@ where
     #[inline]
     fn sinkable_inst(&mut self, val: Value) -> Option<Inst> {
         let input = self.lower_ctx.get_value_as_source_or_const(val);
-        if let Some((inst, 0)) = input.inst {
+        if let Some((inst, 0)) = input.inst.as_inst() {
             return Some(inst);
         }
         None
@@ -523,11 +514,17 @@ where
 
     #[inline]
     fn emit(&mut self, inst: &MInst) -> Unit {
-        self.emitted_insts.push((inst.clone(), false));
+        self.lower_ctx.emit(inst.clone());
     }
+}
 
-    #[inline]
-    fn emit_safepoint(&mut self, inst: &MInst) -> Unit {
-        self.emitted_insts.push((inst.clone(), true));
+/// Zero-extend the low `from_bits` bits of `value` to a full u64.
+#[inline]
+fn zero_extend_to_u64(value: u64, from_bits: u8) -> u64 {
+    assert!(from_bits <= 64);
+    if from_bits >= 64 {
+        value
+    } else {
+        value & ((1u64 << from_bits) - 1)
     }
 }

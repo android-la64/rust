@@ -17,7 +17,7 @@ use crate::{AssistContext, AssistId, AssistKind, Assists};
 //     ((3, 4), (1, 2));
 // }
 // ```
-pub(crate) fn flip_comma(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
+pub(crate) fn flip_comma(acc: &mut Assists, ctx: &AssistContext<'_>) -> Option<()> {
     let comma = ctx.find_token_syntax_at_offset(T![,])?;
     let prev = non_trivia_sibling(comma.clone().into(), Direction::Prev)?;
     let next = non_trivia_sibling(comma.clone().into(), Direction::Next)?;
@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn flip_comma_before_punct() {
-        // See https://github.com/rust-analyzer/rust-analyzer/issues/1619
+        // See https://github.com/rust-lang/rust-analyzer/issues/1619
         // "Flip comma" assist shouldn't be applicable to the last comma in enum or struct
         // declaration body.
         check_assist_not_applicable(flip_comma, "pub enum Test { A,$0 }");
@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn flip_comma_not_applicable_for_macro_input() {
         // "Flip comma" assist shouldn't be applicable inside the macro call
-        // See https://github.com/rust-analyzer/rust-analyzer/issues/7693
+        // See https://github.com/rust-lang/rust-analyzer/issues/7693
         check_assist_not_applicable(flip_comma, r#"bar!(a,$0 b)"#);
     }
 }

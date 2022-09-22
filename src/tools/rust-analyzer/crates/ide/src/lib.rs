@@ -9,6 +9,7 @@
 
 // For proving that RootDatabase is RefUnwindSafe.
 #![recursion_limit = "128"]
+#![warn(rust_2018_idioms, unused_lifetimes, semicolon_in_expressions_from_macros)]
 
 #[allow(unused)]
 macro_rules! eprintln {
@@ -208,7 +209,7 @@ pub struct Analysis {
 // API, the API should in theory be usable as a library, or via a different
 // protocol.
 impl Analysis {
-    // Creates an analysis instance for a single file, without any extenal
+    // Creates an analysis instance for a single file, without any external
     // dependencies, stdlib support or ability to apply changes. See
     // `AnalysisHost` for creating a fully-featured analysis.
     pub fn from_single_file(text: String) -> (Analysis, FileId) {
@@ -684,7 +685,7 @@ impl Analysis {
     /// repeatable read). So what we do is we **cancel** all pending queries
     /// before applying the change.
     ///
-    /// Salsa implements cancelation by unwinding with a special value and
+    /// Salsa implements cancellation by unwinding with a special value and
     /// catching it on the API boundary.
     fn with_db<F, T>(&self, f: F) -> Cancellable<T>
     where

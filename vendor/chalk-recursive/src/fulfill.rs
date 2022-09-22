@@ -1,9 +1,9 @@
 use crate::fixed_point::Minimums;
 use crate::solve::SolveDatabase;
 use chalk_ir::cast::Cast;
-use chalk_ir::fold::Fold;
+use chalk_ir::fold::TypeFoldable;
 use chalk_ir::interner::{HasInterner, Interner};
-use chalk_ir::visit::Visit;
+use chalk_ir::visit::TypeVisitable;
 use chalk_ir::zip::Zip;
 use chalk_ir::{
     Binders, BoundVar, Canonical, ConstrainedSubst, Constraint, Constraints, DomainGoal,
@@ -63,10 +63,10 @@ fn canonicalize<I: Interner, T>(
     infer: &mut InferenceTable<I>,
     interner: I,
     value: T,
-) -> (Canonical<T::Result>, Vec<GenericArg<I>>)
+) -> (Canonical<T>, Vec<GenericArg<I>>)
 where
-    T: Fold<I>,
-    T::Result: HasInterner<Interner = I>,
+    T: TypeFoldable<I>,
+    T: HasInterner<Interner = I>,
 {
     let res = infer.canonicalize(interner, value);
     let free_vars = res
@@ -81,10 +81,10 @@ fn u_canonicalize<I: Interner, T>(
     _infer: &mut InferenceTable<I>,
     interner: I,
     value0: &Canonical<T>,
-) -> (UCanonical<T::Result>, UniverseMap)
+) -> (UCanonical<T>, UniverseMap)
 where
-    T: Clone + HasInterner<Interner = I> + Fold<I> + Visit<I>,
-    T::Result: HasInterner<Interner = I>,
+    T: Clone + HasInterner<Interner = I> + TypeFoldable<I> + TypeVisitable<I>,
+    T: HasInterner<Interner = I>,
 {
     let res = InferenceTable::u_canonicalize(interner, value0);
     (res.quantified, res.universes)

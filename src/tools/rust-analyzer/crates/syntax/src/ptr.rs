@@ -14,6 +14,8 @@ use std::{
     marker::PhantomData,
 };
 
+use rowan::TextRange;
+
 use crate::{syntax_node::RustLanguage, AstNode, SyntaxNode};
 
 /// A "pointer" to a [`SyntaxNode`], via location in the source code.
@@ -60,11 +62,22 @@ impl<N: AstNode> AstPtr<N> {
         self.raw.clone()
     }
 
+    pub fn text_range(&self) -> TextRange {
+        self.raw.text_range()
+    }
+
     pub fn cast<U: AstNode>(self) -> Option<AstPtr<U>> {
         if !U::can_cast(self.raw.kind()) {
             return None;
         }
         Some(AstPtr { raw: self.raw, _ty: PhantomData })
+    }
+
+    pub fn upcast<M: AstNode>(self) -> AstPtr<M>
+    where
+        N: Into<M>,
+    {
+        AstPtr { raw: self.raw, _ty: PhantomData }
     }
 
     /// Like `SyntaxNodePtr::cast` but the trait bounds work out.

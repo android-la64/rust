@@ -12,13 +12,17 @@ use crate::{
 };
 use base_db::CrateId;
 use either::Either;
+use smallvec::SmallVec;
 use syntax::{ast, AstNode};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ModPath {
     pub kind: PathKind,
-    segments: Vec<Name>,
+    segments: SmallVec<[Name; 1]>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct EscapedModPath<'a>(&'a ModPath);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PathKind {
@@ -38,13 +42,13 @@ impl ModPath {
     }
 
     pub fn from_segments(kind: PathKind, segments: impl IntoIterator<Item = Name>) -> ModPath {
-        let segments = segments.into_iter().collect::<Vec<_>>();
+        let segments = segments.into_iter().collect();
         ModPath { kind, segments }
     }
 
     /// Creates a `ModPath` from a `PathKind`, with no extra path segments.
     pub const fn from_kind(kind: PathKind) -> ModPath {
-        ModPath { kind, segments: Vec::new() }
+        ModPath { kind, segments: SmallVec::new_const() }
     }
 
     pub fn segments(&self) -> &[Name] {
@@ -80,6 +84,12 @@ impl ModPath {
         self.kind == PathKind::Super(0) && self.segments.is_empty()
     }
 
+    #[allow(non_snake_case)]
+    pub fn is_Self(&self) -> bool {
+        self.kind == PathKind::Plain
+            && matches!(&*self.segments, [name] if *name == known::SELF_TYPE)
+    }
+
     /// If this path is a single identifier, like `foo`, return its name.
     pub fn as_ident(&self) -> Option<&Name> {
         if self.kind != PathKind::Plain {
@@ -91,10 +101,12 @@ impl ModPath {
             _ => None,
         }
     }
-}
 
-impl Display for ModPath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    pub fn escaped(&self) -> EscapedModPath<'_> {
+        EscapedModPath(self)
+    }
+
+    fn _fmt(&self, f: &mut fmt::Formatter<'_>, escaped: bool) -> fmt::Result {
         let mut first_segment = true;
         let mut add_segment = |s| -> fmt::Result {
             if !first_segment {
@@ -121,9 +133,25 @@ impl Display for ModPath {
                 f.write_str("::")?;
             }
             first_segment = false;
-            segment.fmt(f)?;
+            if escaped {
+                segment.escaped().fmt(f)?
+            } else {
+                segment.fmt(f)?
+            };
         }
         Ok(())
+    }
+}
+
+impl Display for ModPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self._fmt(f, false)
+    }
+}
+
+impl<'a> Display for EscapedModPath<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0._fmt(f, true)
     }
 }
 

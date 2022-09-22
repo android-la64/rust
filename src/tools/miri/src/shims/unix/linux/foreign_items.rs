@@ -1,4 +1,3 @@
-use rustc_middle::mir;
 use rustc_span::Symbol;
 use rustc_target::spec::abi::Abi;
 
@@ -15,9 +14,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         link_name: Symbol,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
-        _ret: mir::BasicBlock,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx, EmulateByNameResult<'mir, 'tcx>> {
         let this = self.eval_context_mut();
 
@@ -30,40 +28,12 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             // File related shims (but also see "syscall" below for statx)
-            // These symbols have different names on Linux and macOS, which is the only reason they are not
-            // in the `posix` module.
-            "close" => {
-                let [fd] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                let result = this.close(fd)?;
-                this.write_scalar(Scalar::from_i32(result), dest)?;
-            }
-            "opendir" => {
-                let [name] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                let result = this.opendir(name)?;
-                this.write_scalar(result, dest)?;
-            }
             "readdir64" => {
                 let [dirp] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.linux_readdir64(dirp)?;
                 this.write_scalar(result, dest)?;
             }
-            "ftruncate64" => {
-                let [fd, length] =
-                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                let result = this.ftruncate64(fd, length)?;
-                this.write_scalar(Scalar::from_i32(result), dest)?;
-            }
             // Linux-only
-            "posix_fadvise" => {
-                let [fd, offset, len, advice] =
-                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                this.read_scalar(fd)?.to_i32()?;
-                this.read_scalar(offset)?.to_machine_isize(this)?;
-                this.read_scalar(len)?.to_machine_isize(this)?;
-                this.read_scalar(advice)?.to_i32()?;
-                // fadvise is only informational, we can ignore it.
-                this.write_null(dest)?;
-            }
             "sync_file_range" => {
                 let [fd, offset, nbytes, flags] =
                     this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
@@ -78,28 +48,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.clock_gettime(clk_id, tp)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
-            }
-
-            // Querying system information
-            "pthread_attr_getstack" => {
-                // We don't support "pthread_attr_setstack", so we just pretend all stacks have the same values here.
-                let [attr_place, addr_place, size_place] =
-                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                this.deref_operand(attr_place)?;
-                let addr_place = this.deref_operand(addr_place)?;
-                let size_place = this.deref_operand(size_place)?;
-
-                this.write_scalar(
-                    Scalar::from_uint(STACK_ADDR, this.pointer_size()),
-                    &addr_place.into(),
-                )?;
-                this.write_scalar(
-                    Scalar::from_uint(STACK_SIZE, this.pointer_size()),
-                    &size_place.into(),
-                )?;
-
-                // Return success (`0`).
-                this.write_null(dest)?;
             }
 
             // Threading
@@ -217,10 +165,10 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 // Shims the linux `getrandom` syscall.
 fn getrandom<'tcx>(
     this: &mut MiriEvalContext<'_, 'tcx>,
-    ptr: &OpTy<'tcx, Tag>,
-    len: &OpTy<'tcx, Tag>,
-    flags: &OpTy<'tcx, Tag>,
-    dest: &PlaceTy<'tcx, Tag>,
+    ptr: &OpTy<'tcx, Provenance>,
+    len: &OpTy<'tcx, Provenance>,
+    flags: &OpTy<'tcx, Provenance>,
+    dest: &PlaceTy<'tcx, Provenance>,
 ) -> InterpResult<'tcx> {
     let ptr = this.read_pointer(ptr)?;
     let len = this.read_scalar(len)?.to_machine_usize(this)?;

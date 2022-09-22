@@ -1,16 +1,13 @@
-// ignore-windows: Concurrency on Windows is not supported yet.
-// error-pattern: callee has more arguments than expected
+//@ignore-target-windows: Concurrency on Windows is not supported yet.
 
 //! The thread function must have exactly one argument.
 
 #![feature(rustc_private)]
 
-extern crate libc;
-
 use std::{mem, ptr};
 
 extern "C" fn thread_start(_null: *mut libc::c_void, _x: i32) -> *mut libc::c_void {
-    panic!()
+    panic!() //~ ERROR: callee has more arguments than expected
 }
 
 fn main() {

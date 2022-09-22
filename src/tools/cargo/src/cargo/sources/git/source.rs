@@ -1,4 +1,4 @@
-use crate::core::source::{MaybePackage, Source, SourceId};
+use crate::core::source::{MaybePackage, QueryKind, Source, SourceId};
 use crate::core::GitReference;
 use crate::core::{Dependency, Package, PackageId, Summary};
 use crate::sources::git::utils::GitRemote;
@@ -86,21 +86,14 @@ impl<'cfg> Debug for GitSource<'cfg> {
 }
 
 impl<'cfg> Source for GitSource<'cfg> {
-    fn query(&mut self, dep: &Dependency, f: &mut dyn FnMut(Summary)) -> Poll<CargoResult<()>> {
-        if let Some(src) = self.path_source.as_mut() {
-            src.query(dep, f)
-        } else {
-            Poll::Pending
-        }
-    }
-
-    fn fuzzy_query(
+    fn query(
         &mut self,
         dep: &Dependency,
+        kind: QueryKind,
         f: &mut dyn FnMut(Summary),
     ) -> Poll<CargoResult<()>> {
         if let Some(src) = self.path_source.as_mut() {
-            src.fuzzy_query(dep, f)
+            src.query(dep, kind, f)
         } else {
             Poll::Pending
         }
@@ -234,8 +227,8 @@ impl<'cfg> Source for GitSource<'cfg> {
 
     fn add_to_yanked_whitelist(&mut self, _pkgs: &[PackageId]) {}
 
-    fn is_yanked(&mut self, _pkg: PackageId) -> CargoResult<bool> {
-        Ok(false)
+    fn is_yanked(&mut self, _pkg: PackageId) -> Poll<CargoResult<bool>> {
+        Poll::Ready(Ok(false))
     }
 
     fn invalidate_cache(&mut self) {}

@@ -80,7 +80,7 @@ pub struct PublishOpts<'cfg> {
     pub index: Option<String>,
     pub verify: bool,
     pub allow_dirty: bool,
-    pub jobs: Option<u32>,
+    pub jobs: Option<i32>,
     pub keep_going: bool,
     pub to_publish: ops::Packages,
     pub targets: Vec<String>,
@@ -194,10 +194,6 @@ fn verify_dependencies(
 ) -> CargoResult<()> {
     for dep in pkg.dependencies().iter() {
         if super::check_dep_has_version(dep, true)? {
-            continue;
-        }
-        // Allow publishing to crates.io with index.crates.io as a source replacement.
-        if registry_src.is_default_registry() && dep.source_id().is_default_registry() {
             continue;
         }
         // TomlManifest::prepare_for_publish will rewrite the dependency
@@ -535,6 +531,13 @@ fn registry(
         None
     };
     let handle = http_handle(config)?;
+    // Workaround for the sparse+https://index.crates.io replacement index. Use the non-replaced
+    // source_id so that the original (github) url is used when publishing a crate.
+    let sid = if sid.is_default_registry() {
+        SourceId::crates_io(config)?
+    } else {
+        sid
+    };
     Ok((Registry::new_handle(api_host, token, handle), reg_cfg, sid))
 }
 

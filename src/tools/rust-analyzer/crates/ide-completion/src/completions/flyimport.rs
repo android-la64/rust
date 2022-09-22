@@ -5,14 +5,17 @@ use ide_db::imports::{
     insert_use::ImportScope,
 };
 use itertools::Itertools;
-use syntax::{ast, AstNode, SyntaxNode, T};
+use syntax::{
+    ast::{self},
+    AstNode, SyntaxNode, T,
+};
 
 use crate::{
     context::{
         CompletionContext, DotAccess, PathCompletionCtx, PathKind, PatternContext, Qualified,
         TypeLocation,
     },
-    render::{render_resolution_with_import, RenderContext},
+    render::{render_resolution_with_import, render_resolution_with_import_pat, RenderContext},
 };
 
 use super::Completions;
@@ -92,7 +95,7 @@ use super::Completions;
 //
 // .Import configuration
 //
-// It is possible to configure how use-trees are merged with the `importMergeBehavior` setting.
+// It is possible to configure how use-trees are merged with the `imports.granularity.group` setting.
 // Mimics the corresponding behavior of the `Auto Import` feature.
 //
 // .LSP and performance implications
@@ -110,23 +113,24 @@ use super::Completions;
 // capability enabled.
 pub(crate) fn import_on_the_fly_path(
     acc: &mut Completions,
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     path_ctx: &PathCompletionCtx,
 ) -> Option<()> {
     if !ctx.config.enable_imports_on_the_fly {
         return None;
     }
-    let (kind, qualified) = match path_ctx {
+    let qualified = match path_ctx {
         PathCompletionCtx {
             kind:
-                kind @ (PathKind::Expr { .. }
+                PathKind::Expr { .. }
                 | PathKind::Type { .. }
                 | PathKind::Attr { .. }
                 | PathKind::Derive { .. }
-                | PathKind::Pat { .. }),
+                | PathKind::Item { .. }
+                | PathKind::Pat { .. },
             qualified,
             ..
-        } => (Some(kind), qualified),
+        } => qualified,
         _ => return None,
     };
     let potential_import_name = import_name(ctx);
@@ -139,16 +143,41 @@ pub(crate) fn import_on_the_fly_path(
     import_on_the_fly(
         acc,
         ctx,
-        kind,
+        path_ctx,
         import_assets,
         qualifier.map(|it| it.syntax().clone()).or_else(|| ctx.original_token.parent())?,
         potential_import_name,
     )
 }
 
+pub(crate) fn import_on_the_fly_pat(
+    acc: &mut Completions,
+    ctx: &CompletionContext<'_>,
+    pattern_ctx: &PatternContext,
+) -> Option<()> {
+    if !ctx.config.enable_imports_on_the_fly {
+        return None;
+    }
+    if let PatternContext { record_pat: Some(_), .. } = pattern_ctx {
+        return None;
+    }
+
+    let potential_import_name = import_name(ctx);
+    let import_assets = import_assets_for_path(ctx, &potential_import_name, None)?;
+
+    import_on_the_fly_pat_(
+        acc,
+        ctx,
+        pattern_ctx,
+        import_assets,
+        ctx.original_token.parent()?,
+        potential_import_name,
+    )
+}
+
 pub(crate) fn import_on_the_fly_dot(
     acc: &mut Completions,
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     dot_access: &DotAccess,
 ) -> Option<()> {
     if !ctx.config.enable_imports_on_the_fly {
@@ -164,46 +193,20 @@ pub(crate) fn import_on_the_fly_dot(
         receiver.syntax().clone(),
     )?;
 
-    import_on_the_fly(
+    import_on_the_fly_method(
         acc,
         ctx,
-        None,
+        dot_access,
         import_assets,
         receiver.syntax().clone(),
         potential_import_name,
     )
 }
 
-pub(crate) fn import_on_the_fly_pat(
-    acc: &mut Completions,
-    ctx: &CompletionContext,
-    pat_ctx: &PatternContext,
-) -> Option<()> {
-    if !ctx.config.enable_imports_on_the_fly {
-        return None;
-    }
-    let kind = match pat_ctx {
-        PatternContext { record_pat: None, .. } => PathKind::Pat { pat_ctx: pat_ctx.clone() },
-        _ => return None,
-    };
-
-    let potential_import_name = import_name(ctx);
-    let import_assets = import_assets_for_path(ctx, &potential_import_name, None)?;
-
-    import_on_the_fly(
-        acc,
-        ctx,
-        Some(&kind),
-        import_assets,
-        ctx.original_token.parent()?,
-        potential_import_name,
-    )
-}
-
 fn import_on_the_fly(
     acc: &mut Completions,
-    ctx: &CompletionContext,
-    path_kind: Option<&PathKind>,
+    ctx: &CompletionContext<'_>,
+    path_ctx @ PathCompletionCtx { kind, .. }: &PathCompletionCtx,
     import_assets: ImportAssets,
     position: SyntaxNode,
     potential_import_name: String,
@@ -215,11 +218,7 @@ fn import_on_the_fly(
     }
 
     let ns_filter = |import: &LocatedImport| {
-        let path_kind = match path_kind {
-            Some(it) => it,
-            None => return true,
-        };
-        match (path_kind, import.original_item) {
+        match (kind, import.original_item) {
             // Aren't handled in flyimport
             (PathKind::Vis { .. } | PathKind::Use, _) => false,
             // modules are always fair game
@@ -232,7 +231,7 @@ fn import_on_the_fly(
                 | PathKind::Pat { .. },
                 ItemInNs::Macros(mac),
             ) => mac.is_fn_like(ctx.db),
-            (PathKind::Item { .. }, _) => true,
+            (PathKind::Item { .. }, ..) => false,
 
             (PathKind::Expr { .. }, ItemInNs::Types(_) | ItemInNs::Values(_)) => true,
 
@@ -276,13 +275,94 @@ fn import_on_the_fly(
                     &user_input_lowercased,
                 )
             })
-            .filter_map(|import| render_resolution_with_import(RenderContext::new(ctx), import))
+            .filter_map(|import| {
+                render_resolution_with_import(RenderContext::new(ctx), path_ctx, import)
+            })
             .map(|builder| builder.build()),
     );
     Some(())
 }
 
-fn import_name(ctx: &CompletionContext) -> String {
+fn import_on_the_fly_pat_(
+    acc: &mut Completions,
+    ctx: &CompletionContext<'_>,
+    pattern_ctx: &PatternContext,
+    import_assets: ImportAssets,
+    position: SyntaxNode,
+    potential_import_name: String,
+) -> Option<()> {
+    let _p = profile::span("import_on_the_fly_pat").detail(|| potential_import_name.clone());
+
+    if ImportScope::find_insert_use_container(&position, &ctx.sema).is_none() {
+        return None;
+    }
+
+    let ns_filter = |import: &LocatedImport| match import.original_item {
+        ItemInNs::Macros(mac) => mac.is_fn_like(ctx.db),
+        ItemInNs::Types(_) => true,
+        ItemInNs::Values(def) => matches!(def, hir::ModuleDef::Const(_)),
+    };
+    let user_input_lowercased = potential_import_name.to_lowercase();
+
+    acc.add_all(
+        import_assets
+            .search_for_imports(&ctx.sema, ctx.config.insert_use.prefix_kind)
+            .into_iter()
+            .filter(ns_filter)
+            .filter(|import| {
+                !ctx.is_item_hidden(&import.item_to_import)
+                    && !ctx.is_item_hidden(&import.original_item)
+            })
+            .sorted_by_key(|located_import| {
+                compute_fuzzy_completion_order_key(
+                    &located_import.import_path,
+                    &user_input_lowercased,
+                )
+            })
+            .filter_map(|import| {
+                render_resolution_with_import_pat(RenderContext::new(ctx), pattern_ctx, import)
+            })
+            .map(|builder| builder.build()),
+    );
+    Some(())
+}
+
+fn import_on_the_fly_method(
+    acc: &mut Completions,
+    ctx: &CompletionContext<'_>,
+    dot_access: &DotAccess,
+    import_assets: ImportAssets,
+    position: SyntaxNode,
+    potential_import_name: String,
+) -> Option<()> {
+    let _p = profile::span("import_on_the_fly_method").detail(|| potential_import_name.clone());
+
+    if ImportScope::find_insert_use_container(&position, &ctx.sema).is_none() {
+        return None;
+    }
+
+    let user_input_lowercased = potential_import_name.to_lowercase();
+
+    import_assets
+        .search_for_imports(&ctx.sema, ctx.config.insert_use.prefix_kind)
+        .into_iter()
+        .filter(|import| {
+            !ctx.is_item_hidden(&import.item_to_import)
+                && !ctx.is_item_hidden(&import.original_item)
+        })
+        .sorted_by_key(|located_import| {
+            compute_fuzzy_completion_order_key(&located_import.import_path, &user_input_lowercased)
+        })
+        .for_each(|import| match import.original_item {
+            ItemInNs::Values(hir::ModuleDef::Function(f)) => {
+                acc.add_method_with_import(ctx, dot_access, f, import);
+            }
+            _ => (),
+        });
+    Some(())
+}
+
+fn import_name(ctx: &CompletionContext<'_>) -> String {
     let token_kind = ctx.token.kind();
     if matches!(token_kind, T![.] | T![::]) {
         String::new()
@@ -292,7 +372,7 @@ fn import_name(ctx: &CompletionContext) -> String {
 }
 
 fn import_assets_for_path(
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     potential_import_name: &str,
     qualifier: Option<ast::Path>,
 ) -> Option<ImportAssets> {

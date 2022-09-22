@@ -9,7 +9,7 @@ use crate::{
 fn check_expected_type_and_name(ra_fixture: &str, expect: Expect) {
     let (db, pos) = position(ra_fixture);
     let config = TEST_CONFIG;
-    let completion_context = CompletionContext::new(&db, pos, &config).unwrap();
+    let (completion_context, _analysis) = CompletionContext::new(&db, pos, &config).unwrap();
 
     let ty = completion_context
         .expected_type
@@ -389,5 +389,25 @@ fn foo($0: Foo) {}
 "#,
         // FIXME make this work, currently fails due to pattern recovery eating the `:`
         expect![[r#"ty: ?, name: ?"#]],
+    );
+}
+
+#[test]
+fn expected_type_ref_prefix_on_field() {
+    check_expected_type_and_name(
+        r#"
+fn foo(_: &mut i32) {}
+struct S {
+    field: i32,
+}
+
+fn main() {
+    let s = S {
+        field: 100,
+    };
+    foo(&mut s.f$0);
+}
+"#,
+        expect!["ty: i32, name: ?"],
     );
 }

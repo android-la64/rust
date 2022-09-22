@@ -9,7 +9,7 @@
 //! Note that this implementation does not take into account of C++20's memory model revision to SC accesses
 //! and fences introduced by P0668 (<https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0668r5.html>).
 //! This implementation is not fully correct under the revised C++20 model and may generate behaviours C++20
-//! disallows.
+//! disallows (<https://github.com/rust-lang/miri/issues/2301>).
 //!
 //! Rust follows the C++20 memory model (except for the Consume ordering and some operations not performable through C++'s
 //! std::atomic<T> API). It is therefore possible for this implementation to generate behaviours never observable when the
@@ -82,10 +82,10 @@ use rustc_const_eval::interpret::{
 };
 use rustc_data_structures::fx::FxHashMap;
 
-use crate::{AtomicReadOp, AtomicRwOp, AtomicWriteOp, Tag, VClock, VTimestamp, VectorIdx};
+use crate::*;
 
 use super::{
-    data_race::{GlobalState, ThreadClockSet},
+    data_race::{GlobalState as DataRaceState, ThreadClockSet},
     range_object_map::{AccessType, RangeObjectMap},
 };
 
@@ -110,6 +110,13 @@ pub(super) struct StoreBuffer {
     buffer: VecDeque<StoreElement>,
 }
 
+/// Whether a load returned the latest value or not.
+#[derive(PartialEq, Eq)]
+enum LoadRecency {
+    Latest,
+    Outdated,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct StoreElement {
     /// The identifier of the vector index, corresponding to a thread
@@ -125,7 +132,7 @@ struct StoreElement {
     // FIXME: this means the store is either fully initialized or fully uninitialized;
     // we will have to change this if we want to support atomics on
     // partially initialized data.
-    val: ScalarMaybeUninit<Tag>,
+    val: ScalarMaybeUninit<Provenance>,
 
     /// Timestamp of first loads from this store element by each thread
     /// Behind a RefCell to keep load op take &self
@@ -149,7 +156,7 @@ impl StoreBufferAlloc {
     /// before without data race, we can determine that the non-atomic access fully happens
     /// after all the prior atomic accesses so the location no longer needs to exhibit
     /// any weak memory behaviours until further atomic accesses.
-    pub fn memory_accessed(&self, range: AllocRange, global: &GlobalState) {
+    pub fn memory_accessed(&self, range: AllocRange, global: &DataRaceState) {
         if !global.ongoing_action_data_race_free() {
             let mut buffers = self.store_buffers.borrow_mut();
             let access_type = buffers.access_type(range);
@@ -172,7 +179,7 @@ impl StoreBufferAlloc {
     fn get_or_create_store_buffer<'tcx>(
         &self,
         range: AllocRange,
-        init: ScalarMaybeUninit<Tag>,
+        init: ScalarMaybeUninit<Provenance>,
     ) -> InterpResult<'tcx, Ref<'_, StoreBuffer>> {
         let access_type = self.store_buffers.borrow().access_type(range);
         let pos = match access_type {
@@ -197,7 +204,7 @@ impl StoreBufferAlloc {
     fn get_or_create_store_buffer_mut<'tcx>(
         &mut self,
         range: AllocRange,
-        init: ScalarMaybeUninit<Tag>,
+        init: ScalarMaybeUninit<Provenance>,
     ) -> InterpResult<'tcx, &mut StoreBuffer> {
         let buffers = self.store_buffers.get_mut();
         let access_type = buffers.access_type(range);
@@ -218,7 +225,7 @@ impl StoreBufferAlloc {
 }
 
 impl<'mir, 'tcx: 'mir> StoreBuffer {
-    fn new(init: ScalarMaybeUninit<Tag>) -> Self {
+    fn new(init: ScalarMaybeUninit<Provenance>) -> Self {
         let mut buffer = VecDeque::new();
         buffer.reserve(STORE_BUFFER_LIMIT);
         let mut ret = Self { buffer };
@@ -236,28 +243,29 @@ impl<'mir, 'tcx: 'mir> StoreBuffer {
     }
 
     /// Reads from the last store in modification order
-    fn read_from_last_store(&self, global: &GlobalState) {
+    fn read_from_last_store(&self, global: &DataRaceState, thread_mgr: &ThreadManager<'_, '_>) {
         let store_elem = self.buffer.back();
         if let Some(store_elem) = store_elem {
-            let (index, clocks) = global.current_thread_state();
+            let (index, clocks) = global.current_thread_state(thread_mgr);
             store_elem.load_impl(index, &clocks);
         }
     }
 
     fn buffered_read(
         &self,
-        global: &GlobalState,
+        global: &DataRaceState,
+        thread_mgr: &ThreadManager<'_, '_>,
         is_seqcst: bool,
         rng: &mut (impl rand::Rng + ?Sized),
         validate: impl FnOnce() -> InterpResult<'tcx>,
-    ) -> InterpResult<'tcx, ScalarMaybeUninit<Tag>> {
+    ) -> InterpResult<'tcx, (ScalarMaybeUninit<Provenance>, LoadRecency)> {
         // Having a live borrow to store_buffer while calling validate_atomic_load is fine
         // because the race detector doesn't touch store_buffer
 
-        let store_elem = {
+        let (store_elem, recency) = {
             // The `clocks` we got here must be dropped before calling validate_atomic_load
             // as the race detector will update it
-            let (.., clocks) = global.current_thread_state();
+            let (.., clocks) = global.current_thread_state(thread_mgr);
             // Load from a valid entry in the store buffer
             self.fetch_store(is_seqcst, &clocks, &mut *rng)
         };
@@ -268,18 +276,19 @@ impl<'mir, 'tcx: 'mir> StoreBuffer {
         // requires access to ThreadClockSet.clock, which is updated by the race detector
         validate()?;
 
-        let (index, clocks) = global.current_thread_state();
+        let (index, clocks) = global.current_thread_state(thread_mgr);
         let loaded = store_elem.load_impl(index, &clocks);
-        Ok(loaded)
+        Ok((loaded, recency))
     }
 
     fn buffered_write(
         &mut self,
-        val: ScalarMaybeUninit<Tag>,
-        global: &GlobalState,
+        val: ScalarMaybeUninit<Provenance>,
+        global: &DataRaceState,
+        thread_mgr: &ThreadManager<'_, '_>,
         is_seqcst: bool,
     ) -> InterpResult<'tcx> {
-        let (index, clocks) = global.current_thread_state();
+        let (index, clocks) = global.current_thread_state(thread_mgr);
 
         self.store_impl(val, index, &clocks.clock, is_seqcst);
         Ok(())
@@ -291,7 +300,7 @@ impl<'mir, 'tcx: 'mir> StoreBuffer {
         is_seqcst: bool,
         clocks: &ThreadClockSet,
         rng: &mut R,
-    ) -> &StoreElement {
+    ) -> (&StoreElement, LoadRecency) {
         use rand::seq::IteratorRandom;
         let mut found_sc = false;
         // FIXME: we want an inclusive take_while (stops after a false predicate, but
@@ -354,15 +363,18 @@ impl<'mir, 'tcx: 'mir> StoreBuffer {
                 }
             });
 
-        candidates
-            .choose(rng)
-            .expect("store buffer cannot be empty, an element is populated on construction")
+        let chosen = candidates.choose(rng).expect("store buffer cannot be empty");
+        if std::ptr::eq(chosen, self.buffer.back().expect("store buffer cannot be empty")) {
+            (chosen, LoadRecency::Latest)
+        } else {
+            (chosen, LoadRecency::Outdated)
+        }
     }
 
     /// ATOMIC STORE IMPL in the paper (except we don't need the location's vector clock)
     fn store_impl(
         &mut self,
-        val: ScalarMaybeUninit<Tag>,
+        val: ScalarMaybeUninit<Provenance>,
         index: VectorIdx,
         thread_clock: &VClock,
         is_seqcst: bool,
@@ -404,7 +416,11 @@ impl StoreElement {
     /// buffer regardless of subsequent loads by the same thread; if the earliest load of another
     /// thread doesn't happen before the current one, then no subsequent load by the other thread
     /// can happen before the current one.
-    fn load_impl(&self, index: VectorIdx, clocks: &ThreadClockSet) -> ScalarMaybeUninit<Tag> {
+    fn load_impl(
+        &self,
+        index: VectorIdx,
+        clocks: &ThreadClockSet,
+    ) -> ScalarMaybeUninit<Provenance> {
         let _ = self.loads.borrow_mut().try_insert(index, clocks.clock[index]);
         self.val
     }
@@ -417,7 +433,10 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
     // If weak memory emulation is enabled, check if this atomic op imperfectly overlaps with a previous
     // atomic read or write. If it does, then we require it to be ordered (non-racy) with all previous atomic
     // accesses on all the bytes in range
-    fn validate_overlapping_atomic(&self, place: &MPlaceTy<'tcx, Tag>) -> InterpResult<'tcx> {
+    fn validate_overlapping_atomic(
+        &self,
+        place: &MPlaceTy<'tcx, Provenance>,
+    ) -> InterpResult<'tcx> {
         let this = self.eval_context_ref();
         let (alloc_id, base_offset, ..) = this.ptr_get_alloc_id(place.ptr)?;
         if let crate::AllocExtra {
@@ -428,8 +447,11 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
         {
             let range = alloc_range(base_offset, place.layout.size);
             if alloc_buffers.is_overlapping(range)
-                && !alloc_clocks
-                    .race_free_with_atomic(range, this.machine.data_race.as_ref().unwrap())
+                && !alloc_clocks.race_free_with_atomic(
+                    range,
+                    this.machine.data_race.as_ref().unwrap(),
+                    &this.machine.threads,
+                )
             {
                 throw_unsup_format!(
                     "racy imperfectly overlapping atomic access is not possible in the C++20 memory model, and not supported by Miri's weak memory emulation"
@@ -441,55 +463,59 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
 
     fn buffered_atomic_rmw(
         &mut self,
-        new_val: ScalarMaybeUninit<Tag>,
-        place: &MPlaceTy<'tcx, Tag>,
-        atomic: AtomicRwOp,
-        init: ScalarMaybeUninit<Tag>,
+        new_val: ScalarMaybeUninit<Provenance>,
+        place: &MPlaceTy<'tcx, Provenance>,
+        atomic: AtomicRwOrd,
+        init: ScalarMaybeUninit<Provenance>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
         let (alloc_id, base_offset, ..) = this.ptr_get_alloc_id(place.ptr)?;
         if let (
             crate::AllocExtra { weak_memory: Some(alloc_buffers), .. },
-            crate::Evaluator { data_race: Some(global), .. },
+            crate::Evaluator { data_race: Some(global), threads, .. },
         ) = this.get_alloc_extra_mut(alloc_id)?
         {
-            if atomic == AtomicRwOp::SeqCst {
-                global.sc_read();
-                global.sc_write();
+            if atomic == AtomicRwOrd::SeqCst {
+                global.sc_read(threads);
+                global.sc_write(threads);
             }
             let range = alloc_range(base_offset, place.layout.size);
             let buffer = alloc_buffers.get_or_create_store_buffer_mut(range, init)?;
-            buffer.read_from_last_store(global);
-            buffer.buffered_write(new_val, global, atomic == AtomicRwOp::SeqCst)?;
+            buffer.read_from_last_store(global, threads);
+            buffer.buffered_write(new_val, global, threads, atomic == AtomicRwOrd::SeqCst)?;
         }
         Ok(())
     }
 
     fn buffered_atomic_read(
         &self,
-        place: &MPlaceTy<'tcx, Tag>,
-        atomic: AtomicReadOp,
-        latest_in_mo: ScalarMaybeUninit<Tag>,
+        place: &MPlaceTy<'tcx, Provenance>,
+        atomic: AtomicReadOrd,
+        latest_in_mo: ScalarMaybeUninit<Provenance>,
         validate: impl FnOnce() -> InterpResult<'tcx>,
-    ) -> InterpResult<'tcx, ScalarMaybeUninit<Tag>> {
+    ) -> InterpResult<'tcx, ScalarMaybeUninit<Provenance>> {
         let this = self.eval_context_ref();
         if let Some(global) = &this.machine.data_race {
             let (alloc_id, base_offset, ..) = this.ptr_get_alloc_id(place.ptr)?;
             if let Some(alloc_buffers) = this.get_alloc_extra(alloc_id)?.weak_memory.as_ref() {
-                if atomic == AtomicReadOp::SeqCst {
-                    global.sc_read();
+                if atomic == AtomicReadOrd::SeqCst {
+                    global.sc_read(&this.machine.threads);
                 }
                 let mut rng = this.machine.rng.borrow_mut();
                 let buffer = alloc_buffers.get_or_create_store_buffer(
                     alloc_range(base_offset, place.layout.size),
                     latest_in_mo,
                 )?;
-                let loaded = buffer.buffered_read(
+                let (loaded, recency) = buffer.buffered_read(
                     global,
-                    atomic == AtomicReadOp::SeqCst,
+                    &this.machine.threads,
+                    atomic == AtomicReadOrd::SeqCst,
                     &mut *rng,
                     validate,
                 )?;
+                if global.track_outdated_loads && recency == LoadRecency::Outdated {
+                    register_diagnostic(NonHaltingDiagnostic::WeakMemoryOutdatedLoad);
+                }
 
                 return Ok(loaded);
             }
@@ -502,20 +528,20 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
 
     fn buffered_atomic_write(
         &mut self,
-        val: ScalarMaybeUninit<Tag>,
-        dest: &MPlaceTy<'tcx, Tag>,
-        atomic: AtomicWriteOp,
-        init: ScalarMaybeUninit<Tag>,
+        val: ScalarMaybeUninit<Provenance>,
+        dest: &MPlaceTy<'tcx, Provenance>,
+        atomic: AtomicWriteOrd,
+        init: ScalarMaybeUninit<Provenance>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
         let (alloc_id, base_offset, ..) = this.ptr_get_alloc_id(dest.ptr)?;
         if let (
             crate::AllocExtra { weak_memory: Some(alloc_buffers), .. },
-            crate::Evaluator { data_race: Some(global), .. },
+            crate::Evaluator { data_race: Some(global), threads, .. },
         ) = this.get_alloc_extra_mut(alloc_id)?
         {
-            if atomic == AtomicWriteOp::SeqCst {
-                global.sc_write();
+            if atomic == AtomicWriteOrd::SeqCst {
+                global.sc_write(threads);
             }
 
             // UGLY HACK: in write_scalar_atomic() we don't know the value before our write,
@@ -535,7 +561,7 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
                 buffer.buffer.pop_front();
             }
 
-            buffer.buffered_write(val, global, atomic == AtomicWriteOp::SeqCst)?;
+            buffer.buffered_write(val, global, threads, atomic == AtomicWriteOrd::SeqCst)?;
         }
 
         // Caller should've written to dest with the vanilla scalar write, we do nothing here
@@ -547,22 +573,22 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
     /// to perform load_impl on the latest store element
     fn perform_read_on_buffered_latest(
         &self,
-        place: &MPlaceTy<'tcx, Tag>,
-        atomic: AtomicReadOp,
-        init: ScalarMaybeUninit<Tag>,
+        place: &MPlaceTy<'tcx, Provenance>,
+        atomic: AtomicReadOrd,
+        init: ScalarMaybeUninit<Provenance>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_ref();
 
         if let Some(global) = &this.machine.data_race {
-            if atomic == AtomicReadOp::SeqCst {
-                global.sc_read();
+            if atomic == AtomicReadOrd::SeqCst {
+                global.sc_read(&this.machine.threads);
             }
             let size = place.layout.size;
             let (alloc_id, base_offset, ..) = this.ptr_get_alloc_id(place.ptr)?;
             if let Some(alloc_buffers) = this.get_alloc_extra(alloc_id)?.weak_memory.as_ref() {
                 let buffer = alloc_buffers
                     .get_or_create_store_buffer(alloc_range(base_offset, size), init)?;
-                buffer.read_from_last_store(global);
+                buffer.read_from_last_store(global, &this.machine.threads);
             }
         }
         Ok(())

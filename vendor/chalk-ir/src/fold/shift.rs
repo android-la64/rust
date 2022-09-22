@@ -1,34 +1,34 @@
 //! Shifting of debruijn indices
 
-use super::Fold;
+use super::TypeFoldable;
 use crate::*;
 
 /// Methods for converting debruijn indices to move values into or out
 /// of binders.
-pub trait Shift<I: Interner>: Fold<I> {
+pub trait Shift<I: Interner>: TypeFoldable<I> {
     /// Shifts this term in one level of binders.
-    fn shifted_in(self, interner: I) -> Self::Result;
+    fn shifted_in(self, interner: I) -> Self;
 
     /// Shifts a term valid at `outer_binder` so that it is
     /// valid at the innermost binder. See [`DebruijnIndex::shifted_in_from`]
     /// for a detailed explanation.
-    fn shifted_in_from(self, interner: I, source_binder: DebruijnIndex) -> Self::Result;
+    fn shifted_in_from(self, interner: I, source_binder: DebruijnIndex) -> Self;
 
     /// Shifts this term out one level of binders.
-    fn shifted_out(self, interner: I) -> Fallible<Self::Result>;
+    fn shifted_out(self, interner: I) -> Fallible<Self>;
 
     /// Shifts a term valid at the innermost binder so that it is
     /// valid at `outer_binder`. See [`DebruijnIndex::shifted_out_to`]
     /// for a detailed explanation.
-    fn shifted_out_to(self, interner: I, target_binder: DebruijnIndex) -> Fallible<Self::Result>;
+    fn shifted_out_to(self, interner: I, target_binder: DebruijnIndex) -> Fallible<Self>;
 }
 
-impl<T: Fold<I>, I: Interner> Shift<I> for T {
-    fn shifted_in(self, interner: I) -> Self::Result {
+impl<T: TypeFoldable<I>, I: Interner> Shift<I> for T {
+    fn shifted_in(self, interner: I) -> Self {
         self.shifted_in_from(interner, DebruijnIndex::ONE)
     }
 
-    fn shifted_in_from(self, interner: I, source_binder: DebruijnIndex) -> T::Result {
+    fn shifted_in_from(self, interner: I, source_binder: DebruijnIndex) -> T {
         self.fold_with(
             &mut Shifter {
                 source_binder,
@@ -39,7 +39,7 @@ impl<T: Fold<I>, I: Interner> Shift<I> for T {
         .unwrap()
     }
 
-    fn shifted_out_to(self, interner: I, target_binder: DebruijnIndex) -> Fallible<T::Result> {
+    fn shifted_out_to(self, interner: I, target_binder: DebruijnIndex) -> Fallible<T> {
         self.fold_with(
             &mut DownShifter {
                 target_binder,
@@ -49,7 +49,7 @@ impl<T: Fold<I>, I: Interner> Shift<I> for T {
         )
     }
 
-    fn shifted_out(self, interner: I) -> Fallible<Self::Result> {
+    fn shifted_out(self, interner: I) -> Fallible<Self> {
         self.shifted_out_to(interner, DebruijnIndex::ONE)
     }
 }
@@ -71,10 +71,10 @@ impl<I> Shifter<I> {
     }
 }
 
-impl<I: Interner> Folder<I> for Shifter<I> {
+impl<I: Interner> TypeFolder<I> for Shifter<I> {
     type Error = NoSolution;
 
-    fn as_dyn(&mut self) -> &mut dyn Folder<I, Error = Self::Error> {
+    fn as_dyn(&mut self) -> &mut dyn TypeFolder<I, Error = Self::Error> {
         self
     }
 
@@ -141,10 +141,10 @@ impl<I> DownShifter<I> {
     }
 }
 
-impl<I: Interner> Folder<I> for DownShifter<I> {
+impl<I: Interner> TypeFolder<I> for DownShifter<I> {
     type Error = NoSolution;
 
-    fn as_dyn(&mut self) -> &mut dyn Folder<I, Error = Self::Error> {
+    fn as_dyn(&mut self) -> &mut dyn TypeFolder<I, Error = Self::Error> {
         self
     }
 

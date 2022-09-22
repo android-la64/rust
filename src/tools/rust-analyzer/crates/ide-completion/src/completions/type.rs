@@ -1,28 +1,21 @@
 //! Completion of names from the current scope in type position.
 
 use hir::{HirDisplay, ScopeDef};
-use ide_db::FxHashSet;
-use syntax::{ast, AstNode};
+use syntax::{ast, AstNode, SyntaxKind};
 
 use crate::{
-    context::{PathCompletionCtx, PathKind, Qualified, TypeAscriptionTarget, TypeLocation},
+    context::{PathCompletionCtx, Qualified, TypeAscriptionTarget, TypeLocation},
     render::render_type_inference,
     CompletionContext, Completions,
 };
 
 pub(crate) fn complete_type_path(
     acc: &mut Completions,
-    ctx: &CompletionContext,
-    path_ctx: &PathCompletionCtx,
+    ctx: &CompletionContext<'_>,
+    path_ctx @ PathCompletionCtx { qualified, .. }: &PathCompletionCtx,
+    location: &TypeLocation,
 ) {
     let _p = profile::span("complete_type_path");
-
-    let (location, qualified) = match path_ctx {
-        PathCompletionCtx { kind: PathKind::Type { location }, qualified, .. } => {
-            (location, qualified)
-        }
-        _ => return,
-    };
 
     let scope_def_applicable = |def| {
         use hir::{GenericParam::*, ModuleDef::*};
@@ -56,12 +49,27 @@ pub(crate) fn complete_type_path(
     };
 
     match qualified {
-        Qualified::Infer => ctx
+        Qualified::TypeAnchor { ty: None, trait_: None } => ctx
             .traits_in_scope()
-            .0
-            .into_iter()
-            .flat_map(|it| hir::Trait::from(it).items(ctx.sema.db))
+            .iter()
+            .flat_map(|&it| hir::Trait::from(it).items(ctx.sema.db))
             .for_each(|item| add_assoc_item(acc, item)),
+        Qualified::TypeAnchor { trait_: Some(trait_), .. } => {
+            trait_.items(ctx.sema.db).into_iter().for_each(|item| add_assoc_item(acc, item))
+        }
+        Qualified::TypeAnchor { ty: Some(ty), trait_: None } => {
+            ctx.iterate_path_candidates(&ty, |item| {
+                add_assoc_item(acc, item);
+            });
+
+            // Iterate assoc types separately
+            ty.iterate_assoc_items(ctx.db, ctx.krate, |item| {
+                if let hir::AssocItem::TypeAlias(ty) = item {
+                    acc.add_type_alias(ctx, ty)
+                }
+                None::<()>
+            });
+        }
         Qualified::With { resolution: None, .. } => {}
         Qualified::With { resolution: Some(resolution), .. } => {
             // Add associated types on type parameters and `Self`.
@@ -75,7 +83,7 @@ pub(crate) fn complete_type_path(
                     let module_scope = module.scope(ctx.db, Some(ctx.module));
                     for (name, def) in module_scope {
                         if scope_def_applicable(def) {
-                            acc.add_resolution(ctx, name, def);
+                            acc.add_path_resolution(ctx, path_ctx, name, def);
                         }
                     }
                 }
@@ -94,17 +102,9 @@ pub(crate) fn complete_type_path(
                     // XXX: For parity with Rust bug #22519, this does not complete Ty::AssocType.
                     // (where AssocType is defined on a trait, not an inherent impl)
 
-                    ty.iterate_path_candidates(
-                        ctx.db,
-                        &ctx.scope,
-                        &ctx.traits_in_scope().0,
-                        Some(ctx.module),
-                        None,
-                        |item| {
-                            add_assoc_item(acc, item);
-                            None::<()>
-                        },
-                    );
+                    ctx.iterate_path_candidates(&ty, |item| {
+                        add_assoc_item(acc, item);
+                    });
 
                     // Iterate assoc types separately
                     ty.iterate_assoc_items(ctx.db, ctx.krate, |item| {
@@ -127,83 +127,111 @@ pub(crate) fn complete_type_path(
                         _ => return,
                     };
 
-                    let mut seen = FxHashSet::default();
-                    ty.iterate_path_candidates(
-                        ctx.db,
-                        &ctx.scope,
-                        &ctx.traits_in_scope().0,
-                        Some(ctx.module),
-                        None,
-                        |item| {
-                            // We might iterate candidates of a trait multiple times here, so deduplicate
-                            // them.
-                            if seen.insert(item) {
-                                add_assoc_item(acc, item);
-                            }
-                            None::<()>
-                        },
-                    );
+                    ctx.iterate_path_candidates(&ty, |item| {
+                        add_assoc_item(acc, item);
+                    });
                 }
                 _ => (),
             }
         }
-        Qualified::Absolute => acc.add_crate_roots(ctx),
+        Qualified::Absolute => acc.add_crate_roots(ctx, path_ctx),
         Qualified::No => {
-            acc.add_nameref_keywords_with_colon(ctx);
-            if let TypeLocation::TypeBound = location {
-                ctx.process_all_names(&mut |name, res| {
-                    let add_resolution = match res {
-                        ScopeDef::ModuleDef(hir::ModuleDef::Macro(mac)) => mac.is_fn_like(ctx.db),
-                        ScopeDef::ModuleDef(
-                            hir::ModuleDef::Trait(_) | hir::ModuleDef::Module(_),
-                        ) => true,
-                        _ => false,
-                    };
-                    if add_resolution {
-                        acc.add_resolution(ctx, name, res);
-                    }
-                });
-                return;
-            }
-            if let TypeLocation::GenericArgList(Some(arg_list)) = location {
-                if let Some(path_seg) = arg_list.syntax().parent().and_then(ast::PathSegment::cast)
-                {
-                    if path_seg.syntax().ancestors().find_map(ast::TypeBound::cast).is_some() {
-                        if let Some(hir::PathResolution::Def(hir::ModuleDef::Trait(trait_))) =
-                            ctx.sema.resolve_path(&path_seg.parent_path())
+            match location {
+                TypeLocation::TypeBound => {
+                    acc.add_nameref_keywords_with_colon(ctx);
+                    ctx.process_all_names(&mut |name, res| {
+                        let add_resolution = match res {
+                            ScopeDef::ModuleDef(hir::ModuleDef::Macro(mac)) => {
+                                mac.is_fn_like(ctx.db)
+                            }
+                            ScopeDef::ModuleDef(
+                                hir::ModuleDef::Trait(_) | hir::ModuleDef::Module(_),
+                            ) => true,
+                            _ => false,
+                        };
+                        if add_resolution {
+                            acc.add_path_resolution(ctx, path_ctx, name, res);
+                        }
+                    });
+                    return;
+                }
+                TypeLocation::GenericArgList(Some(arg_list)) => {
+                    let in_assoc_type_arg = ctx
+                        .original_token
+                        .parent_ancestors()
+                        .any(|node| node.kind() == SyntaxKind::ASSOC_TYPE_ARG);
+
+                    if !in_assoc_type_arg {
+                        if let Some(path_seg) =
+                            arg_list.syntax().parent().and_then(ast::PathSegment::cast)
                         {
-                            trait_.items_with_supertraits(ctx.sema.db).into_iter().for_each(|it| {
-                                if let hir::AssocItem::TypeAlias(alias) = it {
-                                    cov_mark::hit!(complete_assoc_type_in_generics_list);
-                                    acc.add_type_alias_with_eq(ctx, alias)
+                            if path_seg
+                                .syntax()
+                                .ancestors()
+                                .find_map(ast::TypeBound::cast)
+                                .is_some()
+                            {
+                                if let Some(hir::PathResolution::Def(hir::ModuleDef::Trait(
+                                    trait_,
+                                ))) = ctx.sema.resolve_path(&path_seg.parent_path())
+                                {
+                                    let arg_idx = arg_list
+                                        .generic_args()
+                                        .filter(|arg| {
+                                            arg.syntax().text_range().end()
+                                                < ctx.original_token.text_range().start()
+                                        })
+                                        .count();
+
+                                    let n_required_params =
+                                        trait_.type_or_const_param_count(ctx.sema.db, true);
+                                    if arg_idx >= n_required_params {
+                                        trait_
+                                            .items_with_supertraits(ctx.sema.db)
+                                            .into_iter()
+                                            .for_each(|it| {
+                                                if let hir::AssocItem::TypeAlias(alias) = it {
+                                                    cov_mark::hit!(
+                                                        complete_assoc_type_in_generics_list
+                                                    );
+                                                    acc.add_type_alias_with_eq(ctx, alias);
+                                                }
+                                            });
+
+                                        let n_params =
+                                            trait_.type_or_const_param_count(ctx.sema.db, false);
+                                        if arg_idx >= n_params {
+                                            return; // only show assoc types
+                                        }
+                                    }
                                 }
-                            });
+                            }
                         }
                     }
                 }
-            }
+                _ => {}
+            };
+
+            acc.add_nameref_keywords_with_colon(ctx);
             ctx.process_all_names(&mut |name, def| {
                 if scope_def_applicable(def) {
-                    acc.add_resolution(ctx, name, def);
+                    acc.add_path_resolution(ctx, path_ctx, name, def);
                 }
             });
         }
     }
 }
 
-pub(crate) fn complete_inferred_type(
+pub(crate) fn complete_ascribed_type(
     acc: &mut Completions,
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     path_ctx: &PathCompletionCtx,
+    ascription: &TypeAscriptionTarget,
 ) -> Option<()> {
-    let pat = match path_ctx {
-        PathCompletionCtx {
-            kind: PathKind::Type { location: TypeLocation::TypeAscription(ascription), .. },
-            ..
-        } if path_ctx.is_trivial_path() => ascription,
-        _ => return None,
-    };
-    let x = match pat {
+    if !path_ctx.is_trivial_path() {
+        return None;
+    }
+    let x = match ascription {
         TypeAscriptionTarget::Let(pat) | TypeAscriptionTarget::FnParam(pat) => {
             ctx.sema.type_of_pat(pat.as_ref()?)
         }

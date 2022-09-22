@@ -4,6 +4,8 @@ mod analysis;
 #[cfg(test)]
 mod tests;
 
+use std::iter;
+
 use base_db::SourceDatabaseExt;
 use hir::{
     HasAttrs, Local, Name, PathResolution, ScopeDef, Semantics, SemanticsScope, Type, TypeInfo,
@@ -31,6 +33,7 @@ pub(crate) enum PatternRefutability {
     Irrefutable,
 }
 
+#[derive(Debug)]
 pub(crate) enum Visible {
     Yes,
     Editable,
@@ -61,6 +64,8 @@ pub(crate) struct PathCompletionCtx {
     pub(super) qualified: Qualified,
     /// The parent of the path we are completing.
     pub(super) parent: Option<ast::Path>,
+    /// The path of which we are completing the segment
+    pub(super) path: ast::Path,
     pub(super) kind: PathKind,
     /// Whether the path segment has type args or not.
     pub(super) has_type_args: bool,
@@ -88,27 +93,16 @@ impl PathCompletionCtx {
 #[derive(Debug, PartialEq, Eq)]
 pub(super) enum PathKind {
     Expr {
-        in_block_expr: bool,
-        in_loop_body: bool,
-        after_if_expr: bool,
-        /// Whether this expression is the direct condition of an if or while expression
-        in_condition: bool,
-        incomplete_let: bool,
-        ref_expr_parent: Option<ast::RefExpr>,
-        is_func_update: Option<ast::RecordExpr>,
-        self_param: Option<hir::SelfParam>,
-        innermost_ret_ty: Option<hir::Type>,
-        impl_: Option<ast::Impl>,
+        expr_ctx: ExprCtx,
     },
     Type {
         location: TypeLocation,
     },
     Attr {
-        kind: AttrKind,
-        annotated_item_kind: Option<SyntaxKind>,
+        attr_ctx: AttrCtx,
     },
     Derive {
-        existing_derives: FxHashSet<hir::Macro>,
+        existing_derives: ExistingDerives,
     },
     /// Path in item position, that is inside an (Assoc)ItemList
     Item {
@@ -121,6 +115,32 @@ pub(super) enum PathKind {
         has_in_token: bool,
     },
     Use,
+}
+
+pub(crate) type ExistingDerives = FxHashSet<hir::Macro>;
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct AttrCtx {
+    pub(crate) kind: AttrKind,
+    pub(crate) annotated_item_kind: Option<SyntaxKind>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct ExprCtx {
+    pub(crate) in_block_expr: bool,
+    pub(crate) in_loop_body: bool,
+    pub(crate) after_if_expr: bool,
+    /// Whether this expression is the direct condition of an if or while expression
+    pub(crate) in_condition: bool,
+    pub(crate) incomplete_let: bool,
+    pub(crate) ref_expr_parent: Option<ast::RefExpr>,
+    pub(crate) is_func_update: Option<ast::RecordExpr>,
+    pub(crate) self_param: Option<hir::SelfParam>,
+    pub(crate) innermost_ret_ty: Option<hir::Type>,
+    pub(crate) impl_: Option<ast::Impl>,
+    /// Whether this expression occurs in match arm guard position: before the
+    /// fat arrow token
+    pub(crate) in_match_guard: bool,
 }
 
 /// Original file ast nodes
@@ -160,11 +180,23 @@ pub(super) enum Qualified {
     With {
         path: ast::Path,
         resolution: Option<PathResolution>,
-        /// Whether this path consists solely of `super` segments
-        is_super_chain: bool,
+        /// How many `super` segments are present in the path
+        ///
+        /// This would be None, if path is not solely made of
+        /// `super` segments, e.g.
+        ///
+        /// ```rust
+        ///   use super::foo;
+        /// ```
+        ///
+        /// Otherwise it should be Some(count of `super`)
+        super_chain_len: Option<usize>,
     },
     /// <_>::
-    Infer,
+    TypeAnchor {
+        ty: Option<hir::Type>,
+        trait_: Option<hir::Trait>,
+    },
     /// Whether the path is an absolute path
     Absolute,
 }
@@ -173,7 +205,7 @@ pub(super) enum Qualified {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct PatternContext {
     pub(super) refutability: PatternRefutability,
-    pub(super) param_ctx: Option<(ast::ParamList, ast::Param, ParamKind)>,
+    pub(super) param_ctx: Option<ParamContext>,
     pub(super) has_type_ascription: bool,
     pub(super) parent_pat: Option<ast::Pat>,
     pub(super) ref_token: Option<SyntaxToken>,
@@ -181,6 +213,13 @@ pub(super) struct PatternContext {
     /// The record pattern this name or ref is a field of
     pub(super) record_pat: Option<ast::RecordPat>,
     pub(super) impl_: Option<ast::Impl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct ParamContext {
+    pub(super) param_list: ast::ParamList,
+    pub(super) param: ast::Param,
+    pub(super) kind: ParamKind,
 }
 
 /// The state of the lifetime we are completing.
@@ -247,14 +286,17 @@ pub(super) enum NameRefKind {
     DotAccess(DotAccess),
     /// Position where we are only interested in keyword completions
     Keyword(ast::Item),
-    /// The record expression this nameref is a field of
-    RecordExpr(ast::RecordExpr),
+    /// The record expression this nameref is a field of and whether a dot precedes the completion identifier.
+    RecordExpr {
+        dot_prefix: bool,
+        expr: ast::RecordExpr,
+    },
     Pattern(PatternContext),
 }
 
 /// The identifier we are currently completing.
 #[derive(Debug)]
-pub(super) enum IdentContext {
+pub(super) enum CompletionAnalysis {
     Name(NameContext),
     NameRef(NameRefContext),
     Lifetime(LifetimeContext),
@@ -267,6 +309,7 @@ pub(super) enum IdentContext {
     },
     /// Set if we are currently completing in an unexpanded attribute, this usually implies a builtin attribute like `allow($0)`
     UnexpandedAttrTT {
+        colon_prefix: bool,
         fake_attribute_under_caret: Option<ast::Attr>,
     },
 }
@@ -322,14 +365,16 @@ pub(crate) struct CompletionContext<'a> {
     /// The expected type of what we are completing.
     pub(super) expected_type: Option<Type>,
 
-    // FIXME: This shouldn't exist
-    pub(super) previous_token: Option<SyntaxToken>,
-
-    // We might wanna split these out of CompletionContext
-    pub(super) ident_ctx: IdentContext,
     pub(super) qualifier_ctx: QualifierCtx,
 
     pub(super) locals: FxHashMap<Name, Local>,
+
+    /// The module depth of the current module of the cursor position.
+    /// - crate-root
+    ///  - mod foo
+    ///   - mod bar
+    /// Here depth will be 2
+    pub(super) depth_from_crate_root: usize,
 }
 
 impl<'a> CompletionContext<'a> {
@@ -349,13 +394,32 @@ impl<'a> CompletionContext<'a> {
         }
     }
 
-    // FIXME: This shouldn't exist
-    pub(crate) fn previous_token_is(&self, kind: SyntaxKind) -> bool {
-        self.previous_token.as_ref().map_or(false, |tok| tok.kind() == kind)
+    pub(crate) fn famous_defs(&self) -> FamousDefs<'_, '_> {
+        FamousDefs(&self.sema, self.krate)
     }
 
-    pub(crate) fn famous_defs(&self) -> FamousDefs {
-        FamousDefs(&self.sema, self.krate)
+    /// Checks if an item is visible and not `doc(hidden)` at the completion site.
+    pub(crate) fn def_is_visible(&self, item: &ScopeDef) -> Visible {
+        match item {
+            ScopeDef::ModuleDef(def) => match def {
+                hir::ModuleDef::Module(it) => self.is_visible(it),
+                hir::ModuleDef::Function(it) => self.is_visible(it),
+                hir::ModuleDef::Adt(it) => self.is_visible(it),
+                hir::ModuleDef::Variant(it) => self.is_visible(it),
+                hir::ModuleDef::Const(it) => self.is_visible(it),
+                hir::ModuleDef::Static(it) => self.is_visible(it),
+                hir::ModuleDef::Trait(it) => self.is_visible(it),
+                hir::ModuleDef::TypeAlias(it) => self.is_visible(it),
+                hir::ModuleDef::Macro(it) => self.is_visible(it),
+                hir::ModuleDef::BuiltinType(_) => Visible::Yes,
+            },
+            ScopeDef::GenericParam(_)
+            | ScopeDef::ImplSelfType(_)
+            | ScopeDef::AdtSelfType(_)
+            | ScopeDef::Local(_)
+            | ScopeDef::Label(_)
+            | ScopeDef::Unknown => Visible::Yes,
+        }
     }
 
     /// Checks if an item is visible and not `doc(hidden)` at the completion site.
@@ -363,15 +427,9 @@ impl<'a> CompletionContext<'a> {
     where
         I: hir::HasVisibility + hir::HasAttrs + hir::HasCrate + Copy,
     {
-        self.is_visible_impl(&item.visibility(self.db), &item.attrs(self.db), item.krate(self.db))
-    }
-
-    pub(crate) fn is_scope_def_hidden(&self, scope_def: ScopeDef) -> bool {
-        if let (Some(attrs), Some(krate)) = (scope_def.attrs(self.db), scope_def.krate(self.db)) {
-            return self.is_doc_hidden(&attrs, krate);
-        }
-
-        false
+        let vis = item.visibility(self.db);
+        let attrs = item.attrs(self.db);
+        self.is_visible_impl(&vis, &attrs, item.krate(self.db))
     }
 
     /// Check if an item is `#[doc(hidden)]`.
@@ -383,6 +441,7 @@ impl<'a> CompletionContext<'a> {
             _ => false,
         }
     }
+
     /// Whether the given trait is an operator trait or not.
     pub(crate) fn is_ops_trait(&self, trait_: hir::Trait) -> bool {
         match trait_.attrs(self.db).lang() {
@@ -400,6 +459,29 @@ impl<'a> CompletionContext<'a> {
         traits_in_scope
     }
 
+    pub(crate) fn iterate_path_candidates(
+        &self,
+        ty: &hir::Type,
+        mut cb: impl FnMut(hir::AssocItem),
+    ) {
+        let mut seen = FxHashSet::default();
+        ty.iterate_path_candidates(
+            self.db,
+            &self.scope,
+            &self.traits_in_scope(),
+            Some(self.module),
+            None,
+            |item| {
+                // We might iterate candidates of a trait multiple times here, so deduplicate
+                // them.
+                if seen.insert(item) {
+                    cb(item)
+                }
+                None::<()>
+            },
+        );
+    }
+
     /// A version of [`SemanticsScope::process_all_names`] that filters out `#[doc(hidden)]` items.
     pub(crate) fn process_all_names(&self, f: &mut dyn FnMut(Name, ScopeDef)) {
         let _p = profile::span("CompletionContext::process_all_names");
@@ -415,6 +497,14 @@ impl<'a> CompletionContext<'a> {
     pub(crate) fn process_all_names_raw(&self, f: &mut dyn FnMut(Name, ScopeDef)) {
         let _p = profile::span("CompletionContext::process_all_names_raw");
         self.scope.process_all_names(&mut |name, def| f(name, def));
+    }
+
+    fn is_scope_def_hidden(&self, scope_def: ScopeDef) -> bool {
+        if let (Some(attrs), Some(krate)) = (scope_def.attrs(self.db), scope_def.krate(self.db)) {
+            return self.is_doc_hidden(&attrs, krate);
+        }
+
+        false
     }
 
     fn is_visible_impl(
@@ -453,7 +543,7 @@ impl<'a> CompletionContext<'a> {
         db: &'a RootDatabase,
         position @ FilePosition { file_id, offset }: FilePosition,
         config: &'a CompletionConfig,
-    ) -> Option<CompletionContext<'a>> {
+    ) -> Option<(CompletionContext<'a>, CompletionAnalysis)> {
         let _p = profile::span("CompletionContext::new");
         let sema = Semantics::new(db);
 
@@ -472,7 +562,11 @@ impl<'a> CompletionContext<'a> {
 
         let original_token = original_file.syntax().token_at_offset(offset).left_biased()?;
         let token = sema.descend_into_macros_single(original_token.clone());
-        let scope = sema.scope_at_offset(&token.parent()?, offset)?;
+
+        // adjust for macro input, this still fails if there is no token written yet
+        let scope_offset = if original_token == token { offset } else { token.text_range().end() };
+        let scope = sema.scope_at_offset(&token.parent()?, scope_offset)?;
+
         let krate = scope.krate();
         let module = scope.module();
 
@@ -482,6 +576,8 @@ impl<'a> CompletionContext<'a> {
                 locals.insert(name, local);
             }
         });
+
+        let depth_from_crate_root = iter::successors(module.parent(db), |m| m.parent(db)).count();
 
         let mut ctx = CompletionContext {
             sema,
@@ -495,19 +591,17 @@ impl<'a> CompletionContext<'a> {
             module,
             expected_name: None,
             expected_type: None,
-            previous_token: None,
-            // dummy value, will be overwritten
-            ident_ctx: IdentContext::UnexpandedAttrTT { fake_attribute_under_caret: None },
             qualifier_ctx: Default::default(),
             locals,
+            depth_from_crate_root,
         };
-        ctx.expand_and_fill(
+        let ident_ctx = ctx.expand_and_analyze(
             original_file.syntax().clone(),
             file_with_fake_ident.syntax().clone(),
             offset,
             fake_ident_token,
         )?;
-        Some(ctx)
+        Some((ctx, ident_ctx))
     }
 }
 

@@ -6,16 +6,17 @@ use itertools::Itertools;
 use syntax::SmolStr;
 
 use crate::{
-    context::{
-        IdentContext, NameContext, NameKind, NameRefContext, NameRefKind, ParamKind,
-        PathCompletionCtx, PathKind, PatternContext,
+    context::{ParamContext, ParamKind, PathCompletionCtx, PatternContext},
+    render::{
+        variant::{format_literal_label, visible_fields},
+        RenderContext,
     },
-    render::{variant::visible_fields, RenderContext},
     CompletionItem, CompletionItemKind,
 };
 
 pub(crate) fn render_struct_pat(
     ctx: RenderContext<'_>,
+    pattern_ctx: &PatternContext,
     strukt: hir::Struct,
     local_name: Option<Name>,
 ) -> Option<CompletionItem> {
@@ -29,14 +30,19 @@ pub(crate) fn render_struct_pat(
         return None;
     }
 
-    let name = local_name.unwrap_or_else(|| strukt.name(ctx.db())).to_smol_str();
-    let pat = render_pat(&ctx, &name, strukt.kind(ctx.db()), &visible_fields, fields_omitted)?;
+    let name = local_name.unwrap_or_else(|| strukt.name(ctx.db()));
+    let (name, escaped_name) = (name.to_smol_str(), name.escaped().to_smol_str());
+    let kind = strukt.kind(ctx.db());
+    let label = format_literal_label(name.as_str(), kind);
+    let pat = render_pat(&ctx, pattern_ctx, &escaped_name, kind, &visible_fields, fields_omitted)?;
 
-    Some(build_completion(ctx, name, pat, strukt))
+    Some(build_completion(ctx, label, pat, strukt))
 }
 
 pub(crate) fn render_variant_pat(
     ctx: RenderContext<'_>,
+    pattern_ctx: &PatternContext,
+    path_ctx: Option<&PathCompletionCtx>,
     variant: hir::Variant,
     local_name: Option<Name>,
     path: Option<&hir::ModPath>,
@@ -46,22 +52,41 @@ pub(crate) fn render_variant_pat(
     let fields = variant.fields(ctx.db());
     let (visible_fields, fields_omitted) = visible_fields(ctx.completion, &fields, variant)?;
 
-    let name = match path {
-        Some(path) => path.to_string().into(),
-        None => local_name.unwrap_or_else(|| variant.name(ctx.db())).to_smol_str(),
+    let (name, escaped_name) = match path {
+        Some(path) => (path.to_string().into(), path.escaped().to_string().into()),
+        None => {
+            let name = local_name.unwrap_or_else(|| variant.name(ctx.db()));
+            (name.to_smol_str(), name.escaped().to_smol_str())
+        }
     };
-    let pat = render_pat(&ctx, &name, variant.kind(ctx.db()), &visible_fields, fields_omitted)?;
 
-    Some(build_completion(ctx, name, pat, variant))
+    let (label, pat) = match path_ctx {
+        Some(PathCompletionCtx { has_call_parens: true, .. }) => (name, escaped_name.to_string()),
+        _ => {
+            let kind = variant.kind(ctx.db());
+            let label = format_literal_label(name.as_str(), kind);
+            let pat = render_pat(
+                &ctx,
+                pattern_ctx,
+                &escaped_name,
+                kind,
+                &visible_fields,
+                fields_omitted,
+            )?;
+            (label, pat)
+        }
+    };
+
+    Some(build_completion(ctx, label, pat, variant))
 }
 
 fn build_completion(
     ctx: RenderContext<'_>,
-    name: SmolStr,
+    label: SmolStr,
     pat: String,
     def: impl HasAttrs + Copy,
 ) -> CompletionItem {
-    let mut item = CompletionItem::new(CompletionItemKind::Binding, ctx.source_range(), name);
+    let mut item = CompletionItem::new(CompletionItemKind::Binding, ctx.source_range(), label);
     item.set_documentation(ctx.docs(def))
         .set_deprecated(ctx.is_deprecated(def))
         .detail(&pat)
@@ -75,49 +100,28 @@ fn build_completion(
 
 fn render_pat(
     ctx: &RenderContext<'_>,
+    pattern_ctx: &PatternContext,
     name: &str,
     kind: StructKind,
     fields: &[hir::Field],
     fields_omitted: bool,
 ) -> Option<String> {
-    let has_call_parens = matches!(
-        ctx.completion.ident_ctx,
-        IdentContext::NameRef(NameRefContext {
-            kind: NameRefKind::Path(PathCompletionCtx { has_call_parens: true, .. }),
-            ..
-        })
-    );
     let mut pat = match kind {
-        StructKind::Tuple if !has_call_parens => {
-            render_tuple_as_pat(ctx.snippet_cap(), fields, name, fields_omitted)
-        }
-        StructKind::Record if !has_call_parens => {
+        StructKind::Tuple => render_tuple_as_pat(ctx.snippet_cap(), fields, name, fields_omitted),
+        StructKind::Record => {
             render_record_as_pat(ctx.db(), ctx.snippet_cap(), fields, name, fields_omitted)
         }
-        StructKind::Unit => return None,
-        _ => name.to_owned(),
+        StructKind::Unit => name.to_string(),
     };
 
-    let needs_ascription = !has_call_parens
-        && matches!(
-            &ctx.completion.ident_ctx,
-            IdentContext::NameRef(NameRefContext {
-                kind: NameRefKind::Path(PathCompletionCtx {
-                    kind: PathKind::Pat {
-                        pat_ctx
-                    },
-                    ..
-                }),
-                ..
-            }) | IdentContext::Name(NameContext {
-                kind: NameKind::IdentPat(pat_ctx), ..}
-            )
-            if matches!(pat_ctx, PatternContext {
-                param_ctx: Some((.., ParamKind::Function(_))),
-                has_type_ascription: false,
-                ..
-            })
-        );
+    let needs_ascription = matches!(
+        pattern_ctx,
+        PatternContext {
+            param_ctx: Some(ParamContext { kind: ParamKind::Function(_), .. }),
+            has_type_ascription: false,
+            ..
+        }
+    );
     if needs_ascription {
         pat.push(':');
         pat.push(' ');
@@ -142,7 +146,7 @@ fn render_record_as_pat(
             format!(
                 "{name} {{ {}{} }}",
                 fields.enumerate().format_with(", ", |(idx, field), f| {
-                    f(&format_args!("{}${}", field.name(db), idx + 1))
+                    f(&format_args!("{}${}", field.name(db).escaped(), idx + 1))
                 }),
                 if fields_omitted { ", .." } else { "" },
                 name = name
@@ -151,7 +155,7 @@ fn render_record_as_pat(
         None => {
             format!(
                 "{name} {{ {}{} }}",
-                fields.map(|field| field.name(db)).format(", "),
+                fields.map(|field| field.name(db).escaped().to_smol_str()).format(", "),
                 if fields_omitted { ", .." } else { "" },
                 name = name
             )

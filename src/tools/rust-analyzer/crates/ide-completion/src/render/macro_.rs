@@ -5,18 +5,37 @@ use ide_db::SymbolKind;
 use syntax::SmolStr;
 
 use crate::{
-    context::{IdentContext, NameRefContext, NameRefKind, PathCompletionCtx, PathKind},
+    context::{PathCompletionCtx, PathKind, PatternContext},
     item::{Builder, CompletionItem},
     render::RenderContext,
 };
 
-pub(crate) fn render_macro(ctx: RenderContext<'_>, name: hir::Name, macro_: hir::Macro) -> Builder {
+pub(crate) fn render_macro(
+    ctx: RenderContext<'_>,
+    PathCompletionCtx { kind, has_macro_bang, has_call_parens, .. }: &PathCompletionCtx,
+
+    name: hir::Name,
+    macro_: hir::Macro,
+) -> Builder {
     let _p = profile::span("render_macro");
-    render(ctx, name, macro_)
+    render(ctx, *kind == PathKind::Use, *has_macro_bang, *has_call_parens, name, macro_)
+}
+
+pub(crate) fn render_macro_pat(
+    ctx: RenderContext<'_>,
+    _pattern_ctx: &PatternContext,
+    name: hir::Name,
+    macro_: hir::Macro,
+) -> Builder {
+    let _p = profile::span("render_macro");
+    render(ctx, false, false, false, name, macro_)
 }
 
 fn render(
     ctx @ RenderContext { completion, .. }: RenderContext<'_>,
+    is_use_path: bool,
+    has_macro_bang: bool,
+    has_call_parens: bool,
     name: hir::Name,
     macro_: hir::Macro,
 ) -> Builder {
@@ -27,19 +46,13 @@ fn render(
         ctx.source_range()
     };
 
-    let name = name.to_smol_str();
+    let (name, escaped_name) = (name.to_smol_str(), name.escaped().to_smol_str());
     let docs = ctx.docs(macro_);
     let docs_str = docs.as_ref().map(Documentation::as_str).unwrap_or_default();
     let is_fn_like = macro_.is_fn_like(completion.db);
     let (bra, ket) = if is_fn_like { guess_macro_braces(&name, docs_str) } else { ("", "") };
 
-    let needs_bang = match &completion.ident_ctx {
-        IdentContext::NameRef(NameRefContext {
-            kind: NameRefKind::Path(PathCompletionCtx { kind, has_macro_bang, .. }),
-            ..
-        }) => is_fn_like && *kind != PathKind::Use && !has_macro_bang,
-        _ => is_fn_like,
-    };
+    let needs_bang = is_fn_like && !is_use_path && !has_macro_bang;
 
     let mut item = CompletionItem::new(
         SymbolKind::from(macro_.kind(completion.db)),
@@ -51,20 +64,18 @@ fn render(
         .set_documentation(docs)
         .set_relevance(ctx.completion_relevance());
 
-    let name = &*name;
     match ctx.snippet_cap() {
-        Some(cap) if needs_bang && !ctx.path_is_call() => {
-            let snippet = format!("{}!{}$0{}", name, bra, ket);
-            let lookup = banged_name(name);
+        Some(cap) if needs_bang && !has_call_parens => {
+            let snippet = format!("{}!{}$0{}", escaped_name, bra, ket);
+            let lookup = banged_name(&name);
             item.insert_snippet(cap, snippet).lookup_by(lookup);
         }
         _ if needs_bang => {
-            let banged_name = banged_name(name);
-            item.insert_text(banged_name.clone()).lookup_by(banged_name);
+            item.insert_text(banged_name(&escaped_name)).lookup_by(banged_name(&name));
         }
         _ => {
             cov_mark::hit!(dont_insert_macro_call_parens_unncessary);
-            item.insert_text(name);
+            item.insert_text(escaped_name);
         }
     };
     if let Some(import_to_add) = ctx.import_to_add {
@@ -232,7 +243,7 @@ fn main() { foo! {$0} }
 
     #[test]
     fn completes_macro_call_if_cursor_at_bang_token() {
-        // Regression test for https://github.com/rust-analyzer/rust-analyzer/issues/9904
+        // Regression test for https://github.com/rust-lang/rust-analyzer/issues/9904
         cov_mark::check!(completes_macro_call_if_cursor_at_bang_token);
         check_edit(
             "foo!",

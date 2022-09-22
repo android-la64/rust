@@ -22,7 +22,7 @@ use crate::{utils::invert_boolean_expression, AssistContext, AssistId, AssistKin
 //     if !(x == 4 && y >= 3.14) {}
 // }
 // ```
-pub(crate) fn apply_demorgan(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
+pub(crate) fn apply_demorgan(acc: &mut Assists, ctx: &AssistContext<'_>) -> Option<()> {
     let expr = ctx.find_node_at_offset::<ast::BinExpr>()?;
     let op = expr.op_kind()?;
     let op_range = expr.op_token()?.text_range();
@@ -222,7 +222,7 @@ fn f() { !(S <= S || S < S) }
         check_assist(apply_demorgan, "fn f() { (x ||$0 x) }", "fn f() { !(!x && !x) }")
     }
 
-    // https://github.com/rust-analyzer/rust-analyzer/issues/10963
+    // https://github.com/rust-lang/rust-analyzer/issues/10963
     #[test]
     fn demorgan_doesnt_hang() {
         check_assist(

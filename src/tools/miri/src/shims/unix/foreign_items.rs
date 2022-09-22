@@ -2,7 +2,6 @@ use std::ffi::OsStr;
 
 use log::trace;
 
-use rustc_middle::mir;
 use rustc_middle::ty::layout::LayoutOf;
 use rustc_span::Symbol;
 use rustc_target::abi::{Align, Size};
@@ -20,9 +19,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         link_name: Symbol,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
-        ret: mir::BasicBlock,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx, EmulateByNameResult<'mir, 'tcx>> {
         let this = self.eval_context_mut();
 
@@ -60,6 +58,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 // `open` is variadic, the third argument is only present when the second argument has O_CREAT (or on linux O_TMPFILE, but miri doesn't support that) set
                 this.check_abi_and_shim_symbol_clash(abi, Abi::C { unwind: false }, link_name)?;
                 let result = this.open(args)?;
+                this.write_scalar(Scalar::from_i32(result), dest)?;
+            }
+            "close" => {
+                let [fd] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                let result = this.close(fd)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
             "fcntl" => {
@@ -112,16 +115,26 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let result = this.rmdir(path)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
+            "opendir" => {
+                let [name] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                let result = this.opendir(name)?;
+                this.write_scalar(result, dest)?;
+            }
             "closedir" => {
                 let [dirp] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.closedir(dirp)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
-            "lseek" | "lseek64" => {
+            "lseek64" => {
                 let [fd, offset, whence] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.lseek64(fd, offset, whence)?;
-                // "lseek" is only used on macOS which is 64bit-only, so `i64` always works.
                 this.write_scalar(Scalar::from_i64(result), dest)?;
+            }
+            "ftruncate64" => {
+                let [fd, length] =
+                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                let result = this.ftruncate64(fd, length)?;
+                this.write_scalar(Scalar::from_i32(result), dest)?;
             }
             "fsync" => {
                 let [fd] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
@@ -137,6 +150,23 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let [pathname, buf, bufsize] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.readlink(pathname, buf, bufsize)?;
                 this.write_scalar(Scalar::from_machine_isize(result, this), dest)?;
+            }
+            "posix_fadvise" => {
+                let [fd, offset, len, advice] =
+                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                this.read_scalar(fd)?.to_i32()?;
+                this.read_scalar(offset)?.to_machine_isize(this)?;
+                this.read_scalar(len)?.to_machine_isize(this)?;
+                this.read_scalar(advice)?.to_i32()?;
+                // fadvise is only informational, we can ignore it.
+                this.write_null(dest)?;
+            }
+
+            // Time related shims
+            "gettimeofday" => {
+                let [tv, tz] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                let result = this.gettimeofday(tv, tz)?;
+                this.write_scalar(Scalar::from_i32(result), dest)?;
             }
 
             // Allocation
@@ -408,12 +438,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // Miscellaneous
             "isatty" => {
                 let [fd] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                this.read_scalar(fd)?.to_i32()?;
-                // "returns 1 if fd is an open file descriptor referring to a terminal; otherwise 0 is returned, and errno is set to indicate the error"
-                // FIXME: we just say nothing is a terminal.
-                let enotty = this.eval_libc("ENOTTY")?;
-                this.set_last_error(enotty)?;
-                this.write_null(dest)?;
+                let result = this.isatty(fd)?;
+                this.write_scalar(Scalar::from_i32(result), dest)?;
             }
             "pthread_atfork" => {
                 let [prepare, parent, child] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
@@ -461,6 +487,28 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 this.write_null(dest)?;
             }
 
+            // Querying system information
+            "pthread_attr_getstack" => {
+                // We don't support "pthread_attr_setstack", so we just pretend all stacks have the same values here. Hence we can mostly ignore the input `attr_place`.
+                let [attr_place, addr_place, size_place] =
+                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                let _attr_place = this.deref_operand(attr_place)?;
+                let addr_place = this.deref_operand(addr_place)?;
+                let size_place = this.deref_operand(size_place)?;
+
+                this.write_scalar(
+                    Scalar::from_uint(STACK_ADDR, this.pointer_size()),
+                    &addr_place.into(),
+                )?;
+                this.write_scalar(
+                    Scalar::from_uint(STACK_SIZE, this.pointer_size()),
+                    &size_place.into(),
+                )?;
+
+                // Return success (`0`).
+                this.write_null(dest)?;
+            }
+
             | "signal"
             | "sigaltstack"
             if this.frame_in_std() => {
@@ -483,8 +531,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // Platform-specific shims
             _ => {
                 match this.tcx.sess.target.os.as_ref() {
-                    "linux" => return shims::unix::linux::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest, ret),
-                    "macos" => return shims::unix::macos::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest, ret),
+                    "linux" => return shims::unix::linux::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest),
+                    "macos" => return shims::unix::macos::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest),
+                    "freebsd" => return shims::unix::freebsd::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest),
                     _ => unreachable!(),
                 }
             }

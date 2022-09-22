@@ -27,8 +27,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         instance: ty::Instance<'tcx>,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
         ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx, Option<(&'mir mir::Body<'tcx>, ty::Instance<'tcx>)>> {
@@ -62,9 +62,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     /// the actual MIR of `align_offset`.
     fn align_offset(
         &mut self,
-        ptr_op: &OpTy<'tcx, Tag>,
-        align_op: &OpTy<'tcx, Tag>,
-        dest: &PlaceTy<'tcx, Tag>,
+        ptr_op: &OpTy<'tcx, Provenance>,
+        align_op: &OpTy<'tcx, Provenance>,
+        dest: &PlaceTy<'tcx, Provenance>,
         ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx, bool> {
@@ -87,7 +87,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let ptr = this.read_pointer(ptr_op)?;
         if let Ok((alloc_id, _offset, _)) = this.ptr_try_get_alloc_id(ptr) {
             // Only do anything if we can identify the allocation this goes to.
-            let (_, cur_align) = this.get_alloc_size_and_align(alloc_id, AllocCheck::MaybeDead)?;
+            let (_size, cur_align, _kind) = this.get_alloc_info(alloc_id);
             if cur_align.bytes() >= req_align {
                 // If the allocation alignment is at least the required alignment we use the
                 // real implementation.

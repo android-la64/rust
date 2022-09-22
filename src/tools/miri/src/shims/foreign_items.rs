@@ -74,7 +74,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         size: u64,
         zero_init: bool,
         kind: MiriMemoryKind,
-    ) -> InterpResult<'tcx, Pointer<Option<Tag>>> {
+    ) -> InterpResult<'tcx, Pointer<Option<Provenance>>> {
         let this = self.eval_context_mut();
         if size == 0 {
             Ok(Pointer::null())
@@ -82,14 +82,22 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             let align = this.min_align(size, kind);
             let ptr = this.allocate_ptr(Size::from_bytes(size), align, kind.into())?;
             if zero_init {
-                // We just allocated this, the access is definitely in-bounds.
-                this.write_bytes_ptr(ptr.into(), iter::repeat(0u8).take(size as usize)).unwrap();
+                // We just allocated this, the access is definitely in-bounds and fits into our address space.
+                this.write_bytes_ptr(
+                    ptr.into(),
+                    iter::repeat(0u8).take(usize::try_from(size).unwrap()),
+                )
+                .unwrap();
             }
             Ok(ptr.into())
         }
     }
 
-    fn free(&mut self, ptr: Pointer<Option<Tag>>, kind: MiriMemoryKind) -> InterpResult<'tcx> {
+    fn free(
+        &mut self,
+        ptr: Pointer<Option<Provenance>>,
+        kind: MiriMemoryKind,
+    ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
         if !this.ptr_is_null(ptr)? {
             this.deallocate_ptr(ptr, None, kind.into())?;
@@ -99,10 +107,10 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
     fn realloc(
         &mut self,
-        old_ptr: Pointer<Option<Tag>>,
+        old_ptr: Pointer<Option<Provenance>>,
         new_size: u64,
         kind: MiriMemoryKind,
-    ) -> InterpResult<'tcx, Pointer<Option<Tag>>> {
+    ) -> InterpResult<'tcx, Pointer<Option<Provenance>>> {
         let this = self.eval_context_mut();
         let new_align = this.min_align(new_size, kind);
         if this.ptr_is_null(old_ptr)? {
@@ -231,8 +239,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         def_id: DefId,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
         ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx, Option<(&'mir mir::Body<'tcx>, ty::Instance<'tcx>)>> {
@@ -297,8 +305,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             Some(p) => p,
         };
 
-        // Second: functions that return.
-        match this.emulate_foreign_item_by_name(link_name, abi, args, dest, ret)? {
+        // Second: functions that return immediately.
+        match this.emulate_foreign_item_by_name(link_name, abi, args, dest)? {
             EmulateByNameResult::NeedsJumping => {
                 trace!("{:?}", this.dump_place(**dest));
                 this.go_to_block(ret);
@@ -353,9 +361,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         link_name: Symbol,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
-        ret: mir::BasicBlock,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx, EmulateByNameResult<'mir, 'tcx>> {
         let this = self.eval_context_mut();
 
@@ -523,8 +530,12 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             "memrchr" => {
                 let [ptr, val, num] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let ptr = this.read_pointer(ptr)?;
-                let val = this.read_scalar(val)?.to_i32()? as u8;
+                let val = this.read_scalar(val)?.to_i32()?;
                 let num = this.read_scalar(num)?.to_machine_usize(this)?;
+                // The docs say val is "interpreted as unsigned char".
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                let val = val as u8;
+
                 if let Some(idx) = this
                     .read_bytes_ptr(ptr, Size::from_bytes(num))?
                     .iter()
@@ -540,8 +551,12 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             "memchr" => {
                 let [ptr, val, num] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let ptr = this.read_pointer(ptr)?;
-                let val = this.read_scalar(val)?.to_i32()? as u8;
+                let val = this.read_scalar(val)?.to_i32()?;
                 let num = this.read_scalar(num)?.to_machine_usize(this)?;
+                // The docs say val is "interpreted as unsigned char".
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                let val = val as u8;
+
                 let idx = this
                     .read_bytes_ptr(ptr, Size::from_bytes(num))?
                     .iter()
@@ -702,8 +717,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
             // Platform-specific shims
             _ => match this.tcx.sess.target.os.as_ref() {
-                target if target_os_is_unix(target) => return shims::unix::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest, ret),
-                "windows" => return shims::windows::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest, ret),
+                target if target_os_is_unix(target) => return shims::unix::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest),
+                "windows" => return shims::windows::foreign_items::EvalContextExt::emulate_foreign_item_by_name(this, link_name, abi, args, dest),
                 target => throw_unsup_format!("the target `{}` is not supported", target),
             }
         };

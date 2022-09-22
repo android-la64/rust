@@ -21,7 +21,7 @@ use crate::{AssistContext, AssistId, AssistKind, Assists};
 //     92;
 // }
 // ```
-pub(crate) fn remove_dbg(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
+pub(crate) fn remove_dbg(acc: &mut Assists, ctx: &AssistContext<'_>) -> Option<()> {
     let macro_call = ctx.find_node_at_offset::<ast::MacroCall>()?;
     let tt = macro_call.token_tree()?;
     let r_delim = NodeOrToken::Token(tt.right_delimiter_token()?);
@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_remove_dbg_keep_semicolon_in_let() {
-        // https://github.com/rust-analyzer/rust-analyzer/issues/5129#issuecomment-651399779
+        // https://github.com/rust-lang/rust-analyzer/issues/5129#issuecomment-651399779
         check(
             r#"let res = $0dbg!(1 * 20); // needless comment"#,
             r#"let res = 1 * 20; // needless comment"#,

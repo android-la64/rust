@@ -1,10 +1,8 @@
-// ignore-windows: File handling is not implemented yet
-// compile-flags: -Zmiri-isolation-error=warn-nobacktrace
-// normalize-stderr-test: "(stat(x)?)" -> "$$STAT"
+//@ignore-target-windows: File handling is not implemented yet
+//@compile-flags: -Zmiri-isolation-error=warn-nobacktrace
+//@normalize-stderr-test: "(stat(x)?)" -> "$$STAT"
 
 #![feature(rustc_private)]
-
-extern crate libc;
 
 use std::ffi::CString;
 use std::fs::{self, File};

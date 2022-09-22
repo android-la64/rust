@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.83.0"
+version = "0.85.3"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -37,13 +37,13 @@ version = "1.2.1"
 optional = true
 
 [dependencies.cranelift-bforest]
-version = "0.83.0"
+version = "0.85.3"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.83.0"
+version = "0.85.3"
 
 [dependencies.cranelift-entity]
-version = "0.83.0"
+version = "0.85.3"
 
 [dependencies.gimli]
 version = "0.26.0"
@@ -52,15 +52,16 @@ optional = true
 default-features = false
 
 [dependencies.hashbrown]
-version = "0.9.1"
+version = "0.11"
 optional = true
 
 [dependencies.log]
 version = "0.4.6"
 default-features = false
 
-[dependencies.regalloc]
-version = "0.0.34"
+[dependencies.regalloc2]
+version = "0.2.3"
+features = ["checker"]
 
 [dependencies.serde]
 version = "1.0.94"
@@ -81,14 +82,13 @@ version = "0.12"
 version = "0.3"
 
 [build-dependencies.cranelift-codegen-meta]
-version = "0.83.0"
+version = "0.85.3"
 
 [build-dependencies.cranelift-isle]
-version = "=0.83.0"
-optional = true
+version = "=0.85.3"
 
 [build-dependencies.miette]
-version = "3"
+version = "4.7.0"
 features = ["fancy"]
 optional = true
 
@@ -99,7 +99,6 @@ all-arch = [
     "s390x",
 ]
 arm64 = []
-completely-skip-isle-for-ci-deterministic-check = []
 core = ["hashbrown"]
 default = [
     "std",
@@ -107,19 +106,15 @@ default = [
 ]
 enable-serde = [
     "serde",
-    "regalloc/enable-serde",
     "cranelift-entity/enable-serde",
+    "regalloc2/enable-serde",
 ]
 experimental_x64 = []
-rebuild-isle = [
-    "cranelift-isle",
+isle-errors = [
     "miette",
-    "cranelift-codegen-meta/rebuild-isle",
+    "cranelift-isle/miette-errors",
 ]
-regalloc-snapshot = [
-    "bincode",
-    "regalloc/enable-serde",
-]
+isle-in-source-tree = []
 s390x = []
 souper-harvest = [
     "souper-ir",

@@ -5,7 +5,6 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fmt;
-use std::num::NonZeroU64;
 use std::time::Instant;
 
 use rand::rngs::StdRng;
@@ -43,7 +42,7 @@ pub const NUM_CPUS: u64 = 1;
 /// Extra data stored with each stack frame
 pub struct FrameData<'tcx> {
     /// Extra data for Stacked Borrows.
-    pub call_id: stacked_borrows::CallId,
+    pub stacked_borrows: Option<stacked_borrows::FrameExtra>,
 
     /// If this is Some(), then this is a special "catch unwind" frame (the frame of `try_fn`
     /// called by `try`). When this frame is popped during unwinding a panic,
@@ -59,9 +58,9 @@ pub struct FrameData<'tcx> {
 impl<'tcx> std::fmt::Debug for FrameData<'tcx> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Omitting `timing`, it does not support `Debug`.
-        let FrameData { call_id, catch_unwind, timing: _ } = self;
+        let FrameData { stacked_borrows, catch_unwind, timing: _ } = self;
         f.debug_struct("FrameData")
-            .field("call_id", call_id)
+            .field("stacked_borrows", stacked_borrows)
             .field("catch_unwind", catch_unwind)
             .finish()
     }
@@ -127,51 +126,56 @@ impl fmt::Display for MiriMemoryKind {
     }
 }
 
-/// Pointer provenance (tag).
+/// Pointer provenance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Tag {
-    Concrete(ConcreteTag),
+pub enum Provenance {
+    Concrete {
+        alloc_id: AllocId,
+        /// Stacked Borrows tag.
+        sb: SbTag,
+    },
     Wildcard,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConcreteTag {
-    pub alloc_id: AllocId,
-    /// Stacked Borrows tag.
-    pub sb: SbTag,
+/// The "extra" information a pointer has over a regular AllocId.
+#[derive(Copy, Clone)]
+pub enum ProvenanceExtra {
+    Concrete(SbTag),
+    Wildcard,
 }
 
 #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
-static_assert_size!(Pointer<Tag>, 24);
+static_assert_size!(Pointer<Provenance>, 24);
+// FIXME: this would with in 24bytes but layout optimizations are not smart enough
 // #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
-// static_assert_size!(Pointer<Option<Tag>>, 24);
+//static_assert_size!(Pointer<Option<Provenance>>, 24);
 #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
-static_assert_size!(ScalarMaybeUninit<Tag>, 32);
+static_assert_size!(ScalarMaybeUninit<Provenance>, 32);
 
-impl Provenance for Tag {
-    /// We use absolute addresses in the `offset` of a `Pointer<Tag>`.
+impl interpret::Provenance for Provenance {
+    /// We use absolute addresses in the `offset` of a `Pointer<Provenance>`.
     const OFFSET_IS_ADDR: bool = true;
 
     /// We cannot err on partial overwrites, it happens too often in practice (due to unions).
     const ERR_ON_PARTIAL_PTR_OVERWRITE: bool = false;
 
     fn fmt(ptr: &Pointer<Self>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (tag, addr) = ptr.into_parts(); // address is absolute
-        write!(f, "0x{:x}", addr.bytes())?;
+        let (prov, addr) = ptr.into_parts(); // address is absolute
+        write!(f, "{:#x}", addr.bytes())?;
 
-        match tag {
-            Tag::Concrete(tag) => {
+        match prov {
+            Provenance::Concrete { alloc_id, sb } => {
                 // Forward `alternate` flag to `alloc_id` printing.
                 if f.alternate() {
-                    write!(f, "[{:#?}]", tag.alloc_id)?;
+                    write!(f, "[{:#?}]", alloc_id)?;
                 } else {
-                    write!(f, "[{:?}]", tag.alloc_id)?;
+                    write!(f, "[{:?}]", alloc_id)?;
                 }
                 // Print Stacked Borrows tag.
-                write!(f, "{:?}", tag.sb)?;
+                write!(f, "{:?}", sb)?;
             }
-            Tag::Wildcard => {
-                write!(f, "[Wildcard]")?;
+            Provenance::Wildcard => {
+                write!(f, "[wildcard]")?;
             }
         }
 
@@ -180,8 +184,26 @@ impl Provenance for Tag {
 
     fn get_alloc_id(self) -> Option<AllocId> {
         match self {
-            Tag::Concrete(concrete) => Some(concrete.alloc_id),
-            Tag::Wildcard => None,
+            Provenance::Concrete { alloc_id, .. } => Some(alloc_id),
+            Provenance::Wildcard => None,
+        }
+    }
+}
+
+impl fmt::Debug for ProvenanceExtra {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProvenanceExtra::Concrete(pid) => write!(f, "{pid:?}"),
+            ProvenanceExtra::Wildcard => write!(f, "<wildcard>"),
+        }
+    }
+}
+
+impl ProvenanceExtra {
+    pub fn and_then<T>(self, f: impl FnOnce(SbTag) -> Option<T>) -> Option<T> {
+        match self {
+            ProvenanceExtra::Concrete(pid) => f(pid),
+            ProvenanceExtra::Wildcard => None,
         }
     }
 }
@@ -247,9 +269,9 @@ pub struct Evaluator<'mir, 'tcx> {
     /// Program arguments (`Option` because we can only initialize them after creating the ecx).
     /// These are *pointers* to argc/argv because macOS.
     /// We also need the full command line as one string because of Windows.
-    pub(crate) argc: Option<MemPlace<Tag>>,
-    pub(crate) argv: Option<MemPlace<Tag>>,
-    pub(crate) cmd_line: Option<MemPlace<Tag>>,
+    pub(crate) argc: Option<MemPlace<Provenance>>,
+    pub(crate) argv: Option<MemPlace<Provenance>>,
+    pub(crate) cmd_line: Option<MemPlace<Provenance>>,
 
     /// TLS state.
     pub(crate) tls: TlsData<'tcx>,
@@ -261,13 +283,6 @@ pub struct Evaluator<'mir, 'tcx> {
 
     /// Whether to enforce the validity invariant.
     pub(crate) validate: bool,
-
-    /// Whether to allow uninitialized numbers (integers and floats).
-    pub(crate) allow_uninit_numbers: bool,
-
-    /// Whether to allow ptr2int transmutes, and whether to allow *dereferencing* the result of an
-    /// int2ptr transmute.
-    pub(crate) allow_ptr_int_transmute: bool,
 
     /// Whether to enforce [ABI](Abi) of function calls.
     pub(crate) enforce_abi: bool,
@@ -312,7 +327,7 @@ pub struct Evaluator<'mir, 'tcx> {
     pub(crate) local_crates: Vec<CrateNum>,
 
     /// Mapping extern static names to their base pointer.
-    extern_statics: FxHashMap<Symbol, Pointer<Tag>>,
+    extern_statics: FxHashMap<Symbol, Pointer<Provenance>>,
 
     /// The random number generator used for resolving non-determinism.
     /// Needs to be queried by ptr_to_int, hence needs interior mutability.
@@ -336,6 +351,11 @@ pub struct Evaluator<'mir, 'tcx> {
 
     /// The probability of the active thread being preempted at the end of each basic block.
     pub(crate) preemption_rate: f64,
+
+    /// If `Some`, we will report the current stack every N basic blocks.
+    pub(crate) report_progress: Option<u32>,
+    /// The number of blocks that passed since the last progress report.
+    pub(crate) since_progress_report: u32,
 }
 
 impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
@@ -347,17 +367,14 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
             measureme::Profiler::new(out).expect("Couldn't create `measureme` profiler")
         });
         let rng = StdRng::seed_from_u64(config.seed.unwrap_or(0));
-        let stacked_borrows = if config.stacked_borrows {
-            Some(RefCell::new(stacked_borrows::GlobalStateInner::new(
+        let stacked_borrows = config.stacked_borrows.then(|| {
+            RefCell::new(stacked_borrows::GlobalStateInner::new(
                 config.tracked_pointer_tags.clone(),
                 config.tracked_call_ids.clone(),
-                config.tag_raw,
-            )))
-        } else {
-            None
-        };
-        let data_race =
-            if config.data_race_detector { Some(data_race::GlobalState::new()) } else { None };
+                config.retag_fields,
+            ))
+        });
+        let data_race = config.data_race_detector.then(|| data_race::GlobalState::new(config));
         Evaluator {
             stacked_borrows,
             data_race,
@@ -370,8 +387,6 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
             tls: TlsData::default(),
             isolated_op: config.isolated_op,
             validate: config.validate,
-            allow_uninit_numbers: config.allow_uninit_numbers,
-            allow_ptr_int_transmute: config.allow_ptr_int_transmute,
             enforce_abi: config.check_abi,
             file_handler: FileHandler::new(config.mute_stdout_stderr),
             dir_handler: Default::default(),
@@ -393,6 +408,8 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
             mute_stdout_stderr: config.mute_stdout_stderr,
             weak_memory: config.weak_memory_emulation,
             preemption_rate: config.preemption_rate,
+            report_progress: config.report_progress,
+            since_progress_report: 0,
         }
     }
 
@@ -408,7 +425,7 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
     fn add_extern_static(
         this: &mut MiriEvalContext<'mir, 'tcx>,
         name: &str,
-        ptr: Pointer<Option<Tag>>,
+        ptr: Pointer<Option<Provenance>>,
     ) {
         // This got just allocated, so there definitely is a pointer here.
         let ptr = ptr.into_pointer_or_addr().unwrap();
@@ -436,6 +453,14 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
                     this.write_scalar(Scalar::from_machine_usize(0, this), &place.into())?;
                     Self::add_extern_static(this, name, place.ptr);
                 }
+            }
+            "freebsd" => {
+                // "environ"
+                Self::add_extern_static(
+                    this,
+                    "environ",
+                    this.machine.env_vars.environ.unwrap().ptr,
+                );
             }
             "windows" => {
                 // "_tls_used"
@@ -488,11 +513,13 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     type FrameExtra = FrameData<'tcx>;
     type AllocExtra = AllocExtra;
 
-    type PointerTag = Tag;
-    type TagExtra = SbTag;
+    type Provenance = Provenance;
+    type ProvenanceExtra = ProvenanceExtra;
 
-    type MemoryMap =
-        MonoHashMap<AllocId, (MemoryKind<MiriMemoryKind>, Allocation<Tag, Self::AllocExtra>)>;
+    type MemoryMap = MonoHashMap<
+        AllocId,
+        (MemoryKind<MiriMemoryKind>, Allocation<Provenance, Self::AllocExtra>),
+    >;
 
     const GLOBAL_KIND: Option<MiriMemoryKind> = Some(MiriMemoryKind::Global);
 
@@ -514,13 +541,8 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     }
 
     #[inline(always)]
-    fn enforce_number_init(ecx: &MiriEvalContext<'mir, 'tcx>) -> bool {
-        !ecx.machine.allow_uninit_numbers
-    }
-
-    #[inline(always)]
-    fn enforce_number_no_provenance(ecx: &MiriEvalContext<'mir, 'tcx>) -> bool {
-        !ecx.machine.allow_ptr_int_transmute
+    fn enforce_number_init(_ecx: &MiriEvalContext<'mir, 'tcx>) -> bool {
+        true
     }
 
     #[inline(always)]
@@ -529,12 +551,17 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     }
 
     #[inline(always)]
+    fn checked_binop_checks_overflow(ecx: &MiriEvalContext<'mir, 'tcx>) -> bool {
+        ecx.tcx.sess.overflow_checks()
+    }
+
+    #[inline(always)]
     fn find_mir_or_eval_fn(
         ecx: &mut MiriEvalContext<'mir, 'tcx>,
         instance: ty::Instance<'tcx>,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
         ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx, Option<(&'mir mir::Body<'tcx>, ty::Instance<'tcx>)>> {
@@ -546,8 +573,8 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         ecx: &mut MiriEvalContext<'mir, 'tcx>,
         fn_val: Dlsym,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
         ret: Option<mir::BasicBlock>,
         _unwind: StackPopUnwind,
     ) -> InterpResult<'tcx> {
@@ -558,8 +585,8 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     fn call_intrinsic(
         ecx: &mut MiriEvalContext<'mir, 'tcx>,
         instance: ty::Instance<'tcx>,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
         ret: Option<mir::BasicBlock>,
         unwind: StackPopUnwind,
     ) -> InterpResult<'tcx> {
@@ -584,72 +611,97 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     fn binary_ptr_op(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         bin_op: mir::BinOp,
-        left: &ImmTy<'tcx, Tag>,
-        right: &ImmTy<'tcx, Tag>,
-    ) -> InterpResult<'tcx, (Scalar<Tag>, bool, ty::Ty<'tcx>)> {
+        left: &ImmTy<'tcx, Provenance>,
+        right: &ImmTy<'tcx, Provenance>,
+    ) -> InterpResult<'tcx, (Scalar<Provenance>, bool, ty::Ty<'tcx>)> {
         ecx.binary_ptr_op(bin_op, left, right)
     }
 
     fn thread_local_static_base_pointer(
         ecx: &mut MiriEvalContext<'mir, 'tcx>,
         def_id: DefId,
-    ) -> InterpResult<'tcx, Pointer<Tag>> {
+    ) -> InterpResult<'tcx, Pointer<Provenance>> {
         ecx.get_or_create_thread_local_alloc(def_id)
     }
 
     fn extern_static_base_pointer(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         def_id: DefId,
-    ) -> InterpResult<'tcx, Pointer<Tag>> {
+    ) -> InterpResult<'tcx, Pointer<Provenance>> {
         let link_name = ecx.item_link_name(def_id);
         if let Some(&ptr) = ecx.machine.extern_statics.get(&link_name) {
+            // Various parts of the engine rely on `get_alloc_info` for size and alignment
+            // information. That uses the type information of this static.
+            // Make sure it matches the Miri allocation for this.
+            let Provenance::Concrete { alloc_id, .. } = ptr.provenance else {
+                panic!("extern_statics cannot contain wildcards")
+            };
+            let (shim_size, shim_align, _kind) = ecx.get_alloc_info(alloc_id);
+            let extern_decl_layout =
+                ecx.tcx.layout_of(ty::ParamEnv::empty().and(ecx.tcx.type_of(def_id))).unwrap();
+            if extern_decl_layout.size != shim_size || extern_decl_layout.align.abi != shim_align {
+                throw_unsup_format!(
+                    "`extern` static `{name}` from crate `{krate}` has been declared \
+                    with a size of {decl_size} bytes and alignment of {decl_align} bytes, \
+                    but Miri emulates it via an extern static shim \
+                    with a size of {shim_size} bytes and alignment of {shim_align} bytes",
+                    name = ecx.tcx.def_path_str(def_id),
+                    krate = ecx.tcx.crate_name(def_id.krate),
+                    decl_size = extern_decl_layout.size.bytes(),
+                    decl_align = extern_decl_layout.align.abi.bytes(),
+                    shim_size = shim_size.bytes(),
+                    shim_align = shim_align.bytes(),
+                )
+            }
             Ok(ptr)
         } else {
             throw_unsup_format!(
-                "`extern` static `{}` from crate `{}` is not supported by Miri",
-                ecx.tcx.def_path_str(def_id),
-                ecx.tcx.crate_name(def_id.krate),
+                "`extern` static `{name}` from crate `{krate}` is not supported by Miri",
+                name = ecx.tcx.def_path_str(def_id),
+                krate = ecx.tcx.crate_name(def_id.krate),
             )
         }
     }
 
-    fn init_allocation_extra<'b>(
+    fn adjust_allocation<'b>(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         id: AllocId,
         alloc: Cow<'b, Allocation>,
         kind: Option<MemoryKind<Self::MemoryKind>>,
-    ) -> InterpResult<'tcx, Cow<'b, Allocation<Self::PointerTag, Self::AllocExtra>>> {
+    ) -> InterpResult<'tcx, Cow<'b, Allocation<Self::Provenance, Self::AllocExtra>>> {
+        let kind = kind.expect("we set our STATIC_KIND so this cannot be None");
         if ecx.machine.tracked_alloc_ids.contains(&id) {
-            register_diagnostic(NonHaltingDiagnostic::CreatedAlloc(id));
+            register_diagnostic(NonHaltingDiagnostic::CreatedAlloc(
+                id,
+                alloc.size(),
+                alloc.align,
+                kind,
+            ));
         }
 
-        let kind = kind.expect("we set our STATIC_KIND so this cannot be None");
         let alloc = alloc.into_owned();
-        let stacks = if let Some(stacked_borrows) = &ecx.machine.stacked_borrows {
-            Some(Stacks::new_allocation(
+        let stacks = ecx.machine.stacked_borrows.as_ref().map(|stacked_borrows| {
+            Stacks::new_allocation(
                 id,
                 alloc.size(),
                 stacked_borrows,
                 kind,
                 ecx.machine.current_span(),
-            ))
-        } else {
-            None
-        };
-        let race_alloc = if let Some(data_race) = &ecx.machine.data_race {
-            Some(data_race::AllocExtra::new_allocation(data_race, alloc.size(), kind))
-        } else {
-            None
-        };
-        let buffer_alloc = if ecx.machine.weak_memory {
-            Some(weak_memory::AllocExtra::new_allocation())
-        } else {
-            None
-        };
-        let alloc: Allocation<Tag, Self::AllocExtra> = alloc.convert_tag_add_extra(
+            )
+        });
+        let race_alloc = ecx.machine.data_race.as_ref().map(|data_race| {
+            data_race::AllocExtra::new_allocation(
+                data_race,
+                &ecx.machine.threads,
+                alloc.size(),
+                kind,
+            )
+        });
+        let buffer_alloc = ecx.machine.weak_memory.then(weak_memory::AllocExtra::new_allocation);
+        let alloc: Allocation<Provenance, Self::AllocExtra> = alloc.adjust_from_tcx(
             &ecx.tcx,
             AllocExtra {
-                stacked_borrows: stacks,
+                stacked_borrows: stacks.map(RefCell::new),
                 data_race: race_alloc,
                 weak_memory: buffer_alloc,
             },
@@ -658,31 +710,32 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         Ok(Cow::Owned(alloc))
     }
 
-    fn tag_alloc_base_pointer(
+    fn adjust_alloc_base_pointer(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         ptr: Pointer<AllocId>,
-    ) -> Pointer<Tag> {
+    ) -> Pointer<Provenance> {
         if cfg!(debug_assertions) {
             // The machine promises to never call us on thread-local or extern statics.
             let alloc_id = ptr.provenance;
-            match ecx.tcx.get_global_alloc(alloc_id) {
+            match ecx.tcx.try_get_global_alloc(alloc_id) {
                 Some(GlobalAlloc::Static(def_id)) if ecx.tcx.is_thread_local_static(def_id) => {
-                    panic!("tag_alloc_base_pointer called on thread-local static")
+                    panic!("adjust_alloc_base_pointer called on thread-local static")
                 }
                 Some(GlobalAlloc::Static(def_id)) if ecx.tcx.is_foreign_item(def_id) => {
-                    panic!("tag_alloc_base_pointer called on extern static")
+                    panic!("adjust_alloc_base_pointer called on extern static")
                 }
                 _ => {}
             }
         }
         let absolute_addr = intptrcast::GlobalStateInner::rel_ptr_to_addr(ecx, ptr);
         let sb_tag = if let Some(stacked_borrows) = &ecx.machine.stacked_borrows {
-            stacked_borrows.borrow_mut().base_tag(ptr.provenance)
+            stacked_borrows.borrow_mut().base_ptr_tag(ptr.provenance)
         } else {
-            SbTag::Untagged
+            // Value does not matter, SB is disabled
+            SbTag::default()
         };
         Pointer::new(
-            Tag::Concrete(ConcreteTag { alloc_id: ptr.provenance, sb: sb_tag }),
+            Provenance::Concrete { alloc_id: ptr.provenance, sb: sb_tag },
             Size::from_bytes(absolute_addr),
         )
     }
@@ -691,45 +744,37 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     fn ptr_from_addr_cast(
         ecx: &MiriEvalContext<'mir, 'tcx>,
         addr: u64,
-    ) -> InterpResult<'tcx, Pointer<Option<Self::PointerTag>>> {
-        Ok(intptrcast::GlobalStateInner::ptr_from_addr_cast(ecx, addr))
-    }
-
-    #[inline(always)]
-    fn ptr_from_addr_transmute(
-        ecx: &MiriEvalContext<'mir, 'tcx>,
-        addr: u64,
-    ) -> Pointer<Option<Self::PointerTag>> {
-        intptrcast::GlobalStateInner::ptr_from_addr_transmute(ecx, addr)
+    ) -> InterpResult<'tcx, Pointer<Option<Self::Provenance>>> {
+        intptrcast::GlobalStateInner::ptr_from_addr_cast(ecx, addr)
     }
 
     fn expose_ptr(
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
-        ptr: Pointer<Self::PointerTag>,
+        ptr: Pointer<Self::Provenance>,
     ) -> InterpResult<'tcx> {
         match ptr.provenance {
-            Tag::Concrete(concrete) =>
-                intptrcast::GlobalStateInner::expose_addr(ecx, concrete.alloc_id),
-            Tag::Wildcard => {
+            Provenance::Concrete { alloc_id, sb } =>
+                intptrcast::GlobalStateInner::expose_ptr(ecx, alloc_id, sb),
+            Provenance::Wildcard => {
                 // No need to do anything for wildcard pointers as
                 // their provenances have already been previously exposed.
+                Ok(())
             }
         }
-        Ok(())
     }
 
     /// Convert a pointer with provenance into an allocation-offset pair,
     /// or a `None` with an absolute address if that conversion is not possible.
     fn ptr_get_alloc(
         ecx: &MiriEvalContext<'mir, 'tcx>,
-        ptr: Pointer<Self::PointerTag>,
-    ) -> Option<(AllocId, Size, Self::TagExtra)> {
+        ptr: Pointer<Self::Provenance>,
+    ) -> Option<(AllocId, Size, Self::ProvenanceExtra)> {
         let rel = intptrcast::GlobalStateInner::abs_ptr_to_rel(ecx, ptr);
 
         rel.map(|(alloc_id, size)| {
             let sb = match ptr.provenance {
-                Tag::Concrete(ConcreteTag { sb, .. }) => sb,
-                Tag::Wildcard => SbTag::Untagged,
+                Provenance::Concrete { sb, .. } => ProvenanceExtra::Concrete(sb),
+                Provenance::Wildcard => ProvenanceExtra::Wildcard,
             };
             (alloc_id, size, sb)
         })
@@ -740,19 +785,25 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         _tcx: TyCtxt<'tcx>,
         machine: &Self,
         alloc_extra: &AllocExtra,
-        (alloc_id, tag): (AllocId, Self::TagExtra),
+        (alloc_id, prov_extra): (AllocId, Self::ProvenanceExtra),
         range: AllocRange,
     ) -> InterpResult<'tcx> {
         if let Some(data_race) = &alloc_extra.data_race {
-            data_race.read(alloc_id, range, machine.data_race.as_ref().unwrap())?;
+            data_race.read(
+                alloc_id,
+                range,
+                machine.data_race.as_ref().unwrap(),
+                &machine.threads,
+            )?;
         }
         if let Some(stacked_borrows) = &alloc_extra.stacked_borrows {
-            stacked_borrows.memory_read(
+            stacked_borrows.borrow_mut().memory_read(
                 alloc_id,
-                tag,
+                prov_extra,
                 range,
                 machine.stacked_borrows.as_ref().unwrap(),
                 machine.current_span(),
+                &machine.threads,
             )?;
         }
         if let Some(weak_memory) = &alloc_extra.weak_memory {
@@ -766,19 +817,25 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         _tcx: TyCtxt<'tcx>,
         machine: &mut Self,
         alloc_extra: &mut AllocExtra,
-        (alloc_id, tag): (AllocId, Self::TagExtra),
+        (alloc_id, prov_extra): (AllocId, Self::ProvenanceExtra),
         range: AllocRange,
     ) -> InterpResult<'tcx> {
         if let Some(data_race) = &mut alloc_extra.data_race {
-            data_race.write(alloc_id, range, machine.data_race.as_mut().unwrap())?;
+            data_race.write(
+                alloc_id,
+                range,
+                machine.data_race.as_mut().unwrap(),
+                &machine.threads,
+            )?;
         }
         if let Some(stacked_borrows) = &mut alloc_extra.stacked_borrows {
-            stacked_borrows.memory_written(
+            stacked_borrows.get_mut().memory_written(
                 alloc_id,
-                tag,
+                prov_extra,
                 range,
                 machine.stacked_borrows.as_ref().unwrap(),
                 machine.current_span(),
+                &machine.threads,
             )?;
         }
         if let Some(weak_memory) = &alloc_extra.weak_memory {
@@ -792,21 +849,27 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         _tcx: TyCtxt<'tcx>,
         machine: &mut Self,
         alloc_extra: &mut AllocExtra,
-        (alloc_id, tag): (AllocId, Self::TagExtra),
+        (alloc_id, prove_extra): (AllocId, Self::ProvenanceExtra),
         range: AllocRange,
     ) -> InterpResult<'tcx> {
         if machine.tracked_alloc_ids.contains(&alloc_id) {
             register_diagnostic(NonHaltingDiagnostic::FreedAlloc(alloc_id));
         }
         if let Some(data_race) = &mut alloc_extra.data_race {
-            data_race.deallocate(alloc_id, range, machine.data_race.as_mut().unwrap())?;
+            data_race.deallocate(
+                alloc_id,
+                range,
+                machine.data_race.as_mut().unwrap(),
+                &machine.threads,
+            )?;
         }
         if let Some(stacked_borrows) = &mut alloc_extra.stacked_borrows {
-            stacked_borrows.memory_deallocated(
+            stacked_borrows.get_mut().memory_deallocated(
                 alloc_id,
-                tag,
+                prove_extra,
                 range,
                 machine.stacked_borrows.as_ref().unwrap(),
+                &machine.threads,
             )
         } else {
             Ok(())
@@ -817,7 +880,7 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     fn retag(
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
         kind: mir::RetagKind,
-        place: &PlaceTy<'tcx, Tag>,
+        place: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx> {
         if ecx.machine.stacked_borrows.is_some() { ecx.retag(kind, place) } else { Ok(()) }
     }
@@ -825,8 +888,8 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     #[inline(always)]
     fn init_frame_extra(
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
-        frame: Frame<'mir, 'tcx, Tag>,
-    ) -> InterpResult<'tcx, Frame<'mir, 'tcx, Tag, FrameData<'tcx>>> {
+        frame: Frame<'mir, 'tcx, Provenance>,
+    ) -> InterpResult<'tcx, Frame<'mir, 'tcx, Provenance, FrameData<'tcx>>> {
         // Start recording our event before doing anything else
         let timing = if let Some(profiler) = ecx.machine.profiler.as_ref() {
             let fn_name = frame.instance.to_string();
@@ -843,27 +906,38 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
         };
 
         let stacked_borrows = ecx.machine.stacked_borrows.as_ref();
-        let call_id = stacked_borrows.map_or(NonZeroU64::new(1).unwrap(), |stacked_borrows| {
-            stacked_borrows.borrow_mut().new_call()
-        });
 
-        let extra = FrameData { call_id, catch_unwind: None, timing };
+        let extra = FrameData {
+            stacked_borrows: stacked_borrows.map(|sb| sb.borrow_mut().new_frame()),
+            catch_unwind: None,
+            timing,
+        };
         Ok(frame.with_extra(extra))
     }
 
     fn stack<'a>(
         ecx: &'a InterpCx<'mir, 'tcx, Self>,
-    ) -> &'a [Frame<'mir, 'tcx, Self::PointerTag, Self::FrameExtra>] {
+    ) -> &'a [Frame<'mir, 'tcx, Self::Provenance, Self::FrameExtra>] {
         ecx.active_thread_stack()
     }
 
     fn stack_mut<'a>(
         ecx: &'a mut InterpCx<'mir, 'tcx, Self>,
-    ) -> &'a mut Vec<Frame<'mir, 'tcx, Self::PointerTag, Self::FrameExtra>> {
+    ) -> &'a mut Vec<Frame<'mir, 'tcx, Self::Provenance, Self::FrameExtra>> {
         ecx.active_thread_stack_mut()
     }
 
     fn before_terminator(ecx: &mut InterpCx<'mir, 'tcx, Self>) -> InterpResult<'tcx> {
+        // Possibly report our progress.
+        if let Some(report_progress) = ecx.machine.report_progress {
+            if ecx.machine.since_progress_report >= report_progress {
+                register_diagnostic(NonHaltingDiagnostic::ProgressReport);
+                ecx.machine.since_progress_report = 0;
+            }
+            // Cannot overflow, since it is strictly less than `report_progress`.
+            ecx.machine.since_progress_report += 1;
+        }
+        // These are our preemption points.
         ecx.maybe_preempt_active_thread();
         Ok(())
     }
@@ -876,11 +950,14 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for Evaluator<'mir, 'tcx> {
     #[inline(always)]
     fn after_stack_pop(
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
-        mut frame: Frame<'mir, 'tcx, Tag, FrameData<'tcx>>,
+        mut frame: Frame<'mir, 'tcx, Provenance, FrameData<'tcx>>,
         unwinding: bool,
     ) -> InterpResult<'tcx, StackPopJump> {
         let timing = frame.extra.timing.take();
-        let res = ecx.handle_stack_pop(frame.extra, unwinding);
+        if let Some(stacked_borrows) = &ecx.machine.stacked_borrows {
+            stacked_borrows.borrow_mut().end_call(&frame.extra);
+        }
+        let res = ecx.handle_stack_pop_unwind(frame.extra, unwinding);
         if let Some(profiler) = ecx.machine.profiler.as_ref() {
             profiler.finish_recording_interval_event(timing.unwrap());
         }

@@ -404,7 +404,7 @@ fn custom_build_env_var_rustc_linker_host_target() {
     // only if build.rs succeeds, despite linker binary not existing.
     p.cargo("build -Z target-applies-to-host --target")
         .arg(&target)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["target-applies-to-host"])
         .run();
 }
 
@@ -440,7 +440,7 @@ fn custom_build_env_var_rustc_linker_host_target_env() {
     p.cargo("build -Z target-applies-to-host --target")
         .env("CARGO_TARGET_APPLIES_TO_HOST", "false")
         .arg(&target)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["target-applies-to-host"])
         .run();
 }
 
@@ -465,7 +465,7 @@ fn custom_build_invalid_host_config_feature_flag() {
     // build.rs should fail due to -Zhost-config being set without -Ztarget-applies-to-host
     p.cargo("build -Z host-config --target")
         .arg(&target)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["host-config"])
         .with_status(101)
         .with_stderr_contains(
             "\
@@ -498,7 +498,7 @@ fn custom_build_linker_host_target_with_bad_host_config() {
     // build.rs should fail due to bad host linker being set
     p.cargo("build -Z target-applies-to-host -Z host-config --verbose --target")
             .arg(&target)
-            .masquerade_as_nightly_cargo()
+            .masquerade_as_nightly_cargo(&["target-applies-to-host", "host-config"])
             .with_status(101)
             .with_stderr_contains(
                 "\
@@ -533,7 +533,7 @@ fn custom_build_linker_bad_host() {
     // build.rs should fail due to bad host linker being set
     p.cargo("build -Z target-applies-to-host -Z host-config --verbose --target")
             .arg(&target)
-            .masquerade_as_nightly_cargo()
+            .masquerade_as_nightly_cargo(&["target-applies-to-host", "host-config"])
             .with_status(101)
             .with_stderr_contains(
                 "\
@@ -570,7 +570,7 @@ fn custom_build_linker_bad_host_with_arch() {
     // build.rs should fail due to bad host linker being set
     p.cargo("build -Z target-applies-to-host -Z host-config --verbose --target")
             .arg(&target)
-            .masquerade_as_nightly_cargo()
+            .masquerade_as_nightly_cargo(&["target-applies-to-host", "host-config"])
             .with_status(101)
             .with_stderr_contains(
                 "\
@@ -616,7 +616,7 @@ fn custom_build_env_var_rustc_linker_cross_arch_host() {
     // assertion should succeed since it's still passed the target linker
     p.cargo("build -Z target-applies-to-host -Z host-config --verbose --target")
         .arg(&target)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["target-applies-to-host", "host-config"])
         .run();
 }
 
@@ -646,7 +646,7 @@ fn custom_build_linker_bad_cross_arch_host() {
     // build.rs should fail due to bad host linker being set
     p.cargo("build -Z target-applies-to-host -Z host-config --verbose --target")
             .arg(&target)
-            .masquerade_as_nightly_cargo()
+            .masquerade_as_nightly_cargo(&["target-applies-to-host", "host-config"])
             .with_status(101)
             .with_stderr_contains(
                 "\
@@ -4236,8 +4236,10 @@ fn rename_with_link_search_path() {
 }
 
 #[cargo_test]
-// Don't have a cdylib cross target on macos.
-#[cfg_attr(target_os = "macos", ignore)]
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "don't have a cdylib cross target on macos"
+)]
 fn rename_with_link_search_path_cross() {
     if cross_compile::disabled() {
         return;
@@ -4870,7 +4872,7 @@ fn duplicate_script_with_extra_env() {
     if cargo_test_support::is_nightly() {
         p.cargo("test --workspace -Z doctest-xcompile --doc --target")
             .arg(&target)
-            .masquerade_as_nightly_cargo()
+            .masquerade_as_nightly_cargo(&["doctest-xcompile"])
             .with_stdout_contains("test src/lib.rs - (line 2) ... ok")
             .run();
     }

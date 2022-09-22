@@ -149,6 +149,7 @@ impl Resolver {
         self.resolve_module_path(db, path, BuiltinShadowMode::Module)
     }
 
+    // FIXME: This shouldn't exist
     pub fn resolve_module_path_in_trait_assoc_items(
         &self,
         db: &dyn DefDatabase,
@@ -448,10 +449,14 @@ impl Resolver {
     }
 
     pub fn krate(&self) -> CrateId {
+        self.def_map().krate()
+    }
+
+    pub fn def_map(&self) -> &DefMap {
         self.scopes
             .get(0)
             .and_then(|scope| match scope {
-                Scope::ModuleScope(m) => Some(m.def_map.krate()),
+                Scope::ModuleScope(m) => Some(&m.def_map),
                 _ => None,
             })
             .expect("module scope invariant violated")
@@ -508,8 +513,13 @@ impl Scope {
                 m.def_map[m.module_id].scope.entries().for_each(|(name, def)| {
                     acc.add_per_ns(name, def);
                 });
-                m.def_map[m.module_id].scope.legacy_macros().for_each(|(name, mac)| {
-                    acc.add(name, ScopeDef::ModuleDef(ModuleDefId::MacroId(MacroId::from(mac))));
+                m.def_map[m.module_id].scope.legacy_macros().for_each(|(name, macs)| {
+                    macs.iter().for_each(|&mac| {
+                        acc.add(
+                            name,
+                            ScopeDef::ModuleDef(ModuleDefId::MacroId(MacroId::from(mac))),
+                        );
+                    })
                 });
                 m.def_map.extern_prelude().for_each(|(name, &def)| {
                     acc.add(name, ScopeDef::ModuleDef(ModuleDefId::ModuleId(def)));

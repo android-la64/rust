@@ -209,7 +209,7 @@ fn resolve_with_registry<'cfg>(
     Ok(resolve)
 }
 
-/// Resolves all dependencies for a package using an optional previous instance.
+/// Resolves all dependencies for a package using an optional previous instance
 /// of resolve to guide the resolution process.
 ///
 /// This also takes an optional hash set, `to_avoid`, which is a list of package
@@ -796,7 +796,7 @@ fn emit_warnings_of_unused_patches(
                 writeln!(msg, "Patch `{}` {}", unused, MESSAGE)?;
                 write!(
                     msg,
-                    "Perhaps you misspell the source URL being patched.\n\
+                    "Perhaps you misspelled the source URL being patched.\n\
                     Possible URLs for `[patch.<URL>]`:",
                 )?;
                 for id in ids.iter() {

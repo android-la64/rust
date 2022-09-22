@@ -9,6 +9,7 @@
 //! contexts concurrently. Typically, you would have one context per compilation thread and only a
 //! single ISA instance.
 
+use crate::alias_analysis::AliasAnalysis;
 use crate::binemit::CodeInfo;
 use crate::dce::do_dce;
 use crate::dominator_tree::DominatorTree;
@@ -100,8 +101,8 @@ impl Context {
     ///
     /// Run the function through all the passes necessary to generate code for the target ISA
     /// represented by `isa`, as well as the final step of emitting machine code into a
-    /// `Vec<u8>`. The machine code is not relocated. Instead, any relocations are emitted
-    /// into `relocs`.
+    /// `Vec<u8>`. The machine code is not relocated. Instead, any relocations can be obtained
+    /// from `mach_compile_result`.
     ///
     /// This function calls `compile` and `emit_to_memory`, taking care to resize `mem` as
     /// needed, so it provides a safe interface.
@@ -162,6 +163,11 @@ impl Context {
 
         self.remove_constant_phis(isa)?;
 
+        if opt_level != OptLevel::None {
+            self.replace_redundant_loads()?;
+            self.simple_gvn(isa)?;
+        }
+
         let result = isa.compile_function(&self.func, self.want_disasm)?;
         let info = result.code_info();
         self.mach_compile_result = Some(result);
@@ -173,7 +179,8 @@ impl Context {
     /// Write all of the function's machine code to the memory at `mem`. The size of the machine
     /// code is returned by `compile` above.
     ///
-    /// The machine code is not relocated. Instead, any relocations are emitted into `relocs`.
+    /// The machine code is not relocated.
+    /// Instead, any relocations can be obtained from `mach_compile_result`.
     ///
     /// # Safety
     ///
@@ -338,6 +345,17 @@ impl Context {
     {
         eliminate_unreachable_code(&mut self.func, &mut self.cfg, &self.domtree);
         self.verify_if(fisa)
+    }
+
+    /// Replace all redundant loads with the known values in
+    /// memory. These are loads whose values were already loaded by
+    /// other loads earlier, as well as loads whose values were stored
+    /// by a store instruction to the same instruction (so-called
+    /// "store-to-load forwarding").
+    pub fn replace_redundant_loads(&mut self) -> CodegenResult<()> {
+        let mut analysis = AliasAnalysis::new(&mut self.func, &self.domtree);
+        analysis.compute_and_update_aliases();
+        Ok(())
     }
 
     /// Harvest candidate left-hand sides for superoptimization with Souper.

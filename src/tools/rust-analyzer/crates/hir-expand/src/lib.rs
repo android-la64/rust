@@ -4,6 +4,8 @@
 //! tree originates not from the text of some `FileId`, but from some macro
 //! expansion.
 
+#![warn(rust_2018_idioms, unused_lifetimes, semicolon_in_expressions_from_macros)]
+
 pub mod db;
 pub mod ast_id_map;
 pub mod name;
@@ -43,7 +45,7 @@ pub type ExpandResult<T> = ValueResult<T, ExpandError>;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ExpandError {
-    UnresolvedProcMacro,
+    UnresolvedProcMacro(CrateId),
     Mbe(mbe::ExpandError),
     Other(Box<str>),
 }
@@ -57,7 +59,7 @@ impl From<mbe::ExpandError> for ExpandError {
 impl fmt::Display for ExpandError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ExpandError::UnresolvedProcMacro => f.write_str("unresolved proc-macro"),
+            ExpandError::UnresolvedProcMacro(_) => f.write_str("unresolved proc-macro"),
             ExpandError::Mbe(it) => it.fmt(f),
             ExpandError::Other(it) => f.write_str(it),
         }
@@ -778,32 +780,15 @@ impl<'a> InFile<&'a SyntaxNode> {
     /// For attributes and derives, this will point back to the attribute only.
     /// For the entire item `InFile::use original_file_range_full`.
     pub fn original_file_range(self, db: &dyn db::AstDatabase) -> FileRange {
-        if let Some(res) = self.original_file_range_opt(db) {
-            return res;
-        }
-
-        // Fall back to whole macro call.
         match self.file_id.0 {
             HirFileIdRepr::FileId(file_id) => FileRange { file_id, range: self.value.text_range() },
             HirFileIdRepr::MacroFile(mac_file) => {
+                if let Some(res) = self.original_file_range_opt(db) {
+                    return res;
+                }
+                // Fall back to whole macro call.
                 let loc = db.lookup_intern_macro_call(mac_file.macro_call_id);
                 loc.kind.original_call_range(db)
-            }
-        }
-    }
-
-    /// Falls back to the macro call range if the node cannot be mapped up fully.
-    pub fn original_file_range_full(self, db: &dyn db::AstDatabase) -> FileRange {
-        if let Some(res) = self.original_file_range_opt(db) {
-            return res;
-        }
-
-        // Fall back to whole macro call.
-        match self.file_id.0 {
-            HirFileIdRepr::FileId(file_id) => FileRange { file_id, range: self.value.text_range() },
-            HirFileIdRepr::MacroFile(mac_file) => {
-                let loc = db.lookup_intern_macro_call(mac_file.macro_call_id);
-                loc.kind.original_call_range_with_body(db)
             }
         }
     }
@@ -833,6 +818,49 @@ impl InFile<SyntaxToken> {
     pub fn upmap(self, db: &dyn db::AstDatabase) -> Option<InFile<SyntaxToken>> {
         let expansion = self.file_id.expansion_info(db)?;
         expansion.map_token_up(db, self.as_ref()).map(|(it, _)| it)
+    }
+
+    /// Falls back to the macro call range if the node cannot be mapped up fully.
+    pub fn original_file_range(self, db: &dyn db::AstDatabase) -> FileRange {
+        match self.file_id.0 {
+            HirFileIdRepr::FileId(file_id) => FileRange { file_id, range: self.value.text_range() },
+            HirFileIdRepr::MacroFile(mac_file) => {
+                if let Some(res) = self.original_file_range_opt(db) {
+                    return res;
+                }
+                // Fall back to whole macro call.
+                let loc = db.lookup_intern_macro_call(mac_file.macro_call_id);
+                loc.kind.original_call_range(db)
+            }
+        }
+    }
+
+    /// Attempts to map the syntax node back up its macro calls.
+    pub fn original_file_range_opt(self, db: &dyn db::AstDatabase) -> Option<FileRange> {
+        match self.file_id.0 {
+            HirFileIdRepr::FileId(file_id) => {
+                Some(FileRange { file_id, range: self.value.text_range() })
+            }
+            HirFileIdRepr::MacroFile(_) => {
+                let expansion = self.file_id.expansion_info(db)?;
+                let InFile { file_id, value } = ascend_call_token(db, &expansion, self)?;
+                let original_file = file_id.original_file(db);
+                if file_id != original_file.into() {
+                    return None;
+                }
+                Some(FileRange { file_id: original_file, range: value.text_range() })
+            }
+        }
+    }
+
+    pub fn ancestors_with_macros(
+        self,
+        db: &dyn db::AstDatabase,
+    ) -> impl Iterator<Item = InFile<SyntaxNode>> + '_ {
+        self.value.parent().into_iter().flat_map({
+            let file_id = self.file_id;
+            move |parent| InFile::new(file_id, &parent).ancestors_with_macros(db)
+        })
     }
 }
 
@@ -865,18 +893,6 @@ fn ascend_call_token(
         }
     }
     None
-}
-
-impl InFile<SyntaxToken> {
-    pub fn ancestors_with_macros(
-        self,
-        db: &dyn db::AstDatabase,
-    ) -> impl Iterator<Item = InFile<SyntaxNode>> + '_ {
-        self.value.parent().into_iter().flat_map({
-            let file_id = self.file_id;
-            move |parent| InFile::new(file_id, &parent).ancestors_with_macros(db)
-        })
-    }
 }
 
 impl<N: AstNode> InFile<N> {

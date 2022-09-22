@@ -48,7 +48,7 @@ how the feature works:
   ```toml
   [unstable]
   mtime-on-use = true
-  multitarget = true
+  build-std = ["core", "alloc"]
   ```
 
 Each new feature described below should explain how to use it.
@@ -68,7 +68,6 @@ Each new feature described below should explain how to use it.
     * [avoid-dev-deps](#avoid-dev-deps) — Prevents the resolver from including dev-dependencies during resolution.
     * [minimal-versions](#minimal-versions) — Forces the resolver to use the lowest compatible version instead of the highest.
     * [public-dependency](#public-dependency) — Allows dependencies to be classified as either public or private.
-    * [workspace-inheritance](#workspace-inheritance) - Allow workspace members to share fields and dependencies
 * Output behavior
     * [out-dir](#out-dir) — Adds a directory where artifacts are copied to.
     * [terminal-width](#terminal-width) — Tells rustc the width of the terminal so that long diagnostic messages can be truncated to be more readable.
@@ -76,7 +75,6 @@ Each new feature described below should explain how to use it.
 * Compile behavior
     * [mtime-on-use](#mtime-on-use) — Updates the last-modified timestamp on every dependency every time it is used, to provide a mechanism to delete unused artifacts.
     * [doctest-xcompile](#doctest-xcompile) — Supports running doctests with the `--target` flag.
-    * [multitarget](#multitarget) — Supports building for multiple targets at the same time.
     * [build-std](#build-std) — Builds the standard library instead of using pre-built binaries.
     * [build-std-features](#build-std-features) — Sets features to use with the standard library.
     * [binary-dep-depinfo](#binary-dep-depinfo) — Causes the dep-info file to track binary dependencies.
@@ -87,7 +85,6 @@ Each new feature described below should explain how to use it.
     * [`doctest-in-workspace`](#doctest-in-workspace) — Fixes workspace-relative paths when running doctests.
     * [rustdoc-map](#rustdoc-map) — Provides mappings for documentation to link to external sites like [docs.rs](https://docs.rs/).
 * `Cargo.toml` extensions
-    * [Profile `strip` option](#profile-strip-option) — Forces the removal of debug information and symbols from executables.
     * [Profile `rustflags` option](#profile-rustflags-option) — Passed directly to rustc.
     * [per-package-target](#per-package-target) — Sets the `--target` to use for each individual package.
     * [artifact dependencies](#artifact-dependencies) - Allow build artifacts to be included into other build artifacts and build them for different targets.
@@ -216,32 +213,6 @@ information from `.cargo/config.toml`. See the rustc issue for more information.
 
 ```sh
 cargo test --target foo -Zdoctest-xcompile
-```
-
-### multitarget
-* Tracking Issue: [#8176](https://github.com/rust-lang/cargo/issues/8176)
-
-This flag allows passing multiple `--target` flags to the `cargo` subcommand
-selected. When multiple `--target` flags are passed the selected build targets
-will be built for each of the selected architectures.
-
-For example to compile a library for both 32 and 64-bit:
-
-```
-cargo build --target x86_64-unknown-linux-gnu --target i686-unknown-linux-gnu
-```
-
-or running tests for both targets:
-
-```
-cargo test --target x86_64-unknown-linux-gnu --target i686-unknown-linux-gnu
-```
-
-This can also be specified in `.cargo/config.toml` files.
-
-```toml
-[build]
-target = ["x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu"]
 ```
 
 #### New `dir-name` attribute
@@ -437,25 +408,8 @@ like to stabilize it somehow!
 
 [rust-lang/rust#64158]: https://github.com/rust-lang/rust/pull/64158
 
-### crate-type
-* Tracking Issue: [#10083](https://github.com/rust-lang/cargo/issues/10083)
-* RFC: [#3180](https://github.com/rust-lang/rfcs/pull/3180)
-* Original Pull Request: [#10093](https://github.com/rust-lang/cargo/pull/10093)
-
-`cargo rustc --crate-type=lib,cdylib` forwards the `--crate-type` flag to `rustc`.
-This runs `rustc` with the corresponding
-[`--crate-type`](https://doc.rust-lang.org/rustc/command-line-arguments.html#--crate-type-a-list-of-types-of-crates-for-the-compiler-to-emit)
-flag, and compiling.
-
-When using it, it requires the `-Z unstable-options`
-command-line option:
-
-```console
-cargo rustc --crate-type lib,cdylib -Z unstable-options
-```
-
 ### keep-going
-* Tracking Issue: [#0](https://github.com/rust-lang/cargo/issues/10496)
+* Tracking Issue: [#10496](https://github.com/rust-lang/cargo/issues/10496)
 
 `cargo build --keep-going` (and similarly for `check`, `test` etc) will build as
 many crates in the dependency graph as possible, rather than aborting the build
@@ -1200,188 +1154,6 @@ with a warning.
 If you want to integrate with Cargo features, use `-Zcheck-cfg=features` instead of
 trying to do it manually with this option.
 
-### workspace-inheritance
-
-* RFC: [#2906](https://github.com/rust-lang/rfcs/blob/master/text/2906-cargo-workspace-deduplicate.md)
-* Tracking Issue: [#8415](https://github.com/rust-lang/cargo/issues/8415)
-* [Status](https://github.com/rust-lang/cargo/issues/8415#issuecomment-1112618913)
-* [Example Port](https://github.com/clap-rs/clap/pull/3719)
-
-### Testing notes
-
-Target audience for testing
-* Maintainer who has a workspace
-* *(optional)* Project depends on nightly toolchain
-
-In preparing to stabilize, we are wanting to better understand
-* If there were any pain points in porting your project
-* Any errors or bugs that you found in testing
-* Performance concerns
-* Gaps in documentation
-* Thoughts on how you feel this feature will work in practice
-
-Please provide feedback on the [tracking issue](https://github.com/rust-lang/cargo/issues/8415)
-or create an issue for any bugs encountered.
-
-To get started
-1. Have a (recent) nightly version installed
-2. Place `cargo-features = ["workspace-inheritance"]` at the top of any `Cargo.toml` you 
-plan to use this feature in
-3. Create a `[workspace.package]` and `[workspace.dependencies]` in your workspace `Cargo.toml`
-4. Move any package keys or dependencies you feel should be shared between crates to their 
-respective workspace table
-5. Change any keys you want to inherit to `{key}.workspace = true` in the member `Cargo.toml`
-6. run `cargo +nightly check`
-
-An example port has been made [in this PR](https://github.com/clap-rs/clap/pull/3719) as
-a "real-life" guide.
-
-### The `workspace.package` table
-
-*Stabilization*: This would be in [`workspaces.md`][workspaces], under
-[The `workspace.metadata` table][workspace-metadata-table]
-
-The `workspace.package` table is where you define keys that can be
-inherited by members of a workspace. These keys can be inherited by
-defining them in the member package with `{key}.workspace = true`.
-
-Keys that are supported:
-
-|                |                 |
-|----------------|-----------------|
-| `authors`      | `categories`    |
-| `description`  | `documentation` |
-| `edition`      | `exclude`       |
-| `homepage`     | `include`       |
-| `keywords`     | `license`       |
-| `license-file` | `publish`       |
-| `readme`       | `repository`    |
-| `rust-version` | `version`       |
-
-- `license-file` and `readme` are relative to the workspace root
-- `include` and `exclude` are relative to your package root
-
-Example:
-```toml
-# [PROJECT_DIR]/Cargo.toml
-[workspace]
-members = ["bar"]
-
-[workspace.package]
-version = "1.2.3"
-authors = ["Nice Folks"]
-description = "..."
-documentation = "https://example.github.io/example"
-```
-
-```toml
-# [PROGJCT_DIR]/bar/Cargo.toml
-cargo-features = ["workspace-inheritance"]
-
-[package]
-name = "bar"
-version.workspace = true
-authors.workspace = true
-description.workspace = true
-documentation.workspace = true
-```
-
-
-### The `workspace.dependencies` table
-
-The `workspace.dependencies` table is where you define dependencies to be
-inherited by members of a workspace. 
-
-Specifying a workspace dependency is similar to [package dependencies][specifying-dependencies] except:
-- Dependencies from this table cannot be declared as `optional`
-- [`features`][features] declared in this table are additive with the `features` from `[dependencies]`
-
-You can then [inherit the workspace dependency as a package dependency][inheriting-a-dependency-from-a-workspace]
-
-Example:
-```toml
-# [PROJECT_DIR]/Cargo.toml
-[workspace]
-members = ["bar"]
-
-[workspace.dependencies]
-dep = { version = "0.1", features = ["fancy"] }
-dep-build = "0.8"
-dep-dev = "0.5.2"
-```
-
-```toml
-# [PROJECT_DIR]/bar/Cargo.toml
-cargo-features = ["workspace-inheritance"]
-
-[project]
-name = "bar"
-version = "0.2.0"
-
-[dependencies]
-dep = { workspace = true, features = ["dancy"] }
-
-[build-dependencies]
-dep-build.workspace = true
-
-[dev-dependencies]
-dep-dev.workspace = true
-```
-
-[inheriting-a-dependency-from-a-workspace]: #inheriting-a-dependency-from-a-workspace
-[workspace-metadata-table]: workspaces.md#the-workspacemetadata-table
-[workspaces]: workspaces.md
-
-
-### Inheriting a dependency from a workspace
-
-*Stabilization*: This would be in [`specifying-dependencies.md`][specifying-dependencies],
-under [Renaming dependencies in Cargo.toml][renaming-dependencies-in-cargotoml]
-
-Dependencies can be inherited from a workspace by specifying the
-dependency in the workspace's [`[workspace.dependencies]`][workspace.dependencies] table.
-After that add it to the `[dependencies]` table with `dep.workspace = true`.
-
-The `workspace` key can be defined with:
-- [`optional`][optional]: Note that the`[workspace.dependencies]` table is not allowed to specify `optional`.
-- [`features`][features]: These are additive with the features declared in the `[workspace.dependencies]`
-
-The `workspace` key cannot be defined with:
-
-|                  |                    | 
-|------------------|--------------------|
-| `branch`         | `default-features` |
-| `git`            | `package`          |
-| `path`           | `registry`         |
-| `registry-index` | `rev`              |
-| `tag`            | `version`          |
-
-
-Dependencies in the `[dependencies]`, `[dev-dependencies]`, `[build-dependencies]`, and
-`[target."...".dependencies]` sections support the ability to reference the
-`[workspace.dependencies]` definition of dependencies.
-
-Example:
-```toml
-[dependencies]
-dep.workspace = true
-dep2 = { workspace = true, features = ["fancy"] }
-dep3 = { workspace = true, optional = true }
-dep4 = { workspace = true, optional = true, features = ["fancy"] }
-
-[build-dependencies]
-dep-build.workspace = true
-
-[dev-dependencies]
-dep-dev.workspace = true
-```
-
-[features]: features.md
-[optional]: features.md#optional-dependencies
-[workspace.dependencies]: #the-workspacedependencies-table
-[specifying-dependencies]: specifying-dependencies.md
-[renaming-dependencies-in-cargotoml]: specifying-dependencies.md#renaming-dependencies-in-cargotoml
-
 ## Stabilized and removed features
 
 ### Compile progress
@@ -1569,3 +1341,24 @@ unstable and require `-Zunstable-options`.)
 The `--config` CLI option has been stabilized in the 1.63 release. See
 the [config documentation](config.html#command-line-overrides) for more
 information.
+
+### multitarget
+
+The `-Z multitarget` option has been stabilized in the 1.64 release.
+See [`build.target`](config.md#buildtarget) for more information about
+setting the default target platform triples.
+
+### crate-type
+
+The `--crate-type` flag for `cargo rustc` has been stabilized in the 1.64
+release. See the [`cargo rustc` documentation](../commands/cargo-rustc.md)
+for more information.
+
+
+### Workspace Inheritance
+
+Workspace Inheritance has been stabilized in the 1.64 release.
+See [workspace.package](workspaces.md#the-package-table), 
+[workspace.dependencies](workspaces.md#the-dependencies-table), 
+and [inheriting-a-dependency-from-a-workspace](specifying-dependencies.md#inheriting-a-dependency-from-a-workspace)
+for more information.

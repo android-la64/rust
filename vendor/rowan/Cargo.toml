@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "rowan"
-version = "0.15.5"
+version = "0.15.8"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 exclude = [
     ".github/",
@@ -20,6 +20,7 @@ exclude = [
     "rustfmt.toml",
 ]
 description = "Library for generic lossless syntax trees"
+readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-analyzer/rowan"
 resolver = "2"

@@ -2,11 +2,10 @@
 
 use hir::{db::HirDatabase, Documentation, HasAttrs, StructKind};
 use ide_db::SymbolKind;
+use syntax::AstNode;
 
 use crate::{
-    context::{
-        CompletionContext, IdentContext, NameRefContext, NameRefKind, PathCompletionCtx, PathKind,
-    },
+    context::{CompletionContext, PathCompletionCtx, PathKind},
     item::{Builder, CompletionItem},
     render::{
         compute_ref_match, compute_type_match,
@@ -21,6 +20,7 @@ use crate::{
 
 pub(crate) fn render_variant_lit(
     ctx: RenderContext<'_>,
+    path_ctx: &PathCompletionCtx,
     local_name: Option<hir::Name>,
     variant: hir::Variant,
     path: Option<hir::ModPath>,
@@ -29,11 +29,12 @@ pub(crate) fn render_variant_lit(
     let db = ctx.db();
 
     let name = local_name.unwrap_or_else(|| variant.name(db));
-    render(ctx, Variant::EnumVariant(variant), name, path)
+    render(ctx, path_ctx, Variant::EnumVariant(variant), name, path)
 }
 
 pub(crate) fn render_struct_literal(
     ctx: RenderContext<'_>,
+    path_ctx: &PathCompletionCtx,
     strukt: hir::Struct,
     path: Option<hir::ModPath>,
     local_name: Option<hir::Name>,
@@ -42,29 +43,21 @@ pub(crate) fn render_struct_literal(
     let db = ctx.db();
 
     let name = local_name.unwrap_or_else(|| strukt.name(db));
-    render(ctx, Variant::Struct(strukt), name, path)
+    render(ctx, path_ctx, Variant::Struct(strukt), name, path)
 }
 
 fn render(
     ctx @ RenderContext { completion, .. }: RenderContext<'_>,
+    path_ctx: &PathCompletionCtx,
     thing: Variant,
     name: hir::Name,
     path: Option<hir::ModPath>,
 ) -> Option<Builder> {
     let db = completion.db;
     let mut kind = thing.kind(db);
-    let should_add_parens = match &completion.ident_ctx {
-        IdentContext::NameRef(NameRefContext {
-            kind: NameRefKind::Path(PathCompletionCtx { has_call_parens: true, .. }),
-            ..
-        }) => false,
-        IdentContext::NameRef(NameRefContext {
-            kind:
-                NameRefKind::Path(PathCompletionCtx {
-                    kind: PathKind::Use | PathKind::Type { .. }, ..
-                }),
-            ..
-        }) => false,
+    let should_add_parens = match &path_ctx {
+        PathCompletionCtx { has_call_parens: true, .. } => false,
+        PathCompletionCtx { kind: PathKind::Use | PathKind::Type { .. }, .. } => false,
         _ => true,
     };
 
@@ -79,17 +72,21 @@ fn render(
         }
         None => (name.clone().into(), name.into(), false),
     };
-    let qualified_name = qualified_name.to_string();
+    let (qualified_name, escaped_qualified_name) =
+        (qualified_name.to_string(), qualified_name.escaped().to_string());
     let snippet_cap = ctx.snippet_cap();
 
     let mut rendered = match kind {
         StructKind::Tuple if should_add_parens => {
-            render_tuple_lit(db, snippet_cap, &fields, &qualified_name)
+            render_tuple_lit(db, snippet_cap, &fields, &escaped_qualified_name)
         }
         StructKind::Record if should_add_parens => {
-            render_record_lit(db, snippet_cap, &fields, &qualified_name)
+            render_record_lit(db, snippet_cap, &fields, &escaped_qualified_name)
         }
-        _ => RenderedLiteral { literal: qualified_name.clone(), detail: qualified_name.clone() },
+        _ => RenderedLiteral {
+            literal: escaped_qualified_name.clone(),
+            detail: escaped_qualified_name.clone(),
+        },
     };
 
     if snippet_cap.is_some() {
@@ -125,7 +122,7 @@ fn render(
         ..ctx.completion_relevance()
     });
     if let Some(ref_match) = compute_ref_match(completion, &ty) {
-        item.ref_match(ref_match);
+        item.ref_match(ref_match, path_ctx.path.syntax().text_range().start());
     }
 
     if let Some(import_to_add) = ctx.import_to_add {
@@ -141,7 +138,7 @@ enum Variant {
 }
 
 impl Variant {
-    fn fields(self, ctx: &CompletionContext) -> Option<Vec<hir::Field>> {
+    fn fields(self, ctx: &CompletionContext<'_>) -> Option<Vec<hir::Field>> {
         let fields = match self {
             Variant::Struct(it) => it.fields(ctx.db),
             Variant::EnumVariant(it) => it.fields(ctx.db),

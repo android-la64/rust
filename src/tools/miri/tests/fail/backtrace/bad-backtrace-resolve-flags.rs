@@ -15,11 +15,11 @@ extern "Rust" {
 
 fn main() {
     unsafe {
-        let mut buf = vec![0 as *mut _; miri_backtrace_size(0)];
+        let mut buf = vec![std::ptr::null_mut(); miri_backtrace_size(0)];
 
         miri_get_backtrace(1, buf.as_mut_ptr());
 
         // miri_resolve_frame will error from an invalid backtrace before it will from invalid flags
-        miri_resolve_frame(buf[0], 2); //~ ERROR  unsupported operation: unknown `miri_resolve_frame` flags 2
+        miri_resolve_frame(buf[0], 2); //~ ERROR:  unsupported operation: unknown `miri_resolve_frame` flags 2
     }
 }

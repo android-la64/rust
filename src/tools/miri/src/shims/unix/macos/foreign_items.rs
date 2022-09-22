@@ -1,4 +1,3 @@
-use rustc_middle::mir;
 use rustc_span::Symbol;
 use rustc_target::spec::abi::Abi;
 
@@ -13,9 +12,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         link_name: Symbol,
         abi: Abi,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
-        _ret: mir::BasicBlock,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx, EmulateByNameResult<'mir, 'tcx>> {
         let this = self.eval_context_mut();
 
@@ -28,29 +26,29 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             // File related shims
-            "close" | "close$NOCANCEL" => {
+            "close$NOCANCEL" => {
                 let [result] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.close(result)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
-            "stat" | "stat$INODE64" => {
+            "stat" | "stat64" | "stat$INODE64" => {
                 let [path, buf] =
                     this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.macos_stat(path, buf)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
-            "lstat" | "lstat$INODE64" => {
+            "lstat" | "lstat64" | "lstat$INODE64" => {
                 let [path, buf] =
                     this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.macos_lstat(path, buf)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
-            "fstat" | "fstat$INODE64" => {
+            "fstat" | "fstat64" | "fstat$INODE64" => {
                 let [fd, buf] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.macos_fstat(fd, buf)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
-            "opendir" | "opendir$INODE64" => {
+            "opendir$INODE64" => {
                 let [name] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.opendir(name)?;
                 this.write_scalar(result, dest)?;
@@ -61,9 +59,17 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let result = this.macos_readdir_r(dirp, entry, result)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
+            "lseek" => {
+                let [fd, offset, whence] =
+                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                // macOS is 64bit-only, so this is lseek64
+                let result = this.lseek64(fd, offset, whence)?;
+                this.write_scalar(Scalar::from_i64(result), dest)?;
+            }
             "ftruncate" => {
                 let [fd, length] =
                     this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                // macOS is 64bit-only, so this is ftruncate64
                 let result = this.ftruncate64(fd, length)?;
                 this.write_scalar(Scalar::from_i32(result), dest)?;
             }
@@ -78,11 +84,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
 
             // Time related shims
-            "gettimeofday" => {
-                let [tv, tz] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                let result = this.gettimeofday(tv, tz)?;
-                this.write_scalar(Scalar::from_i32(result), dest)?;
-            }
             "mach_absolute_time" => {
                 let [] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
                 let result = this.mach_absolute_time()?;

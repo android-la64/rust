@@ -36,17 +36,15 @@ you can write: <!-- date: 2022-04 --><!-- the date comment is for the edition be
         "./build/$TARGET_TRIPLE/stage0/bin/rustfmt",
         "--edition=2021"
     ],
-    "editor.formatOnSave": true,
+    "rust-analyzer.procMacro.enable": true,
     "rust-analyzer.cargo.buildScripts.enable": true,
     "rust-analyzer.cargo.buildScripts.overrideCommand": [
-        "cargo",
+        "python3",
+        "x.py",
         "check",
-        "-p",
-        "rustc_driver",
-        "--message-format=json"
+        "--json-output"
     ],
     "rust-analyzer.rustc.source": "./Cargo.toml",
-    "rust-analyzer.procMacro.enable": true,
 }
 ```
 
@@ -57,6 +55,10 @@ in your `.vscode/settings.json` file. This will ask `rust-analyzer` to use
 > setting with the appropriate target triple for your machine. An example of such
 > a triple is `x86_64-unknown-linux-gnu`. An easy way to check your target triple
 > is to run `rustc -vV` and checking the `host` value of its output.
+
+If you have enough free disk space and you would like to be able to run `x.py` commands while
+rust-analyzer runs in the background, you can also add `--build-dir build-rust-analyzer` to the
+`overrideCommand` to avoid x.py locking.
 
 If you're running `coc.nvim`, you can use `:CocLocalConfig` to create a
 `.vim/coc-settings.json` and enter the same settings as above, but replacing
@@ -114,7 +116,7 @@ rustup override set nightly
 
 after [installing a nightly toolchain] with `rustup`. Don't forget to do this for all
 directories you have [setup a worktree for]. You may need to use the pinned
-nightly version from `src/stage0.txt`, but often the normal `nightly` channel
+nightly version from `src/stage0.json`, but often the normal `nightly` channel
 will work.
 
 **Note** see [the section on vscode] for how to configure it with this real rustfmt `x.py` uses,
@@ -142,13 +144,13 @@ don't work (but that is easily detected and fixed).
 
 The sequence of commands you want is as follows:
 
-- Initial build: `./x.py build -i library/std`
+- Initial build: `./x.py build library`
   - As [documented previously], this will build a functional
     stage1 compiler as part of running all stage0 commands (which include
     building a `std` compatible with the stage1 compiler) as well as the
     first few steps of the "stage 1 actions" up to "stage1 (sysroot stage1)
     builds std".
-- Subsequent builds: `./x.py build -i library/std --keep-stage 1`
+- Subsequent builds: `./x.py build library --keep-stage 1`
   - Note that we added the `--keep-stage 1` flag here
 
 [documented previously]: ./how-to-build-and-run.md#building-the-compiler
@@ -170,8 +172,8 @@ rebuild. That ought to fix the problem.
 
 You can also use `--keep-stage 1` when running tests. Something like this:
 
-- Initial test run: `./x.py test -i src/test/ui`
-- Subsequent test run: `./x.py test -i src/test/ui --keep-stage 1`
+- Initial test run: `./x.py test src/test/ui`
+- Subsequent test run: `./x.py test src/test/ui --keep-stage 1`
 
 ## Fine-tuning optimizations
 

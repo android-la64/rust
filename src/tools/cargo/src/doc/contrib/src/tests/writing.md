@@ -50,13 +50,7 @@ fn <description>() {
 }
 ```
 
-`#[cargo_test]`:
-- This is used in place of `#[test]`
-- This attribute injects code which does some setup before starting the
-  test, creating a filesystem "sandbox" under the "cargo integration test"
-  directory for each test such as
-  `/path/to/cargo/target/cit/t123/`
-- The sandbox will contain a `home` directory that will be used instead of your normal home directory
+The [`#[cargo_test]` attribute](#cargo_test-attribute) is used in place of `#[test]` to inject some setup code.
 
 [`ProjectBuilder`] via `project()`:
 - Each project is in a separate directory in the sandbox
@@ -68,26 +62,56 @@ fn <description>() {
   - See [`support::compare`] for an explanation of the string pattern matching.
     Patterns are used to make it easier to match against the expected output.
 
+#### `#[cargo_test]` attribute
+
+The `#[cargo_test]` attribute injects code which does some setup before starting the test.
+It will create a filesystem "sandbox" under the "cargo integration test" directory for each test, such as `/path/to/cargo/target/tmp/cit/t123/`.
+The sandbox will contain a `home` directory that will be used instead of your normal home directory.
+
+The `#[cargo_test]` attribute takes several options that will affect how the test is generated.
+They are listed in parentheses separated with commas, such as:
+
+```rust,ignore
+#[cargo_test(nightly, reason = "-Zfoo is unstable")]
+```
+
+The options it supports are:
+
+* `nightly` — This will cause the test to be ignored if not running on the nightly toolchain.
+  This is useful for tests that use unstable options in `rustc` or `rustdoc`.
+  These tests are run in Cargo's CI, but are disabled in rust-lang/rust's CI due to the difficulty of updating both repos simultaneously.
+  A `reason` field is required to explain why it is nightly-only.
+* `build_std_real` — This is a "real" `-Zbuild-std` test (in the `build_std` integration test).
+  This only runs on nightly, and only if the environment variable `CARGO_RUN_BUILD_STD_TESTS` is set (these tests on run on Linux).
+* `build_std_mock` — This is a "mock" `-Zbuild-std` test (which uses a mock standard library).
+  This only runs on nightly, and is disabled for windows-gnu.
+* `requires_` — This indicates a command that is required to be installed to be run.
+  For example, `requires_rustfmt` means the test will only run if the executable `rustfmt` is installed.
+  These tests are *always* run on CI.
+  This is mainly used to avoid requiring contributors from having every dependency installed.
+* `>=1.64` — This indicates that the test will only run with the given version of `rustc` or newer.
+  This can be used when a new `rustc` feature has been stabilized that the test depends on.
+  If this is specified, a `reason` is required to explain why it is being checked.
+
 #### Testing Nightly Features
 
 If you are testing a Cargo feature that only works on "nightly" Cargo, then
-you need to call `masquerade_as_nightly_cargo` on the process builder like
-this:
+you need to call `masquerade_as_nightly_cargo` on the process builder and pass 
+the name of the feature as the reason, like this:
 
 ```rust,ignore
-p.cargo("build").masquerade_as_nightly_cargo()
+p.cargo("build").masquerade_as_nightly_cargo(&["print-im-a-teapot"])
 ```
 
 If you are testing a feature that only works on *nightly rustc* (such as
-benchmarks), then you should exit the test if it is not running with nightly
-rust, like this:
+benchmarks), then you should use the `nightly` option of the `cargo_test`
+attribute, like this:
 
 ```rust,ignore
-if !is_nightly() {
-    // Add a comment here explaining why this is necessary.
-    return;
-}
+#[cargo_test(nightly, reason = "-Zfoo is unstable")]
 ```
+
+This will cause the test to be ignored if not running on the nightly toolchain.
 
 #### Specifying Dependencies
 
@@ -129,7 +153,7 @@ mod <case>;
 `tests/testsuite/<command>/<case>/mod.rs`:
 ```rust,ignore
 use cargo_test_support::prelude::*;
-use cargo_test_support::compare::assert;
+use cargo_test_support::compare::assert_ui;
 use cargo_test_support::Project;
 use cargo_test_support::curr_dir;
 
@@ -139,7 +163,7 @@ fn <name>() {
     let project_root = project.root();
     let cwd = &project_root;
 
-    snapbox::cmd::Command::cargo()
+    snapbox::cmd::Command::cargo_ui()
         .arg("run")
         .arg_line("--bin foo")
         .current_dir(cwd)
@@ -148,7 +172,7 @@ fn <name>() {
         .stdout_matches_path(curr_dir!().join("stdout.log"))
         .stderr_matches_path(curr_dir!().join("stderr.log"));
 
-    assert().subset_matches(curr_dir!().join("out"), &project_root);
+    assert_ui().subset_matches(curr_dir!().join("out"), &project_root);
 }
 ```
 
@@ -170,13 +194,13 @@ Then populate
 - The project is copied from a directory in the repo
 - Each project is in a separate directory in the sandbox
 
-[`Command`] via `Command::cargo()`:
+[`Command`] via `Command::cargo_ui()`:
 - Set up and run a command.
 
 [`OutputAssert`] via `Command::assert()`:
 - Perform assertions on the result of the [`Command`]
 
-[`Assert`] via `assert()`:
+[`Assert`] via `assert_ui()`:
 - Verify the command modified the file system as expected
 
 #### Updating Snapshots
@@ -192,24 +216,23 @@ Be sure to check the snapshots to make sure they make sense.
 #### Testing Nightly Features
 
 If you are testing a Cargo feature that only works on "nightly" Cargo, then
-you need to call `masquerade_as_nightly_cargo` on the process builder like
-this:
+you need to call `masquerade_as_nightly_cargo` on the process builder and pass
+the name of the feature as the reason, like this:
 
 ```rust,ignore
     snapbox::cmd::Command::cargo()
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["print-im-a-teapot"])
 ```
 
 If you are testing a feature that only works on *nightly rustc* (such as
-benchmarks), then you should exit the test if it is not running with nightly
-rust, like this:
+benchmarks), then you should use the `nightly` option of the `cargo_test`
+attribute, like this:
 
 ```rust,ignore
-if !is_nightly() {
-    // Add a comment here explaining why this is necessary.
-    return;
-}
+#[cargo_test(nightly, reason = "-Zfoo is unstable")]
 ```
+
+This will cause the test to be ignored if not running on the nightly toolchain.
 
 ### Platform-specific Notes
 

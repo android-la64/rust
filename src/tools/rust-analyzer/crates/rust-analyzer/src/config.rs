@@ -69,7 +69,7 @@ config_data! {
         cargo_buildScripts_enable: bool  = "true",
         /// Override the command rust-analyzer uses to run build scripts and
         /// build procedural macros. The command is required to output json
-        /// and should therefor include `--message-format=json` or a similar
+        /// and should therefore include `--message-format=json` or a similar
         /// option.
         ///
         /// By default, a cargo invocation will be constructed for the configured
@@ -81,7 +81,7 @@ config_data! {
         /// .
         cargo_buildScripts_overrideCommand: Option<Vec<String>> = "null",
         /// Use `RUSTC_WRAPPER=rust-analyzer` when running build scripts to
-        /// avoid compiling unnecessary things.
+        /// avoid checking unnecessary things.
         cargo_buildScripts_useRustcWrapper: bool = "true",
         /// List of features to activate.
         ///
@@ -107,15 +107,18 @@ config_data! {
         /// List of features to activate. Defaults to
         /// `#rust-analyzer.cargo.features#`.
         ///
-        /// Set to `"all"` to pass `--all-features` to cargo.
+        /// Set to `"all"` to pass `--all-features` to Cargo.
         checkOnSave_features: Option<CargoFeatures>      = "null",
-        /// Whether to pass `--no-default-features` to cargo. Defaults to
+        /// Whether to pass `--no-default-features` to Cargo. Defaults to
         /// `#rust-analyzer.cargo.noDefaultFeatures#`.
         checkOnSave_noDefaultFeatures: Option<bool>      = "null",
-        /// Override the command rust-analyzer uses to  run build scripts and
-        /// build procedural macros. The command is required to output json
-        /// and should therefor include `--message-format=json` or a similar
-        /// option.
+        /// Override the command rust-analyzer uses instead of `cargo check` for
+        /// diagnostics on save. The command is required to output json and
+        /// should therefor include `--message-format=json` or a similar option.
+        ///
+        /// If you're changing this because you're using some tool wrapping
+        /// Cargo, you might also want to change
+        /// `#rust-analyzer.cargo.buildScripts.overrideCommand#`.
         ///
         /// An example command would be:
         ///
@@ -210,7 +213,7 @@ config_data! {
         /// also need to add the folders to Code's `files.watcherExclude`.
         files_excludeDirs: Vec<PathBuf> = "[]",
         /// Controls file watching implementation.
-        files_watcher: String = "\"client\"",
+        files_watcher: FilesWatcherDef = "\"client\"",
 
         /// Enables highlighting of related references while the cursor is on `break`, `loop`, `while`, or `for` keywords.
         highlightRelated_breakPoints_enable: bool = "true",
@@ -521,7 +524,7 @@ pub struct FilesConfig {
 #[derive(Debug, Clone)]
 pub enum FilesWatcher {
     Client,
-    Notify,
+    Server,
 }
 
 #[derive(Debug, Clone)]
@@ -830,6 +833,20 @@ impl Config {
         )
     }
 
+    pub fn completion_label_details_support(&self) -> bool {
+        try_!(self
+            .caps
+            .text_document
+            .as_ref()?
+            .completion
+            .as_ref()?
+            .completion_item
+            .as_ref()?
+            .label_details_support
+            .as_ref()?)
+        .is_some()
+    }
+
     pub fn offset_encoding(&self) -> OffsetEncoding {
         if supports_utf8(&self.caps) {
             OffsetEncoding::Utf8
@@ -900,12 +917,11 @@ impl Config {
 
     pub fn files(&self) -> FilesConfig {
         FilesConfig {
-            watcher: match self.data.files_watcher.as_str() {
-                "notify" => FilesWatcher::Notify,
-                "client" if self.did_change_watched_files_dynamic_registration() => {
+            watcher: match self.data.files_watcher {
+                FilesWatcherDef::Client if self.did_change_watched_files_dynamic_registration() => {
                     FilesWatcher::Client
                 }
-                _ => FilesWatcher::Notify,
+                _ => FilesWatcher::Server,
             },
             exclude: self.data.files_excludeDirs.iter().map(|it| self.root_path.join(it)).collect(),
         }
@@ -1261,7 +1277,7 @@ macro_rules! create_bool_or_string_de {
             impl<'de> serde::de::Visitor<'de> for V {
                 type Value = ();
 
-                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                     formatter.write_str(concat!(
                         stringify!($bool),
                         " or \"",
@@ -1328,7 +1344,7 @@ macro_rules! named_unit_variant {
             struct V;
             impl<'de> serde::de::Visitor<'de> for V {
                 type Value = ();
-                fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     f.write_str(concat!("\"", stringify!($variant), "\""))
                 }
                 fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
@@ -1389,7 +1405,7 @@ where
     impl<'de> serde::de::Visitor<'de> for SingleOrVec {
         type Value = Vec<String>;
 
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             formatter.write_str("string or array of strings")
         }
 
@@ -1420,7 +1436,7 @@ enum ManifestOrProjectJson {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
-pub enum ExprFillDefaultDef {
+enum ExprFillDefaultDef {
     Todo,
     Default,
 }
@@ -1481,6 +1497,14 @@ enum ReborrowHintsDef {
     Never,
     #[serde(deserialize_with = "de_unit_v::mutable")]
     Mutable,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+enum FilesWatcherDef {
+    Client,
+    Notify,
+    Server,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -1838,6 +1862,14 @@ fn field_props(field: &str, ty: &str, doc: &[&str], default: &str) -> serde_json
             "enumDescriptions": [
                 "Show the entire signature.",
                 "Show only the parameters."
+            ],
+        },
+        "FilesWatcherDef" => set! {
+            "type": "string",
+            "enum": ["client", "server"],
+            "enumDescriptions": [
+                "Use the client (editor) to watch files for changes",
+                "Use server-side file watching",
             ],
         },
         _ => panic!("missing entry for {}: {}", ty, default),

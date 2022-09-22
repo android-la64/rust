@@ -6,12 +6,12 @@ use hir::{Documentation, Mutability};
 use ide_db::{imports::import_assets::LocatedImport, SnippetCap, SymbolKind};
 use smallvec::SmallVec;
 use stdx::{impl_from, never};
-use syntax::{SmolStr, TextRange};
+use syntax::{SmolStr, TextRange, TextSize};
 use text_edit::TextEdit;
 
 use crate::{
-    context::CompletionContext,
-    render::{render_resolution, RenderContext},
+    context::{CompletionContext, PathCompletionCtx},
+    render::{render_path_resolution, RenderContext},
 };
 
 /// `CompletionItem` describes a single completion variant in the editor pop-up.
@@ -68,7 +68,7 @@ pub struct CompletionItem {
 
     /// Indicates that a reference or mutable reference to this variable is a
     /// possible match.
-    ref_match: Option<Mutability>,
+    ref_match: Option<(Mutability, TextSize)>,
 
     /// The import data to add to completion's edits.
     import_to_add: SmallVec<[LocatedImport; 1]>,
@@ -76,7 +76,7 @@ pub struct CompletionItem {
 
 // We use custom debug for CompletionItem to make snapshot tests more readable.
 impl fmt::Debug for CompletionItem {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = f.debug_struct("CompletionItem");
         s.field("label", &self.label()).field("source_range", &self.source_range());
         if self.text_edit().len() == 1 {
@@ -104,8 +104,8 @@ impl fmt::Debug for CompletionItem {
             s.field("relevance", &self.relevance);
         }
 
-        if let Some(mutability) = &self.ref_match {
-            s.field("ref_match", &format!("&{}", mutability.as_keyword_for_ref()));
+        if let Some((mutability, offset)) = &self.ref_match {
+            s.field("ref_match", &format!("&{}@{offset:?}", mutability.as_keyword_for_ref()));
         }
         if self.trigger_call_info {
             s.field("trigger_call_info", &true);
@@ -292,6 +292,7 @@ impl CompletionItemKind {
                 SymbolKind::Const => "ct",
                 SymbolKind::ConstParam => "cp",
                 SymbolKind::Derive => "de",
+                SymbolKind::DeriveHelper => "dh",
                 SymbolKind::Enum => "en",
                 SymbolKind::Field => "fd",
                 SymbolKind::Function => "fn",
@@ -395,14 +396,14 @@ impl CompletionItem {
         self.trigger_call_info
     }
 
-    pub fn ref_match(&self) -> Option<(Mutability, CompletionRelevance)> {
+    pub fn ref_match(&self) -> Option<(Mutability, TextSize, CompletionRelevance)> {
         // Relevance of the ref match should be the same as the original
         // match, but with exact type match set because self.ref_match
         // is only set if there is an exact type match.
         let mut relevance = self.relevance;
         relevance.type_match = Some(CompletionRelevanceTypeMatch::Exact);
 
-        self.ref_match.map(|mutability| (mutability, relevance))
+        self.ref_match.map(|(mutability, offset)| (mutability, offset, relevance))
     }
 
     pub fn imports_to_add(&self) -> &[LocatedImport] {
@@ -428,16 +429,17 @@ pub(crate) struct Builder {
     deprecated: bool,
     trigger_call_info: bool,
     relevance: CompletionRelevance,
-    ref_match: Option<Mutability>,
+    ref_match: Option<(Mutability, TextSize)>,
 }
 
 impl Builder {
     pub(crate) fn from_resolution(
-        ctx: &CompletionContext,
+        ctx: &CompletionContext<'_>,
+        path_ctx: &PathCompletionCtx,
         local_name: hir::Name,
         resolution: hir::ScopeDef,
     ) -> Self {
-        render_resolution(RenderContext::new(ctx), local_name, resolution)
+        render_path_resolution(RenderContext::new(ctx), path_ctx, local_name, resolution)
     }
 
     pub(crate) fn build(self) -> CompletionItem {
@@ -547,8 +549,8 @@ impl Builder {
         self.imports_to_add.push(import_to_add);
         self
     }
-    pub(crate) fn ref_match(&mut self, mutability: Mutability) -> &mut Builder {
-        self.ref_match = Some(mutability);
+    pub(crate) fn ref_match(&mut self, mutability: Mutability, offset: TextSize) -> &mut Builder {
+        self.ref_match = Some((mutability, offset));
         self
     }
 }

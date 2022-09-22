@@ -5,31 +5,35 @@
 //!  - Building the type for an item: This happens through the `type_for_def` query.
 //!
 //! This usually involves resolving names, collecting generic arguments etc.
-use std::cell::{Cell, RefCell};
-use std::{iter, sync::Arc};
+use std::{
+    cell::{Cell, RefCell},
+    iter,
+    sync::Arc,
+};
 
 use base_db::CrateId;
-use chalk_ir::fold::Fold;
-use chalk_ir::interner::HasInterner;
-use chalk_ir::{cast::Cast, fold::Shift, Mutability, Safety};
-use hir_def::generics::TypeOrConstParamData;
-use hir_def::intern::Interned;
-use hir_def::lang_item::lang_attr;
-use hir_def::path::{ModPath, PathKind};
-use hir_def::type_ref::ConstScalarOrPath;
+use chalk_ir::{
+    cast::Cast, fold::Shift, fold::TypeFoldable, interner::HasInterner, Mutability, Safety,
+};
+
 use hir_def::{
     adt::StructKind,
     body::{Expander, LowerCtx},
     builtin_type::BuiltinType,
-    generics::{TypeParamProvenance, WherePredicate, WherePredicateTypeTarget},
-    path::{GenericArg, Path, PathSegment, PathSegments},
+    generics::{
+        TypeOrConstParamData, TypeParamProvenance, WherePredicate, WherePredicateTypeTarget,
+    },
+    intern::Interned,
+    lang_item::lang_attr,
+    path::{GenericArg, ModPath, Path, PathKind, PathSegment, PathSegments},
     resolver::{HasResolver, Resolver, TypeNs},
-    type_ref::{TraitBoundModifier, TraitRef as HirTraitRef, TypeBound, TypeRef},
-    AdtId, AssocItemId, ConstId, EnumId, EnumVariantId, FunctionId, GenericDefId, HasModule,
-    ImplId, ItemContainerId, LocalFieldId, Lookup, StaticId, StructId, TraitId, TypeAliasId,
-    UnionId, VariantId,
+    type_ref::{
+        ConstScalarOrPath, TraitBoundModifier, TraitRef as HirTraitRef, TypeBound, TypeRef,
+    },
+    AdtId, AssocItemId, ConstId, ConstParamId, EnumId, EnumVariantId, FunctionId, GenericDefId,
+    HasModule, ImplId, ItemContainerId, LocalFieldId, Lookup, StaticId, StructId, TraitId,
+    TypeAliasId, TypeOrConstParamId, TypeParamId, UnionId, VariantId,
 };
-use hir_def::{ConstParamId, TypeOrConstParamId, TypeParamId};
 use hir_expand::{name::Name, ExpandResult};
 use itertools::Either;
 use la_arena::ArenaMap;
@@ -38,20 +42,19 @@ use smallvec::SmallVec;
 use stdx::{impl_from, never};
 use syntax::{ast, SmolStr};
 
-use crate::consteval::{
-    intern_scalar_const, path_to_const, unknown_const, unknown_const_as_generic,
-};
-use crate::utils::Generics;
-use crate::{all_super_traits, make_binders, Const, GenericArgData, ParamKind};
 use crate::{
+    all_super_traits,
+    consteval::{intern_const_scalar, path_to_const, unknown_const, unknown_const_as_generic},
     db::HirDatabase,
+    make_binders,
     mapping::ToChalk,
     static_lifetime, to_assoc_type_id, to_chalk_trait_id, to_placeholder_idx,
+    utils::Generics,
     utils::{all_super_trait_refs, associated_type_by_name_including_super_traits, generics},
-    AliasEq, AliasTy, Binders, BoundVar, CallableSig, DebruijnIndex, DynTy, FnPointer, FnSig,
-    FnSubst, ImplTraitId, Interner, PolyFnSig, ProjectionTy, QuantifiedWhereClause,
-    QuantifiedWhereClauses, ReturnTypeImplTrait, ReturnTypeImplTraits, Substitution,
-    TraitEnvironment, TraitRef, TraitRefExt, Ty, TyBuilder, TyKind, WhereClause,
+    AliasEq, AliasTy, Binders, BoundVar, CallableSig, Const, DebruijnIndex, DynTy, FnPointer,
+    FnSig, FnSubst, GenericArgData, ImplTraitId, Interner, ParamKind, PolyFnSig, ProjectionTy,
+    QuantifiedWhereClause, QuantifiedWhereClauses, ReturnTypeImplTrait, ReturnTypeImplTraits,
+    Substitution, TraitEnvironment, TraitRef, TraitRefExt, Ty, TyBuilder, TyKind, WhereClause,
 };
 
 #[derive(Debug)]
@@ -103,7 +106,7 @@ impl<'a> TyLoweringContext<'a> {
     pub fn with_debruijn<T>(
         &self,
         debruijn: DebruijnIndex,
-        f: impl FnOnce(&TyLoweringContext) -> T,
+        f: impl FnOnce(&TyLoweringContext<'_>) -> T,
     ) -> T {
         let opaque_ty_data_vec = self.opaque_type_data.take();
         let expander = self.expander.take();
@@ -127,7 +130,7 @@ impl<'a> TyLoweringContext<'a> {
     pub fn with_shifted_in<T>(
         &self,
         debruijn: DebruijnIndex,
-        f: impl FnOnce(&TyLoweringContext) -> T,
+        f: impl FnOnce(&TyLoweringContext<'_>) -> T,
     ) -> T {
         self.with_debruijn(self.in_binders.shifted_in_from(debruijn), f)
     }
@@ -1030,7 +1033,7 @@ fn count_impl_traits(type_ref: &TypeRef) -> usize {
 }
 
 /// Build the signature of a callable item (function, struct or enum variant).
-pub fn callable_item_sig(db: &dyn HirDatabase, def: CallableDefId) -> PolyFnSig {
+pub(crate) fn callable_item_sig(db: &dyn HirDatabase, def: CallableDefId) -> PolyFnSig {
     match def {
         CallableDefId::FunctionId(f) => fn_sig_for_fn(db, f),
         CallableDefId::StructId(s) => fn_sig_for_struct_constructor(db, s),
@@ -1158,8 +1161,9 @@ pub(crate) fn generic_predicates_for_param_query(
                             return false;
                         }
                     }
-                    WherePredicateTypeTarget::TypeOrConstParam(local_id) => {
-                        if *local_id != param_id.local_id {
+                    &WherePredicateTypeTarget::TypeOrConstParam(local_id) => {
+                        let target_id = TypeOrConstParamId { parent: def, local_id };
+                        if target_id != param_id {
                             return false;
                         }
                     }
@@ -1739,7 +1743,7 @@ pub(crate) fn const_or_path_to_chalk(
     debruijn: DebruijnIndex,
 ) -> Const {
     match value {
-        ConstScalarOrPath::Scalar(s) => intern_scalar_const(s.clone(), expected_ty),
+        ConstScalarOrPath::Scalar(s) => intern_const_scalar(s.clone(), expected_ty),
         ConstScalarOrPath::Path(n) => {
             let path = ModPath::from_segments(PathKind::Plain, Some(n.clone()));
             path_to_const(db, resolver, &path, mode, args, debruijn)
@@ -1750,10 +1754,10 @@ pub(crate) fn const_or_path_to_chalk(
 
 /// This replaces any 'free' Bound vars in `s` (i.e. those with indices past
 /// num_vars_to_keep) by `TyKind::Unknown`.
-fn fallback_bound_vars<T: Fold<Interner> + HasInterner<Interner = Interner>>(
+fn fallback_bound_vars<T: TypeFoldable<Interner> + HasInterner<Interner = Interner>>(
     s: T,
     num_vars_to_keep: usize,
-) -> T::Result {
+) -> T {
     crate::fold_free_vars(
         s,
         |bound, binders| {

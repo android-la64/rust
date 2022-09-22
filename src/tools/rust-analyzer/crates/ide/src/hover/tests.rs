@@ -2959,6 +2959,106 @@ struct S$0T<const C: usize = 1, T = Foo>(T);
 }
 
 #[test]
+fn const_generic_positive_i8_literal() {
+    check(
+        r#"
+struct Const<const N: i8>;
+
+fn main() {
+    let v$0alue = Const::<1>;
+}
+"#,
+        expect![[r#"
+            *value*
+
+            ```rust
+            let value: Const<1>
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn const_generic_zero_i8_literal() {
+    check(
+        r#"
+struct Const<const N: i8>;
+
+fn main() {
+    let v$0alue = Const::<0>;
+}
+"#,
+        expect![[r#"
+            *value*
+
+            ```rust
+            let value: Const<0>
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn const_generic_negative_i8_literal() {
+    check(
+        r#"
+struct Const<const N: i8>;
+
+fn main() {
+    let v$0alue = Const::<-1>;
+}
+"#,
+        expect![[r#"
+            *value*
+
+            ```rust
+            let value: Const<-1>
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn const_generic_bool_literal() {
+    check(
+        r#"
+struct Const<const F: bool>;
+
+fn main() {
+    let v$0alue = Const::<true>;
+}
+"#,
+        expect![[r#"
+            *value*
+
+            ```rust
+            let value: Const<true>
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn const_generic_char_literal() {
+    check(
+        r#"
+struct Const<const C: char>;
+
+fn main() {
+    let v$0alue = Const::<'🦀'>;
+}
+"#,
+        expect![[r#"
+            *value*
+
+            ```rust
+            let value: Const<'🦀'>
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn hover_self_param_shows_type() {
     check(
         r#"
@@ -3808,6 +3908,7 @@ fn foo() {
 /// [closure]
 /// [closures][closure]
 /// [threads]
+/// <https://doc.rust-lang.org/nightly/book/ch13-01-closures.html>
 ///
 /// [closure]: ../book/ch13-01-closures.html
 /// [threads]: ../book/ch16-01-threads.html#using-move-closures-with-threads
@@ -3825,6 +3926,7 @@ mod move_keyword {}
             [closure](https://doc.rust-lang.org/nightly/book/ch13-01-closures.html)
             [closures](https://doc.rust-lang.org/nightly/book/ch13-01-closures.html)
             [threads](https://doc.rust-lang.org/nightly/book/ch16-01-threads.html#using-move-closures-with-threads)
+            <https://doc.rust-lang.org/nightly/book/ch13-01-closures.html>
         "##]],
     );
 }
@@ -4916,5 +5018,36 @@ impl T for () {
 
             Trait docs
         "#]],
+    );
+}
+
+#[test]
+fn hover_ranged_macro_call() {
+    check_hover_range(
+        r#"
+macro_rules! __rust_force_expr {
+    ($e:expr) => {
+        $e
+    };
+}
+macro_rules! vec {
+    ($elem:expr) => {
+        __rust_force_expr!($elem)
+    };
+}
+
+struct Struct;
+impl Struct {
+    fn foo(self) {}
+}
+
+fn f() {
+    $0vec![Struct]$0;
+}
+"#,
+        expect![[r#"
+            ```rust
+            Struct
+            ```"#]],
     );
 }

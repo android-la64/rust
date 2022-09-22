@@ -78,13 +78,12 @@ to review your request based on which files you changed.
 
 If you want to request that a specific person reviews your pull request, you
 can add an `r?` to the pull request description or in a comment. For example,
-[Steve][steveklabnik] usually reviews documentation changes. So if you were to
-make a documentation change, add
+if you want to ask a review to @awesome-reviewer, add
 
-    r? @steveklabnik
+    r? @awesome-reviewer
 
 to the end of the pull request description, and [@rust-highfive][rust-highfive] will assign
-[@steveklabnik][steveklabnik] instead of a random person. This is entirely optional.
+them instead of a random person. This is entirely optional.
 
 You can also assign a random reviewer from a specific team by writing `r? rust-lang/groupname`.
 So if you were making a diagnostics change, then you could get a reviewer from the diagnostics
@@ -135,7 +134,6 @@ speed the process up. Typically only small changes that are expected not to conf
 with one another are marked as "always roll up".
 
 [rust-highfive]: https://github.com/rust-highfive
-[steveklabnik]: https://github.com/steveklabnik
 [@bors]: https://github.com/bors
 [merge-queue]: https://bors.rust-lang.org/queue/rust
 
@@ -186,6 +184,7 @@ differently from other crates that are directly in this repo:
 
 * [Clippy](https://github.com/rust-lang/rust-clippy)
 * [rustfmt](https://github.com/rust-lang/rustfmt)
+* [rust-analyzer](https://github.com/rust-lang/rust-analyzer)
 
 In contrast to `submodule` dependencies
 (see below for those), the `subtree` dependencies are just regular files and directories which can
@@ -229,7 +228,7 @@ Luckily you can just abort this without any consequences by throwing away either
 in rustc or the pushed branch on the remote and try again. It is usually fairly obvious
 that this is happening because you suddenly get thousands of commits that want to be synchronized.
 
-[clippy-sync-docs]: https://github.com/rust-lang/rust-clippy/blob/master/CONTRIBUTING.md#syncing-changes-between-clippy-and-rust-langrust
+[clippy-sync-docs]: https://doc.rust-lang.org/nightly/clippy/development/infrastructure/sync.html
 
 #### Creating a new subtree dependency
 
@@ -408,7 +407,7 @@ You can find documentation style guidelines in [RFC 1574][rfc1574].
 In many cases, you don't need a full `./x.py doc --stage 2`, which will build
 the entire stage 2 compiler and compile the various books published on
 [doc.rust-lang.org][docs]. When updating documentation for the standard library,
-first try `./x.py doc library/std`. If that fails, or if you need to
+first try `./x.py doc library`. If that fails, or if you need to
 see the output from the latest version of `rustdoc`, add `--stage 1`.
 Results should appear in `build/$TARGET/doc`.
 
@@ -583,7 +582,7 @@ are:
   page!
 * Don't be afraid to ask! The Rust community is friendly and helpful.
 
-[rustc dev guide]: https://rustc-dev-guide.rust-lang.org/about-this-guide.html
+[rustc dev guide]: about-this-guide.md
 [gdfrustc]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/
 [gsearchdocs]: https://www.google.com/search?q=site:doc.rust-lang.org+your+query+here
 [stddocs]: https://doc.rust-lang.org/std
@@ -592,5 +591,5 @@ are:
 [rustforge]: https://forge.rust-lang.org/
 [tlgba]: https://tomlee.co/2014/04/a-more-detailed-tour-of-the-rust-compiler/
 [ro]: https://www.rustaceans.org/
-[rctd]: https://rustc-dev-guide.rust-lang.org/tests/intro.html
+[rctd]: tests/intro.md
 [cheatsheet]: https://bors.rust-lang.org/

@@ -1,6 +1,8 @@
 //! The type system. We currently use this to infer types for completion, hover
 //! information and various assists.
 
+#![warn(rust_2018_idioms, unused_lifetimes, semicolon_in_expressions_from_macros)]
+
 #[allow(unused)]
 macro_rules! eprintln {
     ($($tt:tt)*) => { stdx::eprintln!($($tt)*) };
@@ -33,7 +35,7 @@ mod test_db;
 use std::sync::Arc;
 
 use chalk_ir::{
-    fold::{Fold, Shift},
+    fold::{Shift, TypeFoldable},
     interner::HasInterner,
     NoSolution,
 };
@@ -52,8 +54,8 @@ pub use infer::{
 };
 pub use interner::Interner;
 pub use lower::{
-    associated_type_shorthand_candidates, callable_item_sig, CallableDefId, ImplTraitLoweringMode,
-    TyDefId, TyLoweringContext, ValueTyDefId,
+    associated_type_shorthand_candidates, CallableDefId, ImplTraitLoweringMode, TyDefId,
+    TyLoweringContext, ValueTyDefId,
 };
 pub use mapping::{
     from_assoc_type_id, from_chalk_trait_id, from_foreign_def_id, from_placeholder_idx,
@@ -136,7 +138,7 @@ pub fn param_idx(db: &dyn HirDatabase, id: TypeOrConstParamId) -> Option<usize> 
 
 pub(crate) fn wrap_empty_binders<T>(value: T) -> Binders<T>
 where
-    T: Fold<Interner, Result = T> + HasInterner<Interner = Interner>,
+    T: TypeFoldable<Interner> + HasInterner<Interner = Interner>,
 {
     Binders::empty(Interner, value.shifted_in_from(Interner, DebruijnIndex::ONE))
 }
@@ -264,14 +266,12 @@ impl CallableSig {
     }
 }
 
-impl Fold<Interner> for CallableSig {
-    type Result = CallableSig;
-
+impl TypeFoldable<Interner> for CallableSig {
     fn fold_with<E>(
         self,
-        folder: &mut dyn chalk_ir::fold::Folder<Interner, Error = E>,
+        folder: &mut dyn chalk_ir::fold::TypeFolder<Interner, Error = E>,
         outer_binder: DebruijnIndex,
-    ) -> Result<Self::Result, E> {
+    ) -> Result<Self, E> {
         let vec = self.params_and_return.to_vec();
         let folded = vec.fold_with(folder, outer_binder)?;
         Ok(CallableSig { params_and_return: folded.into(), is_varargs: self.is_varargs })
@@ -300,22 +300,22 @@ pub fn static_lifetime() -> Lifetime {
     LifetimeData::Static.intern(Interner)
 }
 
-pub(crate) fn fold_free_vars<T: HasInterner<Interner = Interner> + Fold<Interner>>(
+pub(crate) fn fold_free_vars<T: HasInterner<Interner = Interner> + TypeFoldable<Interner>>(
     t: T,
     for_ty: impl FnMut(BoundVar, DebruijnIndex) -> Ty,
     for_const: impl FnMut(Ty, BoundVar, DebruijnIndex) -> Const,
-) -> T::Result {
-    use chalk_ir::{fold::Folder, Fallible};
+) -> T {
+    use chalk_ir::{fold::TypeFolder, Fallible};
     struct FreeVarFolder<F1, F2>(F1, F2);
     impl<
             'i,
             F1: FnMut(BoundVar, DebruijnIndex) -> Ty + 'i,
             F2: FnMut(Ty, BoundVar, DebruijnIndex) -> Const + 'i,
-        > Folder<Interner> for FreeVarFolder<F1, F2>
+        > TypeFolder<Interner> for FreeVarFolder<F1, F2>
     {
         type Error = NoSolution;
 
-        fn as_dyn(&mut self) -> &mut dyn Folder<Interner, Error = Self::Error> {
+        fn as_dyn(&mut self) -> &mut dyn TypeFolder<Interner, Error = Self::Error> {
             self
         }
 
@@ -344,11 +344,11 @@ pub(crate) fn fold_free_vars<T: HasInterner<Interner = Interner> + Fold<Interner
         .expect("fold failed unexpectedly")
 }
 
-pub(crate) fn fold_tys<T: HasInterner<Interner = Interner> + Fold<Interner>>(
+pub(crate) fn fold_tys<T: HasInterner<Interner = Interner> + TypeFoldable<Interner>>(
     t: T,
     mut for_ty: impl FnMut(Ty, DebruijnIndex) -> Ty,
     binders: DebruijnIndex,
-) -> T::Result {
+) -> T {
     fold_tys_and_consts(
         t,
         |x, d| match x {
@@ -359,22 +359,22 @@ pub(crate) fn fold_tys<T: HasInterner<Interner = Interner> + Fold<Interner>>(
     )
 }
 
-pub(crate) fn fold_tys_and_consts<T: HasInterner<Interner = Interner> + Fold<Interner>>(
+pub(crate) fn fold_tys_and_consts<T: HasInterner<Interner = Interner> + TypeFoldable<Interner>>(
     t: T,
     f: impl FnMut(Either<Ty, Const>, DebruijnIndex) -> Either<Ty, Const>,
     binders: DebruijnIndex,
-) -> T::Result {
+) -> T {
     use chalk_ir::{
-        fold::{Folder, SuperFold},
+        fold::{TypeFolder, TypeSuperFoldable},
         Fallible,
     };
     struct TyFolder<F>(F);
-    impl<'i, F: FnMut(Either<Ty, Const>, DebruijnIndex) -> Either<Ty, Const> + 'i> Folder<Interner>
-        for TyFolder<F>
+    impl<'i, F: FnMut(Either<Ty, Const>, DebruijnIndex) -> Either<Ty, Const> + 'i>
+        TypeFolder<Interner> for TyFolder<F>
     {
         type Error = NoSolution;
 
-        fn as_dyn(&mut self) -> &mut dyn Folder<Interner, Error = Self::Error> {
+        fn as_dyn(&mut self) -> &mut dyn TypeFolder<Interner, Error = Self::Error> {
             self
         }
 
@@ -397,22 +397,22 @@ pub(crate) fn fold_tys_and_consts<T: HasInterner<Interner = Interner> + Fold<Int
 /// 'Canonicalizes' the `t` by replacing any errors with new variables. Also
 /// ensures there are no unbound variables or inference variables anywhere in
 /// the `t`.
-pub fn replace_errors_with_variables<T>(t: &T) -> Canonical<T::Result>
+pub fn replace_errors_with_variables<T>(t: &T) -> Canonical<T>
 where
-    T: HasInterner<Interner = Interner> + Fold<Interner> + Clone,
-    T::Result: HasInterner<Interner = Interner>,
+    T: HasInterner<Interner = Interner> + TypeFoldable<Interner> + Clone,
+    T: HasInterner<Interner = Interner>,
 {
     use chalk_ir::{
-        fold::{Folder, SuperFold},
+        fold::{TypeFolder, TypeSuperFoldable},
         Fallible,
     };
     struct ErrorReplacer {
         vars: usize,
     }
-    impl Folder<Interner> for ErrorReplacer {
+    impl TypeFolder<Interner> for ErrorReplacer {
         type Error = NoSolution;
 
-        fn as_dyn(&mut self) -> &mut dyn Folder<Interner, Error = Self::Error> {
+        fn as_dyn(&mut self) -> &mut dyn TypeFolder<Interner, Error = Self::Error> {
             self
         }
 

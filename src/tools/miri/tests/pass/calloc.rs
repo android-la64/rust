@@ -1,8 +1,6 @@
-// ignore-windows: No libc on Windows
+//@ignore-target-windows: No libc on Windows
 
 #![feature(rustc_private)]
-
-extern crate libc;
 
 use core::slice;
 

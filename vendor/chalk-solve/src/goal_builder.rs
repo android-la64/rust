@@ -4,7 +4,7 @@ use chalk_ir::cast::Cast;
 use chalk_ir::cast::Caster;
 use chalk_ir::*;
 use fold::shift::Shift;
-use fold::Fold;
+use fold::TypeFoldable;
 use interner::{HasInterner, Interner};
 
 pub struct GoalBuilder<'i, I: Interner> {
@@ -76,11 +76,11 @@ impl<'i, I: Interner> GoalBuilder<'i, I> {
         &mut self,
         binders: &Binders<B>,
         passthru: P,
-        body: fn(&mut Self, Substitution<I>, &B, P::Result) -> G,
+        body: fn(&mut Self, Substitution<I>, &B, P) -> G,
     ) -> Goal<I>
     where
         B: HasInterner<Interner = I>,
-        P: Fold<I>,
+        P: TypeFoldable<I>,
         G: CastTo<Goal<I>>,
     {
         self.quantified(QuantifierKind::ForAll, binders, passthru, body)
@@ -91,11 +91,11 @@ impl<'i, I: Interner> GoalBuilder<'i, I> {
         &mut self,
         binders: &Binders<B>,
         passthru: P,
-        body: fn(&mut Self, Substitution<I>, &B, P::Result) -> G,
+        body: fn(&mut Self, Substitution<I>, &B, P) -> G,
     ) -> Goal<I>
     where
         B: HasInterner<Interner = I>,
-        P: Fold<I>,
+        P: TypeFoldable<I>,
         G: CastTo<Goal<I>>,
     {
         self.quantified(QuantifierKind::Exists, binders, passthru, body)
@@ -113,11 +113,11 @@ impl<'i, I: Interner> GoalBuilder<'i, I> {
         quantifier_kind: QuantifierKind,
         binders: &Binders<B>,
         passthru: P,
-        body: fn(&mut Self, Substitution<I>, &B, P::Result) -> G,
+        body: fn(&mut Self, Substitution<I>, &B, P) -> G,
     ) -> Goal<I>
     where
         B: HasInterner<Interner = I>,
-        P: Fold<I>,
+        P: TypeFoldable<I>,
         G: CastTo<Goal<I>>,
     {
         let interner = self.interner();

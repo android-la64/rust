@@ -2,24 +2,22 @@
 //!
 //! Actual logic is implemented in [`crate::completions::postfix`] and [`crate::completions::snippet`] respectively.
 
-use std::ops::Deref;
-
 // Feature: User Snippet Completions
 //
 // rust-analyzer allows the user to define custom (postfix)-snippets that may depend on items to be accessible for the current scope to be applicable.
 //
-// A custom snippet can be defined by adding it to the `rust-analyzer.completion.snippets` object respectively.
+// A custom snippet can be defined by adding it to the `rust-analyzer.completion.snippets.custom` object respectively.
 //
 // [source,json]
 // ----
 // {
-//   "rust-analyzer.completion.snippets": {
+//   "rust-analyzer.completion.snippets.custom": {
 //     "thread spawn": {
 //       "prefix": ["spawn", "tspawn"],
 //       "body": [
 //         "thread::spawn(move || {",
 //         "\t$0",
-//         ")};",
+//         "});",
 //       ],
 //       "description": "Insert a thread::spawn call",
 //       "requires": "std::thread",
@@ -146,8 +144,8 @@ impl Snippet {
         let (requires, snippet, description) = validate_snippet(snippet, description, requires)?;
         Some(Snippet {
             // Box::into doesn't work as that has a Copy bound 😒
-            postfix_triggers: postfix_triggers.iter().map(Deref::deref).map(Into::into).collect(),
-            prefix_triggers: prefix_triggers.iter().map(Deref::deref).map(Into::into).collect(),
+            postfix_triggers: postfix_triggers.iter().map(String::as_str).map(Into::into).collect(),
+            prefix_triggers: prefix_triggers.iter().map(String::as_str).map(Into::into).collect(),
             scope,
             snippet,
             description,
@@ -156,7 +154,7 @@ impl Snippet {
     }
 
     /// Returns [`None`] if the required items do not resolve.
-    pub(crate) fn imports(&self, ctx: &CompletionContext) -> Option<Vec<LocatedImport>> {
+    pub(crate) fn imports(&self, ctx: &CompletionContext<'_>) -> Option<Vec<LocatedImport>> {
         import_edits(ctx, &self.requires)
     }
 
@@ -169,7 +167,7 @@ impl Snippet {
     }
 }
 
-fn import_edits(ctx: &CompletionContext, requires: &[GreenNode]) -> Option<Vec<LocatedImport>> {
+fn import_edits(ctx: &CompletionContext<'_>, requires: &[GreenNode]) -> Option<Vec<LocatedImport>> {
     let resolve = |import: &GreenNode| {
         let path = ast::Path::cast(SyntaxNode::new_root(import.clone()))?;
         let item = match ctx.scope.speculative_resolve(&path)? {

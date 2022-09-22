@@ -65,9 +65,9 @@ in your program, and cannot run all programs:
   not support networking. System API support varies between targets; if you run
   on Windows it is a good idea to use `--target x86_64-unknown-linux-gnu` to get
   better support.
-* Weak memory emulation may produce weak behaivours unobservable by compiled
-  programs running on real hardware when `SeqCst` fences are used, and it cannot
-  produce all behaviors possibly observable on real hardware.
+* Weak memory emulation may [produce weak behaviours](https://github.com/rust-lang/miri/issues/2301)
+  unobservable by compiled programs running on real hardware when `SeqCst` fences are used, and it
+  cannot produce all behaviors possibly observable on real hardware.
 
 [rust]: https://www.rust-lang.org/
 [mir]: https://github.com/rust-lang/rfcs/blob/master/text/1211-mir.md
@@ -192,8 +192,9 @@ randomness that is used to determine allocation base addresses. The following
 snippet calls Miri in a loop with different values for the seed:
 
 ```
-for seed in $({ echo obase=16; seq 255; } | bc); do
-  MIRIFLAGS=-Zmiri-seed=$seed cargo miri test || { echo "Last seed: $seed"; break; };
+for SEED in $({ echo obase=16; seq 0 255; } | bc); do
+  echo "Trying seed: $SEED"
+  MIRIFLAGS=-Zmiri-seed=$SEED cargo miri test || { echo "Failing seed: $SEED"; break; };
 done
 ```
 
@@ -277,7 +278,7 @@ environment variable. We first document the most relevant and most commonly used
   and `warn-nobacktrace` are the supported actions. The default is to `abort`,
   which halts the machine. Some (but not all) operations also support continuing
   execution with a "permission denied" error being returned to the program.
-  `warn` prints a full backtrace when that happen; `warn-nobacktrace` is less
+  `warn` prints a full backtrace when that happens; `warn-nobacktrace` is less
   verbose. `hide` hides the warning entirely.
 * `-Zmiri-env-exclude=<var>` keeps the `var` environment variable isolated from the host so that it
   cannot be accessed by the program. Can be used multiple times to exclude several variables. The
@@ -285,13 +286,23 @@ environment variable. We first document the most relevant and most commonly used
   harness](https://github.com/rust-lang/miri/issues/1702). This has no effect unless
   `-Zmiri-disable-isolation` is also set.
 * `-Zmiri-env-forward=<var>` forwards the `var` environment variable to the interpreted program. Can
-  be used multiple times to forward several variables. This has no effect if
-  `-Zmiri-disable-isolation` is set.
+  be used multiple times to forward several variables. This takes precedence over
+  `-Zmiri-env-exclude`: if a variable is both forwarded and exluced, it *will* get forwarded. This
+  means in particular `-Zmiri-env-forward=TERM` overwrites the default exclusion of `TERM`.
 * `-Zmiri-ignore-leaks` disables the memory leak checker, and also allows some
   remaining threads to exist when the main thread exits.
+* `-Zmiri-permissive-provenance` disables the warning for integer-to-pointer casts and
+  [`ptr::from_exposed_addr`](https://doc.rust-lang.org/nightly/std/ptr/fn.from_exposed_addr.html).
+  This will necessarily miss some bugs as those operations are not efficiently and accurately
+  implementable in a sanitizer, but it will only miss bugs that concern memory/pointers which is
+  subject to these operations.
 * `-Zmiri-preemption-rate` configures the probability that at the end of a basic block, the active
   thread will be preempted. The default is `0.01` (i.e., 1%). Setting this to `0` disables
   preemption.
+* `-Zmiri-report-progress` makes Miri print the current stacktrace every now and then, so you can
+  tell what it is doing when a program just keeps running. You can customize how frequently the
+  report is printed via `-Zmiri-report-progress=<blocks>`, which prints the report every N basic
+  blocks.
 * `-Zmiri-seed=<hex>` configures the seed of the RNG that Miri uses to resolve non-determinism. This
   RNG is used to pick base addresses for allocations, to determine preemption and failure of
   `compare_exchange_weak`, and to control store buffering for weak memory emulation. When isolation
@@ -302,23 +313,22 @@ environment variable. We first document the most relevant and most commonly used
 * `-Zmiri-strict-provenance` enables [strict
   provenance](https://github.com/rust-lang/rust/issues/95228) checking in Miri. This means that
   casting an integer to a pointer yields a result with 'invalid' provenance, i.e., with provenance
-  that cannot be used for any memory access. Also implies `-Zmiri-tag-raw-pointers`.
+  that cannot be used for any memory access.
+* `-Zmiri-symbolic-alignment-check` makes the alignment check more strict.  By default, alignment is
+  checked by casting the pointer to an integer, and making sure that is a multiple of the alignment.
+  This can lead to cases where a program passes the alignment check by pure chance, because things
+  "happened to be" sufficiently aligned -- there is no UB in this execution but there would be UB in
+  others.  To avoid such cases, the symbolic alignment check only takes into account the requested
+  alignment of the relevant allocation, and the offset into that allocation.  This avoids missing
+  such bugs, but it also incurs some false positives when the code does manual integer arithmetic to
+  ensure alignment.  (The standard library `align_to` method works fine in both modes; under
+  symbolic alignment it only fills the middle slice when the allocation guarantees sufficient
+  alignment.)
 
 The remaining flags are for advanced use only, and more likely to change or be removed.
 Some of these are **unsound**, which means they can lead
 to Miri failing to detect cases of undefined behavior in a program.
 
-* `-Zmiri-allow-uninit-numbers` disables the check to ensure that number types (integer and float
-  types) always hold initialized data. (They must still be initialized when any actual operation,
-  such as arithmetic, is performed.) Using this flag is **unsound** and
-  [deprecated](https://github.com/rust-lang/miri/issues/2187). This has no effect when
-  `-Zmiri-disable-validation` is present.
-* `-Zmiri-allow-ptr-int-transmute` makes Miri more accepting of transmutation between pointers and
-  integers via `mem::transmute` or union/pointer type punning. This has two effects: it disables the
-  check against integers storing a pointer (i.e., data with provenance), thus allowing
-  pointer-to-integer transmutation, and it treats integer-to-pointer transmutation as equivalent to
-  a cast. Using this flag is **unsound** and
-  [deprecated](https://github.com/rust-lang/miri/issues/2188).
 * `-Zmiri-disable-abi-check` disables checking [function ABI]. Using this flag
   is **unsound**.
 * `-Zmiri-disable-alignment-check` disables checking pointer alignment, so you
@@ -350,29 +360,9 @@ to Miri failing to detect cases of undefined behavior in a program.
   application instead of raising an error within the context of Miri (and halting
   execution). Note that code might not expect these operations to ever panic, so
   this flag can lead to strange (mis)behavior.
-* `-Zmiri-permissive-provenance` is **experimental**. This will make Miri do a
-  best-effort attempt to implement the semantics of
-  [`expose_addr`](https://doc.rust-lang.org/nightly/std/primitive.pointer.html#method.expose_addr)
-  and
-  [`ptr::from_exposed_addr`](https://doc.rust-lang.org/nightly/std/ptr/fn.from_exposed_addr.html)
-  for pointer-to-int and int-to-pointer casts, respectively. This will
-  necessarily miss some bugs as those semantics are not efficiently
-  implementable in a sanitizer, but it will only miss bugs that concerns
-  memory/pointers which is subject to these operations. Also note that this flag
-  is currently incompatible with Stacked Borrows, so you will have to also pass
-  `-Zmiri-disable-stacked-borrows` to use this.
-* `-Zmiri-symbolic-alignment-check` makes the alignment check more strict.  By
-  default, alignment is checked by casting the pointer to an integer, and making
-  sure that is a multiple of the alignment.  This can lead to cases where a
-  program passes the alignment check by pure chance, because things "happened to
-  be" sufficiently aligned -- there is no UB in this execution but there would
-  be UB in others.  To avoid such cases, the symbolic alignment check only takes
-  into account the requested alignment of the relevant allocation, and the
-  offset into that allocation.  This avoids missing such bugs, but it also
-  incurs some false positives when the code does manual integer arithmetic to
-  ensure alignment.  (The standard library `align_to` method works fine in both
-  modes; under symbolic alignment it only fills the middle slice when the
-  allocation guarantees sufficient alignment.)
+* `-Zmiri-retag-fields` changes Stacked Borrows retagging to recurse into fields.
+  This means that references in fields of structs/enums/tuples/arrays/... are retagged,
+  and in particular, they are protected when passed as function arguments.
 * `-Zmiri-track-alloc-id=<id1>,<id2>,...` shows a backtrace when the given allocations are
   being allocated or freed.  This helps in debugging memory leaks and
   use after free bugs. Specifying this argument multiple times does not overwrite the previous
@@ -382,18 +372,14 @@ to Miri failing to detect cases of undefined behavior in a program.
   Borrows "protectors". Specifying this argument multiple times does not overwrite the previous
   values, instead it appends its values to the list. Listing an id multiple times has no effect.
 * `-Zmiri-track-pointer-tag=<tag1>,<tag2>,...` shows a backtrace when a given pointer tag
-  is popped from a borrow stack (which is where the tag becomes invalid and any
-  future use of it will error).  This helps you in finding out why UB is
+  is created and when (if ever) it is popped from a borrow stack (which is where the tag becomes invalid 
+  and any future use of it will error).  This helps you in finding out why UB is
   happening and where in your code would be a good place to look for it.
   Specifying this argument multiple times does not overwrite the previous
   values, instead it appends its values to the list. Listing a tag multiple times has no effect.
-* `-Zmiri-tag-raw-pointers` makes Stacked Borrows assign proper tags even for raw pointers. This can
-  make valid code using int-to-ptr casts fail to pass the checks, but also can help identify latent
-  aliasing issues in code that Miri accepts by default. You can recognize false positives by
-  `<untagged>` occurring in the message -- this indicates a pointer that was cast from an integer,
-  so Miri was unable to track this pointer. Note that it is not currently guaranteed that code that
-  works with `-Zmiri-tag-raw-pointers` also works without `-Zmiri-tag-raw-pointers`, but for the
-  vast majority of code, this will be the case.
+* `-Zmiri-track-weak-memory-loads` shows a backtrace when weak memory emulation returns an outdated
+  value from a load. This can help diagnose problems that disappear under
+  `-Zmiri-disable-weak-memory-emulation`.
 
 [function ABI]: https://doc.rust-lang.org/reference/items/functions.html#extern-function-qualifier
 
@@ -410,6 +396,9 @@ Some native rustc `-Z` flags are also very relevant for Miri:
 
 Moreover, Miri recognizes some environment variables:
 
+* `MIRI_AUTO_OPS` indicates whether the automatic execution of rustfmt, clippy and rustup-toolchain
+  should be skipped. If it is set to any value, they are skipped. This is used for avoiding
+  infinite recursion in `./miri` and to allow automated IDE actions to avoid the auto ops.
 * `MIRI_LOG`, `MIRI_BACKTRACE` control logging and backtrace printing during
   Miri executions, also [see "Testing the Miri driver" in `CONTRIBUTING.md`][testing-miri].
 * `MIRIFLAGS` (recognized by `cargo miri` and the test suite) defines extra
@@ -420,13 +409,14 @@ Moreover, Miri recognizes some environment variables:
   checkout. Note that changing files in that directory does not automatically
   trigger a re-build of the standard library; you have to clear the Miri build
   cache manually (on Linux, `rm -rf ~/.cache/miri`).
-* `MIRI_SYSROOT` (recognized by `cargo miri` and the test suite) indicates the
-  sysroot to use. Only set this if you do not want to use the automatically
-  created sysroot. (The `miri` driver sysroot is controlled via the `--sysroot`
-  flag instead.)
-* `MIRI_TEST_TARGET` (recognized by the test suite) indicates which target
-  architecture to test against.  `miri` and `cargo miri` accept the `--target`
-  flag for the same purpose.
+* `MIRI_SYSROOT` (recognized by `cargo miri` and the Miri driver) indicates the sysroot to use. When
+  using `cargo miri`, only set this if you do not want to use the automatically created sysroot. For
+  directly invoking the Miri driver, this variable (or a `--sysroot` flag) is mandatory.
+* `MIRI_TEST_TARGET` (recognized by the test suite and the `./miri` script) indicates which target
+  architecture to test against.  `miri` and `cargo miri` accept the `--target` flag for the same
+  purpose.
+* `MIRI_NO_STD` (recognized by `cargo miri` and the test suite) makes sure that the target's
+  sysroot is built without libstd. This allows testing and running no_std programs.
 * `MIRI_BLESS` (recognized by the test suite) overwrite all `stderr` and `stdout` files
   instead of checking whether the output matches.
 * `MIRI_SKIP_UI_CHECKS` (recognized by the test suite) don't check whether the
@@ -457,6 +447,8 @@ binaries, and as such worth documenting:
   crate currently being compiled.
 * `MIRI_VERBOSE` when set to any value tells the various `cargo-miri` phases to
   perform verbose logging.
+* `MIRI_HOST_SYSROOT` is set by bootstrap to tell `cargo-miri` which sysroot to use for *host*
+  operations.
 
 [testing-miri]: CONTRIBUTING.md#testing-the-miri-driver
 
@@ -584,6 +576,9 @@ Definite bugs found:
 * [`crossbeam-epoch` calling `assume_init` on a partly-initialized `MaybeUninit`](https://github.com/crossbeam-rs/crossbeam/pull/779)
 * [`integer-encoding` dereferencing a misaligned pointer](https://github.com/dermesser/integer-encoding-rs/pull/23)
 * [`rkyv` constructing a `Box<[u8]>` from an overaligned allocation](https://github.com/rkyv/rkyv/commit/a9417193a34757e12e24263178be8b2eebb72456)
+* [Data race in `thread::scope`](https://github.com/rust-lang/rust/issues/98498)
+* [`regex` incorrectly handling unaligned `Vec<u8>` buffers](https://www.reddit.com/r/rust/comments/vq3mmu/comment/ienc7t0?context=3)
+* [Incorrect use of `compare_exchange_weak` in `once_cell`](https://github.com/matklad/once_cell/issues/186)
 
 Violations of [Stacked Borrows] found that are likely bugs (but Stacked Borrows is currently just an experiment):
 

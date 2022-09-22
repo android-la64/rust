@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-jit"
-version = "0.83.0"
+version = "0.85.3"
 authors = ["The Cranelift Project Developers"]
 description = "A JIT library backed by Cranelift"
 documentation = "https://docs.rs/cranelift-jit"
@@ -25,18 +25,18 @@ resolver = "2"
 version = "1.0"
 
 [dependencies.cranelift-codegen]
-version = "0.83.0"
+version = "0.85.3"
 features = ["std"]
 default-features = false
 
 [dependencies.cranelift-entity]
-version = "0.83.0"
+version = "0.85.3"
 
 [dependencies.cranelift-module]
-version = "0.83.0"
+version = "0.85.3"
 
 [dependencies.cranelift-native]
-version = "0.83.0"
+version = "0.85.3"
 
 [dependencies.libc]
 version = "0.2.42"
@@ -56,13 +56,13 @@ version = "2.2.0"
 version = "0.12"
 
 [dev-dependencies.cranelift]
-version = "0.83.0"
+version = "0.85.3"
 
 [dev-dependencies.cranelift-entity]
-version = "0.83.0"
+version = "0.85.3"
 
 [dev-dependencies.cranelift-frontend]
-version = "0.83.0"
+version = "0.85.3"
 
 [features]
 default = []

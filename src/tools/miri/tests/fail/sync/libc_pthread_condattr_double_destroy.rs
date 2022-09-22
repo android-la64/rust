@@ -1,8 +1,7 @@
-// ignore-windows: No libc on Windows
+//@ignore-target-windows: No libc on Windows
 #![feature(rustc_private)]
 
 /// Test that destroying a pthread_condattr twice fails, even without a check for number validity
-extern crate libc;
 
 fn main() {
     unsafe {
@@ -14,6 +13,6 @@ fn main() {
         libc::pthread_condattr_destroy(attr.as_mut_ptr());
 
         libc::pthread_condattr_destroy(attr.as_mut_ptr());
-        //~^ ERROR Undefined Behavior: using uninitialized data, but this operation requires initialized memory
+        //~^ ERROR: Undefined Behavior: using uninitialized data, but this operation requires initialized memory
     }
 }

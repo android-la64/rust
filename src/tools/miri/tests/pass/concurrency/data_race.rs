@@ -1,5 +1,5 @@
-// ignore-windows: Concurrency on Windows is not supported yet.
-// compile-flags: -Zmiri-disable-weak-memory-emulation
+//@ignore-target-windows: Concurrency on Windows is not supported yet.
+//@compile-flags: -Zmiri-disable-weak-memory-emulation
 
 use std::sync::atomic::{fence, AtomicUsize, Ordering};
 use std::thread::spawn;
@@ -18,9 +18,7 @@ fn test_fence_sync() {
     let evil_ptr = EvilSend(ptr);
 
     let j1 = spawn(move || {
-        unsafe {
-            *evil_ptr.0 = 1;
-        }
+        unsafe { *evil_ptr.0 = 1 };
         fence(Ordering::Release);
         SYNC.store(1, Ordering::Relaxed)
     });

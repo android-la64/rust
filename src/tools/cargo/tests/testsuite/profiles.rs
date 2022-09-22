@@ -1,9 +1,8 @@
 //! Tests for profiles.
 
-use std::env;
-
 use cargo_test_support::project;
 use cargo_test_support::registry::Package;
+use std::env;
 
 #[cargo_test]
 fn profile_overrides() {
@@ -631,7 +630,7 @@ fn rustflags_works() {
         .build();
 
     p.cargo("build -v")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["profile-rustflags"])
         .with_stderr(
             "\
 [COMPILING] foo [..]
@@ -660,7 +659,7 @@ fn rustflags_works_with_env() {
 
     p.cargo("build -v")
         .env("CARGO_PROFILE_DEV_RUSTFLAGS", "-C link-dead-code=yes")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["profile-rustflags"])
         .with_stderr(
             "\
 [COMPILING] foo [..]
@@ -689,7 +688,7 @@ fn rustflags_requires_cargo_feature() {
         .build();
 
     p.cargo("build -v")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["profile-rustflags"])
         .with_status(101)
         .with_stderr(
             "\
@@ -724,7 +723,7 @@ Caused by:
         "#,
     );
     p.cargo("check")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["profile-rustflags"])
         .with_status(101)
         .with_stderr(
             "\

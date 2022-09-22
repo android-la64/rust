@@ -5,6 +5,7 @@ use std::collections::hash_map::Entry;
 
 use base_db::CrateId;
 use hir_expand::{name::Name, AstId, MacroCallId};
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use profile::Count;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -61,15 +62,19 @@ pub struct ItemScope {
     /// Module scoped macros will be inserted into `items` instead of here.
     // FIXME: Macro shadowing in one module is not properly handled. Non-item place macros will
     // be all resolved to the last one defined if shadowing happens.
-    legacy_macros: FxHashMap<Name, MacroId>,
+    legacy_macros: FxHashMap<Name, SmallVec<[MacroId; 1]>>,
     /// The derive macro invocations in this scope.
     attr_macros: FxHashMap<AstId<ast::Item>, MacroCallId>,
     /// The derive macro invocations in this scope, keyed by the owner item over the actual derive attributes
     /// paired with the derive macro invocations for the specific attribute.
-    derive_macros: FxHashMap<
-        AstId<ast::Adt>,
-        SmallVec<[(AttrId, MacroCallId, SmallVec<[Option<MacroCallId>; 1]>); 1]>,
-    >,
+    derive_macros: FxHashMap<AstId<ast::Adt>, SmallVec<[DeriveMacroInvocation; 1]>>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct DeriveMacroInvocation {
+    attr_id: AttrId,
+    attr_call_id: MacroCallId,
+    derive_call_ids: SmallVec<[Option<MacroCallId>; 1]>,
 }
 
 pub(crate) static BUILTIN_SCOPE: Lazy<FxHashMap<Name, PerNs>> = Lazy::new(|| {
@@ -93,15 +98,14 @@ pub(crate) enum BuiltinShadowMode {
 impl ItemScope {
     pub fn entries<'a>(&'a self) -> impl Iterator<Item = (&'a Name, PerNs)> + 'a {
         // FIXME: shadowing
-        let keys: FxHashSet<_> = self
-            .types
+        self.types
             .keys()
             .chain(self.values.keys())
             .chain(self.macros.keys())
             .chain(self.unresolved.iter())
-            .collect();
-
-        keys.into_iter().map(move |name| (name, self.get(name)))
+            .sorted()
+            .unique()
+            .map(move |name| (name, self.get(name)))
     }
 
     pub fn declarations(&self) -> impl Iterator<Item = ModuleDefId> + '_ {
@@ -129,13 +133,13 @@ impl ItemScope {
     }
 
     /// Iterate over all module scoped macros
-    pub(crate) fn macros<'a>(&'a self) -> impl Iterator<Item = (&'a Name, MacroId)> + 'a {
+    pub(crate) fn macros(&self) -> impl Iterator<Item = (&Name, MacroId)> + '_ {
         self.entries().filter_map(|(name, def)| def.take_macros().map(|macro_| (name, macro_)))
     }
 
     /// Iterate over all legacy textual scoped macros visible at the end of the module
-    pub fn legacy_macros<'a>(&'a self) -> impl Iterator<Item = (&'a Name, MacroId)> + 'a {
-        self.legacy_macros.iter().map(|(name, def)| (name, *def))
+    pub fn legacy_macros(&self) -> impl Iterator<Item = (&Name, &[MacroId])> + '_ {
+        self.legacy_macros.iter().map(|(name, def)| (name, &**def))
     }
 
     /// Get a name from current module scope, legacy macros are not included
@@ -180,8 +184,8 @@ impl ItemScope {
         self.declarations.push(def)
     }
 
-    pub(crate) fn get_legacy_macro(&self, name: &Name) -> Option<MacroId> {
-        self.legacy_macros.get(name).copied()
+    pub(crate) fn get_legacy_macro(&self, name: &Name) -> Option<&[MacroId]> {
+        self.legacy_macros.get(name).map(|it| &**it)
     }
 
     pub(crate) fn define_impl(&mut self, imp: ImplId) {
@@ -193,7 +197,7 @@ impl ItemScope {
     }
 
     pub(crate) fn define_legacy_macro(&mut self, name: Name, mac: MacroId) {
-        self.legacy_macros.insert(name, mac);
+        self.legacy_macros.entry(name).or_default().push(mac);
     }
 
     pub(crate) fn add_attr_macro_invoc(&mut self, item: AstId<ast::Item>, call: MacroCallId) {
@@ -210,12 +214,14 @@ impl ItemScope {
         &mut self,
         adt: AstId<ast::Adt>,
         call: MacroCallId,
-        attr_id: AttrId,
+        id: AttrId,
         idx: usize,
     ) {
         if let Some(derives) = self.derive_macros.get_mut(&adt) {
-            if let Some((.., invocs)) = derives.iter_mut().find(|&&mut (id, ..)| id == attr_id) {
-                invocs[idx] = Some(call);
+            if let Some(DeriveMacroInvocation { derive_call_ids, .. }) =
+                derives.iter_mut().find(|&&mut DeriveMacroInvocation { attr_id, .. }| id == attr_id)
+            {
+                derive_call_ids[idx] = Some(call);
             }
         }
     }
@@ -227,10 +233,14 @@ impl ItemScope {
         &mut self,
         adt: AstId<ast::Adt>,
         attr_id: AttrId,
-        call_id: MacroCallId,
+        attr_call_id: MacroCallId,
         len: usize,
     ) {
-        self.derive_macros.entry(adt).or_default().push((attr_id, call_id, smallvec![None; len]));
+        self.derive_macros.entry(adt).or_default().push(DeriveMacroInvocation {
+            attr_id,
+            attr_call_id,
+            derive_call_ids: smallvec![None; len],
+        });
     }
 
     pub(crate) fn derive_macro_invocs(
@@ -242,7 +252,12 @@ impl ItemScope {
         ),
     > + '_ {
         self.derive_macros.iter().map(|(k, v)| {
-            (*k, v.iter().map(|&(attr_id, call_id, ref invocs)| (attr_id, call_id, &**invocs)))
+            (
+                *k,
+                v.iter().map(|DeriveMacroInvocation { attr_id, attr_call_id, derive_call_ids }| {
+                    (*attr_id, *attr_call_id, &**derive_call_ids)
+                }),
+            )
         })
     }
 
@@ -270,35 +285,33 @@ impl ItemScope {
                 $glob_imports:ident [ $lookup:ident ],
                 $def_import_type:ident
             ) => {{
-                let existing = $this.$field.entry($lookup.1.clone());
-                match (existing, $def.$field) {
-                    (Entry::Vacant(entry), Some(_)) => {
-                        match $def_import_type {
-                            ImportType::Glob => {
-                                $glob_imports.$field.insert($lookup.clone());
+                if let Some(fld) = $def.$field {
+                    let existing = $this.$field.entry($lookup.1.clone());
+                    match existing {
+                        Entry::Vacant(entry) => {
+                            match $def_import_type {
+                                ImportType::Glob => {
+                                    $glob_imports.$field.insert($lookup.clone());
+                                }
+                                ImportType::Named => {
+                                    $glob_imports.$field.remove(&$lookup);
+                                }
                             }
-                            ImportType::Named => {
-                                $glob_imports.$field.remove(&$lookup);
-                            }
-                        }
 
-                        if let Some(fld) = $def.$field {
                             entry.insert(fld);
+                            $changed = true;
                         }
-                        $changed = true;
-                    }
-                    (Entry::Occupied(mut entry), Some(_))
-                        if $glob_imports.$field.contains(&$lookup)
-                            && matches!($def_import_type, ImportType::Named) =>
-                    {
-                        cov_mark::hit!(import_shadowed);
-                        $glob_imports.$field.remove(&$lookup);
-                        if let Some(fld) = $def.$field {
+                        Entry::Occupied(mut entry)
+                            if $glob_imports.$field.contains(&$lookup)
+                                && matches!($def_import_type, ImportType::Named) =>
+                        {
+                            cov_mark::hit!(import_shadowed);
+                            $glob_imports.$field.remove(&$lookup);
                             entry.insert(fld);
+                            $changed = true;
                         }
-                        $changed = true;
+                        _ => {}
                     }
-                    _ => {}
                 }
             }};
         }
@@ -322,7 +335,7 @@ impl ItemScope {
         )
     }
 
-    pub(crate) fn collect_legacy_macros(&self) -> FxHashMap<Name, MacroId> {
+    pub(crate) fn collect_legacy_macros(&self) -> FxHashMap<Name, SmallVec<[MacroId; 1]>> {
         self.legacy_macros.clone()
     }
 

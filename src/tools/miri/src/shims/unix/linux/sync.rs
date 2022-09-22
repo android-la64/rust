@@ -7,8 +7,8 @@ use std::time::{Instant, SystemTime};
 /// `args` is the arguments *after* the syscall number.
 pub fn futex<'tcx>(
     this: &mut MiriEvalContext<'_, 'tcx>,
-    args: &[OpTy<'tcx, Tag>],
-    dest: &PlaceTy<'tcx, Tag>,
+    args: &[OpTy<'tcx, Provenance>],
+    dest: &PlaceTy<'tcx, Provenance>,
 ) -> InterpResult<'tcx> {
     // The amount of arguments used depends on the type of futex operation.
     // The full futex syscall takes six arguments (excluding the syscall
@@ -121,7 +121,7 @@ pub fn futex<'tcx>(
             // The API requires `addr` to be a 4-byte aligned pointer, and will
             // use the 4 bytes at the given address as an (atomic) i32.
             this.check_ptr_access_align(
-                this.scalar_to_ptr(addr_scalar)?,
+                addr_scalar.to_pointer(this)?,
                 Size::from_bytes(4),
                 Align::from_bytes(4).unwrap(),
                 CheckInAllocMsg::MemoryAccessTest,
@@ -169,16 +169,15 @@ pub fn futex<'tcx>(
             //
             // Thankfully, preemptions cannot happen inside a Miri shim, so we do not need to
             // do anything special to guarantee fence-load-comparison atomicity.
-            this.atomic_fence(&[], AtomicFenceOp::SeqCst)?;
+            this.validate_atomic_fence(AtomicFenceOrd::SeqCst)?;
             // Read an `i32` through the pointer, regardless of any wrapper types.
             // It's not uncommon for `addr` to be passed as another type than `*mut i32`, such as `*const AtomicI32`.
-            // FIXME: this fails if `addr` is not a pointer type.
             let futex_val = this
                 .read_scalar_at_offset_atomic(
                     &addr.into(),
                     0,
                     this.machine.layouts.i32,
-                    AtomicReadOp::Relaxed,
+                    AtomicReadOrd::Relaxed,
                 )?
                 .to_i32()?;
             if val == futex_val {
@@ -189,8 +188,8 @@ pub fn futex<'tcx>(
                 this.write_scalar(Scalar::from_machine_isize(0, this), dest)?;
                 // Register a timeout callback if a timeout was specified.
                 // This callback will override the return value when the timeout triggers.
-                let dest = *dest;
                 if let Some(timeout_time) = timeout_time {
+                    let dest = dest.clone();
                     this.register_timeout_callback(
                         thread,
                         timeout_time,
@@ -241,7 +240,7 @@ pub fn futex<'tcx>(
             // Together with the SeqCst fence in futex_wait, this makes sure that futex_wait
             // will see the latest value on addr which could be changed by our caller
             // before doing the syscall.
-            this.atomic_fence(&[], AtomicFenceOp::SeqCst)?;
+            this.validate_atomic_fence(AtomicFenceOrd::SeqCst)?;
             let mut n = 0;
             for _ in 0..val {
                 if let Some(thread) = this.futex_wake(addr_usize, bitset) {

@@ -7,13 +7,12 @@
 
 **Project info:**
 [![Docs.rs](https://docs.rs/os_info/badge.svg)](https://docs.rs/os_info)
-[![Latest version](http://meritbadge.herokuapp.com/os_info)](https://crates.io/crates/os_info)
+[![Latest version](https://img.shields.io/crates/v/os_info.svg)](https://crates.io/crates/os_info)
 [![License](https://img.shields.io/github/license/stanislav-tkach/os_info.svg)](https://github.com/stanislav-tkach/os_info/blob/master/LICENSE)
 
 **Project details:**
 [![LoC](https://tokei.rs/b1/github/stanislav-tkach/os_info)](https://github.com/stanislav-tkach/os_info)
 ![Rust 1.41+ required](https://img.shields.io/badge/rust-1.41+-blue.svg?label=Required%20Rust)
-![Dependencies](https://api.dependabot.com/badges/status?host=github&repo=stanislav-tkach/os_info)
 
 ## Overview
 
@@ -29,7 +28,7 @@ To use this crate, add `os_info` as a dependency to your project's Cargo.toml:
 
 ```toml
 [dependencies]
-os_info = "3.0"
+os_info = "3"
 ```
 
 This project has `serde` as an optional dependency, so if you don't need it, then
@@ -37,7 +36,7 @@ you can speed up compilation disabling it:
 
 ```toml
 [dependencies]
-os_info = { version = "3.0", default-features = false }
+os_info = { version = "3", default-features = false }
 ```
 
 #### Example
@@ -90,11 +89,16 @@ Right now, the following operating system types can be returned:
 - EndeavourOS
 - Fedora
 - FreeBSD
+- HardenedBSD
+- Illumos
 - Linux
 - Linux Mint
 - macOS (Mac OS X or OS X)
 - Manjaro
+- MidnightBSD
+- NetBSD
 - NixOS
+- OpenBSD
 - openSUSE
 - Oracle Linux
 - Pop!_OS

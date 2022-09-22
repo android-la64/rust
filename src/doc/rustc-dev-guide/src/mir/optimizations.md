@@ -8,8 +8,8 @@ to do, so compilation is faster. Note that since MIR is generic (not
 effective; we can optimize the generic version, so all of the monomorphizations
 are cheaper!
 
-[mir]: https://rustc-dev-guide.rust-lang.org/mir/index.html
-[monomorph]: https://rustc-dev-guide.rust-lang.org/appendix/glossary.html#mono
+[mir]: ../mir/index.md
+[monomorph]: ../appendix/glossary.md#mono
 
 MIR optimizations run after borrow checking. We run a series of optimization
 passes over the MIR to improve it. Some passes are required to run on all code,
@@ -22,9 +22,9 @@ run and that some validation has occurred. Then, it [steals][steal] the MIR,
 optimizes it, and returns the improved MIR.
 
 [optmir]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/fn.optimized_mir.html
-[query]: https://rustc-dev-guide.rust-lang.org/query.html
-[defid]: https://rustc-dev-guide.rust-lang.org/appendix/glossary.html#def-id
-[steal]: https://rustc-dev-guide.rust-lang.org/mir/passes.html?highlight=steal#stealing
+[query]: ../query.md
+[defid]: ../appendix/glossary.md#def-id
+[steal]: ../mir/passes.md#stealing
 
 ## Quickstart for adding a new optimization
 
@@ -107,9 +107,10 @@ the pass. To enable working with slow or otherwise experimental optimization pas
 you can specify the `-Z mir-opt-level` debug flag. You can find the
 definitions of the levels in the [compiler MCP]. If you are developing a MIR pass and
 want to query whether your optimization pass should run, you can check the
-current level using `tcx.sess.opts.debugging_opts.mir_opt_level`.
+current level using [`tcx.sess.opts.unstable_opts.mir_opt_level`][mir_opt_level].
 
 [compiler MCP]: https://github.com/rust-lang/compiler-team/issues/319
+[mir_opt_level]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_session/config/struct.UnstableOptions.html#structfield.mir_opt_level
 
 ## Optimization fuel
 

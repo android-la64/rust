@@ -1,11 +1,9 @@
-// ignore-windows: No libc on Windows
-// error-pattern: the main thread terminated without waiting for all remaining threads
+//@ignore-target-windows: No libc on Windows
+//@error-pattern: the main thread terminated without waiting for all remaining threads
 
 // Check that we terminate the program when the main thread terminates.
 
 #![feature(rustc_private)]
-
-extern crate libc;
 
 use std::{mem, ptr};
 

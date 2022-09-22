@@ -1,4 +1,5 @@
 use hir::db::DefDatabase;
+use syntax::NodeOrToken;
 
 use crate::{Diagnostic, DiagnosticsContext, Severity};
 
@@ -18,9 +19,16 @@ pub(crate) fn unresolved_proc_macro(
     proc_attr_macros_enabled: bool,
 ) -> Diagnostic {
     // Use more accurate position if available.
-    let display_range = d
-        .precise_location
-        .unwrap_or_else(|| ctx.sema.diagnostics_display_range(d.node.clone()).range);
+    let display_range = (|| {
+        let precise_location = d.precise_location?;
+        let root = ctx.sema.parse_or_expand(d.node.file_id)?;
+        match root.covering_element(precise_location) {
+            NodeOrToken::Node(it) => Some(ctx.sema.original_range(&it)),
+            NodeOrToken::Token(it) => d.node.with_value(it).original_file_range_opt(ctx.sema.db),
+        }
+    })()
+    .unwrap_or_else(|| ctx.sema.diagnostics_display_range(d.node.clone()))
+    .range;
 
     let config_enabled = match d.kind {
         hir::MacroKind::Attr => proc_macros_enabled && proc_attr_macros_enabled,
@@ -32,13 +40,13 @@ pub(crate) fn unresolved_proc_macro(
         None => "proc macro not expanded".to_string(),
     };
     let severity = if config_enabled { Severity::Error } else { Severity::WeakWarning };
-    let def_map = d.krate.map(|krate| ctx.sema.db.crate_def_map(krate));
+    let def_map = ctx.sema.db.crate_def_map(d.krate);
     let message = format!(
         "{message}: {}",
         if config_enabled {
-            match def_map.as_ref().and_then(|def_map| def_map.proc_macro_loading_error()) {
+            match def_map.proc_macro_loading_error() {
                 Some(e) => e,
-                None => "proc macro not found",
+                None => "proc macro not found in the built dylib",
             }
         } else {
             match d.kind {

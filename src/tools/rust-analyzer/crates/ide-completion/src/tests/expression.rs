@@ -44,7 +44,6 @@ fn baz() {
             st Record
             st Tuple
             st Unit
-            tt Trait
             un Union
             ev TupleV(…)     TupleV(u32)
             bt u32
@@ -58,7 +57,6 @@ fn baz() {
             kw mut
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -100,7 +98,6 @@ fn func(param0 @ (param1, param2): (i32, i32)) {
             kw match
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -139,7 +136,6 @@ impl Unit {
             st Record
             st Tuple
             st Unit
-            tt Trait
             tp TypeParam
             un Union
             ev TupleV(…)    TupleV(u32)
@@ -162,7 +158,6 @@ impl Unit {
             kw self::
             kw static
             kw struct
-            kw super::
             kw trait
             kw true
             kw type
@@ -240,7 +235,6 @@ fn complete_in_block() {
             kw self::
             kw static
             kw struct
-            kw super::
             kw trait
             kw true
             kw type
@@ -288,7 +282,6 @@ fn complete_after_if_expr() {
             kw self::
             kw static
             kw struct
-            kw super::
             kw trait
             kw true
             kw type
@@ -326,7 +319,6 @@ fn complete_in_match_arm() {
             kw match
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -362,7 +354,6 @@ fn completes_in_loop_ctx() {
             kw self::
             kw static
             kw struct
-            kw super::
             kw trait
             kw true
             kw type
@@ -394,7 +385,6 @@ fn completes_in_let_initializer() {
             kw match
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -429,7 +419,6 @@ fn foo() {
             kw match
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -465,7 +454,6 @@ fn foo() {
             kw match
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -497,7 +485,6 @@ fn quux(x: i32) {
             kw match
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -525,7 +512,6 @@ fn quux(x: i32) {
             kw match
             kw return
             kw self::
-            kw super::
             kw true
             kw unsafe
             kw while
@@ -663,5 +649,24 @@ fn main() {
         expect![[r"
             fn bar(…) fn(impl Trait<U>)
         "]],
+    );
+}
+
+#[test]
+fn complete_record_expr_path() {
+    check(
+        r#"
+struct Zulu;
+impl Zulu {
+    fn test() -> Self { }
+}
+fn boi(val: Zulu) { }
+fn main() {
+    boi(Zulu:: $0 {});
+}
+"#,
+        expect![[r#"
+            fn test() fn() -> Zulu
+        "#]],
     );
 }

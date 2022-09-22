@@ -47,6 +47,7 @@ pub struct LifetimeParamData {
 pub struct ConstParamData {
     pub name: Name,
     pub ty: Interned<TypeRef>,
+    pub has_default: bool,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
@@ -67,6 +68,13 @@ impl TypeOrConstParamData {
         match self {
             TypeOrConstParamData::TypeParamData(x) => x.name.as_ref(),
             TypeOrConstParamData::ConstParamData(x) => Some(&x.name),
+        }
+    }
+
+    pub fn has_default(&self) -> bool {
+        match self {
+            TypeOrConstParamData::TypeParamData(x) => x.default.is_some(),
+            TypeOrConstParamData::ConstParamData(x) => x.has_default,
         }
     }
 
@@ -146,6 +154,15 @@ impl GenericParams {
     ) -> Interned<GenericParams> {
         let _p = profile::span("generic_params_query");
 
+        macro_rules! id_to_generics {
+            ($id:ident) => {{
+                let id = $id.lookup(db).id;
+                let tree = id.item_tree(db);
+                let item = &tree[id.value];
+                item.generic_params.clone()
+            }};
+        }
+
         match def {
             GenericDefId::FunctionId(id) => {
                 let loc = id.lookup(db);
@@ -166,49 +183,19 @@ impl GenericParams {
 
                 Interned::new(generic_params)
             }
-            GenericDefId::AdtId(AdtId::StructId(id)) => {
-                let id = id.lookup(db).id;
-                let tree = id.item_tree(db);
-                let item = &tree[id.value];
-                item.generic_params.clone()
-            }
-            GenericDefId::AdtId(AdtId::EnumId(id)) => {
-                let id = id.lookup(db).id;
-                let tree = id.item_tree(db);
-                let item = &tree[id.value];
-                item.generic_params.clone()
-            }
-            GenericDefId::AdtId(AdtId::UnionId(id)) => {
-                let id = id.lookup(db).id;
-                let tree = id.item_tree(db);
-                let item = &tree[id.value];
-                item.generic_params.clone()
-            }
-            GenericDefId::TraitId(id) => {
-                let id = id.lookup(db).id;
-                let tree = id.item_tree(db);
-                let item = &tree[id.value];
-                item.generic_params.clone()
-            }
-            GenericDefId::TypeAliasId(id) => {
-                let id = id.lookup(db).id;
-                let tree = id.item_tree(db);
-                let item = &tree[id.value];
-                item.generic_params.clone()
-            }
-            GenericDefId::ImplId(id) => {
-                let id = id.lookup(db).id;
-                let tree = id.item_tree(db);
-                let item = &tree[id.value];
-                item.generic_params.clone()
-            }
+            GenericDefId::AdtId(AdtId::StructId(id)) => id_to_generics!(id),
+            GenericDefId::AdtId(AdtId::EnumId(id)) => id_to_generics!(id),
+            GenericDefId::AdtId(AdtId::UnionId(id)) => id_to_generics!(id),
+            GenericDefId::TraitId(id) => id_to_generics!(id),
+            GenericDefId::TypeAliasId(id) => id_to_generics!(id),
+            GenericDefId::ImplId(id) => id_to_generics!(id),
             GenericDefId::EnumVariantId(_) | GenericDefId::ConstId(_) => {
                 Interned::new(GenericParams::default())
             }
         }
     }
 
-    pub(crate) fn fill(&mut self, lower_ctx: &LowerCtx, node: &dyn HasGenericParams) {
+    pub(crate) fn fill(&mut self, lower_ctx: &LowerCtx<'_>, node: &dyn HasGenericParams) {
         if let Some(params) = node.generic_param_list() {
             self.fill_params(lower_ctx, params)
         }
@@ -219,7 +206,7 @@ impl GenericParams {
 
     pub(crate) fn fill_bounds(
         &mut self,
-        lower_ctx: &LowerCtx,
+        lower_ctx: &LowerCtx<'_>,
         node: &dyn ast::HasTypeBounds,
         target: Either<TypeRef, LifetimeRef>,
     ) {
@@ -230,7 +217,7 @@ impl GenericParams {
         }
     }
 
-    fn fill_params(&mut self, lower_ctx: &LowerCtx, params: ast::GenericParamList) {
+    fn fill_params(&mut self, lower_ctx: &LowerCtx<'_>, params: ast::GenericParamList) {
         for type_or_const_param in params.type_or_const_params() {
             match type_or_const_param {
                 ast::TypeOrConstParam::Type(type_param) => {
@@ -253,7 +240,11 @@ impl GenericParams {
                     let ty = const_param
                         .ty()
                         .map_or(TypeRef::Error, |it| TypeRef::from_ast(lower_ctx, it));
-                    let param = ConstParamData { name, ty: Interned::new(ty) };
+                    let param = ConstParamData {
+                        name,
+                        ty: Interned::new(ty),
+                        has_default: const_param.default_val().is_some(),
+                    };
                     self.type_or_consts.alloc(param.into());
                 }
             }
@@ -268,7 +259,7 @@ impl GenericParams {
         }
     }
 
-    fn fill_where_predicates(&mut self, lower_ctx: &LowerCtx, where_clause: ast::WhereClause) {
+    fn fill_where_predicates(&mut self, lower_ctx: &LowerCtx<'_>, where_clause: ast::WhereClause) {
         for pred in where_clause.predicates() {
             let target = if let Some(type_ref) = pred.ty() {
                 Either::Left(TypeRef::from_ast(lower_ctx, type_ref))
@@ -302,7 +293,7 @@ impl GenericParams {
 
     fn add_where_predicate_from_bound(
         &mut self,
-        lower_ctx: &LowerCtx,
+        lower_ctx: &LowerCtx<'_>,
         bound: ast::TypeBound,
         hrtb_lifetimes: Option<&Box<[Name]>>,
         target: Either<TypeRef, LifetimeRef>,
@@ -393,15 +384,14 @@ impl GenericParams {
 
     pub fn find_trait_self_param(&self) -> Option<LocalTypeOrConstParamId> {
         self.type_or_consts.iter().find_map(|(id, p)| {
-            if let TypeOrConstParamData::TypeParamData(p) = p {
-                if p.provenance == TypeParamProvenance::TraitSelf {
-                    Some(id)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
+            matches!(
+                p,
+                TypeOrConstParamData::TypeParamData(TypeParamData {
+                    provenance: TypeParamProvenance::TraitSelf,
+                    ..
+                })
+            )
+            .then(|| id)
         })
     }
 }

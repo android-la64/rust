@@ -1,6 +1,6 @@
 //! Tests for -Zcheck-cfg.
 
-use cargo_test_support::{basic_manifest, is_nightly, project};
+use cargo_test_support::{basic_manifest, project};
 
 macro_rules! x {
     ($tool:tt => $what:tt $(of $who:tt)?) => {{
@@ -29,13 +29,8 @@ macro_rules! x {
     }};
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -53,18 +48,13 @@ fn features() {
         .build();
 
     p.cargo("build -v -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features_with_deps() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -87,19 +77,14 @@ fn features_with_deps() {
         .build();
 
     p.cargo("build -v -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values" of "feature"))
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features_with_opt_deps() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -123,19 +108,14 @@ fn features_with_opt_deps() {
         .build();
 
     p.cargo("build -v -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values" of "feature"))
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "bar" "default" "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features_with_namespaced_features() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -158,54 +138,39 @@ fn features_with_namespaced_features() {
         .build();
 
     p.cargo("build -v -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_names() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/main.rs", "fn main() {}")
         .build();
 
     p.cargo("build -v -Zcheck-cfg=names")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "names"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_values() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/main.rs", "fn main() {}")
         .build();
 
     p.cargo("build -v -Zcheck-cfg=values")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn cli_all_options() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -223,20 +188,15 @@ fn cli_all_options() {
         .build();
 
     p.cargo("build -v -Zcheck-cfg=features,names,values")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "names"))
         .with_stderr_contains(x!("rustc" => "values"))
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features_with_cargo_check() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -254,54 +214,39 @@ fn features_with_cargo_check() {
         .build();
 
     p.cargo("check -v -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_names_with_check() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/main.rs", "fn main() {}")
         .build();
 
     p.cargo("check -v -Zcheck-cfg=names")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "names"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_values_with_check() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/main.rs", "fn main() {}")
         .build();
 
     p.cargo("check -v -Zcheck-cfg=values")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features_test() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -319,18 +264,13 @@ fn features_test() {
         .build();
 
     p.cargo("test -v -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features_doctest() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc and rustdoc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -349,93 +289,68 @@ fn features_doctest() {
         .build();
 
     p.cargo("test -v --doc -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values" of "feature" with "default" "f_a" "f_b"))
         .with_stderr_contains(x!("rustdoc" => "values" of "feature" with "default" "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_names_test() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/main.rs", "fn main() {}")
         .build();
 
     p.cargo("test -v -Zcheck-cfg=names")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "names"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_values_test() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/main.rs", "fn main() {}")
         .build();
 
     p.cargo("test -v -Zcheck-cfg=values")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_names_doctest() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc and rustdoc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/lib.rs", "#[allow(dead_code)] fn foo() {}")
         .build();
 
     p.cargo("test -v --doc -Zcheck-cfg=names")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "names"))
         .with_stderr_contains(x!("rustdoc" => "names"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn well_known_values_doctest() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustc and rustdoc command line
-        return;
-    }
-
     let p = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.1.0"))
         .file("src/lib.rs", "#[allow(dead_code)] fn foo() {}")
         .build();
 
     p.cargo("test -v --doc -Zcheck-cfg=values")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "values"))
         .with_stderr_contains(x!("rustdoc" => "values"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn features_doc() {
-    if !is_nightly() {
-        // --check-cfg is a nightly only rustdoc command line
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -454,18 +369,13 @@ fn features_doc() {
         .build();
 
     p.cargo("doc -v -Zcheck-cfg=features")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustdoc" => "values" of "feature" with "default" "f_a" "f_b"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn build_script_feedback() {
-    if !is_nightly() {
-        // rustc-check-cfg: is only availaible on nightly
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -485,18 +395,13 @@ fn build_script_feedback() {
         .build();
 
     p.cargo("build -v -Zcheck-cfg=output")
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "names" of "foo"))
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn build_script_doc() {
-    if !is_nightly() {
-        // rustc-check-cfg: is only availaible on nightly
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -526,16 +431,12 @@ fn build_script_doc() {
 [RUNNING] `rustdoc [..] src/main.rs [..]
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
         )
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn build_script_override() {
-    if !is_nightly() {
-        // rustc-check-cfg: is only availaible on nightly
-        return;
-    }
     let target = cargo_test_support::rustc_host();
 
     let p = project()
@@ -566,17 +467,12 @@ fn build_script_override() {
 
     p.cargo("build -v -Zcheck-cfg=output")
         .with_stderr_contains(x!("rustc" => "names" of "foo"))
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
         .run();
 }
 
-#[cargo_test]
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
 fn build_script_test() {
-    if !is_nightly() {
-        // rustc-check-cfg: is only availaible on nightly
-        return;
-    }
-
     let p = project()
         .file(
             "Cargo.toml",
@@ -626,6 +522,67 @@ fn build_script_test() {
         .with_stdout_contains("test test_foo ... ok")
         .with_stdout_contains("test test_bar ... ok")
         .with_stdout_contains_n("test [..] ... ok", 3)
-        .masquerade_as_nightly_cargo()
+        .masquerade_as_nightly_cargo(&["check-cfg"])
+        .run();
+}
+
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
+fn config_valid() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+
+                [features]
+                f_a = []
+                f_b = []
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file(
+            ".cargo/config.toml",
+            r#"
+                [unstable]
+                check-cfg = ["features", "names", "values"]
+            "#,
+        )
+        .build();
+
+    p.cargo("build -v -Zcheck-cfg=features,names,values")
+        .masquerade_as_nightly_cargo(&["check-cfg"])
+        .with_stderr_contains(x!("rustc" => "names"))
+        .with_stderr_contains(x!("rustc" => "values"))
+        .with_stderr_contains(x!("rustc" => "values" of "feature" with "f_a" "f_b"))
+        .run();
+}
+
+#[cargo_test(nightly, reason = "--check-cfg is unstable")]
+fn config_invalid() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [project]
+                name = "foo"
+                version = "0.1.0"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file(
+            ".cargo/config.toml",
+            r#"
+                [unstable]
+                check-cfg = ["va"]
+            "#,
+        )
+        .build();
+
+    p.cargo("build")
+        .masquerade_as_nightly_cargo(&["check-cfg"])
+        .with_stderr_contains("error: unstable check-cfg only takes `features`, `names`, `values` or `output` as valid inputs")
+        .with_status(101)
         .run();
 }

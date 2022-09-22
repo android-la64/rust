@@ -1,6 +1,7 @@
 # cargo-check(1)
 
 
+
 ## NAME
 
 cargo-check - Check the current package
@@ -177,7 +178,7 @@ be specified multiple times, which enables all specified features.</dd>
 <dt class="option-term" id="option-cargo-check---target"><a class="option-anchor" href="#option-cargo-check---target"></a><code>--target</code> <em>triple</em></dt>
 <dd class="option-desc">Check for the given architecture. The default is the host architecture. The general format of the triple is
 <code>&lt;arch&gt;&lt;sub&gt;-&lt;vendor&gt;-&lt;sys&gt;-&lt;abi&gt;</code>. Run <code>rustc --print target-list</code> for a
-list of supported targets.</p>
+list of supported targets. This flag may be specified multiple times.</p>
 <p>This may also be specified with the <code>build.target</code>
 <a href="../reference/config.html">config value</a>.</p>
 <p>Note that specifying this flag makes Cargo run in a different mode where the
@@ -368,7 +369,9 @@ for more information about how toolchain overrides work.</dd>
 <dt class="option-term" id="option-cargo-check---jobs"><a class="option-anchor" href="#option-cargo-check---jobs"></a><code>--jobs</code> <em>N</em></dt>
 <dd class="option-desc">Number of parallel jobs to run. May also be specified with the
 <code>build.jobs</code> <a href="../reference/config.html">config value</a>. Defaults to
-the number of CPUs.</dd>
+the number of logical CPUs. If negative, it sets the maximum number of
+parallel jobs to the number of logical CPUs plus provided value.
+Should not be 0.</dd>
 
 
 <dt class="option-term" id="option-cargo-check---keep-going"><a class="option-anchor" href="#option-cargo-check---keep-going"></a><code>--keep-going</code></dt>

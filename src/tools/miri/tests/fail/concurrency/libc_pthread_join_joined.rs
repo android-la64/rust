@@ -1,10 +1,8 @@
-// ignore-windows: No libc on Windows
+//@ignore-target-windows: No libc on Windows
 
 // Joining an already joined thread is undefined behavior.
 
 #![feature(rustc_private)]
-
-extern crate libc;
 
 use std::{mem, ptr};
 

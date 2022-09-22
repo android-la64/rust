@@ -1,7 +1,10 @@
 //! Main evaluator loop and setting up the initial stack frame.
 
+use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::iter;
+use std::panic::{self, AssertUnwindSafe};
+use std::thread;
 
 use log::info;
 
@@ -14,8 +17,6 @@ use rustc_middle::ty::{
 use rustc_target::spec::abi::Abi;
 
 use rustc_session::config::EntryFnType;
-
-use std::collections::HashSet;
 
 use crate::*;
 
@@ -77,10 +78,6 @@ pub struct MiriConfig {
     pub stacked_borrows: bool,
     /// Controls alignment checking.
     pub check_alignment: AlignmentCheck,
-    /// Controls integer and float validity initialization checking.
-    pub allow_uninit_numbers: bool,
-    /// Controls how we treat ptr2int and int2ptr transmutes.
-    pub allow_ptr_int_transmute: bool,
     /// Controls function [ABI](Abi) checking.
     pub check_abi: bool,
     /// Action for an op requiring communication with the host.
@@ -96,17 +93,17 @@ pub struct MiriConfig {
     /// The seed to use when non-determinism or randomness are required (e.g. ptr-to-int cast, `getrandom()`).
     pub seed: Option<u64>,
     /// The stacked borrows pointer ids to report about
-    pub tracked_pointer_tags: HashSet<PtrId>,
+    pub tracked_pointer_tags: HashSet<SbTag>,
     /// The stacked borrows call IDs to report about
     pub tracked_call_ids: HashSet<CallId>,
     /// The allocation ids to report about.
     pub tracked_alloc_ids: HashSet<AllocId>,
-    /// Whether to track raw pointers in stacked borrows.
-    pub tag_raw: bool,
     /// Determine if data race detection should be enabled
     pub data_race_detector: bool,
     /// Determine if weak memory emulation should be enabled. Requires data race detection to be enabled
     pub weak_memory_emulation: bool,
+    /// Track when an outdated (weak memory) load happens.
+    pub track_outdated_loads: bool,
     /// Rate of spurious failures for compare_exchange_weak atomic operations,
     /// between 0.0 and 1.0, defaulting to 0.8 (80% chance of failure).
     pub cmpxchg_weak_failure_rate: f64,
@@ -124,6 +121,10 @@ pub struct MiriConfig {
     pub mute_stdout_stderr: bool,
     /// The probability of the active thread being preempted at the end of each basic block.
     pub preemption_rate: f64,
+    /// Report the current instruction being executed every N basic blocks.
+    pub report_progress: Option<u32>,
+    /// Whether Stacked Borrows retagging should recurse into fields of datatypes.
+    pub retag_fields: bool,
 }
 
 impl Default for MiriConfig {
@@ -132,8 +133,6 @@ impl Default for MiriConfig {
             validate: true,
             stacked_borrows: true,
             check_alignment: AlignmentCheck::Int,
-            allow_uninit_numbers: false,
-            allow_ptr_int_transmute: false,
             check_abi: true,
             isolated_op: IsolatedOp::Reject(RejectOpWith::Abort),
             ignore_leaks: false,
@@ -144,16 +143,18 @@ impl Default for MiriConfig {
             tracked_pointer_tags: HashSet::default(),
             tracked_call_ids: HashSet::default(),
             tracked_alloc_ids: HashSet::default(),
-            tag_raw: false,
             data_race_detector: true,
             weak_memory_emulation: true,
+            track_outdated_loads: false,
             cmpxchg_weak_failure_rate: 0.8, // 80%
             measureme_out: None,
             panic_on_unsupported: false,
             backtrace_style: BacktraceStyle::Short,
-            provenance_mode: ProvenanceMode::Legacy,
+            provenance_mode: ProvenanceMode::Default,
             mute_stdout_stderr: false,
             preemption_rate: 0.01, // 1%
+            report_progress: None,
+            retag_fields: false,
         }
     }
 }
@@ -167,7 +168,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
     entry_id: DefId,
     entry_type: EntryFnType,
     config: &MiriConfig,
-) -> InterpResult<'tcx, (InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>, MPlaceTy<'tcx, Tag>)> {
+) -> InterpResult<'tcx, (InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>, MPlaceTy<'tcx, Provenance>)> {
     let param_env = ty::ParamEnv::reveal_all();
     let layout_cx = LayoutCx { tcx, param_env };
     let mut ecx = InterpCx::new(
@@ -204,7 +205,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
     // Third argument (`argv`): created from `config.args`.
     let argv = {
         // Put each argument in memory, collect pointers.
-        let mut argvs = Vec::<Immediate<Tag>>::new();
+        let mut argvs = Vec::<Immediate<Provenance>>::new();
         for arg in config.args.iter() {
             // Make space for `0` terminator.
             let size = u64::try_from(arg.len()).unwrap().checked_add(1).unwrap();
@@ -212,7 +213,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
             let arg_place =
                 ecx.allocate(ecx.layout_of(arg_type)?, MiriMemoryKind::Machine.into())?;
             ecx.write_os_str_to_c_str(OsStr::new(arg), arg_place.ptr, size)?;
-            ecx.mark_immutable(&*arg_place);
+            ecx.mark_immutable(&arg_place);
             argvs.push(arg_place.to_ref(&ecx));
         }
         // Make an array with all these pointers, in the Miri memory.
@@ -224,7 +225,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
             let place = ecx.mplace_field(&argvs_place, idx)?;
             ecx.write_immediate(arg, &place.into())?;
         }
-        ecx.mark_immutable(&*argvs_place);
+        ecx.mark_immutable(&argvs_place);
         // A pointer to that place is the 3rd argument for main.
         let argv = argvs_place.to_ref(&ecx);
         // Store `argc` and `argv` for macOS `_NSGetArg{c,v}`.
@@ -232,7 +233,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
             let argc_place =
                 ecx.allocate(ecx.machine.layouts.isize, MiriMemoryKind::Machine.into())?;
             ecx.write_scalar(argc, &argc_place.into())?;
-            ecx.mark_immutable(&*argc_place);
+            ecx.mark_immutable(&argc_place);
             ecx.machine.argc = Some(*argc_place);
 
             let argv_place = ecx.allocate(
@@ -240,7 +241,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
                 MiriMemoryKind::Machine.into(),
             )?;
             ecx.write_immediate(argv, &argv_place.into())?;
-            ecx.mark_immutable(&*argv_place);
+            ecx.mark_immutable(&argv_place);
             ecx.machine.argv = Some(*argv_place);
         }
         // Store command line as UTF-16 for Windows `GetCommandLineW`.
@@ -257,7 +258,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
                 let place = ecx.mplace_field(&cmd_place, idx)?;
                 ecx.write_scalar(Scalar::from_u16(c), &place.into())?;
             }
-            ecx.mark_immutable(&*cmd_place);
+            ecx.mark_immutable(&cmd_place);
         }
         argv
     };
@@ -286,7 +287,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
                 start_instance,
                 Abi::Rust,
                 &[Scalar::from_pointer(main_ptr, &ecx).into(), argc.into(), argv],
-                &ret_place.into(),
+                Some(&ret_place.into()),
                 StackPopCleanup::Root { cleanup: true },
             )?;
         }
@@ -295,7 +296,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
                 entry_instance,
                 Abi::Rust,
                 &[argc.into(), argv],
-                &ret_place.into(),
+                Some(&ret_place.into()),
                 StackPopCleanup::Root { cleanup: true },
             )?;
         }
@@ -329,7 +330,7 @@ pub fn eval_entry<'tcx>(
     };
 
     // Perform the main execution.
-    let res: InterpResult<'_, i64> = (|| {
+    let res: thread::Result<InterpResult<'_, i64>> = panic::catch_unwind(AssertUnwindSafe(|| {
         // Main loop.
         loop {
             let info = ecx.preprocess_diagnostics();
@@ -359,15 +360,18 @@ pub fn eval_entry<'tcx>(
         }
         let return_code = ecx.read_scalar(&ret_place.into())?.to_machine_isize(&ecx)?;
         Ok(return_code)
-    })();
+    }));
+    let res = res.unwrap_or_else(|panic_payload| {
+        ecx.handle_ice();
+        panic::resume_unwind(panic_payload)
+    });
 
-    // Machine cleanup.
-    // Execution of the program has halted so any memory access we do here
-    // cannot produce a real data race. If we do not do something to disable
-    // data race detection here, some uncommon combination of errors will
-    // cause a data race to be detected:
-    // https://github.com/rust-lang/miri/issues/2020
-    ecx.allow_data_races_mut(|ecx| EnvVars::cleanup(ecx).unwrap());
+    // Machine cleanup. Only do this if all threads have terminated; threads that are still running
+    // might cause data races (https://github.com/rust-lang/miri/issues/2020) or Stacked Borrows
+    // errors (https://github.com/rust-lang/miri/issues/2396) if we deallocate here.
+    if ecx.have_all_terminated() {
+        EnvVars::cleanup(&mut ecx).unwrap();
+    }
 
     // Process the result.
     match res {

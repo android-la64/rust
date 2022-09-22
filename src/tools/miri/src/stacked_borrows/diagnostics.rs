@@ -4,11 +4,9 @@ use rustc_middle::mir::interpret::{AllocId, AllocRange};
 use rustc_span::{Span, SpanData};
 use rustc_target::abi::Size;
 
-use crate::helpers::{CurrentSpan, HexRange};
-use crate::stacked_borrows::{err_sb_ub, AccessKind, Permission};
-use crate::Item;
-use crate::SbTag;
-use crate::Stack;
+use crate::helpers::CurrentSpan;
+use crate::stacked_borrows::{err_sb_ub, AccessKind};
+use crate::*;
 
 use rustc_middle::mir::interpret::InterpError;
 
@@ -31,7 +29,6 @@ struct Protection {
 
 #[derive(Clone, Debug)]
 struct Event {
-    time: usize,
     parent: Option<SbTag>,
     tag: SbTag,
     range: AllocRange,
@@ -43,12 +40,6 @@ pub enum TagHistory {
         tag: SbTag,
         created: (AllocRange, SpanData),
         invalidated: Option<(AllocRange, SpanData)>,
-        protected: Option<(SbTag, SpanData, SpanData)>,
-    },
-    Untagged {
-        recently_created: Option<(AllocRange, SpanData)>,
-        recently_invalidated: Option<(AllocRange, SpanData)>,
-        matching_created: Option<(AllocRange, SpanData)>,
         protected: Option<(SbTag, SpanData, SpanData)>,
     },
 }
@@ -71,7 +62,7 @@ impl AllocHistory {
         current_span: &mut CurrentSpan<'_, '_, '_>,
     ) {
         let span = current_span.get();
-        self.creations.push(Event { parent, tag, range, span, time: self.current_time });
+        self.creations.push(Event { parent, tag, range, span });
         self.current_time += 1;
     }
 
@@ -82,7 +73,7 @@ impl AllocHistory {
         current_span: &mut CurrentSpan<'_, '_, '_>,
     ) {
         let span = current_span.get();
-        self.invalidations.push(Event { parent: None, tag, range, span, time: self.current_time });
+        self.invalidations.push(Event { parent: None, tag, range, span });
         self.current_time += 1;
     }
 
@@ -100,8 +91,6 @@ impl AllocHistory {
     pub fn get_logs_relevant_to(
         &self,
         tag: SbTag,
-        alloc_range: AllocRange,
-        offset: Size,
         protector_tag: Option<SbTag>,
     ) -> Option<TagHistory> {
         let protected = protector_tag
@@ -124,80 +113,23 @@ impl AllocHistory {
                 })
             });
 
-        if let SbTag::Tagged(_) = tag {
-            let get_matching = |events: &[Event]| {
-                events.iter().rev().find_map(|event| {
-                    if event.tag == tag { Some((event.range, event.span.data())) } else { None }
-                })
-            };
-            Some(TagHistory::Tagged {
-                tag,
-                created: get_matching(&self.creations)?,
-                invalidated: get_matching(&self.invalidations),
-                protected,
+        let get_matching = |events: &[Event]| {
+            events.iter().rev().find_map(|event| {
+                if event.tag == tag { Some((event.range, event.span.data())) } else { None }
             })
-        } else {
-            let mut created_time = 0;
-            // Find the most recently created tag that satsfies this offset
-            let recently_created = self.creations.iter().rev().find_map(|event| {
-                if event.tag == tag && offset >= event.range.start && offset < event.range.end() {
-                    created_time = event.time;
-                    Some((event.range, event.span.data()))
-                } else {
-                    None
-                }
-            });
-
-            // Find a different recently created tag that satisfies this whole operation, predates
-            // the recently created tag, and has a different span.
-            // We're trying to make a guess at which span the user wanted to provide the tag that
-            // they're using.
-            let matching_created = recently_created.and_then(|(_created_range, created_span)| {
-                self.creations.iter().rev().find_map(|event| {
-                    if event.tag == tag
-                        && alloc_range.start >= event.range.start
-                        && alloc_range.end() <= event.range.end()
-                        && event.span.data() != created_span
-                        && event.time != created_time
-                    {
-                        Some((event.range, event.span.data()))
-                    } else {
-                        None
-                    }
-                })
-            });
-
-            // Find the most recent invalidation of this tag which post-dates the creation
-            let recently_invalidated = recently_created.and_then(|_| {
-                self.invalidations
-                    .iter()
-                    .rev()
-                    .take_while(|event| event.time > created_time)
-                    .find_map(|event| {
-                        if event.tag == tag
-                            && offset >= event.range.start
-                            && offset < event.range.end()
-                        {
-                            Some((event.range, event.span.data()))
-                        } else {
-                            None
-                        }
-                    })
-            });
-
-            Some(TagHistory::Untagged {
-                recently_created,
-                matching_created,
-                recently_invalidated,
-                protected,
-            })
-        }
+        };
+        Some(TagHistory::Tagged {
+            tag,
+            created: get_matching(&self.creations)?,
+            invalidated: get_matching(&self.invalidations),
+            protected,
+        })
     }
 
     /// Report a descriptive error when `new` could not be granted from `derived_from`.
     pub fn grant_error<'tcx>(
         &self,
-        derived_from: SbTag,
+        derived_from: ProvenanceExtra,
         new: Item,
         alloc_id: AllocId,
         alloc_range: AllocRange,
@@ -205,16 +137,14 @@ impl AllocHistory {
         stack: &Stack,
     ) -> InterpError<'tcx> {
         let action = format!(
-            "trying to reborrow {:?} for {:?} permission at {}[{:#x}]",
-            derived_from,
-            new.perm,
-            alloc_id,
-            error_offset.bytes(),
+            "trying to reborrow from {derived_from:?} for {new_perm:?} permission at {alloc_id:?}[{offset:#x}]",
+            new_perm = new.perm(),
+            offset = error_offset.bytes(),
         );
         err_sb_ub(
             format!("{}{}", action, error_cause(stack, derived_from)),
             Some(operation_summary("a reborrow", alloc_id, alloc_range)),
-            self.get_logs_relevant_to(derived_from, alloc_range, error_offset, None),
+            derived_from.and_then(|derived_from| self.get_logs_relevant_to(derived_from, None)),
         )
     }
 
@@ -222,23 +152,20 @@ impl AllocHistory {
     pub fn access_error<'tcx>(
         &self,
         access: AccessKind,
-        tag: SbTag,
+        tag: ProvenanceExtra,
         alloc_id: AllocId,
         alloc_range: AllocRange,
         error_offset: Size,
         stack: &Stack,
     ) -> InterpError<'tcx> {
         let action = format!(
-            "attempting a {} using {:?} at {}[{:#x}]",
-            access,
-            tag,
-            alloc_id,
-            error_offset.bytes(),
+            "attempting a {access} using {tag:?} at {alloc_id:?}[{offset:#x}]",
+            offset = error_offset.bytes(),
         );
         err_sb_ub(
             format!("{}{}", action, error_cause(stack, tag)),
             Some(operation_summary("an access", alloc_id, alloc_range)),
-            self.get_logs_relevant_to(tag, alloc_range, error_offset, None),
+            tag.and_then(|tag| self.get_logs_relevant_to(tag, None)),
         )
     }
 }
@@ -248,13 +175,20 @@ fn operation_summary(
     alloc_id: AllocId,
     alloc_range: AllocRange,
 ) -> String {
-    format!("this error occurs as part of {} at {:?}{}", operation, alloc_id, HexRange(alloc_range))
+    format!("this error occurs as part of {operation} at {alloc_id:?}{alloc_range:?}")
 }
 
-fn error_cause(stack: &Stack, tag: SbTag) -> &'static str {
-    if stack.borrows.iter().any(|item| item.tag == tag && item.perm != Permission::Disabled) {
-        ", but that tag only grants SharedReadOnly permission for this location"
+fn error_cause(stack: &Stack, prov_extra: ProvenanceExtra) -> &'static str {
+    if let ProvenanceExtra::Concrete(tag) = prov_extra {
+        if (0..stack.len())
+            .map(|i| stack.get(i).unwrap())
+            .any(|item| item.tag() == tag && item.perm() != Permission::Disabled)
+        {
+            ", but that tag only grants SharedReadOnly permission for this location"
+        } else {
+            ", but that tag does not exist in the borrow stack for this location"
+        }
     } else {
-        ", but that tag does not exist in the borrow stack for this location"
+        ", but no exposed tags have suitable permission in the borrow stack for this location"
     }
 }

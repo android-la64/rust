@@ -6,9 +6,9 @@ use log::trace;
 
 use rustc_middle::ty;
 use rustc_span::{source_map::DUMMY_SP, Span, SpanData, Symbol};
+use rustc_target::abi::{Align, Size};
 
-use crate::helpers::HexRange;
-use crate::stacked_borrows::{diagnostics::TagHistory, AccessKind, SbTag};
+use crate::stacked_borrows::{diagnostics::TagHistory, AccessKind};
 use crate::*;
 
 /// Details of premature program termination.
@@ -21,6 +21,7 @@ pub enum TerminationInfo {
         help: Option<String>,
         history: Option<TagHistory>,
     },
+    Int2PtrWithStrictProvenance,
     Deadlock,
     MultipleSymbolDefinitions {
         link_name: Symbol,
@@ -39,19 +40,20 @@ impl fmt::Display for TerminationInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use TerminationInfo::*;
         match self {
-            Exit(code) => write!(f, "the evaluated program completed with exit code {}", code),
-            Abort(msg) => write!(f, "{}", msg),
-            UnsupportedInIsolation(msg) => write!(f, "{}", msg),
-            StackedBorrowsUb { msg, .. } => write!(f, "{}", msg),
-            Deadlock => write!(f, "the evaluated program deadlocked"),
-            MultipleSymbolDefinitions { link_name, .. } =>
-                write!(f, "multiple definitions of symbol `{}`", link_name),
-            SymbolShimClashing { link_name, .. } =>
+            Exit(code) => write!(f, "the evaluated program completed with exit code {code}"),
+            Abort(msg) => write!(f, "{msg}"),
+            UnsupportedInIsolation(msg) => write!(f, "{msg}"),
+            Int2PtrWithStrictProvenance =>
                 write!(
                     f,
-                    "found `{}` symbol definition that clashes with a built-in shim",
-                    link_name
+                    "integer-to-pointer casts and `ptr::from_exposed_addr` are not supported with `-Zmiri-strict-provenance`"
                 ),
+            StackedBorrowsUb { msg, .. } => write!(f, "{msg}"),
+            Deadlock => write!(f, "the evaluated program deadlocked"),
+            MultipleSymbolDefinitions { link_name, .. } =>
+                write!(f, "multiple definitions of symbol `{link_name}`"),
+            SymbolShimClashing { link_name, .. } =>
+                write!(f, "found `{link_name}` symbol definition that clashes with a built-in shim",),
         }
     }
 }
@@ -60,14 +62,19 @@ impl MachineStopType for TerminationInfo {}
 
 /// Miri specific diagnostics
 pub enum NonHaltingDiagnostic {
-    CreatedPointerTag(NonZeroU64),
-    /// This `Item` was popped from the borrow stack, either due to a grant of
-    /// `AccessKind` to `SbTag` or a deallocation when the second argument is `None`.
-    PoppedPointerTag(Item, Option<(SbTag, AccessKind)>),
+    CreatedPointerTag(NonZeroU64, Option<(AllocId, AllocRange)>),
+    /// This `Item` was popped from the borrow stack, either due to an access with the given tag or
+    /// a deallocation when the second argument is `None`.
+    PoppedPointerTag(Item, Option<(ProvenanceExtra, AccessKind)>),
     CreatedCallId(CallId),
-    CreatedAlloc(AllocId),
+    CreatedAlloc(AllocId, Size, Align, MemoryKind<MiriMemoryKind>),
     FreedAlloc(AllocId),
     RejectedIsolatedOp(String),
+    ProgressReport,
+    Int2Ptr {
+        details: bool,
+    },
+    WeakMemoryOutdatedLoad,
 }
 
 /// Level of Miri specific diagnostics
@@ -86,6 +93,9 @@ fn prune_stacktrace<'mir, 'tcx>(
 ) -> (Vec<FrameInfo<'tcx>>, bool) {
     match ecx.machine.backtrace_style {
         BacktraceStyle::Off => {
+            // Remove all frames marked with `caller_location` -- that attribute indicates we
+            // usually want to point at the caller, not them.
+            stacktrace.retain(|frame| !frame.instance.def.requires_caller_location(*ecx.tcx));
             // Retain one frame so that we can print a span for the error itself
             stacktrace.truncate(1);
             (stacktrace, false)
@@ -97,6 +107,10 @@ fn prune_stacktrace<'mir, 'tcx>(
             // bug in the Rust runtime, we don't prune away every frame.
             let has_local_frame = stacktrace.iter().any(|frame| ecx.machine.is_local(frame));
             if has_local_frame {
+                // Remove all frames marked with `caller_location` -- that attribute indicates we
+                // usually want to point at the caller, not them.
+                stacktrace.retain(|frame| !frame.instance.def.requires_caller_location(*ecx.tcx));
+
                 // This is part of the logic that `std` uses to select the relevant part of a
                 // backtrace. But here, we only look for __rust_begin_short_backtrace, not
                 // __rust_end_short_backtrace because the end symbol comes from a call to the default
@@ -144,7 +158,8 @@ pub fn report_error<'tcx, 'mir>(
             let title = match info {
                 Exit(code) => return Some(*code),
                 Abort(_) => Some("abnormal termination"),
-                UnsupportedInIsolation(_) => Some("unsupported operation"),
+                UnsupportedInIsolation(_) | Int2PtrWithStrictProvenance =>
+                    Some("unsupported operation"),
                 StackedBorrowsUb { .. } => Some("Undefined Behavior"),
                 Deadlock => Some("deadlock"),
                 MultipleSymbolDefinitions { .. } | SymbolShimClashing { .. } => None,
@@ -165,33 +180,15 @@ pub fn report_error<'tcx, 'mir>(
                     ];
                     match history {
                         Some(TagHistory::Tagged {tag, created: (created_range, created_span), invalidated, protected }) => {
-                            let msg = format!("{:?} was created by a retag at offsets {}", tag, HexRange(*created_range));
+                            let msg = format!("{tag:?} was created by a retag at offsets {created_range:?}");
                             helps.push((Some(*created_span), msg));
                             if let Some((invalidated_range, invalidated_span)) = invalidated {
-                                let msg = format!("{:?} was later invalidated at offsets {}", tag, HexRange(*invalidated_range));
+                                let msg = format!("{tag:?} was later invalidated at offsets {invalidated_range:?}");
                                 helps.push((Some(*invalidated_span), msg));
                             }
                             if let Some((protecting_tag, protecting_tag_span, protection_span)) = protected {
-                                helps.push((Some(*protecting_tag_span), format!("{:?} was protected due to {:?} which was created here", tag, protecting_tag)));
-                                helps.push((Some(*protection_span), "this protector is live for this call".to_string()));
-                            }
-                        }
-                        Some(TagHistory::Untagged{ recently_created, recently_invalidated, matching_created, protected }) => {
-                            if let Some((range, span)) = recently_created {
-                                let msg = format!("tag was most recently created at offsets {}", HexRange(*range));
-                                helps.push((Some(*span), msg));
-                            }
-                            if let Some((range, span)) = recently_invalidated {
-                                let msg = format!("tag was later invalidated at offsets {}", HexRange(*range));
-                                helps.push((Some(*span), msg));
-                            }
-                            if let Some((range, span)) = matching_created {
-                                let msg = format!("this tag was also created here at offsets {}", HexRange(*range));
-                                helps.push((Some(*span), msg));
-                            }
-                            if let Some((protecting_tag, protecting_tag_span, protection_span)) = protected {
-                                helps.push((Some(*protecting_tag_span), format!("{:?} was protected due to a tag which was created here", protecting_tag)));
-                                helps.push((Some(*protection_span), "this protector is live for this call".to_string()));
+                                helps.push((Some(*protecting_tag_span), format!("{tag:?} was protected due to {protecting_tag:?} which was created here")));
+                                helps.push((Some(*protection_span), format!("this protector is live for this call")));
                             }
                         }
                         None => {}
@@ -200,11 +197,13 @@ pub fn report_error<'tcx, 'mir>(
                 }
                 MultipleSymbolDefinitions { first, first_crate, second, second_crate, .. } =>
                     vec![
-                        (Some(*first), format!("it's first defined here, in crate `{}`", first_crate)),
-                        (Some(*second), format!("then it's defined here again, in crate `{}`", second_crate)),
+                        (Some(*first), format!("it's first defined here, in crate `{first_crate}`")),
+                        (Some(*second), format!("then it's defined here again, in crate `{second_crate}`")),
                     ],
                 SymbolShimClashing { link_name, span } =>
-                    vec![(Some(*span), format!("the `{}` symbol is defined here", link_name))],
+                    vec![(Some(*span), format!("the `{link_name}` symbol is defined here"))],
+                Int2PtrWithStrictProvenance =>
+                    vec![(None, format!("use Strict Provenance APIs (https://doc.rust-lang.org/nightly/std/ptr/index.html#strict-provenance, https://crates.io/crates/sptr) instead"))],
                 _ => vec![],
             };
             (title, helps)
@@ -225,7 +224,7 @@ pub fn report_error<'tcx, 'mir>(
                 ) =>
                     "post-monomorphization error",
                 kind =>
-                    bug!("This error should be impossible in Miri: {:?}", kind),
+                    bug!("This error should be impossible in Miri: {kind:?}"),
             };
             #[rustfmt::skip]
             let helps = match e.kind() {
@@ -233,7 +232,7 @@ pub fn report_error<'tcx, 'mir>(
                     UnsupportedOpInfo::ThreadLocalStatic(_) |
                     UnsupportedOpInfo::ReadExternStatic(_)
                 ) =>
-                    panic!("Error should never be raised by Miri: {:?}", e.kind()),
+                    panic!("Error should never be raised by Miri: {kind:?}", kind = e.kind()),
                 Unsupported(
                     UnsupportedOpInfo::Unsupported(_) |
                     UnsupportedOpInfo::PartialPointerOverwrite(_) |
@@ -293,9 +292,8 @@ pub fn report_error<'tcx, 'mir>(
     match e.kind() {
         UndefinedBehavior(UndefinedBehaviorInfo::InvalidUninitBytes(Some((alloc_id, access)))) => {
             eprintln!(
-                "Uninitialized read occurred at offsets 0x{:x}..0x{:x} into this allocation:",
-                access.uninit_offset.bytes(),
-                access.uninit_offset.bytes() + access.uninit_size.bytes(),
+                "Uninitialized memory occurred at {alloc_id:?}{range:?}, in this allocation:",
+                range = access.uninit,
             );
             eprintln!("{:?}", ecx.dump_alloc(*alloc_id));
         }
@@ -315,7 +313,7 @@ fn report_msg<'mir, 'tcx>(
     diag_level: DiagLevel,
     title: &str,
     span_msg: Vec<String>,
-    mut helps: Vec<(Option<SpanData>, String)>,
+    helps: Vec<(Option<SpanData>, String)>,
     stacktrace: &[FrameInfo<'tcx>],
 ) {
     let span = stacktrace.first().map_or(DUMMY_SP, |fi| fi.span);
@@ -341,8 +339,6 @@ fn report_msg<'mir, 'tcx>(
 
     // Show help messages.
     if !helps.is_empty() {
-        // Add visual separator before backtrace.
-        helps.last_mut().unwrap().1.push('\n');
         for (span_data, help) in helps {
             if let Some(span_data) = span_data {
                 err.span_help(span_data.span(), &help);
@@ -350,6 +346,8 @@ fn report_msg<'mir, 'tcx>(
                 err.help(&help);
             }
         }
+        // Add visual separator before backtrace.
+        err.note("backtrace:");
     }
     // Add backtrace
     for (idx, frame_info) in stacktrace.iter().enumerate() {
@@ -445,36 +443,89 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             for e in diagnostics.drain(..) {
                 use NonHaltingDiagnostic::*;
                 let msg = match e {
-                    CreatedPointerTag(tag) => format!("created tag {:?}", tag),
+                    CreatedPointerTag(tag, None) =>
+                        format!("created tag {tag:?}"),
+                    CreatedPointerTag(tag, Some((alloc_id, range))) =>
+                        format!("created tag {tag:?} at {alloc_id:?}{range:?}"),
                     PoppedPointerTag(item, tag) =>
                         match tag {
                             None =>
                                 format!(
-                                    "popped tracked tag for item {:?} due to deallocation",
-                                    item
+                                    "popped tracked tag for item {item:?} due to deallocation",
                                 ),
                             Some((tag, access)) => {
                                 format!(
-                                    "popped tracked tag for item {:?} due to {:?} access for {:?}",
-                                    item, access, tag
+                                    "popped tracked tag for item {item:?} due to {access:?} access for {tag:?}",
                                 )
                             }
                         },
-                    CreatedCallId(id) => format!("function call with id {id}"),
-                    CreatedAlloc(AllocId(id)) => format!("created allocation with id {id}"),
-                    FreedAlloc(AllocId(id)) => format!("freed allocation with id {id}"),
+                    CreatedCallId(id) =>
+                        format!("function call with id {id}"),
+                    CreatedAlloc(AllocId(id), size, align, kind) =>
+                        format!(
+                            "created {kind} allocation of {size} bytes (alignment {align} bytes) with id {id}",
+                            size = size.bytes(),
+                            align = align.bytes(),
+                        ),
+                    FreedAlloc(AllocId(id)) =>
+                        format!("freed allocation with id {id}"),
                     RejectedIsolatedOp(ref op) =>
                         format!("{op} was made to return an error due to isolation"),
+                    ProgressReport =>
+                        format!("progress report: current operation being executed is here"),
+                    Int2Ptr { .. } =>
+                        format!("integer-to-pointer cast"),
+                    WeakMemoryOutdatedLoad =>
+                        format!("weak memory emulation: outdated value returned from load"),
                 };
 
                 let (title, diag_level) = match e {
                     RejectedIsolatedOp(_) =>
                         ("operation rejected by isolation", DiagLevel::Warning),
-                    _ => ("tracking was triggered", DiagLevel::Note),
+                    Int2Ptr { .. } => ("integer-to-pointer cast", DiagLevel::Warning),
+                    CreatedPointerTag(..)
+                    | PoppedPointerTag(..)
+                    | CreatedCallId(..)
+                    | CreatedAlloc(..)
+                    | FreedAlloc(..)
+                    | ProgressReport
+                    | WeakMemoryOutdatedLoad =>
+                        ("tracking was triggered", DiagLevel::Note),
                 };
 
-                report_msg(this, diag_level, title, vec![msg], vec![], &stacktrace);
+                let helps = match e {
+                    Int2Ptr { details: true } =>
+                        vec![
+                            (None, format!("This program is using integer-to-pointer casts or (equivalently) `ptr::from_exposed_addr`,")),
+                            (None, format!("which means that Miri might miss pointer bugs in this program.")),
+                            (None, format!("See https://doc.rust-lang.org/nightly/std/ptr/fn.from_exposed_addr.html for more details on that operation.")),
+                            (None, format!("To ensure that Miri does not miss bugs in your program, use Strict Provenance APIs (https://doc.rust-lang.org/nightly/std/ptr/index.html#strict-provenance, https://crates.io/crates/sptr) instead.")),
+                            (None, format!("You can then pass the `-Zmiri-strict-provenance` flag to Miri, to ensure you are not relying on `from_exposed_addr` semantics.")),
+                            (None, format!("Alternatively, the `-Zmiri-permissive-provenance` flag disables this warning.")),
+                        ],
+                    _ => vec![],
+                };
+
+                report_msg(this, diag_level, title, vec![msg], helps, &stacktrace);
             }
         });
+    }
+
+    /// We had a panic in Miri itself, try to print something useful.
+    fn handle_ice(&self) {
+        eprintln!();
+        eprintln!(
+            "Miri caused an ICE during evaluation. Here's the interpreter backtrace at the time of the panic:"
+        );
+        let this = self.eval_context_ref();
+        let stacktrace = this.generate_stacktrace();
+        report_msg(
+            this,
+            DiagLevel::Note,
+            "the place in the program where the ICE was triggered",
+            vec![],
+            vec![],
+            &stacktrace,
+        );
     }
 }

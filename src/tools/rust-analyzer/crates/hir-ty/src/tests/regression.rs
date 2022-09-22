@@ -573,6 +573,7 @@ fn issue_6811() {
         }
         "#,
         expect![[r#"
+            !0..16 'let_a=...t_b=1;': ()
             !3..5 '_a': i32
             !6..7 '1': i32
             !11..13 '_b': i32
@@ -984,7 +985,7 @@ fn test() {
 
 #[test]
 fn cfg_tail() {
-    // https://github.com/rust-analyzer/rust-analyzer/issues/8378
+    // https://github.com/rust-lang/rust-analyzer/issues/8378
     check_infer(
         r#"
         fn fake_tail(){

@@ -7,6 +7,7 @@ use cargo::ops::cargo_add::add;
 use cargo::ops::cargo_add::AddOptions;
 use cargo::ops::cargo_add::DepOp;
 use cargo::ops::cargo_add::DepTable;
+use cargo::ops::resolve_ws;
 use cargo::util::command_prelude::*;
 use cargo::util::interning::InternedString;
 use cargo::CargoResult;
@@ -81,9 +82,6 @@ Example uses:
                 .takes_value(true)
                 .value_name("SPEC")
                 .help("Package to modify"),
-            clap::Arg::new("offline")
-                .long("offline")
-                .help("Run without accessing the network")
         ])
         .arg_quiet()
         .arg_dry_run("Don't actually write the manifest")
@@ -195,6 +193,12 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
         dry_run,
     };
     add(&ws, &options)?;
+
+    if !dry_run {
+        // Reload the workspace since we've changed dependencies
+        let ws = args.workspace(config)?;
+        resolve_ws(&ws)?;
+    }
 
     Ok(())
 }

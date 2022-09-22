@@ -107,18 +107,25 @@
 //!    the first line.
 //! 4. Remove the computed number of spaces from the beginning of each line.
 
-#![allow(clippy::needless_doctest_main)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::needless_doctest_main,
+    clippy::needless_pass_by_value,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::type_complexity
+)]
 
 mod error;
 mod expr;
+mod unindent;
 
 use crate::error::{Error, Result};
 use crate::expr::Expr;
+use crate::unindent::unindent;
 use proc_macro::token_stream::IntoIter as TokenIter;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::iter::{self, FromIterator};
 use std::str::FromStr;
-use unindent::unindent;
 
 #[derive(Copy, Clone, PartialEq)]
 enum Macro {
@@ -322,21 +329,32 @@ fn try_expand(input: TokenStream, mode: Macro) -> Result<TokenStream> {
 }
 
 fn lit_indoc(token: TokenTree, mode: Macro) -> Result<Literal> {
-    let repr = token.to_string();
-    let repr = repr.trim();
+    let span = token.span();
+    let mut single_token = Some(token);
+
+    while let Some(TokenTree::Group(group)) = single_token {
+        single_token = if group.delimiter() == Delimiter::None {
+            let mut token_iter = group.stream().into_iter();
+            token_iter.next().xor(token_iter.next())
+        } else {
+            None
+        };
+    }
+
+    let single_token =
+        single_token.ok_or_else(|| Error::new(span, "argument must be a single string literal"))?;
+
+    let repr = single_token.to_string();
     let is_string = repr.starts_with('"') || repr.starts_with('r');
     let is_byte_string = repr.starts_with("b\"") || repr.starts_with("br");
 
     if !is_string && !is_byte_string {
-        return Err(Error::new(
-            token.span(),
-            "argument must be a single string literal",
-        ));
+        return Err(Error::new(span, "argument must be a single string literal"));
     }
 
     if is_byte_string && mode != Macro::Indoc {
         return Err(Error::new(
-            token.span(),
+            span,
             "byte strings are not supported in formatting macros",
         ));
     }
@@ -357,7 +375,7 @@ fn lit_indoc(token: TokenTree, mode: Macro) -> Result<Literal> {
         .unwrap()
     {
         TokenTree::Literal(mut lit) => {
-            lit.set_span(token.span());
+            lit.set_span(span);
             Ok(lit)
         }
         _ => unreachable!(),

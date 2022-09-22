@@ -20,16 +20,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+        run: rustup update --no-self-update stable
 
       - name: Install cargo-workspaces
-        uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-workspaces
+        run: cargo install cargo-workspaces
 
       - name: Release
         env:
@@ -40,6 +34,21 @@ jobs:
           git config --global user.email "runner@gha.local"
           git config --global user.name "Github Action"
           rm Cargo.lock
+          # Fix names for crates that were published before switch to kebab-case.
+          cargo workspaces rename --from base-db base_db
+          cargo workspaces rename --from hir-def hir_def
+          cargo workspaces rename --from hir-expand hir_expand
+          cargo workspaces rename --from hir-ty hir_ty
+          cargo workspaces rename --from ide-assists ide_assists
+          cargo workspaces rename --from ide-completion ide_completion
+          cargo workspaces rename --from ide-db ide_db
+          cargo workspaces rename --from ide-diagnostics ide_diagnostics
+          cargo workspaces rename --from ide-ssr ide_ssr
+          cargo workspaces rename --from proc-macro-api proc_macro_api
+          cargo workspaces rename --from proc-macro-srv proc_macro_srv
+          cargo workspaces rename --from project-model project_model
+          cargo workspaces rename --from test-utils test_utils
+          cargo workspaces rename --from text-edit text_edit
           cargo workspaces rename ra_ap_%n
           find crates/rust-analyzer -type f -name '*.rs' -exec sed -i 's/rust_analyzer/ra_ap_rust_analyzer/g' {} +
           cargo workspaces publish --yes --force '*' --exact --no-git-commit --allow-dirty --skip-published custom 0.0.$PATCH

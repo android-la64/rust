@@ -1,12 +1,12 @@
-error: Undefined Behavior: Data race detected between Atomic Load on Thread(id = 2) and Write on Thread(id = 1) at ALLOC (current vector clock = VClock, conflicting timestamp = VClock)
+error: Undefined Behavior: Data race detected between Atomic Load on thread `<unnamed>` and Write on thread `<unnamed>` at ALLOC
   --> $DIR/atomic_read_na_write_race1.rs:LL:CC
    |
-LL |             atomic_load(c.0 as *mut usize)
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Data race detected between Atomic Load on Thread(id = 2) and Write on Thread(id = 1) at ALLOC (current vector clock = VClock, conflicting timestamp = VClock)
+LL |             (&*c.0).load(Ordering::SeqCst)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Data race detected between Atomic Load on thread `<unnamed>` and Write on thread `<unnamed>` at ALLOC
    |
    = help: this indicates a bug in the program: it performed an invalid operation, and caused Undefined Behavior
    = help: see https://doc.rust-lang.org/nightly/reference/behavior-considered-undefined.html for further information
-           
+   = note: backtrace:
    = note: inside closure at $DIR/atomic_read_na_write_race1.rs:LL:CC
 
 note: some details are omitted, run with `MIRIFLAGS=-Zmiri-backtrace=full` for a verbose backtrace

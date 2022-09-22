@@ -69,6 +69,7 @@ pub struct UnresolvedImport {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UnresolvedMacroCall {
     pub macro_call: InFile<SyntaxNodePtr>,
+    pub precise_location: Option<TextRange>,
     pub path: ModPath,
     pub is_bang: bool,
 }
@@ -89,12 +90,13 @@ pub struct UnresolvedProcMacro {
     pub macro_name: Option<String>,
     pub kind: MacroKind,
     /// The crate id of the proc-macro this macro belongs to, or `None` if the proc-macro can't be found.
-    pub krate: Option<CrateId>,
+    pub krate: CrateId,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct MacroError {
     pub node: InFile<SyntaxNodePtr>,
+    pub precise_location: Option<TextRange>,
     pub message: String,
 }
 
@@ -154,6 +156,7 @@ pub struct MismatchedArgCount {
 pub struct MissingMatchArms {
     pub file: HirFileId,
     pub match_expr: AstPtr<ast::Expr>,
+    pub uncovered_patterns: String,
 }
 
 #[derive(Debug)]

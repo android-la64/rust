@@ -19,7 +19,7 @@ use crate::{AssistContext, AssistId, AssistKind, Assists};
 //     let x: i32 = 92;
 // }
 // ```
-pub(crate) fn add_explicit_type(acc: &mut Assists, ctx: &AssistContext) -> Option<()> {
+pub(crate) fn add_explicit_type(acc: &mut Assists, ctx: &AssistContext<'_>) -> Option<()> {
     let (ascribed_ty, expr, pat) = if let Some(let_stmt) = ctx.find_node_at_offset::<LetStmt>() {
         let cursor_in_range = {
             let eq_range = let_stmt.eq_token()?.text_range();
@@ -187,7 +187,7 @@ fn f() {
         )
     }
 
-    /// https://github.com/rust-analyzer/rust-analyzer/issues/2922
+    /// https://github.com/rust-lang/rust-analyzer/issues/2922
     #[test]
     fn regression_issue_2922() {
         check_assist(

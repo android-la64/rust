@@ -5,27 +5,23 @@ mod lower;
 mod tests;
 pub mod scope;
 
-use std::{mem, ops::Index, sync::Arc};
+use std::{ops::Index, sync::Arc};
 
 use base_db::CrateId;
 use cfg::{CfgExpr, CfgOptions};
 use drop_bomb::DropBomb;
 use either::Either;
-use hir_expand::{
-    ast_id_map::AstIdMap, hygiene::Hygiene, AstId, ExpandError, ExpandResult, HirFileId, InFile,
-    MacroCallId,
-};
+use hir_expand::{hygiene::Hygiene, ExpandError, ExpandResult, HirFileId, InFile, MacroCallId};
 use la_arena::{Arena, ArenaMap};
 use limit::Limit;
 use profile::Count;
 use rustc_hash::FxHashMap;
-use smallvec::SmallVec;
-use syntax::{ast, AstNode, AstPtr, SyntaxNodePtr};
+use syntax::{ast, AstPtr, SyntaxNodePtr};
 
 use crate::{
     attr::{Attrs, RawAttrs},
     db::DefDatabase,
-    expr::{Expr, ExprId, Label, LabelId, Pat, PatId},
+    expr::{dummy_expr_id, Expr, ExprId, Label, LabelId, Pat, PatId},
     item_scope::BuiltinShadowMode,
     macro_id_to_def_id,
     nameres::DefMap,
@@ -51,7 +47,6 @@ pub struct Expander {
     cfg_expander: CfgExpander,
     def_map: Arc<DefMap>,
     current_file_id: HirFileId,
-    ast_id_map: Arc<AstIdMap>,
     module: LocalModuleId,
     recursion_limit: usize,
 }
@@ -81,12 +76,10 @@ impl Expander {
     pub fn new(db: &dyn DefDatabase, current_file_id: HirFileId, module: ModuleId) -> Expander {
         let cfg_expander = CfgExpander::new(db, current_file_id, module.krate);
         let def_map = module.def_map(db);
-        let ast_id_map = db.ast_id_map(current_file_id);
         Expander {
             cfg_expander,
             def_map,
             current_file_id,
-            ast_id_map,
             module: module.local_id,
             recursion_limit: 0,
         }
@@ -169,14 +162,10 @@ impl Expander {
         tracing::debug!("macro expansion {:#?}", node.syntax());
 
         self.recursion_limit += 1;
-        let mark = Mark {
-            file_id: self.current_file_id,
-            ast_id_map: mem::take(&mut self.ast_id_map),
-            bomb: DropBomb::new("expansion mark dropped"),
-        };
+        let mark =
+            Mark { file_id: self.current_file_id, bomb: DropBomb::new("expansion mark dropped") };
         self.cfg_expander.hygiene = Hygiene::new(db.upcast(), file_id);
         self.current_file_id = file_id;
-        self.ast_id_map = db.ast_id_map(file_id);
 
         ExpandResult { value: Some((mark, node)), err }
     }
@@ -184,7 +173,6 @@ impl Expander {
     pub fn exit(&mut self, db: &dyn DefDatabase, mut mark: Mark) {
         self.cfg_expander.hygiene = Hygiene::new(db.upcast(), mark.file_id);
         self.current_file_id = mark.file_id;
-        self.ast_id_map = mem::take(&mut mark.ast_id_map);
         self.recursion_limit -= 1;
         mark.bomb.defuse();
     }
@@ -214,11 +202,6 @@ impl Expander {
         self.def_map.resolve_path(db, self.module, path, BuiltinShadowMode::Other).0.take_macros()
     }
 
-    fn ast_id<N: AstNode>(&self, item: &N) -> AstId<N> {
-        let file_local_id = self.ast_id_map.ast_id(item);
-        AstId::new(self.current_file_id, file_local_id)
-    }
-
     fn recursion_limit(&self, db: &dyn DefDatabase) -> Limit {
         let limit = db.crate_limits(self.cfg_expander.krate).recursion_limit as _;
 
@@ -234,7 +217,6 @@ impl Expander {
 #[derive(Debug)]
 pub struct Mark {
     file_id: HirFileId,
-    ast_id_map: Arc<AstIdMap>,
     bomb: DropBomb,
 }
 
@@ -294,10 +276,6 @@ pub struct BodySourceMap {
     field_map: FxHashMap<InFile<AstPtr<ast::RecordExprField>>, ExprId>,
     field_map_back: FxHashMap<ExprId, InFile<AstPtr<ast::RecordExprField>>>,
 
-    /// Maps a macro call to its lowered expressions, a single one if it expands to an expression,
-    /// or multiple if it expands to MacroStmts.
-    macro_call_to_exprs: FxHashMap<InFile<AstPtr<ast::MacroCall>>, SmallVec<[ExprId; 1]>>,
-
     expansions: FxHashMap<InFile<AstPtr<ast::MacroCall>>, HirFileId>,
 
     /// Diagnostics accumulated during body lowering. These contain `AstPtr`s and so are stored in
@@ -312,7 +290,7 @@ pub struct SyntheticSyntax;
 pub enum BodyDiagnostic {
     InactiveCode { node: InFile<SyntaxNodePtr>, cfg: CfgExpr, opts: CfgOptions },
     MacroError { node: InFile<AstPtr<ast::MacroCall>>, message: String },
-    UnresolvedProcMacro { node: InFile<AstPtr<ast::MacroCall>> },
+    UnresolvedProcMacro { node: InFile<AstPtr<ast::MacroCall>>, krate: CrateId },
     UnresolvedMacroCall { node: InFile<AstPtr<ast::MacroCall>>, path: ModPath },
 }
 
@@ -394,6 +372,21 @@ impl Body {
     }
 }
 
+impl Default for Body {
+    fn default() -> Self {
+        Self {
+            body_expr: dummy_expr_id(),
+            exprs: Default::default(),
+            pats: Default::default(),
+            or_pats: Default::default(),
+            labels: Default::default(),
+            params: Default::default(),
+            block_scopes: Default::default(),
+            _c: Default::default(),
+        }
+    }
+}
+
 impl Index<ExprId> for Body {
     type Output = Expr;
 
@@ -466,9 +459,9 @@ impl BodySourceMap {
         self.field_map.get(&src).cloned()
     }
 
-    pub fn macro_expansion_expr(&self, node: InFile<&ast::MacroCall>) -> Option<&[ExprId]> {
-        let src = node.map(AstPtr::new);
-        self.macro_call_to_exprs.get(&src).map(|it| &**it)
+    pub fn macro_expansion_expr(&self, node: InFile<&ast::MacroExpr>) -> Option<ExprId> {
+        let src = node.map(AstPtr::new).map(AstPtr::upcast::<ast::MacroExpr>).map(AstPtr::upcast);
+        self.expr_map.get(&src).copied()
     }
 
     /// Get a reference to the body source map's diagnostics.

@@ -120,7 +120,7 @@ pub(crate) fn will_rename_file(
 }
 
 fn find_definitions(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     syntax: &SyntaxNode,
     position: FilePosition,
 ) -> RenameResult<impl Iterator<Item = (ast::NameLike, Definition)>> {
@@ -201,7 +201,10 @@ fn find_definitions(
     }
 }
 
-fn rename_to_self(sema: &Semantics<RootDatabase>, local: hir::Local) -> RenameResult<SourceChange> {
+fn rename_to_self(
+    sema: &Semantics<'_, RootDatabase>,
+    local: hir::Local,
+) -> RenameResult<SourceChange> {
     if never!(local.is_self(sema.db)) {
         bail!("rename_to_self invoked on self");
     }
@@ -269,7 +272,7 @@ fn rename_to_self(sema: &Semantics<RootDatabase>, local: hir::Local) -> RenameRe
 }
 
 fn rename_self_to_param(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     local: hir::Local,
     self_param: hir::SelfParam,
     new_name: &str,
@@ -376,6 +379,15 @@ mod tests {
         let (analysis, position) = fixture::position(ra_fixture);
         let source_change =
             analysis.rename(position, new_name).unwrap().expect("Expect returned a RenameError");
+        expect.assert_debug_eq(&source_change)
+    }
+
+    fn check_expect_will_rename_file(new_name: &str, ra_fixture: &str, expect: Expect) {
+        let (analysis, position) = fixture::position(ra_fixture);
+        let source_change = analysis
+            .will_rename_file(position.file_id, new_name)
+            .unwrap()
+            .expect("Expect returned a RenameError");
         expect.assert_debug_eq(&source_change)
     }
 
@@ -1242,6 +1254,26 @@ macro_rules! submodule {
 
 submodule!(bar);
 "#,
+        )
+    }
+
+    #[test]
+    fn test_rename_mod_for_crate_root() {
+        check_expect_will_rename_file(
+            "main",
+            r#"
+//- /lib.rs
+use crate::foo as bar;
+fn foo() {}
+mod bar$0;
+"#,
+            expect![[r#"
+                SourceChange {
+                    source_file_edits: {},
+                    file_system_edits: [],
+                    is_snippet: false,
+                }
+                "#]],
         )
     }
 

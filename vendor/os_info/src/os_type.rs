@@ -28,16 +28,30 @@ pub enum Type {
     Fedora,
     /// FreeBSD (<https://en.wikipedia.org/wiki/FreeBSD>).
     FreeBSD,
+    /// Gentoo Linux (<https://en.wikipedia.org/wiki/Gentoo_Linux>).
+    Gentoo,
     /// Linux based operating system (<https://en.wikipedia.org/wiki/Linux>).
+    HardenedBSD,
+    /// HardenedBSD (https://hardenedbsd.org/)
+    Illumos,
+    /// Illumos (https://en.wikipedia.org/wiki/Illumos)
     Linux,
     /// Mac OS X/OS X/macOS (<https://en.wikipedia.org/wiki/MacOS>).
     Macos,
     /// Manjaro (<https://en.wikipedia.org/wiki/Manjaro>).
     Manjaro,
+    /// Mariner (<https://en.wikipedia.org/wiki/CBL-Mariner>).
+    Mariner,
     /// Mint (<https://en.wikipedia.org/wiki/Linux_Mint>).
+    MidnightBSD,
+    /// MidnightBSD(<https://en.wikipedia.org/wiki/MidnightBSD>).
     Mint,
+    /// NetBSD (<https://en.wikipedia.org/wiki/NetBSD>).
+    NetBSD,
     /// NixOS (<https://en.wikipedia.org/wiki/NixOS>).
     NixOS,
+    /// OpenBSD (<https://en.wikipedia.org/wiki/OpenBSD>).
+    OpenBSD,
     /// openSUSE (<https://en.wikipedia.org/wiki/OpenSUSE>).
     openSUSE,
     /// Oracle Linux (<https://en.wikipedia.org/wiki/Oracle_Linux>).
@@ -77,7 +91,10 @@ impl Display for Type {
             Type::Amazon => write!(f, "Amazon Linux AMI"),
             Type::Arch => write!(f, "Arch Linux"),
             Type::DragonFly => write!(f, "DragonFly BSD"),
+            Type::Gentoo => write!(f, "Gentoo Linux"),
+            Type::Illumos => write!(f, "illumos"),
             Type::Macos => write!(f, "Mac OS"),
+            Type::MidnightBSD => write!(f, "Midnight BSD"),
             Type::Mint => write!(f, "Linux Mint"),
             Type::Pop => write!(f, "Pop!_OS"),
             Type::Raspbian => write!(f, "Raspberry Pi OS"),
@@ -111,12 +128,15 @@ mod tests {
             (Type::Emscripten, "Emscripten"),
             (Type::EndeavourOS, "EndeavourOS"),
             (Type::Fedora, "Fedora"),
+            (Type::Gentoo, "Gentoo Linux"),
             (Type::FreeBSD, "FreeBSD"),
             (Type::Linux, "Linux"),
             (Type::Macos, "Mac OS"),
             (Type::Manjaro, "Manjaro"),
             (Type::Mint, "Linux Mint"),
+            (Type::NetBSD, "NetBSD"),
             (Type::NixOS, "NixOS"),
+            (Type::OpenBSD, "OpenBSD"),
             (Type::openSUSE, "openSUSE"),
             (Type::OracleLinux, "OracleLinux"),
             (Type::Pop, "Pop!_OS"),

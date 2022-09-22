@@ -8,15 +8,15 @@
 //! operand ("G" in Intelese), the order is always G first, then E. The term "enc" in the following
 //! means "hardware register encoding number".
 
+use crate::machinst::{Reg, RegClass};
 use crate::{
     ir::TrapCode,
     isa::x64::inst::{
         args::{Amode, OperandSize},
-        regs, EmitInfo, EmitState, Inst, LabelUse,
+        regs, EmitInfo, Inst, LabelUse,
     },
     machinst::MachBuffer,
 };
-use regalloc::{Reg, RegClass};
 
 pub(crate) fn low8_will_sign_extend_to_64(x: u32) -> bool {
     let xs = (x as i32) as i64;
@@ -50,8 +50,8 @@ pub(crate) fn encode_sib(shift: u8, enc_index: u8, enc_base: u8) -> u8 {
 pub(crate) fn int_reg_enc(reg: impl Into<Reg>) -> u8 {
     let reg = reg.into();
     debug_assert!(reg.is_real());
-    debug_assert_eq!(reg.get_class(), RegClass::I64);
-    reg.get_hw_encoding()
+    debug_assert_eq!(reg.class(), RegClass::Int);
+    reg.to_real_reg().unwrap().hw_enc()
 }
 
 /// Get the encoding number of any register.
@@ -59,7 +59,7 @@ pub(crate) fn int_reg_enc(reg: impl Into<Reg>) -> u8 {
 pub(crate) fn reg_enc(reg: impl Into<Reg>) -> u8 {
     let reg = reg.into();
     debug_assert!(reg.is_real());
-    reg.get_hw_encoding()
+    reg.to_real_reg().unwrap().hw_enc()
 }
 
 /// A small bit field to record a REX prefix specification:
@@ -276,7 +276,6 @@ impl Default for LegacyPrefixes {
 /// indicate a 64-bit operation.
 pub(crate) fn emit_std_enc_mem(
     sink: &mut MachBuffer<Inst>,
-    state: &EmitState,
     info: &EmitInfo,
     prefixes: LegacyPrefixes,
     opcodes: u32,
@@ -284,15 +283,15 @@ pub(crate) fn emit_std_enc_mem(
     enc_g: u8,
     mem_e: &Amode,
     rex: RexFlags,
+    bytes_at_end: u8,
 ) {
     // General comment for this function: the registers in `mem_e` must be
     // 64-bit integer registers, because they are part of an address
     // expression.  But `enc_g` can be derived from a register of any class.
 
-    let srcloc = state.cur_srcloc();
     let can_trap = mem_e.can_trap();
     if can_trap {
-        sink.add_trap(srcloc, TrapCode::HeapOutOfBounds);
+        sink.add_trap(TrapCode::HeapOutOfBounds);
     }
 
     prefixes.emit(sink);
@@ -302,7 +301,7 @@ pub(crate) fn emit_std_enc_mem(
             // If this is an access based off of RSP, it may trap with a stack overflow if it's the
             // first touch of a new stack page.
             if *base == regs::rsp() && !can_trap && info.flags.enable_probestack() {
-                sink.add_trap(srcloc, TrapCode::StackOverflow);
+                sink.add_trap(TrapCode::StackOverflow);
             }
 
             // First, the REX byte.
@@ -368,7 +367,7 @@ pub(crate) fn emit_std_enc_mem(
             // If this is an access based off of RSP, it may trap with a stack overflow if it's the
             // first touch of a new stack page.
             if *reg_base == regs::rsp() && !can_trap && info.flags.enable_probestack() {
-                sink.add_trap(srcloc, TrapCode::StackOverflow);
+                sink.add_trap(TrapCode::StackOverflow);
             }
 
             let enc_base = int_reg_enc(*reg_base);
@@ -413,7 +412,14 @@ pub(crate) fn emit_std_enc_mem(
 
             let offset = sink.cur_offset();
             sink.use_label_at_offset(offset, *target, LabelUse::JmpRel32);
-            sink.put4(0);
+            // N.B.: some instructions (XmmRmRImm format for example)
+            // have bytes *after* the RIP-relative offset. The
+            // addressed location is relative to the end of the
+            // instruction, but the relocation is nominally relative
+            // to the end of the u32 field. So, to compensate for
+            // this, we emit a negative extra offset in the u32 field
+            // initially, and the relocation will add to it.
+            sink.put4(-(bytes_at_end as i32) as u32);
         }
     }
 }
@@ -458,7 +464,6 @@ pub(crate) fn emit_std_enc_enc(
 
 pub(crate) fn emit_std_reg_mem(
     sink: &mut MachBuffer<Inst>,
-    state: &EmitState,
     info: &EmitInfo,
     prefixes: LegacyPrefixes,
     opcodes: u32,
@@ -466,11 +471,11 @@ pub(crate) fn emit_std_reg_mem(
     reg_g: Reg,
     mem_e: &Amode,
     rex: RexFlags,
+    bytes_at_end: u8,
 ) {
     let enc_g = reg_enc(reg_g);
     emit_std_enc_mem(
         sink,
-        state,
         info,
         prefixes,
         opcodes,
@@ -478,6 +483,7 @@ pub(crate) fn emit_std_reg_mem(
         enc_g,
         mem_e,
         rex,
+        bytes_at_end,
     );
 }
 

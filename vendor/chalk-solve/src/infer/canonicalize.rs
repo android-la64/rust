@@ -1,6 +1,6 @@
 use crate::debug_span;
 use chalk_ir::fold::shift::Shift;
-use chalk_ir::fold::{Fold, Folder, SuperFold};
+use chalk_ir::fold::{TypeFoldable, TypeFolder, TypeSuperFoldable};
 use chalk_ir::interner::{HasInterner, Interner};
 use chalk_ir::*;
 use std::cmp::max;
@@ -27,10 +27,10 @@ impl<I: Interner> InferenceTable<I> {
     ///
     /// A substitution mapping from the free variables to their re-bound form is
     /// also returned.
-    pub fn canonicalize<T>(&mut self, interner: I, value: T) -> Canonicalized<T::Result>
+    pub fn canonicalize<T>(&mut self, interner: I, value: T) -> Canonicalized<T>
     where
-        T: Fold<I>,
-        T::Result: HasInterner<Interner = I>,
+        T: TypeFoldable<I>,
+        T: HasInterner<Interner = I>,
     {
         debug_span!("canonicalize", "{:#?}", value);
         let mut q = Canonicalizer {
@@ -101,10 +101,10 @@ impl<'q, I: Interner> Canonicalizer<'q, I> {
     }
 }
 
-impl<'i, I: Interner> Folder<I> for Canonicalizer<'i, I> {
+impl<'i, I: Interner> TypeFolder<I> for Canonicalizer<'i, I> {
     type Error = NoSolution;
 
-    fn as_dyn(&mut self) -> &mut dyn Folder<I, Error = Self::Error> {
+    fn as_dyn(&mut self) -> &mut dyn TypeFolder<I, Error = Self::Error> {
         self
     }
 

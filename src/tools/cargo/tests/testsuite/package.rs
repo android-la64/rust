@@ -2325,3 +2325,74 @@ See [..]
     assert!(p.root().join("target/package/foo-0.0.1.crate").is_file());
     assert!(p.root().join("target/package/bar-0.0.1.crate").is_file());
 }
+
+#[cargo_test]
+fn workspace_overrides_resolver() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [workspace]
+                members = ["bar", "baz"]
+            "#,
+        )
+        .file(
+            "bar/Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.1.0"
+                edition = "2021"
+            "#,
+        )
+        .file("bar/src/lib.rs", "")
+        .file(
+            "baz/Cargo.toml",
+            r#"
+                [package]
+                name = "baz"
+                version = "0.1.0"
+                edition = "2015"
+            "#,
+        )
+        .file("baz/src/lib.rs", "")
+        .build();
+
+    p.cargo("package --no-verify -p bar -p baz").run();
+
+    let f = File::open(&p.root().join("target/package/bar-0.1.0.crate")).unwrap();
+    let rewritten_toml = format!(
+        r#"{}
+[package]
+edition = "2021"
+name = "bar"
+version = "0.1.0"
+resolver = "1"
+"#,
+        cargo::core::package::MANIFEST_PREAMBLE
+    );
+    validate_crate_contents(
+        f,
+        "bar-0.1.0.crate",
+        &["Cargo.toml", "Cargo.toml.orig", "src/lib.rs"],
+        &[("Cargo.toml", &rewritten_toml)],
+    );
+
+    // When the crate has the same implicit resolver as the workspace it is not overridden
+    let f = File::open(&p.root().join("target/package/baz-0.1.0.crate")).unwrap();
+    let rewritten_toml = format!(
+        r#"{}
+[package]
+edition = "2015"
+name = "baz"
+version = "0.1.0"
+"#,
+        cargo::core::package::MANIFEST_PREAMBLE
+    );
+    validate_crate_contents(
+        f,
+        "baz-0.1.0.crate",
+        &["Cargo.toml", "Cargo.toml.orig", "src/lib.rs"],
+        &[("Cargo.toml", &rewritten_toml)],
+    );
+}

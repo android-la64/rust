@@ -344,7 +344,9 @@ The `[build]` table controls build-time operations and compiler settings.
 * Default: number of logical CPUs
 * Environment: `CARGO_BUILD_JOBS`
 
-Sets the maximum number of compiler processes to run in parallel.
+Sets the maximum number of compiler processes to run in parallel. If negative,
+it sets the maximum number of compiler processes to the number of logical CPUs
+plus provided value. Should not be 0.
 
 Can be overridden with the `--jobs` CLI option.
 
@@ -361,7 +363,8 @@ Sets the executable to use for `rustc`.
 * Environment: `CARGO_BUILD_RUSTC_WRAPPER` or `RUSTC_WRAPPER`
 
 Sets a wrapper to execute instead of `rustc`. The first argument passed to the
-wrapper is the path to the actual `rustc`.
+wrapper is the path to the actual executable to use
+(i.e., `build.rustc`, if that is set, or `"rustc"` otherwise).
 
 ##### `build.rustc-workspace-wrapper`
 * Type: string (program path)
@@ -369,7 +372,8 @@ wrapper is the path to the actual `rustc`.
 * Environment: `CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER` or `RUSTC_WORKSPACE_WRAPPER`
 
 Sets a wrapper to execute instead of `rustc`, for workspace members only.
-The first argument passed to the wrapper is the path to the actual `rustc`.
+The first argument passed to the wrapper is the path to the actual
+executable to use (i.e., `build.rustc`, if that is set, or `"rustc"` otherwise).
 It affects the filename hash so that artifacts produced by the wrapper are cached separately.
 
 ##### `build.rustdoc`
@@ -380,15 +384,24 @@ It affects the filename hash so that artifacts produced by the wrapper are cache
 Sets the executable to use for `rustdoc`.
 
 ##### `build.target`
-* Type: string
+* Type: string or array of strings
 * Default: host platform
 * Environment: `CARGO_BUILD_TARGET`
 
-The default target platform triple to compile to.
+The default target platform triples to compile to.
 
-This may also be a relative path to a `.json` target spec file.
+This allows passing either a string or an array of strings. Each string value
+is a target platform triple. The selected build targets will be built for each
+of the selected architectures.
+
+The string value may also be a relative path to a `.json` target spec file.
 
 Can be overridden with the `--target` CLI option.
+
+```toml
+[build]
+target = ["x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu"]
+```
 
 ##### `build.target-dir`
 * Type: string (path)

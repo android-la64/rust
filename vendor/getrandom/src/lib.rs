@@ -12,26 +12,28 @@
 //!
 //! | Target            | Target Triple      | Implementation
 //! | ----------------- | ------------------ | --------------
-//! | Linux, Android    | `*‑linux‑*`        | [`getrandom`][1] system call if available, otherwise [`/dev/urandom`][2] after successfully polling `/dev/random` |
-//! | Windows           | `*‑pc‑windows‑*`   | [`RtlGenRandom`][3] |
-//! | [Windows UWP][22] | `*‑uwp‑windows‑*`  | [`BCryptGenRandom`][23] |
-//! | macOS             | `*‑apple‑darwin`   | [`getentropy()`][19] if available, otherwise [`/dev/random`][20] (identical to `/dev/urandom`)
-//! | iOS               | `*‑apple‑ios`      | [`SecRandomCopyBytes`][4]
-//! | FreeBSD           | `*‑freebsd`        | [`getrandom()`][21] if available, otherwise [`kern.arandom`][5]
-//! | OpenBSD           | `*‑openbsd`        | [`getentropy`][6]
-//! | NetBSD            | `*‑netbsd`         | [`kern.arandom`][7]
-//! | Dragonfly BSD     | `*‑dragonfly`      | [`/dev/random`][8]
-//! | Solaris, illumos  | `*‑solaris`, `*‑illumos` | [`getrandom()`][9] if available, otherwise [`/dev/random`][10]
-//! | Fuchsia OS        | `*‑fuchsia`        | [`cprng_draw`][11]
-//! | Redox             | `*‑cloudabi`       | [`rand:`][12]
-//! | CloudABI          | `*‑redox`          | [`cloudabi_sys_random_get`][13]
+//! | Linux, Android    | `*‑linux‑*`        | [`getrandom`][1] system call if available, otherwise [`/dev/urandom`][2] after successfully polling `/dev/random`
+//! | Windows           | `*‑windows‑*`      | [`BCryptGenRandom`]
+//! | macOS             | `*‑apple‑darwin`   | [`getentropy`][3] if available, otherwise [`/dev/random`][4] (identical to `/dev/urandom`)
+//! | iOS               | `*‑apple‑ios`      | [`SecRandomCopyBytes`]
+//! | FreeBSD           | `*‑freebsd`        | [`getrandom`][5] if available, otherwise [`kern.arandom`][6]
+//! | OpenBSD           | `*‑openbsd`        | [`getentropy`][7]
+//! | NetBSD            | `*‑netbsd`         | [`kern.arandom`][8]
+//! | Dragonfly BSD     | `*‑dragonfly`      | [`getrandom`][9] if available, otherwise [`/dev/random`][10]
+//! | Solaris, illumos  | `*‑solaris`, `*‑illumos` | [`getrandom`][11] if available, otherwise [`/dev/random`][12]
+//! | Fuchsia OS        | `*‑fuchsia`        | [`cprng_draw`]
+//! | Redox             | `*‑redox`          | `/dev/urandom`
 //! | Haiku             | `*‑haiku`          | `/dev/random` (identical to `/dev/urandom`)
-//! | SGX               | `x86_64‑*‑sgx`     | [RDRAND][18]
+//! | Hermit            | `x86_64-*-hermit`  | [`RDRAND`]
+//! | SGX               | `x86_64‑*‑sgx`     | [`RDRAND`]
 //! | VxWorks           | `*‑wrs‑vxworks‑*`  | `randABytes` after checking entropy pool initialization with `randSecure`
+//! | ESP-IDF           | `*‑espidf`         | [`esp_fill_random`]
 //! | Emscripten        | `*‑emscripten`     | `/dev/random` (identical to `/dev/urandom`)
-//! | WASI              | `wasm32‑wasi`      | [`__wasi_random_get`][17]
-//! | Web Browser       | `wasm32‑*‑unknown` | [`Crypto.getRandomValues()`][14], see [WebAssembly support][16]
-//! | Node.js           | `wasm32‑*‑unknown` | [`crypto.randomBytes`][15], see [WebAssembly support][16]
+//! | WASI              | `wasm32‑wasi`      | [`random_get`]
+//! | Web Browser       | `wasm32‑*‑unknown` | [`Crypto.getRandomValues`], see [WebAssembly support]
+//! | Node.js           | `wasm32‑*‑unknown` | [`crypto.randomBytes`], see [WebAssembly support]
+//! | SOLID             | `*-kmc-solid_*`    | `SOLID_RNG_SampleRandomBytes`
+//! | Nintendo 3DS      | `armv6k-nintendo-3ds` | [`getrandom`][1]
 //!
 //! There is no blanket implementation on `unix` targets that reads from
 //! `/dev/urandom`. This ensures all supported targets are using the recommended
@@ -52,8 +54,8 @@
 //!
 //! ### RDRAND on x86
 //!
-//! *If the `"rdrand"` Cargo feature is enabled*, `getrandom` will fallback to using
-//! the [`RDRAND`][18] instruction to get randomness on `no_std` `x86`/`x86_64`
+//! *If the `rdrand` Cargo feature is enabled*, `getrandom` will fallback to using
+//! the [`RDRAND`] instruction to get randomness on `no_std` `x86`/`x86_64`
 //! targets. This feature has no effect on other CPU architectures.
 //!
 //! ### WebAssembly support
@@ -61,17 +63,17 @@
 //! This crate fully supports the
 //! [`wasm32-wasi`](https://github.com/CraneStation/wasi) and
 //! [`wasm32-unknown-emscripten`](https://www.hellorust.com/setup/emscripten/)
-//! targets. However, the `wasm32-unknown-unknown` target is not automatically
+//! targets. However, the `wasm32-unknown-unknown` target (i.e. the target used
+//! by `wasm-pack`) is not automatically
 //! supported since, from the target name alone, we cannot deduce which
 //! JavaScript interface is in use (or if JavaScript is available at all).
 //!
-//! Instead, *if the `"js"` Cargo feature is enabled*, this crate will assume
+//! Instead, *if the `js` Cargo feature is enabled*, this crate will assume
 //! that you are building for an environment containing JavaScript, and will
 //! call the appropriate methods. Both web browser (main window and Web Workers)
 //! and Node.js environments are supported, invoking the methods
-//! [described above](#supported-targets). This crate can be built with either
-//! the [wasm-bindgen](https://github.com/rust-lang/rust-bindgen) or
-//! [cargo-web](https://github.com/koute/cargo-web) toolchains.
+//! [described above](#supported-targets) using the
+//! [wasm-bindgen](https://github.com/rust-lang/rust-bindgen) toolchain.
 //!
 //! This feature has no effect on targets other than `wasm32-unknown-unknown`.
 //!
@@ -84,7 +86,7 @@
 //!
 //! Note that registering a custom implementation only has an effect on targets
 //! that would otherwise not compile. Any supported targets (including those
-//! using `"rdrand"` and `"js"` Cargo features) continue using their normal
+//! using `rdrand` and `js` Cargo features) continue using their normal
 //! implementations even if a function is registered.
 //!
 //! ### Indirect Dependencies
@@ -123,35 +125,35 @@
 //!
 //! [1]: http://man7.org/linux/man-pages/man2/getrandom.2.html
 //! [2]: http://man7.org/linux/man-pages/man4/urandom.4.html
-//! [3]: https://docs.microsoft.com/en-us/windows/desktop/api/ntsecapi/nf-ntsecapi-rtlgenrandom
-//! [4]: https://developer.apple.com/documentation/security/1399291-secrandomcopybytes?language=objc
-//! [5]: https://www.freebsd.org/cgi/man.cgi?query=random&sektion=4
-//! [6]: https://man.openbsd.org/getentropy.2
-//! [7]: https://netbsd.gw.com/cgi-bin/man-cgi?sysctl+7+NetBSD-8.0
-//! [8]: https://leaf.dragonflybsd.org/cgi/web-man?command=random&section=4
-//! [9]: https://docs.oracle.com/cd/E88353_01/html/E37841/getrandom-2.html
-//! [10]: https://docs.oracle.com/cd/E86824_01/html/E54777/random-7d.html
-//! [11]: https://fuchsia.dev/fuchsia-src/zircon/syscalls/cprng_draw
-//! [12]: https://github.com/redox-os/randd/blob/master/src/main.rs
-//! [13]: https://github.com/nuxinl/cloudabi#random_get
-//! [14]: https://www.w3.org/TR/WebCryptoAPI/#Crypto-method-getRandomValues
-//! [15]: https://nodejs.org/api/crypto.html#crypto_crypto_randombytes_size_callback
-//! [16]: #webassembly-support
-//! [17]: https://github.com/WebAssembly/WASI/blob/master/design/WASI-core.md#__wasi_random_get
-//! [18]: https://software.intel.com/en-us/articles/intel-digital-random-number-generator-drng-software-implementation-guide
-//! [19]: https://www.unix.com/man-page/mojave/2/getentropy/
-//! [20]: https://www.unix.com/man-page/mojave/4/random/
-//! [21]: https://www.freebsd.org/cgi/man.cgi?query=getrandom&manpath=FreeBSD+12.0-stable
-//! [22]: https://docs.microsoft.com/en-us/windows/uwp/
-//! [23]: https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptgenrandom
+//! [3]: https://www.unix.com/man-page/mojave/2/getentropy/
+//! [4]: https://www.unix.com/man-page/mojave/4/random/
+//! [5]: https://www.freebsd.org/cgi/man.cgi?query=getrandom&manpath=FreeBSD+12.0-stable
+//! [6]: https://www.freebsd.org/cgi/man.cgi?query=random&sektion=4
+//! [7]: https://man.openbsd.org/getentropy.2
+//! [8]: https://man.netbsd.org/sysctl.7
+//! [9]: https://leaf.dragonflybsd.org/cgi/web-man?command=getrandom
+//! [10]: https://leaf.dragonflybsd.org/cgi/web-man?command=random&section=4
+//! [11]: https://docs.oracle.com/cd/E88353_01/html/E37841/getrandom-2.html
+//! [12]: https://docs.oracle.com/cd/E86824_01/html/E54777/random-7d.html
+//!
+//! [`BCryptGenRandom`]: https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptgenrandom
+//! [`Crypto.getRandomValues`]: https://www.w3.org/TR/WebCryptoAPI/#Crypto-method-getRandomValues
+//! [`RDRAND`]: https://software.intel.com/en-us/articles/intel-digital-random-number-generator-drng-software-implementation-guide
+//! [`SecRandomCopyBytes`]: https://developer.apple.com/documentation/security/1399291-secrandomcopybytes?language=objc
+//! [`cprng_draw`]: https://fuchsia.dev/fuchsia-src/zircon/syscalls/cprng_draw
+//! [`crypto.randomBytes`]: https://nodejs.org/api/crypto.html#crypto_crypto_randombytes_size_callback
+//! [`esp_fill_random`]: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/random.html#_CPPv415esp_fill_randomPv6size_t
+//! [`random_get`]: https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md#-random_getbuf-pointeru8-buf_len-size---errno
+//! [WebAssembly support]: #webassembly-support
 
 #![doc(
     html_logo_url = "https://www.rust-lang.org/logos/rust-logo-128x128-blk.png",
     html_favicon_url = "https://www.rust-lang.org/favicon.ico",
-    html_root_url = "https://rust-random.github.io/rand/"
+    html_root_url = "https://docs.rs/getrandom/0.2.6"
 )]
 #![no_std]
 #![warn(rust_2018_idioms, unused_lifetimes, missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[macro_use]
 extern crate cfg_if;
@@ -171,8 +173,8 @@ pub use crate::error::Error;
 //
 // These should all provide getrandom_inner with the same signature as getrandom.
 cfg_if! {
-    if #[cfg(any(target_os = "dragonfly", target_os = "emscripten",
-                 target_os = "haiku",     target_os = "redox"))] {
+    if #[cfg(any(target_os = "emscripten", target_os = "haiku",
+                 target_os = "redox"))] {
         mod util_libc;
         #[path = "use_file.rs"] mod imp;
     } else if #[cfg(any(target_os = "android", target_os = "linux"))] {
@@ -186,8 +188,10 @@ cfg_if! {
     } else if #[cfg(any(target_os = "freebsd", target_os = "netbsd"))] {
         mod util_libc;
         #[path = "bsd_arandom.rs"] mod imp;
-    } else if #[cfg(target_os = "cloudabi")] {
-        #[path = "cloudabi.rs"] mod imp;
+    } else if #[cfg(target_os = "dragonfly")] {
+        mod util_libc;
+        mod use_file;
+        #[path = "dragonfly.rs"] mod imp;
     } else if #[cfg(target_os = "fuchsia")] {
         #[path = "fuchsia.rs"] mod imp;
     } else if #[cfg(target_os = "ios")] {
@@ -201,11 +205,15 @@ cfg_if! {
         #[path = "openbsd.rs"] mod imp;
     } else if #[cfg(target_os = "wasi")] {
         #[path = "wasi.rs"] mod imp;
+    } else if #[cfg(all(target_arch = "x86_64", target_os = "hermit"))] {
+        #[path = "rdrand.rs"] mod imp;
     } else if #[cfg(target_os = "vxworks")] {
         mod util_libc;
         #[path = "vxworks.rs"] mod imp;
-    } else if #[cfg(all(windows, target_vendor = "uwp"))] {
-        #[path = "windows_uwp.rs"] mod imp;
+    } else if #[cfg(target_os = "solid_asp3")] {
+        #[path = "solid.rs"] mod imp;
+    } else if #[cfg(target_os = "espidf")] {
+        #[path = "espidf.rs"] mod imp;
     } else if #[cfg(windows)] {
         #[path = "windows.rs"] mod imp;
     } else if #[cfg(all(target_arch = "x86_64", target_env = "sgx"))] {
@@ -215,11 +223,19 @@ cfg_if! {
         #[path = "rdrand.rs"] mod imp;
     } else if #[cfg(all(feature = "js",
                         target_arch = "wasm32", target_os = "unknown"))] {
-        #[cfg_attr(cargo_web, path = "stdweb.rs")]
-        #[cfg_attr(not(cargo_web), path = "wasm-bindgen.rs")]
-        mod imp;
+        #[path = "js.rs"] mod imp;
+    } else if #[cfg(all(target_os = "horizon", target_arch = "arm"))] {
+        // We check for target_arch = "arm" because the Nintendo Switch also
+        // uses Horizon OS (it is aarch64).
+        mod util_libc;
+        #[path = "3ds.rs"] mod imp;
     } else if #[cfg(feature = "custom")] {
         use custom as imp;
+    } else if #[cfg(all(target_arch = "wasm32", target_os = "unknown"))] {
+        compile_error!("the wasm32-unknown-unknown target is not supported by \
+                        default, you may need to enable the \"js\" feature. \
+                        For more information see: \
+                        https://docs.rs/getrandom/#webassembly-support");
     } else {
         compile_error!("target is not supported, for more information see: \
                         https://docs.rs/getrandom/#unsupported-targets");
@@ -245,8 +261,3 @@ pub fn getrandom(dest: &mut [u8]) -> Result<(), Error> {
     }
     imp::getrandom_inner(dest)
 }
-
-#[cfg(test)]
-mod test_common;
-#[cfg(test)]
-mod test_rdrand;

@@ -100,23 +100,26 @@ pub(crate) fn expand_macro(db: &RootDatabase, position: FilePosition) -> Option<
 }
 
 fn expand_macro_recur(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     macro_call: &ast::MacroCall,
 ) -> Option<SyntaxNode> {
     let expanded = sema.expand(macro_call)?.clone_for_update();
     expand(sema, expanded, ast::MacroCall::cast, expand_macro_recur)
 }
 
-fn expand_attr_macro_recur(sema: &Semantics<RootDatabase>, item: &ast::Item) -> Option<SyntaxNode> {
+fn expand_attr_macro_recur(
+    sema: &Semantics<'_, RootDatabase>,
+    item: &ast::Item,
+) -> Option<SyntaxNode> {
     let expanded = sema.expand_attr_macro(item)?.clone_for_update();
     expand(sema, expanded, ast::Item::cast, expand_attr_macro_recur)
 }
 
 fn expand<T: AstNode>(
-    sema: &Semantics<RootDatabase>,
+    sema: &Semantics<'_, RootDatabase>,
     expanded: SyntaxNode,
     f: impl FnMut(SyntaxNode) -> Option<T>,
-    exp: impl Fn(&Semantics<RootDatabase>, &T) -> Option<SyntaxNode>,
+    exp: impl Fn(&Semantics<'_, RootDatabase>, &T) -> Option<SyntaxNode>,
 ) -> Option<SyntaxNode> {
     let children = expanded.descendants().filter_map(f);
     let mut replacements = Vec::new();
@@ -357,6 +360,38 @@ fn main() {
             expect![[r#"
                 match_ast
                 {}"#]],
+        );
+    }
+
+    #[test]
+    fn macro_expand_inner_macro_rules() {
+        check(
+            r#"
+macro_rules! foo {
+    ($t:tt) => {{
+        macro_rules! bar {
+            () => {
+                $t
+            }
+        }
+        bar!()
+    }};
+}
+
+fn main() {
+    foo$0!(42);
+}
+            "#,
+            expect![[r#"
+                foo
+                {
+                  macro_rules! bar {
+                    () => {
+                      42
+                    }
+                  }
+                  42
+                }"#]],
         );
     }
 

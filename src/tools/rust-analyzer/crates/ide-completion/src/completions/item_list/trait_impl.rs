@@ -43,11 +43,8 @@ use syntax::{
 use text_edit::TextEdit;
 
 use crate::{
-    context::{
-        ItemListKind, NameContext, NameKind, NameRefContext, NameRefKind, PathCompletionCtx,
-        PathKind,
-    },
-    CompletionContext, CompletionItem, CompletionItemKind, CompletionRelevance, Completions,
+    context::PathCompletionCtx, CompletionContext, CompletionItem, CompletionItemKind,
+    CompletionRelevance, Completions,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -58,17 +55,36 @@ enum ImplCompletionKind {
     Const,
 }
 
-pub(crate) fn complete_trait_impl_name(
+pub(crate) fn complete_trait_impl_const(
     acc: &mut Completions,
-    ctx: &CompletionContext,
-    NameContext { name, kind, .. }: &NameContext,
+    ctx: &CompletionContext<'_>,
+    name: &Option<ast::Name>,
 ) -> Option<()> {
-    let kind = match kind {
-        NameKind::Const => ImplCompletionKind::Const,
-        NameKind::Function => ImplCompletionKind::Fn,
-        NameKind::TypeAlias => ImplCompletionKind::TypeAlias,
-        _ => return None,
-    };
+    complete_trait_impl_name(acc, ctx, name, ImplCompletionKind::Const)
+}
+
+pub(crate) fn complete_trait_impl_type_alias(
+    acc: &mut Completions,
+    ctx: &CompletionContext<'_>,
+    name: &Option<ast::Name>,
+) -> Option<()> {
+    complete_trait_impl_name(acc, ctx, name, ImplCompletionKind::TypeAlias)
+}
+
+pub(crate) fn complete_trait_impl_fn(
+    acc: &mut Completions,
+    ctx: &CompletionContext<'_>,
+    name: &Option<ast::Name>,
+) -> Option<()> {
+    complete_trait_impl_name(acc, ctx, name, ImplCompletionKind::Fn)
+}
+
+fn complete_trait_impl_name(
+    acc: &mut Completions,
+    ctx: &CompletionContext<'_>,
+    name: &Option<ast::Name>,
+    kind: ImplCompletionKind,
+) -> Option<()> {
     let token = ctx.token.clone();
     let item = match name {
         Some(name) => name.syntax().parent(),
@@ -86,39 +102,33 @@ pub(crate) fn complete_trait_impl_name(
     Some(())
 }
 
-pub(crate) fn complete_trait_impl_name_ref(
+pub(crate) fn complete_trait_impl_item_by_name(
     acc: &mut Completions,
-    ctx: &CompletionContext,
-    name_ref_ctx: &NameRefContext,
-) -> Option<()> {
-    match name_ref_ctx {
-        NameRefContext {
-            nameref,
-            kind:
-                NameRefKind::Path(
-                    path_ctx @ PathCompletionCtx {
-                        kind: PathKind::Item { kind: ItemListKind::TraitImpl(Some(impl_)) },
-                        ..
-                    },
-                ),
-        } if path_ctx.is_trivial_path() => complete_trait_impl(
+    ctx: &CompletionContext<'_>,
+    path_ctx: &PathCompletionCtx,
+    name_ref: &Option<ast::NameRef>,
+    impl_: &Option<ast::Impl>,
+) {
+    if !path_ctx.is_trivial_path() {
+        return;
+    }
+    if let Some(impl_) = impl_ {
+        complete_trait_impl(
             acc,
             ctx,
             ImplCompletionKind::All,
-            match nameref {
+            match name_ref {
                 Some(name) => name.syntax().text_range(),
                 None => ctx.source_range(),
             },
             impl_,
-        ),
-        _ => (),
+        );
     }
-    Some(())
 }
 
 fn complete_trait_impl(
     acc: &mut Completions,
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     kind: ImplCompletionKind,
     replacement_range: TextRange,
     impl_def: &ast::Impl,
@@ -144,7 +154,7 @@ fn complete_trait_impl(
 
 fn add_function_impl(
     acc: &mut Completions,
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     replacement_range: TextRange,
     func: hir::Function,
     impl_def: hir::Impl,
@@ -194,7 +204,7 @@ fn add_function_impl(
 
 /// Transform a relevant associated item to inline generics from the impl, remove attrs and docs, etc.
 fn get_transformed_assoc_item(
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     assoc_item: ast::AssocItem,
     impl_def: hir::Impl,
 ) -> Option<ast::AssocItem> {
@@ -218,14 +228,15 @@ fn get_transformed_assoc_item(
 
 fn add_type_alias_impl(
     acc: &mut Completions,
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     replacement_range: TextRange,
     type_alias: hir::TypeAlias,
 ) {
-    let alias_name = type_alias.name(ctx.db).to_smol_str();
+    let alias_name = type_alias.name(ctx.db);
+    let (alias_name, escaped_name) = (alias_name.to_smol_str(), alias_name.escaped().to_smol_str());
 
     let label = format!("type {} =", alias_name);
-    let replacement = format!("type {} = ", alias_name);
+    let replacement = format!("type {} = ", escaped_name);
 
     let mut item = CompletionItem::new(SymbolKind::TypeAlias, replacement_range, label);
     item.lookup_by(format!("type {}", alias_name))
@@ -241,7 +252,7 @@ fn add_type_alias_impl(
 
 fn add_const_impl(
     acc: &mut Completions,
-    ctx: &CompletionContext,
+    ctx: &CompletionContext<'_>,
     replacement_range: TextRange,
     const_: hir::Const,
     impl_def: hir::Impl,
@@ -329,7 +340,7 @@ fn function_declaration(node: &ast::Fn, needs_whitespace: bool) -> String {
     syntax.trim_end().to_owned()
 }
 
-fn replacement_range(ctx: &CompletionContext, item: &SyntaxNode) -> TextRange {
+fn replacement_range(ctx: &CompletionContext<'_>, item: &SyntaxNode) -> TextRange {
     let first_child = item
         .children_with_tokens()
         .find(|child| {
@@ -400,7 +411,7 @@ impl Test for T {
             expect![[""]],
         );
 
-        // https://github.com/rust-analyzer/rust-analyzer/pull/5976#issuecomment-692332191
+        // https://github.com/rust-lang/rust-analyzer/pull/5976#issuecomment-692332191
         check(
             r"
 trait Test { fn test(); fn test2(); }
@@ -427,6 +438,10 @@ impl Test for T {
             expect![[r#"
                 sp Self
                 st T
+                bn &mut self
+                bn &self
+                bn mut self
+                bn self
             "#]],
         );
 

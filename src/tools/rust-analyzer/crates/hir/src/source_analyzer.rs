@@ -21,7 +21,8 @@ use hir_def::{
     path::{ModPath, Path, PathKind},
     resolver::{resolver_for_scope, Resolver, TypeNs, ValueNs},
     type_ref::Mutability,
-    AsMacroCall, DefWithBodyId, FieldId, FunctionId, LocalFieldId, Lookup, ModuleDefId, VariantId,
+    AsMacroCall, AssocItemId, DefWithBodyId, FieldId, FunctionId, ItemContainerId, LocalFieldId,
+    Lookup, ModuleDefId, VariantId,
 };
 use hir_expand::{
     builtin_fn_macro::BuiltinFnLikeExpander, hygiene::Hygiene, name::AsName, HirFileId, InFile,
@@ -31,9 +32,10 @@ use hir_ty::{
         record_literal_missing_fields, record_pattern_missing_fields, unsafe_expressions,
         UnsafeExpr,
     },
-    Adjust, Adjustment, AutoBorrow, InferenceResult, Interner, Substitution, TyExt,
-    TyLoweringContext,
+    method_resolution, Adjust, Adjustment, AutoBorrow, InferenceResult, Interner, Substitution,
+    TyExt, TyKind, TyLoweringContext,
 };
+use itertools::Itertools;
 use smallvec::SmallVec;
 use syntax::{
     ast::{self, AstNode},
@@ -42,8 +44,8 @@ use syntax::{
 
 use crate::{
     db::HirDatabase, semantics::PathResolution, Adt, AssocItem, BindingMode, BuiltinAttr,
-    BuiltinType, Const, Field, Function, Local, Macro, ModuleDef, Static, Struct, ToolModule,
-    Trait, Type, TypeAlias, Variant,
+    BuiltinType, Callable, Const, DeriveHelper, Field, Function, Local, Macro, ModuleDef, Static,
+    Struct, ToolModule, Trait, Type, TypeAlias, Variant,
 };
 
 /// `SourceAnalyzer` is a convenience wrapper which exposes HIR API in terms of
@@ -67,10 +69,7 @@ impl SourceAnalyzer {
         let scopes = db.expr_scopes(def);
         let scope = match offset {
             None => scope_for(&scopes, &source_map, node),
-            Some(offset) => {
-                let file_id = node.file_id.original_file(db.upcast());
-                scope_for_offset(db, &scopes, &source_map, InFile::new(file_id.into(), offset))
-            }
+            Some(offset) => scope_for_offset(db, &scopes, &source_map, node.file_id, offset),
         };
         let resolver = resolver_for_scope(db.upcast(), def, scope);
         SourceAnalyzer {
@@ -91,10 +90,7 @@ impl SourceAnalyzer {
         let scopes = db.expr_scopes(def);
         let scope = match offset {
             None => scope_for(&scopes, &source_map, node),
-            Some(offset) => {
-                let file_id = node.file_id.original_file(db.upcast());
-                scope_for_offset(db, &scopes, &source_map, InFile::new(file_id.into(), offset))
-            }
+            Some(offset) => scope_for_offset(db, &scopes, &source_map, node.file_id, offset),
         };
         let resolver = resolver_for_scope(db.upcast(), def, scope);
         SourceAnalyzer { resolver, def: Some((def, body, source_map)), infer: None, file_id }
@@ -238,13 +234,29 @@ impl SourceAnalyzer {
         )
     }
 
+    pub(crate) fn resolve_method_call_as_callable(
+        &self,
+        db: &dyn HirDatabase,
+        call: &ast::MethodCallExpr,
+    ) -> Option<Callable> {
+        let expr_id = self.expr_id(db, &call.clone().into())?;
+        let (func, substs) = self.infer.as_ref()?.method_resolution(expr_id)?;
+        let ty = db.value_ty(func.into()).substitute(Interner, &substs);
+        let ty = Type::new_with_resolver(db, &self.resolver, ty);
+        let mut res = ty.as_callable(db)?;
+        res.is_bound_method = true;
+        Some(res)
+    }
+
     pub(crate) fn resolve_method_call(
         &self,
         db: &dyn HirDatabase,
         call: &ast::MethodCallExpr,
-    ) -> Option<(FunctionId, Substitution)> {
+    ) -> Option<FunctionId> {
         let expr_id = self.expr_id(db, &call.clone().into())?;
-        self.infer.as_ref()?.method_resolution(expr_id)
+        let (f_in_trait, substs) = self.infer.as_ref()?.method_resolution(expr_id)?;
+        let f_in_impl = self.resolve_impl_method(db, f_in_trait, &substs);
+        f_in_impl.or(Some(f_in_trait))
     }
 
     pub(crate) fn resolve_field(
@@ -342,6 +354,25 @@ impl SourceAnalyzer {
                 let expr_id = self.expr_id(db, &path_expr.into())?;
                 let infer = self.infer.as_ref()?;
                 if let Some(assoc) = infer.assoc_resolutions_for_expr(expr_id) {
+                    let assoc = match assoc {
+                        AssocItemId::FunctionId(f_in_trait) => {
+                            match infer.type_of_expr.get(expr_id) {
+                                None => assoc,
+                                Some(func_ty) => {
+                                    if let TyKind::FnDef(_fn_def, subs) = func_ty.kind(Interner) {
+                                        self.resolve_impl_method(db, f_in_trait, subs)
+                                            .map(AssocItemId::FunctionId)
+                                            .unwrap_or(assoc)
+                                    } else {
+                                        assoc
+                                    }
+                                }
+                            }
+                        }
+
+                        _ => assoc,
+                    };
+
                     return Some(PathResolution::Def(AssocItem::from(assoc).into()));
                 }
                 if let Some(VariantId::EnumVariantId(variant)) =
@@ -399,19 +430,21 @@ impl SourceAnalyzer {
             }
         }
 
-        let is_path_of_attr = path
+        let meta_path = path
             .syntax()
             .ancestors()
-            .map(|it| it.kind())
-            .take_while(|&kind| ast::Path::can_cast(kind) || ast::Meta::can_cast(kind))
+            .take_while(|it| {
+                let kind = it.kind();
+                ast::Path::can_cast(kind) || ast::Meta::can_cast(kind)
+            })
             .last()
-            .map_or(false, ast::Meta::can_cast);
+            .and_then(ast::Meta::cast);
 
         // Case where path is a qualifier of another path, e.g. foo::bar::Baz where we are
         // trying to resolve foo::bar.
         if path.parent_path().is_some() {
             return match resolve_hir_path_qualifier(db, &self.resolver, &hir_path) {
-                None if is_path_of_attr => {
+                None if meta_path.is_some() => {
                     path.first_segment().and_then(|it| it.name_ref()).and_then(|name_ref| {
                         ToolModule::by_name(db, self.resolver.krate().into(), &name_ref.text())
                             .map(PathResolution::ToolModule)
@@ -419,16 +452,56 @@ impl SourceAnalyzer {
                 }
                 res => res,
             };
-        } else if is_path_of_attr {
+        } else if let Some(meta_path) = meta_path {
             // Case where we are resolving the final path segment of a path in an attribute
             // in this case we have to check for inert/builtin attributes and tools and prioritize
             // resolution of attributes over other namespaces
-            let name_ref = path.as_single_name_ref();
-            let builtin = name_ref.as_ref().and_then(|name_ref| {
-                BuiltinAttr::by_name(db, self.resolver.krate().into(), &name_ref.text())
-            });
-            if let Some(_) = builtin {
-                return builtin.map(PathResolution::BuiltinAttr);
+            if let Some(name_ref) = path.as_single_name_ref() {
+                let builtin =
+                    BuiltinAttr::by_name(db, self.resolver.krate().into(), &name_ref.text());
+                if let Some(_) = builtin {
+                    return builtin.map(PathResolution::BuiltinAttr);
+                }
+
+                if let Some(attr) = meta_path.parent_attr() {
+                    let adt = if let Some(field) =
+                        attr.syntax().parent().and_then(ast::RecordField::cast)
+                    {
+                        field.syntax().ancestors().take(4).find_map(ast::Adt::cast)
+                    } else if let Some(field) =
+                        attr.syntax().parent().and_then(ast::TupleField::cast)
+                    {
+                        field.syntax().ancestors().take(4).find_map(ast::Adt::cast)
+                    } else if let Some(variant) =
+                        attr.syntax().parent().and_then(ast::Variant::cast)
+                    {
+                        variant.syntax().ancestors().nth(2).and_then(ast::Adt::cast)
+                    } else {
+                        None
+                    };
+                    if let Some(adt) = adt {
+                        let ast_id = db.ast_id_map(self.file_id).ast_id(&adt);
+                        if let Some(helpers) = self
+                            .resolver
+                            .def_map()
+                            .derive_helpers_in_scope(InFile::new(self.file_id, ast_id))
+                        {
+                            // FIXME: Multiple derives can have the same helper
+                            let name_ref = name_ref.as_name();
+                            for (macro_id, mut helpers) in
+                                helpers.iter().group_by(|(_, macro_id, ..)| macro_id).into_iter()
+                            {
+                                if let Some(idx) = helpers.position(|(name, ..)| *name == name_ref)
+                                {
+                                    return Some(PathResolution::DeriveHelper(DeriveHelper {
+                                        derive: *macro_id,
+                                        idx,
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                }
             }
             return match resolve_hir_path_as_macro(db, &self.resolver, &hir_path) {
                 Some(m) => Some(PathResolution::Def(ModuleDef::Macro(m))),
@@ -545,27 +618,53 @@ impl SourceAnalyzer {
                 _ => (),
             }
         }
+        let macro_expr = match macro_call
+            .map(|it| it.syntax().parent().and_then(ast::MacroExpr::cast))
+            .transpose()
+        {
+            Some(it) => it,
+            None => return false,
+        };
+
         if let (Some((def, body, sm)), Some(infer)) = (&self.def, &self.infer) {
-            if let Some(expr_ids) = sm.macro_expansion_expr(macro_call) {
+            if let Some(expanded_expr) = sm.macro_expansion_expr(macro_expr.as_ref()) {
                 let mut is_unsafe = false;
-                for &expr_id in expr_ids {
-                    unsafe_expressions(
-                        db,
-                        infer,
-                        *def,
-                        body,
-                        expr_id,
-                        &mut |UnsafeExpr { inside_unsafe_block, .. }| {
-                            is_unsafe |= !inside_unsafe_block
-                        },
-                    );
-                    if is_unsafe {
-                        return true;
-                    }
-                }
+                unsafe_expressions(
+                    db,
+                    infer,
+                    *def,
+                    body,
+                    expanded_expr,
+                    &mut |UnsafeExpr { inside_unsafe_block, .. }| is_unsafe |= !inside_unsafe_block,
+                );
+                return is_unsafe;
             }
         }
         false
+    }
+
+    fn resolve_impl_method(
+        &self,
+        db: &dyn HirDatabase,
+        func: FunctionId,
+        substs: &Substitution,
+    ) -> Option<FunctionId> {
+        let impled_trait = match func.lookup(db.upcast()).container {
+            ItemContainerId::TraitId(trait_id) => trait_id,
+            _ => return None,
+        };
+        if substs.is_empty(Interner) {
+            return None;
+        }
+        let self_ty = substs.at(Interner, 0).ty(Interner)?;
+        let krate = self.resolver.krate();
+        let trait_env = self.resolver.body_owner()?.as_generic_def_id().map_or_else(
+            || Arc::new(hir_ty::TraitEnvironment::empty(krate)),
+            |d| db.trait_environment(d),
+        );
+
+        let fun_data = db.function_data(func);
+        method_resolution::lookup_impl_method(self_ty, db, trait_env, impled_trait, &fun_data.name)
     }
 }
 
@@ -585,34 +684,31 @@ fn scope_for_offset(
     db: &dyn HirDatabase,
     scopes: &ExprScopes,
     source_map: &BodySourceMap,
-    offset: InFile<TextSize>,
+    from_file: HirFileId,
+    offset: TextSize,
 ) -> Option<ScopeId> {
     scopes
         .scope_by_expr()
         .iter()
         .filter_map(|(id, scope)| {
             let InFile { file_id, value } = source_map.expr_syntax(*id).ok()?;
-            if offset.file_id == file_id {
-                let root = db.parse_or_expand(file_id)?;
-                let node = value.to_node(&root);
-                return Some((node.syntax().text_range(), scope));
+            if from_file == file_id {
+                return Some((value.text_range(), scope));
             }
 
             // FIXME handle attribute expansion
             let source = iter::successors(file_id.call_node(db.upcast()), |it| {
                 it.file_id.call_node(db.upcast())
             })
-            .find(|it| it.file_id == offset.file_id)
+            .find(|it| it.file_id == from_file)
             .filter(|it| it.value.kind() == SyntaxKind::MACRO_CALL)?;
             Some((source.value.text_range(), scope))
         })
-        .filter(|(expr_range, _scope)| {
-            expr_range.start() <= offset.value && offset.value <= expr_range.end()
-        })
+        .filter(|(expr_range, _scope)| expr_range.start() <= offset && offset <= expr_range.end())
         // find containing scope
         .min_by_key(|(expr_range, _scope)| expr_range.len())
         .map(|(expr_range, scope)| {
-            adjust(db, scopes, source_map, expr_range, offset).unwrap_or(*scope)
+            adjust(db, scopes, source_map, expr_range, from_file, offset).unwrap_or(*scope)
         })
 }
 
@@ -623,7 +719,8 @@ fn adjust(
     scopes: &ExprScopes,
     source_map: &BodySourceMap,
     expr_range: TextRange,
-    offset: InFile<TextSize>,
+    from_file: HirFileId,
+    offset: TextSize,
 ) -> Option<ScopeId> {
     let child_scopes = scopes
         .scope_by_expr()
@@ -631,7 +728,7 @@ fn adjust(
         .filter_map(|(id, scope)| {
             let source = source_map.expr_syntax(*id).ok()?;
             // FIXME: correctly handle macro expansion
-            if source.file_id != offset.file_id {
+            if source.file_id != from_file {
                 return None;
             }
             let root = source.file_syntax(db.upcast());
@@ -639,7 +736,7 @@ fn adjust(
             Some((node.syntax().text_range(), scope))
         })
         .filter(|&(range, _)| {
-            range.start() <= offset.value && expr_range.contains_range(range) && range != expr_range
+            range.start() <= offset && expr_range.contains_range(range) && range != expr_range
         });
 
     child_scopes

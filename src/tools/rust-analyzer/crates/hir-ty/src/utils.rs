@@ -12,13 +12,12 @@ use hir_def::{
         WherePredicateTypeTarget,
     },
     intern::Interned,
-    path::Path,
     resolver::{HasResolver, TypeNs},
     type_ref::{TraitBoundModifier, TypeRef},
     ConstParamId, FunctionId, GenericDefId, ItemContainerId, Lookup, TraitId, TypeAliasId,
     TypeOrConstParamId, TypeParamId,
 };
-use hir_expand::name::{known, name, Name};
+use hir_expand::name::{known, Name};
 use itertools::Either;
 use rustc_hash::FxHashSet;
 use smallvec::{smallvec, SmallVec};
@@ -53,25 +52,25 @@ fn direct_super_traits(db: &dyn DefDatabase, trait_: TraitId) -> SmallVec<[Trait
         .iter()
         .filter_map(|pred| match pred {
             WherePredicate::ForLifetime { target, bound, .. }
-            | WherePredicate::TypeBound { target, bound } => match target {
-                WherePredicateTypeTarget::TypeRef(type_ref) => match &**type_ref {
-                    TypeRef::Path(p) if p == &Path::from(name![Self]) => bound.as_path(),
-                    _ => None,
-                },
-                WherePredicateTypeTarget::TypeOrConstParam(local_id)
-                    if Some(*local_id) == trait_self =>
-                {
-                    bound.as_path()
+            | WherePredicate::TypeBound { target, bound } => {
+                let is_trait = match target {
+                    WherePredicateTypeTarget::TypeRef(type_ref) => match &**type_ref {
+                        TypeRef::Path(p) => p.is_self_type(),
+                        _ => false,
+                    },
+                    WherePredicateTypeTarget::TypeOrConstParam(local_id) => {
+                        Some(*local_id) == trait_self
+                    }
+                };
+                match is_trait {
+                    true => bound.as_path(),
+                    false => None,
                 }
-                _ => None,
-            },
+            }
             WherePredicate::Lifetime { .. } => None,
         })
-        .filter_map(|(path, bound_modifier)| match bound_modifier {
-            TraitBoundModifier::None => Some(path),
-            TraitBoundModifier::Maybe => None,
-        })
-        .filter_map(|path| match resolver.resolve_path_in_type_ns_fully(db, path.mod_path()) {
+        .filter(|(_, bound_modifier)| matches!(bound_modifier, TraitBoundModifier::None))
+        .filter_map(|(path, _)| match resolver.resolve_path_in_type_ns_fully(db, path.mod_path()) {
             Some(TypeNs::TraitId(t)) => Some(t),
             _ => None,
         })
@@ -131,7 +130,7 @@ pub fn all_super_traits(db: &dyn DefDatabase, trait_: TraitId) -> SmallVec<[Trai
 /// `all_super_traits` is that we keep track of type parameters; for example if
 /// we have `Self: Trait<u32, i32>` and `Trait<T, U>: OtherTrait<U>` we'll get
 /// `Self: OtherTrait<i32>`.
-pub(super) fn all_super_trait_refs(db: &dyn HirDatabase, trait_ref: TraitRef) -> SuperTraits {
+pub(super) fn all_super_trait_refs(db: &dyn HirDatabase, trait_ref: TraitRef) -> SuperTraits<'_> {
     SuperTraits { db, seen: iter::once(trait_ref.trait_id).collect(), stack: vec![trait_ref] }
 }
 

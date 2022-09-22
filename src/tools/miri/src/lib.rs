@@ -6,7 +6,10 @@
 #![feature(let_else)]
 #![feature(io_error_more)]
 #![feature(yeet_expr)]
-#![warn(rust_2018_idioms)]
+#![feature(is_some_with)]
+#![feature(nonzero_ops)]
+#![feature(local_key_cell_methods)]
+// Configure clippy and other lints
 #![allow(
     clippy::collapsible_else_if,
     clippy::collapsible_if,
@@ -20,6 +23,13 @@
     clippy::derive_partial_eq_without_eq,
     clippy::derive_hash_xor_eq,
     clippy::too_many_arguments
+)]
+#![warn(
+    rust_2018_idioms,
+    clippy::cast_possible_wrap, // unsigned -> signed
+    clippy::cast_sign_loss, // signed -> unsigned
+    clippy::cast_lossless,
+    clippy::cast_possible_truncation,
 )]
 
 extern crate rustc_apfloat;
@@ -54,7 +64,7 @@ mod vector_clock;
 // Make all those symbols available in the same place as our own.
 pub use rustc_const_eval::interpret::*;
 // Resolve ambiguity.
-pub use rustc_const_eval::interpret::{self, AllocMap, PlaceTy};
+pub use rustc_const_eval::interpret::{self, AllocMap, PlaceTy, Provenance as _};
 
 pub use crate::shims::dlsym::{Dlsym, EvalContextExt as _};
 pub use crate::shims::env::{EnvVars, EvalContextExt as _};
@@ -67,7 +77,7 @@ pub use crate::shims::tls::{EvalContextExt as _, TlsData};
 pub use crate::shims::EvalContextExt as _;
 
 pub use crate::concurrency::data_race::{
-    AtomicFenceOp, AtomicReadOp, AtomicRwOp, AtomicWriteOp,
+    AtomicFenceOrd, AtomicReadOrd, AtomicRwOrd, AtomicWriteOrd,
     EvalContextExt as DataRaceEvalContextExt,
 };
 pub use crate::diagnostics::{
@@ -80,15 +90,14 @@ pub use crate::eval::{
 pub use crate::helpers::{CurrentSpan, EvalContextExt as HelpersEvalContextExt};
 pub use crate::intptrcast::ProvenanceMode;
 pub use crate::machine::{
-    AllocExtra, ConcreteTag, Evaluator, FrameData, MiriEvalContext, MiriEvalContextExt,
-    MiriMemoryKind, Tag, NUM_CPUS, PAGE_SIZE, STACK_ADDR, STACK_SIZE,
+    AllocExtra, Evaluator, FrameData, MiriEvalContext, MiriEvalContextExt, MiriMemoryKind,
+    Provenance, ProvenanceExtra, NUM_CPUS, PAGE_SIZE, STACK_ADDR, STACK_SIZE,
 };
 pub use crate::mono_hash_map::MonoHashMap;
 pub use crate::operator::EvalContextExt as OperatorEvalContextExt;
 pub use crate::range_map::RangeMap;
 pub use crate::stacked_borrows::{
-    CallId, EvalContextExt as StackedBorEvalContextExt, Item, Permission, PtrId, SbTag, Stack,
-    Stacks,
+    CallId, EvalContextExt as StackedBorEvalContextExt, Item, Permission, SbTag, Stack, Stacks,
 };
 pub use crate::sync::{CondvarId, EvalContextExt as SyncEvalContextExt, MutexId, RwLockId};
 pub use crate::thread::{

@@ -3,8 +3,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use xshell::{cmd, Shell};
+use xshell::Shell;
 
+#[cfg(not(feature = "in-rust-tree"))]
+use xshell::cmd;
+
+#[cfg(not(feature = "in-rust-tree"))]
 #[test]
 fn check_code_formatting() {
     let sh = &Shell::new().unwrap();
@@ -142,56 +146,6 @@ fn check_cargo_toml(path: &Path, text: String) {
     }
 }
 
-#[test]
-fn check_merge_commits() {
-    let sh = &Shell::new().unwrap();
-
-    let bors = cmd!(sh, "git rev-list --merges --author 'bors' HEAD~19..").read().unwrap();
-    let all = cmd!(sh, "git rev-list --merges HEAD~19..").read().unwrap();
-    if bors != all {
-        panic!(
-            "
-Merge commits are not allowed in the history.
-
-When updating a pull-request, please rebase your feature branch
-on top of master by running `git rebase master`. If rebase fails,
-you can re-apply your changes like this:
-
-  # Just look around to see the current state.
-  $ git status
-  $ git log
-
-  # Abort in-progress rebase and merges, if any.
-  $ git rebase --abort
-  $ git merge --abort
-
-  # Make the branch point to the latest commit from master,
-  # while maintaining your local changes uncommited.
-  $ git reset --soft origin/master
-
-  # Commit all changes in a single batch.
-  $ git commit -am'My changes'
-
-  # Verify that everything looks alright.
-  $ git status
-  $ git log
-
-  # Push the changes. We did a rebase, so we need `--force` option.
-  # `--force-with-lease` is a more safe (Rusty) version of `--force`.
-  $ git push --force-with-lease
-
-  # Verify that both local and remote branch point to the same commit.
-  $ git log
-
-And don't fear to mess something up during a rebase -- you can
-always restore the previous state using `git ref-log`:
-
-https://github.blog/2015-06-08-how-to-undo-almost-anything-with-git/#redo-after-undo-local
-"
-        );
-    }
-}
-
 fn deny_clippy(path: &Path, text: &str) {
     let ignore = &[
         // The documentation in string literals may contain anything for its own purposes
@@ -218,6 +172,7 @@ See https://github.com/rust-lang/rust-clippy/issues/5537 for discussion.
     }
 }
 
+#[cfg(not(feature = "in-rust-tree"))]
 #[test]
 fn check_licenses() {
     let sh = &Shell::new().unwrap();
@@ -344,7 +299,7 @@ fn check_dbg(path: &Path, text: &str) {
 
 fn check_test_attrs(path: &Path, text: &str) {
     let ignore_rule =
-        "https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/style.md#ignore";
+        "https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#ignore";
     let need_ignore: &[&str] = &[
         // This file.
         "slow-tests/tidy.rs",
@@ -365,7 +320,7 @@ fn check_test_attrs(path: &Path, text: &str) {
     }
 
     let panic_rule =
-        "https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/style.md#should_panic";
+        "https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#should_panic";
     let need_panic: &[&str] = &[
         // This file.
         "slow-tests/tidy.rs",
@@ -471,17 +426,9 @@ struct TidyMarks {
 
 impl TidyMarks {
     fn visit(&mut self, _path: &Path, text: &str) {
-        for line in text.lines() {
-            if let Some(mark) = find_mark(line, "hit") {
-                self.hits.insert(mark.to_string());
-            }
-            if let Some(mark) = find_mark(line, "check") {
-                self.checks.insert(mark.to_string());
-            }
-            if let Some(mark) = find_mark(line, "check_count") {
-                self.checks.insert(mark.to_string());
-            }
-        }
+        find_marks(&mut self.hits, text, "hit");
+        find_marks(&mut self.checks, text, "check");
+        find_marks(&mut self.checks, text, "check_count");
     }
 
     fn finish(self) {
@@ -506,10 +453,21 @@ fn stable_hash(text: &str) -> u64 {
     hasher.finish()
 }
 
-fn find_mark<'a>(text: &'a str, mark: &'static str) -> Option<&'a str> {
-    let idx = text.find(mark)?;
-    let text = text[idx + mark.len()..].strip_prefix("!(")?;
-    let idx = text.find(|c: char| !(c.is_alphanumeric() || c == '_'))?;
-    let text = &text[..idx];
-    Some(text)
+fn find_marks(set: &mut HashSet<String>, text: &str, mark: &str) {
+    let mut text = text;
+    let mut prev_text = "";
+    while text != prev_text {
+        prev_text = text;
+        if let Some(idx) = text.find(mark) {
+            text = &text[idx + mark.len()..];
+            if let Some(stripped_text) = text.strip_prefix("!(") {
+                text = stripped_text.trim_start();
+                if let Some(idx2) = text.find(|c: char| !(c.is_alphanumeric() || c == '_')) {
+                    let mark_text = &text[..idx2];
+                    set.insert(mark_text.to_string());
+                    text = &text[idx2..];
+                }
+            }
+        }
+    }
 }

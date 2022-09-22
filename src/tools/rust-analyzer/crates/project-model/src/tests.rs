@@ -75,8 +75,11 @@ fn get_test_path(file: &str) -> PathBuf {
 
 fn get_fake_sysroot() -> Sysroot {
     let sysroot_path = get_test_path("fake-sysroot");
-    let sysroot_src_dir = AbsPathBuf::assert(sysroot_path);
-    Sysroot::load(sysroot_src_dir).unwrap()
+    // there's no `libexec/` directory with a `proc-macro-srv` binary in that
+    // fake sysroot, so we give them both the same path:
+    let sysroot_dir = AbsPathBuf::assert(sysroot_path);
+    let sysroot_src_dir = sysroot_dir.clone();
+    Sysroot::load(sysroot_dir, sysroot_src_dir).unwrap()
 }
 
 fn rooted_project_json(data: ProjectJsonData) -> ProjectJson {
@@ -172,8 +175,8 @@ fn cargo_hello_world_project_model_with_wildcard_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -247,8 +250,8 @@ fn cargo_hello_world_project_model_with_wildcard_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -312,8 +315,8 @@ fn cargo_hello_world_project_model_with_wildcard_overrides() {
                             },
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: Some(
@@ -389,8 +392,8 @@ fn cargo_hello_world_project_model_with_wildcard_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -464,8 +467,8 @@ fn cargo_hello_world_project_model_with_wildcard_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -554,8 +557,8 @@ fn cargo_hello_world_project_model_with_selective_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -631,8 +634,8 @@ fn cargo_hello_world_project_model_with_selective_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -696,8 +699,8 @@ fn cargo_hello_world_project_model_with_selective_overrides() {
                             },
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: Some(
@@ -775,8 +778,8 @@ fn cargo_hello_world_project_model_with_selective_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -852,8 +855,8 @@ fn cargo_hello_world_project_model_with_selective_overrides() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -933,8 +936,8 @@ fn cargo_hello_world_project_model() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -1010,8 +1013,8 @@ fn cargo_hello_world_project_model() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -1041,7 +1044,6 @@ fn cargo_hello_world_project_model() {
                                 "debug_assertions",
                                 "feature=default",
                                 "feature=std",
-                                "test",
                             ],
                         ),
                         potential_cfg_options: CfgOptions(
@@ -1054,7 +1056,6 @@ fn cargo_hello_world_project_model() {
                                 "feature=rustc-dep-of-std",
                                 "feature=std",
                                 "feature=use_std",
-                                "test",
                             ],
                         ),
                         env: Env {
@@ -1077,8 +1078,8 @@ fn cargo_hello_world_project_model() {
                             },
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: Some(
@@ -1156,8 +1157,8 @@ fn cargo_hello_world_project_model() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -1233,8 +1234,8 @@ fn cargo_hello_world_project_model() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "crate has not (yet) been built",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -1290,8 +1291,8 @@ fn rust_project_hello_world_project_model() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Alloc,
@@ -1324,8 +1325,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Other,
@@ -1358,8 +1359,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Other,
@@ -1402,8 +1403,8 @@ fn rust_project_hello_world_project_model() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Other,
@@ -1436,8 +1437,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Core,
@@ -1507,8 +1508,8 @@ fn rust_project_hello_world_project_model() {
                                 prelude: false,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro dylib present",
                         ),
                         origin: CratesIo {
                             repo: None,
@@ -1541,8 +1542,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Other,
@@ -1575,8 +1576,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Other,
@@ -1609,8 +1610,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Other,
@@ -1643,8 +1644,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Test,
@@ -1759,8 +1760,8 @@ fn rust_project_hello_world_project_model() {
                                 prelude: true,
                             },
                         ],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Std,
@@ -1793,8 +1794,8 @@ fn rust_project_hello_world_project_model() {
                             entries: {},
                         },
                         dependencies: [],
-                        proc_macro: Ok(
-                            [],
+                        proc_macro: Err(
+                            "no proc macro loaded for sysroot crate",
                         ),
                         origin: Lang(
                             Other,

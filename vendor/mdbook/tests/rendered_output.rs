@@ -468,6 +468,21 @@ fn by_default_mdbook_use_index_preprocessor_to_convert_readme_to_index() {
 }
 
 #[test]
+fn first_chapter_is_copied_as_index_even_if_not_first_elem() {
+    let temp = DummyBook::new().build().unwrap();
+    let mut cfg = Config::default();
+    cfg.set("book.src", "index_html_test")
+        .expect("Couldn't set config.book.src to \"index_html_test\"");
+    let md = MDBook::load_with_config(temp.path(), cfg).unwrap();
+    md.build().unwrap();
+
+    let root = temp.path().join("book");
+    let chapter = fs::read_to_string(root.join("chapter_1.html")).expect("read chapter 1");
+    let index = fs::read_to_string(root.join("index.html")).expect("read index");
+    pretty_assertions::assert_eq!(chapter, index);
+}
+
+#[test]
 fn theme_dir_overrides_work_correctly() {
     let book_dir = dummy_book::new_copy_of_example_book().unwrap();
     let book_dir = book_dir.path();
@@ -657,6 +672,57 @@ fn summary_with_markdown_formatting() {
     );
 }
 
+/// Ensure building fails if `[output.html].theme` points to a non-existent directory
+#[test]
+fn failure_on_missing_theme_directory() {
+    // 1. Using default theme should work
+    let temp = DummyBook::new().build().unwrap();
+    let book_toml = r#"
+        [book]
+        title = "implicit"
+        src = "src"
+        "#;
+
+    write_file(temp.path(), "book.toml", book_toml.as_bytes()).unwrap();
+    let md = MDBook::load(temp.path()).unwrap();
+    let got = md.build();
+    assert!(got.is_ok());
+
+    // 2. Pointing to a normal directory should work
+    let temp = DummyBook::new().build().unwrap();
+    let created = fs::create_dir(temp.path().join("theme-directory"));
+    assert!(created.is_ok());
+    let book_toml = r#"
+        [book]
+        title = "implicit"
+        src = "src"
+
+        [output.html]
+        theme = "./theme-directory"
+        "#;
+
+    write_file(temp.path(), "book.toml", book_toml.as_bytes()).unwrap();
+    let md = MDBook::load(temp.path()).unwrap();
+    let got = md.build();
+    assert!(got.is_ok());
+
+    // 3. Pointing to a non-existent directory should fail
+    let temp = DummyBook::new().build().unwrap();
+    let book_toml = r#"
+        [book]
+        title = "implicit"
+        src = "src"
+
+        [output.html]
+        theme = "./non-existent-directory"
+        "#;
+
+    write_file(temp.path(), "book.toml", book_toml.as_bytes()).unwrap();
+    let md = MDBook::load(temp.path()).unwrap();
+    let got = md.build();
+    assert!(got.is_err());
+}
+
 #[cfg(feature = "search")]
 mod search {
     use crate::dummy_book::DummyBook;
@@ -721,7 +787,7 @@ mod search {
         );
         assert_eq!(
             docs[&no_headers]["body"],
-            "Capybara capybara capybara. Capybara capybara capybara."
+            "Capybara capybara capybara. Capybara capybara capybara. ThisLongWordIsIncludedSoWeCanCheckThatSufficientlyLongWordsAreOmittedFromTheSearchIndex."
         );
     }
 

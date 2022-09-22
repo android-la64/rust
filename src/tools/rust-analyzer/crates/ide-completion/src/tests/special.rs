@@ -419,9 +419,9 @@ mod m {
     pub use super::p::WrongType as RightType;
 }
 mod p {
-    fn wrong_fn() {}
-    const WRONG_CONST: u32 = 1;
-    struct WrongType {};
+    pub fn wrong_fn() {}
+    pub const WRONG_CONST: u32 = 1;
+    pub struct WrongType {};
 }
 "#,
         expect![[r#"
@@ -442,9 +442,9 @@ mod m {
     pub use super::p::WrongType as RightType;
 }
 mod p {
-    fn wrong_fn() {}
-    const WRONG_CONST: u32 = 1;
-    struct WrongType {};
+    pub fn wrong_fn() {}
+    pub const WRONG_CONST: u32 = 1;
+    pub struct WrongType {};
 }
 "#,
         r#"
@@ -456,9 +456,9 @@ mod m {
     pub use super::p::WrongType as RightType;
 }
 mod p {
-    fn wrong_fn() {}
-    const WRONG_CONST: u32 = 1;
-    struct WrongType {};
+    pub fn wrong_fn() {}
+    pub const WRONG_CONST: u32 = 1;
+    pub struct WrongType {};
 }
 "#,
     );
@@ -519,6 +519,7 @@ fn foo() {
 
 #[test]
 fn completes_variant_through_self() {
+    cov_mark::check!(completes_variant_through_self);
     check(
         r#"
 enum Foo {
@@ -536,6 +537,46 @@ impl Foo {
                 ev Bar    Bar
                 ev Baz    Baz
                 me foo(…) fn(self)
+            "#]],
+    );
+}
+
+#[test]
+fn completes_non_exhaustive_variant_within_the_defining_crate() {
+    check(
+        r#"
+enum Foo {
+    #[non_exhaustive]
+    Bar,
+    Baz,
+}
+
+fn foo(self) {
+    Foo::$0
+}
+"#,
+        expect![[r#"
+                ev Bar Bar
+                ev Baz Baz
+            "#]],
+    );
+
+    check(
+        r#"
+//- /main.rs crate:main deps:e
+fn foo(self) {
+    e::Foo::$0
+}
+
+//- /e.rs crate:e
+enum Foo {
+    #[non_exhaustive]
+    Bar,
+    Baz,
+}
+"#,
+        expect![[r#"
+                ev Baz Baz
             "#]],
     );
 }
@@ -586,7 +627,6 @@ fn main() {
 
 #[test]
 fn respects_doc_hidden2() {
-    cov_mark::check!(qualified_path_doc_hidden);
     check(
         r#"
 //- /lib.rs crate:lib deps:dep
@@ -634,7 +674,60 @@ fn bar() -> Bar {
         expect![[r#"
                 fn foo() (as Foo) fn() -> Self
             "#]],
-    )
+    );
+}
+
+#[test]
+fn type_anchor_type() {
+    check(
+        r#"
+trait Foo {
+    fn foo() -> Self;
+}
+struct Bar;
+impl Bar {
+    fn bar() {}
+}
+impl Foo for Bar {
+    fn foo() -> {
+        Bar
+    }
+}
+fn bar() -> Bar {
+    <Bar>::$0
+}
+"#,
+        expect![[r#"
+            fn bar()          fn()
+            fn foo() (as Foo) fn() -> Self
+        "#]],
+    );
+}
+
+#[test]
+fn type_anchor_type_trait() {
+    check(
+        r#"
+trait Foo {
+    fn foo() -> Self;
+}
+struct Bar;
+impl Bar {
+    fn bar() {}
+}
+impl Foo for Bar {
+    fn foo() -> {
+        Bar
+    }
+}
+fn bar() -> Bar {
+    <Bar as Foo>::$0
+}
+"#,
+        expect![[r#"
+            fn foo() (as Foo) fn() -> Self
+        "#]],
+    );
 }
 
 #[test]
@@ -741,4 +834,62 @@ fn main() {
             ct by_macro (as MyTrait) pub const by_macro: u8
         "#]],
     )
+}
+
+#[test]
+fn completes_locals_from_macros() {
+    check(
+        r#"
+
+macro_rules! x {
+    ($x:ident, $expr:expr) => {
+        let $x = 0;
+        $expr
+    };
+}
+fn main() {
+    x! {
+        foobar, {
+            f$0
+        }
+    };
+}
+"#,
+        expect![[r#"
+            fn main() fn()
+            lc foobar i32
+            ma x!(…)  macro_rules! x
+            bt u32
+        "#]],
+    )
+}
+
+#[test]
+fn regression_12644() {
+    check(
+        r#"
+macro_rules! __rust_force_expr {
+    ($e:expr) => {
+        $e
+    };
+}
+macro_rules! vec {
+    ($elem:expr) => {
+        __rust_force_expr!($elem)
+    };
+}
+
+struct Struct;
+impl Struct {
+    fn foo(self) {}
+}
+
+fn f() {
+    vec![Struct].$0;
+}
+"#,
+        expect![[r#"
+            me foo() fn(self)
+        "#]],
+    );
 }

@@ -53,7 +53,8 @@ pub(crate) fn symbol_kind(symbol_kind: SymbolKind) -> lsp_types::SymbolKind {
         SymbolKind::Macro
         | SymbolKind::BuiltinAttr
         | SymbolKind::Attribute
-        | SymbolKind::Derive => lsp_types::SymbolKind::FUNCTION,
+        | SymbolKind::Derive
+        | SymbolKind::DeriveHelper => lsp_types::SymbolKind::FUNCTION,
         SymbolKind::Module | SymbolKind::ToolModule => lsp_types::SymbolKind::MODULE,
         SymbolKind::TypeAlias | SymbolKind::TypeParam | SymbolKind::SelfType => {
             lsp_types::SymbolKind::TYPE_PARAMETER
@@ -117,6 +118,7 @@ pub(crate) fn completion_item_kind(
             SymbolKind::Const => lsp_types::CompletionItemKind::CONSTANT,
             SymbolKind::ConstParam => lsp_types::CompletionItemKind::TYPE_PARAMETER,
             SymbolKind::Derive => lsp_types::CompletionItemKind::FUNCTION,
+            SymbolKind::DeriveHelper => lsp_types::CompletionItemKind::FUNCTION,
             SymbolKind::Enum => lsp_types::CompletionItemKind::ENUM,
             SymbolKind::Field => lsp_types::CompletionItemKind::FIELD,
             SymbolKind::Function => lsp_types::CompletionItemKind::FUNCTION,
@@ -224,6 +226,7 @@ fn completion_item(
     max_relevance: u32,
     item: CompletionItem,
 ) {
+    let insert_replace_support = config.insert_replace_support().then(|| tdpp.position);
     let mut additional_text_edits = Vec::new();
 
     // LSP does not allow arbitrary edits in completion, so we have to do a
@@ -233,7 +236,6 @@ fn completion_item(
         let source_range = item.source_range();
         for indel in item.text_edit().iter() {
             if indel.delete.contains_range(source_range) {
-                let insert_replace_support = config.insert_replace_support().then(|| tdpp.position);
                 text_edit = Some(if indel.delete == source_range {
                     self::completion_text_edit(line_index, insert_replace_support, indel.clone())
                 } else {
@@ -254,6 +256,14 @@ fn completion_item(
         text_edit.unwrap()
     };
 
+    let insert_text_format = item.is_snippet().then(|| lsp_types::InsertTextFormat::SNIPPET);
+    let tags = item.deprecated().then(|| vec![lsp_types::CompletionItemTag::DEPRECATED]);
+    let command = if item.trigger_call_info() && config.client_commands().trigger_parameter_hints {
+        Some(command::trigger_parameter_hints())
+    } else {
+        None
+    };
+
     let mut lsp_item = lsp_types::CompletionItem {
         label: item.label().to_string(),
         detail: item.detail().map(|it| it.to_string()),
@@ -263,22 +273,21 @@ fn completion_item(
         additional_text_edits: Some(additional_text_edits),
         documentation: item.documentation().map(documentation),
         deprecated: Some(item.deprecated()),
+        tags,
+        command,
+        insert_text_format,
         ..Default::default()
     };
 
+    if config.completion_label_details_support() {
+        lsp_item.label_details = Some(lsp_types::CompletionItemLabelDetails {
+            detail: None,
+            description: lsp_item.detail.clone(),
+        });
+    }
+
     set_score(&mut lsp_item, max_relevance, item.relevance());
 
-    if item.deprecated() {
-        lsp_item.tags = Some(vec![lsp_types::CompletionItemTag::DEPRECATED])
-    }
-
-    if item.trigger_call_info() && config.client_commands().trigger_parameter_hints {
-        lsp_item.command = Some(command::trigger_parameter_hints());
-    }
-
-    if item.is_snippet() {
-        lsp_item.insert_text_format = Some(lsp_types::InsertTextFormat::SNIPPET);
-    }
     if config.completion().enable_imports_on_the_fly {
         if let imports @ [_, ..] = item.imports_to_add() {
             let imports: Vec<_> = imports
@@ -299,18 +308,17 @@ fn completion_item(
         }
     }
 
-    if let Some((mutability, relevance)) = item.ref_match() {
+    if let Some((mutability, offset, relevance)) = item.ref_match() {
         let mut lsp_item_with_ref = lsp_item.clone();
         set_score(&mut lsp_item_with_ref, max_relevance, relevance);
         lsp_item_with_ref.label =
             format!("&{}{}", mutability.as_keyword_for_ref(), lsp_item_with_ref.label);
-        if let Some(it) = &mut lsp_item_with_ref.text_edit {
-            let new_text = match it {
-                lsp_types::CompletionTextEdit::Edit(it) => &mut it.new_text,
-                lsp_types::CompletionTextEdit::InsertAndReplace(it) => &mut it.new_text,
-            };
-            *new_text = format!("&{}{}", mutability.as_keyword_for_ref(), new_text);
-        }
+        lsp_item_with_ref.additional_text_edits.get_or_insert_with(Default::default).push(
+            self::text_edit(
+                line_index,
+                Indel::insert(offset, format!("&{}", mutability.as_keyword_for_ref())),
+            ),
+        );
 
         acc.push(lsp_item_with_ref);
     };
@@ -555,6 +563,7 @@ fn semantic_token_type_and_modifiers(
         HlTag::Symbol(symbol) => match symbol {
             SymbolKind::Attribute => semantic_tokens::ATTRIBUTE,
             SymbolKind::Derive => semantic_tokens::DERIVE,
+            SymbolKind::DeriveHelper => semantic_tokens::DERIVE_HELPER,
             SymbolKind::Module => lsp_types::SemanticTokenType::NAMESPACE,
             SymbolKind::Impl => semantic_tokens::TYPE_ALIAS,
             SymbolKind::Field => lsp_types::SemanticTokenType::PROPERTY,

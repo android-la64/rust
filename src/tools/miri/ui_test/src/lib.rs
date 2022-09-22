@@ -1,18 +1,25 @@
+#![allow(clippy::enum_variant_names, clippy::useless_format, clippy::too_many_arguments)]
+
 use std::collections::VecDeque;
+use std::ffi::OsString;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
+pub use color_eyre;
+use color_eyre::eyre::Result;
 use colored::*;
-use comments::ErrorMatch;
+use parser::{ErrorMatch, Pattern};
 use regex::Regex;
 use rustc_stderr::{Level, Message};
 
-use crate::comments::{Comments, Condition};
+use crate::dependencies::build_dependencies;
+use crate::parser::{Comments, Condition};
 
-mod comments;
+mod dependencies;
+mod parser;
 mod rustc_stderr;
 #[cfg(test)]
 mod tests;
@@ -20,7 +27,7 @@ mod tests;
 #[derive(Debug)]
 pub struct Config {
     /// Arguments passed to the binary that is executed.
-    pub args: Vec<String>,
+    pub args: Vec<OsString>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
     /// Filters applied to stderr output before processing it
@@ -34,6 +41,20 @@ pub struct Config {
     pub output_conflict_handling: OutputConflictHandling,
     /// Only run tests with one of these strings in their path/name
     pub path_filter: Vec<String>,
+    /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
+    pub dependencies_crate_manifest_path: Option<PathBuf>,
+    /// Can be used to override what command to run instead of `cargo` to build the
+    /// dependencies in `manifest_path`
+    pub dependency_builder: Option<DependencyBuilder>,
+    /// Print one character per test instead of one line
+    pub quiet: bool,
+}
+
+#[derive(Debug)]
+pub struct DependencyBuilder {
+    pub program: PathBuf,
+    pub args: Vec<String>,
+    pub envs: Vec<(String, OsString)>,
 }
 
 #[derive(Debug)]
@@ -49,11 +70,26 @@ pub enum OutputConflictHandling {
 
 pub type Filter = Vec<(Regex, &'static str)>;
 
-pub fn run_tests(config: Config) {
+pub fn run_tests(mut config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
 
     // Get the triple with which to run the tests
     let target = config.target.clone().unwrap_or_else(|| config.get_host());
+
+    eprintln!("   Building test dependencies...");
+    let dependencies = build_dependencies(&config)?;
+    for (name, dependency) in dependencies.dependencies {
+        config.args.push("--extern".into());
+        let mut dep = OsString::from(name);
+        dep.push("=");
+        dep.push(dependency);
+        config.args.push(dep);
+    }
+    for import_path in dependencies.import_paths {
+        config.args.push("-L".into());
+        config.args.push(import_path.into());
+    }
+    let config = config;
 
     // A channel for files to process
     let (submit, receive) = crossbeam::channel::unbounded();
@@ -64,7 +100,7 @@ pub fn run_tests(config: Config) {
     let ignored = AtomicUsize::default();
     let filtered = AtomicUsize::default();
 
-    crossbeam::scope(|s| {
+    crossbeam::scope(|s| -> Result<()> {
         // Create a thread that is in charge of walking the directory and submitting jobs.
         // It closes the channel when it is done.
         s.spawn(|_| {
@@ -90,9 +126,50 @@ pub fn run_tests(config: Config) {
             drop(submit);
         });
 
+        // A channel for the messages emitted by the individual test threads.
+        let (finished_files_sender, finished_files_recv) = crossbeam::channel::unbounded();
+        enum TestResult {
+            Ok,
+            Failed,
+            Ignored,
+        }
+
+        s.spawn(|_| {
+            if config.quiet {
+                for (i, (_, result)) in finished_files_recv.into_iter().enumerate() {
+                    // Humans start counting at 1
+                    let i = i + 1;
+                    match result {
+                        TestResult::Ok => eprint!("{}", ".".green()),
+                        TestResult::Failed => eprint!("{}", "F".red().bold()),
+                        TestResult::Ignored => eprint!("{}", "i".yellow()),
+                    }
+                    if i % 100 == 0 {
+                        eprintln!(" {i}");
+                    }
+                }
+            } else {
+                for (msg, result) in finished_files_recv {
+                    eprint!("{msg} ... ");
+                    eprintln!(
+                        "{}",
+                        match result {
+                            TestResult::Ok => "ok".green(),
+                            TestResult::Failed => "FAILED".red().bold(),
+                            TestResult::Ignored => "ignored (in-test comment)".yellow(),
+                        }
+                    );
+                }
+            }
+        });
+
+        let mut threads = vec![];
+
         // Create N worker threads that receive files to test.
         for _ in 0..std::thread::available_parallelism().unwrap().get() {
-            s.spawn(|_| {
+            let finished_files_sender = finished_files_sender.clone();
+            threads.push(s.spawn(|_| -> Result<()> {
+                let finished_files_sender = finished_files_sender;
                 for path in &receive {
                     if !config.path_filter.is_empty() {
                         let path_display = path.display().to_string();
@@ -101,15 +178,12 @@ pub fn run_tests(config: Config) {
                             continue;
                         }
                     }
-                    let comments = Comments::parse_file(&path);
+                    let comments = Comments::parse_file(&path)?;
                     // Ignore file if only/ignore rules do (not) apply
-                    if !test_file_conditions(&comments, &target) {
+                    if !test_file_conditions(&comments, &target, &config) {
                         ignored.fetch_add(1, Ordering::Relaxed);
-                        eprintln!(
-                            "{} ... {}",
-                            path.display(),
-                            "ignored (in-test comment)".yellow()
-                        );
+                        finished_files_sender
+                            .send((path.display().to_string(), TestResult::Ignored))?;
                         continue;
                     }
                     // Run the test for all revisions
@@ -124,12 +198,11 @@ pub fn run_tests(config: Config) {
                         if !revision.is_empty() {
                             write!(msg, "(revision `{revision}`) ").unwrap();
                         }
-                        write!(msg, "... ").unwrap();
                         if errors.is_empty() {
-                            eprintln!("{msg}{}", "ok".green());
+                            finished_files_sender.send((msg, TestResult::Ok))?;
                             succeeded.fetch_add(1, Ordering::Relaxed);
                         } else {
-                            eprintln!("{msg}{}", "FAILED".red().bold());
+                            finished_files_sender.send((msg, TestResult::Failed))?;
                             failures.lock().unwrap().push((
                                 path.clone(),
                                 m,
@@ -140,10 +213,16 @@ pub fn run_tests(config: Config) {
                         }
                     }
                 }
-            });
+                Ok(())
+            }));
         }
+
+        for thread in threads {
+            thread.join().unwrap()?;
+        }
+        Ok(())
     })
-    .unwrap();
+    .unwrap()?;
 
     // Print all errors in a single thread to show reliable output
     let failures = failures.into_inner().unwrap();
@@ -153,20 +232,24 @@ pub fn run_tests(config: Config) {
     if !failures.is_empty() {
         for (path, miri, revision, errors, stderr) in &failures {
             eprintln!();
-            eprint!("{}", path.display().to_string().underline());
+            eprint!("{}", path.display().to_string().underline().bold());
             if !revision.is_empty() {
                 eprint!(" (revision `{}`)", revision);
             }
-            eprint!(" {}", "FAILED".red());
+            eprint!(" {}", "FAILED:".red().bold());
             eprintln!();
             eprintln!("command: {:?}", miri);
             eprintln!();
-            let mut dump_stderr = true;
             for error in errors {
                 match error {
                     Error::ExitStatus(mode, exit_status) => eprintln!("{mode:?} got {exit_status}"),
                     Error::PatternNotFound { pattern, definition_line } => {
-                        eprintln!("`{pattern}` {} in stderr output", "not found".red());
+                        match pattern {
+                            Pattern::SubString(s) =>
+                                eprintln!("substring `{s}` {} in stderr output", "not found".red()),
+                            Pattern::Regex(r) =>
+                                eprintln!("`/{r}/` does {} stderr output", "not match".red()),
+                        }
                         eprintln!(
                             "expected because of pattern here: {}:{definition_line}",
                             path.display().to_string().bold()
@@ -178,9 +261,6 @@ pub fn run_tests(config: Config) {
                     Error::PatternFoundInPassTest =>
                         eprintln!("{}", "error pattern found in success test".red()),
                     Error::OutputDiffers { path, actual, expected } => {
-                        if path.extension().unwrap() == "stderr" {
-                            dump_stderr = false;
-                        }
                         eprintln!("actual output differed from expected {}", path.display());
                         eprintln!("{}", pretty_assertions::StrComparison::new(expected, actual));
                         eprintln!()
@@ -204,23 +284,14 @@ pub fn run_tests(config: Config) {
                             eprintln!("    {level:?}: {message}")
                         }
                     }
-                    Error::ErrorPatternWithoutErrorAnnotation(path, line) => {
-                        eprintln!(
-                            "Annotation at {}:{line} matched an error diagnostic but did not have `ERROR` before its message",
-                            path.display()
-                        );
-                    }
                 }
                 eprintln!();
             }
-            // Unless we already dumped the stderr via an OutputDiffers diff, let's dump it here.
-            if dump_stderr {
-                eprintln!("actual stderr:");
-                eprintln!("{}", stderr);
-                eprintln!();
-            }
+            eprintln!("full stderr:");
+            eprintln!("{}", stderr);
+            eprintln!();
         }
-        eprintln!("{}", "failures:".red().underline());
+        eprintln!("{}", "FAILURES:".red().underline().bold());
         for (path, _miri, _revision, _errors, _stderr) in &failures {
             eprintln!("    {}", path.display());
         }
@@ -244,6 +315,7 @@ pub fn run_tests(config: Config) {
         filtered.to_string().yellow(),
     );
     eprintln!();
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -251,7 +323,7 @@ enum Error {
     /// Got an invalid exit status for the given mode.
     ExitStatus(Mode, ExitStatus),
     PatternNotFound {
-        pattern: String,
+        pattern: Pattern,
         definition_line: usize,
     },
     /// A ui test checking for failure does not have any failure patterns
@@ -268,7 +340,6 @@ enum Error {
         msgs: Vec<Message>,
         path: Option<(PathBuf, usize)>,
     },
-    ErrorPatternWithoutErrorAnnotation(PathBuf, usize),
 }
 
 type Errors = Vec<Error>;
@@ -291,9 +362,7 @@ fn run_test(
     for arg in &comments.compile_flags {
         miri.arg(arg);
     }
-    for (k, v) in &comments.env_vars {
-        miri.env(k, v);
-    }
+    miri.envs(comments.env_vars.iter().map(|(k, v)| (k, v)));
     let output = miri.output().expect("could not execute miri");
     let mut errors = config.mode.ok(output.status);
     let stderr = check_test_result(
@@ -338,17 +407,17 @@ fn check_test_result(
         revised("stderr"),
         target,
         &config.stderr_filters,
-        &config,
+        config,
         comments,
     );
     check_output(
-        &stdout,
+        stdout,
         path,
         errors,
         revised("stdout"),
         target,
         &config.stdout_filters,
-        &config,
+        config,
         comments,
     );
     // Check error annotations in the source against output
@@ -374,36 +443,16 @@ fn check_annotations(
     comments: &Comments,
 ) {
     if let Some((ref error_pattern, definition_line)) = comments.error_pattern {
-        let mut found = false;
-
         // first check the diagnostics messages outside of our file. We check this first, so that
-        // you can mix in-file annotations with // error-pattern annotations, even if there is overlap
+        // you can mix in-file annotations with //@error-pattern annotations, even if there is overlap
         // in the messages.
         if let Some(i) = messages_from_unknown_file_or_line
             .iter()
-            .position(|msg| msg.message.contains(error_pattern))
+            .position(|msg| error_pattern.matches(&msg.message))
         {
             messages_from_unknown_file_or_line.remove(i);
-            found = true;
-        }
-
-        // if nothing was found, check the ones inside our file. We permit this because some tests may have
-        // flaky line numbers for their messages.
-        if !found {
-            for line in &mut messages {
-                if let Some(i) = line.iter().position(|msg| msg.message.contains(error_pattern)) {
-                    line.remove(i);
-                    found = true;
-                    break;
-                }
-            }
-        }
-
-        if !found {
-            errors.push(Error::PatternNotFound {
-                pattern: error_pattern.to_string(),
-                definition_line,
-            });
+        } else {
+            errors.push(Error::PatternNotFound { pattern: error_pattern.clone(), definition_line });
         }
     }
 
@@ -411,7 +460,7 @@ fn check_annotations(
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    for &ErrorMatch { ref matched, revision: ref rev, definition_line, line, level } in
+    for &ErrorMatch { ref pattern, revision: ref rev, definition_line, line, level } in
         &comments.error_matches
     {
         if let Some(rev) = rev {
@@ -419,36 +468,31 @@ fn check_annotations(
                 continue;
             }
         }
-        if let Some(level) = level {
-            // If we found a diagnostic with a level annotation, make sure that all
-            // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
-            // for this pattern.
-            lowest_annotation_level = std::cmp::min(lowest_annotation_level, level);
-        }
+
+        // If we found a diagnostic with a level annotation, make sure that all
+        // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
+        // for this pattern.
+        lowest_annotation_level = std::cmp::min(lowest_annotation_level, level);
 
         if let Some(msgs) = messages.get_mut(line) {
-            let found = msgs.iter().position(|msg| {
-                msg.message.contains(matched)
-                    // in case there is no level on the annotation, match any level.
-                    && level.map_or(true, |level| {
-                        msg.level == level
-                    })
-            });
+            let found =
+                msgs.iter().position(|msg| pattern.matches(&msg.message) && msg.level == level);
             if let Some(found) = found {
-                let msg = msgs.remove(found);
-                if msg.level == Level::Error && level.is_none() {
-                    errors
-                        .push(Error::ErrorPatternWithoutErrorAnnotation(path.to_path_buf(), line));
-                }
+                msgs.remove(found);
                 continue;
             }
         }
 
-        errors.push(Error::PatternNotFound { pattern: matched.to_string(), definition_line });
+        errors.push(Error::PatternNotFound { pattern: pattern.clone(), definition_line });
     }
 
     let filter = |msgs: Vec<Message>| -> Vec<_> {
-        msgs.into_iter().filter(|msg| msg.level >= lowest_annotation_level).collect()
+        msgs.into_iter()
+            .filter(|msg| {
+                msg.level
+                    >= comments.require_annotations_for_level.unwrap_or(lowest_annotation_level)
+            })
+            .collect()
     };
 
     let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
@@ -514,19 +558,20 @@ fn output_path(path: &Path, comments: &Comments, kind: String, target: &str) -> 
     path.with_extension(kind)
 }
 
-fn test_condition(condition: &Condition, target: &str) -> bool {
+fn test_condition(condition: &Condition, target: &str, config: &Config) -> bool {
     match condition {
         Condition::Bitwidth(bits) => get_pointer_width(target) == *bits,
         Condition::Target(t) => target.contains(t),
+        Condition::OnHost => config.target.is_none(),
     }
 }
 
 /// Returns whether according to the in-file conditions, this file should be run.
-fn test_file_conditions(comments: &Comments, target: &str) -> bool {
-    if comments.ignore.iter().any(|c| test_condition(c, target)) {
+fn test_file_conditions(comments: &Comments, target: &str, config: &Config) -> bool {
+    if comments.ignore.iter().any(|c| test_condition(c, target, config)) {
         return false;
     }
-    comments.only.iter().all(|c| test_condition(c, target))
+    comments.only.iter().all(|c| test_condition(c, target, config))
 }
 
 // Taken 1:1 from compiletest-rs

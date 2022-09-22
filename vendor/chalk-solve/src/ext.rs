@@ -1,15 +1,15 @@
 use crate::infer::InferenceTable;
-use chalk_ir::fold::Fold;
+use chalk_ir::fold::TypeFoldable;
 use chalk_ir::interner::{HasInterner, Interner};
 use chalk_ir::*;
 
 pub trait CanonicalExt<T: HasInterner, I: Interner> {
-    fn map<OP, U>(self, interner: I, op: OP) -> Canonical<U::Result>
+    fn map<OP, U>(self, interner: I, op: OP) -> Canonical<U>
     where
-        OP: FnOnce(T::Result) -> U,
-        T: Fold<I>,
-        U: Fold<I>,
-        U::Result: HasInterner<Interner = I>;
+        OP: FnOnce(T) -> U,
+        T: TypeFoldable<I>,
+        U: TypeFoldable<I>,
+        U: HasInterner<Interner = I>;
 }
 
 impl<T, I> CanonicalExt<T, I> for Canonical<T>
@@ -24,12 +24,12 @@ where
     /// inference context) are used in place of the quantified free
     /// variables. The result should be in terms of those same
     /// inference variables and will be re-canonicalized.
-    fn map<OP, U>(self, interner: I, op: OP) -> Canonical<U::Result>
+    fn map<OP, U>(self, interner: I, op: OP) -> Canonical<U>
     where
-        OP: FnOnce(T::Result) -> U,
-        T: Fold<I>,
-        U: Fold<I>,
-        U::Result: HasInterner<Interner = I>,
+        OP: FnOnce(T) -> U,
+        T: TypeFoldable<I>,
+        U: TypeFoldable<I>,
+        U: HasInterner<Interner = I>,
     {
         // Subtle: It is only quite rarely correct to apply `op` and
         // just re-use our existing binders. For that to be valid, the

@@ -5,7 +5,7 @@
 use std::mem;
 
 union HiddenRef {
-    // We avoid retagging at this type, so shared vs mutable does not matter.
+    // We avoid retagging at this type, and we only read, so shared vs mutable does not matter.
     r: &'static i32,
 }
 
@@ -18,7 +18,7 @@ fn main() {
     callee(xref1_sneaky);
     // ... though any use of it will invalidate our ref.
     let _val = *xref2;
-    //~^ ERROR: borrow stack
+    //~^ ERROR: /read access .* tag does not exist in the borrow stack/
 }
 
 fn callee(xref1: HiddenRef) {

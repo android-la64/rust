@@ -11,8 +11,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         abi: Abi,
         link_name: Symbol,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
         let [flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
@@ -31,8 +31,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         abi: Abi,
         link_name: Symbol,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
         let tcx = this.tcx;
@@ -48,7 +48,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             let mut span = frame.current_span();
             // Match the behavior of runtime backtrace spans
             // by using a non-macro span in our backtrace. See `FunctionCx::debug_loc`.
-            if span.from_expansion() && !tcx.sess.opts.debugging_opts.debug_macros {
+            if span.from_expansion() && !tcx.sess.opts.unstable_opts.debug_macros {
                 span = rustc_span::hygiene::walk_chain(span, frame.body.span.ctxt())
             }
             data.push((frame.instance, span.lo()));
@@ -104,8 +104,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 for (i, ptr) in ptrs.into_iter().enumerate() {
                     let offset = ptr_layout.size * i.try_into().unwrap();
 
-                    let op_place =
-                        buf_place.offset(offset, MemPlaceMeta::None, ptr_layout, this)?;
+                    let op_place = buf_place.offset(offset, ptr_layout, this)?;
 
                     this.write_pointer(ptr, &op_place.into())?;
                 }
@@ -118,20 +117,22 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
     fn resolve_frame_pointer(
         &mut self,
-        ptr: &OpTy<'tcx, Tag>,
+        ptr: &OpTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx, (Instance<'tcx>, Loc, String, String)> {
         let this = self.eval_context_mut();
 
         let ptr = this.read_pointer(ptr)?;
-        // Take apart the pointer, we need its pieces.
-        let (alloc_id, offset, _tag) = this.ptr_get_alloc_id(ptr)?;
+        // Take apart the pointer, we need its pieces. The offset encodes the span.
+        let (alloc_id, offset, _prov) = this.ptr_get_alloc_id(ptr)?;
 
-        let fn_instance =
-            if let Some(GlobalAlloc::Function(instance)) = this.tcx.get_global_alloc(alloc_id) {
-                instance
-            } else {
-                throw_ub_format!("expected function pointer, found {:?}", ptr);
-            };
+        // This has to be an actual global fn ptr, not a dlsym function.
+        let fn_instance = if let Some(GlobalAlloc::Function(instance)) =
+            this.tcx.try_get_global_alloc(alloc_id)
+        {
+            instance
+        } else {
+            throw_ub_format!("expected static function pointer, found {:?}", ptr);
+        };
 
         let lo =
             this.tcx.sess.source_map().lookup_char_pos(BytePos(offset.bytes().try_into().unwrap()));
@@ -146,8 +147,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         abi: Abi,
         link_name: Symbol,
-        args: &[OpTy<'tcx, Tag>],
-        dest: &PlaceTy<'tcx, Tag>,
+        args: &[OpTy<'tcx, Provenance>],
+        dest: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
         let [ptr, flags] = this.check_shim(abi, Abi::Rust, link_name, args)?;
@@ -170,9 +171,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             );
         }
 
-        let lineno: u32 = lo.line as u32;
+        // `u32` is not enough to fit line/colno, which can be `usize`. It seems unlikely that a
+        // file would have more than 2^32 lines or columns, but whatever, just default to 0.
+        let lineno: u32 = u32::try_from(lo.line).unwrap_or(0);
         // `lo.col` is 0-based - add 1 to make it 1-based for the caller.
-        let colno: u32 = lo.col.0 as u32 + 1;
+        let colno: u32 = u32::try_from(lo.col.0 + 1).unwrap_or(0);
 
         let dest = this.force_allocation(dest)?;
         if let ty::Adt(adt, _) = dest.layout.ty.kind() {
@@ -229,7 +232,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         abi: Abi,
         link_name: Symbol,
-        args: &[OpTy<'tcx, Tag>],
+        args: &[OpTy<'tcx, Provenance>],
     ) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
 

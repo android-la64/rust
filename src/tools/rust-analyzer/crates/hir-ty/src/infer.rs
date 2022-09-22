@@ -125,6 +125,44 @@ impl Default for BindingMode {
     }
 }
 
+/// Used to generalize patterns and assignee expressions.
+trait PatLike: Into<ExprOrPatId> + Copy {
+    type BindingMode: Copy;
+
+    fn infer(
+        this: &mut InferenceContext<'_>,
+        id: Self,
+        expected_ty: &Ty,
+        default_bm: Self::BindingMode,
+    ) -> Ty;
+}
+
+impl PatLike for ExprId {
+    type BindingMode = ();
+
+    fn infer(
+        this: &mut InferenceContext<'_>,
+        id: Self,
+        expected_ty: &Ty,
+        _: Self::BindingMode,
+    ) -> Ty {
+        this.infer_assignee_expr(id, expected_ty)
+    }
+}
+
+impl PatLike for PatId {
+    type BindingMode = BindingMode;
+
+    fn infer(
+        this: &mut InferenceContext<'_>,
+        id: Self,
+        expected_ty: &Ty,
+        default_bm: Self::BindingMode,
+    ) -> Ty {
+        this.infer_pat(id, expected_ty, default_bm)
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct InferOk<T> {
     value: T,
@@ -572,10 +610,10 @@ impl<'a> InferenceContext<'a> {
         let data = c.data(Interner);
         match data.value {
             ConstValue::Concrete(cc) => match cc.interned {
-                hir_def::type_ref::ConstScalar::Usize(_) => c,
                 hir_def::type_ref::ConstScalar::Unknown => {
                     self.table.new_const_var(data.ty.clone())
                 }
+                _ => c,
             },
             _ => c,
         }
@@ -938,7 +976,7 @@ impl Expectation {
     /// which still is useful, because it informs integer literals and the like.
     /// See the test case `test/ui/coerce-expect-unsized.rs` and #20169
     /// for examples of where this comes up,.
-    fn rvalue_hint(table: &mut unify::InferenceTable, ty: Ty) -> Self {
+    fn rvalue_hint(table: &mut unify::InferenceTable<'_>, ty: Ty) -> Self {
         // FIXME: do struct_tail_without_normalization
         match table.resolve_ty_shallow(&ty).kind(Interner) {
             TyKind::Slice(_) | TyKind::Str | TyKind::Dyn(_) => Expectation::RValueLikeUnsized(ty),
@@ -951,7 +989,7 @@ impl Expectation {
         Expectation::None
     }
 
-    fn resolve(&self, table: &mut unify::InferenceTable) -> Expectation {
+    fn resolve(&self, table: &mut unify::InferenceTable<'_>) -> Expectation {
         match self {
             Expectation::None => Expectation::None,
             Expectation::HasType(t) => Expectation::HasType(table.resolve_ty_shallow(t)),
@@ -961,7 +999,7 @@ impl Expectation {
         }
     }
 
-    fn to_option(&self, table: &mut unify::InferenceTable) -> Option<Ty> {
+    fn to_option(&self, table: &mut unify::InferenceTable<'_>) -> Option<Ty> {
         match self.resolve(table) {
             Expectation::None => None,
             Expectation::HasType(t) |
@@ -970,7 +1008,7 @@ impl Expectation {
         }
     }
 
-    fn only_has_type(&self, table: &mut unify::InferenceTable) -> Option<Ty> {
+    fn only_has_type(&self, table: &mut unify::InferenceTable<'_>) -> Option<Ty> {
         match self {
             Expectation::HasType(t) => Some(table.resolve_ty_shallow(t)),
             // Expectation::Castable(_) |
@@ -995,7 +1033,7 @@ impl Expectation {
     /// an expected type. Otherwise, we might write parts of the type
     /// when checking the 'then' block which are incompatible with the
     /// 'else' branch.
-    fn adjust_for_branches(&self, table: &mut unify::InferenceTable) -> Expectation {
+    fn adjust_for_branches(&self, table: &mut unify::InferenceTable<'_>) -> Expectation {
         match self {
             Expectation::HasType(ety) => {
                 let ety = table.resolve_ty_shallow(ety);
