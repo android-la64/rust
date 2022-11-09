@@ -10,54 +10,83 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56.1"
 name = "snapbox"
-version = "0.2.9"
-include = ["build.rs", "src/**/*", "Cargo.toml", "LICENSE*", "README.md", "benches/**/*", "examples/**/*"]
+version = "0.3.3"
+include = [
+    "build.rs",
+    "src/**/*",
+    "Cargo.toml",
+    "LICENSE*",
+    "README.md",
+    "benches/**/*",
+    "examples/**/*",
+]
 description = "Snapshot testing toolbox"
 homepage = "https://github.com/assert-rs/trycmd/tree/main/crates/snapbox"
 documentation = "http://docs.rs/snapbox/"
 readme = "README.md"
-keywords = ["cli", "test", "assert", "command"]
+keywords = [
+    "cli",
+    "test",
+    "assert",
+    "command",
+]
 categories = ["development-tools::testing"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/assert-rs/trycmd/"
+resolver = "2"
+
 [package.metadata.docs.rs]
 all-features = true
-cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples=examples"]
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
+cargo-args = [
+    "-Zunstable-options",
+    "-Zrustdoc-scrape-examples=examples",
+]
+
 [[package.metadata.release.pre-release-replacements]]
 file = "CHANGELOG.md"
-min = 1
-replace = "{{version}}"
 search = "Unreleased"
-
-[[package.metadata.release.pre-release-replacements]]
-exactly = 1
-file = "CHANGELOG.md"
-replace = "...{{tag_name}}"
-search = "\\.\\.\\.HEAD"
-
-[[package.metadata.release.pre-release-replacements]]
-file = "CHANGELOG.md"
+replace = "{{version}}"
 min = 1
-replace = "{{date}}"
+
+[[package.metadata.release.pre-release-replacements]]
+file = "CHANGELOG.md"
+search = '\.\.\.HEAD'
+replace = "...{{tag_name}}"
+exactly = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "CHANGELOG.md"
 search = "ReleaseDate"
+replace = "{{date}}"
+min = 1
 
 [[package.metadata.release.pre-release-replacements]]
-exactly = 1
 file = "CHANGELOG.md"
-replace = "<!-- next-header -->\n## [Unreleased] - ReleaseDate\n"
 search = "<!-- next-header -->"
+replace = """
+<!-- next-header -->
+## [Unreleased] - ReleaseDate
+"""
+exactly = 1
 
 [[package.metadata.release.pre-release-replacements]]
-exactly = 1
 file = "CHANGELOG.md"
-replace = "<!-- next-url -->\n[Unreleased]: https://github.com/assert-rs/trycmd/compare/{{tag_name}}...HEAD"
 search = "<!-- next-url -->"
+replace = """
+<!-- next-url -->
+[Unreleased]: https://github.com/assert-rs/trycmd/compare/{{tag_name}}...HEAD"""
+exactly = 1
 
 [[bin]]
 name = "snap-fixture"
+
 [dependencies.backtrace]
 version = "0.3"
 optional = true
@@ -71,7 +100,7 @@ version = "0.2.4"
 optional = true
 
 [dependencies.document-features]
-version = "0.2"
+version = "0.2.3"
 optional = true
 
 [dependencies.dunce]
@@ -87,7 +116,7 @@ version = "0.4"
 optional = true
 
 [dependencies.libtest-mimic]
-version = "0.3.0"
+version = "0.4.0"
 optional = true
 
 [dependencies.normalize-line-endings]
@@ -103,7 +132,7 @@ features = ["inline"]
 optional = true
 
 [dependencies.snapbox-macros]
-version = "0.2.1"
+version = "0.3.0"
 
 [dependencies.tempfile]
 version = "3.0"
@@ -122,12 +151,36 @@ version = "0.5.0"
 optional = true
 
 [features]
-cmd = ["os_pipe", "wait-timeout"]
-color = ["yansi", "concolor/std"]
-color-auto = ["color", "concolor/auto"]
-debug = ["snapbox-macros/debug", "backtrace"]
-default = ["color-auto", "diff"]
+cmd = [
+    "os_pipe",
+    "wait-timeout",
+]
+color = [
+    "yansi",
+    "concolor/std",
+]
+color-auto = [
+    "color",
+    "concolor/auto",
+]
+debug = [
+    "snapbox-macros/debug",
+    "backtrace",
+]
+default = [
+    "color-auto",
+    "diff",
+]
 detect-encoding = ["content_inspector"]
 diff = ["similar"]
-harness = ["libtest-mimic", "ignore"]
-path = ["tempfile", "walkdir", "dunce", "detect-encoding", "filetime"]
+harness = [
+    "libtest-mimic",
+    "ignore",
+]
+path = [
+    "tempfile",
+    "walkdir",
+    "dunce",
+    "detect-encoding",
+    "filetime",
+]

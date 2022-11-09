@@ -4,10 +4,7 @@ use crate::{compiled_blob::CompiledBlob, memory::Memory};
 use cranelift_codegen::isa::TargetIsa;
 use cranelift_codegen::settings::Configurable;
 use cranelift_codegen::{self, ir, settings, MachReloc};
-use cranelift_codegen::{
-    binemit::{CodeInfo, Reloc},
-    CodegenError,
-};
+use cranelift_codegen::{binemit::Reloc, CodegenError};
 use cranelift_entity::SecondaryMap;
 use cranelift_module::{
     DataContext, DataDescription, DataId, FuncId, Init, Linkage, Module, ModuleCompiledFunction,
@@ -684,10 +681,8 @@ impl Module for JITModule {
             return Err(ModuleError::DuplicateDefinition(decl.name.to_owned()));
         }
 
-        let CodeInfo {
-            total_size: code_size,
-            ..
-        } = ctx.compile(self.isa())?;
+        let compiled_code = ctx.compile(self.isa())?;
+        let code_size = compiled_code.code_info().total_size;
 
         let size = code_size as usize;
         let ptr = self
@@ -696,14 +691,12 @@ impl Module for JITModule {
             .allocate(size, EXECUTABLE_DATA_ALIGNMENT)
             .expect("TODO: handle OOM etc.");
 
-        unsafe { ctx.emit_to_memory(ptr) };
-        let relocs = ctx
-            .mach_compile_result
-            .as_ref()
-            .unwrap()
-            .buffer
-            .relocs()
-            .to_vec();
+        {
+            let mem = unsafe { std::slice::from_raw_parts_mut(ptr, size) };
+            mem.copy_from_slice(compiled_code.code_buffer());
+        }
+
+        let relocs = compiled_code.buffer.relocs().to_vec();
 
         self.record_function_for_perf(ptr, size, &decl.name);
         self.compiled_functions[id] = Some(CompiledBlob { ptr, size, relocs });
@@ -889,6 +882,10 @@ fn lookup_with_dlsym(name: &str) -> Option<*const u8> {
 
 #[cfg(windows)]
 fn lookup_with_dlsym(name: &str) -> Option<*const u8> {
+    use std::os::windows::io::RawHandle;
+    use windows_sys::Win32::Foundation::HINSTANCE;
+    use windows_sys::Win32::System::LibraryLoader;
+
     const MSVCRT_DLL: &[u8] = b"msvcrt.dll\0";
 
     let c_str = CString::new(name).unwrap();
@@ -899,15 +896,15 @@ fn lookup_with_dlsym(name: &str) -> Option<*const u8> {
             // try to find the searched symbol in the currently running executable
             ptr::null_mut(),
             // try to find the searched symbol in local c runtime
-            winapi::um::libloaderapi::GetModuleHandleA(MSVCRT_DLL.as_ptr().cast::<i8>()),
+            LibraryLoader::GetModuleHandleA(MSVCRT_DLL.as_ptr()) as RawHandle,
         ];
 
         for handle in &handles {
-            let addr = winapi::um::libloaderapi::GetProcAddress(*handle, c_str_ptr);
-            if addr.is_null() {
-                continue;
+            let addr = LibraryLoader::GetProcAddress(*handle as HINSTANCE, c_str_ptr.cast());
+            match addr {
+                None => continue,
+                Some(addr) => return Some(addr as *const u8),
             }
-            return Some(addr as *const u8);
         }
 
         None

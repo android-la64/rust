@@ -1,13 +1,13 @@
 //! IBM Z 64-bit Instruction Set Architecture.
 
 use crate::ir::condcodes::IntCC;
-use crate::ir::Function;
+use crate::ir::{Function, Type};
 use crate::isa::s390x::settings as s390x_settings;
 #[cfg(feature = "unwind")]
 use crate::isa::unwind::systemv::RegisterMappingError;
 use crate::isa::{Builder as IsaBuilder, TargetIsa};
 use crate::machinst::{
-    compile, MachCompileResult, MachTextSectionBuilder, Reg, TextSectionBuilder, VCode,
+    compile, CompiledCode, MachTextSectionBuilder, Reg, TextSectionBuilder, VCode,
 };
 use crate::result::CodegenResult;
 use crate::settings as shared_settings;
@@ -55,40 +55,36 @@ impl S390xBackend {
     fn compile_vcode(
         &self,
         func: &Function,
-        flags: shared_settings::Flags,
     ) -> CodegenResult<(VCode<inst::Inst>, regalloc2::Output)> {
-        let emit_info = EmitInfo::new(flags.clone(), self.isa_flags.clone());
-        let abi = Box::new(abi::S390xABICallee::new(func, flags, self.isa_flags())?);
+        let emit_info = EmitInfo::new(self.isa_flags.clone());
+        let abi = Box::new(abi::S390xABICallee::new(func, self, &self.isa_flags)?);
         compile::compile::<S390xBackend>(func, self, abi, &self.machine_env, emit_info)
     }
 }
 
 impl TargetIsa for S390xBackend {
-    fn compile_function(
-        &self,
-        func: &Function,
-        want_disasm: bool,
-    ) -> CodegenResult<MachCompileResult> {
+    fn compile_function(&self, func: &Function, want_disasm: bool) -> CodegenResult<CompiledCode> {
         let flags = self.flags();
-        let (vcode, regalloc_result) = self.compile_vcode(func, flags.clone())?;
+        let (vcode, regalloc_result) = self.compile_vcode(func)?;
 
-        let want_disasm = want_disasm || log::log_enabled!(log::Level::Debug);
         let emit_result = vcode.emit(&regalloc_result, want_disasm, flags.machine_code_cfg_info());
         let frame_size = emit_result.frame_size;
         let value_labels_ranges = emit_result.value_labels_ranges;
         let buffer = emit_result.buffer.finish();
-        let stackslot_offsets = emit_result.stackslot_offsets;
+        let sized_stackslot_offsets = emit_result.sized_stackslot_offsets;
+        let dynamic_stackslot_offsets = emit_result.dynamic_stackslot_offsets;
 
         if let Some(disasm) = emit_result.disasm.as_ref() {
             log::debug!("disassembly:\n{}", disasm);
         }
 
-        Ok(MachCompileResult {
+        Ok(CompiledCode {
             buffer,
             frame_size,
             disasm: emit_result.disasm,
             value_labels_ranges,
-            stackslot_offsets,
+            sized_stackslot_offsets,
+            dynamic_stackslot_offsets,
             bb_starts: emit_result.bb_offsets,
             bb_edges: emit_result.bb_edges,
         })
@@ -110,6 +106,10 @@ impl TargetIsa for S390xBackend {
         self.isa_flags.iter().collect()
     }
 
+    fn dynamic_vector_bytes(&self, _dyn_ty: Type) -> u32 {
+        16
+    }
+
     fn unsigned_add_overflow_condition(&self) -> IntCC {
         // The ADD LOGICAL family of instructions set the condition code
         // differently from normal comparisons, in a way that cannot be
@@ -122,7 +122,7 @@ impl TargetIsa for S390xBackend {
     #[cfg(feature = "unwind")]
     fn emit_unwind_info(
         &self,
-        result: &MachCompileResult,
+        result: &CompiledCode,
         kind: crate::machinst::UnwindInfoKind,
     ) -> CodegenResult<Option<crate::isa::unwind::UnwindInfo>> {
         use crate::isa::unwind::UnwindInfo;

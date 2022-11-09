@@ -1,5 +1,22 @@
 # fs-err Changelog
 
+## 2.8.1
+
+* Fixed docs.rs build
+
+## 2.8.0
+
+* Implement I/O safety traits (`AsFd`/`AsHandle`, `Into<OwnedFd>`/`Into<OwnedHandle>`) for file. This feature requires Rust 1.63 or later and is gated behind the `io_safety` feature flag. ([#39](https://github.com/andrewhickman/fs-err/pull/39))
+
+## 2.7.0
+
+* Implement `From<fs_err::File> for std::fs::File` ([#38](https://github.com/andrewhickman/fs-err/pull/38))
+
+## 2.6.0
+
+* Added [`File::into_parts`](https://docs.rs/fs-err/2.6.0/fs_err/struct.File.html#method.into_parts) and [`File::file_mut`](https://docs.rs/fs-err/2.6.0/fs_err/struct.File.html#method.file_mut) to provide more access to the underlying `std::fs::File`.
+* Fixed some typos in documention ([#33](https://github.com/andrewhickman/fs-err/pull/33))
+
 ## 2.5.0
 * Added `symlink` for unix platforms
 * Added `symlink_file` and `symlink_dir` for windows
@@ -11,7 +28,7 @@
   - Added trait wrappers for `std::os::{unix, windows}::fs::OpenOptionsExt` and implemented them for `fs_err::OpenOptions`
 * Improved compile times by converting arguments early and forwarding only a small number of types internally. There will be a slight performance hit only in the error case.
 * Reduced trait bounds on generics from `AsRef<Path> + Into<PathBuf>` to either `AsRef<Path>` or `Into<PathBuf>`, making the functions more general.
-  
+
 ## 2.4.0
 * Added `canonicalize`, `hard link`, `read_link`, `rename`, `symlink_metadata` and `soft_link`. ([#25](https://github.com/andrewhickman/fs-err/pull/25))
 * Added aliases to `std::path::Path` via extension trait ([#26](https://github.com/andrewhickman/fs-err/pull/26))

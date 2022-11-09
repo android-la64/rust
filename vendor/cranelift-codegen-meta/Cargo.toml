@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen-meta"
-version = "0.85.3"
+version = "0.87.0"
 authors = ["The Cranelift Project Developers"]
 description = "Metaprogram for cranelift-codegen code generator library"
 readme = "README.md"
@@ -21,7 +21,7 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 resolver = "2"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.85.3"
+version = "0.87.0"
 
 [badges.maintenance]
 status = "experimental"

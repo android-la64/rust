@@ -20,6 +20,7 @@ macro_rules! no_mangle {
         target_os = "unknown",
         not(target_env = "wasi")
     ),
+    target_os = "xous",
     all(target_arch = "x86_64", target_os = "uefi"),
     all(target_arch = "xtensa", target_os = "none"),
     all(target_vendor = "fortanix", target_env = "sgx")
@@ -62,6 +63,8 @@ no_mangle! {
     fn tanhf(n: f32) -> f32;
     fn ldexp(f: f64, n: i32) -> f64;
     fn ldexpf(f: f32, n: i32) -> f32;
+    fn tgamma(x: f64) -> f64;
+    fn tgammaf(x: f32) -> f32;
 }
 
 #[cfg(any(
@@ -70,6 +73,8 @@ no_mangle! {
         target_os = "unknown",
         not(target_env = "wasi")
     ),
+    target_os = "xous",
+    all(target_arch = "x86_64", target_os = "uefi"),
     all(target_arch = "xtensa", target_os = "none"),
     all(target_vendor = "fortanix", target_env = "sgx")
 ))]
@@ -93,7 +98,17 @@ no_mangle! {
     fn tanf(n: f32) -> f32;
 }
 
-#[cfg(all(target_vendor = "fortanix", target_env = "sgx"))]
+#[cfg(any(target_os = "xous", target_os = "uefi"))]
+no_mangle! {
+    fn sqrtf(x: f32) -> f32;
+    fn sqrt(x: f64) -> f64;
+}
+
+#[cfg(any(
+    all(target_vendor = "fortanix", target_env = "sgx"),
+    target_os = "xous",
+    target_os = "uefi"
+))]
 no_mangle! {
     fn ceil(x: f64) -> f64;
     fn ceilf(x: f32) -> f32;

@@ -1,3 +1,4 @@
+use crate::data::DataFormat;
 use crate::Action;
 
 /// Snapshot assertion against a file's contents
@@ -16,9 +17,10 @@ use crate::Action;
 pub struct Assert {
     action: Action,
     action_var: Option<String>,
+    normalize_paths: bool,
     substitutions: crate::Substitutions,
     pub(crate) palette: crate::report::Palette,
-    pub(crate) binary: Option<bool>,
+    pub(crate) data_format: Option<DataFormat>,
 }
 
 /// # Assertions
@@ -111,7 +113,7 @@ impl Assert {
             Action::Ignore | Action::Verify | Action::Overwrite => {}
         }
 
-        let expected = crate::Data::read_from(pattern_path, self.binary);
+        let expected = crate::Data::read_from(pattern_path, self.data_format());
         let (expected, actual) = self.normalize_eq(expected, actual);
 
         self.do_action(
@@ -159,7 +161,7 @@ impl Assert {
             Action::Ignore | Action::Verify | Action::Overwrite => {}
         }
 
-        let expected = crate::Data::read_from(pattern_path, self.binary);
+        let expected = crate::Data::read_from(pattern_path, self.data_format());
         let (expected, actual) = self.normalize_match(expected, actual);
 
         self.do_action(
@@ -178,13 +180,14 @@ impl Assert {
     ) -> (crate::Result<crate::Data>, crate::Data) {
         let expected = expected.map(|d| d.map_text(crate::utils::normalize_lines));
         // On `expected` being an error, make a best guess
-        if expected
+        let format = expected
             .as_ref()
-            .map(|d| d.as_str().is_some())
-            .unwrap_or(true)
-        {
-            actual = actual.try_text().map_text(crate::utils::normalize_lines);
-        }
+            .map(|d| d.format())
+            .unwrap_or(DataFormat::Text);
+
+        actual = actual
+            .try_coerce(format)
+            .map_text(|s| crate::utils::normalize_lines(s));
 
         (expected, actual)
     }
@@ -196,10 +199,14 @@ impl Assert {
     ) -> (crate::Result<crate::Data>, crate::Data) {
         let expected = expected.map(|d| d.map_text(crate::utils::normalize_lines));
         // On `expected` being an error, make a best guess
-        if let Some(expected) = expected.as_ref().map(|d| d.as_str()).unwrap_or(Some("")) {
+        if let (Some(expected), format) = expected
+            .as_ref()
+            .map(|d| (d.as_str(), d.format()))
+            .unwrap_or((Some(""), DataFormat::Text))
+        {
             actual = actual
-                .try_text()
-                .map_text(crate::utils::normalize_text)
+                .try_coerce(format)
+                .map_text(|s| self.normalize_text(s))
                 .map_text(|t| self.substitutions.normalize(t, expected));
         }
 
@@ -282,6 +289,14 @@ impl Assert {
         } else {
             Ok(())
         }
+    }
+
+    fn normalize_text(&self, data: &str) -> String {
+        let mut data = crate::utils::normalize_lines(data);
+        if self.normalize_paths {
+            data = crate::utils::normalize_paths(&data);
+        }
+        data
     }
 }
 
@@ -479,12 +494,28 @@ impl Assert {
         self
     }
 
+    /// Specify whether text should have path separators normalized
+    ///
+    /// The default is normalized
+    pub fn normalize_paths(mut self, yes: bool) -> Self {
+        self.normalize_paths = yes;
+        self
+    }
+
     /// Specify whether the content should be treated as binary or not
     ///
     /// The default is to auto-detect
     pub fn binary(mut self, yes: bool) -> Self {
-        self.binary = Some(yes);
+        self.data_format = if yes {
+            Some(DataFormat::Binary)
+        } else {
+            Some(DataFormat::Text)
+        };
         self
+    }
+
+    pub(crate) fn data_format(&self) -> Option<DataFormat> {
+        self.data_format
     }
 }
 
@@ -493,9 +524,10 @@ impl Default for Assert {
         Self {
             action: Default::default(),
             action_var: Default::default(),
+            normalize_paths: true,
             substitutions: Default::default(),
             palette: crate::report::Palette::auto(),
-            binary: Default::default(),
+            data_format: Default::default(),
         }
         .substitutions(crate::Substitutions::with_exe())
     }

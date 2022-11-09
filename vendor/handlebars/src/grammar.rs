@@ -4,26 +4,6 @@
 #[grammar = "grammar.pest"]
 pub struct HandlebarsParser;
 
-#[inline]
-pub(crate) fn whitespace_matcher(c: char) -> bool {
-    c == ' ' || c == '\t'
-}
-
-#[inline]
-pub(crate) fn newline_matcher(c: char) -> bool {
-    c == '\n' || c == '\r'
-}
-
-pub(crate) fn ends_with_empty_line(text: &str) -> bool {
-    text.trim_end_matches(whitespace_matcher)
-        .ends_with(newline_matcher)
-}
-
-pub(crate) fn starts_with_empty_line(text: &str) -> bool {
-    text.trim_start_matches(whitespace_matcher)
-        .starts_with(newline_matcher)
-}
-
 #[cfg(test)]
 mod test {
     use super::{HandlebarsParser, Rule};
@@ -191,6 +171,7 @@ mod test {
             "{{exp 1}}",
             "{{exp \"literal\"}}",
             "{{exp \"literal with space\"}}",
+            "{{exp 'literal with space'}}",
             r#"{{exp "literal with escape \\\\"}}"#,
             "{{exp ref}}",
             "{{exp (sub)}}",
@@ -199,6 +180,8 @@ mod test {
             "{{exp {}}}",
             "{{exp key=1}}",
             "{{exp key=ref}}",
+            "{{exp key='literal with space'}}",
+            "{{exp key=\"literal with space\"}}",
             "{{exp key=(sub)}}",
             "{{exp key=(sub 0)}}",
             "{{exp key=(sub 0 key=1)}}",
@@ -225,6 +208,12 @@ mod test {
             "{{&html}}",
             "{{{html 1}}}",
             "{{{html p=true}}}",
+            "{{{~ html}}}",
+            "{{{html ~}}}",
+            "{{{~ html ~}}}",
+            "{{~{ html }~}}",
+            "{{~{ html }}}",
+            "{{{ html }~}}",
         ];
         for i in s.iter() {
             assert_rule!(Rule::html_expression, i);

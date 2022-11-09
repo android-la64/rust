@@ -18,7 +18,7 @@ fn update_block_context<'reg>(
     is_first: bool,
     value: &Json,
 ) {
-    if let Some(ref p) = base_path {
+    if let Some(p) = base_path {
         if is_first {
             *block.base_path_mut() = copy_on_push_vec(p, relative_path);
         } else if let Some(ptr) = block.base_path_mut().last_mut() {
@@ -83,7 +83,7 @@ impl HelperDef for EachHelper {
                 Json::Array(ref list)
                     if !list.is_empty() || (list.is_empty() && h.inverse().is_none()) =>
                 {
-                    let block_context = create_block(&value);
+                    let block_context = create_block(value);
                     rc.push_block(block_context);
 
                     let len = list.len();
@@ -100,8 +100,8 @@ impl HelperDef for EachHelper {
                             block.set_local_var("last", to_json(is_last));
                             block.set_local_var("index", index.clone());
 
-                            update_block_context(block, array_path, i.to_string(), is_first, &v);
-                            set_block_param(block, h, array_path, &index, &v)?;
+                            update_block_context(block, array_path, i.to_string(), is_first, v);
+                            set_block_param(block, h, array_path, &index, v)?;
                         }
 
                         t.render(r, ctx, rc, out)?;
@@ -113,28 +113,28 @@ impl HelperDef for EachHelper {
                 Json::Object(ref obj)
                     if !obj.is_empty() || (obj.is_empty() && h.inverse().is_none()) =>
                 {
-                    let block_context = create_block(&value);
+                    let block_context = create_block(value);
                     rc.push_block(block_context);
 
-                    let mut is_first = true;
+                    let len = obj.len();
+
                     let obj_path = value.context_path();
 
-                    for (k, v) in obj.iter() {
+                    for (i, (k, v)) in obj.iter().enumerate() {
                         if let Some(ref mut block) = rc.block_mut() {
-                            let key = to_json(k);
+                            let is_first = i == 0usize;
+                            let is_last = i == len - 1;
 
+                            let key = to_json(k);
                             block.set_local_var("first", to_json(is_first));
+                            block.set_local_var("last", to_json(is_last));
                             block.set_local_var("key", key.clone());
 
-                            update_block_context(block, obj_path, k.to_string(), is_first, &v);
-                            set_block_param(block, h, obj_path, &key, &v)?;
+                            update_block_context(block, obj_path, k.to_string(), is_first, v);
+                            set_block_param(block, h, obj_path, &key, v)?;
                         }
 
                         t.render(r, ctx, rc, out)?;
-
-                        if is_first {
-                            is_first = false;
-                        }
                     }
 
                     rc.pop_block();
@@ -159,7 +159,6 @@ pub static EACH_HELPER: EachHelper = EachHelper;
 
 #[cfg(test)]
 mod test {
-    use crate::json::value::to_json;
     use crate::registry::Registry;
     use serde_json::value::Value as Json;
     use std::collections::BTreeMap;
@@ -188,7 +187,10 @@ mod test {
             )
             .is_ok());
         assert!(handlebars
-            .register_template_string("t1", "{{#each this}}{{@first}}|{{@key}}:{{this}}|{{/each}}")
+            .register_template_string(
+                "t1",
+                "{{#each this}}{{@first}}|{{@last}}|{{@key}}:{{this}}|{{/each}}"
+            )
             .is_ok());
 
         let r0 = handlebars.render("t0", &vec![1u16, 2u16, 3u16]);
@@ -199,9 +201,13 @@ mod test {
 
         let mut m: BTreeMap<String, u16> = BTreeMap::new();
         m.insert("ftp".to_string(), 21);
+        m.insert("gopher".to_string(), 70);
         m.insert("http".to_string(), 80);
         let r1 = handlebars.render("t1", &m);
-        assert_eq!(r1.ok().unwrap(), "true|ftp:21|false|http:80|".to_string());
+        assert_eq!(
+            r1.ok().unwrap(),
+            "true|false|ftp:21|false|false|gopher:70|false|true|http:80|".to_string()
+        );
     }
 
     #[test]
@@ -303,15 +309,15 @@ mod test {
         assert!(handlebars
             .register_template_string("t0", "{{#each a}}1{{else}}empty{{/each}}")
             .is_ok());
-        let m1 = btreemap! {
-            "a".to_string() => Vec::<String>::new(),
-        };
+        let m1 = json!({
+            "a": []
+        });
         let r0 = handlebars.render("t0", &m1).unwrap();
         assert_eq!(r0, "empty");
 
-        let m2 = btreemap! {
-            "b".to_string() => Vec::<String>::new()
-        };
+        let m2 = json!({
+            "b": []
+        });
         let r1 = handlebars.render("t0", &m2).unwrap();
         assert_eq!(r1, "empty");
     }
@@ -322,9 +328,9 @@ mod test {
         assert!(handlebars
             .register_template_string("t0", "{{#each a as |i|}}{{i}}{{/each}}")
             .is_ok());
-        let m1 = btreemap! {
-            "a".to_string() => vec![1,2,3,4,5]
-        };
+        let m1 = json!({
+            "a": [1,2,3,4,5]
+        });
         let r0 = handlebars.render("t0", &m1).unwrap();
         assert_eq!(r0, "12345");
     }
@@ -337,10 +343,10 @@ mod test {
                         {{/each}}";
         assert!(handlebars.register_template_string("t0", template).is_ok());
 
-        let m = btreemap! {
-            "ftp".to_string() => 21,
-            "http".to_string() => 80
-        };
+        let m = json!({
+            "ftp": 21,
+            "http": 80
+        });
         let r0 = handlebars.render("t0", &m);
         assert_eq!(r0.ok().unwrap(), "ftp:21|http:80|".to_string());
     }
@@ -354,10 +360,10 @@ mod test {
 
         assert!(handlebars.register_template_string("t0", template).is_ok());
 
-        let m = btreemap! {
-            "ftp".to_string() => 21,
-            "http".to_string() => 80
-        };
+        let m = json!({
+            "ftp": 21,
+            "http": 80
+        });
         let r0 = handlebars.render("t0", &m);
         assert_eq!(r0.ok().unwrap(), "ftp:21|http:80|".to_string());
     }
@@ -371,12 +377,12 @@ mod test {
             )
             .is_ok());
 
-        let data = btreemap! {
-            "a".to_string() => to_json(&btreemap! {
-                "b".to_string() => vec![btreemap!{"c".to_string() => vec![1]}]
-            }),
-            "d".to_string() => to_json(&1)
-        };
+        let data = json!({
+            "a": {
+                "b": [{"c": [1]}]
+            },
+            "d": 1
+        });
 
         let r0 = handlebars.render("t0", &data);
         assert_eq!(r0.ok().unwrap(), "1".to_string());
@@ -389,10 +395,10 @@ mod test {
                         {{#if @first}}template<{{/if}}{{this}}{{#if @last}}>{{else}},{{/if}}\
                         {{/each}}{{/each}}";
         assert!(handlebars.register_template_string("t0", template).is_ok());
-        let data = btreemap! {
-            "typearg".to_string() => vec!["T".to_string()],
-            "variant".to_string() => vec!["1".to_string(), "2".to_string()]
-        };
+        let data = json!({
+            "typearg": ["T"],
+            "variant": ["1", "2"]
+        });
         let r0 = handlebars.render("t0", &data);
         assert_eq!(r0.ok().unwrap(), "template<T>template<T>".to_string());
     }

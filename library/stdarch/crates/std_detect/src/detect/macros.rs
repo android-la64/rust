@@ -1,3 +1,15 @@
+#[macro_export]
+#[allow_internal_unstable(stdsimd)]
+macro_rules! detect_feature {
+    ($feature:tt, $feature_lit:tt) => {
+        $crate::detect_feature!($feature, $feature_lit : $feature_lit)
+    };
+    ($feature:tt, $feature_lit:tt : $($target_feature_lit:tt),*) => {
+        $(cfg!(target_feature = $target_feature_lit) ||)*
+            $crate::detect::__is_feature_detected::$feature()
+    };
+}
+
 #[allow(unused)]
 macro_rules! features {
     (
@@ -7,7 +19,9 @@ macro_rules! features {
       @MACRO_ATTRS: $(#[$macro_attrs:meta])*
       $(@BIND_FEATURE_NAME: $bind_feature:tt; $feature_impl:tt; )*
       $(@NO_RUNTIME_DETECTION: $nort_feature:tt; )*
-      $(@FEATURE: #[$stability_attr:meta] $feature:ident: $feature_lit:tt; $(#[$feature_comment:meta])*)*
+      $(@FEATURE: #[$stability_attr:meta] $feature:ident: $feature_lit:tt;
+          $(implied by target_features: [$($target_feature_lit:tt),*];)?
+          $(#[$feature_comment:meta])*)*
     ) => {
         #[macro_export]
         $(#[$macro_attrs])*
@@ -17,12 +31,11 @@ macro_rules! features {
         macro_rules! $macro_name {
             $(
                 ($feature_lit) => {
-                    cfg!(target_feature = $feature_lit) ||
-                        $crate::detect::__is_feature_detected::$feature()
+                    $crate::detect_feature!($feature, $feature_lit $(: $($target_feature_lit),*)?)
                 };
             )*
             $(
-                ($bind_feature) => { $macro_name!($feature_impl) };
+                ($bind_feature) => { $crate::$macro_name!($feature_impl) };
             )*
             $(
                 ($nort_feature) => {
@@ -35,7 +48,7 @@ macro_rules! features {
                 };
             )*
             ($t:tt,) => {
-                    $macro_name!($t);
+                    $crate::$macro_name!($t);
             };
             ($t:tt) => {
                 compile_error!(
@@ -66,7 +79,7 @@ macro_rules! features {
                 };
             )*
             $(
-                ($bind_feature) => { $macro_name!($feature_impl) };
+                ($bind_feature) => { $crate::$macro_name!($feature_impl) };
             )*
             $(
                 ($nort_feature) => {
@@ -79,7 +92,7 @@ macro_rules! features {
                 };
             )*
             ($t:tt,) => {
-                    $macro_name!($t);
+                    $crate::$macro_name!($t);
             };
             ($t:tt) => {
                 compile_error!(

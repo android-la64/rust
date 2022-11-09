@@ -1,3 +1,0 @@
-no-dev-version = true
-tag-prefix = "v"
-tag-message = "Version {{version}}"

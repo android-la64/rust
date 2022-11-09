@@ -18,6 +18,18 @@ pub(crate) fn define() -> SettingGroup {
         false,
     );
 
+    settings.add_bool(
+        "regalloc_verbose_logs",
+        "Enable verbose debug logs for regalloc2.",
+        r#"
+            This adds extra logging for regalloc2 output, that is quite valuable to understand
+            decisions taken by the register allocator as well as debugging it. It is disabled by
+            default, as it can cause many log calls which can slow down compilation by a large
+            amount.
+        "#,
+        false,
+    );
+
     settings.add_enum(
         "opt_level",
         "Optimization level for generated code.",
@@ -29,6 +41,16 @@ pub(crate) fn define() -> SettingGroup {
             - `speed_and_size`: like "speed", but also perform transformations aimed at reducing code size.
         "#,
         vec!["none", "speed", "speed_and_size"],
+    );
+
+    settings.add_bool(
+        "enable_alias_analysis",
+        "Do redundant-load optimizations with alias analysis.",
+        r#"
+            This enables the use of a simple alias analysis to optimize away redundant loads.
+            Only effective when `opt_level` is `speed` or `speed_and_size`.
+        "#,
+        true,
     );
 
     settings.add_bool(
@@ -66,8 +88,8 @@ pub(crate) fn define() -> SettingGroup {
         "avoid_div_traps",
         "Generate explicit checks around native division instructions to avoid their trapping.",
         r#"
-            This is primarily used by SpiderMonkey which doesn't install a signal
-            handler for SIGFPE, but expects a SIGILL trap for division by zero.
+            Generate explicit checks around native division instructions to
+            avoid their trapping.
 
             On ISAs like ARM where the native division instructions don't trap,
             this setting has no effect - explicit checks are always inserted.
@@ -153,8 +175,6 @@ pub(crate) fn define() -> SettingGroup {
         vec!["none", "elf_gd", "macho", "coff"],
     );
 
-    // Settings specific to the `baldrdash` calling convention.
-
     settings.add_enum(
         "libcall_call_conv",
         "Defines the calling convention to use for LibCalls call expansion.",
@@ -174,27 +194,8 @@ pub(crate) fn define() -> SettingGroup {
             "system_v",
             "windows_fastcall",
             "apple_aarch64",
-            "baldrdash_system_v",
-            "baldrdash_windows",
-            "baldrdash_2020",
             "probestack",
         ],
-    );
-
-    settings.add_num(
-        "baldrdash_prologue_words",
-        "Number of pointer-sized words pushed by the baldrdash prologue.",
-        r#"
-            Functions with the `baldrdash` calling convention don't generate their
-            own prologue and epilogue. They depend on externally generated code
-            that pushes a fixed number of words in the prologue and restores them
-            in the epilogue.
-
-            This setting configures the number of pointer-sized words pushed on the
-            stack when the Cranelift-generated code is entered. This includes the
-            pushed return address on x86.
-        "#,
-        0,
     );
 
     settings.add_bool(
@@ -228,6 +229,19 @@ pub(crate) fn define() -> SettingGroup {
     );
 
     settings.add_bool(
+        "preserve_frame_pointers",
+        "Preserve frame pointers",
+        r#"
+            Preserving frame pointers -- even inside leaf functions -- makes it
+            easy to capture the stack of a running program, without requiring any
+            side tables or metadata (like `.eh_frame` sections). Many sampling
+            profilers and similar tools walk frame pointers to capture stacks.
+            Enabling this option will play nice with those tools.
+        "#,
+        false,
+    );
+
+    settings.add_bool(
         "machine_code_cfg_info",
         "Generate CFG metadata for machine code.",
         r#"
@@ -239,15 +253,6 @@ pub(crate) fn define() -> SettingGroup {
             This is useful for, e.g., machine-code analyses that verify certain
             properties of the generated code.
         "#,
-        false,
-    );
-
-    // BaldrMonkey requires that not-yet-relocated function addresses be encoded
-    // as all-ones bitpatterns.
-    settings.add_bool(
-        "emit_all_ones_funcaddrs",
-        "Emit not-yet-relocated function addresses as all-ones bit patterns.",
-        "",
         false,
     );
 
@@ -314,7 +319,7 @@ pub(crate) fn define() -> SettingGroup {
             for the out-of-bounds case, a misspeculation of that conditional
             branch (falsely predicted in-bounds) will select an in-bounds
             index to load on the speculative path.
-            
+
             This option is enabled by default because it is highly
             recommended for secure sandboxing. The embedder should consider
             the security implications carefully before disabling this option.

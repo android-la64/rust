@@ -856,6 +856,40 @@ fn type_len_str(t: &str) -> &'static str {
     }
 }
 
+fn type_len_minus_one_str(t: &str) -> &'static str {
+    match t {
+        "int8x8_t" => "7",
+        "int8x16_t" => "15",
+        "int16x4_t" => "3",
+        "int16x8_t" => "7",
+        "int32x2_t" => "1",
+        "int32x4_t" => "3",
+        "int64x1_t" => "0",
+        "int64x2_t" => "1",
+        "uint8x8_t" => "7",
+        "uint8x16_t" => "15",
+        "uint16x4_t" => "3",
+        "uint16x8_t" => "7",
+        "uint32x2_t" => "1",
+        "uint32x4_t" => "3",
+        "uint64x1_t" => "0",
+        "uint64x2_t" => "1",
+        "float16x4_t" => "3",
+        "float16x8_t" => "7",
+        "float32x2_t" => "1",
+        "float32x4_t" => "3",
+        "float64x1_t" => "0",
+        "float64x2_t" => "1",
+        "poly8x8_t" => "7",
+        "poly8x16_t" => "15",
+        "poly16x4_t" => "3",
+        "poly16x8_t" => "7",
+        "poly64x1_t" => "0",
+        "poly64x2_t" => "1",
+        _ => panic!("unknown type: {}", t),
+    }
+}
+
 fn type_half_len_str(t: &str) -> &'static str {
     match t {
         "int8x8_t" => "4",
@@ -901,6 +935,7 @@ fn map_val<'v>(t: &str, v: &'v str) -> &'v str {
         "BITS_M1" => bits_minus_one(t),
         "HFBITS" => half_bits(t),
         "LEN" => type_len_str(t),
+        "LEN_M1" => type_len_minus_one_str(t),
         "HFLEN" => type_half_len_str(t),
         o => o,
     }
@@ -969,6 +1004,15 @@ fn is_vstx(name: &str) -> bool {
         && &name[0..3] == "vst"
         && name[3..4].parse::<i32>().unwrap() > 1
         && (s[1].starts_with("s") || s[1].starts_with("f"))
+}
+
+fn create_doc_string(comment_string: &str, fn_name: &str) -> String {
+    format!(
+        r#"{}
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/{})"#,
+        comment_string, fn_name
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1374,6 +1418,7 @@ fn gen_aarch64(
         RDM => String::from("\n#[stable(feature = \"rdm_intrinsics\", since = \"1.62.0\")]"),
         _ => String::new(),
     };
+    let function_doc = create_doc_string(current_comment, &name);
     let function = format!(
         r#"
 {}
@@ -1384,7 +1429,7 @@ fn gen_aarch64(
     {}
 }}
 "#,
-        current_comment,
+        function_doc,
         current_target,
         current_aarch64,
         const_assert,
@@ -2342,6 +2387,7 @@ fn gen_arm(
             RDM => String::from("\n#[stable(feature = \"rdm_intrinsics\", since = \"1.62.0\")]"),
             _ => String::new(),
         };
+        let function_doc = create_doc_string(current_comment, &name);
         format!(
             r#"
 {}
@@ -2358,13 +2404,13 @@ fn gen_arm(
 #[cfg_attr(test, assert_instr({}{}))]{}{}
 {}
 "#,
-            current_comment,
+            function_doc,
             current_target_arm,
             expand_intrinsic(&current_arm, in_t[1]),
             const_assert,
             const_legacy,
             call_arm,
-            current_comment,
+            function_doc,
             current_target_aarch64,
             expand_intrinsic(&current_aarch64, in_t[1]),
             const_assert,
@@ -2410,6 +2456,7 @@ fn gen_arm(
             RDM => String::from("\n#[cfg_attr(target_arch = \"aarch64\", stable(feature = \"rdm_intrinsics\", since = \"1.62.0\"))]"),
             _ => String::new(),
         };
+        let function_doc = create_doc_string(current_comment, &name);
         format!(
             r#"
 {}
@@ -2420,7 +2467,7 @@ fn gen_arm(
 #[cfg_attr(all(test, target_arch = "aarch64"), assert_instr({}{}))]{}{}
 {}
 "#,
-            current_comment,
+            function_doc,
             current_target_aarch64,
             current_target_arm,
             expand_intrinsic(&current_arm, in_t[1]),

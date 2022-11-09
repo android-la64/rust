@@ -17,12 +17,12 @@ pub struct File {
 // Opens a std File and returns it or an error generator which only needs the path to produce the error.
 // Exists for the `crate::read*` functions so they don't unconditionally build a PathBuf.
 pub(crate) fn open(path: &Path) -> Result<std::fs::File, impl FnOnce(PathBuf) -> io::Error> {
-    fs::File::open(&path).map_err(|err| |path| Error::new(err, ErrorKind::OpenFile, path))
+    fs::File::open(&path).map_err(|err| |path| Error::build(err, ErrorKind::OpenFile, path))
 }
 
 // like `open()` but for `crate::write`
 pub(crate) fn create(path: &Path) -> Result<std::fs::File, impl FnOnce(PathBuf) -> io::Error> {
-    fs::File::create(&path).map_err(|err| |path| Error::new(err, ErrorKind::CreateFile, path))
+    fs::File::create(&path).map_err(|err| |path| Error::build(err, ErrorKind::CreateFile, path))
 }
 
 /// Wrappers for methods from [`std::fs::File`][std::fs::File].
@@ -65,7 +65,7 @@ impl File {
         let path = path.into();
         match options.open(&path) {
             Ok(file) => Ok(File::from_parts(file, path)),
-            Err(source) => Err(Error::new(source, ErrorKind::OpenFile, path)),
+            Err(source) => Err(Error::build(source, ErrorKind::OpenFile, path)),
         }
     }
 
@@ -114,7 +114,13 @@ impl File {
             .set_permissions(perm)
             .map_err(|source| self.error(source, ErrorKind::SetPermissions))
     }
+}
 
+/// Methods added by fs-err that are not available on
+/// [`std::fs::File`][std::fs::File].
+///
+/// [std::fs::File]: https://doc.rust-lang.org/stable/std/fs/struct.File.html
+impl File {
     /// Creates a [`File`](struct.File.html) from a raw file and its path.
     pub fn from_parts<P>(file: fs::File, path: P) -> Self
     where
@@ -125,18 +131,24 @@ impl File {
             path: path.into(),
         }
     }
-}
 
-/// Methods added by fs-err that are not available on
-/// [`std::fs::File`][std::fs::File].
-///
-/// [std::fs::File]: https://doc.rust-lang.org/stable/std/fs/struct.File.html
-impl File {
+    /// Extract the raw file and its path from this [`File`](struct.File.html)
+    pub fn into_parts(self) -> (fs::File, PathBuf) {
+        (self.file, self.path)
+    }
+
     /// Returns a reference to the underlying [`std::fs::File`][std::fs::File].
     ///
     /// [std::fs::File]: https://doc.rust-lang.org/stable/std/fs/struct.File.html
     pub fn file(&self) -> &fs::File {
         &self.file
+    }
+
+    /// Returns a mutable reference to the underlying [`std::fs::File`][std::fs::File].
+    ///
+    /// [std::fs::File]: https://doc.rust-lang.org/stable/std/fs/struct.File.html
+    pub fn file_mut(&mut self) -> &mut fs::File {
+        &mut self.file
     }
 
     /// Returns a reference to the path that this file was created with.
@@ -146,7 +158,7 @@ impl File {
 
     /// Wrap the error in information specific to this `File` object.
     fn error(&self, source: io::Error, kind: ErrorKind) -> io::Error {
-        Error::new(source, kind, &self.path)
+        Error::build(source, kind, &self.path)
     }
 }
 
@@ -175,6 +187,12 @@ impl<'a> Read for &'a File {
         (&(**self).file)
             .read_vectored(bufs)
             .map_err(|source| self.error(source, ErrorKind::Read))
+    }
+}
+
+impl From<File> for fs::File {
+    fn from(file: File) -> Self {
+        file.into_parts().0
     }
 }
 
@@ -266,6 +284,25 @@ mod unix {
                 .map_err(|err| self.error(err, ErrorKind::WriteAt))
         }
     }
+
+    #[cfg(feature = "io_safety")]
+    mod io_safety {
+        use std::os::unix::io::{AsFd, BorrowedFd, OwnedFd};
+
+        #[cfg_attr(docsrs, doc(cfg(feature = "io_safety")))]
+        impl AsFd for crate::File {
+            fn as_fd(&self) -> BorrowedFd<'_> {
+                self.file().as_fd()
+            }
+        }
+
+        #[cfg_attr(docsrs, doc(cfg(feature = "io_safety")))]
+        impl From<crate::File> for OwnedFd {
+            fn from(file: crate::File) -> Self {
+                file.into_parts().0.into()
+            }
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -305,6 +342,25 @@ mod windows {
     impl IntoRawHandle for crate::File {
         fn into_raw_handle(self) -> RawHandle {
             self.file.into_raw_handle()
+        }
+    }
+
+    #[cfg(feature = "io_safety")]
+    mod io_safety {
+        use std::os::windows::io::{AsHandle, BorrowedHandle, OwnedHandle};
+
+        #[cfg_attr(docsrs, doc(cfg(feature = "io_safety")))]
+        impl AsHandle for crate::File {
+            fn as_handle(&self) -> BorrowedHandle<'_> {
+                self.file().as_handle()
+            }
+        }
+
+        #[cfg_attr(docsrs, doc(cfg(feature = "io_safety")))]
+        impl From<crate::File> for OwnedHandle {
+            fn from(file: crate::File) -> Self {
+                file.into_parts().0.into()
+            }
         }
     }
 }

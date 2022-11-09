@@ -1,11 +1,11 @@
-#[derive(Debug, PartialEq)]
-struct Foo {
-    lorem: &'static str,
-    ipsum: u32,
-    dolor: Result<String, String>,
-}
+fn main() {
+    #[derive(Debug, PartialEq)]
+    struct Foo {
+        lorem: &'static str,
+        ipsum: u32,
+        dolor: Result<String, String>,
+    }
 
-fn compare() {
     let x = Some(Foo {
         lorem: "Hello World!",
         ipsum: 42,
@@ -18,9 +18,4 @@ fn compare() {
     });
 
     assert_eq!(x, y);
-}
-
-fn main() {
-    let result = std::panic::catch_unwind(compare);
-    assert!(result.is_err(), "example did not panic");
 }

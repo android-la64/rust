@@ -282,9 +282,8 @@ environment variable. We first document the most relevant and most commonly used
   verbose. `hide` hides the warning entirely.
 * `-Zmiri-env-exclude=<var>` keeps the `var` environment variable isolated from the host so that it
   cannot be accessed by the program. Can be used multiple times to exclude several variables. The
-  `TERM` environment variable is excluded by default to [speed up the test
-  harness](https://github.com/rust-lang/miri/issues/1702). This has no effect unless
-  `-Zmiri-disable-isolation` is also set.
+  `TERM` environment variable is excluded by default in Windows to prevent the libtest harness from
+  accessing the file system. This has no effect unless `-Zmiri-disable-isolation` is also set.
 * `-Zmiri-env-forward=<var>` forwards the `var` environment variable to the interpreted program. Can
   be used multiple times to forward several variables. This takes precedence over
   `-Zmiri-env-exclude`: if a variable is both forwarded and exluced, it *will* get forwarded. This
@@ -347,6 +346,17 @@ to Miri failing to detect cases of undefined behavior in a program.
   this flag is **unsound**.
 * `-Zmiri-disable-weak-memory-emulation` disables the emulation of some C++11 weak
   memory effects.
+* `-Zmiri-extern-so-file=<path to a shared object file>` is an experimental flag for providing support
+  for FFI calls. Functions not provided by that file are still executed via the usual Miri shims.
+  **WARNING**: If an invalid/incorrect `.so` file is specified, this can cause undefined behaviour in Miri itself!
+  And of course, Miri cannot do any checks on the actions taken by the external code.
+  Note that Miri has its own handling of file descriptors, so if you want to replace *some* functions
+  working on file descriptors, you will have to replace *all* of them, or the two kinds of
+  file descriptors will be mixed up.
+  This is **work in progress**; currently, only integer arguments and return values are
+  supported (and no, pointer/integer casts to work around this limitation will not work;
+  they will fail horribly).
+  Follow [the discussion on supporting other types](https://github.com/rust-lang/miri/issues/2365). 
 * `-Zmiri-measureme=<name>` enables `measureme` profiling for the interpreted program.
    This can be used to find which parts of your program are executing slowly under Miri.
    The profile is written out to a file with the prefix `<name>`, and can be processed

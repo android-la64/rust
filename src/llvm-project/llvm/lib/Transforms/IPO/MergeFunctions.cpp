@@ -88,12 +88,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/Transforms/IPO/MergeFunctions.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Constants.h"
@@ -113,7 +112,6 @@
 #include "llvm/IR/User.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/ValueHandle.h"
-#include "llvm/IR/ValueMap.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
@@ -121,7 +119,6 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/IPO.h"
-#include "llvm/Transforms/IPO/MergeFunctions.h"
 #include "llvm/Transforms/Utils/FunctionComparator.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 #include <algorithm>
@@ -140,10 +137,10 @@ STATISTIC(NumThunksWritten, "Number of thunks generated");
 STATISTIC(NumAliasesWritten, "Number of aliases generated");
 STATISTIC(NumDoubleWeak, "Number of new functions created");
 
-static cl::opt<unsigned> NumFunctionsForSanityCheck(
-    "mergefunc-sanity",
-    cl::desc("How many functions in module could be used for "
-             "MergeFunctions pass sanity check. "
+static cl::opt<unsigned> NumFunctionsForVerificationCheck(
+    "mergefunc-verify",
+    cl::desc("How many functions in a module could be used for "
+             "MergeFunctions to pass a basic correctness check. "
              "'0' disables this check. Works only with '-debug' key."),
     cl::init(0), cl::Hidden);
 
@@ -234,8 +231,8 @@ private:
 
 #ifndef NDEBUG
   /// Checks the rules of order relation introduced among functions set.
-  /// Returns true, if sanity check has been passed, and false if failed.
-  bool doSanityCheck(std::vector<WeakTrackingVH> &Worklist);
+  /// Returns true, if check has been passed, and false if failed.
+  bool doFunctionalCheck(std::vector<WeakTrackingVH> &Worklist);
 #endif
 
   /// Insert a ComparableFunction into the FnTree, or merge it away if it's
@@ -334,12 +331,12 @@ PreservedAnalyses MergeFunctionsPass::run(Module &M,
 }
 
 #ifndef NDEBUG
-bool MergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
-  if (const unsigned Max = NumFunctionsForSanityCheck) {
+bool MergeFunctions::doFunctionalCheck(std::vector<WeakTrackingVH> &Worklist) {
+  if (const unsigned Max = NumFunctionsForVerificationCheck) {
     unsigned TripleNumber = 0;
     bool Valid = true;
 
-    dbgs() << "MERGEFUNC-SANITY: Started for first " << Max << " functions.\n";
+    dbgs() << "MERGEFUNC-VERIFY: Started for first " << Max << " functions.\n";
 
     unsigned i = 0;
     for (std::vector<WeakTrackingVH>::iterator I = Worklist.begin(),
@@ -355,7 +352,7 @@ bool MergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
 
         // If F1 <= F2, then F2 >= F1, otherwise report failure.
         if (Res1 != -Res2) {
-          dbgs() << "MERGEFUNC-SANITY: Non-symmetric; triple: " << TripleNumber
+          dbgs() << "MERGEFUNC-VERIFY: Non-symmetric; triple: " << TripleNumber
                  << "\n";
           dbgs() << *F1 << '\n' << *F2 << '\n';
           Valid = false;
@@ -388,7 +385,7 @@ bool MergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
           }
 
           if (!Transitive) {
-            dbgs() << "MERGEFUNC-SANITY: Non-transitive; triple: "
+            dbgs() << "MERGEFUNC-VERIFY: Non-transitive; triple: "
                    << TripleNumber << "\n";
             dbgs() << "Res1, Res3, Res4: " << Res1 << ", " << Res3 << ", "
                    << Res4 << "\n";
@@ -399,7 +396,7 @@ bool MergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
       }
     }
 
-    dbgs() << "MERGEFUNC-SANITY: " << (Valid ? "Passed." : "Failed.") << "\n";
+    dbgs() << "MERGEFUNC-VERIFY: " << (Valid ? "Passed." : "Failed.") << "\n";
     return Valid;
   }
   return true;
@@ -445,7 +442,7 @@ bool MergeFunctions::runOnModule(Module &M) {
     std::vector<WeakTrackingVH> Worklist;
     Deferred.swap(Worklist);
 
-    LLVM_DEBUG(doSanityCheck(Worklist));
+    LLVM_DEBUG(doFunctionalCheck(Worklist));
 
     LLVM_DEBUG(dbgs() << "size of module: " << M.size() << '\n');
     LLVM_DEBUG(dbgs() << "size of worklist: " << Worklist.size() << '\n');
@@ -494,7 +491,7 @@ static Value *createCast(IRBuilder<> &Builder, Value *V, Type *DestTy) {
   if (SrcTy->isStructTy()) {
     assert(DestTy->isStructTy());
     assert(SrcTy->getStructNumElements() == DestTy->getStructNumElements());
-    Value *Result = UndefValue::get(DestTy);
+    Value *Result = PoisonValue::get(DestTy);
     for (unsigned int I = 0, E = SrcTy->getStructNumElements(); I < E; ++I) {
       Value *Element = createCast(
           Builder, Builder.CreateExtractValue(V, makeArrayRef(I)),

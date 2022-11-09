@@ -11,9 +11,8 @@ use crate::nodes::chunk::Chunk;
 use crate::sync::Lock;
 use crate::util::{to_range, PoolRef, Ref};
 use crate::vector::{
-    Iter, IterMut, RRBPool, Vector,
+    Iter, IterMut, RRBPool, Rrb, Vector,
     VectorInner::{Full, Inline, Single},
-    RRB,
 };
 
 /// Focused indexing over a [`Vector`][Vector].
@@ -257,7 +256,7 @@ where
 }
 
 pub struct TreeFocus<A> {
-    tree: RRB<A>,
+    tree: Rrb<A>,
     view: Range<usize>,
     middle_range: Range<usize>,
     target_range: Range<usize>,
@@ -279,10 +278,10 @@ impl<A> Clone for TreeFocus<A> {
 
 #[allow(unsafe_code)]
 #[cfg(threadsafe)]
-unsafe impl<A> Send for TreeFocus<A> {}
+unsafe impl<A: Send> Send for TreeFocus<A> {}
 #[allow(unsafe_code)]
 #[cfg(threadsafe)]
-unsafe impl<A> Sync for TreeFocus<A> {}
+unsafe impl<A: Sync> Sync for TreeFocus<A> {}
 
 #[inline]
 fn contains<A: Ord>(range: &Range<A>, index: &A) -> bool {
@@ -293,7 +292,7 @@ impl<A> TreeFocus<A>
 where
     A: Clone,
 {
-    fn new(tree: &RRB<A>) -> Self {
+    fn new(tree: &Rrb<A>) -> Self {
         let middle_start = tree.outer_f.len() + tree.inner_f.len();
         let middle_end = middle_start + tree.middle.len();
         TreeFocus {
@@ -390,7 +389,7 @@ where
         if !contains(&self.target_range, &phys_index) {
             self.set_focus(phys_index);
         }
-        let mut slice: &[A] = self.get_focus();
+        let mut slice: &[A] = self.get_focus().as_slice();
         let mut left = 0;
         let mut right = 0;
         if self.target_range.start < self.view.start {
@@ -529,10 +528,7 @@ where
     /// Returns `None` if the index is out of bounds, or the replaced value
     /// otherwise.
     pub fn set(&mut self, index: usize, value: A) -> Option<A> {
-        match self.get_mut(index) {
-            Some(ref mut pos) => Some(replace(pos, value)),
-            None => None,
-        }
+        self.get_mut(index).map(|pos| replace(pos, value))
     }
 
     /// Swap the values at two given indices.
@@ -749,17 +745,17 @@ where
     }
 }
 
-impl<'a, A> Into<Focus<'a, A>> for FocusMut<'a, A>
+impl<'a, A> From<FocusMut<'a, A>> for Focus<'a, A>
 where
     A: Clone + 'a,
 {
-    fn into(self) -> Focus<'a, A> {
-        self.unmut()
+    fn from(f: FocusMut<'a, A>) -> Self {
+        f.unmut()
     }
 }
 
 pub struct TreeFocusMut<'a, A> {
-    tree: Lock<&'a mut RRB<A>>,
+    tree: Lock<&'a mut Rrb<A>>,
     view: Range<usize>,
     middle_range: Range<usize>,
     target_range: Range<usize>,
@@ -770,7 +766,7 @@ impl<'a, A> TreeFocusMut<'a, A>
 where
     A: Clone + 'a,
 {
-    fn new(tree: &'a mut RRB<A>) -> Self {
+    fn new(tree: &'a mut Rrb<A>) -> Self {
         let middle_start = tree.outer_f.len() + tree.inner_f.len();
         let middle_end = middle_start + tree.middle.len();
         TreeFocusMut {

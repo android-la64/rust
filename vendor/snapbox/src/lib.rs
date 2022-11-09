@@ -26,7 +26,7 @@
 //!
 //! Testing Functions:
 //! - [`assert_eq`][crate::assert_eq] and [`assert_matches`] for reusing diffing / pattern matching for non-snapshot testing
-//! - [`assert_eq`][crate::assert_eq_path] and [`assert_matches_path`] for one-off assertions with the snapshot stored in a file
+//! - [`assert_eq_path`][crate::assert_eq_path] and [`assert_matches_path`] for one-off assertions with the snapshot stored in a file
 //! - [`harness::Harness`] for discovering test inputs and asserting against snapshot files:
 //!
 //! Testing Commands:
@@ -81,7 +81,7 @@
 //!     }
 //! }
 //!
-//! fn test(input_path: &std::path::Path) -> Result<usize, Box<std::error::Error>> {
+//! fn test(input_path: &std::path::Path) -> Result<usize, Box<dyn std::error::Error>> {
 //!     let raw = std::fs::read_to_string(input_path)?;
 //!     let num = raw.parse::<usize>()?;
 //!
@@ -113,6 +113,7 @@ pub use action::Action;
 pub use action::DEFAULT_ACTION_ENV;
 pub use assert::Assert;
 pub use data::Data;
+pub use data::DataFormat;
 pub use error::Error;
 pub use snapbox_macros::debug;
 pub use substitutions::Substitutions;

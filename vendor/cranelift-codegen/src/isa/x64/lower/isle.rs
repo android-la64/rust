@@ -2,14 +2,20 @@
 
 // Pull in the ISLE generated code.
 pub(crate) mod generated_code;
-use crate::machinst::{InputSourceInst, Reg, Writable};
-use generated_code::MInst;
+use crate::{
+    ir::types,
+    ir::AtomicRmwOp,
+    machinst::{InputSourceInst, Reg, Writable},
+};
+use generated_code::{Context, MInst};
 
 // Types that the generated ISLE code uses via `use super::*`.
 use super::{is_int_or_ref_ty, is_mergeable_load, lower_to_amode};
+use crate::ir::LibCall;
+use crate::isa::x64::lower::emit_vm_call;
 use crate::{
     ir::{
-        condcodes::{FloatCC, IntCC},
+        condcodes::{CondCode, FloatCC, IntCC},
         immediates::*,
         types::*,
         Inst, InstructionData, MemFlags, Opcode, TrapCode, Value, ValueList,
@@ -18,15 +24,25 @@ use crate::{
         settings::Flags,
         unwind::UnwindInst,
         x64::{
-            inst::{args::*, regs},
+            abi::{X64ABICaller, X64ABIMachineSpec},
+            inst::{args::*, regs, CallInfo},
             settings::Flags as IsaFlags,
         },
     },
     machinst::{
-        isle::*, AtomicRmwOp, InsnInput, InsnOutput, LowerCtx, VCodeConstant, VCodeConstantData,
+        isle::*, valueregs, ABICaller, InsnInput, InsnOutput, LowerCtx, MachAtomicRmwOp, MachInst,
+        VCodeConstant, VCodeConstantData,
     },
 };
+use regalloc2::PReg;
+use smallvec::SmallVec;
+use std::boxed::Box;
 use std::convert::TryFrom;
+use target_lexicon::Triple;
+
+type BoxCallInfo = Box<CallInfo>;
+type BoxVecMachLabel = Box<SmallVec<[MachLabel; 4]>>;
+type MachLabelSlice = [MachLabel];
 
 pub struct SinkableLoad {
     inst: Inst,
@@ -37,6 +53,7 @@ pub struct SinkableLoad {
 /// The main entry point for lowering with ISLE.
 pub(crate) fn lower<C>(
     lower_ctx: &mut C,
+    triple: &Triple,
     flags: &Flags,
     isa_flags: &IsaFlags,
     outputs: &[InsnOutput],
@@ -45,12 +62,40 @@ pub(crate) fn lower<C>(
 where
     C: LowerCtx<I = MInst>,
 {
-    lower_common(lower_ctx, flags, isa_flags, outputs, inst, |cx, insn| {
-        generated_code::constructor_lower(cx, insn)
-    })
+    lower_common(
+        lower_ctx,
+        triple,
+        flags,
+        isa_flags,
+        outputs,
+        inst,
+        |cx, insn| generated_code::constructor_lower(cx, insn),
+    )
 }
 
-impl<C> generated_code::Context for IsleContext<'_, C, Flags, IsaFlags, 6>
+pub(crate) fn lower_branch<C>(
+    lower_ctx: &mut C,
+    triple: &Triple,
+    flags: &Flags,
+    isa_flags: &IsaFlags,
+    branch: Inst,
+    targets: &[MachLabel],
+) -> Result<(), ()>
+where
+    C: LowerCtx<I = MInst>,
+{
+    lower_common(
+        lower_ctx,
+        triple,
+        flags,
+        isa_flags,
+        &[],
+        branch,
+        |cx, insn| generated_code::constructor_lower_branch(cx, insn, targets),
+    )
+}
+
+impl<C> Context for IsleContext<'_, C, Flags, IsaFlags, 6>
 where
     C: LowerCtx<I = MInst>,
 {
@@ -122,9 +167,7 @@ where
         let inputs = self.lower_ctx.get_value_as_source_or_const(val);
 
         if let Some(c) = inputs.constant {
-            let mask = 1_u64
-                .checked_shl(ty.bits() as u32)
-                .map_or(u64::MAX, |x| x - 1);
+            let mask = 1_u64.checked_shl(ty.bits()).map_or(u64::MAX, |x| x - 1);
             return Imm8Gpr::new(Imm8Reg::Imm8 {
                 imm: (c & mask) as u8,
             })
@@ -215,13 +258,16 @@ where
 
     #[inline]
     fn const_to_type_masked_imm8(&mut self, c: u64, ty: Type) -> Imm8Gpr {
-        let mask = 1_u64
-            .checked_shl(ty.bits() as u32)
-            .map_or(u64::MAX, |x| x - 1);
+        let mask = 1_u64.checked_shl(ty.bits()).map_or(u64::MAX, |x| x - 1);
         Imm8Gpr::new(Imm8Reg::Imm8 {
             imm: (c & mask) as u8,
         })
         .unwrap()
+    }
+
+    #[inline]
+    fn shift_mask(&mut self, ty: Type) -> u32 {
+        ty.lane_bits() - 1
     }
 
     #[inline]
@@ -411,6 +457,11 @@ where
     }
 
     #[inline]
+    fn reg_to_reg_mem_imm(&mut self, reg: Reg) -> RegMemImm {
+        RegMemImm::Reg { reg }
+    }
+
+    #[inline]
     fn reg_mem_to_xmm_mem(&mut self, rm: &RegMem) -> XmmMem {
         XmmMem::new(rm.clone()).unwrap()
     }
@@ -512,8 +563,56 @@ where
     }
 
     #[inline]
+    fn ty_int_bool_or_ref(&mut self, ty: Type) -> Option<()> {
+        match ty {
+            types::I8 | types::I16 | types::I32 | types::I64 | types::R64 => Some(()),
+            types::B1 | types::B8 | types::B16 | types::B32 | types::B64 => Some(()),
+            types::R32 => panic!("shouldn't have 32-bits refs on x64"),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    fn intcc_neq(&mut self, x: &IntCC, y: &IntCC) -> Option<IntCC> {
+        if x != y {
+            Some(*x)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn intcc_without_eq(&mut self, x: &IntCC) -> IntCC {
+        x.without_equal()
+    }
+
+    #[inline]
+    fn intcc_unsigned(&mut self, x: &IntCC) -> IntCC {
+        x.unsigned()
+    }
+
+    #[inline]
     fn intcc_to_cc(&mut self, intcc: &IntCC) -> CC {
         CC::from_intcc(*intcc)
+    }
+
+    #[inline]
+    fn cc_invert(&mut self, cc: &CC) -> CC {
+        cc.invert()
+    }
+
+    #[inline]
+    fn cc_nz_or_z(&mut self, cc: &CC) -> Option<CC> {
+        match cc {
+            CC::Z => Some(*cc),
+            CC::NZ => Some(*cc),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    fn floatcc_inverse(&mut self, cc: &FloatCC) -> FloatCC {
+        cc.inverse()
     }
 
     #[inline]
@@ -546,6 +645,188 @@ where
     #[inline]
     fn zero_offset(&mut self) -> Offset32 {
         Offset32::new(0)
+    }
+
+    #[inline]
+    fn atomic_rmw_op_to_mach_atomic_rmw_op(&mut self, op: &AtomicRmwOp) -> MachAtomicRmwOp {
+        MachAtomicRmwOp::from(*op)
+    }
+
+    #[inline]
+    fn gen_move(&mut self, ty: Type, dst: WritableReg, src: Reg) -> MInst {
+        MInst::gen_move(dst, src, ty)
+    }
+
+    fn gen_call(
+        &mut self,
+        sig_ref: SigRef,
+        extname: ExternalName,
+        dist: RelocDistance,
+        args @ (inputs, off): ValueSlice,
+    ) -> InstOutput {
+        let caller_conv = self.lower_ctx.abi().call_conv();
+        let sig = &self.lower_ctx.dfg().signatures[sig_ref];
+        let num_rets = sig.returns.len();
+        let abi = ABISig::from_func_sig::<X64ABIMachineSpec>(sig, self.flags).unwrap();
+        let caller = X64ABICaller::from_func(sig, &extname, dist, caller_conv, self.flags).unwrap();
+
+        assert_eq!(
+            inputs.len(&self.lower_ctx.dfg().value_lists) - off,
+            sig.params.len()
+        );
+
+        self.gen_call_common(abi, num_rets, caller, args)
+    }
+
+    fn gen_call_indirect(
+        &mut self,
+        sig_ref: SigRef,
+        val: Value,
+        args @ (inputs, off): ValueSlice,
+    ) -> InstOutput {
+        let caller_conv = self.lower_ctx.abi().call_conv();
+        let ptr = self.put_in_reg(val);
+        let sig = &self.lower_ctx.dfg().signatures[sig_ref];
+        let num_rets = sig.returns.len();
+        let abi = ABISig::from_func_sig::<X64ABIMachineSpec>(sig, self.flags).unwrap();
+        let caller =
+            X64ABICaller::from_ptr(sig, ptr, Opcode::CallIndirect, caller_conv, self.flags)
+                .unwrap();
+
+        assert_eq!(
+            inputs.len(&self.lower_ctx.dfg().value_lists) - off,
+            sig.params.len()
+        );
+
+        self.gen_call_common(abi, num_rets, caller, args)
+    }
+
+    #[inline]
+    fn preg_rbp(&mut self) -> PReg {
+        regs::rbp().to_real_reg().unwrap().into()
+    }
+
+    #[inline]
+    fn preg_rsp(&mut self) -> PReg {
+        regs::rsp().to_real_reg().unwrap().into()
+    }
+
+    fn libcall_3(&mut self, libcall: &LibCall, a: Reg, b: Reg, c: Reg) -> Reg {
+        let call_conv = self.lower_ctx.abi().call_conv();
+        let ret_ty = libcall.signature(call_conv).returns[0].value_type;
+        let output_reg = self.lower_ctx.alloc_tmp(ret_ty).only_reg().unwrap();
+
+        emit_vm_call(
+            self.lower_ctx,
+            self.flags,
+            self.triple,
+            libcall.clone(),
+            &[a, b, c],
+            &[output_reg],
+        )
+        .expect("Failed to emit LibCall");
+
+        output_reg.to_reg()
+    }
+
+    #[inline]
+    fn single_target(&mut self, targets: &MachLabelSlice) -> Option<MachLabel> {
+        if targets.len() == 1 {
+            Some(targets[0])
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn two_targets(&mut self, targets: &MachLabelSlice) -> Option<(MachLabel, MachLabel)> {
+        if targets.len() == 2 {
+            Some((targets[0], targets[1]))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn jump_table_targets(
+        &mut self,
+        targets: &MachLabelSlice,
+    ) -> Option<(MachLabel, BoxVecMachLabel)> {
+        if targets.is_empty() {
+            return None;
+        }
+
+        let default_label = targets[0];
+        let jt_targets = Box::new(SmallVec::from(&targets[1..]));
+        Some((default_label, jt_targets))
+    }
+
+    #[inline]
+    fn jump_table_size(&mut self, targets: &BoxVecMachLabel) -> u32 {
+        targets.len() as u32
+    }
+}
+
+impl<C> IsleContext<'_, C, Flags, IsaFlags, 6>
+where
+    C: LowerCtx<I = MInst>,
+{
+    fn abi_arg_slot_regs(&mut self, arg: &ABIArg) -> Option<WritableValueRegs> {
+        match arg {
+            &ABIArg::Slots { ref slots, .. } => match slots.len() {
+                1 => {
+                    let a = self.temp_writable_reg(slots[0].get_type());
+                    Some(WritableValueRegs::one(a))
+                }
+                2 => {
+                    let a = self.temp_writable_reg(slots[0].get_type());
+                    let b = self.temp_writable_reg(slots[1].get_type());
+                    Some(WritableValueRegs::two(a, b))
+                }
+                _ => panic!("Expected to see one or two slots only from {:?}", arg),
+            },
+            _ => None,
+        }
+    }
+
+    fn gen_call_common(
+        &mut self,
+        abi: ABISig,
+        num_rets: usize,
+        mut caller: X64ABICaller,
+        (inputs, off): ValueSlice,
+    ) -> InstOutput {
+        caller.emit_stack_pre_adjust(self.lower_ctx);
+
+        assert_eq!(
+            inputs.len(&self.lower_ctx.dfg().value_lists) - off,
+            abi.num_args()
+        );
+        let mut arg_regs = vec![];
+        for i in 0..abi.num_args() {
+            let input = inputs
+                .get(off + i, &self.lower_ctx.dfg().value_lists)
+                .unwrap();
+            arg_regs.push(self.lower_ctx.put_value_in_regs(input));
+        }
+        for (i, arg_regs) in arg_regs.iter().enumerate() {
+            caller.emit_copy_regs_to_buffer(self.lower_ctx, i, *arg_regs);
+        }
+        for (i, arg_regs) in arg_regs.iter().enumerate() {
+            caller.emit_copy_regs_to_arg(self.lower_ctx, i, *arg_regs);
+        }
+        caller.emit_call(self.lower_ctx);
+
+        let mut outputs = InstOutput::new();
+        for i in 0..num_rets {
+            let ret = abi.get_ret(i);
+            let retval_regs = self.abi_arg_slot_regs(&ret).unwrap();
+            caller.emit_copy_retval_to_regs(self.lower_ctx, i, retval_regs.clone());
+            outputs.push(valueregs::non_writable_value_regs(retval_regs));
+        }
+        caller.emit_stack_post_adjust(self.lower_ctx);
+
+        outputs
     }
 }
 

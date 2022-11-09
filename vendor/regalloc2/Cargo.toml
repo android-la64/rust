@@ -12,12 +12,13 @@
 [package]
 edition = "2018"
 name = "regalloc2"
-version = "0.2.3"
+version = "0.3.2"
 authors = [
     "Chris Fallin <chris@cfallin.org>",
     "Mozilla SpiderMonkey Developers",
 ]
 description = "Backtracking register allocator inspired from IonMonkey"
+readme = "README.md"
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/regalloc2"
 
@@ -26,12 +27,12 @@ debug = true
 debug-assertions = true
 overflow-checks = true
 
-[dependencies.arbitrary]
-version = "^0.4.6"
-optional = true
-
 [dependencies.fxhash]
 version = "0.2.1"
+
+[dependencies.libfuzzer-sys]
+version = "0.4.2"
+optional = true
 
 [dependencies.log]
 version = "0.4.8"
@@ -53,7 +54,7 @@ checker = []
 default = []
 enable-serde = ["serde"]
 fuzzing = [
-    "arbitrary",
+    "libfuzzer-sys",
     "checker",
     "trace-log",
 ]

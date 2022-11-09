@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "lsp-types"
-version = "0.93.0"
+version = "0.93.1"
 authors = [
     "Markus Westerlind <marwes91@gmail.com>",
     "Bruno Medeiros <bruno.do.medeiros@gmail.com>",
@@ -29,6 +29,7 @@ keywords = [
 ]
 license = "MIT"
 repository = "https://github.com/gluon-lang/lsp-types"
+resolver = "1"
 
 [dependencies.bitflags]
 version = "1.0.1"

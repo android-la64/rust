@@ -65,8 +65,8 @@ use crate::ir;
 use crate::ir::entities::AnyEntity;
 use crate::ir::instructions::{BranchInfo, CallInfo, InstructionFormat, ResolvedConstraint};
 use crate::ir::{
-    types, ArgumentPurpose, Block, Constant, FuncRef, Function, GlobalValue, Inst, JumpTable,
-    Opcode, SigRef, StackSlot, Type, Value, ValueDef, ValueList,
+    types, ArgumentPurpose, Block, Constant, DynamicStackSlot, FuncRef, Function, GlobalValue,
+    Inst, JumpTable, Opcode, SigRef, StackSlot, Type, Value, ValueDef, ValueList,
 };
 use crate::isa::TargetIsa;
 use crate::iterators::IteratorExtras;
@@ -681,6 +681,14 @@ impl<'a> Verifier<'a> {
             StackLoad { stack_slot, .. } | StackStore { stack_slot, .. } => {
                 self.verify_stack_slot(inst, stack_slot, errors)?;
             }
+            DynamicStackLoad {
+                dynamic_stack_slot, ..
+            }
+            | DynamicStackStore {
+                dynamic_stack_slot, ..
+            } => {
+                self.verify_dynamic_stack_slot(inst, dynamic_stack_slot, errors)?;
+            }
             UnaryGlobalValue { global_value, .. } => {
                 self.verify_global_value(inst, global_value, errors)?;
             }
@@ -710,6 +718,26 @@ impl<'a> Verifier<'a> {
                         inst,
                         self.context(inst),
                         "GetPinnedReg/SetPinnedReg need an ISA!",
+                    ));
+                }
+            }
+            NullAry {
+                opcode: Opcode::GetFramePointer | Opcode::GetReturnAddress,
+            } => {
+                if let Some(isa) = &self.isa {
+                    if !isa.flags().preserve_frame_pointers() {
+                        return errors.fatal((
+                            inst,
+                            self.context(inst),
+                            "`get_frame_pointer`/`get_return_address` cannot be used without \
+                             enabling `preserve_frame_pointers`",
+                        ));
+                    }
+                } else {
+                    return errors.fatal((
+                        inst,
+                        self.context(inst),
+                        "`get_frame_pointer`/`get_return_address` require an ISA!",
                     ));
                 }
             }
@@ -819,11 +847,28 @@ impl<'a> Verifier<'a> {
         ss: StackSlot,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        if !self.func.stack_slots.is_valid(ss) {
+        if !self.func.sized_stack_slots.is_valid(ss) {
             errors.nonfatal((
                 inst,
                 self.context(inst),
                 format!("invalid stack slot {}", ss),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn verify_dynamic_stack_slot(
+        &self,
+        inst: Inst,
+        ss: DynamicStackSlot,
+        errors: &mut VerifierErrors,
+    ) -> VerifierStepResult<()> {
+        if !self.func.dynamic_stack_slots.is_valid(ss) {
+            errors.nonfatal((
+                inst,
+                self.context(inst),
+                format!("invalid dynamic stack slot {}", ss),
             ))
         } else {
             Ok(())
@@ -1646,7 +1691,7 @@ impl<'a> Verifier<'a> {
                 // We must be specific about the opcodes above because other instructions are using
                 // the same formats.
                 let ty = self.func.dfg.value_type(arg);
-                if u16::from(lane) >= ty.lane_count() {
+                if lane as u32 >= ty.lane_count() {
                     errors.fatal((
                         inst,
                         self.context(inst),

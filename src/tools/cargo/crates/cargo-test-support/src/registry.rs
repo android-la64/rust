@@ -403,17 +403,10 @@ pub struct Dependency {
     optional: bool,
 }
 
-/// Entry with data that corresponds to [`tar::EntryType`].
-#[non_exhaustive]
-enum EntryData {
-    Regular(String),
-    Symlink(PathBuf),
-}
-
 /// A file to be created in a package.
 struct PackageFile {
     path: String,
-    contents: EntryData,
+    contents: String,
     /// The Unix mode for the file. Note that when extracted on Windows, this
     /// is mostly ignored since it doesn't have the same style of permissions.
     mode: u32,
@@ -787,19 +780,8 @@ impl Package {
     pub fn file_with_mode(&mut self, path: &str, mode: u32, contents: &str) -> &mut Package {
         self.files.push(PackageFile {
             path: path.to_string(),
-            contents: EntryData::Regular(contents.into()),
+            contents: contents.to_string(),
             mode,
-            extra: false,
-        });
-        self
-    }
-
-    /// Adds a symlink to a path to the package.
-    pub fn symlink(&mut self, dst: &str, src: &str) -> &mut Package {
-        self.files.push(PackageFile {
-            path: dst.to_string(),
-            contents: EntryData::Symlink(src.into()),
-            mode: DEFAULT_MODE,
             extra: false,
         });
         self
@@ -813,7 +795,7 @@ impl Package {
     pub fn extra_file(&mut self, path: &str, contents: &str) -> &mut Package {
         self.files.push(PackageFile {
             path: path.to_string(),
-            contents: EntryData::Regular(contents.to_string()),
+            contents: contents.to_string(),
             mode: DEFAULT_MODE,
             extra: true,
         });
@@ -1051,12 +1033,7 @@ impl Package {
             self.append_manifest(&mut a);
         }
         if self.files.is_empty() {
-            self.append(
-                &mut a,
-                "src/lib.rs",
-                DEFAULT_MODE,
-                &EntryData::Regular("".into()),
-            );
+            self.append(&mut a, "src/lib.rs", DEFAULT_MODE, "");
         } else {
             for PackageFile {
                 path,
@@ -1130,15 +1107,10 @@ impl Package {
             manifest.push_str("[lib]\nproc-macro = true\n");
         }
 
-        self.append(
-            ar,
-            "Cargo.toml",
-            DEFAULT_MODE,
-            &EntryData::Regular(manifest.into()),
-        );
+        self.append(ar, "Cargo.toml", DEFAULT_MODE, &manifest);
     }
 
-    fn append<W: Write>(&self, ar: &mut Builder<W>, file: &str, mode: u32, contents: &EntryData) {
+    fn append<W: Write>(&self, ar: &mut Builder<W>, file: &str, mode: u32, contents: &str) {
         self.append_raw(
             ar,
             &format!("{}-{}/{}", self.name, self.vers, file),
@@ -1147,22 +1119,8 @@ impl Package {
         );
     }
 
-    fn append_raw<W: Write>(
-        &self,
-        ar: &mut Builder<W>,
-        path: &str,
-        mode: u32,
-        contents: &EntryData,
-    ) {
+    fn append_raw<W: Write>(&self, ar: &mut Builder<W>, path: &str, mode: u32, contents: &str) {
         let mut header = Header::new_ustar();
-        let contents = match contents {
-            EntryData::Regular(contents) => contents.as_str(),
-            EntryData::Symlink(src) => {
-                header.set_entry_type(tar::EntryType::Symlink);
-                t!(header.set_link_name(src));
-                "" // Symlink has no contents.
-            }
-        };
         header.set_size(contents.len() as u64);
         t!(header.set_path(path));
         header.set_mode(mode);

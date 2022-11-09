@@ -23,6 +23,7 @@
 //!       repeats until the queue is empty.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
+use std::fmt::Write;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -661,12 +662,34 @@ pub fn create_bcx<'a, 'cfg>(
                 continue;
             }
 
+            let guidance = if ws.is_ephemeral() {
+                if ws.ignore_lock() {
+                    "Try re-running cargo install with `--locked`".to_string()
+                } else {
+                    String::new()
+                }
+            } else if !unit.is_local() {
+                format!(
+                    "Either upgrade to rustc {} or newer, or use\n\
+                     cargo update -p {}@{} --precise ver\n\
+                     where `ver` is the latest version of `{}` supporting rustc {}",
+                    version,
+                    unit.pkg.name(),
+                    unit.pkg.version(),
+                    unit.pkg.name(),
+                    current_version,
+                )
+            } else {
+                String::new()
+            };
+
             anyhow::bail!(
                 "package `{}` cannot be built because it requires rustc {} or newer, \
-                 while the currently active rustc version is {}",
+                 while the currently active rustc version is {}\n{}",
                 unit.pkg,
                 version,
                 current_version,
+                guidance,
             );
         }
     }
@@ -1504,19 +1527,40 @@ fn find_named_targets<'a>(
     };
 
     if proposals.is_empty() {
-        let targets = packages.iter().flat_map(|pkg| {
-            pkg.targets()
-                .iter()
-                .filter(|target| is_expected_kind(target))
-        });
-        let suggestion = closest_msg(target_name, targets, |t| t.name());
-        anyhow::bail!(
-            "no {} target {} `{}`{}",
-            target_desc,
-            if is_glob { "matches pattern" } else { "named" },
-            target_name,
-            suggestion
-        );
+        let targets = packages
+            .iter()
+            .flat_map(|pkg| {
+                pkg.targets()
+                    .iter()
+                    .filter(|target| is_expected_kind(target))
+            })
+            .collect::<Vec<_>>();
+        let suggestion = closest_msg(target_name, targets.iter(), |t| t.name());
+        if !suggestion.is_empty() {
+            anyhow::bail!(
+                "no {} target {} `{}`{}",
+                target_desc,
+                if is_glob { "matches pattern" } else { "named" },
+                target_name,
+                suggestion
+            );
+        } else {
+            let mut msg = String::new();
+            writeln!(
+                msg,
+                "no {} target {} `{}`.",
+                target_desc,
+                if is_glob { "matches pattern" } else { "named" },
+                target_name,
+            )?;
+            if !targets.is_empty() {
+                writeln!(msg, "Available {} targets:", target_desc)?;
+                for target in targets {
+                    writeln!(msg, "    {}", target.name())?;
+                }
+            }
+            anyhow::bail!(msg);
+        }
     }
     Ok(proposals)
 }

@@ -490,7 +490,7 @@ fn main() {
                 process::exit(1);
             }
         };
-        let mmap = match unsafe { memmap::Mmap::map(&file) } {
+        let mmap = match unsafe { memmap2::Mmap::map(&file) } {
             Ok(mmap) => mmap,
             Err(err) => {
                 eprintln!("Failed to map file '{}': {}", path, err);
@@ -531,7 +531,7 @@ fn main() {
                 continue;
             }
         };
-        let file = match unsafe { memmap::Mmap::map(&file) } {
+        let file = match unsafe { memmap2::Mmap::map(&file) } {
             Ok(mmap) => mmap,
             Err(err) => {
                 eprintln!("Failed to map file '{}': {}", file_path, err);
@@ -786,17 +786,36 @@ fn dump_eh_frame<R: Reader, W: Write>(
                 // TODO: augmentation
                 writeln!(w, "    code_align: {}", cie.code_alignment_factor())?;
                 writeln!(w, "    data_align: {}", cie.data_alignment_factor())?;
-                writeln!(w, "   ra_register: {:#x}", cie.return_address_register().0)?;
+                writeln!(
+                    w,
+                    "   ra_register: {}",
+                    register_name(cie.return_address_register())
+                )?;
                 if let Some(encoding) = cie.lsda_encoding() {
-                    writeln!(w, " lsda_encoding: {:#02x}", encoding.0)?;
+                    writeln!(
+                        w,
+                        " lsda_encoding: {}/{}",
+                        encoding.application(),
+                        encoding.format()
+                    )?;
                 }
                 if let Some((encoding, personality)) = cie.personality_with_encoding() {
-                    write!(w, "   personality: {:#02x} ", encoding.0)?;
+                    write!(
+                        w,
+                        "   personality: {}/{} ",
+                        encoding.application(),
+                        encoding.format()
+                    )?;
                     dump_pointer(w, personality)?;
                     writeln!(w)?;
                 }
                 if let Some(encoding) = cie.fde_address_encoding() {
-                    writeln!(w, "  fde_encoding: {:#02x}", encoding.0)?;
+                    writeln!(
+                        w,
+                        "  fde_encoding: {}/{}",
+                        encoding.application(),
+                        encoding.format()
+                    )?;
                 }
                 let instructions = cie.instructions(&eh_frame, &bases);
                 dump_cfi_instructions(w, instructions, true, register_name)?;
@@ -1585,21 +1604,21 @@ fn dump_type_signature<W: Write>(w: &mut W, signature: gimli::DebugTypeSignature
 
 fn dump_file_index<R: Reader, W: Write>(
     w: &mut W,
-    file: u64,
+    file_index: u64,
     unit: &gimli::Unit<R>,
     dwarf: &gimli::Dwarf<R>,
 ) -> Result<()> {
-    if file == 0 {
+    if file_index == 0 && unit.header.version() <= 4 {
         return Ok(());
     }
     let header = match unit.line_program {
         Some(ref program) => program.header(),
         None => return Ok(()),
     };
-    let file = match header.file(file) {
-        Some(header) => header,
+    let file = match header.file(file_index) {
+        Some(file) => file,
         None => {
-            writeln!(w, "Unable to get header for file {}", file)?;
+            writeln!(w, "Unable to get header for file {}", file_index)?;
             return Ok(());
         }
     };
@@ -1607,7 +1626,7 @@ fn dump_file_index<R: Reader, W: Write>(
     if let Some(directory) = file.directory(header) {
         let directory = dwarf.attr_string(unit, directory)?;
         let directory = directory.to_string_lossy()?;
-        if !directory.starts_with('/') {
+        if file.directory_index() != 0 && !directory.starts_with('/') {
             if let Some(ref comp_dir) = unit.comp_dir {
                 write!(w, "{}/", comp_dir.to_string_lossy()?,)?;
             }
@@ -2238,7 +2257,7 @@ fn dump_line_program<R: Reader, W: Write>(
             writeln!(w, "<pc>        [lno,col]")?;
         }
         let mut rows = program.rows();
-        let mut file_index = 0;
+        let mut file_index = std::u64::MAX;
         while let Some((header, row)) = rows.next_row()? {
             let line = match row.line() {
                 Some(line) => line.get(),

@@ -16,8 +16,8 @@ use crate::ir::{Opcode, Type, Value};
 use crate::isa::aarch64::inst::*;
 use crate::isa::aarch64::AArch64Backend;
 use crate::machinst::lower::*;
-use crate::machinst::*;
 use crate::machinst::{Reg, Writable};
+use crate::{machinst::*, trace};
 use crate::{CodegenError, CodegenResult};
 use smallvec::SmallVec;
 use std::cmp;
@@ -236,7 +236,7 @@ fn lower_value_to_regs<C: LowerCtx<I = Inst>>(
     ctx: &mut C,
     value: Value,
 ) -> (ValueRegs<Reg>, Type, bool) {
-    log::trace!("lower_value_to_regs: value {:?}", value);
+    trace!("lower_value_to_regs: value {:?}", value);
     let ty = ctx.value_ty(value);
     let inputs = ctx.get_value_as_source_or_const(value);
     let is_const = inputs.constant.is_some();
@@ -608,7 +608,7 @@ pub(crate) fn lower_pair_address<C: LowerCtx<I = Inst>>(
     let (mut addends64, mut addends32, args_offset) = collect_address_addends(ctx, roots);
     let offset = args_offset + (offset as i64);
 
-    log::trace!(
+    trace!(
         "lower_pair_address: addends64 {:?}, addends32 {:?}, offset {}",
         addends64,
         addends32,
@@ -669,7 +669,7 @@ pub(crate) fn lower_address<C: LowerCtx<I = Inst>>(
     let (mut addends64, mut addends32, args_offset) = collect_address_addends(ctx, roots);
     let mut offset = args_offset + (offset as i64);
 
-    log::trace!(
+    trace!(
         "lower_address: addends64 {:?}, addends32 {:?}, offset {}",
         addends64,
         addends32,
@@ -1120,7 +1120,7 @@ pub(crate) fn maybe_input_insn<C: LowerCtx<I = Inst>>(
     op: Opcode,
 ) -> Option<IRInst> {
     let inputs = c.get_input_as_source_or_const(input.insn, input.input);
-    log::trace!(
+    trace!(
         "maybe_input_insn: input {:?} has options {:?}; looking for op {:?}",
         input,
         inputs,
@@ -1128,7 +1128,7 @@ pub(crate) fn maybe_input_insn<C: LowerCtx<I = Inst>>(
     );
     if let Some((src_inst, _)) = inputs.inst.as_inst() {
         let data = c.data(src_inst);
-        log::trace!(" -> input inst {:?}", data);
+        trace!(" -> input inst {:?}", data);
         if data.opcode() == op {
             return Some(src_inst);
         }
@@ -1228,7 +1228,7 @@ pub(crate) fn lower_icmp<C: LowerCtx<I = Inst>>(
     condcode: IntCC,
     output: IcmpOutput,
 ) -> CodegenResult<IcmpResult> {
-    log::trace!(
+    trace!(
         "lower_icmp: insn {}, condcode: {}, output: {:?}",
         insn,
         condcode,
@@ -1284,29 +1284,60 @@ pub(crate) fn lower_icmp<C: LowerCtx<I = Inst>>(
                     rn: tmp1.to_reg(),
                     rm: tmp2.to_reg(),
                 });
+                cond
             }
             IntCC::Overflow | IntCC::NotOverflow => {
-                // We can do an 128bit add while throwing away the results
-                // and check the overflow flags at the end.
-                //
-                // adds    xzr, lhs_lo, rhs_lo
-                // adcs    xzr, lhs_hi, rhs_hi
-                // cset    dst, {vs, vc}
+                // cmp     lhs_lo, rhs_lo
+                // sbcs    tmp1, lhs_hi, rhs_hi
+                // eor     tmp2, lhs_hi, rhs_hi
+                // eor     tmp1, lhs_hi, tmp1
+                // tst     tmp2, tmp1
+                // cset    dst, {lt, ge}
 
                 ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::AddS,
+                    alu_op: ALUOp::SubS,
                     size: OperandSize::Size64,
                     rd: writable_zero_reg(),
                     rn: lhs.regs()[0],
                     rm: rhs.regs()[0],
                 });
                 ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::AdcS,
+                    alu_op: ALUOp::SbcS,
                     size: OperandSize::Size64,
-                    rd: writable_zero_reg(),
+                    rd: tmp1,
                     rn: lhs.regs()[1],
                     rm: rhs.regs()[1],
                 });
+                ctx.emit(Inst::AluRRR {
+                    alu_op: ALUOp::Eor,
+                    size: OperandSize::Size64,
+                    rd: tmp2,
+                    rn: lhs.regs()[1],
+                    rm: rhs.regs()[1],
+                });
+                ctx.emit(Inst::AluRRR {
+                    alu_op: ALUOp::Eor,
+                    size: OperandSize::Size64,
+                    rd: tmp1,
+                    rn: lhs.regs()[1],
+                    rm: tmp1.to_reg(),
+                });
+                ctx.emit(Inst::AluRRR {
+                    alu_op: ALUOp::AndS,
+                    size: OperandSize::Size64,
+                    rd: writable_zero_reg(),
+                    rn: tmp2.to_reg(),
+                    rm: tmp1.to_reg(),
+                });
+
+                // This instruction sequence sets the condition codes
+                // on the lt and ge flags instead of the vs/vc so we
+                // need to signal that
+                if condcode == IntCC::Overflow {
+                    Cond::Lt
+                } else {
+                    Cond::Ge
+                }
             }
             _ => {
                 // cmp     lhs_lo, rhs_lo
@@ -1376,9 +1407,9 @@ pub(crate) fn lower_icmp<C: LowerCtx<I = Inst>>(
 
                 // Prevent a second materialize_bool_result to be emitted at the end of the function
                 should_materialize = false;
+                cond
             }
         }
-        cond
     } else if ty.is_vector() {
         assert_ne!(output, IcmpOutput::CondCode);
         should_materialize = false;
@@ -1437,7 +1468,7 @@ pub(crate) fn lower_icmp<C: LowerCtx<I = Inst>>(
     // in a register we materialize those flags into a register. Some branches do end up producing
     // the result as a register by default, so we ignore those.
     if should_materialize {
-        materialize_bool_result(ctx, insn, rd, cond);
+        materialize_bool_result(ctx, insn, rd, out_condcode);
     }
 
     Ok(match output {
@@ -1475,30 +1506,6 @@ pub(crate) fn materialize_bool_result<C: LowerCtx<I = Inst>>(
     } else {
         ctx.emit(Inst::CSet { rd, cond });
     }
-}
-
-/// This is target-word-size dependent.  And it excludes booleans and reftypes.
-pub(crate) fn is_valid_atomic_transaction_ty(ty: Type) -> bool {
-    match ty {
-        I8 | I16 | I32 | I64 => true,
-        _ => false,
-    }
-}
-
-pub(crate) fn emit_atomic_load<C: LowerCtx<I = Inst>>(
-    ctx: &mut C,
-    rt: Writable<Reg>,
-    insn: IRInst,
-) -> Inst {
-    assert!(ctx.data(insn).opcode() == Opcode::AtomicLoad);
-    let inputs = insn_inputs(ctx, insn);
-    let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
-    let access_ty = ctx.output_ty(insn, 0);
-    assert!(is_valid_atomic_transaction_ty(access_ty));
-    // We're ignoring the result type of the load because the LoadAcquire will
-    // explicitly zero extend to the nearest word, and also zero the high half
-    // of an X register.
-    Inst::LoadAcquire { access_ty, rt, rn }
 }
 
 fn load_op_to_ty(op: Opcode) -> Option<Type> {
@@ -1544,7 +1551,7 @@ impl LowerBackend for AArch64Backend {
     type MInst = Inst;
 
     fn lower<C: LowerCtx<I = Inst>>(&self, ctx: &mut C, ir_inst: IRInst) -> CodegenResult<()> {
-        lower_inst::lower_insn_to_regs(ctx, ir_inst, &self.flags, &self.isa_flags)
+        lower_inst::lower_insn_to_regs(ctx, ir_inst, &self.triple, &self.flags, &self.isa_flags)
     }
 
     fn lower_branch_group<C: LowerCtx<I = Inst>>(

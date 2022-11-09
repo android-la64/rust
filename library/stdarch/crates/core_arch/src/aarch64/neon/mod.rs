@@ -28,14 +28,17 @@ types! {
 }
 
 /// ARM-specific type containing two `float64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub struct float64x1x2_t(pub float64x1_t, pub float64x1_t);
 /// ARM-specific type containing three `float64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub struct float64x1x3_t(pub float64x1_t, pub float64x1_t, pub float64x1_t);
 /// ARM-specific type containing four `float64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub struct float64x1x4_t(
@@ -46,14 +49,17 @@ pub struct float64x1x4_t(
 );
 
 /// ARM-specific type containing two `float64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub struct float64x2x2_t(pub float64x2_t, pub float64x2_t);
 /// ARM-specific type containing three `float64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub struct float64x2x3_t(pub float64x2_t, pub float64x2_t, pub float64x2_t);
 /// ARM-specific type containing four `float64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub struct float64x2x4_t(
@@ -658,6 +664,8 @@ pub unsafe fn vld1q_p16(ptr: *const p16) -> poly16x8_t {
 }
 
 /// Load multiple single-element structures to one, two, three, or four registers.
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vld1_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(ldr))]
@@ -667,6 +675,8 @@ pub unsafe fn vld1_p64(ptr: *const p64) -> poly64x1_t {
 }
 
 /// Load multiple single-element structures to one, two, three, or four registers.
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vld1q_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(ldr))]
@@ -953,6 +963,8 @@ pub unsafe fn vst1q_p16(ptr: *mut p16, a: poly16x8_t) {
 }
 
 // Store multiple single-element structures from one, two, three, or four registers.
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vst1_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(str))]
@@ -963,6 +975,8 @@ pub unsafe fn vst1_p64(ptr: *mut p64, a: poly64x1_t) {
 }
 
 // Store multiple single-element structures from one, two, three, or four registers.
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vst1q_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(str))]
@@ -1045,7 +1059,11 @@ pub unsafe fn vabsq_s64(a: int64x2_t) -> int64x2_t {
 #[cfg_attr(test, assert_instr(bsl))]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub unsafe fn vbsl_f64(a: uint64x1_t, b: float64x1_t, c: float64x1_t) -> float64x1_t {
-    simd_select(transmute::<_, int64x1_t>(a), b, c)
+    let not = int64x1_t(-1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 /// Bitwise Select.
 #[inline]
@@ -1053,7 +1071,11 @@ pub unsafe fn vbsl_f64(a: uint64x1_t, b: float64x1_t, c: float64x1_t) -> float64
 #[cfg_attr(test, assert_instr(bsl))]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub unsafe fn vbsl_p64(a: poly64x1_t, b: poly64x1_t, c: poly64x1_t) -> poly64x1_t {
-    simd_select(transmute::<_, int64x1_t>(a), b, c)
+    let not = int64x1_t(-1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 /// Bitwise Select. (128-bit)
 #[inline]
@@ -1061,7 +1083,11 @@ pub unsafe fn vbsl_p64(a: poly64x1_t, b: poly64x1_t, c: poly64x1_t) -> poly64x1_
 #[cfg_attr(test, assert_instr(bsl))]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub unsafe fn vbslq_f64(a: uint64x2_t, b: float64x2_t, c: float64x2_t) -> float64x2_t {
-    simd_select(transmute::<_, int64x2_t>(a), b, c)
+    let not = int64x2_t(-1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 /// Bitwise Select. (128-bit)
 #[inline]
@@ -1069,7 +1095,11 @@ pub unsafe fn vbslq_f64(a: uint64x2_t, b: float64x2_t, c: float64x2_t) -> float6
 #[cfg_attr(test, assert_instr(bsl))]
 #[stable(feature = "neon_intrinsics", since = "1.59.0")]
 pub unsafe fn vbslq_p64(a: poly64x2_t, b: poly64x2_t, c: poly64x2_t) -> poly64x2_t {
-    simd_select(transmute::<_, int64x2_t>(a), b, c)
+    let not = int64x2_t(-1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Signed saturating Accumulate of Unsigned value.
@@ -3365,7 +3395,10 @@ pub unsafe fn vsliq_n_p16<const N: i32>(a: poly16x8_t, b: poly16x8_t) -> poly16x
     static_assert_imm4!(N);
     transmute(vsliq_n_s16_(transmute(a), transmute(b), N))
 }
+
 /// Shift Left and Insert (immediate)
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vsli_n_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(sli, N = 1))]
@@ -3375,7 +3408,10 @@ pub unsafe fn vsli_n_p64<const N: i32>(a: poly64x1_t, b: poly64x1_t) -> poly64x1
     static_assert!(N: i32 where N >= 0 && N <= 63);
     transmute(vsli_n_s64_(transmute(a), transmute(b), N))
 }
+
 /// Shift Left and Insert (immediate)
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vsliq_n_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(sli, N = 1))]
@@ -3585,7 +3621,10 @@ pub unsafe fn vsriq_n_p16<const N: i32>(a: poly16x8_t, b: poly16x8_t) -> poly16x
     static_assert!(N: i32 where N >= 1 && N <= 16);
     transmute(vsriq_n_s16_(transmute(a), transmute(b), N))
 }
+
 /// Shift Right and Insert (immediate)
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vsri_n_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(sri, N = 1))]
@@ -3595,7 +3634,10 @@ pub unsafe fn vsri_n_p64<const N: i32>(a: poly64x1_t, b: poly64x1_t) -> poly64x1
     static_assert!(N: i32 where N >= 1 && N <= 64);
     transmute(vsri_n_s64_(transmute(a), transmute(b), N))
 }
+
 /// Shift Right and Insert (immediate)
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vsriq_n_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(test, assert_instr(sri, N = 1))]
@@ -5136,37 +5178,37 @@ mod tests {
 
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_f64() {
-        let a = u64x1::new(u64::MAX);
-        let b = f64x1::new(f64::MAX);
-        let c = f64x1::new(f64::MIN);
-        let e = f64x1::new(f64::MAX);
+        let a = u64x1::new(0x8000000000000000);
+        let b = f64x1::new(-1.23f64);
+        let c = f64x1::new(2.34f64);
+        let e = f64x1::new(-2.34f64);
         let r: f64x1 = transmute(vbsl_f64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_p64() {
-        let a = u64x1::new(u64::MAX);
+        let a = u64x1::new(1);
         let b = u64x1::new(u64::MAX);
         let c = u64x1::new(u64::MIN);
-        let e = u64x1::new(u64::MAX);
+        let e = u64x1::new(1);
         let r: u64x1 = transmute(vbsl_p64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_f64() {
-        let a = u64x2::new(u64::MAX, 0);
-        let b = f64x2::new(f64::MAX, f64::MAX);
-        let c = f64x2::new(f64::MIN, f64::MIN);
-        let e = f64x2::new(f64::MAX, f64::MIN);
+        let a = u64x2::new(1, 0x8000000000000000);
+        let b = f64x2::new(f64::MAX, -1.23f64);
+        let c = f64x2::new(f64::MIN, 2.34f64);
+        let e = f64x2::new(f64::MIN, -2.34f64);
         let r: f64x2 = transmute(vbslq_f64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_p64() {
-        let a = u64x2::new(u64::MAX, 0);
+        let a = u64x2::new(u64::MAX, 1);
         let b = u64x2::new(u64::MAX, u64::MAX);
         let c = u64x2::new(u64::MIN, u64::MIN);
-        let e = u64x2::new(u64::MAX, u64::MIN);
+        let e = u64x2::new(u64::MAX, 1);
         let r: u64x2 = transmute(vbslq_p64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }

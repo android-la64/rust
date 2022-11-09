@@ -376,7 +376,7 @@ where
         }
         let mut seen = collections::HashSet::new();
         for (key, value) in self.iter() {
-            if Some(value) != other.get(&key) {
+            if Some(value) != other.get(key) {
                 return false;
             }
             seen.insert(key);
@@ -932,11 +932,16 @@ where
     /// assert_eq!(expected, map1.union(map2));
     /// ```
     #[must_use]
-    pub fn union(mut self, other: Self) -> Self {
-        for (k, v) in other {
-            self.entry(k).or_insert(v);
+    pub fn union(self, other: Self) -> Self {
+        let (mut to_mutate, to_consume) = if self.len() >= other.len() {
+            (self, other)
+        } else {
+            (other, self)
+        };
+        for (k, v) in to_consume {
+            to_mutate.entry(k).or_insert(v);
         }
-        self
+        to_mutate
     }
 
     /// Construct the union of two maps, using a function to decide
@@ -982,7 +987,20 @@ where
     /// ));
     /// ```
     #[must_use]
-    pub fn union_with_key<F>(mut self, other: Self, mut f: F) -> Self
+    pub fn union_with_key<F>(self, other: Self, mut f: F) -> Self
+    where
+        F: FnMut(&K, V, V) -> V,
+    {
+        if self.len() >= other.len() {
+            self.union_with_key_inner(other, f)
+        } else {
+            other.union_with_key_inner(self, |key, other_value, self_value| {
+                f(key, self_value, other_value)
+            })
+        }
+    }
+
+    fn union_with_key_inner<F>(mut self, other: Self, mut f: F) -> Self
     where
         F: FnMut(&K, V, V) -> V,
     {
@@ -2109,7 +2127,7 @@ mod test {
 
     #[test]
     fn safe_mutation() {
-        let v1: HashMap<usize, usize> = HashMap::from_iter((0..131_072).map(|i| (i, i)));
+        let v1: HashMap<usize, usize> = (0..131_072).map(|i| (i, i)).collect::<HashMap<_, _>>();
         let mut v2 = v1.clone();
         v2.insert(131_000, 23);
         assert_eq!(Some(&23), v2.get(&131_000));
@@ -2196,15 +2214,15 @@ mod test {
     #[test]
     fn entry_api() {
         let mut map = hashmap! {"bar" => 5};
-        map.entry(&"foo").and_modify(|v| *v += 5).or_insert(1);
+        map.entry("foo").and_modify(|v| *v += 5).or_insert(1);
         assert_eq!(1, map[&"foo"]);
-        map.entry(&"foo").and_modify(|v| *v += 5).or_insert(1);
+        map.entry("foo").and_modify(|v| *v += 5).or_insert(1);
         assert_eq!(6, map[&"foo"]);
-        map.entry(&"bar").and_modify(|v| *v += 5).or_insert(1);
+        map.entry("bar").and_modify(|v| *v += 5).or_insert(1);
         assert_eq!(10, map[&"bar"]);
         assert_eq!(
             10,
-            match map.entry(&"bar") {
+            match map.entry("bar") {
                 Entry::Occupied(entry) => entry.remove(),
                 _ => panic!(),
             }

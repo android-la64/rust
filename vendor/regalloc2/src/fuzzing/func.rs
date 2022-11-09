@@ -5,11 +5,11 @@
 
 use crate::{
     domtree, postorder, Allocation, Block, Function, Inst, InstRange, MachineEnv, Operand,
-    OperandConstraint, OperandKind, OperandPos, PReg, RegClass, VReg,
+    OperandConstraint, OperandKind, OperandPos, PReg, PRegSet, RegClass, VReg,
 };
 
-use arbitrary::Result as ArbitraryResult;
-use arbitrary::{Arbitrary, Unstructured};
+use super::arbitrary::Result as ArbitraryResult;
+use super::arbitrary::{Arbitrary, Unstructured};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InstOpcode {
@@ -132,8 +132,12 @@ impl Function for Func {
         &self.insts[insn.index()].operands[..]
     }
 
-    fn inst_clobbers(&self, insn: Inst) -> &[PReg] {
-        &self.insts[insn.index()].clobbers[..]
+    fn inst_clobbers(&self, insn: Inst) -> PRegSet {
+        let mut set = PRegSet::default();
+        for &preg in &self.insts[insn.index()].clobbers {
+            set = set.with(preg);
+        }
+        set
     }
 
     fn num_vregs(&self) -> usize {
@@ -231,7 +235,7 @@ impl FuncBuilder {
     }
 }
 
-impl Arbitrary for OperandConstraint {
+impl Arbitrary<'_> for OperandConstraint {
     fn arbitrary(u: &mut Unstructured) -> ArbitraryResult<Self> {
         Ok(*u.choose(&[OperandConstraint::Any, OperandConstraint::Reg])?)
     }
@@ -289,7 +293,7 @@ impl std::default::Default for Options {
     }
 }
 
-impl Arbitrary for Func {
+impl Arbitrary<'_> for Func {
     fn arbitrary(u: &mut Unstructured) -> ArbitraryResult<Func> {
         Func::arbitrary_with_options(u, &Options::default())
     }

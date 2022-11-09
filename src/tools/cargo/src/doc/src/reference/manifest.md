@@ -74,11 +74,15 @@ when listed as a dependency in another package, and as the default name of
 inferred lib and bin targets.
 
 The name must use only [alphanumeric] characters or `-` or `_`, and cannot be empty.
+
 Note that [`cargo new`] and [`cargo init`] impose some additional restrictions on
 the package name, such as enforcing that it is a valid Rust identifier and not
-a keyword. [crates.io] imposes even more restrictions, such as
-enforcing only ASCII characters, not a reserved name, not a special Windows
-name such as "nul", is not too long, etc.
+a keyword. [crates.io] imposes even more restrictions, such as:
+
+- Only ASCII characters are allowed.
+- Do not use reserved names.
+- Do not use special Windows name such as "nul".
+- Use a maximum of 64 characters of length.
 
 [alphanumeric]: ../../std/primitive.char.html#method.is_alphanumeric
 
@@ -512,7 +516,7 @@ external tools may wish to use them in a consistent fashion, such as referring
 to the data in `workspace.metadata` if data is missing from `package.metadata`,
 if that makes sense for the tool in question.
 
-[workspace-metadata]: workspaces.md#the-metadata-table
+[workspace-metadata]: workspaces.md#the-workspacemetadata-table
 
 #### The `default-run` field
 
@@ -599,7 +603,7 @@ more detail.
         "#the-required-features-field-optional": "cargo-targets.html#the-required-features-field",
         "#building-dynamic-or-static-libraries": "cargo-targets.html#the-crate-type-field",
         "#the-workspace-section": "workspaces.html#the-workspace-section",
-        "#virtual-workspace": "workspaces.html",
+        "#virtual-manifest": "workspaces.html",
         "#package-selection": "workspaces.html#package-selection",
         "#the-features-section": "features.html#the-features-section",
         "#rules": "features.html",

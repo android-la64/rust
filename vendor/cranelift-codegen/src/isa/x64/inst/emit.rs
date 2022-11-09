@@ -8,6 +8,7 @@ use crate::isa::x64::encoding::rex::{
     low8_will_sign_extend_to_32, low8_will_sign_extend_to_64, reg_enc, LegacyPrefixes, OpcodeMap,
     RexFlags,
 };
+use crate::isa::x64::encoding::vex::{VexInstruction, VexVectorLength};
 use crate::isa::x64::inst::args::*;
 use crate::isa::x64::inst::*;
 use crate::machinst::{inst_common, MachBuffer, MachInstEmit, MachLabel, Reg, Writable};
@@ -119,6 +120,7 @@ pub(crate) fn emit(
             InstructionSet::Lzcnt => info.isa_flags.use_lzcnt(),
             InstructionSet::BMI1 => info.isa_flags.use_bmi1(),
             InstructionSet::BMI2 => info.isa_flags.has_bmi2(),
+            InstructionSet::FMA => info.isa_flags.has_fma(),
             InstructionSet::AVX512BITALG => info.isa_flags.has_avx512bitalg(),
             InstructionSet::AVX512DQ => info.isa_flags.has_avx512dq(),
             InstructionSet::AVX512F => info.isa_flags.has_avx512f(),
@@ -156,7 +158,7 @@ pub(crate) fn emit(
                 (reg_g, src2)
             };
 
-            let mut rex = RexFlags::from(*size);
+            let rex = RexFlags::from(*size);
             if *op == AluRmiROpcode::Mul {
                 // We kinda freeloaded Mul into RMI_R_Op, but it doesn't fit the usual pattern, so
                 // we have to special-case it.
@@ -189,26 +191,19 @@ pub(crate) fn emit(
                     }
                 }
             } else {
-                let (opcode_r, opcode_m, subopcode_i, is_8bit) = match op {
-                    AluRmiROpcode::Add => (0x01, 0x03, 0, false),
-                    AluRmiROpcode::Adc => (0x11, 0x03, 0, false),
-                    AluRmiROpcode::Sub => (0x29, 0x2B, 5, false),
-                    AluRmiROpcode::Sbb => (0x19, 0x2B, 5, false),
-                    AluRmiROpcode::And => (0x21, 0x23, 4, false),
-                    AluRmiROpcode::Or => (0x09, 0x0B, 1, false),
-                    AluRmiROpcode::Xor => (0x31, 0x33, 6, false),
-                    AluRmiROpcode::And8 => (0x20, 0x22, 4, true),
-                    AluRmiROpcode::Or8 => (0x08, 0x0A, 1, true),
+                let (opcode_r, opcode_m, subopcode_i) = match op {
+                    AluRmiROpcode::Add => (0x01, 0x03, 0),
+                    AluRmiROpcode::Adc => (0x11, 0x03, 0),
+                    AluRmiROpcode::Sub => (0x29, 0x2B, 5),
+                    AluRmiROpcode::Sbb => (0x19, 0x2B, 5),
+                    AluRmiROpcode::And => (0x21, 0x23, 4),
+                    AluRmiROpcode::Or => (0x09, 0x0B, 1),
+                    AluRmiROpcode::Xor => (0x31, 0x33, 6),
                     AluRmiROpcode::Mul => panic!("unreachable"),
                 };
-                assert!(!(is_8bit && *size == OperandSize::Size64));
 
                 match src2 {
                     RegMemImm::Reg { reg: reg_e } => {
-                        if is_8bit {
-                            rex.always_emit_if_8bit_needed(reg_e);
-                            rex.always_emit_if_8bit_needed(reg_g);
-                        }
                         // GCC/llvm use the swapped operand encoding (viz., the R/RM vs RM/R
                         // duality). Do this too, so as to be able to compare generated machine
                         // code easily.
@@ -225,9 +220,6 @@ pub(crate) fn emit(
 
                     RegMemImm::Mem { addr } => {
                         let amode = addr.finalize(state, sink);
-                        if is_8bit {
-                            rex.always_emit_if_8bit_needed(reg_g);
-                        }
                         // Here we revert to the "normal" G-E ordering.
                         emit_std_reg_mem(
                             sink,
@@ -243,7 +235,6 @@ pub(crate) fn emit(
                     }
 
                     RegMemImm::Imm { simm32 } => {
-                        assert!(!is_8bit);
                         let use_imm8 = low8_will_sign_extend_to_32(simm32);
                         let opcode = if use_imm8 { 0x83 } else { 0x81 };
                         // And also here we use the "normal" G-E ordering.
@@ -674,6 +665,16 @@ pub(crate) fn emit(
                 dst,
                 RexFlags::from(*size),
             );
+        }
+
+        Inst::MovPReg { src, dst } => {
+            let src: Reg = (*src).into();
+            debug_assert!([regs::rsp(), regs::rbp()].contains(&src));
+            let src = Gpr::new(src).unwrap();
+            let size = OperandSize::Size64;
+            let dst = allocs.next(dst.to_reg().to_reg());
+            let dst = WritableGpr::from_writable_reg(Writable::from_reg(dst)).unwrap();
+            Inst::MovRR { size, src, dst }.emit(&[], sink, info, state);
         }
 
         Inst::MovzxRmR { ext_mode, src, dst } => {
@@ -1202,7 +1203,11 @@ pub(crate) fn emit(
             sink.put1(0x58 + (enc_dst & 7));
         }
 
-        Inst::CallKnown { dest, opcode, .. } => {
+        Inst::CallKnown {
+            dest,
+            info: call_info,
+            ..
+        } => {
             if info.flags.enable_probestack() {
                 sink.add_trap(TrapCode::StackOverflow);
             }
@@ -1214,12 +1219,16 @@ pub(crate) fn emit(
             // beginning of the immediate field.
             emit_reloc(sink, Reloc::X86CallPCRel4, &dest, -4);
             sink.put4(0);
-            if opcode.is_call() {
-                sink.add_call_site(*opcode);
+            if call_info.opcode.is_call() {
+                sink.add_call_site(call_info.opcode);
             }
         }
 
-        Inst::CallUnknown { dest, opcode, .. } => {
+        Inst::CallUnknown {
+            dest,
+            info: call_info,
+            ..
+        } => {
             let dest = dest.with_allocs(allocs);
 
             if info.flags.enable_probestack() {
@@ -1258,8 +1267,8 @@ pub(crate) fn emit(
             if let Some(s) = state.take_stack_map() {
                 sink.add_stack_map(StackMapExtent::StartedAtOffset(start_offset), s);
             }
-            if opcode.is_call() {
-                sink.add_call_site(*opcode);
+            if call_info.opcode.is_call() {
+                sink.add_call_site(call_info.opcode);
             }
         }
 
@@ -1460,6 +1469,44 @@ pub(crate) fn emit(
             one_way_jmp(sink, cc.invert(), else_label);
 
             // Trap!
+            let inst = Inst::trap(*trap_code);
+            inst.emit(&[], sink, info, state);
+
+            sink.bind_label(else_label);
+        }
+
+        Inst::TrapIfAnd {
+            cc1,
+            cc2,
+            trap_code,
+        } => {
+            let else_label = sink.get_label();
+
+            // Jump over if either condition code is not set.
+            one_way_jmp(sink, cc1.invert(), else_label);
+            one_way_jmp(sink, cc2.invert(), else_label);
+
+            // Trap!
+            let inst = Inst::trap(*trap_code);
+            inst.emit(&[], sink, info, state);
+
+            sink.bind_label(else_label);
+        }
+
+        Inst::TrapIfOr {
+            cc1,
+            cc2,
+            trap_code,
+        } => {
+            let trap_label = sink.get_label();
+            let else_label = sink.get_label();
+
+            // trap immediately if cc1 is set, otherwise jump over the trap if cc2 is not.
+            one_way_jmp(sink, *cc1, trap_label);
+            one_way_jmp(sink, cc2.invert(), else_label);
+
+            // Trap!
+            sink.bind_label(trap_label);
             let inst = Inst::trap(*trap_code);
             inst.emit(&[], sink, info, state);
 
@@ -1679,6 +1726,39 @@ pub(crate) fn emit(
                     emit_std_reg_mem(sink, info, prefix, opcode, length, reg_g, addr, rex, 0);
                 }
             }
+        }
+
+        Inst::XmmRmRVex {
+            op,
+            src1,
+            src2,
+            src3,
+            dst,
+        } => {
+            let src1 = allocs.next(src1.to_reg());
+            let dst = allocs.next(dst.to_reg().to_reg());
+            debug_assert_eq!(src1, dst);
+            let src2 = allocs.next(src2.to_reg());
+            let src3 = src3.clone().to_reg_mem().with_allocs(allocs);
+
+            let (w, opcode) = match op {
+                AvxOpcode::Vfmadd213ps => (false, 0xA8),
+                AvxOpcode::Vfmadd213pd => (true, 0xA8),
+            };
+
+            match src3 {
+                RegMem::Reg { reg: src } => VexInstruction::new()
+                    .length(VexVectorLength::V128)
+                    .prefix(LegacyPrefixes::_66)
+                    .map(OpcodeMap::_0F38)
+                    .w(w)
+                    .opcode(opcode)
+                    .reg(dst.to_real_reg().unwrap().hw_enc())
+                    .rm(src.to_real_reg().unwrap().hw_enc())
+                    .vvvv(src2.to_real_reg().unwrap().hw_enc())
+                    .encode(sink),
+                _ => todo!(),
+            };
         }
 
         Inst::XmmRmREvex {
@@ -2565,11 +2645,7 @@ pub(crate) fn emit(
                 sink.put1(0x48 | ((enc_dst >> 3) & 1));
                 sink.put1(0xB8 | (enc_dst & 7));
                 emit_reloc(sink, Reloc::Abs8, name, *offset);
-                if info.flags.emit_all_ones_funcaddrs() {
-                    sink.put8(u64::max_value());
-                } else {
-                    sink.put8(0);
-                }
+                sink.put8(0);
             }
         }
 
@@ -2605,118 +2681,116 @@ pub(crate) fn emit(
         Inst::AtomicRmwSeq {
             ty,
             op,
-            address,
+            mem,
             operand,
             temp,
             dst_old,
         } => {
-            // FIXME: use real vregs for this seq.
-            debug_assert_eq!(*address, regs::r9());
-            debug_assert_eq!(*operand, regs::r10());
-            debug_assert_eq!(temp.to_reg(), regs::r11());
+            let operand = allocs.next(*operand);
+            let temp = allocs.next_writable(*temp);
+            let dst_old = allocs.next_writable(*dst_old);
             debug_assert_eq!(dst_old.to_reg(), regs::rax());
+            let mem = mem.finalize(state, sink).with_allocs(allocs);
 
             // Emit this:
-            //
-            //    mov{zbq,zwq,zlq,q}     (%r9), %rax  // rax = old value
-            //   again:
-            //    movq                   %rax, %r11   // rax = old value, r11 = old value
-            //    `op`q                  %r10, %r11   // rax = old value, r11 = new value
-            //    lock cmpxchg{b,w,l,q}  %r11, (%r9)  // try to store new value
+            //    mov{zbq,zwq,zlq,q}     (%r_address), %rax    // rax = old value
+            //  again:
+            //    movq                   %rax, %r_temp         // rax = old value, r_temp = old value
+            //    `op`q                  %r_operand, %r_temp   // rax = old value, r_temp = new value
+            //    lock cmpxchg{b,w,l,q}  %r_temp, (%r_address) // try to store new value
             //    jnz again // If this is taken, rax will have a "revised" old value
             //
-            // Operand conventions:
-            //    IN:  %r9 (addr), %r10 (2nd arg for `op`)
-            //    OUT: %rax (old value), %r11 (trashed), %rflags (trashed)
+            // Operand conventions: IN:  %r_address, %r_operand OUT: %rax (old
+            //    value), %r_temp (trashed), %rflags (trashed)
             //
-            // In the case where the operation is 'xchg', the "`op`q" instruction is instead
-            //   movq                    %r10, %r11
-            // so that we simply write in the destination, the "2nd arg for `op`".
-            let rax = regs::rax();
-            let r9 = regs::r9();
-            let r10 = regs::r10();
-            let r11 = regs::r11();
-            let rax_w = Writable::from_reg(rax);
-            let r11_w = Writable::from_reg(r11);
-            let amode = Amode::imm_reg(0, r9);
+            // In the case where the operation is 'xchg', the "`op`q"
+            // instruction is instead: movq                    %r_operand,
+            //   %r_temp so that we simply write in the destination, the "2nd
+            // arg for `op`".
+            //
+            // TODO: this sequence can be significantly improved (e.g., to `lock
+            // <op>`) when it is known that `dst_old` is not used later, see
+            // https://github.com/bytecodealliance/wasmtime/issues/2153.
             let again_label = sink.get_label();
 
-            // mov{zbq,zwq,zlq,q} (%r9), %rax
+            // mov{zbq,zwq,zlq,q} (%r_address), %rax
             // No need to call `add_trap` here, since the `i1` emit will do that.
-            let i1 = Inst::load(*ty, amode.clone(), rax_w, ExtKind::ZeroExtend);
+            let i1 = Inst::load(*ty, mem.clone(), dst_old, ExtKind::ZeroExtend);
             i1.emit(&[], sink, info, state);
 
             // again:
             sink.bind_label(again_label);
 
-            // movq %rax, %r11
-            let i2 = Inst::mov_r_r(OperandSize::Size64, rax, r11_w);
+            // movq %rax, %r_temp
+            let i2 = Inst::mov_r_r(OperandSize::Size64, dst_old.to_reg(), temp);
             i2.emit(&[], sink, info, state);
 
-            let r10_rmi = RegMemImm::reg(r10);
+            let operand_rmi = RegMemImm::reg(operand);
+            use inst_common::MachAtomicRmwOp as RmwOp;
             match op {
-                inst_common::AtomicRmwOp::Xchg => {
-                    // movq %r10, %r11
-                    let i3 = Inst::mov_r_r(OperandSize::Size64, r10, r11_w);
+                RmwOp::Xchg => {
+                    // movq %r_operand, %r_temp
+                    let i3 = Inst::mov_r_r(OperandSize::Size64, operand, temp);
                     i3.emit(&[], sink, info, state);
                 }
-                inst_common::AtomicRmwOp::Nand => {
-                    // andq %r10, %r11
+                RmwOp::Nand => {
+                    // andq %r_operand, %r_temp
                     let i3 =
-                        Inst::alu_rmi_r(OperandSize::Size64, AluRmiROpcode::And, r10_rmi, r11_w);
+                        Inst::alu_rmi_r(OperandSize::Size64, AluRmiROpcode::And, operand_rmi, temp);
                     i3.emit(&[], sink, info, state);
 
-                    // notq %r11
-                    let i4 = Inst::not(OperandSize::Size64, r11_w);
+                    // notq %r_temp
+                    let i4 = Inst::not(OperandSize::Size64, temp);
                     i4.emit(&[], sink, info, state);
                 }
-                inst_common::AtomicRmwOp::Umin
-                | inst_common::AtomicRmwOp::Umax
-                | inst_common::AtomicRmwOp::Smin
-                | inst_common::AtomicRmwOp::Smax => {
-                    // cmp %r11, %r10
-                    let i3 = Inst::cmp_rmi_r(OperandSize::from_ty(*ty), RegMemImm::reg(r11), r10);
+                RmwOp::Umin | RmwOp::Umax | RmwOp::Smin | RmwOp::Smax => {
+                    // cmp %r_temp, %r_operand
+                    let i3 = Inst::cmp_rmi_r(
+                        OperandSize::from_ty(*ty),
+                        RegMemImm::reg(temp.to_reg()),
+                        operand,
+                    );
                     i3.emit(&[], sink, info, state);
 
-                    // cmovcc %r10, %r11
+                    // cmovcc %r_operand, %r_temp
                     let cc = match op {
-                        inst_common::AtomicRmwOp::Umin => CC::BE,
-                        inst_common::AtomicRmwOp::Umax => CC::NB,
-                        inst_common::AtomicRmwOp::Smin => CC::LE,
-                        inst_common::AtomicRmwOp::Smax => CC::NL,
+                        RmwOp::Umin => CC::BE,
+                        RmwOp::Umax => CC::NB,
+                        RmwOp::Smin => CC::LE,
+                        RmwOp::Smax => CC::NL,
                         _ => unreachable!(),
                     };
-                    let i4 = Inst::cmove(OperandSize::Size64, cc, RegMem::reg(r10), r11_w);
+                    let i4 = Inst::cmove(OperandSize::Size64, cc, RegMem::reg(operand), temp);
                     i4.emit(&[], sink, info, state);
                 }
                 _ => {
-                    // opq %r10, %r11
+                    // opq %r_operand, %r_temp
                     let alu_op = match op {
-                        inst_common::AtomicRmwOp::Add => AluRmiROpcode::Add,
-                        inst_common::AtomicRmwOp::Sub => AluRmiROpcode::Sub,
-                        inst_common::AtomicRmwOp::And => AluRmiROpcode::And,
-                        inst_common::AtomicRmwOp::Or => AluRmiROpcode::Or,
-                        inst_common::AtomicRmwOp::Xor => AluRmiROpcode::Xor,
-                        inst_common::AtomicRmwOp::Xchg
-                        | inst_common::AtomicRmwOp::Nand
-                        | inst_common::AtomicRmwOp::Umin
-                        | inst_common::AtomicRmwOp::Umax
-                        | inst_common::AtomicRmwOp::Smin
-                        | inst_common::AtomicRmwOp::Smax => unreachable!(),
+                        RmwOp::Add => AluRmiROpcode::Add,
+                        RmwOp::Sub => AluRmiROpcode::Sub,
+                        RmwOp::And => AluRmiROpcode::And,
+                        RmwOp::Or => AluRmiROpcode::Or,
+                        RmwOp::Xor => AluRmiROpcode::Xor,
+                        RmwOp::Xchg
+                        | RmwOp::Nand
+                        | RmwOp::Umin
+                        | RmwOp::Umax
+                        | RmwOp::Smin
+                        | RmwOp::Smax => unreachable!(),
                     };
-                    let i3 = Inst::alu_rmi_r(OperandSize::Size64, alu_op, r10_rmi, r11_w);
+                    let i3 = Inst::alu_rmi_r(OperandSize::Size64, alu_op, operand_rmi, temp);
                     i3.emit(&[], sink, info, state);
                 }
             }
 
-            // lock cmpxchg{b,w,l,q} %r11, (%r9)
+            // lock cmpxchg{b,w,l,q} %r_temp, (%r_address)
             // No need to call `add_trap` here, since the `i4` emit will do that.
             let i4 = Inst::LockCmpxchg {
                 ty: *ty,
-                replacement: r11,
-                expected: regs::rax(),
-                mem: amode.into(),
-                dst_old: Writable::from_reg(regs::rax()),
+                replacement: temp.to_reg(),
+                expected: dst_old.to_reg(),
+                mem: mem.into(),
+                dst_old,
             };
             i4.emit(&[], sink, info, state);
 
@@ -2748,7 +2822,7 @@ pub(crate) fn emit(
         }
 
         Inst::VirtualSPOffsetAdj { offset } => {
-            log::trace!(
+            trace!(
                 "virtual sp offset adjusted by {} -> {}",
                 offset,
                 state.virtual_sp_offset + offset
@@ -2837,10 +2911,6 @@ pub(crate) fn emit(
                 }
                 len -= emitted;
             }
-        }
-
-        Inst::EpiloguePlaceholder => {
-            // Generate no code.
         }
 
         Inst::ElfTlsGetAddr { ref symbol } => {

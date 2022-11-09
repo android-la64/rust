@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "minifier"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 description = "Minifier tool/lib for JS/CSS/JSON files"
 documentation = "https://docs.rs/minifier-rs"

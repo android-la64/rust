@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [15.1.0] - 2022-04-29
+
+### Added
+
+-   `HashSet` now implements `From<Vector<A>>` and `From<&Vector<A>> where A: Clone`.
+
+### Fixed
+
+-   Fixed a long standing crash bug in `OrdMap`/`OrdSet`. (#154, #143, #152, #124)
+-   The `union` method on maps/sets will now prefer to mutate the larger set (which leads to less
+    work) rather than the first set. (#163)
+-   Ensure `TreeFocus` only implements `Send`/`Sync` when the underlying type does. (#157, #158)
+-   There was an issue where nodes in very large `OrdMap`s could overflow when removing an element
+    and cause a panic, which has now been fixed. (#141)
+-   Assorted doc cleanup. (#150, #173, #186, #194)
+
 ## [15.0.0] - 2020-05-15
 
 ### Changed

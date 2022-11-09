@@ -4,6 +4,7 @@ use crate::ir::Function;
 use crate::isa::TargetIsa;
 use crate::machinst::*;
 use crate::timing;
+use crate::trace;
 
 use regalloc2::RegallocOptions;
 use regalloc2::{self, MachineEnv};
@@ -27,13 +28,13 @@ pub fn compile<B: LowerBackend + TargetIsa>(
         lower.lower(b)?
     };
 
-    log::trace!("vcode from lowering: \n{:?}", vcode);
+    trace!("vcode from lowering: \n{:?}", vcode);
 
     // Perform register allocation.
     let regalloc_result = {
         let _tt = timing::regalloc();
         let mut options = RegallocOptions::default();
-        options.verbose_log = log::log_enabled!(log::Level::Trace);
+        options.verbose_log = b.flags().regalloc_verbose_logs();
         regalloc2::run(&vcode, machine_env, &options)
             .map_err(|err| {
                 log::error!(

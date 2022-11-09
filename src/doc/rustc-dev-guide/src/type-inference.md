@@ -45,11 +45,9 @@ tcx.infer_ctxt().enter(|infcx| {
 })
 ```
 
-Within the closure, `infcx` has the type `InferCtxt<'cx, 'tcx>` for some
-fresh `'cx`, while `'tcx` is the same as outside the inference context.
-(Again, see the [`ty` chapter][ty-ch] for more details on this setup.)
-
-[ty-ch]: ty.html
+Within the closure,
+`infcx` has the type `InferCtxt<'a, 'tcx>` for some fresh `'a`,
+while `'tcx` is the same as outside the inference context.
 
 The `tcx.infer_ctxt` method actually returns a builder, which means
 there are some kinds of configuration you can do before the `infcx` is
@@ -72,7 +70,7 @@ inference works, or perhaps this blog post on
 [Unification in the Chalk project]: http://smallcultfollowing.com/babysteps/blog/2017/03/25/unification-in-chalk-part-1/
 
 All told, the inference context stores five kinds of inference variables
-(as of <!-- date: 2021-06 --> June 2021):
+(as of <!-- date-check --> June 2021):
 
 - Type variables, which come in three varieties:
   - General type variables (the most common). These can be unified with any

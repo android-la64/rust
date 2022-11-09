@@ -29,6 +29,7 @@ fn main() {
         || (target.contains("sgx") && target.contains("fortanix"))
         || target.contains("-none")
         || target.contains("nvptx")
+        || target.contains("uefi")
     {
         println!("cargo:rustc-cfg=feature=\"mem\"");
     }
@@ -58,9 +59,11 @@ fn main() {
         //   unlikely that the C is really that much better than our own Rust.
         // * nvptx - everything is bitcode, not compatible with mixed C/Rust
         // * riscv - the rust-lang/rust distribution container doesn't have a C
-        //   compiler nor is cc-rs ready for compilation to riscv (at this
-        //   time). This can probably be removed in the future
-        if !target.contains("wasm") && !target.contains("nvptx") && !target.starts_with("riscv") {
+        //   compiler.
+        if !target.contains("wasm")
+            && !target.contains("nvptx")
+            && (!target.starts_with("riscv") || target.contains("xous"))
+        {
             #[cfg(feature = "c")]
             c::compile(&llvm_target, &target);
         }
@@ -457,6 +460,7 @@ mod c {
                 ("__fe_getround", "fp_mode.c"),
                 ("__divtf3", "divtf3.c"),
                 ("__trunctfdf2", "trunctfdf2.c"),
+                ("__trunctfsf2", "trunctfsf2.c"),
             ]);
         }
 

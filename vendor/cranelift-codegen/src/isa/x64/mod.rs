@@ -3,15 +3,13 @@
 use self::inst::EmitInfo;
 
 use super::TargetIsa;
-use crate::ir::{condcodes::IntCC, Function};
+use crate::ir::{condcodes::IntCC, Function, Type};
 #[cfg(feature = "unwind")]
 use crate::isa::unwind::systemv;
 use crate::isa::x64::{inst::regs::create_reg_env_systemv, settings as x64_settings};
 use crate::isa::Builder as IsaBuilder;
 use crate::machinst::Reg;
-use crate::machinst::{
-    compile, MachCompileResult, MachTextSectionBuilder, TextSectionBuilder, VCode,
-};
+use crate::machinst::{compile, CompiledCode, MachTextSectionBuilder, TextSectionBuilder, VCode};
 use crate::result::{CodegenError, CodegenResult};
 use crate::settings::{self as shared_settings, Flags};
 use alloc::{boxed::Box, vec::Vec};
@@ -53,37 +51,34 @@ impl X64Backend {
         // This performs lowering to VCode, register-allocates the code, computes
         // block layout and finalizes branches. The result is ready for binary emission.
         let emit_info = EmitInfo::new(flags.clone(), self.x64_flags.clone());
-        let abi = Box::new(abi::X64ABICallee::new(&func, flags, self.isa_flags())?);
+        let abi = Box::new(abi::X64ABICallee::new(&func, self, &self.x64_flags)?);
         compile::compile::<Self>(&func, self, abi, &self.reg_env, emit_info)
     }
 }
 
 impl TargetIsa for X64Backend {
-    fn compile_function(
-        &self,
-        func: &Function,
-        want_disasm: bool,
-    ) -> CodegenResult<MachCompileResult> {
+    fn compile_function(&self, func: &Function, want_disasm: bool) -> CodegenResult<CompiledCode> {
         let flags = self.flags();
         let (vcode, regalloc_result) = self.compile_vcode(func, flags.clone())?;
 
-        let want_disasm = want_disasm || log::log_enabled!(log::Level::Debug);
         let emit_result = vcode.emit(&regalloc_result, want_disasm, flags.machine_code_cfg_info());
         let frame_size = emit_result.frame_size;
         let value_labels_ranges = emit_result.value_labels_ranges;
         let buffer = emit_result.buffer.finish();
-        let stackslot_offsets = emit_result.stackslot_offsets;
+        let sized_stackslot_offsets = emit_result.sized_stackslot_offsets;
+        let dynamic_stackslot_offsets = emit_result.dynamic_stackslot_offsets;
 
         if let Some(disasm) = emit_result.disasm.as_ref() {
-            log::debug!("disassembly:\n{}", disasm);
+            log::trace!("disassembly:\n{}", disasm);
         }
 
-        Ok(MachCompileResult {
+        Ok(CompiledCode {
             buffer,
             frame_size,
             disasm: emit_result.disasm,
             value_labels_ranges,
-            stackslot_offsets,
+            sized_stackslot_offsets,
+            dynamic_stackslot_offsets,
             bb_starts: emit_result.bb_offsets,
             bb_edges: emit_result.bb_edges,
         })
@@ -95,6 +90,10 @@ impl TargetIsa for X64Backend {
 
     fn isa_flags(&self) -> Vec<shared_settings::Value> {
         self.x64_flags.iter().collect()
+    }
+
+    fn dynamic_vector_bytes(&self, _dyn_ty: Type) -> u32 {
+        16
     }
 
     fn name(&self) -> &'static str {
@@ -114,7 +113,7 @@ impl TargetIsa for X64Backend {
     #[cfg(feature = "unwind")]
     fn emit_unwind_info(
         &self,
-        result: &MachCompileResult,
+        result: &CompiledCode,
         kind: crate::machinst::UnwindInfoKind,
     ) -> CodegenResult<Option<crate::isa::unwind::UnwindInfo>> {
         use crate::isa::unwind::UnwindInfo;

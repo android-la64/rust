@@ -985,7 +985,7 @@ pub type DocumentSelector = Vec<DocumentFilter>;
 
 // ========================= Actual Protocol =========================
 
-#[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeParams {
     /// The process Id of the parent process that started
@@ -1099,6 +1099,7 @@ pub struct GotoCapability {
     pub dynamic_registration: Option<bool>,
 
     /// The client supports additional metadata in the form of definition links.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub link_support: Option<bool>,
 }
 
@@ -1781,7 +1782,7 @@ pub struct ServerCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub type_definition_provider: Option<TypeDefinitionProviderCapability>,
 
-    /// the server provides goto implementation support.
+    /// The server provides goto implementation support.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub implementation_provider: Option<ImplementationProviderCapability>,
 

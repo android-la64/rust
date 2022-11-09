@@ -981,11 +981,16 @@ where
     /// ```
     #[inline]
     #[must_use]
-    pub fn union(mut self, other: Self) -> Self {
-        for (k, v) in other {
-            self.entry(k).or_insert(v);
+    pub fn union(self, other: Self) -> Self {
+        let (mut to_mutate, to_consume) = if self.len() >= other.len() {
+            (self, other)
+        } else {
+            (other, self)
+        };
+        for (k, v) in to_consume {
+            to_mutate.entry(k).or_insert(v);
         }
-        self
+        to_mutate
     }
 
     /// Construct the union of two maps, using a function to decide
@@ -1031,7 +1036,20 @@ where
     /// ));
     /// ```
     #[must_use]
-    pub fn union_with_key<F>(mut self, other: Self, mut f: F) -> Self
+    pub fn union_with_key<F>(self, other: Self, mut f: F) -> Self
+    where
+        F: FnMut(&K, V, V) -> V,
+    {
+        if self.len() >= other.len() {
+            self.union_with_key_inner(other, f)
+        } else {
+            other.union_with_key_inner(self, |key, other_value, self_value| {
+                f(key, self_value, other_value)
+            })
+        }
+    }
+
+    fn union_with_key_inner<F>(mut self, other: Self, mut f: F) -> Self
     where
         F: FnMut(&K, V, V) -> V,
     {
@@ -1930,10 +1948,7 @@ where
     V: 'a,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.it.next_back() {
-            None => None,
-            Some((k, _)) => Some(k),
-        }
+        self.it.next_back().map(|(k, _)| k)
     }
 }
 
@@ -1971,10 +1986,7 @@ where
     V: 'a,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.it.next_back() {
-            None => None,
-            Some((_, v)) => Some(v),
-        }
+        self.it.next_back().map(|(_, v)| v)
     }
 }
 
@@ -2307,7 +2319,7 @@ mod test {
 
     #[test]
     fn safe_mutation() {
-        let v1 = OrdMap::from_iter((0..131_072).map(|i| (i, i)));
+        let v1 = (0..131_072).map(|i| (i, i)).collect::<OrdMap<_, _>>();
         let mut v2 = v1.clone();
         v2.insert(131_000, 23);
         assert_eq!(Some(&23), v2.get(&131_000));
@@ -2325,15 +2337,15 @@ mod test {
     #[test]
     fn entry_api() {
         let mut map = ordmap! {"bar" => 5};
-        map.entry(&"foo").and_modify(|v| *v += 5).or_insert(1);
+        map.entry("foo").and_modify(|v| *v += 5).or_insert(1);
         assert_eq!(1, map[&"foo"]);
-        map.entry(&"foo").and_modify(|v| *v += 5).or_insert(1);
+        map.entry("foo").and_modify(|v| *v += 5).or_insert(1);
         assert_eq!(6, map[&"foo"]);
-        map.entry(&"bar").and_modify(|v| *v += 5).or_insert(1);
+        map.entry("bar").and_modify(|v| *v += 5).or_insert(1);
         assert_eq!(10, map[&"bar"]);
         assert_eq!(
             10,
-            match map.entry(&"bar") {
+            match map.entry("bar") {
                 Entry::Occupied(entry) => entry.remove(),
                 _ => panic!(),
             }
@@ -2354,19 +2366,19 @@ mod test {
 
     #[test]
     fn ranged_iter() {
-        let map: OrdMap<i32, i32> = ordmap![1=>2, 2=>3, 3=>4, 4=>5, 5=>6];
+        let map: OrdMap<i32, i32> = ordmap![1=>2, 2=>3, 3=>4, 4=>5, 5=>6, 7=>8];
         let range: Vec<(i32, i32)> = map.range(..).map(|(k, v)| (*k, *v)).collect();
-        assert_eq!(vec![(1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], range);
+        assert_eq!(vec![(1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (7, 8)], range);
         let range: Vec<(i32, i32)> = map.range(..).rev().map(|(k, v)| (*k, *v)).collect();
-        assert_eq!(vec![(5, 6), (4, 5), (3, 4), (2, 3), (1, 2)], range);
+        assert_eq!(vec![(7, 8), (5, 6), (4, 5), (3, 4), (2, 3), (1, 2)], range);
         let range: Vec<(i32, i32)> = map.range(2..5).map(|(k, v)| (*k, *v)).collect();
         assert_eq!(vec![(2, 3), (3, 4), (4, 5)], range);
         let range: Vec<(i32, i32)> = map.range(2..5).rev().map(|(k, v)| (*k, *v)).collect();
         assert_eq!(vec![(4, 5), (3, 4), (2, 3)], range);
         let range: Vec<(i32, i32)> = map.range(3..).map(|(k, v)| (*k, *v)).collect();
-        assert_eq!(vec![(3, 4), (4, 5), (5, 6)], range);
+        assert_eq!(vec![(3, 4), (4, 5), (5, 6), (7, 8)], range);
         let range: Vec<(i32, i32)> = map.range(3..).rev().map(|(k, v)| (*k, *v)).collect();
-        assert_eq!(vec![(5, 6), (4, 5), (3, 4)], range);
+        assert_eq!(vec![(7, 8), (5, 6), (4, 5), (3, 4)], range);
         let range: Vec<(i32, i32)> = map.range(..4).map(|(k, v)| (*k, *v)).collect();
         assert_eq!(vec![(1, 2), (2, 3), (3, 4)], range);
         let range: Vec<(i32, i32)> = map.range(..4).rev().map(|(k, v)| (*k, *v)).collect();
@@ -2375,19 +2387,60 @@ mod test {
         assert_eq!(vec![(1, 2), (2, 3), (3, 4)], range);
         let range: Vec<(i32, i32)> = map.range(..=3).rev().map(|(k, v)| (*k, *v)).collect();
         assert_eq!(vec![(3, 4), (2, 3), (1, 2)], range);
+        let range: Vec<(i32, i32)> = map.range(..6).map(|(k, v)| (*k, *v)).collect();
+        assert_eq!(vec![(1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], range);
+        let range: Vec<(i32, i32)> = map.range(..=6).map(|(k, v)| (*k, *v)).collect();
+        assert_eq!(vec![(1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], range);
+    }
+
+    #[test]
+    fn range_iter_big() {
+        use crate::nodes::btree::NODE_SIZE;
+        use std::ops::Bound::Included;
+        const N: usize = NODE_SIZE * NODE_SIZE * 5; // enough for a sizeable 3 level tree
+
+        let data = (1usize..N).filter(|i| i % 2 == 0).map(|i| (i, ()));
+        let bmap = data
+            .clone()
+            .collect::<std::collections::BTreeMap<usize, ()>>();
+        let omap = data.collect::<OrdMap<usize, ()>>();
+
+        for i in (0..NODE_SIZE * 5).chain(N - NODE_SIZE * 5..=N + 1) {
+            assert_eq!(omap.range(i..).count(), bmap.range(i..).count());
+            assert_eq!(omap.range(..i).count(), bmap.range(..i).count());
+            assert_eq!(omap.range(i..i + 7).count(), bmap.range(i..i + 7).count());
+            assert_eq!(omap.range(i..=i + 7).count(), bmap.range(i..=i + 7).count());
+            assert_eq!(
+                omap.range((Included(i), Included(i + 7))).count(),
+                bmap.range((Included(i), Included(i + 7))).count(),
+            );
+        }
+    }
+
+    #[test]
+    fn issue_124() {
+        let mut map = OrdMap::new();
+        let contents = include_str!("test-fixtures/issue_124.txt");
+        for line in contents.lines() {
+            if line.starts_with("insert ") {
+                map.insert(line[7..].parse::<u32>().unwrap(), 0);
+            } else if line.starts_with("remove ") {
+                map.remove(&line[7..].parse::<u32>().unwrap());
+            }
+        }
     }
 
     proptest! {
         #[test]
         fn length(ref input in collection::btree_map(i16::ANY, i16::ANY, 0..1000)) {
             let map: OrdMap<i32, i32> = OrdMap::from(input.clone());
-            input.len() == map.len()
+            assert_eq!(input.len(), map.len());
         }
 
         #[test]
         fn order(ref input in collection::hash_map(i16::ANY, i16::ANY, 0..1000)) {
             let map: OrdMap<i32, i32> = OrdMap::from(input.clone());
-            is_sorted(map.keys())
+            assert!(is_sorted(map.keys()));
         }
 
         #[test]
@@ -2572,9 +2625,9 @@ mod test {
             let diff: Vec<_> = a.diff(&b).collect();
             let union = b.clone().union(a.clone());
             let expected: Vec<_> = union.iter().filter_map(|(k, v)| {
-                if a.contains_key(&k) {
-                    if b.contains_key(&k) {
-                        let old = a.get(&k).unwrap();
+                if a.contains_key(k) {
+                    if b.contains_key(k) {
+                        let old = a.get(k).unwrap();
                         if old != v	{
                             Some(DiffItem::Update {
                                 old: (k, old),

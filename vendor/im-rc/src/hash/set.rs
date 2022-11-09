@@ -34,6 +34,7 @@ use std::ops::{Add, Deref, Mul};
 use crate::nodes::hamt::{hash_key, Drain as NodeDrain, HashValue, Iter as NodeIter, Node};
 use crate::ordset::OrdSet;
 use crate::util::{Pool, PoolRef, Ref};
+use crate::Vector;
 
 /// Construct a set from a sequence of values.
 ///
@@ -336,7 +337,7 @@ where
         }
         let mut seen = collections::HashSet::new();
         for value in self.iter() {
-            if !other.contains(&value) {
+            if !other.contains(value) {
                 return false;
             }
             seen.insert(value);
@@ -371,7 +372,7 @@ where
         RS: Borrow<Self>,
     {
         let o = other.borrow();
-        self.iter().all(|a| o.contains(&a))
+        self.iter().all(|a| o.contains(a))
     }
 
     /// Test whether a set is a proper subset of another set, meaning
@@ -511,11 +512,16 @@ where
     /// assert_eq!(expected, set1.union(set2));
     /// ```
     #[must_use]
-    pub fn union(mut self, other: Self) -> Self {
-        for value in other {
-            self.insert(value);
+    pub fn union(self, other: Self) -> Self {
+        let (mut to_mutate, to_consume) = if self.len() >= other.len() {
+            (self, other)
+        } else {
+            (other, self)
+        };
+        for value in to_consume {
+            to_mutate.insert(value);
         }
-        self
+        to_mutate
     }
 
     /// Construct the union of multiple sets.
@@ -974,6 +980,26 @@ where
     }
 }
 
+impl<A, S> From<Vector<A>> for HashSet<A, S>
+where
+    A: Hash + Eq + Clone,
+    S: BuildHasher + Default,
+{
+    fn from(vector: Vector<A>) -> Self {
+        vector.into_iter().collect()
+    }
+}
+
+impl<'a, A, S> From<&'a Vector<A>> for HashSet<A, S>
+where
+    A: Hash + Eq + Clone,
+    S: BuildHasher + Default,
+{
+    fn from(vector: &Vector<A>) -> Self {
+        vector.iter().cloned().collect()
+    }
+}
+
 impl<A, S> From<collections::HashSet<A>> for HashSet<A, S>
 where
     A: Eq + Hash + Clone,
@@ -1077,7 +1103,7 @@ mod test {
         use crate::test::MetroHashBuilder;
         for i in 0..1000 {
             let mut lhs = vec![0, 1, 2];
-            lhs.sort();
+            lhs.sort_unstable();
 
             let hasher = Ref::from(MetroHashBuilder::new(i));
             let mut iset: HashSet<_, MetroHashBuilder> = HashSet::with_hasher(hasher.clone());
@@ -1086,7 +1112,7 @@ mod test {
             }
 
             let mut rhs: Vec<_> = iset.clone().into_iter().collect();
-            rhs.sort();
+            rhs.sort_unstable();
 
             if lhs != rhs {
                 println!("iteration: {}", i);

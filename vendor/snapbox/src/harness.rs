@@ -22,7 +22,7 @@
 //!     }
 //! }
 //!
-//! fn test(input_path: &std::path::Path) -> Result<usize, Box<std::error::Error>> {
+//! fn test(input_path: &std::path::Path) -> Result<usize, Box<dyn std::error::Error>> {
 //!     let raw = std::fs::read_to_string(input_path)?;
 //!     let num = raw.parse::<usize>()?;
 //!
@@ -32,6 +32,7 @@
 //! }
 //! ```
 
+use crate::data::DataFormat;
 use crate::Action;
 
 pub struct Harness<S, T> {
@@ -212,7 +213,7 @@ impl Verifier {
         expected_path: &std::path::Path,
         actual: crate::Data,
     ) -> crate::Result<()> {
-        let expected = crate::Data::read_from(expected_path, Some(false))?
+        let expected = crate::Data::read_from(expected_path, Some(DataFormat::Text))?
             .map_text(crate::utils::normalize_lines);
 
         if expected != actual {

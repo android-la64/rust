@@ -458,7 +458,7 @@ log-debug = ['bar/log-debug'] # using 'foo/log-debug' would be an error!
 
 Dependencies can be inherited from a workspace by specifying the
 dependency in the workspace's [`[workspace.dependencies]`][workspace.dependencies] table.
-After that add it to the `[dependencies]` table with `workspace = true`.
+After that, add it to the `[dependencies]` table with `workspace = true`.
 
 Along with the `workspace` key, dependencies can also include these keys:
 - [`optional`][optional]: Note that the`[workspace.dependencies]` table is not allowed to specify `optional`.
@@ -489,7 +489,7 @@ rand = { workspace = true, optional = true }
 
 [crates.io]: https://crates.io/
 [dev-dependencies]: #development-dependencies
-[workspace.dependencies]: workspaces.md#the-dependencies-table
+[workspace.dependencies]: workspaces.md#the-workspacedependencies-table
 [optional]: features.md#optional-dependencies
 [features]: features.md
 

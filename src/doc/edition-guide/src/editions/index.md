@@ -1,6 +1,8 @@
 # What are Editions?
 
-The release of Rust 1.0 established
+The release of Rust 1.0
+([in May 2015](https://blog.rust-lang.org/2015/05/15/Rust-1.0.html))
+established
 ["stability without stagnation"](https://blog.rust-lang.org/2014/10/30/Stability.html)
 as a core Rust deliverable.
 Ever since the 1.0 release,
@@ -51,11 +53,11 @@ there might be some corner cases where manual changes are still required.
 The tooling tries hard to avoid changes
 to semantics that could affect the correctness or performance of the code.
 
-In addition to tooling, we also maintain this Edition Migration Guide that covers
+In addition to tooling, we also maintain this Rust Edition Guide that covers
 the changes that are part of an edition.
 This guide describes each change and gives pointers to where you can learn more about it.
 It also covers any corner cases or details you should be aware of.
-This guide serves both as an overview of the edition
+This guide serves as an overview of editions,
+as a migration guide for specific editions,
 and as a quick troubleshooting reference
 if you encounter problems with the automated tooling.
-

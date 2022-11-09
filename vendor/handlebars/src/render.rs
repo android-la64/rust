@@ -14,6 +14,7 @@ use crate::json::value::{JsonRender, PathAndJson, ScopedJson};
 use crate::output::{Output, StringOutput};
 use crate::partial;
 use crate::registry::Registry;
+use crate::support;
 use crate::template::TemplateElement::*;
 use crate::template::{
     BlockParam, DecoratorTemplate, HelperTemplate, Parameter, Template, TemplateElement,
@@ -47,10 +48,11 @@ pub struct RenderContextInner<'reg: 'rc, 'rc> {
     /// root template name
     root_template: Option<&'reg String>,
     disable_escape: bool,
+    indent_string: Option<&'reg String>,
 }
 
 impl<'reg: 'rc, 'rc> RenderContext<'reg, 'rc> {
-    /// Create a render context from a `Write`
+    /// Create a render context
     pub fn new(root_template: Option<&'reg String>) -> RenderContext<'reg, 'rc> {
         let inner = Rc::new(RenderContextInner {
             partials: BTreeMap::new(),
@@ -60,6 +62,7 @@ impl<'reg: 'rc, 'rc> RenderContext<'reg, 'rc> {
             current_template: None,
             root_template,
             disable_escape: false,
+            indent_string: None,
         });
 
         let mut blocks = VecDeque::with_capacity(5);
@@ -73,7 +76,6 @@ impl<'reg: 'rc, 'rc> RenderContext<'reg, 'rc> {
         }
     }
 
-    // TODO: better name
     pub(crate) fn new_for_block(&self) -> RenderContext<'reg, 'rc> {
         let inner = self.inner.clone();
 
@@ -99,6 +101,10 @@ impl<'reg: 'rc, 'rc> RenderContext<'reg, 'rc> {
     /// This is typically called when leaving a block scope.
     pub fn pop_block(&mut self) {
         self.blocks.pop_front();
+    }
+
+    pub(crate) fn clear_blocks(&mut self) {
+        self.blocks.clear();
     }
 
     /// Borrow a reference to current block context
@@ -190,7 +196,19 @@ impl<'reg: 'rc, 'rc> RenderContext<'reg, 'rc> {
     }
 
     pub(crate) fn dec_partial_block_depth(&mut self) {
-        self.inner_mut().partial_block_depth -= 1;
+        let depth = &mut self.inner_mut().partial_block_depth;
+        if *depth > 0 {
+            *depth -= 1;
+        }
+    }
+
+    pub(crate) fn set_indent_string(&mut self, indent: Option<&'reg String>) {
+        self.inner_mut().indent_string = indent;
+    }
+
+    #[inline]
+    pub(crate) fn get_indent_string(&self) -> Option<&'reg String> {
+        self.inner.indent_string
     }
 
     /// Remove a registered partial
@@ -201,7 +219,7 @@ impl<'reg: 'rc, 'rc> RenderContext<'reg, 'rc> {
     fn get_local_var(&self, level: usize, name: &str) -> Option<&Json> {
         self.blocks
             .get(level)
-            .and_then(|blk| blk.get_local_var(&name))
+            .and_then(|blk| blk.get_local_var(name))
     }
 
     /// Test if given template name is current template.
@@ -275,9 +293,10 @@ impl<'reg, 'rc> fmt::Debug for RenderContextInner<'reg, 'rc> {
         f.debug_struct("RenderContextInner")
             .field("partials", &self.partials)
             .field("partial_block_stack", &self.partial_block_stack)
+            .field("partial_block_depth", &self.partial_block_depth)
             .field("root_template", &self.root_template)
             .field("current_template", &self.current_template)
-            .field("disable_eacape", &self.disable_escape)
+            .field("disable_escape", &self.disable_escape)
             .finish()
     }
 }
@@ -435,6 +454,7 @@ pub struct Decorator<'reg, 'rc> {
     params: Vec<PathAndJson<'reg, 'rc>>,
     hash: BTreeMap<&'reg str, PathAndJson<'reg, 'rc>>,
     template: Option<&'reg Template>,
+    indent: Option<&'reg String>,
 }
 
 impl<'reg: 'rc, 'rc> Decorator<'reg, 'rc> {
@@ -463,6 +483,7 @@ impl<'reg: 'rc, 'rc> Decorator<'reg, 'rc> {
             params: pv,
             hash: hm,
             template: dt.template.as_ref(),
+            indent: dt.indent.as_ref(),
         })
     }
 
@@ -494,6 +515,10 @@ impl<'reg: 'rc, 'rc> Decorator<'reg, 'rc> {
     /// Returns the default inner template if any
     pub fn template(&self) -> Option<&'reg Template> {
         self.template
+    }
+
+    pub fn indent(&self) -> Option<&'reg String> {
+        self.indent
     }
 }
 
@@ -747,6 +772,20 @@ pub(crate) fn do_escape(r: &Registry<'_>, rc: &RenderContext<'_, '_>, content: S
     }
 }
 
+#[inline]
+fn indent_aware_write(
+    v: &str,
+    rc: &mut RenderContext<'_, '_>,
+    out: &mut dyn Output,
+) -> Result<(), RenderError> {
+    if let Some(indent) = rc.get_indent_string() {
+        out.write(support::str::with_indent(v, indent).as_ref())?;
+    } else {
+        out.write(v.as_ref())?;
+    }
+    Ok(())
+}
+
 impl Renderable for TemplateElement {
     fn render<'reg: 'rc, 'rc>(
         &'reg self,
@@ -755,11 +794,8 @@ impl Renderable for TemplateElement {
         rc: &mut RenderContext<'reg, 'rc>,
         out: &mut dyn Output,
     ) -> Result<(), RenderError> {
-        match *self {
-            RawString(ref v) => {
-                out.write(v.as_ref())?;
-                Ok(())
-            }
+        match self {
+            RawString(ref v) => indent_aware_write(v.as_ref(), rc, out),
             Expression(ref ht) | HtmlExpression(ref ht) => {
                 let is_html_expression = matches!(self, HtmlExpression(_));
                 if is_html_expression {
@@ -789,8 +825,7 @@ impl Renderable for TemplateElement {
                         } else {
                             let rendered = context_json.value().render();
                             let output = do_escape(registry, rc, rendered);
-                            out.write(output.as_ref())?;
-                            Ok(())
+                            indent_aware_write(output.as_ref(), rc, out)
                         }
                     }
                 } else {
@@ -1116,4 +1151,38 @@ fn test_zero_args_heler() {
         r.render("t1", &json!({"name": "Alex"})).unwrap(),
         "Output name: first_name not resolved"
     );
+}
+
+#[test]
+fn test_identifiers_starting_with_numbers() {
+    let mut r = Registry::new();
+
+    assert!(r
+        .register_template_string("r1", "{{#if 0a}}true{{/if}}")
+        .is_ok());
+    let r1 = r.render("r1", &json!({"0a": true})).unwrap();
+    assert_eq!(r1, "true");
+
+    assert!(r.register_template_string("r2", "{{eq 1a 1}}").is_ok());
+    let r2 = r.render("r2", &json!({"1a": 2, "a": 1})).unwrap();
+    assert_eq!(r2, "false");
+
+    assert!(r
+        .register_template_string("r3", "0: {{0}} {{#if (eq 0 true)}}resolved from context{{/if}}\n1a: {{1a}} {{#if (eq 1a true)}}resolved from context{{/if}}\n2_2: {{2_2}} {{#if (eq 2_2 true)}}resolved from context{{/if}}") // YUP it is just eq that barfs! is if handled specially? maybe this test should go nearer to specific helpers that fail?
+        .is_ok());
+    let r3 = r
+        .render("r3", &json!({"0": true, "1a": true, "2_2": true}))
+        .unwrap();
+    assert_eq!(
+        r3,
+        "0: true \n1a: true resolved from context\n2_2: true resolved from context"
+    );
+
+    // these should all be errors:
+    assert!(r.register_template_string("r4", "{{eq 1}}").is_ok());
+    assert!(r.register_template_string("r5", "{{eq a1}}").is_ok());
+    assert!(r.register_template_string("r6", "{{eq 1a}}").is_ok());
+    assert!(r.render("r4", &()).is_err());
+    assert!(r.render("r5", &()).is_err());
+    assert!(r.render("r6", &()).is_err());
 }

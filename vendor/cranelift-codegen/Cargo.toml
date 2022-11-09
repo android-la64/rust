@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.85.3"
+version = "0.87.0"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -37,13 +37,13 @@ version = "1.2.1"
 optional = true
 
 [dependencies.cranelift-bforest]
-version = "0.85.3"
+version = "0.87.0"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.85.3"
+version = "0.87.0"
 
 [dependencies.cranelift-entity]
-version = "0.85.3"
+version = "0.87.0"
 
 [dependencies.gimli]
 version = "0.26.0"
@@ -52,7 +52,7 @@ optional = true
 default-features = false
 
 [dependencies.hashbrown]
-version = "0.11"
+version = "0.12"
 optional = true
 
 [dependencies.log]
@@ -60,7 +60,7 @@ version = "0.4.6"
 default-features = false
 
 [dependencies.regalloc2]
-version = "0.2.3"
+version = "0.3.2"
 features = ["checker"]
 
 [dependencies.serde]
@@ -82,13 +82,13 @@ version = "0.12"
 version = "0.3"
 
 [build-dependencies.cranelift-codegen-meta]
-version = "0.85.3"
+version = "0.87.0"
 
 [build-dependencies.cranelift-isle]
-version = "=0.85.3"
+version = "=0.87.0"
 
 [build-dependencies.miette]
-version = "4.7.0"
+version = "5.1.0"
 features = ["fancy"]
 optional = true
 
@@ -122,6 +122,7 @@ souper-harvest = [
 ]
 std = []
 testing_hooks = []
+trace-log = []
 unwind = ["gimli"]
 x86 = []
 

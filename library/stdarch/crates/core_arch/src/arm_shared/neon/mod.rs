@@ -106,6 +106,7 @@ types! {
 }
 
 /// ARM-specific type containing two `int8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -113,6 +114,7 @@ types! {
 )]
 pub struct int8x8x2_t(pub int8x8_t, pub int8x8_t);
 /// ARM-specific type containing three `int8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -120,6 +122,7 @@ pub struct int8x8x2_t(pub int8x8_t, pub int8x8_t);
 )]
 pub struct int8x8x3_t(pub int8x8_t, pub int8x8_t, pub int8x8_t);
 /// ARM-specific type containing four `int8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -128,6 +131,7 @@ pub struct int8x8x3_t(pub int8x8_t, pub int8x8_t, pub int8x8_t);
 pub struct int8x8x4_t(pub int8x8_t, pub int8x8_t, pub int8x8_t, pub int8x8_t);
 
 /// ARM-specific type containing two `int8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -135,6 +139,7 @@ pub struct int8x8x4_t(pub int8x8_t, pub int8x8_t, pub int8x8_t, pub int8x8_t);
 )]
 pub struct int8x16x2_t(pub int8x16_t, pub int8x16_t);
 /// ARM-specific type containing three `int8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -142,6 +147,7 @@ pub struct int8x16x2_t(pub int8x16_t, pub int8x16_t);
 )]
 pub struct int8x16x3_t(pub int8x16_t, pub int8x16_t, pub int8x16_t);
 /// ARM-specific type containing four `int8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -150,6 +156,7 @@ pub struct int8x16x3_t(pub int8x16_t, pub int8x16_t, pub int8x16_t);
 pub struct int8x16x4_t(pub int8x16_t, pub int8x16_t, pub int8x16_t, pub int8x16_t);
 
 /// ARM-specific type containing two `uint8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -157,6 +164,7 @@ pub struct int8x16x4_t(pub int8x16_t, pub int8x16_t, pub int8x16_t, pub int8x16_
 )]
 pub struct uint8x8x2_t(pub uint8x8_t, pub uint8x8_t);
 /// ARM-specific type containing three `uint8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -164,6 +172,7 @@ pub struct uint8x8x2_t(pub uint8x8_t, pub uint8x8_t);
 )]
 pub struct uint8x8x3_t(pub uint8x8_t, pub uint8x8_t, pub uint8x8_t);
 /// ARM-specific type containing four `uint8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -172,6 +181,7 @@ pub struct uint8x8x3_t(pub uint8x8_t, pub uint8x8_t, pub uint8x8_t);
 pub struct uint8x8x4_t(pub uint8x8_t, pub uint8x8_t, pub uint8x8_t, pub uint8x8_t);
 
 /// ARM-specific type containing two `uint8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -179,6 +189,7 @@ pub struct uint8x8x4_t(pub uint8x8_t, pub uint8x8_t, pub uint8x8_t, pub uint8x8_
 )]
 pub struct uint8x16x2_t(pub uint8x16_t, pub uint8x16_t);
 /// ARM-specific type containing three `uint8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -186,6 +197,7 @@ pub struct uint8x16x2_t(pub uint8x16_t, pub uint8x16_t);
 )]
 pub struct uint8x16x3_t(pub uint8x16_t, pub uint8x16_t, pub uint8x16_t);
 /// ARM-specific type containing four `uint8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -199,6 +211,7 @@ pub struct uint8x16x4_t(
 );
 
 /// ARM-specific type containing two `poly8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -206,6 +219,7 @@ pub struct uint8x16x4_t(
 )]
 pub struct poly8x8x2_t(pub poly8x8_t, pub poly8x8_t);
 /// ARM-specific type containing three `poly8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -213,6 +227,7 @@ pub struct poly8x8x2_t(pub poly8x8_t, pub poly8x8_t);
 )]
 pub struct poly8x8x3_t(pub poly8x8_t, pub poly8x8_t, pub poly8x8_t);
 /// ARM-specific type containing four `poly8x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -221,6 +236,7 @@ pub struct poly8x8x3_t(pub poly8x8_t, pub poly8x8_t, pub poly8x8_t);
 pub struct poly8x8x4_t(pub poly8x8_t, pub poly8x8_t, pub poly8x8_t, pub poly8x8_t);
 
 /// ARM-specific type containing two `poly8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -228,6 +244,7 @@ pub struct poly8x8x4_t(pub poly8x8_t, pub poly8x8_t, pub poly8x8_t, pub poly8x8_
 )]
 pub struct poly8x16x2_t(pub poly8x16_t, pub poly8x16_t);
 /// ARM-specific type containing three `poly8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -235,6 +252,7 @@ pub struct poly8x16x2_t(pub poly8x16_t, pub poly8x16_t);
 )]
 pub struct poly8x16x3_t(pub poly8x16_t, pub poly8x16_t, pub poly8x16_t);
 /// ARM-specific type containing four `poly8x16_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -248,6 +266,7 @@ pub struct poly8x16x4_t(
 );
 
 /// ARM-specific type containing two `int16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -255,6 +274,7 @@ pub struct poly8x16x4_t(
 )]
 pub struct int16x4x2_t(pub int16x4_t, pub int16x4_t);
 /// ARM-specific type containing three `int16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -262,6 +282,7 @@ pub struct int16x4x2_t(pub int16x4_t, pub int16x4_t);
 )]
 pub struct int16x4x3_t(pub int16x4_t, pub int16x4_t, pub int16x4_t);
 /// ARM-specific type containing four `int16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -270,6 +291,7 @@ pub struct int16x4x3_t(pub int16x4_t, pub int16x4_t, pub int16x4_t);
 pub struct int16x4x4_t(pub int16x4_t, pub int16x4_t, pub int16x4_t, pub int16x4_t);
 
 /// ARM-specific type containing two `int16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -277,6 +299,7 @@ pub struct int16x4x4_t(pub int16x4_t, pub int16x4_t, pub int16x4_t, pub int16x4_
 )]
 pub struct int16x8x2_t(pub int16x8_t, pub int16x8_t);
 /// ARM-specific type containing three `int16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -284,6 +307,7 @@ pub struct int16x8x2_t(pub int16x8_t, pub int16x8_t);
 )]
 pub struct int16x8x3_t(pub int16x8_t, pub int16x8_t, pub int16x8_t);
 /// ARM-specific type containing four `int16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -292,6 +316,7 @@ pub struct int16x8x3_t(pub int16x8_t, pub int16x8_t, pub int16x8_t);
 pub struct int16x8x4_t(pub int16x8_t, pub int16x8_t, pub int16x8_t, pub int16x8_t);
 
 /// ARM-specific type containing two `uint16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -299,6 +324,7 @@ pub struct int16x8x4_t(pub int16x8_t, pub int16x8_t, pub int16x8_t, pub int16x8_
 )]
 pub struct uint16x4x2_t(pub uint16x4_t, pub uint16x4_t);
 /// ARM-specific type containing three `uint16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -306,6 +332,7 @@ pub struct uint16x4x2_t(pub uint16x4_t, pub uint16x4_t);
 )]
 pub struct uint16x4x3_t(pub uint16x4_t, pub uint16x4_t, pub uint16x4_t);
 /// ARM-specific type containing four `uint16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -319,6 +346,7 @@ pub struct uint16x4x4_t(
 );
 
 /// ARM-specific type containing two `uint16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -326,6 +354,7 @@ pub struct uint16x4x4_t(
 )]
 pub struct uint16x8x2_t(pub uint16x8_t, pub uint16x8_t);
 /// ARM-specific type containing three `uint16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -333,6 +362,7 @@ pub struct uint16x8x2_t(pub uint16x8_t, pub uint16x8_t);
 )]
 pub struct uint16x8x3_t(pub uint16x8_t, pub uint16x8_t, pub uint16x8_t);
 /// ARM-specific type containing four `uint16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -346,6 +376,7 @@ pub struct uint16x8x4_t(
 );
 
 /// ARM-specific type containing two `poly16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -353,6 +384,7 @@ pub struct uint16x8x4_t(
 )]
 pub struct poly16x4x2_t(pub poly16x4_t, pub poly16x4_t);
 /// ARM-specific type containing three `poly16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -360,6 +392,7 @@ pub struct poly16x4x2_t(pub poly16x4_t, pub poly16x4_t);
 )]
 pub struct poly16x4x3_t(pub poly16x4_t, pub poly16x4_t, pub poly16x4_t);
 /// ARM-specific type containing four `poly16x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -373,6 +406,7 @@ pub struct poly16x4x4_t(
 );
 
 /// ARM-specific type containing two `poly16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -380,6 +414,7 @@ pub struct poly16x4x4_t(
 )]
 pub struct poly16x8x2_t(pub poly16x8_t, pub poly16x8_t);
 /// ARM-specific type containing three `poly16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -387,6 +422,7 @@ pub struct poly16x8x2_t(pub poly16x8_t, pub poly16x8_t);
 )]
 pub struct poly16x8x3_t(pub poly16x8_t, pub poly16x8_t, pub poly16x8_t);
 /// ARM-specific type containing four `poly16x8_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -400,6 +436,7 @@ pub struct poly16x8x4_t(
 );
 
 /// ARM-specific type containing two `int32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -407,6 +444,7 @@ pub struct poly16x8x4_t(
 )]
 pub struct int32x2x2_t(pub int32x2_t, pub int32x2_t);
 /// ARM-specific type containing three `int32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -414,6 +452,7 @@ pub struct int32x2x2_t(pub int32x2_t, pub int32x2_t);
 )]
 pub struct int32x2x3_t(pub int32x2_t, pub int32x2_t, pub int32x2_t);
 /// ARM-specific type containing four `int32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -422,6 +461,7 @@ pub struct int32x2x3_t(pub int32x2_t, pub int32x2_t, pub int32x2_t);
 pub struct int32x2x4_t(pub int32x2_t, pub int32x2_t, pub int32x2_t, pub int32x2_t);
 
 /// ARM-specific type containing two `int32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -429,6 +469,7 @@ pub struct int32x2x4_t(pub int32x2_t, pub int32x2_t, pub int32x2_t, pub int32x2_
 )]
 pub struct int32x4x2_t(pub int32x4_t, pub int32x4_t);
 /// ARM-specific type containing three `int32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -436,6 +477,7 @@ pub struct int32x4x2_t(pub int32x4_t, pub int32x4_t);
 )]
 pub struct int32x4x3_t(pub int32x4_t, pub int32x4_t, pub int32x4_t);
 /// ARM-specific type containing four `int32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -444,6 +486,7 @@ pub struct int32x4x3_t(pub int32x4_t, pub int32x4_t, pub int32x4_t);
 pub struct int32x4x4_t(pub int32x4_t, pub int32x4_t, pub int32x4_t, pub int32x4_t);
 
 /// ARM-specific type containing two `uint32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -451,6 +494,7 @@ pub struct int32x4x4_t(pub int32x4_t, pub int32x4_t, pub int32x4_t, pub int32x4_
 )]
 pub struct uint32x2x2_t(pub uint32x2_t, pub uint32x2_t);
 /// ARM-specific type containing three `uint32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -458,6 +502,7 @@ pub struct uint32x2x2_t(pub uint32x2_t, pub uint32x2_t);
 )]
 pub struct uint32x2x3_t(pub uint32x2_t, pub uint32x2_t, pub uint32x2_t);
 /// ARM-specific type containing four `uint32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -471,6 +516,7 @@ pub struct uint32x2x4_t(
 );
 
 /// ARM-specific type containing two `uint32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -478,6 +524,7 @@ pub struct uint32x2x4_t(
 )]
 pub struct uint32x4x2_t(pub uint32x4_t, pub uint32x4_t);
 /// ARM-specific type containing three `uint32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -485,6 +532,7 @@ pub struct uint32x4x2_t(pub uint32x4_t, pub uint32x4_t);
 )]
 pub struct uint32x4x3_t(pub uint32x4_t, pub uint32x4_t, pub uint32x4_t);
 /// ARM-specific type containing four `uint32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -498,6 +546,7 @@ pub struct uint32x4x4_t(
 );
 
 /// ARM-specific type containing two `float32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -505,6 +554,7 @@ pub struct uint32x4x4_t(
 )]
 pub struct float32x2x2_t(pub float32x2_t, pub float32x2_t);
 /// ARM-specific type containing three `float32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -512,6 +562,7 @@ pub struct float32x2x2_t(pub float32x2_t, pub float32x2_t);
 )]
 pub struct float32x2x3_t(pub float32x2_t, pub float32x2_t, pub float32x2_t);
 /// ARM-specific type containing four `float32x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -525,6 +576,7 @@ pub struct float32x2x4_t(
 );
 
 /// ARM-specific type containing two `float32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -532,6 +584,7 @@ pub struct float32x2x4_t(
 )]
 pub struct float32x4x2_t(pub float32x4_t, pub float32x4_t);
 /// ARM-specific type containing three `float32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -539,6 +592,7 @@ pub struct float32x4x2_t(pub float32x4_t, pub float32x4_t);
 )]
 pub struct float32x4x3_t(pub float32x4_t, pub float32x4_t, pub float32x4_t);
 /// ARM-specific type containing four `float32x4_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -552,6 +606,7 @@ pub struct float32x4x4_t(
 );
 
 /// ARM-specific type containing four `int64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -559,6 +614,7 @@ pub struct float32x4x4_t(
 )]
 pub struct int64x1x2_t(pub int64x1_t, pub int64x1_t);
 /// ARM-specific type containing four `int64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -566,6 +622,7 @@ pub struct int64x1x2_t(pub int64x1_t, pub int64x1_t);
 )]
 pub struct int64x1x3_t(pub int64x1_t, pub int64x1_t, pub int64x1_t);
 /// ARM-specific type containing four `int64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -574,6 +631,7 @@ pub struct int64x1x3_t(pub int64x1_t, pub int64x1_t, pub int64x1_t);
 pub struct int64x1x4_t(pub int64x1_t, pub int64x1_t, pub int64x1_t, pub int64x1_t);
 
 /// ARM-specific type containing four `int64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -581,6 +639,7 @@ pub struct int64x1x4_t(pub int64x1_t, pub int64x1_t, pub int64x1_t, pub int64x1_
 )]
 pub struct int64x2x2_t(pub int64x2_t, pub int64x2_t);
 /// ARM-specific type containing four `int64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -588,6 +647,7 @@ pub struct int64x2x2_t(pub int64x2_t, pub int64x2_t);
 )]
 pub struct int64x2x3_t(pub int64x2_t, pub int64x2_t, pub int64x2_t);
 /// ARM-specific type containing four `int64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -596,6 +656,7 @@ pub struct int64x2x3_t(pub int64x2_t, pub int64x2_t, pub int64x2_t);
 pub struct int64x2x4_t(pub int64x2_t, pub int64x2_t, pub int64x2_t, pub int64x2_t);
 
 /// ARM-specific type containing four `uint64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -603,6 +664,7 @@ pub struct int64x2x4_t(pub int64x2_t, pub int64x2_t, pub int64x2_t, pub int64x2_
 )]
 pub struct uint64x1x2_t(pub uint64x1_t, pub uint64x1_t);
 /// ARM-specific type containing four `uint64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -610,6 +672,7 @@ pub struct uint64x1x2_t(pub uint64x1_t, pub uint64x1_t);
 )]
 pub struct uint64x1x3_t(pub uint64x1_t, pub uint64x1_t, pub uint64x1_t);
 /// ARM-specific type containing four `uint64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -623,6 +686,7 @@ pub struct uint64x1x4_t(
 );
 
 /// ARM-specific type containing four `uint64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -630,6 +694,7 @@ pub struct uint64x1x4_t(
 )]
 pub struct uint64x2x2_t(pub uint64x2_t, pub uint64x2_t);
 /// ARM-specific type containing four `uint64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -637,6 +702,7 @@ pub struct uint64x2x2_t(pub uint64x2_t, pub uint64x2_t);
 )]
 pub struct uint64x2x3_t(pub uint64x2_t, pub uint64x2_t, pub uint64x2_t);
 /// ARM-specific type containing four `uint64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -650,6 +716,7 @@ pub struct uint64x2x4_t(
 );
 
 /// ARM-specific type containing four `poly64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -657,6 +724,7 @@ pub struct uint64x2x4_t(
 )]
 pub struct poly64x1x2_t(pub poly64x1_t, pub poly64x1_t);
 /// ARM-specific type containing four `poly64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -664,6 +732,7 @@ pub struct poly64x1x2_t(pub poly64x1_t, pub poly64x1_t);
 )]
 pub struct poly64x1x3_t(pub poly64x1_t, pub poly64x1_t, pub poly64x1_t);
 /// ARM-specific type containing four `poly64x1_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -677,6 +746,7 @@ pub struct poly64x1x4_t(
 );
 
 /// ARM-specific type containing four `poly64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -684,6 +754,7 @@ pub struct poly64x1x4_t(
 )]
 pub struct poly64x2x2_t(pub poly64x2_t, pub poly64x2_t);
 /// ARM-specific type containing four `poly64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -691,6 +762,7 @@ pub struct poly64x2x2_t(pub poly64x2_t, pub poly64x2_t);
 )]
 pub struct poly64x2x3_t(pub poly64x2_t, pub poly64x2_t, pub poly64x2_t);
 /// ARM-specific type containing four `poly64x2_t` vectors.
+#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(
     target_arch = "aarch64",
@@ -1212,6 +1284,8 @@ pub unsafe fn vld1q_lane_p16<const LANE: i32>(ptr: *const p16, src: poly16x8_t) 
 }
 
 /// Load one single-element structure to one lane of one register.
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vld1_lane_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
@@ -1228,6 +1302,8 @@ pub unsafe fn vld1_lane_p64<const LANE: i32>(ptr: *const p64, src: poly64x1_t) -
 }
 
 /// Load one single-element structure to one lane of one register.
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vld1q_lane_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
@@ -1603,6 +1679,8 @@ pub unsafe fn vld1_dup_f32(ptr: *const f32) -> float32x2_t {
 }
 
 /// Load one single-element structure and Replicate to all lanes (of one register).
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vld1_dup_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
@@ -1624,6 +1702,8 @@ pub unsafe fn vld1_dup_p64(ptr: *const p64) -> poly64x1_t {
 }
 
 /// Load one single-element structure and Replicate to all lanes (of one register).
+///
+/// [Arm's documentation](https://developer.arm.com/architectures/instruction-sets/intrinsics/vld1q_dup_p64)
 #[inline]
 #[target_feature(enable = "neon,aes")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
@@ -3733,7 +3813,11 @@ pub unsafe fn vbicq_u64(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_s8(a: uint8x8_t, b: int8x8_t, c: int8x8_t) -> int8x8_t {
-    simd_select(transmute::<_, int8x8_t>(a), b, c)
+    let not = int8x8_t(-1, -1, -1, -1, -1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3747,7 +3831,11 @@ pub unsafe fn vbsl_s8(a: uint8x8_t, b: int8x8_t, c: int8x8_t) -> int8x8_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_s16(a: uint16x4_t, b: int16x4_t, c: int16x4_t) -> int16x4_t {
-    simd_select(transmute::<_, int16x4_t>(a), b, c)
+    let not = int16x4_t(-1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3761,7 +3849,11 @@ pub unsafe fn vbsl_s16(a: uint16x4_t, b: int16x4_t, c: int16x4_t) -> int16x4_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_s32(a: uint32x2_t, b: int32x2_t, c: int32x2_t) -> int32x2_t {
-    simd_select(transmute::<_, int32x2_t>(a), b, c)
+    let not = int32x2_t(-1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3775,7 +3867,11 @@ pub unsafe fn vbsl_s32(a: uint32x2_t, b: int32x2_t, c: int32x2_t) -> int32x2_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_s64(a: uint64x1_t, b: int64x1_t, c: int64x1_t) -> int64x1_t {
-    simd_select(transmute::<_, int64x1_t>(a), b, c)
+    let not = int64x1_t(-1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3789,7 +3885,11 @@ pub unsafe fn vbsl_s64(a: uint64x1_t, b: int64x1_t, c: int64x1_t) -> int64x1_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_u8(a: uint8x8_t, b: uint8x8_t, c: uint8x8_t) -> uint8x8_t {
-    simd_select(transmute::<_, int8x8_t>(a), b, c)
+    let not = int8x8_t(-1, -1, -1, -1, -1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3803,7 +3903,11 @@ pub unsafe fn vbsl_u8(a: uint8x8_t, b: uint8x8_t, c: uint8x8_t) -> uint8x8_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_u16(a: uint16x4_t, b: uint16x4_t, c: uint16x4_t) -> uint16x4_t {
-    simd_select(transmute::<_, int16x4_t>(a), b, c)
+    let not = int16x4_t(-1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3817,7 +3921,11 @@ pub unsafe fn vbsl_u16(a: uint16x4_t, b: uint16x4_t, c: uint16x4_t) -> uint16x4_
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_u32(a: uint32x2_t, b: uint32x2_t, c: uint32x2_t) -> uint32x2_t {
-    simd_select(transmute::<_, int32x2_t>(a), b, c)
+    let not = int32x2_t(-1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3831,7 +3939,11 @@ pub unsafe fn vbsl_u32(a: uint32x2_t, b: uint32x2_t, c: uint32x2_t) -> uint32x2_
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_u64(a: uint64x1_t, b: uint64x1_t, c: uint64x1_t) -> uint64x1_t {
-    simd_select(transmute::<_, int64x1_t>(a), b, c)
+    let not = int64x1_t(-1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3845,7 +3957,11 @@ pub unsafe fn vbsl_u64(a: uint64x1_t, b: uint64x1_t, c: uint64x1_t) -> uint64x1_
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_f32(a: uint32x2_t, b: float32x2_t, c: float32x2_t) -> float32x2_t {
-    simd_select(transmute::<_, int32x2_t>(a), b, c)
+    let not = int32x2_t(-1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3859,7 +3975,11 @@ pub unsafe fn vbsl_f32(a: uint32x2_t, b: float32x2_t, c: float32x2_t) -> float32
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_p8(a: uint8x8_t, b: poly8x8_t, c: poly8x8_t) -> poly8x8_t {
-    simd_select(transmute::<_, int8x8_t>(a), b, c)
+    let not = int8x8_t(-1, -1, -1, -1, -1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select.
@@ -3873,7 +3993,11 @@ pub unsafe fn vbsl_p8(a: uint8x8_t, b: poly8x8_t, c: poly8x8_t) -> poly8x8_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbsl_p16(a: uint16x4_t, b: poly16x4_t, c: poly16x4_t) -> poly16x4_t {
-    simd_select(transmute::<_, int16x4_t>(a), b, c)
+    let not = int16x4_t(-1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3887,7 +4011,13 @@ pub unsafe fn vbsl_p16(a: uint16x4_t, b: poly16x4_t, c: poly16x4_t) -> poly16x4_
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_s8(a: uint8x16_t, b: int8x16_t, c: int8x16_t) -> int8x16_t {
-    simd_select(transmute::<_, int8x16_t>(a), b, c)
+    let not = int8x16_t(
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    );
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3901,7 +4031,11 @@ pub unsafe fn vbslq_s8(a: uint8x16_t, b: int8x16_t, c: int8x16_t) -> int8x16_t {
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_s16(a: uint16x8_t, b: int16x8_t, c: int16x8_t) -> int16x8_t {
-    simd_select(transmute::<_, int16x8_t>(a), b, c)
+    let not = int16x8_t(-1, -1, -1, -1, -1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3915,7 +4049,11 @@ pub unsafe fn vbslq_s16(a: uint16x8_t, b: int16x8_t, c: int16x8_t) -> int16x8_t 
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_s32(a: uint32x4_t, b: int32x4_t, c: int32x4_t) -> int32x4_t {
-    simd_select(transmute::<_, int32x4_t>(a), b, c)
+    let not = int32x4_t(-1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3929,7 +4067,11 @@ pub unsafe fn vbslq_s32(a: uint32x4_t, b: int32x4_t, c: int32x4_t) -> int32x4_t 
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_s64(a: uint64x2_t, b: int64x2_t, c: int64x2_t) -> int64x2_t {
-    simd_select(transmute::<_, int64x2_t>(a), b, c)
+    let not = int64x2_t(-1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3943,7 +4085,13 @@ pub unsafe fn vbslq_s64(a: uint64x2_t, b: int64x2_t, c: int64x2_t) -> int64x2_t 
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_u8(a: uint8x16_t, b: uint8x16_t, c: uint8x16_t) -> uint8x16_t {
-    simd_select(transmute::<_, int8x16_t>(a), b, c)
+    let not = int8x16_t(
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    );
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3957,7 +4105,11 @@ pub unsafe fn vbslq_u8(a: uint8x16_t, b: uint8x16_t, c: uint8x16_t) -> uint8x16_
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_u16(a: uint16x8_t, b: uint16x8_t, c: uint16x8_t) -> uint16x8_t {
-    simd_select(transmute::<_, int16x8_t>(a), b, c)
+    let not = int16x8_t(-1, -1, -1, -1, -1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3971,7 +4123,11 @@ pub unsafe fn vbslq_u16(a: uint16x8_t, b: uint16x8_t, c: uint16x8_t) -> uint16x8
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_u32(a: uint32x4_t, b: uint32x4_t, c: uint32x4_t) -> uint32x4_t {
-    simd_select(transmute::<_, int32x4_t>(a), b, c)
+    let not = int32x4_t(-1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3985,7 +4141,11 @@ pub unsafe fn vbslq_u32(a: uint32x4_t, b: uint32x4_t, c: uint32x4_t) -> uint32x4
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_u64(a: uint64x2_t, b: uint64x2_t, c: uint64x2_t) -> uint64x2_t {
-    simd_select(transmute::<_, int64x2_t>(a), b, c)
+    let not = int64x2_t(-1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -3999,7 +4159,13 @@ pub unsafe fn vbslq_u64(a: uint64x2_t, b: uint64x2_t, c: uint64x2_t) -> uint64x2
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_p8(a: uint8x16_t, b: poly8x16_t, c: poly8x16_t) -> poly8x16_t {
-    simd_select(transmute::<_, int8x16_t>(a), b, c)
+    let not = int8x16_t(
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    );
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -4013,7 +4179,11 @@ pub unsafe fn vbslq_p8(a: uint8x16_t, b: poly8x16_t, c: poly8x16_t) -> poly8x16_
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_p16(a: uint16x8_t, b: poly16x8_t, c: poly16x8_t) -> poly16x8_t {
-    simd_select(transmute::<_, int16x8_t>(a), b, c)
+    let not = int16x8_t(-1, -1, -1, -1, -1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Bitwise Select. (128-bit)
@@ -4027,7 +4197,11 @@ pub unsafe fn vbslq_p16(a: uint16x8_t, b: poly16x8_t, c: poly16x8_t) -> poly16x8
     stable(feature = "neon_intrinsics", since = "1.59.0")
 )]
 pub unsafe fn vbslq_f32(a: uint32x4_t, b: float32x4_t, c: float32x4_t) -> float32x4_t {
-    simd_select(transmute::<_, int32x4_t>(a), b, c)
+    let not = int32x4_t(-1, -1, -1, -1);
+    transmute(simd_or(
+        simd_and(a, transmute(b)),
+        simd_and(simd_xor(a, transmute(not)), transmute(c)),
+    ))
 }
 
 /// Vector bitwise inclusive OR NOT
@@ -9206,7 +9380,7 @@ mod tests {
 
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_s8() {
-        let a = u8x8::new(u8::MAX, 0, u8::MAX, 0, u8::MAX, 0, u8::MAX, 0);
+        let a = u8x8::new(u8::MAX, 1, u8::MAX, 2, u8::MAX, 0, u8::MAX, 0);
         let b = i8x8::new(
             i8::MAX,
             i8::MAX,
@@ -9229,9 +9403,9 @@ mod tests {
         );
         let e = i8x8::new(
             i8::MAX,
-            i8::MIN,
+            i8::MIN | 1,
             i8::MAX,
-            i8::MIN,
+            i8::MIN | 2,
             i8::MAX,
             i8::MIN,
             i8::MAX,
@@ -9242,34 +9416,34 @@ mod tests {
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_s16() {
-        let a = u16x4::new(u16::MAX, 0, u16::MAX, 0);
+        let a = u16x4::new(u16::MAX, 0, 1, 2);
         let b = i16x4::new(i16::MAX, i16::MAX, i16::MAX, i16::MAX);
         let c = i16x4::new(i16::MIN, i16::MIN, i16::MIN, i16::MIN);
-        let e = i16x4::new(i16::MAX, i16::MIN, i16::MAX, i16::MIN);
+        let e = i16x4::new(i16::MAX, i16::MIN, i16::MIN | 1, i16::MIN | 2);
         let r: i16x4 = transmute(vbsl_s16(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_s32() {
-        let a = u32x2::new(u32::MAX, u32::MIN);
+        let a = u32x2::new(u32::MAX, 1);
         let b = i32x2::new(i32::MAX, i32::MAX);
         let c = i32x2::new(i32::MIN, i32::MIN);
-        let e = i32x2::new(i32::MAX, i32::MIN);
+        let e = i32x2::new(i32::MAX, i32::MIN | 1);
         let r: i32x2 = transmute(vbsl_s32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_s64() {
-        let a = u64x1::new(u64::MAX);
+        let a = u64x1::new(1);
         let b = i64x1::new(i64::MAX);
         let c = i64x1::new(i64::MIN);
-        let e = i64x1::new(i64::MAX);
+        let e = i64x1::new(i64::MIN | 1);
         let r: i64x1 = transmute(vbsl_s64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_u8() {
-        let a = u8x8::new(u8::MAX, 0, u8::MAX, 0, u8::MAX, 0, u8::MAX, 0);
+        let a = u8x8::new(u8::MAX, 1, u8::MAX, 2, u8::MAX, 0, u8::MAX, 0);
         let b = u8x8::new(
             u8::MAX,
             u8::MAX,
@@ -9290,58 +9464,49 @@ mod tests {
             u8::MIN,
             u8::MIN,
         );
-        let e = u8x8::new(
-            u8::MAX,
-            u8::MIN,
-            u8::MAX,
-            u8::MIN,
-            u8::MAX,
-            u8::MIN,
-            u8::MAX,
-            u8::MIN,
-        );
+        let e = u8x8::new(u8::MAX, 1, u8::MAX, 2, u8::MAX, u8::MIN, u8::MAX, u8::MIN);
         let r: u8x8 = transmute(vbsl_u8(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_u16() {
-        let a = u16x4::new(u16::MAX, 0, u16::MAX, 0);
+        let a = u16x4::new(u16::MAX, 0, 1, 2);
         let b = u16x4::new(u16::MAX, u16::MAX, u16::MAX, u16::MAX);
         let c = u16x4::new(u16::MIN, u16::MIN, u16::MIN, u16::MIN);
-        let e = u16x4::new(u16::MAX, u16::MIN, u16::MAX, u16::MIN);
+        let e = u16x4::new(u16::MAX, 0, 1, 2);
         let r: u16x4 = transmute(vbsl_u16(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_u32() {
-        let a = u32x2::new(u32::MAX, 0);
+        let a = u32x2::new(u32::MAX, 2);
         let b = u32x2::new(u32::MAX, u32::MAX);
         let c = u32x2::new(u32::MIN, u32::MIN);
-        let e = u32x2::new(u32::MAX, u32::MIN);
+        let e = u32x2::new(u32::MAX, 2);
         let r: u32x2 = transmute(vbsl_u32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_u64() {
-        let a = u64x1::new(u64::MAX);
+        let a = u64x1::new(2);
         let b = u64x1::new(u64::MAX);
         let c = u64x1::new(u64::MIN);
-        let e = u64x1::new(u64::MAX);
+        let e = u64x1::new(2);
         let r: u64x1 = transmute(vbsl_u64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_f32() {
-        let a = u32x2::new(u32::MAX, 0);
-        let b = f32x2::new(f32::MAX, f32::MAX);
-        let c = f32x2::new(f32::MIN, f32::MIN);
-        let e = f32x2::new(f32::MAX, f32::MIN);
+        let a = u32x2::new(1, 0x80000000);
+        let b = f32x2::new(8388609f32, -1.23f32);
+        let c = f32x2::new(2097152f32, 2.34f32);
+        let e = f32x2::new(2097152.25f32, -2.34f32);
         let r: f32x2 = transmute(vbsl_f32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_p8() {
-        let a = u8x8::new(u8::MAX, 0, u8::MAX, 0, u8::MAX, 0, u8::MAX, 0);
+        let a = u8x8::new(u8::MAX, 1, u8::MAX, 2, u8::MAX, 0, u8::MAX, 0);
         let b = u8x8::new(
             u8::MAX,
             u8::MAX,
@@ -9362,25 +9527,16 @@ mod tests {
             u8::MIN,
             u8::MIN,
         );
-        let e = u8x8::new(
-            u8::MAX,
-            u8::MIN,
-            u8::MAX,
-            u8::MIN,
-            u8::MAX,
-            u8::MIN,
-            u8::MAX,
-            u8::MIN,
-        );
+        let e = u8x8::new(u8::MAX, 1, u8::MAX, 2, u8::MAX, u8::MIN, u8::MAX, u8::MIN);
         let r: u8x8 = transmute(vbsl_p8(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbsl_p16() {
-        let a = u16x4::new(u16::MAX, 0, u16::MAX, 0);
+        let a = u16x4::new(u16::MAX, 0, 1, 2);
         let b = u16x4::new(u16::MAX, u16::MAX, u16::MAX, u16::MAX);
         let c = u16x4::new(u16::MIN, u16::MIN, u16::MIN, u16::MIN);
-        let e = u16x4::new(u16::MAX, u16::MIN, u16::MAX, u16::MIN);
+        let e = u16x4::new(u16::MAX, 0, 1, 2);
         let r: u16x4 = transmute(vbsl_p16(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
@@ -9388,9 +9544,9 @@ mod tests {
     unsafe fn test_vbslq_s8() {
         let a = u8x16::new(
             u8::MAX,
-            0,
+            1,
             u8::MAX,
-            0,
+            2,
             u8::MAX,
             0,
             u8::MAX,
@@ -9442,9 +9598,9 @@ mod tests {
         );
         let e = i8x16::new(
             i8::MAX,
-            i8::MIN,
+            i8::MIN | 1,
             i8::MAX,
-            i8::MIN,
+            i8::MIN | 2,
             i8::MAX,
             i8::MIN,
             i8::MAX,
@@ -9463,7 +9619,7 @@ mod tests {
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_s16() {
-        let a = u16x8::new(u16::MAX, 0, u16::MAX, 0, u16::MAX, 0, u16::MAX, 0);
+        let a = u16x8::new(u16::MAX, 1, u16::MAX, 2, u16::MAX, 0, u16::MAX, 0);
         let b = i16x8::new(
             i16::MAX,
             i16::MAX,
@@ -9486,9 +9642,9 @@ mod tests {
         );
         let e = i16x8::new(
             i16::MAX,
-            i16::MIN,
+            i16::MIN | 1,
             i16::MAX,
-            i16::MIN,
+            i16::MIN | 2,
             i16::MAX,
             i16::MIN,
             i16::MAX,
@@ -9499,19 +9655,19 @@ mod tests {
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_s32() {
-        let a = u32x4::new(u32::MAX, 0, u32::MAX, 0);
+        let a = u32x4::new(u32::MAX, 1, u32::MAX, 2);
         let b = i32x4::new(i32::MAX, i32::MAX, i32::MAX, i32::MAX);
         let c = i32x4::new(i32::MIN, i32::MIN, i32::MIN, i32::MIN);
-        let e = i32x4::new(i32::MAX, i32::MIN, i32::MAX, i32::MIN);
+        let e = i32x4::new(i32::MAX, i32::MIN | 1, i32::MAX, i32::MIN | 2);
         let r: i32x4 = transmute(vbslq_s32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_s64() {
-        let a = u64x2::new(u64::MAX, 0);
+        let a = u64x2::new(u64::MAX, 1);
         let b = i64x2::new(i64::MAX, i64::MAX);
         let c = i64x2::new(i64::MIN, i64::MIN);
-        let e = i64x2::new(i64::MAX, i64::MIN);
+        let e = i64x2::new(i64::MAX, i64::MIN | 1);
         let r: i64x2 = transmute(vbslq_s64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
@@ -9519,9 +9675,9 @@ mod tests {
     unsafe fn test_vbslq_u8() {
         let a = u8x16::new(
             u8::MAX,
-            0,
+            1,
             u8::MAX,
-            0,
+            2,
             u8::MAX,
             0,
             u8::MAX,
@@ -9573,9 +9729,9 @@ mod tests {
         );
         let e = u8x16::new(
             u8::MAX,
-            u8::MIN,
+            1,
             u8::MAX,
-            u8::MIN,
+            2,
             u8::MAX,
             u8::MIN,
             u8::MAX,
@@ -9594,7 +9750,7 @@ mod tests {
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_u16() {
-        let a = u16x8::new(u16::MAX, 0, u16::MAX, 0, u16::MAX, 0, u16::MAX, 0);
+        let a = u16x8::new(u16::MAX, 1, u16::MAX, 2, u16::MAX, 0, u16::MAX, 0);
         let b = u16x8::new(
             u16::MAX,
             u16::MAX,
@@ -9617,9 +9773,9 @@ mod tests {
         );
         let e = u16x8::new(
             u16::MAX,
-            u16::MIN,
+            1,
             u16::MAX,
-            u16::MIN,
+            2,
             u16::MAX,
             u16::MIN,
             u16::MAX,
@@ -9630,28 +9786,28 @@ mod tests {
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_u32() {
-        let a = u32x4::new(u32::MAX, 0, u32::MAX, 0);
+        let a = u32x4::new(u32::MAX, 1, u32::MAX, 2);
         let b = u32x4::new(u32::MAX, u32::MAX, u32::MAX, u32::MAX);
         let c = u32x4::new(u32::MIN, u32::MIN, u32::MIN, u32::MIN);
-        let e = u32x4::new(u32::MAX, u32::MIN, u32::MAX, u32::MIN);
+        let e = u32x4::new(u32::MAX, 1, u32::MAX, 2);
         let r: u32x4 = transmute(vbslq_u32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_u64() {
-        let a = u64x2::new(u64::MAX, 0);
+        let a = u64x2::new(u64::MAX, 1);
         let b = u64x2::new(u64::MAX, u64::MAX);
         let c = u64x2::new(u64::MIN, u64::MIN);
-        let e = u64x2::new(u64::MAX, u64::MIN);
+        let e = u64x2::new(u64::MAX, 1);
         let r: u64x2 = transmute(vbslq_u64(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_f32() {
-        let a = u32x4::new(u32::MAX, 0, u32::MAX, 0);
-        let b = f32x4::new(f32::MAX, f32::MAX, f32::MAX, f32::MAX);
-        let c = f32x4::new(f32::MIN, f32::MIN, f32::MIN, f32::MIN);
-        let e = f32x4::new(f32::MAX, f32::MIN, f32::MAX, f32::MIN);
+        let a = u32x4::new(u32::MAX, 0, 1, 0x80000000);
+        let b = f32x4::new(-1.23f32, -1.23f32, 8388609f32, -1.23f32);
+        let c = f32x4::new(2.34f32, 2.34f32, 2097152f32, 2.34f32);
+        let e = f32x4::new(-1.23f32, 2.34f32, 2097152.25f32, -2.34f32);
         let r: f32x4 = transmute(vbslq_f32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
@@ -9659,9 +9815,9 @@ mod tests {
     unsafe fn test_vbslq_p8() {
         let a = u8x16::new(
             u8::MAX,
-            0,
+            1,
             u8::MAX,
-            0,
+            2,
             u8::MAX,
             0,
             u8::MAX,
@@ -9713,9 +9869,9 @@ mod tests {
         );
         let e = u8x16::new(
             u8::MAX,
-            u8::MIN,
+            1,
             u8::MAX,
-            u8::MIN,
+            2,
             u8::MAX,
             u8::MIN,
             u8::MAX,
@@ -9734,7 +9890,7 @@ mod tests {
     }
     #[simd_test(enable = "neon")]
     unsafe fn test_vbslq_p16() {
-        let a = u16x8::new(u16::MAX, 0, u16::MAX, 0, u16::MAX, 0, u16::MAX, 0);
+        let a = u16x8::new(u16::MAX, 1, u16::MAX, 2, u16::MAX, 0, u16::MAX, 0);
         let b = u16x8::new(
             u16::MAX,
             u16::MAX,
@@ -9757,9 +9913,9 @@ mod tests {
         );
         let e = u16x8::new(
             u16::MAX,
-            u16::MIN,
+            1,
             u16::MAX,
-            u16::MIN,
+            2,
             u16::MAX,
             u16::MIN,
             u16::MAX,

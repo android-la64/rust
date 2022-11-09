@@ -101,7 +101,7 @@ impl<'repo> Remote<'repo> {
     /// when you have a URL instead of a remote's name.
     /// Contrasted with an anonymous remote, a detached remote will not
     /// consider any repo configuration values.
-    pub fn create_detached(url: &str) -> Result<Remote<'_>, Error> {
+    pub fn create_detached<S: Into<Vec<u8>>>(url: S) -> Result<Remote<'repo>, Error> {
         crate::init();
         let mut ret = ptr::null_mut();
         let url = CString::new(url)?;
@@ -608,13 +608,13 @@ impl<'cb> PushOptions<'cb> {
         }
     }
 
-    /// Set the callbacks to use for the fetch operation.
+    /// Set the callbacks to use for the push operation.
     pub fn remote_callbacks(&mut self, cbs: RemoteCallbacks<'cb>) -> &mut Self {
         self.callbacks = Some(cbs);
         self
     }
 
-    /// Set the proxy options to use for the fetch operation.
+    /// Set the proxy options to use for the push operation.
     pub fn proxy_options(&mut self, opts: ProxyOptions<'cb>) -> &mut Self {
         self.proxy = Some(opts);
         self
@@ -956,7 +956,7 @@ mod tests {
         let repo = Repository::clone(&url, td3.path()).unwrap();
         let commit = repo.head().unwrap().target().unwrap();
         let commit = repo.find_commit(commit).unwrap();
-        assert_eq!(commit.message(), Some("initial"));
+        assert_eq!(commit.message(), Some("initial\n\nbody"));
     }
 
     #[test]

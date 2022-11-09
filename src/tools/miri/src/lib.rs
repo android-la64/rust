@@ -5,6 +5,8 @@
 #![feature(try_blocks)]
 #![feature(let_else)]
 #![feature(io_error_more)]
+#![feature(int_log)]
+#![feature(variant_count)]
 #![feature(yeet_expr)]
 #![feature(is_some_with)]
 #![feature(nonzero_ops)]
@@ -22,7 +24,12 @@
     clippy::useless_format,
     clippy::derive_partial_eq_without_eq,
     clippy::derive_hash_xor_eq,
-    clippy::too_many_arguments
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    clippy::single_element_loop,
+    clippy::needless_return,
+    // We are not implementing queries here so it's fine
+    rustc::potential_query_instability
 )]
 #![warn(
     rust_2018_idioms,
@@ -55,9 +62,6 @@ mod operator;
 mod range_map;
 mod shims;
 mod stacked_borrows;
-mod sync;
-mod thread;
-mod vector_clock;
 
 // Establish a "crate-wide prelude": we often import `crate::*`.
 
@@ -76,9 +80,16 @@ pub use crate::shims::time::EvalContextExt as _;
 pub use crate::shims::tls::{EvalContextExt as _, TlsData};
 pub use crate::shims::EvalContextExt as _;
 
-pub use crate::concurrency::data_race::{
-    AtomicFenceOrd, AtomicReadOrd, AtomicRwOrd, AtomicWriteOrd,
-    EvalContextExt as DataRaceEvalContextExt,
+pub use crate::concurrency::{
+    data_race::{
+        AtomicFenceOrd, AtomicReadOrd, AtomicRwOrd, AtomicWriteOrd,
+        EvalContextExt as DataRaceEvalContextExt,
+    },
+    sync::{CondvarId, EvalContextExt as SyncEvalContextExt, MutexId, RwLockId},
+    thread::{
+        EvalContextExt as ThreadsEvalContextExt, SchedulingAction, ThreadId, ThreadManager,
+        ThreadState,
+    },
 };
 pub use crate::diagnostics::{
     register_diagnostic, report_error, EvalContextExt as DiagnosticsEvalContextExt,
@@ -99,11 +110,6 @@ pub use crate::range_map::RangeMap;
 pub use crate::stacked_borrows::{
     CallId, EvalContextExt as StackedBorEvalContextExt, Item, Permission, SbTag, Stack, Stacks,
 };
-pub use crate::sync::{CondvarId, EvalContextExt as SyncEvalContextExt, MutexId, RwLockId};
-pub use crate::thread::{
-    EvalContextExt as ThreadsEvalContextExt, SchedulingAction, ThreadId, ThreadManager, ThreadState,
-};
-pub use crate::vector_clock::{VClock, VTimestamp, VectorIdx};
 
 /// Insert rustc arguments at the beginning of the argument list that Miri wants to be
 /// set per default, for maximal validation power.
@@ -113,4 +119,5 @@ pub const MIRI_DEFAULT_ARGS: &[&str] = &[
     "-Zmir-opt-level=0",
     "--cfg=miri",
     "-Cdebug-assertions=on",
+    "-Zextra-const-ub-checks",
 ];

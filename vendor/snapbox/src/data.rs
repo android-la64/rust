@@ -12,6 +12,12 @@ enum DataInner {
     Text(String),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash)]
+pub enum DataFormat {
+    Binary,
+    Text,
+}
+
 impl Data {
     /// Mark the data as binary (no post-processing)
     pub fn binary(raw: impl Into<Vec<u8>>) -> Self {
@@ -33,22 +39,27 @@ impl Data {
     }
 
     /// Load test data from a file
-    pub fn read_from(path: &std::path::Path, binary: Option<bool>) -> Result<Self, crate::Error> {
-        let data = match binary {
-            Some(true) => {
-                let data = std::fs::read(&path)
-                    .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
-                Self::binary(data)
-            }
-            Some(false) => {
-                let data = std::fs::read_to_string(&path)
-                    .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
-                Self::text(data)
-            }
+    pub fn read_from(
+        path: &std::path::Path,
+        data_format: Option<DataFormat>,
+    ) -> Result<Self, crate::Error> {
+        let data = match data_format {
+            Some(df) => match df {
+                DataFormat::Binary => {
+                    let data = std::fs::read(&path)
+                        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+                    Self::binary(data)
+                }
+                DataFormat::Text => {
+                    let data = std::fs::read_to_string(&path)
+                        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+                    Self::text(data)
+                }
+            },
             None => {
                 let data = std::fs::read(&path)
                     .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
-                Self::binary(data).try_text()
+                Self::binary(data).try_coerce(DataFormat::Text)
             }
         };
         Ok(data)
@@ -61,38 +72,8 @@ impl Data {
                 format!("Failed to create parent dir for {}: {}", path.display(), e)
             })?;
         }
-        std::fs::write(path, self.as_bytes())
+        std::fs::write(path, self.to_bytes())
             .map_err(|e| format!("Failed to write {}: {}", path.display(), e).into())
-    }
-
-    /// Update an inline snapshot
-    pub fn replace_lines(
-        &mut self,
-        line_nums: std::ops::Range<usize>,
-        text: &str,
-    ) -> Result<(), crate::Error> {
-        let mut output_lines = String::new();
-
-        let s = self
-            .as_str()
-            .ok_or("Binary file can't have lines replaced")?;
-        for (line_num, line) in crate::utils::LinesWithTerminator::new(s)
-            .enumerate()
-            .map(|(i, l)| (i + 1, l))
-        {
-            if line_num == line_nums.start {
-                output_lines.push_str(text);
-                if !text.is_empty() && !text.ends_with('\n') {
-                    output_lines.push('\n');
-                }
-            }
-            if !line_nums.contains(&line_num) {
-                output_lines.push_str(line);
-            }
-        }
-
-        *self = Self::text(output_lines);
-        Ok(())
     }
 
     /// Post-process text
@@ -102,28 +83,6 @@ impl Data {
         match self.inner {
             DataInner::Binary(data) => Self::binary(data),
             DataInner::Text(data) => Self::text(op(&data)),
-        }
-    }
-
-    /// Convert from binary to text, if possible
-    ///
-    /// This will do extra binary file detection if `detect-encoding` feature flag is set
-    pub fn try_text(self) -> Self {
-        match self.inner {
-            DataInner::Binary(data) => {
-                if is_binary(&data) {
-                    Self::binary(data)
-                } else {
-                    match String::from_utf8(data) {
-                        Ok(data) => Self::text(data),
-                        Err(err) => {
-                            let data = err.into_bytes();
-                            Self::binary(data)
-                        }
-                    }
-                }
-            }
-            DataInner::Text(data) => Self::text(data),
         }
     }
 
@@ -158,10 +117,40 @@ impl Data {
         }
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn to_bytes(&self) -> Vec<u8> {
         match &self.inner {
-            DataInner::Binary(data) => data,
-            DataInner::Text(data) => data.as_bytes(),
+            DataInner::Binary(data) => data.clone(),
+            DataInner::Text(data) => data.clone().into_bytes(),
+        }
+    }
+
+    pub fn try_coerce(self, format: DataFormat) -> Self {
+        match format {
+            DataFormat::Binary => Self::binary(self.to_bytes()),
+            DataFormat::Text => match self.inner {
+                DataInner::Binary(data) => {
+                    if is_binary(&data) {
+                        Self::binary(data)
+                    } else {
+                        match String::from_utf8(data) {
+                            Ok(data) => Self::text(data),
+                            Err(err) => {
+                                let data = err.into_bytes();
+                                Self::binary(data)
+                            }
+                        }
+                    }
+                }
+                DataInner::Text(data) => Self::text(data),
+            },
+        }
+    }
+
+    /// Outputs the current `DataFormat` of the underlying data
+    pub fn format(&self) -> DataFormat {
+        match &self.inner {
+            DataInner::Binary(_) => DataFormat::Binary,
+            DataInner::Text(_) => DataFormat::Text,
         }
     }
 }
@@ -238,69 +227,4 @@ fn is_binary(data: &[u8]) -> bool {
 #[cfg(not(feature = "detect-encoding"))]
 fn is_binary(_data: &[u8]) -> bool {
     false
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn replace_lines_same_line_count() {
-        let input = "One\nTwo\nThree";
-        let line_nums = 2..3;
-        let replacement = "World\n";
-        let expected = Data::text("One\nWorld\nThree");
-
-        let mut actual = Data::text(input);
-        actual.replace_lines(line_nums, replacement).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn replace_lines_grow() {
-        let input = "One\nTwo\nThree";
-        let line_nums = 2..3;
-        let replacement = "World\nTrees\n";
-        let expected = Data::text("One\nWorld\nTrees\nThree");
-
-        let mut actual = Data::text(input);
-        actual.replace_lines(line_nums, replacement).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn replace_lines_shrink() {
-        let input = "One\nTwo\nThree";
-        let line_nums = 2..3;
-        let replacement = "";
-        let expected = Data::text("One\nThree");
-
-        let mut actual = Data::text(input);
-        actual.replace_lines(line_nums, replacement).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn replace_lines_no_trailing() {
-        let input = "One\nTwo\nThree";
-        let line_nums = 2..3;
-        let replacement = "World";
-        let expected = Data::text("One\nWorld\nThree");
-
-        let mut actual = Data::text(input);
-        actual.replace_lines(line_nums, replacement).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn replace_lines_empty_range() {
-        let input = "One\nTwo\nThree";
-        let line_nums = 2..2;
-        let replacement = "World\n";
-        let expected = Data::text("One\nWorld\nTwo\nThree");
-
-        let mut actual = Data::text(input);
-        actual.replace_lines(line_nums, replacement).unwrap();
-        assert_eq!(expected, actual);
-    }
 }

@@ -251,7 +251,7 @@ impl Command {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .timeout(std::time::Duration::from_secs(1))
     ///     .env("sleep", "100")
     ///     .assert()
@@ -312,10 +312,8 @@ impl Command {
 
     #[cfg(feature = "cmd")]
     fn single_output(mut self) -> Result<std::process::Output, std::io::Error> {
-        use std::io::Read;
-
         self.cmd.stdin(std::process::Stdio::piped());
-        let (mut reader, writer) = os_pipe::pipe()?;
+        let (reader, writer) = os_pipe::pipe()?;
         let writer_clone = writer.try_clone()?;
         self.cmd.stdout(writer);
         self.cmd.stderr(writer_clone);
@@ -325,18 +323,15 @@ impl Command {
         // before we read. Here we do this by dropping the Command object.
         drop(self.cmd);
 
-        let (stdout, stderr) = process_io(&mut child, self.stdin.as_ref().map(|d| d.as_bytes()))?;
+        let stdout = process_single_io(
+            &mut child,
+            reader,
+            self.stdin.as_ref().map(|d| d.to_bytes()),
+        )?;
 
         let status = wait(child, self.timeout)?;
-        let _stdout = stdout
-            .and_then(|t| t.join().unwrap().ok())
-            .unwrap_or_default();
-        let _stderr = stderr
-            .and_then(|t| t.join().unwrap().ok())
-            .unwrap_or_default();
+        let stdout = stdout.join().unwrap().ok().unwrap_or_default();
 
-        let mut stdout = Vec::new();
-        reader.read_to_end(&mut stdout)?;
         Ok(std::process::Output {
             status,
             stdout,
@@ -350,7 +345,8 @@ impl Command {
         self.cmd.stderr(std::process::Stdio::piped());
         let mut child = self.cmd.spawn()?;
 
-        let (stdout, stderr) = process_io(&mut child, self.stdin.as_ref().map(|d| d.as_bytes()))?;
+        let (stdout, stderr) =
+            process_split_io(&mut child, self.stdin.as_ref().map(|d| d.to_bytes()))?;
 
         let status = wait(child, self.timeout)?;
         let stdout = stdout
@@ -368,35 +364,61 @@ impl Command {
     }
 }
 
-fn process_io(
+fn process_split_io(
     child: &mut std::process::Child,
-    input: Option<&[u8]>,
-) -> std::io::Result<(Stream, Stream)> {
+    input: Option<Vec<u8>>,
+) -> std::io::Result<(Option<Stream>, Option<Stream>)> {
     use std::io::Write;
 
-    let input = input.map(|b| b.to_owned());
     let stdin = input.and_then(|i| {
         child
             .stdin
             .take()
             .map(|mut stdin| std::thread::spawn(move || stdin.write_all(&i)))
     });
-    fn read<R>(mut input: R) -> std::thread::JoinHandle<std::io::Result<Vec<u8>>>
-    where
-        R: std::io::Read + Send + 'static,
-    {
-        std::thread::spawn(move || {
-            let mut ret = Vec::new();
-            input.read_to_end(&mut ret).map(|_| ret)
-        })
-    }
-    let stdout = child.stdout.take().map(read);
-    let stderr = child.stderr.take().map(read);
+    let stdout = child.stdout.take().map(threaded_read);
+    let stderr = child.stderr.take().map(threaded_read);
 
     // Finish writing stdin before waiting, because waiting drops stdin.
     stdin.and_then(|t| t.join().unwrap().ok());
 
     Ok((stdout, stderr))
+}
+
+#[cfg(feature = "cmd")]
+fn process_single_io(
+    child: &mut std::process::Child,
+    stdout: os_pipe::PipeReader,
+    input: Option<Vec<u8>>,
+) -> std::io::Result<Stream> {
+    use std::io::Write;
+
+    let stdin = input.and_then(|i| {
+        child
+            .stdin
+            .take()
+            .map(|mut stdin| std::thread::spawn(move || stdin.write_all(&i)))
+    });
+    let stdout = threaded_read(stdout);
+    debug_assert!(child.stdout.is_none());
+    debug_assert!(child.stderr.is_none());
+
+    // Finish writing stdin before waiting, because waiting drops stdin.
+    stdin.and_then(|t| t.join().unwrap().ok());
+
+    Ok(stdout)
+}
+
+type Stream = std::thread::JoinHandle<Result<Vec<u8>, std::io::Error>>;
+
+fn threaded_read<R>(mut input: R) -> Stream
+where
+    R: std::io::Read + Send + 'static,
+{
+    std::thread::spawn(move || {
+        let mut ret = Vec::new();
+        input.read_to_end(&mut ret).map(|_| ret)
+    })
 }
 
 impl From<std::process::Command> for Command {
@@ -445,7 +467,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .assert()
     ///     .success();
     /// ```
@@ -474,7 +496,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("exit", "1")
     ///     .assert()
     ///     .failure();
@@ -524,7 +546,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("exit", "42")
     ///     .assert()
     ///     .code(42);
@@ -554,7 +576,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -590,7 +612,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -605,7 +627,7 @@ impl OutputAssert {
     #[track_caller]
     fn stdout_eq_path_inner(self, expected_path: &std::path::Path) -> Self {
         let actual = crate::Data::from(self.output.stdout.as_slice());
-        let expected = crate::Data::read_from(expected_path, self.config.binary);
+        let expected = crate::Data::read_from(expected_path, self.config.data_format());
         let (pattern, actual) = self.config.normalize_eq(expected, actual);
         self.config.do_action(
             pattern,
@@ -624,7 +646,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -660,7 +682,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -675,7 +697,7 @@ impl OutputAssert {
     #[track_caller]
     fn stdout_matches_path_inner(self, expected_path: &std::path::Path) -> Self {
         let actual = crate::Data::from(self.output.stdout.as_slice());
-        let expected = crate::Data::read_from(expected_path, self.config.binary);
+        let expected = crate::Data::read_from(expected_path, self.config.data_format());
         let (pattern, actual) = self.config.normalize_match(expected, actual);
         self.config.do_action(
             pattern,
@@ -694,7 +716,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -730,7 +752,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -745,7 +767,7 @@ impl OutputAssert {
     #[track_caller]
     fn stderr_eq_path_inner(self, expected_path: &std::path::Path) -> Self {
         let actual = crate::Data::from(self.output.stderr.as_slice());
-        let expected = crate::Data::read_from(expected_path, self.config.binary);
+        let expected = crate::Data::read_from(expected_path, self.config.data_format());
         let (pattern, actual) = self.config.normalize_eq(expected, actual);
         self.config.do_action(
             pattern,
@@ -764,7 +786,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -800,7 +822,7 @@ impl OutputAssert {
     /// use snapbox::cmd::Command;
     /// use snapbox::cmd::cargo_bin;
     ///
-    /// let assert = Command::new(cargo_bin("snap_fixture"))
+    /// let assert = Command::new(cargo_bin("snap-fixture"))
     ///     .env("stdout", "hello")
     ///     .env("stderr", "world")
     ///     .assert()
@@ -815,7 +837,7 @@ impl OutputAssert {
     #[track_caller]
     fn stderr_matches_path_inner(self, expected_path: &std::path::Path) -> Self {
         let actual = crate::Data::from(self.output.stderr.as_slice());
-        let expected = crate::Data::read_from(expected_path, self.config.binary);
+        let expected = crate::Data::read_from(expected_path, self.config.data_format());
         let (pattern, actual) = self.config.normalize_match(expected, actual);
         self.config.do_action(
             pattern,
@@ -861,8 +883,6 @@ fn display_code(output: &std::process::Output) -> String {
         "interrupted".to_owned()
     }
 }
-
-type Stream = Option<std::thread::JoinHandle<Result<Vec<u8>, std::io::Error>>>;
 
 #[cfg(feature = "cmd")]
 fn wait(

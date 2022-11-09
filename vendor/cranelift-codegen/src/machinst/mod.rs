@@ -45,7 +45,7 @@
 //! ```
 
 use crate::binemit::{Addend, CodeInfo, CodeOffset, Reloc, StackMap};
-use crate::ir::{SourceLoc, StackSlot, Type};
+use crate::ir::{DynamicStackSlot, SourceLoc, StackSlot, Type};
 use crate::result::CodegenResult;
 use crate::settings::Flags;
 use crate::value_label::ValueLabelsRanges;
@@ -95,9 +95,6 @@ pub trait MachInst: Clone + Debug {
     /// Is this a terminator (branch or ret)? If so, return its type
     /// (ret/uncond/cond) and target if applicable.
     fn is_term(&self) -> MachTerminator;
-
-    /// Returns true if the instruction is an epilogue placeholder.
-    fn is_epilogue_placeholder(&self) -> bool;
 
     /// Should this instruction be included in the clobber-set?
     fn is_included_in_clobbers(&self) -> bool {
@@ -272,7 +269,7 @@ pub trait MachInstEmitState<I: MachInst>: Default + Clone + Debug {
 
 /// The result of a `MachBackend::compile_function()` call. Contains machine
 /// code (as bytes) and a disassembly, if requested.
-pub struct MachCompileResult {
+pub struct CompiledCode {
     /// Machine code.
     pub buffer: MachBufferFinalized,
     /// Size of stack frame, in bytes.
@@ -282,7 +279,9 @@ pub struct MachCompileResult {
     /// Debug info: value labels to registers/stackslots at code offsets.
     pub value_labels_ranges: ValueLabelsRanges,
     /// Debug info: stackslots to stack pointer offsets.
-    pub stackslot_offsets: PrimaryMap<StackSlot, u32>,
+    pub sized_stackslot_offsets: PrimaryMap<StackSlot, u32>,
+    /// Debug info: stackslots to stack pointer offsets.
+    pub dynamic_stackslot_offsets: PrimaryMap<DynamicStackSlot, u32>,
     /// Basic-block layout info: block start offsets.
     ///
     /// This info is generated only if the `machine_code_cfg_info`
@@ -297,12 +296,17 @@ pub struct MachCompileResult {
     pub bb_edges: Vec<(CodeOffset, CodeOffset)>,
 }
 
-impl MachCompileResult {
+impl CompiledCode {
     /// Get a `CodeInfo` describing section sizes from this compilation result.
     pub fn code_info(&self) -> CodeInfo {
         CodeInfo {
             total_size: self.buffer.total_size(),
         }
+    }
+
+    /// Returns a reference to the machine code generated for this function compilation.
+    pub fn code_buffer(&self) -> &[u8] {
+        self.buffer.data()
     }
 }
 

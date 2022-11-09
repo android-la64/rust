@@ -17,45 +17,43 @@ shown below:
 
 ```rust,ignore
 #[derive(SessionDiagnostic)]
-#[error(typeck::field_already_declared, code = "E0124")]
+#[diag(typeck::field_already_declared, code = "E0124")]
 pub struct FieldAlreadyDeclared {
     pub field_name: Ident,
     #[primary_span]
     #[label]
     pub span: Span,
-    #[label = "previous-decl-label"]
+    #[label(typeck::previous_decl_label)]
     pub prev_span: Span,
 }
 ```
 
 `SessionDiagnostic` can only be applied to structs. Every `SessionDiagnostic`
-has to have one attribute applied to the struct itself: either `#[error(..)]`
-for defining errors, or `#[warning(..)]` for defining warnings.
+has to have one attribute, `#[diag(...)]`, applied to the struct itself.
 
 If an error has an error code (e.g. "E0624"), then that can be specified using
 the `code` sub-attribute. Specifying a `code` isn't mandatory, but if you are
 porting a diagnostic that uses `DiagnosticBuilder` to use `SessionDiagnostic`
 then you should keep the code if there was one.
 
-Both `#[error(..)]` and `#[warning(..)]` must provide a slug as the first
-positional argument (a path to an item in `rustc_errors::fluent::*`). A slug
-uniquely identifies the diagnostic and is also how the compiler knows what
-error message to emit (in the default locale of the compiler, or in the locale
-requested by the user). See [translation documentation](./translation.md) to
-learn more about how translatable error messages are written and how slug
-items are generated.
+`#[diag(..)]` must provide a slug as the first positional argument (a path to an
+item in `rustc_errors::fluent::*`). A slug uniquely identifies the diagnostic
+and is also how the compiler knows what error message to emit (in the default
+locale of the compiler, or in the locale requested by the user). See
+[translation documentation](./translation.md) to learn more about how
+translatable error messages are written and how slug items are generated.
 
 In our example, the Fluent message for the "field already declared" diagnostic
 looks like this:
 
 ```fluent
-typeck-field-already-declared =
+typeck_field_already_declared =
     field `{$field_name}` is already declared
     .label = field already declared
-    .previous-decl-label = `{$field_name}` first declared here
+    .previous_decl_label = `{$field_name}` first declared here
 ```
 
-`typeck-field-already-declared` is the slug from our example and is followed
+`typeck_field_already_declared` is the slug from our example and is followed
 by the diagnostic message.
 
 Every field of the `SessionDiagnostic` which does not have an annotation is
@@ -75,10 +73,10 @@ type `Span`. Applying any of these attributes will create the corresponding
 subdiagnostic with that `Span`. These attributes will look for their
 diagnostic message in a Fluent attribute attached to the primary Fluent
 message. In our example, `#[label]` will look for
-`typeck-field-already-declared.label` (which has the message "field already
+`typeck_field_already_declared.label` (which has the message "field already
 declared"). If there is more than one subdiagnostic of the same type, then
 these attributes can also take a value that is the attribute name to look for
-(e.g. `previous-decl-label` in our example).
+(e.g. `previous_decl_label` in our example).
 
 Other types have special behavior when used in a `SessionDiagnostic` derive:
 
@@ -95,38 +93,35 @@ represent optional `#[note]`/`#[help]` subdiagnostics.
 
 Suggestions can be emitted using one of four field attributes:
 
-- `#[suggestion(message = "...", code = "...", applicability = "...")]`
-- `#[suggestion_hidden(message = "...", code = "...", applicability = "...")]`
-- `#[suggestion_short(message = "...", code = "...", applicability = "...")]`
-- `#[suggestion_verbose(message = "...", code = "...", applicability = "...")]`
+- `#[suggestion(slug, code = "...", applicability = "...")]`
+- `#[suggestion_hidden(slug, code = "...", applicability = "...")]`
+- `#[suggestion_short(slug, code = "...", applicability = "...")]`
+- `#[suggestion_verbose(slug, code = "...", applicability = "...")]`
 
 Suggestions must be applied on either a `Span` field or a `(Span,
-MachineApplicability)` field. Similarly to other field attributes, `message`
-specifies the Fluent attribute with the message and defaults to `.suggestion`.
-`code` specifies the code that should be suggested as a replacement and is a
-format string (e.g. `{field_name}` would be replaced by the value of the
-`field_name` field of the struct), not a Fluent identifier. `applicability` can
-be used to specify the applicability in the attribute, it cannot be used when
-the field's type contains an `Applicability`.
+MachineApplicability)` field. Similarly to other field attributes, the slug
+specifies the Fluent attribute with the message and defaults to the equivalent
+of `.suggestion`. `code` specifies the code that should be suggested as a
+replacement and is a format string (e.g. `{field_name}` would be replaced by
+the value of the `field_name` field of the struct), not a Fluent identifier.
+`applicability` can be used to specify the applicability in the attribute, it
+cannot be used when the field's type contains an `Applicability`.
 
 In the end, the `SessionDiagnostic` derive will generate an implementation of
 `SessionDiagnostic` that looks like the following:
 
 ```rust,ignore
-impl SessionDiagnostic for FieldAlreadyDeclared {
+impl SessionDiagnostic<'_> for FieldAlreadyDeclared {
     fn into_diagnostic(self, sess: &'_ rustc_session::Session) -> DiagnosticBuilder<'_> {
-        let mut diag = sess.struct_err_with_code(
-            rustc_errors::DiagnosticMessage::fluent("typeck-field-already-declared"),
-            rustc_errors::DiagnosticId::Error("E0124")
-        );
+        let mut diag = sess.struct_err(rustc_errors::fluent::typeck::field_already_declared);
         diag.set_span(self.span);
         diag.span_label(
             self.span,
-            rustc_errors::DiagnosticMessage::fluent_attr("typeck-field-already-declared", "label")
+            rustc_errors::fluent::typeck::label
         );
         diag.span_label(
             self.prev_span,
-            rustc_errors::DiagnosticMessage::fluent_attr("typeck-field-already-declared", "previous-decl-label")
+            rustc_errors::fluent::typeck::previous_decl_label
         );
         diag
     }
@@ -146,12 +141,13 @@ tcx.sess.emit_err(FieldAlreadyDeclared {
 ```
 
 ### Reference
-`#[derive(SessionDiagnostic)]` supports the following attributes:
+`#[derive(SessionDiagnostic)]` and `#[derive(LintDiagnostic)]` support the
+following attributes:
 
-- `#[error(slug, code = "...")]` or `#[warning(slug, code = "...")]`
+- `#[diag(slug, code = "...")]`
   - _Applied to struct._
   - _Mandatory_
-  - Defines the struct to be representing an error or a warning.
+  - Defines the text and error code to be associated with the diagnostic.
   - Slug (_Mandatory_)
     - Uniquely identifies the diagnostic and corresponds to its Fluent message,
       mandatory.
@@ -164,34 +160,48 @@ tcx.sess.emit_err(FieldAlreadyDeclared {
     - See [translation documentation](./translation.md).
   - `code = "..."` (_Optional_)
     - Specifies the error code.
-- `#[note]` or `#[note = "..."]` (_Optional_)
+- `#[note]` or `#[note(slug)]` (_Optional_)
   - _Applied to struct or `Span`/`()` fields._
   - Adds a note subdiagnostic.
-  - Value is the Fluent attribute (relative to the Fluent message specified by
-    `slug`) for the note's message
-    - Defaults to `note`.
+  - Value is a path to an item in `rustc_errors::fluent` for the note's
+    message.
+    - Defaults to equivalent of `.note`.
   - If applied to a `Span` field, creates a spanned note.
-- `#[help]` or `#[help = "..."]` (_Optional_)
+- `#[help]` or `#[help(slug)]` (_Optional_)
   - _Applied to struct or `Span`/`()` fields._
   - Adds a help subdiagnostic.
-  - Value is the Fluent attribute (relative to the Fluent message specified by
-    `slug`) for the help's message.
-    - Defaults to `help`.
+  - Value is a path to an item in `rustc_errors::fluent` for the note's
+    message.
+    - Defaults to equivalent of `.help`.
   - If applied to a `Span` field, creates a spanned help.
-- `#[label]` or `#[label = "..."]` (_Optional_)
+- `#[label]` or `#[label(slug)]` (_Optional_)
   - _Applied to `Span` fields._
   - Adds a label subdiagnostic.
-  - Value is the Fluent attribute (relative to the Fluent message specified by
-    `slug`) for the label's message.
-    - Defaults to `label`.
-- `#[suggestion{,_hidden,_short,_verbose}(message = "...", code = "...", applicability = "...")]`
+  - Value is a path to an item in `rustc_errors::fluent` for the note's
+    message.
+    - Defaults to equivalent of `.label`.
+- `#[warn_]` or `#[warn_(slug)]` (_Optional_)
+  - _Applied to `Span` fields._
+  - Adds a warning subdiagnostic.
+  - Value is a path to an item in `rustc_errors::fluent` for the note's
+    message.
+    - Defaults to equivalent of `.warn`.
+- `#[suggestion{,_hidden,_short,_verbose}(slug, code = "...", applicability = "...")]`
   (_Optional_)
   - _Applied to `(Span, MachineApplicability)` or `Span` fields._
   - Adds a suggestion subdiagnostic.
-  - `message = "..."` (_Mandatory_)
-    - Value is the Fluent attribute (relative to the Fluent message specified
-      by `slug`) for the suggestion's message.
-    - Defaults to `suggestion`.
+  - Slug (_Mandatory_)
+    - A path to an item in `rustc_errors::fluent`. Always in a module starting
+      with a Fluent resource name (which is typically the name of the crate
+      that the diagnostic is from), e.g.
+      `rustc_errors::fluent::typeck::field_already_declared`
+      (`rustc_errors::fluent` is implicit in the attribute, so just
+      `typeck::field_already_declared`). Fluent attributes for all messages
+      exist as top-level items in that module (so `typeck_message.attr` is just
+      `typeck::attr`).
+    - See [translation documentation](./translation.md).
+    - Defaults to `rustc_errors::fluent::_subdiag::suggestion` (or
+    - `.suggestion` in Fluent).
   - `code = "..."` (_Mandatory_)
     - Value is a format string indicating the code to be suggested as a
       replacement.
@@ -203,7 +213,7 @@ tcx.sess.emit_err(FieldAlreadyDeclared {
     `#[derive(SessionSubdiagnostic)]`)._
   - Adds the subdiagnostic represented by the subdiagnostic struct.
 - `#[primary_span]` (_Optional_)
-  - _Applied to `Span` fields._
+  - _Applied to `Span` fields on `SessionSubdiagnostic`s. Not used for `LintDiagnostic`s._
   - Indicates the primary span of the diagnostic.
 - `#[skip_arg]` (_Optional_)
   - _Applied to any field._
@@ -258,9 +268,9 @@ In our example, the Fluent message for the "expected return type" label
 looks like this:
 
 ```fluent
-typeck-expected-default-return-type = expected `()` because of default return type
+typeck_expected_default_return_type = expected `()` because of default return type
 
-typeck-expected-return-type = expected `{$expected}` because of return type
+typeck_expected_return_type = expected `{$expected}` because of return type
 ```
 
 Using the `#[primary_span]` attribute on a field (with type `Span`) will denote
@@ -276,16 +286,17 @@ Like `SessionDiagnostic`, `SessionSubdiagnostic` supports `Option<T>` and
 
 Suggestions can be emitted using one of four attributes on the type/variant:
 
-- `#[suggestion(message = "...", code = "...", applicability = "...")]`
-- `#[suggestion_hidden(message = "...", code = "...", applicability = "...")]`
-- `#[suggestion_short(message = "...", code = "...", applicability = "...")]`
-- `#[suggestion_verbose(message = "...", code = "...", applicability = "...")]`
+- `#[suggestion(..., code = "...", applicability = "...")]`
+- `#[suggestion_hidden(..., code = "...", applicability = "...")]`
+- `#[suggestion_short(..., code = "...", applicability = "...")]`
+- `#[suggestion_verbose(..., code = "...", applicability = "...")]`
 
 Suggestions require `#[primary_span]` be set on a field and can have the
 following sub-attributes:
 
-- `message` specifies the Fluent attribute with the message and defaults to
-  `.suggestion`.
+- The first positional argument specifies the path to a item in
+  `rustc_errors::fluent` corresponding to the Fluent attribute with the message
+  and defaults to the equivalent of `.suggestion`.
 - `code` specifies the code that should be suggested as a replacement and is a
   format string (e.g. `{field_name}` would be replaced by the value of the
   `field_name` field of the struct), not a Fluent identifier.
@@ -304,11 +315,11 @@ impl<'tcx> AddToDiagnostic for ExpectedReturnTypeLabel<'tcx> {
         use rustc_errors::{Applicability, IntoDiagnosticArg};
         match self {
             ExpectedReturnTypeLabel::Unit { span } => {
-                diag.span_label(span, DiagnosticMessage::fluent("typeck-expected-default-return-type"))
+                diag.span_label(span, rustc_errors::fluent::typeck::expected_default_return_type)
             }
             ExpectedReturnTypeLabel::Other { span, expected } => {
                 diag.set_arg("expected", expected);
-                diag.span_label(span, DiagnosticMessage::fluent("typeck-expected-return-type"))
+                diag.span_label(span, rustc_errors::fluent::typeck::expected_return_type)
             }
 
         }
@@ -338,14 +349,22 @@ diagnostic struct.
       (`rustc_errors::fluent` is implicit in the attribute, so just
       `typeck::field_already_declared`).
     - See [translation documentation](./translation.md).
-- `#[suggestion{,_hidden,_short,_verbose}(message = "...", code = "...", applicability = "...")]`
+- `#[suggestion{,_hidden,_short,_verbose}(slug, code = "...", applicability = "...")]`
   - _Applied to struct or enum variant. Mutually exclusive with struct/enum variant attributes._
   - _Mandatory_
   - Defines the type to be representing a suggestion.
-  - `message = "..."` (_Mandatory_)
-    - Value is the Fluent attribute (relative to the Fluent message specified
-      by `slug`) for the suggestion's message.
-    - Defaults to `suggestion`.
+  - Slug (_Mandatory_)
+    - A path to an item in `rustc_errors::fluent`. Always in a module starting
+      with a Fluent resource name (which is typically the name of the crate
+      that the diagnostic is from), e.g.
+      `rustc_errors::fluent::typeck::field_already_declared`
+      (`rustc_errors::fluent` is implicit in the attribute, so just
+      `typeck::field_already_declared`). Fluent attributes for all messages
+      exist as top-level items in that module (so `typeck_message.attr` is just
+      `typeck::attr`).
+    - See [translation documentation](./translation.md).
+    - Defaults to `rustc_errors::fluent::_subdiag::suggestion` (or
+    - `.suggestion` in Fluent).
   - `code = "..."` (_Mandatory_)
     - Value is a format string indicating the code to be suggested as a
       replacement.

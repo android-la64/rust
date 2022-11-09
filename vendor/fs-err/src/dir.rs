@@ -11,7 +11,7 @@ pub fn read_dir<P: Into<PathBuf>>(path: P) -> io::Result<ReadDir> {
 
     match fs::read_dir(&path) {
         Ok(inner) => Ok(ReadDir { inner, path }),
-        Err(source) => Err(Error::new(source, ErrorKind::ReadDir, path)),
+        Err(source) => Err(Error::build(source, ErrorKind::ReadDir, path)),
     }
 }
 
@@ -32,7 +32,12 @@ impl Iterator for ReadDir {
     type Item = io::Result<DirEntry>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.inner.next()?.map(|inner| DirEntry { inner }))
+        Some(
+            self.inner
+                .next()?
+                .map_err(|source| Error::build(source, ErrorKind::ReadDir, &self.path))
+                .map(|inner| DirEntry { inner }),
+        )
     }
 }
 
@@ -55,14 +60,14 @@ impl DirEntry {
     pub fn metadata(&self) -> io::Result<fs::Metadata> {
         self.inner
             .metadata()
-            .map_err(|source| Error::new(source, ErrorKind::Metadata, self.path()))
+            .map_err(|source| Error::build(source, ErrorKind::Metadata, self.path()))
     }
 
     /// Wrapper for [`DirEntry::file_type`](https://doc.rust-lang.org/stable/std/fs/struct.DirEntry.html#method.file_type).
     pub fn file_type(&self) -> io::Result<fs::FileType> {
         self.inner
             .file_type()
-            .map_err(|source| Error::new(source, ErrorKind::Metadata, self.path()))
+            .map_err(|source| Error::build(source, ErrorKind::Metadata, self.path()))
     }
 
     /// Wrapper for [`DirEntry::file_name`](https://doc.rust-lang.org/stable/std/fs/struct.DirEntry.html#method.file_name).

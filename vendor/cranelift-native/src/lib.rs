@@ -58,6 +58,19 @@ pub fn builder_with_options(infer_native_flags: bool) -> Result<isa::Builder, &'
             return Ok(isa_builder);
         }
 
+        // These are temporarily enabled by default (see #3810 for
+        // more) so that a default-constructed `Flags` can work with
+        // default Wasmtime features. Otherwise, the user must
+        // explicitly use native flags or turn these on when on x86-64
+        // platforms to avoid a configuration panic. In order for the
+        // "enable if detected" logic below to work, we must turn them
+        // *off* (differing from the default) and then re-enable below
+        // if present.
+        isa_builder.set("has_sse3", "false").unwrap();
+        isa_builder.set("has_ssse3", "false").unwrap();
+        isa_builder.set("has_sse41", "false").unwrap();
+        isa_builder.set("has_sse42", "false").unwrap();
+
         if std::is_x86_feature_detected!("sse3") {
             isa_builder.enable("has_sse3").unwrap();
         }
@@ -78,6 +91,9 @@ pub fn builder_with_options(infer_native_flags: bool) -> Result<isa::Builder, &'
         }
         if std::is_x86_feature_detected!("avx2") {
             isa_builder.enable("has_avx2").unwrap();
+        }
+        if std::is_x86_feature_detected!("fma") {
+            isa_builder.enable("has_fma").unwrap();
         }
         if std::is_x86_feature_detected!("bmi1") {
             isa_builder.enable("has_bmi1").unwrap();
@@ -115,6 +131,14 @@ pub fn builder_with_options(infer_native_flags: bool) -> Result<isa::Builder, &'
 
         if std::arch::is_aarch64_feature_detected!("lse") {
             isa_builder.enable("has_lse").unwrap();
+        }
+
+        if std::arch::is_aarch64_feature_detected!("paca") {
+            isa_builder.enable("has_pauth").unwrap();
+        }
+
+        if cfg!(target_os = "macos") {
+            isa_builder.enable("sign_return_address_with_bkey").unwrap();
         }
     }
 

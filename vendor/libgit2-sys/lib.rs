@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.13")]
+#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.14")]
 #![allow(non_camel_case_types, unused_extern_crates)]
 
 // This is required to link libz when libssh2-sys is not included.
@@ -195,6 +195,7 @@ git_enum! {
         GIT_EMISMATCH = -33,
         GIT_EINDEXDIRTY = -34,
         GIT_EAPPLYFAIL = -35,
+        GIT_EOWNER = -36,
     }
 }
 
@@ -1894,6 +1895,8 @@ git_enum! {
         GIT_OPT_SET_ODB_LOOSE_PRIORITY,
         GIT_OPT_GET_EXTENSIONS,
         GIT_OPT_SET_EXTENSIONS,
+        GIT_OPT_GET_OWNER_VALIDATION,
+        GIT_OPT_SET_OWNER_VALIDATION,
     }
 }
 
@@ -1990,6 +1993,28 @@ pub struct git_message_trailer_array {
     pub trailers: *mut git_message_trailer,
     pub count: size_t,
     pub _trailer_block: *mut c_char,
+}
+
+#[repr(C)]
+pub struct git_email_create_options {
+    pub version: c_uint,
+    pub flags: u32,
+    pub diff_opts: git_diff_options,
+    pub diff_find_opts: git_diff_find_options,
+    pub subject_prefix: *const c_char,
+    pub start_number: usize,
+    pub reroll_number: usize,
+}
+
+pub const GIT_EMAIL_CREATE_OPTIONS_VERSION: c_uint = 1;
+
+git_enum! {
+    pub enum git_email_create_flags_t {
+        GIT_EMAIL_CREATE_DEFAULT = 0,
+        GIT_EMAIL_CREATE_OMIT_NUMBERS = 1 << 0,
+        GIT_EMAIL_CREATE_ALWAYS_NUMBER = 1 << 1,
+        GIT_EMAIL_CREATE_NO_RENAMES = 1 << 2,
+    }
 }
 
 extern "C" {
@@ -2747,6 +2772,7 @@ extern "C" {
     pub fn git_commit_parentcount(commit: *const git_commit) -> c_uint;
     pub fn git_commit_raw_header(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_summary(commit: *mut git_commit) -> *const c_char;
+    pub fn git_commit_body(commit: *mut git_commit) -> *const c_char;
     pub fn git_commit_time(commit: *const git_commit) -> git_time_t;
     pub fn git_commit_time_offset(commit: *const git_commit) -> c_int;
     pub fn git_commit_tree(tree_out: *mut *mut git_tree, commit: *const git_commit) -> c_int;
@@ -4103,6 +4129,25 @@ extern "C" {
         real_email: *const c_char,
         replace_name: *const c_char,
         replace_email: *const c_char,
+    ) -> c_int;
+
+    // email
+    pub fn git_email_create_from_diff(
+        out: *mut git_buf,
+        diff: *mut git_diff,
+        patch_idx: usize,
+        patch_count: usize,
+        commit_id: *const git_oid,
+        summary: *const c_char,
+        body: *const c_char,
+        author: *const git_signature,
+        given_opts: *const git_email_create_options,
+    ) -> c_int;
+
+    pub fn git_email_create_from_commit(
+        out: *mut git_buf,
+        commit: *mut git_commit,
+        given_opts: *const git_email_create_options,
     ) -> c_int;
 
     pub fn git_trace_set(level: git_trace_level_t, cb: git_trace_cb) -> c_int;

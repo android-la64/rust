@@ -12,21 +12,29 @@
 [package]
 edition = "2018"
 name = "git2-curl"
-version = "0.15.0"
-authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
-description = "Backend for an HTTP transport in libgit2 powered by libcurl.\n\nIntended to be used with the git2 crate.\n"
+version = "0.16.0"
+authors = [
+    "Josh Triplett <josh@joshtriplett.org>",
+    "Alex Crichton <alex@alexcrichton.com>",
+]
+description = """
+Backend for an HTTP transport in libgit2 powered by libcurl.
+
+Intended to be used with the git2 crate.
+"""
 documentation = "https://docs.rs/git2-curl"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/git2-rs"
 
 [[test]]
 name = "all"
 harness = false
+
 [dependencies.curl]
 version = "0.4.33"
 
 [dependencies.git2]
-version = "0.14"
+version = "0.15"
 default-features = false
 
 [dependencies.log]
@@ -34,6 +42,7 @@ version = "0.4"
 
 [dependencies.url]
 version = "2.0"
+
 [dev-dependencies.civet]
 version = "0.11"
 
@@ -47,4 +56,7 @@ version = "0.8"
 version = "3.0"
 
 [features]
-zlib-ng-compat = ["git2/zlib-ng-compat", "curl/zlib-ng-compat"]
+zlib-ng-compat = [
+    "git2/zlib-ng-compat",
+    "curl/zlib-ng-compat",
+]

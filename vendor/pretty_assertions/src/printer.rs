@@ -1,10 +1,8 @@
-#[cfg(feature = "alloc")]
-use alloc::format;
 use ansi_term::{
     Colour::{Fixed, Green, Red},
     Style,
 };
-use core::fmt;
+use std::fmt;
 
 macro_rules! paint {
     ($f:expr, $colour:expr, $fmt:expr, $($args:tt)*) => (
@@ -29,7 +27,7 @@ pub(crate) fn write_header(f: &mut fmt::Formatter) -> fmt::Result {
 /// Delay formatting this deleted chunk until later.
 ///
 /// It can be formatted as a whole chunk by calling `flush`, or the inner value
-/// obtained with `take` for further processing (such as an inline diff).
+/// obtained with `take` for further processing.
 #[derive(Default)]
 struct LatentDeletion<'a> {
     // The most recent deleted line we've seen
@@ -47,7 +45,7 @@ impl<'a> LatentDeletion<'a> {
 
     /// Take the underlying chunk value, if it's suitable for inline diffing.
     ///
-    /// If there is no value or we've seen more than one line, return `None`.
+    /// If there is no value of we've seen more than one line, return `None`.
     fn take(&mut self) -> Option<&'a str> {
         if self.count == 1 {
             self.value.take()
@@ -99,6 +97,10 @@ pub(crate) fn write_lines<TWrite: fmt::Write>(
             (::diff::Result::Left(deleted), _) => {
                 previous_deletion.flush(f)?;
                 previous_deletion.set(deleted);
+            }
+            // Underlying diff library should never return this sequence
+            (::diff::Result::Right(_), Some(::diff::Result::Left(_))) => {
+                panic!("insertion followed by deletion");
             }
             // If we're being followed by more insertions, don't inline diff
             (::diff::Result::Right(inserted), Some(::diff::Result::Right(_))) => {
@@ -208,9 +210,6 @@ fn write_inline_diff<TWrite: fmt::Write>(f: &mut TWrite, left: &str, right: &str
 mod test {
     use super::*;
 
-    #[cfg(feature = "alloc")]
-    use alloc::string::String;
-
     // ANSI terminal codes used in our outputs.
     //
     // Interpolate these into test strings to make expected values easier to read.
@@ -231,8 +230,6 @@ mod test {
         let mut actual = String::new();
         printer(&mut actual, left, right).expect("printer function failed");
 
-        // Cannot use IO without stdlib
-        #[cfg(feature = "std")]
         println!(
             "## left ##\n\
              {}\n\
@@ -473,126 +470,5 @@ Cabbage"#;
         );
 
         check_printer(write_lines, left, right, &expected);
-    }
-
-    mod write_lines_edge_newlines {
-        use super::*;
-
-        #[test]
-        fn both_trailing() {
-            let left = "fan\n";
-            let right = "mug\n";
-            // Note the additional space at the bottom is caused by a trailing newline
-            // adding an additional line with zero content to both sides of the diff
-            let expected = format!(
-                r#"{red_light}<{reset}{red_heavy}fan{reset}
-{green_light}>{reset}{green_heavy}mug{reset}
- 
-"#,
-                red_light = RED_LIGHT,
-                red_heavy = RED_HEAVY,
-                green_light = GREEN_LIGHT,
-                green_heavy = GREEN_HEAVY,
-                reset = RESET,
-            );
-
-            check_printer(write_lines, left, right, &expected);
-        }
-
-        #[test]
-        fn both_leading() {
-            let left = "\nfan";
-            let right = "\nmug";
-            // Note the additional space at the top is caused by a leading newline
-            // adding an additional line with zero content to both sides of the diff
-            let expected = format!(
-                r#" 
-{red_light}<{reset}{red_heavy}fan{reset}
-{green_light}>{reset}{green_heavy}mug{reset}
-"#,
-                red_light = RED_LIGHT,
-                red_heavy = RED_HEAVY,
-                green_light = GREEN_LIGHT,
-                green_heavy = GREEN_HEAVY,
-                reset = RESET,
-            );
-
-            check_printer(write_lines, left, right, &expected);
-        }
-
-        #[test]
-        fn leading_added() {
-            let left = "fan";
-            let right = "\nmug";
-            let expected = format!(
-                r#"{red_light}<fan{reset}
-{green_light}>{reset}
-{green_light}>mug{reset}
-"#,
-                red_light = RED_LIGHT,
-                green_light = GREEN_LIGHT,
-                reset = RESET,
-            );
-
-            check_printer(write_lines, left, right, &expected);
-        }
-
-        #[test]
-        fn leading_deleted() {
-            let left = "\nfan";
-            let right = "mug";
-            let expected = format!(
-                r#"{red_light}<{reset}
-{red_light}<fan{reset}
-{green_light}>mug{reset}
-"#,
-                red_light = RED_LIGHT,
-                green_light = GREEN_LIGHT,
-                reset = RESET,
-            );
-
-            check_printer(write_lines, left, right, &expected);
-        }
-
-        #[test]
-        fn trailing_added() {
-            let left = "fan";
-            let right = "mug\n";
-            let expected = format!(
-                r#"{red_light}<fan{reset}
-{green_light}>mug{reset}
-{green_light}>{reset}
-"#,
-                red_light = RED_LIGHT,
-                green_light = GREEN_LIGHT,
-                reset = RESET,
-            );
-
-            check_printer(write_lines, left, right, &expected);
-        }
-
-        /// Regression test for double abort
-        ///
-        /// See: https://github.com/colin-kiegel/rust-pretty-assertions/issues/96
-        #[test]
-        fn trailing_deleted() {
-            // The below inputs caused an abort via double panic
-            // we panicked at 'insertion followed by deletion'
-            let left = "fan\n";
-            let right = "mug";
-            let expected = format!(
-                r#"{red_light}<{reset}{red_heavy}fan{reset}
-{green_light}>{reset}{green_heavy}mug{reset}
-{red_light}<{reset}
-"#,
-                red_light = RED_LIGHT,
-                red_heavy = RED_HEAVY,
-                green_light = GREEN_LIGHT,
-                green_heavy = GREEN_HEAVY,
-                reset = RESET,
-            );
-
-            check_printer(write_lines, left, right, &expected);
-        }
     }
 }

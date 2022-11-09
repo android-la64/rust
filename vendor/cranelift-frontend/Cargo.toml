@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-frontend"
-version = "0.85.3"
+version = "0.87.0"
 authors = ["The Cranelift Project Developers"]
 description = "Cranelift IR builder helper"
 documentation = "https://docs.rs/cranelift-frontend"
@@ -23,11 +23,11 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 resolver = "2"
 
 [dependencies.cranelift-codegen]
-version = "0.85.3"
+version = "0.87.0"
 default-features = false
 
 [dependencies.hashbrown]
-version = "0.11"
+version = "0.12"
 optional = true
 
 [dependencies.log]

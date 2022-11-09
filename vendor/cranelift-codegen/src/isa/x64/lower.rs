@@ -5,9 +5,8 @@ pub(super) mod isle;
 
 use crate::data_value::DataValue;
 use crate::ir::{
-    condcodes::{CondCode, FloatCC, IntCC},
-    types, AbiParam, ArgumentPurpose, ExternalName, Inst as IRInst, InstructionData, LibCall,
-    Opcode, Signature, Type,
+    condcodes::{FloatCC, IntCC},
+    types, ExternalName, Inst as IRInst, InstructionData, LibCall, Opcode, Type,
 };
 use crate::isa::x64::abi::*;
 use crate::isa::x64::inst::args::*;
@@ -17,9 +16,6 @@ use crate::machinst::lower::*;
 use crate::machinst::*;
 use crate::result::CodegenResult;
 use crate::settings::{Flags, TlsModel};
-use alloc::boxed::Box;
-use alloc::vec::Vec;
-use log::trace;
 use smallvec::SmallVec;
 use std::convert::TryFrom;
 use target_lexicon::Triple;
@@ -32,22 +28,6 @@ fn is_int_or_ref_ty(ty: Type) -> bool {
         types::I8 | types::I16 | types::I32 | types::I64 | types::R64 => true,
         types::B1 | types::B8 | types::B16 | types::B32 | types::B64 => true,
         types::R32 => panic!("shouldn't have 32-bits refs on x64"),
-        _ => false,
-    }
-}
-
-fn is_bool_ty(ty: Type) -> bool {
-    match ty {
-        types::B1 | types::B8 | types::B16 | types::B32 | types::B64 => true,
-        types::R32 => panic!("shouldn't have 32-bits refs on x64"),
-        _ => false,
-    }
-}
-
-/// This is target-word-size dependent.  And it excludes booleans and reftypes.
-fn is_valid_atomic_transaction_ty(ty: Type) -> bool {
-    match ty {
-        types::I8 | types::I16 | types::I32 | types::I64 => true,
         _ => false,
     }
 }
@@ -190,6 +170,7 @@ fn input_to_reg_mem<C: LowerCtx<I = Inst>>(ctx: &mut C, spec: InsnInput) -> RegM
 /// An extension specification for `extend_input_to_reg`.
 #[derive(Clone, Copy)]
 enum ExtSpec {
+    #[allow(dead_code)]
     ZeroExtendTo32,
     ZeroExtendTo64,
     SignExtendTo32,
@@ -219,7 +200,8 @@ fn extend_input_to_reg<C: LowerCtx<I = Inst>>(
     let ext_mode = match (input_size, requested_size) {
         (a, b) if a == b => return put_input_in_reg(ctx, spec),
         (1, 8) => return put_input_in_reg(ctx, spec),
-        (a, b) => ExtMode::new(a, b).unwrap_or_else(|| panic!("invalid extension: {} -> {}", a, b)),
+        (a, b) => ExtMode::new(a.try_into().unwrap(), b.try_into().unwrap())
+            .unwrap_or_else(|| panic!("invalid extension: {} -> {}", a, b)),
     };
 
     let src = input_to_reg_mem(ctx, spec);
@@ -488,129 +470,13 @@ fn emit_cmp<C: LowerCtx<I = Inst>>(ctx: &mut C, insn: IRInst, cc: IntCC) -> IntC
     }
 }
 
-/// A specification for a fcmp emission.
-enum FcmpSpec {
-    /// Normal flow.
-    Normal,
-
-    /// Avoid emitting Equal at all costs by inverting it to NotEqual, and indicate when that
-    /// happens with `InvertedEqualOrConditions`.
-    ///
-    /// This is useful in contexts where it is hard/inefficient to produce a single instruction (or
-    /// sequence of instructions) that check for an "AND" combination of condition codes; see for
-    /// instance lowering of Select.
-    #[allow(dead_code)]
-    InvertEqual,
-}
-
-/// This explains how to interpret the results of an fcmp instruction.
-enum FcmpCondResult {
-    /// The given condition code must be set.
-    Condition(CC),
-
-    /// Both condition codes must be set.
-    AndConditions(CC, CC),
-
-    /// Either of the conditions codes must be set.
-    OrConditions(CC, CC),
-
-    /// The associated spec was set to `FcmpSpec::InvertEqual` and Equal has been inverted. Either
-    /// of the condition codes must be set, and the user must invert meaning of analyzing the
-    /// condition code results. When the spec is set to `FcmpSpec::Normal`, then this case can't be
-    /// reached.
-    InvertedEqualOrConditions(CC, CC),
-}
-
-/// Emits a float comparison instruction.
-///
-/// Note: make sure that there are no instructions modifying the flags between a call to this
-/// function and the use of the flags!
-fn emit_fcmp<C: LowerCtx<I = Inst>>(
-    ctx: &mut C,
-    insn: IRInst,
-    mut cond_code: FloatCC,
-    spec: FcmpSpec,
-) -> FcmpCondResult {
-    let (flip_operands, inverted_equal) = match cond_code {
-        FloatCC::LessThan
-        | FloatCC::LessThanOrEqual
-        | FloatCC::UnorderedOrGreaterThan
-        | FloatCC::UnorderedOrGreaterThanOrEqual => {
-            cond_code = cond_code.reverse();
-            (true, false)
-        }
-        FloatCC::Equal => {
-            let inverted_equal = match spec {
-                FcmpSpec::Normal => false,
-                FcmpSpec::InvertEqual => {
-                    cond_code = FloatCC::NotEqual; // same as .inverse()
-                    true
-                }
-            };
-            (false, inverted_equal)
-        }
-        _ => (false, false),
-    };
-
-    // The only valid CC constructed with `from_floatcc` can be put in the flag
-    // register with a direct float comparison; do this here.
-    let op = match ctx.input_ty(insn, 0) {
-        types::F32 => SseOpcode::Ucomiss,
-        types::F64 => SseOpcode::Ucomisd,
-        _ => panic!("Bad input type to Fcmp"),
-    };
-
-    let inputs = &[InsnInput { insn, input: 0 }, InsnInput { insn, input: 1 }];
-    let (lhs_input, rhs_input) = if flip_operands {
-        (inputs[1], inputs[0])
-    } else {
-        (inputs[0], inputs[1])
-    };
-    let lhs = put_input_in_reg(ctx, lhs_input);
-    let rhs = input_to_reg_mem(ctx, rhs_input);
-    ctx.emit(Inst::xmm_cmp_rm_r(op, rhs, lhs));
-
-    let cond_result = match cond_code {
-        FloatCC::Equal => FcmpCondResult::AndConditions(CC::NP, CC::Z),
-        FloatCC::NotEqual if inverted_equal => {
-            FcmpCondResult::InvertedEqualOrConditions(CC::P, CC::NZ)
-        }
-        FloatCC::NotEqual if !inverted_equal => FcmpCondResult::OrConditions(CC::P, CC::NZ),
-        _ => FcmpCondResult::Condition(CC::from_floatcc(cond_code)),
-    };
-
-    cond_result
-}
-
-fn make_libcall_sig<C: LowerCtx<I = Inst>>(
-    ctx: &mut C,
-    insn: IRInst,
-    call_conv: CallConv,
-    ptr_ty: Type,
-) -> Signature {
-    let mut sig = Signature::new(call_conv);
-    for i in 0..ctx.num_inputs(insn) {
-        sig.params.push(AbiParam::new(ctx.input_ty(insn, i)));
-    }
-    for i in 0..ctx.num_outputs(insn) {
-        sig.returns.push(AbiParam::new(ctx.output_ty(insn, i)));
-    }
-    if call_conv.extends_baldrdash() {
-        // Adds the special VMContext parameter to the signature.
-        sig.params
-            .push(AbiParam::special(ptr_ty, ArgumentPurpose::VMContext));
-    }
-    sig
-}
-
 fn emit_vm_call<C: LowerCtx<I = Inst>>(
     ctx: &mut C,
     flags: &Flags,
     triple: &Triple,
     libcall: LibCall,
-    insn: IRInst,
-    inputs: SmallVec<[InsnInput; 4]>,
-    outputs: SmallVec<[InsnOutput; 2]>,
+    inputs: &[Reg],
+    outputs: &[Writable<Reg>],
 ) -> CodegenResult<()> {
     let extname = ExternalName::LibCall(libcall);
 
@@ -622,31 +488,22 @@ fn emit_vm_call<C: LowerCtx<I = Inst>>(
 
     // TODO avoid recreating signatures for every single Libcall function.
     let call_conv = CallConv::for_libcall(flags, CallConv::triple_default(triple));
-    let sig = make_libcall_sig(ctx, insn, call_conv, types::I64);
+    let sig = libcall.signature(call_conv);
     let caller_conv = ctx.abi().call_conv();
 
     let mut abi = X64ABICaller::from_func(&sig, &extname, dist, caller_conv, flags)?;
 
     abi.emit_stack_pre_adjust(ctx);
 
-    let vm_context = if call_conv.extends_baldrdash() { 1 } else { 0 };
-    assert_eq!(inputs.len() + vm_context, abi.num_args());
+    assert_eq!(inputs.len(), abi.num_args());
 
     for (i, input) in inputs.iter().enumerate() {
-        let arg_reg = put_input_in_reg(ctx, *input);
-        abi.emit_copy_regs_to_arg(ctx, i, ValueRegs::one(arg_reg));
-    }
-    if call_conv.extends_baldrdash() {
-        let vm_context_vreg = ctx
-            .get_vm_context()
-            .expect("should have a VMContext to pass to libcall funcs");
-        abi.emit_copy_regs_to_arg(ctx, inputs.len(), ValueRegs::one(vm_context_vreg));
+        abi.emit_copy_regs_to_arg(ctx, i, ValueRegs::one(*input));
     }
 
     abi.emit_call(ctx);
     for (i, output) in outputs.iter().enumerate() {
-        let retval_reg = get_output_reg(ctx, *output).only_reg().unwrap();
-        abi.emit_copy_retval_to_regs(ctx, i, ValueRegs::one(retval_reg));
+        abi.emit_copy_retval_to_regs(ctx, i, ValueRegs::one(*output));
     }
     abi.emit_stack_post_adjust(ctx);
 
@@ -832,7 +689,7 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         None
     };
 
-    if let Ok(()) = isle::lower(ctx, flags, isa_flags, &outputs, insn) {
+    if let Ok(()) = isle::lower(ctx, triple, flags, isa_flags, &outputs, insn) {
         return Ok(());
     }
 
@@ -900,180 +757,48 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
         | Opcode::Fmin
         | Opcode::Fmax
         | Opcode::FminPseudo
-        | Opcode::FmaxPseudo => implemented_in_isle(ctx),
-
-        Opcode::Icmp => {
-            let condcode = ctx.data(insn).cond_code().unwrap();
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let ty = ctx.input_ty(insn, 0);
-            if ty == types::I128 && condcode != IntCC::Equal && condcode != IntCC::NotEqual {
-                let condcode = emit_cmp(ctx, insn, condcode);
-                let cc = CC::from_intcc(condcode);
-                ctx.emit(Inst::setcc(cc, dst));
-            } else {
-                implemented_in_isle(ctx);
-            }
-        }
-
-        Opcode::Fcmp => {
+        | Opcode::FmaxPseudo
+        | Opcode::Sqrt
+        | Opcode::Fpromote
+        | Opcode::FvpromoteLow
+        | Opcode::Fdemote
+        | Opcode::Fvdemote
+        | Opcode::Fma
+        | Opcode::Icmp
+        | Opcode::Fcmp
+        | Opcode::Load
+        | Opcode::Uload8
+        | Opcode::Sload8
+        | Opcode::Uload16
+        | Opcode::Sload16
+        | Opcode::Uload32
+        | Opcode::Sload32
+        | Opcode::Sload8x8
+        | Opcode::Uload8x8
+        | Opcode::Sload16x4
+        | Opcode::Uload16x4
+        | Opcode::Sload32x2
+        | Opcode::Uload32x2
+        | Opcode::Store
+        | Opcode::Istore8
+        | Opcode::Istore16
+        | Opcode::Istore32
+        | Opcode::AtomicRmw
+        | Opcode::AtomicCas
+        | Opcode::AtomicLoad
+        | Opcode::AtomicStore
+        | Opcode::Fence
+        | Opcode::FuncAddr
+        | Opcode::SymbolValue
+        | Opcode::Return
+        | Opcode::Call
+        | Opcode::CallIndirect
+        | Opcode::Trapif
+        | Opcode::Trapff
+        | Opcode::GetFramePointer
+        | Opcode::GetStackPointer
+        | Opcode::GetReturnAddress => {
             implemented_in_isle(ctx);
-        }
-
-        Opcode::FallthroughReturn | Opcode::Return => {
-            for i in 0..ctx.num_inputs(insn) {
-                let src_reg = put_input_in_regs(ctx, inputs[i]);
-                let retval_reg = ctx.retval(i);
-                let ty = ctx.input_ty(insn, i);
-                assert!(src_reg.len() == retval_reg.len());
-                let (_, tys) = Inst::rc_for_type(ty)?;
-                for ((&src, &dst), &ty) in src_reg
-                    .regs()
-                    .iter()
-                    .zip(retval_reg.regs().iter())
-                    .zip(tys.iter())
-                {
-                    ctx.emit(Inst::gen_move(dst, src, ty));
-                }
-            }
-            // N.B.: the Ret itself is generated by the ABI.
-        }
-
-        Opcode::Call | Opcode::CallIndirect => {
-            let caller_conv = ctx.abi().call_conv();
-            let (mut abi, inputs) = match op {
-                Opcode::Call => {
-                    let (extname, dist) = ctx.call_target(insn).unwrap();
-                    let sig = ctx.call_sig(insn).unwrap();
-                    assert_eq!(inputs.len(), sig.params.len());
-                    assert_eq!(outputs.len(), sig.returns.len());
-                    (
-                        X64ABICaller::from_func(sig, &extname, dist, caller_conv, flags)?,
-                        &inputs[..],
-                    )
-                }
-
-                Opcode::CallIndirect => {
-                    let ptr = put_input_in_reg(ctx, inputs[0]);
-                    let sig = ctx.call_sig(insn).unwrap();
-                    assert_eq!(inputs.len() - 1, sig.params.len());
-                    assert_eq!(outputs.len(), sig.returns.len());
-                    (
-                        X64ABICaller::from_ptr(sig, ptr, op, caller_conv, flags)?,
-                        &inputs[1..],
-                    )
-                }
-
-                _ => unreachable!(),
-            };
-
-            abi.emit_stack_pre_adjust(ctx);
-            assert_eq!(inputs.len(), abi.num_args());
-            for i in abi.get_copy_to_arg_order() {
-                let input = inputs[i];
-                let arg_regs = put_input_in_regs(ctx, input);
-                abi.emit_copy_regs_to_arg(ctx, i, arg_regs);
-            }
-            abi.emit_call(ctx);
-            for (i, output) in outputs.iter().enumerate() {
-                let retval_regs = get_output_reg(ctx, *output);
-                abi.emit_copy_retval_to_regs(ctx, i, retval_regs);
-            }
-            abi.emit_stack_post_adjust(ctx);
-        }
-
-        Opcode::Trapif | Opcode::Trapff => {
-            let trap_code = ctx.data(insn).trap_code().unwrap();
-
-            if matches_input(ctx, inputs[0], Opcode::IaddIfcout).is_some() {
-                let cond_code = ctx.data(insn).cond_code().unwrap();
-                // The flags must not have been clobbered by any other instruction between the
-                // iadd_ifcout and this instruction, as verified by the CLIF validator; so we can
-                // simply use the flags here.
-                let cc = CC::from_intcc(cond_code);
-
-                ctx.emit(Inst::TrapIf { trap_code, cc });
-            } else if op == Opcode::Trapif {
-                let cond_code = ctx.data(insn).cond_code().unwrap();
-
-                // Verification ensures that the input is always a single-def ifcmp.
-                let ifcmp = matches_input(ctx, inputs[0], Opcode::Ifcmp).unwrap();
-                let cond_code = emit_cmp(ctx, ifcmp, cond_code);
-                let cc = CC::from_intcc(cond_code);
-
-                ctx.emit(Inst::TrapIf { trap_code, cc });
-            } else {
-                let cond_code = ctx.data(insn).fp_cond_code().unwrap();
-
-                // Verification ensures that the input is always a single-def ffcmp.
-                let ffcmp = matches_input(ctx, inputs[0], Opcode::Ffcmp).unwrap();
-
-                match emit_fcmp(ctx, ffcmp, cond_code, FcmpSpec::Normal) {
-                    FcmpCondResult::Condition(cc) => ctx.emit(Inst::TrapIf { trap_code, cc }),
-                    FcmpCondResult::AndConditions(cc1, cc2) => {
-                        // A bit unfortunate, but materialize the flags in their own register, and
-                        // check against this.
-                        let tmp = ctx.alloc_tmp(types::I32).only_reg().unwrap();
-                        let tmp2 = ctx.alloc_tmp(types::I32).only_reg().unwrap();
-                        ctx.emit(Inst::setcc(cc1, tmp));
-                        ctx.emit(Inst::setcc(cc2, tmp2));
-                        ctx.emit(Inst::alu_rmi_r(
-                            OperandSize::Size32,
-                            AluRmiROpcode::And,
-                            RegMemImm::reg(tmp.to_reg()),
-                            tmp2,
-                        ));
-                        ctx.emit(Inst::TrapIf {
-                            trap_code,
-                            cc: CC::NZ,
-                        });
-                    }
-                    FcmpCondResult::OrConditions(cc1, cc2) => {
-                        ctx.emit(Inst::TrapIf { trap_code, cc: cc1 });
-                        ctx.emit(Inst::TrapIf { trap_code, cc: cc2 });
-                    }
-                    FcmpCondResult::InvertedEqualOrConditions(_, _) => unreachable!(),
-                };
-            };
-        }
-
-        Opcode::Sqrt => {
-            implemented_in_isle(ctx);
-        }
-
-        Opcode::Fpromote => {
-            // We can't guarantee the RHS (if a load) is 128-bit aligned, so we
-            // must avoid merging a load here.
-            let src = RegMem::reg(put_input_in_reg(ctx, inputs[0]));
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            ctx.emit(Inst::xmm_unary_rm_r(SseOpcode::Cvtss2sd, src, dst));
-        }
-
-        Opcode::FvpromoteLow => {
-            let src = RegMem::reg(put_input_in_reg(ctx, inputs[0]));
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            ctx.emit(Inst::xmm_unary_rm_r(
-                SseOpcode::Cvtps2pd,
-                RegMem::from(src),
-                dst,
-            ));
-        }
-
-        Opcode::Fdemote => {
-            // We can't guarantee the RHS (if a load) is 128-bit aligned, so we
-            // must avoid merging a load here.
-            let src = RegMem::reg(put_input_in_reg(ctx, inputs[0]));
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            ctx.emit(Inst::xmm_unary_rm_r(SseOpcode::Cvtsd2ss, src, dst));
-        }
-
-        Opcode::Fvdemote => {
-            let src = RegMem::reg(put_input_in_reg(ctx, inputs[0]));
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            ctx.emit(Inst::xmm_unary_rm_r(
-                SseOpcode::Cvtpd2ps,
-                RegMem::from(src),
-                dst,
-            ));
         }
 
         Opcode::FcvtFromSint => {
@@ -2129,143 +1854,15 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
                         ty, op
                     ),
                 };
-                emit_vm_call(ctx, flags, triple, libcall, insn, inputs, outputs)?;
+
+                let input = put_input_in_reg(ctx, inputs[0]);
+                let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
+
+                emit_vm_call(ctx, flags, triple, libcall, &[input], &[dst])?;
             }
         }
 
-        Opcode::Load
-        | Opcode::Uload8
-        | Opcode::Sload8
-        | Opcode::Uload16
-        | Opcode::Sload16
-        | Opcode::Uload32
-        | Opcode::Sload32
-        | Opcode::Sload8x8
-        | Opcode::Uload8x8
-        | Opcode::Sload16x4
-        | Opcode::Uload16x4
-        | Opcode::Sload32x2
-        | Opcode::Uload32x2 => {
-            implemented_in_isle(ctx);
-        }
-
-        Opcode::Store | Opcode::Istore8 | Opcode::Istore16 | Opcode::Istore32 => {
-            implemented_in_isle(ctx);
-        }
-
-        Opcode::AtomicRmw => {
-            // This is a simple, general-case atomic update, based on a loop involving
-            // `cmpxchg`.  Note that we could do much better than this in the case where the old
-            // value at the location (that is to say, the SSA `Value` computed by this CLIF
-            // instruction) is not required.  In that case, we could instead implement this
-            // using a single `lock`-prefixed x64 read-modify-write instruction.  Also, even in
-            // the case where the old value is required, for the `add` and `sub` cases, we can
-            // use the single instruction `lock xadd`.  However, those improvements have been
-            // left for another day.
-            // TODO: filed as https://github.com/bytecodealliance/wasmtime/issues/2153
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let mut addr = put_input_in_reg(ctx, inputs[0]);
-            let mut arg2 = put_input_in_reg(ctx, inputs[1]);
-            let ty_access = ty.unwrap();
-            assert!(is_valid_atomic_transaction_ty(ty_access));
-
-            // Make sure that both args are in virtual regs, since in effect we have to do a
-            // parallel copy to get them safely to the AtomicRmwSeq input regs, and that's not
-            // guaranteed safe if either is in a real reg.
-            addr = ctx.ensure_in_vreg(addr, types::I64);
-            arg2 = ctx.ensure_in_vreg(arg2, types::I64);
-
-            // Move the args to the preordained AtomicRMW input regs.  Note that `AtomicRmwSeq`
-            // operates at whatever width is specified by `ty`, so there's no need to
-            // zero-extend `arg2` in the case of `ty` being I8/I16/I32.
-            ctx.emit(Inst::gen_move(
-                Writable::from_reg(regs::r9()),
-                addr,
-                types::I64,
-            ));
-            ctx.emit(Inst::gen_move(
-                Writable::from_reg(regs::r10()),
-                arg2,
-                types::I64,
-            ));
-
-            // Now the AtomicRmwSeq (pseudo-) instruction itself
-            let op = inst_common::AtomicRmwOp::from(ctx.data(insn).atomic_rmw_op().unwrap());
-            ctx.emit(Inst::AtomicRmwSeq {
-                ty: ty_access,
-                op,
-                address: regs::r9(),
-                operand: regs::r10(),
-                temp: Writable::from_reg(regs::r11()),
-                dst_old: Writable::from_reg(regs::rax()),
-            });
-
-            // And finally, copy the preordained AtomicRmwSeq output reg to its destination.
-            ctx.emit(Inst::gen_move(dst, regs::rax(), types::I64));
-        }
-
-        Opcode::AtomicCas => {
-            // This is very similar to, but not identical to, the `AtomicRmw` case.  As with
-            // `AtomicRmw`, there's no need to zero-extend narrow values here.
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let addr = lower_to_amode(ctx, inputs[0], 0);
-            let expected = put_input_in_reg(ctx, inputs[1]);
-            let replacement = put_input_in_reg(ctx, inputs[2]);
-            let ty_access = ty.unwrap();
-            assert!(is_valid_atomic_transaction_ty(ty_access));
-
-            // Move the expected value into %rax.  Because there's only one fixed register on
-            // the input side, we don't have to use `ensure_in_vreg`, as is necessary in the
-            // `AtomicRmw` case.
-            ctx.emit(Inst::gen_move(
-                Writable::from_reg(regs::rax()),
-                expected,
-                types::I64,
-            ));
-            ctx.emit(Inst::LockCmpxchg {
-                ty: ty_access,
-                mem: addr.into(),
-                replacement,
-                expected: regs::rax(),
-                dst_old: Writable::from_reg(regs::rax()),
-            });
-            // And finally, copy the old value at the location to its destination reg.
-            ctx.emit(Inst::gen_move(dst, regs::rax(), types::I64));
-        }
-
-        Opcode::AtomicLoad => {
-            implemented_in_isle(ctx);
-        }
-
-        Opcode::AtomicStore => {
-            implemented_in_isle(ctx);
-        }
-
-        Opcode::Fence => {
-            implemented_in_isle(ctx);
-        }
-
-        Opcode::FuncAddr => {
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let (extname, _) = ctx.call_target(insn).unwrap();
-            let extname = extname.clone();
-            ctx.emit(Inst::LoadExtName {
-                dst,
-                name: Box::new(extname),
-                offset: 0,
-            });
-        }
-
-        Opcode::SymbolValue => {
-            let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
-            let (extname, _, offset) = ctx.symbol_value(insn).unwrap();
-            let extname = extname.clone();
-            ctx.emit(Inst::LoadExtName {
-                dst,
-                name: Box::new(extname),
-                offset,
-            });
-        }
+        Opcode::DynamicStackAddr => unimplemented!("DynamicStackAddr"),
 
         Opcode::StackAddr => {
             let (stack_slot, offset) = match *ctx.data(insn) {
@@ -2278,9 +1875,9 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             };
             let dst = get_output_reg(ctx, outputs[0]).only_reg().unwrap();
             let offset: i32 = offset.into();
-            let inst = ctx
-                .abi()
-                .stackslot_addr(stack_slot, u32::try_from(offset).unwrap(), dst);
+            let inst =
+                ctx.abi()
+                    .sized_stackslot_addr(stack_slot, u32::try_from(offset).unwrap(), dst);
             ctx.emit(inst);
         }
 
@@ -3006,10 +2603,12 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
 
         // Unimplemented opcodes below. These are not currently used by Wasm
         // lowering or other known embeddings, but should be either supported or
-        // removed eventually.
-        Opcode::Cls => unimplemented!("Cls not supported"),
+        // removed eventually
+        Opcode::ExtractVector => {
+            unimplemented!("ExtractVector not supported");
+        }
 
-        Opcode::Fma => unimplemented!("Fma not supported"),
+        Opcode::Cls => unimplemented!("Cls not supported"),
 
         Opcode::BorNot | Opcode::BxorNot => {
             unimplemented!("or-not / xor-not opcodes not implemented");
@@ -3063,7 +2662,10 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             panic!("ALU+imm and ALU+carry ops should not appear here!");
         }
 
-        Opcode::StackLoad | Opcode::StackStore => {
+        Opcode::StackLoad
+        | Opcode::StackStore
+        | Opcode::DynamicStackStore
+        | Opcode::DynamicStackLoad => {
             panic!("Direct stack memory access not supported; should have been legalized");
         }
 
@@ -3079,7 +2681,7 @@ fn lower_insn_to_regs<C: LowerCtx<I = Inst>>(
             panic!("table_addr should have been removed by legalization!");
         }
 
-        Opcode::IfcmpSp | Opcode::Copy => {
+        Opcode::Copy => {
             panic!("Unused opcode should not be encountered.");
         }
 
@@ -3128,314 +2730,26 @@ impl LowerBackend for X64Backend {
         // trap. These conditions are verified by `is_ebb_basic()` during the
         // verifier pass.
         assert!(branches.len() <= 2);
-
         if branches.len() == 2 {
-            // Must be a conditional branch followed by an unconditional branch.
-            let op0 = ctx.data(branches[0]).opcode();
             let op1 = ctx.data(branches[1]).opcode();
-
-            trace!(
-                "lowering two-branch group: opcodes are {:?} and {:?}",
-                op0,
-                op1
-            );
             assert!(op1 == Opcode::Jump);
-
-            let taken = targets[0];
-            // not_taken target is the target of the second branch.
-            let not_taken = targets[1];
-
-            match op0 {
-                Opcode::Brz | Opcode::Brnz => {
-                    let flag_input = InsnInput {
-                        insn: branches[0],
-                        input: 0,
-                    };
-
-                    let src_ty = ctx.input_ty(branches[0], 0);
-
-                    if let Some(icmp) = matches_input(ctx, flag_input, Opcode::Icmp) {
-                        let cond_code = ctx.data(icmp).cond_code().unwrap();
-                        let cond_code = emit_cmp(ctx, icmp, cond_code);
-
-                        let cond_code = if op0 == Opcode::Brz {
-                            cond_code.inverse()
-                        } else {
-                            cond_code
-                        };
-
-                        let cc = CC::from_intcc(cond_code);
-                        ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                    } else if let Some(fcmp) = matches_input(ctx, flag_input, Opcode::Fcmp) {
-                        let cond_code = ctx.data(fcmp).fp_cond_code().unwrap();
-                        let cond_code = if op0 == Opcode::Brz {
-                            cond_code.inverse()
-                        } else {
-                            cond_code
-                        };
-                        match emit_fcmp(ctx, fcmp, cond_code, FcmpSpec::Normal) {
-                            FcmpCondResult::Condition(cc) => {
-                                ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                            }
-                            FcmpCondResult::AndConditions(cc1, cc2) => {
-                                ctx.emit(Inst::jmp_if(cc1.invert(), not_taken));
-                                ctx.emit(Inst::jmp_cond(cc2.invert(), not_taken, taken));
-                            }
-                            FcmpCondResult::OrConditions(cc1, cc2) => {
-                                ctx.emit(Inst::jmp_if(cc1, taken));
-                                ctx.emit(Inst::jmp_cond(cc2, taken, not_taken));
-                            }
-                            FcmpCondResult::InvertedEqualOrConditions(_, _) => unreachable!(),
-                        }
-                    } else if src_ty == types::I128 {
-                        let src = put_input_in_regs(
-                            ctx,
-                            InsnInput {
-                                insn: branches[0],
-                                input: 0,
-                            },
-                        );
-                        let (half_cc, comb_op) = match op0 {
-                            Opcode::Brz => (CC::Z, AluRmiROpcode::And8),
-                            Opcode::Brnz => (CC::NZ, AluRmiROpcode::Or8),
-                            _ => unreachable!(),
-                        };
-                        let tmp1 = ctx.alloc_tmp(types::I64).only_reg().unwrap();
-                        let tmp2 = ctx.alloc_tmp(types::I64).only_reg().unwrap();
-                        ctx.emit(Inst::cmp_rmi_r(
-                            OperandSize::Size64,
-                            RegMemImm::imm(0),
-                            src.regs()[0],
-                        ));
-                        ctx.emit(Inst::setcc(half_cc, tmp1));
-                        ctx.emit(Inst::cmp_rmi_r(
-                            OperandSize::Size64,
-                            RegMemImm::imm(0),
-                            src.regs()[1],
-                        ));
-                        ctx.emit(Inst::setcc(half_cc, tmp2));
-                        ctx.emit(Inst::alu_rmi_r(
-                            OperandSize::Size32,
-                            comb_op,
-                            RegMemImm::reg(tmp1.to_reg()),
-                            tmp2,
-                        ));
-                        ctx.emit(Inst::jmp_cond(CC::NZ, taken, not_taken));
-                    } else if is_int_or_ref_ty(src_ty) || is_bool_ty(src_ty) {
-                        let src = put_input_in_reg(
-                            ctx,
-                            InsnInput {
-                                insn: branches[0],
-                                input: 0,
-                            },
-                        );
-                        let cc = match op0 {
-                            Opcode::Brz => CC::Z,
-                            Opcode::Brnz => CC::NZ,
-                            _ => unreachable!(),
-                        };
-                        // See case for `Opcode::Select` above re: testing the
-                        // boolean input.
-                        let test_input = if src_ty == types::B1 {
-                            // test src, 1
-                            RegMemImm::imm(1)
-                        } else {
-                            assert!(!is_bool_ty(src_ty));
-                            // test src, src
-                            RegMemImm::reg(src)
-                        };
-
-                        ctx.emit(Inst::test_rmi_r(
-                            OperandSize::from_ty(src_ty),
-                            test_input,
-                            src,
-                        ));
-                        ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                    } else {
-                        unimplemented!("brz/brnz with non-int type {:?}", src_ty);
-                    }
-                }
-
-                Opcode::BrIcmp => {
-                    let src_ty = ctx.input_ty(branches[0], 0);
-                    if is_int_or_ref_ty(src_ty) || is_bool_ty(src_ty) {
-                        let lhs = put_input_in_reg(
-                            ctx,
-                            InsnInput {
-                                insn: branches[0],
-                                input: 0,
-                            },
-                        );
-                        let rhs = input_to_reg_mem_imm(
-                            ctx,
-                            InsnInput {
-                                insn: branches[0],
-                                input: 1,
-                            },
-                        );
-                        let cc = CC::from_intcc(ctx.data(branches[0]).cond_code().unwrap());
-                        // Cranelift's icmp semantics want to compare lhs - rhs, while Intel gives
-                        // us dst - src at the machine instruction level, so invert operands.
-                        ctx.emit(Inst::cmp_rmi_r(OperandSize::from_ty(src_ty), rhs, lhs));
-                        ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                    } else {
-                        unimplemented!("bricmp with non-int type {:?}", src_ty);
-                    }
-                }
-
-                Opcode::Brif => {
-                    let flag_input = InsnInput {
-                        insn: branches[0],
-                        input: 0,
-                    };
-
-                    if let Some(ifcmp) = matches_input(ctx, flag_input, Opcode::Ifcmp) {
-                        let cond_code = ctx.data(branches[0]).cond_code().unwrap();
-                        let cond_code = emit_cmp(ctx, ifcmp, cond_code);
-                        let cc = CC::from_intcc(cond_code);
-                        ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                    } else if let Some(ifcmp_sp) = matches_input(ctx, flag_input, Opcode::IfcmpSp) {
-                        let operand = put_input_in_reg(
-                            ctx,
-                            InsnInput {
-                                insn: ifcmp_sp,
-                                input: 0,
-                            },
-                        );
-                        let ty = ctx.input_ty(ifcmp_sp, 0);
-                        ctx.emit(Inst::cmp_rmi_r(
-                            OperandSize::from_ty(ty),
-                            RegMemImm::reg(regs::rsp()),
-                            operand,
-                        ));
-                        let cond_code = ctx.data(branches[0]).cond_code().unwrap();
-                        let cc = CC::from_intcc(cond_code);
-                        ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                    } else {
-                        // Should be disallowed by flags checks in verifier.
-                        unimplemented!("Brif with non-ifcmp input");
-                    }
-                }
-                Opcode::Brff => {
-                    let flag_input = InsnInput {
-                        insn: branches[0],
-                        input: 0,
-                    };
-
-                    if let Some(ffcmp) = matches_input(ctx, flag_input, Opcode::Ffcmp) {
-                        let cond_code = ctx.data(branches[0]).fp_cond_code().unwrap();
-                        match emit_fcmp(ctx, ffcmp, cond_code, FcmpSpec::Normal) {
-                            FcmpCondResult::Condition(cc) => {
-                                ctx.emit(Inst::jmp_cond(cc, taken, not_taken));
-                            }
-                            FcmpCondResult::AndConditions(cc1, cc2) => {
-                                ctx.emit(Inst::jmp_if(cc1.invert(), not_taken));
-                                ctx.emit(Inst::jmp_cond(cc2.invert(), not_taken, taken));
-                            }
-                            FcmpCondResult::OrConditions(cc1, cc2) => {
-                                ctx.emit(Inst::jmp_if(cc1, taken));
-                                ctx.emit(Inst::jmp_cond(cc2, taken, not_taken));
-                            }
-                            FcmpCondResult::InvertedEqualOrConditions(_, _) => unreachable!(),
-                        }
-                    } else {
-                        // Should be disallowed by flags checks in verifier.
-                        unimplemented!("Brff with input not from ffcmp");
-                    }
-                }
-
-                _ => panic!("unexpected branch opcode: {:?}", op0),
-            }
-        } else {
-            assert_eq!(branches.len(), 1);
-
-            // Must be an unconditional branch or trap.
-            let op = ctx.data(branches[0]).opcode();
-            match op {
-                Opcode::Jump => {
-                    ctx.emit(Inst::jmp_known(targets[0]));
-                }
-
-                Opcode::BrTable => {
-                    let jt_size = targets.len() - 1;
-                    assert!(jt_size <= u32::MAX as usize);
-                    let jt_size = jt_size as u32;
-
-                    let ty = ctx.input_ty(branches[0], 0);
-                    let ext_spec = match ty {
-                        types::I128 => panic!("BrTable unimplemented for I128"),
-                        types::I64 => ExtSpec::ZeroExtendTo64,
-                        _ => ExtSpec::ZeroExtendTo32,
-                    };
-
-                    let idx = extend_input_to_reg(
-                        ctx,
-                        InsnInput {
-                            insn: branches[0],
-                            input: 0,
-                        },
-                        ext_spec,
-                    );
-
-                    // Emit the compound instruction that does:
-                    //
-                    // lea $jt, %rA
-                    // movsbl [%rA, %rIndex, 2], %rB
-                    // add %rB, %rA
-                    // j *%rA
-                    // [jt entries]
-                    //
-                    // This must be *one* instruction in the vcode because we cannot allow regalloc
-                    // to insert any spills/fills in the middle of the sequence; otherwise, the
-                    // lea PC-rel offset to the jumptable would be incorrect.  (The alternative
-                    // is to introduce a relocation pass for inlined jumptables, which is much
-                    // worse.)
-
-                    // This temporary is used as a signed integer of 64-bits (to hold addresses).
-                    let tmp1 = ctx.alloc_tmp(types::I64).only_reg().unwrap();
-                    // This temporary is used as a signed integer of 32-bits (for the wasm-table
-                    // index) and then 64-bits (address addend). The small lie about the I64 type
-                    // is benign, since the temporary is dead after this instruction (and its
-                    // Cranelift type is thus unused).
-                    let tmp2 = ctx.alloc_tmp(types::I64).only_reg().unwrap();
-
-                    // Put a zero in tmp1. This is needed for Spectre
-                    // mitigations (a CMOV that zeroes the index on
-                    // misspeculation).
-                    let inst = Inst::imm(OperandSize::Size64, 0, tmp1);
-                    ctx.emit(inst);
-
-                    // Bounds-check (compute flags from idx - jt_size)
-                    // and branch to default.  We only support
-                    // u32::MAX entries, but we compare the full 64
-                    // bit register when doing the bounds check.
-                    let cmp_size = if ty == types::I64 {
-                        OperandSize::Size64
-                    } else {
-                        OperandSize::Size32
-                    };
-                    ctx.emit(Inst::cmp_rmi_r(cmp_size, RegMemImm::imm(jt_size), idx));
-
-                    let targets_for_term: Vec<MachLabel> = targets.to_vec();
-                    let default_target = targets[0];
-
-                    let jt_targets: Vec<MachLabel> = targets.iter().skip(1).cloned().collect();
-
-                    ctx.emit(Inst::JmpTableSeq {
-                        idx,
-                        tmp1,
-                        tmp2,
-                        default_target,
-                        targets: jt_targets,
-                        targets_for_term,
-                    });
-                }
-
-                _ => panic!("Unknown branch type {:?}", op),
-            }
         }
 
-        Ok(())
+        if let Ok(()) = isle::lower_branch(
+            ctx,
+            &self.triple,
+            &self.flags,
+            &self.x64_flags,
+            branches[0],
+            targets,
+        ) {
+            return Ok(());
+        }
+
+        unreachable!(
+            "implemented in ISLE: branch = `{}`",
+            ctx.dfg().display_inst(branches[0]),
+        );
     }
 
     fn maybe_pinned_reg(&self) -> Option<Reg> {

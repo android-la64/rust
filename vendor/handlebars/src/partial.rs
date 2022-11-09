@@ -20,7 +20,7 @@ fn find_partial<'reg: 'rc, 'rc: 'a, 'a>(
     d: &Decorator<'reg, 'rc>,
     name: &str,
 ) -> Result<Option<Cow<'a, Template>>, RenderError> {
-    if let Some(ref partial) = rc.get_partial(name) {
+    if let Some(partial) = rc.get_partial(name) {
         return Ok(Some(Cow::Borrowed(partial)));
     }
 
@@ -52,29 +52,38 @@ pub fn expand_partial<'reg: 'rc, 'rc>(
         return Err(RenderError::new("Cannot include self in >"));
     }
 
-    // if tname == PARTIAL_BLOCK
     let partial = find_partial(rc, r, d, tname)?;
 
     if let Some(t) = partial {
         // clone to avoid lifetime issue
         // FIXME refactor this to avoid
         let mut local_rc = rc.clone();
+
+        // if tname == PARTIAL_BLOCK
         let is_partial_block = tname == PARTIAL_BLOCK;
 
+        // add partial block depth there are consecutive partial
+        // blocks in the stack.
         if is_partial_block {
             local_rc.inc_partial_block_depth();
+        } else {
+            // depth cannot be lower than 0, which is guaranted in the
+            // `dec_partial_block_depth` method
+            local_rc.dec_partial_block_depth();
         }
 
+        let mut block = None;
         let mut block_created = false;
 
-        if let Some(ref base_path) = d.param(0).and_then(|p| p.context_path()) {
+        // create context if param given
+        if let Some(base_path) = d.param(0).and_then(|p| p.context_path()) {
             // path given, update base_path
-            let mut block = BlockContext::new();
-            *block.base_path_mut() = base_path.to_vec();
-            block_created = true;
-            local_rc.push_block(block);
-        } else if !d.hash().is_empty() {
-            let mut block = BlockContext::new();
+            let mut block_inner = BlockContext::new();
+            *block_inner.base_path_mut() = base_path.to_vec();
+            block = Some(block_inner);
+        }
+
+        if !d.hash().is_empty() {
             // hash given, update base_value
             let hash_ctx = d
                 .hash()
@@ -86,9 +95,25 @@ pub fn expand_partial<'reg: 'rc, 'rc>(
                 local_rc.evaluate2(ctx, &Path::current())?.as_json(),
                 &hash_ctx,
             );
-            block.set_base_value(merged_context);
+
+            if let Some(ref mut block_inner) = block {
+                block_inner.set_base_value(merged_context);
+            } else {
+                let mut block_inner = BlockContext::new();
+                block_inner.set_base_value(merged_context);
+                block = Some(block_inner);
+            }
+        }
+
+        if let Some(block_inner) = block {
+            // because block is moved here, we need another bool variable to track
+            // its status for later cleanup
             block_created = true;
-            local_rc.push_block(block);
+            // clear blocks to prevent block params from parent
+            // template to be leaked into partials
+            // see `test_partial_context_issue_495` for the case.
+            local_rc.clear_blocks();
+            local_rc.push_block(block_inner);
         }
 
         // @partial-block
@@ -96,15 +121,14 @@ pub fn expand_partial<'reg: 'rc, 'rc>(
             local_rc.push_partial_block(pb);
         }
 
+        // indent
+        local_rc.set_indent_string(d.indent());
+
         let result = t.render(r, ctx, &mut local_rc, out);
 
         // cleanup
         if block_created {
             local_rc.pop_block();
-        }
-
-        if is_partial_block {
-            local_rc.dec_partial_block_depth();
         }
 
         if d.template().is_some() {
@@ -174,10 +198,7 @@ mod test {
             "include navbar".to_string()
         );
         assert_eq!(
-            handlebars
-                .render("t6", &btreemap! {"a".to_string() => "2".to_string()})
-                .ok()
-                .unwrap(),
+            handlebars.render("t6", &json!({"a": "2"})).ok().unwrap(),
             "2".to_string()
         );
         assert_eq!(
@@ -258,6 +279,19 @@ mod test {
     }
 
     #[test]
+    fn teset_partial_context_with_both_hash_and_param() {
+        let mut hbs = Registry::new();
+        hbs.register_template_string("one", "This is a test. {{> two this name=\"fred\" }}")
+            .unwrap();
+        hbs.register_template_string("two", "Lets test {{name}} and {{root_name}}")
+            .unwrap();
+        assert_eq!(
+            "This is a test. Lets test fred and tom",
+            hbs.render("one", &json!({"root_name": "tom"})).unwrap()
+        );
+    }
+
+    #[test]
     fn test_partial_subexpression_context_hash() {
         let mut hbs = Registry::new();
         hbs.register_template_string("one", "This is a test. {{> (x @root) name=\"fred\" }}")
@@ -297,7 +331,7 @@ mod test {
     }
 
     #[test]
-    fn test_nested_partials() {
+    fn test_nested_partial_block() {
         let mut handlebars = Registry::new();
         let template1 = "<outer>{{> @partial-block }}</outer>";
         let template2 = "{{#> t1 }}<inner>{{> @partial-block }}</inner>{{/ t1 }}";
@@ -329,5 +363,294 @@ mod test {
             handlebars.render("outer", &data).unwrap(),
             "fruit: carrot,fruit: tomato,"
         );
+    }
+
+    #[test]
+    fn line_stripping_with_inline_and_partial() {
+        let tpl0 = r#"{{#*inline "foo"}}foo
+{{/inline}}
+{{> foo}}
+{{> foo}}
+{{> foo}}"#;
+        let tpl1 = r#"{{#*inline "foo"}}foo{{/inline}}
+{{> foo}}
+{{> foo}}
+{{> foo}}"#;
+
+        let hbs = Registry::new();
+        assert_eq!(
+            r#"foo
+foo
+foo
+"#,
+            hbs.render_template(tpl0, &json!({})).unwrap()
+        );
+        assert_eq!(
+            r#"
+foofoofoo"#,
+            hbs.render_template(tpl1, &json!({})).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_partial_indent() {
+        let outer = r#"                {{> inner inner_solo}}
+
+{{#each inners}}
+                {{> inner}}
+{{/each}}
+
+        {{#each inners}}
+        {{> inner}}
+        {{/each}}
+"#;
+        let inner = r#"name: {{name}}
+"#;
+
+        let mut hbs = Registry::new();
+
+        hbs.register_template_string("inner", inner).unwrap();
+        hbs.register_template_string("outer", outer).unwrap();
+
+        let result = hbs
+            .render(
+                "outer",
+                &json!({
+                    "inner_solo": {"name": "inner_solo"},
+                    "inners": [
+                        {"name": "hello"},
+                        {"name": "there"}
+                    ]
+                }),
+            )
+            .unwrap();
+
+        assert_eq!(
+            result,
+            r#"                name: inner_solo
+
+                name: hello
+                name: there
+
+        name: hello
+        name: there
+"#
+        );
+    }
+    // Rule::partial_expression should not trim leading indent  by default
+
+    #[test]
+    fn test_partial_prevent_indent() {
+        let outer = r#"                {{> inner inner_solo}}
+
+{{#each inners}}
+                {{> inner}}
+{{/each}}
+
+        {{#each inners}}
+        {{> inner}}
+        {{/each}}
+"#;
+        let inner = r#"name: {{name}}
+"#;
+
+        let mut hbs = Registry::new();
+        hbs.set_prevent_indent(true);
+
+        hbs.register_template_string("inner", inner).unwrap();
+        hbs.register_template_string("outer", outer).unwrap();
+
+        let result = hbs
+            .render(
+                "outer",
+                &json!({
+                    "inner_solo": {"name": "inner_solo"},
+                    "inners": [
+                        {"name": "hello"},
+                        {"name": "there"}
+                    ]
+                }),
+            )
+            .unwrap();
+
+        assert_eq!(
+            result,
+            r#"                name: inner_solo
+
+                name: hello
+                name: there
+
+        name: hello
+        name: there
+"#
+        );
+    }
+
+    #[test]
+    fn test_nested_partials() {
+        let mut hb = Registry::new();
+        hb.register_template_string("partial", "{{> @partial-block}}")
+            .unwrap();
+        hb.register_template_string(
+            "index",
+            r#"{{#>partial}}
+    Yo
+    {{#>partial}}
+    Yo 2
+    {{/partial}}
+{{/partial}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            r#"    Yo
+    Yo 2
+"#,
+            hb.render("index", &()).unwrap()
+        );
+
+        hb.register_template_string("partial2", "{{> @partial-block}}")
+            .unwrap();
+        let r2 = hb
+            .render_template(
+                r#"{{#> partial}}
+{{#> partial2}}
+:(
+{{/partial2}}
+{{/partial}}"#,
+                &(),
+            )
+            .unwrap();
+        assert_eq!(":(\n", r2);
+    }
+
+    #[test]
+    fn test_partial_context_issue_495() {
+        let mut hb = Registry::new();
+        hb.register_template_string(
+            "t1",
+            r#"{{~#*inline "displayName"~}}
+Template:{{name}}
+{{/inline}}
+{{#each data as |name|}}
+Name:{{name}}
+{{>displayName name="aaaa"}}
+{{/each}}"#,
+        )
+        .unwrap();
+
+        hb.register_template_string(
+            "t1",
+            r#"{{~#*inline "displayName"~}}
+Template:{{this}}
+{{/inline}}
+{{#each data as |name|}}
+Name:{{name}}
+{{>displayName}}
+{{/each}}"#,
+        )
+        .unwrap();
+
+        let data = json!({
+            "data": ["hudel", "test"]
+        });
+
+        assert_eq!(
+            r#"Name:hudel
+Template:hudel
+Name:test
+Template:test
+"#,
+            hb.render("t1", &data).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_multiline_partial_indent() {
+        let mut hb = Registry::new();
+
+        hb.register_template_string(
+            "t1",
+            r#"{{#*inline "thepartial"}}
+  inner first line
+  inner second line
+{{/inline}}
+  {{> thepartial}}
+outer third line"#,
+        )
+        .unwrap();
+        assert_eq!(
+            r#"    inner first line
+    inner second line
+outer third line"#,
+            hb.render("t1", &()).unwrap()
+        );
+
+        hb.register_template_string(
+            "t2",
+            r#"{{#*inline "thepartial"}}inner first line
+inner second line
+{{/inline}}
+  {{> thepartial}}
+outer third line"#,
+        )
+        .unwrap();
+        assert_eq!(
+            r#"  inner first line
+  inner second line
+outer third line"#,
+            hb.render("t2", &()).unwrap()
+        );
+
+        hb.register_template_string(
+            "t3",
+            r#"{{#*inline "thepartial"}}{{a}}{{/inline}}
+  {{> thepartial}}
+outer third line"#,
+        )
+        .unwrap();
+        assert_eq!(
+            r#"
+  inner first line
+  inner second lineouter third line"#,
+            hb.render("t3", &json!({"a": "inner first line\ninner second line"}))
+                .unwrap()
+        );
+
+        hb.register_template_string(
+            "t4",
+            r#"{{#*inline "thepartial"}}
+  inner first line
+  inner second line
+{{/inline}}
+  {{~> thepartial}}
+outer third line"#,
+        )
+        .unwrap();
+        assert_eq!(
+            r#"  inner first line
+  inner second line
+outer third line"#,
+            hb.render("t4", &()).unwrap()
+        );
+
+        let mut hb2 = Registry::new();
+        hb2.set_prevent_indent(true);
+
+        hb2.register_template_string(
+            "t1",
+            r#"{{#*inline "thepartial"}}
+  inner first line
+  inner second line
+{{/inline}}
+  {{> thepartial}}
+outer third line"#,
+        )
+        .unwrap();
+        assert_eq!(
+            r#"    inner first line
+  inner second line
+outer third line"#,
+            hb2.render("t1", &()).unwrap()
+        )
     }
 }

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-jit"
-version = "0.85.3"
+version = "0.87.0"
 authors = ["The Cranelift Project Developers"]
 description = "A JIT library backed by Cranelift"
 documentation = "https://docs.rs/cranelift-jit"
@@ -25,18 +25,18 @@ resolver = "2"
 version = "1.0"
 
 [dependencies.cranelift-codegen]
-version = "0.85.3"
+version = "0.87.0"
 features = ["std"]
 default-features = false
 
 [dependencies.cranelift-entity]
-version = "0.85.3"
+version = "0.87.0"
 
 [dependencies.cranelift-module]
-version = "0.85.3"
+version = "0.87.0"
 
 [dependencies.cranelift-native]
-version = "0.85.3"
+version = "0.87.0"
 
 [dependencies.libc]
 version = "0.2.42"
@@ -56,23 +56,24 @@ version = "2.2.0"
 version = "0.12"
 
 [dev-dependencies.cranelift]
-version = "0.85.3"
+version = "0.87.0"
 
 [dev-dependencies.cranelift-entity]
-version = "0.85.3"
+version = "0.87.0"
 
 [dev-dependencies.cranelift-frontend]
-version = "0.85.3"
+version = "0.87.0"
 
 [features]
 default = []
 selinux-fix = ["memmap2"]
 
-[target."cfg(target_os = \"windows\")".dependencies.winapi]
-version = "0.3"
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.36.0"
 features = [
-    "winbase",
-    "memoryapi",
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
 ]
 
 [badges.maintenance]

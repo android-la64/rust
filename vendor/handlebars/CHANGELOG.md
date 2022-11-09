@@ -1,5 +1,80 @@
 # Change Log
 
+## [4.3.3](https://github.com/sunng87/handlebars-rust/compare/4.3.2...4.3.3) - 2022-07-20
+
+* [Fixed] Disable partial expression indentation with `{{~> partial}}` to
+  bring behavior closer in line with original javascript version. [#518]
+* [Fixed] Support for using partial context together with partial parameters
+  [#520]
+
+## [4.3.2](https://github.com/sunng87/handlebars-rust/compare/4.3.1...4.3.2) - 2022-07-14
+
+* [Added] Render functions that reuse `Context` for custom `std::io::Write`:
+  `render_with_context_to_write` and `render_template_with_context_to_write`
+
+## [4.3.1](https://github.com/sunng87/handlebars-rust/compare/4.3.0...4.3.1) - 2022-06-09
+
+* [Added] Added support for `{{~{variable}~}}` syntax [#509]
+
+## [4.3.0](https://github.com/sunng87/handlebars-rust/compare/4.2.2...4.3.0) - 2022-05-18
+
+* [Changed] update MSRV to 1.57 as rhai requires
+* [Fixed] Reimplemented indent support for partial expression `{{>
+  partial}}`, which is introduced in 4.2.0. The new implementation is
+  aligned with original javascript version, that every text line
+  generated from partial are indented as `{{> partial}}`
+  does. `prevent_indent` will turn-off this feature. [#505]
+* [Changed] changed error support library from quick_error to
+  thiserror
+
+## [4.2.2](https://github.com/sunng87/handlebars-rust/compare/4.2.1...4.2.2) - 2022-03-09
+
+* [Fixed] Block param scope leaked into partials [#496]
+* [Changed] Use Rust 2021 edition and update MSRV to 1.56
+
+## [4.2.1](https://github.com/sunng87/handlebars-rust/compare/4.2.0...4.2.1) - 2022-01-17
+
+* [Fixed] Nested partial `@partial-block` referencing issue [#488]
+* [Fixed] Docs generation on docs.rs for `rust-embed` feature
+
+## [4.2.0](https://github.com/sunng87/handlebars-rust/compare/4.1.6...4.2.0) - 2022-01-05
+
+* [Added] RustEmbed support for loading templates from [#484]
+* [Fixed] Parser support for variables begins with digit [#479]
+* [Changed] Keep indent whitespaces for partial expression `{{>
+  partial}}` as default in handlebarsjs. A new option `prevent_indent`
+  is provided on `Handlebars` to turn off this behaviour. [#486]
+* [Changed] Update MSRV to 1.51 due to dependency changes
+
+## [4.1.6](https://github.com/sunng87/handlebars-rust/compare/4.1.5...4.1.6) - 2021-12-03
+
+* [Added] Create `Context` from owned `serde_json::Value` [#477]
+
+## [4.1.5](https://github.com/sunng87/handlebars-rust/compare/4.1.4...4.1.5) - 2021-11-17
+
+* [Fixed] Single-quote string literal is supported, again [#475]
+
+## [4.1.4](https://github.com/sunng87/handlebars-rust/compare/4.1.3...4.1.4) - 2021-11-06
+
+* [Fixed] Corrected empty line stripping strategy [#473]
+
+## [4.1.3](https://github.com/sunng87/handlebars-rust/compare/4.1.2...4.1.3) - 2021-09-10
+
+* [Added] `@last` variable for `each` block with object [#466]
+* [Fixed] Missing whitespaces behind expression [#468]
+
+## [4.1.2](https://github.com/sunng87/handlebars-rust/compare/4.1.1...4.1.2) - 2021-08-11
+
+* [Added] Support for generic types in `handlebars_helper!`.
+* [Added] Getter and setter for rhai `Engine` from registry.
+* [Fixed] Improve doc for `dev_mode` that it has to be enabled before
+  adding templates.
+
+## [4.1.1](https://github.com/sunng87/handlebars-rust/compare/4.1.0...4.1.1) - 2021-07-31
+
+* [Changed] Update rhai to 1.0 [#455]
+* [Fixed] Empty line stripping for partial include statement, and other corner cases [#458]
+
 ## [4.1.0](https://github.com/sunng87/handlebars-rust/compare/4.0.1...4.1.0) - 2021-07-05
 
 * [Added] export `StringOutput` as requested in #442

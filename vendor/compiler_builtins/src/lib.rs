@@ -6,6 +6,7 @@
 #![feature(compiler_builtins)]
 #![feature(core_ffi_c)]
 #![feature(core_intrinsics)]
+#![feature(inline_const)]
 #![feature(lang_items)]
 #![feature(linkage)]
 #![feature(naked_functions)]
@@ -45,6 +46,7 @@ pub mod int;
     all(target_family = "wasm", target_os = "unknown"),
     all(target_arch = "x86_64", target_os = "uefi"),
     all(target_arch = "arm", target_os = "none"),
+    target_os = "xous",
     all(target_vendor = "fortanix", target_env = "sgx")
 ))]
 pub mod math;

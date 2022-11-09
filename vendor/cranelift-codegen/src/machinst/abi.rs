@@ -1,7 +1,7 @@
 //! ABI definitions.
 
 use crate::binemit::StackMap;
-use crate::ir::{Signature, StackSlot};
+use crate::ir::{DynamicStackSlot, Signature, StackSlot};
 use crate::isa::CallConv;
 use crate::machinst::*;
 use crate::settings;
@@ -17,14 +17,14 @@ pub trait ABICallee {
     /// The instruction type for the ISA associated with this ABI.
     type I: VCodeInst;
 
-    /// Does the ABI-body code need a temp reg (and if so, of what type)? One
-    /// will be provided to `init()` as the `maybe_tmp` arg if so.
-    fn temp_needed(&self) -> Option<Type>;
+    /// Does the ABI-body code need temp registers (and if so, of what type)?
+    /// They will be provided to `init()` as the `temps` arg if so.
+    fn temps_needed(&self) -> Vec<Type>;
 
     /// Initialize. This is called after the ABICallee is constructed because it
-    /// may be provided with a temp vreg, which can only be allocated once the
-    /// lowering context exists.
-    fn init(&mut self, maybe_tmp: Option<Writable<Reg>>);
+    /// may be provided with a vector of temp vregs, which can only be allocated
+    /// once the lowering context exists.
+    fn init(&mut self, temps: Vec<Writable<Reg>>);
 
     /// Access the (possibly legalized) signature.
     fn signature(&self) -> &Signature;
@@ -47,11 +47,17 @@ pub trait ABICallee {
     /// Number of return values.
     fn num_retvals(&self) -> usize;
 
-    /// Number of stack slots (not spill slots).
-    fn num_stackslots(&self) -> usize;
+    /// Number of sized stack slots (not spill slots).
+    fn num_sized_stackslots(&self) -> usize;
 
-    /// The offsets of all stack slots (not spill slots) for debuginfo purposes.
-    fn stackslot_offsets(&self) -> &PrimaryMap<StackSlot, u32>;
+    /// The offsets of all sized stack slots (not spill slots) for debuginfo purposes.
+    fn sized_stackslot_offsets(&self) -> &PrimaryMap<StackSlot, u32>;
+
+    /// The offsets of all dynamic stack slots (not spill slots) for debuginfo purposes.
+    fn dynamic_stackslot_offsets(&self) -> &PrimaryMap<DynamicStackSlot, u32>;
+
+    /// All the defined dynamic types.
+    fn dynamic_type_size(&self, ty: Type) -> u32;
 
     /// Generate an instruction which copies an argument to a destination
     /// register.
@@ -83,11 +89,6 @@ pub trait ABICallee {
     /// Generate a return instruction.
     fn gen_ret(&self) -> Self::I;
 
-    /// Generate an epilogue placeholder. The returned instruction should return `true` from
-    /// `is_epilogue_placeholder()`; this is used to indicate to the lowering driver when
-    /// the epilogue should be inserted.
-    fn gen_epilogue_placeholder(&self) -> Self::I;
-
     // -----------------------------------------------------------------
     // Every function above this line may only be called pre-regalloc.
     // Every function below this line may only be called post-regalloc.
@@ -101,8 +102,16 @@ pub trait ABICallee {
     /// Update with the clobbered registers, post-regalloc.
     fn set_clobbered(&mut self, clobbered: Vec<Writable<RealReg>>);
 
-    /// Get the address of a stackslot.
-    fn stackslot_addr(&self, slot: StackSlot, offset: u32, into_reg: Writable<Reg>) -> Self::I;
+    /// Get the address of a sized stackslot.
+    fn sized_stackslot_addr(
+        &self,
+        slot: StackSlot,
+        offset: u32,
+        into_reg: Writable<Reg>,
+    ) -> Self::I;
+
+    /// Get the address of a dynamic stackslot.
+    fn dynamic_stackslot_addr(&self, slot: DynamicStackSlot, into_reg: Writable<Reg>) -> Self::I;
 
     /// Load from a spillslot.
     fn load_spillslot(
@@ -145,9 +154,7 @@ pub trait ABICallee {
     /// Returns the full frame size for the given function, after prologue
     /// emission has run. This comprises the spill slots and stack-storage slots
     /// (but not storage for clobbered callee-save registers, arguments pushed
-    /// at callsites within this function, or other ephemeral pushes).  This is
-    /// used for ABI variants where the client generates prologue/epilogue code,
-    /// as in Baldrdash (SpiderMonkey integration).
+    /// at callsites within this function, or other ephemeral pushes).
     fn frame_size(&self) -> u32;
 
     /// Returns the size of arguments expected on the stack.
@@ -188,6 +195,8 @@ pub trait ABICaller {
     fn signature(&self) -> &Signature;
 
     /// Emit a copy of an argument value from a source register, prior to the call.
+    /// For large arguments with associated stack buffer, this may load the address
+    /// of the buffer into the argument register, if required by the ABI.
     fn emit_copy_regs_to_arg<C: LowerCtx<I = Self::I>>(
         &self,
         ctx: &mut C,
@@ -195,10 +204,17 @@ pub trait ABICaller {
         from_reg: ValueRegs<Reg>,
     );
 
-    /// Specific order for copying into arguments at callsites. We must be
-    /// careful to copy into StructArgs first, because we need to be able
-    /// to invoke memcpy() before we've loaded other arg regs (see above).
-    fn get_copy_to_arg_order(&self) -> SmallVec<[usize; 8]>;
+    /// Emit a copy of a large argument into its associated stack buffer, if any.
+    /// We must be careful to perform all these copies (as necessary) before setting
+    /// up the argument registers, since we may have to invoke memcpy(), which could
+    /// clobber any registers already set up.  The back-end should call this routine
+    /// for all arguments before calling emit_copy_regs_to_arg for all arguments.
+    fn emit_copy_regs_to_buffer<C: LowerCtx<I = Self::I>>(
+        &self,
+        ctx: &mut C,
+        idx: usize,
+        from_reg: ValueRegs<Reg>,
+    );
 
     /// Emit a copy a return value into a destination register, after the call returns.
     fn emit_copy_retval_to_regs<C: LowerCtx<I = Self::I>>(

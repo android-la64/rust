@@ -14,7 +14,7 @@ fn main() {
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
     if try_to_use_system_libgit2 {
         let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg.atleast_version("1.4.0").probe("libgit2") {
+        if let Ok(lib) = cfg.range_version("1.4.4".."1.6.0").probe("libgit2") {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
             }
@@ -41,19 +41,21 @@ fn main() {
     cp_r("libgit2/include", &include);
 
     cfg.include(&include)
-        .include("libgit2/src")
+        .include("libgit2/src/libgit2")
+        .include("libgit2/src/util")
         .out_dir(dst.join("build"))
         .warnings(false);
 
     // Include all cross-platform C files
-    add_c_files(&mut cfg, "libgit2/src");
-    add_c_files(&mut cfg, "libgit2/src/xdiff");
+    add_c_files(&mut cfg, "libgit2/src/libgit2");
+    add_c_files(&mut cfg, "libgit2/src/util");
+    add_c_files(&mut cfg, "libgit2/src/libgit2/xdiff");
 
     // These are activated by features, but they're all unconditionally always
     // compiled apparently and have internal #define's to make sure they're
     // compiled correctly.
-    add_c_files(&mut cfg, "libgit2/src/transports");
-    add_c_files(&mut cfg, "libgit2/src/streams");
+    add_c_files(&mut cfg, "libgit2/src/libgit2/transports");
+    add_c_files(&mut cfg, "libgit2/src/libgit2/streams");
 
     // Always use bundled http-parser for now
     cfg.include("libgit2/deps/http-parser")
@@ -82,11 +84,11 @@ fn main() {
     // when when COMPILE_PCRE8 is not defined, which is the default.
     add_c_files(&mut cfg, "libgit2/deps/pcre");
 
-    cfg.file("libgit2/src/allocators/failalloc.c");
-    cfg.file("libgit2/src/allocators/stdalloc.c");
+    cfg.file("libgit2/src/util/allocators/failalloc.c");
+    cfg.file("libgit2/src/util/allocators/stdalloc.c");
 
     if windows {
-        add_c_files(&mut cfg, "libgit2/src/win32");
+        add_c_files(&mut cfg, "libgit2/src/util/win32");
         cfg.define("STRSAFE_NO_DEPRECATE", None);
         cfg.define("WIN32", None);
         cfg.define("_WIN32_WINNT", Some("0x0600"));
@@ -98,7 +100,7 @@ fn main() {
             cfg.define("__USE_MINGW_ANSI_STDIO", "1");
         }
     } else {
-        add_c_files(&mut cfg, "libgit2/src/unix");
+        add_c_files(&mut cfg, "libgit2/src/util/unix");
         cfg.flag("-fvisibility=hidden");
     }
     if target.contains("solaris") || target.contains("illumos") {
@@ -156,9 +158,26 @@ fn main() {
     cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
-    cfg.file("libgit2/src/hash/sha1/collisiondetect.c");
-    cfg.file("libgit2/src/hash/sha1/sha1dc/sha1.c");
-    cfg.file("libgit2/src/hash/sha1/sha1dc/ubc_check.c");
+    cfg.file("libgit2/src/util/hash/collisiondetect.c");
+    cfg.file("libgit2/src/util/hash/sha1dc/sha1.c");
+    cfg.file("libgit2/src/util/hash/sha1dc/ubc_check.c");
+
+    if https {
+        if windows {
+            features.push_str("#define GIT_SHA256_WIN32 1\n");
+            cfg.file("libgit2/src/util/hash/win32.c");
+        } else if target.contains("apple") {
+            features.push_str("#define GIT_SHA256_COMMON_CRYPTO 1\n");
+            cfg.file("libgit2/src/util/hash/common_crypto.c");
+        } else {
+            features.push_str("#define GIT_SHA256_OPENSSL 1\n");
+            cfg.file("libgit2/src/util/hash/openssl.c");
+        }
+    } else {
+        features.push_str("#define GIT_SHA256_BUILTIN 1\n");
+        cfg.file("libgit2/src/util/hash/builtin.c");
+        cfg.file("libgit2/src/util/hash/rfc6234/sha224-256.c");
+    }
 
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);
@@ -210,8 +229,12 @@ fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
 }
 
 fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
+    let path = path.as_ref();
+    if !path.exists() {
+        panic!("Path {} does not exist", path.display());
+    }
     // sort the C files to ensure a deterministic build for reproducible builds
-    let dir = path.as_ref().read_dir().unwrap();
+    let dir = path.read_dir().unwrap();
     let mut paths = dir.collect::<io::Result<Vec<_>>>().unwrap();
     paths.sort_by_key(|e| e.path());
 

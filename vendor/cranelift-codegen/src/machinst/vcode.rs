@@ -19,12 +19,15 @@
 
 use crate::fx::FxHashMap;
 use crate::fx::FxHashSet;
-use crate::ir::{self, types, Constant, ConstantData, LabelValueLoc, SourceLoc, ValueLabel};
+use crate::ir::{
+    self, types, Constant, ConstantData, DynamicStackSlot, LabelValueLoc, SourceLoc, ValueLabel,
+};
 use crate::machinst::*;
 use crate::timing;
+use crate::trace;
 use crate::ValueLocRange;
 use regalloc2::{
-    Edit, Function as RegallocFunction, InstOrEdit, InstRange, Operand, OperandKind, PReg,
+    Edit, Function as RegallocFunction, InstOrEdit, InstRange, Operand, OperandKind, PReg, PRegSet,
     RegClass, VReg,
 };
 
@@ -79,12 +82,8 @@ pub struct VCode<I: VCodeInst> {
     /// instruction's operands.
     operand_ranges: Vec<(u32, u32)>,
 
-    /// Clobbers: a sparse map from instruction indices to clobber lists.
-    clobber_ranges: FxHashMap<InsnIndex, (u32, u32)>,
-
-    /// A flat list of clobbered registers, with index ranges held by
-    /// `clobber_ranges`.
-    clobbers: Vec<PReg>,
+    /// Clobbers: a sparse map from instruction indices to clobber masks.
+    clobbers: FxHashMap<InsnIndex, PRegSet>,
 
     /// Move information: for a given InsnIndex, (src, dst) operand pair.
     is_move: FxHashMap<InsnIndex, (Operand, Operand)>,
@@ -211,8 +210,11 @@ pub struct EmitResult<I: VCodeInst> {
     /// epilogue(s), and makes use of the regalloc results.
     pub disasm: Option<String>,
 
-    /// Offsets of stackslots.
-    pub stackslot_offsets: PrimaryMap<StackSlot, u32>,
+    /// Offsets of sized stackslots.
+    pub sized_stackslot_offsets: PrimaryMap<StackSlot, u32>,
+
+    /// Offsets of dynamic stackslots.
+    pub dynamic_stackslot_offsets: PrimaryMap<DynamicStackSlot, u32>,
 
     /// Value-labels information (debug metadata).
     pub value_labels_ranges: ValueLabelsRanges,
@@ -568,13 +570,8 @@ impl<I: VCodeInst> VCodeBuilder<I> {
             let (ops, clobbers) = op_collector.finish();
             self.vcode.operand_ranges.push(ops);
 
-            if !clobbers.is_empty() {
-                let start = self.vcode.clobbers.len();
-                self.vcode.clobbers.extend(clobbers.into_iter());
-                let end = self.vcode.clobbers.len();
-                self.vcode
-                    .clobber_ranges
-                    .insert(InsnIndex::new(i), (start as u32, end as u32));
+            if clobbers != PRegSet::default() {
+                self.vcode.clobbers.insert(InsnIndex::new(i), clobbers);
             }
 
             if let Some((dst, src)) = insn.is_move() {
@@ -591,7 +588,7 @@ impl<I: VCodeInst> VCodeBuilder<I> {
         // Translate blockparam args via the vreg aliases table as well.
         for arg in &mut self.vcode.branch_block_args {
             let new_arg = Self::resolve_vreg_alias_impl(&self.vcode.vreg_aliases, *arg);
-            log::trace!("operandcollector: block arg {:?} -> {:?}", arg, new_arg);
+            trace!("operandcollector: block arg {:?} -> {:?}", arg, new_arg);
             *arg = new_arg;
         }
     }
@@ -642,8 +639,7 @@ impl<I: VCodeInst> VCode<I> {
             insts: Vec::with_capacity(10 * n_blocks),
             operands: Vec::with_capacity(30 * n_blocks),
             operand_ranges: Vec::with_capacity(10 * n_blocks),
-            clobber_ranges: FxHashMap::default(),
-            clobbers: vec![],
+            clobbers: FxHashMap::default(),
             is_move: FxHashMap::default(),
             srclocs: Vec::with_capacity(10 * n_blocks),
             entry: BlockIndex::new(0),
@@ -724,13 +720,15 @@ impl<I: VCodeInst> VCode<I> {
             }
 
             // Also add explicitly-clobbered registers.
-            if let Some(&(start, end)) = self.clobber_ranges.get(&InsnIndex::new(i)) {
-                let inst_clobbers = &self.clobbers[(start as usize)..(end as usize)];
-                for &preg in inst_clobbers {
-                    let reg = RealReg::from(preg);
-                    if clobbered_set.insert(reg) {
-                        clobbered.push(Writable::from_reg(reg));
-                    }
+            for preg in self
+                .clobbers
+                .get(&InsnIndex::new(i))
+                .cloned()
+                .unwrap_or_default()
+            {
+                let reg = RealReg::from(preg);
+                if clobbered_set.insert(reg) {
+                    clobbered.push(Writable::from_reg(reg));
                 }
             }
         }
@@ -808,8 +806,24 @@ impl<I: VCodeInst> VCode<I> {
             inst_offsets.resize(self.insts.len(), 0);
         }
 
-        for block in final_order {
-            log::trace!("emitting block {:?}", block);
+        // Count edits per block ahead of time; this is needed for
+        // lookahead island emission. (We could derive it per-block
+        // with binary search in the edit list, but it's more
+        // efficient to do it in one pass here.)
+        let mut ra_edits_per_block: SmallVec<[u32; 64]> = smallvec![];
+        let mut edit_idx = 0;
+        for block in 0..self.num_blocks() {
+            let end_inst = self.block_ranges[block].1;
+            let start_edit_idx = edit_idx;
+            while edit_idx < regalloc.edits.len() && regalloc.edits[edit_idx].0.inst() < end_inst {
+                edit_idx += 1;
+            }
+            let end_edit_idx = edit_idx;
+            ra_edits_per_block.push((end_edit_idx - start_edit_idx) as u32);
+        }
+
+        for (block_order_idx, &block) in final_order.iter().enumerate() {
+            trace!("emitting block {:?}", block);
             let new_offset = I::align_basic_block(buffer.cur_offset());
             while new_offset > buffer.cur_offset() {
                 // Pad with NOPs up to the aligned block offset.
@@ -832,7 +846,7 @@ impl<I: VCodeInst> VCode<I> {
 
             // Is this the first block? Emit the prologue directly if so.
             if block == self.entry {
-                log::trace!(" -> entry block");
+                trace!(" -> entry block");
                 buffer.start_srcloc(SourceLoc::default());
                 state.pre_sourceloc(SourceLoc::default());
                 for inst in &prologue_insts {
@@ -1009,11 +1023,14 @@ impl<I: VCodeInst> VCode<I> {
             // Do we need an island? Get the worst-case size of the
             // next BB and see if, having emitted that many bytes, we
             // will be beyond the deadline.
-            if block.index() < (self.num_blocks() - 1) {
-                let next_block = block.index() + 1;
-                let next_block_range = self.block_ranges[next_block];
-                let next_block_size = next_block_range.1.index() - next_block_range.0.index();
-                let worst_case_next_bb = I::worst_case_size() * next_block_size as u32;
+            if block_order_idx < final_order.len() - 1 {
+                let next_block = final_order[block_order_idx + 1];
+                let next_block_range = self.block_ranges[next_block.index()];
+                let next_block_size =
+                    (next_block_range.1.index() - next_block_range.0.index()) as u32;
+                let next_block_ra_insertions = ra_edits_per_block[next_block.index()];
+                let worst_case_next_bb =
+                    I::worst_case_size() * (next_block_size + next_block_ra_insertions);
                 if buffer.island_needed(worst_case_next_bb) {
                     buffer.emit_island(worst_case_next_bb);
                 }
@@ -1060,7 +1077,8 @@ impl<I: VCodeInst> VCode<I> {
             inst_offsets,
             func_body_len,
             disasm: if want_disasm { Some(disasm) } else { None },
-            stackslot_offsets: self.abi.stackslot_offsets().clone(),
+            sized_stackslot_offsets: self.abi.sized_stackslot_offsets().clone(),
+            dynamic_stackslot_offsets: self.abi.dynamic_stackslot_offsets().clone(),
             value_labels_ranges,
             frame_size,
         }
@@ -1242,12 +1260,8 @@ impl<I: VCodeInst> RegallocFunction for VCode<I> {
         ret
     }
 
-    fn inst_clobbers(&self, insn: InsnIndex) -> &[PReg] {
-        if let Some(&(start, end)) = self.clobber_ranges.get(&insn) {
-            &self.clobbers[start as usize..end as usize]
-        } else {
-            &[]
-        }
+    fn inst_clobbers(&self, insn: InsnIndex) -> PRegSet {
+        self.clobbers.get(&insn).cloned().unwrap_or_default()
     }
 
     fn num_vregs(&self) -> usize {

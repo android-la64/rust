@@ -65,7 +65,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![doc(html_root_url = "https://docs.rs/git2/0.14")]
+#![doc(html_root_url = "https://docs.rs/git2/0.15")]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -93,6 +93,7 @@ pub use crate::describe::{Describe, DescribeFormatOptions, DescribeOptions};
 pub use crate::diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
 pub use crate::diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
 pub use crate::diff::{DiffFindOptions, DiffHunk, DiffLine, DiffLineType, DiffStats};
+pub use crate::email::{Email, EmailCreateOptions};
 pub use crate::error::Error;
 pub use crate::index::{
     Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
@@ -214,6 +215,8 @@ pub enum ErrorCode {
     IndexDirty,
     /// Patch application failed
     ApplyFail,
+    /// The object is not owned by the current user
+    Owner,
 }
 
 /// An enumeration of possible categories of things that can have
@@ -675,6 +678,7 @@ mod config;
 mod cred;
 mod describe;
 mod diff;
+mod email;
 mod error;
 mod index;
 mod indexer;

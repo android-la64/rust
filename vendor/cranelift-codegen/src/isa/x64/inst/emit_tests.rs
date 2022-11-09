@@ -1260,86 +1260,6 @@ fn test_x64_emit() {
     ));
     insns.push((
         Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::And8,
-            RegMemImm::reg(r15),
-            w_rdx,
-        ),
-        "4420FA",
-        "andb    %dl, %r15b, %dl",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::And8,
-            RegMemImm::reg(rax),
-            w_rsi,
-        ),
-        "4020C6",
-        "andb    %sil, %al, %sil",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::And8,
-            RegMemImm::reg(rax),
-            w_rbx,
-        ),
-        "20C3",
-        "andb    %bl, %al, %bl",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::And8,
-            RegMemImm::mem(Amode::imm_reg(0, rax)),
-            w_rbx,
-        ),
-        "2218",
-        "andb    %bl, 0(%rax), %bl",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::Or8,
-            RegMemImm::reg(r15),
-            w_rdx,
-        ),
-        "4408FA",
-        "orb     %dl, %r15b, %dl",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::Or8,
-            RegMemImm::reg(rax),
-            w_rsi,
-        ),
-        "4008C6",
-        "orb     %sil, %al, %sil",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::Or8,
-            RegMemImm::reg(rax),
-            w_rbx,
-        ),
-        "08C3",
-        "orb     %bl, %al, %bl",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
-            OperandSize::Size32,
-            AluRmiROpcode::Or8,
-            RegMemImm::mem(Amode::imm_reg(0, rax)),
-            w_rbx,
-        ),
-        "0A18",
-        "orb     %bl, 0(%rax), %bl",
-    ));
-    insns.push((
-        Inst::alu_rmi_r(
             OperandSize::Size64,
             AluRmiROpcode::Xor,
             RegMemImm::reg(r15),
@@ -3342,109 +3262,6 @@ fn test_x64_emit() {
     ));
 
     // ========================================================
-    // TestRmiR
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size64, RegMemImm::reg(r15), rdx),
-        "4C85FA",
-        "testq   %r15, %rdx",
-    ));
-    insns.push((
-        Inst::test_rmi_r(
-            OperandSize::Size64,
-            RegMemImm::mem(Amode::imm_reg(99, rdi)),
-            rdx,
-        ),
-        "48855763",
-        "testq   99(%rdi), %rdx",
-    ));
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size64, RegMemImm::imm(127), rdx),
-        "48F7C27F000000",
-        "testq   $127, %rdx",
-    ));
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size64, RegMemImm::imm(76543210), rdx),
-        "48F7C2EAF48F04",
-        "testq   $76543210, %rdx",
-    ));
-    //
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size32, RegMemImm::reg(r15), rdx),
-        "4485FA",
-        "testl   %r15d, %edx",
-    ));
-    insns.push((
-        Inst::test_rmi_r(
-            OperandSize::Size32,
-            RegMemImm::mem(Amode::imm_reg(99, rdi)),
-            rdx,
-        ),
-        "855763",
-        "testl   99(%rdi), %edx",
-    ));
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size32, RegMemImm::imm(76543210), rdx),
-        "F7C2EAF48F04",
-        "testl   $76543210, %edx",
-    ));
-    //
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size16, RegMemImm::reg(r15), rdx),
-        "664485FA",
-        "testw   %r15w, %dx",
-    ));
-    insns.push((
-        Inst::test_rmi_r(
-            OperandSize::Size16,
-            RegMemImm::mem(Amode::imm_reg(99, rdi)),
-            rdx,
-        ),
-        "66855763",
-        "testw   99(%rdi), %dx",
-    ));
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size16, RegMemImm::imm(23210), rdx),
-        "66F7C2AA5A",
-        "testw   $23210, %dx",
-    ));
-    //
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size8, RegMemImm::reg(r15), rdx),
-        "4484FA",
-        "testb   %r15b, %dl",
-    ));
-    insns.push((
-        Inst::test_rmi_r(
-            OperandSize::Size8,
-            RegMemImm::mem(Amode::imm_reg(99, rdi)),
-            rdx,
-        ),
-        "845763",
-        "testb   99(%rdi), %dl",
-    ));
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size8, RegMemImm::imm(70), rdx),
-        "F6C246",
-        "testb   $70, %dl",
-    ));
-    // Extra byte-cases (paranoia!) for test_rmi_r for first operand = R
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size8, RegMemImm::reg(rax), rbx),
-        "84C3",
-        "testb   %al, %bl",
-    ));
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size8, RegMemImm::reg(rcx), rsi),
-        "4084CE",
-        "testb   %cl, %sil",
-    ));
-    insns.push((
-        Inst::test_rmi_r(OperandSize::Size8, RegMemImm::reg(rcx), r10),
-        "4184CA",
-        "testb   %cl, %r10b",
-    ));
-
-    // ========================================================
     // SetCC
     insns.push((Inst::setcc(CC::O, w_rsi), "400F90C6", "seto    %sil"));
     insns.push((Inst::setcc(CC::NLE, w_rsi), "400F9FC6", "setnle  %sil"));
@@ -3572,8 +3389,9 @@ fn test_x64_emit() {
                 namespace: 0,
                 index: 0,
             },
-            Vec::new(),
-            Vec::new(),
+            smallvec![],
+            smallvec![],
+            PRegSet::default(),
             Opcode::Call,
         ),
         "E800000000",
@@ -3583,7 +3401,13 @@ fn test_x64_emit() {
     // ========================================================
     // CallUnknown
     fn call_unknown(rm: RegMem) -> Inst {
-        Inst::call_unknown(rm, Vec::new(), Vec::new(), Opcode::CallIndirect)
+        Inst::call_unknown(
+            rm,
+            smallvec![],
+            smallvec![],
+            PRegSet::default(),
+            Opcode::CallIndirect,
+        )
     }
 
     insns.push((call_unknown(RegMem::reg(rbp)), "FFD5", "call    *%rbp"));
@@ -3692,6 +3516,21 @@ fn test_x64_emit() {
         ))),
         "41FFA49241010000",
         "jmp     *321(%r10,%rdx,4)",
+    ));
+
+    // ========================================================
+    // XMM FMA
+
+    insns.push((
+        Inst::xmm_rm_r_vex(AvxOpcode::Vfmadd213ps, RegMem::reg(xmm2), xmm1, w_xmm0),
+        "C4E271A8C2",
+        "vfmadd213ps %xmm0, %xmm1, %xmm2, %xmm0",
+    ));
+
+    insns.push((
+        Inst::xmm_rm_r_vex(AvxOpcode::Vfmadd213pd, RegMem::reg(xmm5), xmm4, w_xmm3),
+        "C4E2D9A8DD",
+        "vfmadd213pd %xmm3, %xmm4, %xmm5, %xmm3",
     ));
 
     // ========================================================
@@ -4604,6 +4443,8 @@ fn test_x64_emit() {
         3,
     )
     .into();
+    // Use `r9` with a 0 offset.
+    let am3: SyntheticAmode = Amode::imm_reg(0, r9).into();
 
     // A general 8-bit case.
     insns.push((
@@ -4736,8 +4577,8 @@ fn test_x64_emit() {
     insns.push((
         Inst::AtomicRmwSeq {
             ty: types::I8,
-            op: inst_common::AtomicRmwOp::Or,
-            address: r9,
+            op: inst_common::MachAtomicRmwOp::Or,
+            mem: am3.clone(),
             operand: r10,
             temp: w_r11,
             dst_old: w_rax
@@ -4748,8 +4589,8 @@ fn test_x64_emit() {
     insns.push((
         Inst::AtomicRmwSeq {
             ty: types::I16,
-            op: inst_common::AtomicRmwOp::And,
-            address: r9,
+            op: inst_common::MachAtomicRmwOp::And,
+            mem: am3.clone(),
             operand: r10,
             temp: w_r11,
             dst_old: w_rax
@@ -4760,8 +4601,8 @@ fn test_x64_emit() {
     insns.push((
         Inst::AtomicRmwSeq {
             ty: types::I32,
-            op: inst_common::AtomicRmwOp::Xchg,
-            address: r9,
+            op: inst_common::MachAtomicRmwOp::Xchg,
+            mem: am3.clone(),
             operand: r10,
             temp: w_r11,
             dst_old: w_rax
@@ -4772,8 +4613,8 @@ fn test_x64_emit() {
     insns.push((
         Inst::AtomicRmwSeq {
             ty: types::I32,
-            op: inst_common::AtomicRmwOp::Umin,
-            address: r9,
+            op: inst_common::MachAtomicRmwOp::Umin,
+            mem: am3.clone(),
             operand: r10,
             temp: w_r11,
             dst_old: w_rax
@@ -4784,8 +4625,8 @@ fn test_x64_emit() {
     insns.push((
         Inst::AtomicRmwSeq {
             ty: types::I64,
-            op: inst_common::AtomicRmwOp::Add,
-            address: r9,
+            op: inst_common::MachAtomicRmwOp::Add,
+            mem: am3.clone(),
             operand: r10,
             temp: w_r11,
             dst_old: w_rax
@@ -4833,7 +4674,7 @@ fn test_x64_emit() {
             },
         },
         "66488D3D00000000666648E800000000",
-        "elf_tls_get_addr User { namespace: 0, index: 0 }",
+        "%rax = elf_tls_get_addr User { namespace: 0, index: 0 }",
     ));
 
     insns.push((
@@ -4844,7 +4685,7 @@ fn test_x64_emit() {
             },
         },
         "488B3D00000000FF17",
-        "macho_tls_get_addr User { namespace: 0, index: 0 }",
+        "%rax = macho_tls_get_addr User { namespace: 0, index: 0 }",
     ));
 
     // ========================================================
@@ -4857,6 +4698,7 @@ fn test_x64_emit() {
     let mut isa_flag_builder = x64::settings::builder();
     isa_flag_builder.enable("has_ssse3").unwrap();
     isa_flag_builder.enable("has_sse41").unwrap();
+    isa_flag_builder.enable("has_fma").unwrap();
     isa_flag_builder.enable("has_avx512bitalg").unwrap();
     isa_flag_builder.enable("has_avx512dq").unwrap();
     isa_flag_builder.enable("has_avx512f").unwrap();

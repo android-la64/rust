@@ -45,7 +45,7 @@ fn parse_json_visitor<'a, 'reg>(
     for path_seg in relative_path {
         match path_seg {
             PathSeg::Named(the_path) => {
-                if let Some((holder, base_path)) = get_in_block_params(&block_contexts, the_path) {
+                if let Some((holder, base_path)) = get_in_block_params(block_contexts, the_path) {
                     with_block_param = Some((holder, base_path));
                 }
                 break;
@@ -171,10 +171,7 @@ impl Context {
         block_contexts: &VecDeque<BlockContext<'reg>>,
     ) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
         // always use absolute at the moment until we get base_value lifetime issue fixed
-        let resolved_visitor = parse_json_visitor(&relative_path, block_contexts, true);
-
-        // debug logging
-        debug!("Accessing context value: {:?}", resolved_visitor);
+        let resolved_visitor = parse_json_visitor(relative_path, block_contexts, true);
 
         match resolved_visitor {
             ResolvedPath::AbsolutePath(paths) => {
@@ -220,6 +217,12 @@ impl Context {
     /// Return the mutable reference to Json data wrapped in context
     pub fn data_mut(&mut self) -> &mut Json {
         &mut self.data
+    }
+}
+
+impl From<Json> for Context {
+    fn from(data: Json) -> Context {
+        Context { data }
     }
 }
 
@@ -359,9 +362,9 @@ mod test {
 
     #[test]
     fn test_key_name_with_this() {
-        let m = btreemap! {
-            "this_name".to_string() => "the_value".to_string()
-        };
+        let m = json!({
+            "this_name": "the_value"
+        });
         let ctx = Context::wraps(&m).unwrap();
         assert_eq!(
             navigate_from_root(&ctx, "this_name").unwrap().render(),

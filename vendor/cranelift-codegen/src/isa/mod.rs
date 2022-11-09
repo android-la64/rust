@@ -49,7 +49,7 @@ use crate::flowgraph;
 use crate::ir::{self, Function};
 #[cfg(feature = "unwind")]
 use crate::isa::unwind::systemv::RegisterMappingError;
-use crate::machinst::{MachCompileResult, TextSectionBuilder, UnwindInfoKind};
+use crate::machinst::{CompiledCode, TextSectionBuilder, UnwindInfoKind};
 use crate::settings;
 use crate::settings::SetResult;
 use crate::CodegenResult;
@@ -196,7 +196,7 @@ pub struct TargetFrontendConfig {
 impl TargetFrontendConfig {
     /// Get the pointer type of this target.
     pub fn pointer_type(self) -> ir::Type {
-        ir::Type::int(u16::from(self.pointer_bits())).unwrap()
+        ir::Type::int(self.pointer_bits() as u16).unwrap()
     }
 
     /// Get the width of pointers on this target, in units of bits.
@@ -226,12 +226,11 @@ pub trait TargetIsa: fmt::Display + Send + Sync {
     /// Get the ISA-dependent flag values that were used to make this trait object.
     fn isa_flags(&self) -> Vec<settings::Value>;
 
+    /// Get the ISA-dependent maximum vector register size, in bytes.
+    fn dynamic_vector_bytes(&self, dynamic_ty: ir::Type) -> u32;
+
     /// Compile the given function.
-    fn compile_function(
-        &self,
-        func: &Function,
-        want_disasm: bool,
-    ) -> CodegenResult<MachCompileResult>;
+    fn compile_function(&self, func: &Function, want_disasm: bool) -> CodegenResult<CompiledCode>;
 
     #[cfg(feature = "unwind")]
     /// Map a regalloc::Reg to its corresponding DWARF register.
@@ -251,7 +250,7 @@ pub trait TargetIsa: fmt::Display + Send + Sync {
     #[cfg(feature = "unwind")]
     fn emit_unwind_info(
         &self,
-        result: &MachCompileResult,
+        result: &CompiledCode,
         kind: UnwindInfoKind,
     ) -> CodegenResult<Option<crate::isa::unwind::UnwindInfo>>;
 
@@ -311,7 +310,7 @@ impl<'a> dyn TargetIsa + 'a {
 
     /// Get the pointer type of this ISA.
     pub fn pointer_type(&self) -> ir::Type {
-        ir::Type::int(u16::from(self.pointer_bits())).unwrap()
+        ir::Type::int(self.pointer_bits() as u16).unwrap()
     }
 
     /// Get the width of pointers on this ISA.

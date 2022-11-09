@@ -118,12 +118,6 @@ typedef uint_t uint;
 #define STATVFS_F_FLAG(vfs) (vfs).f_flags
 #endif
 
-#if defined(__sun__)
-// The madvise() declaration on Illumos cannot be made visible if _XOPEN_SOURCE
-// is defined. This declaration is also compatible with Solaris 11.4.
-extern "C" int madvise(void *, size_t, int);
-#endif
-
 using namespace llvm;
 
 namespace llvm {
@@ -200,7 +194,7 @@ getprogpath(char ret[PATH_MAX], const char *bin)
 
 /// GetMainExecutable - Return the path to the main executable, given the
 /// value of argv[0] from program startup.
-std::string getMainExecutable(const char *argv0, void *MainAddr) {
+std::string getMainExecutableImpl(const char *argv0, void *MainAddr) {
 #if defined(__APPLE__)
   // On OS X the executable path is saved to the stack by dyld. Reading it
   // from there is much faster than calling dladdr, especially for large
@@ -880,12 +874,14 @@ void mapped_file_region::unmapImpl() {
 
 void mapped_file_region::dontNeedImpl() {
   assert(Mode == mapped_file_region::readonly);
+  if (!Mapping)
+      return;
 #if defined(__MVS__) || defined(_AIX)
   // If we don't have madvise, or it isn't beneficial, treat this as a no-op.
-  return;
+#elif defined(POSIX_MADV_DONTNEED)
+  ::posix_madvise(Mapping, Size, POSIX_MADV_DONTNEED);
 #else
-  if (Mapping)
-    ::madvise(Mapping, Size, MADV_DONTNEED);
+  ::madvise(Mapping, Size, MADV_DONTNEED);
 #endif
 }
 
@@ -954,7 +950,15 @@ ErrorOr<basic_file_status> directory_entry::status() const {
   return s;
 }
 
-#if !defined(F_GETPATH)
+//
+// FreeBSD optionally provides /proc/self/fd, but it is incompatible with
+// Linux. The thing to use is realpath.
+//
+#if !defined(__FreeBSD__)
+#define TRY_PROC_SELF_FD
+#endif
+
+#if !defined(F_GETPATH) && defined(TRY_PROC_SELF_FD)
 static bool hasProcSelfFD() {
   // If we have a /proc filesystem mounted, we can quickly establish the
   // real name of the file with readlink
@@ -1141,6 +1145,7 @@ std::error_code openFileForRead(const Twine &Name, int &ResultFD,
     RealPath->append(Buffer, Buffer + strlen(Buffer));
 #else
   char Buffer[PATH_MAX];
+#if defined(TRY_PROC_SELF_FD)
   if (hasProcSelfFD()) {
     char ProcPath[64];
     snprintf(ProcPath, sizeof(ProcPath), "/proc/self/fd/%d", ResultFD);
@@ -1148,13 +1153,16 @@ std::error_code openFileForRead(const Twine &Name, int &ResultFD,
     if (CharCount > 0)
       RealPath->append(Buffer, Buffer + CharCount);
   } else {
+#endif
     SmallString<128> Storage;
     StringRef P = Name.toNullTerminatedStringRef(Storage);
 
     // Use ::realpath to get the real path name
     if (::realpath(P.begin(), Buffer) != nullptr)
       RealPath->append(Buffer, Buffer + strlen(Buffer));
+#if defined(TRY_PROC_SELF_FD)
   }
+#endif
 #endif
   return std::error_code();
 }

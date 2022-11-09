@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56.0"
+rust-version = "1.56.1"
 name = "clap"
-version = "3.2.5"
+version = "3.2.20"
 include = [
     "build.rs",
     "src/**/*",
@@ -24,7 +24,6 @@ include = [
     "examples/**/*",
 ]
 description = "A simple to use, efficient, and full-featured Command Line Argument Parser"
-documentation = "https://docs.rs/clap/"
 readme = "README.md"
 keywords = [
     "argument",
@@ -90,27 +89,6 @@ replace = """
 <!-- next-url -->
 [Unreleased]: https://github.com/clap-rs/clap/compare/{{tag_name}}...HEAD"""
 exactly = 1
-
-[[package.metadata.release.pre-release-replacements]]
-file = "README.md"
-search = "github.com/clap-rs/clap/blob/[^/]+/"
-replace = "github.com/clap-rs/clap/blob/{{tag_name}}/"
-exactly = 13
-prerelease = true
-
-[[package.metadata.release.pre-release-replacements]]
-file = "README.md"
-search = 'version = "[a-z0-9\.-]+"'
-replace = "version = \"{{version}}\""
-exactly = 1
-prerelease = true
-
-[[package.metadata.release.pre-release-replacements]]
-file = "src/derive.rs"
-search = "github.com/clap-rs/clap/blob/[^/]+/"
-replace = "github.com/clap-rs/clap/blob/{{tag_name}}/"
-exactly = 4
-prerelease = true
 
 [profile.bench]
 lto = true
@@ -219,10 +197,7 @@ required-features = ["cargo"]
 [[example]]
 name = "04_01_enum"
 path = "examples/tutorial_builder/04_01_enum.rs"
-required-features = [
-    "cargo",
-    "derive",
-]
+required-features = ["cargo"]
 
 [[example]]
 name = "04_02_parse"
@@ -373,7 +348,7 @@ optional = true
 version = "1.2"
 
 [dependencies.clap_derive]
-version = "=3.2.5"
+version = "=3.2.18"
 optional = true
 
 [dependencies.clap_lex]
@@ -429,6 +404,9 @@ version = "1.1.0"
 
 [dev-dependencies.snapbox]
 version = "0.2.9"
+
+[dev-dependencies.static_assertions]
+version = "1.1.0"
 
 [dev-dependencies.trybuild]
 version = "1.0.18"
