@@ -8,8 +8,8 @@ use shims::unix::linux::sync::futex;
 use shims::unix::sync::EvalContextExt as _;
 use shims::unix::thread::EvalContextExt as _;
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     fn emulate_foreign_item_by_name(
         &mut self,
         link_name: Symbol,
@@ -68,8 +68,22 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             "pthread_setname_np" => {
                 let [thread, name] =
                     this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                let res =
-                    this.pthread_setname_np(this.read_scalar(thread)?, this.read_scalar(name)?)?;
+                let max_len = 16;
+                let res = this.pthread_setname_np(
+                    this.read_scalar(thread)?,
+                    this.read_scalar(name)?,
+                    max_len,
+                )?;
+                this.write_scalar(res, dest)?;
+            }
+            "pthread_getname_np" => {
+                let [thread, name, len] =
+                    this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
+                let res = this.pthread_getname_np(
+                    this.read_scalar(thread)?,
+                    this.read_scalar(name)?,
+                    this.read_scalar(len)?,
+                )?;
                 this.write_scalar(res, dest)?;
             }
 
@@ -126,7 +140,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                         futex(this, &args[1..], dest)?;
                     }
                     id => {
-                        this.handle_unsupported(format!("can't execute syscall with ID {}", id))?;
+                        this.handle_unsupported(format!("can't execute syscall with ID {id}"))?;
                         return Ok(EmulateByNameResult::AlreadyJumped);
                     }
                 }
@@ -167,7 +181,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
 // Shims the linux `getrandom` syscall.
 fn getrandom<'tcx>(
-    this: &mut MiriEvalContext<'_, 'tcx>,
+    this: &mut MiriInterpCx<'_, 'tcx>,
     ptr: &OpTy<'tcx, Provenance>,
     len: &OpTy<'tcx, Provenance>,
     flags: &OpTy<'tcx, Provenance>,

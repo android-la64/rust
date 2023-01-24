@@ -1,5 +1,7 @@
 pub mod convert;
 
+use std::cmp;
+use std::iter;
 use std::mem;
 use std::num::NonZeroUsize;
 use std::time::Duration;
@@ -21,7 +23,7 @@ use rand::RngCore;
 
 use crate::*;
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
 
 // This mapping should match `decode_error_kind` in
 // <https://github.com/rust-lang/rust/blob/master/library/std/src/sys/unix/mod.rs>.
@@ -96,7 +98,7 @@ fn try_resolve_did<'tcx>(tcx: TyCtxt<'tcx>, path: &[&str]) -> Option<DefId> {
     )
 }
 
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     /// Gets an instance for a path; fails gracefully if the path does not exist.
     fn try_resolve_path(&self, path: &[&str]) -> Option<ty::Instance<'tcx>> {
         let did = try_resolve_did(self.eval_context_ref().tcx.tcx, path)?;
@@ -106,7 +108,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     /// Gets an instance for a path.
     fn resolve_path(&self, path: &[&str]) -> ty::Instance<'tcx> {
         self.try_resolve_path(path)
-            .unwrap_or_else(|| panic!("failed to find required Rust item: {:?}", path))
+            .unwrap_or_else(|| panic!("failed to find required Rust item: {path:?}"))
     }
 
     /// Evaluates the scalar at the specified path. Returns Some(val)
@@ -391,11 +393,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         where
             F: FnMut(&MPlaceTy<'tcx, Provenance>) -> InterpResult<'tcx>,
         {
-            ecx: &'ecx MiriEvalContext<'mir, 'tcx>,
+            ecx: &'ecx MiriInterpCx<'mir, 'tcx>,
             unsafe_cell_action: F,
         }
 
-        impl<'ecx, 'mir, 'tcx: 'mir, F> ValueVisitor<'mir, 'tcx, Evaluator<'mir, 'tcx>>
+        impl<'ecx, 'mir, 'tcx: 'mir, F> ValueVisitor<'mir, 'tcx, MiriMachine<'mir, 'tcx>>
             for UnsafeCellVisitor<'ecx, 'mir, 'tcx, F>
         where
             F: FnMut(&MPlaceTy<'tcx, Provenance>) -> InterpResult<'tcx>,
@@ -403,7 +405,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             type V = MPlaceTy<'tcx, Provenance>;
 
             #[inline(always)]
-            fn ecx(&self) -> &MiriEvalContext<'mir, 'tcx> {
+            fn ecx(&self) -> &MiriInterpCx<'mir, 'tcx> {
                 self.ecx
             }
 
@@ -504,11 +506,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             RejectOpWith::WarningWithoutBacktrace => {
                 this.tcx
                     .sess
-                    .warn(&format!("{} was made to return an error due to isolation", op_name));
+                    .warn(format!("{op_name} was made to return an error due to isolation"));
                 Ok(())
             }
             RejectOpWith::Warning => {
-                register_diagnostic(NonHaltingDiagnostic::RejectedIsolatedOp(op_name.to_string()));
+                this.emit_diagnostic(NonHaltingDiagnostic::RejectedIsolatedOp(op_name.to_string()));
                 Ok(())
             }
             RejectOpWith::NoWarning => Ok(()), // no warning
@@ -734,6 +736,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         })
     }
 
+    /// Read a sequence of bytes until the first null terminator.
     fn read_c_str<'a>(&'a self, ptr: Pointer<Option<Provenance>>) -> InterpResult<'tcx, &'a [u8]>
     where
         'tcx: 'a,
@@ -760,6 +763,30 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         this.read_bytes_ptr_strip_provenance(ptr, len)
     }
 
+    /// Helper function to write a sequence of bytes with an added null-terminator, which is what
+    /// the Unix APIs usually handle. This function returns `Ok((false, length))` without trying
+    /// to write if `size` is not large enough to fit the contents of `c_str` plus a null
+    /// terminator. It returns `Ok((true, length))` if the writing process was successful. The
+    /// string length returned does include the null terminator.
+    fn write_c_str(
+        &mut self,
+        c_str: &[u8],
+        ptr: Pointer<Option<Provenance>>,
+        size: u64,
+    ) -> InterpResult<'tcx, (bool, u64)> {
+        // If `size` is smaller or equal than `bytes.len()`, writing `bytes` plus the required null
+        // terminator to memory using the `ptr` pointer would cause an out-of-bounds access.
+        let string_length = u64::try_from(c_str.len()).unwrap();
+        let string_length = string_length.checked_add(1).unwrap();
+        if size < string_length {
+            return Ok((false, string_length));
+        }
+        self.eval_context_mut()
+            .write_bytes_ptr(ptr, c_str.iter().copied().chain(iter::once(0u8)))?;
+        Ok((true, string_length))
+    }
+
+    /// Read a sequence of u16 until the first null terminator.
     fn read_wide_str(&self, mut ptr: Pointer<Option<Provenance>>) -> InterpResult<'tcx, Vec<u16>> {
         let this = self.eval_context_ref();
         let size2 = Size::from_bytes(2);
@@ -780,6 +807,39 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         }
 
         Ok(wchars)
+    }
+
+    /// Helper function to write a sequence of u16 with an added 0x0000-terminator, which is what
+    /// the Windows APIs usually handle. This function returns `Ok((false, length))` without trying
+    /// to write if `size` is not large enough to fit the contents of `os_string` plus a null
+    /// terminator. It returns `Ok((true, length))` if the writing process was successful. The
+    /// string length returned does include the null terminator. Length is measured in units of
+    /// `u16.`
+    fn write_wide_str(
+        &mut self,
+        wide_str: &[u16],
+        ptr: Pointer<Option<Provenance>>,
+        size: u64,
+    ) -> InterpResult<'tcx, (bool, u64)> {
+        // If `size` is smaller or equal than `bytes.len()`, writing `bytes` plus the required
+        // 0x0000 terminator to memory would cause an out-of-bounds access.
+        let string_length = u64::try_from(wide_str.len()).unwrap();
+        let string_length = string_length.checked_add(1).unwrap();
+        if size < string_length {
+            return Ok((false, string_length));
+        }
+
+        // Store the UTF-16 string.
+        let size2 = Size::from_bytes(2);
+        let this = self.eval_context_mut();
+        let mut alloc = this
+            .get_ptr_alloc_mut(ptr, size2 * string_length, Align::from_bytes(2).unwrap())?
+            .unwrap(); // not a ZST, so we will get a result
+        for (offset, wchar) in wide_str.iter().copied().chain(iter::once(0x0000)).enumerate() {
+            let offset = u64::try_from(offset).unwrap();
+            alloc.write_scalar(alloc_range(size2 * offset, size2), Scalar::from_u16(wchar))?;
+        }
+        Ok((true, string_length))
     }
 
     /// Check that the ABI is what we expect.
@@ -883,9 +943,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     }
 }
 
-impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
-    pub fn current_span(&self, tcx: TyCtxt<'tcx>) -> CurrentSpan<'_, 'mir, 'tcx> {
-        CurrentSpan { current_frame_idx: None, machine: self, tcx }
+impl<'mir, 'tcx> MiriMachine<'mir, 'tcx> {
+    pub fn current_span(&self) -> CurrentSpan<'_, 'mir, 'tcx> {
+        CurrentSpan { current_frame_idx: None, machine: self }
     }
 }
 
@@ -896,45 +956,49 @@ impl<'mir, 'tcx> Evaluator<'mir, 'tcx> {
 #[derive(Clone)]
 pub struct CurrentSpan<'a, 'mir, 'tcx> {
     current_frame_idx: Option<usize>,
-    tcx: TyCtxt<'tcx>,
-    machine: &'a Evaluator<'mir, 'tcx>,
+    machine: &'a MiriMachine<'mir, 'tcx>,
 }
 
 impl<'a, 'mir: 'a, 'tcx: 'a + 'mir> CurrentSpan<'a, 'mir, 'tcx> {
+    pub fn machine(&self) -> &'a MiriMachine<'mir, 'tcx> {
+        self.machine
+    }
+
     /// Get the current span, skipping non-local frames.
     /// This function is backed by a cache, and can be assumed to be very fast.
     pub fn get(&mut self) -> Span {
         let idx = self.current_frame_idx();
-        Self::frame_span(self.machine, idx)
+        self.stack().get(idx).map(Frame::current_span).unwrap_or(rustc_span::DUMMY_SP)
     }
 
-    /// Similar to `CurrentSpan::get`, but retrieves the parent frame of the first non-local frame.
+    /// Returns the span of the *caller* of the current operation, again
+    /// walking down the stack to find the closest frame in a local crate, if the caller of the
+    /// current operation is not in a local crate.
     /// This is useful when we are processing something which occurs on function-entry and we want
     /// to point at the call to the function, not the function definition generally.
-    pub fn get_parent(&mut self) -> Span {
-        let idx = self.current_frame_idx();
-        Self::frame_span(self.machine, idx.wrapping_sub(1))
+    pub fn get_caller(&mut self) -> Span {
+        // We need to go down at least to the caller (len - 2), or however
+        // far we have to go to find a frame in a local crate.
+        let local_frame_idx = self.current_frame_idx();
+        let stack = self.stack();
+        let idx = cmp::min(local_frame_idx, stack.len().saturating_sub(2));
+        stack.get(idx).map(Frame::current_span).unwrap_or(rustc_span::DUMMY_SP)
     }
 
-    fn frame_span(machine: &Evaluator<'_, '_>, idx: usize) -> Span {
-        machine
-            .threads
-            .active_thread_stack()
-            .get(idx)
-            .map(Frame::current_span)
-            .unwrap_or(rustc_span::DUMMY_SP)
+    fn stack(&self) -> &[Frame<'mir, 'tcx, Provenance, machine::FrameData<'tcx>>] {
+        self.machine.threads.active_thread_stack()
     }
 
     fn current_frame_idx(&mut self) -> usize {
         *self
             .current_frame_idx
-            .get_or_insert_with(|| Self::compute_current_frame_index(self.tcx, self.machine))
+            .get_or_insert_with(|| Self::compute_current_frame_index(self.machine))
     }
 
     // Find the position of the inner-most frame which is part of the crate being
     // compiled/executed, part of the Cargo workspace, and is also not #[track_caller].
     #[inline(never)]
-    fn compute_current_frame_index(tcx: TyCtxt<'_>, machine: &Evaluator<'_, '_>) -> usize {
+    fn compute_current_frame_index(machine: &MiriMachine<'_, '_>) -> usize {
         machine
             .threads
             .active_thread_stack()
@@ -944,7 +1008,7 @@ impl<'a, 'mir: 'a, 'tcx: 'a + 'mir> CurrentSpan<'a, 'mir, 'tcx> {
             .find_map(|(idx, frame)| {
                 let def_id = frame.instance.def_id();
                 if (def_id.is_local() || machine.local_crates.contains(&def_id.krate))
-                    && !frame.instance.def.requires_caller_location(tcx)
+                    && !frame.instance.def.requires_caller_location(machine.tcx)
                 {
                     Some(idx)
                 } else {

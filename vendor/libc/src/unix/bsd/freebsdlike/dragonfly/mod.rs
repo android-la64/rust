@@ -1066,6 +1066,8 @@ pub const CPUCTL_MSRSBIT: ::c_int = 0xc0106305;
 pub const CPUCTL_MSRCBIT: ::c_int = 0xc0106306;
 pub const CPUCTL_CPUID_COUNT: ::c_int = 0xc0106307;
 
+pub const CPU_SETSIZE: ::size_t = ::mem::size_of::<::cpumask_t>() * 8;
+
 pub const EVFILT_READ: i16 = -1;
 pub const EVFILT_WRITE: i16 = -2;
 pub const EVFILT_AIO: i16 = -3;
@@ -1570,6 +1572,15 @@ f! {
 safe_f! {
     pub {const} fn WIFSIGNALED(status: ::c_int) -> bool {
         (status & 0o177) != 0o177 && (status & 0o177) != 0
+    }
+
+    pub {const} fn makedev(major: ::c_uint, minor: ::c_uint) -> ::dev_t {
+        let major = major as ::dev_t;
+        let minor = minor as ::dev_t;
+        let mut dev = 0;
+        dev |= major << 8;
+        dev |= minor;
+        dev
     }
 }
 

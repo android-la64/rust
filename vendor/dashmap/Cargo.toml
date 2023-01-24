@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.59"
 name = "dashmap"
-version = "5.3.4"
+version = "5.4.0"
 authors = ["Acrimon <joel.wejdenstal@gmail.com>"]
 description = "Blazing fast concurrent HashMap for Rust."
 homepage = "https://github.com/xacrimon/dashmap"
@@ -29,21 +29,24 @@ features = ["rayon", "raw-api", "serde"]
 version = "1.0.0"
 
 [dependencies.hashbrown]
-version = "0.12.0"
+version = "0.12.3"
 default-features = false
 
 [dependencies.lock_api]
-version = "0.4.7"
+version = "0.4.8"
+
+[dependencies.once_cell]
+version = "1.13.1"
 
 [dependencies.parking_lot_core]
 version = "0.9.3"
 
 [dependencies.rayon]
-version = "1.5.2"
+version = "1.5.3"
 optional = true
 
 [dependencies.serde]
-version = "1.0.136"
+version = "1.0.144"
 features = ["derive"]
 optional = true
 

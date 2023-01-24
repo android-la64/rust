@@ -66,25 +66,32 @@ enum InvalidationCause {
 
 impl Invalidation {
     fn generate_diagnostic(&self) -> (String, SpanData) {
-        (
+        let message = if let InvalidationCause::Retag(_, RetagCause::FnEntry) = self.cause {
+            // For a FnEntry retag, our Span points at the caller.
+            // See `DiagnosticCx::log_invalidation`.
+            format!(
+                "{:?} was later invalidated at offsets {:?} by a {} inside this call",
+                self.tag, self.range, self.cause
+            )
+        } else {
             format!(
                 "{:?} was later invalidated at offsets {:?} by a {}",
                 self.tag, self.range, self.cause
-            ),
-            self.span.data(),
-        )
+            )
+        };
+        (message, self.span.data())
     }
 }
 
 impl fmt::Display for InvalidationCause {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InvalidationCause::Access(kind) => write!(f, "{}", kind),
+            InvalidationCause::Access(kind) => write!(f, "{kind}"),
             InvalidationCause::Retag(perm, kind) =>
                 if *kind == RetagCause::FnEntry {
-                    write!(f, "{:?} FnEntry retag", perm)
+                    write!(f, "{perm:?} FnEntry retag")
                 } else {
-                    write!(f, "{:?} retag", perm)
+                    write!(f, "{perm:?} retag")
                 },
         }
     }
@@ -275,7 +282,7 @@ impl<'span, 'history, 'ecx, 'mir, 'tcx> DiagnosticCx<'span, 'history, 'ecx, 'mir
         let (range, cause) = match &self.operation {
             Operation::Retag(RetagOp { cause, range, permission, .. }) => {
                 if *cause == RetagCause::FnEntry {
-                    span = self.current_span.get_parent();
+                    span = self.current_span.get_caller();
                 }
                 (*range, InvalidationCause::Retag(permission.unwrap(), *cause))
             }
@@ -332,7 +339,7 @@ impl<'span, 'history, 'ecx, 'mir, 'tcx> DiagnosticCx<'span, 'history, 'ecx, 'mir
                 // this allocation.
                 if self.history.base.0.tag() == tag {
                     Some((
-                        format!("{:?} was created here, as the base tag for {:?}", tag, self.history.id),
+                        format!("{tag:?} was created here, as the base tag for {:?}", self.history.id),
                         self.history.base.1.data()
                     ))
                 } else {
@@ -374,7 +381,7 @@ impl<'span, 'history, 'ecx, 'mir, 'tcx> DiagnosticCx<'span, 'history, 'ecx, 'mir
             self.offset.bytes(),
         );
         err_sb_ub(
-            format!("{}{}", action, error_cause(stack, op.orig_tag)),
+            format!("{action}{}", error_cause(stack, op.orig_tag)),
             Some(operation_summary(&op.cause.summary(), self.history.id, op.range)),
             op.orig_tag.and_then(|orig_tag| self.get_logs_relevant_to(orig_tag, None)),
         )
@@ -394,7 +401,7 @@ impl<'span, 'history, 'ecx, 'mir, 'tcx> DiagnosticCx<'span, 'history, 'ecx, 'mir
             offset = self.offset.bytes(),
         );
         err_sb_ub(
-            format!("{}{}", action, error_cause(stack, op.tag)),
+            format!("{action}{}", error_cause(stack, op.tag)),
             Some(operation_summary("an access", self.history.id, op.range)),
             op.tag.and_then(|tag| self.get_logs_relevant_to(tag, None)),
         )
@@ -471,7 +478,9 @@ impl<'span, 'history, 'ecx, 'mir, 'tcx> DiagnosticCx<'span, 'history, 'ecx, 'mir
                 Some((orig_tag, kind))
             }
         };
-        register_diagnostic(NonHaltingDiagnostic::PoppedPointerTag(*item, summary));
+        self.current_span
+            .machine()
+            .emit_diagnostic(NonHaltingDiagnostic::PoppedPointerTag(*item, summary));
     }
 }
 

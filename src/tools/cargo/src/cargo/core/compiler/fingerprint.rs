@@ -559,10 +559,12 @@ pub struct Fingerprint {
 }
 
 /// Indication of the status on the filesystem for a particular unit.
+#[derive(Default)]
 enum FsStatus {
     /// This unit is to be considered stale, even if hash information all
     /// matches. The filesystem inputs have changed (or are missing) and the
     /// unit needs to subsequently be recompiled.
+    #[default]
     Stale,
 
     /// This unit is up-to-date. All outputs and their corresponding mtime are
@@ -576,12 +578,6 @@ impl FsStatus {
             FsStatus::UpToDate { .. } => true,
             FsStatus::Stale => false,
         }
-    }
-}
-
-impl Default for FsStatus {
-    fn default() -> FsStatus {
-        FsStatus::Stale
     }
 }
 
@@ -1198,7 +1194,7 @@ impl StaleItem {
             } => {
                 info!("stale: changed {:?}", stale);
                 info!("          (vs) {:?}", reference);
-                info!("               {:?} != {:?}", reference_mtime, stale_mtime);
+                info!("               {:?} < {:?}", reference_mtime, stale_mtime);
             }
             StaleItem::ChangedEnv {
                 var,
@@ -1497,7 +1493,7 @@ fn build_script_local_fingerprints(
                     // figure out a better scheme where a package fingerprint
                     // may be a string (like for a registry) or a list of files
                     // (like for a path dependency). Those list of files would
-                    // be stored here rather than the the mtime of them.
+                    // be stored here rather than the mtime of them.
                     Some(f) => {
                         let s = f()?;
                         debug!(

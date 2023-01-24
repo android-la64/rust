@@ -2709,6 +2709,17 @@ pub const RTMSG_DELDEVICE: u32 = 0x12;
 pub const RTMSG_NEWROUTE: u32 = 0x21;
 pub const RTMSG_DELROUTE: u32 = 0x22;
 
+// Most `*_SUPER_MAGIC` constants are defined at the `linux_like` level; the
+// following are only available on newer Linux versions than the versions
+// currently used in CI in some configurations, so we define them here.
+cfg_if! {
+    if #[cfg(not(target_arch = "s390x"))] {
+        pub const XFS_SUPER_MAGIC: ::c_long = 0x58465342;
+    } else if #[cfg(target_arch = "s390x")] {
+        pub const XFS_SUPER_MAGIC: ::c_uint = 0x58465342;
+    }
+}
+
 f! {
     pub fn CMSG_NXTHDR(mhdr: *const msghdr,
                        cmsg: *const cmsghdr) -> *mut cmsghdr {
@@ -2781,12 +2792,6 @@ f! {
     pub fn minor(dev: ::dev_t) -> ::c_int {
         ((dev & 0xff) | ((dev >> 12) & 0xfff00)) as ::c_int
     }
-    pub fn makedev(ma: ::c_int, mi: ::c_int) -> ::dev_t {
-        let ma = ma as ::dev_t;
-        let mi = mi as ::dev_t;
-        ((ma & 0xfff) << 8) | (mi & 0xff) | ((mi & 0xfff00) << 12)
-    }
-
     pub fn NLA_ALIGN(len: ::c_int) -> ::c_int {
         return ((len) + NLA_ALIGNTO - 1) & !(NLA_ALIGNTO - 1)
     }
@@ -2794,6 +2799,15 @@ f! {
     pub fn SO_EE_OFFENDER(ee: *const ::sock_extended_err) -> *mut ::sockaddr {
         ee.offset(1) as *mut ::sockaddr
     }
+}
+
+safe_f! {
+    pub {const} fn makedev(ma: ::c_uint, mi: ::c_uint) -> ::dev_t {
+        let ma = ma as ::dev_t;
+        let mi = mi as ::dev_t;
+        ((ma & 0xfff) << 8) | (mi & 0xff) | ((mi & 0xfff00) << 12)
+    }
+
 }
 
 extern "C" {

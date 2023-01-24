@@ -88,7 +88,10 @@ impl Value {
 ///
 /// Most usage of `Inst` is internal. `Inst`ructions are returned by
 /// [`InstBuilder`](super::InstBuilder) instructions that do not return a
-/// [`Value`], such as control flow and trap instructions.
+/// [`Value`], such as control flow and trap instructions, as well as instructions that return a
+/// variable (potentially zero!) number of values, like call or call-indirect instructions. To get
+/// the `Value` of such instructions, use [`inst_results`](super::DataFlowGraph::inst_results) or
+/// its analogue in `cranelift_frontend::FuncBuilder`.
 ///
 /// If you look around the API, you can find many inventive uses for `Inst`,
 /// such as [annotating specific instructions with a comment][inst_comment]
@@ -327,6 +330,12 @@ impl FuncRef {
         }
     }
 }
+
+/// A reference to an `UserExternalName`, declared with `Function::declare_imported_user_function`.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
+pub struct UserExternalNameRef(u32);
+entity_impl!(UserExternalNameRef, "userextname");
 
 /// An opaque reference to a function [`Signature`](super::Signature).
 ///

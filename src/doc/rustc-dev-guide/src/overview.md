@@ -177,7 +177,7 @@ satisfy/optimize for. For example,
       of space on the user's system...
 - Compiler memory usage: while compiling a program, we don't want to use more
   memory than we need.
-- Program speed: how fast is your compiled program. More/better compile-time
+- Program speed: how fast is your compiled program? More/better compile-time
   analyses often means the compiler can do better optimizations.
 - Program size: how large is the compiled binary? Similar to the previous
   point.
@@ -190,7 +190,7 @@ satisfy/optimize for. For example,
   the input programs says they do, and should continue to do so despite the
   tremendous amount of change constantly going on.
 - Integration: a number of other tools need to use the compiler in
-  various ways (e.g. cargo, clippy, miri, RLS) that must be supported.
+  various ways (e.g. cargo, clippy, miri) that must be supported.
 - Compiler stability: the compiler should not crash or fail ungracefully on the
   stable channel.
 - Rust stability: the compiler must respect Rust's stability guarantees by not

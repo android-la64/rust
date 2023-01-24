@@ -2,6 +2,7 @@
 
 use crate::binemit::{Addend, CodeOffset, Reloc};
 use crate::ir::{types, ExternalName, Opcode, Type};
+use crate::isa::s390x::abi::S390xMachineDeps;
 use crate::isa::CallConv;
 use crate::machinst::*;
 use crate::{settings, CodegenError, CodegenResult};
@@ -28,8 +29,9 @@ mod emit_tests;
 // Instructions (top level): definition
 
 pub use crate::isa::s390x::lower::isle::generated_code::{
-    ALUOp, CmpOp, FPUOp1, FPUOp2, FPUOp3, FpuRoundMode, FpuRoundOp, MInst as Inst, RxSBGOp,
-    ShiftOp, UnaryOp, VecBinaryOp, VecFloatCmpOp, VecIntCmpOp, VecShiftOp, VecUnaryOp,
+    ALUOp, CmpOp, FPUOp1, FPUOp2, FPUOp3, FpuRoundMode, FpuRoundOp, LaneOrder, MInst as Inst,
+    RxSBGOp, ShiftOp, SymbolReloc, UnaryOp, VecBinaryOp, VecFloatCmpOp, VecIntCmpOp, VecShiftOp,
+    VecUnaryOp,
 };
 
 /// Additional information for (direct) Call instructions, left out of line to lower the size of
@@ -43,6 +45,7 @@ pub struct CallInfo {
     pub opcode: Opcode,
     pub caller_callconv: CallConv,
     pub callee_callconv: CallConv,
+    pub tls_symbol: Option<SymbolReloc>,
 }
 
 /// Additional information for CallInd instructions, left out of line to lower the size of the Inst
@@ -154,6 +157,8 @@ impl Inst {
             | Inst::Mov64UImm32Shifted { .. }
             | Inst::Insert64UImm16Shifted { .. }
             | Inst::Insert64UImm32Shifted { .. }
+            | Inst::LoadAR { .. }
+            | Inst::InsertAR { .. }
             | Inst::Extend { .. }
             | Inst::CMov32 { .. }
             | Inst::CMov64 { .. }
@@ -212,7 +217,7 @@ impl Inst {
             | Inst::Debugtrap
             | Inst::Trap { .. }
             | Inst::JTSequence { .. }
-            | Inst::LoadExtNameFar { .. }
+            | Inst::LoadSymbolReloc { .. }
             | Inst::LoadAddr { .. }
             | Inst::Loop { .. }
             | Inst::CondBreak { .. }
@@ -242,7 +247,19 @@ impl Inst {
 
             // These are all part of VXRS_EXT2
             Inst::VecLoadRev { .. }
+            | Inst::VecLoadByte16Rev { .. }
+            | Inst::VecLoadByte32Rev { .. }
+            | Inst::VecLoadByte64Rev { .. }
+            | Inst::VecLoadElt16Rev { .. }
+            | Inst::VecLoadElt32Rev { .. }
+            | Inst::VecLoadElt64Rev { .. }
             | Inst::VecStoreRev { .. }
+            | Inst::VecStoreByte16Rev { .. }
+            | Inst::VecStoreByte32Rev { .. }
+            | Inst::VecStoreByte64Rev { .. }
+            | Inst::VecStoreElt16Rev { .. }
+            | Inst::VecStoreElt32Rev { .. }
+            | Inst::VecStoreElt64Rev { .. }
             | Inst::VecLoadReplicateRev { .. }
             | Inst::VecLoadLaneRev { .. }
             | Inst::VecLoadLaneRevUndef { .. }
@@ -662,6 +679,12 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
         &Inst::Insert64UImm16Shifted { rd, .. } | &Inst::Insert64UImm32Shifted { rd, .. } => {
             collector.reg_mod(rd);
         }
+        &Inst::LoadAR { rd, .. } => {
+            collector.reg_def(rd);
+        }
+        &Inst::InsertAR { rd, .. } => {
+            collector.reg_mod(rd);
+        }
         &Inst::FpuMove32 { rd, rn } | &Inst::FpuMove64 { rd, rn } => {
             collector.reg_def(rd);
             collector.reg_use(rn);
@@ -753,11 +776,59 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
             collector.reg_def(rd);
             memarg_operands(mem, collector);
         }
+        &Inst::VecLoadByte16Rev { rd, ref mem, .. } => {
+            collector.reg_def(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecLoadByte32Rev { rd, ref mem, .. } => {
+            collector.reg_def(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecLoadByte64Rev { rd, ref mem, .. } => {
+            collector.reg_def(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecLoadElt16Rev { rd, ref mem, .. } => {
+            collector.reg_def(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecLoadElt32Rev { rd, ref mem, .. } => {
+            collector.reg_def(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecLoadElt64Rev { rd, ref mem, .. } => {
+            collector.reg_def(rd);
+            memarg_operands(mem, collector);
+        }
         &Inst::VecStore { rd, ref mem, .. } => {
             collector.reg_use(rd);
             memarg_operands(mem, collector);
         }
         &Inst::VecStoreRev { rd, ref mem, .. } => {
+            collector.reg_use(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecStoreByte16Rev { rd, ref mem, .. } => {
+            collector.reg_use(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecStoreByte32Rev { rd, ref mem, .. } => {
+            collector.reg_use(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecStoreByte64Rev { rd, ref mem, .. } => {
+            collector.reg_use(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecStoreElt16Rev { rd, ref mem, .. } => {
+            collector.reg_use(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecStoreElt32Rev { rd, ref mem, .. } => {
+            collector.reg_use(rd);
+            memarg_operands(mem, collector);
+        }
+        &Inst::VecStoreElt64Rev { rd, ref mem, .. } => {
             collector.reg_use(rd);
             memarg_operands(mem, collector);
         }
@@ -881,7 +952,7 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
             collector.reg_use(ridx);
             collector.reg_early_def(writable_gpr(1));
         }
-        &Inst::LoadExtNameFar { rd, .. } => {
+        &Inst::LoadSymbolReloc { rd, .. } => {
             collector.reg_def(rd);
             collector.reg_def(writable_gpr(1));
         }
@@ -907,6 +978,7 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
 // Instructions: misc functions and external interface
 
 impl MachInst for Inst {
+    type ABIMachineSpec = S390xMachineDeps;
     type LabelUse = LabelUse;
 
     fn get_operands<F: Fn(VReg) -> VReg>(&self, collector: &mut OperandCollector<'_, F>) {
@@ -1098,15 +1170,8 @@ impl MachInst for Inst {
 //=============================================================================
 // Pretty-printing of instructions.
 
-fn mem_finalize_for_show(
-    mem: &MemArg,
-    state: &EmitState,
-    have_d12: bool,
-    have_d20: bool,
-    have_pcrel: bool,
-    have_index: bool,
-) -> (String, MemArg) {
-    let (mem_insts, mem) = mem_finalize(mem, state, have_d12, have_d20, have_pcrel, have_index);
+fn mem_finalize_for_show(mem: &MemArg, state: &EmitState, mi: MemInstType) -> (String, MemArg) {
+    let (mem_insts, mem) = mem_finalize(mem, state, mi);
     let mut mem_str = mem_insts
         .into_iter()
         .map(|inst| {
@@ -1270,10 +1335,13 @@ impl Inst {
                 let (mem_str, mem) = mem_finalize_for_show(
                     &mem,
                     state,
-                    opcode_rx.is_some(),
-                    opcode_rxy.is_some(),
-                    false,
-                    true,
+                    MemInstType {
+                        have_d12: opcode_rx.is_some(),
+                        have_d20: opcode_rxy.is_some(),
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: true,
+                    },
                 );
                 let op = match &mem {
                     &MemArg::BXD12 { .. } => opcode_rx,
@@ -1530,10 +1598,13 @@ impl Inst {
                 let (mem_str, mem) = mem_finalize_for_show(
                     &mem,
                     state,
-                    opcode_rx.is_some(),
-                    opcode_rxy.is_some(),
-                    opcode_ril.is_some(),
-                    true,
+                    MemInstType {
+                        have_d12: opcode_rx.is_some(),
+                        have_d20: opcode_rxy.is_some(),
+                        have_pcrel: opcode_ril.is_some(),
+                        have_unaligned_pcrel: false,
+                        have_index: true,
+                    },
                 );
                 let op = match &mem {
                     &MemArg::BXD12 { .. } => opcode_rx,
@@ -1634,7 +1705,17 @@ impl Inst {
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
                 let rn = pretty_print_reg(rn, allocs);
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, false, true, false, false);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: false,
+                        have_d20: true,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: false,
+                    },
+                );
                 let mem = mem.pretty_print_default();
                 format!("{}{} {}, {}, {}", mem_str, op, rd, rn, mem)
             }
@@ -1651,10 +1732,13 @@ impl Inst {
                 let (mem_str, mem) = mem_finalize_for_show(
                     &mem,
                     state,
-                    opcode_rs.is_some(),
-                    opcode_rsy.is_some(),
-                    false,
-                    false,
+                    MemInstType {
+                        have_d12: opcode_rs.is_some(),
+                        have_d20: opcode_rsy.is_some(),
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: false,
+                    },
                 );
                 let op = match &mem {
                     &MemArg::BXD12 { .. } => opcode_rs,
@@ -1705,10 +1789,13 @@ impl Inst {
                 let (mem_str, mem) = mem_finalize_for_show(
                     &mem,
                     state,
-                    opcode_rx.is_some(),
-                    opcode_rxy.is_some(),
-                    opcode_ril.is_some(),
-                    true,
+                    MemInstType {
+                        have_d12: opcode_rx.is_some(),
+                        have_d20: opcode_rxy.is_some(),
+                        have_pcrel: opcode_ril.is_some(),
+                        have_unaligned_pcrel: false,
+                        have_index: true,
+                    },
                 );
                 let op = match &mem {
                     &MemArg::BXD12 { .. } => opcode_rx,
@@ -1742,10 +1829,13 @@ impl Inst {
                 let (mem_str, mem) = mem_finalize_for_show(
                     &mem,
                     state,
-                    opcode_rx.is_some(),
-                    opcode_rxy.is_some(),
-                    opcode_ril.is_some(),
-                    true,
+                    MemInstType {
+                        have_d12: opcode_rx.is_some(),
+                        have_d20: opcode_rxy.is_some(),
+                        have_pcrel: opcode_ril.is_some(),
+                        have_unaligned_pcrel: false,
+                        have_index: true,
+                    },
                 );
                 let op = match &mem {
                     &MemArg::BXD12 { .. } => opcode_rx,
@@ -1759,7 +1849,17 @@ impl Inst {
             }
             &Inst::StoreImm8 { imm, ref mem } => {
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, true, true, false, false);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: true,
+                        have_d20: true,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: false,
+                    },
+                );
                 let op = match &mem {
                     &MemArg::BXD12 { .. } => "mvi",
                     &MemArg::BXD20 { .. } => "mviy",
@@ -1773,7 +1873,17 @@ impl Inst {
             | &Inst::StoreImm32SExt16 { imm, ref mem }
             | &Inst::StoreImm64SExt16 { imm, ref mem } => {
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, false, true, false, false);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: false,
+                        have_d20: true,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: false,
+                    },
+                );
                 let op = match self {
                     &Inst::StoreImm16 { .. } => "mvhhi",
                     &Inst::StoreImm32SExt16 { .. } => "mvhi",
@@ -1802,7 +1912,17 @@ impl Inst {
             }
             &Inst::LoadMultiple64 { rt, rt2, ref mem } => {
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, false, true, false, false);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: false,
+                        have_d20: true,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: false,
+                    },
+                );
                 let rt = pretty_print_reg(rt.to_reg(), &mut empty_allocs);
                 let rt2 = pretty_print_reg(rt2.to_reg(), &mut empty_allocs);
                 let mem = mem.pretty_print_default();
@@ -1810,7 +1930,17 @@ impl Inst {
             }
             &Inst::StoreMultiple64 { rt, rt2, ref mem } => {
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, false, true, false, false);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: false,
+                        have_d20: true,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: false,
+                    },
+                );
                 let rt = pretty_print_reg(rt, &mut empty_allocs);
                 let rt2 = pretty_print_reg(rt2, &mut empty_allocs);
                 let mem = mem.pretty_print_default();
@@ -1886,6 +2016,10 @@ impl Inst {
                     _ => unreachable!(),
                 };
                 format!("{} {}, {}", op, rd, imm.bits)
+            }
+            &Inst::LoadAR { rd, ar } | &Inst::InsertAR { rd, ar } => {
+                let rd = pretty_print_reg(rd.to_reg(), allocs);
+                format!("ear {}, %a{}", rd, ar)
             }
             &Inst::CMov32 { rd, cond, rm } => {
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
@@ -2463,29 +2597,75 @@ impl Inst {
                     op, rm, rn, tmp, rn, rm
                 )
             }
-            &Inst::VecLoad { rd, ref mem } | &Inst::VecLoadRev { rd, ref mem } => {
+            &Inst::VecLoad { rd, ref mem }
+            | &Inst::VecLoadRev { rd, ref mem }
+            | &Inst::VecLoadByte16Rev { rd, ref mem }
+            | &Inst::VecLoadByte32Rev { rd, ref mem }
+            | &Inst::VecLoadByte64Rev { rd, ref mem }
+            | &Inst::VecLoadElt16Rev { rd, ref mem }
+            | &Inst::VecLoadElt32Rev { rd, ref mem }
+            | &Inst::VecLoadElt64Rev { rd, ref mem } => {
                 let opcode = match self {
                     &Inst::VecLoad { .. } => "vl",
                     &Inst::VecLoadRev { .. } => "vlbrq",
+                    &Inst::VecLoadByte16Rev { .. } => "vlbrh",
+                    &Inst::VecLoadByte32Rev { .. } => "vlbrf",
+                    &Inst::VecLoadByte64Rev { .. } => "vlbrg",
+                    &Inst::VecLoadElt16Rev { .. } => "vlerh",
+                    &Inst::VecLoadElt32Rev { .. } => "vlerf",
+                    &Inst::VecLoadElt64Rev { .. } => "vlerg",
                     _ => unreachable!(),
                 };
 
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, true, false, false, true);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: true,
+                        have_d20: false,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: true,
+                    },
+                );
                 let mem = mem.pretty_print_default();
                 format!("{}{} {}, {}", mem_str, opcode, rd, mem)
             }
-            &Inst::VecStore { rd, ref mem } | &Inst::VecStoreRev { rd, ref mem } => {
+            &Inst::VecStore { rd, ref mem }
+            | &Inst::VecStoreRev { rd, ref mem }
+            | &Inst::VecStoreByte16Rev { rd, ref mem }
+            | &Inst::VecStoreByte32Rev { rd, ref mem }
+            | &Inst::VecStoreByte64Rev { rd, ref mem }
+            | &Inst::VecStoreElt16Rev { rd, ref mem }
+            | &Inst::VecStoreElt32Rev { rd, ref mem }
+            | &Inst::VecStoreElt64Rev { rd, ref mem } => {
                 let opcode = match self {
                     &Inst::VecStore { .. } => "vst",
                     &Inst::VecStoreRev { .. } => "vstbrq",
+                    &Inst::VecStoreByte16Rev { .. } => "vstbrh",
+                    &Inst::VecStoreByte32Rev { .. } => "vstbrf",
+                    &Inst::VecStoreByte64Rev { .. } => "vstbrg",
+                    &Inst::VecStoreElt16Rev { .. } => "vsterh",
+                    &Inst::VecStoreElt32Rev { .. } => "vsterf",
+                    &Inst::VecStoreElt64Rev { .. } => "vsterg",
                     _ => unreachable!(),
                 };
 
                 let rd = pretty_print_reg(rd, allocs);
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, true, false, false, true);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: true,
+                        have_d20: false,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: true,
+                    },
+                );
                 let mem = mem.pretty_print_default();
                 format!("{}{} {}, {}", mem_str, opcode, rd, mem)
             }
@@ -2504,7 +2684,17 @@ impl Inst {
 
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, true, false, false, true);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: true,
+                        have_d20: false,
+                        have_pcrel: false,
+                        have_unaligned_pcrel: false,
+                        have_index: true,
+                    },
+                );
                 let mem = mem.pretty_print_default();
                 format!("{}{} {}, {}", mem_str, opcode, rd, mem)
             }
@@ -2632,8 +2822,17 @@ impl Inst {
                 let (rd, rd_fpr) = pretty_print_fpr(rd.to_reg(), allocs);
                 let mem = mem.with_allocs(allocs);
                 if lane_imm == 0 && rd_fpr.is_some() && opcode_rx.is_some() {
-                    let (mem_str, mem) =
-                        mem_finalize_for_show(&mem, state, true, true, false, true);
+                    let (mem_str, mem) = mem_finalize_for_show(
+                        &mem,
+                        state,
+                        MemInstType {
+                            have_d12: true,
+                            have_d20: true,
+                            have_pcrel: false,
+                            have_unaligned_pcrel: false,
+                            have_index: true,
+                        },
+                    );
                     let op = match &mem {
                         &MemArg::BXD12 { .. } => opcode_rx,
                         &MemArg::BXD20 { .. } => opcode_rxy,
@@ -2642,8 +2841,17 @@ impl Inst {
                     let mem = mem.pretty_print_default();
                     format!("{}{} {}, {}", mem_str, op.unwrap(), rd_fpr.unwrap(), mem)
                 } else {
-                    let (mem_str, mem) =
-                        mem_finalize_for_show(&mem, state, true, false, false, true);
+                    let (mem_str, mem) = mem_finalize_for_show(
+                        &mem,
+                        state,
+                        MemInstType {
+                            have_d12: true,
+                            have_d20: false,
+                            have_pcrel: false,
+                            have_unaligned_pcrel: false,
+                            have_index: true,
+                        },
+                    );
                     let mem = mem.pretty_print_default();
                     format!("{}{} {}, {}, {}", mem_str, opcode_vrx, rd, mem, lane_imm)
                 }
@@ -2674,8 +2882,17 @@ impl Inst {
                 let (rd, rd_fpr) = pretty_print_fpr(rd, allocs);
                 let mem = mem.with_allocs(allocs);
                 if lane_imm == 0 && rd_fpr.is_some() && opcode_rx.is_some() {
-                    let (mem_str, mem) =
-                        mem_finalize_for_show(&mem, state, true, true, false, true);
+                    let (mem_str, mem) = mem_finalize_for_show(
+                        &mem,
+                        state,
+                        MemInstType {
+                            have_d12: true,
+                            have_d20: true,
+                            have_pcrel: false,
+                            have_unaligned_pcrel: false,
+                            have_index: true,
+                        },
+                    );
                     let op = match &mem {
                         &MemArg::BXD12 { .. } => opcode_rx,
                         &MemArg::BXD20 { .. } => opcode_rxy,
@@ -2684,8 +2901,17 @@ impl Inst {
                     let mem = mem.pretty_print_default();
                     format!("{}{} {}, {}", mem_str, op.unwrap(), rd_fpr.unwrap(), mem)
                 } else {
-                    let (mem_str, mem) =
-                        mem_finalize_for_show(&mem, state, true, false, false, true);
+                    let (mem_str, mem) = mem_finalize_for_show(
+                        &mem,
+                        state,
+                        MemInstType {
+                            have_d12: true,
+                            have_d20: false,
+                            have_pcrel: false,
+                            have_unaligned_pcrel: false,
+                            have_index: true,
+                        },
+                    );
                     let mem = mem.pretty_print_default();
                     format!("{}{} {}, {}, {}", mem_str, opcode_vrx, rd, mem, lane_imm,)
                 }
@@ -2830,7 +3056,14 @@ impl Inst {
             }
             &Inst::Call { link, ref info, .. } => {
                 let link = pretty_print_reg(link.to_reg(), allocs);
-                format!("brasl {}, {}", link, info.dest)
+                let tls_symbol = match &info.tls_symbol {
+                    None => "".to_string(),
+                    Some(SymbolReloc::TlsGd { name }) => {
+                        format!(":tls_gdcall:{}", name.display(None))
+                    }
+                    _ => unreachable!(),
+                };
+                format!("brasl {}, {}{}", link, info.dest.display(None), tls_symbol)
             }
             &Inst::CallInd { link, ref info, .. } => {
                 let link = pretty_print_reg(link.to_reg(), allocs);
@@ -2891,22 +3124,34 @@ impl Inst {
                     rtmp, rtmp, rtmp, ridx, rtmp, jt_entries,
                 )
             }
-            &Inst::LoadExtNameFar {
+            &Inst::LoadSymbolReloc {
                 rd,
-                ref name,
-                offset,
+                ref symbol_reloc,
             } => {
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
                 let tmp = pretty_print_reg(writable_spilltmp_reg().to_reg(), &mut empty_allocs);
-                format!(
-                    "bras {}, 12 ; data {} + {} ; lg {}, 0({})",
-                    tmp, name, offset, rd, tmp
-                )
+                let symbol = match &**symbol_reloc {
+                    SymbolReloc::Absolute { name, offset } => {
+                        format!("{} + {}", name.display(None), offset)
+                    }
+                    SymbolReloc::TlsGd { name } => format!("{}@tlsgd", name.display(None)),
+                };
+                format!("bras {}, 12 ; data {} ; lg {}, 0({})", tmp, symbol, rd, tmp)
             }
             &Inst::LoadAddr { rd, ref mem } => {
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
                 let mem = mem.with_allocs(allocs);
-                let (mem_str, mem) = mem_finalize_for_show(&mem, state, true, true, true, true);
+                let (mem_str, mem) = mem_finalize_for_show(
+                    &mem,
+                    state,
+                    MemInstType {
+                        have_d12: true,
+                        have_d20: true,
+                        have_pcrel: true,
+                        have_unaligned_pcrel: true,
+                        have_index: true,
+                    },
+                );
                 let op = match &mem {
                     &MemArg::BXD12 { .. } => "la",
                     &MemArg::BXD20 { .. } => "lay",
@@ -3059,6 +3304,7 @@ impl MachInstLabelUse for LabelUse {
     fn from_reloc(reloc: Reloc, addend: Addend) -> Option<Self> {
         match (reloc, addend) {
             (Reloc::S390xPCRel32Dbl, 2) => Some(LabelUse::PCRel32Dbl),
+            (Reloc::S390xPLTRel32Dbl, 2) => Some(LabelUse::PCRel32Dbl),
             _ => None,
         }
     }

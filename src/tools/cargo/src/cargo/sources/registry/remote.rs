@@ -15,7 +15,7 @@ use std::fs::File;
 use std::mem;
 use std::path::Path;
 use std::str;
-use std::task::Poll;
+use std::task::{ready, Poll};
 
 /// A remote registry is a registry that lives at a remote URL (such as
 /// crates.io). The git index is cloned locally, and `.crate` files are
@@ -32,7 +32,6 @@ pub struct RemoteRegistry<'cfg> {
     head: Cell<Option<git2::Oid>>,
     current_sha: Cell<Option<InternedString>>,
     needs_update: bool, // Does this registry need to be updated?
-    updated: bool,      // Has this registry been updated this session?
 }
 
 impl<'cfg> RemoteRegistry<'cfg> {
@@ -49,7 +48,6 @@ impl<'cfg> RemoteRegistry<'cfg> {
             head: Cell::new(None),
             current_sha: Cell::new(None),
             needs_update: false,
-            updated: false,
         }
     }
 
@@ -141,6 +139,14 @@ impl<'cfg> RemoteRegistry<'cfg> {
         self.current_sha.set(Some(sha));
         Some(sha)
     }
+
+    fn is_updated(&self) -> bool {
+        self.config.updated_sources().contains(&self.source_id)
+    }
+
+    fn mark_updated(&self) {
+        self.config.updated_sources().insert(self.source_id);
+    }
 }
 
 const LAST_UPDATED_FILE: &str = ".last-updated";
@@ -214,7 +220,7 @@ impl<'cfg> RegistryData for RemoteRegistry<'cfg> {
 
         match load_helper(&self, path, index_version) {
             Ok(result) => Poll::Ready(Ok(result)),
-            Err(_) if !self.updated => {
+            Err(_) if !self.is_updated() => {
                 // If git returns an error and we haven't updated the repo, return
                 // pending to allow an update to try again.
                 self.needs_update = true;
@@ -236,13 +242,12 @@ impl<'cfg> RegistryData for RemoteRegistry<'cfg> {
         debug!("loading config");
         self.prepare()?;
         self.config.assert_package_cache_locked(&self.index_path);
-        match self.load(Path::new(""), Path::new("config.json"), None)? {
-            Poll::Ready(LoadResponse::Data { raw_data, .. }) => {
+        match ready!(self.load(Path::new(""), Path::new("config.json"), None)?) {
+            LoadResponse::Data { raw_data, .. } => {
                 trace!("config loaded");
                 Poll::Ready(Ok(Some(serde_json::from_slice(&raw_data)?)))
             }
-            Poll::Ready(_) => Poll::Ready(Ok(None)),
-            Poll::Pending => Poll::Pending,
+            _ => Poll::Ready(Ok(None)),
         }
     }
 
@@ -251,19 +256,20 @@ impl<'cfg> RegistryData for RemoteRegistry<'cfg> {
             return Ok(());
         }
 
-        self.updated = true;
         self.needs_update = false;
+
+        // Make sure the index is only updated once per session since it is an
+        // expensive operation. This generally only happens when the resolver
+        // is run multiple times, such as during `cargo publish`.
+        if self.is_updated() {
+            return Ok(());
+        }
+        self.mark_updated();
 
         if self.config.offline() {
             return Ok(());
         }
         if self.config.cli_unstable().no_index_update {
-            return Ok(());
-        }
-        // Make sure the index is only updated once per session since it is an
-        // expensive operation. This generally only happens when the resolver
-        // is run multiple times, such as during `cargo publish`.
-        if self.config.updated_sources().contains(&self.source_id) {
             return Ok(());
         }
 
@@ -292,7 +298,6 @@ impl<'cfg> RegistryData for RemoteRegistry<'cfg> {
         let repo = self.repo.borrow_mut().unwrap();
         git::fetch(repo, url.as_str(), &self.index_git_ref, self.config)
             .with_context(|| format!("failed to fetch `{}`", url))?;
-        self.config.updated_sources().insert(self.source_id);
 
         // Create a dummy file to record the mtime for when we updated the
         // index.
@@ -302,13 +307,12 @@ impl<'cfg> RegistryData for RemoteRegistry<'cfg> {
     }
 
     fn invalidate_cache(&mut self) {
-        if !self.updated {
-            self.needs_update = true;
-        }
+        // To fully invalidate, undo `mark_updated`s work
+        self.needs_update = true;
     }
 
     fn is_updated(&self) -> bool {
-        self.updated
+        self.is_updated()
     }
 
     fn download(&mut self, pkg: PackageId, checksum: &str) -> CargoResult<MaybeLock> {

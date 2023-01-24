@@ -37,7 +37,7 @@ A version of this library running on the JVM is provided by [directories-jvm](ht
 Add the library as a dependency to your project by inserting
 
 ```toml
-directories = "3.0"
+directories = "4.0"
 ```
 
 into the `[dependencies]` section of your Cargo.toml file.
@@ -106,16 +106,17 @@ that have been defined according to the conventions of the operating system the 
 
 If you want to compute the location of cache, config or data directories for your own application or project, use `ProjectDirs` instead.
 
-| Function name    | Value on Linux                                                                                  | Value on Windows            | Value on macOS                      |
-| ---------------- | ----------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------- |
-| `home_dir`       | `$HOME`                                                                                         | `{FOLDERID_Profile}`        | `$HOME`                             |
-| `cache_dir`      | `$XDG_CACHE_HOME`              or `$HOME`/.cache                                                | `{FOLDERID_LocalAppData}`   | `$HOME`/Library/Caches              |
-| `config_dir`     | `$XDG_CONFIG_HOME`             or `$HOME`/.config                                               | `{FOLDERID_RoamingAppData}` | `$HOME`/Library/Application Support |
-| `data_dir`       | `$XDG_DATA_HOME`               or `$HOME`/.local/share                                          | `{FOLDERID_RoamingAppData}` | `$HOME`/Library/Application Support |
-| `data_local_dir` | `$XDG_DATA_HOME`               or `$HOME`/.local/share                                          | `{FOLDERID_LocalAppData}`   | `$HOME`/Library/Application Support |
-| `executable_dir` | `Some($XDG_BIN_HOME`/../bin`)` or `Some($XDG_DATA_HOME`/../bin`)` or `Some($HOME`/.local/bin`)` | `None`                      | `None`                              |
-| `preference_dir` | `$XDG_CONFIG_HOME`             or `$HOME`/.config                                               | `{FOLDERID_RoamingAppData}` | `$HOME`/Library/Preferences         |
-| `runtime_dir`    | `Some($XDG_RUNTIME_DIR)`       or `None`                                                        | `None`                      | `None`                              |
+| Function name    | Value on Linux                                           | Value on Windows            | Value on macOS                      |
+| ---------------- | -------------------------------------------------------- | --------------------------- | ----------------------------------- |
+| `home_dir`       | `$HOME`                                                  | `{FOLDERID_Profile}`        | `$HOME`                             |
+| `cache_dir`      | `$XDG_CACHE_HOME`        or `$HOME`/.cache               | `{FOLDERID_LocalAppData}`   | `$HOME`/Library/Caches              |
+| `config_dir`     | `$XDG_CONFIG_HOME`       or `$HOME`/.config              | `{FOLDERID_RoamingAppData}` | `$HOME`/Library/Application Support |
+| `data_dir`       | `$XDG_DATA_HOME`         or `$HOME`/.local/share         | `{FOLDERID_RoamingAppData}` | `$HOME`/Library/Application Support |
+| `data_local_dir` | `$XDG_DATA_HOME`         or `$HOME`/.local/share         | `{FOLDERID_LocalAppData}`   | `$HOME`/Library/Application Support |
+| `executable_dir` | `Some($XDG_BIN_HOME)`    or `Some($HOME`/.local/bin`)`   | `None`                      | `None`                              |
+| `preference_dir` | `$XDG_CONFIG_HOME`       or `$HOME`/.config              | `{FOLDERID_RoamingAppData}` | `$HOME`/Library/Preferences         |
+| `runtime_dir`    | `Some($XDG_RUNTIME_DIR)` or `None`                       | `None`                      | `None`                              |
+| `state_dir`      | `Some($XDG_STATE_HOME)`  or `Some($HOME`/.local/state`)` | `None`                      | `None`                              |
 
 ### `UserDirs`
 
@@ -147,7 +148,8 @@ which are derived from the standard directories.
 | `data_dir`       | `$XDG_DATA_HOME`/`<project_path>`         or `$HOME`/.local/share/`<project_path>` | `{FOLDERID_RoamingAppData}`/`<project_path>`/data   | `$HOME`/Library/Application Support/`<project_path>` |
 | `data_local_dir` | `$XDG_DATA_HOME`/`<project_path>`         or `$HOME`/.local/share/`<project_path>` | `{FOLDERID_LocalAppData}`/`<project_path>`/data     | `$HOME`/Library/Application Support/`<project_path>` |
 | `preference_dir` | `$XDG_CONFIG_HOME`/`<project_path>`       or `$HOME`/.config/`<project_path>`      | `{FOLDERID_RoamingAppData}`/`<project_path>`/config | `$HOME`/Library/Preferences/`<project_path>`         |
-| `runtime_dir`    | `Some($XDG_RUNTIME_DIR`/`_project_path_)`                                          | `None`                                              | `None`                                               |
+| `runtime_dir`    | `Some($XDG_RUNTIME_DIR`/`<project_path>)`                                          | `None`                                              | `None`                                               |
+| `state_dir`      | `Some($XDG_STATE_HOME`/`<project_path>)`  or `$HOME`/.local/state/`<project_path>` | `None`                                              | `None`                                               |
 
 The specific value of `<project_path>` is computed by the
 
@@ -216,6 +218,13 @@ cargo build --target=x86_64-unknown-redox
 
 ## Changelog
 
+### 4
+
+- **BREAKING CHANGE** The behavior of `executable_dir` has been adjusted to not depend on `$XDG_DATA_HOME`.
+  Code, which assumed that setting the `$XDG_DATA_HOME` environment variable also impacted `executable_dir` if
+  the `$XDG_BIN_HOME` environment variable was not set, requires adjustment.
+- Add support for `XDG_STATE_HOME`.
+
 ### 3
 
 - **BREAKING CHANGE** The behavior of the `BaseDirs::config_dir` and `ProjectDirs::config_dir`
@@ -234,7 +243,7 @@ cargo build --target=x86_64-unknown-redox
 
 ### 2
 
-The behavior of deactivated, missing or invalid [_XDG User Dirs_](https://www.freedesktop.org/wiki/Software/xdg-user-dirs/)
+**BREAKING CHANGE** The behavior of deactivated, missing or invalid [_XDG User Dirs_](https://www.freedesktop.org/wiki/Software/xdg-user-dirs/)
 entries on Linux has been improved (contributed by @tmiasko, thank you!):
 
 - Version 1 returned the user's home directory (`Some($HOME)`) for such faulty entries, except for a faulty `XDG_DESKTOP_DIR` entry which returned (`Some($HOME/Desktop)`).

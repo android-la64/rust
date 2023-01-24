@@ -14,7 +14,10 @@ pub struct RustAnalyzer {
 }
 
 impl RustAnalyzer {
-    pub const HELP: &'static str = Self::HELP_;
+    #[allow(dead_code)]
+    pub fn from_env_or_exit() -> Self {
+        Self::from_env_or_exit_()
+    }
 
     #[allow(dead_code)]
     pub fn from_env() -> xflags::Result<Self> {
@@ -28,6 +31,9 @@ impl RustAnalyzer {
 }
 
 impl RustAnalyzer {
+    fn from_env_or_exit_() -> Self {
+        Self::from_env_().unwrap_or_else(|err| err.exit())
+    }
     fn from_env_() -> xflags::Result<Self> {
         let mut p = xflags::rt::Parser::new_from_env();
         Self::parse_(&mut p)
@@ -40,49 +46,53 @@ impl RustAnalyzer {
 
 impl RustAnalyzer {
     fn parse_(p_: &mut xflags::rt::Parser) -> xflags::Result<Self> {
+        #![allow(non_snake_case)]
         let mut log_file = Vec::new();
         let mut verbose = Vec::new();
         let mut number = Vec::new();
         let mut data = Vec::new();
         let mut emoji = Vec::new();
-
         let mut workspace = (false, Vec::new());
         let mut jobs = (false, Vec::new());
 
+        let mut state_ = 0u8;
         while let Some(arg_) = p_.pop_flag() {
             match arg_ {
-                Ok(flag_) => match flag_.as_str() {
-                    "--log-file" => log_file.push(p_.next_value(&flag_)?.into()),
-                    "--verbose" | "-v" => verbose.push(()),
-                    "--number" | "-n" => number.push(p_.next_value_from_str::<u32>(&flag_)?),
-                    "--data" => data.push(p_.next_value(&flag_)?.into()),
-                    "--emoji" => emoji.push(()),
+                Ok(flag_) => match (state_, flag_.as_str()) {
+                    (0, "--log-file") => log_file.push(p_.next_value(&flag_)?.into()),
+                    (0, "--verbose" | "-v") => verbose.push(()),
+                    (0, "--number" | "-n") => number.push(p_.next_value_from_str::<u32>(&flag_)?),
+                    (0, "--data") => data.push(p_.next_value(&flag_)?.into()),
+                    (0, "--emoji") => emoji.push(()),
+                    (0, "--help" | "-h") => return Err(p_.help(Self::HELP_)),
                     _ => return Err(p_.unexpected_flag(&flag_)),
                 },
-                Err(arg_) => {
-                    if let (done_ @ false, buf_) = &mut workspace {
-                        buf_.push(arg_.into());
-                        *done_ = true;
-                        continue;
+                Err(arg_) => match (state_, arg_.to_str().unwrap_or("")) {
+                    (0, _) => {
+                        if let (done_ @ false, buf_) = &mut workspace {
+                            buf_.push(arg_.into());
+                            *done_ = true;
+                            continue;
+                        }
+                        if let (done_ @ false, buf_) = &mut jobs {
+                            buf_.push(p_.value_from_str::<u32>("jobs", arg_)?);
+                            *done_ = true;
+                            continue;
+                        }
+                        return Err(p_.unexpected_arg(arg_));
                     }
-                    if let (done_ @ false, buf_) = &mut jobs {
-                        buf_.push(p_.value_from_str::<u32>("jobs", arg_)?);
-                        *done_ = true;
-                        continue;
-                    }
-                    return Err(p_.unexpected_arg(arg_));
-                }
+                    _ => return Err(p_.unexpected_arg(arg_)),
+                },
             }
         }
-        Ok(Self {
-            workspace: p_.required("workspace", workspace.1)?,
-            jobs: p_.optional("jobs", jobs.1)?,
-
+        Ok(RustAnalyzer {
             log_file: p_.optional("--log-file", log_file)?,
             verbose: verbose.len() as u32,
             number: p_.required("--number", number)?,
             data: data,
             emoji: p_.optional("--emoji", emoji)?.is_some(),
+            workspace: p_.required("workspace", workspace.1)?,
+            jobs: p_.optional("jobs", jobs.1)?,
         })
     }
 }
@@ -108,5 +118,8 @@ OPTIONS:
     --data <value>
 
     --emoji
+
+    -h, --help
+      Prints help information.
 ";
 }

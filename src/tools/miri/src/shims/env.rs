@@ -36,25 +36,29 @@ pub struct EnvVars<'tcx> {
     pub(crate) environ: Option<MPlaceTy<'tcx, Provenance>>,
 }
 
+impl VisitTags for EnvVars<'_> {
+    fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
+        let EnvVars { map, environ } = self;
+
+        environ.visit_tags(visit);
+        for ptr in map.values() {
+            ptr.visit_tags(visit);
+        }
+    }
+}
+
 impl<'tcx> EnvVars<'tcx> {
     pub(crate) fn init<'mir>(
-        ecx: &mut InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
+        ecx: &mut InterpCx<'mir, 'tcx, MiriMachine<'mir, 'tcx>>,
         config: &MiriConfig,
     ) -> InterpResult<'tcx> {
         let target_os = ecx.tcx.sess.target.os.as_ref();
-        let mut excluded_env_vars = config.excluded_env_vars.clone();
-        if target_os == "windows" {
-            // HACK: Exclude `TERM` var to avoid terminfo trying to open the termcap file.
-            excluded_env_vars.push("TERM".to_owned());
-        }
 
         // Skip the loop entirely if we don't want to forward anything.
         if ecx.machine.communicate() || !config.forwarded_env_vars.is_empty() {
             for (name, value) in &config.env {
-                // Always forward what is in `forwarded_env_vars`; that list can take precedence over excluded_env_vars.
-                let forward = config.forwarded_env_vars.iter().any(|v| **v == *name)
-                    || (ecx.machine.communicate()
-                        && !excluded_env_vars.iter().any(|v| **v == *name));
+                let forward = ecx.machine.communicate()
+                    || config.forwarded_env_vars.iter().any(|v| **v == *name);
                 if forward {
                     let var_ptr = match target_os {
                         target if target_os_is_unix(target) =>
@@ -74,7 +78,7 @@ impl<'tcx> EnvVars<'tcx> {
     }
 
     pub(crate) fn cleanup<'mir>(
-        ecx: &mut InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
+        ecx: &mut InterpCx<'mir, 'tcx, MiriMachine<'mir, 'tcx>>,
     ) -> InterpResult<'tcx> {
         // Deallocate individual env vars.
         let env_vars = mem::take(&mut ecx.machine.env_vars.map);
@@ -92,7 +96,7 @@ impl<'tcx> EnvVars<'tcx> {
 fn alloc_env_var_as_c_str<'mir, 'tcx>(
     name: &OsStr,
     value: &OsStr,
-    ecx: &mut InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
+    ecx: &mut InterpCx<'mir, 'tcx, MiriMachine<'mir, 'tcx>>,
 ) -> InterpResult<'tcx, Pointer<Option<Provenance>>> {
     let mut name_osstring = name.to_os_string();
     name_osstring.push("=");
@@ -103,7 +107,7 @@ fn alloc_env_var_as_c_str<'mir, 'tcx>(
 fn alloc_env_var_as_wide_str<'mir, 'tcx>(
     name: &OsStr,
     value: &OsStr,
-    ecx: &mut InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>,
+    ecx: &mut InterpCx<'mir, 'tcx, MiriMachine<'mir, 'tcx>>,
 ) -> InterpResult<'tcx, Pointer<Option<Provenance>>> {
     let mut name_osstring = name.to_os_string();
     name_osstring.push("=");
@@ -111,8 +115,8 @@ fn alloc_env_var_as_wide_str<'mir, 'tcx>(
     ecx.alloc_os_str_as_wide_str(name_osstring.as_os_str(), MiriMemoryKind::Runtime.into())
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     fn getenv(
         &mut self,
         name_op: &OpTy<'tcx, Provenance>,
@@ -140,7 +144,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         name_op: &OpTy<'tcx, Provenance>, // LPCWSTR
         buf_op: &OpTy<'tcx, Provenance>,  // LPWSTR
         size_op: &OpTy<'tcx, Provenance>, // DWORD
-    ) -> InterpResult<'tcx, u32> {
+    ) -> InterpResult<'tcx, Scalar<Provenance>> {
         // ^ Returns DWORD (u32 on Windows)
 
         let this = self.eval_context_mut();
@@ -161,12 +165,14 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 let buf_ptr = this.read_pointer(buf_op)?;
                 // `buf_size` represents the size in characters.
                 let buf_size = u64::from(this.read_scalar(size_op)?.to_u32()?);
-                windows_check_buffer_size(this.write_os_str_to_wide_str(&var, buf_ptr, buf_size)?)
+                Scalar::from_u32(windows_check_buffer_size(
+                    this.write_os_str_to_wide_str(&var, buf_ptr, buf_size)?,
+                ))
             }
             None => {
                 let envvar_not_found = this.eval_windows("c", "ERROR_ENVVAR_NOT_FOUND")?;
                 this.set_last_error(envvar_not_found)?;
-                0 // return zero upon failure
+                Scalar::from_u32(0) // return zero upon failure
             }
         })
     }
@@ -196,14 +202,14 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     fn FreeEnvironmentStringsW(
         &mut self,
         env_block_op: &OpTy<'tcx, Provenance>,
-    ) -> InterpResult<'tcx, i32> {
+    ) -> InterpResult<'tcx, Scalar<Provenance>> {
         let this = self.eval_context_mut();
         this.assert_target_os("windows", "FreeEnvironmentStringsW");
 
         let env_block_ptr = this.read_pointer(env_block_op)?;
         let result = this.deallocate_ptr(env_block_ptr, None, MiriMemoryKind::Runtime.into());
         // If the function succeeds, the return value is nonzero.
-        Ok(i32::from(result.is_ok()))
+        Ok(Scalar::from_i32(i32::from(result.is_ok())))
     }
 
     fn setenv(
@@ -245,7 +251,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         name_op: &OpTy<'tcx, Provenance>,  // LPCWSTR
         value_op: &OpTy<'tcx, Provenance>, // LPCWSTR
-    ) -> InterpResult<'tcx, i32> {
+    ) -> InterpResult<'tcx, Scalar<Provenance>> {
         let this = self.eval_context_mut();
         this.assert_target_os("windows", "SetEnvironmentVariableW");
 
@@ -268,7 +274,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 this.deallocate_ptr(var, None, MiriMemoryKind::Runtime.into())?;
                 this.update_environ()?;
             }
-            Ok(1) // return non-zero on success
+            Ok(this.eval_windows("c", "TRUE")?)
         } else {
             let value = this.read_os_str_from_wide_str(value_ptr)?;
             let var_ptr = alloc_env_var_as_wide_str(&name, &value, this)?;
@@ -276,7 +282,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 this.deallocate_ptr(var, None, MiriMemoryKind::Runtime.into())?;
             }
             this.update_environ()?;
-            Ok(1) // return non-zero on success
+            Ok(this.eval_windows("c", "TRUE")?)
         }
     }
 
@@ -343,7 +349,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         &mut self,
         size_op: &OpTy<'tcx, Provenance>, // DWORD
         buf_op: &OpTy<'tcx, Provenance>,  // LPTSTR
-    ) -> InterpResult<'tcx, u32> {
+    ) -> InterpResult<'tcx, Scalar<Provenance>> {
         let this = self.eval_context_mut();
         this.assert_target_os("windows", "GetCurrentDirectoryW");
 
@@ -353,16 +359,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         if let IsolatedOp::Reject(reject_with) = this.machine.isolated_op {
             this.reject_in_isolation("`GetCurrentDirectoryW`", reject_with)?;
             this.set_last_error_from_io_error(ErrorKind::PermissionDenied)?;
-            return Ok(0);
+            return Ok(Scalar::from_u32(0));
         }
 
         // If we cannot get the current directory, we return 0
         match env::current_dir() {
             Ok(cwd) =>
-                return Ok(windows_check_buffer_size(this.write_path_to_wide_str(&cwd, buf, size)?)),
+                return Ok(Scalar::from_u32(windows_check_buffer_size(
+                    this.write_path_to_wide_str(&cwd, buf, size)?,
+                ))),
             Err(e) => this.set_last_error_from_io_error(e.kind())?,
         }
-        Ok(0)
+        Ok(Scalar::from_u32(0))
     }
 
     fn chdir(&mut self, path_op: &OpTy<'tcx, Provenance>) -> InterpResult<'tcx, i32> {
@@ -391,7 +399,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     fn SetCurrentDirectoryW(
         &mut self,
         path_op: &OpTy<'tcx, Provenance>, // LPCTSTR
-    ) -> InterpResult<'tcx, i32> {
+    ) -> InterpResult<'tcx, Scalar<Provenance>> {
         // ^ Returns BOOL (i32 on Windows)
 
         let this = self.eval_context_mut();
@@ -403,14 +411,14 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             this.reject_in_isolation("`SetCurrentDirectoryW`", reject_with)?;
             this.set_last_error_from_io_error(ErrorKind::PermissionDenied)?;
 
-            return Ok(0);
+            return this.eval_windows("c", "FALSE");
         }
 
         match env::set_current_dir(path) {
-            Ok(()) => Ok(1),
+            Ok(()) => this.eval_windows("c", "TRUE"),
             Err(e) => {
                 this.set_last_error_from_io_error(e.kind())?;
-                Ok(0)
+                this.eval_windows("c", "FALSE")
             }
         }
     }

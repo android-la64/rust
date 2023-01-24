@@ -58,8 +58,7 @@ fn vendor_sample_config() {
 
     p.cargo("vendor --respect-source-config")
         .with_stdout(
-            r#"
-[source.crates-io]
+            r#"[source.crates-io]
 replace-with = "vendored-sources"
 
 [source.vendored-sources]
@@ -103,8 +102,7 @@ fn vendor_path_specified() {
     // path is normalized by `ops::vendor` on Windows.
     assert_eq!(
         &String::from_utf8(output.stdout).unwrap(),
-        r#"
-[source.crates-io]
+        r#"[source.crates-io]
 replace-with = "vendored-sources"
 
 [source.vendored-sources]
@@ -405,10 +403,9 @@ fn test_sync_argument() {
         .with_stderr("\
 error: Found argument 'test_vendor' which wasn't expected, or isn't valid in this context
 
-USAGE:
-    cargo[EXE] vendor [OPTIONS] [path]
+Usage: cargo[EXE] vendor [OPTIONS] [path]
 
-For more information try --help",
+For more information try '--help'",
         )
         .with_status(1)
         .run();

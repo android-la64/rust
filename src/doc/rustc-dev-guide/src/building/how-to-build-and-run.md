@@ -150,8 +150,9 @@ This final product (stage1 compiler + libs built using that compiler)
 is what you need to build other Rust programs (unless you use `#![no_std]` or
 `#![no_core]`).
 
-You will probably find that building the stage1 `std` is a bottleneck for you** -- but fear not,
-there is a (hacky) workaround. See [the section on "recommended workflows"](./suggested.md) below.
+You will probably find that building the stage1 `std` is a bottleneck for you,
+but fear not, there is a (hacky) workaround...
+see [the section on "recommended workflows"](./suggested.md) below.
 
 Note that this whole command just gives you a subset of the full `rustc`
 build. The **full** `rustc` build (what you get with `./x.py build
@@ -219,6 +220,15 @@ fall back to using `cargo` from the installed `nightly`, `beta`, or `stable` too
 (in that order).  If you need to use unstable `cargo` flags, be sure to run
 `rustup install nightly` if you haven't already.  See the
 [rustup documentation on custom toolchains](https://rust-lang.github.io/rustup/concepts/toolchains.html#custom-toolchains).
+
+**Note:** rust-analyzer and IntelliJ Rust plugin use a component called
+`rust-analyzer-proc-macro-srv` to work with proc macros. If you intend to use a
+custom toolchain for a project (e.g. via `rustup override set stage1`) you may
+want to build this component:
+
+```bash
+./x.py build proc-macro-srv-cli
+```
 
 ## Building targets for cross-compilation
 

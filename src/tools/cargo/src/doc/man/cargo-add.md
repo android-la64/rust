@@ -91,6 +91,10 @@ Add as a dependency to the [given target platform](../reference/specifying-depen
 
 {{#options}}
 
+{{#option "`--dry-run`" }}
+Don't actually write the manifest
+{{/option}}
+
 {{#option "`--rename` _name_" }}
 [Rename](../reference/specifying-dependencies.html#renaming-dependencies-in-cargotoml) the dependency.
 {{/option}}
@@ -132,6 +136,12 @@ which enables all specified features.
 
 {{#options}}
 {{> options-manifest-path }}
+
+{{#option "`-p` _spec_" "`--package` _spec_" }}
+Add dependencies to only the specified package.
+{{/option}}
+
+{{> options-locked }}
 {{/options}}
 
 {{> section-options-common }}
@@ -159,4 +169,4 @@ which enables all specified features.
        cargo add serde serde_json -F serde/derive
 
 ## SEE ALSO
-{{man "cargo" 1}}
+{{man "cargo" 1}}, {{man "cargo-remove" 1}}
