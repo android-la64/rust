@@ -1,5 +1,5 @@
 use crate::{LateContext, LateLintPass, LintContext};
-use rustc_errors::{Applicability, DiagnosticBuilder, MultiSpan};
+use rustc_errors::{Applicability, LintDiagnosticBuilder, MultiSpan};
 use rustc_hir as hir;
 use rustc_middle::ty;
 use rustc_span::Symbol;
@@ -128,41 +128,48 @@ impl<'tcx> LateLintPass<'tcx> for LetUnderscore {
                     init.span,
                     "this binding will immediately drop the value assigned to it".to_string(),
                 );
-                cx.struct_span_lint(
-                    LET_UNDERSCORE_LOCK,
-                    span,
-                    "non-binding let on a synchronization lock",
-                    |lint| build_lint(lint, local, init.span),
-                )
+                cx.struct_span_lint(LET_UNDERSCORE_LOCK, span, |lint| {
+                    build_and_emit_lint(
+                        lint,
+                        local,
+                        init.span,
+                        "non-binding let on a synchronization lock",
+                    )
+                })
             } else {
-                cx.struct_span_lint(
-                    LET_UNDERSCORE_DROP,
-                    local.span,
-                    "non-binding let on a type that implements `Drop`",
-                    |lint| build_lint(lint, local, init.span),
-                )
+                cx.struct_span_lint(LET_UNDERSCORE_DROP, local.span, |lint| {
+                    build_and_emit_lint(
+                        lint,
+                        local,
+                        init.span,
+                        "non-binding let on a type that implements `Drop`",
+                    );
+                })
             }
         }
     }
 }
 
-fn build_lint<'a, 'b>(
-    lint: &'a mut DiagnosticBuilder<'b, ()>,
+fn build_and_emit_lint(
+    lint: LintDiagnosticBuilder<'_, ()>,
     local: &hir::Local<'_>,
     init_span: rustc_span::Span,
-) -> &'a mut DiagnosticBuilder<'b, ()> {
-    lint.span_suggestion_verbose(
-        local.pat.span,
-        "consider binding to an unused variable to avoid immediately dropping the value",
-        "_unused",
-        Applicability::MachineApplicable,
-    )
-    .multipart_suggestion(
-        "consider immediately dropping the value",
-        vec![
-            (local.span.until(init_span), "drop(".to_string()),
-            (init_span.shrink_to_hi(), ")".to_string()),
-        ],
-        Applicability::MachineApplicable,
-    )
+    msg: &str,
+) {
+    lint.build(msg)
+        .span_suggestion_verbose(
+            local.pat.span,
+            "consider binding to an unused variable to avoid immediately dropping the value",
+            "_unused",
+            Applicability::MachineApplicable,
+        )
+        .multipart_suggestion(
+            "consider immediately dropping the value",
+            vec![
+                (local.span.until(init_span), "drop(".to_string()),
+                (init_span.shrink_to_hi(), ")".to_string()),
+            ],
+            Applicability::MachineApplicable,
+        )
+        .emit();
 }

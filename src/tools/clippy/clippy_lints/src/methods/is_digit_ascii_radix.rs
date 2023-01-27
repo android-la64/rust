@@ -37,11 +37,12 @@ pub(super) fn check<'tcx>(
             cx,
             IS_DIGIT_ASCII_RADIX,
             expr.span,
-            &format!("use of `char::is_digit` with literal radix of {num}"),
+            &format!("use of `char::is_digit` with literal radix of {}", num),
             "try",
             format!(
-                "{}.{replacement}()",
-                snippet_with_applicability(cx, self_arg.span, "..", &mut applicability)
+                "{}.{}()",
+                snippet_with_applicability(cx, self_arg.span, "..", &mut applicability),
+                replacement
             ),
             applicability,
         );

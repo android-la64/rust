@@ -1,6 +1,8 @@
 // stderr-per-bitwidth
 // compile-flags: -Zunleash-the-miri-inside-of-you
 
+#![allow(const_err)]
+
 use std::cell::UnsafeCell;
 
 // this test ensures that our mutability story is sound

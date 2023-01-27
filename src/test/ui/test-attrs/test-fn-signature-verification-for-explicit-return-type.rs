@@ -1,5 +1,4 @@
 // run-pass
-// needs-unwind (#73509)
 
 #![feature(test)]
 

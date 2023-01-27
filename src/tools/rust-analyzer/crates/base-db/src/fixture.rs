@@ -196,7 +196,7 @@ impl ChangeFixture {
                 Env::default(),
                 Ok(Vec::new()),
                 false,
-                CrateOrigin::CratesIo { repo: None, name: None },
+                CrateOrigin::CratesIo { repo: None },
             );
         } else {
             for (from, to, prelude) in crate_deps {
@@ -270,7 +270,7 @@ impl ChangeFixture {
                 Env::default(),
                 Ok(proc_macro),
                 true,
-                CrateOrigin::CratesIo { repo: None, name: None },
+                CrateOrigin::CratesIo { repo: None },
             );
 
             for krate in all_crates {
@@ -398,7 +398,7 @@ fn parse_crate(crate_str: String) -> (String, CrateOrigin, Option<String>) {
         let (version, origin) = match b.split_once(':') {
             Some(("CratesIo", data)) => match data.split_once(',') {
                 Some((version, url)) => {
-                    (version, CrateOrigin::CratesIo { repo: Some(url.to_owned()), name: None })
+                    (version, CrateOrigin::CratesIo { repo: Some(url.to_owned()) })
                 }
                 _ => panic!("Bad crates.io parameter: {}", data),
             },
@@ -409,7 +409,7 @@ fn parse_crate(crate_str: String) -> (String, CrateOrigin, Option<String>) {
         let crate_origin = match &*crate_str {
             "std" => CrateOrigin::Lang(LangCrateOrigin::Std),
             "core" => CrateOrigin::Lang(LangCrateOrigin::Core),
-            _ => CrateOrigin::CratesIo { repo: None, name: None },
+            _ => CrateOrigin::CratesIo { repo: None },
         };
         (crate_str, crate_origin, None)
     }

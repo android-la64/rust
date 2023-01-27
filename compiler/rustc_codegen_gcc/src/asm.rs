@@ -12,7 +12,6 @@ use std::borrow::Cow;
 
 use crate::builder::Builder;
 use crate::context::CodegenCx;
-use crate::errors::UnwindingInlineAsm;
 use crate::type_of::LayoutGccExt;
 use crate::callee::get_fn;
 
@@ -110,7 +109,7 @@ impl<'a, 'gcc, 'tcx> AsmBuilderMethods<'tcx> for Builder<'a, 'gcc, 'tcx> {
     fn codegen_inline_asm(&mut self, template: &[InlineAsmTemplatePiece], rust_operands: &[InlineAsmOperandRef<'tcx, Self>], options: InlineAsmOptions, span: &[Span], _instance: Instance<'_>, _dest_catch_funclet: Option<(Self::BasicBlock, Self::BasicBlock, Option<&Self::Funclet>)>) {
         if options.contains(InlineAsmOptions::MAY_UNWIND) {
             self.sess()
-                .create_err(UnwindingInlineAsm { span: span[0] })
+                .struct_span_err(span[0], "GCC backend does not support unwinding from inline asm")
                 .emit();
             return;
         }
@@ -498,7 +497,7 @@ impl<'a, 'gcc, 'tcx> AsmBuilderMethods<'tcx> for Builder<'a, 'gcc, 'tcx> {
         if options.contains(InlineAsmOptions::NORETURN) {
             let builtin_unreachable = self.context.get_builtin_function("__builtin_unreachable");
             let builtin_unreachable: RValue<'gcc> = unsafe { std::mem::transmute(builtin_unreachable) };
-            self.call(self.type_void(), None, builtin_unreachable, &[], None);
+            self.call(self.type_void(), builtin_unreachable, &[], None);
         }
 
         // Write results to outputs.

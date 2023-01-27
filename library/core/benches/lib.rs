@@ -4,7 +4,6 @@
 #![feature(int_log)]
 #![feature(test)]
 #![feature(trusted_random_access)]
-#![feature(iter_array_chunks)]
 
 extern crate test;
 

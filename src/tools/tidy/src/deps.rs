@@ -18,11 +18,9 @@ const LICENSES: &[&str] = &[
     "ISC",
     "Unlicense/MIT",
     "Unlicense OR MIT",
-    "0BSD OR MIT OR Apache-2.0",                // adler license
-    "Zlib OR Apache-2.0 OR MIT",                // tinyvec
-    "MIT OR Apache-2.0 OR Zlib",                // tinyvec_macros
-    "MIT OR Zlib OR Apache-2.0",                // miniz_oxide
-    "(MIT OR Apache-2.0) AND Unicode-DFS-2016", // unicode_ident
+    "0BSD OR MIT OR Apache-2.0", // adler license
+    "Zlib OR Apache-2.0 OR MIT", // tinyvec
+    "MIT OR Zlib OR Apache-2.0", // miniz_oxide
 ];
 
 /// These are exceptions to Rust's permissive licensing policy, and
@@ -74,11 +72,14 @@ const EXCEPTIONS_BOOTSTRAP: &[(&str, &str)] = &[
 /// these and all their dependencies *must not* be in the exception list.
 const RUNTIME_CRATES: &[&str] = &["std", "core", "alloc", "test", "panic_abort", "panic_unwind"];
 
+/// Crates whose dependencies must be explicitly permitted.
+const RESTRICTED_DEPENDENCY_CRATES: &[&str] = &["rustc_driver", "rustc_codegen_llvm"];
+
 /// Crates rustc is allowed to depend on. Avoid adding to the list if possible.
 ///
 /// This list is here to provide a speed-bump to adding a new dependency to
 /// rustc. Please check with the compiler team before adding an entry.
-const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
+const PERMITTED_DEPENDENCIES: &[&str] = &[
     "addr2line",
     "adler",
     "ahash",
@@ -217,7 +218,6 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "time",
     "tinystr",
     "tinyvec",
-    "tinyvec_macros",
     "thin-vec",
     "tracing",
     "tracing-attributes",
@@ -236,7 +236,6 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "unic-langid-macros",
     "unic-langid-macros-impl",
     "unic-ucd-version",
-    "unicode-ident",
     "unicode-normalization",
     "unicode-script",
     "unicode-security",
@@ -259,9 +258,7 @@ const PERMITTED_CRANELIFT_DEPENDENCIES: &[&str] = &[
     "ahash",
     "anyhow",
     "ar",
-    "arrayvec",
     "autocfg",
-    "bumpalo",
     "bitflags",
     "byteorder",
     "cfg-if",
@@ -308,7 +305,7 @@ const PERMITTED_CRANELIFT_DEPENDENCIES: &[&str] = &[
 ];
 
 const FORBIDDEN_TO_HAVE_DUPLICATES: &[&str] = &[
-    // This crate takes quite a long time to build, so don't allow two versions of them
+    // These two crates take quite a long time to build, so don't allow two versions of them
     // to accidentally sneak into our dependency graph, in order to ensure we keep our CI times
     // under control.
     "cargo",
@@ -325,12 +322,12 @@ pub fn check(root: &Path, cargo: &Path, bad: &mut bool) {
         .features(cargo_metadata::CargoOpt::AllFeatures);
     let metadata = t!(cmd.exec());
     let runtime_ids = compute_runtime_crates(&metadata);
-    check_license_exceptions(&metadata, EXCEPTIONS, runtime_ids, bad);
-    check_permitted_dependencies(
+    check_exceptions(&metadata, EXCEPTIONS, runtime_ids, bad);
+    check_dependencies(
         &metadata,
-        "rustc",
-        PERMITTED_RUSTC_DEPENDENCIES,
-        &["rustc_driver", "rustc_codegen_llvm"],
+        "main workspace",
+        PERMITTED_DEPENDENCIES,
+        RESTRICTED_DEPENDENCY_CRATES,
         bad,
     );
     check_crate_duplicate(&metadata, FORBIDDEN_TO_HAVE_DUPLICATES, bad);
@@ -343,8 +340,8 @@ pub fn check(root: &Path, cargo: &Path, bad: &mut bool) {
         .features(cargo_metadata::CargoOpt::AllFeatures);
     let metadata = t!(cmd.exec());
     let runtime_ids = HashSet::new();
-    check_license_exceptions(&metadata, EXCEPTIONS_CRANELIFT, runtime_ids, bad);
-    check_permitted_dependencies(
+    check_exceptions(&metadata, EXCEPTIONS_CRANELIFT, runtime_ids, bad);
+    check_dependencies(
         &metadata,
         "cranelift",
         PERMITTED_CRANELIFT_DEPENDENCIES,
@@ -359,13 +356,13 @@ pub fn check(root: &Path, cargo: &Path, bad: &mut bool) {
         .features(cargo_metadata::CargoOpt::AllFeatures);
     let metadata = t!(cmd.exec());
     let runtime_ids = HashSet::new();
-    check_license_exceptions(&metadata, EXCEPTIONS_BOOTSTRAP, runtime_ids, bad);
+    check_exceptions(&metadata, EXCEPTIONS_BOOTSTRAP, runtime_ids, bad);
 }
 
 /// Check that all licenses are in the valid list in `LICENSES`.
 ///
-/// Packages listed in `exceptions` are allowed for tools.
-fn check_license_exceptions(
+/// Packages listed in `EXCEPTIONS` are allowed for tools.
+fn check_exceptions(
     metadata: &Metadata,
     exceptions: &[(&str, &str)],
     runtime_ids: HashSet<&PackageId>,
@@ -435,11 +432,11 @@ fn check_license_exceptions(
     }
 }
 
-/// Checks the dependency of `restricted_dependency_crates` at the given path. Changes `bad` to
+/// Checks the dependency of `RESTRICTED_DEPENDENCY_CRATES` at the given path. Changes `bad` to
 /// `true` if a check failed.
 ///
-/// Specifically, this checks that the dependencies are on the `permitted_dependencies`.
-fn check_permitted_dependencies(
+/// Specifically, this checks that the dependencies are on the `PERMITTED_DEPENDENCIES`.
+fn check_dependencies(
     metadata: &Metadata,
     descr: &str,
     permitted_dependencies: &[&'static str],

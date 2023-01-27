@@ -10,7 +10,6 @@ impl std::ops::Add for NonConstAdd {
     }
 }
 
-#[const_trait]
 trait Foo {
     type Bar: ~const std::ops::Add;
 }
@@ -20,7 +19,6 @@ impl const Foo for NonConstAdd {
     //~^ ERROR: cannot add `NonConstAdd` to `NonConstAdd` in const contexts
 }
 
-#[const_trait]
 trait Baz {
     type Qux: std::ops::Add;
 }

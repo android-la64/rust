@@ -98,9 +98,9 @@ impl<'tcx> LateLintPass<'tcx> for BoolAssertComparison {
             cx,
             BOOL_ASSERT_COMPARISON,
             macro_call.span,
-            &format!("used `{macro_name}!` with a literal bool"),
+            &format!("used `{}!` with a literal bool", macro_name),
             "replace it with",
-            format!("{non_eq_mac}!(..)"),
+            format!("{}!(..)", non_eq_mac),
             Applicability::MaybeIncorrect,
         );
     }

@@ -17,6 +17,10 @@ help: consider unboxing the value
    |
 LL |         Ty::List(elem) => foo(*elem),
    |                               +
+help: try wrapping the expression in `Ty::List`
+   |
+LL |         Ty::List(elem) => foo(Ty::List(elem)),
+   |                               +++++++++    +
 
 error: aborting due to previous error
 

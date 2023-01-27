@@ -2,7 +2,6 @@
 
 #![feature(const_trait_impl)]
 
-#[const_trait]
 pub trait MyTrait {
     fn method(&self) -> Option<()>;
 }

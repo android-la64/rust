@@ -5,7 +5,6 @@
 #![feature(rustc_attrs)]
 
 struct S;
-#[const_trait] //[stock]~ ERROR `const_trait` is a temporary placeholder
 trait T {}
 impl const T for S {}
 //[stock]~^ ERROR const trait impls are experimental

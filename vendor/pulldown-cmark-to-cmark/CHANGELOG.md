@@ -5,73 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 10.0.4 (2022-09-10)
-
-### Bug Fixes
-
- - <csr-id-f3b43705ecf5c3760f964680c2975b14cf92a990/> add newlines where needed to produce valid codeblocks
-
-### Commit Statistics
-
-<csr-read-only-do-not-edit/>
-
- - 5 commits contributed to the release over the course of 1 calendar day.
- - 1 day passed between releases.
- - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
- - 1 unique issue was worked on: [#48](https://github.com/Byron/pulldown-cmark-to-cmark/issues/48)
-
-### Commit Details
-
-<csr-read-only-do-not-edit/>
-
-<details><summary>view details</summary>
-
- * **[#48](https://github.com/Byron/pulldown-cmark-to-cmark/issues/48)**
-    - add newlines where needed to produce valid codeblocks ([`f3b4370`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/f3b43705ecf5c3760f964680c2975b14cf92a990))
- * **Uncategorized**
-    - cargo fmt ([`89b557a`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/89b557a46786f2efebccec010f8c115ad21910e3))
-    - fix typo ([`1833cfb`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/1833cfb3f45591cc866851ebd0ca22d4cf6b4819))
-    - Inserts a newline if there is no newline before code block termination fence ([`ef4c401`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/ef4c4014b4bc2d6e26240a99a9afd49e60b320f3))
-    - Add a test case to verify that indented code blocks without trailing `\n` are rendered correctly ([`6c6f492`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/6c6f4926df13496bf307f7059af6342647e889d3))
-</details>
-
-## 10.0.3 (2022-09-09)
-
-<csr-id-e214cc1be5305f9b43738affff4d1ca22242af37/>
-
-### Bug Fixes
-
- - <csr-id-ff4050f4981f300d79b4d3214bdfe6c3c99ef205/> duplicated shortcut link definitions are only printed once.
-
-### Other
-
- - <csr-id-e214cc1be5305f9b43738affff4d1ca22242af37/> Replace `.travis.yml` with `.github/workflows/rust.yml`
-   We have already migrated from Travis CI to GitHub Actions.
-
-### Commit Statistics
-
-<csr-read-only-do-not-edit/>
-
- - 5 commits contributed to the release.
- - 73 days passed between releases.
- - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
- - 1 unique issue was worked on: [#46](https://github.com/Byron/pulldown-cmark-to-cmark/issues/46)
-
-### Commit Details
-
-<csr-read-only-do-not-edit/>
-
-<details><summary>view details</summary>
-
- * **[#46](https://github.com/Byron/pulldown-cmark-to-cmark/issues/46)**
-    - duplicated shortcut link definitions are only printed once. ([`ff4050f`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/ff4050f4981f300d79b4d3214bdfe6c3c99ef205))
- * **Uncategorized**
-    - Release pulldown-cmark-to-cmark v10.0.3 ([`4e7c91b`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/4e7c91bb7d032921d56330663c3f4a9f6027e722))
-    - De-duplicate shortcut link definitions ([`32d9466`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/32d94668ec4c294f5161ccc8cdba94ada78713d4))
-    - Add a test case to verify that repeated reference links are rendered correctly ([`eb6ab63`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/eb6ab631b1dac766012625db44384eeb3df74f70))
-    - Replace `.travis.yml` with `.github/workflows/rust.yml` ([`e214cc1`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/e214cc1be5305f9b43738affff4d1ca22242af37))
-</details>
-
 ## 10.0.2 (2022-06-28)
 
 ### Fixes
@@ -84,9 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 4 commits contributed to the release over the course of 2 calendar days.
+ - 3 commits contributed to the release over the course of 2 calendar days.
  - 108 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -96,7 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
-    - Release pulldown-cmark-to-cmark v10.0.2 ([`341f46e`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/341f46e63d7a4276cda013251bf43b18b493494f))
     - update changelog ([`0fa8688`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/0fa8688e422cd18839d06d400660df9a457ed34c))
     - Add space aroudn backticks ([`6f68331`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/6f683310f2e6965c6d1d3ee09c3b36eefff5c1a3))
     - Fix double-backtick issue ([`09a35a9`](https://github.com/Byron/pulldown-cmark-to-cmark/commit/09a35a96002cb2ca00e0769c0ae4cc8927698ccd))
@@ -114,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - 6 commits contributed to the release.
  - 42 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -161,7 +93,7 @@ or using `cmark_resume` instead.
 
  - 6 commits contributed to the release over the course of 28 calendar days.
  - 28 days passed between releases.
- - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 1 commit where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -201,7 +133,7 @@ or using `cmark_resume` instead.
 
  - 6 commits contributed to the release.
  - 5 days passed between releases.
- - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 2 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#39](https://github.com/Byron/pulldown-cmark-to-cmark/issues/39)
 
 ### Commit Details
@@ -230,7 +162,7 @@ This release adds support for `pulldown-cmark v0.9`, [see the tracking issue](ht
 
  - 4 commits contributed to the release.
  - 20 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -258,7 +190,7 @@ This release adds support for `pulldown-cmark v0.9`, [see the tracking issue](ht
 
  - 3 commits contributed to the release.
  - 10 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -287,7 +219,7 @@ This release adds support for `pulldown-cmark v0.9`, [see the tracking issue](ht
 
  - 6 commits contributed to the release.
  - 7 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -317,7 +249,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 7 commits contributed to the release over the course of 53 calendar days.
  - 53 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -347,7 +279,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 3 commits contributed to the release.
  - 17 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -372,7 +304,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 3 commits contributed to the release.
  - 75 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -395,7 +327,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 4 commits contributed to the release.
  - 19 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -421,7 +353,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 14 commits contributed to the release over the course of 133 calendar days.
  - 233 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Thanks Clippy
@@ -465,7 +397,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 2 commits contributed to the release over the course of 42 calendar days.
  - 72 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -490,7 +422,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 3 commits contributed to the release.
  - 58 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -515,7 +447,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 4 commits contributed to the release over the course of 9 calendar days.
  - 20 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -539,7 +471,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 2 commits contributed to the release.
  - 23 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -563,7 +495,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 1 commit contributed to the release.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -597,7 +529,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 10 commits contributed to the release over the course of 15 calendar days.
  - 81 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -626,7 +558,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 2 commits contributed to the release.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -648,7 +580,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 8 commits contributed to the release.
  - 60 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -676,7 +608,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 5 commits contributed to the release over the course of 7 calendar days.
  - 34 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -701,7 +633,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 3 commits contributed to the release.
  - 117 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -723,7 +655,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 2 commits contributed to the release.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -745,7 +677,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 6 commits contributed to the release over the course of 73 calendar days.
  - 194 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -771,7 +703,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 4 commits contributed to the release over the course of 299 calendar days.
  - 309 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -795,7 +727,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 
  - 5 commits contributed to the release over the course of 1 calendar day.
  - 2 days passed between releases.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details
@@ -819,7 +751,7 @@ Thanks to the author of [this PR](https://github.com/Byron/pulldown-cmark-to-cma
 <csr-read-only-do-not-edit/>
 
  - 6 commits contributed to the release.
- - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 commits where understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' where seen in commit messages
 
 ### Commit Details

@@ -1,6 +1,7 @@
 use clippy_utils::diagnostics::{span_lint, span_lint_and_sugg, span_lint_hir_and_then};
 use clippy_utils::source::{snippet, snippet_opt};
 use if_chain::if_chain;
+use rustc_ast::ast::LitKind;
 use rustc_errors::Applicability;
 use rustc_hir::intravisit::FnKind;
 use rustc_hir::{
@@ -14,7 +15,7 @@ use rustc_span::hygiene::DesugaringKind;
 use rustc_span::source_map::{ExpnKind, Span};
 
 use clippy_utils::sugg::Sugg;
-use clippy_utils::{get_parent_expr, in_constant, is_integer_literal, iter_input_pats, last_path_segment, SpanlessEq};
+use clippy_utils::{get_parent_expr, in_constant, iter_input_pats, last_path_segment, SpanlessEq};
 
 declare_clippy_lint! {
     /// ### What it does
@@ -177,7 +178,7 @@ impl<'tcx> LateLintPass<'tcx> for MiscLints {
                     ("", sugg_init.addr())
                 };
                 let tyopt = if let Some(ty) = local.ty {
-                    format!(": &{mutopt}{ty}", ty=snippet(cx, ty.span, ".."))
+                    format!(": &{mutopt}{ty}", mutopt=mutopt, ty=snippet(cx, ty.span, ".."))
                 } else {
                     String::new()
                 };
@@ -194,6 +195,8 @@ impl<'tcx> LateLintPass<'tcx> for MiscLints {
                             format!(
                                 "let {name}{tyopt} = {initref};",
                                 name=snippet(cx, name.span, ".."),
+                                tyopt=tyopt,
+                                initref=initref,
                             ),
                             Applicability::MachineApplicable,
                         );
@@ -219,7 +222,8 @@ impl<'tcx> LateLintPass<'tcx> for MiscLints {
                             stmt.span,
                             "replace it with",
                             format!(
-                                "if {sugg} {{ {}; }}",
+                                "if {} {{ {}; }}",
+                                sugg,
                                 &snippet(cx, b.span, ".."),
                             ),
                             Applicability::MachineApplicable, // snippet
@@ -271,8 +275,9 @@ impl<'tcx> LateLintPass<'tcx> for MiscLints {
                 USED_UNDERSCORE_BINDING,
                 expr.span,
                 &format!(
-                    "used binding `{binding}` which is prefixed with an underscore. A leading \
-                     underscore signals that a binding will not be used"
+                    "used binding `{}` which is prefixed with an underscore. A leading \
+                     underscore signals that a binding will not be used",
+                    binding
                 ),
             );
         }
@@ -313,7 +318,8 @@ fn non_macro_local(cx: &LateContext<'_>, res: def::Res) -> bool {
 fn check_cast(cx: &LateContext<'_>, span: Span, e: &Expr<'_>, ty: &hir::Ty<'_>) {
     if_chain! {
         if let TyKind::Ptr(ref mut_ty) = ty.kind;
-        if is_integer_literal(e, 0);
+        if let ExprKind::Lit(ref lit) = e.kind;
+        if let LitKind::Int(0, _) = lit.node;
         if !in_constant(cx, e.hir_id);
         then {
             let (msg, sugg_fn) = match mut_ty.mutbl {
@@ -322,12 +328,12 @@ fn check_cast(cx: &LateContext<'_>, span: Span, e: &Expr<'_>, ty: &hir::Ty<'_>) 
             };
 
             let (sugg, appl) = if let TyKind::Infer = mut_ty.ty.kind {
-                (format!("{sugg_fn}()"), Applicability::MachineApplicable)
+                (format!("{}()", sugg_fn), Applicability::MachineApplicable)
             } else if let Some(mut_ty_snip) = snippet_opt(cx, mut_ty.ty.span) {
-                (format!("{sugg_fn}::<{mut_ty_snip}>()"), Applicability::MachineApplicable)
+                (format!("{}::<{}>()", sugg_fn, mut_ty_snip), Applicability::MachineApplicable)
             } else {
                 // `MaybeIncorrect` as type inference may not work with the suggested code
-                (format!("{sugg_fn}()"), Applicability::MaybeIncorrect)
+                (format!("{}()", sugg_fn), Applicability::MaybeIncorrect)
             };
             span_lint_and_sugg(cx, ZERO_PTR, span, msg, "try", sugg, appl);
         }

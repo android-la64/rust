@@ -1371,9 +1371,7 @@ pub(crate) mod parsing {
                 });
             } else if Precedence::Cast >= base && input.peek(Token![as]) {
                 let as_token: Token![as] = input.parse()?;
-                let allow_plus = false;
-                let allow_group_generic = false;
-                let ty = ty::parsing::ambig_ty(input, allow_plus, allow_group_generic)?;
+                let ty = input.call(Type::without_plus)?;
                 check_cast(input)?;
                 lhs = Expr::Cast(ExprCast {
                     attrs: Vec::new(),
@@ -1383,9 +1381,7 @@ pub(crate) mod parsing {
                 });
             } else if Precedence::Cast >= base && input.peek(Token![:]) && !input.peek(Token![::]) {
                 let colon_token: Token![:] = input.parse()?;
-                let allow_plus = false;
-                let allow_group_generic = false;
-                let ty = ty::parsing::ambig_ty(input, allow_plus, allow_group_generic)?;
+                let ty = input.call(Type::without_plus)?;
                 check_cast(input)?;
                 lhs = Expr::Type(ExprType {
                     attrs: Vec::new(),
@@ -1433,9 +1429,7 @@ pub(crate) mod parsing {
                 });
             } else if Precedence::Cast >= base && input.peek(Token![as]) {
                 let as_token: Token![as] = input.parse()?;
-                let allow_plus = false;
-                let allow_group_generic = false;
-                let ty = ty::parsing::ambig_ty(input, allow_plus, allow_group_generic)?;
+                let ty = input.call(Type::without_plus)?;
                 check_cast(input)?;
                 lhs = Expr::Cast(ExprCast {
                     attrs: Vec::new(),
@@ -1733,10 +1727,7 @@ pub(crate) mod parsing {
             || input.peek(Token![move])
         {
             expr_closure(input, allow_struct).map(Expr::Closure)
-        } else if input.peek(Token![for])
-            && input.peek2(Token![<])
-            && (input.peek3(Lifetime) || input.peek3(Token![>]))
-        {
+        } else if input.peek(Token![for]) && input.peek2(Token![<]) && input.peek3(Lifetime) {
             let begin = input.fork();
             input.parse::<BoundLifetimes>()?;
             expr_closure(input, allow_struct)?;
@@ -2019,9 +2010,7 @@ pub(crate) mod parsing {
             Expr::If(input.parse()?)
         } else if input.peek(Token![while]) {
             Expr::While(input.parse()?)
-        } else if input.peek(Token![for])
-            && !(input.peek2(Token![<]) && (input.peek3(Lifetime) || input.peek3(Token![>])))
-        {
+        } else if input.peek(Token![for]) {
             Expr::ForLoop(input.parse()?)
         } else if input.peek(Token![loop]) {
             Expr::Loop(input.parse()?)

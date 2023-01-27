@@ -1,6 +1,7 @@
 // run-rustfix
+
 #![deny(clippy::useless_asref)]
-#![allow(clippy::explicit_auto_deref, clippy::uninlined_format_args)]
+#![allow(clippy::explicit_auto_deref)]
 
 use std::fmt::Debug;
 

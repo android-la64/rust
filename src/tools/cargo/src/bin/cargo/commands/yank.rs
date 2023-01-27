@@ -2,11 +2,11 @@ use crate::command_prelude::*;
 
 use cargo::ops;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("yank")
         .about("Remove a pushed crate from the index")
         .arg_quiet()
-        .arg(Arg::new("crate").action(ArgAction::Set))
+        .arg(Arg::new("crate"))
         .arg(
             opt("version", "The version to yank or un-yank")
                 .alias("vers")

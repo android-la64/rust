@@ -9,13 +9,14 @@
 // the timer-interrupt. Device-drivers are required to use polling-based models. Furthermore, all
 // code runs in the same environment, no process separation is supported.
 
-use crate::spec::{LinkerFlavor, Lld, PanicStrategy, StackProbeType, TargetOptions};
+use crate::spec::{LinkerFlavor, LldFlavor, PanicStrategy};
+use crate::spec::{StackProbeType, TargetOptions};
 
 pub fn opts() -> TargetOptions {
     let mut base = super::msvc_base::opts();
 
     base.add_pre_link_args(
-        LinkerFlavor::Msvc(Lld::No),
+        LinkerFlavor::Msvc,
         &[
             // Non-standard subsystems have no default entry-point in PE+ files. We have to define
             // one. "efi_main" seems to be a common choice amongst other implementations and the
@@ -36,7 +37,7 @@ pub fn opts() -> TargetOptions {
 
     TargetOptions {
         os: "uefi".into(),
-        linker_flavor: LinkerFlavor::Msvc(Lld::Yes),
+        linker_flavor: LinkerFlavor::Lld(LldFlavor::Link),
         disable_redzone: true,
         exe_suffix: ".efi".into(),
         allows_weak_linkage: false,

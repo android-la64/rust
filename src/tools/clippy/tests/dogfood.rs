@@ -20,14 +20,7 @@ fn dogfood_clippy() {
     }
 
     // "" is the root package
-    for package in &[
-        "",
-        "clippy_dev",
-        "clippy_lints",
-        "clippy_utils",
-        "lintcheck",
-        "rustc_tools_util",
-    ] {
+    for package in &["", "clippy_dev", "clippy_lints", "clippy_utils", "rustc_tools_util"] {
         run_clippy_for_package(package, &["-D", "clippy::all", "-D", "clippy::pedantic"]);
     }
 }

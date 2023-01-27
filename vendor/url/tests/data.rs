@@ -8,6 +8,7 @@
 
 //! Data-driven tests
 
+use std::ops::Deref;
 use std::str::FromStr;
 
 use serde_json::Value;
@@ -15,20 +16,7 @@ use url::{quirks, Url};
 
 #[test]
 fn urltestdata() {
-    let idna_skip_inputs = [
-        "http://www.foo。bar.com",
-        "http://Ｇｏ.com",
-        "http://你好你好",
-        "https://faß.ExAmPlE/",
-        "http://０Ｘｃ０．０２５０．０１",
-        "ftp://%e2%98%83",
-        "https://%e2%98%83",
-        "file://a\u{ad}b/p",
-        "file://a%C2%ADb/p",
-        "http://GOO\u{200b}\u{2060}\u{feff}goo.com",
-    ];
-
-    // Copied from https://github.com/web-platform-tests/wpt/blob/master/url/
+    // Copied form https://github.com/w3c/web-platform-tests/blob/master/url/
     let mut json = Value::from_str(include_str!("urltestdata.json"))
         .expect("JSON parse error in urltestdata.json");
 
@@ -38,39 +26,25 @@ fn urltestdata() {
             continue; // ignore comments
         }
 
-        let maybe_base = entry
-            .take_key("base")
-            .expect("missing base key")
-            .maybe_string();
+        let base = entry.take_string("base");
         let input = entry.take_string("input");
         let failure = entry.take_key("failure").is_some();
 
-        {
-            if idna_skip_inputs.contains(&input.as_str()) {
+        let base = match Url::parse(&base) {
+            Ok(base) => base,
+            Err(_) if failure => continue,
+            Err(message) => {
+                eprint_failure(
+                    format!("  failed: error parsing base {:?}: {}", base, message),
+                    &format!("parse base for {:?}", input),
+                    None,
+                );
+                passed = false;
                 continue;
             }
-        }
-
-        let res = if let Some(base) = maybe_base {
-            let base = match Url::parse(&base) {
-                Ok(base) => base,
-                Err(_) if failure => continue,
-                Err(message) => {
-                    eprint_failure(
-                        format!("  failed: error parsing base {:?}: {}", base, message),
-                        &format!("parse base for {:?}", input),
-                        None,
-                    );
-                    passed = false;
-                    continue;
-                }
-            };
-            base.join(&input)
-        } else {
-            Url::parse(&input)
         };
 
-        let url = match (res, failure) {
+        let url = match (base.join(&input), failure) {
             (Ok(url), false) => url,
             (Err(_), true) => continue,
             (Err(message), false) => {
@@ -117,6 +91,7 @@ fn urltestdata() {
     assert!(passed)
 }
 
+#[allow(clippy::option_as_ref_deref)] // introduced in 1.40, MSRV is 1.36
 #[test]
 fn setters_tests() {
     let mut json = Value::from_str(include_str!("setters_tests.json"))
@@ -131,22 +106,15 @@ fn setters_tests() {
         let mut tests = json.take_key(attr).unwrap();
         for mut test in tests.as_array_mut().unwrap().drain(..) {
             let comment = test.take_key("comment").map(|s| s.string());
-            {
-                if let Some(comment) = comment.as_ref() {
-                    if comment.starts_with("IDNA Nontransitional_Processing") {
-                        continue;
-                    }
-                }
-            }
             let href = test.take_string("href");
             let new_value = test.take_string("new_value");
             let name = format!("{:?}.{} = {:?}", href, attr, new_value);
             let mut expected = test.take_key("expected").unwrap();
 
             let mut url = Url::parse(&href).unwrap();
-            let comment_ref = comment.as_deref();
+            let comment_ref = comment.as_ref().map(|s| s.deref());
             passed &= check_invariants(&url, &name, comment_ref);
-            set(&mut url, attr, &new_value);
+            let _ = set(&mut url, attr, &new_value);
 
             for attr in ATTRIBS {
                 if let Some(value) = expected.take_key(attr) {
@@ -185,7 +153,6 @@ fn check_invariants(url: &Url, name: &str, comment: Option<&str>) -> bool {
 trait JsonExt {
     fn take_key(&mut self, key: &str) -> Option<Value>;
     fn string(self) -> String;
-    fn maybe_string(self) -> Option<String>;
     fn take_string(&mut self, key: &str) -> String;
 }
 
@@ -195,14 +162,10 @@ impl JsonExt for Value {
     }
 
     fn string(self) -> String {
-        self.maybe_string().expect("")
-    }
-
-    fn maybe_string(self) -> Option<String> {
-        match self {
-            Value::String(s) => Some(s),
-            Value::Null => None,
-            _ => panic!("Not a Value::String or Value::Null"),
+        if let Value::String(s) = self {
+            s
+        } else {
+            panic!("Not a Value::String")
         }
     }
 

@@ -1,6 +1,6 @@
 // only-x86_64
 
-#![feature(repr_simd, never_type)]
+#![feature(repr_simd, never_type, asm_sym)]
 
 use std::arch::{asm, global_asm};
 

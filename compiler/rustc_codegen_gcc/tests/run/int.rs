@@ -3,7 +3,7 @@
 // Run-time:
 //   status: 0
 
-#![feature(const_black_box, core_intrinsics, start)]
+#![feature(bench_black_box, const_black_box, core_intrinsics, start)]
 
 #![no_std]
 

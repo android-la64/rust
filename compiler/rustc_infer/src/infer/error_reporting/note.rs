@@ -1,8 +1,8 @@
 use crate::errors::RegionOriginNote;
-use crate::infer::error_reporting::{note_and_explain_region, TypeErrCtxt};
-use crate::infer::{self, SubregionOrigin};
+use crate::infer::error_reporting::note_and_explain_region;
+use crate::infer::{self, InferCtxt, SubregionOrigin};
 use rustc_errors::{
-    fluent, struct_span_err, AddToDiagnostic, Diagnostic, DiagnosticBuilder, ErrorGuaranteed,
+    fluent, struct_span_err, AddSubdiagnostic, Diagnostic, DiagnosticBuilder, ErrorGuaranteed,
 };
 use rustc_middle::traits::ObligationCauseCode;
 use rustc_middle::ty::error::TypeError;
@@ -10,7 +10,7 @@ use rustc_middle::ty::{self, Region};
 
 use super::ObligationCauseAsDiagArg;
 
-impl<'tcx> TypeErrCtxt<'_, 'tcx> {
+impl<'a, 'tcx> InferCtxt<'a, 'tcx> {
     pub(super) fn note_region_origin(&self, err: &mut Diagnostic, origin: &SubregionOrigin<'tcx>) {
         match *origin {
             infer::Subtype(ref trace) => RegionOriginNote::WithRequirement {
@@ -19,27 +19,26 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 expected_found: self.values_str(trace.values),
             }
             .add_to_diagnostic(err),
-            infer::Reborrow(span) => {
-                RegionOriginNote::Plain { span, msg: fluent::infer_reborrow }.add_to_diagnostic(err)
-            }
+            infer::Reborrow(span) => RegionOriginNote::Plain { span, msg: fluent::infer::reborrow }
+                .add_to_diagnostic(err),
             infer::ReborrowUpvar(span, ref upvar_id) => {
                 let var_name = self.tcx.hir().name(upvar_id.var_path.hir_id);
                 RegionOriginNote::WithName {
                     span,
-                    msg: fluent::infer_reborrow,
+                    msg: fluent::infer::reborrow,
                     name: &var_name.to_string(),
                     continues: false,
                 }
                 .add_to_diagnostic(err);
             }
             infer::RelateObjectBound(span) => {
-                RegionOriginNote::Plain { span, msg: fluent::infer_relate_object_bound }
+                RegionOriginNote::Plain { span, msg: fluent::infer::relate_object_bound }
                     .add_to_diagnostic(err);
             }
             infer::DataBorrowed(ty, span) => {
                 RegionOriginNote::WithName {
                     span,
-                    msg: fluent::infer_data_borrowed,
+                    msg: fluent::infer::data_borrowed,
                     name: &self.ty_to_string(ty),
                     continues: false,
                 }
@@ -48,7 +47,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             infer::ReferenceOutlivesReferent(ty, span) => {
                 RegionOriginNote::WithName {
                     span,
-                    msg: fluent::infer_reference_outlives_referent,
+                    msg: fluent::infer::reference_outlives_referent,
                     name: &self.ty_to_string(ty),
                     continues: false,
                 }
@@ -57,22 +56,22 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             infer::RelateParamBound(span, ty, opt_span) => {
                 RegionOriginNote::WithName {
                     span,
-                    msg: fluent::infer_relate_param_bound,
+                    msg: fluent::infer::relate_param_bound,
                     name: &self.ty_to_string(ty),
                     continues: opt_span.is_some(),
                 }
                 .add_to_diagnostic(err);
                 if let Some(span) = opt_span {
-                    RegionOriginNote::Plain { span, msg: fluent::infer_relate_param_bound_2 }
+                    RegionOriginNote::Plain { span, msg: fluent::infer::relate_param_bound_2 }
                         .add_to_diagnostic(err);
                 }
             }
             infer::RelateRegionParamBound(span) => {
-                RegionOriginNote::Plain { span, msg: fluent::infer_relate_region_param_bound }
+                RegionOriginNote::Plain { span, msg: fluent::infer::relate_region_param_bound }
                     .add_to_diagnostic(err);
             }
             infer::CompareImplItemObligation { span, .. } => {
-                RegionOriginNote::Plain { span, msg: fluent::infer_compare_impl_item_obligation }
+                RegionOriginNote::Plain { span, msg: fluent::infer::compare_impl_item_obligation }
                     .add_to_diagnostic(err);
             }
             infer::CheckAssociatedTypeBounds { ref parent, .. } => {
@@ -81,7 +80,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             infer::AscribeUserTypeProvePredicate(span) => {
                 RegionOriginNote::Plain {
                     span,
-                    msg: fluent::infer_ascribe_user_type_prove_predicate,
+                    msg: fluent::infer::ascribe_user_type_prove_predicate,
                 }
                 .add_to_diagnostic(err);
             }

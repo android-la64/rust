@@ -19,3 +19,8 @@ pub unsafe fn get(_key: Key) -> *mut u8 {
 pub unsafe fn destroy(_key: Key) {
     panic!("should not be used on the solid target");
 }
+
+#[inline]
+pub fn requires_synchronized_create() -> bool {
+    panic!("should not be used on the solid target");
+}

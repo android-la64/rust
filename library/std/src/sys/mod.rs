@@ -22,7 +22,7 @@
 
 #![allow(missing_debug_implementations)]
 
-pub mod common;
+mod common;
 
 cfg_if::cfg_if! {
     if #[cfg(unix)] {

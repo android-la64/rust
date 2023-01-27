@@ -99,7 +99,6 @@ Each new feature described below should explain how to use it.
     * [credential-process](#credential-process) — Adds support for fetching registry tokens from an external authentication program.
     * [`cargo logout`](#cargo-logout) — Adds the `logout` command to remove the currently saved registry token.
     * [sparse-registry](#sparse-registry) — Adds support for fetching from static-file HTTP registries (`sparse+`)
-    * [publish-timeout](#publish-timeout) — Controls the timeout between uploading the crate and being available in the index
 
 ### allow-features
 
@@ -842,23 +841,6 @@ crates, which can save significant time and bandwidth.
 
 The format of the sparse index is identical to a checkout of a git-based index.
 
-### publish-timeout
-* Tracking Issue: [11222](https://github.com/rust-lang/cargo/issues/11222)
-
-The `publish.timeout` key in a config file can be used to control how long
-`cargo publish` waits between posting a package to the registry and it being
-available in the local index.
-
-A timeout of `0` prevents any checks from occurring.
-
-It requires the `-Zpublish-timeout` command-line options to be set.
-
-```toml
-# config.toml
-[publish]
-timeout = 300  # in seconds
-```
-
 ### credential-process
 * Tracking Issue: [#8933](https://github.com/rust-lang/cargo/issues/8933)
 * RFC: [#2730](https://github.com/rust-lang/rfcs/pull/2730)
@@ -1101,7 +1083,7 @@ The `filename` parameter is only available in the `[[bin]]` section of the manif
 ```toml
 cargo-features = ["different-binary-name"]
 
-[package]
+[project]
 name =  "foo"
 version = "0.0.1"
 
@@ -1376,7 +1358,7 @@ for more information.
 ### Workspace Inheritance
 
 Workspace Inheritance has been stabilized in the 1.64 release.
-See [workspace.package](workspaces.md#the-package-table), 
-[workspace.dependencies](workspaces.md#the-dependencies-table), 
+See [workspace.package](workspaces.md#the-workspacepackage-table), 
+[workspace.dependencies](workspaces.md#the-workspacedependencies-table), 
 and [inheriting-a-dependency-from-a-workspace](specifying-dependencies.md#inheriting-a-dependency-from-a-workspace)
 for more information.

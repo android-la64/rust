@@ -40,16 +40,8 @@ Miri has already discovered some [real-world bugs](#bugs-found-by-miri). If you
 found a bug with Miri, we'd appreciate if you tell us and we'll add it to the
 list!
 
-By default, Miri ensures a fully deterministic execution and isolates the
-program from the host system. Some APIs that would usually access the host, such
-as gathering entropy for random number generators, environment variables, and
-clocks, are replaced by deterministic "fake" implementations. Set
-`MIRIFLAGS="-Zmiri-disable-isolation"` to access the real system APIs instead.
-(In particular, the "fake" system RNG APIs make Miri **not suited for
-cryptographic use**! Do not generate keys using Miri.)
-
-All that said, be aware that Miri will **not catch all cases of undefined
-behavior** in your program, and cannot run all programs:
+However, be aware that Miri will **not catch all cases of undefined behavior**
+in your program, and cannot run all programs:
 
 * There are still plenty of open questions around the basic invariants for some
   types and when these invariants even have to hold. Miri tries to avoid false
@@ -288,14 +280,16 @@ environment variable. We first document the most relevant and most commonly used
   execution with a "permission denied" error being returned to the program.
   `warn` prints a full backtrace when that happens; `warn-nobacktrace` is less
   verbose. `hide` hides the warning entirely.
+* `-Zmiri-env-exclude=<var>` keeps the `var` environment variable isolated from the host so that it
+  cannot be accessed by the program. Can be used multiple times to exclude several variables. The
+  `TERM` environment variable is excluded by default in Windows to prevent the libtest harness from
+  accessing the file system. This has no effect unless `-Zmiri-disable-isolation` is also set.
 * `-Zmiri-env-forward=<var>` forwards the `var` environment variable to the interpreted program. Can
-  be used multiple times to forward several variables. Execution will still be deterministic if the
-  value of forwarded variables stays the same. Has no effect if `-Zmiri-disable-isolation` is set.
+  be used multiple times to forward several variables. This takes precedence over
+  `-Zmiri-env-exclude`: if a variable is both forwarded and exluced, it *will* get forwarded. This
+  means in particular `-Zmiri-env-forward=TERM` overwrites the default exclusion of `TERM`.
 * `-Zmiri-ignore-leaks` disables the memory leak checker, and also allows some
   remaining threads to exist when the main thread exits.
-* `-Zmiri-num-cpus` states the number of available CPUs to be reported by miri. By default, the
-  number of available CPUs is `1`. Note that this flag does not affect how miri handles threads in
-  any way.
 * `-Zmiri-permissive-provenance` disables the warning for integer-to-pointer casts and
   [`ptr::from_exposed_addr`](https://doc.rust-lang.org/nightly/std/ptr/fn.from_exposed_addr.html).
   This will necessarily miss some bugs as those operations are not efficiently and accurately
@@ -312,7 +306,9 @@ environment variable. We first document the most relevant and most commonly used
   RNG is used to pick base addresses for allocations, to determine preemption and failure of
   `compare_exchange_weak`, and to control store buffering for weak memory emulation. When isolation
   is enabled (the default), this is also used to emulate system entropy. The default seed is 0. You
-  can increase test coverage by running Miri multiple times with different seeds.
+  can increase test coverage by running Miri multiple times with different seeds. **NOTE**: This
+  entropy is not good enough for cryptographic use! Do not generate secret keys in Miri or perform
+  other kinds of cryptographic operations that rely on proper random numbers.
 * `-Zmiri-strict-provenance` enables [strict
   provenance](https://github.com/rust-lang/rust/issues/95228) checking in Miri. This means that
   casting an integer to a pointer yields a result with 'invalid' provenance, i.e., with provenance
@@ -359,8 +355,8 @@ to Miri failing to detect cases of undefined behavior in a program.
   file descriptors will be mixed up.
   This is **work in progress**; currently, only integer arguments and return values are
   supported (and no, pointer/integer casts to work around this limitation will not work;
-  they will fail horribly). It also only works on unix hosts for now.
-  Follow [the discussion on supporting other types](https://github.com/rust-lang/miri/issues/2365).
+  they will fail horribly).
+  Follow [the discussion on supporting other types](https://github.com/rust-lang/miri/issues/2365). 
 * `-Zmiri-measureme=<name>` enables `measureme` profiling for the interpreted program.
    This can be used to find which parts of your program are executing slowly under Miri.
    The profile is written out to a file with the prefix `<name>`, and can be processed
@@ -377,15 +373,6 @@ to Miri failing to detect cases of undefined behavior in a program.
 * `-Zmiri-retag-fields` changes Stacked Borrows retagging to recurse into fields.
   This means that references in fields of structs/enums/tuples/arrays/... are retagged,
   and in particular, they are protected when passed as function arguments.
-* `-Zmiri-retag-fields=<all|none|scalar>` controls when Stacked Borrows retagging recurses into
-  fields. `all` means it always recurses (like `-Zmiri-retag-fields`), `none` means it never
-  recurses (the default), `scalar` means it only recurses for types where we would also emit
-  `noalias` annotations in the generated LLVM IR (types passed as indivudal scalars or pairs of
-  scalars).
-* `-Zmiri-tag-gc=<blocks>` configures how often the pointer tag garbage collector runs. The default
-  is to search for and remove unreachable tags once every `10000` basic blocks. Setting this to
-  `0` disables the garbage collector, which causes some programs to have explosive memory usage
-  and/or super-linear runtime.
 * `-Zmiri-track-alloc-id=<id1>,<id2>,...` shows a backtrace when the given allocations are
   being allocated or freed.  This helps in debugging memory leaks and
   use after free bugs. Specifying this argument multiple times does not overwrite the previous
@@ -395,7 +382,7 @@ to Miri failing to detect cases of undefined behavior in a program.
   Borrows "protectors". Specifying this argument multiple times does not overwrite the previous
   values, instead it appends its values to the list. Listing an id multiple times has no effect.
 * `-Zmiri-track-pointer-tag=<tag1>,<tag2>,...` shows a backtrace when a given pointer tag
-  is created and when (if ever) it is popped from a borrow stack (which is where the tag becomes invalid
+  is created and when (if ever) it is popped from a borrow stack (which is where the tag becomes invalid 
   and any future use of it will error).  This helps you in finding out why UB is
   happening and where in your code would be a good place to look for it.
   Specifying this argument multiple times does not overwrite the previous
@@ -440,10 +427,11 @@ Moreover, Miri recognizes some environment variables:
   purpose.
 * `MIRI_NO_STD` (recognized by `cargo miri` and the test suite) makes sure that the target's
   sysroot is built without libstd. This allows testing and running no_std programs.
-* `MIRI_BLESS` (recognized by the test suite and `cargo-miri-test/run-test.py`): overwrite all
-  `stderr` and `stdout` files instead of checking whether the output matches.
-* `MIRI_SKIP_UI_CHECKS` (recognized by the test suite): don't check whether the
-  `stderr` or `stdout` files match the actual output.
+* `MIRI_BLESS` (recognized by the test suite) overwrite all `stderr` and `stdout` files
+  instead of checking whether the output matches.
+* `MIRI_SKIP_UI_CHECKS` (recognized by the test suite) don't check whether the
+  `stderr` or `stdout` files match the actual output. Useful for the rustc test suite
+  which has subtle differences that we don't care about.
 
 The following environment variables are *internal* and must not be used by
 anyone but Miri itself. They are used to communicate between different Miri
@@ -454,7 +442,7 @@ binaries, and as such worth documenting:
   some compiler flags to prepare the code for interpretation; with `host`, this is not done.
   This environment variable is useful to be sure that the compiled `rlib`s are compatible
   with Miri.
-* `MIRI_CALLED_FROM_SETUP` is set during the Miri sysroot build,
+* `MIRI_CALLED_FROM_XARGO` is set during the Miri-induced `xargo` sysroot build,
   which will re-invoke `cargo-miri` as the `rustc` to use for this build.
 * `MIRI_CALLED_FROM_RUSTDOC` when set to any value tells `cargo-miri` that it is
   running as a child process of `rustdoc`, which invokes it twice for each doc-test
@@ -536,35 +524,6 @@ extern "Rust" {
     /// This is internal and unstable and should not be used; we give it here
     /// just to be complete.
     fn miri_start_panic(payload: *mut u8) -> !;
-
-    /// Miri-provided extern function to get the internal unique identifier for the allocation that a pointer
-    /// points to. If this pointer is invalid (not pointing to an allocation), interpretation will abort.
-    ///
-    /// This is only useful as an input to `miri_print_borrow_stacks`, and it is a separate call because
-    /// getting a pointer to an allocation at runtime can change the borrow stacks in the allocation.
-    /// This function should be considered unstable. It exists only to support `miri_print_borrow_stacks` and so
-    /// inherits all of its instability.
-    fn miri_get_alloc_id(ptr: *const ()) -> u64;
-
-    /// Miri-provided extern function to print (from the interpreter, not the program) the contents of all
-    /// borrow stacks in an allocation. The leftmost tag is the bottom of the stack.
-    /// The format of what this emits is unstable and may change at any time. In particular, users should be
-    /// aware that Miri will periodically attempt to garbage collect the contents of all stacks. Callers of
-    /// this function may wish to pass `-Zmiri-tag-gc=0` to disable the GC.
-    ///
-    /// This function is extremely unstable. At any time the format of its output may change, its signature may
-    /// change, or it may be removed entirely.
-    fn miri_print_borrow_stacks(alloc_id: u64);
-
-    /// Miri-provided extern function to print (from the interpreter, not the
-    /// program) the contents of a section of program memory, as bytes. Bytes
-    /// written using this function will emerge from the interpreter's stdout.
-    fn miri_write_to_stdout(bytes: &[u8]);
-
-    /// Miri-provided extern function to print (from the interpreter, not the
-    /// program) the contents of a section of program memory, as bytes. Bytes
-    /// written using this function will emerge from the interpreter's stderr.
-    fn miri_write_to_stderr(bytes: &[u8]);
 }
 ```
 

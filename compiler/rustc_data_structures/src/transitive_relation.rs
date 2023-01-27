@@ -1,5 +1,5 @@
 use crate::frozen::Frozen;
-use crate::fx::{FxHashSet, FxIndexSet};
+use crate::fx::FxIndexSet;
 use rustc_index::bit_set::BitMatrix;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -16,7 +16,7 @@ pub struct TransitiveRelationBuilder<T> {
 
     // List of base edges in the graph. Require to compute transitive
     // closure.
-    edges: FxHashSet<Edge>,
+    edges: Vec<Edge>,
 }
 
 #[derive(Debug)]
@@ -52,10 +52,10 @@ impl<T: Eq + Hash> Default for TransitiveRelationBuilder<T> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Debug)]
 struct Index(usize);
 
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct Edge {
     source: Index,
     target: Index,
@@ -99,7 +99,9 @@ impl<T: Eq + Hash + Copy> TransitiveRelationBuilder<T> {
         let a = self.add_index(a);
         let b = self.add_index(b);
         let edge = Edge { source: a, target: b };
-        self.edges.insert(edge);
+        if !self.edges.contains(&edge) {
+            self.edges.push(edge);
+        }
     }
 
     /// Compute the transitive closure derived from the edges, and converted to

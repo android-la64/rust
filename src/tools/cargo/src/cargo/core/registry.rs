@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::task::{ready, Poll};
+use std::task::Poll;
 
 use crate::core::PackageSet;
 use crate::core::{Dependency, PackageId, QueryKind, Source, SourceId, SourceMap, Summary};
@@ -482,7 +482,10 @@ impl<'cfg> PackageRegistry<'cfg> {
         for &s in self.overrides.iter() {
             let src = self.sources.get_mut(s).unwrap();
             let dep = Dependency::new_override(dep.package_name(), s);
-            let mut results = ready!(src.query_vec(&dep, QueryKind::Exact))?;
+            let mut results = match src.query_vec(&dep, QueryKind::Exact) {
+                Poll::Ready(results) => results?,
+                Poll::Pending => return Poll::Pending,
+            };
             if !results.is_empty() {
                 return Poll::Ready(Ok(Some(results.remove(0))));
             }
@@ -577,7 +580,10 @@ impl<'cfg> Registry for PackageRegistry<'cfg> {
         assert!(self.patches_locked);
         let (override_summary, n, to_warn) = {
             // Look for an override and get ready to query the real source.
-            let override_summary = ready!(self.query_overrides(dep))?;
+            let override_summary = match self.query_overrides(dep) {
+                Poll::Ready(override_summary) => override_summary?,
+                Poll::Pending => return Poll::Pending,
+            };
 
             // Next up on our list of candidates is to check the `[patch]`
             // section of the manifest. Here we look through all patches
@@ -874,17 +880,23 @@ fn summary_for_patch(
     // No summaries found, try to help the user figure out what is wrong.
     if let Some(locked) = locked {
         // Since the locked patch did not match anything, try the unlocked one.
-        let orig_matches =
-            ready!(source.query_vec(orig_patch, QueryKind::Exact)).unwrap_or_else(|e| {
-                log::warn!(
-                    "could not determine unlocked summaries for dep {:?}: {:?}",
-                    orig_patch,
-                    e
-                );
-                Vec::new()
-            });
+        let orig_matches = match source.query_vec(orig_patch, QueryKind::Exact) {
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(deps) => deps,
+        }
+        .unwrap_or_else(|e| {
+            log::warn!(
+                "could not determine unlocked summaries for dep {:?}: {:?}",
+                orig_patch,
+                e
+            );
+            Vec::new()
+        });
 
-        let summary = ready!(summary_for_patch(orig_patch, &None, orig_matches, source))?;
+        let summary = match summary_for_patch(orig_patch, &None, orig_matches, source) {
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(summary) => summary?,
+        };
 
         // The unlocked version found a match. This returns a value to
         // indicate that this entry should be unlocked.
@@ -893,15 +905,18 @@ fn summary_for_patch(
     // Try checking if there are *any* packages that match this by name.
     let name_only_dep = Dependency::new_override(orig_patch.package_name(), orig_patch.source_id());
 
-    let name_summaries =
-        ready!(source.query_vec(&name_only_dep, QueryKind::Exact)).unwrap_or_else(|e| {
-            log::warn!(
-                "failed to do name-only summary query for {:?}: {:?}",
-                name_only_dep,
-                e
-            );
-            Vec::new()
-        });
+    let name_summaries = match source.query_vec(&name_only_dep, QueryKind::Exact) {
+        Poll::Pending => return Poll::Pending,
+        Poll::Ready(deps) => deps,
+    }
+    .unwrap_or_else(|e| {
+        log::warn!(
+            "failed to do name-only summary query for {:?}: {:?}",
+            name_only_dep,
+            e
+        );
+        Vec::new()
+    });
     let mut vers = name_summaries
         .iter()
         .map(|summary| summary.version())

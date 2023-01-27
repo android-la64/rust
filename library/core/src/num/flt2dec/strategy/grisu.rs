@@ -253,6 +253,7 @@ pub fn format_shortest_opt<'a>(
     let delta1frac = delta1 & ((1 << e) - 1);
 
     // render integral parts, while checking for the accuracy at each step.
+    let mut kappa = max_kappa as i16;
     let mut ten_kappa = max_ten_kappa; // 10^kappa
     let mut remainder = plus1int; // digits yet to be rendered
     loop {
@@ -289,10 +290,12 @@ pub fn format_shortest_opt<'a>(
         // the exact number of digits is `max_kappa + 1` as `plus1 < 10^(max_kappa+1)`.
         if i > max_kappa as usize {
             debug_assert_eq!(ten_kappa, 1);
+            debug_assert_eq!(kappa, 0);
             break;
         }
 
         // restore invariants
+        kappa -= 1;
         ten_kappa /= 10;
         remainder = r;
     }
@@ -335,6 +338,7 @@ pub fn format_shortest_opt<'a>(
         }
 
         // restore invariants
+        kappa -= 1;
         remainder = r;
     }
 

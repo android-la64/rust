@@ -16,6 +16,7 @@
 
 #![feature(core_intrinsics)]
 #![feature(start)]
+#![feature(bench_black_box)]
 #![allow(invalid_value)]
 
 use std::hint::black_box;

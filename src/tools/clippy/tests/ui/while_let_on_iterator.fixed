@@ -1,12 +1,14 @@
 // run-rustfix
+
 #![warn(clippy::while_let_on_iterator)]
-#![allow(dead_code, unreachable_code, unused_mut)]
 #![allow(
+    clippy::never_loop,
+    unreachable_code,
+    unused_mut,
+    dead_code,
     clippy::equatable_if_let,
     clippy::manual_find,
-    clippy::never_loop,
-    clippy::redundant_closure_call,
-    clippy::uninlined_format_args
+    clippy::redundant_closure_call
 )]
 
 fn base() {

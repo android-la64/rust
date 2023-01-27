@@ -1,4 +1,3 @@
-use codegen::ir::UserFuncName;
 use cranelift::prelude::*;
 use cranelift_codegen::settings::{self, Configurable};
 use cranelift_jit::{JITBuilder, JITModule};
@@ -36,8 +35,7 @@ fn main() {
         .unwrap();
 
     ctx.func.signature = sig_a;
-    ctx.func.name = UserFuncName::user(0, func_a.as_u32());
-
+    ctx.func.name = ExternalName::user(0, func_a.as_u32());
     {
         let mut bcx: FunctionBuilder = FunctionBuilder::new(&mut ctx.func, &mut func_ctx);
         let block = bcx.create_block();
@@ -55,8 +53,7 @@ fn main() {
     module.clear_context(&mut ctx);
 
     ctx.func.signature = sig_b;
-    ctx.func.name = UserFuncName::user(0, func_b.as_u32());
-
+    ctx.func.name = ExternalName::user(0, func_b.as_u32());
     {
         let mut bcx: FunctionBuilder = FunctionBuilder::new(&mut ctx.func, &mut func_ctx);
         let block = bcx.create_block();

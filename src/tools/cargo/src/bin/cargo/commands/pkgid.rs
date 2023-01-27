@@ -3,11 +3,11 @@ use crate::command_prelude::*;
 use cargo::ops;
 use cargo::util::print_available_packages;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("pkgid")
         .about("Print a fully qualified package specification")
         .arg_quiet()
-        .arg(Arg::new("spec").action(ArgAction::Set))
+        .arg(Arg::new("spec"))
         .arg_package("Argument to get the package ID specifier for")
         .arg_manifest_path()
         .after_help("Run `cargo help pkgid` for more detailed information.\n")

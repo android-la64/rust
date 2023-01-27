@@ -14,7 +14,7 @@ use rustc_ast::{NodeId, DUMMY_NODE_ID};
 use rustc_ast_pretty::pprust;
 use rustc_attr::{self as attr, TransparencyError};
 use rustc_data_structures::fx::{FxHashMap, FxIndexMap};
-use rustc_errors::{Applicability, Diagnostic, DiagnosticBuilder, DiagnosticMessage};
+use rustc_errors::{Applicability, Diagnostic, DiagnosticBuilder};
 use rustc_feature::Features;
 use rustc_lint_defs::builtin::{
     RUST_2021_INCOMPATIBLE_OR_PATTERNS, SEMICOLON_IN_EXPRESSIONS_FROM_MACROS,
@@ -68,22 +68,19 @@ fn emit_frag_parse_err(
     kind: AstFragmentKind,
 ) {
     // FIXME(davidtwco): avoid depending on the error message text
-    if parser.token == token::Eof
-        && let DiagnosticMessage::Str(message) = &e.message[0].0
-        && message.ends_with(", found `<eof>`")
-    {
+    if parser.token == token::Eof && e.message[0].0.expect_str().ends_with(", found `<eof>`") {
+        if !e.span.is_dummy() {
+            // early end of macro arm (#52866)
+            e.replace_span_with(parser.sess.source_map().next_point(parser.token.span));
+        }
         let msg = &e.message[0];
         e.message[0] = (
-            DiagnosticMessage::Str(format!(
+            rustc_errors::DiagnosticMessage::Str(format!(
                 "macro expansion ends with an incomplete expression: {}",
-                message.replace(", found `<eof>`", ""),
+                msg.0.expect_str().replace(", found `<eof>`", ""),
             )),
             msg.1,
         );
-        if !e.span.is_dummy() {
-            // early end of macro arm (#52866)
-            e.replace_span_with(parser.token.span.shrink_to_hi());
-        }
     }
     if e.span.is_dummy() {
         // Get around lack of span in error (#30128)
@@ -250,7 +247,6 @@ fn expand_macro<'cx>(
     // hacky, but speeds up the `html5ever` benchmark significantly. (Issue
     // 68836 suggests a more comprehensive but more complex change to deal with
     // this situation.)
-    // FIXME(Nilstrieb): Stop recovery from happening on this parser and retry later with recovery if the macro failed to match.
     let parser = parser_from_cx(sess, arg.clone());
 
     // Try each arm's matchers.
@@ -597,14 +593,14 @@ pub fn compile_declarative_macro(
     (mk_syn_ext(expander), rule_spans)
 }
 
-#[derive(Subdiagnostic)]
+#[derive(SessionSubdiagnostic)]
 enum ExplainDocComment {
-    #[label(expand_explain_doc_comment_inner)]
+    #[label(expand::explain_doc_comment_inner)]
     Inner {
         #[primary_span]
         span: Span,
     },
-    #[label(expand_explain_doc_comment_outer)]
+    #[label(expand::explain_doc_comment_outer)]
     Outer {
         #[primary_span]
         span: Span,

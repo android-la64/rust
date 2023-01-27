@@ -9,6 +9,7 @@ fn foo(x: Ty) -> Ty {
         Ty::List(elem) => foo(elem),
         //~^ ERROR mismatched types
         //~| HELP consider unboxing the value
+        //~| HELP try wrapping
     }
 }
 

@@ -21,6 +21,7 @@ use Cow::*;
 impl<'a, B: ?Sized> Borrow<B> for Cow<'a, B>
 where
     B: ToOwned,
+    <B as ToOwned>::Owned: 'a,
 {
     fn borrow(&self) -> &B {
         &**self

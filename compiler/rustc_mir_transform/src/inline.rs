@@ -7,6 +7,7 @@ use rustc_index::vec::Idx;
 use rustc_middle::middle::codegen_fn_attrs::{CodegenFnAttrFlags, CodegenFnAttrs};
 use rustc_middle::mir::visit::*;
 use rustc_middle::mir::*;
+use rustc_middle::ty::subst::Subst;
 use rustc_middle::ty::{self, Instance, InstanceDef, ParamEnv, Ty, TyCtxt};
 use rustc_session::config::OptLevel;
 use rustc_span::def_id::DefId;
@@ -605,7 +606,7 @@ impl<'tcx> Inliner<'tcx> {
                 caller_body.required_consts.extend(
                     callee_body.required_consts.iter().copied().filter(|&ct| match ct.literal {
                         ConstantKind::Ty(_) => {
-                            bug!("should never encounter ty::UnevaluatedConst in `required_consts`")
+                            bug!("should never encounter ty::Unevaluated in `required_consts`")
                         }
                         ConstantKind::Val(..) | ConstantKind::Unevaluated(..) => true,
                     }),
@@ -977,21 +978,6 @@ impl Integrator<'_, '_> {
         trace!("mapping block `{:?}` to `{:?}`", block, new);
         new
     }
-
-    fn map_unwind(&self, unwind: Option<BasicBlock>) -> Option<BasicBlock> {
-        if self.in_cleanup_block {
-            if unwind.is_some() {
-                bug!("cleanup on cleanup block");
-            }
-            return unwind;
-        }
-
-        match unwind {
-            Some(target) => Some(self.map_block(target)),
-            // Add an unwind edge to the original call's cleanup block
-            None => self.cleanup_block,
-        }
-    }
 }
 
 impl<'tcx> MutVisitor<'tcx> for Integrator<'_, 'tcx> {
@@ -1100,17 +1086,35 @@ impl<'tcx> MutVisitor<'tcx> for Integrator<'_, 'tcx> {
             TerminatorKind::Drop { ref mut target, ref mut unwind, .. }
             | TerminatorKind::DropAndReplace { ref mut target, ref mut unwind, .. } => {
                 *target = self.map_block(*target);
-                *unwind = self.map_unwind(*unwind);
+                if let Some(tgt) = *unwind {
+                    *unwind = Some(self.map_block(tgt));
+                } else if !self.in_cleanup_block {
+                    // Unless this drop is in a cleanup block, add an unwind edge to
+                    // the original call's cleanup block
+                    *unwind = self.cleanup_block;
+                }
             }
             TerminatorKind::Call { ref mut target, ref mut cleanup, .. } => {
                 if let Some(ref mut tgt) = *target {
                     *tgt = self.map_block(*tgt);
                 }
-                *cleanup = self.map_unwind(*cleanup);
+                if let Some(tgt) = *cleanup {
+                    *cleanup = Some(self.map_block(tgt));
+                } else if !self.in_cleanup_block {
+                    // Unless this call is in a cleanup block, add an unwind edge to
+                    // the original call's cleanup block
+                    *cleanup = self.cleanup_block;
+                }
             }
             TerminatorKind::Assert { ref mut target, ref mut cleanup, .. } => {
                 *target = self.map_block(*target);
-                *cleanup = self.map_unwind(*cleanup);
+                if let Some(tgt) = *cleanup {
+                    *cleanup = Some(self.map_block(tgt));
+                } else if !self.in_cleanup_block {
+                    // Unless this assert is in a cleanup block, add an unwind edge to
+                    // the original call's cleanup block
+                    *cleanup = self.cleanup_block;
+                }
             }
             TerminatorKind::Return => {
                 terminator.kind = if let Some(tgt) = self.callsite.target {
@@ -1138,8 +1142,11 @@ impl<'tcx> MutVisitor<'tcx> for Integrator<'_, 'tcx> {
             TerminatorKind::InlineAsm { ref mut destination, ref mut cleanup, .. } => {
                 if let Some(ref mut tgt) = *destination {
                     *tgt = self.map_block(*tgt);
+                } else if !self.in_cleanup_block {
+                    // Unless this inline asm is in a cleanup block, add an unwind edge to
+                    // the original call's cleanup block
+                    *cleanup = self.cleanup_block;
                 }
-                *cleanup = self.map_unwind(*cleanup);
             }
         }
     }

@@ -1,7 +1,6 @@
+use pretty_assertions::assert_eq;
 use std::fmt;
 use std::iter::FromIterator;
-
-use snapbox::assert_eq;
 use toml_edit::{array, table, value, Document, Item, Key, Table, Value};
 
 macro_rules! parse_key {
@@ -54,9 +53,8 @@ impl Test {
         self
     }
 
-    #[track_caller]
     fn produces_display(&self, expected: &str) -> &Self {
-        assert_eq(expected, self.doc.to_string());
+        assert_eq!(PrettyString(expected), PrettyString(&self.doc.to_string()));
         self
     }
 }
@@ -66,7 +64,8 @@ impl Test {
 #[test]
 fn test_insert_leaf_table() {
     given(
-        r#"[servers]
+        r#"
+        [servers]
 
         [servers.alpha]
         ip = "10.0.0.1"
@@ -80,7 +79,8 @@ fn test_insert_leaf_table() {
         root["servers"]["beta"]["dc"] = value("eqdc10");
     })
     .produces_display(
-        r#"[servers]
+        r#"
+        [servers]
 
         [servers.alpha]
         ip = "10.0.0.1"
@@ -198,7 +198,8 @@ fn test_insert_values() {
         root["tbl"]["key3"] = value(8.1415926);
     })
     .produces_display(
-        r#"[tbl]
+        r#"
+[tbl]
 key1 = "value1"
 key2 = 42
 key3 = 8.1415926
@@ -390,7 +391,7 @@ fn test_remove_value() {
         let value = value.as_value().unwrap();
         assert!(value.is_str());
         let value = value.as_str().unwrap();
-        assert_eq(value, "1.0.0");
+        assert_eq!(value, "1.0.0");
     })
     .produces_display(
         r#"
@@ -829,7 +830,8 @@ fn test_insert_dotted_into_std_table() {
             root["nixpkgs"]["src"]["git"] = value("https://github.com/nixos/nixpkgs");
         })
         .produces_display(
-            r#"[nixpkgs]
+            r#"
+[nixpkgs]
 src.git = "https://github.com/nixos/nixpkgs"
 "#,
         );
@@ -848,7 +850,8 @@ fn test_insert_dotted_into_implicit_table() {
                 .set_dotted(true);
         })
         .produces_display(
-            r#"[nixpkgs]
+            r#"
+[nixpkgs]
 src.git = "https://github.com/nixos/nixpkgs"
 "#,
         );

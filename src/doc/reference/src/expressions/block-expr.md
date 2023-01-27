@@ -103,7 +103,7 @@ Async contexts are established by async blocks as well as the bodies of async fu
 
 Async blocks act like a function boundary, much like closures.
 Therefore, the `?` operator and `return` expressions both affect the output of the future, not the enclosing function or other context.
-That is, `return <expr>` from within an async block will return the result of `<expr>` as the output of the future.
+That is, `return <expr>` from within a closure will return the result of `<expr>` as the output of the future.
 Similarly, if `<expr>?` propagates an error, that error is propagated as the result of the future.
 
 Finally, the `break` and `continue` keywords cannot be used to branch out from an async block.
@@ -112,7 +112,7 @@ Therefore the following is illegal:
 ```rust,compile_fail
 loop {
     async move {
-        break; // error[E0267]: `break` inside of an `async` block
+        break; // This would break out of the loop.
     }
 }
 ```
@@ -139,10 +139,6 @@ unsafe {
 # unsafe fn an_unsafe_fn() -> i32 { 10 }
 let a = unsafe { an_unsafe_fn() };
 ```
-
-## Labelled block expressions
-
-Labelled block expressions are documented in the [Loops and other breakable expressions] section.
 
 ## Attributes on block expressions
 
@@ -193,4 +189,3 @@ fn is_unix_platform() -> bool {
 [tuple expressions]: tuple-expr.md
 [unsafe operations]: ../unsafety.md
 [value expressions]: ../expressions.md#place-expressions-and-value-expressions
-[Loops and other breakable expressions]: loop-expr.md#labelled-block-expressions

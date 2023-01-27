@@ -267,7 +267,7 @@
 //!
 //! # Minimum Supported `rustc` Version
 //!
-//! This crate's minimum supported `rustc` version is `1.56.0`.
+//! This crate's minimum supported `rustc` version is `1.36.0`.
 //!
 //! If only the `std` feature is enabled, MSRV will be updated conservatively.
 //! When using other features, like `parking_lot`, MSRV might be updated more frequently, up to the latest stable.
@@ -348,8 +348,10 @@ pub mod unsync {
         cell::{Cell, UnsafeCell},
         fmt, hint, mem,
         ops::{Deref, DerefMut},
-        panic::{RefUnwindSafe, UnwindSafe},
     };
+
+    #[cfg(feature = "std")]
+    use std::panic::{RefUnwindSafe, UnwindSafe};
 
     /// A cell which can be written to only once. It is not thread safe.
     ///
@@ -380,7 +382,9 @@ pub mod unsync {
     // `&unsync::OnceCell` to sneak a `T` through `catch_unwind`,
     // by initializing the cell in closure and extracting the value in the
     // `Drop`.
+    #[cfg(feature = "std")]
     impl<T: RefUnwindSafe + UnwindSafe> RefUnwindSafe for OnceCell<T> {}
+    #[cfg(feature = "std")]
     impl<T: UnwindSafe> UnwindSafe for OnceCell<T> {}
 
     impl<T> Default for OnceCell<T> {
@@ -676,6 +680,7 @@ pub mod unsync {
         init: Cell<Option<F>>,
     }
 
+    #[cfg(feature = "std")]
     impl<T, F: RefUnwindSafe> RefUnwindSafe for Lazy<T, F> where OnceCell<T>: RefUnwindSafe {}
 
     impl<T: fmt::Debug, F> fmt::Debug for Lazy<T, F> {
@@ -737,25 +742,6 @@ pub mod unsync {
             })
         }
 
-        /// Forces the evaluation of this lazy value and returns a mutable reference to
-        /// the result.
-        ///
-        /// This is equivalent to the `DerefMut` impl, but is explicit.
-        ///
-        /// # Example
-        /// ```
-        /// use once_cell::unsync::Lazy;
-        ///
-        /// let mut lazy = Lazy::new(|| 92);
-        ///
-        /// assert_eq!(Lazy::force_mut(&mut lazy), &92);
-        /// assert_eq!(*lazy, 92);
-        /// ```
-        pub fn force_mut(this: &mut Lazy<T, F>) -> &mut T {
-            Self::force(this);
-            Self::get_mut(this).unwrap_or_else(|| unreachable!())
-        }
-
         /// Gets the reference to the result of this lazy value if
         /// it was initialized, otherwise returns `None`.
         ///
@@ -771,23 +757,6 @@ pub mod unsync {
         /// ```
         pub fn get(this: &Lazy<T, F>) -> Option<&T> {
             this.cell.get()
-        }
-
-        /// Gets the mutable reference to the result of this lazy value if
-        /// it was initialized, otherwise returns `None`.
-        ///
-        /// # Example
-        /// ```
-        /// use once_cell::unsync::Lazy;
-        ///
-        /// let mut lazy = Lazy::new(|| 92);
-        ///
-        /// assert_eq!(Lazy::get_mut(&mut lazy), None);
-        /// assert_eq!(*lazy, 92);
-        /// assert_eq!(Lazy::get_mut(&mut lazy), Some(&mut 92));
-        /// ```
-        pub fn get_mut(this: &mut Lazy<T, F>) -> Option<&mut T> {
-            this.cell.get_mut()
         }
     }
 
@@ -1220,6 +1189,7 @@ pub mod sync {
     unsafe impl<T, F: Send> Sync for Lazy<T, F> where OnceCell<T>: Sync {}
     // auto-derived `Send` impl is OK.
 
+    #[cfg(feature = "std")]
     impl<T, F: RefUnwindSafe> RefUnwindSafe for Lazy<T, F> where OnceCell<T>: RefUnwindSafe {}
 
     impl<T, F> Lazy<T, F> {
@@ -1262,23 +1232,6 @@ pub mod sync {
             })
         }
 
-        /// Forces the evaluation of this lazy value and
-        /// returns a mutable reference to the result. This is equivalent
-        /// to the `Deref` impl, but is explicit.
-        ///
-        /// # Example
-        /// ```
-        /// use once_cell::sync::Lazy;
-        ///
-        /// let mut lazy = Lazy::new(|| 92);
-        ///
-        /// assert_eq!(Lazy::force_mut(&mut lazy), &mut 92);
-        /// ```
-        pub fn force_mut(this: &mut Lazy<T, F>) -> &mut T {
-            Self::force(this);
-            Self::get_mut(this).unwrap_or_else(|| unreachable!())
-        }
-
         /// Gets the reference to the result of this lazy value if
         /// it was initialized, otherwise returns `None`.
         ///
@@ -1294,23 +1247,6 @@ pub mod sync {
         /// ```
         pub fn get(this: &Lazy<T, F>) -> Option<&T> {
             this.cell.get()
-        }
-
-        /// Gets the reference to the result of this lazy value if
-        /// it was initialized, otherwise returns `None`.
-        ///
-        /// # Example
-        /// ```
-        /// use once_cell::sync::Lazy;
-        ///
-        /// let mut lazy = Lazy::new(|| 92);
-        ///
-        /// assert_eq!(Lazy::get_mut(&mut lazy), None);
-        /// assert_eq!(&*lazy, &92);
-        /// assert_eq!(Lazy::get_mut(&mut lazy), Some(&mut 92));
-        /// ```
-        pub fn get_mut(this: &mut Lazy<T, F>) -> Option<&mut T> {
-            this.cell.get_mut()
         }
     }
 

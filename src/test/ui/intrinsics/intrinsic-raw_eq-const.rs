@@ -2,6 +2,7 @@
 
 #![feature(core_intrinsics)]
 #![feature(const_intrinsic_raw_eq)]
+#![deny(const_err)]
 
 pub fn main() {
     use std::intrinsics::raw_eq;

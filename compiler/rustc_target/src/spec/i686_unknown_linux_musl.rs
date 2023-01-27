@@ -1,11 +1,12 @@
-use crate::spec::{Cc, FramePointer, LinkerFlavor, Lld, StackProbeType, Target};
+use crate::spec::{FramePointer, LinkerFlavor, StackProbeType, Target};
 
 pub fn target() -> Target {
     let mut base = super::linux_musl_base::opts();
     base.cpu = "pentium4".into();
     base.max_atomic_width = Some(64);
-    base.add_pre_link_args(LinkerFlavor::Gnu(Cc::Yes, Lld::No), &["-m32", "-Wl,-melf_i386"]);
-    base.stack_probes = StackProbeType::X86;
+    base.add_pre_link_args(LinkerFlavor::Gcc, &["-m32", "-Wl,-melf_i386"]);
+    // don't use probe-stack=inline-asm until rust#83139 and rust#84667 are resolved
+    base.stack_probes = StackProbeType::Call;
 
     // The unwinder used by i686-unknown-linux-musl, the LLVM libunwind
     // implementation, apparently relies on frame pointers existing... somehow.

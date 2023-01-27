@@ -1,7 +1,7 @@
 use crate::command_prelude::*;
 use cargo::ops::cargo_config;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("config")
         .about("Inspect configuration values")
         .after_help("Run `cargo help config` for more detailed information.\n")
@@ -9,11 +9,7 @@ pub fn cli() -> Command {
         .arg_required_else_help(true)
         .subcommand(
             subcommand("get")
-                .arg(
-                    Arg::new("key")
-                        .action(ArgAction::Set)
-                        .help("The config key to display"),
-                )
+                .arg(Arg::new("key").help("The config key to display"))
                 .arg(
                     opt("format", "Display format")
                         .value_parser(cargo_config::ConfigFormat::POSSIBLE_VALUES)

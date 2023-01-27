@@ -3,6 +3,9 @@ pub(crate) struct Pretty;
 impl crate::visit_mut::VisitMut for Pretty {
     fn visit_document_mut(&mut self, node: &mut crate::Document) {
         crate::visit_mut::visit_document_mut(self, node);
+        if let Some((_, first)) = node.iter_mut().next() {
+            remove_table_prefix(first);
+        }
     }
 
     fn visit_item_mut(&mut self, node: &mut crate::Item) {
@@ -40,6 +43,19 @@ impl crate::visit_mut::VisitMut for Pretty {
             }
             node.set_trailing("\n");
             node.set_trailing_comma(true);
+        }
+    }
+}
+
+fn remove_table_prefix(node: &mut crate::Item) {
+    match node {
+        crate::Item::None => {}
+        crate::Item::Value(_) => {}
+        crate::Item::Table(t) => t.decor_mut().set_prefix(""),
+        crate::Item::ArrayOfTables(a) => {
+            if let Some(first) = a.values.iter_mut().next() {
+                remove_table_prefix(first);
+            }
         }
     }
 }

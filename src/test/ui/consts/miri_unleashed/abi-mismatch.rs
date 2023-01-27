@@ -2,6 +2,7 @@
 // compile-flags: -Z unleash-the-miri-inside-of-you
 
 #![feature(const_extern_fn)]
+#![allow(const_err)]
 
 const extern "C" fn c_fn() {}
 

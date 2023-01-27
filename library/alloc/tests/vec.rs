@@ -1191,53 +1191,48 @@ fn test_from_iter_specialization_panic_during_iteration_drops() {
 }
 
 #[test]
-fn test_from_iter_specialization_panic_during_drop_doesnt_leak() {
-    static mut DROP_COUNTER_OLD: [usize; 5] = [0; 5];
-    static mut DROP_COUNTER_NEW: [usize; 2] = [0; 2];
+fn test_from_iter_specialization_panic_during_drop_leaks() {
+    static mut DROP_COUNTER: usize = 0;
 
     #[derive(Debug)]
-    struct Old(usize);
+    enum Droppable {
+        DroppedTwice(Box<i32>),
+        PanicOnDrop,
+    }
 
-    impl Drop for Old {
+    impl Drop for Droppable {
         fn drop(&mut self) {
-            unsafe {
-                DROP_COUNTER_OLD[self.0] += 1;
+            match self {
+                Droppable::DroppedTwice(_) => {
+                    unsafe {
+                        DROP_COUNTER += 1;
+                    }
+                    println!("Dropping!")
+                }
+                Droppable::PanicOnDrop => {
+                    if !std::thread::panicking() {
+                        panic!();
+                    }
+                }
             }
-
-            if self.0 == 3 {
-                panic!();
-            }
-
-            println!("Dropped Old: {}", self.0);
         }
     }
 
-    #[derive(Debug)]
-    struct New(usize);
-
-    impl Drop for New {
-        fn drop(&mut self) {
-            unsafe {
-                DROP_COUNTER_NEW[self.0] += 1;
-            }
-
-            println!("Dropped New: {}", self.0);
-        }
-    }
+    let mut to_free: *mut Droppable = core::ptr::null_mut();
+    let mut cap = 0;
 
     let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
-        let v = vec![Old(0), Old(1), Old(2), Old(3), Old(4)];
-        let _ = v.into_iter().map(|x| New(x.0)).take(2).collect::<Vec<_>>();
+        let mut v = vec![Droppable::DroppedTwice(Box::new(123)), Droppable::PanicOnDrop];
+        to_free = v.as_mut_ptr();
+        cap = v.capacity();
+        let _ = v.into_iter().take(0).collect::<Vec<_>>();
     }));
 
-    assert_eq!(unsafe { DROP_COUNTER_OLD[0] }, 1);
-    assert_eq!(unsafe { DROP_COUNTER_OLD[1] }, 1);
-    assert_eq!(unsafe { DROP_COUNTER_OLD[2] }, 1);
-    assert_eq!(unsafe { DROP_COUNTER_OLD[3] }, 1);
-    assert_eq!(unsafe { DROP_COUNTER_OLD[4] }, 1);
-
-    assert_eq!(unsafe { DROP_COUNTER_NEW[0] }, 1);
-    assert_eq!(unsafe { DROP_COUNTER_NEW[1] }, 1);
+    assert_eq!(unsafe { DROP_COUNTER }, 1);
+    // clean up the leak to keep miri happy
+    unsafe {
+        drop(Vec::from_raw_parts(to_free, 0, cap));
+    }
 }
 
 // regression test for issue #85322. Peekable previously implemented InPlaceIterable,

@@ -88,9 +88,6 @@ pub mod ext {
         block_expr(None, None)
     }
 
-    pub fn ty_name(name: ast::Name) -> ast::Type {
-        ty_path(ident_path(&name.to_string()))
-    }
     pub fn ty_bool() -> ast::Type {
         ty_path(ident_path("bool"))
     }
@@ -163,7 +160,6 @@ pub fn assoc_item_list() -> ast::AssocItemList {
     ast_from_text("impl C for D {}")
 }
 
-// FIXME: `ty_params` should be `ast::GenericArgList`
 pub fn impl_(
     ty: ast::Path,
     params: Option<ast::GenericParamList>,
@@ -187,6 +183,10 @@ pub fn impl_trait(
 ) -> ast::Impl {
     let ty_params = ty_params.map_or_else(String::new, |params| params.to_string());
     ast_from_text(&format!("impl{ty_params} {trait_} for {ty}{ty_params} {{}}"))
+}
+
+pub(crate) fn generic_arg_list() -> ast::GenericArgList {
+    ast_from_text("const S: T<> = ();")
 }
 
 pub fn path_segment(name_ref: ast::NameRef) -> ast::PathSegment {
@@ -716,21 +716,6 @@ pub fn generic_param_list(
 ) -> ast::GenericParamList {
     let args = pats.into_iter().join(", ");
     ast_from_text(&format!("fn f<{args}>() {{ }}"))
-}
-
-pub fn type_arg(ty: ast::Type) -> ast::TypeArg {
-    ast_from_text(&format!("const S: T<{ty}> = ();"))
-}
-
-pub fn lifetime_arg(lifetime: ast::Lifetime) -> ast::LifetimeArg {
-    ast_from_text(&format!("const S: T<{lifetime}> = ();"))
-}
-
-pub(crate) fn generic_arg_list(
-    args: impl IntoIterator<Item = ast::GenericArg>,
-) -> ast::GenericArgList {
-    let args = args.into_iter().join(", ");
-    ast_from_text(&format!("const S: T<{args}> = ();"))
 }
 
 pub fn visibility_pub_crate() -> ast::Visibility {

@@ -71,11 +71,16 @@ pub(super) fn check<'tcx>(
         cx,
         GET_UNWRAP,
         span,
-        &format!("called `.get{mut_str}().unwrap()` on a {caller_type}. Using `[]` is more clear and more concise"),
+        &format!(
+            "called `.get{0}().unwrap()` on a {1}. Using `[]` is more clear and more concise",
+            mut_str, caller_type
+        ),
         "try this",
         format!(
-            "{borrow_str}{}[{get_args_str}]",
-            snippet_with_applicability(cx, recv.span, "..", &mut applicability)
+            "{}{}[{}]",
+            borrow_str,
+            snippet_with_applicability(cx, recv.span, "..", &mut applicability),
+            get_args_str
         ),
         applicability,
     );

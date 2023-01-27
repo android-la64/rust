@@ -31,6 +31,7 @@ mod highlight_related;
 mod expand_macro;
 mod extend_selection;
 mod file_structure;
+mod fn_references;
 mod folding_ranges;
 mod goto_declaration;
 mod goto_definition;
@@ -73,7 +74,7 @@ use syntax::SourceFile;
 use crate::navigation_target::{ToNav, TryToNav};
 
 pub use crate::{
-    annotations::{Annotation, AnnotationConfig, AnnotationKind, AnnotationLocation},
+    annotations::{Annotation, AnnotationConfig, AnnotationKind},
     call_hierarchy::CallItem,
     expand_macro::ExpandedMacro,
     file_structure::{StructureNode, StructureNodeKind},
@@ -235,7 +236,7 @@ impl Analysis {
             Env::default(),
             Ok(Vec::new()),
             false,
-            CrateOrigin::CratesIo { repo: None, name: None },
+            CrateOrigin::CratesIo { repo: None },
         );
         change.change_file(file_id, Some(Arc::new(text)));
         change.set_crate_graph(crate_graph);
@@ -428,6 +429,11 @@ impl Analysis {
         self.with_db(|db| references::find_all_refs(&Semantics::new(db), position, search_scope))
     }
 
+    /// Finds all methods and free functions for the file. Does not return tests!
+    pub fn find_all_methods(&self, file_id: FileId) -> Cancellable<Vec<FileRange>> {
+        self.with_db(|db| fn_references::find_all_methods(db, file_id))
+    }
+
     /// Returns a short text describing element at position.
     pub fn hover(
         &self,
@@ -482,18 +488,8 @@ impl Analysis {
     }
 
     /// Returns crates this file belongs too.
-    pub fn crates_for(&self, file_id: FileId) -> Cancellable<Vec<CrateId>> {
-        self.with_db(|db| parent_module::crates_for(db, file_id))
-    }
-
-    /// Returns crates this file belongs too.
-    pub fn transitive_rev_deps(&self, crate_id: CrateId) -> Cancellable<Vec<CrateId>> {
-        self.with_db(|db| db.crate_graph().transitive_rev_deps(crate_id).collect())
-    }
-
-    /// Returns crates this file *might* belong too.
-    pub fn relevant_crates_for(&self, file_id: FileId) -> Cancellable<Vec<CrateId>> {
-        self.with_db(|db| db.relevant_crates(file_id).iter().copied().collect())
+    pub fn crate_for(&self, file_id: FileId) -> Cancellable<Vec<CrateId>> {
+        self.with_db(|db| parent_module::crate_for(db, file_id))
     }
 
     /// Returns the edition of the given crate.

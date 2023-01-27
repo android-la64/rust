@@ -42,8 +42,10 @@ pub trait AsRawFd {
     /// ```no_run
     /// use std::fs::File;
     /// # use std::io;
-    /// #[cfg(any(unix, target_os = "wasi"))]
-    /// use std::os::fd::{AsRawFd, RawFd};
+    /// #[cfg(unix)]
+    /// use std::os::unix::io::{AsRawFd, RawFd};
+    /// #[cfg(target_os = "wasi")]
+    /// use std::os::wasi::io::{AsRawFd, RawFd};
     ///
     /// let mut f = File::open("foo.txt")?;
     /// // Note that `raw_fd` is only valid as long as `f` exists.
@@ -81,8 +83,10 @@ pub trait FromRawFd {
     /// ```no_run
     /// use std::fs::File;
     /// # use std::io;
-    /// #[cfg(any(unix, target_os = "wasi"))]
-    /// use std::os::fd::{FromRawFd, IntoRawFd, RawFd};
+    /// #[cfg(unix)]
+    /// use std::os::unix::io::{FromRawFd, IntoRawFd, RawFd};
+    /// #[cfg(target_os = "wasi")]
+    /// use std::os::wasi::io::{FromRawFd, IntoRawFd, RawFd};
     ///
     /// let f = File::open("foo.txt")?;
     /// # #[cfg(any(unix, target_os = "wasi"))]
@@ -117,8 +121,10 @@ pub trait IntoRawFd {
     /// ```no_run
     /// use std::fs::File;
     /// # use std::io;
-    /// #[cfg(any(unix, target_os = "wasi"))]
-    /// use std::os::fd::{IntoRawFd, RawFd};
+    /// #[cfg(unix)]
+    /// use std::os::unix::io::{IntoRawFd, RawFd};
+    /// #[cfg(target_os = "wasi")]
+    /// use std::os::wasi::io::{IntoRawFd, RawFd};
     ///
     /// let f = File::open("foo.txt")?;
     /// #[cfg(any(unix, target_os = "wasi"))]

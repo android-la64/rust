@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 /// rustdoc format-version.
-pub const FORMAT_VERSION: u32 = 22;
+pub const FORMAT_VERSION: u32 = 21;
 
 /// A `Crate` is the root of the emitted JSON blob. It contains all type/documentation information
 /// about the language items in the local crate, as well as info about external items to allow
@@ -51,11 +51,6 @@ pub struct ItemSummary {
     pub crate_id: u32,
     /// The list of path components for the fully qualified path of this item (e.g.
     /// `["std", "io", "lazy", "Lazy"]` for `std::io::lazy::Lazy`).
-    ///
-    /// Note that items can appear in multiple paths, and the one chosen is implementation
-    /// defined. Currenty, this is the full path to where the item was defined. Eg
-    /// [`String`] is currently `["alloc", "string", "String"]` and [`HashMap`] is
-    /// `["std", "collections", "hash", "map", "HashMap"]`, but this is subject to change.
     pub path: Vec<String>,
     /// Whether this item is a struct, trait, macro, etc.
     pub kind: ItemKind,
@@ -259,7 +254,7 @@ pub enum ItemEnum {
     Macro(String),
     ProcMacro(ProcMacro),
 
-    Primitive(Primitive),
+    PrimitiveType(String),
 
     AssocConst {
         #[serde(rename = "type")]
@@ -712,12 +707,6 @@ pub struct Static {
     pub type_: Type,
     pub mutable: bool,
     pub expr: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Primitive {
-    pub name: String,
-    pub impls: Vec<Id>,
 }
 
 #[cfg(test)]

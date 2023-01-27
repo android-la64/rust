@@ -94,9 +94,9 @@ impl serde::ser::Serializer for KeySerializer {
         self,
         _name: &'static str,
         _variant_index: u32,
-        variant: &'static str,
+        _variant: &'static str,
     ) -> Result<InternalString, Self::Error> {
-        Ok(variant.into())
+        Err(ErrorKind::KeyNotString.into())
     }
 
     fn serialize_newtype_struct<T: ?Sized>(

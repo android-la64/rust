@@ -56,12 +56,4 @@ fn main() {
     write!(v, "foo\r\n");
     write!(v, "\\r\n"); //~ ERROR
     write!(v, "foo\rbar\n");
-
-    // Ignore expanded format strings
-    macro_rules! newline {
-        () => {
-            "\n"
-        };
-    }
-    write!(v, newline!());
 }

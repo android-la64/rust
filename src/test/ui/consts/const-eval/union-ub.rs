@@ -1,4 +1,5 @@
 // stderr-per-bitwidth
+#![allow(const_err)] // make sure we cannot allow away the errors tested here
 
 #[repr(C)]
 union DummyUnion {

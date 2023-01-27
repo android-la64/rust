@@ -16,7 +16,6 @@ impl<F: Duh> Trait for F {
 
 type Sendable = impl Send;
 type Traitable = impl Trait<Assoc = Sendable>;
-//~^ WARN opaque type `Traitable` does not satisfy its associated type bounds
 
 fn foo() -> Traitable {
     42

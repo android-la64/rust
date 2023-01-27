@@ -25,9 +25,7 @@ use crate::infer::combine::ConstEquateRelation;
 use crate::infer::InferCtxt;
 use crate::infer::{ConstVarValue, ConstVariableValue};
 use crate::infer::{TypeVariableOrigin, TypeVariableOriginKind};
-use crate::traits::PredicateObligation;
 use rustc_data_structures::fx::FxHashMap;
-use rustc_middle::traits::ObligationCause;
 use rustc_middle::ty::error::TypeError;
 use rustc_middle::ty::relate::{self, Relate, RelateResult, TypeRelation};
 use rustc_middle::ty::visit::{TypeSuperVisitable, TypeVisitable, TypeVisitor};
@@ -46,7 +44,7 @@ pub struct TypeRelating<'me, 'tcx, D>
 where
     D: TypeRelatingDelegate<'tcx>,
 {
-    infcx: &'me InferCtxt<'tcx>,
+    infcx: &'me InferCtxt<'me, 'tcx>,
 
     /// Callback to use when we deduce an outlives relationship.
     delegate: D,
@@ -93,9 +91,11 @@ pub trait TypeRelatingDelegate<'tcx> {
     );
 
     fn const_equate(&mut self, a: ty::Const<'tcx>, b: ty::Const<'tcx>);
-    fn register_opaque_type_obligations(
+    fn register_opaque_type(
         &mut self,
-        obligations: Vec<PredicateObligation<'tcx>>,
+        a: Ty<'tcx>,
+        b: Ty<'tcx>,
+        a_is_expected: bool,
     ) -> Result<(), TypeError<'tcx>>;
 
     /// Creates a new universe index. Used when instantiating placeholders.
@@ -149,7 +149,11 @@ impl<'me, 'tcx, D> TypeRelating<'me, 'tcx, D>
 where
     D: TypeRelatingDelegate<'tcx>,
 {
-    pub fn new(infcx: &'me InferCtxt<'tcx>, delegate: D, ambient_variance: ty::Variance) -> Self {
+    pub fn new(
+        infcx: &'me InferCtxt<'me, 'tcx>,
+        delegate: D,
+        ambient_variance: ty::Variance,
+    ) -> Self {
         Self {
             infcx,
             delegate,
@@ -353,7 +357,7 @@ where
             // In NLL, we don't have type inference variables
             // floating around, so we can do this rather imprecise
             // variant of the occurs-check.
-            assert!(!generalized_ty.has_non_region_infer());
+            assert!(!generalized_ty.has_infer_types_or_consts());
         }
 
         self.infcx.inner.borrow_mut().type_variables().instantiate(vid, generalized_ty);
@@ -414,12 +418,7 @@ where
             (_, &ty::Opaque(..)) => (generalize(a, true)?, b),
             _ => unreachable!(),
         };
-        let cause = ObligationCause::dummy_with_span(self.delegate.span());
-        let obligations = self
-            .infcx
-            .handle_opaque_type(a, b, true, &cause, self.delegate.param_env())?
-            .obligations;
-        self.delegate.register_opaque_type_obligations(obligations)?;
+        self.delegate.register_opaque_type(a, b, true)?;
         trace!(a = ?a.kind(), b = ?b.kind(), "opaque type instantiated");
         Ok(a)
     }
@@ -868,7 +867,7 @@ struct TypeGeneralizer<'me, 'tcx, D>
 where
     D: TypeRelatingDelegate<'tcx>,
 {
-    infcx: &'me InferCtxt<'tcx>,
+    infcx: &'me InferCtxt<'me, 'tcx>,
 
     delegate: &'me mut D,
 

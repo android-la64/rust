@@ -1,11 +1,10 @@
 use crate::abi::Endian;
-use crate::spec::{StackProbeType, Target};
+use crate::spec::Target;
 
 pub fn target() -> Target {
     let mut base = super::openbsd_base::opts();
     base.endian = Endian::Big;
     base.max_atomic_width = Some(32);
-    base.stack_probes = StackProbeType::Inline;
 
     Target {
         llvm_target: "powerpc-unknown-openbsd".into(),

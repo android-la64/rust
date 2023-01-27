@@ -1,9 +1,5 @@
 #![warn(clippy::match_same_arms)]
-#![allow(
-    clippy::disallowed_names,
-    clippy::diverging_sub_expression,
-    clippy::uninlined_format_args
-)]
+#![allow(clippy::disallowed_names, clippy::diverging_sub_expression)]
 
 fn bar<T>(_: T) {}
 fn foo() -> bool {

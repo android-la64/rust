@@ -4,10 +4,11 @@ use rustc_hir::intravisit::FnKind;
 use rustc_hir::{Body, FnDecl, HirId};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::{LateContext, LateLintPass};
+use rustc_middle::ty::subst::Subst;
 use rustc_middle::ty::{EarlyBinder, Opaque, PredicateKind::Trait};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 use rustc_span::{sym, Span};
-use rustc_trait_selection::traits::error_reporting::suggestions::TypeErrCtxtExt;
+use rustc_trait_selection::traits::error_reporting::suggestions::InferCtxtExt;
 use rustc_trait_selection::traits::{self, FulfillmentError};
 
 declare_clippy_lint! {
@@ -77,9 +78,10 @@ impl<'tcx> LateLintPass<'tcx> for FutureNotSend {
             if is_future {
                 let send_trait = cx.tcx.get_diagnostic_item(sym::Send).unwrap();
                 let span = decl.output.span();
-                let infcx = cx.tcx.infer_ctxt().build();
-                let cause = traits::ObligationCause::misc(span, hir_id);
-                let send_errors = traits::fully_solve_bound(&infcx, cause, cx.param_env, ret_ty, send_trait);
+                let send_errors = cx.tcx.infer_ctxt().enter(|infcx| {
+                    let cause = traits::ObligationCause::misc(span, hir_id);
+                    traits::fully_solve_bound(&infcx, cause, cx.param_env, ret_ty, send_trait)
+                });
                 if !send_errors.is_empty() {
                     span_lint_and_then(
                         cx,
@@ -87,18 +89,18 @@ impl<'tcx> LateLintPass<'tcx> for FutureNotSend {
                         span,
                         "future cannot be sent between threads safely",
                         |db| {
-                            for FulfillmentError { obligation, .. } in send_errors {
-                                infcx
-                                    .err_ctxt()
-                                    .maybe_note_obligation_cause_for_async_await(db, &obligation);
-                                if let Trait(trait_pred) = obligation.predicate.kind().skip_binder() {
-                                    db.note(&format!(
-                                        "`{}` doesn't implement `{}`",
-                                        trait_pred.self_ty(),
-                                        trait_pred.trait_ref.print_only_trait_path(),
-                                    ));
+                            cx.tcx.infer_ctxt().enter(|infcx| {
+                                for FulfillmentError { obligation, .. } in send_errors {
+                                    infcx.maybe_note_obligation_cause_for_async_await(db, &obligation);
+                                    if let Trait(trait_pred) = obligation.predicate.kind().skip_binder() {
+                                        db.note(&format!(
+                                            "`{}` doesn't implement `{}`",
+                                            trait_pred.self_ty(),
+                                            trait_pred.trait_ref.print_only_trait_path(),
+                                        ));
+                                    }
                                 }
-                            }
+                            });
                         },
                     );
                 }

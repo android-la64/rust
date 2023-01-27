@@ -1394,10 +1394,7 @@ int llvm::rewriteLoopExitValues(Loop *L, LoopInfo *LI, TargetLibraryInfo *TLI,
         // and next SCEV may errneously get smaller cost.
 
         // Collect all the candidate PHINodes to be rewritten.
-        Instruction *InsertPt =
-          (isa<PHINode>(Inst) || isa<LandingPadInst>(Inst)) ?
-          &*Inst->getParent()->getFirstInsertionPt() : Inst;
-        RewritePhiSet.emplace_back(PN, i, ExitValue, InsertPt, HighCost);
+        RewritePhiSet.emplace_back(PN, i, ExitValue, Inst, HighCost);
       }
     }
   }

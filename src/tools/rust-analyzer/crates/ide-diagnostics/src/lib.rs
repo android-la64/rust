@@ -150,7 +150,6 @@ pub struct DiagnosticsConfig {
     pub expr_fill_default: ExprFillDefaultMode,
     // FIXME: We may want to include a whole `AssistConfig` here
     pub insert_use: InsertUseConfig,
-    pub prefer_no_std: bool,
 }
 
 impl DiagnosticsConfig {
@@ -171,7 +170,6 @@ impl DiagnosticsConfig {
                 group: false,
                 skip_glob_imports: false,
             },
-            prefer_no_std: false,
         }
     }
 }

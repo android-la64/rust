@@ -4,11 +4,11 @@ use std::cmp::min;
 
 use cargo::ops;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("search")
         .about("Search packages in crates.io")
         .arg_quiet()
-        .arg(Arg::new("query").num_args(0..))
+        .arg(Arg::new("query").multiple_values(true))
         .arg_index()
         .arg(
             opt(

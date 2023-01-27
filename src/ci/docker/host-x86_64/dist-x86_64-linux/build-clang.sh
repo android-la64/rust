@@ -22,7 +22,7 @@ INC="/rustroot/include:/usr/include"
 
 # We need compiler-rt for the profile runtime (used later to PGO the LLVM build)
 # but sanitizers aren't currently building. Since we don't need those, just
-# disable them. BOLT is used for optimizing LLVM.
+# disable them.
 hide_output \
     cmake ../llvm \
       -DCMAKE_C_COMPILER=/rustroot/bin/gcc \
@@ -36,7 +36,7 @@ hide_output \
       -DLLVM_INCLUDE_BENCHMARKS=OFF \
       -DLLVM_INCLUDE_TESTS=OFF \
       -DLLVM_INCLUDE_EXAMPLES=OFF \
-      -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt;bolt" \
+      -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
       -DC_INCLUDE_DIRS="$INC"
 
 hide_output make -j$(nproc)

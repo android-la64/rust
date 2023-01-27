@@ -2,6 +2,8 @@
 
 use std::ops;
 
+use itertools::Itertools;
+
 pub(crate) use gen_trait_fn_body::gen_trait_fn_body;
 use hir::{db::HirDatabase, HirDisplay, Semantics};
 use ide_db::{famous_defs::FamousDefs, path_transform::PathTransform, RootDatabase, SnippetCap};
@@ -13,7 +15,7 @@ use syntax::{
         edit_in_place::{AttrsOwnerEdit, Removable},
         make, HasArgList, HasAttrs, HasGenericParams, HasName, HasTypeBounds, Whitespace,
     },
-    ted, AstNode, AstToken, Direction, SourceFile,
+    ted, AstNode, AstToken, Direction, SmolStr, SourceFile,
     SyntaxKind::*,
     SyntaxNode, TextRange, TextSize, T,
 };
@@ -331,14 +333,10 @@ fn calc_depth(pat: &ast::Pat, depth: usize) -> usize {
 // FIXME: change the new fn checking to a more semantic approach when that's more
 // viable (e.g. we process proc macros, etc)
 // FIXME: this partially overlaps with `find_impl_block_*`
-
-/// `find_struct_impl` looks for impl of a struct, but this also has additional feature
-/// where it takes a list of function names and check if they exist inside impl_, if
-/// even one match is found, it returns None
 pub(crate) fn find_struct_impl(
     ctx: &AssistContext<'_>,
     adt: &ast::Adt,
-    names: &[String],
+    name: &str,
 ) -> Option<Option<ast::Impl>> {
     let db = ctx.db();
     let module = adt.syntax().parent()?;
@@ -366,7 +364,7 @@ pub(crate) fn find_struct_impl(
     });
 
     if let Some(ref impl_blk) = block {
-        if has_any_fn(impl_blk, names) {
+        if has_fn(impl_blk, name) {
             return None;
         }
     }
@@ -374,12 +372,12 @@ pub(crate) fn find_struct_impl(
     Some(block)
 }
 
-fn has_any_fn(imp: &ast::Impl, names: &[String]) -> bool {
+fn has_fn(imp: &ast::Impl, rhs_name: &str) -> bool {
     if let Some(il) = imp.assoc_item_list() {
         for item in il.assoc_items() {
             if let ast::AssocItem::Fn(f) = item {
                 if let Some(name) = f.name() {
-                    if names.iter().any(|n| n.eq_ignore_ascii_case(&name.text())) {
+                    if name.text().eq_ignore_ascii_case(rhs_name) {
                         return true;
                     }
                 }
@@ -426,44 +424,34 @@ pub(crate) fn generate_trait_impl_text(adt: &ast::Adt, trait_text: &str, code: &
 }
 
 fn generate_impl_text_inner(adt: &ast::Adt, trait_text: Option<&str>, code: &str) -> String {
-    // Ensure lifetime params are before type & const params
-    let generic_params = adt.generic_param_list().map(|generic_params| {
-        let lifetime_params =
-            generic_params.lifetime_params().map(ast::GenericParam::LifetimeParam);
-        let ty_or_const_params = generic_params.type_or_const_params().filter_map(|param| {
-            // remove defaults since they can't be specified in impls
-            match param {
-                ast::TypeOrConstParam::Type(param) => {
-                    let param = param.clone_for_update();
-                    param.remove_default();
-                    Some(ast::GenericParam::TypeParam(param))
-                }
-                ast::TypeOrConstParam::Const(param) => {
-                    let param = param.clone_for_update();
-                    param.remove_default();
-                    Some(ast::GenericParam::ConstParam(param))
-                }
-            }
-        });
-
-        make::generic_param_list(itertools::chain(lifetime_params, ty_or_const_params))
-    });
-
-    // FIXME: use syntax::make & mutable AST apis instead
-    // `trait_text` and `code` can't be opaque blobs of text
+    let generic_params = adt.generic_param_list();
     let mut buf = String::with_capacity(code.len());
-
-    // Copy any cfg attrs from the original adt
     buf.push_str("\n\n");
-    let cfg_attrs = adt
-        .attrs()
-        .filter(|attr| attr.as_simple_call().map(|(name, _arg)| name == "cfg").unwrap_or(false));
-    cfg_attrs.for_each(|attr| buf.push_str(&format!("{attr}\n")));
-
-    // `impl{generic_params} {trait_text} for {name}{generic_params.to_generic_args()}`
+    adt.attrs()
+        .filter(|attr| attr.as_simple_call().map(|(name, _arg)| name == "cfg").unwrap_or(false))
+        .for_each(|attr| buf.push_str(format!("{}\n", attr).as_str()));
     buf.push_str("impl");
     if let Some(generic_params) = &generic_params {
-        format_to!(buf, "{generic_params}");
+        let lifetimes = generic_params.lifetime_params().map(|lt| format!("{}", lt.syntax()));
+        let toc_params = generic_params.type_or_const_params().map(|toc_param| {
+            let type_param = match toc_param {
+                ast::TypeOrConstParam::Type(x) => x,
+                ast::TypeOrConstParam::Const(x) => return x.syntax().to_string(),
+            };
+            let mut buf = String::new();
+            if let Some(it) = type_param.name() {
+                format_to!(buf, "{}", it.syntax());
+            }
+            if let Some(it) = type_param.colon_token() {
+                format_to!(buf, "{} ", it);
+            }
+            if let Some(it) = type_param.type_bound_list() {
+                format_to!(buf, "{}", it.syntax());
+            }
+            buf
+        });
+        let generics = lifetimes.chain(toc_params).format(", ");
+        format_to!(buf, "<{}>", generics);
     }
     buf.push(' ');
     if let Some(trait_text) = trait_text {
@@ -472,15 +460,23 @@ fn generate_impl_text_inner(adt: &ast::Adt, trait_text: Option<&str>, code: &str
     }
     buf.push_str(&adt.name().unwrap().text());
     if let Some(generic_params) = generic_params {
-        format_to!(buf, "{}", generic_params.to_generic_args());
+        let lifetime_params = generic_params
+            .lifetime_params()
+            .filter_map(|it| it.lifetime())
+            .map(|it| SmolStr::from(it.text()));
+        let toc_params = generic_params
+            .type_or_const_params()
+            .filter_map(|it| it.name())
+            .map(|it| SmolStr::from(it.text()));
+        format_to!(buf, "<{}>", lifetime_params.chain(toc_params).format(", "))
     }
 
     match adt.where_clause() {
         Some(where_clause) => {
-            format_to!(buf, "\n{where_clause}\n{{\n{code}\n}}");
+            format_to!(buf, "\n{}\n{{\n{}\n}}", where_clause, code);
         }
         None => {
-            format_to!(buf, " {{\n{code}\n}}");
+            format_to!(buf, " {{\n{}\n}}", code);
         }
     }
 

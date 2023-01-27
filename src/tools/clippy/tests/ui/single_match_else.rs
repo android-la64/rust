@@ -1,6 +1,8 @@
 // aux-build: proc_macro_with_span.rs
+
 #![warn(clippy::single_match_else)]
-#![allow(clippy::needless_return, clippy::no_effect, clippy::uninlined_format_args)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::no_effect)]
 
 extern crate proc_macro_with_span;
 use proc_macro_with_span::with_span;

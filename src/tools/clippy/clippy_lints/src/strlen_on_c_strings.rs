@@ -79,7 +79,7 @@ impl<'tcx> LateLintPass<'tcx> for StrlenOnCStrings {
                     span,
                     "using `libc::strlen` on a `CString` or `CStr` value",
                     "try this",
-                    format!("{val_name}.{method_name}().len()"),
+                    format!("{}.{}().len()", val_name, method_name),
                     app,
                 );
             }

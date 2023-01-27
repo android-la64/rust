@@ -80,7 +80,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
 use std::str;
-use std::task::{ready, Poll};
+use std::task::Poll;
 
 /// Crates.io treats hyphen and underscores as interchangeable, but the index and old Cargo do not.
 /// Therefore, the index must store uncanonicalized version of the name so old Cargo's can find it.
@@ -268,7 +268,10 @@ impl<'cfg> RegistryIndex<'cfg> {
     pub fn hash(&mut self, pkg: PackageId, load: &mut dyn RegistryData) -> Poll<CargoResult<&str>> {
         let req = OptVersionReq::exact(pkg.version());
         let summary = self.summaries(pkg.name(), &req, load)?;
-        let summary = ready!(summary).next();
+        let summary = match summary {
+            Poll::Ready(mut summary) => summary.next(),
+            Poll::Pending => return Poll::Pending,
+        };
         Poll::Ready(Ok(summary
             .ok_or_else(|| internal(format!("no hash listed for {}", pkg)))?
             .summary
@@ -299,7 +302,10 @@ impl<'cfg> RegistryIndex<'cfg> {
         // has run previously this will parse a Cargo-specific cache file rather
         // than the registry itself. In effect this is intended to be a quite
         // cheap operation.
-        let summaries = ready!(self.load_summaries(name, load)?);
+        let summaries = match self.load_summaries(name, load)? {
+            Poll::Ready(summaries) => summaries,
+            Poll::Pending => return Poll::Pending,
+        };
 
         // Iterate over our summaries, extract all relevant ones which match our
         // version requirement, and then parse all corresponding rows in the
@@ -416,9 +422,12 @@ impl<'cfg> RegistryIndex<'cfg> {
         f: &mut dyn FnMut(Summary),
     ) -> Poll<CargoResult<()>> {
         if self.config.offline() {
-            // This should only return `Poll::Ready(Ok(()))` if there is at least 1 match.
-            //
-            // If there are 0 matches it should fall through and try again with online.
+            match self.query_inner_with_online(dep, load, yanked_whitelist, f, false)? {
+                Poll::Ready(0) => {}
+                Poll::Ready(_) => return Poll::Ready(Ok(())),
+                Poll::Pending => return Poll::Pending,
+            }
+            // If offline, and there are no matches, try again with online.
             // This is necessary for dependencies that are not used (such as
             // target-cfg or optional), but are not downloaded. Normally the
             // build should succeed if they are not downloaded and not used,
@@ -426,9 +435,6 @@ impl<'cfg> RegistryIndex<'cfg> {
             // then cargo will fail to download and an error message
             // indicating that the required dependency is unavailable while
             // offline will be displayed.
-            if ready!(self.query_inner_with_online(dep, load, yanked_whitelist, f, false)?) > 0 {
-                return Poll::Ready(Ok(()));
-            }
         }
         self.query_inner_with_online(dep, load, yanked_whitelist, f, true)
             .map_ok(|_| ())
@@ -444,7 +450,10 @@ impl<'cfg> RegistryIndex<'cfg> {
     ) -> Poll<CargoResult<usize>> {
         let source_id = self.source_id;
 
-        let summaries = ready!(self.summaries(dep.package_name(), dep.version_req(), load))?;
+        let summaries = match self.summaries(dep.package_name(), dep.version_req(), load)? {
+            Poll::Ready(summaries) => summaries,
+            Poll::Pending => return Poll::Pending,
+        };
 
         let summaries = summaries
             // First filter summaries for `--offline`. If we're online then
@@ -573,7 +582,10 @@ impl Summaries {
             Err(e) => log::debug!("cache missing for {:?} error: {}", relative, e),
         }
 
-        let response = ready!(load.load(root, relative, index_version.as_deref())?);
+        let response = match load.load(root, relative, index_version.as_deref())? {
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(response) => response,
+        };
 
         match response {
             LoadResponse::CacheValid => {
@@ -581,6 +593,7 @@ impl Summaries {
                 return Poll::Ready(Ok(cached_summaries));
             }
             LoadResponse::NotFound => {
+                debug_assert!(cached_summaries.is_none());
                 if let Err(e) = fs::remove_file(cache_path) {
                     if e.kind() != ErrorKind::NotFound {
                         log::debug!("failed to remove from cache: {}", e);

@@ -27,3 +27,8 @@ pub unsafe fn destroy(key: Key) {
     let r = libc::pthread_key_delete(key);
     debug_assert_eq!(r, 0);
 }
+
+#[inline]
+pub fn requires_synchronized_create() -> bool {
+    false
+}

@@ -2,6 +2,7 @@ use crate::core::compiler::{BuildConfig, MessageFormat, TimingOutput};
 use crate::core::resolver::CliFeatures;
 use crate::core::{Edition, Workspace};
 use crate::ops::{CompileFilter, CompileOptions, NewOptions, Packages, VersionControl};
+use crate::sources::CRATES_IO_REGISTRY;
 use crate::util::important_paths::find_root_manifest_for_wd;
 use crate::util::interning::InternedString;
 use crate::util::restricted_names::is_glob_pattern;
@@ -19,12 +20,12 @@ use std::path::PathBuf;
 
 pub use crate::core::compiler::CompileMode;
 pub use crate::{CliError, CliResult, Config};
-pub use clap::{value_parser, Arg, ArgAction, ArgMatches};
+pub use clap::{value_parser, AppSettings, Arg, ArgAction, ArgMatches};
 
-pub use clap::Command;
+pub type App = clap::Command<'static>;
 
-pub trait CommandExt: Sized {
-    fn _arg(self, arg: Arg) -> Self;
+pub trait AppExt: Sized {
+    fn _arg(self, arg: Arg<'static>) -> Self;
 
     /// Do not use this method, it is only for backwards compatibility.
     /// Use `arg_package_spec_no_all` instead.
@@ -254,42 +255,50 @@ pub trait CommandExt: Sized {
     }
 }
 
-impl CommandExt for Command {
-    fn _arg(self, arg: Arg) -> Self {
+impl AppExt for App {
+    fn _arg(self, arg: Arg<'static>) -> Self {
         self.arg(arg)
     }
 }
 
-pub fn flag(name: &'static str, help: &'static str) -> Arg {
+pub fn flag(name: &'static str, help: &'static str) -> Arg<'static> {
     Arg::new(name)
         .long(name)
         .help(help)
         .action(ArgAction::SetTrue)
 }
 
-pub fn opt(name: &'static str, help: &'static str) -> Arg {
-    Arg::new(name).long(name).help(help).action(ArgAction::Set)
+pub fn opt(name: &'static str, help: &'static str) -> Arg<'static> {
+    Arg::new(name).long(name).help(help)
 }
 
-pub fn optional_opt(name: &'static str, help: &'static str) -> Arg {
-    opt(name, help).num_args(0..=1)
+pub fn optional_opt(name: &'static str, help: &'static str) -> Arg<'static> {
+    opt(name, help).min_values(0)
 }
 
-pub fn optional_multi_opt(name: &'static str, value_name: &'static str, help: &'static str) -> Arg {
-    opt(name, help)
-        .value_name(value_name)
-        .num_args(0..=1)
-        .action(ArgAction::Append)
-}
-
-pub fn multi_opt(name: &'static str, value_name: &'static str, help: &'static str) -> Arg {
+pub fn optional_multi_opt(
+    name: &'static str,
+    value_name: &'static str,
+    help: &'static str,
+) -> Arg<'static> {
     opt(name, help)
         .value_name(value_name)
         .action(ArgAction::Append)
+        .multiple_values(true)
+        .min_values(0)
+        .number_of_values(1)
 }
 
-pub fn subcommand(name: &'static str) -> Command {
-    Command::new(name)
+pub fn multi_opt(name: &'static str, value_name: &'static str, help: &'static str) -> Arg<'static> {
+    opt(name, help)
+        .value_name(value_name)
+        .action(ArgAction::Append)
+}
+
+pub fn subcommand(name: &'static str) -> App {
+    App::new(name)
+        .dont_collapse_args_in_usage(true)
+        .setting(AppSettings::DeriveDisplayOrder)
 }
 
 /// Determines whether or not to gate `--profile` as unstable when resolving it.
@@ -310,7 +319,7 @@ pub trait ArgMatchesExt {
             None => None,
             Some(arg) => Some(arg.parse::<u32>().map_err(|_| {
                 clap::Error::raw(
-                    clap::error::ErrorKind::ValueValidation,
+                    clap::ErrorKind::ValueValidation,
                     format!("Invalid value: could not parse `{}` as a number", arg),
                 )
             })?),
@@ -323,7 +332,7 @@ pub trait ArgMatchesExt {
             None => None,
             Some(arg) => Some(arg.parse::<i32>().map_err(|_| {
                 clap::Error::raw(
-                    clap::error::ErrorKind::ValueValidation,
+                    clap::ErrorKind::ValueValidation,
                     format!("Invalid value: could not parse `{}` as a number", arg),
                 )
             })?),
@@ -600,6 +609,7 @@ pub trait ArgMatchesExt {
             target_rustdoc_args: None,
             target_rustc_args: None,
             target_rustc_crate_types: None,
+            local_rustdoc_args: None,
             rustdoc_document_private_items: false,
             honor_rust_version: !self.flag("ignore-rust-version"),
         };
@@ -667,7 +677,17 @@ pub trait ArgMatchesExt {
         match self._value_of("registry") {
             Some(registry) => {
                 validate_package_name(registry, "registry name", "")?;
-                Ok(Some(registry.to_string()))
+
+                if registry == CRATES_IO_REGISTRY {
+                    // If "crates.io" is specified, then we just need to return `None`,
+                    // as that will cause cargo to use crates.io. This is required
+                    // for the case where a default alternative registry is used
+                    // but the user wants to switch back to crates.io for a single
+                    // command.
+                    Ok(None)
+                } else {
+                    Ok(Some(registry.to_string()))
+                }
             }
             None => config.default_registry(),
         }
@@ -772,7 +792,7 @@ pub fn values_os(args: &ArgMatches, name: &str) -> Vec<OsString> {
 }
 
 #[track_caller]
-pub fn ignore_unknown<T: Default>(r: Result<T, clap::parser::MatchesError>) -> T {
+fn ignore_unknown<T: Default>(r: Result<T, clap::parser::MatchesError>) -> T {
     match r {
         Ok(t) => t,
         Err(clap::parser::MatchesError::UnknownArgument { .. }) => Default::default(),

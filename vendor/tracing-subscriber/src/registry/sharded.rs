@@ -275,13 +275,6 @@ impl Subscriber for Registry {
 
     fn record_follows_from(&self, _span: &span::Id, _follows: &span::Id) {}
 
-    fn event_enabled(&self, _event: &Event<'_>) -> bool {
-        if self.has_per_layer_filters() {
-            return FilterState::event_enabled();
-        }
-        true
-    }
-
     /// This is intentionally not implemented, as recording events
     /// is the responsibility of layers atop of this registry.
     fn event(&self, _: &Event<'_>) {}

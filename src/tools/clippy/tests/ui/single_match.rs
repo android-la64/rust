@@ -1,5 +1,4 @@
 #![warn(clippy::single_match)]
-#![allow(clippy::uninlined_format_args)]
 
 fn dummy() {}
 

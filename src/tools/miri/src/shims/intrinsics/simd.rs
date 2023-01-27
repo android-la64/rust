@@ -6,8 +6,8 @@ use rustc_target::abi::{Endian, HasDataLayout, Size};
 use crate::*;
 use helpers::check_arg_count;
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     /// Calls the simd intrinsic `intrinsic`; the `simd_` prefix has already been removed.
     fn emulate_simd_intrinsic(
         &mut self,
@@ -437,13 +437,13 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                     let val = match (op.layout.ty.kind(), dest.layout.ty.kind()) {
                         // Int-to-(int|float): always safe
                         (ty::Int(_) | ty::Uint(_), ty::Int(_) | ty::Uint(_) | ty::Float(_)) =>
-                            this.int_to_int_or_float(&op, dest.layout.ty)?,
+                            this.misc_cast(&op, dest.layout.ty)?,
                         // Float-to-float: always safe
                         (ty::Float(_), ty::Float(_)) =>
-                            this.float_to_float_or_int(&op, dest.layout.ty)?,
+                            this.misc_cast(&op, dest.layout.ty)?,
                         // Float-to-int in safe mode
                         (ty::Float(_), ty::Int(_) | ty::Uint(_)) if safe_cast =>
-                            this.float_to_float_or_int(&op, dest.layout.ty)?,
+                            this.misc_cast(&op, dest.layout.ty)?,
                         // Float-to-int in unchecked mode
                         (ty::Float(FloatTy::F32), ty::Int(_) | ty::Uint(_)) if !safe_cast =>
                             this.float_to_int_unchecked(op.to_scalar().to_f32()?, dest.layout.ty)?.into(),

@@ -5,18 +5,20 @@ You can use `--` to escape further arguments.
 Let's see what this looks like in the help:
 ```console
 $ escaped-positional --help
+clap [..]
 A simple to use, efficient, and full-featured Command Line Argument Parser
 
-Usage: escaped-positional[EXE] [OPTIONS] [-- <SLOP>...]
+USAGE:
+    escaped-positional[EXE] [OPTIONS] [-- <SLOP>...]
 
-Arguments:
-  [SLOP]...  
+ARGS:
+    <SLOP>...    
 
-Options:
-  -f             
-  -p <PEAR>      
-  -h, --help     Print help information
-  -V, --version  Print version information
+OPTIONS:
+    -f               
+    -h, --help       Print help information
+    -p <PEAR>        
+    -V, --version    Print version information
 
 ```
 
@@ -35,9 +37,10 @@ $ escaped-positional foo bar
 ? failed
 error: Found argument 'foo' which wasn't expected, or isn't valid in this context
 
-Usage: escaped-positional[EXE] [OPTIONS] [-- <SLOP>...]
+USAGE:
+    escaped-positional[EXE] [OPTIONS] [-- <SLOP>...]
 
-For more information try '--help'
+For more information try --help
 
 ```
 

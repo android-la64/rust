@@ -1,6 +1,6 @@
 //! Tests for credential-process.
 
-use cargo_test_support::registry::{Package, TestRegistry};
+use cargo_test_support::registry::TestRegistry;
 use cargo_test_support::{basic_manifest, cargo_process, paths, project, registry, Project};
 use std::fs;
 
@@ -15,7 +15,7 @@ fn gated() {
         .no_configure_token()
         .build();
 
-    let cratesio = registry::RegistryBuilder::new()
+    let _cratesio = registry::RegistryBuilder::new()
         .no_configure_token()
         .build();
 
@@ -32,7 +32,6 @@ fn gated() {
         .build();
 
     p.cargo("publish --no-verify")
-        .replace_crates_io(cratesio.index_url())
         .masquerade_as_nightly_cargo(&["credential-process"])
         .with_status(101)
         .with_stderr(
@@ -94,16 +93,6 @@ fn warn_both_token_and_process() {
         .file("src/lib.rs", "")
         .build();
 
-    // HACK: Inject `foo` directly into the index so `publish` won't block for it to be in
-    // the index.
-    //
-    // This is to ensure we can verify the Summary we post to the registry as doing so precludes
-    // the registry from processing the publish.
-    Package::new("foo", "0.1.0")
-        .file("src/lib.rs", "")
-        .alternative(true)
-        .publish();
-
     p.cargo("publish --no-verify --registry alternative -Z credential-process")
         .masquerade_as_nightly_cargo(&["credential-process"])
         .with_status(101)
@@ -135,7 +124,6 @@ Only one of these values may be set, remove one or the other to proceed.
 [UPDATING] [..]
 [PACKAGING] foo v0.1.0 [..]
 [UPLOADING] foo v0.1.0 [..]
-[UPDATING] [..]
 ",
         )
         .run();
@@ -150,7 +138,7 @@ Only one of these values may be set, remove one or the other to proceed.
 /// * Create a simple `foo` project to run the test against.
 /// * Configure the credential-process config.
 ///
-/// Returns the simple `foo` project to test against and the API server handle.
+/// Returns returns the simple `foo` project to test against and the API server handle.
 fn get_token_test() -> (Project, TestRegistry) {
     // API server that checks that the token is included correctly.
     let server = registry::RegistryBuilder::new()
@@ -159,6 +147,7 @@ fn get_token_test() -> (Project, TestRegistry) {
         .alternative()
         .http_api()
         .build();
+
     // The credential process to use.
     let cred_proj = project()
         .at("cred_proj")
@@ -209,7 +198,6 @@ fn publish() {
 [UPDATING] [..]
 [PACKAGING] foo v0.1.0 [..]
 [UPLOADING] foo v0.1.0 [..]
-[UPDATING] [..]
 ",
         )
         .run();
@@ -218,7 +206,7 @@ fn publish() {
 #[cargo_test]
 fn basic_unsupported() {
     // Non-action commands don't support login/logout.
-    let registry = registry::RegistryBuilder::new()
+    let _server = registry::RegistryBuilder::new()
         .no_configure_token()
         .build();
     cargo_util::paths::append(
@@ -231,7 +219,6 @@ fn basic_unsupported() {
     .unwrap();
 
     cargo_process("login -Z credential-process abcdefg")
-        .replace_crates_io(registry.index_url())
         .masquerade_as_nightly_cargo(&["credential-process"])
         .with_status(101)
         .with_stderr(
@@ -245,7 +232,6 @@ the credential-process configuration value must pass the \
         .run();
 
     cargo_process("logout -Z credential-process")
-        .replace_crates_io(registry.index_url())
         .masquerade_as_nightly_cargo(&["credential-process", "cargo-logout"])
         .with_status(101)
         .with_stderr(
@@ -302,7 +288,6 @@ fn login() {
 
     cargo_process("login -Z credential-process abcdefg")
         .masquerade_as_nightly_cargo(&["credential-process"])
-        .replace_crates_io(server.index_url())
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -318,7 +303,7 @@ fn login() {
 
 #[cargo_test]
 fn logout() {
-    let server = registry::RegistryBuilder::new()
+    let _server = registry::RegistryBuilder::new()
         .no_configure_token()
         .build();
     // The credential process to use.
@@ -357,7 +342,6 @@ fn logout() {
 
     cargo_process("logout -Z credential-process")
         .masquerade_as_nightly_cargo(&["credential-process", "cargo-logout"])
-        .replace_crates_io(server.index_url())
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -405,7 +389,7 @@ fn owner() {
 #[cargo_test]
 fn libexec_path() {
     // cargo: prefixed names use the sysroot
-    let server = registry::RegistryBuilder::new()
+    let _server = registry::RegistryBuilder::new()
         .no_configure_token()
         .build();
     cargo_util::paths::append(
@@ -419,7 +403,6 @@ fn libexec_path() {
 
     cargo_process("login -Z credential-process abcdefg")
         .masquerade_as_nightly_cargo(&["credential-process"])
-        .replace_crates_io(server.index_url())
         .with_status(101)
         .with_stderr(
             // FIXME: Update "Caused by" error message once rust/pull/87704 is merged.

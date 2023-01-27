@@ -25,14 +25,13 @@
 //!
 //! [discussion]: https://github.com/rust-lang/rust/pull/46799#issuecomment-361156935
 
-#![doc(html_root_url = "https://docs.rs/home/0.5.4")]
+#![doc(html_root_url = "https://docs.rs/home/0.5.3")]
 #![deny(rust_2018_idioms)]
-
-pub mod env;
 
 #[cfg(windows)]
 mod windows;
 
+use std::env;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -49,9 +48,10 @@ use std::path::{Path, PathBuf};
 ///
 /// Returns the value of the `USERPROFILE` environment variable if it
 /// is set and not equal to the empty string. If both do not exist,
-/// [`SHGetFolderPathW`][msdn] is used to return the appropriate path.
+/// [`GetUserProfileDirectory`][msdn] is used to return the
+/// appropriate path.
 ///
-/// [msdn]: https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetfolderpathw
+/// [msdn]: https://docs.microsoft.com/en-us/windows/win32/api/userenv/nf-userenv-getuserprofiledirectoryw
 ///
 /// # Examples
 ///
@@ -62,7 +62,7 @@ use std::path::{Path, PathBuf};
 /// }
 /// ```
 pub fn home_dir() -> Option<PathBuf> {
-    env::home_dir_with_env(&env::OS_ENV)
+    home_dir_inner()
 }
 
 #[cfg(windows)]
@@ -71,7 +71,7 @@ use windows::home_dir_inner;
 #[cfg(any(unix, target_os = "redox"))]
 fn home_dir_inner() -> Option<PathBuf> {
     #[allow(deprecated)]
-    std::env::home_dir()
+    env::home_dir()
 }
 
 /// Returns the storage directory used by Cargo, often knowns as
@@ -102,13 +102,26 @@ fn home_dir_inner() -> Option<PathBuf> {
 /// }
 /// ```
 pub fn cargo_home() -> io::Result<PathBuf> {
-    env::cargo_home_with_env(&env::OS_ENV)
+    let cwd = env::current_dir()?;
+    cargo_home_with_cwd(&cwd)
 }
 
 /// Returns the storage directory used by Cargo within `cwd`.
 /// For more details, see [`cargo_home`](fn.cargo_home.html).
 pub fn cargo_home_with_cwd(cwd: &Path) -> io::Result<PathBuf> {
-    env::cargo_home_with_cwd_env(&env::OS_ENV, cwd)
+    match env::var_os("CARGO_HOME").filter(|h| !h.is_empty()) {
+        Some(home) => {
+            let home = PathBuf::from(home);
+            if home.is_absolute() {
+                Ok(home)
+            } else {
+                Ok(cwd.join(&home))
+            }
+        }
+        _ => home_dir()
+            .map(|p| p.join(".cargo"))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "could not find cargo home dir")),
+    }
 }
 
 /// Returns the storage directory used by rustup, often knowns as
@@ -139,11 +152,24 @@ pub fn cargo_home_with_cwd(cwd: &Path) -> io::Result<PathBuf> {
 /// }
 /// ```
 pub fn rustup_home() -> io::Result<PathBuf> {
-    env::rustup_home_with_env(&env::OS_ENV)
+    let cwd = env::current_dir()?;
+    rustup_home_with_cwd(&cwd)
 }
 
 /// Returns the storage directory used by rustup within `cwd`.
 /// For more details, see [`rustup_home`](fn.rustup_home.html).
 pub fn rustup_home_with_cwd(cwd: &Path) -> io::Result<PathBuf> {
-    env::rustup_home_with_cwd_env(&env::OS_ENV, cwd)
+    match env::var_os("RUSTUP_HOME").filter(|h| !h.is_empty()) {
+        Some(home) => {
+            let home = PathBuf::from(home);
+            if home.is_absolute() {
+                Ok(home)
+            } else {
+                Ok(cwd.join(&home))
+            }
+        }
+        _ => home_dir()
+            .map(|d| d.join(".rustup"))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "could not find rustup home dir")),
+    }
 }

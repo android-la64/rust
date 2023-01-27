@@ -11,6 +11,7 @@ LL | |         foo();
 LL | |     } else {
    | |_____^
    |
+   = note: `-D clippy::if-same-then-else` implied by `-D warnings`
 note: same as this
   --> $DIR/if_same_then_else.rs:31:12
    |
@@ -23,7 +24,6 @@ LL | |         0..10;
 LL | |         foo();
 LL | |     }
    | |_____^
-   = note: `-D clippy::if-same-then-else` implied by `-D warnings`
 
 error: this `if` has identical blocks
   --> $DIR/if_same_then_else.rs:67:21

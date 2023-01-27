@@ -12,12 +12,13 @@
 [package]
 edition = "2021"
 name = "cranelift-isle"
-version = "0.88.1"
+version = "0.87.0"
 authors = ["The Cranelift Project Developers"]
 description = "ISLE: Instruction Selection and Lowering Expressions. A domain-specific language for instruction selection in Cranelift."
 readme = "README.md"
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime/tree/main/cranelift/isle"
+resolver = "2"
 
 [dependencies.log]
 version = "0.4"

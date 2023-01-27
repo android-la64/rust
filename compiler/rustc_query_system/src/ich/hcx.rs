@@ -12,7 +12,7 @@ use rustc_session::cstore::CrateStore;
 use rustc_session::Session;
 use rustc_span::source_map::SourceMap;
 use rustc_span::symbol::Symbol;
-use rustc_span::{BytePos, CachingSourceMapView, SourceFile, Span, SpanData, DUMMY_SP};
+use rustc_span::{BytePos, CachingSourceMapView, SourceFile, Span, SpanData};
 
 /// This is the context state available during incr. comp. hashing. It contains
 /// enough information to transform `DefId`s and `HirId`s into stable `DefPath`s (i.e.,
@@ -41,10 +41,7 @@ pub struct StableHashingContext<'a> {
 pub(super) enum BodyResolver<'tcx> {
     Forbidden,
     Ignore,
-    Traverse {
-        owner: hir::OwnerId,
-        bodies: &'tcx SortedMap<hir::ItemLocalId, &'tcx hir::Body<'tcx>>,
-    },
+    Traverse { owner: LocalDefId, bodies: &'tcx SortedMap<hir::ItemLocalId, &'tcx hir::Body<'tcx>> },
 }
 
 impl<'a> StableHashingContext<'a> {
@@ -106,7 +103,7 @@ impl<'a> StableHashingContext<'a> {
     #[inline]
     pub fn with_hir_bodies(
         &mut self,
-        owner: hir::OwnerId,
+        owner: LocalDefId,
         bodies: &SortedMap<hir::ItemLocalId, &hir::Body<'_>>,
         f: impl FnOnce(&mut StableHashingContext<'_>),
     ) {
@@ -185,7 +182,7 @@ impl<'a> rustc_span::HashStableContext for StableHashingContext<'a> {
 
     #[inline]
     fn def_span(&self, def_id: LocalDefId) -> Span {
-        *self.source_span.get(def_id).unwrap_or(&DUMMY_SP)
+        self.source_span[def_id]
     }
 
     #[inline]

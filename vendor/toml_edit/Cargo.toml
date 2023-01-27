@@ -10,10 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.60.0"
+edition = "2018"
 name = "toml_edit"
-version = "0.15.0"
+version = "0.14.3"
 authors = [
     "Andronik Ordian <write@reusable.software>",
     "Ed Page <eopage@gmail.com>",
@@ -30,24 +29,17 @@ include = [
 description = "Yet another format-preserving TOML parser."
 documentation = "https://docs.rs/toml_edit"
 readme = "README.md"
-keywords = [
-    "encoding",
-    "toml",
-]
+keywords = ["toml"]
 categories = [
     "encoding",
     "parser-implementations",
     "parsing",
-    "config",
 ]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/ordian/toml_edit"
 
 [package.metadata.docs.rs]
 features = ["easy"]
-
-[package.metadata.release]
-tag-name = "v{{version}}"
 
 [[package.metadata.release.pre-release-replacements]]
 file = "CHANGELOG.md"
@@ -81,8 +73,14 @@ file = "CHANGELOG.md"
 search = "<!-- next-url -->"
 replace = """
 <!-- next-url -->
-[Unreleased]: https://github.com/toml-rs/toml_edit/compare/{{tag_name}}...HEAD"""
+[Unreleased]: https://github.com/ordian/toml_edit/compare/{{tag_name}}...HEAD"""
 exactly = 1
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+debug = 1
 
 [[example]]
 name = "visit"
@@ -117,13 +115,13 @@ name = "linear"
 harness = false
 
 [dependencies.combine]
-version = "4.6.6"
+version = "4.6.3"
 
 [dependencies.indexmap]
-version = "1.9.1"
+version = "1.7"
 
 [dependencies.itertools]
-version = "0.10.5"
+version = "0.10"
 
 [dependencies.kstring]
 version = "2.0.0"
@@ -131,34 +129,30 @@ features = ["max_inline"]
 optional = true
 
 [dependencies.serde]
-version = "1.0.145"
+version = "1"
 features = ["derive"]
 optional = true
 
-[dependencies.toml_datetime]
-version = "0.5.0"
-
 [dev-dependencies.criterion]
-version = "0.4.0"
+version = "0.3"
+
+[dev-dependencies.pretty_assertions]
+version = "1.0.0"
 
 [dev-dependencies.serde_json]
-version = "1.0.85"
+version = "1.0.44"
 
 [dev-dependencies.snapbox]
-version = "0.4.0"
+version = "0.2.9"
 features = ["harness"]
 
 [dev-dependencies.toml]
-version = "0.5.9"
+version = "0.5"
 
 [dev-dependencies.toml-test-harness]
-version = "0.4.1"
+version = "0.3"
 
 [features]
 default = []
 easy = ["serde"]
-perf = ["dep:kstring"]
-serde = [
-    "dep:serde",
-    "toml_datetime/serde",
-]
+perf = ["kstring"]

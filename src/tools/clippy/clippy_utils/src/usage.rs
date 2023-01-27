@@ -1,16 +1,15 @@
 use crate as utils;
-use crate::visitors::{for_each_expr, for_each_expr_with_closures, Descend};
-use core::ops::ControlFlow;
+use crate::visitors::{expr_visitor, expr_visitor_no_bodies};
 use rustc_hir as hir;
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_hir::HirIdSet;
 use rustc_hir::{Expr, ExprKind, HirId, Node};
-use rustc_hir_typeck::expr_use_visitor::{Delegate, ExprUseVisitor, PlaceBase, PlaceWithHirId};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
 use rustc_middle::hir::nested_filter;
 use rustc_middle::mir::FakeReadCause;
 use rustc_middle::ty;
+use rustc_typeck::expr_use_visitor::{Delegate, ExprUseVisitor, PlaceBase, PlaceWithHirId};
 
 /// Returns a set of mutated local variable IDs, or `None` if mutations could not be determined.
 pub fn mutated_variables<'tcx>(expr: &'tcx Expr<'_>, cx: &LateContext<'tcx>) -> Option<HirIdSet> {
@@ -18,15 +17,16 @@ pub fn mutated_variables<'tcx>(expr: &'tcx Expr<'_>, cx: &LateContext<'tcx>) -> 
         used_mutably: HirIdSet::default(),
         skip: false,
     };
-    let infcx = cx.tcx.infer_ctxt().build();
-    ExprUseVisitor::new(
-        &mut delegate,
-        &infcx,
-        expr.hir_id.owner.def_id,
-        cx.param_env,
-        cx.typeck_results(),
-    )
-    .walk_expr(expr);
+    cx.tcx.infer_ctxt().enter(|infcx| {
+        ExprUseVisitor::new(
+            &mut delegate,
+            &infcx,
+            expr.hir_id.owner,
+            cx.param_env,
+            cx.typeck_results(),
+        )
+        .walk_expr(expr);
+    });
 
     if delegate.skip {
         return None;
@@ -73,12 +73,7 @@ impl<'tcx> Delegate<'tcx> for MutVarsDelegate {
         self.update(cmt);
     }
 
-    fn fake_read(
-        &mut self,
-        _: &rustc_hir_typeck::expr_use_visitor::PlaceWithHirId<'tcx>,
-        _: FakeReadCause,
-        _: HirId,
-    ) {}
+    fn fake_read(&mut self, _: &rustc_typeck::expr_use_visitor::PlaceWithHirId<'tcx>, _: FakeReadCause, _: HirId) {}
 }
 
 pub struct ParamBindingIdCollector {
@@ -147,17 +142,28 @@ impl<'a, 'tcx> intravisit::Visitor<'tcx> for BindingUsageFinder<'a, 'tcx> {
 }
 
 pub fn contains_return_break_continue_macro(expression: &Expr<'_>) -> bool {
-    for_each_expr(expression, |e| {
-        match e.kind {
-            ExprKind::Ret(..) | ExprKind::Break(..) | ExprKind::Continue(..) => ControlFlow::Break(()),
+    let mut seen_return_break_continue = false;
+    expr_visitor_no_bodies(|ex| {
+        if seen_return_break_continue {
+            return false;
+        }
+        match &ex.kind {
+            ExprKind::Ret(..) | ExprKind::Break(..) | ExprKind::Continue(..) => {
+                seen_return_break_continue = true;
+            },
             // Something special could be done here to handle while or for loop
             // desugaring, as this will detect a break if there's a while loop
             // or a for loop inside the expression.
-            _ if e.span.from_expansion() => ControlFlow::Break(()),
-            _ => ControlFlow::Continue(()),
+            _ => {
+                if ex.span.from_expansion() {
+                    seen_return_break_continue = true;
+                }
+            },
         }
+        !seen_return_break_continue
     })
-    .is_some()
+    .visit_expr(expression);
+    seen_return_break_continue
 }
 
 pub fn local_used_after_expr(cx: &LateContext<'_>, local_id: HirId, after: &Expr<'_>) -> bool {
@@ -188,16 +194,23 @@ pub fn local_used_after_expr(cx: &LateContext<'_>, local_id: HirId, after: &Expr
         return true;
     }
 
+    let mut used_after_expr = false;
     let mut past_expr = false;
-    for_each_expr_with_closures(cx, block, |e| {
-        if e.hir_id == after.hir_id {
-            past_expr = true;
-            ControlFlow::Continue(Descend::No)
-        } else if past_expr && utils::path_to_local_id(e, local_id) {
-            ControlFlow::Break(())
-        } else {
-            ControlFlow::Continue(Descend::Yes)
+    expr_visitor(cx, |expr| {
+        if used_after_expr {
+            return false;
         }
+
+        if expr.hir_id == after.hir_id {
+            past_expr = true;
+            return false;
+        }
+
+        if past_expr && utils::path_to_local_id(expr, local_id) {
+            used_after_expr = true;
+        }
+        !used_after_expr
     })
-    .is_some()
+    .visit_block(block);
+    used_after_expr
 }

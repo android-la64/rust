@@ -27,7 +27,7 @@ use crate::core::{Dependency, Manifest, PackageId, SourceId, Target};
 use crate::core::{SourceMap, Summary, Workspace};
 use crate::ops;
 use crate::util::config::PackageCacheLock;
-use crate::util::errors::{CargoResult, HttpNotSuccessful};
+use crate::util::errors::{CargoResult, HttpNot200};
 use crate::util::interning::InternedString;
 use crate::util::network::Retry;
 use crate::util::{self, internal, Config, Progress, ProgressStyle};
@@ -868,19 +868,18 @@ impl<'a, 'cfg> Downloads<'a, 'cfg> {
                         let code = handle.response_code()?;
                         if code != 200 && code != 0 {
                             let url = handle.effective_url()?.unwrap_or(url);
-                            return Err(HttpNotSuccessful {
+                            return Err(HttpNot200 {
                                 code,
                                 url: url.to_string(),
-                                body: data,
                             }
                             .into());
                         }
-                        Ok(data)
+                        Ok(())
                     })
                     .with_context(|| format!("failed to download from `{}`", dl.url))?
             };
             match ret {
-                Some(data) => break (dl, data),
+                Some(()) => break (dl, data),
                 None => {
                     self.pending_ids.insert(dl.id);
                     self.enqueue(dl, handle)?

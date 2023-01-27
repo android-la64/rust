@@ -43,7 +43,7 @@ struct VariableLengths {
     region_constraints_len: usize,
 }
 
-impl<'tcx> InferCtxt<'tcx> {
+impl<'a, 'tcx> InferCtxt<'a, 'tcx> {
     fn variable_lengths(&self) -> VariableLengths {
         let mut inner = self.inner.borrow_mut();
         VariableLengths {
@@ -167,7 +167,7 @@ impl<'tcx> InferCtxt<'tcx> {
 }
 
 pub struct InferenceFudger<'a, 'tcx> {
-    infcx: &'a InferCtxt<'tcx>,
+    infcx: &'a InferCtxt<'a, 'tcx>,
     type_vars: (Range<TyVid>, Vec<TypeVariableOrigin>),
     int_vars: Range<IntVid>,
     float_vars: Range<FloatVid>,

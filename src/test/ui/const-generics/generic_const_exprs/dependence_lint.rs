@@ -1,5 +1,4 @@
 // revisions: full gce
-// compile-flags: -Zdeduplicate-diagnostics=yes
 
 #![cfg_attr(gce, feature(generic_const_exprs))]
 #![allow(incomplete_features)]

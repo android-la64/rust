@@ -37,15 +37,16 @@ fn main() {
         process::exit(code);
     }
 
-    let flags = flags::RustAnalyzer::from_env_or_exit();
-    if let Err(err) = try_main(flags) {
+    if let Err(err) = try_main() {
         tracing::error!("Unexpected error: {}", err);
         eprintln!("{}", err);
         process::exit(101);
     }
 }
 
-fn try_main(flags: flags::RustAnalyzer) -> Result<()> {
+fn try_main() -> Result<()> {
+    let flags = flags::RustAnalyzer::from_env()?;
+
     #[cfg(debug_assertions)]
     if flags.wait_dbg || env::var("RA_WAIT_DBG").is_ok() {
         #[allow(unused_mut)]
@@ -73,6 +74,10 @@ fn try_main(flags: flags::RustAnalyzer) -> Result<()> {
             }
             if cmd.version {
                 println!("rust-analyzer {}", rust_analyzer::version());
+                return Ok(());
+            }
+            if cmd.help {
+                println!("{}", flags::RustAnalyzer::HELP);
                 return Ok(());
             }
             with_extra_thread("LspServer", run_server)?;

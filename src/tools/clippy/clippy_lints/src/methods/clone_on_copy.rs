@@ -49,7 +49,8 @@ pub(super) fn check(
                 expr.span,
                 &format!(
                     "using `clone` on a double-reference; \
-                    this will copy the reference of type `{ty}` instead of cloning the inner type"
+                    this will copy the reference of type `{}` instead of cloning the inner type",
+                    ty
                 ),
                 |diag| {
                     if let Some(snip) = sugg::Sugg::hir_opt(cx, arg) {
@@ -61,11 +62,11 @@ pub(super) fn check(
                         }
                         let refs = "&".repeat(n + 1);
                         let derefs = "*".repeat(n);
-                        let explicit = format!("<{refs}{ty}>::clone({snip})");
+                        let explicit = format!("<{}{}>::clone({})", refs, ty, snip);
                         diag.span_suggestion(
                             expr.span,
                             "try dereferencing it",
-                            format!("{refs}({derefs}{}).clone()", snip.deref()),
+                            format!("{}({}{}).clone()", refs, derefs, snip.deref()),
                             Applicability::MaybeIncorrect,
                         );
                         diag.span_suggestion(
@@ -120,16 +121,16 @@ pub(super) fn check(
         let (help, sugg) = if deref_count == 0 {
             ("try removing the `clone` call", snip.into())
         } else if parent_is_suffix_expr {
-            ("try dereferencing it", format!("({}{snip})", "*".repeat(deref_count)))
+            ("try dereferencing it", format!("({}{})", "*".repeat(deref_count), snip))
         } else {
-            ("try dereferencing it", format!("{}{snip}", "*".repeat(deref_count)))
+            ("try dereferencing it", format!("{}{}", "*".repeat(deref_count), snip))
         };
 
         span_lint_and_sugg(
             cx,
             CLONE_ON_COPY,
             expr.span,
-            &format!("using `clone` on type `{ty}` which implements the `Copy` trait"),
+            &format!("using `clone` on type `{}` which implements the `Copy` trait", ty),
             help,
             sugg,
             app,

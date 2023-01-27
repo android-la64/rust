@@ -1,8 +1,5 @@
 use crate::base::ExtCtxt;
-use pm::bridge::{
-    server, DelimSpan, Diagnostic, ExpnGlobals, Group, Ident, LitKind, Literal, Punct, TokenTree,
-};
-use pm::{Delimiter, Level, LineColumn};
+
 use rustc_ast as ast;
 use rustc_ast::token;
 use rustc_ast::tokenstream::{self, Spacing::*, TokenStream};
@@ -16,7 +13,11 @@ use rustc_session::parse::ParseSess;
 use rustc_span::def_id::CrateNum;
 use rustc_span::symbol::{self, sym, Symbol};
 use rustc_span::{BytePos, FileName, Pos, SourceFile, Span};
-use smallvec::{smallvec, SmallVec};
+
+use pm::bridge::{
+    server, DelimSpan, Diagnostic, ExpnGlobals, Group, Ident, LitKind, Literal, Punct, TokenTree,
+};
+use pm::{Delimiter, Level, LineColumn};
 use std::ops::Bound;
 
 trait FromInternal<T> {
@@ -109,26 +110,10 @@ impl FromInternal<(TokenStream, &mut Rustc<'_, '_>)> for Vec<TokenTree<TokenStre
                 tokenstream::TokenTree::Token(token, spacing) => (token, spacing == Joint),
             };
 
-            // Split the operator into one or more `Punct`s, one per character.
-            // The final one inherits the jointness of the original token. Any
-            // before that get `joint = true`.
             let mut op = |s: &str| {
                 assert!(s.is_ascii());
-                trees.extend(s.bytes().enumerate().map(|(i, ch)| {
-                    let is_final = i == s.len() - 1;
-                    // Split the token span into single chars. Unless the span
-                    // is an unusual one, e.g. due to proc macro expansion. We
-                    // determine this by assuming any span with a length that
-                    // matches the operator length is a normal one, and any
-                    // span with a different length is an unusual one.
-                    let span = if (span.hi() - span.lo()).to_usize() == s.len() {
-                        let lo = span.lo() + BytePos::from_usize(i);
-                        let hi = lo + BytePos::from_usize(1);
-                        span.with_lo(lo).with_hi(hi)
-                    } else {
-                        span
-                    };
-                    TokenTree::Punct(Punct { ch, joint: if is_final { joint } else { true }, span })
+                trees.extend(s.as_bytes().iter().enumerate().map(|(idx, &ch)| {
+                    TokenTree::Punct(Punct { ch, joint: joint || idx != s.len() - 1, span })
                 }));
             };
 
@@ -252,57 +237,23 @@ impl FromInternal<(TokenStream, &mut Rustc<'_, '_>)> for Vec<TokenTree<TokenStre
     }
 }
 
-// We use a `SmallVec` because the output size is always one or two `TokenTree`s.
-impl ToInternal<SmallVec<[tokenstream::TokenTree; 2]>>
-    for (TokenTree<TokenStream, Span, Symbol>, &mut Rustc<'_, '_>)
-{
-    fn to_internal(self) -> SmallVec<[tokenstream::TokenTree; 2]> {
+impl ToInternal<TokenStream> for (TokenTree<TokenStream, Span, Symbol>, &mut Rustc<'_, '_>) {
+    fn to_internal(self) -> TokenStream {
         use rustc_ast::token::*;
 
         let (tree, rustc) = self;
-        match tree {
-            TokenTree::Punct(Punct { ch, joint, span }) => {
-                let kind = match ch {
-                    b'=' => Eq,
-                    b'<' => Lt,
-                    b'>' => Gt,
-                    b'!' => Not,
-                    b'~' => Tilde,
-                    b'+' => BinOp(Plus),
-                    b'-' => BinOp(Minus),
-                    b'*' => BinOp(Star),
-                    b'/' => BinOp(Slash),
-                    b'%' => BinOp(Percent),
-                    b'^' => BinOp(Caret),
-                    b'&' => BinOp(And),
-                    b'|' => BinOp(Or),
-                    b'@' => At,
-                    b'.' => Dot,
-                    b',' => Comma,
-                    b';' => Semi,
-                    b':' => Colon,
-                    b'#' => Pound,
-                    b'$' => Dollar,
-                    b'?' => Question,
-                    b'\'' => SingleQuote,
-                    _ => unreachable!(),
-                };
-                smallvec![if joint {
-                    tokenstream::TokenTree::token_joint(kind, span)
-                } else {
-                    tokenstream::TokenTree::token_alone(kind, span)
-                }]
-            }
+        let (ch, joint, span) = match tree {
+            TokenTree::Punct(Punct { ch, joint, span }) => (ch, joint, span),
             TokenTree::Group(Group { delimiter, stream, span: DelimSpan { open, close, .. } }) => {
-                smallvec![tokenstream::TokenTree::Delimited(
+                return tokenstream::TokenStream::delimited(
                     tokenstream::DelimSpan { open, close },
                     delimiter.to_internal(),
                     stream.unwrap_or_default(),
-                )]
+                );
             }
             TokenTree::Ident(self::Ident { sym, is_raw, span }) => {
                 rustc.sess().symbol_gallery.insert(sym, span);
-                smallvec![tokenstream::TokenTree::token_alone(Ident(sym, is_raw), span)]
+                return tokenstream::TokenStream::token_alone(Ident(sym, is_raw), span);
             }
             TokenTree::Literal(self::Literal {
                 kind: self::LitKind::Integer,
@@ -315,7 +266,7 @@ impl ToInternal<SmallVec<[tokenstream::TokenTree; 2]>>
                 let integer = TokenKind::lit(token::Integer, symbol, suffix);
                 let a = tokenstream::TokenTree::token_alone(minus, span);
                 let b = tokenstream::TokenTree::token_alone(integer, span);
-                smallvec![a, b]
+                return [a, b].into_iter().collect();
             }
             TokenTree::Literal(self::Literal {
                 kind: self::LitKind::Float,
@@ -328,14 +279,46 @@ impl ToInternal<SmallVec<[tokenstream::TokenTree; 2]>>
                 let float = TokenKind::lit(token::Float, symbol, suffix);
                 let a = tokenstream::TokenTree::token_alone(minus, span);
                 let b = tokenstream::TokenTree::token_alone(float, span);
-                smallvec![a, b]
+                return [a, b].into_iter().collect();
             }
             TokenTree::Literal(self::Literal { kind, symbol, suffix, span }) => {
-                smallvec![tokenstream::TokenTree::token_alone(
+                return tokenstream::TokenStream::token_alone(
                     TokenKind::lit(kind.to_internal(), symbol, suffix),
                     span,
-                )]
+                );
             }
+        };
+
+        let kind = match ch {
+            b'=' => Eq,
+            b'<' => Lt,
+            b'>' => Gt,
+            b'!' => Not,
+            b'~' => Tilde,
+            b'+' => BinOp(Plus),
+            b'-' => BinOp(Minus),
+            b'*' => BinOp(Star),
+            b'/' => BinOp(Slash),
+            b'%' => BinOp(Percent),
+            b'^' => BinOp(Caret),
+            b'&' => BinOp(And),
+            b'|' => BinOp(Or),
+            b'@' => At,
+            b'.' => Dot,
+            b',' => Comma,
+            b';' => Semi,
+            b':' => Colon,
+            b'#' => Pound,
+            b'$' => Dollar,
+            b'?' => Question,
+            b'\'' => SingleQuote,
+            _ => unreachable!(),
+        };
+
+        if joint {
+            tokenstream::TokenStream::token_joint(kind, span)
+        } else {
+            tokenstream::TokenStream::token_alone(kind, span)
         }
     }
 }
@@ -550,7 +533,7 @@ impl server::TokenStream for Rustc<'_, '_> {
         &mut self,
         tree: TokenTree<Self::TokenStream, Self::Span, Self::Symbol>,
     ) -> Self::TokenStream {
-        Self::TokenStream::new((tree, &mut *self).to_internal().into_iter().collect::<Vec<_>>())
+        (tree, &mut *self).to_internal()
     }
 
     fn concat_trees(
@@ -558,14 +541,14 @@ impl server::TokenStream for Rustc<'_, '_> {
         base: Option<Self::TokenStream>,
         trees: Vec<TokenTree<Self::TokenStream, Self::Span, Self::Symbol>>,
     ) -> Self::TokenStream {
-        let mut stream =
-            if let Some(base) = base { base } else { tokenstream::TokenStream::default() };
-        for tree in trees {
-            for tt in (tree, &mut *self).to_internal() {
-                stream.push_tree(tt);
-            }
+        let mut builder = tokenstream::TokenStreamBuilder::new();
+        if let Some(base) = base {
+            builder.push(base);
         }
-        stream
+        for tree in trees {
+            builder.push((tree, &mut *self).to_internal());
+        }
+        builder.build()
     }
 
     fn concat_streams(
@@ -573,12 +556,14 @@ impl server::TokenStream for Rustc<'_, '_> {
         base: Option<Self::TokenStream>,
         streams: Vec<Self::TokenStream>,
     ) -> Self::TokenStream {
-        let mut stream =
-            if let Some(base) = base { base } else { tokenstream::TokenStream::default() };
-        for s in streams {
-            stream.push_stream(s);
+        let mut builder = tokenstream::TokenStreamBuilder::new();
+        if let Some(base) = base {
+            builder.push(base);
         }
-        stream
+        for stream in streams {
+            builder.push(stream);
+        }
+        builder.build()
     }
 
     fn into_trees(
@@ -704,7 +689,6 @@ impl server::Span for Rustc<'_, '_> {
     fn source_text(&mut self, span: Self::Span) -> Option<String> {
         self.sess().source_map().span_to_snippet(span).ok()
     }
-
     /// Saves the provided span into the metadata of
     /// *the crate we are currently compiling*, which must
     /// be a proc-macro crate. This id can be passed to

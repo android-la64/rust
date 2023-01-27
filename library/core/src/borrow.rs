@@ -154,7 +154,6 @@
 /// [`String`]: ../../std/string/struct.String.html
 #[stable(feature = "rust1", since = "1.0.0")]
 #[rustc_diagnostic_item = "Borrow"]
-#[const_trait]
 pub trait Borrow<Borrowed: ?Sized> {
     /// Immutably borrows from an owned value.
     ///
@@ -185,7 +184,6 @@ pub trait Borrow<Borrowed: ?Sized> {
 /// an underlying type by providing a mutable reference. See [`Borrow<T>`]
 /// for more information on borrowing as another type.
 #[stable(feature = "rust1", since = "1.0.0")]
-#[const_trait]
 pub trait BorrowMut<Borrowed: ?Sized>: Borrow<Borrowed> {
     /// Mutably borrows from an owned value.
     ///

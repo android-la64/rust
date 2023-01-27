@@ -14,17 +14,14 @@ use regalloc2::{self, MachineEnv};
 pub fn compile<B: LowerBackend + TargetIsa>(
     f: &Function,
     b: &B,
-    abi: Callee<<<B as LowerBackend>::MInst as MachInst>::ABIMachineSpec>,
+    abi: Box<dyn ABICallee<I = B::MInst>>,
     machine_env: &MachineEnv,
     emit_info: <B::MInst as MachInstEmit>::Info,
-    sigs: SigSet,
 ) -> CodegenResult<(VCode<B::MInst>, regalloc2::Output)> {
     // Compute lowered block order.
     let block_order = BlockLoweringOrder::new(f);
-
     // Build the lowering context.
-    let lower = crate::machinst::Lower::new(f, abi, emit_info, block_order, sigs)?;
-
+    let lower = Lower::new(f, abi, emit_info, block_order)?;
     // Lower the IR.
     let vcode = {
         let _tt = timing::vcode_lower();

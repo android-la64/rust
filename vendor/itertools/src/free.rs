@@ -105,23 +105,18 @@ pub fn rev<I>(iterable: I) -> iter::Rev<I::IntoIter>
     iterable.into_iter().rev()
 }
 
-/// Converts the arguments to iterators and zips them.
+/// Iterate `i` and `j` in lock step.
 ///
 /// [`IntoIterator`] enabled version of [`Iterator::zip`].
-/// 
-/// ## Example
 ///
 /// ```
 /// use itertools::zip;
 ///
-/// let mut result: Vec<(i32, char)> = Vec::new();
-///
-/// for (a, b) in zip(&[1, 2, 3, 4, 5], &['a', 'b', 'c']) {
-///     result.push((*a, *b));
+/// let data = [1, 2, 3, 4, 5];
+/// for (a, b) in zip(&data, &data[1..]) {
+///     /* loop body */
 /// }
-/// assert_eq!(result, vec![(1, 'a'),(2, 'b'),(3, 'c')]);
 /// ```
-#[deprecated(note="Use [std::iter::zip](https://doc.rust-lang.org/std/iter/fn.zip.html) instead", since="0.10.4")]
 pub fn zip<I, J>(i: I, j: J) -> Zip<I::IntoIter, J::IntoIter>
     where I: IntoIterator,
           J: IntoIterator
@@ -129,21 +124,16 @@ pub fn zip<I, J>(i: I, j: J) -> Zip<I::IntoIter, J::IntoIter>
     i.into_iter().zip(j)
 }
 
-
-/// Takes two iterables and creates a new iterator over both in sequence. 
+/// Create an iterator that first iterates `i` and then `j`.
 ///
 /// [`IntoIterator`] enabled version of [`Iterator::chain`].
 ///
-/// ## Example
 /// ```
 /// use itertools::chain;
-/// 
-/// let mut result:Vec<i32> = Vec::new();
 ///
-/// for element in chain(&[1, 2, 3], &[4]) {
-///     result.push(*element);
+/// for elt in chain(&[1, 2, 3], &[4]) {
+///     /* loop body */
 /// }
-/// assert_eq!(result, vec![1, 2, 3, 4]);
 /// ```
 pub fn chain<I, J>(i: I, j: J) -> iter::Chain<<I as IntoIterator>::IntoIter, <J as IntoIterator>::IntoIter>
     where I: IntoIterator,
@@ -249,7 +239,7 @@ pub fn min<I>(iterable: I) -> Option<I::Item>
 }
 
 
-/// Combine all iterator elements into one String, separated by `sep`.
+/// Combine all iterator elements into one String, seperated by `sep`.
 ///
 /// [`IntoIterator`] enabled version of [`Itertools::join`].
 ///

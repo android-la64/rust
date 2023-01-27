@@ -115,13 +115,12 @@ pub enum SelectionCandidate<'tcx> {
 
     ParamCandidate(ty::PolyTraitPredicate<'tcx>),
     ImplCandidate(DefId),
-    AutoImplCandidate,
+    AutoImplCandidate(DefId),
 
     /// This is a trait matching with a projected type as `Self`, and we found
     /// an applicable bound in the trait definition. The `usize` is an index
-    /// into the list returned by `tcx.item_bounds`. The constness is the
-    /// constness of the bound in the trait.
-    ProjectionCandidate(usize, ty::BoundConstness),
+    /// into the list returned by `tcx.item_bounds`.
+    ProjectionCandidate(usize),
 
     /// Implementation of a `Fn`-family trait by one of the anonymous types
     /// generated for an `||` expression.
@@ -143,7 +142,7 @@ pub enum SelectionCandidate<'tcx> {
     /// Builtin implementation of `Pointee`.
     PointeeCandidate,
 
-    TraitAliasCandidate,
+    TraitAliasCandidate(DefId),
 
     /// Matching `dyn Trait` with a supertrait of `Trait`. The index is the
     /// position in the iterator returned by
@@ -161,6 +160,9 @@ pub enum SelectionCandidate<'tcx> {
 
     /// Implementation of `const Destruct`, optionally from a custom `impl const Drop`.
     ConstDestructCandidate(Option<DefId>),
+
+    /// Witnesses the fact that a type is a tuple.
+    TupleCandidate,
 }
 
 /// The result of trait evaluation. The order is important

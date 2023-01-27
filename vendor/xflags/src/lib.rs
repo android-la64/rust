@@ -1,65 +1,12 @@
-//! `xflags` provides a procedural macro for parsing command line arguments.
+//! This crates provides a procedural macro for parsing command line arguments.
 //!
 //! It is intended for use in development tools, so it emphasizes fast compile
 //! times and convenience at the expense of features.
 //!
-//! Rough decision tree for picking an argument parsing library:
+//! If you need something more fancy, consider using
+//! [`clap`](https://docs.rs/clap/2.33.3/clap/) instead.
 //!
-//! * if you need all of the features and don't care about minimalism, use
-//!   [clap](https://github.com/clap-rs/clap)
-//! * if you want to be maximally minimal, need only basic features (eg, no help
-//!   generation), and want to be pedantically correct, use
-//!   [lexopt](https://github.com/blyxxyz/lexopt)
-//! * if you want to get things done fast (eg, you want auto help, but not at
-//!   the cost of waiting for syn to compile), consider this crate.
-//!
-//! The secret sauce of xflags is that it is the opposite of a derive macro.
-//! Rather than generating a command line grammar from a Rust struct, `xflags`
-//! generates Rust structs based on input grammar. The grammar definition is
-//! both shorter and simpler to write, and is lighter on compile times.
-//!
-//! Here's a complete example of `parse_or_exit!` macro which parses arguments
-//! into an "anonymous" struct:
-//!
-//! ```no_run
-//! use std::path::PathBuf;
-//!
-//! fn main() {
-//!     let flags = xflags::parse_or_exit! {
-//!         /// Remove directories and their contents recursively.
-//!         optional -r,--recursive
-//!         /// File or directory to remove
-//!         required path: PathBuf
-//!     };
-//!
-//!     println!(
-//!         "removing {}{}",
-//!         flags.path.display(),
-//!         if flags.recursive { "recursively" } else { "" },
-//!     )
-//! }
-//! ```
-//!
-//! The above program, when run with `--help` argument, generates the following
-//! help:
-//!
-//! ```text
-//! ARGS:
-//!     <path>
-//!       File or directory to remove
-//!
-//! OPTIONS:
-//!     -r, --recursive
-//!       Remove directories and their contents recursively.
-//!
-//!     -h, --help
-//!       Prints help information.
-//! ```
-//!
-//! For larger programs, you'd typically want to use `xflags!` macro, which
-//! generates _named_ structs for you. Unlike a typical macro, `xflags` writes
-//! generated code into the source file, to make it easy to understand the rust
-//! types at a glance.
+//! ## Example
 //!
 //! ```
 //! mod flags {
@@ -68,8 +15,9 @@
 //!     xflags::xflags! {
 //!         src "./examples/basic.rs"
 //!
-//!         cmd my-command {
+//!         cmd my-command
 //!             required path: PathBuf
+//!         {
 //!             optional -v, --verbose
 //!         }
 //!     }
@@ -80,16 +28,17 @@
 //!     #[derive(Debug)]
 //!     pub struct MyCommand {
 //!         pub path: PathBuf,
+//!
 //!         pub verbose: bool,
 //!     }
 //!
 //!     impl MyCommand {
-//!         pub fn from_env_or_exit() -> Self {
-//!             Self::from_env_or_exit_()
-//!         }
+//!         pub const HELP: &'static str = Self::HELP_;
+//!
 //!         pub fn from_env() -> xflags::Result<Self> {
 //!             Self::from_env_()
 //!         }
+//!
 //!         pub fn from_vec(args: Vec<std::ffi::OsString>) -> xflags::Result<Self> {
 //!             Self::from_vec_(args)
 //!         }
@@ -103,15 +52,15 @@
 //! }
 //! ```
 //!
-//! If you'd rather use a typical proc-macro which generates hidden code, just
-//! omit the src attribute.
+//! To make the macro less opaque, `xflag` can generate `struct` describing the
+//! CLI in-place. To disable this behavior, omit the `src` attribute.
 //!
 //! xflags correctly handles non-utf8 arguments.
 //!
 //! ## Syntax Reference
 //!
-//! The `xflags!` macro uses **cmd** keyword to introduce a command or
-//! subcommand that accepts positional arguments and switches.
+//! The **cmd** keyword introduces a command that accepts positional arguments
+//! and switches.
 //!
 //! ```
 //! xflags::xflags! {
@@ -126,9 +75,9 @@
 //! ```
 //! xflags::xflags! {
 //!     cmd switches {
-//!         optional -q,--quiet
-//!         required --pass-me
+//!         optional -h, --help
 //!         repeated --verbose
+//!         required --pass-me
 //!     }
 //! }
 //! ```
@@ -149,21 +98,20 @@
 //! }
 //! ```
 //!
-//! Arguments without `--` in then are are positional.
+//! Positional arguments are specified before the opening curly brace:
 //!
 //! ```
 //! use std::{path::PathBuf, ffi::OsString};
 //!
 //! xflags::xflags! {
-//!     cmd positional-arguments {
+//!     cmd positional-arguments
 //!         required program: PathBuf
 //!         repeated args: OsString
-//!     }
+//!     { }
 //! }
 //! ```
 //!
-//! Nesting **cmd** is allowed. `xflag` automatically generates boilerplate
-//! enums for subcommands:
+//! Nesting **cmd** is allowed:
 //!
 //! ```ignore
 //! xflags::xflags! {
@@ -200,21 +148,18 @@
 //! }
 //!
 //! impl App {
-//!     pub fn from_env_or_exit() -> Self {
-//!         Self::from_env_or_exit_()
-//!     }
+//!     pub const HELP: &'static str = Self::HELP_;
+//!
 //!     pub fn from_env() -> xflags::Result<Self> {
 //!         Self::from_env_()
 //!     }
+//!
 //!     pub fn from_vec(args: Vec<std::ffi::OsString>) -> xflags::Result<Self> {
 //!         Self::from_vec_(args)
 //!     }
 //! }
 //! // generated end
 //! ```
-//!
-//! Switches are always "inherited". Both `app -v foo` and `app foo -v` produce
-//! the same result.
 //!
 //! To make subcommand name optional use the **default** keyword to mark a
 //! subcommand to select if no subcommand name is passed. The name of the
@@ -231,8 +176,8 @@
 //! }
 //! ```
 //!
-//! Commands, arguments, and switches can be documented. Doc comments become a
-//! part of generated help:
+//! Commands, arguments, and switches can documented. Doc comments become a part
+//! of generated help:
 //!
 //! ```
 //! mod flags {
@@ -240,11 +185,14 @@
 //!
 //!     xflags::xflags! {
 //!         /// Run basic system diagnostics.
-//!         cmd healthck {
+//!         cmd healthck
 //!             /// Optional configuration file.
 //!             optional config: PathBuf
+//!         {
 //!             /// Verbosity level, can be repeated multiple times.
 //!             repeated -v, --verbose
+//!             /// Print the help message.
+//!             optional -h, --help
 //!         }
 //!     }
 //! }
@@ -252,18 +200,24 @@
 //! fn main() {
 //!     match flags::Healthck::from_env() {
 //!         Ok(flags) => {
+//!             if flags.help {
+//!                 println!("{}", flags::Healthck::HELP);
+//!                 return;
+//!             }
 //!             run_checks(flags.config, flags.verbose);
 //!         }
-//!         Err(err) => err.exit()
+//!         Err(err) => {
+//!             eprintln!("{}", err);
+//!         }
 //!     }
 //! }
 //!
 //! # fn run_checks(_config: Option<std::path::PathBuf>, _verbosity: u32) {}
 //! ```
 //!
-//! The **src** keyword controls how the code generation works. If it is absent,
-//! `xflags` acts as a typical procedure macro, which generates a bunch of
-//! structs and impls.
+//! The **src** keyword controlls how the code generation works. If it is
+//! absent, `xflags` acts as a typical procedure macro, which generates a bunch
+//! of structs and impls.
 //!
 //! If the **src** keyword is present, it should specify the path to the file
 //! with `xflags!` invocation. The path should be relative to the directory with
@@ -272,7 +226,7 @@
 //! directly to the specified file.
 //!
 //! By convention, `xflag!` macro should be invoked from the `flags` submodule.
-//! The `flags::` prefix should be used to refer to command names. Additional
+//! The `flags::` preffix should be used to refer to command names. Additional
 //! validation logic can go to the `flags` module:
 //!
 //! ```
@@ -296,43 +250,21 @@
 //!     }
 //! }
 //! ```
-//!
-//! The `parse_or_exit!` macro is a syntactic sure for `xflags!`, which
-//! immediately parses the argument, exiting the process if needed.
-//! `parse_or_exit` only supports single top-level command and doesn't need the
-//! `cmd`  keyword.
-//!
-//! ## Limitations
-//!
-//! `xflags` follows
-//! [Fuchsia](https://fuchsia.dev/fuchsia-src/development/api/cli#command_line_arguments)
-//! conventions for command line arguments. GNU conventions such as grouping
-//! short-flags (`-xyz`) or gluing short flag and a value `(-fVAL)` are not
-//! supported.
-//!
-//! `xflags` requires the command line interface to be fully static. It's
-//! impossible to include additional flags at runtime.
-//!
-//! Implementation is not fully robust, there might be some residual bugs in
-//! edge cases.
 
 use std::fmt;
 
 /// Generates a parser for command line arguments from a DSL.
 ///
 /// See the module-level for detailed syntax specification.
-pub use xflags_macros::{parse_or_exit, xflags};
+pub use xflags_macros::xflags;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-/// An error occurred when parssing command line arguments.
-///
-/// Either the command line was syntactically invalid, or `--help` was
-/// explicitly requested.
+/// This type represents an error that can occur during command line argument
+/// parsing.
 #[derive(Debug)]
 pub struct Error {
     msg: String,
-    help: bool,
 }
 
 impl fmt::Display for Error {
@@ -348,23 +280,7 @@ impl Error {
     ///
     /// Use this to report custom validation errors.
     pub fn new(message: impl Into<String>) -> Error {
-        Error { msg: message.into(), help: false }
-    }
-
-    /// Error that carries `--help` message.
-    pub fn is_help(&self) -> bool {
-        self.help
-    }
-
-    /// Prints the error and exists the process.
-    pub fn exit(self) -> ! {
-        if self.is_help() {
-            println!("{self}");
-            std::process::exit(0)
-        } else {
-            eprintln!("{self}");
-            std::process::exit(2)
-        }
+        Error { msg: message.into() }
     }
 }
 

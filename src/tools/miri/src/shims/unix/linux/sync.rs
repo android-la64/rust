@@ -1,12 +1,12 @@
-use crate::concurrency::thread::{MachineCallback, Time};
+use crate::concurrency::thread::Time;
 use crate::*;
 use rustc_target::abi::{Align, Size};
-use std::time::SystemTime;
+use std::time::{Instant, SystemTime};
 
 /// Implementation of the SYS_futex syscall.
 /// `args` is the arguments *after* the syscall number.
 pub fn futex<'tcx>(
-    this: &mut MiriInterpCx<'_, 'tcx>,
+    this: &mut MiriEvalContext<'_, 'tcx>,
     args: &[OpTy<'tcx, Provenance>],
     dest: &PlaceTy<'tcx, Provenance>,
 ) -> InterpResult<'tcx> {
@@ -106,14 +106,14 @@ pub fn futex<'tcx>(
                     if op & futex_realtime != 0 {
                         Time::RealTime(SystemTime::UNIX_EPOCH.checked_add(duration).unwrap())
                     } else {
-                        Time::Monotonic(this.machine.clock.anchor().checked_add(duration).unwrap())
+                        Time::Monotonic(this.machine.time_anchor.checked_add(duration).unwrap())
                     }
                 } else {
                     // FUTEX_WAIT uses a relative timestamp.
                     if op & futex_realtime != 0 {
                         Time::RealTime(SystemTime::now().checked_add(duration).unwrap())
                     } else {
-                        Time::Monotonic(this.machine.clock.now().checked_add(duration).unwrap())
+                        Time::Monotonic(Instant::now().checked_add(duration).unwrap())
                     }
                 })
             };
@@ -189,36 +189,18 @@ pub fn futex<'tcx>(
                 // Register a timeout callback if a timeout was specified.
                 // This callback will override the return value when the timeout triggers.
                 if let Some(timeout_time) = timeout_time {
-                    struct Callback<'tcx> {
-                        thread: ThreadId,
-                        addr_usize: u64,
-                        dest: PlaceTy<'tcx, Provenance>,
-                    }
-
-                    impl<'tcx> VisitTags for Callback<'tcx> {
-                        fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
-                            let Callback { thread: _, addr_usize: _, dest } = self;
-                            dest.visit_tags(visit);
-                        }
-                    }
-
-                    impl<'mir, 'tcx: 'mir> MachineCallback<'mir, 'tcx> for Callback<'tcx> {
-                        fn call(&self, this: &mut MiriInterpCx<'mir, 'tcx>) -> InterpResult<'tcx> {
-                            this.unblock_thread(self.thread);
-                            this.futex_remove_waiter(self.addr_usize, self.thread);
-                            let etimedout = this.eval_libc("ETIMEDOUT")?;
-                            this.set_last_error(etimedout)?;
-                            this.write_scalar(Scalar::from_machine_isize(-1, this), &self.dest)?;
-
-                            Ok(())
-                        }
-                    }
-
                     let dest = dest.clone();
                     this.register_timeout_callback(
                         thread,
                         timeout_time,
-                        Box::new(Callback { thread, addr_usize, dest }),
+                        Box::new(move |this| {
+                            this.unblock_thread(thread);
+                            this.futex_remove_waiter(addr_usize, thread);
+                            let etimedout = this.eval_libc("ETIMEDOUT")?;
+                            this.set_last_error(etimedout)?;
+                            this.write_scalar(Scalar::from_machine_isize(-1, this), &dest)?;
+                            Ok(())
+                        }),
                     );
                 }
             } else {

@@ -8,6 +8,7 @@
 //! - Floating-point immediates (FIMM instruction).
 
 use super::lower_inst;
+use crate::data_value::DataValue;
 use crate::ir::condcodes::{FloatCC, IntCC};
 use crate::ir::types::*;
 use crate::ir::Inst as IRInst;
@@ -18,7 +19,7 @@ use crate::machinst::lower::*;
 use crate::machinst::{Reg, Writable};
 use crate::{machinst::*, trace};
 use crate::{CodegenError, CodegenResult};
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 use std::cmp;
 
 pub mod isle;
@@ -80,17 +81,27 @@ impl ResultRSEImm12 {
 // Lowering: convert instruction inputs to forms that we can use.
 
 /// Lower an instruction input to a 64-bit constant, if possible.
-pub(crate) fn input_to_const(ctx: &mut Lower<Inst>, input: InsnInput) -> Option<u64> {
+pub(crate) fn input_to_const<C: LowerCtx<I = Inst>>(ctx: &mut C, input: InsnInput) -> Option<u64> {
     let input = ctx.get_input_as_source_or_const(input.insn, input.input);
     input.constant
 }
 
 /// Lower an instruction input to a constant register-shift amount, if possible.
-pub(crate) fn input_to_shiftimm(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn input_to_shiftimm<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     input: InsnInput,
 ) -> Option<ShiftOpShiftImm> {
     input_to_const(ctx, input).and_then(ShiftOpShiftImm::maybe_from_shift)
+}
+
+pub(crate) fn const_param_to_u128<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    inst: IRInst,
+) -> Option<u128> {
+    match ctx.get_immediate(inst) {
+        Some(DataValue::V128(bytes)) => Some(u128::from_le_bytes(bytes)),
+        _ => None,
+    }
 }
 
 /// How to handle narrow values loaded into registers; see note on `narrow_mode`
@@ -128,7 +139,7 @@ impl NarrowValueMode {
 
 /// Emits instruction(s) to generate the given constant value into newly-allocated
 /// temporary registers, returning these registers.
-fn generate_constant(ctx: &mut Lower<Inst>, ty: Type, c: u128) -> ValueRegs<Reg> {
+fn generate_constant<C: LowerCtx<I = Inst>>(ctx: &mut C, ty: Type, c: u128) -> ValueRegs<Reg> {
     let from_bits = ty_bits(ty);
     let masked = if from_bits < 128 {
         c & ((1u128 << from_bits) - 1)
@@ -149,8 +160,8 @@ fn generate_constant(ctx: &mut Lower<Inst>, ty: Type, c: u128) -> ValueRegs<Reg>
 
 /// Extends a register according to `narrow_mode`.
 /// If extended, the value is always extended to 64 bits, for simplicity.
-fn extend_reg(
-    ctx: &mut Lower<Inst>,
+fn extend_reg<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     ty: Type,
     in_reg: Reg,
     is_const: bool,
@@ -221,7 +232,10 @@ fn extend_reg(
 }
 
 /// Lowers an instruction input to multiple regs
-fn lower_value_to_regs(ctx: &mut Lower<Inst>, value: Value) -> (ValueRegs<Reg>, Type, bool) {
+fn lower_value_to_regs<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    value: Value,
+) -> (ValueRegs<Reg>, Type, bool) {
     trace!("lower_value_to_regs: value {:?}", value);
     let ty = ctx.value_ty(value);
     let inputs = ctx.get_value_as_source_or_const(value);
@@ -242,8 +256,8 @@ fn lower_value_to_regs(ctx: &mut Lower<Inst>, value: Value) -> (ValueRegs<Reg>, 
 /// The given register will be extended appropriately, according to
 /// `narrow_mode` and the input's type. If extended, the value is
 /// always extended to 64 bits, for simplicity.
-pub(crate) fn put_input_in_reg(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn put_input_in_reg<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     input: InsnInput,
     narrow_mode: NarrowValueMode,
 ) -> Reg {
@@ -252,7 +266,11 @@ pub(crate) fn put_input_in_reg(
 }
 
 /// Like above, only for values
-fn put_value_in_reg(ctx: &mut Lower<Inst>, value: Value, narrow_mode: NarrowValueMode) -> Reg {
+fn put_value_in_reg<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    value: Value,
+    narrow_mode: NarrowValueMode,
+) -> Reg {
     let (in_regs, ty, is_const) = lower_value_to_regs(ctx, value);
     let reg = in_regs
         .only_reg()
@@ -262,7 +280,10 @@ fn put_value_in_reg(ctx: &mut Lower<Inst>, value: Value, narrow_mode: NarrowValu
 }
 
 /// Lower an instruction input to multiple regs
-pub(crate) fn put_input_in_regs(ctx: &mut Lower<Inst>, input: InsnInput) -> ValueRegs<Reg> {
+pub(crate) fn put_input_in_regs<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    input: InsnInput,
+) -> ValueRegs<Reg> {
     let value = ctx.input_as_value(input.insn, input.input);
     let (in_regs, _, _) = lower_value_to_regs(ctx, value);
     in_regs
@@ -279,8 +300,8 @@ pub(crate) fn put_input_in_regs(ctx: &mut Lower<Inst>, input: InsnInput) -> Valu
 /// divide or a right-shift or a compare-to-zero), `narrow_mode` should be
 /// set to `ZeroExtend` or `SignExtend` as appropriate, and the resulting
 /// register will be provided the extended value.
-fn put_input_in_rs(
-    ctx: &mut Lower<Inst>,
+fn put_input_in_rs<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     input: InsnInput,
     narrow_mode: NarrowValueMode,
 ) -> ResultRS {
@@ -313,8 +334,8 @@ fn put_input_in_rs(
 /// vreg into which the source instruction will generate its value.
 ///
 /// See note on `put_input_in_rs` for a description of `narrow_mode`.
-fn put_input_in_rse(
-    ctx: &mut Lower<Inst>,
+fn put_input_in_rse<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     input: InsnInput,
     narrow_mode: NarrowValueMode,
 ) -> ResultRSE {
@@ -327,8 +348,8 @@ fn put_input_in_rse(
     ResultRSE::from_rs(put_input_in_rs(ctx, input, narrow_mode))
 }
 
-fn get_as_extended_value(
-    ctx: &mut Lower<Inst>,
+fn get_as_extended_value<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     val: Value,
     narrow_mode: NarrowValueMode,
 ) -> Option<(Value, ExtendOp)> {
@@ -406,8 +427,8 @@ fn get_as_extended_value(
     None
 }
 
-pub(crate) fn put_input_in_rse_imm12(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn put_input_in_rse_imm12<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     input: InsnInput,
     narrow_mode: NarrowValueMode,
 ) -> ResultRSEImm12 {
@@ -505,21 +526,21 @@ type AddressAddend64List = SmallVec<[Reg; 4]>;
 /// additional masking of high-order bits, which is too complex. So, in essence, we
 /// descend any number of adds from the roots, collecting all 64-bit address addends;
 /// then possibly support extensions at these leaves.
-fn collect_address_addends(
-    ctx: &mut Lower<Inst>,
-    root: Value,
+fn collect_address_addends<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    roots: &[InsnInput],
 ) -> (AddressAddend64List, AddressAddend32List, i64) {
     let mut result32: AddressAddend32List = SmallVec::new();
     let mut result64: AddressAddend64List = SmallVec::new();
     let mut offset: i64 = 0;
 
-    let mut workqueue: SmallVec<[Value; 4]> = smallvec![root];
+    let mut workqueue: SmallVec<[InsnInput; 4]> = roots.iter().cloned().collect();
 
-    while let Some(value) = workqueue.pop() {
-        debug_assert_eq!(ty_bits(ctx.value_ty(value)), 64);
-        if let Some((op, insn)) = maybe_value_multi(
+    while let Some(input) = workqueue.pop() {
+        debug_assert!(ty_bits(ctx.input_ty(input.insn, input.input)) == 64);
+        if let Some((op, insn)) = maybe_input_insn_multi(
             ctx,
-            value,
+            input,
             &[
                 Opcode::Uextend,
                 Opcode::Sextend,
@@ -551,12 +572,12 @@ fn collect_address_addends(
                     }
                 }
                 Opcode::Uextend | Opcode::Sextend => {
-                    let reg = put_value_in_reg(ctx, value, NarrowValueMode::None);
+                    let reg = put_input_in_reg(ctx, input, NarrowValueMode::None);
                     result64.push(reg);
                 }
                 Opcode::Iadd => {
                     for input in 0..ctx.num_inputs(insn) {
-                        let addend = ctx.input_as_value(insn, input);
+                        let addend = InsnInput { insn, input };
                         workqueue.push(addend);
                     }
                 }
@@ -567,7 +588,7 @@ fn collect_address_addends(
                 _ => panic!("Unexpected opcode from maybe_input_insn_multi"),
             }
         } else {
-            let reg = put_value_in_reg(ctx, value, NarrowValueMode::ZeroExtend64);
+            let reg = put_input_in_reg(ctx, input, NarrowValueMode::ZeroExtend64);
             result64.push(reg);
         }
     }
@@ -576,11 +597,15 @@ fn collect_address_addends(
 }
 
 /// Lower the address of a pair load or store.
-pub(crate) fn lower_pair_address(ctx: &mut Lower<Inst>, addr: Value, offset: i32) -> PairAMode {
+pub(crate) fn lower_pair_address<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    roots: &[InsnInput],
+    offset: i32,
+) -> PairAMode {
     // Collect addends through an arbitrary tree of 32-to-64-bit sign/zero
     // extends and addition ops. We update these as we consume address
     // components, so they represent the remaining addends not yet handled.
-    let (mut addends64, mut addends32, args_offset) = collect_address_addends(ctx, addr);
+    let (mut addends64, mut addends32, args_offset) = collect_address_addends(ctx, roots);
     let offset = args_offset + (offset as i64);
 
     trace!(
@@ -629,10 +654,10 @@ pub(crate) fn lower_pair_address(ctx: &mut Lower<Inst>, addr: Value, offset: i32
 }
 
 /// Lower the address of a load or store.
-pub(crate) fn lower_address(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn lower_address<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     elem_ty: Type,
-    addr: Value,
+    roots: &[InsnInput],
     offset: i32,
 ) -> AMode {
     // TODO: support base_reg + scale * index_reg. For this, we would need to
@@ -641,7 +666,7 @@ pub(crate) fn lower_address(
     // Collect addends through an arbitrary tree of 32-to-64-bit sign/zero
     // extends and addition ops. We update these as we consume address
     // components, so they represent the remaining addends not yet handled.
-    let (mut addends64, mut addends32, args_offset) = collect_address_addends(ctx, addr);
+    let (mut addends64, mut addends32, args_offset) = collect_address_addends(ctx, roots);
     let mut offset = args_offset + (offset as i64);
 
     trace!(
@@ -658,24 +683,16 @@ pub(crate) fn lower_address(
         if addends32.len() > 0 {
             let (reg32, extendop) = addends32.pop().unwrap();
             let reg64 = addends64.pop().unwrap();
-            AMode::RegExtended {
-                rn: reg64,
-                rm: reg32,
-                extendop,
-            }
+            AMode::RegExtended(reg64, reg32, extendop)
         } else if offset > 0 && offset < 0x1000 {
             let reg64 = addends64.pop().unwrap();
             let off = offset;
             offset = 0;
-            AMode::RegOffset {
-                rn: reg64,
-                off,
-                ty: elem_ty,
-            }
+            AMode::RegOffset(reg64, off, elem_ty)
         } else if addends64.len() >= 2 {
             let reg1 = addends64.pop().unwrap();
             let reg2 = addends64.pop().unwrap();
-            AMode::RegReg { rn: reg1, rm: reg2 }
+            AMode::RegReg(reg1, reg2)
         } else {
             let reg1 = addends64.pop().unwrap();
             AMode::reg(reg1)
@@ -699,11 +716,7 @@ pub(crate) fn lower_address(
                 to_bits: 64,
             });
             if let Some((reg2, extendop)) = addends32.pop() {
-                AMode::RegExtended {
-                    rn: tmp.to_reg(),
-                    rm: reg2,
-                    extendop,
-                }
+                AMode::RegExtended(tmp.to_reg(), reg2, extendop)
             } else {
                 AMode::reg(tmp.to_reg())
             }
@@ -728,36 +741,12 @@ pub(crate) fn lower_address(
     // Allocate the temp and shoehorn it into the AMode.
     let addr = ctx.alloc_tmp(I64).only_reg().unwrap();
     let (reg, memarg) = match memarg {
-        AMode::RegExtended { rn, rm, extendop } => (
-            rn,
-            AMode::RegExtended {
-                rn: addr.to_reg(),
-                rm,
-                extendop,
-            },
-        ),
-        AMode::RegOffset { rn, off, ty } => (
-            rn,
-            AMode::RegOffset {
-                rn: addr.to_reg(),
-                off,
-                ty,
-            },
-        ),
-        AMode::RegReg { rn, rm } => (
-            rm,
-            AMode::RegReg {
-                rn: addr.to_reg(),
-                rm: rn,
-            },
-        ),
-        AMode::UnsignedOffset { rn, uimm12 } => (
-            rn,
-            AMode::UnsignedOffset {
-                rn: addr.to_reg(),
-                uimm12,
-            },
-        ),
+        AMode::RegExtended(r1, r2, extendop) => {
+            (r1, AMode::RegExtended(addr.to_reg(), r2, extendop))
+        }
+        AMode::RegOffset(r, off, ty) => (r, AMode::RegOffset(addr.to_reg(), off, ty)),
+        AMode::RegReg(r1, r2) => (r2, AMode::RegReg(addr.to_reg(), r1)),
+        AMode::UnsignedOffset(r, imm) => (r, AMode::UnsignedOffset(addr.to_reg(), imm)),
         _ => unreachable!(),
     };
 
@@ -775,8 +764,8 @@ pub(crate) fn lower_address(
     memarg
 }
 
-fn lower_add_addends(
-    ctx: &mut Lower<Inst>,
+fn lower_add_addends<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     rd: Writable<Reg>,
     addends64: AddressAddend64List,
     addends32: AddressAddend32List,
@@ -814,7 +803,7 @@ fn lower_add_addends(
 
 /// Adds into `rd` a signed imm pattern matching the best instruction for it.
 // TODO: This function is duplicated in ctx.gen_add_imm
-fn lower_add_immediate(ctx: &mut Lower<Inst>, dst: Writable<Reg>, src: Reg, imm: i64) {
+fn lower_add_immediate<C: LowerCtx<I = Inst>>(ctx: &mut C, dst: Writable<Reg>, src: Reg, imm: i64) {
     // If we can fit offset or -offset in an imm12, use an add-imm
     // Otherwise, lower the constant first then add.
     if let Some(imm12) = Imm12::maybe_from_u64(imm as u64) {
@@ -845,13 +834,21 @@ fn lower_add_immediate(ctx: &mut Lower<Inst>, dst: Writable<Reg>, src: Reg, imm:
     }
 }
 
-pub(crate) fn lower_constant_u64(ctx: &mut Lower<Inst>, rd: Writable<Reg>, value: u64) {
+pub(crate) fn lower_constant_u64<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    rd: Writable<Reg>,
+    value: u64,
+) {
     for inst in Inst::load_constant(rd, value) {
         ctx.emit(inst);
     }
 }
 
-pub(crate) fn lower_constant_f32(ctx: &mut Lower<Inst>, rd: Writable<Reg>, value: f32) {
+pub(crate) fn lower_constant_f32<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    rd: Writable<Reg>,
+    value: f32,
+) {
     let alloc_tmp = |ty| ctx.alloc_tmp(ty).only_reg().unwrap();
 
     for inst in Inst::load_fp_constant32(rd, value.to_bits(), alloc_tmp) {
@@ -859,7 +856,11 @@ pub(crate) fn lower_constant_f32(ctx: &mut Lower<Inst>, rd: Writable<Reg>, value
     }
 }
 
-pub(crate) fn lower_constant_f64(ctx: &mut Lower<Inst>, rd: Writable<Reg>, value: f64) {
+pub(crate) fn lower_constant_f64<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    rd: Writable<Reg>,
+    value: f64,
+) {
     let alloc_tmp = |ty| ctx.alloc_tmp(ty).only_reg().unwrap();
 
     for inst in Inst::load_fp_constant64(rd, value.to_bits(), alloc_tmp) {
@@ -867,7 +868,11 @@ pub(crate) fn lower_constant_f64(ctx: &mut Lower<Inst>, rd: Writable<Reg>, value
     }
 }
 
-pub(crate) fn lower_constant_f128(ctx: &mut Lower<Inst>, rd: Writable<Reg>, value: u128) {
+pub(crate) fn lower_constant_f128<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
+    rd: Writable<Reg>,
+    value: u128,
+) {
     if value == 0 {
         // Fast-track a common case.  The general case, viz, calling `Inst::load_fp_constant128`,
         // is potentially expensive.
@@ -885,8 +890,8 @@ pub(crate) fn lower_constant_f128(ctx: &mut Lower<Inst>, rd: Writable<Reg>, valu
     }
 }
 
-pub(crate) fn lower_splat_const(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn lower_splat_const<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     rd: Writable<Reg>,
     value: u64,
     size: VectorSize,
@@ -969,8 +974,8 @@ pub(crate) fn lower_fp_condcode(cc: FloatCC) -> Cond {
     }
 }
 
-pub(crate) fn lower_vector_compare(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn lower_vector_compare<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     rd: Writable<Reg>,
     mut rn: Reg,
     mut rm: Reg,
@@ -1097,9 +1102,20 @@ pub(crate) fn condcode_is_signed(cc: IntCC) -> bool {
 //=============================================================================
 // Helpers for instruction lowering.
 
+pub(crate) fn choose_32_64<T: Copy>(ty: Type, op32: T, op64: T) -> T {
+    let bits = ty_bits(ty);
+    if bits <= 32 {
+        op32
+    } else if bits == 64 {
+        op64
+    } else {
+        panic!("choose_32_64 on > 64 bits!")
+    }
+}
+
 /// Checks for an instance of `op` feeding the given input.
-pub(crate) fn maybe_input_insn(
-    c: &mut Lower<Inst>,
+pub(crate) fn maybe_input_insn<C: LowerCtx<I = Inst>>(
+    c: &mut C,
     input: InsnInput,
     op: Opcode,
 ) -> Option<IRInst> {
@@ -1120,26 +1136,14 @@ pub(crate) fn maybe_input_insn(
     None
 }
 
-/// Checks for an instance of `op` defining the given value.
-pub(crate) fn maybe_value(c: &mut Lower<Inst>, value: Value, op: Opcode) -> Option<IRInst> {
-    let inputs = c.get_value_as_source_or_const(value);
-    if let Some((src_inst, _)) = inputs.inst.as_inst() {
-        let data = c.data(src_inst);
-        if data.opcode() == op {
-            return Some(src_inst);
-        }
-    }
-    None
-}
-
-/// Checks for an instance of any one of `ops` defining the given value.
-pub(crate) fn maybe_value_multi(
-    c: &mut Lower<Inst>,
-    value: Value,
+/// Checks for an instance of any one of `ops` feeding the given input.
+pub(crate) fn maybe_input_insn_multi<C: LowerCtx<I = Inst>>(
+    c: &mut C,
+    input: InsnInput,
     ops: &[Opcode],
 ) -> Option<(Opcode, IRInst)> {
     for &op in ops {
-        if let Some(inst) = maybe_value(c, value, op) {
+        if let Some(inst) = maybe_input_insn(c, input, op) {
             return Some((op, inst));
         }
     }
@@ -1151,8 +1155,8 @@ pub(crate) fn maybe_value_multi(
 ///
 /// FIXME cfallin 2020-03-30: this is really ugly. Factor out tree-matching stuff and make it
 /// a bit more generic.
-pub(crate) fn maybe_input_insn_via_conv(
-    c: &mut Lower<Inst>,
+pub(crate) fn maybe_input_insn_via_conv<C: LowerCtx<I = Inst>>(
+    c: &mut C,
     input: InsnInput,
     op: Opcode,
     conv: Opcode,
@@ -1218,8 +1222,8 @@ impl IcmpResult {
 ///
 /// We can lower into the status flags, or materialize the result into a register
 /// This is controlled by the `output` parameter.
-pub(crate) fn lower_icmp(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn lower_icmp<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     insn: IRInst,
     condcode: IntCC,
     output: IcmpOutput,
@@ -1254,23 +1258,31 @@ pub(crate) fn lower_icmp(
 
         match condcode {
             IntCC::Equal | IntCC::NotEqual => {
-                // cmp lhs_lo, rhs_lo
-                // ccmp lhs_hi, rhs_hi, #0, eq
-                // cset dst, {eq, ne}
+                // eor     tmp1, lhs_lo, rhs_lo
+                // eor     tmp2, lhs_hi, rhs_hi
+                // adds    xzr, tmp1, tmp2
+                // cset    dst, {eq, ne}
 
                 ctx.emit(Inst::AluRRR {
-                    alu_op: ALUOp::SubS,
+                    alu_op: ALUOp::Eor,
                     size: OperandSize::Size64,
-                    rd: writable_zero_reg(),
+                    rd: tmp1,
                     rn: lhs.regs()[0],
                     rm: rhs.regs()[0],
                 });
-                ctx.emit(Inst::CCmp {
+                ctx.emit(Inst::AluRRR {
+                    alu_op: ALUOp::Eor,
                     size: OperandSize::Size64,
+                    rd: tmp2,
                     rn: lhs.regs()[1],
                     rm: rhs.regs()[1],
-                    nzcv: NZCV::new(false, false, false, false),
-                    cond: Cond::Eq,
+                });
+                ctx.emit(Inst::AluRRR {
+                    alu_op: ALUOp::AddS,
+                    size: OperandSize::Size64,
+                    rd: writable_zero_reg(),
+                    rn: tmp1.to_reg(),
+                    rm: tmp2.to_reg(),
                 });
                 cond
             }
@@ -1466,7 +1478,7 @@ pub(crate) fn lower_icmp(
     })
 }
 
-pub(crate) fn lower_fcmp_or_ffcmp_to_flags(ctx: &mut Lower<Inst>, insn: IRInst) {
+pub(crate) fn lower_fcmp_or_ffcmp_to_flags<C: LowerCtx<I = Inst>>(ctx: &mut C, insn: IRInst) {
     let ty = ctx.input_ty(insn, 0);
     let inputs = [InsnInput { insn, input: 0 }, InsnInput { insn, input: 1 }];
     let rn = put_input_in_reg(ctx, inputs[0], NarrowValueMode::None);
@@ -1481,8 +1493,8 @@ pub(crate) fn lower_fcmp_or_ffcmp_to_flags(ctx: &mut Lower<Inst>, insn: IRInst) 
 /// Materialize a boolean value into a register from the flags
 /// (e.g set by a comparison).
 /// A 0 / -1 (all-ones) result as expected for bool operations.
-pub(crate) fn materialize_bool_result(
-    ctx: &mut Lower<Inst>,
+pub(crate) fn materialize_bool_result<C: LowerCtx<I = Inst>>(
+    ctx: &mut C,
     insn: IRInst,
     rd: Writable<Reg>,
     cond: Cond,
@@ -1496,19 +1508,55 @@ pub(crate) fn materialize_bool_result(
     }
 }
 
+fn load_op_to_ty(op: Opcode) -> Option<Type> {
+    match op {
+        Opcode::Sload8 | Opcode::Uload8 => Some(I8),
+        Opcode::Sload16 | Opcode::Uload16 => Some(I16),
+        Opcode::Sload32 | Opcode::Uload32 => Some(I32),
+        Opcode::Load => None,
+        Opcode::Sload8x8 | Opcode::Uload8x8 => Some(I8X8),
+        Opcode::Sload16x4 | Opcode::Uload16x4 => Some(I16X4),
+        Opcode::Sload32x2 | Opcode::Uload32x2 => Some(I32X2),
+        _ => None,
+    }
+}
+
+/// Helper to lower a load instruction; this is used in several places, because
+/// a load can sometimes be merged into another operation.
+pub(crate) fn lower_load<
+    C: LowerCtx<I = Inst>,
+    F: FnMut(&mut C, ValueRegs<Writable<Reg>>, Type, AMode) -> CodegenResult<()>,
+>(
+    ctx: &mut C,
+    ir_inst: IRInst,
+    inputs: &[InsnInput],
+    output: InsnOutput,
+    mut f: F,
+) -> CodegenResult<()> {
+    let op = ctx.data(ir_inst).opcode();
+
+    let elem_ty = load_op_to_ty(op).unwrap_or_else(|| ctx.output_ty(ir_inst, 0));
+
+    let off = ctx.data(ir_inst).load_store_offset().unwrap();
+    let mem = lower_address(ctx, elem_ty, &inputs[..], off);
+    let rd = get_output_reg(ctx, output);
+
+    f(ctx, rd, elem_ty, mem)
+}
+
 //=============================================================================
 // Lowering-backend trait implementation.
 
 impl LowerBackend for AArch64Backend {
     type MInst = Inst;
 
-    fn lower(&self, ctx: &mut Lower<Inst>, ir_inst: IRInst) -> CodegenResult<()> {
+    fn lower<C: LowerCtx<I = Inst>>(&self, ctx: &mut C, ir_inst: IRInst) -> CodegenResult<()> {
         lower_inst::lower_insn_to_regs(ctx, ir_inst, &self.triple, &self.flags, &self.isa_flags)
     }
 
-    fn lower_branch_group(
+    fn lower_branch_group<C: LowerCtx<I = Inst>>(
         &self,
-        ctx: &mut Lower<Inst>,
+        ctx: &mut C,
         branches: &[IRInst],
         targets: &[MachLabel],
     ) -> CodegenResult<()> {

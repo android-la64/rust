@@ -8,11 +8,9 @@ extern crate self as chalk_ir;
 
 use crate::cast::{Cast, CastTo, Caster};
 use crate::fold::shift::Shift;
-use crate::fold::{FallibleTypeFolder, Subst, TypeFoldable, TypeFolder, TypeSuperFoldable};
+use crate::fold::{Subst, TypeFoldable, TypeFolder, TypeSuperFoldable};
 use crate::visit::{TypeSuperVisitable, TypeVisitable, TypeVisitor, VisitExt};
-use chalk_derive::{
-    FallibleTypeFolder, HasInterner, TypeFoldable, TypeSuperVisitable, TypeVisitable, Zip,
-};
+use chalk_derive::{HasInterner, TypeFoldable, TypeSuperVisitable, TypeVisitable, Zip};
 use std::marker::PhantomData;
 use std::ops::ControlFlow;
 
@@ -1643,6 +1641,17 @@ pub struct ProjectionTy<I: Interner> {
 
 impl<I: Interner> Copy for ProjectionTy<I> where I::InternedSubstitution: Copy {}
 
+impl<I: Interner> ProjectionTy<I> {
+    /// Gets the type parameters of the `Self` type in this alias type.
+    pub fn self_type_parameter(&self, interner: I) -> Ty<I> {
+        self.substitution
+            .iter(interner)
+            .find_map(move |p| p.ty(interner))
+            .unwrap()
+            .clone()
+    }
+}
+
 /// An opaque type `opaque type T<..>: Trait = HiddenTy`.
 #[derive(Clone, PartialEq, Eq, Hash, TypeFoldable, TypeVisitable, HasInterner)]
 pub struct OpaqueTy<I: Interner> {
@@ -2716,7 +2725,6 @@ impl<I: Interner> Substitution<I> {
     }
 }
 
-#[derive(FallibleTypeFolder)]
 struct SubstFolder<'i, I: Interner, A: AsParameters<I>> {
     interner: I,
     subst: &'i A,
@@ -2783,8 +2791,8 @@ impl<I: Interner, A: AsParameters<I>> Substitute<I> for A {
         T: TypeFoldable<I>,
     {
         value
-            .try_fold_with(
-                &mut SubstFolder {
+            .fold_with(
+                &mut &SubstFolder {
                     interner,
                     subst: self,
                 },
@@ -2817,29 +2825,33 @@ impl<'a, I: Interner> ToGenericArg<I> for (usize, &'a VariableKind<I>) {
     }
 }
 
-impl<'i, I: Interner, A: AsParameters<I>> TypeFolder<I> for SubstFolder<'i, I, A> {
-    fn as_dyn(&mut self) -> &mut dyn TypeFolder<I> {
+impl<'i, I: Interner, A: AsParameters<I>> TypeFolder<I> for &SubstFolder<'i, I, A> {
+    type Error = NoSolution;
+
+    fn as_dyn(&mut self) -> &mut dyn TypeFolder<I, Error = Self::Error> {
         self
     }
 
-    fn fold_free_var_ty(&mut self, bound_var: BoundVar, outer_binder: DebruijnIndex) -> Ty<I> {
+    fn fold_free_var_ty(
+        &mut self,
+        bound_var: BoundVar,
+        outer_binder: DebruijnIndex,
+    ) -> Fallible<Ty<I>> {
         assert_eq!(bound_var.debruijn, DebruijnIndex::INNERMOST);
         let ty = self.at(bound_var.index);
-        let ty = ty.assert_ty_ref(TypeFolder::interner(self));
-        ty.clone()
-            .shifted_in_from(TypeFolder::interner(self), outer_binder)
+        let ty = ty.assert_ty_ref(self.interner());
+        Ok(ty.clone().shifted_in_from(self.interner(), outer_binder))
     }
 
     fn fold_free_var_lifetime(
         &mut self,
         bound_var: BoundVar,
         outer_binder: DebruijnIndex,
-    ) -> Lifetime<I> {
+    ) -> Fallible<Lifetime<I>> {
         assert_eq!(bound_var.debruijn, DebruijnIndex::INNERMOST);
         let l = self.at(bound_var.index);
-        let l = l.assert_lifetime_ref(TypeFolder::interner(self));
-        l.clone()
-            .shifted_in_from(TypeFolder::interner(self), outer_binder)
+        let l = l.assert_lifetime_ref(self.interner());
+        Ok(l.clone().shifted_in_from(self.interner(), outer_binder))
     }
 
     fn fold_free_var_const(
@@ -2847,12 +2859,11 @@ impl<'i, I: Interner, A: AsParameters<I>> TypeFolder<I> for SubstFolder<'i, I, A
         _ty: Ty<I>,
         bound_var: BoundVar,
         outer_binder: DebruijnIndex,
-    ) -> Const<I> {
+    ) -> Fallible<Const<I>> {
         assert_eq!(bound_var.debruijn, DebruijnIndex::INNERMOST);
         let c = self.at(bound_var.index);
-        let c = c.assert_const_ref(TypeFolder::interner(self));
-        c.clone()
-            .shifted_in_from(TypeFolder::interner(self), outer_binder)
+        let c = c.assert_const_ref(self.interner());
+        Ok(c.clone().shifted_in_from(self.interner(), outer_binder))
     }
 
     fn interner(&self) -> I {

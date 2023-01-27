@@ -58,6 +58,7 @@ GDB_ARGS="--directory=\"$GDB_PYTHON_MODULE_DIRECTORY\" -iex \"add-auto-load-safe
 # Finally we execute gdbgui.
 PYTHONPATH="$PYTHONPATH:$GDB_PYTHON_MODULE_DIRECTORY" \
   exec ${RUST_GDBGUI} \
-  --gdb-cmd "${RUST_GDB} ${GDB_ARGS}" \
+  --gdb ${RUST_GDB} \
+  --gdb-args "${GDB_ARGS}" \
   "${@}"
 

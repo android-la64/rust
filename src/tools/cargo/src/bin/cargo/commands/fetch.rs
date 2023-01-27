@@ -3,7 +3,7 @@ use crate::command_prelude::*;
 use cargo::ops;
 use cargo::ops::FetchOptions;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("fetch")
         .about("Fetch dependencies of a package from the network")
         .arg_quiet()

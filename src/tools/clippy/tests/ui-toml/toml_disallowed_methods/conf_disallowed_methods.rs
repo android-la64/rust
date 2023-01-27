@@ -1,9 +1,6 @@
 #![warn(clippy::disallowed_methods)]
 
-extern crate futures;
 extern crate regex;
-
-use futures::stream::{empty, select_all};
 use regex::Regex;
 
 fn main() {
@@ -23,7 +20,4 @@ fn main() {
 
     let in_call = Box::new(f32::clamp);
     let in_method_call = ["^", "$"].into_iter().map(Regex::new);
-
-    // resolve ambiguity between `futures::stream::select_all` the module and the function
-    let same_name_as_module = select_all(vec![empty::<()>()]);
 }

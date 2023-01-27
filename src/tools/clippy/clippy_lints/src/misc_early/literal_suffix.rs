@@ -6,7 +6,9 @@ use rustc_lint::EarlyContext;
 use super::{SEPARATED_LITERAL_SUFFIX, UNSEPARATED_LITERAL_SUFFIX};
 
 pub(super) fn check(cx: &EarlyContext<'_>, lit: &Lit, lit_snip: &str, suffix: &str, sugg_type: &str) {
-    let Some(maybe_last_sep_idx) = lit_snip.len().checked_sub(suffix.len() + 1) else {
+    let maybe_last_sep_idx = if let Some(val) = lit_snip.len().checked_sub(suffix.len() + 1) {
+        val
+    } else {
         return; // It's useless so shouldn't lint.
     };
     // Do not lint when literal is unsuffixed.
@@ -16,9 +18,9 @@ pub(super) fn check(cx: &EarlyContext<'_>, lit: &Lit, lit_snip: &str, suffix: &s
                 cx,
                 SEPARATED_LITERAL_SUFFIX,
                 lit.span,
-                &format!("{sugg_type} type suffix should not be separated by an underscore"),
+                &format!("{} type suffix should not be separated by an underscore", sugg_type),
                 "remove the underscore",
-                format!("{}{suffix}", &lit_snip[..maybe_last_sep_idx]),
+                format!("{}{}", &lit_snip[..maybe_last_sep_idx], suffix),
                 Applicability::MachineApplicable,
             );
         } else {
@@ -26,9 +28,9 @@ pub(super) fn check(cx: &EarlyContext<'_>, lit: &Lit, lit_snip: &str, suffix: &s
                 cx,
                 UNSEPARATED_LITERAL_SUFFIX,
                 lit.span,
-                &format!("{sugg_type} type suffix should be separated by an underscore"),
+                &format!("{} type suffix should be separated by an underscore", sugg_type),
                 "add an underscore",
-                format!("{}_{suffix}", &lit_snip[..=maybe_last_sep_idx]),
+                format!("{}_{}", &lit_snip[..=maybe_last_sep_idx], suffix),
                 Applicability::MachineApplicable,
             );
         }

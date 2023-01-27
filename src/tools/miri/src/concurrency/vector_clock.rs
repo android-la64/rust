@@ -53,7 +53,7 @@ pub type VTimestamp = u32;
 /// circuit the calculation and return the correct result faster,
 /// also this means that there is only one unique valid length
 /// for each set of vector clock values and hence the PartialEq
-/// and Eq derivations are correct.
+//  and Eq derivations are correct.
 #[derive(PartialEq, Eq, Default, Debug)]
 pub struct VClock(SmallVec<[VTimestamp; SMALL_VECTOR]>);
 
@@ -399,7 +399,7 @@ mod tests {
 
         //Test partial_cmp
         let compare = l.partial_cmp(&r);
-        assert_eq!(compare, o, "Invalid comparison\n l: {l:?}\n r: {r:?}");
+        assert_eq!(compare, o, "Invalid comparison\n l: {:?}\n r: {:?}", l, r);
         let alt_compare = r.partial_cmp(&l);
         assert_eq!(
             alt_compare,

@@ -1,10 +1,10 @@
-use rustc_macros::Diagnostic;
+use rustc_macros::SessionDiagnostic;
 use rustc_span::Span;
 
 use crate::ty::Ty;
 
-#[derive(Diagnostic)]
-#[diag(middle_drop_check_overflow, code = "E0320")]
+#[derive(SessionDiagnostic)]
+#[diag(middle::drop_check_overflow, code = "E0320")]
 #[note]
 pub struct DropCheckOverflow<'tcx> {
     #[primary_span]
@@ -13,8 +13,8 @@ pub struct DropCheckOverflow<'tcx> {
     pub overflow_ty: Ty<'tcx>,
 }
 
-#[derive(Diagnostic)]
-#[diag(middle_opaque_hidden_type_mismatch)]
+#[derive(SessionDiagnostic)]
+#[diag(middle::opaque_hidden_type_mismatch)]
 pub struct OpaqueHiddenTypeMismatch<'tcx> {
     pub self_ty: Ty<'tcx>,
     pub other_ty: Ty<'tcx>,
@@ -25,33 +25,26 @@ pub struct OpaqueHiddenTypeMismatch<'tcx> {
     pub sub: TypeMismatchReason,
 }
 
-#[derive(Subdiagnostic)]
+#[derive(SessionSubdiagnostic)]
 pub enum TypeMismatchReason {
-    #[label(middle_conflict_types)]
+    #[label(middle::conflict_types)]
     ConflictType {
         #[primary_span]
         span: Span,
     },
-    #[note(middle_previous_use_here)]
+    #[note(middle::previous_use_here)]
     PreviousUse {
         #[primary_span]
         span: Span,
     },
 }
 
-#[derive(Diagnostic)]
-#[diag(middle_limit_invalid)]
+#[derive(SessionDiagnostic)]
+#[diag(middle::limit_invalid)]
 pub struct LimitInvalid<'a> {
     #[primary_span]
     pub span: Span,
     #[label]
     pub value_span: Span,
     pub error_str: &'a str,
-}
-
-#[derive(Diagnostic)]
-#[diag(middle_const_eval_non_int)]
-pub struct ConstEvalNonIntError {
-    #[primary_span]
-    pub span: Span,
 }

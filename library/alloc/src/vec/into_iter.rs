@@ -8,7 +8,7 @@ use core::iter::{
     FusedIterator, InPlaceIterable, SourceIter, TrustedLen, TrustedRandomAccessNoCoerce,
 };
 use core::marker::PhantomData;
-use core::mem::{self, ManuallyDrop, MaybeUninit, SizedTypeProperties};
+use core::mem::{self, ManuallyDrop, MaybeUninit};
 #[cfg(not(no_global_oom_handling))]
 use core::ops::Deref;
 use core::ptr::{self, NonNull};
@@ -95,16 +95,13 @@ impl<T, A: Allocator> IntoIter<T, A> {
     }
 
     /// Drops remaining elements and relinquishes the backing allocation.
-    /// This method guarantees it won't panic before relinquishing
-    /// the backing allocation.
     ///
     /// This is roughly equivalent to the following, but more efficient
     ///
     /// ```
     /// # let mut into_iter = Vec::<u8>::with_capacity(10).into_iter();
-    /// let mut into_iter = std::mem::replace(&mut into_iter, Vec::new().into_iter());
     /// (&mut into_iter).for_each(core::mem::drop);
-    /// std::mem::forget(into_iter);
+    /// unsafe { core::ptr::write(&mut into_iter, Vec::new().into_iter()); }
     /// ```
     ///
     /// This method is used by in-place iteration, refer to the vec::in_place_collect
@@ -121,8 +118,6 @@ impl<T, A: Allocator> IntoIter<T, A> {
         self.ptr = self.buf.as_ptr();
         self.end = self.buf.as_ptr();
 
-        // Dropping the remaining elements can panic, so this needs to be
-        // done only after updating the other fields.
         unsafe {
             ptr::drop_in_place(remaining);
         }
@@ -154,7 +149,7 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
     fn next(&mut self) -> Option<T> {
         if self.ptr == self.end {
             None
-        } else if T::IS_ZST {
+        } else if mem::size_of::<T>() == 0 {
             // purposefully don't use 'ptr.offset' because for
             // vectors with 0-size elements this would return the
             // same pointer.
@@ -172,7 +167,7 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let exact = if T::IS_ZST {
+        let exact = if mem::size_of::<T>() == 0 {
             self.end.addr().wrapping_sub(self.ptr.addr())
         } else {
             unsafe { self.end.sub_ptr(self.ptr) }
@@ -184,7 +179,7 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
     fn advance_by(&mut self, n: usize) -> Result<(), usize> {
         let step_size = self.len().min(n);
         let to_drop = ptr::slice_from_raw_parts_mut(self.ptr as *mut T, step_size);
-        if T::IS_ZST {
+        if mem::size_of::<T>() == 0 {
             // SAFETY: due to unchecked casts of unsigned amounts to signed offsets the wraparound
             // effectively results in unsigned pointers representing positions 0..usize::MAX,
             // which is valid for ZSTs.
@@ -214,7 +209,7 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
 
         let len = self.len();
 
-        if T::IS_ZST {
+        if mem::size_of::<T>() == 0 {
             if len < N {
                 self.forget_remaining_elements();
                 // Safety: ZSTs can be conjured ex nihilo, only the amount has to be correct
@@ -223,7 +218,7 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
 
             self.ptr = self.ptr.wrapping_byte_add(N);
             // Safety: ditto
-            return Ok(unsafe { raw_ary.transpose().assume_init() });
+            return Ok(unsafe { MaybeUninit::array_assume_init(raw_ary) });
         }
 
         if len < N {
@@ -241,7 +236,7 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
         return unsafe {
             ptr::copy_nonoverlapping(self.ptr, raw_ary.as_mut_ptr() as *mut T, N);
             self.ptr = self.ptr.add(N);
-            Ok(raw_ary.transpose().assume_init())
+            Ok(MaybeUninit::array_assume_init(raw_ary))
         };
     }
 
@@ -258,7 +253,7 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
         // that `T: Copy` so reading elements from the buffer doesn't invalidate
         // them for `Drop`.
         unsafe {
-            if T::IS_ZST { mem::zeroed() } else { ptr::read(self.ptr.add(i)) }
+            if mem::size_of::<T>() == 0 { mem::zeroed() } else { ptr::read(self.ptr.add(i)) }
         }
     }
 }
@@ -269,7 +264,7 @@ impl<T, A: Allocator> DoubleEndedIterator for IntoIter<T, A> {
     fn next_back(&mut self) -> Option<T> {
         if self.end == self.ptr {
             None
-        } else if T::IS_ZST {
+        } else if mem::size_of::<T>() == 0 {
             // See above for why 'ptr.offset' isn't used
             self.end = self.end.wrapping_byte_sub(1);
 
@@ -285,7 +280,7 @@ impl<T, A: Allocator> DoubleEndedIterator for IntoIter<T, A> {
     #[inline]
     fn advance_back_by(&mut self, n: usize) -> Result<(), usize> {
         let step_size = self.len().min(n);
-        if T::IS_ZST {
+        if mem::size_of::<T>() == 0 {
             // SAFETY: same as for advance_by()
             self.end = self.end.wrapping_byte_sub(step_size);
         } else {

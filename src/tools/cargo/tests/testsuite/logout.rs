@@ -1,7 +1,6 @@
 //! Tests for the `cargo logout` command.
 
 use cargo_test_support::install::cargo_home;
-use cargo_test_support::registry::TestRegistry;
 use cargo_test_support::{cargo_process, registry};
 use std::fs;
 use toml_edit::easy as toml;
@@ -45,12 +44,11 @@ fn check_config_token(registry: Option<&str>, should_be_set: bool) {
     }
 }
 
-fn simple_logout_test(registry: &TestRegistry, reg: Option<&str>, flag: &str) {
+fn simple_logout_test(reg: Option<&str>, flag: &str) {
     let msg = reg.unwrap_or("crates.io");
     check_config_token(reg, true);
     cargo_process(&format!("logout -Z unstable-options {}", flag))
         .masquerade_as_nightly_cargo(&["cargo-logout"])
-        .replace_crates_io(registry.index_url())
         .with_stderr(&format!(
             "\
 [UPDATING] [..]
@@ -63,7 +61,6 @@ fn simple_logout_test(registry: &TestRegistry, reg: Option<&str>, flag: &str) {
 
     cargo_process(&format!("logout -Z unstable-options {}", flag))
         .masquerade_as_nightly_cargo(&["cargo-logout"])
-        .replace_crates_io(registry.index_url())
         .with_stderr(&format!(
             "\
 [LOGOUT] not currently logged in to `{}`
@@ -76,12 +73,12 @@ fn simple_logout_test(registry: &TestRegistry, reg: Option<&str>, flag: &str) {
 
 #[cargo_test]
 fn default_registry() {
-    let registry = registry::init();
-    simple_logout_test(&registry, None, "");
+    registry::init();
+    simple_logout_test(None, "");
 }
 
 #[cargo_test]
 fn other_registry() {
-    let registry = registry::alt_init();
-    simple_logout_test(&registry, Some("alternative"), "--registry alternative");
+    registry::alt_init();
+    simple_logout_test(Some("alternative"), "--registry alternative");
 }

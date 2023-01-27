@@ -2,6 +2,7 @@
 // compile-flags:--test -O
 
 // needs-unwind
+// ignore-wasm32-bare compiled with panic=abort by default
 
 #[test]
 #[should_panic(expected = "creating inhabited type")]

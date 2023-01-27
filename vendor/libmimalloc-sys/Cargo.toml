@@ -12,29 +12,19 @@
 [package]
 edition = "2018"
 name = "libmimalloc-sys"
-version = "0.1.26"
+version = "0.1.25"
 authors = ["Octavian Oncescu <octavonce@gmail.com>"]
 links = "mimalloc"
 description = "Sys crate wrapping the mimalloc allocator"
-keywords = [
-    "allocator",
-    "encrypted-heap",
-    "performance",
-]
-categories = [
-    "memory-management",
-    "api-bindings",
-]
+keywords = ["allocator", "encrypted-heap", "performance"]
+categories = ["memory-management", "api-bindings"]
 license = "MIT"
 repository = "https://github.com/purpleprotocol/mimalloc_rust/tree/master/libmimalloc-sys"
-
 [package.metadata.docs.rs]
 features = ["extended"]
-
 [dependencies.cty]
 version = "0.2"
 optional = true
-
 [build-dependencies.cc]
 version = "1.0"
 

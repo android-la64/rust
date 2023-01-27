@@ -253,12 +253,13 @@ fn late_report_deprecation(
         return;
     }
     let method_span = method_span.unwrap_or(span);
-    tcx.struct_span_lint_hir(lint, hir_id, method_span, message, |diag| {
+    tcx.struct_span_lint_hir(lint, hir_id, method_span, |lint| {
+        let mut diag = lint.build(message);
         if let hir::Node::Expr(_) = tcx.hir().get(hir_id) {
             let kind = tcx.def_kind(def_id).descr(def_id);
-            deprecation_suggestion(diag, kind, suggestion, method_span);
+            deprecation_suggestion(&mut diag, kind, suggestion, method_span);
         }
-        diag
+        diag.emit();
     });
 }
 
@@ -620,7 +621,9 @@ impl<'tcx> TyCtxt<'tcx> {
         unmarked: impl FnOnce(Span, DefId),
     ) -> bool {
         let soft_handler = |lint, span, msg: &_| {
-            self.struct_span_lint_hir(lint, id.unwrap_or(hir::CRATE_HIR_ID), span, msg, |lint| lint)
+            self.struct_span_lint_hir(lint, id.unwrap_or(hir::CRATE_HIR_ID), span, |lint| {
+                lint.build(msg).emit();
+            })
         };
         let eval_result =
             self.eval_stability_allow_unstable(def_id, id, span, method_span, allow_unstable);

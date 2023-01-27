@@ -1,6 +1,5 @@
-#![deny(clippy::branches_sharing_code, clippy::if_same_then_else)]
 #![allow(dead_code)]
-#![allow(clippy::uninlined_format_args)]
+#![deny(clippy::if_same_then_else, clippy::branches_sharing_code)]
 
 // branches_sharing_code at the top and bottom of the if blocks
 

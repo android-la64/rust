@@ -119,20 +119,22 @@ fn check_panic<'tcx>(cx: &LateContext<'tcx>, f: &'tcx hir::Expr<'tcx>, arg: &'tc
         arg_span = expn.call_site;
     }
 
-    cx.struct_span_lint(NON_FMT_PANICS, arg_span, fluent::lint_non_fmt_panic, |lint| {
-        lint.set_arg("name", symbol);
-        lint.note(fluent::note);
-        lint.note(fluent::more_info_note);
+    cx.struct_span_lint(NON_FMT_PANICS, arg_span, |lint| {
+        let mut l = lint.build(fluent::lint::non_fmt_panic);
+        l.set_arg("name", symbol);
+        l.note(fluent::lint::note);
+        l.note(fluent::lint::more_info_note);
         if !is_arg_inside_call(arg_span, span) {
             // No clue where this argument is coming from.
-            return lint;
+            l.emit();
+            return;
         }
         if arg_macro.map_or(false, |id| cx.tcx.is_diagnostic_item(sym::format_macro, id)) {
             // A case of `panic!(format!(..))`.
-            lint.note(fluent::supports_fmt_note);
+            l.note(fluent::lint::supports_fmt_note);
             if let Some((open, close, _)) = find_delimiters(cx, arg_span) {
-                lint.multipart_suggestion(
-                    fluent::supports_fmt_suggestion,
+                l.multipart_suggestion(
+                    fluent::lint::supports_fmt_suggestion,
                     vec![
                         (arg_span.until(open.shrink_to_hi()), "".into()),
                         (close.until(arg_span.shrink_to_hi()), "".into()),
@@ -151,19 +153,21 @@ fn check_panic<'tcx>(cx: &LateContext<'tcx>, f: &'tcx hir::Expr<'tcx>, arg: &'tc
                 Some(ty_def) if cx.tcx.is_diagnostic_item(sym::String, ty_def.did()),
             );
 
-            let infcx = cx.tcx.infer_ctxt().build();
-            let suggest_display = is_str
-                || cx.tcx.get_diagnostic_item(sym::Display).map(|t| {
-                    infcx
-                        .type_implements_trait(t, ty, InternalSubsts::empty(), cx.param_env)
-                        .may_apply()
-                }) == Some(true);
-            let suggest_debug = !suggest_display
-                && cx.tcx.get_diagnostic_item(sym::Debug).map(|t| {
-                    infcx
-                        .type_implements_trait(t, ty, InternalSubsts::empty(), cx.param_env)
-                        .may_apply()
-                }) == Some(true);
+            let (suggest_display, suggest_debug) = cx.tcx.infer_ctxt().enter(|infcx| {
+                let display = is_str
+                    || cx.tcx.get_diagnostic_item(sym::Display).map(|t| {
+                        infcx
+                            .type_implements_trait(t, ty, InternalSubsts::empty(), cx.param_env)
+                            .may_apply()
+                    }) == Some(true);
+                let debug = !display
+                    && cx.tcx.get_diagnostic_item(sym::Debug).map(|t| {
+                        infcx
+                            .type_implements_trait(t, ty, InternalSubsts::empty(), cx.param_env)
+                            .may_apply()
+                    }) == Some(true);
+                (display, debug)
+            });
 
             let suggest_panic_any = !is_str && panic == sym::std_panic_macro;
 
@@ -176,17 +180,17 @@ fn check_panic<'tcx>(cx: &LateContext<'tcx>, f: &'tcx hir::Expr<'tcx>, arg: &'tc
             };
 
             if suggest_display {
-                lint.span_suggestion_verbose(
+                l.span_suggestion_verbose(
                     arg_span.shrink_to_lo(),
-                    fluent::display_suggestion,
+                    fluent::lint::display_suggestion,
                     "\"{}\", ",
                     fmt_applicability,
                 );
             } else if suggest_debug {
-                lint.set_arg("ty", ty);
-                lint.span_suggestion_verbose(
+                l.set_arg("ty", ty);
+                l.span_suggestion_verbose(
                     arg_span.shrink_to_lo(),
-                    fluent::debug_suggestion,
+                    fluent::lint::debug_suggestion,
                     "\"{:?}\", ",
                     fmt_applicability,
                 );
@@ -194,9 +198,9 @@ fn check_panic<'tcx>(cx: &LateContext<'tcx>, f: &'tcx hir::Expr<'tcx>, arg: &'tc
 
             if suggest_panic_any {
                 if let Some((open, close, del)) = find_delimiters(cx, span) {
-                    lint.set_arg("already_suggested", suggest_display || suggest_debug);
-                    lint.multipart_suggestion(
-                        fluent::panic_suggestion,
+                    l.set_arg("already_suggested", suggest_display || suggest_debug);
+                    l.multipart_suggestion(
+                        fluent::lint::panic_suggestion,
                         if del == '(' {
                             vec![(span.until(open), "std::panic::panic_any".into())]
                         } else {
@@ -210,7 +214,7 @@ fn check_panic<'tcx>(cx: &LateContext<'tcx>, f: &'tcx hir::Expr<'tcx>, arg: &'tc
                 }
             }
         }
-        lint
+        l.emit();
     });
 }
 
@@ -254,24 +258,25 @@ fn check_panic_str<'tcx>(
                 .map(|span| fmt_span.from_inner(InnerSpan::new(span.start, span.end)))
                 .collect(),
         };
-        cx.struct_span_lint(NON_FMT_PANICS, arg_spans, fluent::lint_non_fmt_panic_unused, |lint| {
-            lint.set_arg("count", n_arguments);
-            lint.note(fluent::note);
+        cx.struct_span_lint(NON_FMT_PANICS, arg_spans, |lint| {
+            let mut l = lint.build(fluent::lint::non_fmt_panic_unused);
+            l.set_arg("count", n_arguments);
+            l.note(fluent::lint::note);
             if is_arg_inside_call(arg.span, span) {
-                lint.span_suggestion(
+                l.span_suggestion(
                     arg.span.shrink_to_hi(),
-                    fluent::add_args_suggestion,
+                    fluent::lint::add_args_suggestion,
                     ", ...",
                     Applicability::HasPlaceholders,
                 );
-                lint.span_suggestion(
+                l.span_suggestion(
                     arg.span.shrink_to_lo(),
-                    fluent::add_fmt_suggestion,
+                    fluent::lint::add_fmt_suggestion,
                     "\"{}\", ",
                     Applicability::MachineApplicable,
                 );
             }
-            lint
+            l.emit();
         });
     } else {
         let brace_spans: Option<Vec<_>> =
@@ -282,24 +287,20 @@ fn check_panic_str<'tcx>(
                     .collect()
             });
         let count = brace_spans.as_ref().map(|v| v.len()).unwrap_or(/* any number >1 */ 2);
-        cx.struct_span_lint(
-            NON_FMT_PANICS,
-            brace_spans.unwrap_or_else(|| vec![span]),
-            fluent::lint_non_fmt_panic_braces,
-            |lint| {
-                lint.set_arg("count", count);
-                lint.note(fluent::note);
-                if is_arg_inside_call(arg.span, span) {
-                    lint.span_suggestion(
-                        arg.span.shrink_to_lo(),
-                        fluent::suggestion,
-                        "\"{}\", ",
-                        Applicability::MachineApplicable,
-                    );
-                }
-                lint
-            },
-        );
+        cx.struct_span_lint(NON_FMT_PANICS, brace_spans.unwrap_or_else(|| vec![span]), |lint| {
+            let mut l = lint.build(fluent::lint::non_fmt_panic_braces);
+            l.set_arg("count", count);
+            l.note(fluent::lint::note);
+            if is_arg_inside_call(arg.span, span) {
+                l.span_suggestion(
+                    arg.span.shrink_to_lo(),
+                    fluent::lint::suggestion,
+                    "\"{}\", ",
+                    Applicability::MachineApplicable,
+                );
+            }
+            l.emit();
+        });
     }
 }
 

@@ -6,6 +6,7 @@
 // compile-flags: --emit mir,link
 
 #![feature(never_type)]
+#![warn(const_err)]
 
 struct PrintName<T>(T);
 

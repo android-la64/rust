@@ -32,7 +32,7 @@ pub(super) fn check<'tcx>(
                 expr.span,
                 msg,
                 "try this",
-                format!("{iter_snippet}.find_map({filter_snippet})"),
+                format!("{}.find_map({})", iter_snippet, filter_snippet),
                 Applicability::MachineApplicable,
             );
         } else {

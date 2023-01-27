@@ -8,5 +8,4 @@
 fn main() {
     let _: char = "a"; //~ ERROR mismatched types
     let _: char = "人"; //~ ERROR mismatched types
-    let _: char = "'"; //~ ERROR mismatched types
 }

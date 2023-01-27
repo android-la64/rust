@@ -1,9 +1,9 @@
 use clippy_utils::diagnostics::span_lint_and_then;
 
 use rustc_data_structures::fx::FxHashMap;
-use rustc_hir::def::{Namespace, Res};
-use rustc_hir::def_id::DefId;
-use rustc_hir::{Item, ItemKind, PolyTraitRef, PrimTy, Ty, TyKind, UseKind};
+use rustc_hir::{
+    def::Res, def_id::DefId, Item, ItemKind, PolyTraitRef, PrimTy, Ty, TyKind, UseKind,
+};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::Span;
@@ -52,13 +52,13 @@ declare_clippy_lint! {
 }
 #[derive(Clone, Debug)]
 pub struct DisallowedTypes {
-    conf_disallowed: Vec<conf::DisallowedPath>,
+    conf_disallowed: Vec<conf::DisallowedType>,
     def_ids: FxHashMap<DefId, Option<String>>,
     prim_tys: FxHashMap<PrimTy, Option<String>>,
 }
 
 impl DisallowedTypes {
-    pub fn new(conf_disallowed: Vec<conf::DisallowedPath>) -> Self {
+    pub fn new(conf_disallowed: Vec<conf::DisallowedType>) -> Self {
         Self {
             conf_disallowed,
             def_ids: FxHashMap::default(),
@@ -88,9 +88,15 @@ impl_lint_pass!(DisallowedTypes => [DISALLOWED_TYPES]);
 impl<'tcx> LateLintPass<'tcx> for DisallowedTypes {
     fn check_crate(&mut self, cx: &LateContext<'_>) {
         for conf in &self.conf_disallowed {
-            let segs: Vec<_> = conf.path().split("::").collect();
-            let reason = conf.reason().map(|reason| format!("{reason} (from clippy.toml)"));
-            match clippy_utils::def_path_res(cx, &segs, Some(Namespace::TypeNS)) {
+            let (path, reason) = match conf {
+                conf::DisallowedType::Simple(path) => (path, None),
+                conf::DisallowedType::WithReason { path, reason } => (
+                    path,
+                    reason.as_ref().map(|reason| format!("{} (from clippy.toml)", reason)),
+                ),
+            };
+            let segs: Vec<_> = path.split("::").collect();
+            match clippy_utils::def_path_res(cx, &segs) {
                 Res::Def(_, id) => {
                     self.def_ids.insert(id, reason);
                 },
@@ -124,7 +130,7 @@ fn emit(cx: &LateContext<'_>, name: &str, span: Span, reason: Option<&str>) {
         cx,
         DISALLOWED_TYPES,
         span,
-        &format!("`{name}` is not allowed according to config"),
+        &format!("`{}` is not allowed according to config", name),
         |diag| {
             if let Some(reason) = reason {
                 diag.note(reason);

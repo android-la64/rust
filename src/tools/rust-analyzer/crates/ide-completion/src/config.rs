@@ -17,7 +17,6 @@ pub struct CompletionConfig {
     pub callable: Option<CallableSnippets>,
     pub snippet_cap: Option<SnippetCap>,
     pub insert_use: InsertUseConfig,
-    pub prefer_no_std: bool,
     pub snippets: Vec<Snippet>,
 }
 

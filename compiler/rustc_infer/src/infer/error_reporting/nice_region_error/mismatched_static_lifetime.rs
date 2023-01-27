@@ -2,9 +2,7 @@
 //! to hold.
 
 use crate::errors::{note_and_explain, IntroducesStaticBecauseUnmetLifetimeReq};
-use crate::errors::{
-    DoesNotOutliveStaticFromImpl, ImplicitStaticLifetimeSubdiag, MismatchedStaticLifetime,
-};
+use crate::errors::{ImplNote, MismatchedStaticLifetime, TraitSubdiag};
 use crate::infer::error_reporting::nice_region_error::NiceRegionError;
 use crate::infer::lexical_region_resolve::RegionResolutionError;
 use crate::infer::{SubregionOrigin, TypeTrace};
@@ -58,7 +56,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             note_and_explain::SuffixKind::Continues,
         );
         let mut impl_span = None;
-        let mut implicit_static_lifetimes = Vec::new();
+        let mut trait_subdiags = Vec::new();
         if let Some(impl_node) = self.tcx().hir().get_if_local(*impl_def_id) {
             // If an impl is local, then maybe this isn't what they want. Try to
             // be as helpful as possible with implicit lifetimes.
@@ -92,12 +90,10 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
                 // Otherwise, point at all implicit static lifetimes
 
                 for span in &traits {
-                    implicit_static_lifetimes
-                        .push(ImplicitStaticLifetimeSubdiag::Note { span: *span });
+                    trait_subdiags.push(TraitSubdiag::Note { span: *span });
                     // It would be nice to put this immediately under the above note, but they get
                     // pushed to the end.
-                    implicit_static_lifetimes
-                        .push(ImplicitStaticLifetimeSubdiag::Sugg { span: span.shrink_to_hi() });
+                    trait_subdiags.push(TraitSubdiag::Sugg { span: span.shrink_to_hi() });
                 }
             }
         } else {
@@ -109,10 +105,8 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             cause_span: cause.span,
             unmet_lifetime_reqs: multispan_subdiag,
             expl,
-            does_not_outlive_static_from_impl: impl_span
-                .map(|span| DoesNotOutliveStaticFromImpl::Spanned { span })
-                .unwrap_or(DoesNotOutliveStaticFromImpl::Unspanned),
-            implicit_static_lifetimes,
+            impl_note: ImplNote { impl_span },
+            trait_subdiags,
         };
         let reported = self.tcx().sess.emit_err(err);
         Some(reported)

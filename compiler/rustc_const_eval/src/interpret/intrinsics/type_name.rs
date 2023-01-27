@@ -4,7 +4,7 @@ use rustc_hir::definitions::DisambiguatedDefPathData;
 use rustc_middle::mir::interpret::{Allocation, ConstAllocation};
 use rustc_middle::ty::{
     self,
-    print::{with_no_verbose_constants, PrettyPrinter, Print, Printer},
+    print::{PrettyPrinter, Print, Printer},
     subst::{GenericArg, GenericArgKind},
     Ty, TyCtxt,
 };
@@ -190,9 +190,7 @@ impl Write for AbsolutePathPrinter<'_> {
 
 /// Directly returns an `Allocation` containing an absolute path representation of the given type.
 pub(crate) fn alloc_type_name<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> ConstAllocation<'tcx> {
-    let path = with_no_verbose_constants!(
-        AbsolutePathPrinter { tcx, path: String::new() }.print_type(ty).unwrap().path
-    );
+    let path = AbsolutePathPrinter { tcx, path: String::new() }.print_type(ty).unwrap().path;
     let alloc = Allocation::from_bytes_byte_aligned_immutable(path.into_bytes());
     tcx.intern_const_alloc(alloc)
 }

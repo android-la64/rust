@@ -592,8 +592,6 @@ fn define_simd_arithmetic(
             "avg_round",
             r#"
         Unsigned average with rounding: `a := (x + y + 1) // 2`
-
-        The addition does not lose any information (such as from overflow).
         "#,
             &formats.binary,
         )
@@ -1455,6 +1453,21 @@ pub(crate) fn define(
         .operands_out(vec![a]),
     );
 
+    let constant =
+        &Operand::new("constant", &imm.pool_constant).with_doc("A constant in the constant pool");
+    let address = &Operand::new("address", iAddr);
+    ig.push(
+        Inst::new(
+            "const_addr",
+            r#"
+        Calculate the base address of a value in the constant pool.
+        "#,
+            &formats.unary_const,
+        )
+        .operands_in(vec![constant])
+        .operands_out(vec![address]),
+    );
+
     let mask = &Operand::new("mask", &imm.uimm128)
         .with_doc("The 16 immediate bytes used for selecting the elements to shuffle");
     let Tx16 = &TypeVar::new(
@@ -1786,7 +1799,7 @@ pub(crate) fn define(
         Compare scalar integer to a constant.
 
         This is the same as the `icmp` instruction, except one operand is
-        a sign extended 64 bit immediate constant.
+        an immediate constant.
 
         This instruction can only compare scalars. Use `icmp` for
         lane-wise vector comparisons.
@@ -2045,7 +2058,7 @@ pub(crate) fn define(
             r#"
         Add immediate integer.
 
-        Same as `iadd`, but one operand is a sign extended 64 bit immediate constant.
+        Same as `iadd`, but one operand is an immediate constant.
 
         Polymorphic over all scalar integer types, but does not support vector
         types.
@@ -2062,8 +2075,6 @@ pub(crate) fn define(
             r#"
         Integer multiplication by immediate constant.
 
-        Same as `imul`, but one operand is a sign extended 64 bit immediate constant.
-
         Polymorphic over all scalar integer types, but does not support vector
         types.
         "#,
@@ -2079,8 +2090,6 @@ pub(crate) fn define(
             r#"
         Unsigned integer division by an immediate constant.
 
-        Same as `udiv`, but one operand is a zero extended 64 bit immediate constant.
-
         This operation traps if the divisor is zero.
         "#,
             &formats.binary_imm64,
@@ -2094,8 +2103,6 @@ pub(crate) fn define(
             "sdiv_imm",
             r#"
         Signed integer division by an immediate constant.
-
-        Same as `sdiv`, but one operand is a sign extended 64 bit immediate constant.
 
         This operation traps if the divisor is zero, or if the result is not
         representable in `B` bits two's complement. This only happens
@@ -2113,8 +2120,6 @@ pub(crate) fn define(
             r#"
         Unsigned integer remainder with immediate divisor.
 
-        Same as `urem`, but one operand is a zero extended 64 bit immediate constant.
-
         This operation traps if the divisor is zero.
         "#,
             &formats.binary_imm64,
@@ -2129,8 +2134,6 @@ pub(crate) fn define(
             r#"
         Signed integer remainder with immediate divisor.
 
-        Same as `srem`, but one operand is a sign extended 64 bit immediate constant.
-
         This operation traps if the divisor is zero.
         "#,
             &formats.binary_imm64,
@@ -2144,8 +2147,6 @@ pub(crate) fn define(
             "irsub_imm",
             r#"
         Immediate reverse wrapping subtraction: `a := Y - x \pmod{2^B}`.
-
-        The immediate operand is a sign extended 64 bit constant.
 
         Also works as integer negation when `Y = 0`. Use `iadd_imm`
         with a negative immediate operand for the reverse immediate
@@ -2549,7 +2550,7 @@ pub(crate) fn define(
             r#"
         Bitwise and with immediate.
 
-        Same as `band`, but one operand is a zero extended 64 bit immediate constant.
+        Same as `band`, but one operand is an immediate constant.
 
         Polymorphic over all scalar integer types, but does not support vector
         types.
@@ -2566,7 +2567,7 @@ pub(crate) fn define(
             r#"
         Bitwise or with immediate.
 
-        Same as `bor`, but one operand is a zero extended 64 bit immediate constant.
+        Same as `bor`, but one operand is an immediate constant.
 
         Polymorphic over all scalar integer types, but does not support vector
         types.
@@ -2583,7 +2584,7 @@ pub(crate) fn define(
             r#"
         Bitwise xor with immediate.
 
-        Same as `bxor`, but one operand is a zero extended 64 bit immediate constant.
+        Same as `bxor`, but one operand is an immediate constant.
 
         Polymorphic over all scalar integer types, but does not support vector
         types.
@@ -2632,8 +2633,6 @@ pub(crate) fn define(
             "rotl_imm",
             r#"
         Rotate left by immediate.
-
-        Same as `rotl`, but one operand is a zero extended 64 bit immediate constant.
         "#,
             &formats.binary_imm64,
         )
@@ -2646,8 +2645,6 @@ pub(crate) fn define(
             "rotr_imm",
             r#"
         Rotate right by immediate.
-
-        Same as `rotr`, but one operand is a zero extended 64 bit immediate constant.
         "#,
             &formats.binary_imm64,
         )
@@ -3830,24 +3827,20 @@ pub(crate) fn define(
         .operands_out(vec![x]),
     );
 
-    let FloatScalar = &TypeVar::new(
-        "FloatScalar",
-        "A scalar only floating point number",
-        TypeSetBuilder::new().floats(Interval::All).build(),
-    );
-    let x = &Operand::new("x", FloatScalar);
+    let x = &Operand::new("x", Float);
     let a = &Operand::new("a", IntTo);
 
     ig.push(
         Inst::new(
             "fcvt_to_uint",
             r#"
-        Converts floating point scalars to unsigned integer.
+        Convert floating point to unsigned integer.
 
-        Only operates on `x` if it is a scalar. If `x` is NaN or if
-        the unsigned integral value cannot be represented in the result
-        type, this instruction traps.
+        Each lane in `x` is converted to an unsigned integer by rounding
+        towards zero. If `x` is NaN or if the unsigned integral value cannot be
+        represented in the result type, this instruction traps.
 
+        The result type must have the same number of vector lanes as the input.
         "#,
             &formats.unary,
         )
@@ -3855,27 +3848,6 @@ pub(crate) fn define(
         .operands_out(vec![a])
         .can_trap(true),
     );
-
-    ig.push(
-        Inst::new(
-            "fcvt_to_sint",
-            r#"
-        Converts floating point scalars to signed integer.
-
-        Only operates on `x` if it is a scalar. If `x` is NaN or if
-        the unsigned integral value cannot be represented in the result
-        type, this instruction traps.
-
-        "#,
-            &formats.unary,
-        )
-        .operands_in(vec![x])
-        .operands_out(vec![a])
-        .can_trap(true),
-    );
-
-    let x = &Operand::new("x", Float);
-    let a = &Operand::new("a", IntTo);
 
     ig.push(
         Inst::new(
@@ -3889,6 +3861,25 @@ pub(crate) fn define(
         )
         .operands_in(vec![x])
         .operands_out(vec![a]),
+    );
+
+    ig.push(
+        Inst::new(
+            "fcvt_to_sint",
+            r#"
+        Convert floating point to signed integer.
+
+        Each lane in `x` is converted to a signed integer by rounding towards
+        zero. If `x` is NaN or if the signed integral value cannot be
+        represented in the result type, this instruction traps.
+
+        The result type must have the same number of vector lanes as the input.
+        "#,
+            &formats.unary,
+        )
+        .operands_in(vec![x])
+        .operands_out(vec![a])
+        .can_trap(true),
     );
 
     ig.push(

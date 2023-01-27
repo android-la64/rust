@@ -30,10 +30,11 @@ declare_clippy_lint! {
 declare_lint_pass!(UnusedRounding => [UNUSED_ROUNDING]);
 
 fn is_useless_rounding(expr: &Expr) -> Option<(&str, String)> {
-    if let ExprKind::MethodCall(name_ident, receiver, _, _) = &expr.kind
+    if let ExprKind::MethodCall(name_ident, args, _) = &expr.kind
         && let method_name = name_ident.ident.name.as_str()
         && (method_name == "ceil" || method_name == "round" || method_name == "floor")
-        && let ExprKind::Lit(spanned) = &receiver.kind
+        && !args.is_empty()
+        && let ExprKind::Lit(spanned) = &args[0].kind
         && let LitKind::Float(symbol, ty) = spanned.kind {
             let f = symbol.as_str().parse::<f64>().unwrap();
             let f_str = symbol.to_string() + if let LitFloatType::Suffixed(ty) = ty {
@@ -58,8 +59,8 @@ impl EarlyLintPass for UnusedRounding {
                 cx,
                 UNUSED_ROUNDING,
                 expr.span,
-                &format!("used the `{method_name}` method with a whole number float"),
-                &format!("remove the `{method_name}` method call"),
+                &format!("used the `{}` method with a whole number float", method_name),
+                &format!("remove the `{}` method call", method_name),
                 float,
                 Applicability::MachineApplicable,
             );

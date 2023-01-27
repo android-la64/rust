@@ -7,7 +7,6 @@ pub(crate) const AT_NULL: usize = 0;
 pub(crate) const AT_HWCAP: usize = 16;
 /// Key to access the CPU Hardware capabilities 2 bitfield.
 #[cfg(any(
-    target_arch = "aarch64",
     target_arch = "arm",
     target_arch = "powerpc",
     target_arch = "powerpc64"
@@ -22,7 +21,6 @@ pub(crate) const AT_HWCAP2: usize = 26;
 pub(crate) struct AuxVec {
     pub hwcap: usize,
     #[cfg(any(
-        target_arch = "aarch64",
         target_arch = "arm",
         target_arch = "powerpc",
         target_arch = "powerpc64"
@@ -66,14 +64,13 @@ pub(crate) fn auxv() -> Result<AuxVec, ()> {
         if let Ok(hwcap) = getauxval(AT_HWCAP) {
             // Targets with only AT_HWCAP:
             #[cfg(any(
+                target_arch = "aarch64",
                 target_arch = "riscv32",
                 target_arch = "riscv64",
                 target_arch = "mips",
                 target_arch = "mips64"
             ))]
             {
-                // Zero could indicate that no features were detected, but it's also used to
-                // indicate an error. In either case, try the fallback.
                 if hwcap != 0 {
                     return Ok(AuxVec { hwcap });
                 }
@@ -81,18 +78,13 @@ pub(crate) fn auxv() -> Result<AuxVec, ()> {
 
             // Targets with AT_HWCAP and AT_HWCAP2:
             #[cfg(any(
-                target_arch = "aarch64",
                 target_arch = "arm",
                 target_arch = "powerpc",
                 target_arch = "powerpc64"
             ))]
             {
                 if let Ok(hwcap2) = getauxval(AT_HWCAP2) {
-                    // Zero could indicate that no features were detected, but it's also used to
-                    // indicate an error. In particular, on many platforms AT_HWCAP2 will be
-                    // legitimately zero, since it contains the most recent feature flags. Use the
-                    // fallback only if no features were detected at all.
-                    if hwcap != 0 || hwcap2 != 0 {
+                    if hwcap != 0 && hwcap2 != 0 {
                         return Ok(AuxVec { hwcap, hwcap2 });
                     }
                 }
@@ -105,6 +97,7 @@ pub(crate) fn auxv() -> Result<AuxVec, ()> {
     {
         // Targets with only AT_HWCAP:
         #[cfg(any(
+            target_arch = "aarch64",
             target_arch = "riscv32",
             target_arch = "riscv64",
             target_arch = "mips",
@@ -112,8 +105,6 @@ pub(crate) fn auxv() -> Result<AuxVec, ()> {
         ))]
         {
             let hwcap = unsafe { libc::getauxval(AT_HWCAP as libc::c_ulong) as usize };
-            // Zero could indicate that no features were detected, but it's also used to indicate
-            // an error. In either case, try the fallback.
             if hwcap != 0 {
                 return Ok(AuxVec { hwcap });
             }
@@ -121,7 +112,6 @@ pub(crate) fn auxv() -> Result<AuxVec, ()> {
 
         // Targets with AT_HWCAP and AT_HWCAP2:
         #[cfg(any(
-            target_arch = "aarch64",
             target_arch = "arm",
             target_arch = "powerpc",
             target_arch = "powerpc64"
@@ -129,11 +119,7 @@ pub(crate) fn auxv() -> Result<AuxVec, ()> {
         {
             let hwcap = unsafe { libc::getauxval(AT_HWCAP as libc::c_ulong) as usize };
             let hwcap2 = unsafe { libc::getauxval(AT_HWCAP2 as libc::c_ulong) as usize };
-            // Zero could indicate that no features were detected, but it's also used to indicate
-            // an error. In particular, on many platforms AT_HWCAP2 will be legitimately zero,
-            // since it contains the most recent feature flags. Use the fallback only if no
-            // features were detected at all.
-            if hwcap != 0 || hwcap2 != 0 {
+            if hwcap != 0 && hwcap2 != 0 {
                 return Ok(AuxVec { hwcap, hwcap2 });
             }
         }
@@ -172,7 +158,7 @@ fn getauxval(key: usize) -> Result<usize, ()> {
 /// Tries to read the auxiliary vector from the `file`. If this fails, this
 /// function returns `Err`.
 #[cfg(feature = "std_detect_file_io")]
-pub(super) fn auxv_from_file(file: &str) -> Result<AuxVec, ()> {
+fn auxv_from_file(file: &str) -> Result<AuxVec, ()> {
     let file = super::read_file(file)?;
 
     // See <https://github.com/torvalds/linux/blob/v3.19/include/uapi/linux/auxvec.h>.
@@ -195,6 +181,7 @@ pub(super) fn auxv_from_file(file: &str) -> Result<AuxVec, ()> {
 fn auxv_from_buf(buf: &[usize; 64]) -> Result<AuxVec, ()> {
     // Targets with only AT_HWCAP:
     #[cfg(any(
+        target_arch = "aarch64",
         target_arch = "riscv32",
         target_arch = "riscv64",
         target_arch = "mips",
@@ -211,25 +198,23 @@ fn auxv_from_buf(buf: &[usize; 64]) -> Result<AuxVec, ()> {
     }
     // Targets with AT_HWCAP and AT_HWCAP2:
     #[cfg(any(
-        target_arch = "aarch64",
         target_arch = "arm",
         target_arch = "powerpc",
         target_arch = "powerpc64"
     ))]
     {
         let mut hwcap = None;
-        // For some platforms, AT_HWCAP2 was added recently, so let it default to zero.
-        let mut hwcap2 = 0;
+        let mut hwcap2 = None;
         for el in buf.chunks(2) {
             match el[0] {
                 AT_NULL => break,
                 AT_HWCAP => hwcap = Some(el[1]),
-                AT_HWCAP2 => hwcap2 = el[1],
+                AT_HWCAP2 => hwcap2 = Some(el[1]),
                 _ => (),
             }
         }
 
-        if let Some(hwcap) = hwcap {
+        if let (Some(hwcap), Some(hwcap2)) = (hwcap, hwcap2) {
             return Ok(AuxVec { hwcap, hwcap2 });
         }
     }
@@ -271,6 +256,7 @@ mod tests {
     // FIXME: on mips/mips64 getauxval returns 0, and /proc/self/auxv
     // does not always contain the AT_HWCAP key under qemu.
     #[cfg(any(
+        target_arch = "aarch64",
         target_arch = "arm",
         target_arch = "powerpc",
         target_arch = "powerpc64"
@@ -285,7 +271,6 @@ mod tests {
 
         // Targets with AT_HWCAP and AT_HWCAP2:
         #[cfg(any(
-            target_arch = "aarch64",
             target_arch = "arm",
             target_arch = "powerpc",
             target_arch = "powerpc64"
@@ -320,31 +305,24 @@ mod tests {
             }
 
             #[test]
+            #[should_panic]
             fn linux_macos_vb() {
                 let file = concat!(env!("CARGO_MANIFEST_DIR"), "/src/detect/test_data/macos-virtualbox-linux-x86-4850HQ.auxv");
                 println!("file: {}", file);
-                // The file contains HWCAP but not HWCAP2. In that case, we treat HWCAP2 as zero.
                 let v = auxv_from_file(file).unwrap();
-                assert_eq!(v.hwcap, 126614527);
-                assert_eq!(v.hwcap2, 0);
+                // this file is incomplete (contains hwcap but not hwcap2), we
+                // want to fall back to /proc/cpuinfo in this case, so
+                // reading should fail. assert_eq!(v.hwcap, 126614527);
+                // assert_eq!(v.hwcap2, 0);
+                let _ = v;
             }
         } else if #[cfg(target_arch = "aarch64")] {
             #[test]
-            fn linux_artificial_aarch64() {
-                let file = concat!(env!("CARGO_MANIFEST_DIR"), "/src/detect/test_data/linux-artificial-aarch64.auxv");
+            fn linux_x64() {
+                let file = concat!(env!("CARGO_MANIFEST_DIR"), "/src/detect/test_data/linux-x64-i7-6850k.auxv");
                 println!("file: {}", file);
                 let v = auxv_from_file(file).unwrap();
-                assert_eq!(v.hwcap, 0x0123456789abcdef);
-                assert_eq!(v.hwcap2, 0x02468ace13579bdf);
-            }
-            #[test]
-            fn linux_no_hwcap2_aarch64() {
-                let file = concat!(env!("CARGO_MANIFEST_DIR"), "/src/detect/test_data/linux-no-hwcap2-aarch64.auxv");
-                println!("file: {}", file);
-                let v = auxv_from_file(file).unwrap();
-                // An absent HWCAP2 is treated as zero, and does not prevent acceptance of HWCAP.
-                assert_ne!(v.hwcap, 0);
-                assert_eq!(v.hwcap2, 0);
+                assert_eq!(v.hwcap, 3219913727);
             }
         }
     }
@@ -375,7 +353,6 @@ mod tests {
 
         // Targets with AT_HWCAP and AT_HWCAP2:
         #[cfg(any(
-            target_arch = "aarch64",
             target_arch = "arm",
             target_arch = "powerpc",
             target_arch = "powerpc64"

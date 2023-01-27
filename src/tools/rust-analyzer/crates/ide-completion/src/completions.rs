@@ -19,7 +19,6 @@ pub(crate) mod snippet;
 pub(crate) mod r#type;
 pub(crate) mod use_;
 pub(crate) mod vis;
-pub(crate) mod env_vars;
 
 use std::iter;
 
@@ -552,11 +551,7 @@ fn enum_variants_with_paths(
     }
 
     for variant in variants {
-        if let Some(path) = ctx.module.find_use_path(
-            ctx.db,
-            hir::ModuleDef::from(variant),
-            ctx.config.prefer_no_std,
-        ) {
+        if let Some(path) = ctx.module.find_use_path(ctx.db, hir::ModuleDef::from(variant)) {
             // Variants with trivial paths are already added by the existing completion logic,
             // so we should avoid adding these twice
             if path.segments().len() > 1 {

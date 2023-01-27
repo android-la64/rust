@@ -3,9 +3,6 @@
 #[macro_use]
 mod macros;
 
-#[cfg(any(target_arch = "riscv32", target_arch = "riscv64", doc))]
-mod riscv_shared;
-
 #[cfg(any(target_arch = "arm", target_arch = "aarch64", doc))]
 mod arm_shared;
 
@@ -278,6 +275,10 @@ mod aarch64;
 #[cfg(any(target_arch = "arm", doc))]
 #[doc(cfg(any(target_arch = "arm")))]
 mod arm;
+
+#[cfg(any(target_arch = "riscv32", target_arch = "riscv64", doc))]
+#[doc(cfg(any(target_arch = "riscv32", target_arch = "riscv64")))]
+mod riscv_shared;
 
 #[cfg(any(target_arch = "riscv64", doc))]
 #[doc(cfg(any(target_arch = "riscv64")))]

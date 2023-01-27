@@ -37,9 +37,12 @@ $ interop_augment_args --unknown
 ? failed
 error: Found argument '--unknown' which wasn't expected, or isn't valid in this context
 
-Usage: interop_augment_args[EXE] [OPTIONS]
+	If you tried to supply `--unknown` as a value rather than a flag, use `-- --unknown`
 
-For more information try '--help'
+USAGE:
+    interop_augment_args[EXE] [OPTIONS]
+
+For more information try --help
 
 ```
 
@@ -72,20 +75,24 @@ $ interop_augment_subcommands derived --unknown
 ? failed
 error: Found argument '--unknown' which wasn't expected, or isn't valid in this context
 
-Usage: interop_augment_subcommands[EXE] derived [OPTIONS]
+	If you tried to supply `--unknown` as a value rather than a flag, use `-- --unknown`
 
-For more information try '--help'
+USAGE:
+    interop_augment_subcommands[EXE] derived [OPTIONS]
+
+For more information try --help
 
 ```
 
 ```console
 $ interop_augment_subcommands unknown
 ? failed
-error: The subcommand 'unknown' wasn't recognized
+error: Found argument 'unknown' which wasn't expected, or isn't valid in this context
 
-Usage: interop_augment_subcommands[EXE] [COMMAND]
+USAGE:
+    interop_augment_subcommands[EXE] [SUBCOMMAND]
 
-For more information try '--help'
+For more information try --help
 
 ```
 
@@ -94,16 +101,12 @@ For more information try '--help'
 ```console
 $ interop_hand_subcommand
 ? failed
-Usage: interop_hand_subcommand[EXE] [OPTIONS] <COMMAND>
+error: 'interop_hand_subcommand[EXE]' requires a subcommand but one was not provided
 
-Commands:
-  add     
-  remove  
-  help    Print this message or the help of the given subcommand(s)
+USAGE:
+    interop_hand_subcommand[EXE] [OPTIONS] <SUBCOMMAND>
 
-Options:
-  -t, --top-level  
-  -h, --help       Print help information
+For more information try --help
 
 ```
 
@@ -142,11 +145,12 @@ $ interop_hand_subcommand add --unknown
 ? failed
 error: Found argument '--unknown' which wasn't expected, or isn't valid in this context
 
-  If you tried to supply '--unknown' as a value rather than a flag, use '-- --unknown'
+	If you tried to supply `--unknown` as a value rather than a flag, use `-- --unknown`
 
-Usage: interop_hand_subcommand[EXE] add [NAME]...
+USAGE:
+    interop_hand_subcommand[EXE] add [NAME]...
 
-For more information try '--help'
+For more information try --help
 
 ```
 
@@ -185,11 +189,12 @@ Cli {
 ```console
 $ interop_hand_subcommand unknown
 ? failed
-error: The subcommand 'unknown' wasn't recognized
+error: Found argument 'unknown' which wasn't expected, or isn't valid in this context
 
-Usage: interop_hand_subcommand[EXE] [OPTIONS] <COMMAND>
+USAGE:
+    interop_hand_subcommand[EXE] [OPTIONS] <SUBCOMMAND>
 
-For more information try '--help'
+For more information try --help
 
 ```
 
@@ -241,8 +246,11 @@ $ interop_flatten_hand_args --unknown
 ? failed
 error: Found argument '--unknown' which wasn't expected, or isn't valid in this context
 
-Usage: interop_flatten_hand_args[EXE] [OPTIONS]
+	If you tried to supply `--unknown` as a value rather than a flag, use `-- --unknown`
 
-For more information try '--help'
+USAGE:
+    interop_flatten_hand_args[EXE] [OPTIONS]
+
+For more information try --help
 
 ```

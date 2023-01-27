@@ -142,7 +142,8 @@ fn prepare_receiver_sugg<'a>(cx: &LateContext<'_>, mut expr: &'a Expr<'a>) -> Su
         if let ast::LitKind::Float(sym, ast::LitFloatType::Unsuffixed) = lit.node;
         then {
             let op = format!(
-                "{suggestion}{}{}",
+                "{}{}{}",
+                suggestion,
                 // Check for float literals without numbers following the decimal
                 // separator such as `2.` and adds a trailing zero
                 if sym.as_str().ends_with('.') {
@@ -171,7 +172,7 @@ fn check_log_base(cx: &LateContext<'_>, expr: &Expr<'_>, receiver: &Expr<'_>, ar
             expr.span,
             "logarithm for bases 2, 10 and e can be computed more accurately",
             "consider using",
-            format!("{}.{method}()", Sugg::hir(cx, receiver, "..").maybe_par()),
+            format!("{}.{}()", Sugg::hir(cx, receiver, "..").maybe_par(), method),
             Applicability::MachineApplicable,
         );
     }
@@ -250,7 +251,7 @@ fn check_powf(cx: &LateContext<'_>, expr: &Expr<'_>, receiver: &Expr<'_>, args: 
                 expr.span,
                 "exponent for bases 2 and e can be computed more accurately",
                 "consider using",
-                format!("{}.{method}()", prepare_receiver_sugg(cx, &args[0])),
+                format!("{}.{}()", prepare_receiver_sugg(cx, &args[0]), method),
                 Applicability::MachineApplicable,
             );
         }
@@ -311,24 +312,13 @@ fn check_powi(cx: &LateContext<'_>, expr: &Expr<'_>, receiver: &Expr<'_>, args: 
 
                 if let ExprKind::Binary(
                     Spanned {
-                        node: op @ (BinOpKind::Add | BinOpKind::Sub),
-                        ..
+                        node: BinOpKind::Add, ..
                     },
                     lhs,
                     rhs,
                 ) = parent.kind
                 {
                     let other_addend = if lhs.hir_id == expr.hir_id { rhs } else { lhs };
-
-                    // Negate expr if original code has subtraction and expr is on the right side
-                    let maybe_neg_sugg = |expr, hir_id| {
-                        let sugg = Sugg::hir(cx, expr, "..");
-                        if matches!(op, BinOpKind::Sub) && hir_id == rhs.hir_id {
-                            format!("-{sugg}")
-                        } else {
-                            sugg.to_string()
-                        }
-                    };
 
                     span_lint_and_sugg(
                         cx,
@@ -339,8 +329,8 @@ fn check_powi(cx: &LateContext<'_>, expr: &Expr<'_>, receiver: &Expr<'_>, args: 
                         format!(
                             "{}.mul_add({}, {})",
                             Sugg::hir(cx, receiver, "..").maybe_par(),
-                            maybe_neg_sugg(receiver, expr.hir_id),
-                            maybe_neg_sugg(other_addend, other_addend.hir_id),
+                            Sugg::hir(cx, receiver, ".."),
+                            Sugg::hir(cx, other_addend, ".."),
                         ),
                         Applicability::MachineApplicable,
                     );
@@ -454,8 +444,7 @@ fn is_float_mul_expr<'a>(cx: &LateContext<'_>, expr: &'a Expr<'a>) -> Option<(&'
 fn check_mul_add(cx: &LateContext<'_>, expr: &Expr<'_>) {
     if let ExprKind::Binary(
         Spanned {
-            node: op @ (BinOpKind::Add | BinOpKind::Sub),
-            ..
+            node: BinOpKind::Add, ..
         },
         lhs,
         rhs,
@@ -469,27 +458,10 @@ fn check_mul_add(cx: &LateContext<'_>, expr: &Expr<'_>) {
             }
         }
 
-        let maybe_neg_sugg = |expr| {
-            let sugg = Sugg::hir(cx, expr, "..");
-            if let BinOpKind::Sub = op {
-                format!("-{sugg}")
-            } else {
-                sugg.to_string()
-            }
-        };
-
         let (recv, arg1, arg2) = if let Some((inner_lhs, inner_rhs)) = is_float_mul_expr(cx, lhs) {
-            (
-                inner_lhs,
-                Sugg::hir(cx, inner_rhs, "..").to_string(),
-                maybe_neg_sugg(rhs),
-            )
+            (inner_lhs, inner_rhs, rhs)
         } else if let Some((inner_lhs, inner_rhs)) = is_float_mul_expr(cx, rhs) {
-            (
-                inner_lhs,
-                maybe_neg_sugg(inner_rhs),
-                Sugg::hir(cx, lhs, "..").to_string(),
-            )
+            (inner_lhs, inner_rhs, lhs)
         } else {
             return;
         };
@@ -500,7 +472,12 @@ fn check_mul_add(cx: &LateContext<'_>, expr: &Expr<'_>) {
             expr.span,
             "multiply and add expressions can be calculated more efficiently and accurately",
             "consider using",
-            format!("{}.mul_add({arg1}, {arg2})", prepare_receiver_sugg(cx, recv)),
+            format!(
+                "{}.mul_add({}, {})",
+                prepare_receiver_sugg(cx, recv),
+                Sugg::hir(cx, arg1, ".."),
+                Sugg::hir(cx, arg2, ".."),
+            ),
             Applicability::MachineApplicable,
         );
     }

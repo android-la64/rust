@@ -100,7 +100,6 @@ impl<T: Sized> Exclusive<T> {
     /// Wrap a value in an `Exclusive`
     #[unstable(feature = "exclusive_wrapper", issue = "98407")]
     #[must_use]
-    #[inline]
     pub const fn new(t: T) -> Self {
         Self { inner: t }
     }
@@ -108,7 +107,6 @@ impl<T: Sized> Exclusive<T> {
     /// Unwrap the value contained in the `Exclusive`
     #[unstable(feature = "exclusive_wrapper", issue = "98407")]
     #[must_use]
-    #[inline]
     pub const fn into_inner(self) -> T {
         self.inner
     }
@@ -118,7 +116,6 @@ impl<T: ?Sized> Exclusive<T> {
     /// Get exclusive access to the underlying value.
     #[unstable(feature = "exclusive_wrapper", issue = "98407")]
     #[must_use]
-    #[inline]
     pub const fn get_mut(&mut self) -> &mut T {
         &mut self.inner
     }
@@ -131,7 +128,6 @@ impl<T: ?Sized> Exclusive<T> {
     /// produce _pinned_ access to the underlying value.
     #[unstable(feature = "exclusive_wrapper", issue = "98407")]
     #[must_use]
-    #[inline]
     pub const fn get_pin_mut(self: Pin<&mut Self>) -> Pin<&mut T> {
         // SAFETY: `Exclusive` can only produce `&mut T` if itself is unpinned
         // `Pin::map_unchecked_mut` is not const, so we do this conversion manually
@@ -143,7 +139,6 @@ impl<T: ?Sized> Exclusive<T> {
     /// building an `Exclusive` with [`Exclusive::new`].
     #[unstable(feature = "exclusive_wrapper", issue = "98407")]
     #[must_use]
-    #[inline]
     pub const fn from_mut(r: &'_ mut T) -> &'_ mut Exclusive<T> {
         // SAFETY: repr is ≥ C, so refs have the same layout; and `Exclusive` properties are `&mut`-agnostic
         unsafe { &mut *(r as *mut T as *mut Exclusive<T>) }
@@ -154,7 +149,6 @@ impl<T: ?Sized> Exclusive<T> {
     /// building an `Exclusive` with [`Exclusive::new`].
     #[unstable(feature = "exclusive_wrapper", issue = "98407")]
     #[must_use]
-    #[inline]
     pub const fn from_pin_mut(r: Pin<&'_ mut T>) -> Pin<&'_ mut Exclusive<T>> {
         // SAFETY: `Exclusive` can only produce `&mut T` if itself is unpinned
         // `Pin::map_unchecked_mut` is not const, so we do this conversion manually
@@ -164,7 +158,6 @@ impl<T: ?Sized> Exclusive<T> {
 
 #[unstable(feature = "exclusive_wrapper", issue = "98407")]
 impl<T> From<T> for Exclusive<T> {
-    #[inline]
     fn from(t: T) -> Self {
         Self::new(t)
     }
@@ -173,7 +166,7 @@ impl<T> From<T> for Exclusive<T> {
 #[unstable(feature = "exclusive_wrapper", issue = "98407")]
 impl<T: Future + ?Sized> Future for Exclusive<T> {
     type Output = T::Output;
-    #[inline]
+
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.get_pin_mut().poll(cx)
     }

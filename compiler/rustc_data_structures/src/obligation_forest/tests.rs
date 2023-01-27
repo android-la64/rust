@@ -64,7 +64,6 @@ where
 {
     type Obligation = O;
     type Error = E;
-    type OUT = TestOutcome<O, E>;
 
     fn needs_process_obligation(&self, _obligation: &Self::Obligation) -> bool {
         true
@@ -77,15 +76,10 @@ where
         (self.process_obligation)(obligation)
     }
 
-    fn process_backedge<'c, I>(
-        &mut self,
-        _cycle: I,
-        _marker: PhantomData<&'c Self::Obligation>,
-    ) -> Result<(), Self::Error>
+    fn process_backedge<'c, I>(&mut self, _cycle: I, _marker: PhantomData<&'c Self::Obligation>)
     where
         I: Clone + Iterator<Item = &'c Self::Obligation>,
     {
-        Ok(())
     }
 }
 

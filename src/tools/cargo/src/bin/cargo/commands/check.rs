@@ -2,7 +2,7 @@ use crate::command_prelude::*;
 
 use cargo::ops;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("check")
         // subcommand aliases are handled in aliased_command()
         // .alias("c")

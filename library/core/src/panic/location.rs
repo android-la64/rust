@@ -123,9 +123,8 @@ impl<'a> Location<'a> {
     /// ```
     #[must_use]
     #[stable(feature = "panic_hooks", since = "1.10.0")]
-    #[rustc_const_unstable(feature = "const_location_fields", issue = "102911")]
     #[inline]
-    pub const fn file(&self) -> &str {
+    pub fn file(&self) -> &str {
         self.file
     }
 
@@ -148,9 +147,8 @@ impl<'a> Location<'a> {
     /// ```
     #[must_use]
     #[stable(feature = "panic_hooks", since = "1.10.0")]
-    #[rustc_const_unstable(feature = "const_location_fields", issue = "102911")]
     #[inline]
-    pub const fn line(&self) -> u32 {
+    pub fn line(&self) -> u32 {
         self.line
     }
 
@@ -173,9 +171,8 @@ impl<'a> Location<'a> {
     /// ```
     #[must_use]
     #[stable(feature = "panic_col", since = "1.25.0")]
-    #[rustc_const_unstable(feature = "const_location_fields", issue = "102911")]
     #[inline]
-    pub const fn column(&self) -> u32 {
+    pub fn column(&self) -> u32 {
         self.col
     }
 }

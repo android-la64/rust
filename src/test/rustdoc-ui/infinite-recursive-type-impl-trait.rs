@@ -1,8 +1,6 @@
-// check-pass
-
 fn f() -> impl Sized {
-    // rustdoc doesn't care that this is infinitely sized
     enum E {
+    //~^ ERROR recursive type `f::E` has infinite size
         V(E),
     }
     unimplemented!()

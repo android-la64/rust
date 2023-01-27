@@ -1,4 +1,4 @@
-#![feature(half_open_range_patterns_in_slices)]
+#![feature(half_open_range_patterns)]
 
 fn main() {
     match [1, 2] {

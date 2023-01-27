@@ -1,5 +1,5 @@
 use super::crt_objects::LinkSelfContainedDefault;
-use super::{cvs, Cc, LinkerFlavor, PanicStrategy, RelocModel, TargetOptions, TlsModel};
+use super::{cvs, LinkerFlavor, LldFlavor, PanicStrategy, RelocModel, TargetOptions, TlsModel};
 
 pub fn options() -> TargetOptions {
     macro_rules! args {
@@ -49,8 +49,8 @@ pub fn options() -> TargetOptions {
         };
     }
 
-    let mut pre_link_args = TargetOptions::link_args(LinkerFlavor::WasmLld(Cc::No), args!(""));
-    super::add_link_args(&mut pre_link_args, LinkerFlavor::WasmLld(Cc::Yes), args!("-Wl,"));
+    let mut pre_link_args = TargetOptions::link_args(LinkerFlavor::Lld(LldFlavor::Wasm), args!(""));
+    super::add_link_args(&mut pre_link_args, LinkerFlavor::Gcc, args!("-Wl,"));
 
     TargetOptions {
         is_like_wasm: true,
@@ -91,7 +91,8 @@ pub fn options() -> TargetOptions {
 
         // we use the LLD shipped with the Rust toolchain by default
         linker: Some("rust-lld".into()),
-        linker_flavor: LinkerFlavor::WasmLld(Cc::No),
+        lld_flavor: LldFlavor::Wasm,
+        linker_is_gnu: false,
 
         pre_link_args,
 

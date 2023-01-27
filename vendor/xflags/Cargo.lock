@@ -4,13 +4,13 @@ version = 3
 
 [[package]]
 name = "xflags"
-version = "0.3.0"
+version = "0.2.4"
 dependencies = [
  "xflags-macros",
 ]
 
 [[package]]
 name = "xflags-macros"
-version = "0.3.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2afbd7f2039bb6cad2dd45f0c5dff49c0d4e26118398768b7a605524d4251809"
+checksum = "45d11d5fc2a97287eded8b170ca80533b3c42646dd7fa386a5eb045817921022"

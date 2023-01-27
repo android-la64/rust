@@ -1,4 +1,5 @@
 // run-pass
+#![allow(const_err)]
 
 // compile-flags: -O
 

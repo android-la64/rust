@@ -17,6 +17,7 @@
 
 #![feature(core_intrinsics)]
 #![feature(start)]
+#![feature(bench_black_box)]
 
 use std::hint::black_box;
 use std::mem::MaybeUninit;

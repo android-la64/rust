@@ -2,11 +2,11 @@ use crate::command_prelude::*;
 
 use cargo::ops::{self, OwnersOptions};
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("owner")
         .about("Manage the owners of a crate on the registry")
         .arg_quiet()
-        .arg(Arg::new("crate").action(ArgAction::Set))
+        .arg(Arg::new("crate"))
         .arg(
             multi_opt(
                 "add",

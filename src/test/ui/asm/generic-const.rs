@@ -1,7 +1,7 @@
 // needs-asm-support
 // build-pass
 
-#![feature(asm_const)]
+#![feature(asm_const, asm_sym)]
 
 use std::arch::asm;
 

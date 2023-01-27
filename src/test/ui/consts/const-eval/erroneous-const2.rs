@@ -1,9 +1,11 @@
 //! Make sure we error on erroneous consts even if they are unused.
-#![allow(unconditional_panic)]
+#![warn(const_err, unconditional_panic)]
 
 struct PrintName<T>(T);
 impl<T> PrintName<T> {
-    const VOID: () = [()][2]; //~ERROR evaluation of `PrintName::<i32>::VOID` failed
+    const VOID: () = [()][2]; //~WARN any use of this value will cause an error
+    //~^ WARN this operation will panic at runtime
+    //~| WARN this was previously accepted by the compiler but is being phased out
 }
 
 pub static FOO: () = {

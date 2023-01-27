@@ -1,8 +1,6 @@
 // build-fail
-// known-bug: #95134
 // compile-flags: -Copt-level=0
-// failure-status: 101
-// dont-check-compiler-stderr
+//~^^ ERROR overflow evaluating the requirement
 
 pub fn encode_num<Writer: ExampleWriter>(n: u32, mut writer: Writer) -> Result<(), Writer::Error> {
     if n > 15 {

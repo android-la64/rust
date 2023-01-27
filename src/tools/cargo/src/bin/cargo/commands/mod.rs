@@ -1,6 +1,6 @@
 use crate::command_prelude::*;
 
-pub fn builtin() -> Vec<Command> {
+pub fn builtin() -> Vec<App> {
     vec![
         add::cli(),
         bench::cli(),
@@ -26,7 +26,6 @@ pub fn builtin() -> Vec<Command> {
         pkgid::cli(),
         publish::cli(),
         read_manifest::cli(),
-        remove::cli(),
         report::cli(),
         run::cli(),
         rustc::cli(),
@@ -69,7 +68,6 @@ pub fn builtin_exec(cmd: &str) -> Option<fn(&mut Config, &ArgMatches) -> CliResu
         "pkgid" => pkgid::exec,
         "publish" => publish::exec,
         "read-manifest" => read_manifest::exec,
-        "remove" => remove::exec,
         "report" => report::exec,
         "run" => run::exec,
         "rustc" => rustc::exec,
@@ -112,7 +110,6 @@ pub mod package;
 pub mod pkgid;
 pub mod publish;
 pub mod read_manifest;
-pub mod remove;
 pub mod report;
 pub mod run;
 pub mod rustc;

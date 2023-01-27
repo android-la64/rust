@@ -1,14 +1,17 @@
 // build-fail
 
+#![warn(const_err)]
+
 trait ZeroSized: Sized {
     const I_AM_ZERO_SIZED: ();
     fn requires_zero_size(self);
 }
 
 impl<T: Sized> ZeroSized for T {
-    const I_AM_ZERO_SIZED: ()  = [()][std::mem::size_of::<Self>()]; //~ ERROR evaluation of `<u32 as ZeroSized>::I_AM_ZERO_SIZED` failed
+    const I_AM_ZERO_SIZED: ()  = [()][std::mem::size_of::<Self>()]; //~ WARN any use of this value
+    //~| WARN this was previously accepted by the compiler but is being phased out
     fn requires_zero_size(self) {
-        let () = Self::I_AM_ZERO_SIZED;
+        let () = Self::I_AM_ZERO_SIZED; //~ ERROR erroneous constant encountered
         println!("requires_zero_size called");
     }
 }

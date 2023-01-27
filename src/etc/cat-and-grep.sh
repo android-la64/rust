@@ -26,7 +26,7 @@ Options:
     -i      Case insensitive search.
 '
 
-GREPPER=grep
+GREPPER=fgrep
 INVERT=0
 GREPFLAGS='q'
 while getopts ':vieh' OPTION; do
@@ -39,7 +39,7 @@ while getopts ':vieh' OPTION; do
             GREPFLAGS="i$GREPFLAGS"
             ;;
         e)
-            GREPFLAGS="E$GREPFLAGS"
+            GREPPER=egrep
             ;;
         h)
             echo "$USAGE"
@@ -50,12 +50,6 @@ while getopts ':vieh' OPTION; do
             ;;
     esac
 done
-
-if ! echo "$GREPFLAGS" | grep -q E
-then
-    # use F flag if there is not an E flag
-    GREPFLAGS="F$GREPFLAGS"
-fi
 
 shift $((OPTIND - 1))
 

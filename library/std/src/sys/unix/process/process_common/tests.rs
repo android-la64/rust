@@ -31,54 +31,41 @@ macro_rules! t {
     ignore
 )]
 fn test_process_mask() {
-    // Test to make sure that a signal mask *does* get inherited.
-    fn test_inner(mut cmd: Command) {
-        unsafe {
-            let mut set = mem::MaybeUninit::<libc::sigset_t>::uninit();
-            let mut old_set = mem::MaybeUninit::<libc::sigset_t>::uninit();
-            t!(cvt(sigemptyset(set.as_mut_ptr())));
-            t!(cvt(sigaddset(set.as_mut_ptr(), libc::SIGINT)));
-            t!(cvt_nz(libc::pthread_sigmask(
-                libc::SIG_SETMASK,
-                set.as_ptr(),
-                old_set.as_mut_ptr()
-            )));
+    unsafe {
+        // Test to make sure that a signal mask does not get inherited.
+        let mut cmd = Command::new(OsStr::new("cat"));
 
-            cmd.stdin(Stdio::MakePipe);
-            cmd.stdout(Stdio::MakePipe);
+        let mut set = mem::MaybeUninit::<libc::sigset_t>::uninit();
+        let mut old_set = mem::MaybeUninit::<libc::sigset_t>::uninit();
+        t!(cvt(sigemptyset(set.as_mut_ptr())));
+        t!(cvt(sigaddset(set.as_mut_ptr(), libc::SIGINT)));
+        t!(cvt_nz(libc::pthread_sigmask(libc::SIG_SETMASK, set.as_ptr(), old_set.as_mut_ptr())));
 
-            let (mut cat, mut pipes) = t!(cmd.spawn(Stdio::Null, true));
-            let stdin_write = pipes.stdin.take().unwrap();
-            let stdout_read = pipes.stdout.take().unwrap();
+        cmd.stdin(Stdio::MakePipe);
+        cmd.stdout(Stdio::MakePipe);
 
-            t!(cvt_nz(libc::pthread_sigmask(libc::SIG_SETMASK, old_set.as_ptr(), ptr::null_mut())));
+        let (mut cat, mut pipes) = t!(cmd.spawn(Stdio::Null, true));
+        let stdin_write = pipes.stdin.take().unwrap();
+        let stdout_read = pipes.stdout.take().unwrap();
 
-            t!(cvt(libc::kill(cat.id() as libc::pid_t, libc::SIGINT)));
-            // We need to wait until SIGINT is definitely delivered. The
-            // easiest way is to write something to cat, and try to read it
-            // back: if SIGINT is unmasked, it'll get delivered when cat is
-            // next scheduled.
-            let _ = stdin_write.write(b"Hello");
-            drop(stdin_write);
+        t!(cvt_nz(libc::pthread_sigmask(libc::SIG_SETMASK, old_set.as_ptr(), ptr::null_mut())));
 
-            // Exactly 5 bytes should be read.
-            let mut buf = [0; 5];
-            let ret = t!(stdout_read.read(&mut buf));
-            assert_eq!(ret, 5);
-            assert_eq!(&buf, b"Hello");
+        t!(cvt(libc::kill(cat.id() as libc::pid_t, libc::SIGINT)));
+        // We need to wait until SIGINT is definitely delivered. The
+        // easiest way is to write something to cat, and try to read it
+        // back: if SIGINT is unmasked, it'll get delivered when cat is
+        // next scheduled.
+        let _ = stdin_write.write(b"Hello");
+        drop(stdin_write);
 
-            t!(cat.wait());
+        // Either EOF or failure (EPIPE) is okay.
+        let mut buf = [0; 5];
+        if let Ok(ret) = stdout_read.read(&mut buf) {
+            assert_eq!(ret, 0);
         }
+
+        t!(cat.wait());
     }
-
-    // A plain `Command::new` uses the posix_spawn path on many platforms.
-    let cmd = Command::new(OsStr::new("cat"));
-    test_inner(cmd);
-
-    // Specifying `pre_exec` forces the fork/exec path.
-    let mut cmd = Command::new(OsStr::new("cat"));
-    unsafe { cmd.pre_exec(Box::new(|| Ok(()))) };
-    test_inner(cmd);
 }
 
 #[test]

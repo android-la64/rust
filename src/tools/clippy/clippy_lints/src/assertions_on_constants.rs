@@ -60,9 +60,9 @@ impl<'tcx> LateLintPass<'tcx> for AssertionsOnConstants {
                 cx,
                 ASSERTIONS_ON_CONSTANTS,
                 macro_call.span,
-                &format!("`assert!(false{assert_arg})` should probably be replaced"),
+                &format!("`assert!(false{})` should probably be replaced", assert_arg),
                 None,
-                &format!("use `panic!({panic_arg})` or `unreachable!({panic_arg})`"),
+                &format!("use `panic!({})` or `unreachable!({0})`", panic_arg),
             );
         }
     }

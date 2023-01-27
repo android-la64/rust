@@ -1,5 +1,6 @@
 //! UTF-8 and UTF-16 decoding iterators
 
+#[cfg(not(bootstrap))]
 use crate::error::Error;
 use crate::fmt;
 
@@ -123,6 +124,7 @@ impl fmt::Display for DecodeUtf16Error {
     }
 }
 
+#[cfg(not(bootstrap))]
 #[stable(feature = "decode_utf16", since = "1.9.0")]
 impl Error for DecodeUtf16Error {
     #[allow(deprecated)]

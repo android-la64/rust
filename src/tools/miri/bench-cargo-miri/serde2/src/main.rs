@@ -5,7 +5,6 @@ use serde::Deserialize;
 use std::thread;
 
 #[derive(Deserialize)]
-#[allow(unused)]
 struct DeriveStruct {
     buffer: Vec<i16>,
 }

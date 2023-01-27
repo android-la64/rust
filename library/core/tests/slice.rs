@@ -1284,6 +1284,7 @@ fn test_windows_zip() {
 }
 
 #[test]
+#[allow(const_err)]
 fn test_iter_ref_consistency() {
     use std::fmt::Debug;
 

@@ -152,7 +152,7 @@
 - [MIR optimizations](./mir/optimizations.md)
 - [Debugging](./mir/debugging.md)
 - [Constant evaluation](./const-eval.md)
-    - [Interpreter](./const-eval/interpret.md)
+    - [miri const evaluator](./miri.md)
 - [Monomorphization](./backend/monomorph.md)
 - [Lowering MIR](./backend/lowering-mir.md)
 - [Code Generation](./backend/codegen.md)

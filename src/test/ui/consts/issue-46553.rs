@@ -1,4 +1,5 @@
 // run-pass
+#![deny(const_err)]
 
 pub struct Data<T> {
     function: fn() -> T,

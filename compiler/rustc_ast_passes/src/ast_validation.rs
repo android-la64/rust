@@ -14,7 +14,6 @@ use rustc_ast::*;
 use rustc_ast_pretty::pprust::{self, State};
 use rustc_data_structures::fx::FxHashMap;
 use rustc_errors::{error_code, fluent, pluralize, struct_span_err, Applicability};
-use rustc_macros::Subdiagnostic;
 use rustc_parse::validate_attr;
 use rustc_session::lint::builtin::{
     DEPRECATED_WHERE_CLAUSE_LOCATION, MISSING_ABI, PATTERNS_IN_FNS_WITHOUT_BODY,
@@ -39,13 +38,6 @@ enum SelfSemantic {
     No,
 }
 
-/// What is the context that prevents using `~const`?
-enum DisallowTildeConstContext<'a> {
-    TraitObject,
-    ImplTrait,
-    Fn(FnKind<'a>),
-}
-
 struct AstValidator<'a> {
     session: &'a Session,
 
@@ -64,7 +56,7 @@ struct AstValidator<'a> {
     /// e.g., `impl Iterator<Item = impl Debug>`.
     outer_impl_trait: Option<Span>,
 
-    disallow_tilde_const: Option<DisallowTildeConstContext<'a>>,
+    is_tilde_const_allowed: bool,
 
     /// Used to ban `impl Trait` in path projections like `<impl Iterator>::Item`
     /// or `Foo::Bar<impl Trait>`
@@ -101,26 +93,18 @@ impl<'a> AstValidator<'a> {
         self.is_impl_trait_banned = old;
     }
 
-    fn with_tilde_const(
-        &mut self,
-        disallowed: Option<DisallowTildeConstContext<'a>>,
-        f: impl FnOnce(&mut Self),
-    ) {
-        let old = mem::replace(&mut self.disallow_tilde_const, disallowed);
+    fn with_tilde_const(&mut self, allowed: bool, f: impl FnOnce(&mut Self)) {
+        let old = mem::replace(&mut self.is_tilde_const_allowed, allowed);
         f(self);
-        self.disallow_tilde_const = old;
+        self.is_tilde_const_allowed = old;
     }
 
     fn with_tilde_const_allowed(&mut self, f: impl FnOnce(&mut Self)) {
-        self.with_tilde_const(None, f)
+        self.with_tilde_const(true, f)
     }
 
-    fn with_banned_tilde_const(
-        &mut self,
-        ctx: DisallowTildeConstContext<'a>,
-        f: impl FnOnce(&mut Self),
-    ) {
-        self.with_tilde_const(Some(ctx), f)
+    fn with_banned_tilde_const(&mut self, f: impl FnOnce(&mut Self)) {
+        self.with_tilde_const(false, f)
     }
 
     fn with_let_management(
@@ -170,7 +154,7 @@ impl<'a> AstValidator<'a> {
                 DEPRECATED_WHERE_CLAUSE_LOCATION,
                 id,
                 where_clauses.0.1,
-                fluent::ast_passes_deprecated_where_clause_location,
+                fluent::ast_passes::deprecated_where_clause_location,
                 BuiltinLintDiagnostics::DeprecatedWhereclauseLocation(
                     where_clauses.1.1.shrink_to_hi(),
                     suggestion,
@@ -188,7 +172,7 @@ impl<'a> AstValidator<'a> {
     fn with_impl_trait(&mut self, outer: Option<Span>, f: impl FnOnce(&mut Self)) {
         let old = mem::replace(&mut self.outer_impl_trait, outer);
         if outer.is_some() {
-            self.with_banned_tilde_const(DisallowTildeConstContext::ImplTrait, f);
+            self.with_banned_tilde_const(f);
         } else {
             f(self);
         }
@@ -213,10 +197,7 @@ impl<'a> AstValidator<'a> {
             TyKind::ImplTrait(..) => {
                 self.with_impl_trait(Some(t.span), |this| visit::walk_ty(this, t))
             }
-            TyKind::TraitObject(..) => self
-                .with_banned_tilde_const(DisallowTildeConstContext::TraitObject, |this| {
-                    visit::walk_ty(this, t)
-                }),
+            TyKind::TraitObject(..) => self.with_banned_tilde_const(|this| visit::walk_ty(this, t)),
             TyKind::Path(ref qself, ref path) => {
                 // We allow these:
                 //  - `Option<impl Trait>`
@@ -250,6 +231,20 @@ impl<'a> AstValidator<'a> {
             }
             _ => visit::walk_ty(self, t),
         }
+    }
+
+    fn visit_struct_field_def(&mut self, field: &'a FieldDef) {
+        if let Some(ident) = field.ident {
+            if ident.name == kw::Underscore {
+                self.visit_vis(&field.vis);
+                self.visit_ident(ident);
+                self.visit_ty_common(&field.ty);
+                self.walk_ty(&field.ty);
+                walk_list!(self, visit_attribute, &field.attrs);
+                return;
+            }
+        }
+        self.visit_field_def(field);
     }
 
     fn err_handler(&self) -> &rustc_errors::Handler {
@@ -992,8 +987,8 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
         visit::walk_lifetime(self, lifetime);
     }
 
-    fn visit_field_def(&mut self, field: &'a FieldDef) {
-        visit::walk_field_def(self, field)
+    fn visit_field_def(&mut self, s: &'a FieldDef) {
+        visit::walk_field_def(self, s)
     }
 
     fn visit_item(&mut self, item: &'a Item) {
@@ -1181,9 +1176,41 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
                     self.check_mod_file_item_asciionly(item.ident);
                 }
             }
-            ItemKind::Union(ref vdata, ..) => {
+            ItemKind::Struct(ref vdata, ref generics) => match vdata {
+                // Duplicating the `Visitor` logic allows catching all cases
+                // of `Anonymous(Struct, Union)` outside of a field struct or union.
+                //
+                // Inside `visit_ty` the validator catches every `Anonymous(Struct, Union)` it
+                // encounters, and only on `ItemKind::Struct` and `ItemKind::Union`
+                // it uses `visit_ty_common`, which doesn't contain that specific check.
+                VariantData::Struct(ref fields, ..) => {
+                    self.visit_vis(&item.vis);
+                    self.visit_ident(item.ident);
+                    self.visit_generics(generics);
+                    self.with_banned_assoc_ty_bound(|this| {
+                        walk_list!(this, visit_struct_field_def, fields);
+                    });
+                    walk_list!(self, visit_attribute, &item.attrs);
+                    return;
+                }
+                _ => {}
+            },
+            ItemKind::Union(ref vdata, ref generics) => {
                 if vdata.fields().is_empty() {
                     self.err_handler().span_err(item.span, "unions cannot have zero fields");
+                }
+                match vdata {
+                    VariantData::Struct(ref fields, ..) => {
+                        self.visit_vis(&item.vis);
+                        self.visit_ident(item.ident);
+                        self.visit_generics(generics);
+                        self.with_banned_assoc_ty_bound(|this| {
+                            walk_list!(this, visit_struct_field_def, fields);
+                        });
+                        walk_list!(self, visit_attribute, &item.attrs);
+                        return;
+                    }
+                    _ => {}
                 }
             }
             ItemKind::Const(def, .., None) => {
@@ -1384,15 +1411,13 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
                     );
                     err.emit();
                 }
-                (_, TraitBoundModifier::MaybeConst) if let Some(reason) = &self.disallow_tilde_const => {
-                    let mut err = self.err_handler().struct_span_err(bound.span(), "`~const` is not allowed here");
-                    match reason {
-                        DisallowTildeConstContext::TraitObject => err.note("trait objects cannot have `~const` trait bounds"),
-                        DisallowTildeConstContext::ImplTrait => err.note("`impl Trait`s cannot have `~const` trait bounds"),
-                        DisallowTildeConstContext::Fn(FnKind::Closure(..)) => err.note("closures cannot have `~const` trait bounds"),
-                        DisallowTildeConstContext::Fn(FnKind::Fn(_, ident, ..)) => err.span_note(ident.span, "this function is not `const`, so it cannot have `~const` trait bounds"),
-                    };
-                    err.emit();
+                (_, TraitBoundModifier::MaybeConst) => {
+                    if !self.is_tilde_const_allowed {
+                        self.err_handler()
+                            .struct_span_err(bound.span(), "`~const` is not allowed here")
+                            .note("only allowed on bounds on traits' associated types and functions, const fns, const impls and its associated functions")
+                            .emit();
+                    }
                 }
                 (_, TraitBoundModifier::MaybeConstMaybe) => {
                     self.err_handler()
@@ -1499,12 +1524,10 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
         }
 
         let tilde_const_allowed =
-            matches!(fk.header(), Some(FnHeader { constness: ast::Const::Yes(_), .. }))
+            matches!(fk.header(), Some(FnHeader { constness: Const::Yes(_), .. }))
                 || matches!(fk.ctxt(), Some(FnCtxt::Assoc(_)));
 
-        let disallowed = (!tilde_const_allowed).then(|| DisallowTildeConstContext::Fn(fk));
-
-        self.with_tilde_const(disallowed, |this| visit::walk_fn(this, fk));
+        self.with_tilde_const(tilde_const_allowed, |this| visit::walk_fn(this, fk));
     }
 
     fn visit_assoc_item(&mut self, item: &'a AssocItem, ctxt: AssocCtxt) {
@@ -1534,7 +1557,7 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
                         });
                     }
                 }
-                AssocItemKind::Type(box TyAlias {
+                AssocItemKind::TyAlias(box TyAlias {
                     generics,
                     where_clauses,
                     where_predicates_split,
@@ -1573,7 +1596,7 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
         }
 
         match item.kind {
-            AssocItemKind::Type(box TyAlias { ref generics, ref bounds, ref ty, .. })
+            AssocItemKind::TyAlias(box TyAlias { ref generics, ref bounds, ref ty, .. })
                 if ctxt == AssocCtxt::Trait =>
             {
                 self.visit_vis(&item.vis);
@@ -1748,7 +1771,7 @@ pub fn check_crate(session: &Session, krate: &Crate, lints: &mut LintBuffer) -> 
         in_const_trait_impl: false,
         has_proc_macro_decls: false,
         outer_impl_trait: None,
-        disallow_tilde_const: None,
+        is_tilde_const_allowed: false,
         is_impl_trait_banned: false,
         is_assoc_ty_bound_banned: false,
         forbidden_let_reason: Some(ForbiddenLetReason::GenericForbidden),
@@ -1760,17 +1783,15 @@ pub fn check_crate(session: &Session, krate: &Crate, lints: &mut LintBuffer) -> 
 }
 
 /// Used to forbid `let` expressions in certain syntactic locations.
-#[derive(Clone, Copy, Subdiagnostic)]
+#[derive(Clone, Copy)]
 pub(crate) enum ForbiddenLetReason {
     /// `let` is not valid and the source environment is not important
     GenericForbidden,
     /// A let chain with the `||` operator
-    #[note(not_supported_or)]
-    NotSupportedOr(#[primary_span] Span),
+    NotSupportedOr(Span),
     /// A let chain with invalid parentheses
     ///
     /// For example, `let 1 = 1 && (expr && expr)` is allowed
     /// but `(let 1 = 1 && (let 1 = 1 && (let 1 = 1))) && let a = 1` is not
-    #[note(not_supported_parentheses)]
-    NotSupportedParentheses(#[primary_span] Span),
+    NotSupportedParentheses(Span),
 }

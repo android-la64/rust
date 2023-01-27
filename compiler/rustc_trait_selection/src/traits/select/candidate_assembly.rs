@@ -6,7 +6,6 @@
 //!
 //! [rustc dev guide]:https://rustc-dev-guide.rust-lang.org/traits/resolution.html#candidate-assembly
 use hir::LangItem;
-use rustc_errors::DelayDm;
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_infer::traits::ObligationCause;
@@ -174,7 +173,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
         debug!(?stack, ?candidates, "winnowed to {} candidates", candidates.len());
 
-        let needs_infer = stack.obligation.predicate.has_non_region_infer();
+        let needs_infer = stack.obligation.predicate.has_infer_types_or_consts();
 
         // If there are STILL multiple candidates, we can further
         // reduce the list by dropping duplicates -- including
@@ -363,9 +362,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             .infcx
             .probe(|_| self.match_projection_obligation_against_definition_bounds(obligation));
 
-        candidates
-            .vec
-            .extend(result.into_iter().map(|(idx, constness)| ProjectionCandidate(idx, constness)));
+        candidates.vec.extend(result.into_iter().map(ProjectionCandidate));
     }
 
     /// Given an obligation like `<SomeTrait for T>`, searches the obligations that the caller
@@ -625,7 +622,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                     }
                 }
 
-                _ => candidates.vec.push(AutoImplCandidate),
+                _ => candidates.vec.push(AutoImplCandidate(def_id)),
             }
         }
     }
@@ -826,11 +823,13 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                                     DEREF_INTO_DYN_SUPERTRAIT,
                                     obligation.cause.body_id,
                                     obligation.cause.span,
-                                    DelayDm(|| format!(
-                                        "`{}` implements `Deref` with supertrait `{}` as output",
-                                        source, deref_output_ty
-                                    )),
-                                    |lint| lint,
+                                    |lint| {
+                                        lint.build(&format!(
+                                            "`{}` implements `Deref` with supertrait `{}` as output",
+                                            source,
+                                            deref_output_ty
+                                        )).emit();
+                                    },
                                 );
                                 return;
                             }
@@ -889,11 +888,11 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         obligation: &TraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
-        if obligation.has_non_region_param() {
+        if obligation.has_param_types_or_consts() {
             return;
         }
 
-        if obligation.has_non_region_infer() {
+        if obligation.has_infer_types_or_consts() {
             candidates.ambiguous = true;
             return;
         }
@@ -914,7 +913,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         let def_id = obligation.predicate.def_id();
 
         if self.tcx().is_trait_alias(def_id) {
-            candidates.vec.push(TraitAliasCandidate);
+            candidates.vec.push(TraitAliasCandidate(def_id));
         }
     }
 
@@ -1021,7 +1020,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         let self_ty = self.infcx().shallow_resolve(obligation.self_ty().skip_binder());
         match self_ty.kind() {
             ty::Tuple(_) => {
-                candidates.vec.push(BuiltinCandidate { has_nested: false });
+                candidates.vec.push(TupleCandidate);
             }
             ty::Infer(ty::TyVar(_)) => {
                 candidates.ambiguous = true;

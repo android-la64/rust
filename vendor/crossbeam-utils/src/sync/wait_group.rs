@@ -1,3 +1,6 @@
+// Necessary for using `Mutex<usize>` for conditional variables
+#![allow(clippy::mutex_atomic)]
+
 use crate::primitive::sync::{Arc, Condvar, Mutex};
 use std::fmt;
 
@@ -39,7 +42,6 @@ use std::fmt;
 ///
 /// // Block until all threads have finished their work.
 /// wg.wait();
-/// # std::thread::sleep(std::time::Duration::from_millis(500)); // wait for background threads closed: https://github.com/rust-lang/miri/issues/1371
 /// ```
 ///
 /// [`Barrier`]: std::sync::Barrier
@@ -98,7 +100,6 @@ impl WaitGroup {
     ///
     /// // Block until both threads have reached `wait()`.
     /// wg.wait();
-    /// # std::thread::sleep(std::time::Duration::from_millis(500)); // wait for background threads closed: https://github.com/rust-lang/miri/issues/1371
     /// ```
     pub fn wait(self) {
         if *self.inner.count.lock().unwrap() == 1 {

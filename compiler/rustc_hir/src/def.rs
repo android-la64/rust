@@ -314,75 +314,74 @@ pub enum Res<Id = hir::HirId> {
     /// **Belongs to the type namespace.**
     PrimTy(hir::PrimTy),
 
-    /// The `Self` type, as used within a trait.
-    ///
-    /// **Belongs to the type namespace.**
-    ///
-    /// See the examples on [`Res::SelfTyAlias`] for details.
-    SelfTyParam {
-        /// The trait this `Self` is a generic parameter for.
-        trait_: DefId,
-    },
-
-    /// The `Self` type, as used somewhere other than within a trait.
+    /// The `Self` type, optionally with the [`DefId`] of the trait it belongs to and
+    /// optionally with the [`DefId`] of the item introducing the `Self` type alias.
     ///
     /// **Belongs to the type namespace.**
     ///
     /// Examples:
     /// ```
-    /// struct Bar(Box<Self>); // SelfTyAlias
+    /// struct Bar(Box<Self>);
+    /// // `Res::SelfTy { trait_: None, alias_of: Some(Bar) }`
     ///
     /// trait Foo {
-    ///     fn foo() -> Box<Self>; // SelfTyParam
+    ///     fn foo() -> Box<Self>;
+    ///     // `Res::SelfTy { trait_: Some(Foo), alias_of: None }`
     /// }
     ///
     /// impl Bar {
     ///     fn blah() {
-    ///         let _: Self; // SelfTyAlias
+    ///         let _: Self;
+    ///         // `Res::SelfTy { trait_: None, alias_of: Some(::{impl#0}) }`
     ///     }
     /// }
     ///
     /// impl Foo for Bar {
-    ///     fn foo() -> Box<Self> { // SelfTyAlias
-    ///         let _: Self;        // SelfTyAlias
+    ///     fn foo() -> Box<Self> {
+    ///     // `Res::SelfTy { trait_: Some(Foo), alias_of: Some(::{impl#1}) }`
+    ///         let _: Self;
+    ///         // `Res::SelfTy { trait_: Some(Foo), alias_of: Some(::{impl#1}) }`
     ///
     ///         todo!()
     ///     }
     /// }
     /// ```
+    ///
     /// *See also [`Res::SelfCtor`].*
     ///
-    SelfTyAlias {
+    /// -----
+    ///
+    /// HACK(min_const_generics): self types also have an optional requirement to **not** mention
+    /// any generic parameters to allow the following with `min_const_generics`:
+    /// ```
+    /// # struct Foo;
+    /// impl Foo { fn test() -> [u8; std::mem::size_of::<Self>()] { todo!() } }
+    ///
+    /// struct Bar([u8; baz::<Self>()]);
+    /// const fn baz<T>() -> usize { 10 }
+    /// ```
+    /// We do however allow `Self` in repeat expression even if it is generic to not break code
+    /// which already works on stable while causing the `const_evaluatable_unchecked` future compat
+    /// lint:
+    /// ```
+    /// fn foo<T>() {
+    ///     let _bar = [1_u8; std::mem::size_of::<*mut T>()];
+    /// }
+    /// ```
+    // FIXME(generic_const_exprs): Remove this bodge once that feature is stable.
+    SelfTy {
+        /// The trait this `Self` is a generic arg for.
+        trait_: Option<DefId>,
         /// The item introducing the `Self` type alias. Can be used in the `type_of` query
-        /// to get the underlying type.
-        alias_to: DefId,
-
-        /// Whether the `Self` type is disallowed from mentioning generics (i.e. when used in an
-        /// anonymous constant).
-        ///
-        /// HACK(min_const_generics): self types also have an optional requirement to **not**
-        /// mention any generic parameters to allow the following with `min_const_generics`:
-        /// ```
-        /// # struct Foo;
-        /// impl Foo { fn test() -> [u8; std::mem::size_of::<Self>()] { todo!() } }
-        ///
-        /// struct Bar([u8; baz::<Self>()]);
-        /// const fn baz<T>() -> usize { 10 }
-        /// ```
-        /// We do however allow `Self` in repeat expression even if it is generic to not break code
-        /// which already works on stable while causing the `const_evaluatable_unchecked` future
-        /// compat lint:
-        /// ```
-        /// fn foo<T>() {
-        ///     let _bar = [1_u8; std::mem::size_of::<*mut T>()];
-        /// }
-        /// ```
-        // FIXME(generic_const_exprs): Remove this bodge once that feature is stable.
-        forbid_generic: bool,
-
-        /// Is this within an `impl Foo for bar`?
-        is_trait_impl: bool,
+        /// to get the underlying type. Additionally whether the `Self` type is disallowed
+        /// from mentioning generics (i.e. when used in an anonymous constant).
+        alias_to: Option<(DefId, bool)>,
     },
+
+    /// A tool attribute module; e.g., the `rustfmt` in `#[rustfmt::skip]`.
+    ///
+    /// **Belongs to the type namespace.**
+    ToolMod,
 
     // Value namespace
     /// The `Self` constructor, along with the [`DefId`]
@@ -390,18 +389,13 @@ pub enum Res<Id = hir::HirId> {
     ///
     /// **Belongs to the value namespace.**
     ///
-    /// *See also [`Res::SelfTyParam`] and [`Res::SelfTyAlias`].*
+    /// *See also [`Res::SelfTy`].*
     SelfCtor(DefId),
 
     /// A local variable or function parameter.
     ///
     /// **Belongs to the value namespace.**
     Local(Id),
-
-    /// A tool attribute module; e.g., the `rustfmt` in `#[rustfmt::skip]`.
-    ///
-    /// **Belongs to the type namespace.**
-    ToolMod,
 
     // Macro namespace
     /// An attribute that is *not* implemented via macro.
@@ -463,16 +457,6 @@ impl PartialRes {
     #[inline]
     pub fn unresolved_segments(&self) -> usize {
         self.unresolved_segments
-    }
-
-    #[inline]
-    pub fn full_res(&self) -> Option<Res<NodeId>> {
-        (self.unresolved_segments == 0).then_some(self.base_res)
-    }
-
-    #[inline]
-    pub fn expect_full_res(&self) -> Res<NodeId> {
-        self.full_res().expect("unexpected unresolved segments")
     }
 }
 
@@ -622,8 +606,7 @@ impl<Id> Res<Id> {
 
             Res::Local(..)
             | Res::PrimTy(..)
-            | Res::SelfTyParam { .. }
-            | Res::SelfTyAlias { .. }
+            | Res::SelfTy { .. }
             | Res::SelfCtor(..)
             | Res::ToolMod
             | Res::NonMacroAttr(..)
@@ -646,7 +629,7 @@ impl<Id> Res<Id> {
             Res::SelfCtor(..) => "self constructor",
             Res::PrimTy(..) => "builtin type",
             Res::Local(..) => "local variable",
-            Res::SelfTyParam { .. } | Res::SelfTyAlias { .. } => "self type",
+            Res::SelfTy { .. } => "self type",
             Res::ToolMod => "tool module",
             Res::NonMacroAttr(attr_kind) => attr_kind.descr(),
             Res::Err => "unresolved item",
@@ -669,10 +652,7 @@ impl<Id> Res<Id> {
             Res::SelfCtor(id) => Res::SelfCtor(id),
             Res::PrimTy(id) => Res::PrimTy(id),
             Res::Local(id) => Res::Local(map(id)),
-            Res::SelfTyParam { trait_ } => Res::SelfTyParam { trait_ },
-            Res::SelfTyAlias { alias_to, forbid_generic, is_trait_impl } => {
-                Res::SelfTyAlias { alias_to, forbid_generic, is_trait_impl }
-            }
+            Res::SelfTy { trait_, alias_to } => Res::SelfTy { trait_, alias_to },
             Res::ToolMod => Res::ToolMod,
             Res::NonMacroAttr(attr_kind) => Res::NonMacroAttr(attr_kind),
             Res::Err => Res::Err,
@@ -685,10 +665,7 @@ impl<Id> Res<Id> {
             Res::SelfCtor(id) => Res::SelfCtor(id),
             Res::PrimTy(id) => Res::PrimTy(id),
             Res::Local(id) => Res::Local(map(id)?),
-            Res::SelfTyParam { trait_ } => Res::SelfTyParam { trait_ },
-            Res::SelfTyAlias { alias_to, forbid_generic, is_trait_impl } => {
-                Res::SelfTyAlias { alias_to, forbid_generic, is_trait_impl }
-            }
+            Res::SelfTy { trait_, alias_to } => Res::SelfTy { trait_, alias_to },
             Res::ToolMod => Res::ToolMod,
             Res::NonMacroAttr(attr_kind) => Res::NonMacroAttr(attr_kind),
             Res::Err => Res::Err,
@@ -715,9 +692,7 @@ impl<Id> Res<Id> {
     pub fn ns(&self) -> Option<Namespace> {
         match self {
             Res::Def(kind, ..) => kind.ns(),
-            Res::PrimTy(..) | Res::SelfTyParam { .. } | Res::SelfTyAlias { .. } | Res::ToolMod => {
-                Some(Namespace::TypeNS)
-            }
+            Res::PrimTy(..) | Res::SelfTy { .. } | Res::ToolMod => Some(Namespace::TypeNS),
             Res::SelfCtor(..) | Res::Local(..) => Some(Namespace::ValueNS),
             Res::NonMacroAttr(..) => Some(Namespace::MacroNS),
             Res::Err => None,

@@ -2,7 +2,7 @@ use crate::command_prelude::*;
 
 use cargo::ops::{self, PackageOpts};
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("package")
         .about("Assemble the local package into a distributable tarball")
         .arg_quiet()

@@ -89,8 +89,15 @@ impl<'tcx> UnsafetyVisitor<'_, 'tcx> {
                     UNSAFE_OP_IN_UNSAFE_FN,
                     self.hir_context,
                     span,
-                    format!("{} is unsafe and requires unsafe block (error E0133)", description,),
-                    |lint| lint.span_label(span, kind.simple_description()).note(note),
+                    |lint| {
+                        lint.build(&format!(
+                            "{} is unsafe and requires unsafe block (error E0133)",
+                            description,
+                        ))
+                        .span_label(span, kind.simple_description())
+                        .note(note)
+                        .emit();
+                    },
                 )
             }
             SafetyContext::Safe => {
@@ -118,13 +125,14 @@ impl<'tcx> UnsafetyVisitor<'_, 'tcx> {
         enclosing_unsafe: Option<(Span, &'static str)>,
     ) {
         let block_span = self.tcx.sess.source_map().guess_head_span(block_span);
-        let msg = "unnecessary `unsafe` block";
-        self.tcx.struct_span_lint_hir(UNUSED_UNSAFE, hir_id, block_span, msg, |lint| {
-            lint.span_label(block_span, msg);
+        self.tcx.struct_span_lint_hir(UNUSED_UNSAFE, hir_id, block_span, |lint| {
+            let msg = "unnecessary `unsafe` block";
+            let mut db = lint.build(msg);
+            db.span_label(block_span, msg);
             if let Some((span, kind)) = enclosing_unsafe {
-                lint.span_label(span, format!("because it's nested under this `unsafe` {}", kind));
+                db.span_label(span, format!("because it's nested under this `unsafe` {}", kind));
             }
-            lint
+            db.emit();
         });
     }
 
@@ -260,7 +268,7 @@ impl<'a, 'tcx> Visitor<'a, 'tcx> for UnsafetyVisitor<'a, 'tcx> {
                     };
                     match borrow_kind {
                         BorrowKind::Shallow | BorrowKind::Shared | BorrowKind::Unique => {
-                            if !ty.is_freeze(self.tcx, self.param_env) {
+                            if !ty.is_freeze(self.tcx.at(pat.span), self.param_env) {
                                 self.requires_unsafe(pat.span, BorrowOfLayoutConstrainedField);
                             }
                         }
@@ -356,7 +364,7 @@ impl<'a, 'tcx> Visitor<'a, 'tcx> for UnsafetyVisitor<'a, 'tcx> {
                     // If the called function has target features the calling function hasn't,
                     // the call requires `unsafe`. Don't check this on wasm
                     // targets, though. For more information on wasm see the
-                    // is_like_wasm check in hir_analysis/src/collect.rs
+                    // is_like_wasm check in typeck/src/collect.rs
                     if !self.tcx.sess.target.options.is_like_wasm
                         && !self
                             .tcx
@@ -457,7 +465,9 @@ impl<'a, 'tcx> Visitor<'a, 'tcx> for UnsafetyVisitor<'a, 'tcx> {
                 if visitor.found {
                     match borrow_kind {
                         BorrowKind::Shallow | BorrowKind::Shared | BorrowKind::Unique
-                            if !self.thir[arg].ty.is_freeze(self.tcx, self.param_env) =>
+                            if !self.thir[arg]
+                                .ty
+                                .is_freeze(self.tcx.at(self.thir[arg].span), self.param_env) =>
                         {
                             self.requires_unsafe(expr.span, BorrowOfLayoutConstrainedField)
                         }

@@ -44,12 +44,6 @@ pub struct GlobalStateInner {
     provenance_mode: ProvenanceMode,
 }
 
-impl VisitTags for GlobalStateInner {
-    fn visit_tags(&self, _visit: &mut dyn FnMut(SbTag)) {
-        // Nothing to visit here.
-    }
-}
-
 impl GlobalStateInner {
     pub fn new(config: &MiriConfig) -> Self {
         GlobalStateInner {
@@ -65,7 +59,7 @@ impl GlobalStateInner {
 impl<'mir, 'tcx> GlobalStateInner {
     // Returns the exposed `AllocId` that corresponds to the specified addr,
     // or `None` if the addr is out of bounds
-    fn alloc_id_from_addr(ecx: &MiriInterpCx<'mir, 'tcx>, addr: u64) -> Option<AllocId> {
+    fn alloc_id_from_addr(ecx: &MiriEvalContext<'mir, 'tcx>, addr: u64) -> Option<AllocId> {
         let global_state = ecx.machine.intptrcast.borrow();
         assert!(global_state.provenance_mode != ProvenanceMode::Strict);
 
@@ -103,7 +97,7 @@ impl<'mir, 'tcx> GlobalStateInner {
     }
 
     pub fn expose_ptr(
-        ecx: &mut MiriInterpCx<'mir, 'tcx>,
+        ecx: &mut MiriEvalContext<'mir, 'tcx>,
         alloc_id: AllocId,
         sb: SbTag,
     ) -> InterpResult<'tcx> {
@@ -120,7 +114,7 @@ impl<'mir, 'tcx> GlobalStateInner {
     }
 
     pub fn ptr_from_addr_transmute(
-        _ecx: &MiriInterpCx<'mir, 'tcx>,
+        _ecx: &MiriEvalContext<'mir, 'tcx>,
         addr: u64,
     ) -> Pointer<Option<Provenance>> {
         trace!("Transmuting {:#x} to a pointer", addr);
@@ -130,7 +124,7 @@ impl<'mir, 'tcx> GlobalStateInner {
     }
 
     pub fn ptr_from_addr_cast(
-        ecx: &MiriInterpCx<'mir, 'tcx>,
+        ecx: &MiriEvalContext<'mir, 'tcx>,
         addr: u64,
     ) -> InterpResult<'tcx, Pointer<Option<Provenance>>> {
         trace!("Casting {:#x} to a pointer", addr);
@@ -148,7 +142,7 @@ impl<'mir, 'tcx> GlobalStateInner {
                     let first = past_warnings.is_empty();
                     if past_warnings.insert(ecx.cur_span()) {
                         // Newly inserted, so first time we see this span.
-                        ecx.emit_diagnostic(NonHaltingDiagnostic::Int2Ptr { details: first });
+                        register_diagnostic(NonHaltingDiagnostic::Int2Ptr { details: first });
                     }
                 });
             }
@@ -162,7 +156,7 @@ impl<'mir, 'tcx> GlobalStateInner {
         Ok(Pointer::new(Some(Provenance::Wildcard), Size::from_bytes(addr)))
     }
 
-    fn alloc_base_addr(ecx: &MiriInterpCx<'mir, 'tcx>, alloc_id: AllocId) -> u64 {
+    fn alloc_base_addr(ecx: &MiriEvalContext<'mir, 'tcx>, alloc_id: AllocId) -> u64 {
         let mut global_state = ecx.machine.intptrcast.borrow_mut();
         let global_state = &mut *global_state;
 
@@ -208,7 +202,7 @@ impl<'mir, 'tcx> GlobalStateInner {
     }
 
     /// Convert a relative (tcx) pointer to an absolute address.
-    pub fn rel_ptr_to_addr(ecx: &MiriInterpCx<'mir, 'tcx>, ptr: Pointer<AllocId>) -> u64 {
+    pub fn rel_ptr_to_addr(ecx: &MiriEvalContext<'mir, 'tcx>, ptr: Pointer<AllocId>) -> u64 {
         let (alloc_id, offset) = ptr.into_parts(); // offset is relative (AllocId provenance)
         let base_addr = GlobalStateInner::alloc_base_addr(ecx, alloc_id);
 
@@ -220,7 +214,7 @@ impl<'mir, 'tcx> GlobalStateInner {
     /// When a pointer is used for a memory access, this computes where in which allocation the
     /// access is going.
     pub fn abs_ptr_to_rel(
-        ecx: &MiriInterpCx<'mir, 'tcx>,
+        ecx: &MiriEvalContext<'mir, 'tcx>,
         ptr: Pointer<Provenance>,
     ) -> Option<(AllocId, Size)> {
         let (tag, addr) = ptr.into_parts(); // addr is absolute (Tag provenance)

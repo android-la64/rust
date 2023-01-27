@@ -48,13 +48,5 @@ fn main() {
     print!("\r\n");
     print!("foo\r\n");
     print!("\\r\n"); //~ ERROR
-    print!("foo\rbar\n");
-
-    // Ignore expanded format strings
-    macro_rules! newline {
-        () => {
-            "\n"
-        };
-    }
-    print!(newline!());
+    print!("foo\rbar\n") // ~ ERROR
 }

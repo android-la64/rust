@@ -80,11 +80,11 @@ mod rustc {
     }
 
     pub struct TransmuteTypeEnv<'cx, 'tcx> {
-        infcx: &'cx InferCtxt<'tcx>,
+        infcx: &'cx InferCtxt<'cx, 'tcx>,
     }
 
     impl<'cx, 'tcx> TransmuteTypeEnv<'cx, 'tcx> {
-        pub fn new(infcx: &'cx InferCtxt<'tcx>) -> Self {
+        pub fn new(infcx: &'cx InferCtxt<'cx, 'tcx>) -> Self {
             Self { infcx }
         }
 
@@ -115,7 +115,7 @@ mod rustc {
             tcx: TyCtxt<'tcx>,
             param_env: ParamEnv<'tcx>,
             c: Const<'tcx>,
-        ) -> Option<Self> {
+        ) -> Self {
             use rustc_middle::ty::ScalarInt;
             use rustc_middle::ty::TypeVisitable;
             use rustc_span::symbol::sym;
@@ -123,15 +123,10 @@ mod rustc {
             let c = c.eval(tcx, param_env);
 
             if let Some(err) = c.error_reported() {
-                return Some(Self {
-                    alignment: true,
-                    lifetimes: true,
-                    safety: true,
-                    validity: true,
-                });
+                return Self { alignment: true, lifetimes: true, safety: true, validity: true };
             }
 
-            let adt_def = c.ty().ty_adt_def()?;
+            let adt_def = c.ty().ty_adt_def().expect("The given `Const` must be an ADT.");
 
             assert_eq!(
                 tcx.require_lang_item(LangItem::TransmuteOpts, None),
@@ -153,12 +148,12 @@ mod rustc {
                 fields[field_idx].unwrap_leaf() == ScalarInt::TRUE
             };
 
-            Some(Self {
+            Self {
                 alignment: get_field(sym::alignment),
                 lifetimes: get_field(sym::lifetimes),
                 safety: get_field(sym::safety),
                 validity: get_field(sym::validity),
-            })
+            }
         }
     }
 }

@@ -5,9 +5,9 @@ use crate::*;
 use shims::foreign_items::EmulateByNameResult;
 use shims::unix::thread::EvalContextExt as _;
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
 
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     fn emulate_foreign_item_by_name(
         &mut self,
         link_name: Symbol,
@@ -26,12 +26,8 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
             "pthread_set_name_np" => {
                 let [thread, name] =
                     this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                let max_len = usize::MAX; // freebsd does not seem to have a limit.
-                let res = this.pthread_setname_np(
-                    this.read_scalar(thread)?,
-                    this.read_scalar(name)?,
-                    max_len,
-                )?;
+                let res =
+                    this.pthread_setname_np(this.read_scalar(thread)?, this.read_scalar(name)?)?;
                 this.write_scalar(res, dest)?;
             }
 

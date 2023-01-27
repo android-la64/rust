@@ -154,10 +154,11 @@ fn check_assign(cx: &EarlyContext<'_>, expr: &Expr) {
                             eqop_span,
                             &format!(
                                 "this looks like you are trying to use `.. {op}= ..`, but you \
-                                 really are doing `.. = ({op} ..)`"
+                                 really are doing `.. = ({op} ..)`",
+                                op = op
                             ),
                             None,
-                            &format!("to remove this lint, use either `{op}=` or `= {op}`"),
+                            &format!("to remove this lint, use either `{op}=` or `= {op}`", op = op),
                         );
                     }
                 }
@@ -190,12 +191,16 @@ fn check_unop(cx: &EarlyContext<'_>, expr: &Expr) {
                 SUSPICIOUS_UNARY_OP_FORMATTING,
                 eqop_span,
                 &format!(
-                    "by not having a space between `{binop_str}` and `{unop_str}` it looks like \
-                     `{binop_str}{unop_str}` is a single operator"
+                    "by not having a space between `{binop}` and `{unop}` it looks like \
+                     `{binop}{unop}` is a single operator",
+                    binop = binop_str,
+                    unop = unop_str
                 ),
                 None,
                 &format!(
-                    "put a space between `{binop_str}` and `{unop_str}` and remove the space after `{unop_str}`"
+                    "put a space between `{binop}` and `{unop}` and remove the space after `{unop}`",
+                    binop = binop_str,
+                    unop = unop_str
                 ),
             );
         }
@@ -241,11 +246,12 @@ fn check_else(cx: &EarlyContext<'_>, expr: &Expr) {
                 cx,
                 SUSPICIOUS_ELSE_FORMATTING,
                 else_span,
-                &format!("this is an `else {else_desc}` but the formatting might hide it"),
+                &format!("this is an `else {}` but the formatting might hide it", else_desc),
                 None,
                 &format!(
                     "to remove this lint, remove the `else` or remove the new line between \
-                     `else` and `{else_desc}`",
+                     `else` and `{}`",
+                    else_desc,
                 ),
             );
         }
@@ -314,10 +320,11 @@ fn check_missing_else(cx: &EarlyContext<'_>, first: &Expr, second: &Expr) {
                 cx,
                 SUSPICIOUS_ELSE_FORMATTING,
                 else_span,
-                &format!("this looks like {looks_like} but the `else` is missing"),
+                &format!("this looks like {} but the `else` is missing", looks_like),
                 None,
                 &format!(
-                    "to remove this lint, add the missing `else` or add a new line before {next_thing}",
+                    "to remove this lint, add the missing `else` or add a new line before {}",
+                    next_thing,
                 ),
             );
         }

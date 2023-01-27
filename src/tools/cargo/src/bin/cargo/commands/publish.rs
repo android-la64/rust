@@ -2,7 +2,7 @@ use crate::command_prelude::*;
 
 use cargo::ops::{self, PublishOpts};
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("publish")
         .about("Upload a package to the registry")
         .arg_quiet()

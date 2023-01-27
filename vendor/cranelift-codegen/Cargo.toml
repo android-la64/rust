@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.88.1"
+version = "0.87.0"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -26,29 +26,24 @@ keywords = [
 categories = ["no-std"]
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
+resolver = "2"
 
 [[bench]]
 name = "x64-evex-encoding"
 harness = false
 
-[dependencies.arrayvec]
-version = "0.7"
-
 [dependencies.bincode]
 version = "1.2.1"
 optional = true
 
-[dependencies.bumpalo]
-version = "3"
-
 [dependencies.cranelift-bforest]
-version = "0.88.1"
+version = "0.87.0"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.88.1"
+version = "0.87.0"
 
 [dependencies.cranelift-entity]
-version = "0.88.1"
+version = "0.87.0"
 
 [dependencies.gimli]
 version = "0.26.0"
@@ -73,10 +68,6 @@ version = "1.0.94"
 features = ["derive"]
 optional = true
 
-[dependencies.sha2]
-version = "0.9.0"
-optional = true
-
 [dependencies.smallvec]
 version = "1.6.1"
 
@@ -91,10 +82,10 @@ version = "0.12"
 version = "0.3"
 
 [build-dependencies.cranelift-codegen-meta]
-version = "0.88.1"
+version = "0.87.0"
 
 [build-dependencies.cranelift-isle]
-version = "=0.88.1"
+version = "=0.87.0"
 
 [build-dependencies.miette]
 version = "5.1.0"
@@ -117,14 +108,8 @@ enable-serde = [
     "serde",
     "cranelift-entity/enable-serde",
     "regalloc2/enable-serde",
-    "smallvec/serde",
 ]
 experimental_x64 = []
-incremental-cache = [
-    "enable-serde",
-    "bincode",
-    "sha2",
-]
 isle-errors = [
     "miette",
     "cranelift-isle/miette-errors",

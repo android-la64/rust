@@ -1,14 +1,19 @@
 #![allow(dead_code)]
 
-#[inline(please,no)] //~ ERROR expected one argument
+#[inline(please_no)] //~ ERROR invalid argument
 fn a() {
 }
 
-#[inline()] //~ ERROR expected one argument
+#[inline(please,no)] //~ ERROR expected one argument
 fn b() {
+}
+
+#[inline()] //~ ERROR expected one argument
+fn c() {
 }
 
 fn main() {
     a();
     b();
+    c();
 }

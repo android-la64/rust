@@ -129,7 +129,7 @@ quickcheck! {
             check_results_specialized!(it, |i| {
                 let mut parameters_from_fold = vec![];
                 let fold_result = i.fold(vec![], |mut acc, v| {
-                    parameters_from_fold.push((acc.clone(), v));
+                    parameters_from_fold.push((acc.clone(), v.clone()));
                     acc.push(v);
                     acc
                 });
@@ -139,7 +139,7 @@ quickcheck! {
                 let mut parameters_from_all = vec![];
                 let first = i.next();
                 let all_result = i.all(|x| {
-                    parameters_from_all.push(x);
+                    parameters_from_all.push(x.clone());
                     Some(x)==first
                 });
                 (parameters_from_all, all_result)

@@ -1,4 +1,3 @@
-use chalk_derive::FallibleTypeFolder;
 use chalk_ir::fold::shift::Shift;
 use chalk_ir::fold::{TypeFoldable, TypeFolder};
 use chalk_ir::interner::HasInterner;
@@ -91,7 +90,7 @@ impl<I: Interner> InferenceTable<I> {
         assert!(quantified.binders.is_empty(interner));
         let inverted = quantified
             .value
-            .try_fold_with(&mut Inverter::new(interner, self), DebruijnIndex::INNERMOST)
+            .fold_with(&mut Inverter::new(interner, self), DebruijnIndex::INNERMOST)
             .unwrap();
         Some(inverted)
     }
@@ -110,7 +109,6 @@ impl<I: Interner> InferenceTable<I> {
     }
 }
 
-#[derive(FallibleTypeFolder)]
 struct Inverter<'q, I: Interner> {
     table: &'q mut InferenceTable<I>,
     inverted_ty: FxHashMap<PlaceholderIndex, EnaVariable<I>>,
@@ -130,7 +128,9 @@ impl<'q, I: Interner> Inverter<'q, I> {
 }
 
 impl<'i, I: Interner> TypeFolder<I> for Inverter<'i, I> {
-    fn as_dyn(&mut self) -> &mut dyn TypeFolder<I> {
+    type Error = NoSolution;
+
+    fn as_dyn(&mut self) -> &mut dyn TypeFolder<I, Error = Self::Error> {
         self
     }
 
@@ -138,26 +138,28 @@ impl<'i, I: Interner> TypeFolder<I> for Inverter<'i, I> {
         &mut self,
         universe: PlaceholderIndex,
         _outer_binder: DebruijnIndex,
-    ) -> Ty<I> {
+    ) -> Fallible<Ty<I>> {
         let table = &mut self.table;
-        self.inverted_ty
+        Ok(self
+            .inverted_ty
             .entry(universe)
             .or_insert_with(|| table.new_variable(universe.ui))
-            .to_ty(TypeFolder::interner(self))
-            .shifted_in(TypeFolder::interner(self))
+            .to_ty(self.interner())
+            .shifted_in(self.interner()))
     }
 
     fn fold_free_placeholder_lifetime(
         &mut self,
         universe: PlaceholderIndex,
         _outer_binder: DebruijnIndex,
-    ) -> Lifetime<I> {
+    ) -> Fallible<Lifetime<I>> {
         let table = &mut self.table;
-        self.inverted_lifetime
+        Ok(self
+            .inverted_lifetime
             .entry(universe)
             .or_insert_with(|| table.new_variable(universe.ui))
-            .to_lifetime(TypeFolder::interner(self))
-            .shifted_in(TypeFolder::interner(self))
+            .to_lifetime(self.interner())
+            .shifted_in(self.interner()))
     }
 
     fn forbid_free_vars(&self) -> bool {

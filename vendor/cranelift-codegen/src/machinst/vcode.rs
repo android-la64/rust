@@ -19,8 +19,9 @@
 
 use crate::fx::FxHashMap;
 use crate::fx::FxHashSet;
-use crate::ir::RelSourceLoc;
-use crate::ir::{self, types, Constant, ConstantData, DynamicStackSlot, LabelValueLoc, ValueLabel};
+use crate::ir::{
+    self, types, Constant, ConstantData, DynamicStackSlot, LabelValueLoc, SourceLoc, ValueLabel,
+};
 use crate::machinst::*;
 use crate::timing;
 use crate::trace;
@@ -30,6 +31,7 @@ use regalloc2::{
     RegClass, VReg,
 };
 
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use cranelift_entity::{entity_impl, Keys, PrimaryMap};
 use std::collections::hash_map::Entry;
@@ -88,7 +90,7 @@ pub struct VCode<I: VCodeInst> {
 
     /// Source locations for each instruction. (`SourceLoc` is a `u32`, so it is
     /// reasonable to keep one of these per instruction.)
-    srclocs: Vec<RelSourceLoc>,
+    srclocs: Vec<SourceLoc>,
 
     /// Entry block.
     entry: BlockIndex,
@@ -158,7 +160,7 @@ pub struct VCode<I: VCodeInst> {
     block_order: BlockLoweringOrder,
 
     /// ABI object.
-    abi: Callee<I::ABIMachineSpec>,
+    abi: Box<dyn ABICallee<I = I>>,
 
     /// Constant information used during code emission. This should be
     /// immutable across function compilations within the same module.
@@ -178,8 +180,6 @@ pub struct VCode<I: VCodeInst> {
 
     /// Value labels for debuginfo attached to vregs.
     debug_value_labels: Vec<(VReg, InsnIndex, InsnIndex, u32)>,
-
-    sigs: SigSet,
 }
 
 /// The result of `VCode::emit`. Contains all information computed
@@ -221,9 +221,6 @@ pub struct EmitResult<I: VCodeInst> {
 
     /// Stack frame size.
     pub frame_size: u32,
-
-    /// The alignment requirement for pc-relative loads.
-    pub alignment: u32,
 }
 
 /// A builder for a VCode function body.
@@ -264,7 +261,7 @@ pub struct VCodeBuilder<I: VCodeInst> {
     branch_block_arg_succ_start: usize,
 
     /// Current source location.
-    cur_srcloc: RelSourceLoc,
+    cur_srcloc: SourceLoc,
 
     /// Debug-value label in-progress map, keyed by label. For each
     /// label, we keep disjoint ranges mapping to vregs. We'll flatten
@@ -284,14 +281,13 @@ pub enum VCodeBuildDirection {
 impl<I: VCodeInst> VCodeBuilder<I> {
     /// Create a new VCodeBuilder.
     pub fn new(
-        sigs: SigSet,
-        abi: Callee<I::ABIMachineSpec>,
+        abi: Box<dyn ABICallee<I = I>>,
         emit_info: I::Info,
         block_order: BlockLoweringOrder,
         constants: VCodeConstants,
         direction: VCodeBuildDirection,
     ) -> VCodeBuilder<I> {
-        let vcode = VCode::new(sigs, abi, emit_info, block_order, constants);
+        let vcode = VCode::new(abi, emit_info, block_order, constants);
 
         VCodeBuilder {
             vcode,
@@ -300,31 +296,14 @@ impl<I: VCodeInst> VCodeBuilder<I> {
             succ_start: 0,
             block_params_start: 0,
             branch_block_arg_succ_start: 0,
-            cur_srcloc: Default::default(),
+            cur_srcloc: SourceLoc::default(),
             debug_info: FxHashMap::default(),
         }
     }
 
-    pub fn init_abi(&mut self, temps: Vec<Writable<Reg>>) {
-        self.vcode.abi.init(&self.vcode.sigs, temps);
-    }
-
     /// Access the ABI object.
-    pub fn abi(&self) -> &Callee<I::ABIMachineSpec> {
-        &self.vcode.abi
-    }
-
-    /// Access the ABI object.
-    pub fn abi_mut(&mut self) -> &mut Callee<I::ABIMachineSpec> {
-        &mut self.vcode.abi
-    }
-
-    pub fn sigs(&self) -> &SigSet {
-        &self.vcode.sigs
-    }
-
-    pub fn sigs_mut(&mut self) -> &mut SigSet {
-        &mut self.vcode.sigs
+    pub fn abi(&mut self) -> &mut dyn ABICallee<I = I> {
+        &mut *self.vcode.abi
     }
 
     /// Access to the BlockLoweringOrder object.
@@ -420,7 +399,7 @@ impl<I: VCodeInst> VCodeBuilder<I> {
     }
 
     /// Set the current source location.
-    pub fn set_srcloc(&mut self, srcloc: RelSourceLoc) {
+    pub fn set_srcloc(&mut self, srcloc: SourceLoc) {
         self.cur_srcloc = srcloc;
     }
 
@@ -648,15 +627,13 @@ fn is_reftype(ty: Type) -> bool {
 impl<I: VCodeInst> VCode<I> {
     /// New empty VCode.
     fn new(
-        sigs: SigSet,
-        abi: Callee<I::ABIMachineSpec>,
+        abi: Box<dyn ABICallee<I = I>>,
         emit_info: I::Info,
         block_order: BlockLoweringOrder,
         constants: VCodeConstants,
     ) -> VCode<I> {
         let n_blocks = block_order.lowered_order().len();
         VCode {
-            sigs,
             vreg_types: vec![],
             have_ref_values: false,
             insts: Vec::with_capacity(10 * n_blocks),
@@ -773,7 +750,7 @@ impl<I: VCodeInst> VCode<I> {
         want_metadata: bool,
     ) -> EmitResult<I>
     where
-        I: VCodeInst,
+        I: MachInstEmit,
     {
         // To write into disasm string.
         use core::fmt::Write;
@@ -815,13 +792,13 @@ impl<I: VCodeInst> VCode<I> {
         // We need to generate the prologue in order to get the ABI
         // object into the right state first. We'll emit it when we
         // hit the right block below.
-        let prologue_insts = self.abi.gen_prologue(&self.sigs);
+        let prologue_insts = self.abi.gen_prologue();
 
         // Emit blocks.
         let mut cur_srcloc = None;
         let mut last_offset = None;
         let mut inst_offsets = vec![];
-        let mut state = I::State::new(&self.abi);
+        let mut state = I::State::new(&*self.abi);
 
         let mut disasm = String::new();
 
@@ -870,8 +847,8 @@ impl<I: VCodeInst> VCode<I> {
             // Is this the first block? Emit the prologue directly if so.
             if block == self.entry {
                 trace!(" -> entry block");
-                buffer.start_srcloc(Default::default());
-                state.pre_sourceloc(Default::default());
+                buffer.start_srcloc(SourceLoc::default());
+                state.pre_sourceloc(SourceLoc::default());
                 for inst in &prologue_insts {
                     do_emit(&inst, &[], &mut disasm, &mut buffer, &mut state);
                 }
@@ -942,7 +919,7 @@ impl<I: VCodeInst> VCode<I> {
                             buffer.start_srcloc(srcloc);
                             cur_srcloc = Some(srcloc);
                         }
-                        state.pre_sourceloc(cur_srcloc.unwrap_or_default());
+                        state.pre_sourceloc(cur_srcloc.unwrap_or(SourceLoc::default()));
 
                         // If this is a safepoint, compute a stack map
                         // and pass it to the emit state.
@@ -1061,10 +1038,7 @@ impl<I: VCodeInst> VCode<I> {
         }
 
         // Emit the constants used by the function.
-        let mut alignment = 1;
         for (constant, data) in self.constants.iter() {
-            alignment = data.alignment().max(alignment);
-
             let label = buffer.get_label_for_constant(constant);
             buffer.defer_constant(label, data.alignment(), data.as_slice(), u32::max_value());
         }
@@ -1107,7 +1081,6 @@ impl<I: VCodeInst> VCode<I> {
             dynamic_stackslot_offsets: self.abi.dynamic_stackslot_offsets().clone(),
             value_labels_ranges,
             frame_size,
-            alignment,
         }
     }
 

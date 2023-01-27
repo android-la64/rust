@@ -507,7 +507,7 @@ fn cross_tests() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 authors = []
                 version = "0.0.0"

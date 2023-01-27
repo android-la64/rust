@@ -46,9 +46,7 @@ error: expected identifier, found keyword `await`
   --> $DIR/2018-edition-error-in-non-macro-position.rs:13:14
    |
 LL | struct Foo { await: () }
-   |        ---   ^^^^^ expected identifier, found keyword
-   |        |
-   |        while parsing this struct
+   |              ^^^^^ expected identifier, found keyword
    |
 help: escape `await` to use it as an identifier
    |

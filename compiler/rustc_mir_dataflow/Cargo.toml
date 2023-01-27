@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [lib]
+doctest = false
 
 [dependencies]
 polonius-engine = "0.13.0"

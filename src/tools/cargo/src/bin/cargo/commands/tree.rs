@@ -9,7 +9,7 @@ use cargo::util::CargoResult;
 use std::collections::HashSet;
 use std::str::FromStr;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("tree")
         .about("Display a tree visualization of a dependency graph")
         .arg_quiet()

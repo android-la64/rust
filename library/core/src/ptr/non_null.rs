@@ -2,7 +2,6 @@ use crate::cmp::Ordering;
 use crate::convert::From;
 use crate::fmt;
 use crate::hash;
-use crate::intrinsics::assert_unsafe_precondition;
 use crate::marker::Unsize;
 use crate::mem::{self, MaybeUninit};
 use crate::num::NonZeroUsize;
@@ -196,10 +195,7 @@ impl<T: ?Sized> NonNull<T> {
     #[inline]
     pub const unsafe fn new_unchecked(ptr: *mut T) -> Self {
         // SAFETY: the caller must guarantee that `ptr` is non-null.
-        unsafe {
-            assert_unsafe_precondition!("NonNull::new_unchecked requires that the pointer is non-null", [T: ?Sized](ptr: *mut T) => !ptr.is_null());
-            NonNull { pointer: ptr as _ }
-        }
+        unsafe { NonNull { pointer: ptr as _ } }
     }
 
     /// Creates a new `NonNull` if `ptr` is non-null.

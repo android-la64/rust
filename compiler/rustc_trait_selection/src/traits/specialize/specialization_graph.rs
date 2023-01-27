@@ -137,8 +137,9 @@ impl ChildrenExt<'_> for Children {
                     impl_def_id,
                     traits::SkipLeakCheck::default(),
                     overlap_mode,
-                )
-                .is_some();
+                    |_| true,
+                    || false,
+                );
 
                 let error = create_overlap_error(overlap);
 
@@ -161,29 +162,34 @@ impl ChildrenExt<'_> for Children {
                 impl_def_id,
                 traits::SkipLeakCheck::Yes,
                 overlap_mode,
-            )
-            .map_or(Ok((false, false)), |overlap| {
-                if let Some(overlap_kind) =
-                    tcx.impls_are_allowed_to_overlap(impl_def_id, possible_sibling)
-                {
-                    match overlap_kind {
-                        ty::ImplOverlapKind::Permitted { marker: _ } => {}
-                        ty::ImplOverlapKind::Issue33140 => {
-                            *last_lint_mut = Some(FutureCompatOverlapError {
-                                error: create_overlap_error(overlap),
-                                kind: FutureCompatOverlapErrorKind::Issue33140,
-                            });
+                |overlap| {
+                    if let Some(overlap_kind) =
+                        tcx.impls_are_allowed_to_overlap(impl_def_id, possible_sibling)
+                    {
+                        match overlap_kind {
+                            ty::ImplOverlapKind::Permitted { marker: _ } => {}
+                            ty::ImplOverlapKind::Issue33140 => {
+                                *last_lint_mut = Some(FutureCompatOverlapError {
+                                    error: create_overlap_error(overlap),
+                                    kind: FutureCompatOverlapErrorKind::Issue33140,
+                                });
+                            }
                         }
+
+                        return Ok((false, false));
                     }
 
-                    return Ok((false, false));
-                }
+                    let le = tcx.specializes((impl_def_id, possible_sibling));
+                    let ge = tcx.specializes((possible_sibling, impl_def_id));
 
-                let le = tcx.specializes((impl_def_id, possible_sibling));
-                let ge = tcx.specializes((possible_sibling, impl_def_id));
-
-                if le == ge { report_overlap_error(overlap, last_lint_mut) } else { Ok((le, ge)) }
-            })?;
+                    if le == ge {
+                        report_overlap_error(overlap, last_lint_mut)
+                    } else {
+                        Ok((le, ge))
+                    }
+                },
+                || Ok((false, false)),
+            )?;
 
             if le && !ge {
                 debug!(

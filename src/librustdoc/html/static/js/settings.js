@@ -19,13 +19,6 @@
                 updateSystemTheme();
                 updateLightAndDark();
                 break;
-            case "line-numbers":
-                if (value === true) {
-                    window.rustdoc_add_line_numbers_to_examples();
-                } else {
-                    window.rustdoc_remove_line_numbers_from_examples();
-                }
-                break;
         }
     }
 
@@ -216,9 +209,7 @@
         const innerHTML = `<div class="settings">${buildSettingsPageSections(settings)}</div>`;
         const el = document.createElement(elementKind);
         el.id = "settings";
-        if (!isSettingsPage) {
-            el.className = "popover";
-        }
+        el.className = "popover";
         el.innerHTML = innerHTML;
 
         if (isSettingsPage) {

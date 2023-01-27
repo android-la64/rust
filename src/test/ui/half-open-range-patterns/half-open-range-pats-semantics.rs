@@ -3,6 +3,7 @@
 // Test half-open range patterns against their expression equivalents
 // via `.contains(...)` and make sure the dynamic semantics match.
 
+#![feature(half_open_range_patterns)]
 #![feature(exclusive_range_pattern)]
 #![allow(illegal_floating_point_literal_pattern)]
 #![allow(unreachable_patterns)]

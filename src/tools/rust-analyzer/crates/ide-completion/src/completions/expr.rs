@@ -165,11 +165,7 @@ pub(crate) fn complete_expr_path(
                     hir::Adt::Struct(strukt) => {
                         let path = ctx
                             .module
-                            .find_use_path(
-                                ctx.db,
-                                hir::ModuleDef::from(strukt),
-                                ctx.config.prefer_no_std,
-                            )
+                            .find_use_path(ctx.db, hir::ModuleDef::from(strukt))
                             .filter(|it| it.len() > 1);
 
                         acc.add_struct_literal(ctx, path_ctx, strukt, path, None);
@@ -187,11 +183,7 @@ pub(crate) fn complete_expr_path(
                     hir::Adt::Union(un) => {
                         let path = ctx
                             .module
-                            .find_use_path(
-                                ctx.db,
-                                hir::ModuleDef::from(un),
-                                ctx.config.prefer_no_std,
-                            )
+                            .find_use_path(ctx.db, hir::ModuleDef::from(un))
                             .filter(|it| it.len() > 1);
 
                         acc.add_union_literal(ctx, un, path, None);

@@ -13,6 +13,7 @@ mod ty;
 use crate::lexer::UnmatchedBrace;
 pub use attr_wrapper::AttrWrapper;
 pub use diagnostics::AttemptLocalParseRecovery;
+use diagnostics::Error;
 pub(crate) use item::FnParseMode;
 pub use pat::{CommaRecoveryMode, RecoverColon, RecoverComma};
 pub use path::PathStyle;
@@ -31,7 +32,7 @@ use rustc_ast_pretty::pprust;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_errors::PResult;
 use rustc_errors::{
-    Applicability, DiagnosticBuilder, ErrorGuaranteed, FatalError, IntoDiagnostic, MultiSpan,
+    struct_span_err, Applicability, DiagnosticBuilder, ErrorGuaranteed, FatalError, MultiSpan,
 };
 use rustc_session::parse::ParseSess;
 use rustc_span::source_map::{Span, DUMMY_SP};
@@ -39,11 +40,6 @@ use rustc_span::symbol::{kw, sym, Ident, Symbol};
 
 use std::ops::Range;
 use std::{cmp, mem, slice};
-
-use crate::errors::{
-    DocCommentDoesNotDocumentAnything, IncorrectVisibilityRestriction, MismatchedClosingDelimiter,
-    NonStringAbiLiteral,
-};
 
 bitflags::bitflags! {
     struct Restrictions: u8 {
@@ -79,7 +75,6 @@ pub enum ForceCollect {
 pub enum TrailingToken {
     None,
     Semi,
-    Gt,
     /// If the trailing token is a comma, then capture it
     /// Otherwise, ignore the trailing token
     MaybeComma,
@@ -113,12 +108,6 @@ macro_rules! maybe_recover_from_interpolated_ty_qpath {
                     return $self.maybe_recover_from_bad_qpath_stage_2($self.prev_token.span, ty);
                 }
     };
-}
-
-#[derive(Clone, Copy)]
-pub enum Recovery {
-    Allowed,
-    Forbidden,
 }
 
 #[derive(Clone)]
@@ -158,15 +147,12 @@ pub struct Parser<'a> {
     /// This allows us to recover when the user forget to add braces around
     /// multiple statements in the closure body.
     pub current_closure: Option<ClosureSpans>,
-    /// Whether the parser is allowed to do recovery.
-    /// This is disabled when parsing macro arguments, see #103534
-    pub recovery: Recovery,
 }
 
-// This type is used a lot, e.g. it's cloned when matching many declarative macro rules with nonterminals. Make sure
+// This type is used a lot, e.g. it's cloned when matching many declarative macro rules. Make sure
 // it doesn't unintentionally get bigger.
 #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
-rustc_data_structures::static_assert_size!(Parser<'_>, 336);
+rustc_data_structures::static_assert_size!(Parser<'_>, 328);
 
 /// Stores span information about a closure.
 #[derive(Clone)]
@@ -312,10 +298,7 @@ impl TokenCursor {
 
     fn desugar(&mut self, attr_style: AttrStyle, data: Symbol, span: Span) -> (Token, Spacing) {
         // Searches for the occurrences of `"#*` and returns the minimum number of `#`s
-        // required to wrap the text. E.g.
-        // - `abc d` is wrapped as `r"abc d"` (num_of_hashes = 0)
-        // - `abc "d"` is wrapped as `r#"abc "d""#` (num_of_hashes = 1)
-        // - `abc "##d##"` is wrapped as `r###"abc "d""###` (num_of_hashes = 3)
+        // required to wrap the text.
         let mut num_of_hashes = 0;
         let mut count = 0;
         for ch in data.as_str().chars() {
@@ -327,7 +310,6 @@ impl TokenCursor {
             num_of_hashes = cmp::max(num_of_hashes, count);
         }
 
-        // `/// foo` becomes `doc = r"foo".
         let delim_span = DelimSpan::from_single(span);
         let body = TokenTree::Delimited(
             delim_span,
@@ -424,37 +406,22 @@ pub enum FollowedByType {
     No,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum TokenDescription {
-    ReservedIdentifier,
-    Keyword,
-    ReservedKeyword,
-    DocComment,
-}
-
-impl TokenDescription {
-    pub fn from_token(token: &Token) -> Option<Self> {
-        match token.kind {
-            _ if token.is_special_ident() => Some(TokenDescription::ReservedIdentifier),
-            _ if token.is_used_keyword() => Some(TokenDescription::Keyword),
-            _ if token.is_unused_keyword() => Some(TokenDescription::ReservedKeyword),
-            token::DocComment(..) => Some(TokenDescription::DocComment),
-            _ => None,
-        }
-    }
+fn token_descr_opt(token: &Token) -> Option<&'static str> {
+    Some(match token.kind {
+        _ if token.is_special_ident() => "reserved identifier",
+        _ if token.is_used_keyword() => "keyword",
+        _ if token.is_unused_keyword() => "reserved keyword",
+        token::DocComment(..) => "doc comment",
+        _ => return None,
+    })
 }
 
 pub(super) fn token_descr(token: &Token) -> String {
-    let name = pprust::token_to_string(token).to_string();
-
-    let kind = TokenDescription::from_token(token).map(|kind| match kind {
-        TokenDescription::ReservedIdentifier => "reserved identifier",
-        TokenDescription::Keyword => "keyword",
-        TokenDescription::ReservedKeyword => "reserved keyword",
-        TokenDescription::DocComment => "doc comment",
-    });
-
-    if let Some(kind) = kind { format!("{} `{}`", kind, name) } else { format!("`{}`", name) }
+    let token_str = pprust::token_to_string(token);
+    match token_descr_opt(token) {
+        Some(prefix) => format!("{} `{}`", prefix, token_str),
+        _ => format!("`{}`", token_str),
+    }
 }
 
 impl<'a> Parser<'a> {
@@ -492,29 +459,12 @@ impl<'a> Parser<'a> {
                 inner_attr_ranges: Default::default(),
             },
             current_closure: None,
-            recovery: Recovery::Allowed,
         };
 
         // Make parser point to the first token.
         parser.bump();
 
         parser
-    }
-
-    pub fn forbid_recovery(mut self) -> Self {
-        self.recovery = Recovery::Forbidden;
-        self
-    }
-
-    /// Whether the parser is allowed to recover from broken code.
-    ///
-    /// If this returns false, recovering broken code into valid code (especially if this recovery does lookahead)
-    /// is not allowed. All recovery done by the parser must be gated behind this check.
-    ///
-    /// Technically, this only needs to restrict eager recovery by doing lookahead at more tokens.
-    /// But making the distinction is very subtle, and simply forbidding all recovery is a lot simpler to uphold.
-    fn may_recover(&self) -> bool {
-        matches!(self.recovery, Recovery::Allowed)
     }
 
     pub fn unexpected<T>(&mut self) -> PResult<'a, T> {
@@ -568,11 +518,9 @@ impl<'a> Parser<'a> {
 
     fn ident_or_err(&mut self) -> PResult<'a, (Ident, /* is_raw */ bool)> {
         self.token.ident().ok_or_else(|| match self.prev_token.kind {
-            TokenKind::DocComment(..) => DocCommentDoesNotDocumentAnything {
-                span: self.prev_token.span,
-                missing_comma: None,
+            TokenKind::DocComment(..) => {
+                self.span_err(self.prev_token.span, Error::UselessDocComment)
             }
-            .into_diagnostic(&self.sess.span_diagnostic),
             _ => self.expected_ident_found(),
         })
     }
@@ -1196,9 +1144,7 @@ impl<'a> Parser<'a> {
     fn parse_field_name(&mut self) -> PResult<'a, Ident> {
         if let token::Literal(token::Lit { kind: token::Integer, symbol, suffix }) = self.token.kind
         {
-            if let Some(suffix) = suffix {
-                self.expect_no_tuple_index_suffix(self.token.span, suffix);
-            }
+            self.expect_no_suffix(self.token.span, "a tuple index", suffix);
             self.bump();
             Ok(Ident::new(symbol, self.prev_token.span))
         } else {
@@ -1396,8 +1342,23 @@ impl<'a> Parser<'a> {
         let path = self.parse_path(PathStyle::Mod)?;
         self.expect(&token::CloseDelim(Delimiter::Parenthesis))?; // `)`
 
+        let msg = "incorrect visibility restriction";
+        let suggestion = r##"some possible visibility restrictions are:
+`pub(crate)`: visible only on the current crate
+`pub(super)`: visible only in the current module's parent
+`pub(in path::to::module)`: visible only on the specified path"##;
+
         let path_str = pprust::path_to_string(&path);
-        self.sess.emit_err(IncorrectVisibilityRestriction { span: path.span, inner_str: path_str });
+
+        struct_span_err!(self.sess.span_diagnostic, path.span, E0704, "{}", msg)
+            .help(suggestion)
+            .span_suggestion(
+                path.span,
+                &format!("make this visible only to module `{}` with `in`", path_str),
+                format!("in {}", path_str),
+                Applicability::MachineApplicable,
+            )
+            .emit();
 
         Ok(())
     }
@@ -1423,7 +1384,14 @@ impl<'a> Parser<'a> {
             Err(Some(lit)) => match lit.kind {
                 ast::LitKind::Err => None,
                 _ => {
-                    self.sess.emit_err(NonStringAbiLiteral { span: lit.span });
+                    self.struct_span_err(lit.span, "non-string ABI literal")
+                        .span_suggestion(
+                            lit.span,
+                            "specify the ABI with a string literal",
+                            "\"C\"",
+                            Applicability::MaybeIncorrect,
+                        )
+                        .emit();
                     None
                 }
             },
@@ -1464,18 +1432,25 @@ pub(crate) fn make_unclosed_delims_error(
     // `None` here means an `Eof` was found. We already emit those errors elsewhere, we add them to
     // `unmatched_braces` only for error recovery in the `Parser`.
     let found_delim = unmatched.found_delim?;
-    let mut spans = vec![unmatched.found_span];
-    if let Some(sp) = unmatched.unclosed_span {
-        spans.push(sp);
+    let span: MultiSpan = if let Some(sp) = unmatched.unclosed_span {
+        vec![unmatched.found_span, sp].into()
+    } else {
+        unmatched.found_span.into()
     };
-    let err = MismatchedClosingDelimiter {
-        spans,
-        delimiter: pprust::token_kind_to_string(&token::CloseDelim(found_delim)).to_string(),
-        unmatched: unmatched.found_span,
-        opening_candidate: unmatched.candidate_span,
-        unclosed: unmatched.unclosed_span,
+    let mut err = sess.span_diagnostic.struct_span_err(
+        span,
+        &format!(
+            "mismatched closing delimiter: `{}`",
+            pprust::token_kind_to_string(&token::CloseDelim(found_delim)),
+        ),
+    );
+    err.span_label(unmatched.found_span, "mismatched closing delimiter");
+    if let Some(sp) = unmatched.candidate_span {
+        err.span_label(sp, "closing delimiter possibly meant for this");
     }
-    .into_diagnostic(&sess.span_diagnostic);
+    if let Some(sp) = unmatched.unclosed_span {
+        err.span_label(sp, "unclosed delimiter");
+    }
     Some(err)
 }
 

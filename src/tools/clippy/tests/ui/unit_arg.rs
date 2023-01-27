@@ -1,16 +1,17 @@
 // aux-build: proc_macro_with_span.rs
+
 #![warn(clippy::unit_arg)]
-#![allow(unused_must_use, unused_variables)]
 #![allow(
-    clippy::let_unit_value,
-    clippy::needless_question_mark,
-    clippy::never_loop,
     clippy::no_effect,
-    clippy::or_fun_call,
-    clippy::self_named_constructors,
-    clippy::uninlined_format_args,
+    unused_must_use,
+    unused_variables,
+    clippy::unused_unit,
     clippy::unnecessary_wraps,
-    clippy::unused_unit
+    clippy::or_fun_call,
+    clippy::needless_question_mark,
+    clippy::self_named_constructors,
+    clippy::let_unit_value,
+    clippy::never_loop
 )]
 
 extern crate proc_macro_with_span;

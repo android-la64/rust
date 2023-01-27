@@ -305,19 +305,6 @@ fn rustc(cx: &mut Context<'_, '_>, unit: &Unit, exec: &Arc<dyn Executor>) -> Car
                     paths::remove_file(&dst)?;
                 }
             }
-
-            // Some linkers do not remove the executable, but truncate and modify it.
-            // That results in the old hard-link being modified even after renamed.
-            // We delete the old artifact here to prevent this behavior from confusing users.
-            // See rust-lang/cargo#8348.
-            if output.hardlink.is_some() && output.path.exists() {
-                _ = paths::remove_file(&output.path).map_err(|e| {
-                    log::debug!(
-                        "failed to delete previous output file `{:?}`: {e:?}",
-                        output.path
-                    );
-                });
-            }
         }
 
         fn verbose_if_simple_exit_code(err: Error) -> Error {
@@ -1008,7 +995,7 @@ fn build_base_args(
             .env("RUSTC_BOOTSTRAP", "1");
     }
 
-    // Add `CARGO_BIN_EXE_` environment variables for building tests.
+    // Add `CARGO_BIN_` environment variables for building tests.
     if unit.target.is_test() || unit.target.is_bench() {
         for bin_target in unit
             .pkg
@@ -1436,7 +1423,7 @@ fn on_stderr_line_inner(
                 let rendered = if options.color {
                     msg.rendered
                 } else {
-                    // Strip only fails if the Writer fails, which is Cursor
+                    // Strip only fails if the the Writer fails, which is Cursor
                     // on a Vec, which should never fail.
                     strip_ansi_escapes::strip(&msg.rendered)
                         .map(|v| String::from_utf8(v).expect("utf8"))

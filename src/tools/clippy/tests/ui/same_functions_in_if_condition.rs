@@ -1,14 +1,8 @@
 #![feature(adt_const_params)]
-#![warn(clippy::same_functions_in_if_condition)]
-// ifs_same_cond warning is different from `ifs_same_cond`.
-// clippy::if_same_then_else, clippy::comparison_chain -- all empty blocks
 #![allow(incomplete_features)]
-#![allow(
-    clippy::comparison_chain,
-    clippy::if_same_then_else,
-    clippy::ifs_same_cond,
-    clippy::uninlined_format_args
-)]
+#![warn(clippy::same_functions_in_if_condition)]
+#![allow(clippy::ifs_same_cond)] // This warning is different from `ifs_same_cond`.
+#![allow(clippy::if_same_then_else, clippy::comparison_chain)] // all empty blocks
 
 fn function() -> bool {
     true

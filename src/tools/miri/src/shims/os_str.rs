@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
+use std::iter;
 use std::path::{Path, PathBuf};
 
 #[cfg(unix)]
@@ -8,6 +9,7 @@ use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 
 use rustc_middle::ty::layout::LayoutOf;
+use rustc_target::abi::{Align, Size};
 
 use crate::*;
 
@@ -44,8 +46,8 @@ pub fn bytes_to_os_str<'a, 'tcx>(bytes: &'a [u8]) -> InterpResult<'tcx, &'a OsSt
     Ok(OsStr::new(s))
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     /// Helper function to read an OsString from a null-terminated sequence of bytes, which is what
     /// the Unix APIs usually handle.
     fn read_os_str_from_c_str<'a>(
@@ -98,7 +100,16 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         size: u64,
     ) -> InterpResult<'tcx, (bool, u64)> {
         let bytes = os_str_to_bytes(os_str)?;
-        self.eval_context_mut().write_c_str(bytes, ptr, size)
+        // If `size` is smaller or equal than `bytes.len()`, writing `bytes` plus the required null
+        // terminator to memory using the `ptr` pointer would cause an out-of-bounds access.
+        let string_length = u64::try_from(bytes.len()).unwrap();
+        let string_length = string_length.checked_add(1).unwrap();
+        if size < string_length {
+            return Ok((false, string_length));
+        }
+        self.eval_context_mut()
+            .write_bytes_ptr(ptr, bytes.iter().copied().chain(iter::once(0u8)))?;
+        Ok((true, string_length))
     }
 
     /// Helper function to write an OsStr as a 0x0000-terminated u16-sequence, which is what
@@ -129,7 +140,25 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         }
 
         let u16_vec = os_str_to_u16vec(os_str)?;
-        self.eval_context_mut().write_wide_str(&u16_vec, ptr, size)
+        // If `size` is smaller or equal than `bytes.len()`, writing `bytes` plus the required
+        // 0x0000 terminator to memory would cause an out-of-bounds access.
+        let string_length = u64::try_from(u16_vec.len()).unwrap();
+        let string_length = string_length.checked_add(1).unwrap();
+        if size < string_length {
+            return Ok((false, string_length));
+        }
+
+        // Store the UTF-16 string.
+        let size2 = Size::from_bytes(2);
+        let this = self.eval_context_mut();
+        let mut alloc = this
+            .get_ptr_alloc_mut(ptr, size2 * string_length, Align::from_bytes(2).unwrap())?
+            .unwrap(); // not a ZST, so we will get a result
+        for (offset, wchar) in u16_vec.into_iter().chain(iter::once(0x0000)).enumerate() {
+            let offset = u64::try_from(offset).unwrap();
+            alloc.write_scalar(alloc_range(size2 * offset, size2), Scalar::from_u16(wchar))?;
+        }
+        Ok((true, string_length))
     }
 
     /// Allocate enough memory to store the given `OsStr` as a null-terminated sequence of bytes.

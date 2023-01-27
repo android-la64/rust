@@ -243,9 +243,9 @@ fn check_possible_range_contains(
                 cx,
                 MANUAL_RANGE_CONTAINS,
                 span,
-                &format!("manual `{range_type}::contains` implementation"),
+                &format!("manual `{}::contains` implementation", range_type),
                 "use",
-                format!("({lo}{space}{range_op}{hi}).contains(&{name})"),
+                format!("({}{}{}{}).contains(&{})", lo, space, range_op, hi, name),
                 applicability,
             );
         } else if !combine_and && ord == Some(l.ord) {
@@ -273,9 +273,9 @@ fn check_possible_range_contains(
                 cx,
                 MANUAL_RANGE_CONTAINS,
                 span,
-                &format!("manual `!{range_type}::contains` implementation"),
+                &format!("manual `!{}::contains` implementation", range_type),
                 "use",
-                format!("!({lo}{space}{range_op}{hi}).contains(&{name})"),
+                format!("!({}{}{}{}).contains(&{})", lo, space, range_op, hi, name),
                 applicability,
             );
         }
@@ -372,14 +372,14 @@ fn check_exclusive_range_plus_one(cx: &LateContext<'_>, expr: &Expr<'_>) {
                             diag.span_suggestion(
                                 span,
                                 "use",
-                                format!("({start}..={end})"),
+                                format!("({}..={})", start, end),
                                 Applicability::MaybeIncorrect,
                             );
                         } else {
                             diag.span_suggestion(
                                 span,
                                 "use",
-                                format!("{start}..={end}"),
+                                format!("{}..={}", start, end),
                                 Applicability::MachineApplicable, // snippet
                             );
                         }
@@ -408,7 +408,7 @@ fn check_inclusive_range_minus_one(cx: &LateContext<'_>, expr: &Expr<'_>) {
                     diag.span_suggestion(
                         expr.span,
                         "use",
-                        format!("{start}..{end}"),
+                        format!("{}..{}", start, end),
                         Applicability::MachineApplicable, // snippet
                     );
                 },
@@ -486,7 +486,7 @@ fn check_reversed_empty_range(cx: &LateContext<'_>, expr: &Expr<'_>) {
                                 expr.span,
                                 "consider using the following if you are attempting to iterate over this \
                                  range in reverse",
-                                format!("({end_snippet}{dots}{start_snippet}).rev()"),
+                                format!("({}{}{}).rev()", end_snippet, dots, start_snippet),
                                 Applicability::MaybeIncorrect,
                             );
                         }

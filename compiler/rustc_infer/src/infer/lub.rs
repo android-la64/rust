@@ -119,7 +119,7 @@ impl<'tcx> ConstEquateRelation<'tcx> for Lub<'_, '_, 'tcx> {
 }
 
 impl<'combine, 'infcx, 'tcx> LatticeDir<'infcx, 'tcx> for Lub<'combine, 'infcx, 'tcx> {
-    fn infcx(&self) -> &'infcx InferCtxt<'tcx> {
+    fn infcx(&self) -> &'infcx InferCtxt<'infcx, 'tcx> {
         self.fields.infcx
     }
 

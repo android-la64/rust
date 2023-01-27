@@ -43,8 +43,8 @@ use crate::sys_common::{FromInner, IntoInner};
 #[stable(feature = "time", since = "1.3.0")]
 pub use core::time::Duration;
 
-#[stable(feature = "duration_checked_float", since = "1.66.0")]
-pub use core::time::TryFromFloatSecsError;
+#[unstable(feature = "duration_checked_float", issue = "83400")]
+pub use core::time::FromFloatSecsError;
 
 /// A measurement of a monotonically nondecreasing clock.
 /// Opaque and useful only with [`Duration`].
@@ -356,7 +356,7 @@ impl Instant {
     ///
     /// # Panics
     ///
-    /// Previous rust versions panicked when the current time was earlier than self. Currently this
+    /// Previous rust versions panicked when self was earlier than the current time. Currently this
     /// method returns a Duration of zero in that case. Future versions may reintroduce the panic.
     /// See [Monotonicity].
     ///

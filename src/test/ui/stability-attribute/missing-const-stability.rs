@@ -19,7 +19,6 @@ impl Foo {
 }
 
 #[stable(feature = "stable", since = "1.0.0")]
-#[const_trait]
 pub trait Bar {
     #[stable(feature = "stable", since = "1.0.0")]
     fn fun();

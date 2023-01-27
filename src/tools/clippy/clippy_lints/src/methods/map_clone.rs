@@ -111,10 +111,11 @@ fn lint_explicit_closure(cx: &LateContext<'_>, replace: Span, root: Span, is_cop
         MAP_CLONE,
         replace,
         message,
-        &format!("consider calling the dedicated `{sugg_method}` method"),
+        &format!("consider calling the dedicated `{}` method", sugg_method),
         format!(
-            "{}.{sugg_method}()",
+            "{}.{}()",
             snippet_with_applicability(cx, root, "..", &mut applicability),
+            sugg_method,
         ),
         applicability,
     );

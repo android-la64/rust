@@ -14,7 +14,6 @@ use combine::stream::position::{IndexPositioner, Positioner, Stream};
 use combine::stream::RangeStream;
 use combine::Parser;
 use combine::*;
-use indexmap::map::Entry;
 use std::cell::RefCell;
 use std::mem;
 use std::ops::DerefMut;
@@ -164,17 +163,14 @@ impl TomlParser {
         }
 
         let key: InternalString = kv.key.get_internal().into();
-        match table.items.entry(key) {
-            Entry::Vacant(o) => {
-                o.insert(kv);
-            }
-            Entry::Occupied(o) => {
-                // "Since tables cannot be defined more than once, redefining such tables using a [table] header is not allowed"
-                return Err(CustomError::DuplicateKey {
-                    key: o.key().as_str().into(),
-                    table: Some(self.current_table_path.clone()),
-                });
-            }
+        let old = table.items.insert(key.clone(), kv);
+        let duplicate_key = old.is_some();
+        // "Since tables cannot be defined more than once, redefining such tables using a [table] header is not allowed"
+        if duplicate_key {
+            return Err(CustomError::DuplicateKey {
+                key: key.as_str().into(),
+                table: Some(self.current_table_path.clone()),
+            });
         }
 
         Ok(())

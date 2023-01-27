@@ -27,12 +27,13 @@
 // differentiate these targets from our other `arm(v7)-*-*-gnueabi(hf)` targets in the context of
 // build scripts / gcc flags.
 
-use crate::spec::{Cc, FramePointer, LinkerFlavor, Lld, PanicStrategy, RelocModel, TargetOptions};
+use crate::spec::TargetOptions;
+use crate::spec::{FramePointer, LinkerFlavor, LldFlavor, PanicStrategy, RelocModel};
 
 pub fn opts() -> TargetOptions {
     // See rust-lang/rfcs#1645 for a discussion about these defaults
     TargetOptions {
-        linker_flavor: LinkerFlavor::Gnu(Cc::No, Lld::Yes),
+        linker_flavor: LinkerFlavor::Lld(LldFlavor::Ld),
         // In most cases, LLD is good enough
         linker: Some("rust-lld".into()),
         // Because these devices have very little resources having an unwinder is too onerous so we

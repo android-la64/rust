@@ -37,7 +37,10 @@ pub(super) fn check<'tcx>(cx: &LateContext<'tcx>, e: &'tcx Expr<'_>, from_ty: Ty
                     cx,
                     UNSOUND_COLLECTION_TRANSMUTE,
                     e.span,
-                    &format!("transmute from `{from_ty}` to `{to_ty}` with mismatched layout is unsound"),
+                    &format!(
+                        "transmute from `{}` to `{}` with mismatched layout is unsound",
+                        from_ty, to_ty
+                    ),
                 );
                 true
             } else {

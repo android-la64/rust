@@ -4,8 +4,8 @@ error: `peek` never called on `Peekable` iterator
 LL |     let peekable = std::iter::empty::<u32>().peekable();
    |         ^^^^^^^^
    |
-   = help: consider removing the call to `peekable`
    = note: `-D clippy::unused-peekable` implied by `-D warnings`
+   = help: consider removing the call to `peekable`
 
 error: `peek` never called on `Peekable` iterator
   --> $DIR/unused_peekable.rs:18:9

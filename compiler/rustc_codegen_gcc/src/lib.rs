@@ -18,8 +18,6 @@
 #![recursion_limit="256"]
 #![warn(rust_2018_idioms)]
 #![warn(unused_lifetimes)]
-#![deny(rustc::untranslatable_diagnostic)]
-#![deny(rustc::diagnostic_outside_of_impl)]
 
 extern crate rustc_apfloat;
 extern crate rustc_ast;
@@ -27,7 +25,6 @@ extern crate rustc_codegen_ssa;
 extern crate rustc_data_structures;
 extern crate rustc_errors;
 extern crate rustc_hir;
-extern crate rustc_macros;
 extern crate rustc_metadata;
 extern crate rustc_middle;
 extern crate rustc_session;
@@ -53,7 +50,6 @@ mod context;
 mod coverageinfo;
 mod debuginfo;
 mod declare;
-mod errors;
 mod int;
 mod intrinsic;
 mod mono_item;
@@ -63,7 +59,6 @@ mod type_of;
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
-use crate::errors::LTONotSupported;
 use gccjit::{Context, OptimizationLevel, CType};
 use rustc_ast::expand::allocator::AllocatorKind;
 use rustc_codegen_ssa::{CodegenResults, CompiledModule, ModuleCodegen};
@@ -102,7 +97,7 @@ pub struct GccCodegenBackend {
 impl CodegenBackend for GccCodegenBackend {
     fn init(&self, sess: &Session) {
         if sess.lto() != Lto::No {
-            sess.emit_warning(LTONotSupported {});
+            sess.warn("LTO is not supported. You may get a linker error.");
         }
 
         let temp_dir = TempDir::new().expect("cannot create temporary directory");
@@ -171,6 +166,15 @@ impl ExtraBackendMethods for GccCodegenBackend {
             Ok(())
         })
     }
+
+    fn target_cpu<'b>(&self, _sess: &'b Session) -> &'b str {
+        unimplemented!();
+    }
+
+    fn tune_cpu<'b>(&self, _sess: &'b Session) -> Option<&'b str> {
+        None
+        // TODO(antoyo)
+    }
 }
 
 pub struct ModuleBuffer;
@@ -201,6 +205,7 @@ impl WriteBackendMethods for GccCodegenBackend {
     type Module = GccContext;
     type TargetMachine = ();
     type ModuleBuffer = ModuleBuffer;
+    type Context = ();
     type ThinData = ();
     type ThinBuffer = ThinBuffer;
 

@@ -95,10 +95,6 @@ pub trait ForestObligation: Clone + Debug {
 pub trait ObligationProcessor {
     type Obligation: ForestObligation;
     type Error: Debug;
-    type OUT: OutcomeTrait<
-        Obligation = Self::Obligation,
-        Error = Error<Self::Obligation, Self::Error>,
-    >;
 
     fn needs_process_obligation(&self, obligation: &Self::Obligation) -> bool;
 
@@ -115,11 +111,7 @@ pub trait ObligationProcessor {
     /// In other words, if we had O1 which required O2 which required
     /// O3 which required O1, we would give an iterator yielding O1,
     /// O2, O3 (O1 is not yielded twice).
-    fn process_backedge<'c, I>(
-        &mut self,
-        cycle: I,
-        _marker: PhantomData<&'c Self::Obligation>,
-    ) -> Result<(), Self::Error>
+    fn process_backedge<'c, I>(&mut self, cycle: I, _marker: PhantomData<&'c Self::Obligation>)
     where
         I: Clone + Iterator<Item = &'c Self::Obligation>;
 }
@@ -410,11 +402,12 @@ impl<O: ForestObligation> ObligationForest<O> {
 
     /// Performs a fixpoint computation over the obligation list.
     #[inline(never)]
-    pub fn process_obligations<P>(&mut self, processor: &mut P) -> P::OUT
+    pub fn process_obligations<P, OUT>(&mut self, processor: &mut P) -> OUT
     where
         P: ObligationProcessor<Obligation = O>,
+        OUT: OutcomeTrait<Obligation = O, Error = Error<O, P::Error>>,
     {
-        let mut outcome = P::OUT::new();
+        let mut outcome = OUT::new();
 
         // Fixpoint computation: we repeat until the inner loop stalls.
         loop {
@@ -480,7 +473,7 @@ impl<O: ForestObligation> ObligationForest<O> {
             }
 
             self.mark_successes();
-            self.process_cycles(processor, &mut outcome);
+            self.process_cycles(processor);
             self.compress(|obl| outcome.record_completed(obl));
         }
 
@@ -565,7 +558,7 @@ impl<O: ForestObligation> ObligationForest<O> {
 
     /// Report cycles between all `Success` nodes, and convert all `Success`
     /// nodes to `Done`. This must be called after `mark_successes`.
-    fn process_cycles<P>(&mut self, processor: &mut P, outcome: &mut P::OUT)
+    fn process_cycles<P>(&mut self, processor: &mut P)
     where
         P: ObligationProcessor<Obligation = O>,
     {
@@ -575,7 +568,7 @@ impl<O: ForestObligation> ObligationForest<O> {
             // to handle the no-op cases immediately to avoid the cost of the
             // function call.
             if node.state.get() == NodeState::Success {
-                self.find_cycles_from_node(&mut stack, processor, index, outcome);
+                self.find_cycles_from_node(&mut stack, processor, index);
             }
         }
 
@@ -583,13 +576,8 @@ impl<O: ForestObligation> ObligationForest<O> {
         self.reused_node_vec = stack;
     }
 
-    fn find_cycles_from_node<P>(
-        &self,
-        stack: &mut Vec<usize>,
-        processor: &mut P,
-        index: usize,
-        outcome: &mut P::OUT,
-    ) where
+    fn find_cycles_from_node<P>(&self, stack: &mut Vec<usize>, processor: &mut P, index: usize)
+    where
         P: ObligationProcessor<Obligation = O>,
     {
         let node = &self.nodes[index];
@@ -598,20 +586,17 @@ impl<O: ForestObligation> ObligationForest<O> {
                 None => {
                     stack.push(index);
                     for &dep_index in node.dependents.iter() {
-                        self.find_cycles_from_node(stack, processor, dep_index, outcome);
+                        self.find_cycles_from_node(stack, processor, dep_index);
                     }
                     stack.pop();
                     node.state.set(NodeState::Done);
                 }
                 Some(rpos) => {
                     // Cycle detected.
-                    let result = processor.process_backedge(
+                    processor.process_backedge(
                         stack[rpos..].iter().map(|&i| &self.nodes[i].obligation),
                         PhantomData,
                     );
-                    if let Err(err) = result {
-                        outcome.record_error(Error { error: err, backtrace: self.error_at(index) });
-                    }
                 }
             }
         }

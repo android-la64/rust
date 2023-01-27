@@ -58,7 +58,6 @@ impl<'cx, 'a> Context<'cx, 'a> {
     /// Builds the whole `assert!` expression. For example, `let elem = 1; assert!(elem == 1);` expands to:
     ///
     /// ```rust
-    /// #![feature(generic_assert_internals)]
     /// let elem = 1;
     /// {
     ///   #[allow(unused_imports)]
@@ -71,7 +70,7 @@ impl<'cx, 'a> Context<'cx, 'a> {
     ///       __local_bind0
     ///     } == 1
     ///   ) {
-    ///     panic!("Assertion failed: elem == 1\nWith captures:\n  elem = {:?}", __capture0)
+    ///     panic!("Assertion failed: elem == 1\nWith captures:\n  elem = {}", __capture0)
     ///   }
     /// }
     /// ```
@@ -242,8 +241,8 @@ impl<'cx, 'a> Context<'cx, 'a> {
                 self.manage_cond_expr(prefix);
                 self.manage_cond_expr(suffix);
             }
-            ExprKind::MethodCall(_, _,ref mut local_exprs, _) => {
-                for local_expr in local_exprs.iter_mut() {
+            ExprKind::MethodCall(_, ref mut local_exprs, _) => {
+                for local_expr in local_exprs.iter_mut().skip(1) {
                     self.manage_cond_expr(local_expr);
                 }
             }
@@ -379,12 +378,14 @@ impl<'cx, 'a> Context<'cx, 'a> {
                     id: DUMMY_NODE_ID,
                     ident: Ident::new(sym::try_capture, self.span),
                 },
-                expr_paren(self.cx, self.span, self.cx.expr_addr_of(self.span, wrapper)),
-                vec![expr_addr_of_mut(
-                    self.cx,
-                    self.span,
-                    self.cx.expr_path(Path::from_ident(capture)),
-                )],
+                vec![
+                    expr_paren(self.cx, self.span, self.cx.expr_addr_of(self.span, wrapper)),
+                    expr_addr_of_mut(
+                        self.cx,
+                        self.span,
+                        self.cx.expr_path(Path::from_ident(capture)),
+                    ),
+                ],
                 self.span,
             ))
             .add_trailing_semicolon();
@@ -442,11 +443,10 @@ fn expr_addr_of_mut(cx: &ExtCtxt<'_>, sp: Span, e: P<Expr>) -> P<Expr> {
 fn expr_method_call(
     cx: &ExtCtxt<'_>,
     path: PathSegment,
-    receiver: P<Expr>,
     args: Vec<P<Expr>>,
     span: Span,
 ) -> P<Expr> {
-    cx.expr(span, ExprKind::MethodCall(path, receiver, args, span))
+    cx.expr(span, ExprKind::MethodCall(path, args, span))
 }
 
 fn expr_paren(cx: &ExtCtxt<'_>, sp: Span, e: P<Expr>) -> P<Expr> {

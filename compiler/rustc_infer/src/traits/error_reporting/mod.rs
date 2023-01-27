@@ -10,7 +10,7 @@ use rustc_span::Span;
 use std::fmt;
 use std::iter;
 
-impl<'tcx> InferCtxt<'tcx> {
+impl<'a, 'tcx> InferCtxt<'a, 'tcx> {
     pub fn report_extra_impl_obligation(
         &self,
         error_span: Span,

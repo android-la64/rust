@@ -1,10 +1,10 @@
 use crate::command_prelude::*;
 
-const REMOVED: &str = "The `git-checkout` command has been removed.";
+const REMOVED: &str = "The `git-checkout` subcommand has been removed.";
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("git-checkout")
-        .about("This command has been removed")
+        .about("This subcommand has been removed")
         .hide(true)
         .override_help(REMOVED)
 }

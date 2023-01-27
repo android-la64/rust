@@ -3,7 +3,7 @@ use crate::command_prelude::*;
 use cargo::ops::{self, UpdateOptions};
 use cargo::util::print_available_packages;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("update")
         .about("Update dependencies as recorded in the local lock file")
         .arg_quiet()

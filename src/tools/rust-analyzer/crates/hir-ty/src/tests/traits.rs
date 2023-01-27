@@ -279,10 +279,6 @@ fn test() {
 pub mod iter {
     pub trait IntoIterator {
         type Item;
-        type IntoIter: Iterator<Item = Self::Item>;
-    }
-    pub trait Iterator {
-        type Item;
     }
 }
 pub mod prelude {
@@ -301,13 +297,7 @@ pub mod collections {
     }
 
     impl<T> IntoIterator for Vec<T> {
-        type Item = T;
-        type IntoIter = IntoIter<T>;
-    }
-
-    struct IntoIter<T> {}
-    impl<T> Iterator for IntoIter<T> {
-        type Item = T;
+        type Item=T;
     }
 }
 "#,

@@ -26,7 +26,7 @@ pub mod wf;
 use crate::errors::DumpVTableEntries;
 use crate::infer::outlives::env::OutlivesEnvironment;
 use crate::infer::{InferCtxt, TyCtxtInferExt};
-use crate::traits::error_reporting::TypeErrCtxtExt as _;
+use crate::traits::error_reporting::InferCtxtExt as _;
 use crate::traits::query::evaluate_obligation::InferCtxtExt as _;
 use rustc_errors::ErrorGuaranteed;
 use rustc_hir as hir;
@@ -34,11 +34,12 @@ use rustc_hir::def_id::DefId;
 use rustc_hir::lang_items::LangItem;
 use rustc_infer::traits::TraitEngineExt as _;
 use rustc_middle::ty::fold::TypeFoldable;
+use rustc_middle::ty::subst::{InternalSubsts, SubstsRef};
 use rustc_middle::ty::visit::TypeVisitable;
 use rustc_middle::ty::{
-    self, DefIdTree, GenericParamDefKind, ToPredicate, Ty, TyCtxt, TypeSuperVisitable, VtblEntry,
+    self, DefIdTree, GenericParamDefKind, Subst, ToPredicate, Ty, TyCtxt, TypeSuperVisitable,
+    VtblEntry,
 };
-use rustc_middle::ty::{InternalSubsts, SubstsRef};
 use rustc_span::{sym, Span};
 use smallvec::SmallVec;
 
@@ -129,7 +130,7 @@ pub fn predicates_for_generics<'tcx>(
         move |(idx, (predicate, span))| Obligation {
             cause: cause(idx, span),
             recursion_depth: 0,
-            param_env,
+            param_env: param_env,
             predicate,
         },
     )
@@ -140,8 +141,8 @@ pub fn predicates_for_generics<'tcx>(
 /// `bound` or is not known to meet bound (note that this is
 /// conservative towards *no impl*, which is the opposite of the
 /// `evaluate` methods).
-pub fn type_known_to_meet_bound_modulo_regions<'tcx>(
-    infcx: &InferCtxt<'tcx>,
+pub fn type_known_to_meet_bound_modulo_regions<'a, 'tcx>(
+    infcx: &InferCtxt<'a, 'tcx>,
     param_env: ty::ParamEnv<'tcx>,
     ty: Ty<'tcx>,
     def_id: DefId,
@@ -170,7 +171,7 @@ pub fn type_known_to_meet_bound_modulo_regions<'tcx>(
         result
     );
 
-    if result && ty.has_non_region_infer() {
+    if result && ty.has_infer_types_or_consts() {
         // Because of inference "guessing", selection can sometimes claim
         // to succeed while the success requires a guess. To ensure
         // this function's result remains infallible, we must confirm
@@ -234,51 +235,54 @@ fn do_normalize_predicates<'tcx>(
     // by wfcheck anyway, so I'm not sure we have to check
     // them here too, and we will remove this function when
     // we move over to lazy normalization *anyway*.
-    let infcx = tcx.infer_ctxt().ignoring_regions().build();
-    let predicates = match fully_normalize(&infcx, cause, elaborated_env, predicates) {
-        Ok(predicates) => predicates,
-        Err(errors) => {
-            let reported = infcx.err_ctxt().report_fulfillment_errors(&errors, None, false);
-            return Err(reported);
-        }
-    };
+    tcx.infer_ctxt().ignoring_regions().enter(|infcx| {
+        let predicates = match fully_normalize(&infcx, cause, elaborated_env, predicates) {
+            Ok(predicates) => predicates,
+            Err(errors) => {
+                let reported = infcx.report_fulfillment_errors(&errors, None, false);
+                return Err(reported);
+            }
+        };
 
-    debug!("do_normalize_predictes: normalized predicates = {:?}", predicates);
+        debug!("do_normalize_predictes: normalized predicates = {:?}", predicates);
 
-    // We can use the `elaborated_env` here; the region code only
-    // cares about declarations like `'a: 'b`.
-    let outlives_env = OutlivesEnvironment::new(elaborated_env);
+        // We can use the `elaborated_env` here; the region code only
+        // cares about declarations like `'a: 'b`.
+        let outlives_env = OutlivesEnvironment::new(elaborated_env);
 
-    // FIXME: It's very weird that we ignore region obligations but apparently
-    // still need to use `resolve_regions` as we need the resolved regions in
-    // the normalized predicates.
-    let errors = infcx.resolve_regions(&outlives_env);
-    if !errors.is_empty() {
-        tcx.sess.delay_span_bug(
-            span,
-            format!("failed region resolution while normalizing {elaborated_env:?}: {errors:?}"),
-        );
-    }
-
-    match infcx.fully_resolve(predicates) {
-        Ok(predicates) => Ok(predicates),
-        Err(fixup_err) => {
-            // If we encounter a fixup error, it means that some type
-            // variable wound up unconstrained. I actually don't know
-            // if this can happen, and I certainly don't expect it to
-            // happen often, but if it did happen it probably
-            // represents a legitimate failure due to some kind of
-            // unconstrained variable.
-            //
-            // @lcnr: Let's still ICE here for now. I want a test case
-            // for that.
-            span_bug!(
+        // FIXME: It's very weird that we ignore region obligations but apparently
+        // still need to use `resolve_regions` as we need the resolved regions in
+        // the normalized predicates.
+        let errors = infcx.resolve_regions(&outlives_env);
+        if !errors.is_empty() {
+            tcx.sess.delay_span_bug(
                 span,
-                "inference variables in normalized parameter environment: {}",
-                fixup_err
+                format!(
+                    "failed region resolution while normalizing {elaborated_env:?}: {errors:?}"
+                ),
             );
         }
-    }
+
+        match infcx.fully_resolve(predicates) {
+            Ok(predicates) => Ok(predicates),
+            Err(fixup_err) => {
+                // If we encounter a fixup error, it means that some type
+                // variable wound up unconstrained. I actually don't know
+                // if this can happen, and I certainly don't expect it to
+                // happen often, but if it did happen it probably
+                // represents a legitimate failure due to some kind of
+                // unconstrained variable.
+                //
+                // @lcnr: Let's still ICE here for now. I want a test case
+                // for that.
+                span_bug!(
+                    span,
+                    "inference variables in normalized parameter environment: {}",
+                    fixup_err
+                );
+            }
+        }
+    })
 }
 
 // FIXME: this is gonna need to be removed ...
@@ -390,8 +394,8 @@ pub fn normalize_param_env_or_error<'tcx>(
 }
 
 /// Normalize a type and process all resulting obligations, returning any errors
-pub fn fully_normalize<'tcx, T>(
-    infcx: &InferCtxt<'tcx>,
+pub fn fully_normalize<'a, 'tcx, T>(
+    infcx: &InferCtxt<'a, 'tcx>,
     cause: ObligationCause<'tcx>,
     param_env: ty::ParamEnv<'tcx>,
     value: T,
@@ -426,8 +430,8 @@ where
 
 /// Process an obligation (and any nested obligations that come from it) to
 /// completion, returning any errors
-pub fn fully_solve_obligation<'tcx>(
-    infcx: &InferCtxt<'tcx>,
+pub fn fully_solve_obligation<'a, 'tcx>(
+    infcx: &InferCtxt<'a, 'tcx>,
     obligation: PredicateObligation<'tcx>,
 ) -> Vec<FulfillmentError<'tcx>> {
     let mut engine = <dyn TraitEngine<'tcx>>::new(infcx.tcx);
@@ -437,8 +441,8 @@ pub fn fully_solve_obligation<'tcx>(
 
 /// Process a set of obligations (and any nested obligations that come from them)
 /// to completion
-pub fn fully_solve_obligations<'tcx>(
-    infcx: &InferCtxt<'tcx>,
+pub fn fully_solve_obligations<'a, 'tcx>(
+    infcx: &InferCtxt<'a, 'tcx>,
     obligations: impl IntoIterator<Item = PredicateObligation<'tcx>>,
 ) -> Vec<FulfillmentError<'tcx>> {
     let mut engine = <dyn TraitEngine<'tcx>>::new(infcx.tcx);
@@ -449,8 +453,8 @@ pub fn fully_solve_obligations<'tcx>(
 /// Process a bound (and any nested obligations that come from it) to completion.
 /// This is a convenience function for traits that have no generic arguments, such
 /// as auto traits, and builtin traits like Copy or Sized.
-pub fn fully_solve_bound<'tcx>(
-    infcx: &InferCtxt<'tcx>,
+pub fn fully_solve_bound<'a, 'tcx>(
+    infcx: &InferCtxt<'a, 'tcx>,
     cause: ObligationCause<'tcx>,
     param_env: ty::ParamEnv<'tcx>,
     ty: Ty<'tcx>,
@@ -470,20 +474,21 @@ pub fn impossible_predicates<'tcx>(
 ) -> bool {
     debug!("impossible_predicates(predicates={:?})", predicates);
 
-    let infcx = tcx.infer_ctxt().build();
-    let param_env = ty::ParamEnv::reveal_all();
-    let ocx = ObligationCtxt::new(&infcx);
-    let predicates = ocx.normalize(ObligationCause::dummy(), param_env, predicates);
-    for predicate in predicates {
-        let obligation = Obligation::new(ObligationCause::dummy(), param_env, predicate);
-        ocx.register_obligation(obligation);
-    }
-    let errors = ocx.select_all_or_error();
+    let result = tcx.infer_ctxt().enter(|infcx| {
+        let param_env = ty::ParamEnv::reveal_all();
+        let ocx = ObligationCtxt::new(&infcx);
+        let predicates = ocx.normalize(ObligationCause::dummy(), param_env, predicates);
+        for predicate in predicates {
+            let obligation = Obligation::new(ObligationCause::dummy(), param_env, predicate);
+            ocx.register_obligation(obligation);
+        }
+        let errors = ocx.select_all_or_error();
 
-    // Clean up after ourselves
-    let _ = infcx.inner.borrow_mut().opaque_type_storage.take_opaque_types();
+        // Clean up after ourselves
+        let _ = infcx.inner.borrow_mut().opaque_type_storage.take_opaque_types();
 
-    let result = !errors.is_empty();
+        !errors.is_empty()
+    });
     debug!("impossible_predicates = {:?}", result);
     result
 }
@@ -574,16 +579,18 @@ fn is_impossible_method<'tcx>(
         }
     });
 
-    let infcx = tcx.infer_ctxt().ignoring_regions().build();
-    for obligation in predicates_for_trait {
-        // Ignore overflow error, to be conservative.
-        if let Ok(result) = infcx.evaluate_obligation(&obligation)
-            && !result.may_apply()
-        {
-            return true;
+    tcx.infer_ctxt().ignoring_regions().enter(|ref infcx| {
+        for obligation in predicates_for_trait {
+            // Ignore overflow error, to be conservative.
+            if let Ok(result) = infcx.evaluate_obligation(&obligation)
+                && !result.may_apply()
+            {
+                return true;
+            }
         }
-    }
-    false
+
+        false
+    })
 }
 
 #[derive(Clone, Debug)]
@@ -764,9 +771,12 @@ fn dump_vtable_entries<'tcx>(
     });
 }
 
-fn own_existential_vtable_entries<'tcx>(tcx: TyCtxt<'tcx>, trait_def_id: DefId) -> &'tcx [DefId] {
+fn own_existential_vtable_entries<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    trait_ref: ty::PolyExistentialTraitRef<'tcx>,
+) -> &'tcx [DefId] {
     let trait_methods = tcx
-        .associated_items(trait_def_id)
+        .associated_items(trait_ref.def_id())
         .in_definition_order()
         .filter(|item| item.kind == ty::AssocKind::Fn);
     // Now list each method's DefId (for within its trait).
@@ -775,7 +785,7 @@ fn own_existential_vtable_entries<'tcx>(tcx: TyCtxt<'tcx>, trait_def_id: DefId) 
         let def_id = trait_method.def_id;
 
         // Some methods cannot be called on an object; skip those.
-        if !is_vtable_safe_method(tcx, trait_def_id, &trait_method) {
+        if !is_vtable_safe_method(tcx, trait_ref.def_id(), &trait_method) {
             debug!("own_existential_vtable_entry: not vtable safe");
             return None;
         }
@@ -807,7 +817,7 @@ fn vtable_entries<'tcx>(
 
                 // Lookup the shape of vtable for the trait.
                 let own_existential_entries =
-                    tcx.own_existential_vtable_entries(existential_trait_ref.def_id());
+                    tcx.own_existential_vtable_entries(existential_trait_ref);
 
                 let own_entries = own_existential_entries.iter().copied().map(|def_id| {
                     debug!("vtable_entries: trait_method={:?}", def_id);
@@ -943,9 +953,10 @@ pub fn vtable_trait_upcasting_coercion_new_vptr_slot<'tcx>(
         }),
     );
 
-    let infcx = tcx.infer_ctxt().build();
-    let mut selcx = SelectionContext::new(&infcx);
-    let implsrc = selcx.select(&obligation).unwrap();
+    let implsrc = tcx.infer_ctxt().enter(|infcx| {
+        let mut selcx = SelectionContext::new(&infcx);
+        selcx.select(&obligation).unwrap()
+    });
 
     let Some(ImplSource::TraitUpcasting(implsrc_traitcasting)) = implsrc else {
         bug!();

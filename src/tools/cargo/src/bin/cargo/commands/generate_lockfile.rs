@@ -2,7 +2,7 @@ use crate::command_prelude::*;
 
 use cargo::ops;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("generate-lockfile")
         .about("Generate the lockfile for a package")
         .arg_quiet()

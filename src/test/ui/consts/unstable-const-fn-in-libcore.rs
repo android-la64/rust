@@ -4,7 +4,7 @@
 // gate was not enabled in libcore.
 
 #![stable(feature = "core", since = "1.6.0")]
-#![feature(staged_api, const_trait_impl)]
+#![feature(staged_api)]
 
 enum Opt<T> {
     Some(T),
@@ -14,12 +14,12 @@ enum Opt<T> {
 impl<T> Opt<T> {
     #[rustc_const_unstable(feature = "foo", issue = "none")]
     #[stable(feature = "rust1", since = "1.0.0")]
-    const fn unwrap_or_else<F: ~const FnOnce() -> T>(self, f: F) -> T {
-    //~^ ERROR destructor of
-    //~| ERROR destructor of
+    const fn unwrap_or_else<F: FnOnce() -> T>(self, f: F) -> T {
+    //~^ ERROR destructors cannot be evaluated at compile-time
+    //~| ERROR destructors cannot be evaluated at compile-time
         match self {
             Opt::Some(t) => t,
-            Opt::None => f(),
+            Opt::None => f(), //~ ERROR E0015
         }
     }
 }

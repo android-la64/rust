@@ -63,7 +63,7 @@ static STATIC8: SafeStruct = SafeStruct{field1: SafeEnum::Variant1,
 // This example should fail because field1 in the base struct is not safe
 static STATIC9: SafeStruct = SafeStruct{field1: SafeEnum::Variant1,
                                         ..SafeStruct{field1: SafeEnum::Variant3(WithDtor),
-//~^ ERROR destructor of
+//~^ ERROR destructors cannot be evaluated at compile-time
                                                      field2: SafeEnum::Variant1}};
 
 struct UnsafeStruct;

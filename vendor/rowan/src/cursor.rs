@@ -390,7 +390,7 @@ impl NodeData {
     }
     fn prev_sibling(&self) -> Option<SyntaxNode> {
         let mut rev_siblings = self.green_siblings().enumerate().rev();
-        let index = rev_siblings.len().checked_sub(self.index() as usize + 1)?;
+        let index = rev_siblings.len() - (self.index() as usize);
 
         rev_siblings.nth(index);
         rev_siblings.find_map(|(index, child)| {

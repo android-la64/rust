@@ -142,7 +142,8 @@ impl Kind {
             ItemEnum::Static(_) => Static,
             ItemEnum::Macro(_) => Macro,
             ItemEnum::ProcMacro(_) => ProcMacro,
-            ItemEnum::Primitive(_) => Primitive,
+            // https://github.com/rust-lang/rust/issues/100961
+            ItemEnum::PrimitiveType(_) => Primitive,
             ItemEnum::ForeignType => ForeignType,
             ItemEnum::ExternCrate { .. } => ExternCrate,
             ItemEnum::AssocConst { .. } => AssocConst,

@@ -149,7 +149,6 @@ private:
              Align H)
         : Inst(I), Addr(A), ValTy(T), HaveAlign(H),
           NeedAlign(HVC.getTypeAlignment(ValTy)) {}
-    AddrInfo &operator=(const AddrInfo &) = default;
 
     // XXX: add Size member?
     Instruction *Inst;
@@ -186,7 +185,6 @@ private:
       Segment(Value *Val, int Begin, int Len)
           : Val(Val), Start(Begin), Size(Len) {}
       Segment(const Segment &Seg) = default;
-      Segment &operator=(const Segment &Seg) = default;
       Value *Val; // Value representable as a sequence of bytes.
       int Start;  // First byte of the value that belongs to the segment.
       int Size;   // Number of bytes in the segment.
@@ -197,7 +195,6 @@ private:
       Block(Value *Val, int Off, int Len, int Pos)
           : Seg(Val, Off, Len), Pos(Pos) {}
       Block(const Block &Blk) = default;
-      Block &operator=(const Block &Blk) = default;
       Segment Seg; // Value segment.
       int Pos;     // Position (offset) of the segment in the Block.
     };

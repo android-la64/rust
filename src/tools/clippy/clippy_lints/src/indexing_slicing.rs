@@ -19,6 +19,7 @@ declare_clippy_lint! {
     ///
     /// ### Example
     /// ```rust,no_run
+    /// # #![allow(const_err)]
     /// let x = [1, 2, 3, 4];
     ///
     /// x[9];

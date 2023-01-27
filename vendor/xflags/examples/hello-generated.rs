@@ -5,10 +5,10 @@ mod flags {
         src "./examples/hello-generated.rs"
 
         /// Prints a greeting.
-        cmd hello {
+        cmd hello
             /// Whom to greet.
             required name: String
-
+        {
             /// Use non-ascii symbols in the output.
             optional -e, --emoji
         }
@@ -25,12 +25,12 @@ mod flags {
     }
 
     impl Hello {
-        #[allow(dead_code)]
+        pub const HELP: &'static str = Self::HELP_;
+
         pub fn from_env() -> xflags::Result<Self> {
             Self::from_env_()
         }
 
-        #[allow(dead_code)]
         pub fn from_vec(args: Vec<std::ffi::OsString>) -> xflags::Result<Self> {
             Self::from_vec_(args)
         }
@@ -44,6 +44,9 @@ fn main() {
             let bang = if flags.emoji { "❣️" } else { "!" };
             println!("Hello {}{}", flags.name, bang);
         }
-        Err(err) => err.exit(),
+        Err(err) => {
+            eprintln!("{}\n\n{}", err, flags::Hello::HELP);
+            std::process::exit(1)
+        }
     }
 }

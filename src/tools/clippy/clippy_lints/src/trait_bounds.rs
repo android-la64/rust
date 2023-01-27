@@ -128,7 +128,7 @@ impl<'tcx> LateLintPass<'tcx> for TraitBounds {
                 if !bound_predicate.span.from_expansion();
                 if let TyKind::Path(QPath::Resolved(_, Path { segments, .. })) = bound_predicate.bounded_ty.kind;
                 if let Some(PathSegment {
-                    res: Res::SelfTyParam { trait_: def_id }, ..
+                    res: Res::SelfTy{ trait_: Some(def_id), alias_to: _ }, ..
                 }) = segments.first();
                 if let Some(
                     Node::Item(
@@ -215,8 +215,9 @@ impl TraitBounds {
                         .map(|(_, _, span)| snippet_with_applicability(cx, span, "..", &mut applicability))
                         .join(" + ");
                     let hint_string = format!(
-                        "consider combining the bounds: `{}: {trait_bounds}`",
+                        "consider combining the bounds: `{}: {}`",
                         snippet(cx, p.bounded_ty.span, "_"),
+                        trait_bounds,
                     );
                     span_lint_and_help(
                         cx,

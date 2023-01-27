@@ -67,7 +67,7 @@ fn one_ignored_one_unignored_test() -> Vec<TestDescAndFn> {
                 no_run: false,
                 test_type: TestType::Unknown,
             },
-            testfn: DynTestFn(Box::new(move || Ok(()))),
+            testfn: DynTestFn(Box::new(move || {})),
         },
         TestDescAndFn {
             desc: TestDesc {
@@ -79,14 +79,14 @@ fn one_ignored_one_unignored_test() -> Vec<TestDescAndFn> {
                 no_run: false,
                 test_type: TestType::Unknown,
             },
-            testfn: DynTestFn(Box::new(move || Ok(()))),
+            testfn: DynTestFn(Box::new(move || {})),
         },
     ]
 }
 
 #[test]
 pub fn do_not_run_ignored_tests() {
-    fn f() -> Result<(), String> {
+    fn f() {
         panic!();
     }
     let desc = TestDescAndFn {
@@ -109,9 +109,7 @@ pub fn do_not_run_ignored_tests() {
 
 #[test]
 pub fn ignored_tests_result_in_ignored() {
-    fn f() -> Result<(), String> {
-        Ok(())
-    }
+    fn f() {}
     let desc = TestDescAndFn {
         desc: TestDesc {
             name: StaticTestName("whatever"),
@@ -134,7 +132,7 @@ pub fn ignored_tests_result_in_ignored() {
 #[test]
 #[cfg(not(target_os = "emscripten"))]
 fn test_should_panic() {
-    fn f() -> Result<(), String> {
+    fn f() {
         panic!();
     }
     let desc = TestDescAndFn {
@@ -159,7 +157,7 @@ fn test_should_panic() {
 #[test]
 #[cfg(not(target_os = "emscripten"))]
 fn test_should_panic_good_message() {
-    fn f() -> Result<(), String> {
+    fn f() {
         panic!("an error message");
     }
     let desc = TestDescAndFn {
@@ -185,7 +183,7 @@ fn test_should_panic_good_message() {
 #[cfg(not(target_os = "emscripten"))]
 fn test_should_panic_bad_message() {
     use crate::tests::TrFailedMsg;
-    fn f() -> Result<(), String> {
+    fn f() {
         panic!("an error message");
     }
     let expected = "foobar";
@@ -216,7 +214,7 @@ fn test_should_panic_bad_message() {
 fn test_should_panic_non_string_message_type() {
     use crate::tests::TrFailedMsg;
     use std::any::TypeId;
-    fn f() -> Result<(), String> {
+    fn f() {
         std::panic::panic_any(1i32);
     }
     let expected = "foobar";
@@ -251,9 +249,7 @@ fn test_should_panic_but_succeeds() {
     let should_panic_variants = [ShouldPanic::Yes, ShouldPanic::YesWithMessage("error message")];
 
     for &should_panic in should_panic_variants.iter() {
-        fn f() -> Result<(), String> {
-            Ok(())
-        }
+        fn f() {}
         let desc = TestDescAndFn {
             desc: TestDesc {
                 name: StaticTestName("whatever"),
@@ -287,9 +283,7 @@ fn test_should_panic_but_succeeds() {
 }
 
 fn report_time_test_template(report_time: bool) -> Option<TestExecTime> {
-    fn f() -> Result<(), String> {
-        Ok(())
-    }
+    fn f() {}
     let desc = TestDescAndFn {
         desc: TestDesc {
             name: StaticTestName("whatever"),
@@ -324,9 +318,7 @@ fn test_should_report_time() {
 }
 
 fn time_test_failure_template(test_type: TestType) -> TestResult {
-    fn f() -> Result<(), String> {
-        Ok(())
-    }
+    fn f() {}
     let desc = TestDescAndFn {
         desc: TestDesc {
             name: StaticTestName("whatever"),
@@ -488,7 +480,7 @@ pub fn exclude_should_panic_option() {
             no_run: false,
             test_type: TestType::Unknown,
         },
-        testfn: DynTestFn(Box::new(move || Ok(()))),
+        testfn: DynTestFn(Box::new(move || {})),
     });
 
     let filtered = filter_tests(&opts, tests);
@@ -512,7 +504,7 @@ pub fn exact_filter_match() {
                     no_run: false,
                     test_type: TestType::Unknown,
                 },
-                testfn: DynTestFn(Box::new(move || Ok(()))),
+                testfn: DynTestFn(Box::new(move || {})),
             })
             .collect()
     }
@@ -588,9 +580,7 @@ fn sample_tests() -> Vec<TestDescAndFn> {
         "test::run_include_ignored_option".to_string(),
         "test::sort_tests".to_string(),
     ];
-    fn testfn() -> Result<(), String> {
-        Ok(())
-    }
+    fn testfn() {}
     let mut tests = Vec::new();
     for name in &names {
         let test = TestDescAndFn {
@@ -608,6 +598,33 @@ fn sample_tests() -> Vec<TestDescAndFn> {
         tests.push(test);
     }
     tests
+}
+
+#[test]
+pub fn sort_tests() {
+    let mut opts = TestOpts::new();
+    opts.run_tests = true;
+
+    let tests = sample_tests();
+    let filtered = filter_tests(&opts, tests);
+
+    let expected = vec![
+        "isize::test_pow".to_string(),
+        "isize::test_to_str".to_string(),
+        "sha1::test".to_string(),
+        "test::do_not_run_ignored_tests".to_string(),
+        "test::filter_for_ignored_option".to_string(),
+        "test::first_free_arg_should_be_a_filter".to_string(),
+        "test::ignored_tests_result_in_ignored".to_string(),
+        "test::parse_ignored_flag".to_string(),
+        "test::parse_include_ignored_flag".to_string(),
+        "test::run_include_ignored_option".to_string(),
+        "test::sort_tests".to_string(),
+    ];
+
+    for (a, b) in expected.iter().zip(filtered) {
+        assert_eq!(*a, b.desc.name.to_string());
+    }
 }
 
 #[test]
@@ -700,26 +717,21 @@ pub fn test_metricmap_compare() {
 
 #[test]
 pub fn test_bench_once_no_iter() {
-    fn f(_: &mut Bencher) -> Result<(), String> {
-        Ok(())
-    }
-    bench::run_once(f).unwrap();
+    fn f(_: &mut Bencher) {}
+    bench::run_once(f);
 }
 
 #[test]
 pub fn test_bench_once_iter() {
-    fn f(b: &mut Bencher) -> Result<(), String> {
-        b.iter(|| {});
-        Ok(())
+    fn f(b: &mut Bencher) {
+        b.iter(|| {})
     }
-    bench::run_once(f).unwrap();
+    bench::run_once(f);
 }
 
 #[test]
 pub fn test_bench_no_iter() {
-    fn f(_: &mut Bencher) -> Result<(), String> {
-        Ok(())
-    }
+    fn f(_: &mut Bencher) {}
 
     let (tx, rx) = channel();
 
@@ -739,9 +751,8 @@ pub fn test_bench_no_iter() {
 
 #[test]
 pub fn test_bench_iter() {
-    fn f(b: &mut Bencher) -> Result<(), String> {
-        b.iter(|| {});
-        Ok(())
+    fn f(b: &mut Bencher) {
+        b.iter(|| {})
     }
 
     let (tx, rx) = channel();
@@ -809,34 +820,4 @@ fn should_sort_failures_before_printing_them() {
     let apos = s.find("a").unwrap();
     let bpos = s.find("b").unwrap();
     assert!(apos < bpos);
-}
-
-#[test]
-#[cfg(not(target_os = "emscripten"))]
-fn test_dyn_bench_returning_err_fails_when_run_as_test() {
-    fn f(_: &mut Bencher) -> Result<(), String> {
-        Result::Err("An error".into())
-    }
-    let desc = TestDescAndFn {
-        desc: TestDesc {
-            name: StaticTestName("whatever"),
-            ignore: false,
-            ignore_message: None,
-            should_panic: ShouldPanic::No,
-            compile_fail: false,
-            no_run: false,
-            test_type: TestType::Unknown,
-        },
-        testfn: DynBenchFn(Box::new(f)),
-    };
-    let (tx, rx) = channel();
-    let notify = move |event: TestEvent| {
-        if let TestEvent::TeResult(result) = event {
-            tx.send(result).unwrap();
-        }
-        Ok(())
-    };
-    run_tests(&TestOpts { run_tests: true, ..TestOpts::new() }, vec![desc], notify).unwrap();
-    let result = rx.recv().unwrap().result;
-    assert_eq!(result, TrFailed);
 }

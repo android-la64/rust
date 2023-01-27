@@ -98,8 +98,9 @@ pub unsafe fn find_eh_action(lsda: *const u8, context: &EHContext<'_>) -> Result
                 }
             }
         }
-        // Ip is not present in the table. This indicates a nounwind call.
-        Ok(EHAction::Terminate)
+        // Ip is not present in the table.  This should not happen... but it does: issue #35011.
+        // So rather than returning EHAction::Terminate, we do this.
+        Ok(EHAction::None)
     } else {
         // SjLj version:
         // The "IP" is an index into the call-site table, with two exceptions:

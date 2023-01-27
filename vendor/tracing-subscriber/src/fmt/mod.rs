@@ -243,7 +243,6 @@ pub type Formatter<
 /// Configures and constructs `Subscriber`s.
 #[cfg_attr(docsrs, doc(cfg(all(feature = "fmt", feature = "std"))))]
 #[derive(Debug)]
-#[must_use]
 pub struct SubscriberBuilder<
     N = format::DefaultFields,
     E = format::Format<format::Full>,
@@ -467,7 +466,6 @@ impl Default for SubscriberBuilder {
             filter: Subscriber::DEFAULT_MAX_LEVEL,
             inner: Default::default(),
         }
-        .log_internal_errors(true)
     }
 }
 
@@ -618,27 +616,6 @@ where
     pub fn with_ansi(self, ansi: bool) -> SubscriberBuilder<N, format::Format<L, T>, F, W> {
         SubscriberBuilder {
             inner: self.inner.with_ansi(ansi),
-            ..self
-        }
-    }
-
-    /// Sets whether to write errors from [`FormatEvent`] to the writer.
-    /// Defaults to true.
-    ///
-    /// By default, `fmt::Layer` will write any `FormatEvent`-internal errors to
-    /// the writer. These errors are unlikely and will only occur if there is a
-    /// bug in the `FormatEvent` implementation or its dependencies.
-    ///
-    /// If writing to the writer fails, the error message is printed to stderr
-    /// as a fallback.
-    ///
-    /// [`FormatEvent`]: crate::fmt::FormatEvent
-    pub fn log_internal_errors(
-        self,
-        log_internal_errors: bool,
-    ) -> SubscriberBuilder<N, format::Format<L, T>, F, W> {
-        SubscriberBuilder {
-            inner: self.inner.log_internal_errors(log_internal_errors),
             ..self
         }
     }
@@ -1208,19 +1185,13 @@ pub fn try_init() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
 /// Install a global tracing subscriber that listens for events and
 /// filters based on the value of the [`RUST_LOG` environment variable].
 ///
-/// The configuration of the subscriber initialized by this function
-/// depends on what [feature flags](crate#feature-flags) are enabled.
-///
 /// If the `tracing-log` feature is enabled, this will also install
 /// the LogTracer to convert `Log` records into `tracing` `Event`s.
 ///
-/// If the `env-filter` feature is enabled, this is shorthand for
+/// This is shorthand for
 ///
 /// ```rust
-/// # use tracing_subscriber::EnvFilter;
-/// tracing_subscriber::fmt()
-///     .with_env_filter(EnvFilter::from_default_env())
-///     .init();
+/// tracing_subscriber::fmt().init()
 /// ```
 ///
 /// # Panics

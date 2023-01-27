@@ -112,7 +112,7 @@ where
                     .join(" | ")
             };
             let pat_and_guard = if let Some(Guard::If(g)) = first_guard {
-                format!("{pat} if {}", snippet_with_applicability(cx, g.span, "..", &mut applicability))
+                format!("{} if {}", pat, snippet_with_applicability(cx, g.span, "..", &mut applicability))
             } else {
                 pat
             };
@@ -131,9 +131,10 @@ where
                 &format!("{} expression looks like `matches!` macro", if is_if_let { "if let .. else" } else { "match" }),
                 "try this",
                 format!(
-                    "{}matches!({}, {pat_and_guard})",
+                    "{}matches!({}, {})",
                     if b0 { "" } else { "!" },
                     snippet_with_applicability(cx, ex_new.span, "..", &mut applicability),
+                    pat_and_guard,
                 ),
                 applicability,
             );

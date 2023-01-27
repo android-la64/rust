@@ -101,9 +101,6 @@ pub enum Adjust<'tcx> {
     Borrow(AutoBorrow<'tcx>),
 
     Pointer(PointerCast),
-
-    /// Cast into a dyn* object.
-    DynStar,
 }
 
 /// An overloaded autoderef step, representing a `Deref(Mut)::deref(_mut)`

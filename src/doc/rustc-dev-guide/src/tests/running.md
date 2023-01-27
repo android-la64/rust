@@ -245,19 +245,13 @@ The binary will be created at
 `./build/$HOST_ARCH/stage2-tools/$TARGET_ARCH/release/remote-test-server`. Copy
 this over to the remote machine.
 
-On the remote machine, run the `remote-test-server` with the `--bind
-0.0.0.0:12345` flag (and optionally `-v` for verbose output). Output should
-look like this:
+On the remote machine, run the `remote-test-server` with the `remote` argument
+(and optionally `-v` for verbose output). Output should look like this:
 ```sh
-$ ./remote-test-server -v --bind 0.0.0.0:12345
+$ ./remote-test-server -v remote
 starting test server
 listening on 0.0.0.0:12345!
 ```
-
-Note that binding the server to 0.0.0.0 will allow all hosts able to reach your
-machine to execute arbitrary code on your machine. We strongly recommend either
-setting up a firewall to block external access to port 12345, or to use a more
-restrictive IP address when binding.
 
 You can test if the `remote-test-server` is working by connecting to it and
 sending `ping\n`. It should reply `pong`:

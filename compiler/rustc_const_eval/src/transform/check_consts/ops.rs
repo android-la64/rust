@@ -156,9 +156,10 @@ impl<'tcx> NonConstOp<'tcx> for FnCallNonConst<'tcx> {
                         }),
                     );
 
-                    let infcx = tcx.infer_ctxt().build();
-                    let mut selcx = SelectionContext::new(&infcx);
-                    let implsrc = selcx.select(&obligation);
+                    let implsrc = tcx.infer_ctxt().enter(|infcx| {
+                        let mut selcx = SelectionContext::new(&infcx);
+                        selcx.select(&obligation)
+                    });
 
                     if let Ok(Some(ImplSource::UserDefined(data))) = implsrc {
                         let span = tcx.def_span(data.impl_def_id);
@@ -421,11 +422,10 @@ impl<'tcx> NonConstOp<'tcx> for InlineAsm {
 }
 
 #[derive(Debug)]
-pub struct LiveDrop<'tcx> {
+pub struct LiveDrop {
     pub dropped_at: Option<Span>,
-    pub dropped_ty: Ty<'tcx>,
 }
-impl<'tcx> NonConstOp<'tcx> for LiveDrop<'tcx> {
+impl<'tcx> NonConstOp<'tcx> for LiveDrop {
     fn build_error(
         &self,
         ccx: &ConstCx<'_, 'tcx>,
@@ -435,13 +435,9 @@ impl<'tcx> NonConstOp<'tcx> for LiveDrop<'tcx> {
             ccx.tcx.sess,
             span,
             E0493,
-            "destructor of `{}` cannot be evaluated at compile-time",
-            self.dropped_ty,
+            "destructors cannot be evaluated at compile-time"
         );
-        err.span_label(
-            span,
-            format!("the destructor for this type cannot be evaluated in {}s", ccx.const_kind()),
-        );
+        err.span_label(span, format!("{}s cannot evaluate destructors", ccx.const_kind()));
         if let Some(span) = self.dropped_at {
             err.span_label(span, "value is dropped here");
         }

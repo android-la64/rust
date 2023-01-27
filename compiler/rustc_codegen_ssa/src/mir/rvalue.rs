@@ -4,6 +4,7 @@ use super::{FunctionCx, LocalRef};
 
 use crate::base;
 use crate::common::{self, IntPredicate};
+use crate::meth::get_vtable;
 use crate::traits::*;
 use crate::MemFlags;
 
@@ -249,7 +250,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         OperandValue::Pair(lldata, llextra)
                     }
                     mir::CastKind::Pointer(PointerCast::MutToConstPointer)
-                    | mir::CastKind::PtrToPtr
+                    | mir::CastKind::Misc
                         if bx.cx().is_backend_scalar_pair(operand.layout) =>
                     {
                         if let OperandValue::Pair(data_ptr, meta) = operand.val {
@@ -272,25 +273,24 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         }
                     }
                     mir::CastKind::DynStar => {
-                        let (lldata, llextra) = match operand.val {
+                        let data = match operand.val {
                             OperandValue::Ref(_, _, _) => todo!(),
-                            OperandValue::Immediate(v) => (v, None),
-                            OperandValue::Pair(v, l) => (v, Some(l)),
+                            OperandValue::Immediate(v) => v,
+                            OperandValue::Pair(_, _) => todo!(),
                         };
-                        let (lldata, llextra) =
-                            base::cast_to_dyn_star(&mut bx, lldata, operand.layout, cast.ty, llextra);
-                        OperandValue::Pair(lldata, llextra)
+                        let trait_ref =
+                            if let ty::Dynamic(data, _, ty::DynStar) = cast.ty.kind() {
+                                data.principal()
+                            } else {
+                                bug!("Only valid to do a DynStar cast into a DynStar type")
+                            };
+                        let vtable = get_vtable(bx.cx(), source.ty(self.mir, bx.tcx()), trait_ref);
+                        OperandValue::Pair(data, vtable)
                     }
                     mir::CastKind::Pointer(
                         PointerCast::MutToConstPointer | PointerCast::ArrayToPointer,
                     )
-                    | mir::CastKind::IntToInt
-                    | mir::CastKind::FloatToInt
-                    | mir::CastKind::FloatToFloat
-                    | mir::CastKind::IntToFloat
-                    | mir::CastKind::PtrToPtr
-                    | mir::CastKind::FnPtrToPtr
-
+                    | mir::CastKind::Misc
                     // Since int2ptr can have arbitrary integer types as input (so we have to do
                     // sign extension and all that), it is currently best handled in the same code
                     // path as the other integer-to-X casts.

@@ -71,7 +71,6 @@
 )]
 #[fundamental] // so that regex can rely that `&str: !FnMut`
 #[must_use = "closures are lazy and do nothing unless called"]
-#[cfg_attr(not(bootstrap), const_trait)]
 pub trait Fn<Args>: FnMut<Args> {
     /// Performs the call operation.
     #[unstable(feature = "fn_traits", issue = "29625")]
@@ -159,7 +158,6 @@ pub trait Fn<Args>: FnMut<Args> {
 )]
 #[fundamental] // so that regex can rely that `&str: !FnMut`
 #[must_use = "closures are lazy and do nothing unless called"]
-#[cfg_attr(not(bootstrap), const_trait)]
 pub trait FnMut<Args>: FnOnce<Args> {
     /// Performs the call operation.
     #[unstable(feature = "fn_traits", issue = "29625")]
@@ -239,7 +237,6 @@ pub trait FnMut<Args>: FnOnce<Args> {
 )]
 #[fundamental] // so that regex can rely that `&str: !FnMut`
 #[must_use = "closures are lazy and do nothing unless called"]
-#[cfg_attr(not(bootstrap), const_trait)]
 pub trait FnOnce<Args> {
     /// The returned type after the call operator is used.
     #[lang = "fn_once_output"]

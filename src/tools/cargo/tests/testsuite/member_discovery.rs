@@ -22,7 +22,7 @@ fn bad_file_member_exclusion() {
         .file(
             "crates/bar/Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "bar"
                 version = "0.1.0"
                 authors = []

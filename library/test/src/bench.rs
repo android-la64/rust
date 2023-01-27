@@ -49,12 +49,12 @@ impl Bencher {
         self.summary = Some(iter(&mut inner));
     }
 
-    pub fn bench<F>(&mut self, mut f: F) -> Result<Option<stats::Summary>, String>
+    pub fn bench<F>(&mut self, mut f: F) -> Option<stats::Summary>
     where
-        F: FnMut(&mut Bencher) -> Result<(), String>,
+        F: FnMut(&mut Bencher),
     {
-        let result = f(self);
-        result.map(|_| self.summary)
+        f(self);
+        self.summary
     }
 }
 
@@ -195,7 +195,7 @@ pub fn benchmark<F>(
     nocapture: bool,
     f: F,
 ) where
-    F: FnMut(&mut Bencher) -> Result<(), String>,
+    F: FnMut(&mut Bencher),
 {
     let mut bs = Bencher { mode: BenchMode::Auto, summary: None, bytes: 0 };
 
@@ -211,14 +211,14 @@ pub fn benchmark<F>(
 
     let test_result = match result {
         //bs.bench(f) {
-        Ok(Ok(Some(ns_iter_summ))) => {
+        Ok(Some(ns_iter_summ)) => {
             let ns_iter = cmp::max(ns_iter_summ.median as u64, 1);
             let mb_s = bs.bytes * 1000 / ns_iter;
 
             let bs = BenchSamples { ns_iter_summ, mb_s: mb_s as usize };
             TestResult::TrBench(bs)
         }
-        Ok(Ok(None)) => {
+        Ok(None) => {
             // iter not called, so no data.
             // FIXME: error in this case?
             let samples: &mut [f64] = &mut [0.0_f64; 1];
@@ -226,7 +226,6 @@ pub fn benchmark<F>(
             TestResult::TrBench(bs)
         }
         Err(_) => TestResult::TrFailed,
-        Ok(Err(_)) => TestResult::TrFailed,
     };
 
     let stdout = data.lock().unwrap().to_vec();
@@ -234,10 +233,10 @@ pub fn benchmark<F>(
     monitor_ch.send(message).unwrap();
 }
 
-pub fn run_once<F>(f: F) -> Result<(), String>
+pub fn run_once<F>(f: F)
 where
-    F: FnMut(&mut Bencher) -> Result<(), String>,
+    F: FnMut(&mut Bencher),
 {
     let mut bs = Bencher { mode: BenchMode::Single, summary: None, bytes: 0 };
-    bs.bench(f).map(|_| ())
+    bs.bench(f);
 }

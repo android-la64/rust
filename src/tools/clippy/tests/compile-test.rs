@@ -111,14 +111,15 @@ static EXTERN_FLAGS: LazyLock<String> = LazyLock::new(|| {
         .collect();
     assert!(
         not_found.is_empty(),
-        "dependencies not found in depinfo: {not_found:?}\n\
+        "dependencies not found in depinfo: {:?}\n\
         help: Make sure the `-Z binary-dep-depinfo` rust flag is enabled\n\
         help: Try adding to dev-dependencies in Cargo.toml\n\
         help: Be sure to also add `extern crate ...;` to tests/compile-test.rs",
+        not_found,
     );
     crates
         .into_iter()
-        .map(|(name, path)| format!(" --extern {name}={path}"))
+        .map(|(name, path)| format!(" --extern {}={}", name, path))
         .collect()
 });
 
@@ -149,8 +150,9 @@ fn base_config(test_dir: &str) -> compiletest::Config {
         .map(|p| format!(" -L dependency={}", Path::new(p).join("deps").display()))
         .unwrap_or_default();
     config.target_rustcflags = Some(format!(
-        "--emit=metadata -Dwarnings -Zui-testing -L dependency={}{host_libs}{}",
+        "--emit=metadata -Dwarnings -Zui-testing -L dependency={}{}{}",
         deps_path.display(),
+        host_libs,
         &*EXTERN_FLAGS,
     ));
 
@@ -237,7 +239,7 @@ fn run_ui_toml() {
         Ok(true) => {},
         Ok(false) => panic!("Some tests failed"),
         Err(e) => {
-            panic!("I/O failure during tests: {e:?}");
+            panic!("I/O failure during tests: {:?}", e);
         },
     }
 }
@@ -283,7 +285,7 @@ fn run_ui_cargo() {
                 env::set_current_dir(&src_path)?;
 
                 let cargo_toml_path = case.path().join("Cargo.toml");
-                let cargo_content = fs::read(cargo_toml_path)?;
+                let cargo_content = fs::read(&cargo_toml_path)?;
                 let cargo_parsed: toml::Value = toml::from_str(
                     std::str::from_utf8(&cargo_content).expect("`Cargo.toml` is not a valid utf-8 file!"),
                 )
@@ -346,7 +348,7 @@ fn run_ui_cargo() {
         Ok(true) => {},
         Ok(false) => panic!("Some tests failed"),
         Err(e) => {
-            panic!("I/O failure during tests: {e:?}");
+            panic!("I/O failure during tests: {:?}", e);
         },
     }
 }
@@ -417,15 +419,16 @@ fn check_rustfix_coverage() {
             if rs_path.starts_with("tests/ui/crashes") {
                 continue;
             }
-            assert!(rs_path.starts_with("tests/ui/"), "{rs_file:?}");
+            assert!(rs_path.starts_with("tests/ui/"), "{:?}", rs_file);
             let filename = rs_path.strip_prefix("tests/ui/").unwrap();
             assert!(
                 RUSTFIX_COVERAGE_KNOWN_EXCEPTIONS
                     .binary_search_by_key(&filename, Path::new)
                     .is_ok(),
-                "`{rs_file}` runs `MachineApplicable` diagnostics but is missing a `run-rustfix` annotation. \
+                "`{}` runs `MachineApplicable` diagnostics but is missing a `run-rustfix` annotation. \
                 Please either add `// run-rustfix` at the top of the file or add the file to \
                 `RUSTFIX_COVERAGE_KNOWN_EXCEPTIONS` in `tests/compile-test.rs`.",
+                rs_file,
             );
         }
     }
@@ -475,13 +478,15 @@ fn ui_cargo_toml_metadata() {
                 .map(|component| component.as_os_str().to_string_lossy().replace('-', "_"))
                 .any(|s| *s == name)
                 || path.starts_with(&cargo_common_metadata_path),
-            "{path:?} has incorrect package name"
+            "{:?} has incorrect package name",
+            path
         );
 
         let publish = package.get("publish").and_then(toml::Value::as_bool).unwrap_or(true);
         assert!(
             !publish || publish_exceptions.contains(&path.parent().unwrap().to_path_buf()),
-            "{path:?} lacks `publish = false`"
+            "{:?} lacks `publish = false`",
+            path
         );
     }
 }

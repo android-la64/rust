@@ -7,12 +7,12 @@ use crate::mir::interpret::{
 };
 use crate::mir::visit::MirVisitable;
 use crate::ty::codec::{TyDecoder, TyEncoder};
-use crate::ty::fold::{FallibleTypeFolder, TypeFoldable};
+use crate::ty::fold::{FallibleTypeFolder, TypeFoldable, TypeSuperFoldable};
 use crate::ty::print::{FmtPrinter, Printer};
-use crate::ty::visit::{TypeVisitable, TypeVisitor};
+use crate::ty::subst::{GenericArg, InternalSubsts, Subst, SubstsRef};
+use crate::ty::visit::{TypeSuperVisitable, TypeVisitable, TypeVisitor};
 use crate::ty::{self, List, Ty, TyCtxt};
 use crate::ty::{AdtDef, InstanceDef, ScalarInt, UserTypeAnnotationIndex};
-use crate::ty::{GenericArg, InternalSubsts, SubstsRef};
 
 use rustc_data_structures::captures::Captures;
 use rustc_errors::ErrorGuaranteed;
@@ -116,6 +116,11 @@ pub trait MirPass<'tcx> {
 
     fn run_pass(&self, tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>);
 
+    /// If this pass causes the MIR to enter a new phase, return that phase.
+    fn phase_change(&self) -> Option<MirPhase> {
+        None
+    }
+
     fn is_mir_dump_enabled(&self) -> bool {
         true
     }
@@ -136,35 +141,6 @@ impl MirPhase {
             MirPhase::Runtime(runtime_phase) => {
                 1 + BUILT_PHASE_COUNT + ANALYSIS_PHASE_COUNT + (*runtime_phase as usize)
             }
-        }
-    }
-}
-
-impl Display for MirPhase {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            MirPhase::Built => write!(f, "built"),
-            MirPhase::Analysis(p) => write!(f, "analysis-{}", p),
-            MirPhase::Runtime(p) => write!(f, "runtime-{}", p),
-        }
-    }
-}
-
-impl Display for AnalysisPhase {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            AnalysisPhase::Initial => write!(f, "initial"),
-            AnalysisPhase::PostCleanup => write!(f, "post_cleanup"),
-        }
-    }
-}
-
-impl Display for RuntimePhase {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            RuntimePhase::Initial => write!(f, "initial"),
-            RuntimePhase::PostCleanup => write!(f, "post_cleanup"),
-            RuntimePhase::Optimized => write!(f, "optimized"),
         }
     }
 }
@@ -230,9 +206,6 @@ pub struct Body<'tcx> {
     /// promoted items have already been optimized, whereas ours have not. This field allows
     /// us to see the difference and forego optimization on the inlined promoted items.
     pub phase: MirPhase,
-
-    /// How many passses we have executed since starting the current phase. Used for debug output.
-    pub pass_count: usize,
 
     pub source: MirSource<'tcx>,
 
@@ -319,7 +292,6 @@ impl<'tcx> Body<'tcx> {
 
         let mut body = Body {
             phase: MirPhase::Built,
-            pass_count: 1,
             source,
             basic_blocks: BasicBlocks::new(basic_blocks),
             source_scopes,
@@ -341,7 +313,7 @@ impl<'tcx> Body<'tcx> {
             is_polymorphic: false,
             tainted_by_errors,
         };
-        body.is_polymorphic = body.has_non_region_param();
+        body.is_polymorphic = body.has_param_types_or_consts();
         body
     }
 
@@ -353,7 +325,6 @@ impl<'tcx> Body<'tcx> {
     pub fn new_cfg_only(basic_blocks: IndexVec<BasicBlock, BasicBlockData<'tcx>>) -> Self {
         let mut body = Body {
             phase: MirPhase::Built,
-            pass_count: 1,
             source: MirSource::item(CRATE_DEF_ID.to_def_id()),
             basic_blocks: BasicBlocks::new(basic_blocks),
             source_scopes: IndexVec::new(),
@@ -368,7 +339,7 @@ impl<'tcx> Body<'tcx> {
             is_polymorphic: false,
             tainted_by_errors: None,
         };
-        body.is_polymorphic = body.has_non_region_param();
+        body.is_polymorphic = body.has_param_types_or_consts();
         body
     }
 
@@ -1409,7 +1380,6 @@ impl<V, T> ProjectionElem<V, T> {
 
             Self::Field(_, _)
             | Self::Index(_)
-            | Self::OpaqueCast(_)
             | Self::ConstantIndex { .. }
             | Self::Subslice { .. }
             | Self::Downcast(_, _) => false,
@@ -1604,9 +1574,7 @@ impl Debug for Place<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         for elem in self.projection.iter().rev() {
             match elem {
-                ProjectionElem::OpaqueCast(_)
-                | ProjectionElem::Downcast(_, _)
-                | ProjectionElem::Field(_, _) => {
+                ProjectionElem::Downcast(_, _) | ProjectionElem::Field(_, _) => {
                     write!(fmt, "(").unwrap();
                 }
                 ProjectionElem::Deref => {
@@ -1622,9 +1590,6 @@ impl Debug for Place<'_> {
 
         for elem in self.projection.iter() {
             match elem {
-                ProjectionElem::OpaqueCast(ty) => {
-                    write!(fmt, " as {})", ty)?;
-                }
                 ProjectionElem::Downcast(Some(name), _index) => {
                     write!(fmt, " as {})", name)?;
                 }
@@ -1853,6 +1818,7 @@ impl<'tcx> Rvalue<'tcx> {
             // While the model is undecided, we should be conservative. See
             // <https://www.ralfj.de/blog/2022/04/11/provenance-exposed.html>
             Rvalue::Cast(CastKind::PointerExposeAddress, _, _) => false,
+            Rvalue::Cast(CastKind::DynStar, _, _) => false,
 
             Rvalue::Use(_)
             | Rvalue::CopyForDeref(_)
@@ -1862,15 +1828,7 @@ impl<'tcx> Rvalue<'tcx> {
             | Rvalue::AddressOf(_, _)
             | Rvalue::Len(_)
             | Rvalue::Cast(
-                CastKind::IntToInt
-                | CastKind::FloatToInt
-                | CastKind::FloatToFloat
-                | CastKind::IntToFloat
-                | CastKind::FnPtrToPtr
-                | CastKind::PtrToPtr
-                | CastKind::Pointer(_)
-                | CastKind::PointerFromExposedAddress
-                | CastKind::DynStar,
+                CastKind::Misc | CastKind::Pointer(_) | CastKind::PointerFromExposedAddress,
                 _,
                 _,
             )
@@ -2085,13 +2043,13 @@ pub struct Constant<'tcx> {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, TyEncodable, TyDecodable, Hash, HashStable, Debug)]
-#[derive(Lift, TypeFoldable, TypeVisitable)]
+#[derive(Lift)]
 pub enum ConstantKind<'tcx> {
     /// This constant came from the type system
     Ty(ty::Const<'tcx>),
 
     /// An unevaluated mir constant which is not part of the type system.
-    Unevaluated(UnevaluatedConst<'tcx>, Ty<'tcx>),
+    Unevaluated(ty::Unevaluated<'tcx, Option<Promoted>>, Ty<'tcx>),
 
     /// This constant cannot go back into the type system, as it represents
     /// something the type system cannot handle (e.g. pointers).
@@ -2351,11 +2309,12 @@ impl<'tcx> ConstantKind<'tcx> {
             ty::InlineConstSubsts::new(tcx, ty::InlineConstSubstsParts { parent_substs, ty })
                 .substs;
 
-        let uneval = UnevaluatedConst {
+        let uneval = ty::Unevaluated {
             def: ty::WithOptConstParam::unknown(def_id).to_global(),
             substs,
             promoted: None,
         };
+
         debug_assert!(!uneval.has_free_regions());
 
         Self::Unevaluated(uneval, ty)
@@ -2439,7 +2398,7 @@ impl<'tcx> ConstantKind<'tcx> {
 
         let hir_id = tcx.hir().local_def_id_to_hir_id(def.did);
         let span = tcx.hir().span(hir_id);
-        let uneval = UnevaluatedConst::new(def.to_global(), substs);
+        let uneval = ty::Unevaluated::new(def.to_global(), substs);
         debug!(?span, ?param_env);
 
         match tcx.const_eval_resolve(param_env, uneval, Some(span)) {
@@ -2452,7 +2411,7 @@ impl<'tcx> ConstantKind<'tcx> {
                 // Error was handled in `const_eval_resolve`. Here we just create a
                 // new unevaluated const and error hard later in codegen
                 Self::Unevaluated(
-                    UnevaluatedConst {
+                    ty::Unevaluated {
                         def: def.to_global(),
                         substs: InternalSubsts::identity_for_item(tcx, def.did.to_def_id()),
                         promoted: None,
@@ -2472,34 +2431,6 @@ impl<'tcx> ConstantKind<'tcx> {
             ty::ConstKind::Unevaluated(uv) => Self::Unevaluated(uv.expand(), c.ty()),
             _ => Self::Ty(c),
         }
-    }
-}
-
-/// An unevaluated (potentially generic) constant used in MIR.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, TyEncodable, TyDecodable, Lift)]
-#[derive(Hash, HashStable, TypeFoldable, TypeVisitable)]
-pub struct UnevaluatedConst<'tcx> {
-    pub def: ty::WithOptConstParam<DefId>,
-    pub substs: SubstsRef<'tcx>,
-    pub promoted: Option<Promoted>,
-}
-
-impl<'tcx> UnevaluatedConst<'tcx> {
-    // FIXME: probably should get rid of this method. It's also wrong to
-    // shrink and then later expand a promoted.
-    #[inline]
-    pub fn shrink(self) -> ty::UnevaluatedConst<'tcx> {
-        ty::UnevaluatedConst { def: self.def, substs: self.substs }
-    }
-}
-
-impl<'tcx> UnevaluatedConst<'tcx> {
-    #[inline]
-    pub fn new(
-        def: ty::WithOptConstParam<DefId>,
-        substs: SubstsRef<'tcx>,
-    ) -> UnevaluatedConst<'tcx> {
-        UnevaluatedConst { def, substs, promoted: Default::default() }
     }
 }
 
@@ -2796,7 +2727,7 @@ fn pretty_print_const_value<'tcx>(
             }
             // Aggregates, printed as array/tuple/struct/variant construction syntax.
             //
-            // NB: the `has_non_region_param` check ensures that we can use
+            // NB: the `has_param_types_or_consts` check ensures that we can use
             // the `destructure_const` query with an empty `ty::ParamEnv` without
             // introducing ICEs (e.g. via `layout_of`) from missing bounds.
             // E.g. `transmute([0usize; 2]): (u8, *mut T)` needs to know `T: Sized`
@@ -2804,7 +2735,7 @@ fn pretty_print_const_value<'tcx>(
             //
             // FIXME(eddyb) for `--emit=mir`/`-Z dump-mir`, we should provide the
             // correct `ty::ParamEnv` to allow printing *all* constant values.
-            (_, ty::Array(..) | ty::Tuple(..) | ty::Adt(..)) if !ty.has_non_region_param() => {
+            (_, ty::Array(..) | ty::Tuple(..) | ty::Adt(..)) if !ty.has_param_types_or_consts() => {
                 let ct = tcx.lift(ct).unwrap();
                 let ty = tcx.lift(ty).unwrap();
                 if let Some(contents) = tcx.try_destructure_mir_constant(
@@ -2975,12 +2906,11 @@ impl Location {
 mod size_asserts {
     use super::*;
     use rustc_data_structures::static_assert_size;
-    // tidy-alphabetical-start
+    // These are in alphabetical order, which is easy to maintain.
     static_assert_size!(BasicBlockData<'_>, 144);
     static_assert_size!(LocalDecl<'_>, 56);
     static_assert_size!(Statement<'_>, 32);
     static_assert_size!(StatementKind<'_>, 16);
     static_assert_size!(Terminator<'_>, 112);
     static_assert_size!(TerminatorKind<'_>, 96);
-    // tidy-alphabetical-end
 }

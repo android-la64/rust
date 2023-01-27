@@ -74,7 +74,7 @@ pub enum BacktraceStyle {
 #[derive(Clone)]
 pub struct MiriConfig {
     /// The host environment snapshot to use as basis for what is provided to the interpreted program.
-    /// (This is still subject to isolation as well as `forwarded_env_vars`.)
+    /// (This is still subject to isolation as well as `excluded_env_vars` and `forwarded_env_vars`.)
     pub env: Vec<(OsString, OsString)>,
     /// Determine if validity checking is enabled.
     pub validate: bool,
@@ -88,6 +88,8 @@ pub struct MiriConfig {
     pub isolated_op: IsolatedOp,
     /// Determines if memory leaks should be ignored.
     pub ignore_leaks: bool,
+    /// Environment variables that should always be isolated from the host.
+    pub excluded_env_vars: Vec<String>,
     /// Environment variables that should always be forwarded from the host.
     pub forwarded_env_vars: Vec<String>,
     /// Command-line arguments passed to the interpreted program.
@@ -126,14 +128,10 @@ pub struct MiriConfig {
     /// Report the current instruction being executed every N basic blocks.
     pub report_progress: Option<u32>,
     /// Whether Stacked Borrows retagging should recurse into fields of datatypes.
-    pub retag_fields: RetagFields,
+    pub retag_fields: bool,
     /// The location of a shared object file to load when calling external functions
     /// FIXME! consider allowing users to specify paths to multiple SO files, or to a directory
     pub external_so_file: Option<PathBuf>,
-    /// Run a garbage collector for SbTags every N basic blocks.
-    pub gc_interval: u32,
-    /// The number of CPUs to be reported by miri.
-    pub num_cpus: u32,
 }
 
 impl Default for MiriConfig {
@@ -146,6 +144,7 @@ impl Default for MiriConfig {
             check_abi: true,
             isolated_op: IsolatedOp::Reject(RejectOpWith::Abort),
             ignore_leaks: false,
+            excluded_env_vars: vec![],
             forwarded_env_vars: vec![],
             args: vec![],
             seed: None,
@@ -163,10 +162,8 @@ impl Default for MiriConfig {
             mute_stdout_stderr: false,
             preemption_rate: 0.01, // 1%
             report_progress: None,
-            retag_fields: RetagFields::No,
+            retag_fields: false,
             external_so_file: None,
-            gc_interval: 10_000,
-            num_cpus: 1,
         }
     }
 }
@@ -180,19 +177,23 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
     entry_id: DefId,
     entry_type: EntryFnType,
     config: &MiriConfig,
-) -> InterpResult<'tcx, (InterpCx<'mir, 'tcx, MiriMachine<'mir, 'tcx>>, MPlaceTy<'tcx, Provenance>)>
-{
+) -> InterpResult<'tcx, (InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>, MPlaceTy<'tcx, Provenance>)> {
     let param_env = ty::ParamEnv::reveal_all();
     let layout_cx = LayoutCx { tcx, param_env };
     let mut ecx = InterpCx::new(
         tcx,
         rustc_span::source_map::DUMMY_SP,
         param_env,
-        MiriMachine::new(config, layout_cx),
+        Evaluator::new(config, layout_cx),
     );
 
+    // Capture the current interpreter stack state (which should be empty) so that we can emit
+    // allocation-tracking and tag-tracking diagnostics for allocations which are part of the
+    // early runtime setup.
+    let info = ecx.preprocess_diagnostics();
+
     // Some parts of initialization require a full `InterpCx`.
-    MiriMachine::late_init(&mut ecx, config)?;
+    Evaluator::late_init(&mut ecx, config)?;
 
     // Make sure we have MIR. We check MIR for some stable monomorphic function in libcore.
     let sentinel = ecx.try_resolve_path(&["core", "ascii", "escape_default"]);
@@ -291,10 +292,7 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
 
             let main_ptr = ecx.create_fn_alloc_ptr(FnVal::Instance(entry_instance));
 
-            // Inlining of `DEFAULT` from
-            // https://github.com/rust-lang/rust/blob/master/compiler/rustc_session/src/config/sigpipe.rs.
-            // Alaways using DEFAULT is okay since we don't support signals in Miri anyway.
-            let sigpipe = 2;
+            let sigpipe = 2; // Inlining of `DEFAULT` from https://github.com/rust-lang/rust/blob/master/compiler/rustc_session/src/config/sigpipe.rs
 
             ecx.call_function(
                 start_instance,
@@ -319,6 +317,10 @@ pub fn create_ecx<'mir, 'tcx: 'mir>(
             )?;
         }
     }
+
+    // Emit any diagnostics related to the setup process for the runtime, so that when the
+    // interpreter loop starts there are no unprocessed diagnostics.
+    ecx.process_diagnostics(info);
 
     Ok((ecx, ret_place))
 }
@@ -348,11 +350,17 @@ pub fn eval_entry<'tcx>(
     let res: thread::Result<InterpResult<'_, i64>> = panic::catch_unwind(AssertUnwindSafe(|| {
         // Main loop.
         loop {
+            let info = ecx.preprocess_diagnostics();
             match ecx.schedule()? {
                 SchedulingAction::ExecuteStep => {
                     assert!(ecx.step()?, "a terminated thread was scheduled for execution");
                 }
                 SchedulingAction::ExecuteTimeoutCallback => {
+                    assert!(
+                        ecx.machine.communicate(),
+                        "scheduler callbacks require disabled isolation, but the code \
+                        that created the callback did not check it"
+                    );
                     ecx.run_timeout_callback()?;
                 }
                 SchedulingAction::ExecuteDtors => {
@@ -365,6 +373,7 @@ pub fn eval_entry<'tcx>(
                     break;
                 }
             }
+            ecx.process_diagnostics(info);
         }
         let return_code = ecx.read_scalar(&ret_place.into())?.to_machine_isize(&ecx)?;
         Ok(return_code)

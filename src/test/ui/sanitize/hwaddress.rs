@@ -10,6 +10,8 @@
 // run-fail
 // error-pattern: HWAddressSanitizer: tag-mismatch
 
+#![feature(bench_black_box)]
+
 use std::hint::black_box;
 
 fn main() {

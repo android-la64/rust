@@ -78,12 +78,11 @@ ENV RUST_CONFIGURE_ARGS \
       --set llvm.thin-lto=true \
       --set llvm.ninja=false \
       --set rust.jemalloc \
-      --set rust.use-lld=true \
-      --set rust.lto=thin
+      --set rust.use-lld=true
 ENV SCRIPT ../src/ci/pgo.sh python3 ../x.py dist \
     --host $HOSTS --target $HOSTS \
     --include-default-paths \
-    build-manifest bootstrap
+    build-manifest
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=clang
 
 # This is the only builder which will create source tarballs

@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::num::TryFromIntError;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use log::trace;
 
@@ -30,12 +30,10 @@ pub enum SchedulingAction {
     Stop,
 }
 
-/// Trait for callbacks that can be executed when some event happens, such as after a timeout.
-pub trait MachineCallback<'mir, 'tcx>: VisitTags {
-    fn call(&self, ecx: &mut InterpCx<'mir, 'tcx, MiriMachine<'mir, 'tcx>>) -> InterpResult<'tcx>;
-}
-
-type TimeoutCallback<'mir, 'tcx> = Box<dyn MachineCallback<'mir, 'tcx> + 'tcx>;
+/// Timeout callbacks can be created by synchronization primitives to tell the
+/// scheduler that they should be called once some period of time passes.
+type TimeoutCallback<'mir, 'tcx> =
+    Box<dyn FnOnce(&mut InterpCx<'mir, 'tcx, Evaluator<'mir, 'tcx>>) -> InterpResult<'tcx> + 'tcx>;
 
 /// A thread identifier.
 #[derive(Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -182,46 +180,6 @@ impl<'mir, 'tcx> Thread<'mir, 'tcx> {
     }
 }
 
-impl VisitTags for Thread<'_, '_> {
-    fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
-        let Thread { panic_payload, last_error, stack, state: _, thread_name: _, join_status: _ } =
-            self;
-
-        panic_payload.visit_tags(visit);
-        last_error.visit_tags(visit);
-        for frame in stack {
-            frame.visit_tags(visit)
-        }
-    }
-}
-
-impl VisitTags for Frame<'_, '_, Provenance, FrameData<'_>> {
-    fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
-        let Frame {
-            return_place,
-            locals,
-            extra,
-            body: _,
-            instance: _,
-            return_to_block: _,
-            loc: _,
-            // There are some private fields we cannot access; they contain no tags.
-            ..
-        } = self;
-
-        // Return place.
-        return_place.visit_tags(visit);
-        // Locals.
-        for local in locals.iter() {
-            if let LocalValue::Live(value) = &local.value {
-                value.visit_tags(visit);
-            }
-        }
-
-        extra.visit_tags(visit);
-    }
-}
-
 /// A specific moment in time.
 #[derive(Debug)]
 pub enum Time {
@@ -231,9 +189,9 @@ pub enum Time {
 
 impl Time {
     /// How long do we have to wait from now until the specified time?
-    fn get_wait_time(&self, clock: &Clock) -> Duration {
+    fn get_wait_time(&self) -> Duration {
         match self {
-            Time::Monotonic(instant) => instant.duration_since(clock.now()),
+            Time::Monotonic(instant) => instant.saturating_duration_since(Instant::now()),
             Time::RealTime(time) =>
                 time.duration_since(SystemTime::now()).unwrap_or(Duration::new(0, 0)),
         }
@@ -268,7 +226,7 @@ pub struct ThreadManager<'mir, 'tcx> {
     threads: IndexVec<ThreadId, Thread<'mir, 'tcx>>,
     /// This field is pub(crate) because the synchronization primitives
     /// (`crate::sync`) need a way to access it.
-    pub(crate) sync: SynchronizationState<'mir, 'tcx>,
+    pub(crate) sync: SynchronizationState,
     /// A mapping from a thread-local static to an allocation id of a thread
     /// specific allocation.
     thread_local_alloc_ids: RefCell<FxHashMap<(DefId, ThreadId), Pointer<Provenance>>>,
@@ -294,32 +252,8 @@ impl<'mir, 'tcx> Default for ThreadManager<'mir, 'tcx> {
     }
 }
 
-impl VisitTags for ThreadManager<'_, '_> {
-    fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
-        let ThreadManager {
-            threads,
-            thread_local_alloc_ids,
-            timeout_callbacks,
-            active_thread: _,
-            yield_active_thread: _,
-            sync,
-        } = self;
-
-        for thread in threads {
-            thread.visit_tags(visit);
-        }
-        for ptr in thread_local_alloc_ids.borrow().values() {
-            ptr.visit_tags(visit);
-        }
-        for callback in timeout_callbacks.values() {
-            callback.callback.visit_tags(visit);
-        }
-        sync.visit_tags(visit);
-    }
-}
-
 impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
-    pub(crate) fn init(ecx: &mut MiriInterpCx<'mir, 'tcx>) {
+    pub(crate) fn init(ecx: &mut MiriEvalContext<'mir, 'tcx>) {
         if ecx.tcx.sess.target.os.as_ref() != "windows" {
             // The main thread can *not* be joined on except on windows.
             ecx.machine.threads.threads[ThreadId::new(0)].join_status = ThreadJoinStatus::Detached;
@@ -451,7 +385,6 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
         data_race: Option<&mut data_race::GlobalState>,
     ) -> InterpResult<'tcx> {
         if self.threads[joined_thread_id].join_status == ThreadJoinStatus::Detached {
-            // On Windows this corresponds to joining on a closed handle.
             throw_ub_format!("trying to join a detached thread");
         }
 
@@ -553,16 +486,13 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
     }
 
     /// Get a callback that is ready to be called.
-    fn get_ready_callback(
-        &mut self,
-        clock: &Clock,
-    ) -> Option<(ThreadId, TimeoutCallback<'mir, 'tcx>)> {
+    fn get_ready_callback(&mut self) -> Option<(ThreadId, TimeoutCallback<'mir, 'tcx>)> {
         // We iterate over all threads in the order of their indices because
         // this allows us to have a deterministic scheduler.
         for thread in self.threads.indices() {
             match self.timeout_callbacks.entry(thread) {
                 Entry::Occupied(entry) =>
-                    if entry.get().call_time.get_wait_time(clock) == Duration::new(0, 0) {
+                    if entry.get().call_time.get_wait_time() == Duration::new(0, 0) {
                         return Some((thread, entry.remove().callback));
                     },
                 Entry::Vacant(_) => {}
@@ -619,7 +549,7 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
     /// used in stateless model checkers such as Loom: run the active thread as
     /// long as we can and switch only when we have to (the active thread was
     /// blocked, terminated, or has explicitly asked to be preempted).
-    fn schedule(&mut self, clock: &Clock) -> InterpResult<'tcx, SchedulingAction> {
+    fn schedule(&mut self) -> InterpResult<'tcx, SchedulingAction> {
         // Check whether the thread has **just** terminated (`check_terminated`
         // checks whether the thread has popped all its stack and if yes, sets
         // the thread state to terminated).
@@ -646,13 +576,13 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
         // at the time of the call".
         // <https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_timedwait.html>
         let potential_sleep_time =
-            self.timeout_callbacks.values().map(|info| info.call_time.get_wait_time(clock)).min();
+            self.timeout_callbacks.values().map(|info| info.call_time.get_wait_time()).min();
         if potential_sleep_time == Some(Duration::new(0, 0)) {
             return Ok(SchedulingAction::ExecuteTimeoutCallback);
         }
         // No callbacks scheduled, pick a regular thread to execute.
         // The active thread blocked or yielded. So we go search for another enabled thread.
-        // Crucially, we start searching at the current active thread ID, rather than at 0, since we
+        // Curcially, we start searching at the current active thread ID, rather than at 0, since we
         // want to avoid always scheduling threads 0 and 1 without ever making progress in thread 2.
         //
         // `skip(N)` means we start iterating at thread N, so we skip 1 more to start just *after*
@@ -681,8 +611,7 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
             // All threads are currently blocked, but we have unexecuted
             // timeout_callbacks, which may unblock some of the threads. Hence,
             // sleep until the first callback.
-
-            clock.sleep(sleep_time);
+            std::thread::sleep(sleep_time);
             Ok(SchedulingAction::ExecuteTimeoutCallback)
         } else {
             throw_machine_stop!(TerminationInfo::Deadlock);
@@ -691,8 +620,8 @@ impl<'mir, 'tcx: 'mir> ThreadManager<'mir, 'tcx> {
 }
 
 // Public interface to thread management.
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     /// Get a thread-specific allocation id for the given thread-local static.
     /// If needed, allocate a new one.
     fn get_or_create_thread_local_alloc(
@@ -870,7 +799,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         this.machine.threads.active_thread_stack_mut()
     }
 
-    /// Set the name of the current thread. The buffer must not include the null terminator.
     #[inline]
     fn set_thread_name(&mut self, thread: ThreadId, new_thread_name: Vec<u8>) {
         let this = self.eval_context_mut();
@@ -933,9 +861,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         callback: TimeoutCallback<'mir, 'tcx>,
     ) {
         let this = self.eval_context_mut();
-        if !this.machine.communicate() && matches!(call_time, Time::RealTime(..)) {
-            panic!("cannot have `RealTime` callback with isolation enabled!")
-        }
         this.machine.threads.register_timeout_callback(thread, call_time, callback);
     }
 
@@ -949,19 +874,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     #[inline]
     fn run_timeout_callback(&mut self) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
-        let (thread, callback) = if let Some((thread, callback)) =
-            this.machine.threads.get_ready_callback(&this.machine.clock)
-        {
-            (thread, callback)
-        } else {
-            // get_ready_callback can return None if the computer's clock
-            // was shifted after calling the scheduler and before the call
-            // to get_ready_callback (see issue
-            // https://github.com/rust-lang/miri/issues/1763). In this case,
-            // just do nothing, which effectively just returns to the
-            // scheduler.
-            return Ok(());
-        };
+        let (thread, callback) =
+            if let Some((thread, callback)) = this.machine.threads.get_ready_callback() {
+                (thread, callback)
+            } else {
+                // get_ready_callback can return None if the computer's clock
+                // was shifted after calling the scheduler and before the call
+                // to get_ready_callback (see issue
+                // https://github.com/rust-lang/miri/issues/1763). In this case,
+                // just do nothing, which effectively just returns to the
+                // scheduler.
+                return Ok(());
+            };
         // This back-and-forth with `set_active_thread` is here because of two
         // design decisions:
         // 1. Make the caller and not the callback responsible for changing
@@ -969,7 +893,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         // 2. Make the scheduler the only place that can change the active
         //    thread.
         let old_thread = this.set_active_thread(thread);
-        callback.call(this)?;
+        callback(this)?;
         this.set_active_thread(old_thread);
         Ok(())
     }
@@ -978,7 +902,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     #[inline]
     fn schedule(&mut self) -> InterpResult<'tcx, SchedulingAction> {
         let this = self.eval_context_mut();
-        this.machine.threads.schedule(&this.machine.clock)
+        this.machine.threads.schedule()
     }
 
     /// Handles thread termination of the active thread: wakes up threads joining on this one,

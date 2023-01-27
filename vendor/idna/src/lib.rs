@@ -32,9 +32,8 @@
 //! > that minimizes the impact of this transition for client software,
 //! > allowing client software to access domains that are valid under either system.
 
-#[cfg(test)]
 #[macro_use]
-extern crate assert_matches;
+extern crate matches;
 
 pub mod punycode;
 mod uts46;

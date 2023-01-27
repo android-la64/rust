@@ -34,7 +34,7 @@
 #![feature(iter_intersperse)]
 #![feature(iter_order_by)]
 #![feature(let_chains)]
-#![feature(min_specialization)]
+#![cfg_attr(bootstrap, feature(let_else))]
 #![feature(never_type)]
 #![recursion_limit = "256"]
 
@@ -52,7 +52,6 @@ mod early;
 mod enum_intrinsics_non_enums;
 mod errors;
 mod expect;
-mod for_loops_over_fallibles;
 pub mod hidden_unicode_codepoints;
 mod internal;
 mod late;
@@ -63,7 +62,6 @@ mod non_ascii_idents;
 mod non_fmt_panic;
 mod nonstandard_style;
 mod noop_method_call;
-mod opaque_hidden_inferred_bound;
 mod pass_by_value;
 mod passes;
 mod redundant_semicolon;
@@ -87,7 +85,6 @@ use rustc_span::Span;
 use array_into_iter::ArrayIntoIter;
 use builtin::*;
 use enum_intrinsics_non_enums::EnumIntrinsicsNonEnums;
-use for_loops_over_fallibles::*;
 use hidden_unicode_codepoints::*;
 use internal::*;
 use let_underscore::*;
@@ -96,7 +93,6 @@ use non_ascii_idents::*;
 use non_fmt_panic::NonPanicFmt;
 use nonstandard_style::*;
 use noop_method_call::*;
-use opaque_hidden_inferred_bound::*;
 use pass_by_value::*;
 use redundant_semicolon::*;
 use traits::*;
@@ -190,7 +186,6 @@ macro_rules! late_lint_mod_passes {
         $macro!(
             $args,
             [
-                ForLoopsOverFallibles: ForLoopsOverFallibles,
                 HardwiredLints: HardwiredLints,
                 ImproperCTypesDeclarations: ImproperCTypesDeclarations,
                 ImproperCTypesDefinitions: ImproperCTypesDefinitions,
@@ -212,7 +207,7 @@ macro_rules! late_lint_mod_passes {
                 TypeLimits: TypeLimits::new(),
                 NonSnakeCase: NonSnakeCase,
                 InvalidNoMangleItems: InvalidNoMangleItems,
-                // Depends on effective visibilities
+                // Depends on access levels
                 UnreachablePub: UnreachablePub,
                 ExplicitOutlivesRequirements: ExplicitOutlivesRequirements,
                 InvalidValue: InvalidValue,
@@ -228,7 +223,6 @@ macro_rules! late_lint_mod_passes {
                 EnumIntrinsicsNonEnums: EnumIntrinsicsNonEnums,
                 InvalidAtomicOrdering: InvalidAtomicOrdering,
                 NamedAsmLabels: NamedAsmLabels,
-                OpaqueHiddenInferredBound: OpaqueHiddenInferredBound,
             ]
         );
     };
@@ -524,11 +518,6 @@ fn register_builtins(store: &mut LintStore, no_interleave_lints: bool) {
         "mutable_borrow_reservation_conflict",
         "now allowed, see issue #59159 \
          <https://github.com/rust-lang/rust/issues/59159> for more information",
-    );
-    store.register_removed(
-        "const_err",
-        "converted into hard error, see issue #71800 \
-         <https://github.com/rust-lang/rust/issues/71800> for more information",
     );
 }
 

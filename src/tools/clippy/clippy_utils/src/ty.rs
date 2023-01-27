@@ -12,13 +12,13 @@ use rustc_hir::{Expr, FnDecl, LangItem, TyKind, Unsafety};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
 use rustc_middle::mir::interpret::{ConstValue, Scalar};
+use rustc_middle::ty::subst::{GenericArg, GenericArgKind, Subst};
 use rustc_middle::ty::{
     self, AdtDef, Binder, BoundRegion, DefIdTree, FnSig, IntTy, ParamEnv, Predicate, PredicateKind, ProjectionTy,
     Region, RegionKind, Ty, TyCtxt, TypeSuperVisitable, TypeVisitable, TypeVisitor, UintTy, VariantDef, VariantDiscr,
 };
-use rustc_middle::ty::{GenericArg, GenericArgKind};
 use rustc_span::symbol::Ident;
-use rustc_span::{sym, Span, Symbol};
+use rustc_span::{sym, Span, Symbol, DUMMY_SP};
 use rustc_target::abi::{Size, VariantIdx};
 use rustc_trait_selection::infer::InferCtxtExt;
 use rustc_trait_selection::traits::query::normalize::AtExt;
@@ -28,14 +28,7 @@ use crate::{match_def_path, path_res, paths};
 
 // Checks if the given type implements copy.
 pub fn is_copy<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> bool {
-    ty.is_copy_modulo_regions(cx.tcx, cx.param_env)
-}
-
-/// This checks whether a given type is known to implement Debug.
-pub fn has_debug_impl<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> bool {
-    cx.tcx
-        .get_diagnostic_item(sym::Debug)
-        .map_or(false, |debug| implements_trait(cx, ty, debug, &[]))
+    ty.is_copy_modulo_regions(cx.tcx.at(DUMMY_SP), cx.param_env)
 }
 
 /// Checks whether a type can be partially moved.
@@ -172,10 +165,11 @@ pub fn implements_trait_with_env<'tcx>(
         return false;
     }
     let ty_params = tcx.mk_substs(ty_params.iter());
-    let infcx = tcx.infer_ctxt().build();
-    infcx
-        .type_implements_trait(trait_id, ty, ty_params, param_env)
-        .must_apply_modulo_regions()
+    tcx.infer_ctxt().enter(|infcx| {
+        infcx
+            .type_implements_trait(trait_id, ty, ty_params, param_env)
+            .must_apply_modulo_regions()
+    })
 }
 
 /// Checks whether this type implements `Drop`.
@@ -241,26 +235,27 @@ fn is_normalizable_helper<'tcx>(
     }
     // prevent recursive loops, false-negative is better than endless loop leading to stack overflow
     cache.insert(ty, false);
-    let infcx = cx.tcx.infer_ctxt().build();
-    let cause = rustc_middle::traits::ObligationCause::dummy();
-    let result = if infcx.at(&cause, param_env).normalize(ty).is_ok() {
-        match ty.kind() {
-            ty::Adt(def, substs) => def.variants().iter().all(|variant| {
-                variant
-                    .fields
-                    .iter()
-                    .all(|field| is_normalizable_helper(cx, param_env, field.ty(cx.tcx, substs), cache))
-            }),
-            _ => ty.walk().all(|generic_arg| match generic_arg.unpack() {
-                GenericArgKind::Type(inner_ty) if inner_ty != ty => {
-                    is_normalizable_helper(cx, param_env, inner_ty, cache)
-                },
-                _ => true, // if inner_ty == ty, we've already checked it
-            }),
+    let result = cx.tcx.infer_ctxt().enter(|infcx| {
+        let cause = rustc_middle::traits::ObligationCause::dummy();
+        if infcx.at(&cause, param_env).normalize(ty).is_ok() {
+            match ty.kind() {
+                ty::Adt(def, substs) => def.variants().iter().all(|variant| {
+                    variant
+                        .fields
+                        .iter()
+                        .all(|field| is_normalizable_helper(cx, param_env, field.ty(cx.tcx, substs), cache))
+                }),
+                _ => ty.walk().all(|generic_arg| match generic_arg.unpack() {
+                    GenericArgKind::Type(inner_ty) if inner_ty != ty => {
+                        is_normalizable_helper(cx, param_env, inner_ty, cache)
+                    },
+                    _ => true, // if inner_ty == ty, we've already checked it
+                }),
+            }
+        } else {
+            false
         }
-    } else {
-        false
-    };
+    });
     cache.insert(ty, result);
     result
 }
@@ -657,18 +652,21 @@ fn sig_for_projection<'tcx>(cx: &LateContext<'tcx>, ty: ProjectionTy<'tcx>) -> O
     let mut output = None;
     let lang_items = cx.tcx.lang_items();
 
-    for (pred, _) in cx
+    for pred in cx
         .tcx
         .bound_explicit_item_bounds(ty.item_def_id)
-        .subst_iter_copied(cx.tcx, ty.substs)
+        .transpose_iter()
+        .map(|x| x.map_bound(|(p, _)| p))
     {
-        match pred.kind().skip_binder() {
+        match pred.0.kind().skip_binder() {
             PredicateKind::Trait(p)
                 if (lang_items.fn_trait() == Some(p.def_id())
                     || lang_items.fn_mut_trait() == Some(p.def_id())
                     || lang_items.fn_once_trait() == Some(p.def_id())) =>
             {
-                let i = pred.kind().rebind(p.trait_ref.substs.type_at(1));
+                let i = pred
+                    .map_bound(|pred| pred.kind().rebind(p.trait_ref.substs.type_at(1)))
+                    .subst(cx.tcx, ty.substs);
 
                 if inputs.map_or(false, |inputs| inputs != i) {
                     // Multiple different fn trait impls. Is this even allowed?
@@ -681,7 +679,10 @@ fn sig_for_projection<'tcx>(cx: &LateContext<'tcx>, ty: ProjectionTy<'tcx>) -> O
                     // Multiple different fn trait impls. Is this even allowed?
                     return None;
                 }
-                output = pred.kind().rebind(p.term.ty()).transpose();
+                output = Some(
+                    pred.map_bound(|pred| pred.kind().rebind(p.term.ty().unwrap()))
+                        .subst(cx.tcx, ty.substs),
+                );
             },
             _ => (),
         }

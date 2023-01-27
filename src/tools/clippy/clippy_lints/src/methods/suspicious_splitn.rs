@@ -24,10 +24,10 @@ pub(super) fn check(cx: &LateContext<'_>, method_name: &str, expr: &Expr<'_>, se
             }
 
             let (msg, note_msg) = if count == 0 {
-                (format!("`{method_name}` called with `0` splits"),
+                (format!("`{}` called with `0` splits", method_name),
                 "the resulting iterator will always return `None`")
             } else {
-                (format!("`{method_name}` called with `1` split"),
+                (format!("`{}` called with `1` split", method_name),
                 if self_ty.is_slice() {
                     "the resulting iterator will always return the entire slice followed by `None`"
                 } else {

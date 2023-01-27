@@ -1,7 +1,7 @@
 //! Tests for namespaced features.
 
 use super::features2::switch_to_resolver_2;
-use cargo_test_support::registry::{self, Dependency, Package};
+use cargo_test_support::registry::{Dependency, Package};
 use cargo_test_support::{project, publish};
 
 #[cargo_test]
@@ -858,9 +858,6 @@ bar v1.0.0
 
 #[cargo_test]
 fn publish_no_implicit() {
-    // HACK below allows us to use a local registry
-    let registry = registry::init();
-
     // Does not include implicit features or dep: syntax on publish.
     Package::new("opt-dep1", "1.0.0").publish();
     Package::new("opt-dep2", "1.0.0").publish();
@@ -887,23 +884,12 @@ fn publish_no_implicit() {
         .file("src/lib.rs", "")
         .build();
 
-    // HACK: Inject `foo` directly into the index so `publish` won't block for it to be in
-    // the index.
-    //
-    // This is to ensure we can verify the Summary we post to the registry as doing so precludes
-    // the registry from processing the publish.
-    Package::new("foo", "0.1.0")
-        .file("src/lib.rs", "")
-        .publish();
-
-    p.cargo("publish --no-verify")
-        .replace_crates_io(registry.index_url())
+    p.cargo("publish --no-verify --token sekrit")
         .with_stderr(
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.1.0 [..]
 [UPLOADING] foo v0.1.0 [..]
-[UPDATING] [..]
 ",
         )
         .run();
@@ -921,6 +907,7 @@ fn publish_no_implicit() {
               "kind": "normal",
               "name": "opt-dep1",
               "optional": true,
+              "registry": "https://github.com/rust-lang/crates.io-index",
               "target": null,
               "version_req": "^1.0"
             },
@@ -930,6 +917,7 @@ fn publish_no_implicit() {
               "kind": "normal",
               "name": "opt-dep2",
               "optional": true,
+              "registry": "https://github.com/rust-lang/crates.io-index",
               "target": null,
               "version_req": "^1.0"
             }
@@ -983,9 +971,6 @@ feat = ["opt-dep1"]
 
 #[cargo_test]
 fn publish() {
-    // HACK below allows us to use a local registry
-    let registry = registry::init();
-
     // Publish behavior with explicit dep: syntax.
     Package::new("bar", "1.0.0").publish();
     let p = project()
@@ -1011,17 +996,7 @@ fn publish() {
         .file("src/lib.rs", "")
         .build();
 
-    // HACK: Inject `foo` directly into the index so `publish` won't block for it to be in
-    // the index.
-    //
-    // This is to ensure we can verify the Summary we post to the registry as doing so precludes
-    // the registry from processing the publish.
-    Package::new("foo", "0.1.0")
-        .file("src/lib.rs", "")
-        .publish();
-
-    p.cargo("publish")
-        .replace_crates_io(registry.index_url())
+    p.cargo("publish --token sekrit")
         .with_stderr(
             "\
 [UPDATING] [..]
@@ -1030,7 +1005,6 @@ fn publish() {
 [COMPILING] foo v0.1.0 [..]
 [FINISHED] [..]
 [UPLOADING] foo v0.1.0 [..]
-[UPDATING] [..]
 ",
         )
         .run();
@@ -1048,6 +1022,7 @@ fn publish() {
               "kind": "normal",
               "name": "bar",
               "optional": true,
+              "registry": "https://github.com/rust-lang/crates.io-index",
               "target": null,
               "version_req": "^1.0"
             }
@@ -1097,130 +1072,4 @@ feat3 = ["feat2"]
             ),
         )],
     );
-}
-
-#[cargo_test]
-fn namespaced_feature_together() {
-    // Check for an error when `dep:` is used with `/`
-    Package::new("bar", "1.0.0")
-        .feature("bar-feat", &[])
-        .publish();
-
-    // Non-optional shouldn't have extra err.
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-                [package]
-                name = "foo"
-                version = "0.1.0"
-
-                [dependencies]
-                bar = "1.0"
-
-                [features]
-                f1 = ["dep:bar/bar-feat"]
-            "#,
-        )
-        .file("src/lib.rs", "")
-        .build();
-    p.cargo("check")
-        .with_status(101)
-        .with_stderr(
-            "\
-error: failed to parse manifest at `[ROOT]/foo/Cargo.toml`
-
-Caused by:
-  feature `f1` includes `dep:bar/bar-feat` with both `dep:` and `/`
-  To fix this, remove the `dep:` prefix.
-",
-        )
-        .run();
-
-    // Weak dependency shouldn't have extra err.
-    p.change_file(
-        "Cargo.toml",
-        r#"
-            [package]
-            name = "foo"
-            version = "0.1.0"
-
-            [dependencies]
-            bar = {version = "1.0", optional = true }
-
-            [features]
-            f1 = ["dep:bar?/bar-feat"]
-        "#,
-    );
-    p.cargo("check")
-        .with_status(101)
-        .with_stderr(
-            "\
-error: failed to parse manifest at `[ROOT]/foo/Cargo.toml`
-
-Caused by:
-  feature `f1` includes `dep:bar?/bar-feat` with both `dep:` and `/`
-  To fix this, remove the `dep:` prefix.
-",
-        )
-        .run();
-
-    // If dep: is already specified, shouldn't have extra err.
-    p.change_file(
-        "Cargo.toml",
-        r#"
-            [package]
-            name = "foo"
-            version = "0.1.0"
-
-            [dependencies]
-            bar = {version = "1.0", optional = true }
-
-            [features]
-            f1 = ["dep:bar", "dep:bar/bar-feat"]
-        "#,
-    );
-    p.cargo("check")
-        .with_status(101)
-        .with_stderr(
-            "\
-error: failed to parse manifest at `[ROOT]/foo/Cargo.toml`
-
-Caused by:
-  feature `f1` includes `dep:bar/bar-feat` with both `dep:` and `/`
-  To fix this, remove the `dep:` prefix.
-",
-        )
-        .run();
-
-    // Only when the other 3 cases aren't true should it give some extra help.
-    p.change_file(
-        "Cargo.toml",
-        r#"
-            [package]
-            name = "foo"
-            version = "0.1.0"
-
-            [dependencies]
-            bar = {version = "1.0", optional = true }
-
-            [features]
-            f1 = ["dep:bar/bar-feat"]
-        "#,
-    );
-    p.cargo("check")
-        .with_status(101)
-        .with_stderr(
-            "\
-error: failed to parse manifest at `[ROOT]/foo/Cargo.toml`
-
-Caused by:
-  feature `f1` includes `dep:bar/bar-feat` with both `dep:` and `/`
-  To fix this, remove the `dep:` prefix.
-  If the intent is to avoid creating an implicit feature `bar` for an optional \
-  dependency, then consider replacing this with two values:
-      \"dep:bar\", \"bar/bar-feat\"
-",
-        )
-        .run();
 }

@@ -1,7 +1,7 @@
 use crate::cli;
 use crate::command_prelude::*;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("version")
         .about("Show version information")
         .arg_quiet()

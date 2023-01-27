@@ -1,8 +1,6 @@
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use crate::errors::RanlibFailure;
-
 use rustc_codegen_ssa::back::archive::{ArchiveBuilder, ArchiveBuilderBuilder};
 use rustc_session::Session;
 
@@ -184,7 +182,7 @@ impl<'a> ArchiveBuilder<'a> for ArArchiveBuilder<'a> {
             std::process::Command::new("ranlib").arg(output).status().expect("Couldn't run ranlib");
 
         if !status.success() {
-            self.config.sess.emit_fatal(RanlibFailure::new(status.code()));
+            self.config.sess.fatal(&format!("Ranlib exited with code {:?}", status.code()));
         }
 
         any_members

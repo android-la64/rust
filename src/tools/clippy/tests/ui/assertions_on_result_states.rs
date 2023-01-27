@@ -75,9 +75,3 @@ fn main() {
     let r: Result<Foo, Foo> = Err(Foo);
     assert!(r.is_err());
 }
-
-#[allow(dead_code)]
-fn issue9450() {
-    let res: Result<i32, i32> = Ok(1);
-    assert!(res.is_err())
-}

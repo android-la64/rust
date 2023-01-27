@@ -7,6 +7,7 @@
 
 extern crate rustc_data_structures;
 extern crate rustc_driver;
+extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_interface;
 extern crate rustc_metadata;
@@ -32,7 +33,7 @@ use rustc_middle::{
 };
 use rustc_session::{config::CrateType, search_paths::PathKind, CtfeBacktrace};
 
-use miri::{BacktraceStyle, ProvenanceMode, RetagFields};
+use miri::{BacktraceStyle, ProvenanceMode};
 
 struct MiriCompilerCalls {
     miri_config: miri::MiriConfig,
@@ -192,7 +193,7 @@ fn init_late_loggers(tcx: TyCtxt<'_>) {
             if log::Level::from_str(&var).is_ok() {
                 env::set_var(
                     "RUSTC_LOG",
-                    format!(
+                    &format!(
                         "rustc_middle::mir::interpret={0},rustc_const_eval::interpret={0}",
                         var
                     ),
@@ -243,7 +244,7 @@ fn host_sysroot() -> Option<String> {
                     )
                 }
             }
-            format!("{home}/toolchains/{toolchain}")
+            format!("{}/toolchains/{}", home, toolchain)
         }
         _ => option_env!("RUST_SYSROOT")
             .unwrap_or_else(|| {
@@ -330,7 +331,7 @@ fn main() {
         } else if crate_kind == "host" {
             false
         } else {
-            panic!("invalid `MIRI_BE_RUSTC` value: {crate_kind:?}")
+            panic!("invalid `MIRI_BE_RUSTC` value: {:?}", crate_kind)
         };
 
         // We cannot use `rustc_driver::main` as we need to adjust the CLI arguments.
@@ -426,14 +427,7 @@ fn main() {
         } else if arg == "-Zmiri-mute-stdout-stderr" {
             miri_config.mute_stdout_stderr = true;
         } else if arg == "-Zmiri-retag-fields" {
-            miri_config.retag_fields = RetagFields::Yes;
-        } else if let Some(retag_fields) = arg.strip_prefix("-Zmiri-retag-fields=") {
-            miri_config.retag_fields = match retag_fields {
-                "all" => RetagFields::Yes,
-                "none" => RetagFields::No,
-                "scalar" => RetagFields::OnlyScalar,
-                _ => show_error!("`-Zmiri-retag-fields` can only be `all`, `none`, or `scalar`"),
-            };
+            miri_config.retag_fields = true;
         } else if arg == "-Zmiri-track-raw-pointers" {
             eprintln!(
                 "WARNING: `-Zmiri-track-raw-pointers` has no effect; it is enabled by default"
@@ -447,10 +441,8 @@ fn main() {
                             "-Zmiri-seed should only contain valid hex digits [0-9a-fA-F] and must fit into a u64 (max 16 characters)"
                         ));
             miri_config.seed = Some(seed);
-        } else if let Some(_param) = arg.strip_prefix("-Zmiri-env-exclude=") {
-            show_error!(
-                "`-Zmiri-env-exclude` has been removed; unset env vars before starting Miri instead"
-            );
+        } else if let Some(param) = arg.strip_prefix("-Zmiri-env-exclude=") {
+            miri_config.excluded_env_vars.push(param.to_owned());
         } else if let Some(param) = arg.strip_prefix("-Zmiri-env-forward=") {
             miri_config.forwarded_env_vars.push(param.to_owned());
         } else if let Some(param) = arg.strip_prefix("-Zmiri-track-pointer-tag=") {
@@ -529,12 +521,6 @@ fn main() {
                 Err(err) => show_error!("-Zmiri-report-progress requires a `u32`: {}", err),
             };
             miri_config.report_progress = Some(interval);
-        } else if let Some(param) = arg.strip_prefix("-Zmiri-tag-gc=") {
-            let interval = match param.parse::<u32>() {
-                Ok(i) => i,
-                Err(err) => show_error!("-Zmiri-tag-gc requires a `u32`: {}", err),
-            };
-            miri_config.gc_interval = interval;
         } else if let Some(param) = arg.strip_prefix("-Zmiri-measureme=") {
             miri_config.measureme_out = Some(param.to_string());
         } else if let Some(param) = arg.strip_prefix("-Zmiri-backtrace=") {
@@ -557,13 +543,6 @@ fn main() {
             } else {
                 show_error!("-Zmiri-extern-so-file `{}` does not exist", filename);
             }
-        } else if let Some(param) = arg.strip_prefix("-Zmiri-num-cpus=") {
-            let num_cpus = match param.parse::<u32>() {
-                Ok(i) => i,
-                Err(err) => show_error!("-Zmiri-num-cpus requires a `u32`: {}", err),
-            };
-
-            miri_config.num_cpus = num_cpus;
         } else {
             // Forward to rustc.
             rustc_args.push(arg);

@@ -4,7 +4,7 @@ use base_db::CrateId;
 use cfg::{CfgExpr, CfgOptions};
 use hir_expand::MacroCallKind;
 use la_arena::Idx;
-use syntax::ast::{self, AnyHasAttrs};
+use syntax::ast;
 
 use crate::{
     attr::AttrId,
@@ -22,7 +22,7 @@ pub enum DefDiagnosticKind {
 
     UnresolvedImport { id: ItemTreeId<item_tree::Import>, index: Idx<ast::UseTree> },
 
-    UnconfiguredCode { ast: AstId<AnyHasAttrs>, cfg: CfgExpr, opts: CfgOptions },
+    UnconfiguredCode { ast: AstId<ast::Item>, cfg: CfgExpr, opts: CfgOptions },
 
     UnresolvedProcMacro { ast: MacroCallKind, krate: CrateId },
 
@@ -75,7 +75,7 @@ impl DefDiagnostic {
 
     pub fn unconfigured_code(
         container: LocalModuleId,
-        ast: AstId<ast::AnyHasAttrs>,
+        ast: AstId<ast::Item>,
         cfg: CfgExpr,
         opts: CfgOptions,
     ) -> Self {

@@ -3,7 +3,6 @@
 // run-fail
 // exec-env:RUST_BACKTRACE=0
 // check-run-results
-// needs-unwind uses catch_unwind
 
 use std::sync::Once;
 use std::panic;

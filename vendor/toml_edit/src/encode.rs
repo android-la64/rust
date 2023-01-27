@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter, Result, Write};
 
-use toml_datetime::*;
-
+use crate::datetime::*;
 use crate::document::Document;
 use crate::inline_table::DEFAULT_INLINE_KEY_DECOR;
 use crate::key::Key;
@@ -156,9 +155,8 @@ impl Display for Document {
         .unwrap();
 
         tables.sort_by_key(|&(id, _, _, _)| id);
-        let mut first_table = true;
         for (_, table, path, is_array) in tables {
-            visit_table(f, table, &path, is_array, &mut first_table)?;
+            visit_table(f, table, &path, is_array)?;
         }
         self.trailing.fmt(f)
     }
@@ -200,7 +198,6 @@ fn visit_table(
     table: &Table,
     path: &[&Key],
     is_array_of_tables: bool,
-    first_table: &mut bool,
 ) -> Result {
     let children = table.get_values();
     // We are intentionally hiding implicit tables without any tables nested under them (ie
@@ -216,29 +213,30 @@ fn visit_table(
 
     if path.is_empty() {
         // don't print header for the root node
-        if !children.is_empty() {
-            *first_table = false;
-        }
     } else if is_array_of_tables {
-        let default_decor = if *first_table {
-            *first_table = false;
-            ("", DEFAULT_TABLE_DECOR.1)
-        } else {
-            DEFAULT_TABLE_DECOR
-        };
-        write!(buf, "{}[[", table.decor.prefix().unwrap_or(default_decor.0))?;
+        write!(
+            buf,
+            "{}[[",
+            table.decor.prefix().unwrap_or(DEFAULT_TABLE_DECOR.0)
+        )?;
         path.encode(buf, DEFAULT_KEY_PATH_DECOR)?;
-        writeln!(buf, "]]{}", table.decor.suffix().unwrap_or(default_decor.1))?;
+        writeln!(
+            buf,
+            "]]{}",
+            table.decor.suffix().unwrap_or(DEFAULT_TABLE_DECOR.1)
+        )?;
     } else if is_visible_std_table {
-        let default_decor = if *first_table {
-            *first_table = false;
-            ("", DEFAULT_TABLE_DECOR.1)
-        } else {
-            DEFAULT_TABLE_DECOR
-        };
-        write!(buf, "{}[", table.decor.prefix().unwrap_or(default_decor.0))?;
+        write!(
+            buf,
+            "{}[",
+            table.decor.prefix().unwrap_or(DEFAULT_TABLE_DECOR.0)
+        )?;
         path.encode(buf, DEFAULT_KEY_PATH_DECOR)?;
-        writeln!(buf, "]{}", table.decor.suffix().unwrap_or(default_decor.1))?;
+        writeln!(
+            buf,
+            "]{}",
+            table.decor.suffix().unwrap_or(DEFAULT_TABLE_DECOR.1)
+        )?;
     }
     // print table body
     for (key_path, value) in children {

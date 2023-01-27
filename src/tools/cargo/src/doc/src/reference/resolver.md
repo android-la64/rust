@@ -428,7 +428,7 @@ members = ["member1", "member2"]
 resolver = "2"
 ```
 
-[virtual workspace]: workspaces.md#virtual-workspace
+[virtual workspace]: workspaces.md#virtual-manifest
 [features-2]: features.md#feature-resolver-version-2
 
 ## Recommendations

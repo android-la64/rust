@@ -3,6 +3,7 @@
 //! This basically just disassembles the current executable and then parses the
 //! output once globally and then provides the `assert` function which makes
 //! assertions about the disassembly of a function.
+#![feature(bench_black_box)] // For black_box
 #![deny(rust_2018_idioms)]
 #![allow(clippy::missing_docs_in_private_items, clippy::print_stdout)]
 

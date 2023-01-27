@@ -274,7 +274,7 @@ impl AsyncLen {
     }
 
     pub async fn len(&self) -> usize {
-        usize::from(!self.async_task().await)
+        if self.async_task().await { 0 } else { 1 }
     }
 
     pub async fn is_empty(&self) -> bool {

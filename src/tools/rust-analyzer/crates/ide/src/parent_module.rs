@@ -1,6 +1,6 @@
-use hir::{db::DefDatabase, Semantics};
+use hir::Semantics;
 use ide_db::{
-    base_db::{CrateId, FileId, FileLoader, FilePosition},
+    base_db::{CrateId, FileId, FilePosition},
     RootDatabase,
 };
 use itertools::Itertools;
@@ -55,13 +55,9 @@ pub(crate) fn parent_module(db: &RootDatabase, position: FilePosition) -> Vec<Na
 }
 
 /// Returns `Vec` for the same reason as `parent_module`
-pub(crate) fn crates_for(db: &RootDatabase, file_id: FileId) -> Vec<CrateId> {
-    db.relevant_crates(file_id)
-        .iter()
-        .copied()
-        .filter(|&crate_id| db.crate_def_map(crate_id).modules_for_file(file_id).next().is_some())
-        .sorted()
-        .collect()
+pub(crate) fn crate_for(db: &RootDatabase, file_id: FileId) -> Vec<CrateId> {
+    let sema = Semantics::new(db);
+    sema.to_module_defs(file_id).map(|module| module.krate().into()).unique().collect()
 }
 
 #[cfg(test)]
@@ -151,7 +147,7 @@ $0
 mod foo;
 "#,
         );
-        assert_eq!(analysis.crates_for(file_id).unwrap().len(), 1);
+        assert_eq!(analysis.crate_for(file_id).unwrap().len(), 1);
     }
 
     #[test]
@@ -166,6 +162,6 @@ mod baz;
 mod baz;
 "#,
         );
-        assert_eq!(analysis.crates_for(file_id).unwrap().len(), 2);
+        assert_eq!(analysis.crate_for(file_id).unwrap().len(), 2);
     }
 }

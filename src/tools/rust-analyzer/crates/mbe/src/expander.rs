@@ -8,7 +8,7 @@ mod transcriber;
 use rustc_hash::FxHashMap;
 use syntax::SmolStr;
 
-use crate::{parser::MetaVarKind, ExpandError, ExpandResult};
+use crate::{ExpandError, ExpandResult};
 
 pub(crate) fn expand_rules(
     rules: &[crate::Rule],
@@ -104,7 +104,6 @@ enum Binding {
     Fragment(Fragment),
     Nested(Vec<Binding>),
     Empty,
-    Missing(MetaVarKind),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

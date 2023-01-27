@@ -65,7 +65,7 @@
 //! [Pickle]: https://github.com/birkenfeld/serde-pickle
 //! [RON]: https://github.com/ron-rs/ron
 //! [BSON]: https://github.com/mongodb/bson-rust
-//! [Avro]: https://docs.rs/apache-avro
+//! [Avro]: https://github.com/flavray/avro-rs
 //! [JSON5]: https://github.com/callum-oakley/json5-rs
 //! [URL]: https://docs.rs/serde_qs
 //! [Envy]: https://github.com/softprops/envy
@@ -81,7 +81,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Serde types in rustdoc of other crates get linked to here.
-#![doc(html_root_url = "https://docs.rs/serde/1.0.147")]
+#![doc(html_root_url = "https://docs.rs/serde/1.0.143")]
 // Support using Serde without the standard library!
 #![cfg_attr(not(feature = "std"), no_std)]
 // Unstable functionality only if the user asks for it. For tracking and
@@ -247,19 +247,6 @@ mod lib {
 
     #[cfg(any(feature = "std", not(no_core_duration)))]
     pub use self::core::time::Duration;
-}
-
-// None of this crate's error handling needs the `From::from` error conversion
-// performed implicitly by the `?` operator or the standard library's `try!`
-// macro. This simplified macro gives a 5.5% improvement in compile time
-// compared to standard `try!`, and 9% improvement compared to `?`.
-macro_rules! try {
-    ($expr:expr) => {
-        match $expr {
-            Ok(val) => val,
-            Err(err) => return Err(err),
-        }
-    };
 }
 
 ////////////////////////////////////////////////////////////////////////////////

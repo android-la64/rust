@@ -1,7 +1,11 @@
 //! Streaming SIMD Extensions 3 (SSE3)
 
 use crate::{
-    core_arch::{simd::*, simd_llvm::simd_shuffle, x86::*},
+    core_arch::{
+        simd::*,
+        simd_llvm::{simd_shuffle2, simd_shuffle4},
+        x86::*,
+    },
     mem::transmute,
 };
 

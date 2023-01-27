@@ -1,6 +1,6 @@
 //! Tests for some invalid .cargo/config files.
 
-use cargo_test_support::registry::{self, Package};
+use cargo_test_support::registry::Package;
 use cargo_test_support::{basic_manifest, project, rustc_host};
 
 #[cargo_test]
@@ -19,8 +19,8 @@ fn bad1() {
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] expected table for configuration key `target.nonexistent-target`, \
-but found string in [..]config
+[ERROR] invalid configuration for key `target.nonexistent-target`
+expected a table, but found a string for `[..]` in [..]config
 ",
         )
         .run();
@@ -62,7 +62,6 @@ Caused by:
 
 #[cargo_test]
 fn bad3() {
-    let registry = registry::init();
     let p = project()
         .file("src/lib.rs", "")
         .file(
@@ -76,7 +75,6 @@ fn bad3() {
     Package::new("foo", "1.0.0").publish();
 
     p.cargo("publish -v")
-        .replace_crates_io(registry.index_url())
         .with_status(101)
         .with_stderr(
             "\
@@ -115,7 +113,6 @@ Caused by:
 
 #[cargo_test]
 fn bad6() {
-    let registry = registry::init();
     let p = project()
         .file("src/lib.rs", "")
         .file(
@@ -129,7 +126,6 @@ fn bad6() {
     Package::new("foo", "1.0.0").publish();
 
     p.cargo("publish -v")
-        .replace_crates_io(registry.index_url())
         .with_status(101)
         .with_stderr(
             "\
@@ -213,7 +209,7 @@ fn duplicate_packages_in_cargo_lock() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -267,7 +263,7 @@ fn bad_source_in_cargo_lock() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -658,7 +654,7 @@ warning: unused manifest key: target.foo.bar
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
 
                 name = "foo"
                 version = "0.5.0"
@@ -671,7 +667,7 @@ warning: unused manifest key: target.foo.bar
     p.cargo("build")
         .with_stderr(
             "\
-warning: unused manifest key: package.bulid
+warning: unused manifest key: project.bulid
 [COMPILING] foo [..]
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
 ",
@@ -683,7 +679,7 @@ warning: unused manifest key: package.bulid
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
 
                 name = "foo"
                 version = "0.5.0"

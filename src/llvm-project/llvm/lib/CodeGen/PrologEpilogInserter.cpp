@@ -1262,10 +1262,9 @@ void PEI::insertZeroCallUsedRegs(MachineFunction &MF) {
     }
   }
 
-  // Don't clear registers that must be preserved.
-  for (const MCPhysReg *CSRegs = TRI.getCalleeSavedRegs(&MF);
-       MCPhysReg CSReg = *CSRegs; ++CSRegs)
-    for (MCRegister Reg : TRI.sub_and_superregs_inclusive(CSReg))
+  // Don't clear registers that are reset before exiting.
+  for (const CalleeSavedInfo &CSI : MF.getFrameInfo().getCalleeSavedInfo())
+    for (MCRegister Reg : TRI.sub_and_superregs_inclusive(CSI.getReg()))
       RegsToZero.reset(Reg);
 
   const TargetFrameLowering &TFI = *MF.getSubtarget().getFrameLowering();

@@ -2,7 +2,7 @@ struct Foo(u8);
 
 impl Foo {
     fn bar(&self) -> bool { self.0 > 5 }
-    fn bar() {} //~ ERROR E0592
+    fn bar() {} //~ ERROR E0201
 }
 
 trait Baz {

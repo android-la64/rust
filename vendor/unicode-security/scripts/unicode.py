@@ -39,14 +39,14 @@ preamble = '''// Copyright 2012-2015 The Rust Project Developers. See the COPYRI
 #![allow(missing_docs, non_upper_case_globals, non_snake_case)]
 '''
 
-UNICODE_VERSION = (15, 0, 0)
+UNICODE_VERSION = (13, 0, 0)
 
 UNICODE_VERSION_NUMBER = "%s.%s.%s" %UNICODE_VERSION
 
 # Download a Unicode security table file
 def fetch(f):
     if not os.path.exists(os.path.basename(f)):
-        os.system("curl -O https://www.unicode.org/Public/security/%s/%s"
+        os.system("curl -O http://www.unicode.org/Public/security/%s/%s"
                   % (UNICODE_VERSION_NUMBER, f))
 
     if not os.path.exists(os.path.basename(f)):
@@ -56,7 +56,7 @@ def fetch(f):
 # Download a UCD table file
 def fetch_unidata(f):
     if not os.path.exists(os.path.basename(f)):
-        os.system("curl -O https://www.unicode.org/Public/%s/ucd/%s"
+        os.system("curl -O http://www.unicode.org/Public/%s/ucd/%s"
                   % (UNICODE_VERSION_NUMBER, f))
 
     if not os.path.exists(os.path.basename(f)):

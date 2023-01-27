@@ -1,5 +1,4 @@
 // run-pass
-
 #![feature(dyn_star)]
 #![allow(incomplete_features)]
 
@@ -18,7 +17,7 @@ fn invoke_dyn_star(i: dyn* Foo) -> usize {
 }
 
 fn make_and_invoke_dyn_star(i: usize) -> usize {
-    let dyn_i: dyn* Foo = i;
+    let dyn_i: dyn* Foo = i as dyn* Foo;
     invoke_dyn_star(dyn_i)
 }
 

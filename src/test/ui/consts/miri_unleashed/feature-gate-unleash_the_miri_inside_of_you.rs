@@ -1,3 +1,5 @@
+#![allow(const_err)]
+
 // a test demonstrating why we do need to run static const qualification on associated constants
 // instead of just checking the final constant
 
@@ -6,7 +8,7 @@ trait Foo<T> {
 }
 
 trait Bar<T, U: Foo<T>> {
-    const F: u32 = (U::X, 42).1; //~ ERROR destructor of
+    const F: u32 = (U::X, 42).1; //~ ERROR destructors cannot be evaluated at compile-time
 }
 
 impl Foo<u32> for () {

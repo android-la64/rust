@@ -1,7 +1,7 @@
 use crate::command_prelude::*;
 use cargo::ops::{self, OutputMetadataOptions};
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("metadata")
         .about(
             "Output the resolved dependencies of a package, \

@@ -13,8 +13,6 @@ use rustc_span::{sym, DebuggerVisualizerFile, DebuggerVisualizerType};
 
 use std::sync::Arc;
 
-use crate::errors::DebugVisualizerUnreadable;
-
 fn check_for_debugger_visualizer<'tcx>(
     tcx: TyCtxt<'tcx>,
     hir_id: HirId,
@@ -56,12 +54,13 @@ fn check_for_debugger_visualizer<'tcx>(
                     debugger_visualizers
                         .insert(DebuggerVisualizerFile::new(Arc::from(contents), visualizer_type));
                 }
-                Err(error) => {
-                    tcx.sess.emit_err(DebugVisualizerUnreadable {
-                        span: meta_item.span,
-                        file: &file,
-                        error,
-                    });
+                Err(err) => {
+                    tcx.sess
+                        .struct_span_err(
+                            meta_item.span,
+                            &format!("couldn't read {}: {}", file.display(), err),
+                        )
+                        .emit();
                 }
             }
         }

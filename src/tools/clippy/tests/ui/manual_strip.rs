@@ -1,4 +1,3 @@
-#![feature(custom_inner_attributes)]
 #![warn(clippy::manual_strip)]
 
 fn main() {
@@ -63,23 +62,5 @@ fn main() {
     let s4 = String::from("efgh");
     if s3.starts_with("ab") {
         s4[2..].to_string();
-    }
-}
-
-fn msrv_1_44() {
-    #![clippy::msrv = "1.44"]
-
-    let s = "abc";
-    if s.starts_with('a') {
-        s[1..].to_string();
-    }
-}
-
-fn msrv_1_45() {
-    #![clippy::msrv = "1.45"]
-
-    let s = "abc";
-    if s.starts_with('a') {
-        s[1..].to_string();
     }
 }

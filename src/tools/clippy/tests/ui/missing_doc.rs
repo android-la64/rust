@@ -1,4 +1,3 @@
-// needs-asm-support
 // aux-build: proc_macro_with_span.rs
 
 #![warn(clippy::missing_docs_in_private_items)]

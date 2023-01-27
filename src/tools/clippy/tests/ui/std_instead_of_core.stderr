@@ -4,8 +4,8 @@ error: used import from `std` instead of `core`
 LL |     use std::hash::Hasher;
    |         ^^^^^^^^^^^^^^^^^
    |
-   = help: consider importing the item from `core`
    = note: `-D clippy::std-instead-of-core` implied by `-D warnings`
+   = help: consider importing the item from `core`
 
 error: used import from `std` instead of `core`
   --> $DIR/std_instead_of_core.rs:11:9
@@ -63,25 +63,17 @@ LL |     let cell_absolute = ::std::cell::Cell::new(8u32);
    |
    = help: consider importing the item from `core`
 
-error: used import from `std` instead of `core`
-  --> $DIR/std_instead_of_core.rs:32:9
-   |
-LL |     use std::iter::Iterator;
-   |         ^^^^^^^^^^^^^^^^^^^
-   |
-   = help: consider importing the item from `core`
-
 error: used import from `std` instead of `alloc`
-  --> $DIR/std_instead_of_core.rs:38:9
+  --> $DIR/std_instead_of_core.rs:32:9
    |
 LL |     use std::vec;
    |         ^^^^^^^^
    |
-   = help: consider importing the item from `alloc`
    = note: `-D clippy::std-instead-of-alloc` implied by `-D warnings`
+   = help: consider importing the item from `alloc`
 
 error: used import from `std` instead of `alloc`
-  --> $DIR/std_instead_of_core.rs:39:9
+  --> $DIR/std_instead_of_core.rs:33:9
    |
 LL |     use std::vec::Vec;
    |         ^^^^^^^^^^^^^
@@ -89,13 +81,13 @@ LL |     use std::vec::Vec;
    = help: consider importing the item from `alloc`
 
 error: used import from `alloc` instead of `core`
-  --> $DIR/std_instead_of_core.rs:44:9
+  --> $DIR/std_instead_of_core.rs:38:9
    |
 LL |     use alloc::slice::from_ref;
    |         ^^^^^^^^^^^^^^^^^^^^^^
    |
-   = help: consider importing the item from `core`
    = note: `-D clippy::alloc-instead-of-core` implied by `-D warnings`
+   = help: consider importing the item from `core`
 
-error: aborting due to 12 previous errors
+error: aborting due to 11 previous errors
 

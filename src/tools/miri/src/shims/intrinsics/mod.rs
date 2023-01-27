@@ -18,8 +18,8 @@ use atomic::EvalContextExt as _;
 use helpers::check_arg_count;
 use simd::EvalContextExt as _;
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     fn call_intrinsic(
         &mut self,
         instance: ty::Instance<'tcx>,
@@ -365,7 +365,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
             "breakpoint" => {
                 let [] = check_arg_count(args)?;
                 // normally this would raise a SIGTRAP, which aborts if no debugger is connected
-                throw_machine_stop!(TerminationInfo::Abort(format!("Trace/breakpoint trap")))
+                throw_machine_stop!(TerminationInfo::Abort("Trace/breakpoint trap".to_string()))
             }
 
             name => throw_unsup_format!("unimplemented intrinsic: `{name}`"),

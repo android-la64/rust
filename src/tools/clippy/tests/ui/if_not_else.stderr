@@ -8,8 +8,8 @@ LL | |         println!("Bunny");
 LL | |     }
    | |_____^
    |
-   = help: remove the `!` and swap the blocks of the `if`/`else`
    = note: `-D clippy::if-not-else` implied by `-D warnings`
+   = help: remove the `!` and swap the blocks of the `if`/`else`
 
 error: unnecessary `!=` operation
   --> $DIR/if_not_else.rs:17:5

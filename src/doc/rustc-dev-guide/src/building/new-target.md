@@ -102,11 +102,15 @@ unreleased version of `libc`, you can add it to the top-level
 
 ```diff
 diff --git a/Cargo.toml b/Cargo.toml
-index 1e83f05e0ca..4d0172071c1 100644
+index be15e50e2bc..4fb1248ba99 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
-@@ -113,6 +113,8 @@ cargo-util = { path = "src/tools/cargo/crates/cargo-util" }
+@@ -66,10 +66,11 @@ cargo = { path = "src/tools/cargo" }
  [patch.crates-io]
+ # Similar to Cargo above we want the RLS to use a vendored version of `rustfmt`
+ # that we're shipping as well (to ensure that the rustfmt in RLS and the
+ # `rustfmt` executable are the same exact version).
+ rustfmt-nightly = { path = "src/tools/rustfmt" }
 +libc = { git = "https://github.com/rust-lang/libc", rev = "0bf7ce340699dcbacabdf5f16a242d2219a49ee0" }
 
  # See comments in `src/tools/rustc-workspace-hack/README.md` for what's going on

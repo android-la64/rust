@@ -1,6 +1,6 @@
 use crate::command_prelude::*;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("read-manifest")
         .about(
             "\

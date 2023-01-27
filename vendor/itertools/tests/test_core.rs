@@ -116,7 +116,7 @@ fn chain2() {
 fn write_to() {
     let xs = [7, 9, 8];
     let mut ys = [0; 5];
-    let cnt = ys.iter_mut().set_from(xs.iter().copied());
+    let cnt = ys.iter_mut().set_from(xs.iter().map(|x| *x));
     assert!(cnt == xs.len());
     assert!(ys == [7, 9, 8, 0, 0]);
 
@@ -180,10 +180,15 @@ fn batching() {
     let ys = [(0, 1), (2, 1)];
 
     // An iterator that gathers elements up in pairs
-    let pit = xs
-        .iter()
-        .cloned()
-        .batching(|it| it.next().and_then(|x| it.next().map(|y| (x, y))));
+    let pit = xs.iter().cloned().batching(|it| {
+               match it.next() {
+                   None => None,
+                   Some(x) => match it.next() {
+                       None => None,
+                       Some(y) => Some((x, y)),
+                   }
+               }
+           });
     it::assert_equal(pit, ys.iter().cloned());
 }
 

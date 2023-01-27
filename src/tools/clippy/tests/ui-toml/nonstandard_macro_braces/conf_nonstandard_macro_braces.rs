@@ -1,5 +1,4 @@
 // aux-build:proc_macro_derive.rs
-// run-rustfix
 
 #![warn(clippy::nonstandard_macro_braces)]
 
@@ -43,7 +42,6 @@ macro_rules! printlnfoo {
 fn main() {
     let _ = vec! {1, 2, 3};
     let _ = format!["ugh {} stop being such a good compiler", "hello"];
-    let _ = matches!{{}, ()};
     let _ = quote!(let x = 1;);
     let _ = quote::quote!(match match match);
     let _ = test!(); // trigger when macro def is inside our own crate

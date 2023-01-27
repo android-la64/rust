@@ -14,6 +14,7 @@ Core encoding and decoding interfaces.
 #![feature(min_specialization)]
 #![feature(core_intrinsics)]
 #![feature(maybe_uninit_slice)]
+#![cfg_attr(bootstrap, feature(let_else))]
 #![feature(new_uninit)]
 #![feature(allocator_api)]
 #![cfg_attr(test, feature(test))]

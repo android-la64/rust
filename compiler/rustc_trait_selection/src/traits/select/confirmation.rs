@@ -11,10 +11,9 @@ use rustc_hir::lang_items::LangItem;
 use rustc_index::bit_set::GrowableBitSet;
 use rustc_infer::infer::InferOk;
 use rustc_infer::infer::LateBoundRegionConversionTime::HigherRankedType;
-use rustc_middle::ty::{
-    self, GenericArg, GenericArgKind, GenericParamDefKind, InternalSubsts, SubstsRef,
-    ToPolyTraitRef, ToPredicate, Ty, TyCtxt,
-};
+use rustc_middle::ty::subst::{GenericArg, GenericArgKind, InternalSubsts, Subst, SubstsRef};
+use rustc_middle::ty::{self, GenericParamDefKind, Ty, TyCtxt};
+use rustc_middle::ty::{ToPolyTraitRef, ToPredicate};
 use rustc_span::def_id::DefId;
 
 use crate::traits::project::{normalize_with_depth, normalize_with_depth_to};
@@ -64,14 +63,15 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 ImplSource::UserDefined(self.confirm_impl_candidate(obligation, impl_def_id))
             }
 
-            AutoImplCandidate => {
-                let data = self.confirm_auto_impl_candidate(obligation);
+            AutoImplCandidate(trait_def_id) => {
+                let data = self.confirm_auto_impl_candidate(obligation, trait_def_id);
                 ImplSource::AutoImpl(data)
             }
 
-            ProjectionCandidate(idx, constness) => {
+            ProjectionCandidate(idx) => {
                 let obligations = self.confirm_projection_candidate(obligation, idx)?;
-                ImplSource::Param(obligations, constness)
+                // FIXME(jschievink): constness
+                ImplSource::Param(obligations, ty::BoundConstness::NotConst)
             }
 
             ObjectCandidate(idx) => {
@@ -100,8 +100,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
             PointeeCandidate => ImplSource::Pointee(ImplSourcePointeeData),
 
-            TraitAliasCandidate => {
-                let data = self.confirm_trait_alias_candidate(obligation);
+            TraitAliasCandidate(alias_def_id) => {
+                let data = self.confirm_trait_alias_candidate(obligation, alias_def_id);
                 ImplSource::TraitAlias(data)
             }
 
@@ -126,6 +126,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 let data = self.confirm_const_destruct_candidate(obligation, def_id)?;
                 ImplSource::ConstDestruct(data)
             }
+
+            TupleCandidate => ImplSource::Tuple,
         };
 
         if !obligation.predicate.is_const_if_const() {
@@ -288,10 +290,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
         let scope = type_at(2).skip_binder();
 
-        let Some(assume) =
-            rustc_transmute::Assume::from_const(self.infcx.tcx, obligation.param_env, const_at(3)) else {
-                return Err(Unimplemented);
-            };
+        let assume =
+            rustc_transmute::Assume::from_const(self.infcx.tcx, obligation.param_env, const_at(3));
 
         let cause = obligation.cause.clone();
 
@@ -315,12 +315,13 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     fn confirm_auto_impl_candidate(
         &mut self,
         obligation: &TraitObligation<'tcx>,
+        trait_def_id: DefId,
     ) -> ImplSourceAutoImplData<PredicateObligation<'tcx>> {
-        debug!(?obligation, "confirm_auto_impl_candidate");
+        debug!(?obligation, ?trait_def_id, "confirm_auto_impl_candidate");
 
         let self_ty = self.infcx.shallow_resolve(obligation.predicate.self_ty());
         let types = self.constituent_types_for_ty(self_ty);
-        self.vtable_auto_impl(obligation, obligation.predicate.def_id(), types)
+        self.vtable_auto_impl(obligation, trait_def_id, types)
     }
 
     /// See `confirm_auto_impl_candidate`.
@@ -618,47 +619,17 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         )
         .map_bound(|(trait_ref, _)| trait_ref);
 
-        let mut nested = self.confirm_poly_trait_refs(obligation, trait_ref)?;
-
-        // Confirm the `type Output: Sized;` bound that is present on `FnOnce`
-        let cause = obligation.derived_cause(BuiltinDerivedObligation);
-        // The binder on the Fn obligation is "less" important than the one on
-        // the signature, as evidenced by how we treat it during projection.
-        // The safe thing to do here is to liberate it, though, which should
-        // have no worse effect than skipping the binder here.
-        let liberated_fn_ty =
-            self.infcx.replace_bound_vars_with_placeholders(obligation.predicate.rebind(self_ty));
-        let output_ty = self
-            .infcx
-            .replace_bound_vars_with_placeholders(liberated_fn_ty.fn_sig(self.tcx()).output());
-        let output_ty = normalize_with_depth_to(
-            self,
-            obligation.param_env,
-            cause.clone(),
-            obligation.recursion_depth,
-            output_ty,
-            &mut nested,
-        );
-        let tr = ty::Binder::dummy(ty::TraitRef::new(
-            self.tcx().require_lang_item(LangItem::Sized, None),
-            self.tcx().mk_substs_trait(output_ty, &[]),
-        ));
-        nested.push(Obligation::new(
-            cause,
-            obligation.param_env,
-            tr.to_poly_trait_predicate().to_predicate(self.tcx()),
-        ));
-
+        let nested = self.confirm_poly_trait_refs(obligation, trait_ref)?;
         Ok(ImplSourceFnPointerData { fn_ty: self_ty, nested })
     }
 
     fn confirm_trait_alias_candidate(
         &mut self,
         obligation: &TraitObligation<'tcx>,
+        alias_def_id: DefId,
     ) -> ImplSourceTraitAliasData<'tcx, PredicateObligation<'tcx>> {
-        debug!(?obligation, "confirm_trait_alias_candidate");
+        debug!(?obligation, ?alias_def_id, "confirm_trait_alias_candidate");
 
-        let alias_def_id = obligation.predicate.def_id();
         let predicate = self.infcx().replace_bound_vars_with_placeholders(obligation.predicate);
         let trait_ref = predicate.trait_ref;
         let trait_def_id = trait_ref.def_id;
@@ -1224,9 +1195,6 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 | ty::FnPtr(_)
                 | ty::Never
                 | ty::Foreign(_) => {}
-
-                // `ManuallyDrop` is trivially drop
-                ty::Adt(def, _) if Some(def.did()) == tcx.lang_items().manually_drop() => {}
 
                 // These types are built-in, so we can fast-track by registering
                 // nested predicates for their constituent type(s)

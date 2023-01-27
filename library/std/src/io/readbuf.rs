@@ -3,10 +3,10 @@
 #[cfg(test)]
 mod tests;
 
+use crate::cmp;
 use crate::fmt::{self, Debug, Formatter};
 use crate::io::{Result, Write};
 use crate::mem::{self, MaybeUninit};
-use crate::{cmp, ptr};
 
 /// A borrowed byte buffer which is incrementally filled and initialized.
 ///
@@ -250,11 +250,8 @@ impl<'a> BorrowedCursor<'a> {
     /// Initializes all bytes in the cursor.
     #[inline]
     pub fn ensure_init(&mut self) -> &mut Self {
-        let uninit = self.uninit_mut();
-        // SAFETY: 0 is a valid value for MaybeUninit<u8> and the length matches the allocation
-        // since it is comes from a slice reference.
-        unsafe {
-            ptr::write_bytes(uninit.as_mut_ptr(), 0, uninit.len());
+        for byte in self.uninit_mut() {
+            byte.write(0);
         }
         self.buf.init = self.buf.capacity();
 

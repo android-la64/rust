@@ -4,7 +4,7 @@ error: unconstrained opaque type
 LL |     type Future = impl Trait;
    |                   ^^^^^^^^^^
    |
-   = note: `Future` must be used in combination with a concrete type within the same impl
+   = note: `Future` must be used in combination with a concrete type within the same module
 
 error: aborting due to previous error
 

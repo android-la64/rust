@@ -146,7 +146,6 @@ mod drop;
 mod function;
 mod generator;
 mod index;
-mod index_range;
 mod range;
 mod try_trait;
 mod unsize;
@@ -178,8 +177,6 @@ pub use self::index::{Index, IndexMut};
 
 #[stable(feature = "rust1", since = "1.0.0")]
 pub use self::range::{Range, RangeFrom, RangeFull, RangeTo};
-
-pub(crate) use self::index_range::IndexRange;
 
 #[stable(feature = "inclusive_range", since = "1.26.0")]
 pub use self::range::{Bound, RangeBounds, RangeInclusive, RangeToInclusive};

@@ -2,9 +2,7 @@ error: expected identifier, found `0`
   --> $DIR/issue-69378-ice-on-invalid-type-node-after-recovery.rs:3:14
    |
 LL | struct Foo { 0: u8 }
-   |        ---   ^ expected identifier
-   |        |
-   |        while parsing this struct
+   |              ^ expected identifier
 
 error: aborting due to previous error
 

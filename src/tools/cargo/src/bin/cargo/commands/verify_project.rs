@@ -3,7 +3,7 @@ use crate::command_prelude::*;
 use std::collections::HashMap;
 use std::process;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("verify-project")
         .about("Check correctness of crate manifest")
         .arg_quiet()

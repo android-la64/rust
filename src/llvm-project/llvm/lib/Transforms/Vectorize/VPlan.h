@@ -1187,19 +1187,15 @@ class VPWidenPointerInductionRecipe : public VPHeaderPHIRecipe {
   /// explicitly.
   ScalarEvolution &SE;
 
-  bool IsScalarAfterVectorization;
-
 public:
   /// Create a new VPWidenPointerInductionRecipe for \p Phi with start value \p
   /// Start.
   VPWidenPointerInductionRecipe(PHINode *Phi, VPValue *Start,
                                 const InductionDescriptor &IndDesc,
-                                ScalarEvolution &SE,
-                                bool IsScalarAfterVectorization)
+                                ScalarEvolution &SE)
       : VPHeaderPHIRecipe(VPVWidenPointerInductionSC, VPWidenPointerInductionSC,
                           Phi),
-        IndDesc(IndDesc), SE(SE),
-        IsScalarAfterVectorization(IsScalarAfterVectorization) {
+        IndDesc(IndDesc), SE(SE) {
     addOperand(Start);
   }
 
@@ -1220,7 +1216,7 @@ public:
   void execute(VPTransformState &State) override;
 
   /// Returns true if only scalar values will be generated.
-  bool onlyScalarsGenerated();
+  bool onlyScalarsGenerated(ElementCount VF);
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Print the recipe.

@@ -5,7 +5,9 @@
 //
 // run-fail
 // error-pattern: AddressSanitizer: stack-buffer-overflow
-// error-pattern: 'xs' (line 13) <== Memory access at offset
+// error-pattern: 'xs' (line 15) <== Memory access at offset
+
+#![feature(bench_black_box)]
 
 use std::hint::black_box;
 

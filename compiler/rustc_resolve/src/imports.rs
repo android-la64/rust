@@ -1,9 +1,9 @@
 //! A bunch of methods and structures more or less related to resolving imports.
 
-use crate::diagnostics::{import_candidates, Suggestion};
+use crate::diagnostics::Suggestion;
 use crate::Determinacy::{self, *};
-use crate::Namespace::*;
-use crate::{module_to_string, names_to_string, ImportSuggestion};
+use crate::Namespace::{MacroNS, TypeNS};
+use crate::{module_to_string, names_to_string};
 use crate::{AmbiguityKind, BindingKey, ModuleKind, ResolutionError, Resolver, Segment};
 use crate::{Finalize, Module, ModuleOrUniformRoot, ParentScope, PerNS, ScopeSet};
 use crate::{NameBinding, NameBindingKind, PathResult};
@@ -252,7 +252,7 @@ impl<'a> Resolver<'a> {
         self.set_binding_parent_module(binding, module);
         self.update_resolution(module, key, |this, resolution| {
             if let Some(old_binding) = resolution.binding {
-                if res == Res::Err && old_binding.res() != Res::Err {
+                if res == Res::Err {
                     // Do not override real bindings with `Res::Err`s from error recovery.
                     return Ok(());
                 }
@@ -381,7 +381,6 @@ struct UnresolvedImportError {
     label: Option<String>,
     note: Option<String>,
     suggestion: Option<Suggestion>,
-    candidate: Option<Vec<ImportSuggestion>>,
 }
 
 pub struct ImportResolver<'a, 'b> {
@@ -473,7 +472,6 @@ impl<'a, 'b> ImportResolver<'a, 'b> {
                     label: None,
                     note: None,
                     suggestion: None,
-                    candidate: None,
                 };
                 if path.contains("::") {
                     errors.push((path, err))
@@ -523,16 +521,6 @@ impl<'a, 'b> ImportResolver<'a, 'b> {
                     continue;
                 }
                 diag.multipart_suggestion(&msg, suggestions, applicability);
-            }
-
-            if let Some(candidate) = &err.candidate {
-                import_candidates(
-                    self.r.session,
-                    &self.r.source_span,
-                    &mut diag,
-                    Some(err.span),
-                    &candidate,
-                )
             }
         }
 
@@ -651,7 +639,6 @@ impl<'a, 'b> ImportResolver<'a, 'b> {
             Some(finalize),
             ignore_binding,
         );
-
         let no_ambiguity = self.r.ambiguity_errors.len() == prev_ambiguity_errors_len;
         import.vis.set(orig_vis);
         let module = match path_res {
@@ -694,14 +681,12 @@ impl<'a, 'b> ImportResolver<'a, 'b> {
                                 String::from("a similar path exists"),
                                 Applicability::MaybeIncorrect,
                             )),
-                            candidate: None,
                         },
                         None => UnresolvedImportError {
                             span,
                             label: Some(label),
                             note: None,
                             suggestion,
-                            candidate: None,
                         },
                     };
                     return Some(err);
@@ -744,7 +729,6 @@ impl<'a, 'b> ImportResolver<'a, 'b> {
                             label: Some(String::from("cannot glob-import a module into itself")),
                             note: None,
                             suggestion: None,
-                            candidate: None,
                         });
                     }
                 }
@@ -910,19 +894,11 @@ impl<'a, 'b> ImportResolver<'a, 'b> {
                     }
                 };
 
-                let parent_suggestion =
-                    self.r.lookup_import_candidates(ident, TypeNS, &import.parent_scope, |_| true);
-
                 Some(UnresolvedImportError {
                     span: import.span,
                     label: Some(label),
                     note,
                     suggestion,
-                    candidate: if !parent_suggestion.is_empty() {
-                        Some(parent_suggestion)
-                    } else {
-                        None
-                    },
                 })
             } else {
                 // `resolve_ident_in_module` reported a privacy error.

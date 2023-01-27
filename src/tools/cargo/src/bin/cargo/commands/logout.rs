@@ -1,7 +1,7 @@
 use crate::command_prelude::*;
 use cargo::ops;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("logout")
         .about("Remove an API token from the registry locally")
         .arg_quiet()

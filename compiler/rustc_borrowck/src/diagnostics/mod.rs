@@ -237,7 +237,6 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 }
                 ProjectionElem::Downcast(..) if opt.including_downcast => return None,
                 ProjectionElem::Downcast(..) => (),
-                ProjectionElem::OpaqueCast(..) => (),
                 ProjectionElem::Field(field, _ty) => {
                     // FIXME(project-rfc_2229#36): print capture precisely here.
                     if let Some(field) = self.is_upvar_field_projection(PlaceRef {
@@ -318,7 +317,6 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     PlaceRef { local, projection: proj_base }.ty(self.body, self.infcx.tcx)
                 }
                 ProjectionElem::Downcast(..) => place.ty(self.body, self.infcx.tcx),
-                ProjectionElem::OpaqueCast(ty) => PlaceTy::from_ty(*ty),
                 ProjectionElem::Field(_, field_type) => PlaceTy::from_ty(*field_type),
             },
         };
@@ -972,6 +970,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         move_span: Span,
         move_spans: UseSpans<'tcx>,
         moved_place: Place<'tcx>,
+        used_place: Option<PlaceRef<'tcx>>,
         partially_str: &str,
         loop_message: &str,
         move_msg: &str,
@@ -1025,8 +1024,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     if let Some((CallDesugaringKind::ForLoopIntoIter, _)) = desugaring {
                         let ty = moved_place.ty(self.body, self.infcx.tcx).ty;
                         let suggest = match self.infcx.tcx.get_diagnostic_item(sym::IntoIterator) {
-                            Some(def_id) => {
-                                let infcx = self.infcx.tcx.infer_ctxt().build();
+                            Some(def_id) => self.infcx.tcx.infer_ctxt().enter(|infcx| {
                                 type_known_to_meet_bound_modulo_regions(
                                     &infcx,
                                     self.param_env,
@@ -1037,7 +1035,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                                     def_id,
                                     DUMMY_SP,
                                 )
-                            }
+                            }),
                             _ => false,
                         };
                         if suggest {
@@ -1060,11 +1058,9 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                                 place_name, partially_str, loop_message
                             ),
                         );
-                        // If the moved place was a `&mut` ref, then we can
-                        // suggest to reborrow it where it was moved, so it
-                        // will still be valid by the time we get to the usage.
-                        if let ty::Ref(_, _, hir::Mutability::Mut) =
-                            moved_place.ty(self.body, self.infcx.tcx).ty.kind()
+                        // If we have a `&mut` ref, we need to reborrow.
+                        if let Some(ty::Ref(_, _, hir::Mutability::Mut)) = used_place
+                            .map(|used_place| used_place.ty(self.body, self.infcx.tcx).ty.kind())
                         {
                             // If we are in a loop this will be suggested later.
                             if !is_loop_move {

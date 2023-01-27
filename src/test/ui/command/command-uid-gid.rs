@@ -2,7 +2,6 @@
 // ignore-android
 // ignore-emscripten
 // ignore-sgx
-// ignore-fuchsia no '/bin/sh', '/bin/ls'
 
 #![feature(rustc_private)]
 

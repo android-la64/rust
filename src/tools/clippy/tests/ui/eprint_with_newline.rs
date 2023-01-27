@@ -45,13 +45,5 @@ fn main() {
     eprint!("\r\n");
     eprint!("foo\r\n");
     eprint!("\\r\n"); //~ ERROR
-    eprint!("foo\rbar\n");
-
-    // Ignore expanded format strings
-    macro_rules! newline {
-        () => {
-            "\n"
-        };
-    }
-    eprint!(newline!());
+    eprint!("foo\rbar\n") // ~ ERROR
 }

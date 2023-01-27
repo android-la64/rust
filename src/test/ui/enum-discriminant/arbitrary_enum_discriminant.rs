@@ -1,5 +1,5 @@
 // run-pass
-#![feature(test)]
+#![feature(arbitrary_enum_discriminant, test)]
 
 extern crate test;
 

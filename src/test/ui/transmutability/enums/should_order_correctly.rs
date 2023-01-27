@@ -2,6 +2,7 @@
 //! The payloads of an enum variant should be ordered after its tag.
 
 #![crate_type = "lib"]
+#![feature(arbitrary_enum_discriminant)]
 #![feature(transmutability)]
 #![allow(dead_code)]
 

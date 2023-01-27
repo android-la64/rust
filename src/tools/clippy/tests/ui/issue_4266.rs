@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(clippy::uninlined_format_args)]
 
 async fn sink1<'a>(_: &'a str) {} // lint
 async fn sink1_elided(_: &str) {} // ok

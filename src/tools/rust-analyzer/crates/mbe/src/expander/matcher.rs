@@ -66,7 +66,7 @@ use syntax::SmolStr;
 
 use crate::{
     expander::{Binding, Bindings, ExpandResult, Fragment},
-    parser::{MetaVarKind, Op, RepeatKind, Separator},
+    parser::{Op, RepeatKind, Separator},
     tt_iter::TtIter,
     ExpandError, MetaTemplate,
 };
@@ -119,7 +119,6 @@ pub(super) fn match_(pattern: &MetaTemplate, input: &tt::Subtree) -> Match {
             .map(|it| match it {
                 Binding::Fragment(_) => 1,
                 Binding::Empty => 1,
-                Binding::Missing(_) => 1,
                 Binding::Nested(it) => count(it.iter()),
             })
             .sum()
@@ -131,7 +130,6 @@ enum BindingKind {
     Empty(SmolStr),
     Optional(SmolStr),
     Fragment(SmolStr, Fragment),
-    Missing(SmolStr, MetaVarKind),
     Nested(usize, usize),
 }
 
@@ -192,10 +190,6 @@ impl BindingsBuilder {
             .push(LinkNode::Node(Rc::new(BindingKind::Fragment(var.clone(), fragment))));
     }
 
-    fn push_missing(&mut self, idx: &mut BindingsIdx, var: &SmolStr, kind: MetaVarKind) {
-        self.nodes[idx.0].push(LinkNode::Node(Rc::new(BindingKind::Missing(var.clone(), kind))));
-    }
-
     fn push_nested(&mut self, parent: &mut BindingsIdx, child: &BindingsIdx) {
         let BindingsIdx(idx, nidx) = self.copy(child);
         self.nodes[parent.0].push(LinkNode::Node(Rc::new(BindingKind::Nested(idx, nidx))));
@@ -209,16 +203,17 @@ impl BindingsBuilder {
     }
 
     fn build(self, idx: &BindingsIdx) -> Bindings {
-        self.build_inner(&self.nodes[idx.0])
+        let mut bindings = Bindings::default();
+        self.build_inner(&mut bindings, &self.nodes[idx.0]);
+        bindings
     }
 
-    fn build_inner(&self, link_nodes: &[LinkNode<Rc<BindingKind>>]) -> Bindings {
-        let mut bindings = Bindings::default();
+    fn build_inner(&self, bindings: &mut Bindings, link_nodes: &[LinkNode<Rc<BindingKind>>]) {
         let mut nodes = Vec::new();
         self.collect_nodes(link_nodes, &mut nodes);
 
         for cmd in nodes {
-            match cmd {
+            match &**cmd {
                 BindingKind::Empty(name) => {
                     bindings.push_empty(name);
                 }
@@ -227,9 +222,6 @@ impl BindingsBuilder {
                 }
                 BindingKind::Fragment(name, fragment) => {
                     bindings.inner.insert(name.clone(), Binding::Fragment(fragment.clone()));
-                }
-                BindingKind::Missing(name, kind) => {
-                    bindings.inner.insert(name.clone(), Binding::Missing(*kind));
                 }
                 BindingKind::Nested(idx, nested_idx) => {
                     let mut nested_nodes = Vec::new();
@@ -254,15 +246,13 @@ impl BindingsBuilder {
                 }
             }
         }
-
-        bindings
     }
 
     fn collect_nested_ref<'a>(
         &'a self,
         id: usize,
         len: usize,
-        nested_refs: &mut Vec<&'a [LinkNode<Rc<BindingKind>>]>,
+        nested_refs: &mut Vec<&'a Vec<LinkNode<Rc<BindingKind>>>>,
     ) {
         self.nested[id].iter().take(len).for_each(|it| match it {
             LinkNode::Node(id) => nested_refs.push(&self.nodes[*id]),
@@ -272,16 +262,26 @@ impl BindingsBuilder {
 
     fn collect_nested(&self, idx: usize, nested_idx: usize, nested: &mut Vec<Bindings>) {
         let last = &self.nodes[idx];
-        let mut nested_refs: Vec<&[_]> = Vec::new();
+        let mut nested_refs = Vec::new();
         self.nested[nested_idx].iter().for_each(|it| match *it {
             LinkNode::Node(idx) => nested_refs.push(&self.nodes[idx]),
             LinkNode::Parent { idx, len } => self.collect_nested_ref(idx, len, &mut nested_refs),
         });
         nested_refs.push(last);
-        nested.extend(nested_refs.into_iter().map(|iter| self.build_inner(iter)));
+
+        nested_refs.into_iter().for_each(|iter| {
+            let mut child_bindings = Bindings::default();
+            self.build_inner(&mut child_bindings, iter);
+            nested.push(child_bindings)
+        })
     }
 
-    fn collect_nodes_ref<'a>(&'a self, id: usize, len: usize, nodes: &mut Vec<&'a BindingKind>) {
+    fn collect_nodes_ref<'a>(
+        &'a self,
+        id: usize,
+        len: usize,
+        nodes: &mut Vec<&'a Rc<BindingKind>>,
+    ) {
         self.nodes[id].iter().take(len).for_each(|it| match it {
             LinkNode::Node(it) => nodes.push(it),
             LinkNode::Parent { idx, len } => self.collect_nodes_ref(*idx, *len, nodes),
@@ -291,7 +291,7 @@ impl BindingsBuilder {
     fn collect_nodes<'a>(
         &'a self,
         link_nodes: &'a [LinkNode<Rc<BindingKind>>],
-        nodes: &mut Vec<&'a BindingKind>,
+        nodes: &mut Vec<&'a Rc<BindingKind>>,
     ) {
         link_nodes.iter().for_each(|it| match it {
             LinkNode::Node(it) => nodes.push(it),
@@ -386,10 +386,10 @@ fn match_loop_inner<'t>(
         let op = match item.dot.peek() {
             None => {
                 // We are at or past the end of the matcher of `item`.
-                if let Some(up) = &item.up {
+                if item.up.is_some() {
                     if item.sep_parsed.is_none() {
                         // Get the `up` matcher
-                        let mut new_pos = (**up).clone();
+                        let mut new_pos = *item.up.clone().unwrap();
                         new_pos.bindings = bindings_builder.copy(&new_pos.bindings);
                         // Add matches from this repetition to the `matches` of `up`
                         bindings_builder.push_nested(&mut new_pos.bindings, &item.bindings);
@@ -402,7 +402,7 @@ fn match_loop_inner<'t>(
 
                     // Check if we need a separator.
                     // We check the separator one by one
-                    let sep_idx = item.sep_parsed.unwrap_or(0);
+                    let sep_idx = *item.sep_parsed.as_ref().unwrap_or(&0);
                     let sep_len = item.sep.as_ref().map_or(0, Separator::tt_count);
                     if item.sep.is_some() && sep_idx != sep_len {
                         let sep = item.sep.as_ref().unwrap();
@@ -467,9 +467,9 @@ fn match_loop_inner<'t>(
                 }
             }
             OpDelimited::Op(Op::Var { kind, name, .. }) => {
-                if let &Some(kind) = kind {
+                if let Some(kind) = kind {
                     let mut fork = src.clone();
-                    let match_res = match_meta_var(kind, &mut fork);
+                    let match_res = match_meta_var(kind.as_str(), &mut fork);
                     match match_res.err {
                         None => {
                             // Some meta variables are optional (e.g. vis)
@@ -484,15 +484,8 @@ fn match_loop_inner<'t>(
                         }
                         Some(err) => {
                             res.add_err(err);
-                            match match_res.value {
-                                Some(fragment) => bindings_builder.push_fragment(
-                                    &mut item.bindings,
-                                    name,
-                                    fragment,
-                                ),
-                                None => {
-                                    bindings_builder.push_missing(&mut item.bindings, name, kind)
-                                }
+                            if let Some(fragment) = match_res.value {
+                                bindings_builder.push_fragment(&mut item.bindings, name, fragment);
                             }
                             item.is_error = true;
                             error_items.push(item);
@@ -684,20 +677,20 @@ fn match_leaf(lhs: &tt::Leaf, src: &mut TtIter<'_>) -> Result<(), ExpandError> {
     }
 }
 
-fn match_meta_var(kind: MetaVarKind, input: &mut TtIter<'_>) -> ExpandResult<Option<Fragment>> {
+fn match_meta_var(kind: &str, input: &mut TtIter<'_>) -> ExpandResult<Option<Fragment>> {
     let fragment = match kind {
-        MetaVarKind::Path => parser::PrefixEntryPoint::Path,
-        MetaVarKind::Ty => parser::PrefixEntryPoint::Ty,
+        "path" => parser::PrefixEntryPoint::Path,
+        "ty" => parser::PrefixEntryPoint::Ty,
         // FIXME: These two should actually behave differently depending on the edition.
         //
         // https://doc.rust-lang.org/edition-guide/rust-2021/or-patterns-macro-rules.html
-        MetaVarKind::Pat | MetaVarKind::PatParam => parser::PrefixEntryPoint::Pat,
-        MetaVarKind::Stmt => parser::PrefixEntryPoint::Stmt,
-        MetaVarKind::Block => parser::PrefixEntryPoint::Block,
-        MetaVarKind::Meta => parser::PrefixEntryPoint::MetaItem,
-        MetaVarKind::Item => parser::PrefixEntryPoint::Item,
-        MetaVarKind::Vis => parser::PrefixEntryPoint::Vis,
-        MetaVarKind::Expr => {
+        "pat" | "pat_param" => parser::PrefixEntryPoint::Pat,
+        "stmt" => parser::PrefixEntryPoint::Stmt,
+        "block" => parser::PrefixEntryPoint::Block,
+        "meta" => parser::PrefixEntryPoint::MetaItem,
+        "item" => parser::PrefixEntryPoint::Item,
+        "vis" => parser::PrefixEntryPoint::Vis,
+        "expr" => {
             // `expr` should not match underscores.
             // HACK: Macro expansion should not be done using "rollback and try another alternative".
             // rustc [explicitly checks the next token][0].
@@ -714,17 +707,17 @@ fn match_meta_var(kind: MetaVarKind, input: &mut TtIter<'_>) -> ExpandResult<Opt
         }
         _ => {
             let tt_result = match kind {
-                MetaVarKind::Ident => input
+                "ident" => input
                     .expect_ident()
                     .map(|ident| tt::Leaf::from(ident.clone()).into())
                     .map_err(|()| ExpandError::binding_error("expected ident")),
-                MetaVarKind::Tt => input
+                "tt" => input
                     .expect_tt()
                     .map_err(|()| ExpandError::binding_error("expected token tree")),
-                MetaVarKind::Lifetime => input
+                "lifetime" => input
                     .expect_lifetime()
                     .map_err(|()| ExpandError::binding_error("expected lifetime")),
-                MetaVarKind::Literal => {
+                "literal" => {
                     let neg = input.eat_char('-');
                     input
                         .expect_literal()

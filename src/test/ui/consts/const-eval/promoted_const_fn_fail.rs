@@ -1,3 +1,5 @@
+#![allow(const_err)]
+
 #[repr(C)]
 union Bar {
     a: &'static u8,

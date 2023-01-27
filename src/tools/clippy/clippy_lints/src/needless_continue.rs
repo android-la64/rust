@@ -309,7 +309,7 @@ fn emit_warning<'a>(cx: &EarlyContext<'_>, data: &'a LintData<'_>, header: &str,
         expr.span,
         message,
         None,
-        &format!("{header}\n{snip}"),
+        &format!("{}\n{}", header, snip),
     );
 }
 
@@ -322,7 +322,10 @@ fn suggestion_snippet_for_continue_inside_if<'a>(cx: &EarlyContext<'_>, data: &'
 
     let indent_if = indent_of(cx, data.if_expr.span).unwrap_or(0);
     format!(
-        "{indent}if {cond_code} {continue_code}\n{indent}{else_code}",
+        "{indent}if {} {}\n{indent}{}",
+        cond_code,
+        continue_code,
+        else_code,
         indent = " ".repeat(indent_if),
     )
 }
@@ -346,7 +349,7 @@ fn suggestion_snippet_for_continue_inside_else<'a>(cx: &EarlyContext<'_>, data: 
             let span = cx.sess().source_map().stmt_span(stmt.span, data.loop_block.span);
             let snip = snippet_block(cx, span, "..", None).into_owned();
             snip.lines()
-                .map(|line| format!("{}{line}", " ".repeat(indent)))
+                .map(|line| format!("{}{}", " ".repeat(indent), line))
                 .collect::<Vec<_>>()
                 .join("\n")
         })
@@ -355,7 +358,10 @@ fn suggestion_snippet_for_continue_inside_else<'a>(cx: &EarlyContext<'_>, data: 
 
     let indent_if = indent_of(cx, data.if_expr.span).unwrap_or(0);
     format!(
-        "{indent_if}if {cond_code} {block_code}\n{indent}// merged code follows:\n{to_annex}\n{indent_if}}}",
+        "{indent_if}if {} {}\n{indent}// merged code follows:\n{}\n{indent_if}}}",
+        cond_code,
+        block_code,
+        to_annex,
         indent = " ".repeat(indent),
         indent_if = " ".repeat(indent_if),
     )

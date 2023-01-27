@@ -2,11 +2,11 @@ use super::link::{self, ensure_removed};
 use super::lto::{self, SerializedModule};
 use super::symbol_export::symbol_name_for_instance_in_crate;
 
-use crate::errors;
-use crate::traits::*;
 use crate::{
     CachedModuleCodegen, CodegenResults, CompiledModule, CrateInfo, ModuleCodegen, ModuleKind,
 };
+
+use crate::traits::*;
 use jobserver::{Acquired, Client};
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::memmap::Mmap;
@@ -15,10 +15,7 @@ use rustc_data_structures::profiling::TimingGuard;
 use rustc_data_structures::profiling::VerboseTimingGuard;
 use rustc_data_structures::sync::Lrc;
 use rustc_errors::emitter::Emitter;
-use rustc_errors::{
-    translation::{to_fluent_args, Translate},
-    DiagnosticId, FatalError, Handler, Level,
-};
+use rustc_errors::{translation::Translate, DiagnosticId, FatalError, Handler, Level};
 use rustc_fs_util::link_or_copy;
 use rustc_hir::def_id::{CrateNum, LOCAL_CRATE};
 use rustc_incremental::{
@@ -116,6 +113,7 @@ pub struct ModuleConfig {
     pub vectorize_slp: bool,
     pub merge_functions: bool,
     pub inline_threshold: Option<u32>,
+    pub new_llvm_pass_manager: Option<bool>,
     pub emit_lifetime_markers: bool,
     pub llvm_plugins: Vec<String>,
 }
@@ -267,6 +265,7 @@ impl ModuleConfig {
             },
 
             inline_threshold: sess.opts.cg.inline_threshold,
+            new_llvm_pass_manager: sess.opts.unstable_opts.new_llvm_pass_manager,
             emit_lifetime_markers: sess.emit_lifetime_markers(),
             llvm_plugins: if_regular!(sess.opts.unstable_opts.llvm_plugins.clone(), vec![]),
         }
@@ -533,7 +532,7 @@ fn produce_final_output_artifacts(
     // Produce final compile outputs.
     let copy_gracefully = |from: &Path, to: &Path| {
         if let Err(e) = fs::copy(from, to) {
-            sess.emit_err(errors::CopyPath::new(from, to, e));
+            sess.err(&format!("could not copy {:?} to {:?}: {}", from, to, e));
         }
     };
 
@@ -549,7 +548,7 @@ fn produce_final_output_artifacts(
                 ensure_removed(sess.diagnostic(), &path);
             }
         } else {
-            let extension = crate_output
+            let ext = crate_output
                 .temp_path(output_type, None)
                 .extension()
                 .unwrap()
@@ -560,11 +559,19 @@ fn produce_final_output_artifacts(
             if crate_output.outputs.contains_key(&output_type) {
                 // 2) Multiple codegen units, with `--emit foo=some_name`.  We have
                 //    no good solution for this case, so warn the user.
-                sess.emit_warning(errors::IgnoringEmitPath { extension });
+                sess.warn(&format!(
+                    "ignoring emit path because multiple .{} files \
+                                    were produced",
+                    ext
+                ));
             } else if crate_output.single_output_file.is_some() {
                 // 3) Multiple codegen units, with `-o some_name`.  We have
                 //    no good solution for this case, so warn the user.
-                sess.emit_warning(errors::IgnoringOutput { extension });
+                sess.warn(&format!(
+                    "ignoring -o because multiple .{} files \
+                                    were produced",
+                    ext
+                ));
             } else {
                 // 4) Multiple codegen units, but no explicit name.  We
                 //    just leave the `foo.0.x` files in place.
@@ -875,12 +882,14 @@ fn execute_copy_from_cache_work_item<B: ExtraBackendMethods>(
         );
         match link_or_copy(&source_file, &output_path) {
             Ok(_) => Some(output_path),
-            Err(error) => {
-                cgcx.create_diag_handler().emit_err(errors::CopyPathBuf {
-                    source_file,
-                    output_path,
-                    error,
-                });
+            Err(err) => {
+                let diag_handler = cgcx.create_diag_handler();
+                diag_handler.err(&format!(
+                    "unable to copy {} to {}: {}",
+                    source_file.display(),
+                    output_path.display(),
+                    err
+                ));
                 None
             }
         }
@@ -999,14 +1008,6 @@ fn start_executing_work<B: ExtraBackendMethods>(
     let coordinator_send = tx_to_llvm_workers;
     let sess = tcx.sess;
 
-    let mut each_linked_rlib_for_lto = Vec::new();
-    drop(link::each_linked_rlib(sess, crate_info, &mut |cnum, path| {
-        if link::ignored_for_lto(sess, crate_info, cnum) {
-            return;
-        }
-        each_linked_rlib_for_lto.push((cnum, path.to_path_buf()));
-    }));
-
     // Compute the set of symbols we need to retain when doing LTO (if we need to)
     let exported_symbols = {
         let mut exported_symbols = FxHashMap::default();
@@ -1028,7 +1029,7 @@ fn start_executing_work<B: ExtraBackendMethods>(
             }
             Lto::Fat | Lto::Thin => {
                 exported_symbols.insert(LOCAL_CRATE, copy_symbols(LOCAL_CRATE));
-                for &(cnum, ref _path) in &each_linked_rlib_for_lto {
+                for &cnum in tcx.crates(()).iter() {
                     exported_symbols.insert(cnum, copy_symbols(cnum));
                 }
                 Some(Arc::new(exported_symbols))
@@ -1047,6 +1048,14 @@ fn start_executing_work<B: ExtraBackendMethods>(
             drop(coordinator_send2.send(Box::new(Message::Token::<B>(token))));
         })
         .expect("failed to spawn helper thread");
+
+    let mut each_linked_rlib_for_lto = Vec::new();
+    drop(link::each_linked_rlib(crate_info, &mut |cnum, path| {
+        if link::ignored_for_lto(sess, crate_info, cnum) {
+            return;
+        }
+        each_linked_rlib_for_lto.push((cnum, path.to_path_buf()));
+    }));
 
     let ol =
         if tcx.sess.opts.unstable_opts.no_codegen || !tcx.sess.opts.output_types.should_codegen() {
@@ -1630,7 +1639,7 @@ fn start_executing_work<B: ExtraBackendMethods>(
         llvm_start_time: &mut Option<VerboseTimingGuard<'a>>,
     ) {
         if config.time_module && llvm_start_time.is_none() {
-            *llvm_start_time = Some(prof.verbose_generic_activity("LLVM_passes"));
+            *llvm_start_time = Some(prof.extra_verbose_generic_activity("LLVM_passes", "crate"));
         }
     }
 }
@@ -1743,7 +1752,7 @@ impl Translate for SharedEmitter {
 
 impl Emitter for SharedEmitter {
     fn emit_diagnostic(&mut self, diag: &rustc_errors::Diagnostic) {
-        let fluent_args = to_fluent_args(diag.args());
+        let fluent_args = self.to_fluent_args(diag.args());
         drop(self.sender.send(SharedEmitterMessage::Diagnostic(Diagnostic {
             msg: self.translate_messages(&diag.message, &fluent_args).to_string(),
             code: diag.code.clone(),

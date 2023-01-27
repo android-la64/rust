@@ -9,7 +9,6 @@ use crate::{InlineTable, InternalString, Item, Value};
 use combine::parser::byte::byte;
 use combine::stream::RangeStream;
 use combine::*;
-use indexmap::map::Entry;
 
 // ;; Inline Table
 
@@ -31,16 +30,13 @@ fn table_from_pairs(
     for (path, kv) in v {
         let table = descend_path(&mut root, &path)?;
         let key: InternalString = kv.key.get_internal().into();
-        match table.items.entry(key) {
-            Entry::Vacant(o) => {
-                o.insert(kv);
-            }
-            Entry::Occupied(o) => {
-                return Err(CustomError::DuplicateKey {
-                    key: o.key().as_str().into(),
-                    table: None,
-                });
-            }
+        let old = table.items.insert(key.clone(), kv);
+        let duplicate_key = old.is_some();
+        if duplicate_key {
+            return Err(CustomError::DuplicateKey {
+                key: key.as_str().into(),
+                table: None,
+            });
         }
     }
     Ok(root)

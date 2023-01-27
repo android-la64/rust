@@ -1,13 +1,14 @@
 // run-rustfix
+
 #![warn(clippy::all)]
 #![warn(clippy::redundant_pattern_matching)]
-#![allow(deprecated, unused_must_use)]
 #![allow(
-    clippy::if_same_then_else,
-    clippy::match_like_matches_macro,
+    unused_must_use,
     clippy::needless_bool,
-    clippy::uninlined_format_args,
-    clippy::unnecessary_wraps
+    clippy::match_like_matches_macro,
+    clippy::unnecessary_wraps,
+    deprecated,
+    clippy::if_same_then_else
 )]
 
 fn main() {

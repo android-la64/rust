@@ -287,7 +287,7 @@ fn cargo_metadata_with_deps_and_version() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1725,55 +1725,7 @@ fn cargo_metadata_with_invalid_authors_field() {
             r#"[ERROR] failed to parse manifest at `[..]`
 
 Caused by:
-  invalid type: string "", expected a sequence for key `package.authors`"#,
-        )
-        .run();
-}
-
-#[cargo_test]
-fn cargo_metadata_with_invalid_version_field() {
-    let p = project()
-        .file("src/foo.rs", "")
-        .file(
-            "Cargo.toml",
-            r#"
-                [package]
-                version = 1
-            "#,
-        )
-        .build();
-
-    p.cargo("metadata")
-        .with_status(101)
-        .with_stderr(
-            r#"[ERROR] failed to parse manifest at `[..]`
-
-Caused by:
-  invalid type: integer `1`, expected SemVer version for key `package.version`"#,
-        )
-        .run();
-}
-
-#[cargo_test]
-fn cargo_metadata_with_invalid_publish_field() {
-    let p = project()
-        .file("src/foo.rs", "")
-        .file(
-            "Cargo.toml",
-            r#"
-                [package]
-                publish = "foo"
-            "#,
-        )
-        .build();
-
-    p.cargo("metadata")
-        .with_status(101)
-        .with_stderr(
-            r#"[ERROR] failed to parse manifest at `[..]`
-
-Caused by:
-  invalid type: string "foo", expected a boolean or vector of strings for key `package.publish`"#,
+  invalid type: string "", expected vector of strings for key `package.authors`"#,
         )
         .run();
 }
@@ -1910,8 +1862,8 @@ fn cargo_metadata_bad_version() {
         .with_status(1)
         .with_stderr_contains(
             "\
-error: '2' isn't a valid value for '--format-version <VERSION>'
-  [possible values: 1]
+error: \"2\" isn't a valid value for '--format-version <VERSION>'
+<tab>[possible values: 1]
 ",
         )
         .run();
@@ -2287,7 +2239,7 @@ fn package_default_run() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
                 authors = ["wycats@example.com"]
@@ -2307,7 +2259,7 @@ fn package_rust_version() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
                 authors = ["wycats@example.com"]
@@ -2435,7 +2387,7 @@ fn rename_dependency() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -2667,7 +2619,7 @@ fn metadata_links() {
         .file(
             "Cargo.toml",
             r#"
-            [package]
+            [project]
             name = "foo"
             version = "0.5.0"
             links = "a"

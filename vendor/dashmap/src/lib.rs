@@ -16,7 +16,6 @@ mod util;
 #[cfg(feature = "rayon")]
 pub mod rayon {
     pub mod map;
-    pub mod read_only;
     pub mod set;
 }
 
@@ -36,7 +35,6 @@ use iter::{Iter, IterMut, OwningIter};
 use mapref::entry::{Entry, OccupiedEntry, VacantEntry};
 use mapref::multiple::RefMulti;
 use mapref::one::{Ref, RefMut};
-use once_cell::sync::OnceCell;
 pub use read_only::ReadOnlyView;
 pub use set::DashSet;
 use std::collections::hash_map::RandomState;
@@ -53,19 +51,8 @@ cfg_if! {
 
 pub(crate) type HashMap<K, V, S> = hashbrown::HashMap<K, SharedValue<V>, S>;
 
-// Temporary reimplementation of [`std::collections::TryReserveError`]
-// util [`std::collections::TryReserveError`] stabilises.
-// We cannot easily create `std::collections` error type from `hashbrown` error type
-// without access to `TryReserveError::kind` method.
-#[non_exhaustive]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct TryReserveError {}
-
 fn default_shard_amount() -> usize {
-    static DEFAULT_SHARD_AMOUNT: OnceCell<usize> = OnceCell::new();
-    *DEFAULT_SHARD_AMOUNT.get_or_init(|| {
-        (std::thread::available_parallelism().map_or(1, usize::from) * 4).next_power_of_two()
-    })
+    (std::thread::available_parallelism().map_or(1, usize::from) * 4).next_power_of_two()
 }
 
 fn ncb(shard_amount: usize) -> usize {
@@ -78,7 +65,7 @@ fn ncb(shard_amount: usize) -> usize {
 /// with some slight changes to handle concurrency.
 ///
 /// DashMap tries to be very simple to use and to be a direct replacement for `RwLock<HashMap<K, V, S>>`.
-/// To accomplish this, all methods take `&self` instead of modifying methods taking `&mut self`.
+/// To accomplish these all methods take `&self` instead modifying methods taking `&mut self`.
 /// This allows you to put a DashMap in an `Arc<T>` and share it between threads while being able to modify it.
 ///
 /// Documentation mentioning locking behaviour acts in the reference frame of the calling thread.
@@ -229,7 +216,7 @@ impl<'a, K: 'a + Eq + Hash, V: 'a, S: BuildHasher + Clone> DashMap<K, V, S> {
 
     /// Creates a new DashMap with a specified hasher and shard amount
     ///
-    /// shard_amount should be greater than 0 and a power of two.
+    /// shard_amount should greater than 0 and be a power of two.
     /// If a shard_amount which is not a power of two is provided, the function will panic.
     ///
     /// # Examples
@@ -810,24 +797,6 @@ impl<'a, K: 'a + Eq + Hash, V: 'a, S: BuildHasher + Clone> DashMap<K, V, S> {
     pub fn try_entry(&'a self, key: K) -> Option<Entry<'a, K, V, S>> {
         self._try_entry(key)
     }
-
-    /// Advanced entry API that tries to mimic `std::collections::HashMap::try_reserve`.
-    /// Tries to reserve capacity for at least `shard * additional`
-    /// and may reserve more space to avoid frequent reallocations.
-    ///
-    /// # Errors
-    ///
-    /// If the capacity overflows, or the allocator reports a failure, then an error is returned.
-    // TODO: return std::collections::TryReserveError once std::collections::TryReserveErrorKind stabilises.
-    pub fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
-        for shard in self.shards.iter() {
-            shard
-                .write()
-                .try_reserve(additional)
-                .map_err(|_| TryReserveError {})?;
-        }
-        Ok(())
-    }
 }
 
 impl<'a, K: 'a + Eq + Hash, V: 'a, S: 'a + BuildHasher + Clone> Map<'a, K, V, S>
@@ -1396,28 +1365,6 @@ mod tests {
 
             let result2 = map.try_get_mut("Johnny");
             assert!(result2.is_locked());
-        }
-    }
-
-    #[test]
-    fn test_try_reserve() {
-        let mut map: DashMap<i32, i32> = DashMap::new();
-        // DashMap is empty and doesn't allocate memory
-        assert_eq!(map.capacity(), 0);
-
-        map.try_reserve(10).unwrap();
-
-        // And now map can hold at least 10 elements
-        assert!(map.capacity() >= 10);
-    }
-
-    #[test]
-    fn test_try_reserve_errors() {
-        let mut map: DashMap<i32, i32> = DashMap::new();
-
-        match map.try_reserve(usize::MAX) {
-            Err(_) => {}
-            _ => panic!("should have raised CapacityOverflow error"),
         }
     }
 }

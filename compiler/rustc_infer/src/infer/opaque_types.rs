@@ -1,16 +1,14 @@
 use crate::errors::OpaqueHiddenTypeDiag;
 use crate::infer::{DefiningAnchor, InferCtxt, InferOk};
 use crate::traits;
-use hir::def::DefKind;
 use hir::def_id::{DefId, LocalDefId};
 use hir::{HirId, OpaqueTyOrigin};
 use rustc_data_structures::sync::Lrc;
 use rustc_data_structures::vec_map::VecMap;
 use rustc_hir as hir;
 use rustc_middle::traits::ObligationCause;
-use rustc_middle::ty::error::{ExpectedFound, TypeError};
 use rustc_middle::ty::fold::BottomUpFolder;
-use rustc_middle::ty::GenericArgKind;
+use rustc_middle::ty::subst::{GenericArgKind, Subst};
 use rustc_middle::ty::{
     self, OpaqueHiddenType, OpaqueTypeKey, Ty, TyCtxt, TypeFoldable, TypeSuperVisitable,
     TypeVisitable, TypeVisitor,
@@ -42,7 +40,7 @@ pub struct OpaqueTypeDecl<'tcx> {
     pub origin: hir::OpaqueTyOrigin,
 }
 
-impl<'tcx> InferCtxt<'tcx> {
+impl<'a, 'tcx> InferCtxt<'a, 'tcx> {
     /// This is a backwards compatibility hack to prevent breaking changes from
     /// lazy TAIT around RPIT handling.
     pub fn replace_opaque_types_with_inference_vars<T: TypeFoldable<'tcx>>(
@@ -103,7 +101,7 @@ impl<'tcx> InferCtxt<'tcx> {
             return Ok(InferOk { value: (), obligations: vec![] });
         }
         let (a, b) = if a_is_expected { (a, b) } else { (b, a) };
-        let process = |a: Ty<'tcx>, b: Ty<'tcx>, a_is_expected| match *a.kind() {
+        let process = |a: Ty<'tcx>, b: Ty<'tcx>| match *a.kind() {
             ty::Opaque(def_id, substs) if def_id.is_local() => {
                 let def_id = def_id.expect_local();
                 let origin = match self.defining_use_anchor {
@@ -169,18 +167,25 @@ impl<'tcx> InferCtxt<'tcx> {
                     param_env,
                     b,
                     origin,
-                    a_is_expected,
                 ))
             }
             _ => None,
         };
-        if let Some(res) = process(a, b, true) {
+        if let Some(res) = process(a, b) {
             res
-        } else if let Some(res) = process(b, a, false) {
+        } else if let Some(res) = process(b, a) {
             res
         } else {
-            let (a, b) = self.resolve_vars_if_possible((a, b));
-            Err(TypeError::Sorts(ExpectedFound::new(true, a, b)))
+            // Rerun equality check, but this time error out due to
+            // different types.
+            match self.at(cause, param_env).define_opaque_types(false).eq(a, b) {
+                Ok(_) => span_bug!(
+                    cause.span,
+                    "opaque types are never equal to anything but themselves: {:#?}",
+                    (a.kind(), b.kind())
+                ),
+                Err(e) => Err(e),
+            }
         }
     }
 
@@ -513,16 +518,15 @@ impl UseKind {
     }
 }
 
-impl<'tcx> InferCtxt<'tcx> {
+impl<'a, 'tcx> InferCtxt<'a, 'tcx> {
     #[instrument(skip(self), level = "debug")]
-    fn register_hidden_type(
+    pub fn register_hidden_type(
         &self,
         opaque_type_key: OpaqueTypeKey<'tcx>,
         cause: ObligationCause<'tcx>,
         param_env: ty::ParamEnv<'tcx>,
         hidden_ty: Ty<'tcx>,
         origin: hir::OpaqueTyOrigin,
-        a_is_expected: bool,
     ) -> InferResult<'tcx, ()> {
         let tcx = self.tcx;
         let OpaqueTypeKey { def_id, substs } = opaque_type_key;
@@ -541,24 +545,21 @@ impl<'tcx> InferCtxt<'tcx> {
             origin,
         );
         if let Some(prev) = prev {
-            obligations =
-                self.at(&cause, param_env).eq_exp(a_is_expected, prev, hidden_ty)?.obligations;
+            obligations = self.at(&cause, param_env).eq(prev, hidden_ty)?.obligations;
         }
 
         let item_bounds = tcx.bound_explicit_item_bounds(def_id.to_def_id());
 
-        for (predicate, _) in item_bounds.subst_iter_copied(tcx, substs) {
+        for predicate in item_bounds.transpose_iter().map(|e| e.map_bound(|(p, _)| *p)) {
+            debug!(?predicate);
+            let predicate = predicate.subst(tcx, substs);
+
             let predicate = predicate.fold_with(&mut BottomUpFolder {
                 tcx,
                 ty_op: |ty| match *ty.kind() {
                     // We can't normalize associated types from `rustc_infer`,
                     // but we can eagerly register inference variables for them.
-                    // FIXME(RPITIT): Don't replace RPITITs with inference vars.
-                    ty::Projection(projection_ty)
-                        if !projection_ty.has_escaping_bound_vars()
-                            && tcx.def_kind(projection_ty.item_def_id)
-                                != DefKind::ImplTraitPlaceholder =>
-                    {
+                    ty::Projection(projection_ty) if !projection_ty.has_escaping_bound_vars() => {
                         self.infer_projection(
                             param_env,
                             projection_ty,
@@ -571,12 +572,6 @@ impl<'tcx> InferCtxt<'tcx> {
                     // as the bounds must hold on the hidden type after all.
                     ty::Opaque(def_id2, substs2)
                         if def_id.to_def_id() == def_id2 && substs == substs2 =>
-                    {
-                        hidden_ty
-                    }
-                    // FIXME(RPITIT): This can go away when we move to associated types
-                    ty::Projection(proj)
-                        if def_id.to_def_id() == proj.item_def_id && substs == proj.substs =>
                     {
                         hidden_ty
                     }
@@ -628,7 +623,7 @@ fn may_define_opaque_type(tcx: TyCtxt<'_>, def_id: LocalDefId, opaque_hir_id: hi
     let scope = tcx.hir().get_defining_scope(opaque_hir_id);
     // We walk up the node tree until we hit the root or the scope of the opaque type.
     while hir_id != scope && hir_id != hir::CRATE_HIR_ID {
-        hir_id = tcx.hir().get_parent_item(hir_id).into();
+        hir_id = tcx.hir().local_def_id_to_hir_id(tcx.hir().get_parent_item(hir_id));
     }
     // Syntactically, we are allowed to define the concrete type if:
     let res = hir_id == scope;

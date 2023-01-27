@@ -1070,13 +1070,3 @@ fn main() {
         "#,
     );
 }
-
-#[test]
-fn cfg_params() {
-    check_types(
-        r#"
-fn my_fn(#[cfg(feature = "feature")] u8: u8, u32: u32) {}
-                                           //^^^ u32
-"#,
-    );
-}

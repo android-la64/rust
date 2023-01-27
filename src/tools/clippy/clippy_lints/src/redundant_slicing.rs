@@ -127,9 +127,9 @@ impl<'tcx> LateLintPass<'tcx> for RedundantSlicing {
 
                     let snip = snippet_with_context(cx, indexed.span, ctxt, "..", &mut app).0;
                     let sugg = if (deref_count != 0 || !reborrow_str.is_empty()) && needs_parens_for_prefix {
-                        format!("({reborrow_str}{}{snip})", "*".repeat(deref_count))
+                        format!("({}{}{})", reborrow_str, "*".repeat(deref_count), snip)
                     } else {
-                        format!("{reborrow_str}{}{snip}", "*".repeat(deref_count))
+                        format!("{}{}{}", reborrow_str, "*".repeat(deref_count), snip)
                     };
 
                     (lint, help_str, sugg)
@@ -141,9 +141,9 @@ impl<'tcx> LateLintPass<'tcx> for RedundantSlicing {
                         if deref_ty == expr_ty {
                             let snip = snippet_with_context(cx, indexed.span, ctxt, "..", &mut app).0;
                             let sugg = if needs_parens_for_prefix {
-                                format!("(&{}{}*{snip})", mutability.prefix_str(), "*".repeat(indexed_ref_count))
+                                format!("(&{}{}*{})", mutability.prefix_str(), "*".repeat(indexed_ref_count), snip)
                             } else {
-                                format!("&{}{}*{snip}", mutability.prefix_str(), "*".repeat(indexed_ref_count))
+                                format!("&{}{}*{}", mutability.prefix_str(), "*".repeat(indexed_ref_count), snip)
                             };
                             (DEREF_BY_SLICING_LINT, "dereference the original value instead", sugg)
                         } else {

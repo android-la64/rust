@@ -31,11 +31,12 @@ pub(crate) fn check<'tcx>(
             cx,
             DURATION_SUBSEC,
             expr.span,
-            &format!("calling `{suggested_fn}()` is more concise than this calculation"),
+            &format!("calling `{}()` is more concise than this calculation", suggested_fn),
             "try",
             format!(
-                "{}.{suggested_fn}()",
-                snippet_with_applicability(cx, self_arg.span, "_", &mut applicability)
+                "{}.{}()",
+                snippet_with_applicability(cx, self_arg.span, "_", &mut applicability),
+                suggested_fn
             ),
             applicability,
         );

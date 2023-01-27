@@ -11,7 +11,7 @@ There are two ways of writing translatable diagnostics:
    diagnostic structs). See [the diagnostic and subdiagnostic structs
    documentation](./diagnostic-structs.md).
 2. Using typed identifiers with `DiagnosticBuilder` APIs (in
-   `Diagnostic` implementations).
+   `SessionDiagnostic` implementations).
 
 When adding or changing a translatable diagnostic, you don't need to worry
 about the translations, only updating the original English message. Currently,
@@ -127,12 +127,14 @@ pub static DEFAULT_LOCALE_RESOURCES: &'static [&'static str] = &[
 ];
 
 mod fluent_generated {
-    pub const typeck_field_multiply_specified_in_initializer: DiagnosticMessage =
-        DiagnosticMessage::new("typeck_field_multiply_specified_in_initializer");
-    pub const label: SubdiagnosticMessage =
-        SubdiagnosticMessage::attr("label");
-    pub const label_previous_use: SubdiagnosticMessage =
-        SubdiagnosticMessage::attr("previous_use_label");
+    mod typeck {
+        pub const field_multiply_specified_in_initializer: DiagnosticMessage =
+            DiagnosticMessage::new("typeck_field_multiply_specified_in_initializer");
+        pub const label: SubdiagnosticMessage =
+            SubdiagnosticMessage::attr("label");
+        pub const label_previous_use: SubdiagnosticMessage =
+            SubdiagnosticMessage::attr("previous_use_label");
+    }
 }
 ```
 
@@ -141,9 +143,9 @@ mod fluent_generated {
 
 ```rust
 use rustc_errors::fluent;
-let mut err = sess.struct_span_err(span, fluent::typeck_field_multiply_specified_in_initializer);
-err.span_label(span, fluent::label);
-err.span_label(previous_use_span, fluent::previous_use_label);
+let mut err = sess.struct_span_err(span, fluent::typeck::field_multiply_specified_in_initializer);
+err.span_label(span, fluent::typeck::label);
+err.span_label(previous_use_span, fluent::typeck::previous_use_label);
 err.emit();
 ```
 

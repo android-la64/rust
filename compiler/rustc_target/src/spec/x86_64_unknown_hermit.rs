@@ -5,7 +5,8 @@ pub fn target() -> Target {
     base.cpu = "x86-64".into();
     base.max_atomic_width = Some(64);
     base.features = "+rdrnd,+rdseed".into();
-    base.stack_probes = StackProbeType::X86;
+    // don't use probe-stack=inline-asm until rust#83139 and rust#84667 are resolved
+    base.stack_probes = StackProbeType::Call;
 
     Target {
         llvm_target: "x86_64-unknown-hermit".into(),

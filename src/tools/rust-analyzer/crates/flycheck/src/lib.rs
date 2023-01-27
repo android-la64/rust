@@ -12,7 +12,6 @@ use std::{
 
 use crossbeam_channel::{never, select, unbounded, Receiver, Sender};
 use paths::AbsPathBuf;
-use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use stdx::{process::streaming_output, JodChild};
 
@@ -20,20 +19,6 @@ pub use cargo_metadata::diagnostic::{
     Applicability, Diagnostic, DiagnosticCode, DiagnosticLevel, DiagnosticSpan,
     DiagnosticSpanMacroExpansion,
 };
-
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-pub enum InvocationStrategy {
-    Once,
-    #[default]
-    PerWorkspace,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub enum InvocationLocation {
-    Root(AbsPathBuf),
-    #[default]
-    Workspace,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FlycheckConfig {
@@ -45,14 +30,10 @@ pub enum FlycheckConfig {
         all_features: bool,
         features: Vec<String>,
         extra_args: Vec<String>,
-        extra_env: FxHashMap<String, String>,
     },
     CustomCommand {
         command: String,
         args: Vec<String>,
-        extra_env: FxHashMap<String, String>,
-        invocation_strategy: InvocationStrategy,
-        invocation_location: InvocationLocation,
     },
 }
 
@@ -60,7 +41,7 @@ impl fmt::Display for FlycheckConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FlycheckConfig::CargoCommand { command, .. } => write!(f, "cargo {}", command),
-            FlycheckConfig::CustomCommand { command, args, .. } => {
+            FlycheckConfig::CustomCommand { command, args } => {
                 write!(f, "{} {}", command, args.join(" "))
             }
         }
@@ -152,15 +133,11 @@ enum Restart {
     No,
 }
 
-/// A [`FlycheckActor`] is a single check instance of a workspace.
 struct FlycheckActor {
-    /// The workspace id of this flycheck instance.
     id: usize,
     sender: Box<dyn Fn(Message) + Send>,
     config: FlycheckConfig,
-    /// Either the workspace root of the workspace we are flychecking,
-    /// or the project root of the project.
-    root: AbsPathBuf,
+    workspace_root: AbsPathBuf,
     /// CargoHandle exists to wrap around the communication needed to be able to
     /// run `cargo check` without blocking. Currently the Rust standard library
     /// doesn't provide a way to read sub-process output without blocking, so we
@@ -182,27 +159,20 @@ impl FlycheckActor {
         workspace_root: AbsPathBuf,
     ) -> FlycheckActor {
         tracing::info!(%id, ?workspace_root, "Spawning flycheck");
-        FlycheckActor { id, sender, config, root: workspace_root, cargo_handle: None }
+        FlycheckActor { id, sender, config, workspace_root, cargo_handle: None }
     }
-
-    fn report_progress(&self, progress: Progress) {
+    fn progress(&self, progress: Progress) {
         self.send(Message::Progress { id: self.id, progress });
     }
-
     fn next_event(&self, inbox: &Receiver<Restart>) -> Option<Event> {
         let check_chan = self.cargo_handle.as_ref().map(|cargo| &cargo.receiver);
-        if let Ok(msg) = inbox.try_recv() {
-            // give restarts a preference so check outputs don't block a restart or stop
-            return Some(Event::Restart(msg));
-        }
         select! {
             recv(inbox) -> msg => msg.ok().map(Event::Restart),
             recv(check_chan.unwrap_or(&never())) -> msg => Some(Event::CheckEvent(msg.ok())),
         }
     }
-
     fn run(mut self, inbox: Receiver<Restart>) {
-        'event: while let Some(event) = self.next_event(&inbox) {
+        while let Some(event) = self.next_event(&inbox) {
             match event {
                 Event::Restart(Restart::No) => {
                     self.cancel_check_process();
@@ -210,12 +180,7 @@ impl FlycheckActor {
                 Event::Restart(Restart::Yes) => {
                     // Cancel the previously spawned process
                     self.cancel_check_process();
-                    while let Ok(restart) = inbox.recv_timeout(Duration::from_millis(50)) {
-                        // restart chained with a stop, so just cancel
-                        if let Restart::No = restart {
-                            continue 'event;
-                        }
-                    }
+                    while let Ok(_) = inbox.recv_timeout(Duration::from_millis(50)) {}
 
                     let command = self.check_command();
                     tracing::debug!(?command, "will restart flycheck");
@@ -226,10 +191,10 @@ impl FlycheckActor {
                                 "did  restart flycheck"
                             );
                             self.cargo_handle = Some(cargo_handle);
-                            self.report_progress(Progress::DidStart);
+                            self.progress(Progress::DidStart);
                         }
                         Err(error) => {
-                            self.report_progress(Progress::DidFailToRestart(format!(
+                            self.progress(Progress::DidFailToRestart(format!(
                                 "Failed to run the following command: {:?} error={}",
                                 self.check_command(),
                                 error
@@ -249,17 +214,17 @@ impl FlycheckActor {
                             self.check_command()
                         );
                     }
-                    self.report_progress(Progress::DidFinish(res));
+                    self.progress(Progress::DidFinish(res));
                 }
                 Event::CheckEvent(Some(message)) => match message {
                     CargoMessage::CompilerArtifact(msg) => {
-                        self.report_progress(Progress::DidCheckCrate(msg.target.name));
+                        self.progress(Progress::DidCheckCrate(msg.target.name));
                     }
 
                     CargoMessage::Diagnostic(msg) => {
                         self.send(Message::AddDiagnostic {
                             id: self.id,
-                            workspace_root: self.root.clone(),
+                            workspace_root: self.workspace_root.clone(),
                             diagnostic: msg,
                         });
                     }
@@ -277,12 +242,12 @@ impl FlycheckActor {
                 "did  cancel flycheck"
             );
             cargo_handle.cancel();
-            self.report_progress(Progress::DidCancel);
+            self.progress(Progress::DidCancel);
         }
     }
 
     fn check_command(&self) -> Command {
-        let (mut cmd, args) = match &self.config {
+        let mut cmd = match &self.config {
             FlycheckConfig::CargoCommand {
                 command,
                 target_triple,
@@ -291,11 +256,12 @@ impl FlycheckActor {
                 all_features,
                 extra_args,
                 features,
-                extra_env,
             } => {
                 let mut cmd = Command::new(toolchain::cargo());
                 cmd.arg(command);
-                cmd.args(&["--workspace", "--message-format=json"]);
+                cmd.current_dir(&self.workspace_root);
+                cmd.args(&["--workspace", "--message-format=json", "--manifest-path"])
+                    .arg(self.workspace_root.join("Cargo.toml").as_os_str());
 
                 if let Some(target) = target_triple {
                     cmd.args(&["--target", target.as_str()]);
@@ -314,41 +280,16 @@ impl FlycheckActor {
                         cmd.arg(features.join(" "));
                     }
                 }
-                cmd.envs(extra_env);
-                (cmd, extra_args)
+                cmd.args(extra_args);
+                cmd
             }
-            FlycheckConfig::CustomCommand {
-                command,
-                args,
-                extra_env,
-                invocation_strategy,
-                invocation_location,
-            } => {
+            FlycheckConfig::CustomCommand { command, args } => {
                 let mut cmd = Command::new(command);
-                cmd.envs(extra_env);
-
-                match invocation_location {
-                    InvocationLocation::Workspace => {
-                        match invocation_strategy {
-                            InvocationStrategy::Once => {
-                                cmd.current_dir(&self.root);
-                            }
-                            InvocationStrategy::PerWorkspace => {
-                                // FIXME: cmd.current_dir(&affected_workspace);
-                                cmd.current_dir(&self.root);
-                            }
-                        }
-                    }
-                    InvocationLocation::Root(root) => {
-                        cmd.current_dir(root);
-                    }
-                }
-
-                (cmd, args)
+                cmd.args(args);
+                cmd
             }
         };
-
-        cmd.args(args);
+        cmd.current_dir(&self.workspace_root);
         cmd
     }
 

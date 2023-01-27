@@ -3,7 +3,7 @@
 //! like going from `&Vec<T>` to `&[T]`.
 //!
 //! See <https://doc.rust-lang.org/nomicon/coercions.html> and
-//! `rustc_hir_analysis/check/coercion.rs`.
+//! `librustc_typeck/check/coercion.rs`.
 
 use std::{iter, sync::Arc};
 

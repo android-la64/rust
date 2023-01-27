@@ -1,4 +1,3 @@
-#[derive(Copy, Clone)]
 pub struct Encoder;
 
 impl toml_test_harness::Encoder for Encoder {

@@ -1,8 +1,11 @@
 // FIXME: Ideally these suggestions would be fixed via rustfix. Blocked by rust-lang/rust#53934
 // // run-rustfix
+
 #![warn(clippy::significant_drop_in_scrutinee)]
-#![allow(dead_code, unused_assignments)]
-#![allow(clippy::match_single_binding, clippy::single_match, clippy::uninlined_format_args)]
+#![allow(clippy::single_match)]
+#![allow(clippy::match_single_binding)]
+#![allow(unused_assignments)]
+#![allow(dead_code)]
 
 use std::num::ParseIntError;
 use std::ops::Deref;

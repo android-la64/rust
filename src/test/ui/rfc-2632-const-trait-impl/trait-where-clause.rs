@@ -1,6 +1,5 @@
 #![feature(const_trait_impl)]
 
-#[const_trait]
 trait Bar {}
 
 trait Foo {
@@ -9,7 +8,7 @@ trait Foo {
     fn c<T: ~const Bar>();
 }
 
-fn test1<T: Foo>() {
+const fn test1<T: ~const Foo + Bar>() {
     T::a();
     T::b();
     //~^ ERROR the trait bound
@@ -17,7 +16,21 @@ fn test1<T: Foo>() {
     //~^ ERROR the trait bound
 }
 
-fn test2<T: Foo + Bar>() {
+const fn test2<T: ~const Foo + ~const Bar>() {
+    T::a();
+    T::b();
+    T::c::<T>();
+}
+
+fn test3<T: Foo>() {
+    T::a();
+    T::b();
+    //~^ ERROR the trait bound
+    T::c::<T>();
+    //~^ ERROR the trait bound
+}
+
+fn test4<T: Foo + Bar>() {
     T::a();
     T::b();
     T::c::<T>();

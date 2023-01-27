@@ -76,7 +76,6 @@ use crate::sys_common::rwlock as sys;
 ///
 /// [`Mutex`]: super::Mutex
 #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg_attr(not(test), rustc_diagnostic_item = "RwLock")]
 pub struct RwLock<T: ?Sized> {
     inner: sys::MovableRwLock,
     poison: poison::Flag,
@@ -167,7 +166,7 @@ impl<T> RwLock<T> {
 }
 
 impl<T: ?Sized> RwLock<T> {
-    /// Locks this `RwLock` with shared read access, blocking the current thread
+    /// Locks this rwlock with shared read access, blocking the current thread
     /// until it can be acquired.
     ///
     /// The calling thread will be blocked until there are no more writers which
@@ -181,10 +180,9 @@ impl<T: ?Sized> RwLock<T> {
     ///
     /// # Errors
     ///
-    /// This function will return an error if the `RwLock` is poisoned. An
-    /// `RwLock` is poisoned whenever a writer panics while holding an exclusive
-    /// lock. The failure will occur immediately after the lock has been
-    /// acquired.
+    /// This function will return an error if the RwLock is poisoned. An RwLock
+    /// is poisoned whenever a writer panics while holding an exclusive lock.
+    /// The failure will occur immediately after the lock has been acquired.
     ///
     /// # Panics
     ///
@@ -216,7 +214,7 @@ impl<T: ?Sized> RwLock<T> {
         }
     }
 
-    /// Attempts to acquire this `RwLock` with shared read access.
+    /// Attempts to acquire this rwlock with shared read access.
     ///
     /// If the access could not be granted at this time, then `Err` is returned.
     /// Otherwise, an RAII guard is returned which will release the shared access
@@ -229,13 +227,13 @@ impl<T: ?Sized> RwLock<T> {
     ///
     /// # Errors
     ///
-    /// This function will return the [`Poisoned`] error if the `RwLock` is
-    /// poisoned. An `RwLock` is poisoned whenever a writer panics while holding
-    /// an exclusive lock. `Poisoned` will only be returned if the lock would
-    /// have otherwise been acquired.
+    /// This function will return the [`Poisoned`] error if the RwLock is poisoned.
+    /// An RwLock is poisoned whenever a writer panics while holding an exclusive
+    /// lock. `Poisoned` will only be returned if the lock would have otherwise been
+    /// acquired.
     ///
-    /// This function will return the [`WouldBlock`] error if the `RwLock` could
-    /// not be acquired because it was already locked exclusively.
+    /// This function will return the [`WouldBlock`] error if the RwLock could not
+    /// be acquired because it was already locked exclusively.
     ///
     /// [`Poisoned`]: TryLockError::Poisoned
     /// [`WouldBlock`]: TryLockError::WouldBlock
@@ -264,20 +262,20 @@ impl<T: ?Sized> RwLock<T> {
         }
     }
 
-    /// Locks this `RwLock` with exclusive write access, blocking the current
+    /// Locks this rwlock with exclusive write access, blocking the current
     /// thread until it can be acquired.
     ///
     /// This function will not return while other writers or other readers
     /// currently have access to the lock.
     ///
-    /// Returns an RAII guard which will drop the write access of this `RwLock`
+    /// Returns an RAII guard which will drop the write access of this rwlock
     /// when dropped.
     ///
     /// # Errors
     ///
-    /// This function will return an error if the `RwLock` is poisoned. An
-    /// `RwLock` is poisoned whenever a writer panics while holding an exclusive
-    /// lock. An error will be returned when the lock is acquired.
+    /// This function will return an error if the RwLock is poisoned. An RwLock
+    /// is poisoned whenever a writer panics while holding an exclusive lock.
+    /// An error will be returned when the lock is acquired.
     ///
     /// # Panics
     ///
@@ -304,7 +302,7 @@ impl<T: ?Sized> RwLock<T> {
         }
     }
 
-    /// Attempts to lock this `RwLock` with exclusive write access.
+    /// Attempts to lock this rwlock with exclusive write access.
     ///
     /// If the lock could not be acquired at this time, then `Err` is returned.
     /// Otherwise, an RAII guard is returned which will release the lock when
@@ -317,13 +315,13 @@ impl<T: ?Sized> RwLock<T> {
     ///
     /// # Errors
     ///
-    /// This function will return the [`Poisoned`] error if the `RwLock` is
-    /// poisoned. An `RwLock` is poisoned whenever a writer panics while holding
-    /// an exclusive lock. `Poisoned` will only be returned if the lock would
-    /// have otherwise been acquired.
+    /// This function will return the [`Poisoned`] error if the RwLock is
+    /// poisoned. An RwLock is poisoned whenever a writer panics while holding
+    /// an exclusive lock. `Poisoned` will only be returned if the lock would have
+    /// otherwise been acquired.
     ///
-    /// This function will return the [`WouldBlock`] error if the `RwLock` could
-    /// not be acquired because it was already locked exclusively.
+    /// This function will return the [`WouldBlock`] error if the RwLock could not
+    /// be acquired because it was already locked exclusively.
     ///
     /// [`Poisoned`]: TryLockError::Poisoned
     /// [`WouldBlock`]: TryLockError::WouldBlock
@@ -423,10 +421,10 @@ impl<T: ?Sized> RwLock<T> {
     ///
     /// # Errors
     ///
-    /// This function will return an error if the `RwLock` is poisoned. An
-    /// `RwLock` is poisoned whenever a writer panics while holding an exclusive
-    /// lock. An error will only be returned if the lock would have otherwise
-    /// been acquired.
+    /// This function will return an error if the RwLock is poisoned. An RwLock
+    /// is poisoned whenever a writer panics while holding an exclusive lock. An
+    /// error will only be returned if the lock would have otherwise been
+    /// acquired.
     ///
     /// # Examples
     ///
@@ -456,10 +454,10 @@ impl<T: ?Sized> RwLock<T> {
     ///
     /// # Errors
     ///
-    /// This function will return an error if the `RwLock` is poisoned. An
-    /// `RwLock` is poisoned whenever a writer panics while holding an exclusive
-    /// lock. An error will only be returned if the lock would have otherwise
-    /// been acquired.
+    /// This function will return an error if the RwLock is poisoned. An RwLock
+    /// is poisoned whenever a writer panics while holding an exclusive lock. An
+    /// error will only be returned if the lock would have otherwise been
+    /// acquired.
     ///
     /// # Examples
     ///

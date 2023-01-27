@@ -184,8 +184,7 @@ impl<'a> Ctx<'a> {
         let name = field.name()?.as_name();
         let visibility = self.lower_visibility(field);
         let type_ref = self.lower_type_ref_opt(field.ty());
-        let ast_id = FieldAstId::Record(self.source_ast_id_map.ast_id(field));
-        let res = Field { name, type_ref, visibility, ast_id };
+        let res = Field { name, type_ref, visibility };
         Some(res)
     }
 
@@ -204,8 +203,7 @@ impl<'a> Ctx<'a> {
         let name = Name::new_tuple_field(idx);
         let visibility = self.lower_visibility(field);
         let type_ref = self.lower_type_ref_opt(field.ty());
-        let ast_id = FieldAstId::Tuple(self.source_ast_id_map.ast_id(field));
-        Field { name, type_ref, visibility, ast_id }
+        Field { name, type_ref, visibility }
     }
 
     fn lower_union(&mut self, union: &ast::Union) -> Option<FileItemTreeId<Union>> {
@@ -249,8 +247,7 @@ impl<'a> Ctx<'a> {
     fn lower_variant(&mut self, variant: &ast::Variant) -> Option<Variant> {
         let name = variant.name()?.as_name();
         let fields = self.lower_fields(&variant.kind());
-        let ast_id = self.source_ast_id_map.ast_id(variant);
-        let res = Variant { name, fields, ast_id };
+        let res = Variant { name, fields };
         Some(res)
     }
 

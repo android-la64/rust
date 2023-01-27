@@ -2,77 +2,94 @@
 
 use crate::diagnostics::diagnostic_builder::{DiagnosticDeriveBuilder, DiagnosticDeriveKind};
 use crate::diagnostics::error::{span_err, DiagnosticDeriveError};
-use crate::diagnostics::utils::SetOnce;
+use crate::diagnostics::utils::{build_field_mapping, SetOnce};
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::spanned::Spanned;
 use synstructure::Structure;
 
 /// The central struct for constructing the `into_diagnostic` method from an annotated struct.
-pub(crate) struct DiagnosticDerive<'a> {
+pub(crate) struct SessionDiagnosticDerive<'a> {
     structure: Structure<'a>,
+    sess: syn::Ident,
     builder: DiagnosticDeriveBuilder,
 }
 
-impl<'a> DiagnosticDerive<'a> {
-    pub(crate) fn new(diag: syn::Ident, handler: syn::Ident, structure: Structure<'a>) -> Self {
+impl<'a> SessionDiagnosticDerive<'a> {
+    pub(crate) fn new(diag: syn::Ident, sess: syn::Ident, structure: Structure<'a>) -> Self {
         Self {
             builder: DiagnosticDeriveBuilder {
                 diag,
-                kind: DiagnosticDeriveKind::Diagnostic { handler },
+                fields: build_field_mapping(&structure),
+                kind: DiagnosticDeriveKind::SessionDiagnostic,
+                code: None,
+                slug: None,
             },
+            sess,
             structure,
         }
     }
 
     pub(crate) fn into_tokens(self) -> TokenStream {
-        let DiagnosticDerive { mut structure, mut builder } = self;
+        let SessionDiagnosticDerive { mut structure, sess, mut builder } = self;
 
-        let implementation = builder.each_variant(&mut structure, |mut builder, variant| {
-            let preamble = builder.preamble(&variant);
-            let body = builder.body(&variant);
+        let ast = structure.ast();
+        let implementation = {
+            if let syn::Data::Struct(..) = ast.data {
+                let preamble = builder.preamble(&structure);
+                let (attrs, args) = builder.body(&mut structure);
 
-            let diag = &builder.parent.diag;
-            let DiagnosticDeriveKind::Diagnostic { handler } = &builder.parent.kind else {
-                unreachable!()
-            };
-            let init = match builder.slug.value_ref() {
-                None => {
-                    span_err(builder.span, "diagnostic slug not specified")
-                        .help(&format!(
-                            "specify the slug as the first argument to the `#[diag(...)]` \
-                            attribute, such as `#[diag(hir_analysis_example_error)]`",
-                        ))
-                        .emit();
-                    return DiagnosticDeriveError::ErrorHandled.to_compile_error();
-                }
-                Some(slug) => {
-                    quote! {
-                        let mut #diag = #handler.struct_diagnostic(rustc_errors::fluent::#slug);
+                let span = ast.span().unwrap();
+                let diag = &builder.diag;
+                let init = match builder.slug.value() {
+                    None => {
+                        span_err(span, "diagnostic slug not specified")
+                            .help(&format!(
+                                "specify the slug as the first argument to the `#[diag(...)]` attribute, \
+                                such as `#[diag(typeck::example_error)]`",
+                            ))
+                            .emit();
+                        return DiagnosticDeriveError::ErrorHandled.to_compile_error();
                     }
+                    Some(slug) => {
+                        quote! {
+                            let mut #diag = #sess.struct_diagnostic(rustc_errors::fluent::#slug);
+                        }
+                    }
+                };
+
+                quote! {
+                    #init
+                    #preamble
+                    match self {
+                        #attrs
+                    }
+                    match self {
+                        #args
+                    }
+                    #diag
                 }
-            };
+            } else {
+                span_err(
+                    ast.span().unwrap(),
+                    "`#[derive(SessionDiagnostic)]` can only be used on structs",
+                )
+                .emit();
 
-            let formatting_init = &builder.formatting_init;
-            quote! {
-                #init
-                #formatting_init
-                #preamble
-                #body
-                #diag
+                DiagnosticDeriveError::ErrorHandled.to_compile_error()
             }
-        });
+        };
 
-        let DiagnosticDeriveKind::Diagnostic { handler } = &builder.kind else { unreachable!() };
         structure.gen_impl(quote! {
-            gen impl<'__diagnostic_handler_sess, G>
-                    rustc_errors::IntoDiagnostic<'__diagnostic_handler_sess, G>
+            gen impl<'__session_diagnostic_sess, G>
+                    rustc_session::SessionDiagnostic<'__session_diagnostic_sess, G>
                     for @Self
                 where G: rustc_errors::EmissionGuarantee
             {
                 fn into_diagnostic(
                     self,
-                    #handler: &'__diagnostic_handler_sess rustc_errors::Handler
-                ) -> rustc_errors::DiagnosticBuilder<'__diagnostic_handler_sess, G> {
+                    #sess: &'__session_diagnostic_sess rustc_errors::Handler
+                ) -> rustc_errors::DiagnosticBuilder<'__session_diagnostic_sess, G> {
                     use rustc_errors::IntoDiagnosticArg;
                     #implementation
                 }
@@ -90,7 +107,13 @@ pub(crate) struct LintDiagnosticDerive<'a> {
 impl<'a> LintDiagnosticDerive<'a> {
     pub(crate) fn new(diag: syn::Ident, structure: Structure<'a>) -> Self {
         Self {
-            builder: DiagnosticDeriveBuilder { diag, kind: DiagnosticDeriveKind::LintDiagnostic },
+            builder: DiagnosticDeriveBuilder {
+                diag,
+                fields: build_field_mapping(&structure),
+                kind: DiagnosticDeriveKind::LintDiagnostic,
+                code: None,
+                slug: None,
+            },
             structure,
         }
     }
@@ -98,51 +121,61 @@ impl<'a> LintDiagnosticDerive<'a> {
     pub(crate) fn into_tokens(self) -> TokenStream {
         let LintDiagnosticDerive { mut structure, mut builder } = self;
 
-        let implementation = builder.each_variant(&mut structure, |mut builder, variant| {
-            let preamble = builder.preamble(&variant);
-            let body = builder.body(&variant);
+        let ast = structure.ast();
+        let implementation = {
+            if let syn::Data::Struct(..) = ast.data {
+                let preamble = builder.preamble(&structure);
+                let (attrs, args) = builder.body(&mut structure);
 
-            let diag = &builder.parent.diag;
-            let formatting_init = &builder.formatting_init;
-            quote! {
-                #preamble
-                #formatting_init
-                #body
-                #diag
+                let diag = &builder.diag;
+                let span = ast.span().unwrap();
+                let init = match builder.slug.value() {
+                    None => {
+                        span_err(span, "diagnostic slug not specified")
+                            .help(&format!(
+                                "specify the slug as the first argument to the attribute, such as \
+                                 `#[diag(typeck::example_error)]`",
+                            ))
+                            .emit();
+                        return DiagnosticDeriveError::ErrorHandled.to_compile_error();
+                    }
+                    Some(slug) => {
+                        quote! {
+                            let mut #diag = #diag.build(rustc_errors::fluent::#slug);
+                        }
+                    }
+                };
+
+                let implementation = quote! {
+                    #init
+                    #preamble
+                    match self {
+                        #attrs
+                    }
+                    match self {
+                        #args
+                    }
+                    #diag.emit();
+                };
+
+                implementation
+            } else {
+                span_err(
+                    ast.span().unwrap(),
+                    "`#[derive(LintDiagnostic)]` can only be used on structs",
+                )
+                .emit();
+
+                DiagnosticDeriveError::ErrorHandled.to_compile_error()
             }
-        });
-
-        let msg = builder.each_variant(&mut structure, |mut builder, variant| {
-            // Collect the slug by generating the preamble.
-            let _ = builder.preamble(&variant);
-
-            match builder.slug.value_ref() {
-                None => {
-                    span_err(builder.span, "diagnostic slug not specified")
-                        .help(&format!(
-                            "specify the slug as the first argument to the attribute, such as \
-                            `#[diag(compiletest_example)]`",
-                        ))
-                        .emit();
-                    return DiagnosticDeriveError::ErrorHandled.to_compile_error();
-                }
-                Some(slug) => quote! { rustc_errors::fluent::#slug.into() },
-            }
-        });
+        };
 
         let diag = &builder.diag;
         structure.gen_impl(quote! {
             gen impl<'__a> rustc_errors::DecorateLint<'__a, ()> for @Self {
-                fn decorate_lint<'__b>(
-                    self,
-                    #diag: &'__b mut rustc_errors::DiagnosticBuilder<'__a, ()>
-                ) -> &'__b mut rustc_errors::DiagnosticBuilder<'__a, ()> {
+                fn decorate_lint(self, #diag: rustc_errors::LintDiagnosticBuilder<'__a, ()>) {
                     use rustc_errors::IntoDiagnosticArg;
                     #implementation
-                }
-
-                fn msg(&self) -> rustc_errors::DiagnosticMessage {
-                    #msg
                 }
             }
         })

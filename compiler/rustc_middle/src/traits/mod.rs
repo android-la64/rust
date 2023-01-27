@@ -598,6 +598,11 @@ pub type SelectionResult<'tcx, T> = Result<Option<T>, SelectionError<'tcx>>;
 ///     // type parameters, ImplSource will carry resolutions for those as well:
 ///     concrete.clone(); // ImplSource(Impl_1, [ImplSource(Impl_2, [ImplSource(Impl_3)])])
 ///
+///     // Case A: ImplSource points at a specific impl. Only possible when
+///     // type is concretely known. If the impl itself has bounded
+///     // type parameters, ImplSource will carry resolutions for those as well:
+///     concrete.clone(); // ImplSource(Impl_1, [ImplSource(Impl_2, [ImplSource(Impl_3)])])
+///
 ///     // Case B: ImplSource must be provided by caller. This applies when
 ///     // type is a type parameter.
 ///     param.clone();    // ImplSource::Param
@@ -659,6 +664,10 @@ pub enum ImplSource<'tcx, N> {
 
     /// ImplSource for a `const Drop` implementation.
     ConstDestruct(ImplSourceConstDestructData<N>),
+
+    /// ImplSource for a `std::marker::Tuple` implementation.
+    /// This has no nested predicates ever, so no data.
+    Tuple,
 }
 
 impl<'tcx, N> ImplSource<'tcx, N> {
@@ -673,7 +682,8 @@ impl<'tcx, N> ImplSource<'tcx, N> {
             ImplSource::Object(d) => d.nested,
             ImplSource::FnPointer(d) => d.nested,
             ImplSource::DiscriminantKind(ImplSourceDiscriminantKindData)
-            | ImplSource::Pointee(ImplSourcePointeeData) => vec![],
+            | ImplSource::Pointee(ImplSourcePointeeData)
+            | ImplSource::Tuple => Vec::new(),
             ImplSource::TraitAlias(d) => d.nested,
             ImplSource::TraitUpcasting(d) => d.nested,
             ImplSource::ConstDestruct(i) => i.nested,
@@ -691,7 +701,8 @@ impl<'tcx, N> ImplSource<'tcx, N> {
             ImplSource::Object(d) => &d.nested,
             ImplSource::FnPointer(d) => &d.nested,
             ImplSource::DiscriminantKind(ImplSourceDiscriminantKindData)
-            | ImplSource::Pointee(ImplSourcePointeeData) => &[],
+            | ImplSource::Pointee(ImplSourcePointeeData)
+            | ImplSource::Tuple => &[],
             ImplSource::TraitAlias(d) => &d.nested,
             ImplSource::TraitUpcasting(d) => &d.nested,
             ImplSource::ConstDestruct(i) => &i.nested,
@@ -758,6 +769,7 @@ impl<'tcx, N> ImplSource<'tcx, N> {
                     nested: i.nested.into_iter().map(f).collect(),
                 })
             }
+            ImplSource::Tuple => ImplSource::Tuple,
         }
     }
 }

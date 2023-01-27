@@ -559,25 +559,22 @@ impl<T> Option<T> {
     /// # Examples
     ///
     /// ```
-    /// #![feature(is_some_and)]
+    /// #![feature(is_some_with)]
     ///
     /// let x: Option<u32> = Some(2);
-    /// assert_eq!(x.is_some_and(|x| x > 1), true);
+    /// assert_eq!(x.is_some_and(|&x| x > 1), true);
     ///
     /// let x: Option<u32> = Some(0);
-    /// assert_eq!(x.is_some_and(|x| x > 1), false);
+    /// assert_eq!(x.is_some_and(|&x| x > 1), false);
     ///
     /// let x: Option<u32> = None;
-    /// assert_eq!(x.is_some_and(|x| x > 1), false);
+    /// assert_eq!(x.is_some_and(|&x| x > 1), false);
     /// ```
     #[must_use]
     #[inline]
-    #[unstable(feature = "is_some_and", issue = "93050")]
-    pub fn is_some_and(self, f: impl FnOnce(T) -> bool) -> bool {
-        match self {
-            None => false,
-            Some(x) => f(x),
-        }
+    #[unstable(feature = "is_some_with", issue = "93050")]
+    pub fn is_some_and(&self, f: impl FnOnce(&T) -> bool) -> bool {
+        matches!(self, Some(x) if f(x))
     }
 
     /// Returns `true` if the option is a [`None`] value.
@@ -837,12 +834,19 @@ impl<T> Option<T> {
     ///
     /// # Examples
     ///
-    /// ```
-    /// let x: Option<u32> = None;
-    /// let y: Option<u32> = Some(12);
+    /// Converts a string to an integer, turning poorly-formed strings
+    /// into 0 (the default value for integers). [`parse`] converts
+    /// a string to any other type that implements [`FromStr`], returning
+    /// [`None`] on error.
     ///
-    /// assert_eq!(x.unwrap_or_default(), 0);
-    /// assert_eq!(y.unwrap_or_default(), 12);
+    /// ```
+    /// let good_year_from_input = "1909";
+    /// let bad_year_from_input = "190blarg";
+    /// let good_year = good_year_from_input.parse().ok().unwrap_or_default();
+    /// let bad_year = bad_year_from_input.parse().ok().unwrap_or_default();
+    ///
+    /// assert_eq!(1909, good_year);
+    /// assert_eq!(0, bad_year);
     /// ```
     ///
     /// [default value]: Default::default
@@ -1713,6 +1717,8 @@ impl<T, U> Option<(T, U)> {
     /// # Examples
     ///
     /// ```
+    /// #![feature(unzip_option)]
+    ///
     /// let x = Some((1, "hi"));
     /// let y = None::<(u8, u32)>;
     ///
@@ -1720,13 +1726,8 @@ impl<T, U> Option<(T, U)> {
     /// assert_eq!(y.unzip(), (None, None));
     /// ```
     #[inline]
-    #[stable(feature = "unzip_option", since = "1.66.0")]
-    #[rustc_const_unstable(feature = "const_option", issue = "67441")]
-    pub const fn unzip(self) -> (Option<T>, Option<U>)
-    where
-        T: ~const Destruct,
-        U: ~const Destruct,
-    {
+    #[unstable(feature = "unzip_option", issue = "87800", reason = "recently added")]
+    pub const fn unzip(self) -> (Option<T>, Option<U>) {
         match self {
             Some((a, b)) => (Some(a), Some(b)),
             None => (None, None),
@@ -2320,8 +2321,7 @@ impl<T> ops::FromResidual<ops::Yeet<()>> for Option<T> {
 }
 
 #[unstable(feature = "try_trait_v2_residual", issue = "91285")]
-#[rustc_const_unstable(feature = "const_try", issue = "74935")]
-impl<T> const ops::Residual<T> for Option<convert::Infallible> {
+impl<T> ops::Residual<T> for Option<convert::Infallible> {
     type TryType = Option<T>;
 }
 

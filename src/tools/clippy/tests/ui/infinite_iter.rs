@@ -1,5 +1,3 @@
-#![allow(clippy::uninlined_format_args)]
-
 use std::iter::repeat;
 fn square_is_lower_64(x: &u32) -> bool {
     x * x < 64

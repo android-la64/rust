@@ -5,7 +5,6 @@
 // ignore-android: FIXME (#20004)
 // ignore-emscripten no processes
 // ignore-sgx no processes
-// ignore-fuchsia must translate zircon signal to SIGABRT, FIXME (#58590)
 
 #![feature(core_intrinsics)]
 #![feature(rustc_private)]

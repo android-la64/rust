@@ -1,5 +1,6 @@
 // compile-flags: -Zunleash-the-miri-inside-of-you
 // only-x86_64
+#![allow(const_err)]
 
 use std::arch::asm;
 

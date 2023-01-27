@@ -594,7 +594,7 @@ impl<'a> FmtVisitor<'a> {
             let both_type = |l: &TyOpt, r: &TyOpt| is_type(l) && is_type(r);
             let both_opaque = |l: &TyOpt, r: &TyOpt| is_opaque(l) && is_opaque(r);
             let need_empty_line = |a: &ast::AssocItemKind, b: &ast::AssocItemKind| match (a, b) {
-                (Type(lty), Type(rty))
+                (TyAlias(lty), TyAlias(rty))
                     if both_type(&lty.ty, &rty.ty) || both_opaque(&lty.ty, &rty.ty) =>
                 {
                     false
@@ -612,7 +612,7 @@ impl<'a> FmtVisitor<'a> {
             }
 
             buffer.sort_by(|(_, a), (_, b)| match (&a.kind, &b.kind) {
-                (Type(lty), Type(rty))
+                (TyAlias(lty), TyAlias(rty))
                     if both_type(&lty.ty, &rty.ty) || both_opaque(&lty.ty, &rty.ty) =>
                 {
                     a.ident.as_str().cmp(b.ident.as_str())
@@ -621,10 +621,10 @@ impl<'a> FmtVisitor<'a> {
                     a.ident.as_str().cmp(b.ident.as_str())
                 }
                 (Fn(..), Fn(..)) => a.span.lo().cmp(&b.span.lo()),
-                (Type(ty), _) if is_type(&ty.ty) => Ordering::Less,
-                (_, Type(ty)) if is_type(&ty.ty) => Ordering::Greater,
-                (Type(..), _) => Ordering::Less,
-                (_, Type(..)) => Ordering::Greater,
+                (TyAlias(ty), _) if is_type(&ty.ty) => Ordering::Less,
+                (_, TyAlias(ty)) if is_type(&ty.ty) => Ordering::Greater,
+                (TyAlias(..), _) => Ordering::Less,
+                (_, TyAlias(..)) => Ordering::Greater,
                 (Const(..), _) => Ordering::Less,
                 (_, Const(..)) => Ordering::Greater,
                 (MacCall(..), _) => Ordering::Less,

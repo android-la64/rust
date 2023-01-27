@@ -41,10 +41,10 @@ different ratios of ASCII to non-ASCII codepoints in the input data.
 
 | | static storage | 0% nonascii | 1% | 10% | 100% nonascii |
 |---|---|---|---|---|---|
-| **`unicode-ident`** | 10.0 K | 0.96 ns | 0.95 ns | 1.09 ns | 1.55 ns |
-| **`unicode-xid`** | 11.5 K | 1.88 ns | 2.14 ns | 3.48 ns | 15.63 ns |
-| **`ucd-trie`** | 10.2 K | 1.29 ns | 1.28 ns | 1.36 ns | 2.15 ns |
-| **`fst`** | 138 K | 55.1 ns | 54.9 ns | 53.2 ns | 28.5 ns |
+| **`unicode-ident`** | 9.75 K | 0.96 ns | 0.95 ns | 1.09 ns | 1.55 ns |
+| **`unicode-xid`** | 11.34 K | 1.88 ns | 2.14 ns | 3.48 ns | 15.63 ns |
+| **`ucd-trie`** | 9.95 K | 1.29 ns | 1.28 ns | 1.36 ns | 2.15 ns |
+| **`fst`** | 133 K | 55.1 ns | 54.9 ns | 53.2 ns | 28.5 ns |
 | **`roaring`** | 66.1 K | 2.78 ns | 3.09 ns | 3.37 ns | 4.70 ns |
 
 Source code for the benchmark is provided in the *bench* directory of this repo
@@ -263,21 +263,15 @@ is_xid_start:
 
 ## License
 
-Use of the Unicode Character Database, as this crate does, is governed by the <a
-href="LICENSE-UNICODE">Unicode License Agreement &ndash; Data Files and Software
-(2016)</a>.
+<sup>
+Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+</sup>
 
-All intellectual property within this crate that is **not generated** using the
-Unicode Character Database as input is licensed under either of <a
-href="LICENSE-APACHE">Apache License, Version 2.0</a> or <a
-href="LICENSE-MIT">MIT license</a> at your option.
+<br>
 
-The **generated** files incorporate tabular data derived from the Unicode
-Character Database, together with intellectual property from the original source
-code content of the crate. One must comply with the terms of both the Unicode
-License Agreement and either of the Apache license or MIT license when those
-generated files are involved.
-
+<sub>
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
-be licensed as just described, without any additional terms or conditions.
+be dual licensed as above, without any additional terms or conditions.
+</sub>

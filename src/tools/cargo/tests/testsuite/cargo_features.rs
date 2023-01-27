@@ -610,7 +610,7 @@ fn z_flags_rejected() {
 
 #[cargo_test]
 fn publish_allowed() {
-    let registry = registry::init();
+    registry::init();
 
     let p = project()
         .file(
@@ -626,8 +626,7 @@ fn publish_allowed() {
         )
         .file("src/lib.rs", "")
         .build();
-    p.cargo("publish")
-        .replace_crates_io(registry.index_url())
+    p.cargo("publish --token sekrit")
         .masquerade_as_nightly_cargo(&["test-dummy-unstable"])
         .run();
 }

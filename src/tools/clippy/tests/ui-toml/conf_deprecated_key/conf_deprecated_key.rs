@@ -1,5 +1,3 @@
-#![allow(clippy::uninlined_format_args)]
-
 fn main() {}
 
 #[warn(clippy::cognitive_complexity)]

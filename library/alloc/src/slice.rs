@@ -16,7 +16,9 @@ use core::borrow::{Borrow, BorrowMut};
 #[cfg(not(no_global_oom_handling))]
 use core::cmp::Ordering::{self, Less};
 #[cfg(not(no_global_oom_handling))]
-use core::mem::{self, SizedTypeProperties};
+use core::mem;
+#[cfg(not(no_global_oom_handling))]
+use core::mem::size_of;
 #[cfg(not(no_global_oom_handling))]
 use core::ptr;
 
@@ -203,7 +205,7 @@ impl<T> [T] {
     where
         T: Ord,
     {
-        merge_sort(self, T::lt);
+        merge_sort(self, |a, b| a.lt(b));
     }
 
     /// Sorts the slice with a comparator function.
@@ -1016,7 +1018,7 @@ where
     const MIN_RUN: usize = 10;
 
     // Sorting has no meaningful behavior on zero-sized types.
-    if T::IS_ZST {
+    if size_of::<T>() == 0 {
         return;
     }
 

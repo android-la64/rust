@@ -1,3 +1,5 @@
+[assign]
+
 [ping.windows]
 message = """\
 Hey Windows Group! This bug has been identified as a good "Windows candidate".
@@ -11,11 +13,3 @@ label = "O-windows"
 
 [shortcut]
 
-[autolabel."S-waiting-on-review"]
-new_pr = true
-
-[assign]
-contributing_url = "https://rust-lang.github.io/cargo/contrib/"
-
-[assign.owners]
-"*" = ["@ehuss", "@epage", "@weihanglo"]

@@ -91,20 +91,11 @@ impl<'cfg> SourceConfigMap<'cfg> {
                 replace_with: None,
             },
         )?;
-        if SourceId::crates_io_is_sparse(config)? {
+        if config.cli_unstable().sparse_registry {
             base.add(
                 CRATES_IO_REGISTRY,
                 SourceConfig {
                     id: SourceId::crates_io_maybe_sparse_http(config)?,
-                    replace_with: None,
-                },
-            )?;
-        }
-        if let Ok(url) = std::env::var("__CARGO_TEST_CRATES_IO_URL_DO_NOT_USE_THIS") {
-            base.add(
-                CRATES_IO_REGISTRY,
-                SourceConfig {
-                    id: SourceId::for_alt_registry(&url.parse()?, CRATES_IO_REGISTRY)?,
                     replace_with: None,
                 },
             )?;
@@ -130,24 +121,18 @@ impl<'cfg> SourceConfigMap<'cfg> {
         };
         let mut cfg_loc = "";
         let orig_name = name;
-        let new_id = loop {
+        let new_id;
+        loop {
             let cfg = match self.cfgs.get(name) {
                 Some(cfg) => cfg,
-                None => {
-                    // Attempt to interpret the source name as an alt registry name
-                    if let Ok(alt_id) = SourceId::alt_registry(self.config, name) {
-                        debug!("following pointer to registry {}", name);
-                        break alt_id.with_precise(id.precise().map(str::to_string));
-                    }
-                    bail!(
-                        "could not find a configured source with the \
+                None => bail!(
+                    "could not find a configured source with the \
                      name `{}` when attempting to lookup `{}` \
                      (configuration in `{}`)",
-                        name,
-                        orig_name,
-                        cfg_loc
-                    );
-                }
+                    name,
+                    orig_name,
+                    cfg_loc
+                ),
             };
             match &cfg.replace_with {
                 Some((s, c)) => {
@@ -156,7 +141,8 @@ impl<'cfg> SourceConfigMap<'cfg> {
                 }
                 None if id == cfg.id => return id.load(self.config, yanked_whitelist),
                 None => {
-                    break cfg.id.with_precise(id.precise().map(|s| s.to_string()));
+                    new_id = cfg.id.with_precise(id.precise().map(|s| s.to_string()));
+                    break;
                 }
             }
             debug!("following pointer to {}", name);
@@ -169,7 +155,7 @@ impl<'cfg> SourceConfigMap<'cfg> {
                     cfg_loc
                 )
             }
-        };
+        }
 
         let new_src = new_id.load(
             self.config,

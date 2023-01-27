@@ -24,9 +24,12 @@ pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>, cast_expr: &Expr<'_>,
                     cx,
                     FN_TO_NUMERIC_CAST_WITH_TRUNCATION,
                     expr.span,
-                    &format!("casting function pointer `{from_snippet}` to `{cast_to}`, which truncates the value"),
+                    &format!(
+                        "casting function pointer `{}` to `{}`, which truncates the value",
+                        from_snippet, cast_to
+                    ),
                     "try",
-                    format!("{from_snippet} as usize"),
+                    format!("{} as usize", from_snippet),
                     applicability,
                 );
             }

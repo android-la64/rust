@@ -1,7 +1,7 @@
 // only-aarch64
 // compile-flags: -C target-feature=+neon
 
-#![feature(asm_const)]
+#![feature(asm_const, asm_sym)]
 
 use std::arch::asm;
 

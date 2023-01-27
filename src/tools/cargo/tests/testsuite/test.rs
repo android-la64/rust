@@ -493,7 +493,7 @@ fn test_with_lib_dep() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -605,7 +605,7 @@ fn external_test_explicit() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -656,7 +656,7 @@ fn external_test_named_test() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -725,101 +725,13 @@ fn dont_run_examples() {
 }
 
 #[cargo_test]
-fn pass_through_escaped() {
+fn pass_through_command_line() {
     let p = project()
         .file(
             "src/lib.rs",
             "
-            /// ```rust
-            /// assert!(foo::foo());
-            /// ```
-            pub fn foo() -> bool {
-                true
-            }
-
-            /// ```rust
-            /// assert!(!foo::bar());
-            /// ```
-            pub fn bar() -> bool {
-                false
-            }
-
-            #[test] fn test_foo() {
-                assert!(foo());
-            }
-            #[test] fn test_bar() {
-                assert!(!bar());
-            }
-        ",
-        )
-        .build();
-
-    p.cargo("test -- bar")
-        .with_stderr(
-            "\
-[COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
-[RUNNING] [..] (target/debug/deps/foo-[..][EXE])
-[DOCTEST] foo
-",
-        )
-        .with_stdout_contains("running 1 test")
-        .with_stdout_contains("test test_bar ... ok")
-        .run();
-
-    p.cargo("test -- foo")
-        .with_stderr(
-            "\
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
-[RUNNING] [..] (target/debug/deps/foo-[..][EXE])
-[DOCTEST] foo
-",
-        )
-        .with_stdout_contains("running 1 test")
-        .with_stdout_contains("test test_foo ... ok")
-        .run();
-
-    p.cargo("test -- foo bar")
-        .with_stderr(
-            "\
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
-[RUNNING] [..] (target/debug/deps/foo-[..][EXE])
-[DOCTEST] foo
-",
-        )
-        .with_stdout_contains("running 2 tests")
-        .with_stdout_contains("test test_foo ... ok")
-        .with_stdout_contains("test test_bar ... ok")
-        .run();
-}
-
-// Unlike `pass_through_escaped`, doctests won't run when using `testname` as an optimization
-#[cargo_test]
-fn pass_through_testname() {
-    let p = project()
-        .file(
-            "src/lib.rs",
-            "
-            /// ```rust
-            /// assert!(foo::foo());
-            /// ```
-            pub fn foo() -> bool {
-                true
-            }
-
-            /// ```rust
-            /// assert!(!foo::bar());
-            /// ```
-            pub fn bar() -> bool {
-                false
-            }
-
-            #[test] fn test_foo() {
-                assert!(foo());
-            }
-            #[test] fn test_bar() {
-                assert!(!bar());
-            }
+            #[test] fn foo() {}
+            #[test] fn bar() {}
         ",
         )
         .build();
@@ -833,7 +745,7 @@ fn pass_through_testname() {
 ",
         )
         .with_stdout_contains("running 1 test")
-        .with_stdout_contains("test test_bar ... ok")
+        .with_stdout_contains("test bar ... ok")
         .run();
 
     p.cargo("test foo")
@@ -844,19 +756,7 @@ fn pass_through_testname() {
 ",
         )
         .with_stdout_contains("running 1 test")
-        .with_stdout_contains("test test_foo ... ok")
-        .run();
-
-    p.cargo("test foo -- bar")
-        .with_stderr(
-            "\
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
-[RUNNING] [..] (target/debug/deps/foo-[..][EXE])
-",
-        )
-        .with_stdout_contains("running 2 tests")
-        .with_stdout_contains("test test_foo ... ok")
-        .with_stdout_contains("test test_bar ... ok")
+        .with_stdout_contains("test foo ... ok")
         .run();
 }
 
@@ -888,7 +788,7 @@ fn lib_bin_same_name() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -2017,7 +1917,7 @@ fn example_dev_dep() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -3021,7 +2921,7 @@ fn test_all_workspace() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
 
@@ -3048,7 +2948,7 @@ fn test_all_exclude() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
 
@@ -3077,7 +2977,7 @@ fn test_all_exclude_not_found() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
 
@@ -3105,7 +3005,7 @@ fn test_all_exclude_glob() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
 
@@ -3134,7 +3034,7 @@ fn test_all_exclude_glob_not_found() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
 
@@ -3309,7 +3209,7 @@ fn test_all_member_dependency_same_name() {
         .file(
             "a/Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "a"
                 version = "0.1.0"
 
@@ -3333,7 +3233,7 @@ fn doctest_only_with_dev_dep() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "a"
                 version = "0.1.0"
 
@@ -3419,7 +3319,7 @@ fn doctest_and_registry() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "a"
                 version = "0.1.0"
 
@@ -3444,7 +3344,7 @@ fn doctest_and_registry() {
         .file(
             "c/Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "c"
                 version = "0.1.0"
 
@@ -3525,7 +3425,7 @@ fn cyclic_dev() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
 
@@ -3546,7 +3446,7 @@ fn publish_a_crate_without_tests() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "testless"
                 version = "0.1.0"
                 exclude = ["tests/*"]
@@ -3567,7 +3467,7 @@ fn publish_a_crate_without_tests() {
         .file(
             "Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "foo"
                 version = "0.1.0"
 
@@ -3595,7 +3495,7 @@ fn find_dependency_of_proc_macro_dependency_with_target() {
         .file(
             "root/Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "root"
                 version = "0.1.0"
                 authors = []
@@ -3617,7 +3517,7 @@ fn find_dependency_of_proc_macro_dependency_with_target() {
         .file(
             "proc_macro_dep/Cargo.toml",
             r#"
-                [package]
+                [project]
                 name = "proc_macro_dep"
                 version = "0.1.0"
                 authors = []
@@ -4515,7 +4415,7 @@ fn panic_abort_test_profile_inherits() {
 
 #[cargo_test]
 fn bin_env_for_test() {
-    // Test for the `CARGO_BIN_EXE_` environment variables for tests.
+    // Test for the `CARGO_BIN_` environment variables for tests.
     //
     // Note: The Unicode binary uses a `[[bin]]` definition because different
     // filesystems normalize utf-8 in different ways. For example, HFS uses

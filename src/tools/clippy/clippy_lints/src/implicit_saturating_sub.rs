@@ -1,5 +1,5 @@
 use clippy_utils::diagnostics::span_lint_and_sugg;
-use clippy_utils::{higher, is_integer_literal, peel_blocks_with_stmt, SpanlessEq};
+use clippy_utils::{higher, peel_blocks_with_stmt, SpanlessEq};
 use if_chain::if_chain;
 use rustc_ast::ast::LitKind;
 use rustc_errors::Applicability;
@@ -35,7 +35,7 @@ declare_clippy_lint! {
     /// ```
     #[clippy::version = "1.44.0"]
     pub IMPLICIT_SATURATING_SUB,
-    style,
+    pedantic,
     "Perform saturating subtraction instead of implicitly checking lower bound of data type"
 }
 
@@ -131,8 +131,17 @@ impl<'tcx> LateLintPass<'tcx> for ImplicitSaturatingSub {
 fn subtracts_one<'a>(cx: &LateContext<'_>, expr: &'a Expr<'a>) -> Option<&'a Expr<'a>> {
     match peel_blocks_with_stmt(expr).kind {
         ExprKind::AssignOp(ref op1, target, value) => {
-            // Check if literal being subtracted is one
-            (BinOpKind::Sub == op1.node && is_integer_literal(value, 1)).then_some(target)
+            if_chain! {
+                if BinOpKind::Sub == op1.node;
+                // Check if literal being subtracted is one
+                if let ExprKind::Lit(ref lit1) = value.kind;
+                if let LitKind::Int(1, _) = lit1.node;
+                then {
+                    Some(target)
+                } else {
+                    None
+                }
+            }
         },
         ExprKind::Assign(target, value, _) => {
             if_chain! {
@@ -141,7 +150,8 @@ fn subtracts_one<'a>(cx: &LateContext<'_>, expr: &'a Expr<'a>) -> Option<&'a Exp
 
                 if SpanlessEq::new(cx).eq_expr(left1, target);
 
-                if is_integer_literal(right1, 1);
+                if let ExprKind::Lit(ref lit1) = right1.kind;
+                if let LitKind::Int(1, _) = lit1.node;
                 then {
                     Some(target)
                 } else {
@@ -160,7 +170,7 @@ fn print_lint_and_sugg(cx: &LateContext<'_>, var_name: &str, expr: &Expr<'_>) {
         expr.span,
         "implicitly performing saturating subtraction",
         "try",
-        format!("{var_name} = {var_name}.saturating_sub({});", '1'),
+        format!("{} = {}.saturating_sub({});", var_name, var_name, '1'),
         Applicability::MachineApplicable,
     );
 }

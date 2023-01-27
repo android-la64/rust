@@ -1,13 +1,15 @@
 ```console
 $ 03_01_flag_bool --help
+clap [..]
 A simple to use, efficient, and full-featured Command Line Argument Parser
 
-Usage: 03_01_flag_bool[EXE] [OPTIONS]
+USAGE:
+    03_01_flag_bool[EXE] [OPTIONS]
 
-Options:
-  -v, --verbose  
-  -h, --help     Print help information
-  -V, --version  Print version information
+OPTIONS:
+    -h, --help       Print help information
+    -v, --verbose    
+    -V, --version    Print version information
 
 $ 03_01_flag_bool
 verbose: false
@@ -16,11 +18,6 @@ $ 03_01_flag_bool --verbose
 verbose: true
 
 $ 03_01_flag_bool --verbose --verbose
-? failed
-error: The argument '--verbose' was provided more than once, but cannot be used multiple times
-
-Usage: 03_01_flag_bool[EXE] [OPTIONS]
-
-For more information try '--help'
+verbose: true
 
 ```

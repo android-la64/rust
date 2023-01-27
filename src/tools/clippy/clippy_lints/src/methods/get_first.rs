@@ -29,9 +29,9 @@ pub(super) fn check<'tcx>(
                 cx,
                 GET_FIRST,
                 expr.span,
-                &format!("accessing first element with `{slice_name}.get(0)`"),
+                &format!("accessing first element with `{0}.get(0)`", slice_name),
                 "try",
-                format!("{slice_name}.first()"),
+                format!("{}.first()", slice_name),
                 app,
             );
         }

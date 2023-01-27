@@ -5,6 +5,8 @@
 
 // build-fail
 
+#![deny(const_err)]
+
 use std::thread;
 
 fn main() {

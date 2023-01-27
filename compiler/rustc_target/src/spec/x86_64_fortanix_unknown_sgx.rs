@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
-use super::{cvs, Cc, LinkerFlavor, Lld, Target, TargetOptions};
+use crate::spec::cvs;
+
+use super::{LinkerFlavor, LldFlavor, Target, TargetOptions};
 
 pub fn target() -> Target {
     let pre_link_args = TargetOptions::link_args(
-        LinkerFlavor::Gnu(Cc::No, Lld::No),
+        LinkerFlavor::Ld,
         &[
             "-e",
             "elf_entry",
@@ -59,7 +61,7 @@ pub fn target() -> Target {
         env: "sgx".into(),
         vendor: "fortanix".into(),
         abi: "fortanix".into(),
-        linker_flavor: LinkerFlavor::Gnu(Cc::No, Lld::Yes),
+        linker_flavor: LinkerFlavor::Lld(LldFlavor::Ld),
         linker: Some("rust-lld".into()),
         max_atomic_width: Some(64),
         cpu: "x86-64".into(),

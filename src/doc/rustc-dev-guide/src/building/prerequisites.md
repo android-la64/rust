@@ -9,7 +9,6 @@ Before building the compiler, you need the following things installed:
 * `git`
 * `ssl` which comes in `libssl-dev` or `openssl-devel`
 * `pkg-config` if you are compiling on Linux and targeting Linux
-* `libstdc++-static` may be required on some Linux distributions such as Fedora and Ubuntu
 
 If building LLVM from source (the default), you'll need additional tools:
 
@@ -37,10 +36,8 @@ winget install -e Python.Python.3
 winget install -e Kitware.CMake
 ```
 
-If any of those is installed already, winget will detect it. Then edit your system's `PATH` variable
-and add: `C:\Program Files\CMake\bin`. See
-[this guide on editing the system `PATH`](https://www.java.com/en/download/help/path.html) from the
-Java documentation.
+If any of those is installed already, winget will detect it.
+Then edit your systems `PATH` variable and add: `C:\Program Files\CMake\bin`.
 
 For more information about building on Windows,
 see [the `rust-lang/rust` README](https://github.com/rust-lang/rust#building-on-windows).

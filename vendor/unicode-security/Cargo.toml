@@ -3,39 +3,26 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies.
+# to registry (e.g., crates.io) dependencies
 #
-# If you are reading this file be aware that the original Cargo.toml
-# will likely look very different (and much more reasonable).
-# See Cargo.toml.orig for the original contents.
+# If you believe there's an error in this file please file an
+# issue against the rust-lang/cargo repository. If you're
+# editing this file be aware that the upstream Cargo.toml
+# will likely look very different (and much more reasonable)
 
 [package]
 edition = "2018"
 name = "unicode-security"
-version = "0.1.0"
-authors = [
-    "Charles Lew <crlf0710@gmail.com>",
-    "Manish Goregaokar <manishsmail@gmail.com>",
-]
-exclude = [
-    "target/*",
-    "Cargo.lock",
-]
-description = """
-Detect possible security problems with Unicode usage
-according to Unicode Technical Standard #39 rules.
-"""
+version = "0.0.5"
+authors = ["Charles Lew <crlf0710@gmail.com>", "Manish Goregaokar <manishsmail@gmail.com>"]
+exclude = ["target/*", "Cargo.lock"]
+description = "Detect possible security problems with Unicode usage\naccording to Unicode Technical Standard #39 rules.\n"
 homepage = "https://github.com/unicode-rs/unicode-security"
 documentation = "https://docs.rs/unicode-security"
 readme = "README.md"
-keywords = [
-    "text",
-    "security",
-    "unicode",
-]
+keywords = ["text", "security", "unicode"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/unicode-rs/unicode-security"
-
 [dependencies.compiler_builtins]
 version = "0.1"
 optional = true
@@ -61,8 +48,4 @@ default-features = false
 [features]
 bench = []
 default = []
-rustc-dep-of-std = [
-    "std",
-    "core",
-    "compiler_builtins",
-]
+rustc-dep-of-std = ["std", "core", "compiler_builtins"]

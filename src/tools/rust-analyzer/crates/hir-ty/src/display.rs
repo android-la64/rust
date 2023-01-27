@@ -20,14 +20,13 @@ use hir_def::{
 };
 use hir_expand::{hygiene::Hygiene, name::Name};
 use itertools::Itertools;
-use smallvec::SmallVec;
 use syntax::SmolStr;
 
 use crate::{
     db::HirDatabase,
     from_assoc_type_id, from_foreign_def_id, from_placeholder_idx, lt_from_placeholder_idx,
     mapping::from_chalk,
-    primitive, to_assoc_type_id,
+    primitive, subst_prefix, to_assoc_type_id,
     utils::{self, generics},
     AdtId, AliasEq, AliasTy, Binders, CallableDefId, CallableSig, Const, ConstValue, DomainGoal,
     GenericArg, ImplTraitId, Interner, Lifetime, LifetimeData, LifetimeOutlives, Mutability,
@@ -222,7 +221,6 @@ pub enum DisplaySourceCodeError {
     PathNotFound,
     UnknownType,
     Closure,
-    Generator,
 }
 
 pub enum HirDisplayError {
@@ -291,7 +289,7 @@ impl HirDisplay for ProjectionTy {
 
         let trait_ = f.db.trait_data(self.trait_(f.db));
         write!(f, "<")?;
-        self.self_type_parameter(f.db).hir_fmt(f)?;
+        self.self_type_parameter(Interner).hir_fmt(f)?;
         write!(f, " as {}", trait_.name)?;
         if self.substitution.len(Interner) > 1 {
             write!(f, "<")?;
@@ -506,15 +504,8 @@ impl HirDisplay for Ty {
                     let total_len = parent_params + self_param + type_params + const_params;
                     // We print all params except implicit impl Trait params. Still a bit weird; should we leave out parent and self?
                     if total_len > 0 {
-                        // `parameters` are in the order of fn's params (including impl traits),
-                        // parent's params (those from enclosing impl or trait, if any).
-                        let parameters = parameters.as_slice(Interner);
-                        let fn_params_len = self_param + type_params + const_params;
-                        let fn_params = parameters.get(..fn_params_len);
-                        let parent_params = parameters.get(parameters.len() - parent_params..);
-                        let params = parent_params.into_iter().chain(fn_params).flatten();
                         write!(f, "<")?;
-                        f.write_joined(params, ", ")?;
+                        f.write_joined(&parameters.as_slice(Interner)[..total_len], ", ")?;
                         write!(f, ">")?;
                     }
                 }
@@ -542,7 +533,6 @@ impl HirDisplay for Ty {
                             f.db.upcast(),
                             ItemInNs::Types((*def_id).into()),
                             module_id,
-                            false,
                         ) {
                             write!(f, "{}", path)?;
                         } else {
@@ -586,8 +576,9 @@ impl HirDisplay for Ty {
                                         Some(x) => x,
                                         None => return true,
                                     };
-                                    let actual_default =
-                                        default_parameter.clone().substitute(Interner, &parameters);
+                                    let actual_default = default_parameter
+                                        .clone()
+                                        .substitute(Interner, &subst_prefix(parameters, i));
                                     parameter != &actual_default
                                 }
                                 let mut default_from = 0;
@@ -731,7 +722,7 @@ impl HirDisplay for Ty {
                                         WhereClause::AliasEq(AliasEq {
                                             alias: AliasTy::Projection(proj),
                                             ty: _,
-                                        }) => &proj.self_type_parameter(f.db) == self,
+                                        }) => &proj.self_type_parameter(Interner) == self,
                                         _ => false,
                                     })
                                     .collect::<Vec<_>>();
@@ -751,19 +742,9 @@ impl HirDisplay for Ty {
             }
             TyKind::BoundVar(idx) => idx.hir_fmt(f)?,
             TyKind::Dyn(dyn_ty) => {
-                // Reorder bounds to satisfy `write_bounds_like_dyn_trait()`'s expectation.
-                // FIXME: `Iterator::partition_in_place()` or `Vec::drain_filter()` may make it
-                // more efficient when either of them hits stable.
-                let mut bounds: SmallVec<[_; 4]> =
-                    dyn_ty.bounds.skip_binders().iter(Interner).cloned().collect();
-                let (auto_traits, others): (SmallVec<[_; 4]>, _) =
-                    bounds.drain(1..).partition(|b| b.skip_binders().trait_id().is_some());
-                bounds.extend(others);
-                bounds.extend(auto_traits);
-
                 write_bounds_like_dyn_trait_with_prefix(
                     "dyn",
-                    &bounds,
+                    dyn_ty.bounds.skip_binders().interned(),
                     SizedByDefault::NotSized,
                     f,
                 )?;
@@ -801,34 +782,7 @@ impl HirDisplay for Ty {
                 write!(f, "{{unknown}}")?;
             }
             TyKind::InferenceVar(..) => write!(f, "_")?,
-            TyKind::Generator(_, subst) => {
-                if f.display_target.is_source_code() {
-                    return Err(HirDisplayError::DisplaySourceCodeError(
-                        DisplaySourceCodeError::Generator,
-                    ));
-                }
-
-                let subst = subst.as_slice(Interner);
-                let a: Option<SmallVec<[&Ty; 3]>> = subst
-                    .get(subst.len() - 3..)
-                    .map(|args| args.iter().map(|arg| arg.ty(Interner)).collect())
-                    .flatten();
-
-                if let Some([resume_ty, yield_ty, ret_ty]) = a.as_deref() {
-                    write!(f, "|")?;
-                    resume_ty.hir_fmt(f)?;
-                    write!(f, "|")?;
-
-                    write!(f, " yields ")?;
-                    yield_ty.hir_fmt(f)?;
-
-                    write!(f, " -> ")?;
-                    ret_ty.hir_fmt(f)?;
-                } else {
-                    // This *should* be unreachable, but fallback just in case.
-                    write!(f, "{{generator}}")?;
-                }
-            }
+            TyKind::Generator(..) => write!(f, "{{generator}}")?,
             TyKind::GeneratorWitness(..) => write!(f, "{{generator witness}}")?,
         }
         Ok(())

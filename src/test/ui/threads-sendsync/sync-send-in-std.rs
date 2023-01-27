@@ -2,7 +2,6 @@
 
 // ignore-wasm32-bare networking not available
 // ignore-sgx ToSocketAddrs cannot be used for DNS Resolution
-// ignore-fuchsia Req. test-harness networking privileges
 
 use std::net::ToSocketAddrs;
 

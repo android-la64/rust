@@ -3,6 +3,8 @@
 //! This library contains the tidy lints and exposes it
 //! to be used by tools.
 
+use walk::{filter_dirs, walk, walk_many, walk_no_read};
+
 /// A helper macro to `unwrap` a result except also print out details like:
 ///
 /// * The expression that failed
@@ -38,7 +40,6 @@ macro_rules! tidy_error {
     });
 }
 
-pub mod alphabetical;
 pub mod bins;
 pub mod debug_artifacts;
 pub mod deps;

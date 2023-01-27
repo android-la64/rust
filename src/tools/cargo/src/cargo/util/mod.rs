@@ -14,7 +14,6 @@ pub use self::hasher::StableHasher;
 pub use self::hex::{hash_u64, short_hash, to_hex};
 pub use self::into_url::IntoUrl;
 pub use self::into_url_with_base::IntoUrlWithBase;
-pub(crate) use self::io::LimitErrorReader;
 pub use self::lev_distance::{closest, closest_msg, lev_distance};
 pub use self::lockserver::{LockServer, LockServerClient, LockServerStarted};
 pub use self::progress::{Progress, ProgressStyle};
@@ -45,7 +44,6 @@ pub mod important_paths;
 pub mod interning;
 pub mod into_url;
 mod into_url_with_base;
-mod io;
 pub mod job;
 pub mod lev_distance;
 mod lockserver;
@@ -59,7 +57,6 @@ pub mod rustc;
 mod semver_ext;
 pub mod to_semver;
 pub mod toml;
-pub mod toml_mut;
 mod vcs;
 mod workspace;
 
@@ -109,16 +106,4 @@ pub fn indented_lines(text: &str) -> String {
             }
         })
         .collect()
-}
-
-pub fn truncate_with_ellipsis(s: &str, max_width: usize) -> String {
-    // We should truncate at grapheme-boundary and compute character-widths,
-    // yet the dependencies on unicode-segmentation and unicode-width are
-    // not worth it.
-    let mut chars = s.chars();
-    let mut prefix = (&mut chars).take(max_width - 1).collect::<String>();
-    if chars.next().is_some() {
-        prefix.push('…');
-    }
-    prefix
 }

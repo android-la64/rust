@@ -18,11 +18,12 @@ fn docs_link(diag: &mut Diagnostic, lint: &'static Lint) {
     if env::var("CLIPPY_DISABLE_DOCS_LINKS").is_err() {
         if let Some(lint) = lint.name_lower().strip_prefix("clippy::") {
             diag.help(&format!(
-                "for further information visit https://rust-lang.github.io/rust-clippy/{}/index.html#{lint}",
+                "for further information visit https://rust-lang.github.io/rust-clippy/{}/index.html#{}",
                 &option_env!("RUST_RELEASE_NUM").map_or("master".to_string(), |n| {
                     // extract just major + minor version and ignore patch versions
                     format!("rust-{}", n.rsplit_once('.').unwrap().1)
-                })
+                }),
+                lint
             ));
         }
     }
@@ -46,9 +47,10 @@ fn docs_link(diag: &mut Diagnostic, lint: &'static Lint) {
 ///    |     ^^^^^^^^^^^^^^^^^^^^^^^
 /// ```
 pub fn span_lint<T: LintContext>(cx: &T, lint: &'static Lint, sp: impl Into<MultiSpan>, msg: &str) {
-    cx.struct_span_lint(lint, sp, msg, |diag| {
-        docs_link(diag, lint);
-        diag
+    cx.struct_span_lint(lint, sp, |diag| {
+        let mut diag = diag.build(msg);
+        docs_link(&mut diag, lint);
+        diag.emit();
     });
 }
 
@@ -80,14 +82,15 @@ pub fn span_lint_and_help<'a, T: LintContext>(
     help_span: Option<Span>,
     help: &str,
 ) {
-    cx.struct_span_lint(lint, span, msg, |diag| {
+    cx.struct_span_lint(lint, span, |diag| {
+        let mut diag = diag.build(msg);
         if let Some(help_span) = help_span {
             diag.span_help(help_span, help);
         } else {
             diag.help(help);
         }
-        docs_link(diag, lint);
-        diag
+        docs_link(&mut diag, lint);
+        diag.emit();
     });
 }
 
@@ -122,14 +125,15 @@ pub fn span_lint_and_note<'a, T: LintContext>(
     note_span: Option<Span>,
     note: &str,
 ) {
-    cx.struct_span_lint(lint, span, msg, |diag| {
+    cx.struct_span_lint(lint, span, |diag| {
+        let mut diag = diag.build(msg);
         if let Some(note_span) = note_span {
             diag.span_note(note_span, note);
         } else {
             diag.note(note);
         }
-        docs_link(diag, lint);
-        diag
+        docs_link(&mut diag, lint);
+        diag.emit();
     });
 }
 
@@ -143,17 +147,19 @@ where
     S: Into<MultiSpan>,
     F: FnOnce(&mut Diagnostic),
 {
-    cx.struct_span_lint(lint, sp, msg, |diag| {
-        f(diag);
-        docs_link(diag, lint);
-        diag
+    cx.struct_span_lint(lint, sp, |diag| {
+        let mut diag = diag.build(msg);
+        f(&mut diag);
+        docs_link(&mut diag, lint);
+        diag.emit();
     });
 }
 
 pub fn span_lint_hir(cx: &LateContext<'_>, lint: &'static Lint, hir_id: HirId, sp: Span, msg: &str) {
-    cx.tcx.struct_span_lint_hir(lint, hir_id, sp, msg, |diag| {
-        docs_link(diag, lint);
-        diag
+    cx.tcx.struct_span_lint_hir(lint, hir_id, sp, |diag| {
+        let mut diag = diag.build(msg);
+        docs_link(&mut diag, lint);
+        diag.emit();
     });
 }
 
@@ -165,10 +171,11 @@ pub fn span_lint_hir_and_then(
     msg: &str,
     f: impl FnOnce(&mut Diagnostic),
 ) {
-    cx.tcx.struct_span_lint_hir(lint, hir_id, sp, msg, |diag| {
-        f(diag);
-        docs_link(diag, lint);
-        diag
+    cx.tcx.struct_span_lint_hir(lint, hir_id, sp, |diag| {
+        let mut diag = diag.build(msg);
+        f(&mut diag);
+        docs_link(&mut diag, lint);
+        diag.emit();
     });
 }
 

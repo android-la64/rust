@@ -1,6 +1,6 @@
 //! Implementation of a standard S390x ABI.
 //!
-//! This machine uses the "vanilla" ABI implementation from abi.rs,
+//! This machine uses the "vanilla" ABI implementation from abi_impl.rs,
 //! however a few details are different from the description there:
 //!
 //! - On s390x, the caller must provide a "register save area" of 160
@@ -87,7 +87,7 @@ use std::convert::TryFrom;
 // We use a generic implementation that factors out ABI commonalities.
 
 /// Support for the S390x ABI from the callee side (within a function body).
-pub type S390xCallee = Callee<S390xMachineDeps>;
+pub type S390xABICallee = ABICalleeImpl<S390xMachineDeps>;
 
 /// ABI Register usage
 
@@ -248,6 +248,20 @@ impl ABIMachineSpec for S390xMachineDeps {
 
         for i in 0..params.len() {
             let mut param = params[i];
+
+            // Validate "purpose".
+            match &param.purpose {
+                &ir::ArgumentPurpose::VMContext
+                | &ir::ArgumentPurpose::Normal
+                | &ir::ArgumentPurpose::StackLimit
+                | &ir::ArgumentPurpose::SignatureId
+                | &ir::ArgumentPurpose::StructReturn
+                | &ir::ArgumentPurpose::StructArgument(_) => {}
+                _ => panic!(
+                    "Unsupported argument purpose {:?} in signature: {:?}",
+                    param.purpose, params
+                ),
+            }
 
             let intreg = in_int_reg(param.value_type);
             let fltreg = in_flt_reg(param.value_type);
@@ -574,12 +588,8 @@ impl ABIMachineSpec for S390xMachineDeps {
         smallvec![]
     }
 
-    fn gen_inline_probestack(_frame_size: u32, _guard_size: u32) -> SmallInstVec<Self::I> {
-        unimplemented!("Inline stack probing is unimplemented on S390x");
-    }
-
     // Returns stack bytes used as well as instructions. Does not adjust
-    // nominal SP offset; abi generic code will do that.
+    // nominal SP offset; abi_impl generic code will do that.
     fn gen_clobber_save(
         _call_conv: isa::CallConv,
         _setup_frame: bool,

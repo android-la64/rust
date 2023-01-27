@@ -237,32 +237,27 @@ fn doc_comment_from_desc(list: &Punctuated<Expr, token::Comma>) -> Result<Attrib
 }
 
 /// Add the impl of QueryDescription for the query to `impls` if one is requested
-fn add_query_desc_cached_impl(
-    query: &Query,
-    descs: &mut proc_macro2::TokenStream,
-    cached: &mut proc_macro2::TokenStream,
-) {
-    let Query { name, key, modifiers, .. } = &query;
+fn add_query_description_impl(query: &Query, impls: &mut proc_macro2::TokenStream) {
+    let name = &query.name;
+    let key = &query.key;
+    let modifiers = &query.modifiers;
 
     // Find out if we should cache the query on disk
     let cache = if let Some((args, expr)) = modifiers.cache.as_ref() {
         let tcx = args.as_ref().map(|t| quote! { #t }).unwrap_or_else(|| quote! { _ });
         // expr is a `Block`, meaning that `{ #expr }` gets expanded
         // to `{ { stmts... } }`, which triggers the `unused_braces` lint.
-        // we're taking `key` by reference, but some rustc types usually prefer being passed by value
         quote! {
-            #[allow(unused_variables, unused_braces, rustc::pass_by_value)]
+            #[allow(unused_variables, unused_braces)]
             #[inline]
-            pub fn #name<'tcx>(#tcx: TyCtxt<'tcx>, #key: &crate::ty::query::query_keys::#name<'tcx>) -> bool {
+            fn cache_on_disk(#tcx: TyCtxt<'tcx>, #key: &Self::Key) -> bool {
                 #expr
             }
         }
     } else {
         quote! {
-            // we're taking `key` by reference, but some rustc types usually prefer being passed by value
-            #[allow(rustc::pass_by_value)]
             #[inline]
-            pub fn #name<'tcx>(_: TyCtxt<'tcx>, _: &crate::ty::query::query_keys::#name<'tcx>) -> bool {
+            fn cache_on_disk(_: TyCtxt<'tcx>, _: &Self::Key) -> bool {
                 false
             }
         }
@@ -273,20 +268,19 @@ fn add_query_desc_cached_impl(
 
     let desc = quote! {
         #[allow(unused_variables)]
-        pub fn #name<'tcx>(tcx: TyCtxt<'tcx>, key: crate::ty::query::query_keys::#name<'tcx>) -> String {
-            let (#tcx, #key) = (tcx, key);
+        fn describe(tcx: QueryCtxt<'tcx>, key: Self::Key) -> String {
+            let (#tcx, #key) = (*tcx, key);
             ::rustc_middle::ty::print::with_no_trimmed_paths!(
                 format!(#desc)
             )
         }
     };
 
-    descs.extend(quote! {
-        #desc
-    });
-
-    cached.extend(quote! {
-        #cache
+    impls.extend(quote! {
+        (#name) => {
+            #desc
+            #cache
+        };
     });
 }
 
@@ -295,7 +289,7 @@ pub fn rustc_queries(input: TokenStream) -> TokenStream {
 
     let mut query_stream = quote! {};
     let mut query_description_stream = quote! {};
-    let mut query_cached_stream = quote! {};
+    let mut cached_queries = quote! {};
 
     for query in queries.0 {
         let Query { name, arg, modifiers, .. } = &query;
@@ -304,6 +298,12 @@ pub fn rustc_queries(input: TokenStream) -> TokenStream {
             ReturnType::Default => quote! { -> () },
             _ => quote! { #result_full },
         };
+
+        if modifiers.cache.is_some() {
+            cached_queries.extend(quote! {
+                #name,
+            });
+        }
 
         let mut attributes = Vec::new();
 
@@ -350,7 +350,7 @@ pub fn rustc_queries(input: TokenStream) -> TokenStream {
             [#attribute_stream] fn #name(#arg) #result,
         });
 
-        add_query_desc_cached_impl(&query, &mut query_description_stream, &mut query_cached_stream);
+        add_query_description_impl(&query, &mut query_description_stream);
     }
 
     TokenStream::from(quote! {
@@ -364,13 +364,9 @@ pub fn rustc_queries(input: TokenStream) -> TokenStream {
             }
         }
 
-        pub mod descs {
-            use super::*;
+        #[macro_export]
+        macro_rules! rustc_query_description {
             #query_description_stream
-        }
-        pub mod cached {
-            use super::*;
-            #query_cached_stream
         }
     })
 }

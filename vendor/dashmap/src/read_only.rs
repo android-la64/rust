@@ -7,7 +7,7 @@ use std::collections::hash_map::RandomState;
 
 /// A read-only view into a `DashMap`. Allows to obtain raw references to the stored values.
 pub struct ReadOnlyView<K, V, S = RandomState> {
-    pub(crate) map: DashMap<K, V, S>,
+    map: DashMap<K, V, S>,
 }
 
 impl<K: Eq + Hash + Clone, V: Clone, S: Clone> Clone for ReadOnlyView<K, V, S> {

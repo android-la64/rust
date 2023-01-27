@@ -1,12 +1,11 @@
 //! Implements the various phases of `cargo miri run/test`.
 
 use std::env;
+use std::fmt::Write as _;
 use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::process::Command;
-
-use rustc_version::VersionMeta;
 
 use crate::{setup::*, util::*};
 
@@ -34,17 +33,21 @@ Examples:
 "#;
 
 fn show_help() {
-    println!("{CARGO_MIRI_HELP}");
+    println!("{}", CARGO_MIRI_HELP);
 }
 
 fn show_version() {
-    print!("miri {}", env!("CARGO_PKG_VERSION"));
-    let version = format!("{} {}", env!("GIT_HASH"), env!("COMMIT_DATE"));
-    if version.len() > 1 {
-        // If there is actually something here, print it.
-        print!(" ({version})");
+    let mut version = format!("miri {}", env!("CARGO_PKG_VERSION"));
+    // Only use `option_env` on vergen variables to ensure the build succeeds
+    // when vergen failed to find the git info.
+    if let Some(sha) = option_env!("VERGEN_GIT_SHA_SHORT") {
+        // This `unwrap` can never fail because if VERGEN_GIT_SHA_SHORT exists, then so does
+        // VERGEN_GIT_COMMIT_DATE.
+        #[allow(clippy::option_env_unwrap)]
+        write!(&mut version, " ({} {})", sha, option_env!("VERGEN_GIT_COMMIT_DATE").unwrap())
+            .unwrap();
     }
-    println!();
+    println!("{}", version);
 }
 
 fn forward_patched_extern_arg(args: &mut impl Iterator<Item = String>, cmd: &mut Command) {
@@ -52,7 +55,7 @@ fn forward_patched_extern_arg(args: &mut impl Iterator<Item = String>, cmd: &mut
     let path = args.next().expect("`--extern` should be followed by a filename");
     if let Some(lib) = path.strip_suffix(".rlib") {
         // If this is an rlib, make it an rmeta.
-        cmd.arg(format!("{lib}.rmeta"));
+        cmd.arg(format!("{}.rmeta", lib));
     } else {
         // Some other extern file (e.g. a `.so`). Forward unchanged.
         cmd.arg(path);
@@ -87,14 +90,12 @@ pub fn phase_cargo_miri(mut args: impl Iterator<Item = String>) {
     let verbose = num_arg_flag("-v");
 
     // Determine the involved architectures.
-    let rustc_version = VersionMeta::for_command(miri_for_host())
-        .expect("failed to determine underlying rustc version of Miri");
-    let host = &rustc_version.host;
+    let host = version_info().host;
     let target = get_arg_flag_value("--target");
-    let target = target.as_ref().unwrap_or(host);
+    let target = target.as_ref().unwrap_or(&host);
 
     // We always setup.
-    setup(&subcommand, target, &rustc_version);
+    setup(&subcommand, &host, target);
 
     // Invoke actual cargo for the job, but with different flags.
     // We re-use `cargo test` and `cargo run`, which makes target and binary handling very easy but
@@ -145,7 +146,7 @@ pub fn phase_cargo_miri(mut args: impl Iterator<Item = String>) {
     if get_arg_flag_value("--target").is_none() {
         // No target given. Explicitly pick the host.
         cmd.arg("--target");
-        cmd.arg(host);
+        cmd.arg(&host);
     }
 
     // Set ourselves as runner for al binaries invoked by cargo.
@@ -203,7 +204,7 @@ pub fn phase_cargo_miri(mut args: impl Iterator<Item = String>) {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RustcPhase {
-    /// `rustc` called during sysroot build.
+    /// `rustc` called via `xargo` for sysroot build.
     Setup,
     /// `rustc` called by `cargo` for regular build.
     Build,
@@ -263,7 +264,7 @@ pub fn phase_rustc(mut args: impl Iterator<Item = String>, phase: RustcPhase) {
     let verbose = std::env::var("MIRI_VERBOSE")
         .map_or(0, |verbose| verbose.parse().expect("verbosity flag must be an integer"));
     let target_crate = is_target_crate();
-    // Determine whether this is cargo invoking rustc to get some infos.
+    // Determine whether this is cargo/xargo invoking rustc to get some infos.
     let info_query = get_arg_flag_value("--print").is_some() || has_arg_flag("-vV");
 
     let store_json = |info: CrateRunInfo| {
@@ -336,7 +337,7 @@ pub fn phase_rustc(mut args: impl Iterator<Item = String>, phase: RustcPhase) {
                     "[cargo-miri rustc inside rustdoc] captured input:\n{}",
                     std::str::from_utf8(&env.stdin).unwrap()
                 );
-                eprintln!("[cargo-miri rustc inside rustdoc] going to run:\n{cmd:?}");
+                eprintln!("[cargo-miri rustc inside rustdoc] going to run:\n{:?}", cmd);
             }
 
             exec_with_pipe(cmd, &env.stdin, format!("{}.stdin", out_filename("", "").display()));
@@ -374,7 +375,7 @@ pub fn phase_rustc(mut args: impl Iterator<Item = String>, phase: RustcPhase) {
                         val.push("metadata");
                     }
                 }
-                cmd.arg(format!("{emit_flag}={}", val.join(",")));
+                cmd.arg(format!("{}={}", emit_flag, val.join(",")));
             } else if arg == "--extern" {
                 // Patch `--extern` filenames, since Cargo sometimes passes stub `.rlib` files:
                 // https://github.com/rust-lang/miri/issues/1705
@@ -535,7 +536,7 @@ pub fn phase_runner(mut binary_args: impl Iterator<Item = String>, phase: Runner
     // Run it.
     debug_cmd("[cargo-miri runner]", verbose, &cmd);
     match phase {
-        RunnerPhase::Rustdoc => exec_with_pipe(cmd, &info.stdin, format!("{binary}.stdin")),
+        RunnerPhase::Rustdoc => exec_with_pipe(cmd, &info.stdin, format!("{}.stdin", binary)),
         RunnerPhase::Cargo => exec(cmd),
     }
 }

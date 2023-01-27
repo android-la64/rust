@@ -30,6 +30,7 @@ except ImportError:
 # These should be collaborators of the rust-lang/rust repository (with at least
 # read privileges on it). CI will fail otherwise.
 MAINTAINERS = {
+    'miri': {'oli-obk', 'RalfJung'},
     'book': {'carols10cents'},
     'nomicon': {'frewsxcv', 'Gankra', 'JohnTitor'},
     'reference': {'Havvy', 'matthewjasper', 'ehuss'},
@@ -40,6 +41,7 @@ MAINTAINERS = {
 }
 
 LABELS = {
+    'miri': ['A-miri', 'C-bug'],
     'book': ['C-bug'],
     'nomicon': ['C-bug'],
     'reference': ['C-bug'],
@@ -50,6 +52,7 @@ LABELS = {
 }
 
 REPOS = {
+    'miri': 'https://github.com/rust-lang/miri',
     'book': 'https://github.com/rust-lang/book',
     'nomicon': 'https://github.com/rust-lang/nomicon',
     'reference': 'https://github.com/rust-lang/reference',
@@ -236,10 +239,16 @@ def update_latest(
                     message += '{} (cc {}).\n' \
                         .format(title, maintainers)
                     # See if we need to create an issue.
-                    # Create issue if things no longer build.
-                    # (No issue for mere test failures to avoid spurious issues.)
-                    if new == 'build-fail':
-                        create_issue_for_status = new
+                    if tool == 'miri':
+                        # Create issue if tests used to pass before. Don't open a *second*
+                        # issue when we regress from "test-fail" to "build-fail".
+                        if old == 'test-pass':
+                            create_issue_for_status = new
+                    else:
+                        # Create issue if things no longer build.
+                        # (No issue for mere test failures to avoid spurious issues.)
+                        if new == 'build-fail':
+                            create_issue_for_status = new
 
             if create_issue_for_status is not None:
                 try:

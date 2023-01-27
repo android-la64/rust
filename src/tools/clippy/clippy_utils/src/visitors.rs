@@ -5,13 +5,14 @@ use rustc_hir as hir;
 use rustc_hir::def::{CtorKind, DefKind, Res};
 use rustc_hir::intravisit::{self, walk_block, walk_expr, Visitor};
 use rustc_hir::{
-    AnonConst, Arm, Block, BlockCheckMode, Body, BodyId, Expr, ExprKind, HirId, ItemId, ItemKind, Let, Pat, QPath,
-    Stmt, UnOp, UnsafeSource, Unsafety,
+    Arm, Block, BlockCheckMode, Body, BodyId, Expr, ExprKind, HirId, ItemId, ItemKind, Let, Pat, QPath, Stmt, UnOp,
+    UnsafeSource, Unsafety,
 };
 use rustc_lint::LateContext;
+use rustc_middle::hir::map::Map;
 use rustc_middle::hir::nested_filter;
 use rustc_middle::ty::adjustment::Adjust;
-use rustc_middle::ty::{self, Ty, TyCtxt, TypeckResults};
+use rustc_middle::ty::{self, Ty, TypeckResults};
 use rustc_span::Span;
 
 mod internal {
@@ -47,26 +48,6 @@ impl Continue for Descend {
     }
 }
 
-/// A type which can be visited.
-pub trait Visitable<'tcx> {
-    /// Calls the corresponding `visit_*` function on the visitor.
-    fn visit<V: Visitor<'tcx>>(self, visitor: &mut V);
-}
-macro_rules! visitable_ref {
-    ($t:ident, $f:ident) => {
-        impl<'tcx> Visitable<'tcx> for &'tcx $t<'tcx> {
-            fn visit<V: Visitor<'tcx>>(self, visitor: &mut V) {
-                visitor.$f(self);
-            }
-        }
-    };
-}
-visitable_ref!(Arm, visit_arm);
-visitable_ref!(Block, visit_block);
-visitable_ref!(Body, visit_body);
-visitable_ref!(Expr, visit_expr);
-visitable_ref!(Stmt, visit_stmt);
-
 /// Calls the given function once for each expression contained. This does not enter any bodies or
 /// nested items.
 pub fn for_each_expr<'tcx, B, C: Continue>(
@@ -101,63 +82,57 @@ pub fn for_each_expr<'tcx, B, C: Continue>(
     v.res
 }
 
-/// Calls the given function once for each expression contained. This will enter bodies, but not
-/// nested items.
-pub fn for_each_expr_with_closures<'tcx, B, C: Continue>(
-    cx: &LateContext<'tcx>,
-    node: impl Visitable<'tcx>,
-    f: impl FnMut(&'tcx Expr<'tcx>) -> ControlFlow<B, C>,
-) -> Option<B> {
-    struct V<'tcx, B, F> {
-        tcx: TyCtxt<'tcx>,
+/// Convenience method for creating a `Visitor` with just `visit_expr` overridden and nested
+/// bodies (i.e. closures) are visited.
+/// If the callback returns `true`, the expr just provided to the callback is walked.
+#[must_use]
+pub fn expr_visitor<'tcx>(cx: &LateContext<'tcx>, f: impl FnMut(&'tcx Expr<'tcx>) -> bool) -> impl Visitor<'tcx> {
+    struct V<'tcx, F> {
+        hir: Map<'tcx>,
         f: F,
-        res: Option<B>,
     }
-    impl<'tcx, B, C: Continue, F: FnMut(&'tcx Expr<'tcx>) -> ControlFlow<B, C>> Visitor<'tcx> for V<'tcx, B, F> {
+    impl<'tcx, F: FnMut(&'tcx Expr<'tcx>) -> bool> Visitor<'tcx> for V<'tcx, F> {
         type NestedFilter = nested_filter::OnlyBodies;
         fn nested_visit_map(&mut self) -> Self::Map {
-            self.tcx.hir()
+            self.hir
         }
 
-        fn visit_expr(&mut self, e: &'tcx Expr<'tcx>) {
-            if self.res.is_some() {
-                return;
-            }
-            match (self.f)(e) {
-                ControlFlow::Continue(c) if c.descend() => walk_expr(self, e),
-                ControlFlow::Break(b) => self.res = Some(b),
-                ControlFlow::Continue(_) => (),
+        fn visit_expr(&mut self, expr: &'tcx Expr<'tcx>) {
+            if (self.f)(expr) {
+                walk_expr(self, expr);
             }
         }
-
-        // Only walk closures
-        fn visit_anon_const(&mut self, _: &'tcx AnonConst) {}
-        // Avoid unnecessary `walk_*` calls.
-        fn visit_ty(&mut self, _: &'tcx hir::Ty<'tcx>) {}
-        fn visit_pat(&mut self, _: &'tcx Pat<'tcx>) {}
-        fn visit_qpath(&mut self, _: &'tcx QPath<'tcx>, _: HirId, _: Span) {}
-        // Avoid monomorphising all `visit_*` functions.
-        fn visit_nested_item(&mut self, _: ItemId) {}
     }
-    let mut v = V {
-        tcx: cx.tcx,
-        f,
-        res: None,
-    };
-    node.visit(&mut v);
-    v.res
+    V { hir: cx.tcx.hir(), f }
+}
+
+/// Convenience method for creating a `Visitor` with just `visit_expr` overridden and nested
+/// bodies (i.e. closures) are not visited.
+/// If the callback returns `true`, the expr just provided to the callback is walked.
+#[must_use]
+pub fn expr_visitor_no_bodies<'tcx>(f: impl FnMut(&'tcx Expr<'tcx>) -> bool) -> impl Visitor<'tcx> {
+    struct V<F>(F);
+    impl<'tcx, F: FnMut(&'tcx Expr<'tcx>) -> bool> Visitor<'tcx> for V<F> {
+        fn visit_expr(&mut self, e: &'tcx Expr<'_>) {
+            if (self.0)(e) {
+                walk_expr(self, e);
+            }
+        }
+    }
+    V(f)
 }
 
 /// returns `true` if expr contains match expr desugared from try
 fn contains_try(expr: &hir::Expr<'_>) -> bool {
-    for_each_expr(expr, |e| {
-        if matches!(e.kind, hir::ExprKind::Match(_, _, hir::MatchSource::TryDesugar)) {
-            ControlFlow::Break(())
-        } else {
-            ControlFlow::Continue(())
+    let mut found = false;
+    expr_visitor_no_bodies(|e| {
+        if !found {
+            found = matches!(e.kind, hir::ExprKind::Match(_, _, hir::MatchSource::TryDesugar));
         }
+        !found
     })
-    .is_some()
+    .visit_expr(expr);
+    found
 }
 
 pub fn find_all_ret_expressions<'hir, F>(_cx: &LateContext<'_>, expr: &'hir hir::Expr<'hir>, callback: F) -> bool
@@ -253,29 +228,68 @@ where
     }
 }
 
-/// Checks if the given resolved path is used in the given body.
-pub fn is_res_used(cx: &LateContext<'_>, res: Res, body: BodyId) -> bool {
-    for_each_expr_with_closures(cx, cx.tcx.hir().body(body).value, |e| {
-        if let ExprKind::Path(p) = &e.kind {
-            if cx.qpath_res(p, e.hir_id) == res {
-                return ControlFlow::Break(());
+/// A type which can be visited.
+pub trait Visitable<'tcx> {
+    /// Calls the corresponding `visit_*` function on the visitor.
+    fn visit<V: Visitor<'tcx>>(self, visitor: &mut V);
+}
+macro_rules! visitable_ref {
+    ($t:ident, $f:ident) => {
+        impl<'tcx> Visitable<'tcx> for &'tcx $t<'tcx> {
+            fn visit<V: Visitor<'tcx>>(self, visitor: &mut V) {
+                visitor.$f(self);
             }
         }
-        ControlFlow::Continue(())
+    };
+}
+visitable_ref!(Arm, visit_arm);
+visitable_ref!(Block, visit_block);
+visitable_ref!(Body, visit_body);
+visitable_ref!(Expr, visit_expr);
+visitable_ref!(Stmt, visit_stmt);
+
+// impl<'tcx, I: IntoIterator> Visitable<'tcx> for I
+// where
+//     I::Item: Visitable<'tcx>,
+// {
+//     fn visit<V: Visitor<'tcx>>(self, visitor: &mut V) {
+//         for x in self {
+//             x.visit(visitor);
+//         }
+//     }
+// }
+
+/// Checks if the given resolved path is used in the given body.
+pub fn is_res_used(cx: &LateContext<'_>, res: Res, body: BodyId) -> bool {
+    let mut found = false;
+    expr_visitor(cx, |e| {
+        if found {
+            return false;
+        }
+
+        if let ExprKind::Path(p) = &e.kind {
+            if cx.qpath_res(p, e.hir_id) == res {
+                found = true;
+            }
+        }
+        !found
     })
-    .is_some()
+    .visit_expr(cx.tcx.hir().body(body).value);
+    found
 }
 
 /// Checks if the given local is used.
 pub fn is_local_used<'tcx>(cx: &LateContext<'tcx>, visitable: impl Visitable<'tcx>, id: HirId) -> bool {
-    for_each_expr_with_closures(cx, visitable, |e| {
-        if path_to_local_id(e, id) {
-            ControlFlow::Break(())
-        } else {
-            ControlFlow::Continue(())
+    let mut is_used = false;
+    let mut visitor = expr_visitor(cx, |expr| {
+        if !is_used {
+            is_used = path_to_local_id(expr, id);
         }
-    })
-    .is_some()
+        !is_used
+    });
+    visitable.visit(&mut visitor);
+    drop(visitor);
+    is_used
 }
 
 /// Checks if the given expression is a constant.

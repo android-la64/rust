@@ -70,7 +70,6 @@ void SPIRVGeneralDuplicatesTracker::buildDepsGraph(
     }
   }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   if (MMI) {
     const Module *M = MMI->getModule();
     for (auto F = M->begin(), E = M->end(); F != E; ++F) {
@@ -93,5 +92,4 @@ void SPIRVGeneralDuplicatesTracker::buildDepsGraph(
       }
     }
   }
-#endif
 }

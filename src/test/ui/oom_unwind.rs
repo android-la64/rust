@@ -4,6 +4,8 @@
 // needs-unwind
 // only-linux
 
+#![feature(bench_black_box)]
+
 use std::hint::black_box;
 use std::mem::forget;
 use std::panic::catch_unwind;

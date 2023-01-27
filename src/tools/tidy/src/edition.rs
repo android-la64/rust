@@ -1,6 +1,5 @@
 //! Tidy check to ensure that crate `edition` is '2018' or '2021'.
 
-use crate::walk::{filter_dirs, walk};
 use std::path::Path;
 
 fn is_edition_2021(mut line: &str) -> bool {
@@ -9,9 +8,9 @@ fn is_edition_2021(mut line: &str) -> bool {
 }
 
 pub fn check(path: &Path, bad: &mut bool) {
-    walk(
+    super::walk(
         path,
-        &mut |path| filter_dirs(path) || path.ends_with("src/test"),
+        &mut |path| super::filter_dirs(path) || path.ends_with("src/test"),
         &mut |entry, contents| {
             let file = entry.path();
             let filename = file.file_name().unwrap();

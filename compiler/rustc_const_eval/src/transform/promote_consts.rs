@@ -13,7 +13,6 @@
 //! move analysis runs after promotion on broken MIR.
 
 use rustc_hir as hir;
-use rustc_middle::mir;
 use rustc_middle::mir::traversal::ReversePostorderIter;
 use rustc_middle::mir::visit::{MutVisitor, MutatingUseContext, PlaceContext, Visitor};
 use rustc_middle::mir::*;
@@ -41,6 +40,10 @@ pub struct PromoteTemps<'tcx> {
 }
 
 impl<'tcx> MirPass<'tcx> for PromoteTemps<'tcx> {
+    fn phase_change(&self) -> Option<MirPhase> {
+        Some(MirPhase::Analysis(AnalysisPhase::Initial))
+    }
+
     fn run_pass(&self, tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
         // There's not really any point in promoting errorful MIR.
         //
@@ -358,7 +361,7 @@ impl<'tcx> Validator<'_, 'tcx> {
                             return Err(Unpromotable);
                         }
                     }
-                    ProjectionElem::OpaqueCast(..) | ProjectionElem::Downcast(..) => {
+                    ProjectionElem::Downcast(..) => {
                         return Err(Unpromotable);
                     }
 
@@ -837,7 +840,7 @@ impl<'a, 'tcx> Promoter<'a, 'tcx> {
                 promoted.span = span;
                 promoted.local_decls[RETURN_PLACE] = LocalDecl::new(ty, span);
                 let substs = tcx.erase_regions(InternalSubsts::identity_for_item(tcx, def.did));
-                let uneval = mir::UnevaluatedConst { def, substs, promoted: Some(promoted_id) };
+                let uneval = ty::Unevaluated { def, substs, promoted: Some(promoted_id) };
 
                 Operand::Constant(Box::new(Constant {
                     span,

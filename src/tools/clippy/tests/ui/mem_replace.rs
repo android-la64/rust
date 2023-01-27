@@ -1,7 +1,5 @@
 // run-rustfix
-
-#![feature(custom_inner_attributes)]
-#![allow(unused)]
+#![allow(unused_imports)]
 #![warn(
     clippy::all,
     clippy::style,
@@ -78,18 +76,4 @@ fn main() {
     replace_option_with_none();
     replace_with_default();
     dont_lint_primitive();
-}
-
-fn msrv_1_39() {
-    #![clippy::msrv = "1.39"]
-
-    let mut s = String::from("foo");
-    let _ = std::mem::replace(&mut s, String::default());
-}
-
-fn msrv_1_40() {
-    #![clippy::msrv = "1.40"]
-
-    let mut s = String::from("foo");
-    let _ = std::mem::replace(&mut s, String::default());
 }

@@ -10,7 +10,7 @@ use super::{ObligationCause, PredicateObligation};
 pub trait TraitEngine<'tcx>: 'tcx {
     fn normalize_projection_type(
         &mut self,
-        infcx: &InferCtxt<'tcx>,
+        infcx: &InferCtxt<'_, 'tcx>,
         param_env: ty::ParamEnv<'tcx>,
         projection_ty: ty::ProjectionTy<'tcx>,
         cause: ObligationCause<'tcx>,
@@ -21,7 +21,7 @@ pub trait TraitEngine<'tcx>: 'tcx {
     /// parameters (except for `Self`).
     fn register_bound(
         &mut self,
-        infcx: &InferCtxt<'tcx>,
+        infcx: &InferCtxt<'_, 'tcx>,
         param_env: ty::ParamEnv<'tcx>,
         ty: Ty<'tcx>,
         def_id: DefId,
@@ -41,13 +41,14 @@ pub trait TraitEngine<'tcx>: 'tcx {
 
     fn register_predicate_obligation(
         &mut self,
-        infcx: &InferCtxt<'tcx>,
+        infcx: &InferCtxt<'_, 'tcx>,
         obligation: PredicateObligation<'tcx>,
     );
 
-    fn select_all_or_error(&mut self, infcx: &InferCtxt<'tcx>) -> Vec<FulfillmentError<'tcx>>;
+    fn select_all_or_error(&mut self, infcx: &InferCtxt<'_, 'tcx>) -> Vec<FulfillmentError<'tcx>>;
 
-    fn select_where_possible(&mut self, infcx: &InferCtxt<'tcx>) -> Vec<FulfillmentError<'tcx>>;
+    fn select_where_possible(&mut self, infcx: &InferCtxt<'_, 'tcx>)
+    -> Vec<FulfillmentError<'tcx>>;
 
     fn pending_obligations(&self) -> Vec<PredicateObligation<'tcx>>;
 
@@ -57,7 +58,7 @@ pub trait TraitEngine<'tcx>: 'tcx {
 pub trait TraitEngineExt<'tcx> {
     fn register_predicate_obligations(
         &mut self,
-        infcx: &InferCtxt<'tcx>,
+        infcx: &InferCtxt<'_, 'tcx>,
         obligations: impl IntoIterator<Item = PredicateObligation<'tcx>>,
     );
 }
@@ -65,7 +66,7 @@ pub trait TraitEngineExt<'tcx> {
 impl<'tcx, T: ?Sized + TraitEngine<'tcx>> TraitEngineExt<'tcx> for T {
     fn register_predicate_obligations(
         &mut self,
-        infcx: &InferCtxt<'tcx>,
+        infcx: &InferCtxt<'_, 'tcx>,
         obligations: impl IntoIterator<Item = PredicateObligation<'tcx>>,
     ) {
         for obligation in obligations {

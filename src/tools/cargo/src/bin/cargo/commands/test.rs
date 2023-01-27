@@ -1,20 +1,20 @@
 use crate::command_prelude::*;
 use cargo::ops;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("test")
         // Subcommand aliases are handled in `aliased_command()`.
         // .alias("t")
+        .trailing_var_arg(true)
         .about("Execute all unit and integration tests and build examples of a local package")
         .arg(
             Arg::new("TESTNAME")
-                .action(ArgAction::Set)
                 .help("If specified, only run tests containing this string in their names"),
         )
         .arg(
             Arg::new("args")
                 .help("Arguments for the test binary")
-                .num_args(0..)
+                .multiple_values(true)
                 .last(true),
         )
         .arg(

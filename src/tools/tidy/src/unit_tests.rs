@@ -7,7 +7,6 @@
 //! named `tests.rs` or `benches.rs`, or directories named `tests` or `benches` unconfigured
 //! during normal build.
 
-use crate::walk::{filter_dirs, walk};
 use std::path::Path;
 
 pub fn check(root_path: &Path, bad: &mut bool) {
@@ -21,7 +20,7 @@ pub fn check(root_path: &Path, bad: &mut bool) {
     let mut skip = |path: &Path| {
         let file_name = path.file_name().unwrap_or_default();
         if path.is_dir() {
-            filter_dirs(path)
+            super::filter_dirs(path)
                 || path.ends_with("src/test")
                 || path.ends_with("src/doc")
                 || (file_name == "tests" || file_name == "benches") && !is_core(path)
@@ -35,7 +34,7 @@ pub fn check(root_path: &Path, bad: &mut bool) {
         }
     };
 
-    walk(root_path, &mut skip, &mut |entry, contents| {
+    super::walk(root_path, &mut skip, &mut |entry, contents| {
         let path = entry.path();
         let is_core = path.starts_with(core);
         for (i, line) in contents.lines().enumerate() {

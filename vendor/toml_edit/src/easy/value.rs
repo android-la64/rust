@@ -521,7 +521,7 @@ impl<'a, 'de> serde::de::Visitor<'de> for DatetimeOrTable<'a> {
     where
         E: serde::de::Error,
     {
-        if s == toml_datetime::__unstable::FIELD {
+        if s == crate::datetime::dt_serde::FIELD {
             Ok(true)
         } else {
             self.key.push_str(s);
@@ -533,7 +533,7 @@ impl<'a, 'de> serde::de::Visitor<'de> for DatetimeOrTable<'a> {
     where
         E: serde::de::Error,
     {
-        if s == toml_datetime::__unstable::FIELD {
+        if s == crate::datetime::dt_serde::FIELD {
             Ok(true)
         } else {
             *self.key = s;

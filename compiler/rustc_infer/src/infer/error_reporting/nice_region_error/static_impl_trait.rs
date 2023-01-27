@@ -185,7 +185,8 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             | ObligationCauseCode::BlockTailExpression(hir_id) = cause.code()
             {
                 let parent_id = tcx.hir().get_parent_item(*hir_id);
-                if let Some(fn_decl) = tcx.hir().fn_decl_by_hir_id(parent_id.into()) {
+                let parent_id = tcx.hir().local_def_id_to_hir_id(parent_id);
+                if let Some(fn_decl) = tcx.hir().fn_decl_by_hir_id(parent_id) {
                     let mut span: MultiSpan = fn_decl.output.span().into();
                     let mut add_label = true;
                     if let hir::FnRetTy::Return(ty) = fn_decl.output {
@@ -286,8 +287,8 @@ pub fn suggest_new_region_bound(
 ) {
     debug!("try_report_static_impl_trait: fn_return={:?}", fn_returns);
     // FIXME: account for the need of parens in `&(dyn Trait + '_)`
-    let consider = "consider changing";
-    let declare = "to declare that";
+    let consider = "consider changing the";
+    let declare = "to declare that the";
     let explicit = format!("you can add an explicit `{}` lifetime bound", lifetime_name);
     let explicit_static =
         arg.map(|arg| format!("explicit `'static` bound to the lifetime of {}", arg));
@@ -305,10 +306,6 @@ pub fn suggest_new_region_bound(
                     return;
                 };
 
-                // Get the identity type for this RPIT
-                let did = item_id.owner_id.to_def_id();
-                let ty = tcx.mk_opaque(did, ty::InternalSubsts::identity_for_item(tcx, did));
-
                 if let Some(span) = opaque
                     .bounds
                     .iter()
@@ -325,7 +322,7 @@ pub fn suggest_new_region_bound(
                     if let Some(explicit_static) = &explicit_static {
                         err.span_suggestion_verbose(
                             span,
-                            &format!("{consider} `{ty}`'s {explicit_static}"),
+                            &format!("{} `impl Trait`'s {}", consider, explicit_static),
                             &lifetime_name,
                             Applicability::MaybeIncorrect,
                         );
@@ -355,7 +352,12 @@ pub fn suggest_new_region_bound(
                 } else {
                     err.span_suggestion_verbose(
                         fn_return.span.shrink_to_hi(),
-                        &format!("{declare} `{ty}` {captures}, {explicit}",),
+                        &format!(
+                            "{declare} `impl Trait` {captures}, {explicit}",
+                            declare = declare,
+                            captures = captures,
+                            explicit = explicit,
+                        ),
                         &plus_lt,
                         Applicability::MaybeIncorrect,
                     );
@@ -366,7 +368,7 @@ pub fn suggest_new_region_bound(
                     err.span_suggestion_verbose(
                         fn_return.span.shrink_to_hi(),
                         &format!(
-                            "{declare} the trait object {captures}, {explicit}",
+                            "{declare} trait object {captures}, {explicit}",
                             declare = declare,
                             captures = captures,
                             explicit = explicit,
@@ -383,7 +385,7 @@ pub fn suggest_new_region_bound(
                     if let Some(explicit_static) = &explicit_static {
                         err.span_suggestion_verbose(
                             lt.span,
-                            &format!("{} the trait object's {}", consider, explicit_static),
+                            &format!("{} trait object's {}", consider, explicit_static),
                             &lifetime_name,
                             Applicability::MaybeIncorrect,
                         );
@@ -413,8 +415,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
         let tcx = self.tcx();
         match tcx.hir().get_if_local(def_id) {
             Some(Node::ImplItem(impl_item)) => {
-                match tcx.hir().find_by_def_id(tcx.hir().get_parent_item(impl_item.hir_id()).def_id)
-                {
+                match tcx.hir().find_by_def_id(tcx.hir().get_parent_item(impl_item.hir_id())) {
                     Some(Node::Item(Item {
                         kind: ItemKind::Impl(hir::Impl { self_ty, .. }),
                         ..
@@ -424,7 +425,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             }
             Some(Node::TraitItem(trait_item)) => {
                 let trait_did = tcx.hir().get_parent_item(trait_item.hir_id());
-                match tcx.hir().find_by_def_id(trait_did.def_id) {
+                match tcx.hir().find_by_def_id(trait_did) {
                     Some(Node::Item(Item { kind: ItemKind::Trait(..), .. })) => {
                         // The method being called is defined in the `trait`, but the `'static`
                         // obligation comes from the `impl`. Find that `impl` so that we can point
@@ -485,7 +486,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             tcx,
             ctxt.param_env,
             ctxt.assoc_item.def_id,
-            self.cx.resolve_vars_if_possible(ctxt.substs),
+            self.infcx.resolve_vars_if_possible(ctxt.substs),
         ) else {
             return false;
         };

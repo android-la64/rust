@@ -3,7 +3,7 @@ use crate::command_prelude::*;
 use cargo::ops::{self, CleanOptions};
 use cargo::util::print_available_packages;
 
-pub fn cli() -> Command {
+pub fn cli() -> App {
     subcommand("clean")
         .about("Remove artifacts that cargo has generated in the past")
         .arg_quiet()

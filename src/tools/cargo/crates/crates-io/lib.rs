@@ -36,7 +36,7 @@ pub struct Crate {
     pub max_version: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct NewCrate {
     pub name: String,
     pub vers: String,
@@ -57,7 +57,7 @@ pub struct NewCrate {
     pub links: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct NewCrateDependency {
     pub optional: bool,
     pub default_features: bool,

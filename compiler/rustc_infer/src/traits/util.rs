@@ -246,13 +246,6 @@ impl<'tcx> Elaborator<'tcx> {
 
                             Component::UnresolvedInferenceVariable(_) => None,
 
-                            Component::Opaque(def_id, substs) => {
-                                let ty = tcx.mk_opaque(def_id, substs);
-                                Some(ty::PredicateKind::TypeOutlives(ty::OutlivesPredicate(
-                                    ty, r_min,
-                                )))
-                            }
-
                             Component::Projection(projection) => {
                                 // We might end up here if we have `Foo<<Bar as Baz>::Assoc>: 'a`.
                                 // With this, we can deduce that `<Bar as Baz>::Assoc: 'a`.
@@ -269,9 +262,8 @@ impl<'tcx> Elaborator<'tcx> {
                                 None
                             }
                         })
-                        .map(|predicate_kind| {
-                            bound_predicate.rebind(predicate_kind).to_predicate(tcx)
-                        })
+                        .map(ty::Binder::dummy)
+                        .map(|predicate_kind| predicate_kind.to_predicate(tcx))
                         .filter(|&predicate| visited.insert(predicate))
                         .map(|predicate| {
                             predicate_obligation(

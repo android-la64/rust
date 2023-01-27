@@ -12,30 +12,31 @@
 [package]
 edition = "2021"
 name = "cranelift-jit"
-version = "0.88.1"
+version = "0.87.0"
 authors = ["The Cranelift Project Developers"]
 description = "A JIT library backed by Cranelift"
 documentation = "https://docs.rs/cranelift-jit"
 readme = "README.md"
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
+resolver = "2"
 
 [dependencies.anyhow]
 version = "1.0"
 
 [dependencies.cranelift-codegen]
-version = "0.88.1"
+version = "0.87.0"
 features = ["std"]
 default-features = false
 
 [dependencies.cranelift-entity]
-version = "0.88.1"
+version = "0.87.0"
 
 [dependencies.cranelift-module]
-version = "0.88.1"
+version = "0.87.0"
 
 [dependencies.cranelift-native]
-version = "0.88.1"
+version = "0.87.0"
 
 [dependencies.libc]
 version = "0.2.42"
@@ -55,13 +56,13 @@ version = "2.2.0"
 version = "0.12"
 
 [dev-dependencies.cranelift]
-version = "0.88.1"
+version = "0.87.0"
 
 [dev-dependencies.cranelift-entity]
-version = "0.88.1"
+version = "0.87.0"
 
 [dev-dependencies.cranelift-frontend]
-version = "0.88.1"
+version = "0.87.0"
 
 [features]
 default = []

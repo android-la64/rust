@@ -4,7 +4,7 @@ use std::convert::TryInto;
 use std::fs::{
     read_dir, remove_dir, remove_file, rename, DirBuilder, File, FileType, OpenOptions, ReadDir,
 };
-use std::io::{self, ErrorKind, IsTerminal, Read, Seek, SeekFrom, Write};
+use std::io::{self, ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -64,8 +64,6 @@ trait FileDescriptor: std::fmt::Debug {
     }
 
     fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>>;
-
-    fn is_tty(&self) -> bool;
 
     #[cfg(unix)]
     fn as_unix_host_fd(&self) -> Option<i32> {
@@ -145,10 +143,6 @@ impl FileDescriptor for FileHandle {
         use std::os::unix::io::AsRawFd;
         Some(self.file.as_raw_fd())
     }
-
-    fn is_tty(&self) -> bool {
-        self.file.is_terminal()
-    }
 }
 
 impl FileDescriptor for io::Stdin {
@@ -175,10 +169,6 @@ impl FileDescriptor for io::Stdin {
     #[cfg(unix)]
     fn as_unix_host_fd(&self) -> Option<i32> {
         Some(libc::STDIN_FILENO)
-    }
-
-    fn is_tty(&self) -> bool {
-        self.is_terminal()
     }
 }
 
@@ -212,10 +202,6 @@ impl FileDescriptor for io::Stdout {
     fn as_unix_host_fd(&self) -> Option<i32> {
         Some(libc::STDOUT_FILENO)
     }
-
-    fn is_tty(&self) -> bool {
-        self.is_terminal()
-    }
 }
 
 impl FileDescriptor for io::Stderr {
@@ -241,16 +227,12 @@ impl FileDescriptor for io::Stderr {
     fn as_unix_host_fd(&self) -> Option<i32> {
         Some(libc::STDERR_FILENO)
     }
-
-    fn is_tty(&self) -> bool {
-        self.is_terminal()
-    }
 }
 
 #[derive(Debug)]
-struct NullOutput;
+struct DummyOutput;
 
-impl FileDescriptor for NullOutput {
+impl FileDescriptor for DummyOutput {
     fn name(&self) -> &'static str {
         "stderr and stdout"
     }
@@ -264,12 +246,8 @@ impl FileDescriptor for NullOutput {
         Ok(Ok(bytes.len()))
     }
 
-    fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
-        Ok(Box::new(NullOutput))
-    }
-
-    fn is_tty(&self) -> bool {
-        false
+    fn dup<'tcx>(&mut self) -> io::Result<Box<dyn FileDescriptor>> {
+        Ok(Box::new(DummyOutput))
     }
 }
 
@@ -278,19 +256,13 @@ pub struct FileHandler {
     handles: BTreeMap<i32, Box<dyn FileDescriptor>>,
 }
 
-impl VisitTags for FileHandler {
-    fn visit_tags(&self, _visit: &mut dyn FnMut(SbTag)) {
-        // All our FileDescriptor do not have any tags.
-    }
-}
-
 impl FileHandler {
     pub(crate) fn new(mute_stdout_stderr: bool) -> FileHandler {
         let mut handles: BTreeMap<_, Box<dyn FileDescriptor>> = BTreeMap::new();
         handles.insert(0i32, Box::new(io::stdin()));
         if mute_stdout_stderr {
-            handles.insert(1i32, Box::new(NullOutput));
-            handles.insert(2i32, Box::new(NullOutput));
+            handles.insert(1i32, Box::new(DummyOutput));
+            handles.insert(2i32, Box::new(DummyOutput));
         } else {
             handles.insert(1i32, Box::new(io::stdout()));
             handles.insert(2i32, Box::new(io::stderr()));
@@ -332,8 +304,8 @@ impl FileHandler {
     }
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExtPrivate<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
-trait EvalContextExtPrivate<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExtPrivate<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+trait EvalContextExtPrivate<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     fn macos_stat_write_buf(
         &mut self,
         metadata: FileMetadata,
@@ -490,16 +462,6 @@ impl Default for DirHandler {
     }
 }
 
-impl VisitTags for DirHandler {
-    fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
-        let DirHandler { streams, next_id: _ } = self;
-
-        for dir in streams.values() {
-            dir.entry.visit_tags(visit);
-        }
-    }
-}
-
 fn maybe_sync_file(
     file: &File,
     writable: bool,
@@ -516,8 +478,8 @@ fn maybe_sync_file(
     }
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
     fn open(&mut self, args: &[OpTy<'tcx, Provenance>]) -> InterpResult<'tcx, i32> {
         if args.len() < 2 {
             throw_ub_format!(
@@ -621,7 +583,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
             return Ok(-1);
         }
 
-        let fd = options.open(path).map(|file| {
+        let fd = options.open(&path).map(|file| {
             let fh = &mut this.machine.file_handler;
             fh.insert_fd(Box::new(FileHandle { file, writable }))
         });
@@ -1095,7 +1057,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                 mask |= this.eval_libc("STATX_ATIME")?.to_u32()?;
                 InterpResult::Ok(tup)
             })
-            .unwrap_or_else(|| Ok((0, 0)))?;
+            .unwrap_or(Ok((0, 0)))?;
 
         let (created_sec, created_nsec) = metadata
             .created
@@ -1103,7 +1065,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                 mask |= this.eval_libc("STATX_BTIME")?.to_u32()?;
                 InterpResult::Ok(tup)
             })
-            .unwrap_or_else(|| Ok((0, 0)))?;
+            .unwrap_or(Ok((0, 0)))?;
 
         let (modified_sec, modified_nsec) = metadata
             .modified
@@ -1111,7 +1073,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                 mask |= this.eval_libc("STATX_MTIME")?.to_u32()?;
                 InterpResult::Ok(tup)
             })
-            .unwrap_or_else(|| Ok((0, 0)))?;
+            .unwrap_or(Ok((0, 0)))?;
 
         // Now we write everything to `statxbuf`. We write a zero for the unavailable fields.
         this.write_int_fields_named(
@@ -1684,23 +1646,35 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     }
 
     #[cfg_attr(not(unix), allow(unused))]
-    fn isatty(
-        &mut self,
-        miri_fd: &OpTy<'tcx, Provenance>,
-    ) -> InterpResult<'tcx, Scalar<Provenance>> {
+    fn isatty(&mut self, miri_fd: &OpTy<'tcx, Provenance>) -> InterpResult<'tcx, i32> {
         let this = self.eval_context_mut();
-        // "returns 1 if fd is an open file descriptor referring to a terminal;
-        // otherwise 0 is returned, and errno is set to indicate the error"
+        #[cfg(unix)]
         if matches!(this.machine.isolated_op, IsolatedOp::Allow) {
-            let fd = this.read_scalar(miri_fd)?.to_i32()?;
-            if this.machine.file_handler.handles.get(&fd).map(|fd| fd.is_tty()) == Some(true) {
-                return Ok(Scalar::from_i32(1));
+            let miri_fd = this.read_scalar(miri_fd)?.to_i32()?;
+            if let Some(host_fd) =
+                this.machine.file_handler.handles.get(&miri_fd).and_then(|fd| fd.as_unix_host_fd())
+            {
+                // "returns 1 if fd is an open file descriptor referring to a terminal;
+                // otherwise 0 is returned, and errno is set to indicate the error"
+                // SAFETY: isatty has no preconditions
+                let is_tty = unsafe { libc::isatty(host_fd) };
+                if is_tty == 0 {
+                    let errno = std::io::Error::last_os_error()
+                        .raw_os_error()
+                        .map(Scalar::from_i32)
+                        .unwrap();
+                    this.set_last_error(errno)?;
+                }
+                return Ok(is_tty);
             }
         }
-        // Fallback when the FD was not found or isolation is enabled.
+        // We are attemping to use a Unix interface on a non-Unix platform, or we are on a Unix
+        // platform and the passed file descriptor is not open, or isolation is enabled
+        // FIXME: It should be possible to emulate this at least on Windows by using
+        // GetConsoleMode.
         let enotty = this.eval_libc("ENOTTY")?;
         this.set_last_error(enotty)?;
-        Ok(Scalar::from_i32(0))
+        Ok(0)
     }
 
     fn realpath(
@@ -1862,7 +1836,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
 
             let possibly_unique = std::env::temp_dir().join::<PathBuf>(p.into());
 
-            let file = fopts.open(possibly_unique);
+            let file = fopts.open(&possibly_unique);
 
             match file {
                 Ok(f) => {
@@ -1918,7 +1892,7 @@ struct FileMetadata {
 
 impl FileMetadata {
     fn from_path<'tcx, 'mir>(
-        ecx: &mut MiriInterpCx<'mir, 'tcx>,
+        ecx: &mut MiriEvalContext<'mir, 'tcx>,
         path: &Path,
         follow_symlink: bool,
     ) -> InterpResult<'tcx, Option<FileMetadata>> {
@@ -1929,7 +1903,7 @@ impl FileMetadata {
     }
 
     fn from_fd<'tcx, 'mir>(
-        ecx: &mut MiriInterpCx<'mir, 'tcx>,
+        ecx: &mut MiriEvalContext<'mir, 'tcx>,
         fd: i32,
     ) -> InterpResult<'tcx, Option<FileMetadata>> {
         let option = ecx.machine.file_handler.handles.get(&fd);
@@ -1943,7 +1917,7 @@ impl FileMetadata {
     }
 
     fn from_meta<'tcx, 'mir>(
-        ecx: &mut MiriInterpCx<'mir, 'tcx>,
+        ecx: &mut MiriEvalContext<'mir, 'tcx>,
         metadata: Result<std::fs::Metadata, std::io::Error>,
     ) -> InterpResult<'tcx, Option<FileMetadata>> {
         let metadata = match metadata {

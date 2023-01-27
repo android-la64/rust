@@ -5,7 +5,9 @@ use rustc_lint::EarlyContext;
 use super::MIXED_CASE_HEX_LITERALS;
 
 pub(super) fn check(cx: &EarlyContext<'_>, lit: &Lit, suffix: &str, lit_snip: &str) {
-    let Some(maybe_last_sep_idx) = lit_snip.len().checked_sub(suffix.len() + 1) else {
+    let maybe_last_sep_idx = if let Some(val) = lit_snip.len().checked_sub(suffix.len() + 1) {
+        val
+    } else {
         return; // It's useless so shouldn't lint.
     };
     if maybe_last_sep_idx <= 2 {

@@ -2,18 +2,13 @@
 
 struct S;
 
-#[const_trait]
-trait Foo {
-    fn eq(&self, _: &Self) -> bool;
-}
-
-impl Foo for S {
+impl PartialEq for S {
     fn eq(&self, _: &S) -> bool {
         true
     }
 }
 
-const fn equals_self<T: ~const Foo>(t: &T) -> bool {
+const fn equals_self<T: ~const PartialEq>(t: &T) -> bool {
     true
 }
 

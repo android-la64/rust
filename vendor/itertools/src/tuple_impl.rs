@@ -162,8 +162,8 @@ pub fn tuple_windows<I, T>(mut iter: I) -> TupleWindows<I, T>
     }
 
     TupleWindows {
-        iter,
         last,
+        iter,
     }
 }
 

@@ -4,7 +4,7 @@ use std::mem;
 
 use cfg::{CfgAtom, CfgExpr};
 use ide::{FileId, RunnableKind, TestId};
-use project_model::{self, CargoFeatures, ManifestPath, TargetKind};
+use project_model::{self, ManifestPath, TargetKind};
 use vfs::AbsPathBuf;
 
 use crate::{global_state::GlobalStateSnapshot, Result};
@@ -35,41 +35,41 @@ impl CargoTargetSpec {
 
         match kind {
             RunnableKind::Test { test_id, attr } => {
-                args.push("test".to_owned());
+                args.push("test".to_string());
                 extra_args.push(test_id.to_string());
                 if let TestId::Path(_) = test_id {
-                    extra_args.push("--exact".to_owned());
+                    extra_args.push("--exact".to_string());
                 }
-                extra_args.push("--nocapture".to_owned());
+                extra_args.push("--nocapture".to_string());
                 if attr.ignore {
-                    extra_args.push("--ignored".to_owned());
+                    extra_args.push("--ignored".to_string());
                 }
             }
             RunnableKind::TestMod { path } => {
-                args.push("test".to_owned());
-                extra_args.push(path.clone());
-                extra_args.push("--nocapture".to_owned());
+                args.push("test".to_string());
+                extra_args.push(path.to_string());
+                extra_args.push("--nocapture".to_string());
             }
             RunnableKind::Bench { test_id } => {
-                args.push("bench".to_owned());
+                args.push("bench".to_string());
                 extra_args.push(test_id.to_string());
                 if let TestId::Path(_) = test_id {
-                    extra_args.push("--exact".to_owned());
+                    extra_args.push("--exact".to_string());
                 }
-                extra_args.push("--nocapture".to_owned());
+                extra_args.push("--nocapture".to_string());
             }
             RunnableKind::DocTest { test_id } => {
-                args.push("test".to_owned());
-                args.push("--doc".to_owned());
+                args.push("test".to_string());
+                args.push("--doc".to_string());
                 extra_args.push(test_id.to_string());
-                extra_args.push("--nocapture".to_owned());
+                extra_args.push("--nocapture".to_string());
             }
             RunnableKind::Bin => {
                 let subcommand = match spec {
                     Some(CargoTargetSpec { target_kind: TargetKind::Test, .. }) => "test",
                     _ => "run",
                 };
-                args.push(subcommand.to_owned());
+                args.push(subcommand.to_string());
             }
         }
 
@@ -82,35 +82,29 @@ impl CargoTargetSpec {
         };
 
         let cargo_config = snap.config.cargo();
+        if cargo_config.all_features {
+            args.push("--all-features".to_string());
 
-        match &cargo_config.features {
-            CargoFeatures::All => {
-                args.push("--all-features".to_owned());
-                for feature in target_required_features {
-                    args.push("--features".to_owned());
-                    args.push(feature);
-                }
+            for feature in target_required_features {
+                args.push("--features".to_string());
+                args.push(feature);
             }
-            CargoFeatures::Selected { features, no_default_features } => {
-                let mut feats = Vec::new();
-                if let Some(cfg) = cfg.as_ref() {
-                    required_features(cfg, &mut feats);
-                }
+        } else {
+            let mut features = Vec::new();
+            if let Some(cfg) = cfg.as_ref() {
+                required_features(cfg, &mut features);
+            }
 
-                feats.extend(features.iter().cloned());
-                feats.extend(target_required_features);
+            features.extend(cargo_config.features);
+            features.extend(target_required_features);
 
-                feats.dedup();
-                for feature in feats {
-                    args.push("--features".to_owned());
-                    args.push(feature);
-                }
-
-                if *no_default_features {
-                    args.push("--no-default-features".to_owned());
-                }
+            features.dedup();
+            for feature in features {
+                args.push("--features".to_string());
+                args.push(feature);
             }
         }
+
         Ok((args, extra_args))
     }
 
@@ -118,7 +112,7 @@ impl CargoTargetSpec {
         global_state_snapshot: &GlobalStateSnapshot,
         file_id: FileId,
     ) -> Result<Option<CargoTargetSpec>> {
-        let crate_id = match &*global_state_snapshot.analysis.crates_for(file_id)? {
+        let crate_id = match &*global_state_snapshot.analysis.crate_for(file_id)? {
             &[crate_id, ..] => crate_id,
             _ => return Ok(None),
         };
@@ -142,7 +136,7 @@ impl CargoTargetSpec {
     }
 
     pub(crate) fn push_to(self, buf: &mut Vec<String>, kind: &RunnableKind) {
-        buf.push("--package".to_owned());
+        buf.push("--package".to_string());
         buf.push(self.package);
 
         // Can't mix --doc with other target flags
@@ -151,23 +145,23 @@ impl CargoTargetSpec {
         }
         match self.target_kind {
             TargetKind::Bin => {
-                buf.push("--bin".to_owned());
+                buf.push("--bin".to_string());
                 buf.push(self.target);
             }
             TargetKind::Test => {
-                buf.push("--test".to_owned());
+                buf.push("--test".to_string());
                 buf.push(self.target);
             }
             TargetKind::Bench => {
-                buf.push("--bench".to_owned());
+                buf.push("--bench".to_string());
                 buf.push(self.target);
             }
             TargetKind::Example => {
-                buf.push("--example".to_owned());
+                buf.push("--example".to_string());
                 buf.push(self.target);
             }
             TargetKind::Lib => {
-                buf.push("--lib".to_owned());
+                buf.push("--lib".to_string());
             }
             TargetKind::Other | TargetKind::BuildScript => (),
         }

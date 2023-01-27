@@ -10,7 +10,6 @@ pub(super) struct ConcurrencyLimiter {
     helper_thread: Option<HelperThread>,
     state: Arc<Mutex<state::ConcurrencyLimiterState>>,
     available_token_condvar: Arc<Condvar>,
-    finished: bool,
 }
 
 impl ConcurrencyLimiter {
@@ -33,7 +32,6 @@ impl ConcurrencyLimiter {
             helper_thread: Some(helper_thread),
             state,
             available_token_condvar: Arc::new(Condvar::new()),
-            finished: false,
         }
     }
 
@@ -58,23 +56,16 @@ impl ConcurrencyLimiter {
         let mut state = self.state.lock().unwrap();
         state.job_already_done();
     }
+}
 
-    pub(crate) fn finished(mut self) {
+impl Drop for ConcurrencyLimiter {
+    fn drop(&mut self) {
+        //
         self.helper_thread.take();
 
         // Assert that all jobs have finished
         let state = Mutex::get_mut(Arc::get_mut(&mut self.state).unwrap()).unwrap();
         state.assert_done();
-
-        self.finished = true;
-    }
-}
-
-impl Drop for ConcurrencyLimiter {
-    fn drop(&mut self) {
-        if !self.finished && !std::thread::panicking() {
-            panic!("Forgot to call finished() on ConcurrencyLimiter");
-        }
     }
 }
 

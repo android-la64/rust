@@ -1,5 +1,5 @@
 #![warn(clippy::needless_for_each)]
-#![allow(clippy::needless_return, clippy::uninlined_format_args)]
+#![allow(clippy::needless_return)]
 
 fn main() {
     let v: Vec<i32> = Vec::new();

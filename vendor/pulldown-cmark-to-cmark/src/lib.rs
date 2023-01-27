@@ -2,7 +2,6 @@
 
 use std::{
     borrow::{Borrow, Cow},
-    collections::HashSet,
     fmt,
     iter::FromIterator,
 };
@@ -52,8 +51,6 @@ pub struct State<'a> {
     pub is_in_code_block: bool,
     /// True if the last event was html. Used to inject additional newlines to support markdown inside of HTML tags.
     pub last_was_html: bool,
-    /// True if the last event was text and the text does not have trailing newline. Used to inject additional newlines before code block end fence.
-    pub last_was_text_without_trailing_newline: bool,
 
     /// Keeps track of the last seen shortcut/link
     pub current_shortcut_text: Option<String>,
@@ -246,8 +243,6 @@ where
         }
 
         state.last_was_html = false;
-        let last_was_text_without_trailing_newline = state.last_was_text_without_trailing_newline;
-        state.last_was_text_without_trailing_newline = false;
         match *event {
             Rule => {
                 consume_newlines(&mut formatter, &mut state)?;
@@ -429,9 +424,6 @@ where
                         state.newlines_before_start = options.newlines_after_codeblock;
                     }
                     state.is_in_code_block = false;
-                    if last_was_text_without_trailing_newline {
-                        formatter.write_char('\n')?;
-                    }
                     for _ in 0..options.code_block_token_count {
                         formatter.write_char(options.code_block_token)?;
                     }
@@ -523,7 +515,6 @@ where
                     text_for_header.push_str(text)
                 }
                 consume_newlines(&mut formatter, &mut state)?;
-                state.last_was_text_without_trailing_newline = !text.ends_with('\n');
                 print_text_without_trailing_newline(
                     &escape_leading_special_characters(text, state.is_in_code_block, &options),
                     &mut formatter,
@@ -593,14 +584,9 @@ impl<'a> State<'a> {
         }
 
         formatter.write_str("\n")?;
-        let mut written_shortcuts = HashSet::new();
         for shortcut in self.shortcuts.drain(..) {
-            if written_shortcuts.contains(&shortcut) {
-                continue;
-            }
             write!(formatter, "\n[{}", shortcut.0)?;
-            close_link(&shortcut.1, &shortcut.2, &mut formatter, LinkType::Shortcut)?;
-            written_shortcuts.insert(shortcut);
+            close_link(&shortcut.1, &shortcut.2, &mut formatter, LinkType::Shortcut)?
         }
         Ok(self)
     }

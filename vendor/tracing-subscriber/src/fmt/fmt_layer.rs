@@ -70,7 +70,6 @@ pub struct Layer<
     fmt_event: E,
     fmt_span: format::FmtSpanConfig,
     is_ansi: bool,
-    log_internal_errors: bool,
     _inner: PhantomData<fn(S)>,
 }
 
@@ -120,7 +119,6 @@ where
             fmt_span: self.fmt_span,
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -150,7 +148,6 @@ where
             fmt_span: self.fmt_span,
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -183,7 +180,6 @@ impl<S, N, E, W> Layer<S, N, E, W> {
             fmt_event: self.fmt_event,
             fmt_span: self.fmt_span,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             make_writer,
             _inner: self._inner,
         }
@@ -267,7 +263,6 @@ impl<S, N, E, W> Layer<S, N, E, W> {
             fmt_event: self.fmt_event,
             fmt_span: self.fmt_span,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             make_writer: TestWriter::default(),
             _inner: self._inner,
         }
@@ -279,24 +274,6 @@ impl<S, N, E, W> Layer<S, N, E, W> {
     pub fn with_ansi(self, ansi: bool) -> Self {
         Self {
             is_ansi: ansi,
-            ..self
-        }
-    }
-
-    /// Sets whether to write errors from [`FormatEvent`] to the writer.
-    /// Defaults to true.
-    ///
-    /// By default, `fmt::Layer` will write any `FormatEvent`-internal errors to
-    /// the writer. These errors are unlikely and will only occur if there is a
-    /// bug in the `FormatEvent` implementation or its dependencies.
-    /// 
-    /// If writing to the writer fails, the error message is printed to stderr
-    /// as a fallback.
-    /// 
-    /// [`FormatEvent`]: crate::fmt::FormatEvent
-    pub fn log_internal_errors(self, log_internal_errors: bool) -> Self {
-        Self {
-            log_internal_errors,
             ..self
         }
     }
@@ -329,7 +306,6 @@ impl<S, N, E, W> Layer<S, N, E, W> {
             fmt_event: self.fmt_event,
             fmt_span: self.fmt_span,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             make_writer: f(self.make_writer),
             _inner: self._inner,
         }
@@ -361,7 +337,6 @@ where
             fmt_span: self.fmt_span,
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -374,7 +349,6 @@ where
             fmt_span: self.fmt_span.without_time(),
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -503,7 +477,6 @@ where
             fmt_span: self.fmt_span,
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -518,7 +491,6 @@ where
             fmt_span: self.fmt_span,
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -549,7 +521,6 @@ where
             make_writer: self.make_writer,
             // always disable ANSI escapes in JSON mode!
             is_ansi: false,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -616,7 +587,6 @@ impl<S, N, E, W> Layer<S, N, E, W> {
             fmt_span: self.fmt_span,
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -647,7 +617,6 @@ impl<S, N, E, W> Layer<S, N, E, W> {
             fmt_span: self.fmt_span,
             make_writer: self.make_writer,
             is_ansi: self.is_ansi,
-            log_internal_errors: self.log_internal_errors,
             _inner: self._inner,
         }
     }
@@ -661,7 +630,6 @@ impl<S> Default for Layer<S> {
             fmt_span: format::FmtSpanConfig::default(),
             make_writer: io::stdout,
             is_ansi: cfg!(feature = "ansi"),
-            log_internal_errors: false,
             _inner: PhantomData,
         }
     }
@@ -781,11 +749,6 @@ where
             {
                 fields.was_ansi = self.is_ansi;
                 extensions.insert(fields);
-            } else {
-                eprintln!(
-                    "[tracing-subscriber] Unable to format the following event, ignoring: {:?}",
-                    attrs
-                );
             }
         }
 
@@ -932,20 +895,7 @@ where
                 .is_ok()
             {
                 let mut writer = self.make_writer.make_writer_for(event.metadata());
-                let res = io::Write::write_all(&mut writer, buf.as_bytes());
-                if self.log_internal_errors {
-                    if let Err(e) = res {
-                        eprintln!("[tracing-subscriber] Unable to write an event to the Writer for this Subscriber! Error: {}\n", e);
-                    }
-                }
-            } else if self.log_internal_errors {
-                let err_msg = format!("Unable to format the following event. Name: {}; Fields: {:?}\n",
-                    event.metadata().name(), event.fields());
-                let mut writer = self.make_writer.make_writer_for(event.metadata());
-                let res = io::Write::write_all(&mut writer, err_msg.as_bytes());
-                if let Err(e) = res {
-                    eprintln!("[tracing-subscriber] Unable to write an \"event formatting error\" to the Writer for this Subscriber! Error: {}\n", e);
-                }
+                let _ = io::Write::write_all(&mut writer, buf.as_bytes());
             }
 
             buf.clear();
@@ -1240,60 +1190,6 @@ mod test {
     fn sanitize_timings(s: String) -> String {
         let re = Regex::new("time\\.(idle|busy)=([0-9.]+)[mµn]s").unwrap();
         re.replace_all(s.as_str(), "timing").to_string()
-    }
-
-    #[test]
-    fn format_error_print_to_stderr() {
-        struct AlwaysError;
-
-        impl std::fmt::Debug for AlwaysError {
-            fn fmt(&self, _f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                Err(std::fmt::Error)
-            }
-        }
-
-        let make_writer = MockMakeWriter::default();
-        let subscriber = crate::fmt::Subscriber::builder()
-            .with_writer(make_writer.clone())
-            .with_level(false)
-            .with_ansi(false)
-            .with_timer(MockTime)
-            .finish();
-
-        with_default(subscriber, || {
-            tracing::info!(?AlwaysError);
-        });
-        let actual = sanitize_timings(make_writer.get_string());
-
-        // Only assert the start because the line number and callsite may change.
-        let expected = concat!("Unable to format the following event. Name: event ", file!(), ":");
-        assert!(actual.as_str().starts_with(expected), "\nactual = {}\nshould start with expected = {}\n", actual, expected);
-    }
-
-    #[test]
-    fn format_error_ignore_if_log_internal_errors_is_false() {
-        struct AlwaysError;
-
-        impl std::fmt::Debug for AlwaysError {
-            fn fmt(&self, _f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                Err(std::fmt::Error)
-            }
-        }
-
-        let make_writer = MockMakeWriter::default();
-        let subscriber = crate::fmt::Subscriber::builder()
-            .with_writer(make_writer.clone())
-            .with_level(false)
-            .with_ansi(false)
-            .with_timer(MockTime)
-            .log_internal_errors(false)
-            .finish();
-
-        with_default(subscriber, || {
-            tracing::info!(?AlwaysError);
-        });
-        let actual = sanitize_timings(make_writer.get_string());
-        assert_eq!("", actual.as_str());
     }
 
     #[test]

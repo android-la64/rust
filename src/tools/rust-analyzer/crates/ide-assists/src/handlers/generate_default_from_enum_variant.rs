@@ -55,11 +55,12 @@ pub(crate) fn generate_default_from_enum_variant(
             let buf = format!(
                 r#"
 
-impl Default for {enum_name} {{
+impl Default for {0} {{
     fn default() -> Self {{
-        Self::{variant_name}
+        Self::{1}
     }}
 }}"#,
+                enum_name, variant_name
             );
             edit.insert(start_offset, buf);
         },

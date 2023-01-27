@@ -3,12 +3,11 @@
 // Run-time:
 //   status: 0
 
-#![feature(asm_const)]
+#![feature(asm_const, asm_sym)]
 
 use std::arch::{asm, global_asm};
 
-global_asm!(
-    "
+global_asm!("
     .global add_asm
 add_asm:
      mov rax, rdi
@@ -133,9 +132,7 @@ fn main() {
     assert_eq!(x, 43);
 
     // check sym fn
-    extern "C" fn foo() -> u64 {
-        42
-    }
+    extern "C" fn foo() -> u64 { 42 }
     let x: u64;
     unsafe {
         asm!("call {}", sym foo, lateout("rax") x);

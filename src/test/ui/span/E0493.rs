@@ -15,7 +15,7 @@ impl Drop for Bar {
 }
 
 const F : Foo = (Foo { a : 0 }, Foo { a : 1 }).1;
-//~^ ERROR destructor of
+//~^ destructors cannot be evaluated at compile-time
 
 fn main() {
 }

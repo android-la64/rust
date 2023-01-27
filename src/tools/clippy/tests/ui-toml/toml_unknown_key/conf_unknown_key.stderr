@@ -11,7 +11,6 @@ error: error reading Clippy's configuration file `$DIR/clippy.toml`: unknown fie
            cargo-ignore-publish
            cognitive-complexity-threshold
            cyclomatic-complexity-threshold
-           disallowed-macros
            disallowed-methods
            disallowed-names
            disallowed-types
