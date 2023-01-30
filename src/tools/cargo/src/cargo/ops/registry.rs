@@ -18,9 +18,11 @@ use termcolor::Color::Green;
 use termcolor::ColorSpec;
 
 use crate::core::dependency::DepKind;
+use crate::core::dependency::Dependency;
 use crate::core::manifest::ManifestMetadata;
 use crate::core::resolver::CliFeatures;
 use crate::core::source::Source;
+use crate::core::QueryKind;
 use crate::core::{Package, SourceId, Workspace};
 use crate::ops;
 use crate::ops::Packages;
@@ -28,7 +30,7 @@ use crate::sources::{RegistrySource, SourceConfigMap, CRATES_IO_DOMAIN, CRATES_I
 use crate::util::config::{self, Config, SslVersionConfig, SslVersionConfigRange};
 use crate::util::errors::CargoResult;
 use crate::util::important_paths::find_root_manifest_for_wd;
-use crate::util::IntoUrl;
+use crate::util::{truncate_with_ellipsis, IntoUrl};
 use crate::{drop_print, drop_println, version};
 
 mod auth;
@@ -132,17 +134,23 @@ pub fn publish(ws: &Workspace<'_>, opts: &PublishOpts<'_>) -> CargoResult<()> {
         let reg_name = publish_registry
             .clone()
             .unwrap_or_else(|| CRATES_IO_REGISTRY.to_string());
-        if !allowed_registries.contains(&reg_name) {
+        if allowed_registries.is_empty() {
             bail!(
                 "`{}` cannot be published.\n\
-                 The registry `{}` is not listed in the `publish` value in Cargo.toml.",
+                 `package.publish` is set to `false` or an empty list in Cargo.toml and prevents publishing.",
+                pkg.name(),
+            );
+        } else if !allowed_registries.contains(&reg_name) {
+            bail!(
+                "`{}` cannot be published.\n\
+                 The registry `{}` is not listed in the `package.publish` value in Cargo.toml.",
                 pkg.name(),
                 reg_name
             );
         }
     }
 
-    let (mut registry, _reg_cfg, reg_id) = registry(
+    let (mut registry, _reg_cfg, reg_ids) = registry(
         opts.config,
         opts.token.clone(),
         opts.index.as_deref(),
@@ -150,7 +158,7 @@ pub fn publish(ws: &Workspace<'_>, opts: &PublishOpts<'_>) -> CargoResult<()> {
         true,
         !opts.dry_run,
     )?;
-    verify_dependencies(pkg, &registry, reg_id)?;
+    verify_dependencies(pkg, &registry, reg_ids.original)?;
 
     // Prepare a tarball, with a non-suppressible warning if metadata
     // is missing since this is being put online.
@@ -180,9 +188,22 @@ pub fn publish(ws: &Workspace<'_>, opts: &PublishOpts<'_>) -> CargoResult<()> {
         pkg,
         tarball.file(),
         &mut registry,
-        reg_id,
+        reg_ids.original,
         opts.dry_run,
     )?;
+    if !opts.dry_run {
+        const DEFAULT_TIMEOUT: u64 = 60;
+        let timeout = if opts.config.cli_unstable().publish_timeout {
+            let timeout: Option<u64> = opts.config.get("publish.timeout")?;
+            timeout.unwrap_or(DEFAULT_TIMEOUT)
+        } else {
+            DEFAULT_TIMEOUT
+        };
+        if 0 < timeout {
+            let timeout = std::time::Duration::from_secs(timeout);
+            wait_for_publish(opts.config, reg_ids.original, pkg, timeout)?;
+        }
+    }
 
     Ok(())
 }
@@ -209,7 +230,7 @@ fn verify_dependencies(
             // This extra hostname check is mostly to assist with testing,
             // but also prevents someone using `--index` to specify
             // something that points to crates.io.
-            if registry_src.is_default_registry() || registry.host_is_crates_io() {
+            if registry_src.is_crates_io() || registry.host_is_crates_io() {
                 bail!("crates cannot be published to crates.io with dependencies sourced from other\n\
                        registries. `{}` needs to be published to crates.io before publishing this crate.\n\
                        (crate `{}` is pulled from {})",
@@ -374,6 +395,72 @@ fn transmit(
     Ok(())
 }
 
+fn wait_for_publish(
+    config: &Config,
+    registry_src: SourceId,
+    pkg: &Package,
+    timeout: std::time::Duration,
+) -> CargoResult<()> {
+    let version_req = format!("={}", pkg.version());
+    let mut source = SourceConfigMap::empty(config)?.load(registry_src, &HashSet::new())?;
+    let source_description = source.describe();
+    let query = Dependency::parse(pkg.name(), Some(&version_req), registry_src)?;
+
+    let now = std::time::Instant::now();
+    let sleep_time = std::time::Duration::from_secs(1);
+    let mut logged = false;
+    loop {
+        {
+            let _lock = config.acquire_package_cache_lock()?;
+            // Force re-fetching the source
+            //
+            // As pulling from a git source is expensive, we track when we've done it within the
+            // process to only do it once, but we are one of the rare cases that needs to do it
+            // multiple times
+            config
+                .updated_sources()
+                .remove(&source.replaced_source_id());
+            source.invalidate_cache();
+            let summaries = loop {
+                // Exact to avoid returning all for path/git
+                match source.query_vec(&query, QueryKind::Exact) {
+                    std::task::Poll::Ready(res) => {
+                        break res?;
+                    }
+                    std::task::Poll::Pending => source.block_until_ready()?,
+                }
+            };
+            if !summaries.is_empty() {
+                break;
+            }
+        }
+
+        if timeout < now.elapsed() {
+            config.shell().warn(format!(
+                "timed out waiting for `{}` to be in {}",
+                pkg.name(),
+                source_description
+            ))?;
+            break;
+        }
+
+        if !logged {
+            config.shell().status(
+                "Waiting",
+                format!(
+                    "on `{}` to propagate to {} (ctrl-c to wait asynchronously)",
+                    pkg.name(),
+                    source_description
+                ),
+            )?;
+            logged = true;
+        }
+        std::thread::sleep(sleep_time);
+    }
+
+    Ok(())
+}
+
 /// Returns the index and token from the config file for the given registry.
 ///
 /// `registry` is typically the registry specified on the command-line. If
@@ -391,6 +478,22 @@ pub fn registry_configuration(
     };
     // `registry.default` is handled in command-line parsing.
     let (token, process) = match registry {
+        Some("crates-io") | None => {
+            // Use crates.io default.
+            config.check_registry_index_not_set()?;
+            let token = config.get_string("registry.token")?.map(|p| p.val);
+            let process = if config.cli_unstable().credential_process {
+                let process =
+                    config.get::<Option<config::PathAndArgs>>("registry.credential-process")?;
+                if token.is_some() && process.is_some() {
+                    return err_both("registry.token", "registry.credential-process");
+                }
+                process
+            } else {
+                None
+            };
+            (token, process)
+        }
         Some(registry) => {
             let token_key = format!("registries.{registry}.token");
             let token = config.get_string(&token_key)?.map(|p| p.val);
@@ -404,22 +507,6 @@ pub fn registry_configuration(
                     process = config.get::<Option<config::PathAndArgs>>(&proc_key)?;
                 } else if process.is_some() && token.is_some() {
                     return err_both(&token_key, &proc_key);
-                }
-                process
-            } else {
-                None
-            };
-            (token, process)
-        }
-        None => {
-            // Use crates.io default.
-            config.check_registry_index_not_set()?;
-            let token = config.get_string("registry.token")?.map(|p| p.val);
-            let process = if config.cli_unstable().credential_process {
-                let process =
-                    config.get::<Option<config::PathAndArgs>>("registry.credential-process")?;
-                if token.is_some() && process.is_some() {
-                    return err_both("registry.token", "registry.credential-process");
                 }
                 process
             } else {
@@ -444,11 +531,9 @@ pub fn registry_configuration(
 ///
 /// * `token`: The token from the command-line. If not set, uses the token
 ///   from the config.
-/// * `index`: The index URL from the command-line. This is ignored if
-///   `registry` is set.
+/// * `index`: The index URL from the command-line.
 /// * `registry`: The registry name from the command-line. If neither
-///   `registry`, or `index` are set, then uses `crates-io`, honoring
-///   `[source]` replacement if defined.
+///   `registry`, or `index` are set, then uses `crates-io`.
 /// * `force_update`: If `true`, forces the index to be updated.
 /// * `validate_token`: If `true`, the token must be set.
 fn registry(
@@ -458,28 +543,12 @@ fn registry(
     registry: Option<&str>,
     force_update: bool,
     validate_token: bool,
-) -> CargoResult<(Registry, RegistryConfig, SourceId)> {
-    if index.is_some() && registry.is_some() {
-        // Otherwise we would silently ignore one or the other.
-        bail!("both `--index` and `--registry` should not be set at the same time");
-    }
-    // Parse all configuration options
+) -> CargoResult<(Registry, RegistryConfig, RegistrySourceIds)> {
+    let source_ids = get_source_id(config, index, registry)?;
     let reg_cfg = registry_configuration(config, registry)?;
-    let opt_index = registry
-        .map(|r| config.get_registry_index(r))
-        .transpose()?
-        .map(|u| u.to_string());
-    let sid = get_source_id(config, opt_index.as_deref().or(index), registry)?;
-    if !sid.is_remote_registry() {
-        bail!(
-            "{} does not support API commands.\n\
-             Check for a source-replacement in .cargo/config.",
-            sid
-        );
-    }
     let api_host = {
         let _lock = config.acquire_package_cache_lock()?;
-        let mut src = RegistrySource::remote(sid, &HashSet::new(), config)?;
+        let mut src = RegistrySource::remote(source_ids.replacement, &HashSet::new(), config)?;
         // Only update the index if the config is not available or `force` is set.
         if force_update {
             src.invalidate_cache()
@@ -488,13 +557,14 @@ fn registry(
             match src.config()? {
                 Poll::Pending => src
                     .block_until_ready()
-                    .with_context(|| format!("failed to update {}", sid))?,
+                    .with_context(|| format!("failed to update {}", source_ids.replacement))?,
                 Poll::Ready(cfg) => break cfg,
             }
         };
 
-        cfg.and_then(|cfg| cfg.api)
-            .ok_or_else(|| format_err!("{} does not support API commands", sid))?
+        cfg.and_then(|cfg| cfg.api).ok_or_else(|| {
+            format_err!("{} does not support API commands", source_ids.replacement)
+        })?
     };
     let token = if validate_token {
         if index.is_some() {
@@ -503,42 +573,18 @@ fn registry(
             }
             token
         } else {
-            // Check `is_default_registry` so that the crates.io index can
-            // change config.json's "api" value, and this won't affect most
-            // people. It will affect those using source replacement, but
-            // hopefully that's a relatively small set of users.
-            if token.is_none()
-                && reg_cfg.is_token()
-                && registry.is_none()
-                && !sid.is_default_registry()
-                && !crates_io::is_url_crates_io(&api_host)
-            {
-                config.shell().warn(
-                    "using `registry.token` config value with source \
-                        replacement is deprecated\n\
-                        This may become a hard error in the future; \
-                        see <https://github.com/rust-lang/cargo/issues/xxx>.\n\
-                        Use the --token command-line flag to remove this warning.",
-                )?;
-                reg_cfg.as_token().map(|t| t.to_owned())
-            } else {
-                let token =
-                    auth::auth_token(config, token.as_deref(), &reg_cfg, registry, &api_host)?;
-                Some(token)
-            }
+            let token = auth::auth_token(config, token.as_deref(), &reg_cfg, registry, &api_host)?;
+            Some(token)
         }
     } else {
         None
     };
     let handle = http_handle(config)?;
-    // Workaround for the sparse+https://index.crates.io replacement index. Use the non-replaced
-    // source_id so that the original (github) url is used when publishing a crate.
-    let sid = if sid.is_default_registry() {
-        SourceId::crates_io(config)?
-    } else {
-        sid
-    };
-    Ok((Registry::new_handle(api_host, token, handle), reg_cfg, sid))
+    Ok((
+        Registry::new_handle(api_host, token, handle),
+        reg_cfg,
+        source_ids,
+    ))
 }
 
 /// Creates a new HTTP handle with appropriate global configuration for cargo.
@@ -596,6 +642,9 @@ pub fn configure_http_handle(config: &Config, handle: &mut Easy) -> CargoResult<
     } else {
         handle.useragent(&format!("cargo {}", version()))?;
     }
+
+    // Empty string accept encoding expands to the encodings supported by the current libcurl.
+    handle.accept_encoding("")?;
 
     fn to_ssl_version(s: &str) -> CargoResult<SslVersion> {
         let version = match s {
@@ -767,6 +816,10 @@ pub fn registry_login(
             line.replace("cargo login", "").trim().to_string()
         }
     };
+
+    if token.is_empty() {
+        bail!("please provide a non-empty token");
+    }
 
     if let RegistryConfig::Token(old_token) = &reg_cfg {
         if old_token == &token {
@@ -943,17 +996,62 @@ pub fn yank(
 /// Gets the SourceId for an index or registry setting.
 ///
 /// The `index` and `reg` values are from the command-line or config settings.
-/// If both are None, returns the source for crates.io.
-fn get_source_id(config: &Config, index: Option<&str>, reg: Option<&str>) -> CargoResult<SourceId> {
-    match (reg, index) {
-        (Some(r), _) => SourceId::alt_registry(config, r),
-        (_, Some(i)) => SourceId::for_registry(&i.into_url()?),
-        _ => {
-            let map = SourceConfigMap::new(config)?;
-            let src = map.load(SourceId::crates_io(config)?, &HashSet::new())?;
-            Ok(src.replaced_source_id())
+/// If both are None, and no source-replacement is configured, returns the source for crates.io.
+/// If both are None, and source replacement is configured, returns an error.
+///
+/// The source for crates.io may be GitHub, index.crates.io, or a test-only registry depending
+/// on configuration.
+///
+/// If `reg` is set, source replacement is not followed.
+///
+/// The return value is a pair of `SourceId`s: The first may be a built-in replacement of
+/// crates.io (such as index.crates.io), while the second is always the original source.
+fn get_source_id(
+    config: &Config,
+    index: Option<&str>,
+    reg: Option<&str>,
+) -> CargoResult<RegistrySourceIds> {
+    let sid = match (reg, index) {
+        (None, None) => SourceId::crates_io(config)?,
+        (Some(r), None) => SourceId::alt_registry(config, r)?,
+        (None, Some(i)) => SourceId::for_registry(&i.into_url()?)?,
+        (Some(_), Some(_)) => {
+            bail!("both `--index` and `--registry` should not be set at the same time")
         }
+    };
+    // Load source replacements that are built-in to Cargo.
+    let builtin_replacement_sid = SourceConfigMap::empty(config)?
+        .load(sid, &HashSet::new())?
+        .replaced_source_id();
+    let replacement_sid = SourceConfigMap::new(config)?
+        .load(sid, &HashSet::new())?
+        .replaced_source_id();
+    if reg.is_none() && index.is_none() && replacement_sid != builtin_replacement_sid {
+        // Neither --registry nor --index was passed and the user has configured source-replacement.
+        if let Some(replacement_name) = replacement_sid.alt_registry_key() {
+            bail!("crates-io is replaced with remote registry {replacement_name};\ninclude `--registry {replacement_name}` or `--registry crates-io`");
+        } else {
+            bail!("crates-io is replaced with non-remote-registry source {replacement_sid};\ninclude `--registry crates-io` to use crates.io");
+        }
+    } else {
+        Ok(RegistrySourceIds {
+            original: sid,
+            replacement: builtin_replacement_sid,
+        })
     }
+}
+
+struct RegistrySourceIds {
+    /// Use when looking up the auth token, or writing out `Cargo.lock`
+    original: SourceId,
+    /// Use when interacting with the source (querying / publishing , etc)
+    ///
+    /// The source for crates.io may be replaced by a built-in source for accessing crates.io with
+    /// the sparse protocol, or a source for the testing framework (when the replace_crates_io
+    /// function is used)
+    ///
+    /// User-defined source replacement is not applied.
+    replacement: SourceId,
 }
 
 pub fn search(
@@ -963,19 +1061,7 @@ pub fn search(
     limit: u32,
     reg: Option<String>,
 ) -> CargoResult<()> {
-    fn truncate_with_ellipsis(s: &str, max_width: usize) -> String {
-        // We should truncate at grapheme-boundary and compute character-widths,
-        // yet the dependencies on unicode-segmentation and unicode-width are
-        // not worth it.
-        let mut chars = s.chars();
-        let mut prefix = (&mut chars).take(max_width - 1).collect::<String>();
-        if chars.next().is_some() {
-            prefix.push('…');
-        }
-        prefix
-    }
-
-    let (mut registry, _, source_id) =
+    let (mut registry, _, source_ids) =
         registry(config, None, index.as_deref(), reg.as_deref(), false, false)?;
     let (crates, total_crates) = registry.search(query, limit).with_context(|| {
         format!(
@@ -1032,7 +1118,7 @@ pub fn search(
             &ColorSpec::new(),
         );
     } else if total_crates > limit && limit >= search_max_limit {
-        let extra = if source_id.is_default_registry() {
+        let extra = if source_ids.original.is_crates_io() {
             format!(
                 " (go to https://crates.io/search?q={} to see more)",
                 percent_encode(query.as_bytes(), NON_ALPHANUMERIC)

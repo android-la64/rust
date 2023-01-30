@@ -90,3 +90,36 @@ fn registry_credentials() {
     assert!(check_token(TOKEN, Some(reg)));
     assert!(check_token(TOKEN2, Some(reg2)));
 }
+
+#[cargo_test]
+fn empty_login_token() {
+    let registry = RegistryBuilder::new()
+        .no_configure_registry()
+        .no_configure_token()
+        .build();
+    setup_new_credentials();
+
+    cargo_process("login")
+        .replace_crates_io(registry.index_url())
+        .with_stdout("please paste the API Token found on [..]/me below")
+        .with_stdin("\t\n")
+        .with_stderr(
+            "\
+[UPDATING] crates.io index
+[ERROR] please provide a non-empty token
+",
+        )
+        .with_status(101)
+        .run();
+
+    cargo_process("login")
+        .replace_crates_io(registry.index_url())
+        .arg("")
+        .with_stderr(
+            "\
+[ERROR] please provide a non-empty token
+",
+        )
+        .with_status(101)
+        .run();
+}

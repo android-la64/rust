@@ -2,14 +2,14 @@ use crate::command_prelude::*;
 
 use cargo::ops;
 
-pub fn cli() -> App {
+pub fn cli() -> Command {
     subcommand("login")
         .about(
             "Save an api token from the registry locally. \
              If token is not specified, it will be read from stdin.",
         )
         .arg_quiet()
-        .arg(Arg::new("token"))
+        .arg(Arg::new("token").action(ArgAction::Set))
         .arg(opt("registry", "Registry to use").value_name("REGISTRY"))
         .after_help("Run `cargo help login` for more detailed information.\n")
 }

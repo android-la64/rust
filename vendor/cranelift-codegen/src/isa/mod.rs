@@ -49,7 +49,7 @@ use crate::flowgraph;
 use crate::ir::{self, Function};
 #[cfg(feature = "unwind")]
 use crate::isa::unwind::systemv::RegisterMappingError;
-use crate::machinst::{CompiledCode, TextSectionBuilder, UnwindInfoKind};
+use crate::machinst::{CompiledCode, CompiledCodeStencil, TextSectionBuilder, UnwindInfoKind};
 use crate::settings;
 use crate::settings::SetResult;
 use crate::CodegenResult;
@@ -230,7 +230,11 @@ pub trait TargetIsa: fmt::Display + Send + Sync {
     fn dynamic_vector_bytes(&self, dynamic_ty: ir::Type) -> u32;
 
     /// Compile the given function.
-    fn compile_function(&self, func: &Function, want_disasm: bool) -> CodegenResult<CompiledCode>;
+    fn compile_function(
+        &self,
+        func: &Function,
+        want_disasm: bool,
+    ) -> CodegenResult<CompiledCodeStencil>;
 
     #[cfg(feature = "unwind")]
     /// Map a regalloc::Reg to its corresponding DWARF register.
@@ -273,6 +277,9 @@ pub trait TargetIsa: fmt::Display + Send + Sync {
     /// will be "labeled" or might have calls between them, typically the number
     /// of defined functions in the object file.
     fn text_section_builder(&self, num_labeled_funcs: u32) -> Box<dyn TextSectionBuilder>;
+
+    /// The function alignment required by this ISA.
+    fn function_alignment(&self) -> u32;
 }
 
 /// Methods implemented for free for target ISA!
@@ -305,6 +312,15 @@ impl<'a> dyn TargetIsa + 'a {
             // supported by the architecture and is used on some platforms.
             (_, Architecture::Aarch64(..)) => 0x10000,
             _ => 0x1000,
+        }
+    }
+
+    /// Returns the minimum symbol alignment for this ISA.
+    pub fn symbol_alignment(&self) -> u64 {
+        match self.triple().architecture {
+            // All symbols need to be aligned to at least 2 on s390x.
+            Architecture::S390x => 2,
+            _ => 1,
         }
     }
 

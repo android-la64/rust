@@ -1,4 +1,4 @@
-use std::mem;
+use std::{fmt, mem};
 
 #[cfg(not(test))]
 use proc_macro::{Delimiter, TokenStream, TokenTree};
@@ -16,15 +16,41 @@ pub(crate) struct Error {
 
 impl std::error::Error for Error {}
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.msg)
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.msg, f)
     }
 }
 
-pub(crate) fn parse(ts: TokenStream) -> Result<ast::XFlags> {
-    let mut p = Parser::new(ts);
-    xflags(&mut p)
+pub(crate) fn xflags(ts: TokenStream) -> Result<ast::XFlags> {
+    let p = &mut Parser::new(ts);
+    let src = if p.eat_keyword("src") { Some(p.expect_string()?) } else { None };
+    let doc = opt_doc(p)?;
+    let mut cmd = cmd(p)?;
+    cmd.doc = doc;
+    add_help(&mut cmd);
+    let res = ast::XFlags { src, cmd };
+    Ok(res)
+}
+
+pub(crate) fn parse_or_exit(ts: TokenStream) -> Result<ast::XFlags> {
+    let p = &mut Parser::new(ts);
+    let mut cmd = anon_cmd(p)?;
+    assert!(cmd.subcommands.is_empty());
+    add_help(&mut cmd);
+    let res = ast::XFlags { src: None, cmd };
+    Ok(res)
+}
+
+fn add_help(cmd: &mut ast::Cmd) {
+    let help = ast::Flag {
+        arity: ast::Arity::Optional,
+        name: "help".to_string(),
+        short: Some("h".to_string()),
+        doc: Some("Prints help information.".to_string()),
+        val: None,
+    };
+    cmd.flags.push(help);
 }
 
 macro_rules! format_err {
@@ -40,19 +66,25 @@ macro_rules! bail {
     };
 }
 
-fn xflags(p: &mut Parser) -> Result<ast::XFlags> {
-    let src = if p.eat_keyword("src") { Some(p.expect_string()?) } else { None };
-    let doc = opt_doc(p)?;
-    let mut cmd = cmd(p)?;
-    cmd.doc = doc;
-    let res = ast::XFlags { src, cmd };
-    Ok(res)
+fn anon_cmd(p: &mut Parser) -> Result<ast::Cmd> {
+    cmd_impl(p, true)
 }
 
 fn cmd(p: &mut Parser) -> Result<ast::Cmd> {
-    p.expect_keyword("cmd")?;
+    cmd_impl(p, false)
+}
 
-    let name = cmd_name(p)?;
+fn cmd_impl(p: &mut Parser, anon: bool) -> Result<ast::Cmd> {
+    let name = if anon {
+        String::new()
+    } else {
+        p.expect_keyword("cmd")?;
+        cmd_name(p)?
+    };
+
+    let idx = p.idx;
+    p.idx += 1;
+
     let mut res = ast::Cmd {
         name,
         doc: None,
@@ -60,25 +92,16 @@ fn cmd(p: &mut Parser) -> Result<ast::Cmd> {
         flags: Vec::new(),
         subcommands: Vec::new(),
         default: false,
+        idx,
     };
 
-    while !p.at_delim(Delimiter::Brace) {
-        let doc = opt_doc(p)?;
-        let arity = arity(p)?;
-        match opt_val(p)? {
-            Some(val) => {
-                let arg = ast::Arg { arity, doc, val };
-                res.args.push(arg);
-            }
-            None => bail!("expected ident"),
-        }
+    if !anon {
+        p.enter_delim(Delimiter::Brace)?;
     }
-
-    p.enter_delim(Delimiter::Brace)?;
     while !p.end() {
         let doc = opt_doc(p)?;
-        let default = p.eat_keyword("default");
-        if default || p.at_keyword("cmd") {
+        let default = !anon && p.eat_keyword("default");
+        if !anon && (default || p.at_keyword("cmd")) {
             let mut cmd = cmd(p)?;
             cmd.doc = doc;
             res.subcommands.push(cmd);
@@ -90,35 +113,56 @@ fn cmd(p: &mut Parser) -> Result<ast::Cmd> {
                 res.subcommands.rotate_right(1);
             }
         } else {
-            let mut flag = flag(p)?;
-            flag.doc = doc;
-            res.flags.push(flag);
+            let arity = arity(p)?;
+            let is_val = p.lookahead_punct(':', 1);
+            let name = p.expect_name()?;
+            if name.starts_with('-') {
+                let mut flag = flag(p, name)?;
+                flag.doc = doc;
+                flag.arity = arity;
+                res.flags.push(flag)
+            } else if is_val {
+                p.expect_punct(':')?;
+                let ty = ty(p)?;
+                let val = ast::Val { name, ty };
+                let arg = ast::Arg { arity, doc, val };
+                res.args.push(arg);
+            } else {
+                bail!("expected `--flag` or `arg: Type`")
+            }
         }
     }
-    p.exit_delim()?;
+    if !anon {
+        p.exit_delim()?;
+    }
     Ok(res)
 }
 
-fn flag(p: &mut Parser) -> Result<ast::Flag> {
-    let arity = arity(p)?;
-
-    let mut short = None;
-    let mut name = flag_name(p)?;
-    if !name.starts_with("--") {
+fn flag(p: &mut Parser, name: String) -> Result<ast::Flag> {
+    let short;
+    let long;
+    if name.starts_with("--") {
+        short = None;
+        long = name;
+    } else {
         short = Some(name);
         if !p.eat_punct(',') {
             bail!("long option is required for `{}`", short.unwrap());
         }
-        name = flag_name(p)?;
-        if !name.starts_with("--") {
-            bail!("long name must begin with `--`: `{}`", name);
+        long = flag_name(p)?;
+        if !long.starts_with("--") {
+            bail!("long name must begin with `--`: `{long}`");
         }
+    }
+
+    if long == "--help" {
+        bail!("`--help` flag is generated automatically")
     }
 
     let val = opt_val(p)?;
     Ok(ast::Flag {
-        arity,
-        name: name[2..].to_string(),
+        arity: ast::Arity::Required,
+        name: long[2..].to_string(),
         short: short.map(|it| it[1..].to_string()),
         doc: None,
         val,
@@ -148,7 +192,7 @@ fn arity(p: &mut Parser) -> Result<ast::Arity> {
         return Ok(ast::Arity::Repeated);
     }
     if let Some(name) = p.eat_name() {
-        bail!("expected one of `optional`, `required`, `repeated`, got `{}`", name)
+        bail!("expected one of `optional`, `required`, `repeated`, got `{name}`")
     }
     bail!("expected one of `optional`, `required`, `repeated`, got {:?}", p.ts.pop())
 }
@@ -193,7 +237,7 @@ fn opt_doc(p: &mut Parser) -> Result<Option<String>> {
 fn cmd_name(p: &mut Parser) -> Result<String> {
     let name = p.expect_name()?;
     if name.starts_with('-') {
-        bail!("command name can't begin with `-`: `{}`", name);
+        bail!("command name can't begin with `-`: `{name}`");
     }
     Ok(name)
 }
@@ -201,7 +245,7 @@ fn cmd_name(p: &mut Parser) -> Result<String> {
 fn flag_name(p: &mut Parser) -> Result<String> {
     let name = p.expect_name()?;
     if !name.starts_with('-') {
-        bail!("flag name should begin with `-`: `{}`", name);
+        bail!("flag name should begin with `-`: `{name}`");
     }
     Ok(name)
 }
@@ -209,21 +253,16 @@ fn flag_name(p: &mut Parser) -> Result<String> {
 struct Parser {
     stack: Vec<Vec<TokenTree>>,
     ts: Vec<TokenTree>,
+    idx: u8,
 }
 
 impl Parser {
     fn new(ts: TokenStream) -> Self {
         let mut ts = ts.into_iter().collect::<Vec<_>>();
         ts.reverse();
-        Self { stack: Vec::new(), ts }
+        Self { stack: Vec::new(), ts, idx: 0 }
     }
 
-    fn at_delim(&mut self, delimiter: Delimiter) -> bool {
-        match self.ts.last() {
-            Some(TokenTree::Group(g)) => g.delimiter() == delimiter,
-            _ => false,
-        }
-    }
     fn enter_delim(&mut self, delimiter: Delimiter) -> Result<()> {
         match self.ts.pop() {
             Some(TokenTree::Group(g)) if g.delimiter() == delimiter => {
@@ -249,7 +288,7 @@ impl Parser {
 
     fn expect_keyword(&mut self, kw: &str) -> Result<()> {
         if !self.eat_keyword(kw) {
-            bail!("expected `{}`", kw)
+            bail!("expected `{kw}`")
         }
         Ok(())
     }
@@ -271,7 +310,7 @@ impl Parser {
     fn expect_name(&mut self) -> Result<String> {
         self.eat_name().ok_or_else(|| {
             let next = self.ts.pop().map(|it| it.to_string()).unwrap_or_default();
-            format_err!("expected a name, got: `{}`", next)
+            format_err!("expected a name, got: `{next}`")
         })
     }
     fn eat_name(&mut self) -> Option<String> {
@@ -307,7 +346,7 @@ impl Parser {
 
     fn expect_punct(&mut self, punct: char) -> Result<()> {
         if !self.eat_punct(punct) {
-            bail!("expected `{}`", punct)
+            bail!("expected `{punct}`")
         }
         Ok(())
     }
@@ -330,11 +369,18 @@ impl Parser {
     fn expect_string(&mut self) -> Result<String> {
         match self.ts.pop() {
             Some(TokenTree::Literal(lit)) if lit.to_string().starts_with('"') => {
-                let text = lit.to_string();
-                let res = text.trim_matches('"').to_string();
+                let res = str_lit_value(lit.to_string());
                 Ok(res)
             }
             _ => bail!("expected a string"),
         }
     }
+}
+
+/// "Parser" a string literal into the corresponding value.
+///
+/// Really needs support in the proc_macro library:
+/// <https://internals.rust-lang.org/t/getting-value-out-of-proc-macro-literal/14140>
+fn str_lit_value(lit: String) -> String {
+    lit.trim_matches('"').replace("\\'", "'")
 }

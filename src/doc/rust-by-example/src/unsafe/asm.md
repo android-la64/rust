@@ -227,7 +227,7 @@ This state is generally referred to as being "clobbered".
 We need to tell the compiler about this since it may need to save and restore this state around the inline assembly block.
 
 ```rust
-use core::arch::asm;
+use std::arch::asm;
 
 fn main() {
     // three entries of four bytes each
@@ -333,7 +333,7 @@ In some cases, fine control is needed over the way a register name is formatted 
 
 By default the compiler will always choose the name that refers to the full register size (e.g. `rax` on x86-64, `eax` on x86, etc).
 
-This default can be overriden by using modifiers on the template string operands, just like you would with format strings:
+This default can be overridden by using modifiers on the template string operands, just like you would with format strings:
 
 ```rust
 use std::arch::asm;

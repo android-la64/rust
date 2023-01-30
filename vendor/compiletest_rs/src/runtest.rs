@@ -33,8 +33,27 @@ use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, ExitStatus, Stdio, Child};
 use std::str;
+use std::sync::{Arc, Mutex, RwLock};
 
 use extract_gdb_version;
+
+fn get_or_create_coverage_file(path: &Path, create: impl FnOnce() -> File) -> Arc<Mutex<File>> {
+    lazy_static::lazy_static! {
+        static ref COVERAGE_FILE_LOCKS: RwLock<HashMap<PathBuf, Arc<Mutex<File>>>> = RwLock::new(HashMap::new());
+    }
+
+    {
+        let locks = COVERAGE_FILE_LOCKS.read().unwrap();
+        locks.get(path).map(Arc::clone)
+    }
+    .unwrap_or_else(|| {
+        let mut locks = COVERAGE_FILE_LOCKS.write().unwrap();
+        locks
+            .entry(path.to_path_buf())
+            .or_insert_with(|| Arc::new(Mutex::new(create())))
+            .clone()
+    })
+}
 
 /// The name of the environment variable that holds dynamic library locations.
 pub fn dylib_env_var() -> &'static str {
@@ -2343,16 +2362,23 @@ actual:\n\
                     coverage_file_path.push("rustfix_missing_coverage.txt");
                     debug!("coverage_file_path: {}", coverage_file_path.display());
 
-                    let mut file = OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open(coverage_file_path.as_path())
-                        .expect("could not create or open file");
-
-                    if let Err(_) = writeln!(file, "{}", self.testpaths.file.display()) {
+                    let file_ref = get_or_create_coverage_file(&coverage_file_path, || {
+                        OpenOptions::new()
+                            .create(true)
+                            .write(true)
+                            .truncate(true)
+                            .open(coverage_file_path.as_path())
+                            .expect("could not create or open file")
+                    });
+                    let mut file = file_ref.lock().unwrap();
+    
+                    if writeln!(file, "{}", self.testpaths.file.display())
+                        .and_then(|_| file.sync_data())
+                        .is_err()
+                    {
                         panic!("couldn't write to {}", coverage_file_path.display());
                     }
-            }
+                }
         }
 
         if self.props.run_rustfix {
@@ -2408,10 +2434,13 @@ actual:\n\
             // And finally, compile the fixed code and make sure it both
             // succeeds and has no diagnostics.
             let mut rustc = self.make_compile_args(
-                &self.testpaths.file.with_extension(UI_FIXED),
+                &expected_fixed_path,
                 TargetLocation::ThisFile(self.make_exe_name()),
                 AllowUnused::No,
             );
+            // Set the crate name to avoid `file.revision.fixed` inferring the
+            // invalid name `file.revision`
+            rustc.arg("--crate-name=fixed");
             rustc.arg("-L").arg(&self.aux_output_dir_name());
             let res = self.compose_and_run_compiler(rustc, None);
             if !res.status.success() {

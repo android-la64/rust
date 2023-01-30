@@ -4,6 +4,7 @@ use cargo::util::errors::CargoResult;
 use cargo::{drop_println, Config};
 use cargo_util::paths::resolve_executable;
 use flate2::read::GzDecoder;
+use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::io::Read;
 use std::io::Write;
@@ -11,17 +12,21 @@ use std::path::Path;
 
 const COMPRESSED_MAN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/man.tgz"));
 
-pub fn cli() -> App {
+pub fn cli() -> Command {
     subcommand("help")
         .about("Displays help for a cargo subcommand")
-        .arg(Arg::new("SUBCOMMAND"))
+        .arg(Arg::new("COMMAND").action(ArgAction::Set))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
-    let subcommand = args.get_one::<String>("SUBCOMMAND");
+    let subcommand = args.get_one::<String>("COMMAND");
     if let Some(subcommand) = subcommand {
         if !try_help(config, subcommand)? {
-            crate::execute_external_subcommand(config, subcommand, &[subcommand, "--help"])?;
+            crate::execute_external_subcommand(
+                config,
+                subcommand,
+                &[OsStr::new(subcommand), OsStr::new("--help")],
+            )?;
         }
     } else {
         let mut cmd = crate::cli::cli();

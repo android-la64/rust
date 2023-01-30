@@ -1,6 +1,6 @@
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 
-use crate::concurrency::thread::Time;
+use crate::concurrency::thread::MachineCallback;
 use crate::*;
 
 /// Returns the time elapsed between the provided time and the unix epoch as a `Duration`.
@@ -9,8 +9,8 @@ pub fn system_time_to_duration<'tcx>(time: &SystemTime) -> InterpResult<'tcx, Du
         .map_err(|_| err_unsup_format!("times before the Unix epoch are not supported").into())
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     fn clock_gettime(
         &mut self,
         clk_id_op: &OpTy<'tcx, Provenance>,
@@ -23,7 +23,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
 
         this.assert_target_os("linux", "clock_gettime");
-        this.check_no_isolation("`clock_gettime`")?;
 
         let clk_id = this.read_scalar(clk_id_op)?.to_i32()?;
 
@@ -40,9 +39,10 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             [this.eval_libc_i32("CLOCK_MONOTONIC")?, this.eval_libc_i32("CLOCK_MONOTONIC_COARSE")?];
 
         let duration = if absolute_clocks.contains(&clk_id) {
+            this.check_no_isolation("`clock_gettime` with `REALTIME` clocks")?;
             system_time_to_duration(&SystemTime::now())?
         } else if relative_clocks.contains(&clk_id) {
-            Instant::now().duration_since(this.machine.time_anchor)
+            this.machine.clock.now().duration_since(this.machine.clock.anchor())
         } else {
             let einval = this.eval_libc("EINVAL")?;
             this.set_last_error(einval)?;
@@ -119,15 +119,14 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     fn QueryPerformanceCounter(
         &mut self,
         lpPerformanceCount_op: &OpTy<'tcx, Provenance>,
-    ) -> InterpResult<'tcx, i32> {
+    ) -> InterpResult<'tcx, Scalar<Provenance>> {
         let this = self.eval_context_mut();
 
         this.assert_target_os("windows", "QueryPerformanceCounter");
-        this.check_no_isolation("`QueryPerformanceCounter`")?;
 
         // QueryPerformanceCounter uses a hardware counter as its basis.
         // Miri will emulate a counter with a resolution of 1 nanosecond.
-        let duration = Instant::now().duration_since(this.machine.time_anchor);
+        let duration = this.machine.clock.now().duration_since(this.machine.clock.anchor());
         let qpc = i64::try_from(duration.as_nanos()).map_err(|_| {
             err_unsup_format!("programs running longer than 2^63 nanoseconds are not supported")
         })?;
@@ -135,18 +134,17 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             Scalar::from_i64(qpc),
             &this.deref_operand(lpPerformanceCount_op)?.into(),
         )?;
-        Ok(-1) // return non-zero on success
+        Ok(Scalar::from_i32(-1)) // return non-zero on success
     }
 
     #[allow(non_snake_case)]
     fn QueryPerformanceFrequency(
         &mut self,
         lpFrequency_op: &OpTy<'tcx, Provenance>,
-    ) -> InterpResult<'tcx, i32> {
+    ) -> InterpResult<'tcx, Scalar<Provenance>> {
         let this = self.eval_context_mut();
 
         this.assert_target_os("windows", "QueryPerformanceFrequency");
-        this.check_no_isolation("`QueryPerformanceFrequency`")?;
 
         // Retrieves the frequency of the hardware performance counter.
         // The frequency of the performance counter is fixed at system boot and
@@ -157,18 +155,17 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             Scalar::from_i64(1_000_000_000),
             &this.deref_operand(lpFrequency_op)?.into(),
         )?;
-        Ok(-1) // Return non-zero on success
+        Ok(Scalar::from_i32(-1)) // Return non-zero on success
     }
 
     fn mach_absolute_time(&self) -> InterpResult<'tcx, Scalar<Provenance>> {
         let this = self.eval_context_ref();
 
         this.assert_target_os("macos", "mach_absolute_time");
-        this.check_no_isolation("`mach_absolute_time`")?;
 
         // This returns a u64, with time units determined dynamically by `mach_timebase_info`.
         // We return plain nanoseconds.
-        let duration = Instant::now().duration_since(this.machine.time_anchor);
+        let duration = this.machine.clock.now().duration_since(this.machine.clock.anchor());
         let res = u64::try_from(duration.as_nanos()).map_err(|_| {
             err_unsup_format!("programs running longer than 2^64 nanoseconds are not supported")
         })?;
@@ -182,7 +179,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
 
         this.assert_target_os("macos", "mach_timebase_info");
-        this.check_no_isolation("`mach_timebase_info`")?;
 
         let info = this.deref_operand(info_op)?;
 
@@ -202,7 +198,6 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
 
         this.assert_target_os_is_unix("nanosleep");
-        this.check_no_isolation("`nanosleep`")?;
 
         let duration = match this.read_timespec(&this.deref_operand(req_op)?)? {
             Some(duration) => duration,
@@ -213,21 +208,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             }
         };
         // If adding the duration overflows, let's just sleep for an hour. Waking up early is always acceptable.
-        let timeout_time = Instant::now()
+        let now = this.machine.clock.now();
+        let timeout_time = now
             .checked_add(duration)
-            .unwrap_or_else(|| Instant::now().checked_add(Duration::from_secs(3600)).unwrap());
-        let timeout_time = Time::Monotonic(timeout_time);
+            .unwrap_or_else(|| now.checked_add(Duration::from_secs(3600)).unwrap());
 
         let active_thread = this.get_active_thread();
         this.block_thread(active_thread);
 
         this.register_timeout_callback(
             active_thread,
-            timeout_time,
-            Box::new(move |ecx| {
-                ecx.unblock_thread(active_thread);
-                Ok(())
-            }),
+            Time::Monotonic(timeout_time),
+            Box::new(UnblockCallback { thread_to_unblock: active_thread }),
         );
 
         Ok(0)
@@ -238,25 +230,36 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
 
         this.assert_target_os("windows", "Sleep");
-        this.check_no_isolation("`Sleep`")?;
 
         let timeout_ms = this.read_scalar(timeout)?.to_u32()?;
 
         let duration = Duration::from_millis(timeout_ms.into());
-        let timeout_time = Time::Monotonic(Instant::now().checked_add(duration).unwrap());
+        let timeout_time = this.machine.clock.now().checked_add(duration).unwrap();
 
         let active_thread = this.get_active_thread();
         this.block_thread(active_thread);
 
         this.register_timeout_callback(
             active_thread,
-            timeout_time,
-            Box::new(move |ecx| {
-                ecx.unblock_thread(active_thread);
-                Ok(())
-            }),
+            Time::Monotonic(timeout_time),
+            Box::new(UnblockCallback { thread_to_unblock: active_thread }),
         );
 
+        Ok(())
+    }
+}
+
+struct UnblockCallback {
+    thread_to_unblock: ThreadId,
+}
+
+impl VisitTags for UnblockCallback {
+    fn visit_tags(&self, _visit: &mut dyn FnMut(SbTag)) {}
+}
+
+impl<'mir, 'tcx: 'mir> MachineCallback<'mir, 'tcx> for UnblockCallback {
+    fn call(&self, ecx: &mut MiriInterpCx<'mir, 'tcx>) -> InterpResult<'tcx> {
+        ecx.unblock_thread(self.thread_to_unblock);
         Ok(())
     }
 }

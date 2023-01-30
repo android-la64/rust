@@ -17,7 +17,7 @@
 //! load to the first, as a result of C++20's coherence-ordered before rules.
 //!
 //! Rust follows the C++20 memory model (except for the Consume ordering and some operations not performable through C++'s
-//! std::atomic<T> API). It is therefore possible for this implementation to generate behaviours never observable when the
+//! `std::atomic<T>` API). It is therefore possible for this implementation to generate behaviours never observable when the
 //! same program is compiled and run natively. Unfortunately, no literature exists at the time of writing which proposes
 //! an implementable and C++20-compatible relaxed memory model that supports all atomic operation existing in Rust. The closest one is
 //! A Promising Semantics for Relaxed-Memory Concurrency by Jeehoon Kang et al. (<https://www.cs.tau.ac.il/~orilahav/papers/popl17.pdf>)
@@ -106,6 +106,19 @@ pub struct StoreBufferAlloc {
     /// Store buffer of each atomic object in this allocation
     // Behind a RefCell because we need to allocate/remove on read access
     store_buffers: RefCell<RangeObjectMap<StoreBuffer>>,
+}
+
+impl VisitTags for StoreBufferAlloc {
+    fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
+        let Self { store_buffers } = self;
+        for val in store_buffers
+            .borrow()
+            .iter()
+            .flat_map(|buf| buf.buffer.iter().map(|element| &element.val))
+        {
+            val.visit_tags(visit);
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -456,9 +469,9 @@ impl StoreElement {
     }
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
 pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
-    crate::MiriEvalContextExt<'mir, 'tcx>
+    crate::MiriInterpCxExt<'mir, 'tcx>
 {
     // If weak memory emulation is enabled, check if this atomic op imperfectly overlaps with a previous
     // atomic read or write. If it does, then we require it to be ordered (non-racy) with all previous atomic
@@ -502,7 +515,7 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
         let (alloc_id, base_offset, ..) = this.ptr_get_alloc_id(place.ptr)?;
         if let (
             crate::AllocExtra { weak_memory: Some(alloc_buffers), .. },
-            crate::Evaluator { data_race: Some(global), threads, .. },
+            crate::MiriMachine { data_race: Some(global), threads, .. },
         ) = this.get_alloc_extra_mut(alloc_id)?
         {
             if atomic == AtomicRwOrd::SeqCst {
@@ -544,7 +557,7 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
                     validate,
                 )?;
                 if global.track_outdated_loads && recency == LoadRecency::Outdated {
-                    register_diagnostic(NonHaltingDiagnostic::WeakMemoryOutdatedLoad);
+                    this.emit_diagnostic(NonHaltingDiagnostic::WeakMemoryOutdatedLoad);
                 }
 
                 return Ok(loaded);
@@ -567,7 +580,7 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
         let (alloc_id, base_offset, ..) = this.ptr_get_alloc_id(dest.ptr)?;
         if let (
             crate::AllocExtra { weak_memory: Some(alloc_buffers), .. },
-            crate::Evaluator { data_race: Some(global), threads, .. },
+            crate::MiriMachine { data_race: Some(global), threads, .. },
         ) = this.get_alloc_extra_mut(alloc_id)?
         {
             if atomic == AtomicWriteOrd::SeqCst {

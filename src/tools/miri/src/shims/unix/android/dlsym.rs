@@ -21,8 +21,8 @@ impl Dlsym {
     }
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     fn call_dlsym(
         &mut self,
         dlsym: Dlsym,
@@ -42,7 +42,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     );
                 }
 
-                let &[ref _sig, ref _func] = check_arg_count(args)?;
+                let [_sig, _func] = check_arg_count(args)?;
                 this.write_null(dest)?;
             }
         }

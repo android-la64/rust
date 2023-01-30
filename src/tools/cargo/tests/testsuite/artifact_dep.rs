@@ -219,7 +219,7 @@ fn features_are_unified_among_lib_and_bin_dep_of_same_target() {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -332,7 +332,7 @@ fn features_are_not_unified_among_lib_and_bin_dep_of_different_target() {
         .file(
             "Cargo.toml",
             &r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -435,7 +435,7 @@ fn feature_resolution_works_for_cfg_target_specification() {
         .file(
             "Cargo.toml",
             &r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -1872,7 +1872,9 @@ fn env_vars_and_build_products_for_various_build_targets() {
 
 #[cargo_test]
 fn publish_artifact_dep() {
-    registry::init();
+    // HACK below allows us to use a local registry
+    let registry = registry::init();
+
     Package::new("bar", "1.0.0").publish();
     Package::new("baz", "1.0.0").publish();
 
@@ -1901,13 +1903,24 @@ fn publish_artifact_dep() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish -Z bindeps --no-verify --token sekrit")
+    // HACK: Inject `foo` directly into the index so `publish` won't block for it to be in
+    // the index.
+    //
+    // This is to ensure we can verify the Summary we post to the registry as doing so precludes
+    // the registry from processing the publish.
+    Package::new("foo", "0.1.0")
+        .file("src/lib.rs", "")
+        .publish();
+
+    p.cargo("publish -Z bindeps --no-verify")
+        .replace_crates_io(registry.index_url())
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr(
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.1.0 [..]
 [UPLOADING] foo v0.1.0 [..]
+[UPDATING] [..]
 ",
         )
         .run();
@@ -1924,7 +1937,6 @@ fn publish_artifact_dep() {
               "kind": "normal",
               "name": "bar",
               "optional": false,
-              "registry": "https://github.com/rust-lang/crates.io-index",
               "target": null,
               "version_req": "^1.0"
             },
@@ -1934,7 +1946,6 @@ fn publish_artifact_dep() {
               "kind": "build",
               "name": "baz",
               "optional": false,
-              "registry": "https://github.com/rust-lang/crates.io-index",
               "target": null,
               "version_req": "^1.0"
             }
@@ -2181,7 +2192,7 @@ fn build_script_features_for_shared_dependency() {
         .file(
             "Cargo.toml",
             &r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 resolver = "2"

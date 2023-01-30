@@ -7,9 +7,9 @@ use rustc_target::abi::HasDataLayout;
 
 use crate::*;
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
 
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     /// Extract the scalar value from the result of reading a scalar from the machine,
     /// and convert it to a `CArg`.
     fn scalar_to_carg(
@@ -183,9 +183,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // from: https://docs.rs/libloading/0.7.3/src/libloading/os/unix/mod.rs.html#411
         // using the `libc` crate where this interface is public.
         // No `libc::dladdr` on windows.
-        #[cfg(unix)]
         let mut info = std::mem::MaybeUninit::<libc::Dl_info>::uninit();
-        #[cfg(unix)]
         unsafe {
             if libc::dladdr(*func.deref() as *const _, info.as_mut_ptr()) != 0 {
                 if std::ffi::CStr::from_ptr(info.assume_init().dli_fname).to_str().unwrap()

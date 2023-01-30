@@ -24,7 +24,8 @@ pub fn base_dirs() -> Option<BaseDirs> {
             data_local_dir: data_local_dir,
             executable_dir: None,
             preference_dir: preference_dir,
-            runtime_dir:    None
+            runtime_dir:    None,
+            state_dir:      None
         };
         Some(base_dirs)
     } else {
@@ -80,7 +81,8 @@ pub fn project_dirs_from_path(project_path: PathBuf) -> Option<ProjectDirs> {
             data_dir:       data_dir,
             data_local_dir: data_local_dir,
             preference_dir: preference_dir,
-            runtime_dir:    None
+            runtime_dir:    None,
+            state_dir:      None
         };
         Some(project_dirs)
     } else {

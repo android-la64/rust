@@ -1,7 +1,10 @@
 ## The Manifest Format
 
 The `Cargo.toml` file for each package is called its *manifest*. It is written
-in the [TOML] format. Every manifest file consists of the following sections:
+in the [TOML] format. It contains metadata that is needed to compile the package. Checkout
+the `cargo locate-project` section for more detail on how cargo finds the manifest file.
+
+Every manifest file consists of the following sections:
 
 * [`cargo-features`](unstable.md) — Unstable, nightly-only features.
 * [`[package]`](#the-package-section) — Defines a package.
@@ -112,11 +115,17 @@ breaking change.
 <a id="the-authors-field-optional"></a>
 #### The `authors` field
 
-The optional `authors` field lists people or organizations that are considered
+The optional `authors` field lists in an array the people or organizations that are considered
 the "authors" of the package. The exact meaning is open to interpretation — it
 may list the original or primary authors, current maintainers, or owners of the
 package. An optional email address may be included within angled brackets at
 the end of each author entry.
+
+```toml
+[package]
+# ...
+authors = ["Graydon Hoare", "Fnu Lnu <no-reply@rust-lang.org>"]
+```
 
 This field is only surfaced in package metadata and in the `CARGO_PKG_AUTHORS`
 environment variable within `build.rs`. It is not displayed in the [crates.io]
@@ -516,7 +525,7 @@ external tools may wish to use them in a consistent fashion, such as referring
 to the data in `workspace.metadata` if data is missing from `package.metadata`,
 if that makes sense for the tool in question.
 
-[workspace-metadata]: workspaces.md#the-workspacemetadata-table
+[workspace-metadata]: workspaces.md#the-metadata-table
 
 #### The `default-run` field
 
@@ -603,7 +612,7 @@ more detail.
         "#the-required-features-field-optional": "cargo-targets.html#the-required-features-field",
         "#building-dynamic-or-static-libraries": "cargo-targets.html#the-crate-type-field",
         "#the-workspace-section": "workspaces.html#the-workspace-section",
-        "#virtual-manifest": "workspaces.html",
+        "#virtual-workspace": "workspaces.html",
         "#package-selection": "workspaces.html#package-selection",
         "#the-features-section": "features.html#the-features-section",
         "#rules": "features.html",

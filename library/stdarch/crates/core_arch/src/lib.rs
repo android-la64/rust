@@ -19,6 +19,7 @@
     doc_cfg,
     tbm_target_feature,
     sse4a_target_feature,
+    riscv_target_feature,
     arm_target_feature,
     cmpxchg16b_target_feature,
     avx512_target_feature,
@@ -30,8 +31,8 @@
     f16c_target_feature,
     allow_internal_unstable,
     decl_macro,
-    bench_black_box,
-    asm_const
+    asm_const,
+    target_feature_11
 )]
 #![cfg_attr(test, feature(test, abi_vectorcall))]
 #![deny(clippy::missing_inline_in_public_items)]

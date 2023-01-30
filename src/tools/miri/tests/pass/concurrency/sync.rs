@@ -77,6 +77,7 @@ fn check_conditional_variables_timed_wait_notimeout() {
     let guard = lock.lock().unwrap();
 
     let handle = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(100)); // Make sure the other thread is waiting by the time we call `notify`.
         let (_lock, cvar) = &*pair2;
         cvar.notify_one();
     });

@@ -188,11 +188,10 @@ fn main() {
     }
 
     if let Ok(malloc_conf_opts) = read_and_watch_env("JEMALLOC_SYS_WITH_MALLOC_CONF") {
-        malloc_conf += &format!(
-            "{}{}",
-            if malloc_conf.is_empty() { "" } else { "," },
-            malloc_conf_opts
-        );
+        if !malloc_conf.is_empty() {
+            malloc_conf.push(',');
+        }
+        malloc_conf.push_str(&malloc_conf_opts);
     }
 
     if !malloc_conf.is_empty() {
@@ -343,6 +342,7 @@ fn gnu_target(target: &str) -> String {
         "i686-pc-windows-gnu" => "i686-w64-mingw32".to_string(),
         "x86_64-pc-windows-gnu" => "x86_64-w64-mingw32".to_string(),
         "armv7-linux-androideabi" => "arm-linux-androideabi".to_string(),
+        "riscv64gc-unknown-linux-gnu" => "riscv64-linux-gnu".to_string(),
         s => s.to_string(),
     }
 }

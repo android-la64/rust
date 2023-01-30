@@ -7,6 +7,7 @@ use cargo::util::{self, closest_msg, command_prelude, CargoResult, CliResult, Co
 use cargo_util::{ProcessBuilder, ProcessError};
 use std::collections::BTreeMap;
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -38,12 +39,13 @@ fn main() {
 
 /// Table for defining the aliases which come builtin in `Cargo`.
 /// The contents are structured as: `(alias, aliased_command, description)`.
-const BUILTIN_ALIASES: [(&str, &str, &str); 5] = [
+const BUILTIN_ALIASES: [(&str, &str, &str); 6] = [
     ("b", "build", "alias: build"),
     ("c", "check", "alias: check"),
     ("d", "doc", "alias: doc"),
     ("r", "run", "alias: run"),
     ("t", "test", "alias: test"),
+    ("rm", "remove", "alias: remove"),
 ];
 
 /// Function which contains the list of all of the builtin aliases and it's
@@ -52,6 +54,14 @@ fn builtin_aliases_execs(cmd: &str) -> Option<&(&str, &str, &str)> {
     BUILTIN_ALIASES.iter().find(|alias| alias.0 == cmd)
 }
 
+/// Resolve the aliased command from the [`Config`] with a given command string.
+///
+/// The search fallback chain is:
+///
+/// 1. Get the aliased command as a string.
+/// 2. If an `Err` occurs (missing key, type mismatch, or any possible error),
+///    try to get it as an array again.
+/// 3. If still cannot find any, finds one insides [`BUILTIN_ALIASES`].
 fn aliased_command(config: &Config, command: &str) -> CargoResult<Option<Vec<String>>> {
     let alias_name = format!("alias.{}", command);
     let user_alias = match config.get_string(&alias_name) {
@@ -152,14 +162,14 @@ fn find_external_subcommand(config: &Config, cmd: &str) -> Option<PathBuf> {
         .find(|file| is_executable(file))
 }
 
-fn execute_external_subcommand(config: &Config, cmd: &str, args: &[&str]) -> CliResult {
+fn execute_external_subcommand(config: &Config, cmd: &str, args: &[&OsStr]) -> CliResult {
     let path = find_external_subcommand(config, cmd);
     let command = match path {
         Some(command) => command,
         None => {
             let err = if cmd.starts_with('+') {
                 anyhow::format_err!(
-                    "no such subcommand: `{}`\n\n\t\
+                    "no such command: `{}`\n\n\t\
                     Cargo does not handle `+toolchain` directives.\n\t\
                     Did you mean to invoke `cargo` through `rustup` instead?",
                     cmd
@@ -169,7 +179,7 @@ fn execute_external_subcommand(config: &Config, cmd: &str, args: &[&str]) -> Cli
                 let did_you_mean = closest_msg(cmd, suggestions.keys(), |c| c);
 
                 anyhow::format_err!(
-                    "no such subcommand: `{}`{}\n\n\t\
+                    "no such command: `{}`{}\n\n\t\
                     View all installed commands with `cargo --list`",
                     cmd,
                     did_you_mean
@@ -236,6 +246,38 @@ fn search_directories(config: &Config) -> Vec<PathBuf> {
     path_dirs
 }
 
+/// Initialize libgit2.
+fn init_git(config: &Config) {
+    // Disabling the owner validation in git can, in theory, lead to code execution
+    // vulnerabilities. However, libgit2 does not launch executables, which is the foundation of
+    // the original security issue. Meanwhile, issues with refusing to load git repos in
+    // `CARGO_HOME` for example will likely be very frustrating for users. So, we disable the
+    // validation.
+    //
+    // For further discussion of Cargo's current interactions with git, see
+    //
+    //   https://github.com/rust-lang/rfcs/pull/3279
+    //
+    // and in particular the subsection on "Git support".
+    //
+    // Note that we only disable this when Cargo is run as a binary. If Cargo is used as a library,
+    // this code won't be invoked. Instead, developers will need to explicitly disable the
+    // validation in their code. This is inconvenient, but won't accidentally open consuming
+    // applications up to security issues if they use git2 to open repositories elsewhere in their
+    // code.
+    unsafe {
+        git2::opts::set_verify_owner_validation(false)
+            .expect("set_verify_owner_validation should never fail");
+    }
+
+    init_git_transports(config);
+}
+
+/// Configure libgit2 to use libcurl if necessary.
+///
+/// If the user has a non-default network configuration, then libgit2 will be
+/// configured to use libcurl instead of the built-in networking support so
+/// that those configuration settings can be used.
 fn init_git_transports(config: &Config) {
     // Only use a custom transport if any HTTP options are specified,
     // such as proxies or custom certificate authorities. The custom
@@ -263,28 +305,5 @@ fn init_git_transports(config: &Config) {
     // anyway
     unsafe {
         git2_curl::register(handle);
-    }
-
-    // Disabling the owner validation in git can, in theory, lead to code execution
-    // vulnerabilities. However, libgit2 does not launch executables, which is the foundation of
-    // the original security issue. Meanwhile, issues with refusing to load git repos in
-    // `CARGO_HOME` for example will likely be very frustrating for users. So, we disable the
-    // validation.
-    //
-    // For further discussion of Cargo's current interactions with git, see
-    //
-    //   https://github.com/rust-lang/rfcs/pull/3279
-    //
-    // and in particular the subsection on "Git support".
-    //
-    // Note that we only disable this when Cargo is run as a binary. If Cargo is used as a library,
-    // this code won't be invoked. Instead, developers will need to explicitly disable the
-    // validation in their code. This is inconvenient, but won't accidentally open consuming
-    // applications up to security issues if they use git2 to open repositories elsewhere in their
-    // code.
-    unsafe {
-        if git2::opts::set_verify_owner_validation(false).is_err() {
-            return;
-        }
     }
 }

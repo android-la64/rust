@@ -4,6 +4,12 @@ pub(crate) struct XFlags {
     pub(crate) cmd: Cmd,
 }
 
+impl XFlags {
+    pub fn is_anon(&self) -> bool {
+        self.cmd.name.is_empty()
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Cmd {
     pub(crate) name: String,
@@ -12,6 +18,7 @@ pub(crate) struct Cmd {
     pub(crate) flags: Vec<Flag>,
     pub(crate) subcommands: Vec<Cmd>,
     pub(crate) default: bool,
+    pub(crate) idx: u8,
 }
 
 #[derive(Debug)]
@@ -28,6 +35,12 @@ pub(crate) struct Flag {
     pub(crate) short: Option<String>,
     pub(crate) doc: Option<String>,
     pub(crate) val: Option<Val>,
+}
+
+impl Flag {
+    pub(crate) fn is_help(&self) -> bool {
+        self.name == "help"
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

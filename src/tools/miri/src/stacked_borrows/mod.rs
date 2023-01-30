@@ -5,6 +5,7 @@ use log::trace;
 use std::cell::RefCell;
 use std::cmp;
 use std::fmt;
+use std::fmt::Write;
 use std::num::NonZeroU64;
 
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
@@ -15,7 +16,7 @@ use rustc_middle::ty::{
     layout::{HasParamEnv, LayoutOf},
     Ty,
 };
-use rustc_span::DUMMY_SP;
+use rustc_target::abi::Abi;
 use rustc_target::abi::Size;
 use smallvec::SmallVec;
 
@@ -44,6 +45,7 @@ impl SbTag {
     }
 
     // The default to be used when SB is disabled
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self::new(1).unwrap()
     }
@@ -71,6 +73,12 @@ pub struct FrameExtra {
     protected_tags: SmallVec<[SbTag; 2]>,
 }
 
+impl VisitTags for FrameExtra {
+    fn visit_tags(&self, _visit: &mut dyn FnMut(SbTag)) {
+        // `protected_tags` are fine to GC.
+    }
+}
+
 /// Extra per-allocation state.
 #[derive(Clone, Debug)]
 pub struct Stacks {
@@ -80,6 +88,8 @@ pub struct Stacks {
     history: AllocHistory,
     /// The set of tags that have been exposed inside this allocation.
     exposed_tags: FxHashSet<SbTag>,
+    /// Whether this memory has been modified since the last time the tag GC ran
+    modified_since_last_gc: bool,
 }
 
 /// Extra global state, available to the memory access hooks.
@@ -104,7 +114,25 @@ pub struct GlobalStateInner {
     /// The call ids to trace
     tracked_call_ids: FxHashSet<CallId>,
     /// Whether to recurse into datatypes when searching for pointers to retag.
-    retag_fields: bool,
+    retag_fields: RetagFields,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum RetagFields {
+    /// Don't retag any fields.
+    No,
+    /// Retag all fields.
+    Yes,
+    /// Only retag fields of types with Scalar and ScalarPair layout,
+    /// to match the LLVM `noalias` we generate.
+    OnlyScalar,
+}
+
+impl VisitTags for GlobalStateInner {
+    fn visit_tags(&self, _visit: &mut dyn FnMut(SbTag)) {
+        // The only candidate is base_ptr_tags, and that does not need visiting since we don't ever
+        // GC the bottommost tag.
+    }
 }
 
 /// We need interior mutable access to the global state.
@@ -156,7 +184,7 @@ impl GlobalStateInner {
     pub fn new(
         tracked_pointer_tags: FxHashSet<SbTag>,
         tracked_call_ids: FxHashSet<CallId>,
-        retag_fields: bool,
+        retag_fields: RetagFields,
     ) -> Self {
         GlobalStateInner {
             next_ptr_tag: SbTag(NonZeroU64::new(1).unwrap()),
@@ -176,11 +204,11 @@ impl GlobalStateInner {
         id
     }
 
-    pub fn new_frame(&mut self) -> FrameExtra {
+    pub fn new_frame(&mut self, machine: &MiriMachine<'_, '_>) -> FrameExtra {
         let call_id = self.next_call_id;
         trace!("new_frame: Assigning call ID {}", call_id);
         if self.tracked_call_ids.contains(&call_id) {
-            register_diagnostic(NonHaltingDiagnostic::CreatedCallId(call_id));
+            machine.emit_diagnostic(NonHaltingDiagnostic::CreatedCallId(call_id));
         }
         self.next_call_id = NonZeroU64::new(call_id.get() + 1).unwrap();
         FrameExtra { call_id, protected_tags: SmallVec::new() }
@@ -197,11 +225,11 @@ impl GlobalStateInner {
         }
     }
 
-    pub fn base_ptr_tag(&mut self, id: AllocId) -> SbTag {
+    pub fn base_ptr_tag(&mut self, id: AllocId, machine: &MiriMachine<'_, '_>) -> SbTag {
         self.base_ptr_tags.get(&id).copied().unwrap_or_else(|| {
             let tag = self.new_ptr();
             if self.tracked_pointer_tags.contains(&tag) {
-                register_diagnostic(NonHaltingDiagnostic::CreatedPointerTag(tag.0, None));
+                machine.emit_diagnostic(NonHaltingDiagnostic::CreatedPointerTag(tag.0, None, None));
             }
             trace!("New allocation {:?} has base tag {:?}", id, tag);
             self.base_ptr_tags.try_insert(id, tag).unwrap();
@@ -422,6 +450,7 @@ impl<'tcx> Stack {
             let item = self.get(idx).unwrap();
             Stack::item_popped(&item, global, dcx)?;
         }
+
         Ok(())
     }
 
@@ -496,6 +525,28 @@ impl<'tcx> Stack {
 }
 // # Stacked Borrows Core End
 
+/// Integration with the SbTag garbage collector
+impl Stacks {
+    pub fn remove_unreachable_tags(&mut self, live_tags: &FxHashSet<SbTag>) {
+        if self.modified_since_last_gc {
+            for stack in self.stacks.iter_mut_all() {
+                if stack.len() > 64 {
+                    stack.retain(live_tags);
+                }
+            }
+            self.modified_since_last_gc = false;
+        }
+    }
+}
+
+impl VisitTags for Stacks {
+    fn visit_tags(&self, visit: &mut dyn FnMut(SbTag)) {
+        for tag in self.exposed_tags.iter().copied() {
+            visit(tag);
+        }
+    }
+}
+
 /// Map per-stack operations to higher-level per-location-range operations.
 impl<'tcx> Stacks {
     /// Creates a new stack with an initial tag. For diagnostic purposes, we also need to know
@@ -514,6 +565,7 @@ impl<'tcx> Stacks {
             stacks: RangeMap::new(size, stack),
             history: AllocHistory::new(id, item, current_span),
             exposed_tags: FxHashSet::default(),
+            modified_since_last_gc: false,
         }
     }
 
@@ -528,6 +580,7 @@ impl<'tcx> Stacks {
             &mut FxHashSet<SbTag>,
         ) -> InterpResult<'tcx>,
     ) -> InterpResult<'tcx> {
+        self.modified_since_last_gc = true;
         for (offset, stack) in self.stacks.iter_mut(range.start, range.size) {
             let mut dcx = dcx_builder.build(&mut self.history, offset);
             f(stack, &mut dcx, &mut self.exposed_tags)?;
@@ -553,9 +606,10 @@ impl Stacks {
             // not through a pointer). That is, whenever we directly write to a local, this will pop
             // everything else off the stack, invalidating all previous pointers,
             // and in particular, *all* raw pointers.
-            MemoryKind::Stack => (extra.base_ptr_tag(id), Permission::Unique),
+            MemoryKind::Stack =>
+                (extra.base_ptr_tag(id, current_span.machine()), Permission::Unique),
             // Everything else is shared by default.
-            _ => (extra.base_ptr_tag(id), Permission::SharedReadWrite),
+            _ => (extra.base_ptr_tag(id, current_span.machine()), Permission::SharedReadWrite),
         };
         Stacks::new(size, perm, base_tag, id, &mut current_span)
     }
@@ -632,10 +686,10 @@ impl Stacks {
 /// Retagging/reborrowing.  There is some policy in here, such as which permissions
 /// to grant for which references, and when to add protectors.
 impl<'mir: 'ecx, 'tcx: 'mir, 'ecx> EvalContextPrivExt<'mir, 'tcx, 'ecx>
-    for crate::MiriEvalContext<'mir, 'tcx>
+    for crate::MiriInterpCx<'mir, 'tcx>
 {
 }
-trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextExt<'mir, 'tcx> {
+trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriInterpCxExt<'mir, 'tcx> {
     /// Returns the `AllocId` the reborrow was done in, if some actual borrow stack manipulation
     /// happened.
     fn reborrow(
@@ -650,14 +704,30 @@ trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextEx
         let this = self.eval_context_mut();
 
         // It is crucial that this gets called on all code paths, to ensure we track tag creation.
-        let log_creation = |this: &MiriEvalContext<'mir, 'tcx>,
+        let log_creation = |this: &MiriInterpCx<'mir, 'tcx>,
                             loc: Option<(AllocId, Size, ProvenanceExtra)>| // alloc_id, base_offset, orig_tag
          -> InterpResult<'tcx> {
             let global = this.machine.stacked_borrows.as_ref().unwrap().borrow();
+            let ty = place.layout.ty;
             if global.tracked_pointer_tags.contains(&new_tag) {
-                register_diagnostic(NonHaltingDiagnostic::CreatedPointerTag(
+                let mut kind_str = format!("{kind}");
+                match kind {
+                    RefKind::Unique { two_phase: false }
+                        if !ty.is_unpin(*this.tcx, this.param_env()) =>
+                    {
+                        write!(kind_str, " (!Unpin pointee type {ty})").unwrap()
+                    },
+                    RefKind::Shared
+                        if !ty.is_freeze(*this.tcx, this.param_env()) =>
+                    {
+                        write!(kind_str, " (!Freeze pointee type {ty})").unwrap()
+                    },
+                    _ => write!(kind_str, " (pointee type {ty})").unwrap(),
+                };
+                this.emit_diagnostic(NonHaltingDiagnostic::CreatedPointerTag(
                     new_tag.0,
-                    loc.map(|(alloc_id, base_offset, _)| (alloc_id, alloc_range(base_offset, size))),
+                    Some(kind_str),
+                    loc.map(|(alloc_id, base_offset, orig_tag)| (alloc_id, alloc_range(base_offset, size), orig_tag)),
                 ));
             }
             drop(global); // don't hold that reference any longer than we have to
@@ -669,7 +739,7 @@ trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextEx
             let (_size, _align, alloc_kind) = this.get_alloc_info(alloc_id);
             match alloc_kind {
                 AllocKind::LiveData => {
-                    let current_span = &mut this.machine.current_span(*this.tcx);
+                    let current_span = &mut this.machine.current_span();
                     // This should have alloc_extra data, but `get_alloc_extra` can still fail
                     // if converting this alloc_id from a global to a local one
                     // uncovers a non-supported `extern static`.
@@ -763,7 +833,7 @@ trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextEx
         // There could be existing unique pointers reborrowed from them that should remain valid!
         let perm = match kind {
             RefKind::Unique { two_phase: false }
-                if place.layout.ty.is_unpin(this.tcx.at(DUMMY_SP), this.param_env()) =>
+                if place.layout.ty.is_unpin(*this.tcx, this.param_env()) =>
             {
                 // Only if the type is unpin do we actually enforce uniqueness
                 Permission::Unique
@@ -786,7 +856,7 @@ trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextEx
                     .expect("we should have Stacked Borrows data")
                     .borrow_mut();
                 // FIXME: can't share this with the current_span inside log_creation
-                let mut current_span = this.machine.current_span(*this.tcx);
+                let mut current_span = this.machine.current_span();
                 this.visit_freeze_sensitive(place, size, |mut range, frozen| {
                     // Adjust range.
                     range.start += base_offset;
@@ -824,7 +894,6 @@ trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextEx
         // Here we can avoid `borrow()` calls because we have mutable references.
         // Note that this asserts that the allocation is mutable -- but since we are creating a
         // mutable pointer, that seems reasonable.
-        let tcx = *this.tcx;
         let (alloc_extra, machine) = this.get_alloc_extra_mut(alloc_id)?;
         let mut stacked_borrows = alloc_extra
             .stacked_borrows
@@ -835,7 +904,7 @@ trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextEx
         let range = alloc_range(base_offset, size);
         let mut global = machine.stacked_borrows.as_ref().unwrap().borrow_mut();
         // FIXME: can't share this with the current_span inside log_creation
-        let current_span = &mut machine.current_span(tcx);
+        let current_span = &mut machine.current_span();
         let dcx = DiagnosticCxBuilder::retag(
             current_span,
             &machine.threads,
@@ -901,8 +970,8 @@ trait EvalContextPrivExt<'mir: 'ecx, 'tcx: 'mir, 'ecx>: crate::MiriEvalContextEx
     }
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     fn retag(&mut self, kind: RetagKind, place: &PlaceTy<'tcx, Provenance>) -> InterpResult<'tcx> {
         let this = self.eval_context_mut();
         let retag_fields = this.machine.stacked_borrows.as_mut().unwrap().get_mut().retag_fields;
@@ -938,10 +1007,10 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
 
         // The actual visitor.
         struct RetagVisitor<'ecx, 'mir, 'tcx> {
-            ecx: &'ecx mut MiriEvalContext<'mir, 'tcx>,
+            ecx: &'ecx mut MiriInterpCx<'mir, 'tcx>,
             kind: RetagKind,
             retag_cause: RetagCause,
-            retag_fields: bool,
+            retag_fields: RetagFields,
         }
         impl<'ecx, 'mir, 'tcx> RetagVisitor<'ecx, 'mir, 'tcx> {
             #[inline(always)] // yes this helps in our benchmarks
@@ -958,13 +1027,13 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                 Ok(())
             }
         }
-        impl<'ecx, 'mir, 'tcx> MutValueVisitor<'mir, 'tcx, Evaluator<'mir, 'tcx>>
+        impl<'ecx, 'mir, 'tcx> MutValueVisitor<'mir, 'tcx, MiriMachine<'mir, 'tcx>>
             for RetagVisitor<'ecx, 'mir, 'tcx>
         {
             type V = PlaceTy<'tcx, Provenance>;
 
             #[inline(always)]
-            fn ecx(&mut self) -> &mut MiriEvalContext<'mir, 'tcx> {
+            fn ecx(&mut self) -> &mut MiriInterpCx<'mir, 'tcx> {
                 self.ecx
             }
 
@@ -988,6 +1057,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     return Ok(());
                 }
 
+                let recurse_for_fields = || {
+                    match self.retag_fields {
+                        RetagFields::No => false,
+                        RetagFields::Yes => true,
+                        RetagFields::OnlyScalar => {
+                            // Matching `ArgAbi::new` at the time of writing, only fields of
+                            // `Scalar` and `ScalarPair` ABI are considered.
+                            matches!(place.layout.abi, Abi::Scalar(..) | Abi::ScalarPair(..))
+                        }
+                    }
+                };
+
                 if let Some((ref_kind, protector)) = qualify(place.layout.ty, self.kind) {
                     self.retag_place(place, ref_kind, self.retag_cause, protector)?;
                 } else if matches!(place.layout.ty.kind(), ty::RawPtr(..)) {
@@ -996,7 +1077,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     // Do *not* recurse into them.
                     // (No need to worry about wide references, those always "qualify". And Boxes
                     // are handles specially by the visitor anyway.)
-                } else if self.retag_fields
+                } else if recurse_for_fields()
                     || place.layout.ty.ty_adt_def().is_some_and(|adt| adt.is_box())
                 {
                     // Recurse deeper. Need to always recurse for `Box` to even hit `visit_box`.
@@ -1062,6 +1143,24 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             AllocKind::Function | AllocKind::VTable | AllocKind::Dead => {
                 // No stacked borrows on these allocations.
             }
+        }
+        Ok(())
+    }
+
+    fn print_stacks(&mut self, alloc_id: AllocId) -> InterpResult<'tcx> {
+        let this = self.eval_context_mut();
+        let alloc_extra = this.get_alloc_extra(alloc_id)?;
+        let stacks = alloc_extra.stacked_borrows.as_ref().unwrap().borrow();
+        for (range, stack) in stacks.stacks.iter_all() {
+            print!("{range:?}: [");
+            if let Some(bottom) = stack.unknown_bottom() {
+                print!(" unknown-bottom(..{bottom:?})");
+            }
+            for i in 0..stack.len() {
+                let item = stack.get(i).unwrap();
+                print!(" {:?}{:?}", item.perm(), item.tag());
+            }
+            println!(" ]");
         }
         Ok(())
     }

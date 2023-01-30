@@ -67,9 +67,10 @@ fn smoke() {
         "-n 92 --werbose",
         expect![[r#"unexpected flag: `--werbose`"#]],
     );
-    check(smoke::RustAnalyzer::from_vec, "", expect![[r#"flag is required: `workspace`"#]]);
+    check(smoke::RustAnalyzer::from_vec, "", expect!["flag is required: `--number`"]);
     check(smoke::RustAnalyzer::from_vec, ".", expect![[r#"flag is required: `--number`"#]]);
     check(smoke::RustAnalyzer::from_vec, "-n", expect![[r#"expected a value for `-n`"#]]);
+    check(smoke::RustAnalyzer::from_vec, "-n 92", expect!["flag is required: `workspace`"]);
     check(
         smoke::RustAnalyzer::from_vec,
         "-n lol",
@@ -195,4 +196,37 @@ fn subcommands() {
     );
 
     check(subcommands::RustAnalyzer::from_vec, "", expect![[r#"subcommand is required"#]]);
+}
+
+#[test]
+fn subcommand_flag_inheritance() {
+    check(
+        subcommands::RustAnalyzer::from_vec,
+        "server watch --verbose --dir .",
+        expect![[r#"
+            RustAnalyzer {
+                verbose: 1,
+                subcommand: Server(
+                    Server {
+                        dir: Some(
+                            ".",
+                        ),
+                        subcommand: Watch(
+                            Watch,
+                        ),
+                    },
+                ),
+            }
+        "#]],
+    );
+    check(
+        subcommands::RustAnalyzer::from_vec,
+        "analysis-stats --verbose --dir .",
+        expect!["unexpected flag: `--dir`"],
+    );
+    check(
+        subcommands::RustAnalyzer::from_vec,
+        "--dir . server",
+        expect!["unexpected flag: `--dir`"],
+    );
 }

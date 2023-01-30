@@ -1,14 +1,16 @@
 use crate::git::repo;
 use crate::paths;
+use crate::publish::{create_index_line, write_to_index};
 use cargo_util::paths::append;
-use cargo_util::{registry::make_dep_path, Sha256};
+use cargo_util::Sha256;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::collections::{BTreeMap, HashMap};
+use std::fmt;
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::thread;
 use tar::{Builder, Header};
 use url::Url;
@@ -70,7 +72,7 @@ pub struct RegistryBuilder {
     /// Write the registry in configuration.
     configure_registry: bool,
     /// API responders.
-    custom_responders: HashMap<&'static str, Box<dyn Send + Fn(&Request) -> Response>>,
+    custom_responders: HashMap<&'static str, Box<dyn Send + Fn(&Request, &HttpServer) -> Response>>,
 }
 
 pub struct TestRegistry {
@@ -103,7 +105,7 @@ impl RegistryBuilder {
     pub fn new() -> RegistryBuilder {
         RegistryBuilder {
             alternative: None,
-            token: Some("api-token".to_string()),
+            token: None,
             http_api: false,
             http_index: false,
             api: true,
@@ -115,7 +117,7 @@ impl RegistryBuilder {
 
     /// Adds a custom HTTP response for a specific url
     #[must_use]
-    pub fn add_responder<R: 'static + Send + Fn(&Request) -> Response>(
+    pub fn add_responder<R: 'static + Send + Fn(&Request, &HttpServer) -> Response>(
         mut self,
         url: &'static str,
         responder: R,
@@ -195,6 +197,7 @@ impl RegistryBuilder {
         let dl_url = generate_url(&format!("{prefix}dl"));
         let dl_path = generate_path(&format!("{prefix}dl"));
         let api_path = generate_path(&format!("{prefix}api"));
+        let token = Some(self.token.unwrap_or_else(|| format!("{prefix}sekrit")));
 
         let (server, index_url, api_url, dl_url) = if !self.http_index && !self.http_api {
             // No need to start the HTTP server.
@@ -203,7 +206,7 @@ impl RegistryBuilder {
             let server = HttpServer::new(
                 registry_path.clone(),
                 dl_path,
-                self.token.clone(),
+                token.clone(),
                 self.custom_responders,
             );
             let index_url = if self.http_index {
@@ -226,7 +229,7 @@ impl RegistryBuilder {
             _server: server,
             dl_url,
             path: registry_path,
-            token: self.token,
+            token,
         };
 
         if self.configure_registry {
@@ -250,8 +253,8 @@ impl RegistryBuilder {
                     [source.crates-io]
                     replace-with = 'dummy-registry'
 
-                    [source.dummy-registry]
-                    registry = '{}'",
+                    [registries.dummy-registry]
+                    index = '{}'",
                         registry.index_url
                     )
                     .as_bytes(),
@@ -388,7 +391,7 @@ pub struct Package {
     v: Option<u32>,
 }
 
-type FeatureMap = BTreeMap<String, Vec<String>>;
+pub(crate) type FeatureMap = BTreeMap<String, Vec<String>>;
 
 #[derive(Clone)]
 pub struct Dependency {
@@ -403,10 +406,17 @@ pub struct Dependency {
     optional: bool,
 }
 
+/// Entry with data that corresponds to [`tar::EntryType`].
+#[non_exhaustive]
+enum EntryData {
+    Regular(String),
+    Symlink(PathBuf),
+}
+
 /// A file to be created in a package.
 struct PackageFile {
     path: String,
-    contents: String,
+    contents: EntryData,
     /// The Unix mode for the file. Note that when extracted on Windows, this
     /// is mostly ignored since it doesn't have the same style of permissions.
     mode: u32,
@@ -459,13 +469,26 @@ impl Drop for HttpServerHandle {
 }
 
 /// Request to the test http server
-#[derive(Debug)]
 pub struct Request {
     pub url: Url,
     pub method: String,
+    pub body: Option<Vec<u8>>,
     pub authorization: Option<String>,
     pub if_modified_since: Option<String>,
     pub if_none_match: Option<String>,
+}
+
+impl fmt::Debug for Request {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // body is not included as it can produce long debug outputs
+        f.debug_struct("Request")
+            .field("url", &self.url)
+            .field("method", &self.method)
+            .field("authorization", &self.authorization)
+            .field("if_modified_since", &self.if_modified_since)
+            .field("if_none_match", &self.if_none_match)
+            .finish()
+    }
 }
 
 /// Response from the test http server
@@ -475,12 +498,12 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
-struct HttpServer {
+pub struct HttpServer {
     listener: TcpListener,
     registry_path: PathBuf,
     dl_path: PathBuf,
     token: Option<String>,
-    custom_responders: HashMap<&'static str, Box<dyn Send + Fn(&Request) -> Response>>,
+    custom_responders: HashMap<&'static str, Box<dyn Send + Fn(&Request, &HttpServer) -> Response>>,
 }
 
 impl HttpServer {
@@ -488,7 +511,10 @@ impl HttpServer {
         registry_path: PathBuf,
         dl_path: PathBuf,
         token: Option<String>,
-        api_responders: HashMap<&'static str, Box<dyn Send + Fn(&Request) -> Response>>,
+        api_responders: HashMap<
+            &'static str,
+            Box<dyn Send + Fn(&Request, &HttpServer) -> Response>,
+        >,
     ) -> HttpServerHandle {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
@@ -532,6 +558,7 @@ impl HttpServer {
             let mut if_modified_since = None;
             let mut if_none_match = None;
             let mut authorization = None;
+            let mut content_len = None;
             loop {
                 line.clear();
                 if buf.read_line(&mut line).unwrap() == 0 {
@@ -549,15 +576,26 @@ impl HttpServer {
                     "if-modified-since" => if_modified_since = Some(value),
                     "if-none-match" => if_none_match = Some(value),
                     "authorization" => authorization = Some(value),
+                    "content-length" => content_len = Some(value),
                     _ => {}
                 }
             }
+
+            let mut body = None;
+            if let Some(con_len) = content_len {
+                let len = con_len.parse::<u64>().unwrap();
+                let mut content = vec![0u8; len as usize];
+                buf.read_exact(&mut content).unwrap();
+                body = Some(content)
+            }
+
             let req = Request {
                 authorization,
                 if_modified_since,
                 if_none_match,
                 method,
                 url,
+                body,
             };
             println!("req: {:#?}", req);
             let response = self.route(&req);
@@ -586,7 +624,7 @@ impl HttpServer {
 
         // Check for custom responder
         if let Some(responder) = self.custom_responders.get(req.url.path()) {
-            return responder(&req);
+            return responder(&req, self);
         }
         let path: Vec<_> = req.url.path()[1..].split('/').collect();
         match (req.method.as_str(), path.as_slice()) {
@@ -604,16 +642,21 @@ impl HttpServer {
                     self.dl(&req)
                 }
             }
+            // publish
+            ("put", ["api", "v1", "crates", "new"]) => {
+                if !authorized(true) {
+                    self.unauthorized(req)
+                } else {
+                    self.publish(req)
+                }
+            }
             // The remainder of the operators in the test framework do nothing other than responding 'ok'.
             //
-            // Note: We don't need to support anything real here because the testing framework publishes crates
-            // by writing directly to the filesystem instead. If the test framework is changed to publish
-            // via the HTTP API, then this should be made more complete.
+            // Note: We don't need to support anything real here because there are no tests that
+            // currently require anything other than publishing via the http api.
 
-            // publish
-            ("put", ["api", "v1", "crates", "new"])
             // yank
-            | ("delete", ["api", "v1", "crates", .., "yank"])
+            ("delete", ["api", "v1", "crates", .., "yank"])
             // unyank
             | ("put", ["api", "v1", "crates", .., "unyank"])
             // owners
@@ -629,7 +672,7 @@ impl HttpServer {
     }
 
     /// Unauthorized response
-    fn unauthorized(&self, _req: &Request) -> Response {
+    pub fn unauthorized(&self, _req: &Request) -> Response {
         Response {
             code: 401,
             headers: vec![],
@@ -638,7 +681,7 @@ impl HttpServer {
     }
 
     /// Not found response
-    fn not_found(&self, _req: &Request) -> Response {
+    pub fn not_found(&self, _req: &Request) -> Response {
         Response {
             code: 404,
             headers: vec![],
@@ -647,7 +690,7 @@ impl HttpServer {
     }
 
     /// Respond OK without doing anything
-    fn ok(&self, _req: &Request) -> Response {
+    pub fn ok(&self, _req: &Request) -> Response {
         Response {
             code: 200,
             headers: vec![],
@@ -655,8 +698,17 @@ impl HttpServer {
         }
     }
 
+    /// Return an internal server error (HTTP 500)
+    pub fn internal_server_error(&self, _req: &Request) -> Response {
+        Response {
+            code: 500,
+            headers: vec![],
+            body: br#"internal server error"#.to_vec(),
+        }
+    }
+
     /// Serve the download endpoint
-    fn dl(&self, req: &Request) -> Response {
+    pub fn dl(&self, req: &Request) -> Response {
         let file = self
             .dl_path
             .join(req.url.path().strip_prefix("/dl/").unwrap());
@@ -672,7 +724,7 @@ impl HttpServer {
     }
 
     /// Serve the registry index
-    fn index(&self, req: &Request) -> Response {
+    pub fn index(&self, req: &Request) -> Response {
         let file = self
             .registry_path
             .join(req.url.path().strip_prefix("/index/").unwrap());
@@ -718,6 +770,72 @@ impl HttpServer {
                         format!("Last-Modified: {}", last_modified),
                     ],
                 };
+            }
+        }
+    }
+
+    pub fn publish(&self, req: &Request) -> Response {
+        if let Some(body) = &req.body {
+            // Get the metadata of the package
+            let (len, remaining) = body.split_at(4);
+            let json_len = u32::from_le_bytes(len.try_into().unwrap());
+            let (json, remaining) = remaining.split_at(json_len as usize);
+            let new_crate = serde_json::from_slice::<crates_io::NewCrate>(json).unwrap();
+            // Get the `.crate` file
+            let (len, remaining) = remaining.split_at(4);
+            let file_len = u32::from_le_bytes(len.try_into().unwrap());
+            let (file, _remaining) = remaining.split_at(file_len as usize);
+
+            // Write the `.crate`
+            let dst = self
+                .dl_path
+                .join(&new_crate.name)
+                .join(&new_crate.vers)
+                .join("download");
+            t!(fs::create_dir_all(dst.parent().unwrap()));
+            t!(fs::write(&dst, file));
+
+            let deps = new_crate
+                .deps
+                .iter()
+                .map(|dep| {
+                    let (name, package) = match &dep.explicit_name_in_toml {
+                        Some(explicit) => (explicit.to_string(), Some(dep.name.to_string())),
+                        None => (dep.name.to_string(), None),
+                    };
+                    serde_json::json!({
+                        "name": name,
+                        "req": dep.version_req,
+                        "features": dep.features,
+                        "default_features": true,
+                        "target": dep.target,
+                        "optional": dep.optional,
+                        "kind": dep.kind,
+                        "registry": dep.registry,
+                        "package": package,
+                    })
+                })
+                .collect::<Vec<_>>();
+
+            let line = create_index_line(
+                serde_json::json!(new_crate.name),
+                &new_crate.vers,
+                deps,
+                &cksum(file),
+                new_crate.features,
+                false,
+                new_crate.links,
+                None,
+            );
+
+            write_to_index(&self.registry_path, &new_crate.name, line, false);
+
+            self.ok(&req)
+        } else {
+            Response {
+                code: 400,
+                headers: vec![],
+                body: b"The request was missing a body".to_vec(),
             }
         }
     }
@@ -780,8 +898,19 @@ impl Package {
     pub fn file_with_mode(&mut self, path: &str, mode: u32, contents: &str) -> &mut Package {
         self.files.push(PackageFile {
             path: path.to_string(),
-            contents: contents.to_string(),
+            contents: EntryData::Regular(contents.into()),
             mode,
+            extra: false,
+        });
+        self
+    }
+
+    /// Adds a symlink to a path to the package.
+    pub fn symlink(&mut self, dst: &str, src: &str) -> &mut Package {
+        self.files.push(PackageFile {
+            path: dst.to_string(),
+            contents: EntryData::Symlink(src.into()),
+            mode: DEFAULT_MODE,
             extra: false,
         });
         self
@@ -795,7 +924,7 @@ impl Package {
     pub fn extra_file(&mut self, path: &str, contents: &str) -> &mut Package {
         self.files.push(PackageFile {
             path: path.to_string(),
-            contents: contents.to_string(),
+            contents: EntryData::Regular(contents.to_string()),
             mode: DEFAULT_MODE,
             extra: true,
         });
@@ -955,27 +1084,16 @@ impl Package {
         } else {
             serde_json::json!(self.name)
         };
-        // This emulates what crates.io may do in the future.
-        let (features, features2) = split_index_features(self.features.clone());
-        let mut json = serde_json::json!({
-            "name": name,
-            "vers": self.vers,
-            "deps": deps,
-            "cksum": cksum,
-            "features": features,
-            "yanked": self.yanked,
-            "links": self.links,
-        });
-        if let Some(f2) = &features2 {
-            json["features2"] = serde_json::json!(f2);
-            json["v"] = serde_json::json!(2);
-        }
-        if let Some(v) = self.v {
-            json["v"] = serde_json::json!(v);
-        }
-        let line = json.to_string();
-
-        let file = make_dep_path(&self.name, false);
+        let line = create_index_line(
+            name,
+            &self.vers,
+            deps,
+            &cksum,
+            self.features.clone(),
+            self.yanked,
+            self.links.clone(),
+            self.v,
+        );
 
         let registry_path = if self.alternative {
             alt_registry_path()
@@ -983,38 +1101,7 @@ impl Package {
             registry_path()
         };
 
-        // Write file/line in the index.
-        let dst = if self.local {
-            registry_path.join("index").join(&file)
-        } else {
-            registry_path.join(&file)
-        };
-        let prev = fs::read_to_string(&dst).unwrap_or_default();
-        t!(fs::create_dir_all(dst.parent().unwrap()));
-        t!(fs::write(&dst, prev + &line[..] + "\n"));
-
-        // Add the new file to the index.
-        if !self.local {
-            let repo = t!(git2::Repository::open(&registry_path));
-            let mut index = t!(repo.index());
-            t!(index.add_path(Path::new(&file)));
-            t!(index.write());
-            let id = t!(index.write_tree());
-
-            // Commit this change.
-            let tree = t!(repo.find_tree(id));
-            let sig = t!(repo.signature());
-            let parent = t!(repo.refname_to_id("refs/heads/master"));
-            let parent = t!(repo.find_commit(parent));
-            t!(repo.commit(
-                Some("HEAD"),
-                &sig,
-                &sig,
-                "Another commit",
-                &tree,
-                &[&parent]
-            ));
-        }
+        write_to_index(&registry_path, &self.name, line, self.local);
 
         cksum
     }
@@ -1033,7 +1120,12 @@ impl Package {
             self.append_manifest(&mut a);
         }
         if self.files.is_empty() {
-            self.append(&mut a, "src/lib.rs", DEFAULT_MODE, "");
+            self.append(
+                &mut a,
+                "src/lib.rs",
+                DEFAULT_MODE,
+                &EntryData::Regular("".into()),
+            );
         } else {
             for PackageFile {
                 path,
@@ -1107,10 +1199,15 @@ impl Package {
             manifest.push_str("[lib]\nproc-macro = true\n");
         }
 
-        self.append(ar, "Cargo.toml", DEFAULT_MODE, &manifest);
+        self.append(
+            ar,
+            "Cargo.toml",
+            DEFAULT_MODE,
+            &EntryData::Regular(manifest.into()),
+        );
     }
 
-    fn append<W: Write>(&self, ar: &mut Builder<W>, file: &str, mode: u32, contents: &str) {
+    fn append<W: Write>(&self, ar: &mut Builder<W>, file: &str, mode: u32, contents: &EntryData) {
         self.append_raw(
             ar,
             &format!("{}-{}/{}", self.name, self.vers, file),
@@ -1119,8 +1216,22 @@ impl Package {
         );
     }
 
-    fn append_raw<W: Write>(&self, ar: &mut Builder<W>, path: &str, mode: u32, contents: &str) {
+    fn append_raw<W: Write>(
+        &self,
+        ar: &mut Builder<W>,
+        path: &str,
+        mode: u32,
+        contents: &EntryData,
+    ) {
         let mut header = Header::new_ustar();
+        let contents = match contents {
+            EntryData::Regular(contents) => contents.as_str(),
+            EntryData::Symlink(src) => {
+                header.set_entry_type(tar::EntryType::Symlink);
+                t!(header.set_link_name(src));
+                "" // Symlink has no contents.
+            }
+        };
         header.set_size(contents.len() as u64);
         t!(header.set_path(path));
         header.set_mode(mode);
@@ -1209,23 +1320,5 @@ impl Dependency {
     pub fn optional(&mut self, optional: bool) -> &mut Self {
         self.optional = optional;
         self
-    }
-}
-
-fn split_index_features(mut features: FeatureMap) -> (FeatureMap, Option<FeatureMap>) {
-    let mut features2 = FeatureMap::new();
-    for (feat, values) in features.iter_mut() {
-        if values
-            .iter()
-            .any(|value| value.starts_with("dep:") || value.contains("?/"))
-        {
-            let new_values = values.drain(..).collect();
-            features2.insert(feat.clone(), new_values);
-        }
-    }
-    if features2.is_empty() {
-        (features, None)
-    } else {
-        (features, Some(features2))
     }
 }

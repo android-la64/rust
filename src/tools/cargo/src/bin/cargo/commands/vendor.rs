@@ -2,13 +2,14 @@ use crate::command_prelude::*;
 use cargo::ops;
 use std::path::PathBuf;
 
-pub fn cli() -> App {
+pub fn cli() -> Command {
     subcommand("vendor")
         .about("Vendor all dependencies for a project locally")
         .arg_quiet()
         .arg_manifest_path()
         .arg(
             Arg::new("path")
+                .action(ArgAction::Set)
                 .value_parser(clap::value_parser!(PathBuf))
                 .help("Where to vendor crates (`vendor` by default)"),
         )

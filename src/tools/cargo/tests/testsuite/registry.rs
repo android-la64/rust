@@ -11,6 +11,7 @@ use cargo_test_support::{git, install::cargo_home, t};
 use cargo_util::paths::remove_dir_all;
 use std::fs::{self, File};
 use std::path::Path;
+use std::sync::Mutex;
 
 fn cargo_http(p: &Project, s: &str) -> Execs {
     let mut e = p.cargo(s);
@@ -43,7 +44,7 @@ fn simple(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -102,7 +103,7 @@ fn deps(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -153,7 +154,7 @@ fn nonexistent(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -196,7 +197,7 @@ fn wrong_case(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -242,7 +243,7 @@ fn mis_hyphenated(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -286,7 +287,7 @@ fn wrong_version(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -345,7 +346,7 @@ fn bad_cksum(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -395,7 +396,7 @@ fn update_registry(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -452,7 +453,7 @@ fn package_with_path_deps(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -520,7 +521,7 @@ fn lockfile_locks(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -569,7 +570,7 @@ fn lockfile_locks_transitively(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -622,7 +623,7 @@ fn yanks_are_not_used(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -674,7 +675,7 @@ fn relying_on_a_yank_is_bad(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -720,7 +721,7 @@ fn yanks_in_lockfiles_are_ok(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -770,7 +771,7 @@ fn yanks_in_lockfiles_are_ok_for_other_update(cargo: fn(&Project, &str) -> Execs
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -834,7 +835,7 @@ fn yanks_in_lockfiles_are_ok_with_new_dep(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -858,7 +859,7 @@ fn yanks_in_lockfiles_are_ok_with_new_dep(cargo: fn(&Project, &str) -> Execs) {
     p.change_file(
         "Cargo.toml",
         r#"
-            [project]
+            [package]
             name = "foo"
             version = "0.0.1"
             authors = []
@@ -888,7 +889,7 @@ fn update_with_lockfile_if_packages_missing(cargo: fn(&Project, &str) -> Execs) 
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -933,7 +934,7 @@ fn update_lockfile(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -1040,7 +1041,7 @@ fn dev_dependency_not_used(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -1073,10 +1074,12 @@ fn dev_dependency_not_used(cargo: fn(&Project, &str) -> Execs) {
 fn login_with_no_cargo_dir() {
     // Create a config in the root directory because `login` requires the
     // index to be updated, and we don't want to hit crates.io.
-    registry::init();
+    let registry = registry::init();
     fs::rename(paths::home().join(".cargo"), paths::root().join(".cargo")).unwrap();
     paths::home().rm_rf();
-    cargo_process("login foo -v").run();
+    cargo_process("login foo -v")
+        .replace_crates_io(registry.index_url())
+        .run();
     let credentials = fs::read_to_string(paths::home().join(".cargo/credentials")).unwrap();
     assert_eq!(credentials, "[registry]\ntoken = \"foo\"\n");
 }
@@ -1084,23 +1087,32 @@ fn login_with_no_cargo_dir() {
 #[cargo_test]
 fn login_with_differently_sized_token() {
     // Verify that the configuration file gets properly truncated.
-    registry::init();
+    let registry = registry::init();
     let credentials = paths::home().join(".cargo/credentials");
     fs::remove_file(&credentials).unwrap();
-    cargo_process("login lmaolmaolmao -v").run();
-    cargo_process("login lmao -v").run();
-    cargo_process("login lmaolmaolmao -v").run();
+    cargo_process("login lmaolmaolmao -v")
+        .replace_crates_io(registry.index_url())
+        .run();
+    cargo_process("login lmao -v")
+        .replace_crates_io(registry.index_url())
+        .run();
+    cargo_process("login lmaolmaolmao -v")
+        .replace_crates_io(registry.index_url())
+        .run();
     let credentials = fs::read_to_string(&credentials).unwrap();
     assert_eq!(credentials, "[registry]\ntoken = \"lmaolmaolmao\"\n");
 }
 
 #[cargo_test]
 fn login_with_token_on_stdin() {
-    registry::init();
+    let registry = registry::init();
     let credentials = paths::home().join(".cargo/credentials");
     fs::remove_file(&credentials).unwrap();
-    cargo_process("login lmao -v").run();
+    cargo_process("login lmao -v")
+        .replace_crates_io(registry.index_url())
+        .run();
     cargo_process("login")
+        .replace_crates_io(registry.index_url())
         .with_stdout("please paste the API Token found on [..]/me below")
         .with_stdin("some token")
         .run();
@@ -1110,22 +1122,23 @@ fn login_with_token_on_stdin() {
 
 #[cargo_test]
 fn bad_license_file_http() {
-    let _server = setup_http();
-    bad_license_file(cargo_http);
+    let registry = setup_http();
+    bad_license_file(cargo_http, &registry);
 }
 
 #[cargo_test]
 fn bad_license_file_git() {
-    bad_license_file(cargo_stable);
+    let registry = registry::init();
+    bad_license_file(cargo_stable, &registry);
 }
 
-fn bad_license_file(cargo: fn(&Project, &str) -> Execs) {
+fn bad_license_file(cargo: fn(&Project, &str) -> Execs, registry: &TestRegistry) {
     Package::new("foo", "1.0.0").publish();
     let p = project()
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -1136,7 +1149,8 @@ fn bad_license_file(cargo: fn(&Project, &str) -> Execs) {
         )
         .file("src/main.rs", "fn main() {}")
         .build();
-    cargo(&p, "publish -v --token sekrit")
+    cargo(&p, "publish -v")
+        .replace_crates_io(registry.index_url())
         .with_status(101)
         .with_stderr_contains("[ERROR] the license file `foo` does not exist")
         .run();
@@ -1158,7 +1172,7 @@ fn updating_a_dep(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -1171,7 +1185,7 @@ fn updating_a_dep(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "a/Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "a"
                 version = "0.0.1"
                 authors = []
@@ -1209,7 +1223,7 @@ fn updating_a_dep(cargo: fn(&Project, &str) -> Execs) {
     p.change_file(
         "a/Cargo.toml",
         r#"
-        [project]
+        [package]
         name = "a"
         version = "0.0.1"
         authors = []
@@ -1257,7 +1271,7 @@ fn git_and_registry_dep(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "b"
                 version = "0.0.1"
                 authors = []
@@ -1273,7 +1287,7 @@ fn git_and_registry_dep(cargo: fn(&Project, &str) -> Execs) {
             "Cargo.toml",
             &format!(
                 r#"
-                    [project]
+                    [package]
                     name = "foo"
                     version = "0.0.1"
                     authors = []
@@ -1331,7 +1345,7 @@ fn update_publish_then_update(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1359,7 +1373,7 @@ fn update_publish_then_update(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1411,7 +1425,7 @@ fn fetch_downloads(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1452,7 +1466,7 @@ fn update_transitive_dependency(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1510,7 +1524,7 @@ fn update_backtracking_ok(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1569,7 +1583,7 @@ fn update_multiple_packages(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1639,7 +1653,7 @@ fn bundled_crate_in_registry(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.5.0"
                 authors = []
@@ -1691,7 +1705,7 @@ fn update_same_prefix_oh_my_how_was_this_a_bug(cargo: fn(&Project, &str) -> Exec
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "ugh"
                 version = "0.5.0"
                 authors = []
@@ -1728,7 +1742,7 @@ fn use_semver(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -1768,7 +1782,7 @@ fn use_semver_package_incorrectly(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "a/Cargo.toml",
             r#"
-            [project]
+            [package]
             name = "a"
             version = "0.1.1-alpha.0"
             authors = []
@@ -1777,7 +1791,7 @@ fn use_semver_package_incorrectly(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "b/Cargo.toml",
             r#"
-            [project]
+            [package]
             name = "b"
             version = "0.1.0"
             authors = []
@@ -1821,7 +1835,7 @@ fn only_download_relevant(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -1871,7 +1885,7 @@ fn resolve_and_backtracking(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -1907,7 +1921,7 @@ fn upstream_warnings_on_extra_verbose(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -1935,7 +1949,7 @@ fn disallow_network_http() {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -1970,7 +1984,7 @@ fn disallow_network_git() {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -2017,7 +2031,7 @@ fn add_dep_dont_update_registry(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -2030,7 +2044,7 @@ fn add_dep_dont_update_registry(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "baz/Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "baz"
                 version = "0.5.0"
                 authors = []
@@ -2049,7 +2063,7 @@ fn add_dep_dont_update_registry(cargo: fn(&Project, &str) -> Execs) {
     p.change_file(
         "Cargo.toml",
         r#"
-        [project]
+        [package]
         name = "bar"
         version = "0.5.0"
         authors = []
@@ -2086,7 +2100,7 @@ fn bump_version_dont_update_registry(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -2099,7 +2113,7 @@ fn bump_version_dont_update_registry(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "baz/Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "baz"
                 version = "0.5.0"
                 authors = []
@@ -2118,7 +2132,7 @@ fn bump_version_dont_update_registry(cargo: fn(&Project, &str) -> Execs) {
     p.change_file(
         "Cargo.toml",
         r#"
-        [project]
+        [package]
         name = "bar"
         version = "0.6.0"
         authors = []
@@ -2156,7 +2170,7 @@ fn toml_lies_but_index_is_truth(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.3.0"
                 authors = []
@@ -2172,7 +2186,7 @@ fn toml_lies_but_index_is_truth(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "bar"
                 version = "0.5.0"
                 authors = []
@@ -2210,7 +2224,7 @@ fn vv_prints_warnings(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "fo"
                 version = "0.5.0"
                 authors = []
@@ -2245,7 +2259,7 @@ fn bad_and_or_malicious_packages_rejected(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "fo"
                 version = "0.5.0"
                 authors = []
@@ -2295,7 +2309,7 @@ fn git_init_templatedir_missing(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "fo"
                 version = "0.5.0"
                 authors = []
@@ -2369,7 +2383,7 @@ fn rename_deps_and_features(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "a"
                 version = "0.5.0"
                 authors = []
@@ -2412,7 +2426,7 @@ fn ignore_invalid_json_lines(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "a"
                 version = "0.5.0"
                 authors = []
@@ -2446,7 +2460,7 @@ fn readonly_registry_still_works(cargo: fn(&Project, &str) -> Execs) {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "a"
                 version = "0.5.0"
                 authors = []
@@ -2552,7 +2566,7 @@ fn package_lock_inside_package_is_overwritten() {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -2581,6 +2595,47 @@ fn package_lock_inside_package_is_overwritten() {
         .join(".cargo-ok");
 
     assert_eq!(ok.metadata().unwrap().len(), 2);
+}
+
+#[cargo_test]
+fn package_lock_as_a_symlink_inside_package_is_overwritten() {
+    let registry = registry::init();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+
+                [dependencies]
+                bar = ">= 0.0.0"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    Package::new("bar", "0.0.1")
+        .file("src/lib.rs", "pub fn f() {}")
+        .symlink(".cargo-ok", "src/lib.rs")
+        .publish();
+
+    p.cargo("build").run();
+
+    let id = SourceId::for_registry(registry.index_url()).unwrap();
+    let hash = cargo::util::hex::short_hash(&id);
+    let pkg_root = cargo_home()
+        .join("registry")
+        .join("src")
+        .join(format!("-{}", hash))
+        .join("bar-0.0.1");
+    let ok = pkg_root.join(".cargo-ok");
+    let librs = pkg_root.join("src/lib.rs");
+
+    // Is correctly overwritten and doesn't affect the file linked to
+    assert_eq!(ok.metadata().unwrap().len(), 2);
+    assert_eq!(fs::read_to_string(librs).unwrap(), "pub fn f() {}");
 }
 
 #[cargo_test]
@@ -2630,7 +2685,7 @@ fn http_requires_z_flag() {
         .file(
             "Cargo.toml",
             r#"
-                [project]
+                [package]
                 name = "foo"
                 version = "0.0.1"
                 authors = []
@@ -2649,10 +2704,240 @@ fn http_requires_z_flag() {
 }
 
 #[cargo_test]
+fn protocol_sparse_requires_z_flag() {
+    cargo_process("install bar")
+        .with_status(101)
+        .env("CARGO_REGISTRIES_CRATES_IO_PROTOCOL", "sparse")
+        .with_stderr("[ERROR] usage of sparse registries requires `-Z sparse-registry`")
+        .run()
+}
+
+#[cargo_test]
+fn protocol() {
+    cargo_process("install bar")
+        .with_status(101)
+        .env("CARGO_REGISTRIES_CRATES_IO_PROTOCOL", "invalid")
+        .with_stderr("[ERROR] unsupported registry protocol `invalid` (defined in environment variable `CARGO_REGISTRIES_CRATES_IO_PROTOCOL`)")
+        .run()
+}
+
+#[cargo_test]
 fn http_requires_trailing_slash() {
-    cargo_process("-Z sparse-registry install bar --index sparse+https://index.crates.io")
+    cargo_process("-Z sparse-registry install bar --index sparse+https://invalid.crates.io/test")
         .masquerade_as_nightly_cargo(&["sparse-registry"])
         .with_status(101)
-        .with_stderr("[ERROR] registry url must end in a slash `/`: sparse+https://index.crates.io")
+        .with_stderr("[ERROR] sparse registry url must end in a slash `/`: sparse+https://invalid.crates.io/test")
         .run()
+}
+
+// Limit the test to debug builds so that `__CARGO_TEST_MAX_UNPACK_SIZE` will take affect.
+#[cfg(debug_assertions)]
+#[cargo_test]
+fn reach_max_unpack_size() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+
+                [dependencies]
+                bar = ">= 0.0.0"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    Package::new("bar", "0.0.1").publish();
+
+    p.cargo("build")
+        .env("__CARGO_TEST_MAX_UNPACK_SIZE", "8") // hit 8 bytes limit and boom!
+        .with_status(101)
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+[DOWNLOADED] bar v0.0.1 (registry `dummy-registry`)
+[ERROR] failed to download replaced source registry `crates-io`
+
+Caused by:
+  failed to unpack package `bar v0.0.1 (registry `dummy-registry`)`
+
+Caused by:
+  failed to iterate over archive
+
+Caused by:
+  maximum limit reached when reading
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn sparse_retry() {
+    let fail_count = Mutex::new(0);
+    let _registry = RegistryBuilder::new()
+        .http_index()
+        .add_responder("/index/3/b/bar", move |req, server| {
+            let mut fail_count = fail_count.lock().unwrap();
+            if *fail_count < 2 {
+                *fail_count += 1;
+                server.internal_server_error(req)
+            } else {
+                server.index(req)
+            }
+        })
+        .build();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+
+                [dependencies]
+                bar = ">= 0.0.0"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    Package::new("bar", "0.0.1").publish();
+
+    cargo_http(&p, "build")
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+warning: spurious network error (2 tries remaining): failed to get successful HTTP response from `[..]`, got 500
+body:
+internal server error
+warning: spurious network error (1 tries remaining): failed to get successful HTTP response from `[..]`, got 500
+body:
+internal server error
+[DOWNLOADING] crates ...
+[DOWNLOADED] bar v0.0.1 (registry `dummy-registry`)
+[COMPILING] bar v0.0.1
+[COMPILING] foo v0.0.1 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn deleted_entry() {
+    // Checks the behavior when a package is removed from the index.
+    // This is done occasionally on crates.io to handle things like
+    // copyright takedowns.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                bar = "0.1"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    // First, test removing a single version, but leaving an older version.
+    Package::new("bar", "0.1.0").publish();
+    let bar_path = Path::new("3/b/bar");
+    let bar_reg_path = registry_path().join(&bar_path);
+    let old_index = fs::read_to_string(&bar_reg_path).unwrap();
+    Package::new("bar", "0.1.1").publish();
+    p.cargo("tree")
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+[DOWNLOADED] bar v0.1.1 (registry `dummy-registry`)
+",
+        )
+        .with_stdout(
+            "\
+foo v0.1.0 ([ROOT]/foo)
+└── bar v0.1.1
+",
+        )
+        .run();
+
+    // Remove 0.1.1
+    fs::remove_file(paths::root().join("dl/bar/0.1.1/download")).unwrap();
+    let repo = git2::Repository::open(registry_path()).unwrap();
+    let mut index = repo.index().unwrap();
+    fs::write(&bar_reg_path, &old_index).unwrap();
+    index.add_path(&bar_path).unwrap();
+    index.write().unwrap();
+    git::commit(&repo);
+
+    // With `Cargo.lock` unchanged, it shouldn't have an impact.
+    p.cargo("tree")
+        .with_stderr("")
+        .with_stdout(
+            "\
+foo v0.1.0 ([ROOT]/foo)
+└── bar v0.1.1
+",
+        )
+        .run();
+
+    // Regenerating Cargo.lock should switch to old version.
+    fs::remove_file(p.root().join("Cargo.lock")).unwrap();
+    p.cargo("tree")
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+[DOWNLOADED] bar v0.1.0 (registry `dummy-registry`)
+",
+        )
+        .with_stdout(
+            "\
+foo v0.1.0 ([ROOT]/foo)
+└── bar v0.1.0
+",
+        )
+        .run();
+
+    // Remove the package entirely.
+    fs::remove_file(paths::root().join("dl/bar/0.1.0/download")).unwrap();
+    let mut index = repo.index().unwrap();
+    index.remove(&bar_path, 0).unwrap();
+    index.write().unwrap();
+    git::commit(&repo);
+    fs::remove_file(&bar_reg_path).unwrap();
+
+    // With `Cargo.lock` unchanged, it shouldn't have an impact.
+    p.cargo("tree")
+        .with_stderr("")
+        .with_stdout(
+            "\
+foo v0.1.0 ([ROOT]/foo)
+└── bar v0.1.0
+",
+        )
+        .run();
+
+    // Regenerating Cargo.lock should fail.
+    fs::remove_file(p.root().join("Cargo.lock")).unwrap();
+    p.cargo("tree")
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+error: no matching package named `bar` found
+location searched: registry `crates-io`
+required by package `foo v0.1.0 ([ROOT]/foo)`
+",
+        )
+        .with_status(101)
+        .run();
 }

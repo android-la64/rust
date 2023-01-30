@@ -1,4 +1,4 @@
-use std::{collections::hash_map::Entry, iter};
+use std::{collections::hash_map::Entry, io::Write, iter};
 
 use log::trace;
 
@@ -23,7 +23,6 @@ use rustc_target::{
 
 use super::backtrace::EvalContextExt as _;
 use crate::helpers::{convert::Truncate, target_os_is_unix};
-use crate::shims::ffi_support::EvalContextExt as _;
 use crate::*;
 
 /// Returned by `emulate_foreign_item_by_name`.
@@ -38,8 +37,8 @@ pub enum EmulateByNameResult<'mir, 'tcx> {
     NotSupported,
 }
 
-impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriEvalContext<'mir, 'tcx> {}
-pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx> {
+impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
+pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
     /// Returns the minimum alignment for the target architecture for allocations of the given size.
     fn min_align(&self, size: u64, kind: MiriMemoryKind) -> Align {
         let this = self.eval_context_ref();
@@ -322,7 +321,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
                     return Ok(Some(body));
                 }
 
-                this.handle_unsupported(format!("can't call foreign function: {}", link_name))?;
+                this.handle_unsupported(format!("can't call foreign function: {link_name}"))?;
                 return Ok(None);
             }
         }
@@ -334,7 +333,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
     fn emulate_allocator(
         &mut self,
         symbol: Symbol,
-        default: impl FnOnce(&mut MiriEvalContext<'mir, 'tcx>) -> InterpResult<'tcx>,
+        default: impl FnOnce(&mut MiriInterpCx<'mir, 'tcx>) -> InterpResult<'tcx>,
     ) -> InterpResult<'tcx, EmulateByNameResult<'mir, 'tcx>> {
         let this = self.eval_context_mut();
 
@@ -371,7 +370,9 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         let this = self.eval_context_mut();
 
         // First deal with any external C functions in linked .so file.
+        #[cfg(target_os = "linux")]
         if this.machine.external_so_lib.as_ref().is_some() {
+            use crate::shims::ffi_support::EvalContextExt as _;
             // An Ok(false) here means that the function being called was not exported
             // by the specified `.so` file; we should continue and check if it corresponds to
             // a provided shim.
@@ -416,6 +417,23 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
         // shim, add it to the corresponding submodule.
         match link_name.as_str() {
             // Miri-specific extern functions
+            "miri_get_alloc_id" => {
+                let [ptr] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+                let ptr = this.read_pointer(ptr)?;
+                let (alloc_id, _, _) = this.ptr_get_alloc_id(ptr).map_err(|_e| {
+                    err_machine_stop!(TerminationInfo::Abort(
+                        format!("pointer passed to miri_get_alloc_id must not be dangling, got {ptr:?}")
+                    ))
+                })?;
+                this.write_scalar(Scalar::from_u64(alloc_id.0.get()), dest)?;
+            }
+            "miri_print_borrow_stacks" => {
+                let [id] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+                let id = this.read_scalar(id)?.to_u64()?;
+                if let Some(id) = std::num::NonZeroU64::new(id) {
+                    this.print_stacks(AllocId(id))?;
+                }
+            }
             "miri_static_root" => {
                 let [ptr] = this.check_shim(abi, Abi::Rust, link_name, args)?;
                 let ptr = this.read_pointer(ptr)?;
@@ -446,6 +464,23 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriEvalContextExt<'mir, 'tcx
             // Writes the function and file names of a Miri backtrace frame into a user provided buffer. See the README for details.
             "miri_resolve_frame_names" => {
                 this.handle_miri_resolve_frame_names(abi, link_name, args)?;
+            }
+
+            // Writes some bytes to the interpreter's stdout/stderr. See the
+            // README for details.
+            "miri_write_to_stdout" | "miri_write_to_stderr" => {
+                let [bytes] = this.check_shim(abi, Abi::Rust, link_name, args)?;
+                let (ptr, len) = this.read_immediate(bytes)?.to_scalar_pair();
+                let ptr = ptr.to_pointer(this)?;
+                let len = len.to_machine_usize(this)?;
+                let msg = this.read_bytes_ptr_strip_provenance(ptr, Size::from_bytes(len))?;
+
+                // Note: we're ignoring errors writing to host stdout/stderr.
+                let _ignore = match link_name.as_str() {
+                    "miri_write_to_stdout" => std::io::stdout().write_all(msg),
+                    "miri_write_to_stderr" => std::io::stderr().write_all(msg),
+                    _ => unreachable!(),
+                };
             }
 
             // Standard C allocation

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.56"
 name = "notify"
-version = "5.0.0-pre.16"
+version = "5.0.0"
 authors = [
     "Félix Saparelli <me@passcod.name>",
     "Daniel Faust <hessijames@gmail.com>",
@@ -51,7 +51,7 @@ features = ["derive"]
 optional = true
 
 [dependencies.walkdir]
-version = "2.0.1"
+version = "2.2.2"
 
 [dev-dependencies.nix]
 version = "0.23.1"
