@@ -9,7 +9,7 @@ use winapi::um::winreg::HKEY_LOCAL_MACHINE;
 use crate::sys::component::{self, Component};
 use crate::sys::cpu::*;
 use crate::sys::disk::{get_disks, Disk};
-use crate::sys::process::{update_memory, Process};
+use crate::sys::process::{get_start_time, update_memory, Process};
 use crate::sys::tools::*;
 use crate::sys::users::get_users;
 use crate::sys::utils::get_now;
@@ -64,6 +64,19 @@ pub struct System {
     users: Vec<User>,
 }
 
+static WINDOWS_ELEVEN_BUILD_NUMBER: u32 = 22000;
+
+impl System {
+    fn is_windows_eleven(&self) -> bool {
+        WINDOWS_ELEVEN_BUILD_NUMBER
+            <= self
+                .kernel_version()
+                .unwrap_or_default()
+                .parse()
+                .unwrap_or(0)
+    }
+}
+
 // Useful for parallel iterations.
 struct Wrap<T>(T);
 
@@ -73,7 +86,7 @@ unsafe impl<T> Sync for Wrap<T> {}
 
 unsafe fn boot_time() -> u64 {
     match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-        Ok(n) => n.as_secs().saturating_sub(GetTickCount64()) / 1000,
+        Ok(n) => n.as_secs().saturating_sub(GetTickCount64() / 1_000),
         Err(_e) => {
             sysinfo_debug!("Failed to compute boot time: {:?}", _e);
             0
@@ -117,10 +130,10 @@ impl SystemExt for System {
                 );
                 for (pos, proc_) in self.cpus.iter_mut(refresh_kind).enumerate() {
                     add_english_counter(
-                        format!(r"\Processor({})\% Processor Time", pos),
+                        format!(r"\Processor({pos})\% Processor Time"),
                         query,
                         get_key_used(proc_),
-                        format!("{}_0", pos),
+                        format!("{pos}_0"),
                     );
                 }
             }
@@ -162,8 +175,8 @@ impl SystemExt for System {
             let mut mem_info: MEMORYSTATUSEX = zeroed();
             mem_info.dwLength = size_of::<MEMORYSTATUSEX>() as u32;
             GlobalMemoryStatusEx(&mut mem_info);
-            self.mem_total = auto_cast!(mem_info.ullTotalPhys, u64) / 1_000;
-            self.mem_available = auto_cast!(mem_info.ullAvailPhys, u64) / 1_000;
+            self.mem_total = mem_info.ullTotalPhys as _;
+            self.mem_available = mem_info.ullAvailPhys as _;
             let mut perf_info: PERFORMANCE_INFORMATION = zeroed();
             if GetPerformanceInfo(&mut perf_info, size_of::<PERFORMANCE_INFORMATION>() as u32)
                 == TRUE
@@ -178,8 +191,8 @@ impl SystemExt for System {
                         .CommitTotal
                         .saturating_sub(perf_info.PhysicalTotal),
                 );
-                self.swap_total = (swap_total / 1000) as u64;
-                self.swap_used = (swap_used / 1000) as u64;
+                self.swap_total = swap_total as _;
+                self.swap_used = swap_used as _;
             }
         }
     }
@@ -190,12 +203,17 @@ impl SystemExt for System {
 
     #[allow(clippy::map_entry)]
     fn refresh_process_specifics(&mut self, pid: Pid, refresh_kind: ProcessRefreshKind) -> bool {
-        if self.process_list.contains_key(&pid) {
-            return refresh_existing_process(self, pid, refresh_kind);
-        }
         let now = get_now();
+        let nb_cpus = self.cpus.len() as u64;
+
+        if let Some(proc_) = self.process_list.get_mut(&pid) {
+            if let Some(ret) = refresh_existing_process(proc_, nb_cpus, now, refresh_kind) {
+                return ret;
+            }
+            // We need to re-make the process because the PID owner changed.
+        }
         if let Some(mut p) = Process::new_from_pid(pid, now, refresh_kind) {
-            p.update(refresh_kind, self.cpus.len() as u64, now);
+            p.update(refresh_kind, nb_cpus, now);
             p.updated = false;
             self.process_list.insert(pid, p);
             true
@@ -266,10 +284,18 @@ impl SystemExt for System {
                             let pi = *pi.0;
                             let pid = Pid(pi.UniqueProcessId as _);
                             if let Some(proc_) = (*process_list.0.get()).get_mut(&pid) {
-                                proc_.memory = (pi.WorkingSetSize as u64) / 1_000;
-                                proc_.virtual_memory = (pi.VirtualSize as u64) / 1_000;
-                                proc_.update(refresh_kind, nb_cpus, now);
-                                return None;
+                                if proc_
+                                    .get_start_time()
+                                    .map(|start| start == proc_.start_time())
+                                    .unwrap_or(true)
+                                {
+                                    proc_.memory = pi.WorkingSetSize as _;
+                                    proc_.virtual_memory = pi.VirtualSize as _;
+                                    proc_.update(refresh_kind, nb_cpus, now);
+                                    return None;
+                                }
+                                // If the PID owner changed, we need to recompute the whole process.
+                                sysinfo_debug!("owner changed for PID {}", proc_.pid());
                             }
                             let name = get_process_name(&pi, pid);
                             let mut p = Process::new_full(
@@ -279,8 +305,8 @@ impl SystemExt for System {
                                 } else {
                                     None
                                 },
-                                (pi.WorkingSetSize as u64) / 1_000,
-                                (pi.VirtualSize as u64) / 1_000,
+                                pi.WorkingSetSize as _,
+                                pi.VirtualSize as _,
                                 name,
                                 now,
                                 refresh_kind,
@@ -386,6 +412,13 @@ impl SystemExt for System {
         &mut self.disks
     }
 
+    fn sort_disks_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&Disk, &Disk) -> std::cmp::Ordering,
+    {
+        self.disks.sort_unstable_by(compare);
+    }
+
     fn users(&self) -> &[User] {
         &self.users
     }
@@ -399,7 +432,7 @@ impl SystemExt for System {
     }
 
     fn uptime(&self) -> u64 {
-        unsafe { GetTickCount64() / 1000 }
+        unsafe { GetTickCount64() / 1_000 }
     }
 
     fn boot_time(&self) -> u64 {
@@ -415,6 +448,14 @@ impl SystemExt for System {
     }
 
     fn long_os_version(&self) -> Option<String> {
+        if self.is_windows_eleven() {
+            return get_reg_string_value(
+                HKEY_LOCAL_MACHINE,
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+                "ProductName",
+            )
+            .map(|product_name| product_name.replace("Windows 10 ", "Windows 11 "));
+        }
         get_reg_string_value(
             HKEY_LOCAL_MACHINE,
             "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
@@ -435,23 +476,29 @@ impl SystemExt for System {
     }
 
     fn os_version(&self) -> Option<String> {
-        let major = get_reg_value_u32(
-            HKEY_LOCAL_MACHINE,
-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
-            "CurrentMajorVersionNumber",
-        );
-
         let build_number = get_reg_string_value(
             HKEY_LOCAL_MACHINE,
             "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
             "CurrentBuildNumber",
-        );
+        )
+        .unwrap_or_default();
+        let major = if self.is_windows_eleven() {
+            11u32
+        } else {
+            u32::from_le_bytes(
+                get_reg_value_u32(
+                    HKEY_LOCAL_MACHINE,
+                    "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+                    "CurrentMajorVersionNumber",
+                )
+                .unwrap_or_default(),
+            )
+        };
+        Some(format!("{major} ({build_number})"))
+    }
 
-        Some(format!(
-            "{} ({})",
-            u32::from_le_bytes(major.unwrap_or_default()),
-            build_number.unwrap_or_default()
-        ))
+    fn distribution_id(&self) -> String {
+        std::env::consts::OS.to_owned()
     }
 }
 
@@ -461,7 +508,7 @@ impl Default for System {
     }
 }
 
-fn is_proc_running(handle: HANDLE) -> bool {
+pub(crate) fn is_proc_running(handle: HANDLE) -> bool {
     let mut exit_code = 0;
     unsafe {
         let ret = GetExitCodeProcess(handle, &mut exit_code);
@@ -469,22 +516,30 @@ fn is_proc_running(handle: HANDLE) -> bool {
     }
 }
 
-fn refresh_existing_process(s: &mut System, pid: Pid, refresh_kind: ProcessRefreshKind) -> bool {
-    if let Some(ref mut entry) = s.process_list.get_mut(&pid) {
-        if let Some(handle) = entry.get_handle() {
-            if !is_proc_running(handle) {
-                return false;
-            }
-        } else {
-            return false;
+/// If it returns `None`, it means that the PID owner changed and that the `Process` must be
+/// completely recomputed.
+fn refresh_existing_process(
+    proc_: &mut Process,
+    nb_cpus: u64,
+    now: u64,
+    refresh_kind: ProcessRefreshKind,
+) -> Option<bool> {
+    if let Some(handle) = proc_.get_handle() {
+        if get_start_time(handle) != proc_.start_time() {
+            sysinfo_debug!("owner changed for PID {}", proc_.pid());
+            // PID owner changed!
+            return None;
         }
-        update_memory(entry);
-        entry.update(refresh_kind, s.cpus.len() as u64, get_now());
-        entry.updated = false;
-        true
+        if !is_proc_running(handle) {
+            return Some(false);
+        }
     } else {
-        false
+        return Some(false);
     }
+    update_memory(proc_);
+    proc_.update(refresh_kind, nb_cpus, now);
+    proc_.updated = false;
+    Some(true)
 }
 
 #[allow(clippy::size_of_in_element_count)]
@@ -495,7 +550,7 @@ pub(crate) fn get_process_name(process: &SYSTEM_PROCESS_INFORMATION, process_id:
         match process_id.0 {
             0 => "Idle".to_owned(),
             4 => "System".to_owned(),
-            _ => format!("<no name> Process {}", process_id),
+            _ => format!("<no name> Process {process_id}"),
         }
     } else {
         unsafe {

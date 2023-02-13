@@ -3,19 +3,23 @@
 //! This module contains a number of extension traits for the types in
 //! `std::net` for Windows-specific functionality.
 
-use crate::*;
+use crate::{FALSE, TRUE};
 use std::cmp;
 use std::io;
 use std::mem;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
 use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
-use std::os::windows::prelude::*;
+use std::os::windows::io::AsRawSocket;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use windows_sys::core::*;
-use windows_sys::Win32::NetworkManagement::IpHelper::*;
-use windows_sys::Win32::Networking::WinSock::*;
-use windows_sys::Win32::System::IO::*;
+use windows_sys::core::GUID;
+use windows_sys::Win32::Networking::WinSock::{
+    setsockopt, WSAGetLastError, WSAGetOverlappedResult, WSAIoctl, WSARecv, WSARecvFrom, WSASend,
+    WSASendTo, AF_INET, AF_INET6, IN6_ADDR, IN6_ADDR_0, IN_ADDR, IN_ADDR_0, LPFN_ACCEPTEX,
+    LPFN_CONNECTEX, LPFN_GETACCEPTEXSOCKADDRS, SOCKADDR, SOCKADDR_IN, SOCKADDR_IN6, SOCKADDR_IN6_0,
+    SOCKADDR_STORAGE, SOCKET, SOCKET_ERROR, SOL_SOCKET, WSABUF, WSA_IO_PENDING,
+};
+use windows_sys::Win32::System::IO::OVERLAPPED;
 
 /// A type to represent a buffer in which a socket address will be stored.
 ///
@@ -673,7 +677,7 @@ unsafe fn connect_overlapped(
 
     let ptr = CONNECTEX.get(socket)?;
     assert!(ptr != 0);
-    let connect_ex = mem::transmute::<_, LPFN_CONNECTEX>(ptr);
+    let connect_ex = mem::transmute::<_, LPFN_CONNECTEX>(ptr).unwrap();
 
     let (addr_buf, addr_len) = socket_addr_to_ptrs(addr);
     let mut bytes_sent: u32 = 0;
@@ -803,7 +807,7 @@ impl TcpListenerExt for TcpListener {
 
         let ptr = ACCEPTEX.get(self.as_raw_socket() as SOCKET)?;
         assert!(ptr != 0);
-        let accept_ex = mem::transmute::<_, LPFN_ACCEPTEX>(ptr);
+        let accept_ex = mem::transmute::<_, LPFN_ACCEPTEX>(ptr).unwrap();
 
         let mut bytes = 0;
         let (a, b, c, d) = (*addrs).args();
@@ -907,7 +911,7 @@ impl AcceptAddrsBuf {
         let ptr = GETACCEPTEXSOCKADDRS.get(socket.as_raw_socket() as SOCKET)?;
         assert!(ptr != 0);
         unsafe {
-            let get_sockaddrs = mem::transmute::<_, LPFN_GETACCEPTEXSOCKADDRS>(ptr);
+            let get_sockaddrs = mem::transmute::<_, LPFN_GETACCEPTEXSOCKADDRS>(ptr).unwrap();
             let (a, b, c, d) = self.args();
             get_sockaddrs(
                 a,

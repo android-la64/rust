@@ -4,7 +4,7 @@ use crate::sys::component::{self, Component};
 use crate::sys::cpu::*;
 use crate::sys::disk;
 use crate::sys::process::*;
-use crate::sys::utils::get_all_data;
+use crate::sys::utils::{get_all_data, to_u64};
 use crate::{
     CpuRefreshKind, Disk, LoadAvg, Networks, Pid, ProcessRefreshKind, RefreshKind, SystemExt, User,
 };
@@ -63,12 +63,6 @@ pub(crate) fn get_max_nb_fds() -> isize {
     }
 }
 
-macro_rules! to_str {
-    ($e:expr) => {
-        unsafe { std::str::from_utf8_unchecked($e) }
-    };
-}
-
 fn boot_time() -> u64 {
     if let Ok(f) = File::open("/proc/stat") {
         let buf = BufReader::new(f);
@@ -111,7 +105,7 @@ impl SystemInfo {
     fn new() -> Self {
         unsafe {
             Self {
-                page_size_kb: (sysconf(_SC_PAGESIZE) / 1024) as _,
+                page_size_kb: sysconf(_SC_PAGESIZE) as _,
                 clock_cycle: sysconf(_SC_CLK_TCK) as _,
                 boot_time: boot_time(),
             }
@@ -163,22 +157,16 @@ pub struct System {
     mem_available: u64,
     mem_buffers: u64,
     mem_page_cache: u64,
+    mem_shmem: u64,
     mem_slab_reclaimable: u64,
     swap_total: u64,
     swap_free: u64,
-    global_cpu: Cpu,
-    cpus: Vec<Cpu>,
     components: Vec<Component>,
     disks: Vec<Disk>,
     networks: Networks,
     users: Vec<User>,
-    /// Field set to `false` in `update_cpus` and to `true` in `refresh_processes_specifics`.
-    ///
-    /// The reason behind this is to avoid calling the `update_cpus` more than necessary.
-    /// For example when running `refresh_all` or `refresh_specifics`.
-    need_cpus_update: bool,
     info: SystemInfo,
-    got_cpu_frequency: bool,
+    cpus: CpusWrapper,
 }
 
 impl System {
@@ -193,15 +181,14 @@ impl System {
 
     fn clear_procs(&mut self, refresh_kind: ProcessRefreshKind) {
         let (total_time, compute_cpu, max_value) = if refresh_kind.cpu() {
-            if self.need_cpus_update {
-                self.refresh_cpus(true, CpuRefreshKind::new().with_cpu_usage());
-            }
+            self.cpus
+                .refresh_if_needed(true, CpuRefreshKind::new().with_cpu_usage());
 
             if self.cpus.is_empty() {
                 sysinfo_debug!("cannot compute processes CPU usage: no CPU found...");
                 (0., false, 0.)
             } else {
-                let (new, old) = get_raw_times(&self.global_cpu);
+                let (new, old) = self.cpus.get_global_raw_times();
                 let total_time = if old > new { 1 } else { new - old };
                 (
                     total_time as f32 / self.cpus.len() as f32,
@@ -226,128 +213,7 @@ impl System {
     }
 
     fn refresh_cpus(&mut self, only_update_global_cpu: bool, refresh_kind: CpuRefreshKind) {
-        if let Ok(f) = File::open("/proc/stat") {
-            self.need_cpus_update = false;
-
-            let buf = BufReader::new(f);
-            let mut i: usize = 0;
-            let first = self.cpus.is_empty();
-            let mut it = buf.split(b'\n');
-            let (vendor_id, brand) = if first {
-                get_vendor_id_and_brand()
-            } else {
-                (String::new(), String::new())
-            };
-
-            if first || refresh_kind.cpu_usage() {
-                if let Some(Ok(line)) = it.next() {
-                    if &line[..4] != b"cpu " {
-                        return;
-                    }
-                    let mut parts = line.split(|x| *x == b' ').filter(|s| !s.is_empty());
-                    if first {
-                        self.global_cpu.name = to_str!(parts.next().unwrap_or(&[])).to_owned();
-                    } else {
-                        parts.next();
-                    }
-                    self.global_cpu.set(
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                        parts.next().map(to_u64).unwrap_or(0),
-                    );
-                }
-                if first || !only_update_global_cpu {
-                    while let Some(Ok(line)) = it.next() {
-                        if &line[..3] != b"cpu" {
-                            break;
-                        }
-
-                        let mut parts = line.split(|x| *x == b' ').filter(|s| !s.is_empty());
-                        if first {
-                            self.cpus.push(Cpu::new_with_values(
-                                to_str!(parts.next().unwrap_or(&[])),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                0,
-                                vendor_id.clone(),
-                                brand.clone(),
-                            ));
-                        } else {
-                            parts.next(); // we don't want the name again
-                            self.cpus[i].set(
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                                parts.next().map(to_u64).unwrap_or(0),
-                            );
-                        }
-
-                        i += 1;
-                    }
-                }
-            }
-
-            if refresh_kind.frequency() && !self.got_cpu_frequency {
-                #[cfg(feature = "multithread")]
-                use rayon::iter::{
-                    IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
-                };
-
-                #[cfg(feature = "multithread")]
-                // This function is voluntarily made generic in case we want to generalize it.
-                fn iter_mut<'a, T>(
-                    val: &'a mut T,
-                ) -> <&'a mut T as rayon::iter::IntoParallelIterator>::Iter
-                where
-                    &'a mut T: rayon::iter::IntoParallelIterator,
-                {
-                    val.par_iter_mut()
-                }
-
-                #[cfg(not(feature = "multithread"))]
-                fn iter_mut<'a>(val: &'a mut Vec<Cpu>) -> std::slice::IterMut<'a, Cpu> {
-                    val.iter_mut()
-                }
-
-                // `get_cpu_frequency` is very slow, so better run it in parallel.
-                self.global_cpu.frequency = iter_mut(&mut self.cpus)
-                    .enumerate()
-                    .map(|(pos, proc_)| {
-                        proc_.frequency = get_cpu_frequency(pos);
-                        proc_.frequency
-                    })
-                    .max()
-                    .unwrap_or(0);
-
-                self.got_cpu_frequency = true;
-            }
-
-            if first {
-                self.global_cpu.vendor_id = vendor_id;
-                self.global_cpu.brand = brand;
-            }
-        }
+        self.cpus.refresh(only_update_global_cpu, refresh_kind);
     }
 }
 
@@ -356,8 +222,7 @@ impl SystemExt for System {
     const SUPPORTED_SIGNALS: &'static [Signal] = supported_signals();
 
     fn new_with_specifics(refreshes: RefreshKind) -> System {
-        let info = SystemInfo::new();
-        let process_list = Process::new(Pid(0), None, 0, &info);
+        let process_list = Process::new(Pid(0));
         let mut s = System {
             process_list,
             mem_total: 0,
@@ -365,33 +230,16 @@ impl SystemExt for System {
             mem_available: 0,
             mem_buffers: 0,
             mem_page_cache: 0,
+            mem_shmem: 0,
             mem_slab_reclaimable: 0,
             swap_total: 0,
             swap_free: 0,
-            global_cpu: Cpu::new_with_values(
-                "",
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                String::new(),
-                String::new(),
-            ),
-            cpus: Vec::with_capacity(4),
+            cpus: CpusWrapper::new(),
             components: Vec::new(),
             disks: Vec::with_capacity(2),
             networks: Networks::new(),
             users: Vec::new(),
-            need_cpus_update: true,
-            info,
-            got_cpu_frequency: false,
+            info: SystemInfo::new(),
         };
         s.refresh_specifics(refreshes);
         s
@@ -403,14 +251,20 @@ impl SystemExt for System {
 
     fn refresh_memory(&mut self) {
         if let Ok(data) = get_all_data("/proc/meminfo", 16_385) {
+            let mut mem_available_found = false;
+
             for line in data.split('\n') {
                 let mut iter = line.split(':');
                 let field = match iter.next() {
                     Some("MemTotal") => &mut self.mem_total,
                     Some("MemFree") => &mut self.mem_free,
-                    Some("MemAvailable") => &mut self.mem_available,
+                    Some("MemAvailable") => {
+                        mem_available_found = true;
+                        &mut self.mem_available
+                    }
                     Some("Buffers") => &mut self.mem_buffers,
                     Some("Cached") => &mut self.mem_page_cache,
+                    Some("Shmem") => &mut self.mem_shmem,
                     Some("SReclaimable") => &mut self.mem_slab_reclaimable,
                     Some("SwapTotal") => &mut self.swap_total,
                     Some("SwapFree") => &mut self.swap_free,
@@ -419,9 +273,20 @@ impl SystemExt for System {
                 if let Some(val_str) = iter.next().and_then(|s| s.trim_start().split(' ').next()) {
                     if let Ok(value) = u64::from_str(val_str) {
                         // /proc/meminfo reports KiB, though it says "kB". Convert it.
-                        *field = value.saturating_mul(128) / 125;
+                        *field = value.saturating_mul(1_024);
                     }
                 }
+            }
+
+            // Linux < 3.14 may not have MemAvailable in /proc/meminfo
+            // So it should fallback to the old way of estimating available memory
+            // https://github.com/KittyKatt/screenFetch/issues/386#issuecomment-249312716
+            if !mem_available_found {
+                self.mem_available = self.mem_free
+                    + self.mem_buffers
+                    + self.mem_page_cache
+                    + self.mem_slab_reclaimable
+                    - self.mem_shmem;
             }
         }
     }
@@ -441,7 +306,7 @@ impl SystemExt for System {
             refresh_kind,
         );
         self.clear_procs(refresh_kind);
-        self.need_cpus_update = true;
+        self.cpus.set_need_cpus_update();
     }
 
     fn refresh_process_specifics(&mut self, pid: Pid, refresh_kind: ProcessRefreshKind) -> bool {
@@ -469,7 +334,7 @@ impl SystemExt for System {
                     sysinfo_debug!("Cannot compute process CPU usage: no cpus found...");
                     return found;
                 }
-                let (new, old) = get_raw_times(&self.global_cpu);
+                let (new, old) = self.cpus.get_global_raw_times();
                 let total_time = (if old >= new { 1 } else { new - old }) as f32;
 
                 let max_cpu_usage = self.get_max_process_cpu_usage();
@@ -513,11 +378,11 @@ impl SystemExt for System {
     }
 
     fn global_cpu_info(&self) -> &Cpu {
-        &self.global_cpu
+        &self.cpus.global_cpu
     }
 
     fn cpus(&self) -> &[Cpu] {
-        &self.cpus
+        &self.cpus.cpus
     }
 
     fn physical_core_count(&self) -> Option<usize> {
@@ -537,11 +402,7 @@ impl SystemExt for System {
     }
 
     fn used_memory(&self) -> u64 {
-        self.mem_total
-            - self.mem_free
-            - self.mem_buffers
-            - self.mem_page_cache
-            - self.mem_slab_reclaimable
+        self.mem_total - self.mem_available
     }
 
     fn total_swap(&self) -> u64 {
@@ -571,6 +432,13 @@ impl SystemExt for System {
 
     fn disks_mut(&mut self) -> &mut [Disk] {
         &mut self.disks
+    }
+
+    fn sort_disks_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&Disk, &Disk) -> std::cmp::Ordering,
+    {
+        self.disks.sort_unstable_by(compare);
     }
 
     fn uptime(&self) -> u64 {
@@ -691,22 +559,31 @@ impl SystemExt for System {
     fn os_version(&self) -> Option<String> {
         get_system_info_android(InfoType::OsVersion)
     }
+
+    #[cfg(not(target_os = "android"))]
+    fn distribution_id(&self) -> String {
+        get_system_info_linux(
+            InfoType::DistributionID,
+            Path::new("/etc/os-release"),
+            Path::new(""),
+        )
+        .unwrap_or_else(|| std::env::consts::OS.to_owned())
+    }
+
+    #[cfg(target_os = "android")]
+    fn distribution_id(&self) -> String {
+        // Currently get_system_info_android doesn't support InfoType::DistributionID and always
+        // returns None. This call is done anyway for consistency with non-Android implementation
+        // and to suppress dead-code warning for DistributionID on Android.
+        get_system_info_android(InfoType::DistributionID)
+            .unwrap_or_else(|| std::env::consts::OS.to_owned())
+    }
 }
 
 impl Default for System {
     fn default() -> System {
         System::new()
     }
-}
-
-fn to_u64(v: &[u8]) -> u64 {
-    let mut x = 0;
-
-    for c in v {
-        x *= 10;
-        x += u64::from(c - b'0');
-    }
-    x
 }
 
 #[derive(PartialEq, Eq)]
@@ -716,6 +593,9 @@ enum InfoType {
     /// - Linux: The distributions name
     Name,
     OsVersion,
+    /// Machine-parseable ID of a distribution, see
+    /// https://www.freedesktop.org/software/systemd/man/os-release.html#ID=
+    DistributionID,
 }
 
 #[cfg(not(target_os = "android"))]
@@ -726,6 +606,7 @@ fn get_system_info_linux(info: InfoType, path: &Path, fallback_path: &Path) -> O
         let info_str = match info {
             InfoType::Name => "NAME=",
             InfoType::OsVersion => "VERSION_ID=",
+            InfoType::DistributionID => "ID=",
         };
 
         for line in reader.lines().flatten() {
@@ -744,6 +625,10 @@ fn get_system_info_linux(info: InfoType, path: &Path, fallback_path: &Path) -> O
     let info_str = match info {
         InfoType::OsVersion => "DISTRIB_RELEASE=",
         InfoType::Name => "DISTRIB_ID=",
+        InfoType::DistributionID => {
+            // lsb-release is inconsistent with os-release and unsupported.
+            return None;
+        }
     };
     for line in reader.lines().flatten() {
         if let Some(stripped) = line.strip_prefix(info_str) {
@@ -759,6 +644,10 @@ fn get_system_info_android(info: InfoType) -> Option<String> {
     let name: &'static [u8] = match info {
         InfoType::Name => b"ro.product.model\0",
         InfoType::OsVersion => b"ro.build.version.release\0",
+        InfoType::DistributionID => {
+            // Not supported.
+            return None;
+        }
     };
 
     let mut value_buffer = vec![0u8; libc::PROP_VALUE_MAX as usize];
@@ -792,6 +681,7 @@ mod test {
     fn lsb_release_fallback_android() {
         assert!(get_system_info_android(InfoType::OsVersion).is_some());
         assert!(get_system_info_android(InfoType::Name).is_some());
+        assert!(get_system_info_android(InfoType::DistributionID).is_none());
     }
 
     #[test]
@@ -838,6 +728,10 @@ DISTRIB_DESCRIPTION="Ubuntu 20.10"
             get_system_info_linux(InfoType::Name, &tmp1, Path::new("")),
             Some("Ubuntu".to_owned())
         );
+        assert_eq!(
+            get_system_info_linux(InfoType::DistributionID, &tmp1, Path::new("")),
+            Some("ubuntu".to_owned())
+        );
 
         // Check for the "fallback" path: "/etc/lsb-release"
         assert_eq!(
@@ -847,6 +741,10 @@ DISTRIB_DESCRIPTION="Ubuntu 20.10"
         assert_eq!(
             get_system_info_linux(InfoType::Name, Path::new(""), &tmp2),
             Some("Ubuntu".to_owned())
+        );
+        assert_eq!(
+            get_system_info_linux(InfoType::DistributionID, Path::new(""), &tmp2),
+            None
         );
     }
 }

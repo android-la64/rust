@@ -5,6 +5,8 @@ use crate::{DiskUsage, Gid, Pid, ProcessExt, ProcessRefreshKind, ProcessStatus, 
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use libc::kill;
+
 use super::utils::{get_sys_value_str, WrapMap};
 
 #[doc(hidden)]
@@ -141,6 +143,20 @@ impl ProcessExt for Process {
     fn group_id(&self) -> Option<Gid> {
         Some(self.group_id)
     }
+
+    fn wait(&self) {
+        let mut status = 0;
+        // attempt waiting
+        unsafe {
+            if libc::waitpid(self.pid.0, &mut status, 0) < 0 {
+                // attempt failed (non-child process) so loop until process ends
+                let duration = std::time::Duration::from_millis(10);
+                while kill(self.pid.0, 0) == 0 {
+                    std::thread::sleep(duration);
+                }
+            }
+        }
+    }
 }
 
 pub(crate) unsafe fn get_process_data(
@@ -171,28 +187,34 @@ pub(crate) unsafe fn get_process_data(
     let status = ProcessStatus::from(kproc.ki_stat);
 
     // from FreeBSD source /src/usr.bin/top/machine.c
-    let virtual_memory = (kproc.ki_size / 1_000) as u64;
-    let memory = (kproc.ki_rssize as u64).saturating_mul(page_size as _) / 1_000;
+    let virtual_memory = kproc.ki_size as _;
+    let memory = (kproc.ki_rssize as u64).saturating_mul(page_size as _);
     // FIXME: This is to get the "real" run time (in micro-seconds).
     // let run_time = (kproc.ki_runtime + 5_000) / 10_000;
 
+    let start_time = kproc.ki_start.tv_sec as u64;
+
     if let Some(proc_) = (*wrap.0.get()).get_mut(&Pid(kproc.ki_pid)) {
-        proc_.cpu_usage = cpu_usage;
-        proc_.parent = parent;
-        proc_.status = status;
-        proc_.virtual_memory = virtual_memory;
-        proc_.memory = memory;
-        proc_.run_time = now.saturating_sub(proc_.start_time);
         proc_.updated = true;
+        // If the `start_time` we just got is different from the one stored, it means it's not the
+        // same process.
+        if proc_.start_time == start_time {
+            proc_.cpu_usage = cpu_usage;
+            proc_.parent = parent;
+            proc_.status = status;
+            proc_.virtual_memory = virtual_memory;
+            proc_.memory = memory;
+            proc_.run_time = now.saturating_sub(proc_.start_time);
 
-        if refresh_kind.disk_usage() {
-            proc_.old_read_bytes = proc_.read_bytes;
-            proc_.read_bytes = kproc.ki_rusage.ru_inblock as _;
-            proc_.old_written_bytes = proc_.written_bytes;
-            proc_.written_bytes = kproc.ki_rusage.ru_oublock as _;
+            if refresh_kind.disk_usage() {
+                proc_.old_read_bytes = proc_.read_bytes;
+                proc_.read_bytes = kproc.ki_rusage.ru_inblock as _;
+                proc_.old_written_bytes = proc_.written_bytes;
+                proc_.written_bytes = kproc.ki_rusage.ru_oublock as _;
+            }
+
+            return Ok(None);
         }
-
-        return Ok(None);
     }
 
     // This is a new process, we need to get more information!
@@ -222,7 +244,6 @@ pub(crate) unsafe fn get_process_data(
     // .map(|s| s.into())
     // .unwrap_or_else(PathBuf::new);
 
-    let start_time = kproc.ki_start.tv_sec as u64;
     Ok(Some(Process {
         pid: Pid(kproc.ki_pid),
         parent,
@@ -249,6 +270,6 @@ pub(crate) unsafe fn get_process_data(
         old_read_bytes: 0,
         written_bytes: kproc.ki_rusage.ru_oublock as _,
         old_written_bytes: 0,
-        updated: true,
+        updated: false,
     }))
 }

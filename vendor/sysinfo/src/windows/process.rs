@@ -1,5 +1,6 @@
 // Take a look at the license at the top of the repository in the LICENSE file.
 
+use crate::sys::system::is_proc_running;
 use crate::sys::utils::to_str;
 use crate::{DiskUsage, Gid, Pid, ProcessExt, ProcessRefreshKind, ProcessStatus, Signal, Uid};
 
@@ -48,8 +49,8 @@ use winapi::um::securitybaseapi::GetTokenInformation;
 use winapi::um::winbase::{GetProcessIoCounters, CREATE_NO_WINDOW};
 use winapi::um::winnt::{
     TokenUser, HANDLE, HEAP_ZERO_MEMORY, IO_COUNTERS, MEMORY_BASIC_INFORMATION,
-    PROCESS_QUERY_INFORMATION, PROCESS_VM_READ, RTL_OSVERSIONINFOEXW, TOKEN_QUERY, TOKEN_USER,
-    ULARGE_INTEGER,
+    PROCESS_QUERY_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_READ,
+    RTL_OSVERSIONINFOEXW, TOKEN_QUERY, TOKEN_USER, ULARGE_INTEGER,
 };
 
 impl fmt::Display for ProcessStatus {
@@ -67,7 +68,19 @@ fn get_process_handler(pid: Pid) -> Option<HandleWrapper> {
     }
     let options = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ;
 
-    unsafe { HandleWrapper::new(OpenProcess(options, FALSE, pid.0 as DWORD)) }
+    HandleWrapper::new(unsafe { OpenProcess(options, FALSE, pid.0 as DWORD) })
+        .or_else(|| {
+            sysinfo_debug!("OpenProcess failed, error: {:?}", unsafe { GetLastError() });
+            HandleWrapper::new(unsafe {
+                OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid.0 as DWORD)
+            })
+        })
+        .or_else(|| {
+            sysinfo_debug!("OpenProcess limited failed, error: {:?}", unsafe {
+                GetLastError()
+            });
+            None
+        })
 }
 
 unsafe fn get_process_user_id(
@@ -266,11 +279,11 @@ unsafe fn get_h_mod(process_handler: &HandleWrapper, h_mod: &mut *mut c_void) ->
     ) != 0
 }
 
-unsafe fn get_exe(process_handler: &HandleWrapper, h_mod: *mut c_void) -> PathBuf {
+unsafe fn get_exe(process_handler: &HandleWrapper) -> PathBuf {
     let mut exe_buf = [0u16; MAX_PATH + 1];
     GetModuleFileNameExW(
         **process_handler,
-        h_mod as _,
+        std::ptr::null_mut(),
         exe_buf.as_mut_ptr(),
         MAX_PATH as DWORD + 1,
     );
@@ -306,7 +319,7 @@ impl Process {
                 String::new()
             };
 
-            let exe = get_exe(&process_handler, h_mod);
+            let exe = get_exe(&process_handler);
             let mut root = exe.clone();
             root.pop();
             let (cmd, environ, cwd) = match get_process_params(&process_handler) {
@@ -316,7 +329,7 @@ impl Process {
                     (Vec::new(), Vec::new(), PathBuf::new())
                 }
             };
-            let (start_time, run_time) = get_start_and_run_time(&process_handler, now);
+            let (start_time, run_time) = get_start_and_run_time(*process_handler, now);
             let parent = if info.InheritedFromUniqueProcessId as usize != 0 {
                 Some(Pid(info.InheritedFromUniqueProcessId as _))
             } else {
@@ -360,14 +373,8 @@ impl Process {
         refresh_kind: ProcessRefreshKind,
     ) -> Process {
         if let Some(handle) = get_process_handler(pid) {
-            let mut h_mod = null_mut();
-
             unsafe {
-                let exe = if get_h_mod(&handle, &mut h_mod) {
-                    get_exe(&handle, h_mod)
-                } else {
-                    PathBuf::new()
-                };
+                let exe = get_exe(&handle);
                 let mut root = exe.clone();
                 root.pop();
                 let (cmd, environ, cwd) = match get_process_params(&handle) {
@@ -377,7 +384,7 @@ impl Process {
                         (Vec::new(), Vec::new(), PathBuf::new())
                     }
                 };
-                let (start_time, run_time) = get_start_and_run_time(&handle, now);
+                let (start_time, run_time) = get_start_and_run_time(*handle, now);
                 let user_id = get_process_user_id(&handle, refresh_kind);
                 Process {
                     handle: Some(Arc::new(handle)),
@@ -450,6 +457,10 @@ impl Process {
 
     pub(crate) fn get_handle(&self) -> Option<HANDLE> {
         self.handle.as_ref().map(|h| ***h)
+    }
+
+    pub(crate) fn get_start_time(&self) -> Option<u64> {
+        self.handle.as_ref().map(|handle| get_start_time(***handle))
     }
 }
 
@@ -537,25 +548,60 @@ impl ProcessExt for Process {
     fn group_id(&self) -> Option<Gid> {
         None
     }
+
+    fn wait(&self) {
+        if let Some(handle) = self.get_handle() {
+            while is_proc_running(handle) {
+                if get_start_time(handle) != self.start_time() {
+                    // PID owner changed so the previous process was finished!
+                    return;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        } else {
+            // In this case, we can't do anything so we just return.
+            sysinfo_debug!("can't wait on this process so returning");
+        }
+    }
 }
 
-unsafe fn get_start_and_run_time(handle: &HandleWrapper, now: u64) -> (u64, u64) {
+#[inline]
+unsafe fn get_process_times(handle: HANDLE) -> u64 {
     let mut fstart: FILETIME = zeroed();
     let mut x = zeroed();
 
     GetProcessTimes(
-        **handle,
+        handle,
         &mut fstart as *mut FILETIME,
         &mut x as *mut FILETIME,
         &mut x as *mut FILETIME,
         &mut x as *mut FILETIME,
     );
-    let tmp = super::utils::filetime_to_u64(fstart);
+    super::utils::filetime_to_u64(fstart)
+}
+
+#[inline]
+fn compute_start(process_times: u64) -> u64 {
     // 11_644_473_600 is the number of seconds between the Windows epoch (1601-01-01) and
     // the linux epoch (1970-01-01).
-    let start = tmp / 10_000_000 - 11_644_473_600;
-    let run_time = check_sub(now, start);
-    (start, run_time)
+    process_times / 10_000_000 - 11_644_473_600
+}
+
+fn get_start_and_run_time(handle: HANDLE, now: u64) -> (u64, u64) {
+    unsafe {
+        let process_times = get_process_times(handle);
+        let start = compute_start(process_times);
+        let run_time = check_sub(now, start);
+        (start, run_time)
+    }
+}
+
+#[inline]
+pub(crate) fn get_start_time(handle: HANDLE) -> u64 {
+    unsafe {
+        let process_times = get_process_times(handle);
+        compute_start(process_times)
+    }
 }
 
 #[allow(clippy::uninit_vec)]
@@ -976,7 +1022,7 @@ pub(crate) fn compute_cpu_usage(p: &mut Process, nb_cpus: u64) {
         }
 
         p.cpu_usage = 100.0
-            * (delta_user_time.saturating_add(delta_sys_time) as f32 / denominator as f32)
+            * (delta_user_time.saturating_add(delta_sys_time) as f32 / denominator)
             * nb_cpus as f32;
     }
 }
@@ -1011,8 +1057,8 @@ pub(crate) fn update_memory(p: &mut Process) {
                 size_of::<PROCESS_MEMORY_COUNTERS_EX>() as DWORD,
             ) != 0
             {
-                p.memory = (pmc.WorkingSetSize as u64) / 1_000;
-                p.virtual_memory = (pmc.PrivateUsage as u64) / 1_000;
+                p.memory = pmc.WorkingSetSize as _;
+                p.virtual_memory = pmc.PrivateUsage as _;
             }
         }
     }

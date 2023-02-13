@@ -132,7 +132,7 @@ endif
 			--instr-profile="$(TMPDIR)"/$@.profdata \
 			$(call BIN,"$(TMPDIR)"/$@) \
 			$$( \
-				for file in $(TMPDIR)/rustdoc-$@/*/rust_out; do \
+				for file in $(TMPDIR)/rustdoc-$@/*/rust_out*; do \
 				[ -x "$$file" ] && printf "%s %s " -object $$file; \
 				done \
 			) \

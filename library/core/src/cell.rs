@@ -1025,7 +1025,7 @@ impl<T: ?Sized> RefCell<T> {
     ///
     /// Since this method borrows `RefCell` mutably, it is statically guaranteed
     /// that no borrows to the underlying data exist. The dynamic checks inherent
-    /// in [`borrow_mut`] and most other methods of `RefCell` are therefor
+    /// in [`borrow_mut`] and most other methods of `RefCell` are therefore
     /// unnecessary.
     ///
     /// This method can only be called if `RefCell` can be mutably borrowed,
@@ -1856,7 +1856,7 @@ impl<T: ?Sized + fmt::Display> fmt::Display for RefMut<'_, T> {
 /// }
 /// ```
 ///
-/// Coverting in the other direction from a `&mut T`
+/// Converting in the other direction from a `&mut T`
 /// to an `&UnsafeCell<T>` is allowed:
 ///
 /// ```rust
@@ -1936,7 +1936,7 @@ impl<T> UnsafeCell<T> {
     /// Constructs a new instance of `UnsafeCell` which will wrap the specified
     /// value.
     ///
-    /// All access to the inner value through methods is `unsafe`.
+    /// All access to the inner value through `&UnsafeCell<T>` requires `unsafe` code.
     ///
     /// # Examples
     ///

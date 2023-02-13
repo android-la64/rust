@@ -1,0 +1,112 @@
+[
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "pl-US-x-waytoolongkey"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "pl-US-x-@A_3"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "pl-US-t-h0"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "pl-US-t-h0-x-foo"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "pl-US-t-h0"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "und-t-m0"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "und-t-m0-n0-mixed"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "da-u"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "da-u--"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "da-u-t-latn"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  },
+  {
+    "input": {
+      "type": "Locale",
+      "identifier": "cmn-hans-cn-u-u"
+    },
+    "output": {
+      "error": "InvalidExtension",
+      "text": "Invalid subtag"
+    }
+  }
+]

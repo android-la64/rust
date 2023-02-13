@@ -404,9 +404,11 @@ fn block_publish_due_to_no_token() {
     // Now perform the actual publish
     p.cargo("publish --registry alternative")
         .with_status(101)
-        .with_stderr_contains(
-            "error: no upload token found, \
-            please run `cargo login` or pass `--token`",
+        .with_stderr(
+            "\
+[UPDATING] `alternative` index
+error: no token found for `alternative`, please run `cargo login --registry alternative`
+or use environment variable CARGO_REGISTRIES_ALTERNATIVE_TOKEN",
         )
         .run();
 }
@@ -1286,6 +1288,25 @@ fn both_index_and_registry() {
                 "[ERROR] both `--index` and `--registry` \
                 should not be set at the same time",
             )
+            .run();
+    }
+}
+
+#[cargo_test]
+fn both_index_and_default() {
+    let p = project().file("src/lib.rs", "").build();
+    for cmd in &[
+        "publish",
+        "owner",
+        "search",
+        "yank --version 1.0.0",
+        "install foo",
+    ] {
+        p.cargo(cmd)
+            .env("CARGO_REGISTRY_DEFAULT", "undefined")
+            .arg(format!("--index=index_url"))
+            .with_status(101)
+            .with_stderr("[ERROR] invalid url `index_url`: relative URL without a base")
             .run();
     }
 }

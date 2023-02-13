@@ -1,9 +1,13 @@
-[![Build status](https://travis-ci.org/colin-kiegel/rust-pretty-assertions.svg?branch=master)](https://travis-ci.org/colin-kiegel/rust-pretty-assertions)
-[![Latest version](https://img.shields.io/crates/v/pretty-assertions.svg)](https://crates.io/crates/pretty-assertions)
-[![All downloads](https://img.shields.io/crates/d/pretty-assertions.svg)](https://crates.io/crates/pretty-assertions)
-[![Downloads of latest version](https://img.shields.io/crates/dv/pretty-assertions.svg)](https://crates.io/crates/pretty-assertions)
-
 # Pretty Assertions
+
+[![Latest version](https://img.shields.io/crates/v/pretty-assertions.svg)](https://crates.io/crates/pretty-assertions)
+[![docs.rs](https://img.shields.io/docsrs/pretty_assertions)](https://docs.rs/pretty_assertions)
+[![Downloads of latest version](https://img.shields.io/crates/dv/pretty-assertions.svg)](https://crates.io/crates/pretty-assertions)
+[![All downloads](https://img.shields.io/crates/d/pretty-assertions.svg)](https://crates.io/crates/pretty-assertions)
+
+Overwrite `assert_eq!` with a drop-in replacement, adding a colorful diff.
+
+## Usage
 
 When writing tests in Rust, you'll probably use `assert_eq!(a, b)` _a lot_.
 
@@ -11,11 +15,11 @@ If such a test fails, it will present all the details of `a` and `b`.
 But you have to spot the differences yourself, which is not always straightforward,
 like here:
 
-![standard assertion](https://raw.githubusercontent.com/colin-kiegel/rust-pretty-assertions/2d2357ff56d22c51a86b2f1cfe6efcee9f5a8081/examples/standard_assertion.png)
+![standard assertion](https://raw.githubusercontent.com/rust-pretty-assertions/rust-pretty-assertions/2d2357ff56d22c51a86b2f1cfe6efcee9f5a8081/examples/standard_assertion.png)
 
 Wouldn't that task be _much_ easier with a colorful diff?
 
-![pretty assertion](https://raw.githubusercontent.com/colin-kiegel/rust-pretty-assertions/2d2357ff56d22c51a86b2f1cfe6efcee9f5a8081/examples/pretty_assertion.png)
+![pretty assertion](https://raw.githubusercontent.com/rust-pretty-assertions/rust-pretty-assertions/2d2357ff56d22c51a86b2f1cfe6efcee9f5a8081/examples/pretty_assertion.png)
 
 Yep — and you only need **one line of code** to make it happen:
 
@@ -48,6 +52,13 @@ fn main() {
 
 </details>
 
+## Semantic Versioning
+
+The exact output of assertions is **not guaranteed** to be consistent over time, and may change between minor versions.
+The output of this crate is designed to be read by a human. It is not suitable for exact comparison, for example in snapshot testing.
+
+This crate adheres to semantic versioning for publically exported crate items, **except** the `private` module, which may change between any version.
+
 ## Tip
 
 Specify it as [`[dev-dependencies]`](http://doc.crates.io/specifying-dependencies.html#development-dependencies)
@@ -61,7 +72,7 @@ Also add `#[cfg(test)]` to your `use` statements, like this:
 use pretty_assertions::{assert_eq, assert_ne};
 ```
 
-## Note
+## Notes
 
 - Since `Rust 2018` edition, you need to declare
   `use pretty_assertions::{assert_eq, assert_ne};` per module.
@@ -73,6 +84,15 @@ use pretty_assertions::{assert_eq, assert_ne};
 - Under Windows, the terminal state is modified to properly handle VT100
   escape sequences, which may break display for certain use cases.
 - The minimum supported rust version (MSRV) is 1.35.0
+
+### `no_std` support
+
+For `no_std` support, disable the `std` feature and enable the `alloc` feature:
+
+```toml
+# Cargo.toml
+pretty_assertions = { version= "...", default-features = false, features = ["alloc"] }
+```
 
 ## License
 

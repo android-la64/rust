@@ -407,9 +407,8 @@ where
         self.drop_ladder(fields, succ, unwind).0
     }
 
+    #[instrument(level = "debug", ret)]
     fn open_drop_for_box(&mut self, adt: ty::AdtDef<'tcx>, substs: SubstsRef<'tcx>) -> BasicBlock {
-        debug!("open_drop_for_box({:?}, {:?}, {:?})", self, adt, substs);
-
         // drop glue is sent straight to codegen
         // box cannot be directly dereferenced
         let unique_ty = adt.non_enum_variant().fields[0].ty(self.tcx(), substs);
@@ -431,8 +430,8 @@ where
         self.drop_subpath(interior, interior_path, succ, unwind_succ)
     }
 
+    #[instrument(level = "debug", ret)]
     fn open_drop_for_adt(&mut self, adt: ty::AdtDef<'tcx>, substs: SubstsRef<'tcx>) -> BasicBlock {
-        debug!("open_drop_for_adt({:?}, {:?}, {:?})", self, adt, substs);
         if adt.variants().is_empty() {
             return self.elaborator.patch().new_block(BasicBlockData {
                 statements: vec![],
@@ -616,7 +615,7 @@ where
         let drop_trait = tcx.require_lang_item(LangItem::Drop, None);
         let drop_fn = tcx.associated_item_def_ids(drop_trait)[0];
         let ty = self.place_ty(self.place);
-        let substs = tcx.mk_substs_trait(ty, &[]);
+        let substs = tcx.mk_substs_trait(ty, []);
 
         let ref_ty =
             tcx.mk_ref(tcx.lifetimes.re_erased, ty::TypeAndMut { ty, mutbl: hir::Mutability::Mut });

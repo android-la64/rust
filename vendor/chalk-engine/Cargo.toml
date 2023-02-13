@@ -12,21 +12,29 @@
 [package]
 edition = "2018"
 name = "chalk-engine"
-version = "0.80.0"
-authors = ["Rust Compiler Team", "Chalk developers"]
+version = "0.87.0"
+authors = [
+    "Rust Compiler Team",
+    "Chalk developers",
+]
 description = "Core trait engine from Chalk project"
 readme = "README.md"
-keywords = ["compiler", "traits", "prolog"]
-license = "Apache-2.0/MIT"
+keywords = [
+    "compiler",
+    "traits",
+    "prolog",
+]
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/chalk"
+
 [dependencies.chalk-derive]
-version = "=0.80.0"
+version = "=0.87.0"
 
 [dependencies.chalk-ir]
-version = "=0.80.0"
+version = "=0.87.0"
 
 [dependencies.chalk-solve]
-version = "=0.80.0"
+version = "=0.87.0"
 
 [dependencies.rustc-hash]
 version = "1.1.0"

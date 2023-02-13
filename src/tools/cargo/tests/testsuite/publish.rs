@@ -122,6 +122,7 @@ fn simple() {
 [WARNING] manifest has no documentation, [..]
 See [..]
 [PACKAGING] foo v0.0.1 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] [..]
 ",
@@ -161,8 +162,8 @@ fn old_token_location() {
         .replace_crates_io(registry.index_url())
         .with_status(101)
         .with_stderr_contains(
-            "[ERROR] no upload token found, \
-            please run `cargo login` or pass `--token`",
+            "[ERROR] no token found, \
+            please run `cargo login`",
         )
         .run();
 
@@ -176,6 +177,7 @@ fn old_token_location() {
 [WARNING] manifest has no documentation, [..]
 See [..]
 [PACKAGING] foo v0.0.1 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] [..]
 ",
@@ -213,6 +215,7 @@ fn simple_with_index() {
         .arg(registry.index_url().as_str())
         .with_stderr(
             "\
+[..]
 [..]
 [..]
 [..]
@@ -414,6 +417,7 @@ fn publish_clean() {
 [VERIFYING] foo v0.0.1 ([CWD])
 [..]
 [..]
+[..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] [..]
 ",
@@ -457,6 +461,7 @@ fn publish_in_sub_repo() {
 [..]
 [..]
 [VERIFYING] foo v0.0.1 ([CWD])
+[..]
 [..]
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
@@ -504,6 +509,7 @@ fn publish_when_ignored() {
 [VERIFYING] foo v0.0.1 ([CWD])
 [..]
 [..]
+[..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] [..]
 ",
@@ -546,6 +552,7 @@ fn ignore_when_crate_ignored() {
 [..]
 [..]
 [VERIFYING] foo v0.0.1 ([CWD])
+[..]
 [..]
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
@@ -622,6 +629,7 @@ See [..]
 [VERIFYING] foo v0.0.1 ([CWD])
 [COMPILING] foo v0.0.1 [..]
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [WARNING] aborting upload due to dry run
 ",
@@ -739,6 +747,7 @@ fn publish_allowed_registry() {
 [VERIFYING] foo v0.0.1 ([CWD])
 [..]
 [..]
+[..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] `alternative` index
 ",
@@ -801,6 +810,7 @@ fn publish_implicitly_to_only_allowed_registry() {
 [UPDATING] `alternative` index
 [..]
 [VERIFYING] foo v0.0.1 ([CWD])
+[..]
 [..]
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
@@ -928,6 +938,7 @@ The registry `alternative` is not listed in the `package.publish` value in Cargo
 [VERIFYING] foo v0.0.1 ([CWD])
 [..]
 [..]
+[..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] crates.io index
 ",
@@ -975,6 +986,7 @@ fn publish_with_select_features() {
 [VERIFYING] foo v0.0.1 ([CWD])
 [..]
 [..]
+[..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] crates.io index
 ",
@@ -1020,6 +1032,7 @@ fn publish_with_all_features() {
 [..]
 [..]
 [VERIFYING] foo v0.0.1 ([CWD])
+[..]
 [..]
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
@@ -1132,6 +1145,7 @@ fn publish_with_patch() {
 [..]
 [..]
 [..]
+[..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] crates.io index
 ",
@@ -1200,10 +1214,7 @@ fn publish_checks_for_token_before_verify() {
     p.cargo("publish")
         .replace_crates_io(registry.index_url())
         .with_status(101)
-        .with_stderr_contains(
-            "[ERROR] no upload token found, \
-            please run `cargo login` or pass `--token`",
-        )
+        .with_stderr_contains("[ERROR] no token found, please run `cargo login`")
         .with_stderr_does_not_contain("[VERIFYING] foo v0.0.1 ([CWD])")
         .run();
 
@@ -1217,6 +1228,7 @@ fn publish_checks_for_token_before_verify() {
 [..]
 [..]
 [VERIFYING] foo v0.0.1 ([CWD])
+[..]
 [..]
 [..]
 [UPLOADING] foo v0.0.1 [..]
@@ -1334,6 +1346,7 @@ fn publish_git_with_version() {
         .replace_crates_io(registry.index_url())
         .with_stderr(
             "\
+[..]
 [..]
 [..]
 [..]
@@ -1466,6 +1479,7 @@ fn publish_dev_dep_no_version() {
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.1.0 [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.1.0 [..]
 [UPDATING] crates.io index
 ",
@@ -1545,6 +1559,7 @@ fn credentials_ambiguous_filename() {
         .replace_crates_io(registry.index_url())
         .with_stderr(
             "\
+[..]
 [WARNING] Both `[..]/credentials` and `[..]/credentials.toml` exist. Using `[..]/credentials`
 [..]
 [..]
@@ -1587,7 +1602,6 @@ fn index_requires_token() {
         .with_status(101)
         .with_stderr(
             "\
-[UPDATING] [..]
 [ERROR] command-line argument --index requires --token to be specified
 ",
         )
@@ -1653,6 +1667,7 @@ fn publish_with_missing_readme() {
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.1.0 [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.1.0 [..]
 [ERROR] failed to read `readme` file for package `foo v0.1.0 ([ROOT]/foo)`
 
@@ -1704,6 +1719,7 @@ fn api_error_json() {
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.0.1 [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 [..]
 [ERROR] failed to publish to registry at http://127.0.0.1:[..]/
 
@@ -1751,6 +1767,7 @@ fn api_error_200() {
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.0.1 [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 [..]
 [ERROR] failed to publish to registry at http://127.0.0.1:[..]/
 
@@ -1798,6 +1815,7 @@ fn api_error_code() {
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.0.1 [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 [..]
 [ERROR] failed to publish to registry at http://127.0.0.1:[..]/
 
@@ -1853,6 +1871,7 @@ fn api_curl_error() {
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.0.1 [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 [..]
 [ERROR] failed to publish to registry at http://127.0.0.1:[..]/
 
@@ -1900,6 +1919,7 @@ fn api_other_error() {
             "\
 [UPDATING] [..]
 [PACKAGING] foo v0.0.1 [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 [..]
 [ERROR] failed to publish to registry at http://127.0.0.1:[..]/
 
@@ -1959,6 +1979,7 @@ fn in_package_workspace() {
 [WARNING] manifest has no documentation, homepage or repository.
 See [..]
 [PACKAGING] li v0.0.1 ([CWD]/li)
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] li v0.0.1 ([CWD]/li)
 [UPDATING] crates.io index
 ",
@@ -2065,6 +2086,7 @@ fn in_package_workspace_with_members_with_features_old() {
 [WARNING] manifest has no documentation, homepage or repository.
 See [..]
 [PACKAGING] li v0.0.1 ([CWD]/li)
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] li v0.0.1 ([CWD]/li)
 [UPDATING] crates.io index
 ",
@@ -2156,6 +2178,7 @@ fn in_virtual_workspace_with_p() {
 [WARNING] manifest has no documentation, homepage or repository.
 See [..]
 [PACKAGING] li v0.0.1 ([CWD]/li)
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] li v0.0.1 ([CWD]/li)
 [UPDATING] crates.io index
 ",
@@ -2342,6 +2365,7 @@ fn http_api_not_noop() {
 [VERIFYING] foo v0.0.1 ([CWD])
 [..]
 [..]
+[..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPDATING] [..]
 ",
@@ -2370,7 +2394,7 @@ fn http_api_not_noop() {
 }
 
 #[cargo_test]
-fn wait_for_publish() {
+fn wait_for_first_publish() {
     // Counter for number of tries before the package is "published"
     let arc: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     let arc2 = arc.clone();
@@ -2382,7 +2406,6 @@ fn wait_for_publish() {
         .add_responder("/index/de/la/delay", move |req, server| {
             let mut lock = arc.lock().unwrap();
             *lock += 1;
-            // if the package name contains _ or -
             if *lock <= 1 {
                 server.not_found(req)
             } else {
@@ -2390,12 +2413,6 @@ fn wait_for_publish() {
             }
         })
         .build();
-
-    // The sparse-registry test server does not know how to publish on its own.
-    // So let us call publish for it.
-    Package::new("delay", "0.0.1")
-        .file("src/lib.rs", "")
-        .publish();
 
     let p = project()
         .file(
@@ -2423,6 +2440,7 @@ fn wait_for_publish() {
 [WARNING] manifest has no documentation, [..]
 See [..]
 [PACKAGING] delay v0.0.1 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] delay v0.0.1 ([CWD])
 [UPDATING] crates.io index
 [WAITING] on `delay` to propagate to crates.io index (ctrl-c to wait asynchronously)
@@ -2460,7 +2478,7 @@ See [..]
 /// the responder twice per cargo invocation. If that ever gets changed
 /// this test will need to be changed accordingly.
 #[cargo_test]
-fn wait_for_publish_underscore() {
+fn wait_for_first_publish_underscore() {
     // Counter for number of tries before the package is "published"
     let arc: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     let arc2 = arc.clone();
@@ -2472,20 +2490,13 @@ fn wait_for_publish_underscore() {
         .add_responder("/index/de/la/delay_with_underscore", move |req, server| {
             let mut lock = arc.lock().unwrap();
             *lock += 1;
-            // package names with - or _ hit the responder twice per cargo invocation
-            if *lock <= 2 {
+            if *lock <= 1 {
                 server.not_found(req)
             } else {
                 server.index(req)
             }
         })
         .build();
-
-    // The sparse-registry test server does not know how to publish on its own.
-    // So let us call publish for it.
-    Package::new("delay_with_underscore", "0.0.1")
-        .file("src/lib.rs", "")
-        .publish();
 
     let p = project()
         .file(
@@ -2513,6 +2524,7 @@ fn wait_for_publish_underscore() {
 [WARNING] manifest has no documentation, [..]
 See [..]
 [PACKAGING] delay_with_underscore v0.0.1 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] delay_with_underscore v0.0.1 ([CWD])
 [UPDATING] crates.io index
 [WAITING] on `delay_with_underscore` to propagate to crates.io index (ctrl-c to wait asynchronously)
@@ -2522,8 +2534,7 @@ See [..]
 
     // Verify the repsponder has been pinged
     let lock = arc2.lock().unwrap();
-    // NOTE: package names with - or _ hit the responder twice per cargo invocation
-    assert_eq!(*lock, 3);
+    assert_eq!(*lock, 2);
     drop(lock);
 
     let p = project()
@@ -2536,6 +2547,98 @@ See [..]
                 authors = []
                 [dependencies]
                 delay_with_underscore = "0.0.1"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("build -Z sparse-registry")
+        .masquerade_as_nightly_cargo(&["sparse-registry"])
+        .with_status(0)
+        .run();
+}
+
+#[cargo_test]
+fn wait_for_subsequent_publish() {
+    // Counter for number of tries before the package is "published"
+    let arc: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+    let arc2 = arc.clone();
+    let publish_req = Arc::new(Mutex::new(None));
+    let publish_req2 = publish_req.clone();
+
+    let registry = registry::RegistryBuilder::new()
+        .http_index()
+        .http_api()
+        .add_responder("/api/v1/crates/new", move |req, server| {
+            // Capture the publish request, but defer publishing
+            *publish_req.lock().unwrap() = Some(req.clone());
+            server.ok(req)
+        })
+        .add_responder("/index/de/la/delay", move |req, server| {
+            let mut lock = arc.lock().unwrap();
+            *lock += 1;
+            if *lock == 3 {
+                // Run the publish on the 3rd attempt
+                server.publish(&publish_req2.lock().unwrap().as_ref().unwrap());
+            }
+            server.index(req)
+        })
+        .build();
+
+    // Publish an earlier version
+    Package::new("delay", "0.0.1")
+        .file("src/lib.rs", "")
+        .publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "delay"
+                version = "0.0.2"
+                authors = []
+                license = "MIT"
+                description = "foo"
+
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("publish --no-verify -Z sparse-registry")
+        .masquerade_as_nightly_cargo(&["sparse-registry"])
+        .replace_crates_io(registry.index_url())
+        .with_status(0)
+        .with_stderr(
+            "\
+[UPDATING] crates.io index
+[WARNING] manifest has no documentation, [..]
+See [..]
+[PACKAGING] delay v0.0.2 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
+[UPLOADING] delay v0.0.2 ([CWD])
+[UPDATING] crates.io index
+[WAITING] on `delay` to propagate to crates.io index (ctrl-c to wait asynchronously)
+",
+        )
+        .run();
+
+    // Verify the responder has been pinged
+    let lock = arc2.lock().unwrap();
+    assert_eq!(*lock, 3);
+    drop(lock);
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+                [dependencies]
+                delay = "0.0.2"
             "#,
         )
         .file("src/main.rs", "fn main() {}")
@@ -2583,6 +2686,7 @@ fn skip_wait_for_publish() {
 [WARNING] manifest has no documentation, [..]
 See [..]
 [PACKAGING] foo v0.0.1 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 ",
         )

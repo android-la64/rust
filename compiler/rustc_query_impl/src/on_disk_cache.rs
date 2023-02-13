@@ -812,13 +812,13 @@ impl<'a, 'tcx> Decodable<CacheDecoder<'a, 'tcx>>
     }
 }
 
-impl<'a, 'tcx> Decodable<CacheDecoder<'a, 'tcx>> for &'tcx [ty::abstract_const::Node<'tcx>] {
+impl<'a, 'tcx> Decodable<CacheDecoder<'a, 'tcx>> for &'tcx [(ty::Predicate<'tcx>, Span)] {
     fn decode(d: &mut CacheDecoder<'a, 'tcx>) -> Self {
         RefDecodable::decode(d)
     }
 }
 
-impl<'a, 'tcx> Decodable<CacheDecoder<'a, 'tcx>> for &'tcx [(ty::Predicate<'tcx>, Span)] {
+impl<'a, 'tcx> Decodable<CacheDecoder<'a, 'tcx>> for &'tcx [(ty::Clause<'tcx>, Span)] {
     fn decode(d: &mut CacheDecoder<'a, 'tcx>) -> Self {
         RefDecodable::decode(d)
     }
@@ -1062,7 +1062,7 @@ pub fn encode_query_results<'a, 'tcx, CTX, Q>(
     query_result_index: &mut EncodedDepNodeIndex,
 ) where
     CTX: QueryContext + 'tcx,
-    Q: super::QueryDescription<CTX>,
+    Q: super::QueryConfig<CTX>,
     Q::Value: Encodable<CacheEncoder<'a, 'tcx>>,
 {
     let _timer = tcx

@@ -123,6 +123,13 @@ impl SystemExt for System {
         &mut []
     }
 
+    fn sort_disks_by<F>(&mut self, _compare: F)
+    where
+        F: FnMut(&Disk, &Disk) -> std::cmp::Ordering,
+    {
+        // does nothing.
+    }
+
     fn uptime(&self) -> u64 {
         0
     }
@@ -157,6 +164,10 @@ impl SystemExt for System {
 
     fn os_version(&self) -> Option<String> {
         None
+    }
+
+    fn distribution_id(&self) -> String {
+        std::env::consts::OS.to_owned()
     }
 
     fn host_name(&self) -> Option<String> {

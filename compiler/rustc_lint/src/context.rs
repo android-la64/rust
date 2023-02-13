@@ -206,7 +206,7 @@ impl LintStore {
         self.late_module_passes.push(Box::new(pass));
     }
 
-    // Helper method for register_early/late_pass
+    /// Helper method for register_early/late_pass
     pub fn register_lints(&mut self, lints: &[&'static Lint]) {
         for lint in lints {
             self.lints.push(lint);
@@ -579,6 +579,7 @@ pub trait LintContext: Sized {
     /// Return value of the `decorate` closure is ignored, see [`struct_lint_level`] for a detailed explanation.
     ///
     /// [`struct_lint_level`]: rustc_middle::lint::struct_lint_level#decorate-signature
+    #[rustc_lint_diagnostics]
     fn lookup_with_diagnostics(
         &self,
         lint: &'static Lint,
@@ -882,6 +883,7 @@ pub trait LintContext: Sized {
     /// Return value of the `decorate` closure is ignored, see [`struct_lint_level`] for a detailed explanation.
     ///
     /// [`struct_lint_level`]: rustc_middle::lint::struct_lint_level#decorate-signature
+    #[rustc_lint_diagnostics]
     fn lookup<S: Into<MultiSpan>>(
         &self,
         lint: &'static Lint,
@@ -908,6 +910,7 @@ pub trait LintContext: Sized {
     /// Return value of the `decorate` closure is ignored, see [`struct_lint_level`] for a detailed explanation.
     ///
     /// [`struct_lint_level`]: rustc_middle::lint::struct_lint_level#decorate-signature
+    #[rustc_lint_diagnostics]
     fn struct_span_lint<S: Into<MultiSpan>>(
         &self,
         lint: &'static Lint,
@@ -933,6 +936,7 @@ pub trait LintContext: Sized {
     /// Return value of the `decorate` closure is ignored, see [`struct_lint_level`] for a detailed explanation.
     ///
     /// [`struct_lint_level`]: rustc_middle::lint::struct_lint_level#decorate-signature
+    #[rustc_lint_diagnostics]
     fn lint(
         &self,
         lint: &'static Lint,
@@ -1155,7 +1159,7 @@ impl<'tcx> LateContext<'tcx> {
 
             fn print_dyn_existential(
                 self,
-                _predicates: &'tcx ty::List<ty::Binder<'tcx, ty::ExistentialPredicate<'tcx>>>,
+                _predicates: &'tcx ty::List<ty::PolyExistentialPredicate<'tcx>>,
             ) -> Result<Self::DynExistential, Self::Error> {
                 Ok(())
             }
@@ -1240,6 +1244,23 @@ impl<'tcx> LateContext<'tcx> {
         }
 
         AbsolutePathPrinter { tcx: self.tcx }.print_def_path(def_id, &[]).unwrap()
+    }
+
+    /// Returns the associated type `name` for `self_ty` as an implementation of `trait_id`.
+    /// Do not invoke without first verifying that the type implements the trait.
+    pub fn get_associated_type(
+        &self,
+        self_ty: Ty<'tcx>,
+        trait_id: DefId,
+        name: &str,
+    ) -> Option<Ty<'tcx>> {
+        let tcx = self.tcx;
+        tcx.associated_items(trait_id)
+            .find_by_name_and_kind(tcx, Ident::from_str(name), ty::AssocKind::Type, trait_id)
+            .and_then(|assoc| {
+                let proj = tcx.mk_projection(assoc.def_id, tcx.mk_substs_trait(self_ty, []));
+                tcx.try_normalize_erasing_regions(self.param_env, proj).ok()
+            })
     }
 }
 

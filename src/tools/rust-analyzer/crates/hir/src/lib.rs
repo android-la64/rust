@@ -117,7 +117,7 @@ pub use {
         name::{known, Name},
         ExpandResult, HirFileId, InFile, MacroFile, Origin,
     },
-    hir_ty::display::HirDisplay,
+    hir_ty::{display::HirDisplay, PointerCast, Safety},
 };
 
 // These are negative re-exports: pub using these names is forbidden, they
@@ -2995,7 +2995,16 @@ impl Type {
         let callee = match self.ty.kind(Interner) {
             TyKind::Closure(id, _) => Callee::Closure(*id),
             TyKind::Function(_) => Callee::FnPtr,
-            _ => Callee::Def(self.ty.callable_def(db)?),
+            TyKind::FnDef(..) => Callee::Def(self.ty.callable_def(db)?),
+            _ => {
+                let sig = hir_ty::callable_sig_from_fnonce(&self.ty, self.env.clone(), db)?;
+                return Some(Callable {
+                    ty: self.clone(),
+                    sig,
+                    callee: Callee::Other,
+                    is_bound_method: false,
+                });
+            }
         };
 
         let sig = self.ty.callable_sig(db)?;
@@ -3464,6 +3473,7 @@ enum Callee {
     Def(CallableDefId),
     Closure(ClosureId),
     FnPtr,
+    Other,
 }
 
 pub enum CallableKind {
@@ -3472,6 +3482,8 @@ pub enum CallableKind {
     TupleEnumVariant(Variant),
     Closure,
     FnPtr,
+    /// Some other type that implements `FnOnce`.
+    Other,
 }
 
 impl Callable {
@@ -3483,6 +3495,7 @@ impl Callable {
             Def(CallableDefId::EnumVariantId(it)) => CallableKind::TupleEnumVariant(it.into()),
             Closure(_) => CallableKind::Closure,
             FnPtr => CallableKind::FnPtr,
+            Other => CallableKind::Other,
         }
     }
     pub fn receiver_param(&self, db: &dyn HirDatabase) -> Option<ast::SelfParam> {
@@ -3636,6 +3649,28 @@ impl From<ItemInNs> for ScopeDef {
         }
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Adjust {
+    /// Go from ! to any type.
+    NeverToAny,
+    /// Dereference once, producing a place.
+    Deref(Option<OverloadedDeref>),
+    /// Take the address and produce either a `&` or `*` pointer.
+    Borrow(AutoBorrow),
+    Pointer(PointerCast),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum AutoBorrow {
+    /// Converts from T to &T.
+    Ref(Mutability),
+    /// Converts from T to *T.
+    RawPtr(Mutability),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct OverloadedDeref(pub Mutability);
 
 pub trait HasVisibility {
     fn visibility(&self, db: &dyn HirDatabase) -> Visibility;

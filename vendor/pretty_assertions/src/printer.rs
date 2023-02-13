@@ -1,8 +1,10 @@
-use ansi_term::{
-    Colour::{Fixed, Green, Red},
+#[cfg(feature = "alloc")]
+use alloc::format;
+use core::fmt;
+use yansi::{
+    Color::{Fixed, Green, Red, Unset},
     Style,
 };
-use std::fmt;
 
 macro_rules! paint {
     ($f:expr, $colour:expr, $fmt:expr, $($args:tt)*) => (
@@ -18,7 +20,7 @@ pub(crate) fn write_header(f: &mut fmt::Formatter) -> fmt::Result {
     writeln!(
         f,
         "{} {} / {} :",
-        Style::new().bold().paint("Diff"),
+        Style::new(Unset).bold().paint("Diff"),
         Red.paint(format!("{} left", SIGN_LEFT)),
         Green.paint(format!("right {}", SIGN_RIGHT))
     )
@@ -27,7 +29,7 @@ pub(crate) fn write_header(f: &mut fmt::Formatter) -> fmt::Result {
 /// Delay formatting this deleted chunk until later.
 ///
 /// It can be formatted as a whole chunk by calling `flush`, or the inner value
-/// obtained with `take` for further processing.
+/// obtained with `take` for further processing (such as an inline diff).
 #[derive(Default)]
 struct LatentDeletion<'a> {
     // The most recent deleted line we've seen
@@ -45,7 +47,7 @@ impl<'a> LatentDeletion<'a> {
 
     /// Take the underlying chunk value, if it's suitable for inline diffing.
     ///
-    /// If there is no value of we've seen more than one line, return `None`.
+    /// If there is no value or we've seen more than one line, return `None`.
     fn take(&mut self) -> Option<&'a str> {
         if self.count == 1 {
             self.value.take()
@@ -98,10 +100,6 @@ pub(crate) fn write_lines<TWrite: fmt::Write>(
                 previous_deletion.flush(f)?;
                 previous_deletion.set(deleted);
             }
-            // Underlying diff library should never return this sequence
-            (::diff::Result::Right(_), Some(::diff::Result::Left(_))) => {
-                panic!("insertion followed by deletion");
-            }
             // If we're being followed by more insertions, don't inline diff
             (::diff::Result::Right(inserted), Some(::diff::Result::Right(_))) => {
                 previous_deletion.flush(f)?;
@@ -141,7 +139,7 @@ where
     fn new(f: &'a mut Writer) -> Self {
         InlineWriter {
             f,
-            style: Style::new(),
+            style: Style::new(Unset),
         }
     }
 
@@ -152,10 +150,11 @@ where
             write!(self.f, "{}", c)?;
         } else {
             // Close out previous style
-            write!(self.f, "{}", self.style.suffix())?;
+            self.style.fmt_suffix(self.f)?;
 
             // Store new style and start writing it
-            write!(self.f, "{}{}", style.prefix(), c)?;
+            style.fmt_prefix(self.f)?;
+            write!(self.f, "{}", c)?;
             self.style = style;
         }
         Ok(())
@@ -164,8 +163,9 @@ where
     /// Finish any existing style and reset to default state.
     fn finish(&mut self) -> fmt::Result {
         // Close out previous style
-        writeln!(self.f, "{}", self.style.suffix())?;
-        self.style = Default::default();
+        self.style.fmt_suffix(self.f)?;
+        writeln!(self.f)?;
+        self.style = Style::new(Unset);
         Ok(())
     }
 }
@@ -180,8 +180,8 @@ fn write_inline_diff<TWrite: fmt::Write>(f: &mut TWrite, left: &str, right: &str
     let mut writer = InlineWriter::new(f);
 
     // Print the left string on one line, with differences highlighted
-    let light = Red.into();
-    let heavy = Red.on(Fixed(52)).bold();
+    let light = Style::new(Red);
+    let heavy = Style::new(Red).bg(Fixed(52)).bold();
     writer.write_with_style(&SIGN_LEFT, light)?;
     for change in diff.iter() {
         match change {
@@ -193,8 +193,8 @@ fn write_inline_diff<TWrite: fmt::Write>(f: &mut TWrite, left: &str, right: &str
     writer.finish()?;
 
     // Print the right string on one line, with differences highlighted
-    let light = Green.into();
-    let heavy = Green.on(Fixed(22)).bold();
+    let light = Style::new(Green);
+    let heavy = Style::new(Green).bg(Fixed(22)).bold();
     writer.write_with_style(&SIGN_RIGHT, light)?;
     for change in diff.iter() {
         match change {
@@ -209,6 +209,9 @@ fn write_inline_diff<TWrite: fmt::Write>(f: &mut TWrite, left: &str, right: &str
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[cfg(feature = "alloc")]
+    use alloc::string::String;
 
     // ANSI terminal codes used in our outputs.
     //
@@ -230,6 +233,8 @@ mod test {
         let mut actual = String::new();
         printer(&mut actual, left, right).expect("printer function failed");
 
+        // Cannot use IO without stdlib
+        #[cfg(feature = "std")]
         println!(
             "## left ##\n\
              {}\n\
@@ -470,5 +475,126 @@ Cabbage"#;
         );
 
         check_printer(write_lines, left, right, &expected);
+    }
+
+    mod write_lines_edge_newlines {
+        use super::*;
+
+        #[test]
+        fn both_trailing() {
+            let left = "fan\n";
+            let right = "mug\n";
+            // Note the additional space at the bottom is caused by a trailing newline
+            // adding an additional line with zero content to both sides of the diff
+            let expected = format!(
+                r#"{red_light}<{reset}{red_heavy}fan{reset}
+{green_light}>{reset}{green_heavy}mug{reset}
+ 
+"#,
+                red_light = RED_LIGHT,
+                red_heavy = RED_HEAVY,
+                green_light = GREEN_LIGHT,
+                green_heavy = GREEN_HEAVY,
+                reset = RESET,
+            );
+
+            check_printer(write_lines, left, right, &expected);
+        }
+
+        #[test]
+        fn both_leading() {
+            let left = "\nfan";
+            let right = "\nmug";
+            // Note the additional space at the top is caused by a leading newline
+            // adding an additional line with zero content to both sides of the diff
+            let expected = format!(
+                r#" 
+{red_light}<{reset}{red_heavy}fan{reset}
+{green_light}>{reset}{green_heavy}mug{reset}
+"#,
+                red_light = RED_LIGHT,
+                red_heavy = RED_HEAVY,
+                green_light = GREEN_LIGHT,
+                green_heavy = GREEN_HEAVY,
+                reset = RESET,
+            );
+
+            check_printer(write_lines, left, right, &expected);
+        }
+
+        #[test]
+        fn leading_added() {
+            let left = "fan";
+            let right = "\nmug";
+            let expected = format!(
+                r#"{red_light}<fan{reset}
+{green_light}>{reset}
+{green_light}>mug{reset}
+"#,
+                red_light = RED_LIGHT,
+                green_light = GREEN_LIGHT,
+                reset = RESET,
+            );
+
+            check_printer(write_lines, left, right, &expected);
+        }
+
+        #[test]
+        fn leading_deleted() {
+            let left = "\nfan";
+            let right = "mug";
+            let expected = format!(
+                r#"{red_light}<{reset}
+{red_light}<fan{reset}
+{green_light}>mug{reset}
+"#,
+                red_light = RED_LIGHT,
+                green_light = GREEN_LIGHT,
+                reset = RESET,
+            );
+
+            check_printer(write_lines, left, right, &expected);
+        }
+
+        #[test]
+        fn trailing_added() {
+            let left = "fan";
+            let right = "mug\n";
+            let expected = format!(
+                r#"{red_light}<fan{reset}
+{green_light}>mug{reset}
+{green_light}>{reset}
+"#,
+                red_light = RED_LIGHT,
+                green_light = GREEN_LIGHT,
+                reset = RESET,
+            );
+
+            check_printer(write_lines, left, right, &expected);
+        }
+
+        /// Regression test for double abort
+        ///
+        /// See: https://github.com/rust-pretty-assertions/rust-pretty-assertions/issues/96
+        #[test]
+        fn trailing_deleted() {
+            // The below inputs caused an abort via double panic
+            // we panicked at 'insertion followed by deletion'
+            let left = "fan\n";
+            let right = "mug";
+            let expected = format!(
+                r#"{red_light}<{reset}{red_heavy}fan{reset}
+{green_light}>{reset}{green_heavy}mug{reset}
+{red_light}<{reset}
+"#,
+                red_light = RED_LIGHT,
+                red_heavy = RED_HEAVY,
+                green_light = GREEN_LIGHT,
+                green_heavy = GREEN_HEAVY,
+                reset = RESET,
+            );
+
+            check_printer(write_lines, left, right, &expected);
+        }
     }
 }

@@ -126,11 +126,8 @@ impl SystemExt for System {
                         frequency = get_frequency_for_cpu(pos);
                     }
                 }
-                self.cpus.push(Cpu::new(
-                    format!("cpu {}", pos),
-                    vendor_id.clone(),
-                    frequency,
-                ));
+                self.cpus
+                    .push(Cpu::new(format!("cpu {pos}"), vendor_id.clone(), frequency));
             }
             self.global_cpu.vendor_id = vendor_id;
             self.got_cpu_frequency = refresh_kind.frequency();
@@ -307,6 +304,13 @@ impl SystemExt for System {
         &mut self.disks
     }
 
+    fn sort_disks_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&Disk, &Disk) -> std::cmp::Ordering,
+    {
+        self.disks.sort_unstable_by(compare);
+    }
+
     fn uptime(&self) -> u64 {
         unsafe {
             let csec = libc::time(::std::ptr::null_mut());
@@ -354,6 +358,10 @@ impl SystemExt for System {
     fn os_version(&self) -> Option<String> {
         self.system_info.get_os_release()
     }
+
+    fn distribution_id(&self) -> String {
+        std::env::consts::OS.to_owned()
+    }
 }
 
 impl Default for System {
@@ -376,10 +384,6 @@ impl System {
             use rayon::iter::{ParallelIterator, ParallelIterator as IterTrait};
             #[cfg(not(feature = "multithread"))]
             use std::iter::Iterator as IterTrait;
-
-            crate::utils::into_iter(&mut self.process_list).for_each(|(_, proc_)| {
-                proc_.updated = false;
-            });
 
             let fscale = self.system_info.fscale;
             let page_size = self.system_info.page_size as isize;
@@ -404,7 +408,8 @@ impl System {
         };
 
         // We remove all processes that don't exist anymore.
-        self.process_list.retain(|_, v| v.updated);
+        self.process_list
+            .retain(|_, v| std::mem::replace(&mut v.updated, false));
 
         for (kproc, proc_) in procs {
             self.add_missing_proc_info(kd, kproc, proc_);
@@ -651,8 +656,8 @@ impl SystemInfo {
                 )
             });
             (
-                used.saturating_mul(self.page_size as _) / 1_000,
-                total.saturating_mul(self.page_size as _) / 1_000,
+                used.saturating_mul(self.page_size as _),
+                total.saturating_mul(self.page_size as _),
             )
         }
     }
@@ -661,14 +666,14 @@ impl SystemInfo {
         let mut nb_pages: u64 = 0;
         unsafe {
             if get_sys_value(&self.virtual_page_count, &mut nb_pages) {
-                return nb_pages.saturating_mul(self.page_size as _) / 1_000;
+                return nb_pages.saturating_mul(self.page_size as _);
             }
 
             // This is a fallback. It includes all the available memory, not just the one available for
             // the users.
             let mut total_memory: u64 = 0;
             get_sys_value(&self.hw_physical_memory, &mut total_memory);
-            total_memory / 1_000
+            total_memory
         }
     }
 
@@ -686,10 +691,9 @@ impl SystemInfo {
             if let Some(arc_size) = self.zfs.arc_size() {
                 mem_wire -= arc_size;
             }
-            let used = mem_active
+            mem_active
                 .saturating_mul(self.page_size as _)
-                .saturating_add(mem_wire);
-            used / 1_000
+                .saturating_add(mem_wire)
         }
     }
 
@@ -705,11 +709,10 @@ impl SystemInfo {
             get_sys_value(&self.virtual_cache_count, &mut cached_mem);
             get_sys_value(&self.virtual_free_count, &mut free_mem);
             // For whatever reason, buffers_mem is already the right value...
-            let free = buffers_mem
-                .saturating_add(inactive_mem.saturating_mul(self.page_size as u64))
-                .saturating_add(cached_mem.saturating_mul(self.page_size as u64))
-                .saturating_add(free_mem.saturating_mul(self.page_size as u64));
-            free / 1_000
+            buffers_mem
+                .saturating_add(inactive_mem.saturating_mul(self.page_size as _))
+                .saturating_add(cached_mem.saturating_mul(self.page_size as _))
+                .saturating_add(free_mem.saturating_mul(self.page_size as _))
         }
     }
 
@@ -730,8 +733,10 @@ impl SystemInfo {
                 if i != libc::CP_IDLE as usize {
                     cp_diff += new_cp_time[i] - old_cp_time[i];
                 }
-                total_new += new_cp_time[i] as u64;
-                total_old += old_cp_time[i] as u64;
+                let mut tmp: u64 = new_cp_time[i] as _;
+                total_new += tmp;
+                tmp = old_cp_time[i] as _;
+                total_old += tmp;
             }
 
             let total_diff = total_new - total_old;

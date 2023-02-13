@@ -21,14 +21,9 @@ fn to_correct_name(s: &str) -> String {
 }
 
 fn check_md_doc_path(p: &Path, md_line: &str, ty_line: &str) -> bool {
-    let parts = md_line.split("/").collect::<Vec<_>>();
+    let parts = md_line.split('/').collect::<Vec<_>>();
     if let Some(md_name) = parts.last().and_then(|n| n.split(".md").next()) {
-        if let Some(name) = ty_line
-            .split_whitespace()
-            .filter(|s| !s.is_empty())
-            .skip(2)
-            .next()
-        {
+        if let Some(name) = ty_line.split_whitespace().filter(|s| !s.is_empty()).nth(2) {
             if let Some(name) = name
                 .split('<')
                 .next()
@@ -50,11 +45,11 @@ fn check_md_doc_path(p: &Path, md_line: &str, ty_line: &str) -> bool {
                 return false;
             }
         }
-        show_error(p, &format!("Cannot extract type name from `{}`", ty_line));
+        show_error(p, &format!("Cannot extract type name from `{ty_line}`"));
     } else {
-        show_error(p, &format!("Cannot extract md name from `{}`", md_line));
+        show_error(p, &format!("Cannot extract md name from `{md_line}`"));
     }
-    return false;
+    false
 }
 
 fn check_doc_comments_before(p: &Path, lines: &[&str], start: usize) -> bool {

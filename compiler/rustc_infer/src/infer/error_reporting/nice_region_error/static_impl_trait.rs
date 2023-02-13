@@ -4,7 +4,7 @@ use crate::infer::error_reporting::nice_region_error::NiceRegionError;
 use crate::infer::lexical_region_resolve::RegionResolutionError;
 use crate::infer::{SubregionOrigin, TypeTrace};
 use crate::traits::{ObligationCauseCode, UnifyReceiverContext};
-use rustc_data_structures::fx::FxHashSet;
+use rustc_data_structures::fx::FxIndexSet;
 use rustc_errors::{struct_span_err, Applicability, Diagnostic, ErrorGuaranteed, MultiSpan};
 use rustc_hir::def_id::DefId;
 use rustc_hir::intravisit::{walk_ty, Visitor};
@@ -236,7 +236,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             // Same case of `impl Foo for dyn Bar { fn qux(&self) {} }` introducing a `'static`
             // lifetime as above, but called using a fully-qualified path to the method:
             // `Foo::qux(bar)`.
-            let mut v = TraitObjectVisitor(FxHashSet::default());
+            let mut v = TraitObjectVisitor(FxIndexSet::default());
             v.visit_ty(param.param_ty);
             if let Some((ident, self_ty)) =
                 self.get_impl_ident_and_self_ty_from_trait(item_def_id, &v.0)
@@ -314,10 +314,10 @@ pub fn suggest_new_region_bound(
                     .iter()
                     .filter_map(|arg| match arg {
                         GenericBound::Outlives(Lifetime {
-                            name: LifetimeName::Static,
-                            span,
+                            res: LifetimeName::Static,
+                            ident,
                             ..
-                        }) => Some(*span),
+                        }) => Some(ident.span),
                         _ => None,
                     })
                     .next()
@@ -342,10 +342,10 @@ pub fn suggest_new_region_bound(
                     .bounds
                     .iter()
                     .filter_map(|arg| match arg {
-                        GenericBound::Outlives(Lifetime { name, span, .. })
-                            if name.ident().to_string() == lifetime_name =>
+                        GenericBound::Outlives(Lifetime { ident, .. })
+                            if ident.name.to_string() == lifetime_name =>
                         {
-                            Some(*span)
+                            Some(ident.span)
                         }
                         _ => None,
                     })
@@ -361,8 +361,8 @@ pub fn suggest_new_region_bound(
                     );
                 }
             }
-            TyKind::TraitObject(_, lt, _) => match lt.name {
-                LifetimeName::ImplicitObjectLifetimeDefault => {
+            TyKind::TraitObject(_, lt, _) => {
+                if let LifetimeName::ImplicitObjectLifetimeDefault = lt.res {
                     err.span_suggestion_verbose(
                         fn_return.span.shrink_to_hi(),
                         &format!(
@@ -374,15 +374,14 @@ pub fn suggest_new_region_bound(
                         &plus_lt,
                         Applicability::MaybeIncorrect,
                     );
-                }
-                name if name.ident().to_string() != lifetime_name => {
+                } else if lt.ident.name.to_string() != lifetime_name {
                     // With this check we avoid suggesting redundant bounds. This
                     // would happen if there are nested impl/dyn traits and only
                     // one of them has the bound we'd suggest already there, like
                     // in `impl Foo<X = dyn Bar> + '_`.
                     if let Some(explicit_static) = &explicit_static {
                         err.span_suggestion_verbose(
-                            lt.span,
+                            lt.ident.span,
                             &format!("{} the trait object's {}", consider, explicit_static),
                             &lifetime_name,
                             Applicability::MaybeIncorrect,
@@ -397,8 +396,7 @@ pub fn suggest_new_region_bound(
                         );
                     }
                 }
-                _ => {}
-            },
+            }
             _ => {}
         }
     }
@@ -408,7 +406,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
     fn get_impl_ident_and_self_ty_from_trait(
         &self,
         def_id: DefId,
-        trait_objects: &FxHashSet<DefId>,
+        trait_objects: &FxIndexSet<DefId>,
     ) -> Option<(Ident, &'tcx hir::Ty<'tcx>)> {
         let tcx = self.tcx();
         match tcx.hir().get_if_local(def_id) {
@@ -490,7 +488,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             return false;
         };
 
-        let mut v = TraitObjectVisitor(FxHashSet::default());
+        let mut v = TraitObjectVisitor(FxIndexSet::default());
         v.visit_ty(ty);
 
         // Get the `Ident` of the method being called and the corresponding `impl` (to point at
@@ -506,7 +504,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
     fn suggest_constrain_dyn_trait_in_impl(
         &self,
         err: &mut Diagnostic,
-        found_dids: &FxHashSet<DefId>,
+        found_dids: &FxIndexSet<DefId>,
         ident: Ident,
         self_ty: &hir::Ty<'_>,
     ) -> bool {
@@ -538,7 +536,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
 }
 
 /// Collect all the trait objects in a type that could have received an implicit `'static` lifetime.
-pub struct TraitObjectVisitor(pub FxHashSet<DefId>);
+pub struct TraitObjectVisitor(pub FxIndexSet<DefId>);
 
 impl<'tcx> TypeVisitor<'tcx> for TraitObjectVisitor {
     fn visit_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
@@ -561,7 +559,7 @@ impl<'a, 'tcx> Visitor<'tcx> for HirTraitObjectVisitor<'a> {
     fn visit_ty(&mut self, t: &'tcx hir::Ty<'tcx>) {
         if let TyKind::TraitObject(
             poly_trait_refs,
-            Lifetime { name: LifetimeName::ImplicitObjectLifetimeDefault, .. },
+            Lifetime { res: LifetimeName::ImplicitObjectLifetimeDefault, .. },
             _,
         ) = t.kind
         {

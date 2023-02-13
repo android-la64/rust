@@ -8,11 +8,11 @@ pub use self::job::{print_query_stack, QueryInfo, QueryJob, QueryJobId, QueryJob
 
 mod caches;
 pub use self::caches::{
-    ArenaCacheSelector, CacheSelector, DefaultCacheSelector, QueryCache, QueryStorage,
+    CacheSelector, DefaultCacheSelector, QueryCache, QueryStorage, VecCacheSelector,
 };
 
 mod config;
-pub use self::config::{QueryConfig, QueryDescription, QueryVTable};
+pub use self::config::{QueryConfig, QueryVTable};
 
 use crate::dep_graph::{DepNodeIndex, HasDepContext, SerializedDepNodeIndex};
 use rustc_data_structures::sync::Lock;

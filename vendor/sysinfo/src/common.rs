@@ -283,7 +283,7 @@ on Windows as other platforms get this information alongside the Process informa
     );
 }
 
-/// Used to determine what you want to refresh specifically on the [`Process`] type.
+/// Used to determine what you want to refresh specifically on the [`Cpu`] type.
 ///
 /// ⚠️ Just like all other refresh types, ruling out a refresh doesn't assure you that
 /// the information won't be retrieved if the information is accessible without needing
@@ -302,7 +302,7 @@ on Windows as other platforms get this information alongside the Process informa
 /// }
 /// ```
 ///
-/// [`Process`]: crate::Process
+/// [`Cpu`]: crate::Cpu
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CpuRefreshKind {
     cpu_usage: bool,
@@ -667,7 +667,7 @@ macro_rules! xid {
     ($(#[$outer:meta])+ $name:ident, $type:ty) => {
         $(#[$outer])+
         #[repr(transparent)]
-        #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+        #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
         pub struct $name(pub(crate) $type);
 
         impl std::ops::Deref for $name {

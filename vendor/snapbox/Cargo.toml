@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56.1"
+rust-version = "1.60.0"
 name = "snapbox"
-version = "0.3.3"
+version = "0.4.1"
 include = [
     "build.rs",
     "src/**/*",
@@ -36,7 +36,6 @@ keywords = [
 categories = ["development-tools::testing"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/assert-rs/trycmd/"
-resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -92,7 +91,8 @@ version = "0.3"
 optional = true
 
 [dependencies.concolor]
-version = "0.0.8"
+version = "0.0.9"
+features = ["std"]
 optional = true
 
 [dependencies.content_inspector]
@@ -100,7 +100,7 @@ version = "0.2.4"
 optional = true
 
 [dependencies.document-features]
-version = "0.2.3"
+version = "0.2.6"
 optional = true
 
 [dependencies.dunce]
@@ -115,8 +115,12 @@ optional = true
 version = "0.4"
 optional = true
 
+[dependencies.libc]
+version = "0.2.137"
+optional = true
+
 [dependencies.libtest-mimic]
-version = "0.4.0"
+version = "0.5.2"
 optional = true
 
 [dependencies.normalize-line-endings]
@@ -124,6 +128,10 @@ version = "0.3.0"
 
 [dependencies.os_pipe]
 version = "1.0"
+optional = true
+
+[dependencies.serde_json]
+version = "1.0.85"
 optional = true
 
 [dependencies.similar]
@@ -146,18 +154,28 @@ optional = true
 version = "2.3.2"
 optional = true
 
+[dependencies.winapi]
+version = "0.3.9"
+features = [
+    "consoleapi",
+    "minwindef",
+]
+optional = true
+
 [dependencies.yansi]
 version = "0.5.0"
 optional = true
 
 [features]
 cmd = [
-    "os_pipe",
-    "wait-timeout",
+    "dep:os_pipe",
+    "dep:wait-timeout",
+    "dep:libc",
+    "dep:winapi",
 ]
 color = [
-    "yansi",
-    "concolor/std",
+    "dep:yansi",
+    "concolor",
 ]
 color-auto = [
     "color",
@@ -165,22 +183,24 @@ color-auto = [
 ]
 debug = [
     "snapbox-macros/debug",
-    "backtrace",
+    "dep:backtrace",
 ]
 default = [
     "color-auto",
     "diff",
 ]
-detect-encoding = ["content_inspector"]
-diff = ["similar"]
+detect-encoding = ["dep:content_inspector"]
+diff = ["dep:similar"]
 harness = [
-    "libtest-mimic",
-    "ignore",
+    "dep:libtest-mimic",
+    "dep:ignore",
 ]
+json = ["structured-data"]
 path = [
-    "tempfile",
-    "walkdir",
-    "dunce",
+    "dep:tempfile",
+    "dep:walkdir",
+    "dep:dunce",
     "detect-encoding",
-    "filetime",
+    "dep:filetime",
 ]
+structured-data = ["dep:serde_json"]

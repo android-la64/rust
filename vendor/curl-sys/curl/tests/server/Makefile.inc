@@ -18,6 +18,8 @@
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
 #
+# SPDX-License-Identifier: curl
+#
 ###########################################################################
 
 noinst_PROGRAMS = getpart resolve rtspd sockfilt sws tftpd fake_ntlm    \
@@ -29,7 +31,6 @@ CURLX_SRCS = \
  ../../lib/strtoofft.c \
  ../../lib/warnless.c \
  ../../lib/timediff.c \
- ../../lib/curl_ctype.c \
  ../../lib/dynbuf.c \
  ../../lib/strdup.c \
  ../../lib/curl_multibyte.c

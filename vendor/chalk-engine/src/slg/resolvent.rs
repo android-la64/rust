@@ -3,7 +3,7 @@ use crate::slg::ResolventOps;
 use crate::{ExClause, Literal, TimeStamp};
 use chalk_ir::cast::Caster;
 use chalk_ir::fold::shift::Shift;
-use chalk_ir::fold::Fold;
+use chalk_ir::fold::TypeFoldable;
 use chalk_ir::interner::{HasInterner, Interner};
 use chalk_ir::zip::{Zip, Zipper};
 use chalk_ir::*;
@@ -614,8 +614,7 @@ impl<'i, I: Interner> Zipper<I> for AnswerSubstitutor<'i, I> {
 
             (LifetimeData::Static, LifetimeData::Static)
             | (LifetimeData::Placeholder(_), LifetimeData::Placeholder(_))
-            | (LifetimeData::Erased, LifetimeData::Erased)
-            | (LifetimeData::Empty(_), LifetimeData::Empty(_)) => {
+            | (LifetimeData::Erased, LifetimeData::Erased) => {
                 assert_eq!(answer, pending);
                 Ok(())
             }
@@ -628,8 +627,7 @@ impl<'i, I: Interner> Zipper<I> for AnswerSubstitutor<'i, I> {
             (LifetimeData::Static, _)
             | (LifetimeData::BoundVar(_), _)
             | (LifetimeData::Placeholder(_), _)
-            | (LifetimeData::Erased, _)
-            | (LifetimeData::Empty(_), _) => panic!(
+            | (LifetimeData::Erased, _) => panic!(
                 "structural mismatch between answer `{:?}` and pending goal `{:?}`",
                 answer, pending,
             ),
@@ -708,7 +706,7 @@ impl<'i, I: Interner> Zipper<I> for AnswerSubstitutor<'i, I> {
         pending: &Binders<T>,
     ) -> Fallible<()>
     where
-        T: HasInterner<Interner = I> + Zip<I> + Fold<I, Result = T>,
+        T: HasInterner<Interner = I> + Zip<I> + TypeFoldable<I>,
     {
         self.outer_binder.shift_in();
         Zip::zip_with(

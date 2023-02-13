@@ -16,15 +16,15 @@
 //! namespace. So with the checking here, they may fail, but they won't be able
 //! to succeed with bogus results.
 
-use crate::fd::{AsFd, BorrowedFd};
+use crate::fd::{AsFd, BorrowedFd, OwnedFd};
 use crate::ffi::CStr;
 use crate::fs::{
     cwd, fstat, fstatfs, major, openat, renameat, Dir, FileType, Mode, OFlags, Stat,
     PROC_SUPER_MAGIC,
 };
-use crate::io::{self, OwnedFd};
+use crate::io;
 use crate::path::DecInt;
-use crate::process::{getgid, getpid, getuid, Gid, RawGid, RawUid, Uid};
+use crate::process::getpid;
 #[cfg(feature = "rustc-dep-of-std")]
 use core::lazy::OnceCell;
 #[cfg(not(feature = "rustc-dep-of-std"))]
@@ -47,11 +47,9 @@ fn check_proc_entry(
     kind: Kind,
     entry: BorrowedFd<'_>,
     proc_stat: Option<&Stat>,
-    uid: RawUid,
-    gid: RawGid,
 ) -> io::Result<Stat> {
     let entry_stat = fstat(entry)?;
-    check_proc_entry_with_stat(kind, entry, entry_stat, proc_stat, uid, gid)
+    check_proc_entry_with_stat(kind, entry, entry_stat, proc_stat)
 }
 
 /// Check a subdirectory of "/proc" for anomalies, using the provided `Stat`.
@@ -60,8 +58,6 @@ fn check_proc_entry_with_stat(
     entry: BorrowedFd<'_>,
     entry_stat: Stat,
     proc_stat: Option<&Stat>,
-    uid: RawUid,
-    gid: RawGid,
 ) -> io::Result<Stat> {
     // Check the filesystem magic.
     check_procfs(entry)?;
@@ -70,13 +66,6 @@ fn check_proc_entry_with_stat(
         Kind::Proc => check_proc_root(entry, &entry_stat)?,
         Kind::Pid | Kind::Fd => check_proc_subdir(entry, &entry_stat, proc_stat)?,
         Kind::File => check_proc_file(&entry_stat, proc_stat)?,
-    }
-
-    // Check the ownership of the directory. We can't do that for the toplevel
-    // "/proc" though, because in e.g. a user namespace scenario, root outside
-    // the container may be mapped to another uid like `nobody`.
-    if !matches!(kind, Kind::Proc) && (entry_stat.st_uid, entry_stat.st_gid) != (uid, gid) {
-        return Err(io::Errno::NOTSUP);
     }
 
     // "/proc" directories are typically mounted r-xr-xr-x.
@@ -207,6 +196,7 @@ fn is_mountpoint(file: BorrowedFd<'_>) -> bool {
 /// Open a directory in `/proc`, mapping all errors to `io::Errno::NOTSUP`.
 fn proc_opendirat<P: crate::path::Arg, Fd: AsFd>(dirfd: Fd, path: P) -> io::Result<OwnedFd> {
     // We could add `PATH`|`NOATIME` here but Linux 2.6.32 doesn't support it.
+    // Also for `NOATIME` see the comment in `open_and_check_file`.
     let oflags = OFlags::NOFOLLOW | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY;
     openat(dirfd, path, oflags, Mode::empty()).map_err(|_err| io::Errno::NOTSUP)
 }
@@ -229,14 +219,8 @@ fn proc() -> io::Result<(BorrowedFd<'static>, &'static Stat)> {
     PROC.get_or_try_init(|| {
         // Open "/proc".
         let proc = proc_opendirat(cwd(), cstr!("/proc"))?;
-        let proc_stat = check_proc_entry(
-            Kind::Proc,
-            proc.as_fd(),
-            None,
-            Uid::ROOT.as_raw(),
-            Gid::ROOT.as_raw(),
-        )
-        .map_err(|_err| io::Errno::NOTSUP)?;
+        let proc_stat =
+            check_proc_entry(Kind::Proc, proc.as_fd(), None).map_err(|_err| io::Errno::NOTSUP)?;
 
         Ok(new_static_fd(proc, proc_stat))
     })
@@ -260,19 +244,13 @@ fn proc_self() -> io::Result<(BorrowedFd<'static>, &'static Stat)> {
         .get_or_try_init(|| {
             let (proc, proc_stat) = proc()?;
 
-            let (uid, gid, pid) = (getuid(), getgid(), getpid());
+            let pid = getpid();
 
             // Open "/proc/self". Use our pid to compute the name rather than literally
             // using "self", as "self" is a symlink.
             let proc_self = proc_opendirat(proc, DecInt::new(pid.as_raw_nonzero().get()))?;
-            let proc_self_stat = check_proc_entry(
-                Kind::Pid,
-                proc_self.as_fd(),
-                Some(proc_stat),
-                uid.as_raw(),
-                gid.as_raw(),
-            )
-            .map_err(|_err| io::Errno::NOTSUP)?;
+            let proc_self_stat = check_proc_entry(Kind::Pid, proc_self.as_fd(), Some(proc_stat))
+                .map_err(|_err| io::Errno::NOTSUP)?;
 
             Ok(new_static_fd(proc_self, proc_self_stat))
         })
@@ -297,18 +275,13 @@ pub fn proc_self_fd() -> io::Result<BorrowedFd<'static>> {
         .get_or_try_init(|| {
             let (_, proc_stat) = proc()?;
 
-            let (proc_self, proc_self_stat) = proc_self()?;
+            let (proc_self, _proc_self_stat) = proc_self()?;
 
             // Open "/proc/self/fd".
             let proc_self_fd = proc_opendirat(proc_self, cstr!("fd"))?;
-            let proc_self_fd_stat = check_proc_entry(
-                Kind::Fd,
-                proc_self_fd.as_fd(),
-                Some(proc_stat),
-                proc_self_stat.st_uid,
-                proc_self_stat.st_gid,
-            )
-            .map_err(|_err| io::Errno::NOTSUP)?;
+            let proc_self_fd_stat =
+                check_proc_entry(Kind::Fd, proc_self_fd.as_fd(), Some(proc_stat))
+                    .map_err(|_err| io::Errno::NOTSUP)?;
 
             Ok(new_static_fd(proc_self_fd, proc_self_fd_stat))
         })
@@ -333,24 +306,19 @@ fn new_static_fd(fd: OwnedFd, stat: Stat) -> (OwnedFd, Stat) {
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man5/proc.5.html
 fn proc_self_fdinfo() -> io::Result<(BorrowedFd<'static>, &'static Stat)> {
-    static PROC_SELF_FDINFO: OnceCell<(OwnedFd, Stat)> = OnceCell::new();
+    static PROC_SELF_FDINFO: StaticFd = StaticFd::new();
 
     PROC_SELF_FDINFO
         .get_or_try_init(|| {
             let (_, proc_stat) = proc()?;
 
-            let (proc_self, proc_self_stat) = proc_self()?;
+            let (proc_self, _proc_self_stat) = proc_self()?;
 
             // Open "/proc/self/fdinfo".
             let proc_self_fdinfo = proc_opendirat(proc_self, cstr!("fdinfo"))?;
-            let proc_self_fdinfo_stat = check_proc_entry(
-                Kind::Fd,
-                proc_self_fdinfo.as_fd(),
-                Some(proc_stat),
-                proc_self_stat.st_uid,
-                proc_self_stat.st_gid,
-            )
-            .map_err(|_err| io::Errno::NOTSUP)?;
+            let proc_self_fdinfo_stat =
+                check_proc_entry(Kind::Fd, proc_self_fdinfo.as_fd(), Some(proc_stat))
+                    .map_err(|_err| io::Errno::NOTSUP)?;
 
             Ok((proc_self_fdinfo, proc_self_fdinfo_stat))
         })
@@ -410,6 +378,21 @@ pub fn proc_self_maps() -> io::Result<OwnedFd> {
     proc_self_file(cstr!("maps"))
 }
 
+/// Returns a handle to a Linux `/proc/self/status` file.
+///
+/// This ensures that `/proc/self/status` is `procfs`, that nothing is
+/// mounted on top of it, and that it looks normal.
+///
+/// # References
+///  - [Linux]
+///
+/// [Linux]: https://man7.org/linux/man-pages/man5/proc.5.html
+#[inline]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "procfs")))]
+pub fn proc_self_status() -> io::Result<OwnedFd> {
+    proc_self_file(cstr!("status"))
+}
+
 /// Open a file under `/proc/self`.
 fn proc_self_file(name: &CStr) -> io::Result<OwnedFd> {
     let (proc_self, proc_self_stat) = proc_self()?;
@@ -420,9 +403,14 @@ fn proc_self_file(name: &CStr) -> io::Result<OwnedFd> {
 fn open_and_check_file(dir: BorrowedFd, dir_stat: &Stat, name: &CStr) -> io::Result<OwnedFd> {
     let (_, proc_stat) = proc()?;
 
-    let oflags =
-        OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NOFOLLOW | OFlags::NOCTTY | OFlags::NOATIME;
-    let file = openat(&dir, name, oflags, Mode::empty()).map_err(|_err| io::Errno::NOTSUP)?;
+    // Don't use `NOATIME`, because it [requires us to own the file], and when
+    // a process sets itself non-dumpable Linux changes the user:group of its
+    // `/proc/<pid>` files [to root:root].
+    //
+    // [requires us to own the file]: https://man7.org/linux/man-pages/man2/openat.2.html
+    // [to root:root]: https://man7.org/linux/man-pages/man5/proc.5.html
+    let oflags = OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NOFOLLOW | OFlags::NOCTTY;
+    let file = openat(dir, name, oflags, Mode::empty()).map_err(|_err| io::Errno::NOTSUP)?;
     let file_stat = fstat(&file)?;
 
     // `is_mountpoint` only works on directory mount points, not file mount
@@ -455,14 +443,8 @@ fn open_and_check_file(dir: BorrowedFd, dir_stat: &Stat, name: &CStr) -> io::Res
             && entry.file_name() == name
         {
             // We found the file. Proceed to check the file handle.
-            let _ = check_proc_entry_with_stat(
-                Kind::File,
-                file.as_fd(),
-                file_stat,
-                Some(proc_stat),
-                dir_stat.st_uid,
-                dir_stat.st_gid,
-            )?;
+            let _ =
+                check_proc_entry_with_stat(Kind::File, file.as_fd(), file_stat, Some(proc_stat))?;
 
             found_file = true;
         } else if entry.ino() == dir_stat.st_ino

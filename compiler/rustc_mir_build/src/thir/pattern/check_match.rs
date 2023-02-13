@@ -79,7 +79,10 @@ impl<'tcx> Visitor<'tcx> for MatchVisitor<'_, '_, 'tcx> {
         intravisit::walk_local(self, loc);
         let els = loc.els;
         if let Some(init) = loc.init && els.is_some() {
-            self.check_let(&loc.pat, init, loc.span);
+            // Build a span without the else { ... } as we don't want to underline
+            // the entire else block in the IDE setting.
+            let span = loc.span.with_hi(init.span.hi());
+            self.check_let(&loc.pat, init, span);
         }
 
         let (msg, sp) = match loc.source {
@@ -507,7 +510,7 @@ impl<'p, 'tcx> MatchVisitor<'_, 'p, 'tcx> {
                                 _ => "aren't",
                             },
                         ),
-                        " else { todo!() }".to_string(),
+                        " else { todo!() }",
                         Applicability::HasPlaceholders,
                     );
                 }
@@ -561,7 +564,7 @@ fn check_for_bindings_named_same_as_variants(
             && let ty::Adt(edef, _) = pat_ty.kind()
             && edef.is_enum()
             && edef.variants().iter().any(|variant| {
-                variant.ident(cx.tcx) == ident && variant.ctor_kind == CtorKind::Const
+                variant.ident(cx.tcx) == ident && variant.ctor_kind() == Some(CtorKind::Const)
             })
         {
             let variant_count = edef.variants().len();
@@ -630,11 +633,6 @@ fn irrefutable_let_patterns(
     count: usize,
     span: Span,
 ) {
-    let span = match source {
-        LetSource::LetElse(span) => span,
-        _ => span,
-    };
-
     macro_rules! emit_diag {
         (
             $lint:expr,
@@ -680,7 +678,7 @@ fn irrefutable_let_patterns(
                 "removing the guard and adding a `let` inside the match arm"
             );
         }
-        LetSource::LetElse(..) => {
+        LetSource::LetElse => {
             emit_diag!(
                 lint,
                 "`let...else`",
@@ -820,7 +818,7 @@ fn non_exhaustive_match<'p, 'tcx>(
         }
     }
     if let ty::Ref(_, sub_ty, _) = scrut_ty.kind() {
-        if cx.tcx.is_ty_uninhabited_from(cx.module, *sub_ty, cx.param_env) {
+        if !sub_ty.is_inhabited_from(cx.tcx, cx.module, cx.param_env) {
             err.note("references are always considered inhabited");
         }
     }
@@ -1046,11 +1044,19 @@ fn check_borrow_conflicts_in_at_patterns(cx: &MatchVisitor<'_, '_, '_>, pat: &Pa
                     name,
                     typeck_results.node_type(pat.hir_id),
                 );
-                sess.struct_span_err(pat.span, "borrow of moved value")
-                    .span_label(binding_span, format!("value moved into `{}` here", name))
+                let mut err = sess.struct_span_err(pat.span, "borrow of moved value");
+                err.span_label(binding_span, format!("value moved into `{}` here", name))
                     .span_label(binding_span, occurs_because)
-                    .span_labels(conflicts_ref, "value borrowed here after move")
-                    .emit();
+                    .span_labels(conflicts_ref, "value borrowed here after move");
+                if pat.span.contains(binding_span) {
+                    err.span_suggestion_verbose(
+                        binding_span.shrink_to_lo(),
+                        "borrow this binding in the pattern to avoid moving the value",
+                        "ref ".to_string(),
+                        Applicability::MachineApplicable,
+                    );
+                }
+                err.emit();
             }
             return;
         }
@@ -1127,7 +1133,7 @@ pub enum LetSource {
     GenericLet,
     IfLet,
     IfLetGuard,
-    LetElse(Span),
+    LetElse,
     WhileLet,
 }
 
@@ -1156,8 +1162,8 @@ fn let_source_parent(tcx: TyCtxt<'_>, parent: HirId, pat_id: Option<HirId>) -> L
     let parent_parent = hir.get_parent_node(parent);
     let parent_parent_node = hir.get(parent_parent);
     match parent_parent_node {
-        hir::Node::Stmt(hir::Stmt { kind: hir::StmtKind::Local(_), span, .. }) => {
-            return LetSource::LetElse(*span);
+        hir::Node::Stmt(hir::Stmt { kind: hir::StmtKind::Local(_), .. }) => {
+            return LetSource::LetElse;
         }
         hir::Node::Arm(hir::Arm { guard: Some(hir::Guard::If(_)), .. }) => {
             return LetSource::IfLetGuard;

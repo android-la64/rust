@@ -8,13 +8,18 @@
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/IntrinsicsARM.h"
 #include "llvm/IR/Mangler.h"
+#if LLVM_VERSION_GE(16, 0)
+#include "llvm/Support/ModRef.h"
+#endif
 #include "llvm/Object/Archive.h"
 #include "llvm/Object/COFFImportFile.h"
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Pass.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Support/Signals.h"
+#if LLVM_VERSION_LT(16, 0)
 #include "llvm/ADT/Optional.h"
+#endif
 
 #include <iostream>
 
@@ -213,8 +218,6 @@ static Attribute::AttrKind fromRust(LLVMRustAttribute Kind) {
     return Attribute::ReturnsTwice;
   case ReadNone:
     return Attribute::ReadNone;
-  case InaccessibleMemOnly:
-    return Attribute::InaccessibleMemOnly;
   case SanitizeHWAddress:
     return Attribute::SanitizeHWAddress;
   case WillReturn:
@@ -376,6 +379,43 @@ extern "C" LLVMAttributeRef LLVMRustCreateAllocKindAttr(LLVMContextRef C, uint64
 #else
   report_fatal_error(
       "allockind attributes are new in LLVM 15 and should not be used on older LLVMs");
+#endif
+}
+
+// Simplified representation of `MemoryEffects` across the FFI boundary.
+//
+// Each variant corresponds to one of the static factory methods on `MemoryEffects`.
+enum class LLVMRustMemoryEffects {
+  None,
+  ReadOnly,
+  InaccessibleMemOnly,
+};
+
+extern "C" LLVMAttributeRef LLVMRustCreateMemoryEffectsAttr(LLVMContextRef C,
+                                                            LLVMRustMemoryEffects Effects) {
+#if LLVM_VERSION_GE(16, 0)
+  switch (Effects) {
+    case LLVMRustMemoryEffects::None:
+      return wrap(Attribute::getWithMemoryEffects(*unwrap(C), MemoryEffects::none()));
+    case LLVMRustMemoryEffects::ReadOnly:
+      return wrap(Attribute::getWithMemoryEffects(*unwrap(C), MemoryEffects::readOnly()));
+    case LLVMRustMemoryEffects::InaccessibleMemOnly:
+      return wrap(Attribute::getWithMemoryEffects(*unwrap(C),
+                                                  MemoryEffects::inaccessibleMemOnly()));
+    default:
+      report_fatal_error("bad MemoryEffects.");
+  }
+#else
+  switch (Effects) {
+    case LLVMRustMemoryEffects::None:
+      return wrap(Attribute::get(*unwrap(C), Attribute::ReadNone));
+    case LLVMRustMemoryEffects::ReadOnly:
+      return wrap(Attribute::get(*unwrap(C), Attribute::ReadOnly));
+    case LLVMRustMemoryEffects::InaccessibleMemOnly:
+      return wrap(Attribute::get(*unwrap(C), Attribute::InaccessibleMemOnly));
+    default:
+      report_fatal_error("bad MemoryEffects.");
+  }
 #endif
 }
 
@@ -670,7 +710,11 @@ enum class LLVMRustChecksumKind {
   SHA256,
 };
 
+#if LLVM_VERSION_LT(16, 0)
 static Optional<DIFile::ChecksumKind> fromRust(LLVMRustChecksumKind Kind) {
+#else
+static std::optional<DIFile::ChecksumKind> fromRust(LLVMRustChecksumKind Kind) {
+#endif
   switch (Kind) {
   case LLVMRustChecksumKind::None:
     return None;
@@ -749,8 +793,18 @@ extern "C" LLVMMetadataRef LLVMRustDIBuilderCreateFile(
     const char *Filename, size_t FilenameLen,
     const char *Directory, size_t DirectoryLen, LLVMRustChecksumKind CSKind,
     const char *Checksum, size_t ChecksumLen) {
+
+#if LLVM_VERSION_LT(16, 0)
   Optional<DIFile::ChecksumKind> llvmCSKind = fromRust(CSKind);
+#else
+  std::optional<DIFile::ChecksumKind> llvmCSKind = fromRust(CSKind);
+#endif
+
+#if LLVM_VERSION_LT(16, 0)
   Optional<DIFile::ChecksumInfo<StringRef>> CSInfo{};
+#else
+  std::optional<DIFile::ChecksumInfo<StringRef>> CSInfo{};
+#endif
   if (llvmCSKind)
     CSInfo.emplace(*llvmCSKind, StringRef{Checksum, ChecksumLen});
   return wrap(Builder->createFile(StringRef(Filename, FilenameLen),
@@ -998,8 +1052,9 @@ extern "C" LLVMValueRef LLVMRustDIBuilderInsertDeclareAtEnd(
 
 extern "C" LLVMMetadataRef LLVMRustDIBuilderCreateEnumerator(
     LLVMRustDIBuilderRef Builder, const char *Name, size_t NameLen,
-    int64_t Value, bool IsUnsigned) {
-  return wrap(Builder->createEnumerator(StringRef(Name, NameLen), Value, IsUnsigned));
+    const uint64_t Value[2], unsigned SizeInBits, bool IsUnsigned) {
+  return wrap(Builder->createEnumerator(StringRef(Name, NameLen),
+      APSInt(APInt(SizeInBits, makeArrayRef(Value, 2)), IsUnsigned)));
 }
 
 extern "C" LLVMMetadataRef LLVMRustDIBuilderCreateEnumerationType(
@@ -1071,6 +1126,10 @@ extern "C" uint64_t LLVMRustDIBuilderCreateOpDeref() {
 
 extern "C" uint64_t LLVMRustDIBuilderCreateOpPlusUconst() {
   return dwarf::DW_OP_plus_uconst;
+}
+
+extern "C" int64_t LLVMRustDIBuilderCreateOpLLVMFragment() {
+  return dwarf::DW_OP_LLVM_fragment;
 }
 
 extern "C" void LLVMRustWriteTypeToString(LLVMTypeRef Ty, RustStringRef Str) {
@@ -1923,4 +1982,8 @@ extern "C" int32_t LLVMRustGetElementTypeArgIndex(LLVMValueRef CallSite) {
     }
 #endif
     return -1;
+}
+
+extern "C" bool LLVMRustIsBitcode(char *ptr, size_t len) {
+  return identify_magic(StringRef(ptr, len)) == file_magic::bitcode;
 }

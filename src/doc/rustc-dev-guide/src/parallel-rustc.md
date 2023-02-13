@@ -26,7 +26,7 @@ occurs in the `rustc_codegen_ssa::base` module.
 
 The underlying thread-safe data-structures used in the parallel compiler
 can be found in the `rustc_data_structures::sync` module. These data structures 
-are implemented diferently depending on whether `parallel-compiler` is true.
+are implemented differently depending on whether `parallel-compiler` is true.
 
 | data structure                   | parallel                                            | non-parallel |
 | -------------------------------- | --------------------------------------------------- | ------------ |
@@ -141,7 +141,7 @@ the previous `Data Structures` and `Parallel Iterators`. See [this tracking issu
 
 ## Rustdoc
 
-As of <!-- date-check--> May 2022, there are still a number of steps
+As of <!-- date-check--> November 2022, there are still a number of steps
 to complete before rustdoc rendering can be made parallel. More details on
 this issue can be found [here][parallel-rustdoc].
 

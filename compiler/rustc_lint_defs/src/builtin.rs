@@ -605,7 +605,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```
+    /// ```rust
     /// #[warn(unused_tuple_struct_fields)]
     /// struct S(i32, i32, i32);
     /// let s = S(1, 2, 3);
@@ -1154,7 +1154,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```compile_fail
+    /// ```rust,compile_fail
     /// #[repr(packed)]
     /// pub struct Foo {
     ///     field1: u64,
@@ -2615,7 +2615,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```compile_fail
+    /// ```rust,compile_fail
     /// # #![allow(unused)]
     /// enum E {
     ///     A,
@@ -3330,7 +3330,6 @@ declare_lint_pass! {
         UNUSED_TUPLE_STRUCT_FIELDS,
         NON_EXHAUSTIVE_OMITTED_PATTERNS,
         TEXT_DIRECTION_CODEPOINT_IN_COMMENT,
-        DEREF_INTO_DYN_SUPERTRAIT,
         DEPRECATED_CFG_ATTR_CRATE_TYPE_NAME,
         DUPLICATE_MACRO_ATTRIBUTES,
         SUSPICIOUS_AUTO_TRAIT_IMPLS,
@@ -3339,6 +3338,7 @@ declare_lint_pass! {
         FFI_UNWIND_CALLS,
         REPR_TRANSPARENT_EXTERNAL_PRIVATE_FIELDS,
         NAMED_ARGUMENTS_USED_POSITIONALLY,
+        IMPLIED_BOUNDS_ENTAILMENT,
     ]
 }
 
@@ -3833,51 +3833,6 @@ declare_lint! {
 }
 
 declare_lint! {
-    /// The `deref_into_dyn_supertrait` lint is output whenever there is a use of the
-    /// `Deref` implementation with a `dyn SuperTrait` type as `Output`.
-    ///
-    /// These implementations will become shadowed when the `trait_upcasting` feature is stabilized.
-    /// The `deref` functions will no longer be called implicitly, so there might be behavior change.
-    ///
-    /// ### Example
-    ///
-    /// ```rust,compile_fail
-    /// #![deny(deref_into_dyn_supertrait)]
-    /// #![allow(dead_code)]
-    ///
-    /// use core::ops::Deref;
-    ///
-    /// trait A {}
-    /// trait B: A {}
-    /// impl<'a> Deref for dyn 'a + B {
-    ///     type Target = dyn A;
-    ///     fn deref(&self) -> &Self::Target {
-    ///         todo!()
-    ///     }
-    /// }
-    ///
-    /// fn take_a(_: &dyn A) { }
-    ///
-    /// fn take_b(b: &dyn B) {
-    ///     take_a(b);
-    /// }
-    /// ```
-    ///
-    /// {{produces}}
-    ///
-    /// ### Explanation
-    ///
-    /// The dyn upcasting coercion feature adds new coercion rules, taking priority
-    /// over certain other coercion rules, which will cause some behavior change.
-    pub DEREF_INTO_DYN_SUPERTRAIT,
-    Warn,
-    "`Deref` implementation usage with a supertrait trait object for output might be shadowed in the future",
-    @future_incompatible = FutureIncompatibleInfo {
-        reference: "issue #89460 <https://github.com/rust-lang/rust/issues/89460>",
-    };
-}
-
-declare_lint! {
     /// The `duplicate_macro_attributes` lint detects when a `#[test]`-like built-in macro
     /// attribute is duplicated on an item. This lint may trigger on `bench`, `cfg_eval`, `test`
     /// and `test_case`.
@@ -3986,7 +3941,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```
+    /// ```rust
     /// #![allow(test_unstable_lint)]
     /// ```
     ///
@@ -4070,4 +4025,45 @@ declare_lint! {
     pub NAMED_ARGUMENTS_USED_POSITIONALLY,
     Warn,
     "named arguments in format used positionally"
+}
+
+declare_lint! {
+    /// The `implied_bounds_entailment` lint detects cases where the arguments of an impl method
+    /// have stronger implied bounds than those from the trait method it's implementing.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// #![deny(implied_bounds_entailment)]
+    ///
+    /// trait Trait {
+    ///     fn get<'s>(s: &'s str, _: &'static &'static ()) -> &'static str;
+    /// }
+    ///
+    /// impl Trait for () {
+    ///     fn get<'s>(s: &'s str, _: &'static &'s ()) -> &'static str {
+    ///         s
+    ///     }
+    /// }
+    ///
+    /// let val = <() as Trait>::get(&String::from("blah blah blah"), &&());
+    /// println!("{}", val);
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// Neither the trait method, which provides no implied bounds about `'s`, nor the impl,
+    /// requires the main function to prove that 's: 'static, but the impl method is allowed
+    /// to assume that `'s: 'static` within its own body.
+    ///
+    /// This can be used to implement an unsound API if used incorrectly.
+    pub IMPLIED_BOUNDS_ENTAILMENT,
+    Warn,
+    "impl method assumes more implied bounds than its corresponding trait method",
+    @future_incompatible = FutureIncompatibleInfo {
+        reference: "issue #105572 <https://github.com/rust-lang/rust/issues/105572>",
+        reason: FutureIncompatibilityReason::FutureReleaseError,
+    };
 }

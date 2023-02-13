@@ -286,6 +286,7 @@ impl Session {
     }
 
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_span_warn<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -294,6 +295,7 @@ impl Session {
         self.diagnostic().struct_span_warn(sp, msg)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_span_warn_with_expectation<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -303,6 +305,7 @@ impl Session {
         self.diagnostic().struct_span_warn_with_expectation(sp, msg, id)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_span_warn_with_code<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -312,10 +315,12 @@ impl Session {
         self.diagnostic().struct_span_warn_with_code(sp, msg, code)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_warn(&self, msg: impl Into<DiagnosticMessage>) -> DiagnosticBuilder<'_, ()> {
         self.diagnostic().struct_warn(msg)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_warn_with_expectation(
         &self,
         msg: impl Into<DiagnosticMessage>,
@@ -324,6 +329,7 @@ impl Session {
         self.diagnostic().struct_warn_with_expectation(msg, id)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_span_allow<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -332,10 +338,12 @@ impl Session {
         self.diagnostic().struct_span_allow(sp, msg)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_allow(&self, msg: impl Into<DiagnosticMessage>) -> DiagnosticBuilder<'_, ()> {
         self.diagnostic().struct_allow(msg)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_expect(
         &self,
         msg: impl Into<DiagnosticMessage>,
@@ -344,6 +352,7 @@ impl Session {
         self.diagnostic().struct_expect(msg, id)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_span_err<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -352,6 +361,7 @@ impl Session {
         self.diagnostic().struct_span_err(sp, msg)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_span_err_with_code<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -362,12 +372,14 @@ impl Session {
     }
     // FIXME: This method should be removed (every error should have an associated error code).
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_err(
         &self,
         msg: impl Into<DiagnosticMessage>,
     ) -> DiagnosticBuilder<'_, ErrorGuaranteed> {
         self.parse_sess.struct_err(msg)
     }
+    #[track_caller]
     #[rustc_lint_diagnostics]
     pub fn struct_err_with_code(
         &self,
@@ -377,6 +389,7 @@ impl Session {
         self.diagnostic().struct_err_with_code(msg, code)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_warn_with_code(
         &self,
         msg: impl Into<DiagnosticMessage>,
@@ -385,6 +398,7 @@ impl Session {
         self.diagnostic().struct_warn_with_code(msg, code)
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn struct_span_fatal<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -407,6 +421,7 @@ impl Session {
     }
 
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn span_fatal<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<DiagnosticMessage>) -> ! {
         self.diagnostic().span_fatal(sp, msg)
     }
@@ -424,6 +439,7 @@ impl Session {
         self.diagnostic().fatal(msg).raise()
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn span_err_or_warn<S: Into<MultiSpan>>(
         &self,
         is_warning: bool,
@@ -437,6 +453,7 @@ impl Session {
         }
     }
     #[rustc_lint_diagnostics]
+    #[track_caller]
     pub fn span_err<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -457,12 +474,14 @@ impl Session {
     pub fn err(&self, msg: impl Into<DiagnosticMessage>) -> ErrorGuaranteed {
         self.diagnostic().err(msg)
     }
+    #[track_caller]
     pub fn create_err<'a>(
         &'a self,
         err: impl IntoDiagnostic<'a>,
     ) -> DiagnosticBuilder<'a, ErrorGuaranteed> {
         self.parse_sess.create_err(err)
     }
+    #[track_caller]
     pub fn create_feature_err<'a>(
         &'a self,
         err: impl IntoDiagnostic<'a>,
@@ -475,33 +494,40 @@ impl Session {
         add_feature_diagnostics(&mut err, &self.parse_sess, feature);
         err
     }
+    #[track_caller]
     pub fn emit_err<'a>(&'a self, err: impl IntoDiagnostic<'a>) -> ErrorGuaranteed {
         self.parse_sess.emit_err(err)
     }
+    #[track_caller]
     pub fn create_warning<'a>(
         &'a self,
         err: impl IntoDiagnostic<'a, ()>,
     ) -> DiagnosticBuilder<'a, ()> {
         self.parse_sess.create_warning(err)
     }
+    #[track_caller]
     pub fn emit_warning<'a>(&'a self, warning: impl IntoDiagnostic<'a, ()>) {
         self.parse_sess.emit_warning(warning)
     }
+    #[track_caller]
     pub fn create_note<'a>(
         &'a self,
         note: impl IntoDiagnostic<'a, Noted>,
     ) -> DiagnosticBuilder<'a, Noted> {
         self.parse_sess.create_note(note)
     }
+    #[track_caller]
     pub fn emit_note<'a>(&'a self, note: impl IntoDiagnostic<'a, Noted>) -> Noted {
         self.parse_sess.emit_note(note)
     }
+    #[track_caller]
     pub fn create_fatal<'a>(
         &'a self,
         fatal: impl IntoDiagnostic<'a, !>,
     ) -> DiagnosticBuilder<'a, !> {
         self.parse_sess.create_fatal(fatal)
     }
+    #[track_caller]
     pub fn emit_fatal<'a>(&'a self, fatal: impl IntoDiagnostic<'a, !>) -> ! {
         self.parse_sess.emit_fatal(fatal)
     }
@@ -512,8 +538,11 @@ impl Session {
     pub fn has_errors(&self) -> Option<ErrorGuaranteed> {
         self.diagnostic().has_errors()
     }
-    pub fn has_errors_or_delayed_span_bugs(&self) -> bool {
+    pub fn has_errors_or_delayed_span_bugs(&self) -> Option<ErrorGuaranteed> {
         self.diagnostic().has_errors_or_delayed_span_bugs()
+    }
+    pub fn is_compilation_going_to_fail(&self) -> Option<ErrorGuaranteed> {
+        self.diagnostic().is_compilation_going_to_fail()
     }
     pub fn abort_if_errors(&self) {
         self.diagnostic().abort_if_errors();
@@ -536,11 +565,15 @@ impl Session {
         if self.err_count() == old_count {
             Ok(result)
         } else {
-            Err(ErrorGuaranteed::unchecked_claim_error_was_emitted())
+            Err(self.delay_span_bug(
+                rustc_span::DUMMY_SP,
+                "`self.err_count()` changed but an error was not emitted",
+            ))
         }
     }
     #[allow(rustc::untranslatable_diagnostic)]
     #[allow(rustc::diagnostic_outside_of_impl)]
+    #[track_caller]
     pub fn span_warn<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<DiagnosticMessage>) {
         self.diagnostic().span_warn(sp, msg)
     }
@@ -587,6 +620,8 @@ impl Session {
     pub fn note_without_error(&self, msg: impl Into<DiagnosticMessage>) {
         self.diagnostic().note_without_error(msg)
     }
+
+    #[track_caller]
     pub fn span_note_without_error<S: Into<MultiSpan>>(
         &self,
         sp: S,
@@ -917,6 +952,17 @@ impl Session {
     ) -> Option<Symbol> {
         attrs.iter().find(|at| at.has_name(name)).and_then(|at| at.value_str())
     }
+
+    pub fn diagnostic_width(&self) -> usize {
+        let default_column_width = 140;
+        if let Some(width) = self.opts.diagnostic_width {
+            width
+        } else if self.opts.unstable_opts.ui_testing {
+            default_column_width
+        } else {
+            termize::dimensions().map_or(default_column_width, |(w, _)| w)
+        }
+    }
 }
 
 // JUSTIFICATION: defn of the suggested wrapper fns
@@ -989,11 +1035,8 @@ impl Session {
                 return config::Lto::Fat;
             }
             config::LtoCli::Thin => {
-                return if self.opts.cli_forced_thinlto_off {
-                    config::Lto::Fat
-                } else {
-                    config::Lto::Thin
-                };
+                // The user explicitly asked for ThinLTO
+                return config::Lto::Thin;
             }
         }
 
@@ -1005,7 +1048,7 @@ impl Session {
 
         // If processing command line options determined that we're incompatible
         // with ThinLTO (e.g., `-C lto --emit llvm-ir`) then return that option.
-        if self.opts.cli_forced_thinlto_off {
+        if self.opts.cli_forced_local_thinlto_off {
             return config::Lto::No;
         }
 
@@ -1213,6 +1256,7 @@ fn default_emitter(
     fallback_bundle: LazyFallbackBundle,
 ) -> Box<dyn Emitter + sync::Send> {
     let macro_backtrace = sopts.unstable_opts.macro_backtrace;
+    let track_diagnostics = sopts.unstable_opts.track_diagnostics;
     match sopts.error_format {
         config::ErrorOutputType::HumanReadable(kind) => {
             let (short, color_config) = kind.unzip();
@@ -1236,6 +1280,7 @@ fn default_emitter(
                     sopts.unstable_opts.teach,
                     sopts.diagnostic_width,
                     macro_backtrace,
+                    track_diagnostics,
                 );
                 Box::new(emitter.ui_testing(sopts.unstable_opts.ui_testing))
             }
@@ -1250,6 +1295,7 @@ fn default_emitter(
                 json_rendered,
                 sopts.diagnostic_width,
                 macro_backtrace,
+                track_diagnostics,
             )
             .ui_testing(sopts.unstable_opts.ui_testing),
         ),
@@ -1280,7 +1326,7 @@ pub fn build_session(
 
     let sysroot = match &sopts.maybe_sysroot {
         Some(sysroot) => sysroot.clone(),
-        None => filesearch::get_or_default_sysroot(),
+        None => filesearch::get_or_default_sysroot().expect("Failed finding sysroot"),
     };
 
     let target_cfg = config::build_target_config(&sopts, target_override, &sysroot);
@@ -1325,7 +1371,7 @@ pub fn build_session(
         let profiler = SelfProfiler::new(
             directory,
             sopts.crate_name.as_deref(),
-            sopts.unstable_opts.self_profile_events.as_ref().map(|xs| &xs[..]),
+            sopts.unstable_opts.self_profile_events.as_deref(),
             &sopts.unstable_opts.self_profile_counter,
         );
         match profiler {
@@ -1359,7 +1405,7 @@ pub fn build_session(
         local_crate_source_file.map(|path| file_path_mapping.map_prefix(path).0);
 
     let optimization_fuel = Lock::new(OptimizationFuel {
-        remaining: sopts.unstable_opts.fuel.as_ref().map_or(0, |i| i.1),
+        remaining: sopts.unstable_opts.fuel.as_ref().map_or(0, |&(_, i)| i),
         out_of_fuel: false,
     });
     let print_fuel = AtomicU64::new(0);
@@ -1552,11 +1598,18 @@ fn early_error_handler(output: config::ErrorOutputType) -> rustc_errors::Handler
                 false,
                 None,
                 false,
+                false,
             ))
         }
-        config::ErrorOutputType::Json { pretty, json_rendered } => {
-            Box::new(JsonEmitter::basic(pretty, json_rendered, None, fallback_bundle, None, false))
-        }
+        config::ErrorOutputType::Json { pretty, json_rendered } => Box::new(JsonEmitter::basic(
+            pretty,
+            json_rendered,
+            None,
+            fallback_bundle,
+            None,
+            false,
+            false,
+        )),
     };
     rustc_errors::Handler::with_emitter(true, None, emitter)
 }

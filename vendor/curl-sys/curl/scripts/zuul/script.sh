@@ -19,6 +19,8 @@
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
 #
+# SPDX-License-Identifier: curl
+#
 ###########################################################################
 set -eo pipefail
 
@@ -81,14 +83,11 @@ if [ "$T" = "normal" ]; then
   fi
 fi
 
-if [ "$T" = "tidy" ]; then
-  ./configure --enable-warnings --enable-werror $C
-  make
-  make tidy
-fi
-
 if [ "$T" = "cmake" ]; then
-  cmake -H. -Bbuild -DCURL_WERROR=ON $C
+  mkdir -p build
+  cd ./build
+  cmake .. -DCURL_WERROR=ON $C
+  cd ..
   cmake --build build
   env TFLAGS="!1139 $TFLAGS" cmake --build build --target test-nonflaky
 fi

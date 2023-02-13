@@ -49,20 +49,20 @@ pub const CURL_SOCKET_BAD: curl_socket_t = !0;
 
 pub enum curl_httppost {
     // Note that this changed in some versions of libcurl, so we currently don't
-// bind the fields as they're apparently not stable.
-// pub next: *mut curl_httppost,
-// pub name: *mut c_char,
-// pub namelength: c_long,
-// pub contents: *mut c_char,
-// pub contentslength: c_long,
-// pub buffer: *mut c_char,
-// pub bufferlength: c_long,
-// pub contenttype: *mut c_char,
-// pub contentheader: *mut curl_slist,
-// pub more: *mut curl_httppost,
-// pub flags: c_long,
-// pub showfilename: *mut c_char,
-// pub userp: *mut c_void,
+    // bind the fields as they're apparently not stable.
+    // pub next: *mut curl_httppost,
+    // pub name: *mut c_char,
+    // pub namelength: c_long,
+    // pub contents: *mut c_char,
+    // pub contentslength: c_long,
+    // pub buffer: *mut c_char,
+    // pub bufferlength: c_long,
+    // pub contenttype: *mut c_char,
+    // pub contentheader: *mut curl_slist,
+    // pub more: *mut curl_httppost,
+    // pub flags: c_long,
+    // pub showfilename: *mut c_char,
+    // pub userp: *mut c_void,
 }
 
 // pub const HTTPPOST_FILENAME: c_long = 1 << 0;
@@ -377,6 +377,7 @@ pub const CURLOPTTYPE_OBJECTPOINT: CURLoption = 10_000;
 pub const CURLOPTTYPE_FUNCTIONPOINT: CURLoption = 20_000;
 pub const CURLOPTTYPE_OFF_T: CURLoption = 30_000;
 pub const CURLOPTTYPE_BLOB: CURLoption = 40_000;
+const CURLOPTTYPE_VALUES: CURLoption = CURLOPTTYPE_LONG;
 
 pub const CURLOPT_FILE: CURLoption = CURLOPTTYPE_OBJECTPOINT + 1;
 pub const CURLOPT_URL: CURLoption = CURLOPTTYPE_OBJECTPOINT + 2;
@@ -592,8 +593,19 @@ pub const CURLOPT_PIPEWAIT: CURLoption = CURLOPTTYPE_LONG + 237;
 pub const CURLOPT_CONNECT_TO: CURLoption = CURLOPTTYPE_OBJECTPOINT + 243;
 pub const CURLOPT_PROXY_CAINFO: CURLoption = CURLOPTTYPE_OBJECTPOINT + 246;
 pub const CURLOPT_PROXY_CAPATH: CURLoption = CURLOPTTYPE_OBJECTPOINT + 247;
+pub const CURLOPT_PROXY_SSL_VERIFYPEER: CURLoption = CURLOPTTYPE_LONG + 248;
+pub const CURLOPT_PROXY_SSL_VERIFYHOST: CURLoption = CURLOPTTYPE_LONG + 249;
+pub const CURLOPT_PROXY_SSLVERSION: CURLoption = CURLOPTTYPE_VALUES + 250;
 pub const CURLOPT_PROXY_SSLCERT: CURLoption = CURLOPTTYPE_OBJECTPOINT + 254;
+pub const CURLOPT_PROXY_SSLCERTTYPE: CURLoption = CURLOPTTYPE_OBJECTPOINT + 255;
 pub const CURLOPT_PROXY_SSLKEY: CURLoption = CURLOPTTYPE_OBJECTPOINT + 256;
+pub const CURLOPT_PROXY_SSLKEYTYPE: CURLoption = CURLOPTTYPE_OBJECTPOINT + 257;
+pub const CURLOPT_PROXY_KEYPASSWD: CURLoption = CURLOPTTYPE_OBJECTPOINT + 258;
+pub const CURLOPT_PROXY_SSL_CIPHER_LIST: CURLoption = CURLOPTTYPE_OBJECTPOINT + 259;
+pub const CURLOPT_PROXY_CRLFILE: CURLoption = CURLOPTTYPE_OBJECTPOINT + 260;
+pub const CURLOPT_PROXY_SSL_OPTIONS: CURLoption = CURLOPTTYPE_LONG + 261;
+
+pub const CURLOPT_ABSTRACT_UNIX_SOCKET: CURLoption = CURLOPTTYPE_OBJECTPOINT + 264;
 
 pub const CURLOPT_DOH_URL: CURLoption = CURLOPTTYPE_OBJECTPOINT + 279;
 pub const CURLOPT_UPLOAD_BUFFERSIZE: CURLoption = CURLOPTTYPE_LONG + 280;
@@ -608,12 +620,16 @@ pub const CURLOPT_PROXY_SSLCERT_BLOB: CURLoption = CURLOPTTYPE_BLOB + 293;
 pub const CURLOPT_PROXY_SSLKEY_BLOB: CURLoption = CURLOPTTYPE_BLOB + 294;
 pub const CURLOPT_ISSUERCERT_BLOB: CURLoption = CURLOPTTYPE_BLOB + 295;
 
+pub const CURLOPT_PROXY_ISSUERCERT: CURLoption = CURLOPTTYPE_OBJECTPOINT + 296;
+pub const CURLOPT_PROXY_ISSUERCERT_BLOB: CURLoption = CURLOPTTYPE_BLOB + 297;
+
 pub const CURLOPT_AWS_SIGV4: CURLoption = CURLOPTTYPE_OBJECTPOINT + 305;
 
 pub const CURLOPT_DOH_SSL_VERIFYPEER: CURLoption = CURLOPTTYPE_LONG + 306;
 pub const CURLOPT_DOH_SSL_VERIFYHOST: CURLoption = CURLOPTTYPE_LONG + 307;
 pub const CURLOPT_DOH_SSL_VERIFYSTATUS: CURLoption = CURLOPTTYPE_LONG + 308;
 pub const CURLOPT_CAINFO_BLOB: CURLoption = CURLOPTTYPE_BLOB + 309;
+pub const CURLOPT_PROXY_CAINFO_BLOB: CURLoption = CURLOPTTYPE_BLOB + 310;
 
 pub const CURL_IPRESOLVE_WHATEVER: c_int = 0;
 pub const CURL_IPRESOLVE_V4: c_int = 1;
@@ -893,6 +909,7 @@ pub const CURL_VERSION_TLSAUTH_SRP: c_int = 1 << 14;
 pub const CURL_VERSION_NTLM_WB: c_int = 1 << 15;
 pub const CURL_VERSION_HTTP2: c_int = 1 << 16;
 pub const CURL_VERSION_UNIX_SOCKETS: c_int = 1 << 19;
+pub const CURL_VERSION_HTTPS_PROXY: c_int = 1 << 21;
 pub const CURL_VERSION_BROTLI: c_int = 1 << 23;
 pub const CURL_VERSION_ALTSVC: c_int = 1 << 24;
 pub const CURL_VERSION_HTTP3: c_int = 1 << 25;

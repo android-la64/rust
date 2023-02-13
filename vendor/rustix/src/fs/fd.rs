@@ -5,33 +5,46 @@ use crate::fs::Mode;
 use crate::io::SeekFrom;
 #[cfg(not(target_os = "wasi"))]
 use crate::process::{Gid, Uid};
-use crate::{imp, io};
-use imp::fd::{AsFd, BorrowedFd};
+use crate::{backend, io};
+use backend::fd::{AsFd, BorrowedFd};
 
-#[cfg(not(target_os = "wasi"))]
-pub use imp::fs::types::FlockOperation;
+#[cfg(not(any(target_os = "solaris", target_os = "wasi")))]
+pub use backend::fs::types::FlockOperation;
 
 #[cfg(not(any(
+    target_os = "aix",
     target_os = "dragonfly",
     target_os = "illumos",
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
-pub use imp::fs::types::FallocateFlags;
+pub use backend::fs::types::FallocateFlags;
 
-pub use imp::fs::types::Stat;
+pub use backend::fs::types::Stat;
 
 #[cfg(not(any(
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "netbsd",
     target_os = "redox",
+    target_os = "solaris",
     target_os = "wasi",
 )))]
-pub use imp::fs::types::StatFs;
+pub use backend::fs::types::StatFs;
+
+#[cfg(not(any(
+    target_os = "haiku",
+    target_os = "illumos",
+    target_os = "redox",
+    target_os = "solaris",
+    target_os = "wasi",
+)))]
+pub use backend::fs::types::{StatVfs, StatVfsMountFlags};
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
-pub use imp::fs::types::FsWord;
+pub use backend::fs::types::FsWord;
 
 /// Timestamps used by [`utimensat`] and [`futimens`].
 ///
@@ -55,7 +68,7 @@ pub struct Timestamps {
 ///
 /// [the `fstatfs` man page]: https://man7.org/linux/man-pages/man2/fstatfs.2.html#DESCRIPTION
 #[cfg(any(target_os = "android", target_os = "linux"))]
-pub const PROC_SUPER_MAGIC: FsWord = imp::fs::types::PROC_SUPER_MAGIC;
+pub const PROC_SUPER_MAGIC: FsWord = backend::fs::types::PROC_SUPER_MAGIC;
 
 /// The filesystem magic number for NFS.
 ///
@@ -63,7 +76,7 @@ pub const PROC_SUPER_MAGIC: FsWord = imp::fs::types::PROC_SUPER_MAGIC;
 ///
 /// [the `fstatfs` man page]: https://man7.org/linux/man-pages/man2/fstatfs.2.html#DESCRIPTION
 #[cfg(any(target_os = "android", target_os = "linux"))]
-pub const NFS_SUPER_MAGIC: FsWord = imp::fs::types::NFS_SUPER_MAGIC;
+pub const NFS_SUPER_MAGIC: FsWord = backend::fs::types::NFS_SUPER_MAGIC;
 
 /// `lseek(fd, offset, whence)`—Repositions a file descriptor within a file.
 ///
@@ -75,7 +88,7 @@ pub const NFS_SUPER_MAGIC: FsWord = imp::fs::types::NFS_SUPER_MAGIC;
 /// [Linux]: https://man7.org/linux/man-pages/man2/lseek.2.html
 #[inline]
 pub fn seek<Fd: AsFd>(fd: Fd, pos: SeekFrom) -> io::Result<u64> {
-    imp::fs::syscalls::seek(fd.as_fd(), pos)
+    backend::fs::syscalls::seek(fd.as_fd(), pos)
 }
 
 /// `lseek(fd, 0, SEEK_CUR)`—Returns the current position within a file.
@@ -92,7 +105,7 @@ pub fn seek<Fd: AsFd>(fd: Fd, pos: SeekFrom) -> io::Result<u64> {
 /// [Linux]: https://man7.org/linux/man-pages/man2/lseek.2.html
 #[inline]
 pub fn tell<Fd: AsFd>(fd: Fd) -> io::Result<u64> {
-    imp::fs::syscalls::tell(fd.as_fd())
+    backend::fs::syscalls::tell(fd.as_fd())
 }
 
 /// `fchmod(fd)`—Sets open file or directory permissions.
@@ -109,7 +122,7 @@ pub fn tell<Fd: AsFd>(fd: Fd) -> io::Result<u64> {
 #[cfg(not(target_os = "wasi"))]
 #[inline]
 pub fn fchmod<Fd: AsFd>(fd: Fd, mode: Mode) -> io::Result<()> {
-    imp::fs::syscalls::fchmod(fd.as_fd(), mode)
+    backend::fs::syscalls::fchmod(fd.as_fd(), mode)
 }
 
 /// `fchown(fd)`—Sets open file or directory ownership.
@@ -123,7 +136,7 @@ pub fn fchmod<Fd: AsFd>(fd: Fd, mode: Mode) -> io::Result<()> {
 #[cfg(not(target_os = "wasi"))]
 #[inline]
 pub fn fchown<Fd: AsFd>(fd: Fd, owner: Option<Uid>, group: Option<Gid>) -> io::Result<()> {
-    imp::fs::syscalls::fchown(fd.as_fd(), owner, group)
+    backend::fs::syscalls::fchown(fd.as_fd(), owner, group)
 }
 
 /// `fstat(fd)`—Queries metadata for an open file or directory.
@@ -141,24 +154,55 @@ pub fn fchown<Fd: AsFd>(fd: Fd, owner: Option<Uid>, group: Option<Gid>) -> io::R
 /// [`FileType::from_raw_mode`]: crate::fs::FileType::from_raw_mode
 #[inline]
 pub fn fstat<Fd: AsFd>(fd: Fd) -> io::Result<Stat> {
-    imp::fs::syscalls::fstat(fd.as_fd())
+    backend::fs::syscalls::fstat(fd.as_fd())
 }
 
 /// `fstatfs(fd)`—Queries filesystem statistics for an open file or directory.
+///
+/// Compared to [`fstatvfs`], this function often provides more information,
+/// though it's less portable.
 ///
 /// # References
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/fstatfs.2.html
 #[cfg(not(any(
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "netbsd",
     target_os = "redox",
+    target_os = "solaris",
     target_os = "wasi",
-)))] // not implemented in libc for netbsd yet
+)))]
 #[inline]
 pub fn fstatfs<Fd: AsFd>(fd: Fd) -> io::Result<StatFs> {
-    imp::fs::syscalls::fstatfs(fd.as_fd())
+    backend::fs::syscalls::fstatfs(fd.as_fd())
+}
+
+/// `fstatvfs(fd)`—Queries filesystem statistics for an open file or
+/// directory, POSIX version.
+///
+/// Compared to [`fstatfs`], this function often provides less information,
+/// but it is more portable. But even so, filesystems are very diverse and not
+/// all the fields are meaningful for every filesystem. And `f_fsid` doesn't
+/// seem to have a clear meaning anywhere.
+///
+/// # References
+///  - [POSIX]
+///  - [Linux]
+///
+/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fstatvfs.html
+/// [Linux]: https://man7.org/linux/man-pages/man2/fstatvfs.2.html
+#[cfg(not(any(
+    target_os = "haiku",
+    target_os = "illumos",
+    target_os = "redox",
+    target_os = "solaris",
+    target_os = "wasi",
+)))]
+#[inline]
+pub fn fstatvfs<Fd: AsFd>(fd: Fd) -> io::Result<StatVfs> {
+    backend::fs::syscalls::fstatvfs(fd.as_fd())
 }
 
 /// `futimens(fd, times)`—Sets timestamps for an open file or directory.
@@ -171,7 +215,7 @@ pub fn fstatfs<Fd: AsFd>(fd: Fd) -> io::Result<StatFs> {
 /// [Linux]: https://man7.org/linux/man-pages/man2/utimensat.2.html
 #[inline]
 pub fn futimens<Fd: AsFd>(fd: Fd, times: &Timestamps) -> io::Result<()> {
-    imp::fs::syscalls::futimens(fd.as_fd(), times)
+    backend::fs::syscalls::futimens(fd.as_fd(), times)
 }
 
 /// `fallocate(fd, mode, offset, len)`—Adjusts file allocation.
@@ -190,16 +234,18 @@ pub fn futimens<Fd: AsFd>(fd: Fd, times: &Timestamps) -> io::Result<()> {
 /// [Linux `fallocate`]: https://man7.org/linux/man-pages/man2/fallocate.2.html
 /// [Linux `posix_fallocate`]: https://man7.org/linux/man-pages/man3/posix_fallocate.3.html
 #[cfg(not(any(
+    target_os = "aix",
     target_os = "dragonfly",
     target_os = "illumos",
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))] // not implemented in libc for netbsd yet
 #[inline]
 #[doc(alias = "posix_fallocate")]
 pub fn fallocate<Fd: AsFd>(fd: Fd, mode: FallocateFlags, offset: u64, len: u64) -> io::Result<()> {
-    imp::fs::syscalls::fallocate(fd.as_fd(), mode, offset, len)
+    backend::fs::syscalls::fallocate(fd.as_fd(), mode, offset, len)
 }
 
 /// `fcntl(fd, F_GETFL) & O_ACCMODE`
@@ -214,7 +260,7 @@ pub fn is_file_read_write<Fd: AsFd>(fd: Fd) -> io::Result<(bool, bool)> {
 }
 
 pub(crate) fn _is_file_read_write(fd: BorrowedFd<'_>) -> io::Result<(bool, bool)> {
-    let mode = imp::fs::syscalls::fcntl_getfl(fd)?;
+    let mode = backend::fs::syscalls::fcntl_getfl(fd)?;
 
     // Check for `O_PATH`.
     #[cfg(any(
@@ -252,7 +298,7 @@ pub(crate) fn _is_file_read_write(fd: BorrowedFd<'_>) -> io::Result<(bool, bool)
 /// [`fcntl_fullfsync`]: https://docs.rs/rustix/*/x86_64-apple-darwin/rustix/fs/fn.fcntl_fullfsync.html
 #[inline]
 pub fn fsync<Fd: AsFd>(fd: Fd) -> io::Result<()> {
-    imp::fs::syscalls::fsync(fd.as_fd())
+    backend::fs::syscalls::fsync(fd.as_fd())
 }
 
 /// `fdatasync(fd)`—Ensures that file data is written to the underlying
@@ -266,13 +312,14 @@ pub fn fsync<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 /// [Linux]: https://man7.org/linux/man-pages/man2/fdatasync.2.html
 #[cfg(not(any(
     target_os = "dragonfly",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "redox",
 )))]
 #[inline]
 pub fn fdatasync<Fd: AsFd>(fd: Fd) -> io::Result<()> {
-    imp::fs::syscalls::fdatasync(fd.as_fd())
+    backend::fs::syscalls::fdatasync(fd.as_fd())
 }
 
 /// `ftruncate(fd, length)`—Sets the length of a file.
@@ -285,7 +332,7 @@ pub fn fdatasync<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 /// [Linux]: https://man7.org/linux/man-pages/man2/ftruncate.2.html
 #[inline]
 pub fn ftruncate<Fd: AsFd>(fd: Fd, length: u64) -> io::Result<()> {
-    imp::fs::syscalls::ftruncate(fd.as_fd(), length)
+    backend::fs::syscalls::ftruncate(fd.as_fd(), length)
 }
 
 /// `flock(fd, operation)`—Acquire or release an advisory lock on an open file.
@@ -294,8 +341,8 @@ pub fn ftruncate<Fd: AsFd>(fd: Fd, length: u64) -> io::Result<()> {
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/flock.2.html
-#[cfg(not(target_os = "wasi"))]
+#[cfg(not(any(target_os = "solaris", target_os = "wasi")))]
 #[inline]
 pub fn flock<Fd: AsFd>(fd: Fd, operation: FlockOperation) -> io::Result<()> {
-    imp::fs::syscalls::flock(fd.as_fd(), operation)
+    backend::fs::syscalls::flock(fd.as_fd(), operation)
 }

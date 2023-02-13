@@ -1785,6 +1785,23 @@ pub const BIOCSDLT: ::c_ulong = 0x80044278;
 pub const BIOCGSEESENT: ::c_ulong = 0x40044276;
 pub const BIOCSSEESENT: ::c_ulong = 0x80044277;
 
+// <sys/fstypes.h>
+pub const MNT_UNION: ::c_int = 0x00000020;
+pub const MNT_NOCOREDUMP: ::c_int = 0x00008000;
+pub const MNT_RELATIME: ::c_int = 0x00020000;
+pub const MNT_IGNORE: ::c_int = 0x00100000;
+pub const MNT_NFS4ACLS: ::c_int = 0x00200000;
+pub const MNT_DISCARD: ::c_int = 0x00800000;
+pub const MNT_EXTATTR: ::c_int = 0x01000000;
+pub const MNT_LOG: ::c_int = 0x02000000;
+pub const MNT_NOATIME: ::c_int = 0x04000000;
+pub const MNT_AUTOMOUNTED: ::c_int = 0x10000000;
+pub const MNT_SYMPERM: ::c_int = 0x20000000;
+pub const MNT_NODEVMTIME: ::c_int = 0x40000000;
+pub const MNT_SOFTDEP: ::c_int = 0x80000000;
+pub const MNT_POSIX1EACLS: ::c_int = 0x00000800;
+pub const MNT_ACLS: ::c_int = MNT_POSIX1EACLS;
+
 //<sys/timex.h>
 pub const NTP_API: ::c_int = 4;
 pub const MAXPHASE: ::c_long = 500000000;
@@ -2298,6 +2315,12 @@ pub const _REG_RFLAGS: ::c_int = 23;
 pub const _REG_RSP: ::c_int = 24;
 pub const _REG_SS: ::c_int = 25;
 
+// sys/xattr.h
+pub const XATTR_CREATE: ::c_int = 0x01;
+pub const XATTR_REPLACE: ::c_int = 0x02;
+// sys/extattr.h
+pub const EXTATTR_NAMESPACE_EMPTY: ::c_int = 0;
+
 const_fn! {
     {const} fn _ALIGN(p: usize) -> usize {
         (p + _ALIGNBYTES) & !_ALIGNBYTES
@@ -2436,6 +2459,24 @@ extern "C" {
         envp: *const *const ::c_char,
     ) -> ::c_int;
 
+    pub fn extattr_list_fd(
+        fd: ::c_int,
+        attrnamespace: ::c_int,
+        data: *mut ::c_void,
+        nbytes: ::size_t,
+    ) -> ::ssize_t;
+    pub fn extattr_list_file(
+        path: *const ::c_char,
+        attrnamespace: ::c_int,
+        data: *mut ::c_void,
+        nbytes: ::size_t,
+    ) -> ::ssize_t;
+    pub fn extattr_list_link(
+        path: *const ::c_char,
+        attrnamespace: ::c_int,
+        data: *mut ::c_void,
+        nbytes: ::size_t,
+    ) -> ::ssize_t;
     pub fn extattr_delete_fd(
         fd: ::c_int,
         attrnamespace: ::c_int,

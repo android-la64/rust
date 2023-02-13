@@ -29,6 +29,12 @@ fn setup_http() -> TestRegistry {
 }
 
 #[cargo_test]
+fn test_server_stops() {
+    let server = setup_http();
+    server.join(); // ensure the server fully shuts down
+}
+
+#[cargo_test]
 fn simple_http() {
     let _server = setup_http();
     simple(cargo_http);
@@ -500,6 +506,7 @@ Caused by:
 [COMPILING] notyet v0.0.1
 [COMPILING] foo v0.0.1 ([CWD][..])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[PACKAGED] [..]
 ",
         )
         .run();
@@ -1113,7 +1120,7 @@ fn login_with_token_on_stdin() {
         .run();
     cargo_process("login")
         .replace_crates_io(registry.index_url())
-        .with_stdout("please paste the API Token found on [..]/me below")
+        .with_stdout("please paste the token found on [..]/me below")
         .with_stdin("some token")
         .run();
     let credentials = fs::read_to_string(&credentials).unwrap();
@@ -2749,10 +2756,12 @@ fn reach_max_unpack_size() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
+    // Size of bar.crate is around 180 bytes.
     Package::new("bar", "0.0.1").publish();
 
     p.cargo("build")
         .env("__CARGO_TEST_MAX_UNPACK_SIZE", "8") // hit 8 bytes limit and boom!
+        .env("__CARGO_TEST_MAX_UNPACK_RATIO", "0")
         .with_status(101)
         .with_stderr(
             "\
@@ -2769,6 +2778,18 @@ Caused by:
 
 Caused by:
   maximum limit reached when reading
+",
+        )
+        .run();
+
+    // Restore to the default ratio and it should compile.
+    p.cargo("build")
+        .env("__CARGO_TEST_MAX_UNPACK_SIZE", "8")
+        .with_stderr(
+            "\
+[COMPILING] bar v0.0.1
+[COMPILING] foo v0.0.1 ([..])
+[FINISHED] dev [..]
 ",
         )
         .run();

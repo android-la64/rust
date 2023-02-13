@@ -7,6 +7,7 @@
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::non_send_fields_in_send_ty)]
 #![allow(renamed_and_removed_lints)]
+#![allow(clippy::assertions_on_constants)]
 #![allow(unknown_lints)]
 
 #[macro_use]
@@ -328,9 +329,10 @@ mod test {
 
     #[test]
     fn check_system_info() {
+        let s = System::new();
+
         // We don't want to test on unsupported systems.
         if System::IS_SUPPORTED {
-            let s = System::new();
             assert!(!s.name().expect("Failed to get system name").is_empty());
 
             assert!(!s
@@ -345,6 +347,8 @@ mod test {
                 .expect("Failed to get long OS version")
                 .is_empty());
         }
+
+        assert!(!s.distribution_id().is_empty());
     }
 
     #[test]
@@ -429,7 +433,6 @@ mod test {
 
     // Ensure that the CPUs frequency isn't retrieved until we ask for it.
     #[test]
-    #[cfg(not(target_os = "freebsd"))] // In a VM, it'll fail.
     fn check_cpu_frequency() {
         if !System::IS_SUPPORTED {
             return;
@@ -441,7 +444,48 @@ mod test {
         }
         s.refresh_cpu();
         for proc_ in s.cpus() {
-            assert_ne!(proc_.frequency(), 0);
+            assert_eq!(proc_.frequency(), 0);
         }
+        // In a VM, it'll fail.
+        if std::env::var("APPLE_CI").is_err() && std::env::var("FREEBSD_CI").is_err() {
+            s.refresh_cpu_specifics(CpuRefreshKind::everything());
+            for proc_ in s.cpus() {
+                assert_ne!(proc_.frequency(), 0);
+            }
+        }
+    }
+
+    // In case `Process::updated` is misused, `System::refresh_processes` might remove them
+    // so this test ensures that it doesn't happen.
+    #[test]
+    fn check_refresh_process_update() {
+        if !System::IS_SUPPORTED {
+            return;
+        }
+        let mut s = System::new_all();
+        let total = s.processes().len() as isize;
+        s.refresh_processes();
+        let new_total = s.processes().len() as isize;
+        // There should be almost no difference in the processes count.
+        assert!(
+            (new_total - total).abs() <= 5,
+            "{} <= 5",
+            (new_total - total).abs()
+        );
+    }
+
+    // We ensure that the `Process` cmd information is retrieved as expected.
+    #[test]
+    fn check_cmd_line() {
+        if !System::IS_SUPPORTED {
+            return;
+        }
+        let mut sys = System::new();
+        sys.refresh_processes_specifics(ProcessRefreshKind::new());
+
+        assert!(sys
+            .processes()
+            .iter()
+            .any(|(_, process)| !process.cmd().is_empty()));
     }
 }

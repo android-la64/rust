@@ -687,6 +687,33 @@ pub const INADDR_ALLRTRS_GROUP: u32 = 3758096386;
 pub const INADDR_ALLSNOOPERS_GROUP: u32 = 3758096490;
 pub const INADDR_MAX_LOCAL_GROUP: u32 = 3758096639;
 pub const __BIG_ENDIAN: u32 = 4321;
+pub const IN_ACCESS: u32 = 1;
+pub const IN_MODIFY: u32 = 2;
+pub const IN_ATTRIB: u32 = 4;
+pub const IN_CLOSE_WRITE: u32 = 8;
+pub const IN_CLOSE_NOWRITE: u32 = 16;
+pub const IN_OPEN: u32 = 32;
+pub const IN_MOVED_FROM: u32 = 64;
+pub const IN_MOVED_TO: u32 = 128;
+pub const IN_CREATE: u32 = 256;
+pub const IN_DELETE: u32 = 512;
+pub const IN_DELETE_SELF: u32 = 1024;
+pub const IN_MOVE_SELF: u32 = 2048;
+pub const IN_UNMOUNT: u32 = 8192;
+pub const IN_Q_OVERFLOW: u32 = 16384;
+pub const IN_IGNORED: u32 = 32768;
+pub const IN_CLOSE: u32 = 24;
+pub const IN_MOVE: u32 = 192;
+pub const IN_ONLYDIR: u32 = 16777216;
+pub const IN_DONT_FOLLOW: u32 = 33554432;
+pub const IN_EXCL_UNLINK: u32 = 67108864;
+pub const IN_MASK_CREATE: u32 = 268435456;
+pub const IN_MASK_ADD: u32 = 536870912;
+pub const IN_ISDIR: u32 = 1073741824;
+pub const IN_ONESHOT: u32 = 2147483648;
+pub const IN_ALL_EVENTS: u32 = 4095;
+pub const IN_CLOEXEC: u32 = 524288;
+pub const IN_NONBLOCK: u32 = 2048;
 pub const IPTOS_TOS_MASK: u32 = 30;
 pub const IPTOS_LOWDELAY: u32 = 16;
 pub const IPTOS_THROUGHPUT: u32 = 8;
@@ -1595,6 +1622,7 @@ pub const STATX_ATTR_AUTOMOUNT: u32 = 4096;
 pub const STATX_ATTR_MOUNT_ROOT: u32 = 8192;
 pub const STATX_ATTR_VERITY: u32 = 1048576;
 pub const STATX_ATTR_DAX: u32 = 2097152;
+pub const SI_LOAD_SHIFT: u32 = 16;
 pub const TCP_MSS_DEFAULT: u32 = 536;
 pub const TCP_MSS_DESIRED: u32 = 1220;
 pub const TCP_NODELAY: u32 = 1;
@@ -2485,6 +2513,10 @@ pub const UFFDIO_REGISTER_MODE_MINOR: u32 = 4;
 pub const UFFDIO_COPY_MODE_DONTWAKE: u32 = 1;
 pub const UFFDIO_COPY_MODE_WP: u32 = 2;
 pub const UFFDIO_ZEROPAGE_MODE_DONTWAKE: u32 = 1;
+pub const SPLICE_F_MOVE: u32 = 1;
+pub const SPLICE_F_NONBLOCK: u32 = 2;
+pub const SPLICE_F_MORE: u32 = 4;
+pub const SPLICE_F_GIFT: u32 = 8;
 pub type size_t = crate::ctypes::c_uint;
 pub type ssize_t = crate::ctypes::c_int;
 pub type __s8 = crate::ctypes::c_schar;
@@ -2960,6 +2992,15 @@ pub sin_family: __kernel_sa_family_t,
 pub sin_port: __be16,
 pub sin_addr: in_addr,
 pub __pad: [crate::ctypes::c_uchar; 8usize],
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct inotify_event {
+pub wd: __s32,
+pub mask: __u32,
+pub cookie: __u32,
+pub len: __u32,
+pub name: __IncompleteArrayField<crate::ctypes::c_char>,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3745,6 +3786,24 @@ pub stx_dev_minor: __u32,
 pub stx_mnt_id: __u64,
 pub __spare2: __u64,
 pub __spare3: [__u64; 12usize],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct sysinfo {
+pub uptime: __kernel_long_t,
+pub loads: [__kernel_ulong_t; 3usize],
+pub totalram: __kernel_ulong_t,
+pub freeram: __kernel_ulong_t,
+pub sharedram: __kernel_ulong_t,
+pub bufferram: __kernel_ulong_t,
+pub totalswap: __kernel_ulong_t,
+pub freeswap: __kernel_ulong_t,
+pub procs: __u16,
+pub pad: __u16,
+pub totalhigh: __kernel_ulong_t,
+pub freehigh: __kernel_ulong_t,
+pub mem_unit: __u32,
+pub _f: [crate::ctypes::c_char; 8usize],
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

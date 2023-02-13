@@ -208,6 +208,18 @@ pub trait ProcessExt: Debug {
     ///     println!("{}", process.exe().display());
     /// }
     /// ```
+    ///
+    /// ### Implementation notes
+    ///
+    /// On Linux, this method will return an empty path if there
+    /// was an error trying to read `/proc/<pid>/exe`. This can
+    /// happen, for example, if the permission levels or UID namespaces
+    /// between the caller and target processes are different.
+    ///
+    /// It is also the case that `cmd[0]` is _not_ usually a correct
+    /// replacement for this.
+    /// A process [may change its `cmd[0]` value](https://man7.org/linux/man-pages/man5/proc.5.html)
+    /// freely, making this an untrustworthy source of information.
     fn exe(&self) -> &Path;
 
     /// Returns the pid of the process.
@@ -258,26 +270,26 @@ pub trait ProcessExt: Debug {
     /// ```
     fn root(&self) -> &Path;
 
-    /// Returns the memory usage (in KB).
+    /// Returns the memory usage (in bytes).
     ///
     /// ```no_run
     /// use sysinfo::{Pid, ProcessExt, System, SystemExt};
     ///
     /// let s = System::new();
     /// if let Some(process) = s.process(Pid::from(1337)) {
-    ///     println!("{} KB", process.memory());
+    ///     println!("{} bytes", process.memory());
     /// }
     /// ```
     fn memory(&self) -> u64;
 
-    /// Returns the virtual memory usage (in KB).
+    /// Returns the virtual memory usage (in bytes).
     ///
     /// ```no_run
     /// use sysinfo::{Pid, ProcessExt, System, SystemExt};
     ///
     /// let s = System::new();
     /// if let Some(process) = s.process(Pid::from(1337)) {
-    ///     println!("{} KB", process.virtual_memory());
+    ///     println!("{} bytes", process.virtual_memory());
     /// }
     /// ```
     fn virtual_memory(&self) -> u64;
@@ -400,6 +412,21 @@ pub trait ProcessExt: Debug {
     /// }
     /// ```
     fn group_id(&self) -> Option<Gid>;
+
+    /// Wait for process termination.
+    ///
+    /// ```no_run
+    /// use sysinfo::{Pid, ProcessExt, System, SystemExt};
+    ///
+    /// let mut s = System::new_all();
+    ///
+    /// if let Some(process) = s.process(Pid::from(1337)) {
+    ///     eprintln!("Waiting for pid 1337");
+    ///     process.wait();
+    ///     eprintln!("Pid 1337 exited");
+    /// }
+    /// ```
+    fn wait(&self);
 }
 
 /// Contains all the methods of the [`Cpu`][crate::Cpu] struct.
@@ -650,7 +677,7 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// 200ms) to get accurate values as it uses previous results to compute the next value.
     ///
     /// Calling this method is the same as calling
-    /// `refresh_cpu_specifics(CpuRefreshKind::everything())`.
+    /// `refresh_cpu_specifics(CpuRefreshKind::new().with_cpu_usage())`.
     ///
     /// ```no_run
     /// use sysinfo::{System, SystemExt};
@@ -659,7 +686,7 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// s.refresh_cpu();
     /// ```
     fn refresh_cpu(&mut self) {
-        self.refresh_cpu_specifics(CpuRefreshKind::everything())
+        self.refresh_cpu_specifics(CpuRefreshKind::new().with_cpu_usage())
     }
 
     /// Refreshes CPUs specific information.
@@ -668,10 +695,10 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// list nor users list.
     ///
     /// ```no_run
-    /// use sysinfo::{System, SystemExt};
+    /// use sysinfo::{System, SystemExt, CpuRefreshKind};
     ///
     /// let mut s = System::new_all();
-    /// s.refresh_all();
+    /// s.refresh_cpu_specifics(CpuRefreshKind::everything());
     /// ```
     fn refresh_cpu_specifics(&mut self, refresh_kind: CpuRefreshKind);
 
@@ -866,6 +893,12 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// If you want only the processes with exactly the given `name`, take a look at
     /// [`SystemExt::processes_by_exact_name`].
     ///
+    /// **⚠️ Important ⚠️**
+    ///
+    /// On **linux**, there are two things to know about processes' name:
+    ///  1. It is limited to 15 characters.
+    ///  2. It is not always the exe name.
+    ///
     /// ```no_run
     /// use sysinfo::{ProcessExt, System, SystemExt};
     ///
@@ -890,6 +923,12 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     ///
     /// If you instead want the processes containing `name`, take a look at
     /// [`SystemExt::processes_by_name`].
+    ///
+    /// **⚠️ Important ⚠️**
+    ///
+    /// On **linux**, there are two things to know about processes' name:
+    ///  1. It is limited to 15 characters.
+    ///  2. It is not always the exe name.
     ///
     /// ```no_run
     /// use sysinfo::{ProcessExt, System, SystemExt};
@@ -957,17 +996,17 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// ```
     fn physical_core_count(&self) -> Option<usize>;
 
-    /// Returns the RAM size in KB.
+    /// Returns the RAM size in bytes.
     ///
     /// ```no_run
     /// use sysinfo::{System, SystemExt};
     ///
     /// let s = System::new_all();
-    /// println!("{} KB", s.total_memory());
+    /// println!("{} bytes", s.total_memory());
     /// ```
     fn total_memory(&self) -> u64;
 
-    /// Returns the amount of free RAM in KB.
+    /// Returns the amount of free RAM in bytes.
     ///
     /// Generally, "free" memory refers to unallocated memory whereas "available" memory refers to
     /// memory that is available for (re)use.
@@ -979,11 +1018,11 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// use sysinfo::{System, SystemExt};
     ///
     /// let s = System::new_all();
-    /// println!("{} KB", s.free_memory());
+    /// println!("{} bytes", s.free_memory());
     /// ```
     fn free_memory(&self) -> u64;
 
-    /// Returns the amount of available RAM in KB.
+    /// Returns the amount of available RAM in bytes.
     ///
     /// Generally, "free" memory refers to unallocated memory whereas "available" memory refers to
     /// memory that is available for (re)use.
@@ -995,47 +1034,47 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// use sysinfo::{System, SystemExt};
     ///
     /// let s = System::new_all();
-    /// println!("{} KB", s.available_memory());
+    /// println!("{} bytes", s.available_memory());
     /// ```
     fn available_memory(&self) -> u64;
 
-    /// Returns the amount of used RAM in KB.
+    /// Returns the amount of used RAM in bytes.
     ///
     /// ```no_run
     /// use sysinfo::{System, SystemExt};
     ///
     /// let s = System::new_all();
-    /// println!("{} KB", s.used_memory());
+    /// println!("{} bytes", s.used_memory());
     /// ```
     fn used_memory(&self) -> u64;
 
-    /// Returns the SWAP size in KB.
+    /// Returns the SWAP size in bytes.
     ///
     /// ```no_run
     /// use sysinfo::{System, SystemExt};
     ///
     /// let s = System::new_all();
-    /// println!("{} KB", s.total_swap());
+    /// println!("{} bytes", s.total_swap());
     /// ```
     fn total_swap(&self) -> u64;
 
-    /// Returns the amount of free SWAP in KB.
+    /// Returns the amount of free SWAP in bytes.
     ///
     /// ```no_run
     /// use sysinfo::{System, SystemExt};
     ///
     /// let s = System::new_all();
-    /// println!("{} KB", s.free_swap());
+    /// println!("{} bytes", s.free_swap());
     /// ```
     fn free_swap(&self) -> u64;
 
-    /// Returns the amount of used SWAP in KB.
+    /// Returns the amount of used SWAP in bytes.
     ///
     /// ```no_run
     /// use sysinfo::{System, SystemExt};
     ///
     /// let s = System::new_all();
-    /// println!("{} KB", s.used_swap());
+    /// println!("{} bytes", s.used_swap());
     /// ```
     fn used_swap(&self) -> u64;
 
@@ -1063,18 +1102,6 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// ```
     fn components_mut(&mut self) -> &mut [Component];
 
-    /// Returns the disks list.
-    ///
-    /// ```no_run
-    /// use sysinfo::{DiskExt, System, SystemExt};
-    ///
-    /// let s = System::new_all();
-    /// for disk in s.disks() {
-    ///     println!("{:?}", disk.name());
-    /// }
-    /// ```
-    fn disks(&self) -> &[Disk];
-
     /// Returns the users list.
     ///
     /// ```no_run
@@ -1092,12 +1119,35 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// ```no_run
     /// use sysinfo::{DiskExt, System, SystemExt};
     ///
+    /// let s = System::new_all();
+    /// for disk in s.disks() {
+    ///     println!("{:?}", disk.name());
+    /// }
+    /// ```
+    fn disks(&self) -> &[Disk];
+
+    /// Returns the disks list.
+    ///
+    /// ```no_run
+    /// use sysinfo::{DiskExt, System, SystemExt};
+    ///
     /// let mut s = System::new_all();
     /// for disk in s.disks_mut() {
     ///     disk.refresh();
     /// }
     /// ```
     fn disks_mut(&mut self) -> &mut [Disk];
+
+    /// Sort the disk list with the provided callback.
+    ///
+    /// Internally, it is using the [`slice::sort_unstable_by`] function, so please refer to it
+    /// for implementation details.
+    ///
+    /// ⚠️ If you use [`SystemExt::refresh_disks_list`], you need to use this method before using
+    /// [`SystemExt::disks`] or [`SystemExt::disks_mut`] if you want them to be sorted.
+    fn sort_disks_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&Disk, &Disk) -> std::cmp::Ordering;
 
     /// Returns the network interfaces object.
     ///
@@ -1211,6 +1261,23 @@ pub trait SystemExt: Sized + Debug + Default + Send + Sync {
     /// println!("Long OS Version: {:?}", s.long_os_version());
     /// ```
     fn long_os_version(&self) -> Option<String>;
+
+    /// Returns the distribution id as defined by os-release,
+    /// or [`std::env::consts::OS`].
+    ///
+    /// See also
+    /// - <https://www.freedesktop.org/software/systemd/man/os-release.html#ID=>
+    /// - <https://doc.rust-lang.org/std/env/consts/constant.OS.html>
+    ///
+    /// **Important**: this information is computed every time this function is called.
+    ///
+    /// ```no_run
+    /// use sysinfo::{System, SystemExt};
+    ///
+    /// let s = System::new();
+    /// println!("Distribution ID: {:?}", s.distribution_id());
+    /// ```
+    fn distribution_id(&self) -> String;
 
     /// Returns the system hostname based off DNS
     ///
@@ -1463,9 +1530,16 @@ pub trait ComponentExt: Debug {
     ///     println!("{}°C", component.temperature());
     /// }
     /// ```
+    ///
+    /// ## Linux
+    ///
+    /// Returns `f32::NAN` if it failed to retrieve it.
     fn temperature(&self) -> f32;
 
     /// Returns the maximum temperature of the component (in celsius degree).
+    ///
+    /// Note: if `temperature` is higher than the current `max`,
+    /// `max` value will be updated on refresh.
     ///
     /// ```no_run
     /// use sysinfo::{ComponentExt, System, SystemExt};
@@ -1475,6 +1549,11 @@ pub trait ComponentExt: Debug {
     ///     println!("{}°C", component.max());
     /// }
     /// ```
+    ///
+    /// ## Linux
+    ///
+    /// May be computed by sysinfo from kernel.
+    /// Returns `f32::NAN` if it failed to retrieve it.
     fn max(&self) -> f32;
 
     /// Returns the highest temperature before the component halts (in celsius degree).
@@ -1487,6 +1566,10 @@ pub trait ComponentExt: Debug {
     ///     println!("{:?}°C", component.critical());
     /// }
     /// ```
+    ///
+    /// ## Linux
+    ///
+    /// Critical threshold defined by chip or kernel.
     fn critical(&self) -> Option<f32>;
 
     /// Returns the label of the component.
@@ -1499,6 +1582,19 @@ pub trait ComponentExt: Debug {
     ///     println!("{}", component.label());
     /// }
     /// ```
+    ///
+    /// ## Linux
+    ///
+    /// Since components informations are retrieved thanks to `hwmon`,
+    /// the labels are generated as follows.
+    /// Note: it may change and it was inspired by `sensors` own formatting.
+    ///
+    /// | name | label | device_model | id_sensor | Computed label by `sysinfo` |
+    /// |---------|--------|------------|----------|----------------------|
+    /// | ✓    | ✓    | ✓  | ✓ | `"{name} {label} {device_model} temp{id}"` |
+    /// | ✓    | ✓    | ✗  | ✓ | `"{name} {label} {id}"` |
+    /// | ✓    | ✗    | ✓  | ✓ | `"{name} {device_model}"` |
+    /// | ✓    | ✗    | ✗  | ✓ | `"{name} temp{id}"` |
     fn label(&self) -> &str;
 
     /// Refreshes component.

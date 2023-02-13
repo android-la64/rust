@@ -509,3 +509,37 @@ fn git_default_branch() {
     let head = repo.find_reference("HEAD").unwrap();
     assert_eq!(head.symbolic_target().unwrap(), "refs/heads/hello");
 }
+
+#[cargo_test]
+fn non_utf8_str_in_ignore_file() {
+    let gitignore = paths::home().join(".gitignore");
+    File::create(gitignore).unwrap();
+
+    fs::write(paths::home().join(".gitignore"), &[0xFF, 0xFE]).unwrap();
+
+    cargo_process(&format!("init {} --vcs git", paths::home().display()))
+        .with_status(101)
+        .with_stderr(
+            "\
+error: Failed to create package `home` at `[..]`
+
+Caused by:
+  Character at line 0 is invalid. Cargo only supports UTF-8.
+",
+        )
+        .run();
+}
+
+#[cfg(unix)]
+#[cargo_test]
+fn path_with_invalid_character() {
+    cargo_process("new --name testing test:ing")
+        .with_stderr(
+            "\
+[WARNING] the path `[CWD]/test:ing` contains invalid PATH characters (usually `:`, `;`, or `\"`)
+It is recommended to use a different name to avoid problems.
+[CREATED] binary (application) `testing` package
+",
+        )
+        .run();
+}

@@ -4,13 +4,13 @@ version = 3
 
 [[package]]
 name = "cc"
-version = "1.0.73"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fff2a6927b3bb87f9595d67196a70493f627687a71d87a0d692242c33f58c11"
+checksum = "7db2f146208d7e0fbee761b09cd65a7f51ccc38705d4e7262dad4d73b12a76b1"
 
 [[package]]
 name = "compiler_builtins"
-version = "0.1.82"
+version = "0.1.84"
 dependencies = [
  "cc",
  "rustc-std-workspace-core",

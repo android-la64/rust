@@ -407,6 +407,7 @@ where
         match *t.kind() {
             ty::Bound(debruijn, bound_ty) if debruijn == self.current_index => {
                 let ty = self.delegate.replace_ty(bound_ty);
+                debug_assert!(!ty.has_vars_bound_above(ty::INNERMOST));
                 ty::fold::shift_vars(self.tcx, ty, self.current_index.as_u32())
             }
             _ if t.has_vars_bound_at_or_above(self.current_index) => t.super_fold_with(self),
@@ -437,6 +438,7 @@ where
         match ct.kind() {
             ty::ConstKind::Bound(debruijn, bound_const) if debruijn == self.current_index => {
                 let ct = self.delegate.replace_const(bound_const, ct.ty());
+                debug_assert!(!ct.has_vars_bound_above(ty::INNERMOST));
                 ty::fold::shift_vars(self.tcx, ct, self.current_index.as_u32())
             }
             _ => ct.super_fold_with(self),
@@ -566,10 +568,7 @@ impl<'tcx> TyCtxt<'tcx> {
                     ))
                 },
                 consts: &mut |c, ty: Ty<'tcx>| {
-                    self.mk_const(ty::ConstS {
-                        kind: ty::ConstKind::Bound(ty::INNERMOST, shift_bv(c)),
-                        ty,
-                    })
+                    self.mk_const(ty::ConstKind::Bound(ty::INNERMOST, shift_bv(c)), ty)
                 },
             },
         )
@@ -601,7 +600,7 @@ impl<'tcx> TyCtxt<'tcx> {
             .replace_late_bound_regions(sig, |_| {
                 let br = ty::BoundRegion {
                     var: ty::BoundVar::from_u32(counter),
-                    kind: ty::BrAnon(counter),
+                    kind: ty::BrAnon(counter, None),
                 };
                 let r = self.mk_region(ty::ReLateBound(ty::INNERMOST, br));
                 counter += 1;
@@ -609,7 +608,7 @@ impl<'tcx> TyCtxt<'tcx> {
             })
             .0;
         let bound_vars = self.mk_bound_variable_kinds(
-            (0..counter).map(|i| ty::BoundVariableKind::Region(ty::BrAnon(i))),
+            (0..counter).map(|i| ty::BoundVariableKind::Region(ty::BrAnon(i, None))),
         );
         Binder::bind_with_vars(inner, bound_vars)
     }
@@ -629,7 +628,9 @@ impl<'tcx> TyCtxt<'tcx> {
                 let index = entry.index();
                 let var = ty::BoundVar::from_usize(index);
                 let kind = entry
-                    .or_insert_with(|| ty::BoundVariableKind::Region(ty::BrAnon(index as u32)))
+                    .or_insert_with(|| {
+                        ty::BoundVariableKind::Region(ty::BrAnon(index as u32, None))
+                    })
                     .expect_region();
                 let br = ty::BoundRegion { var, kind };
                 self.tcx.mk_region(ty::ReLateBound(ty::INNERMOST, br))
@@ -648,7 +649,7 @@ impl<'tcx> TyCtxt<'tcx> {
                 let index = entry.index();
                 let var = ty::BoundVar::from_usize(index);
                 let () = entry.or_insert_with(|| ty::BoundVariableKind::Const).expect_const();
-                self.tcx.mk_const(ty::ConstS { ty, kind: ty::ConstKind::Bound(ty::INNERMOST, var) })
+                self.tcx.mk_const(ty::ConstKind::Bound(ty::INNERMOST, var), ty)
             }
         }
 
@@ -698,14 +699,10 @@ impl<'tcx> TypeFolder<'tcx> for Shifter<'tcx> {
 
     fn fold_region(&mut self, r: ty::Region<'tcx>) -> ty::Region<'tcx> {
         match *r {
-            ty::ReLateBound(debruijn, br) => {
-                if self.amount == 0 || debruijn < self.current_index {
-                    r
-                } else {
-                    let debruijn = debruijn.shifted_in(self.amount);
-                    let shifted = ty::ReLateBound(debruijn, br);
-                    self.tcx.mk_region(shifted)
-                }
+            ty::ReLateBound(debruijn, br) if debruijn >= self.current_index => {
+                let debruijn = debruijn.shifted_in(self.amount);
+                let shifted = ty::ReLateBound(debruijn, br);
+                self.tcx.mk_region(shifted)
             }
             _ => r,
         }
@@ -713,33 +710,29 @@ impl<'tcx> TypeFolder<'tcx> for Shifter<'tcx> {
 
     fn fold_ty(&mut self, ty: Ty<'tcx>) -> Ty<'tcx> {
         match *ty.kind() {
-            ty::Bound(debruijn, bound_ty) => {
-                if self.amount == 0 || debruijn < self.current_index {
-                    ty
-                } else {
-                    let debruijn = debruijn.shifted_in(self.amount);
-                    self.tcx.mk_ty(ty::Bound(debruijn, bound_ty))
-                }
+            ty::Bound(debruijn, bound_ty) if debruijn >= self.current_index => {
+                let debruijn = debruijn.shifted_in(self.amount);
+                self.tcx.mk_ty(ty::Bound(debruijn, bound_ty))
             }
 
-            _ => ty.super_fold_with(self),
+            _ if ty.has_vars_bound_at_or_above(self.current_index) => ty.super_fold_with(self),
+            _ => ty,
         }
     }
 
     fn fold_const(&mut self, ct: ty::Const<'tcx>) -> ty::Const<'tcx> {
-        if let ty::ConstKind::Bound(debruijn, bound_ct) = ct.kind() {
-            if self.amount == 0 || debruijn < self.current_index {
-                ct
-            } else {
-                let debruijn = debruijn.shifted_in(self.amount);
-                self.tcx.mk_const(ty::ConstS {
-                    kind: ty::ConstKind::Bound(debruijn, bound_ct),
-                    ty: ct.ty(),
-                })
-            }
+        if let ty::ConstKind::Bound(debruijn, bound_ct) = ct.kind()
+            && debruijn >= self.current_index
+        {
+            let debruijn = debruijn.shifted_in(self.amount);
+            self.tcx.mk_const(ty::ConstKind::Bound(debruijn, bound_ct), ct.ty())
         } else {
             ct.super_fold_with(self)
         }
+    }
+
+    fn fold_predicate(&mut self, p: ty::Predicate<'tcx>) -> ty::Predicate<'tcx> {
+        if p.has_vars_bound_at_or_above(self.current_index) { p.super_fold_with(self) } else { p }
     }
 }
 
@@ -761,6 +754,10 @@ where
     T: TypeFoldable<'tcx>,
 {
     debug!("shift_vars(value={:?}, amount={})", value, amount);
+
+    if amount == 0 || !value.has_escaping_bound_vars() {
+        return value;
+    }
 
     value.fold_with(&mut Shifter::new(tcx, amount))
 }

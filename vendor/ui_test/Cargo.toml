@@ -13,11 +13,11 @@
 edition = "2021"
 rust-version = "1.63"
 name = "ui_test"
-version = "0.3.1"
+version = "0.5.0"
 description = "A test framework for testing rustc diagnostics output"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
-resolver = "2"
+repository = "https://github.com/oli-obk/ui_test"
 
 [lib]
 test = true
@@ -26,6 +26,9 @@ doctest = false
 [[test]]
 name = "integration"
 harness = false
+
+[dependencies.bstr]
+version = "1.0.1"
 
 [dependencies.cargo_metadata]
 version = "0.15"
@@ -38,8 +41,8 @@ default-features = false
 [dependencies.colored]
 version = "2"
 
-[dependencies.crossbeam]
-version = "0.8.1"
+[dependencies.crossbeam-channel]
+version = "0.5.6"
 
 [dependencies.diff]
 version = "0.1.13"
@@ -64,3 +67,6 @@ features = ["derive"]
 
 [dependencies.serde_json]
 version = "1.0"
+
+[dependencies.tempfile]
+version = "3.3.0"

@@ -181,7 +181,7 @@ top_level_options!(
         #[rustc_lint_opt_deny_field_access("use `Session::codegen_units` instead of this field")]
         cli_forced_codegen_units: Option<usize> [UNTRACKED],
         #[rustc_lint_opt_deny_field_access("use `Session::lto` instead of this field")]
-        cli_forced_thinlto_off: bool [UNTRACKED],
+        cli_forced_local_thinlto_off: bool [UNTRACKED],
 
         /// Remap source path prefixes in all output (messages, object files, debug, etc.).
         remap_path_prefix: Vec<(PathBuf, PathBuf)> [TRACKED_NO_CRATE_HASH],
@@ -1382,6 +1382,9 @@ options! {
         "list the symbols defined by a library crate (default: no)"),
     macro_backtrace: bool = (false, parse_bool, [UNTRACKED],
         "show macro backtraces (default: no)"),
+    maximal_hir_to_mir_coverage: bool = (false, parse_bool, [TRACKED],
+        "save as much information as possible about the correspondence between MIR and HIR \
+        as source scopes (default: no)"),
     merge_functions: Option<MergeFunctions> = (None, parse_merge_functions, [TRACKED],
         "control the operation of the MergeFunctions LLVM pass, taking \
         the same values as the target option of the same name"),
@@ -1414,8 +1417,6 @@ options! {
         "run all passes except codegen; no output"),
     no_generate_arange_section: bool = (false, parse_no_flag, [TRACKED],
         "omit DWARF address ranges that give faster lookups"),
-    no_interleave_lints: bool = (false, parse_no_flag, [UNTRACKED],
-        "execute lints separately; allows benchmarking individual lints"),
     no_leak_check: bool = (false, parse_no_flag, [UNTRACKED],
         "disable the 'leak check' for subtyping; unsound, but useful for tests"),
     no_link: bool = (false, parse_no_flag, [TRACKED],
@@ -1587,6 +1588,8 @@ options! {
         "choose the TLS model to use (`rustc --print tls-models` for details)"),
     trace_macros: bool = (false, parse_bool, [UNTRACKED],
         "for every macro invocation, print its name and arguments (default: no)"),
+    track_diagnostics: bool = (false, parse_bool, [UNTRACKED],
+        "tracks where in rustc a diagnostic was emitted"),
     // Diagnostics are considered side-effects of a query (see `QuerySideEffects`) and are saved
     // alongside query results and changes to translation options can affect diagnostics - so
     // translation options should be tracked.

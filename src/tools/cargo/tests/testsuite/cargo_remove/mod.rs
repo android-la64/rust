@@ -2,6 +2,9 @@ mod avoid_empty_tables;
 mod build;
 mod dev;
 mod dry_run;
+mod gc_patch;
+mod gc_profile;
+mod gc_replace;
 mod invalid_arg;
 mod invalid_dep;
 mod invalid_package;
@@ -22,6 +25,9 @@ mod target;
 mod target_build;
 mod target_dev;
 mod update_lock_file;
+mod workspace;
+mod workspace_non_virtual;
+mod workspace_preserved;
 
 fn init_registry() {
     cargo_test_support::registry::init();

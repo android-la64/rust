@@ -188,7 +188,7 @@ use crate::util::{
 
 const PACKAGE_SOURCE_LOCK: &str = ".cargo-ok";
 pub const CRATES_IO_INDEX: &str = "https://github.com/rust-lang/crates.io-index";
-pub const CRATES_IO_HTTP_INDEX: &str = "https://index.crates.io/";
+pub const CRATES_IO_HTTP_INDEX: &str = "sparse+https://index.crates.io/";
 pub const CRATES_IO_REGISTRY: &str = "crates-io";
 pub const CRATES_IO_DOMAIN: &str = "crates.io";
 const CRATE_TEMPLATE: &str = "{crate}";
@@ -197,6 +197,7 @@ const PREFIX_TEMPLATE: &str = "{prefix}";
 const LOWER_PREFIX_TEMPLATE: &str = "{lowerprefix}";
 const CHECKSUM_TEMPLATE: &str = "{sha256-checksum}";
 const MAX_UNPACK_SIZE: u64 = 512 * 1024 * 1024;
+const MAX_COMPRESSION_RATIO: usize = 20; // 20:1
 
 /// A "source" for a local (see `local::LocalRegistry`) or remote (see
 /// `remote::RemoteRegistry`) registry.
@@ -250,6 +251,10 @@ pub struct RegistryConfig {
     /// operations like yanks, owner modifications, publish new crates, etc.
     /// If this is None, the registry does not support API commands.
     pub api: Option<String>,
+
+    /// Whether all operations require authentication.
+    #[serde(default)]
+    pub auth_required: bool,
 }
 
 /// The maximum version of the `v` field in the index this version of cargo
@@ -417,6 +422,7 @@ impl<'a> RegistryDependency<'a> {
     }
 }
 
+/// Result from loading data from a registry.
 pub enum LoadResponse {
     /// The cache is valid. The cached data should be used.
     CacheValid,
@@ -527,7 +533,11 @@ pub enum MaybeLock {
     ///
     /// `descriptor` is just a text string to display to the user of what is
     /// being downloaded.
-    Download { url: String, descriptor: String },
+    Download {
+        url: String,
+        descriptor: String,
+        authorization: Option<String>,
+    },
 }
 
 mod download;
@@ -548,6 +558,7 @@ impl<'cfg> RegistrySource<'cfg> {
         yanked_whitelist: &HashSet<PackageId>,
         config: &'cfg Config,
     ) -> CargoResult<RegistrySource<'cfg>> {
+        assert!(source_id.is_remote_registry());
         let name = short_name(source_id);
         let ops = if source_id.is_sparse() {
             Box::new(http_remote::HttpRegistry::new(source_id, config, &name)?) as Box<_>
@@ -617,9 +628,12 @@ impl<'cfg> RegistrySource<'cfg> {
                 return Ok(unpack_dir.to_path_buf());
             }
         }
-        let gz = GzDecoder::new(tarball);
-        let gz = LimitErrorReader::new(gz, max_unpack_size());
-        let mut tar = Archive::new(gz);
+        let mut tar = {
+            let size_limit = max_unpack_size(tarball.metadata()?.len());
+            let gz = GzDecoder::new(tarball);
+            let gz = LimitErrorReader::new(gz, size_limit);
+            Archive::new(gz)
+        };
         let prefix = unpack_dir.file_name().unwrap();
         let parent = unpack_dir.parent().unwrap();
         for entry in tar.entries()? {
@@ -782,9 +796,15 @@ impl<'cfg> Source for RegistrySource<'cfg> {
         };
         match self.ops.download(package, hash)? {
             MaybeLock::Ready(file) => self.get_pkg(package, &file).map(MaybePackage::Ready),
-            MaybeLock::Download { url, descriptor } => {
-                Ok(MaybePackage::Download { url, descriptor })
-            }
+            MaybeLock::Download {
+                url,
+                descriptor,
+                authorization,
+            } => Ok(MaybePackage::Download {
+                url,
+                descriptor,
+                authorization,
+            }),
         }
     }
 
@@ -835,18 +855,47 @@ impl<'cfg> Source for RegistrySource<'cfg> {
     }
 }
 
-/// For integration test only.
-#[inline]
-fn max_unpack_size() -> u64 {
-    const VAR: &str = "__CARGO_TEST_MAX_UNPACK_SIZE";
-    if cfg!(debug_assertions) && std::env::var(VAR).is_ok() {
-        std::env::var(VAR)
+/// Get the maximum upack size that Cargo permits
+/// based on a given `size of your compressed file.
+///
+/// Returns the larger one between `size * max compression ratio`
+/// and a fixed max unpacked size.
+///
+/// In reality, the compression ratio usually falls in the range of 2:1 to 10:1.
+/// We choose 20:1 to cover almost all possible cases hopefully.
+/// Any ratio higher than this is considered as a zip bomb.
+///
+/// In the future we might want to introduce a configurable size.
+///
+/// Some of the real world data from common compression algorithms:
+///
+/// * <https://www.zlib.net/zlib_tech.html>
+/// * <https://cran.r-project.org/web/packages/brotli/vignettes/brotli-2015-09-22.pdf>
+/// * <https://blog.cloudflare.com/results-experimenting-brotli/>
+/// * <https://tukaani.org/lzma/benchmarks.html>
+fn max_unpack_size(size: u64) -> u64 {
+    const SIZE_VAR: &str = "__CARGO_TEST_MAX_UNPACK_SIZE";
+    const RATIO_VAR: &str = "__CARGO_TEST_MAX_UNPACK_RATIO";
+    let max_unpack_size = if cfg!(debug_assertions) && std::env::var(SIZE_VAR).is_ok() {
+        // For integration test only.
+        std::env::var(SIZE_VAR)
             .unwrap()
             .parse()
             .expect("a max unpack size in bytes")
     } else {
         MAX_UNPACK_SIZE
-    }
+    };
+    let max_compression_ratio = if cfg!(debug_assertions) && std::env::var(RATIO_VAR).is_ok() {
+        // For integration test only.
+        std::env::var(RATIO_VAR)
+            .unwrap()
+            .parse()
+            .expect("a max compresssion ratio in bytes")
+    } else {
+        MAX_COMPRESSION_RATIO
+    };
+
+    u64::max(max_unpack_size, size * max_compression_ratio as u64)
 }
 
 fn make_dep_prefix(name: &str) -> String {

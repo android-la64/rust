@@ -18,6 +18,8 @@
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
  *
+ * SPDX-License-Identifier: curl
+ *
  ***************************************************************************/
 #include "tool_setup.h"
 
@@ -34,11 +36,7 @@ void config_init(struct OperationConfig *config)
   config->use_httpget = FALSE;
   config->create_dirs = FALSE;
   config->maxredirs = DEFAULT_MAXREDIRS;
-  config->proto = CURLPROTO_ALL;
   config->proto_present = FALSE;
-  config->proto_redir = CURLPROTO_ALL & /* All except FILE, SCP and SMB */
-    ~(CURLPROTO_FILE | CURLPROTO_SCP | CURLPROTO_SMB |
-      CURLPROTO_SMBS);
   config->proto_redir_present = FALSE;
   config->proto_default = NULL;
   config->tcp_nodelay = TRUE; /* enabled by default */
@@ -52,8 +50,6 @@ static void free_config_fields(struct OperationConfig *config)
 {
   struct getout *urlnode;
 
-  Curl_safefree(config->random_file);
-  Curl_safefree(config->egd_file);
   Curl_safefree(config->useragent);
   Curl_safefree(config->altsvc);
   Curl_safefree(config->hsts);
@@ -172,6 +168,8 @@ static void free_config_fields(struct OperationConfig *config)
   Curl_safefree(config->ftp_alternative_to_user);
 
   Curl_safefree(config->aws_sigv4);
+  Curl_safefree(config->proto_str);
+  Curl_safefree(config->proto_redir_str);
 }
 
 void config_free(struct OperationConfig *config)

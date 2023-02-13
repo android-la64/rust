@@ -4,7 +4,7 @@ use std::env::var;
 use std::io::Write;
 
 /// The directory for out-of-line ("outline") libraries.
-const OUTLINE_PATH: &str = "src/imp/linux_raw/arch/outline";
+const OUTLINE_PATH: &str = "src/backend/linux_raw/arch/outline";
 
 fn main() {
     // Don't rerun this on changes other than build.rs, as we only depend on
@@ -101,6 +101,11 @@ fn main() {
         }
     }
 
+    // Detect whether the compiler requires us to use thumb mode on ARM.
+    if arch == "arm" && use_thumb_mode() {
+        use_feature("thumb_mode");
+    }
+
     println!("cargo:rerun-if-env-changed=CARGO_CFG_RUSTIX_USE_EXPERIMENTAL_ASM");
 }
 
@@ -151,6 +156,11 @@ fn link_in_librustix_outline(arch: &str, asm_name: &str) {
     }
 }
 
+fn use_thumb_mode() -> bool {
+    // In thumb mode, r7 is reserved.
+    !can_compile("pub unsafe fn f() { core::arch::asm!(\"udf #16\", in(\"r7\") 0); }")
+}
+
 fn use_feature_or_nothing(feature: &str) {
     if has_feature(feature) {
         use_feature(feature);
@@ -174,10 +184,13 @@ fn can_compile(code: &str) -> bool {
     use std::process::Stdio;
     let out_dir = var("OUT_DIR").unwrap();
     let rustc = var("RUSTC").unwrap();
+    let target = var("TARGET").unwrap();
 
     let mut child = std::process::Command::new(rustc)
         .arg("--crate-type=rlib") // Don't require `main`.
         .arg("--emit=metadata") // Do as little as possible but still parse.
+        .arg("--target")
+        .arg(target)
         .arg("--out-dir")
         .arg(out_dir) // Put the output somewhere inconsequential.
         .arg("-") // Read from stdin.

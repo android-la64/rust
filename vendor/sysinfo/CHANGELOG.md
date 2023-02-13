@@ -1,3 +1,93 @@
+# 0.26.7
+
+ * Apple: Greatly improve disk retrieval (I recommend reading the pull request first comment for more information here: <https://github.com/GuillaumeGomez/sysinfo/pull/855>).
+ * Remove build script.
+
+# 0.26.6
+
+ * Add `Process::wait`.
+ * Add "Good pratice" entry into the crate level documentation and in the README.
+ * Linux: More precise used memory computation.
+
+# 0.26.5
+
+ * Windows: Fix disk information retrieval.
+ * Linux: Improve `Process` document.
+ * Linux: Fix a compilation error if the `apple-sandbox` feature is enabled.
+ * Internal code improvements.
+
+# 0.26.4
+
+ * Add `SystemExt::distribution_id` method.
+ * Update `ntapi` version to `0.4`.
+ * Update minimum supported Rust version (MSRV) to `1.59` for `ntapi` 0.4.
+
+# 0.26.3
+
+ * Update minimum supported Rust version (MSRV) to `1.56` to follow `once_cell` minor update.
+
+# 0.26.2
+
+ * Linux: Fix process information retrieval.
+ * Linux: Get more components temperature.
+ * Linux: Fix disk name retrieval (which in turn fixed disk type retrieval).
+
+# 0.26.1
+
+ * macOS M1: Fix segmentation fault crash.
+
+# 0.26.0
+
+ * Switch memory unit from kilobytes to bytes.
+ * Windows: Fix Windows version display on Windows 11.
+
+# 0.25.3
+
+ * Add macOS M1 CI checks.
+ * macOS M1: Add temperature support.
+ * macOS: Fix leak in disk retrieval.
+
+# 0.25.2
+
+ * Windows: Fix `Process::exe` information retrieval.
+ * All supported platforms: Correctly handle a PID owner change (#809).
+
+# 0.25.1
+
+ * Linux: Fix potential problem on `ProcessExt::exe` in case `/proc/<pid>/exe` cannot be read.
+ * Add `SystemExt::sort_disks_by`.
+
+# 0.25.0
+
+ * Linux: CPU frequency is now retrieved on-demand as expected when `CpuRefreshKind::frequency` is `true`.
+ * `System::refresh_cpu` behaviour changed: it only computes CPU usage and doesn't retrieve CPU frequency.
+
+# 0.24.7
+
+ * Windows: Fix boot time computation.
+ * macOS: Fix available memory computation.
+ * Some documentation fixes.
+
+# 0.24.6
+
+ * macOS: Don't compute CPU usage when elapsed time is 0.
+ * macOS: Fix memory leak when retrieving disks.
+ * C interface: Fix `char` cast when platform is using unsigned `char`s.
+
+# 0.24.5
+
+ * Implement `Hash` trait on `Uid` and `Gid` types.
+ * Remove dependency `once_cell` for targets other than `linux`, `android` and `windows`.
+
+# 0.24.4
+
+ * Windows: Fix `System::refresh_process` when required higher priviledges.
+
+# 0.24.3
+
+ * macOS: Fix `System::refresh_processes` badly handling updates.
+ * FreeBSD: Improve performance of `System::refresh_processes`.
+
 # 0.24.2
 
  * Windows: Fix CPU usage computation.

@@ -1,7 +1,7 @@
 // Take a look at the license at the top of the repository in the LICENSE file.
 
-use crate::sys::utils::get_all_data;
-use crate::{utils, DiskExt, DiskType};
+use crate::sys::utils::{get_all_data, to_cpath};
+use crate::{DiskExt, DiskType};
 
 use libc::statvfs;
 use std::ffi::{OsStr, OsString};
@@ -60,7 +60,7 @@ impl DiskExt for Disk {
     fn refresh(&mut self) -> bool {
         unsafe {
             let mut stat: statvfs = mem::zeroed();
-            let mount_point_cpath = utils::to_cpath(&self.mount_point);
+            let mount_point_cpath = to_cpath(&self.mount_point);
             if statvfs(mount_point_cpath.as_ptr() as *const _, &mut stat) == 0 {
                 let tmp = cast!(stat.f_bsize).saturating_mul(cast!(stat.f_bavail));
                 self.available_space = cast!(tmp);
@@ -78,7 +78,7 @@ fn new_disk(
     file_system: &[u8],
     removable_entries: &[PathBuf],
 ) -> Option<Disk> {
-    let mount_point_cpath = utils::to_cpath(mount_point);
+    let mount_point_cpath = to_cpath(mount_point);
     let type_ = find_type_for_device_name(device_name);
     let mut total = 0;
     let mut available = 0;
@@ -136,9 +136,10 @@ fn find_type_for_device_name(device_name: &OsStr) -> DiskType {
         real_path = real_path.trim_end_matches(|c| c >= '0' && c <= '9');
     } else if device_name_path.starts_with("/dev/nvme") {
         // Turn "nvme0n1p1" into "nvme0n1"
-        real_path = real_path.trim_start_matches("/dev/");
-        real_path = real_path.trim_end_matches(|c| c >= '0' && c <= '9');
-        real_path = real_path.trim_end_matches(|c| c == 'p');
+        real_path = match real_path.find('p') {
+            Some(idx) => &real_path["/dev/".len()..idx],
+            None => &real_path["/dev/".len()..],
+        };
     } else if device_name_path.starts_with("/dev/root") {
         // Recursively solve, for example /dev/mmcblk0p1
         if real_path != device_name_path {
@@ -146,9 +147,10 @@ fn find_type_for_device_name(device_name: &OsStr) -> DiskType {
         }
     } else if device_name_path.starts_with("/dev/mmcblk") {
         // Turn "mmcblk0p1" into "mmcblk0"
-        real_path = real_path.trim_start_matches("/dev/");
-        real_path = real_path.trim_end_matches(|c| c >= '0' && c <= '9');
-        real_path = real_path.trim_end_matches(|c| c == 'p');
+        real_path = match real_path.find('p') {
+            Some(idx) => &real_path["/dev/".len()..idx],
+            None => &real_path["/dev/".len()..],
+        };
     } else {
         // Default case: remove /dev/ and expects the name presents under /sys/block/
         // For example, /dev/dm-0 to dm-0

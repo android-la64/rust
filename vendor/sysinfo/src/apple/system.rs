@@ -3,12 +3,8 @@
 use crate::sys::component::Component;
 use crate::sys::cpu::*;
 use crate::sys::disk::*;
-#[cfg(target_os = "macos")]
-use crate::sys::ffi;
 use crate::sys::network::Networks;
 use crate::sys::process::*;
-#[cfg(target_os = "macos")]
-use core_foundation_sys::base::{kCFAllocatorDefault, CFRelease};
 
 use crate::{
     CpuExt, CpuRefreshKind, LoadAvg, Pid, ProcessRefreshKind, RefreshKind, SystemExt, User,
@@ -31,6 +27,9 @@ use libc::{
     c_char, c_int, c_void, host_statistics64, mach_port_t, sysconf, sysctl, sysctlbyname, timeval,
     vm_statistics64, _SC_PAGESIZE,
 };
+
+#[cfg(not(any(target_os = "ios", feature = "apple-sandbox")))]
+use super::inner::component::Components;
 
 #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
 declare_signals! {
@@ -87,54 +86,22 @@ pub struct System {
     global_cpu: Cpu,
     cpus: Vec<Cpu>,
     page_size_kb: u64,
-    components: Vec<Component>,
-    // Used to get CPU information, not supported on iOS, or inside the default macOS sandbox.
-    #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
-    connection: Option<ffi::io_connect_t>,
+    #[cfg(not(any(target_os = "ios", feature = "apple-sandbox")))]
+    components: Components,
     disks: Vec<Disk>,
     networks: Networks,
     port: mach_port_t,
     users: Vec<User>,
     boot_time: u64,
-    // Used to get disk information, to be more specific, it's needed by the
-    // DADiskCreateFromVolumePath function. Not supported on iOS.
-    #[cfg(target_os = "macos")]
-    session: ffi::SessionWrap,
     #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
     clock_info: Option<crate::sys::macos::system::SystemTimeInfo>,
     got_cpu_frequency: bool,
-}
-
-impl Drop for System {
-    fn drop(&mut self) {
-        #[cfg(target_os = "macos")]
-        unsafe {
-            #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
-            if let Some(conn) = self.connection {
-                ffi::IOServiceClose(conn);
-            }
-
-            if !self.session.0.is_null() {
-                CFRelease(self.session.0 as _);
-            }
-        }
-    }
 }
 
 pub(crate) struct Wrap<'a>(pub UnsafeCell<&'a mut HashMap<Pid, Process>>);
 
 unsafe impl<'a> Send for Wrap<'a> {}
 unsafe impl<'a> Sync for Wrap<'a> {}
-
-#[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
-impl System {
-    fn clear_procs(&mut self) {
-        use crate::sys::macos::process;
-
-        self.process_list
-            .retain(|_, proc_| process::has_been_updated(proc_));
-    }
-}
 
 fn boot_time() -> u64 {
     let mut boot_time = timeval {
@@ -192,17 +159,14 @@ impl SystemExt for System {
                     String::new(),
                 ),
                 cpus: Vec::new(),
-                page_size_kb: sysconf(_SC_PAGESIZE) as u64 / 1_000,
-                components: Vec::with_capacity(2),
-                #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
-                connection: get_io_service_connection(),
+                page_size_kb: sysconf(_SC_PAGESIZE) as _,
+                #[cfg(not(any(target_os = "ios", feature = "apple-sandbox")))]
+                components: Components::new(),
                 disks: Vec::with_capacity(1),
                 networks: Networks::new(),
                 port,
                 users: Vec::new(),
                 boot_time: boot_time(),
-                #[cfg(target_os = "macos")]
-                session: ffi::SessionWrap(::std::ptr::null_mut()),
                 #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
                 clock_info: crate::sys::macos::system::SystemTimeInfo::new(port),
                 got_cpu_frequency: false,
@@ -226,8 +190,8 @@ impl SystemExt for System {
                 &mut xs as *mut _ as *mut c_void,
                 &mut mib,
             ) {
-                self.swap_total = xs.xsu_total / 1_000;
-                self.swap_free = xs.xsu_avail / 1_000;
+                self.swap_total = xs.xsu_total;
+                self.swap_free = xs.xsu_avail;
             }
             // get ram info
             if self.mem_total < 1 {
@@ -238,7 +202,6 @@ impl SystemExt for System {
                     &mut self.mem_total as *mut u64 as *mut c_void,
                     &mut mib,
                 );
-                self.mem_total /= 1_000;
             }
             let mut count: u32 = libc::HOST_VM_INFO64_COUNT as _;
             let mut stat = mem::zeroed::<vm_statistics64>();
@@ -257,16 +220,14 @@ impl SystemExt for System {
                 //  * used to hold data that was read speculatively from disk but
                 //  * haven't actually been used by anyone so far.
                 //  */
-                self.mem_available = self
-                    .mem_total
-                    .saturating_sub(
-                        u64::from(stat.active_count)
-                            .saturating_add(u64::from(stat.inactive_count))
-                            .saturating_add(u64::from(stat.wire_count))
-                            .saturating_add(u64::from(stat.speculative_count))
-                            .saturating_sub(u64::from(stat.purgeable_count)),
-                    )
-                    .saturating_mul(self.page_size_kb);
+                self.mem_available = self.mem_total.saturating_sub(
+                    u64::from(stat.active_count)
+                        .saturating_add(u64::from(stat.inactive_count))
+                        .saturating_add(u64::from(stat.wire_count))
+                        .saturating_add(u64::from(stat.speculative_count))
+                        .saturating_sub(u64::from(stat.purgeable_count))
+                        .saturating_mul(self.page_size_kb),
+                );
                 self.mem_free = u64::from(stat.free_count).saturating_mul(self.page_size_kb);
             }
         }
@@ -275,22 +236,9 @@ impl SystemExt for System {
     #[cfg(any(target_os = "ios", feature = "apple-sandbox"))]
     fn refresh_components_list(&mut self) {}
 
-    #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
+    #[cfg(not(any(target_os = "ios", feature = "apple-sandbox")))]
     fn refresh_components_list(&mut self) {
-        if let Some(con) = self.connection {
-            self.components.clear();
-            // getting CPU critical temperature
-            let critical_temp = crate::apple::component::get_temperature(
-                con,
-                &['T' as i8, 'C' as i8, '0' as i8, 'D' as i8, 0],
-            );
-
-            for (id, v) in crate::apple::component::COMPONENTS_TEMPERATURE_IDS.iter() {
-                if let Some(c) = Component::new((*id).to_owned(), None, critical_temp, v, con) {
-                    self.components.push(c);
-                }
-            }
-        }
+        self.components.refresh();
     }
 
     fn refresh_cpu_specifics(&mut self, refresh_kind: CpuRefreshKind) {
@@ -356,6 +304,7 @@ impl SystemExt for System {
                             time_interval,
                             now,
                             refresh_kind,
+                            false,
                         ) {
                             Ok(x) => x,
                             _ => None,
@@ -366,7 +315,8 @@ impl SystemExt for System {
             entries.into_iter().for_each(|entry| {
                 self.process_list.insert(entry.pid(), entry);
             });
-            self.clear_procs();
+            self.process_list
+                .retain(|_, proc_| std::mem::replace(&mut proc_.updated, false));
         }
     }
 
@@ -390,6 +340,7 @@ impl SystemExt for System {
                 time_interval,
                 now,
                 refresh_kind,
+                true,
             )
         } {
             Ok(Some(p)) => {
@@ -401,17 +352,8 @@ impl SystemExt for System {
         }
     }
 
-    #[cfg(target_os = "ios")]
-    fn refresh_disks_list(&mut self) {}
-
-    #[cfg(target_os = "macos")]
     fn refresh_disks_list(&mut self) {
-        unsafe {
-            if self.session.0.is_null() {
-                self.session.0 = ffi::DASessionCreate(kCFAllocatorDefault as _);
-            }
-            self.disks = get_disks(self.session.0);
-        }
+        self.disks = unsafe { get_disks() };
     }
 
     fn refresh_users_list(&mut self) {
@@ -491,12 +433,24 @@ impl SystemExt for System {
         self.swap_total - self.swap_free
     }
 
+    #[cfg(not(any(target_os = "ios", feature = "apple-sandbox")))]
     fn components(&self) -> &[Component] {
-        &self.components
+        &self.components.inner
     }
 
+    #[cfg(any(target_os = "ios", feature = "apple-sandbox"))]
+    fn components(&self) -> &[Component] {
+        &[]
+    }
+
+    #[cfg(not(any(target_os = "ios", feature = "apple-sandbox")))]
     fn components_mut(&mut self) -> &mut [Component] {
-        &mut self.components
+        &mut self.components.inner
+    }
+
+    #[cfg(any(target_os = "ios", feature = "apple-sandbox"))]
+    fn components_mut(&mut self) -> &mut [Component] {
+        &mut []
     }
 
     fn disks(&self) -> &[Disk] {
@@ -505,6 +459,13 @@ impl SystemExt for System {
 
     fn disks_mut(&mut self) -> &mut [Disk] {
         &mut self.disks
+    }
+
+    fn sort_disks_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&Disk, &Disk) -> std::cmp::Ordering,
+    {
+        self.disks.sort_unstable_by(compare);
     }
 
     fn uptime(&self) -> u64 {
@@ -598,7 +559,7 @@ impl SystemExt for System {
                 && size > 0
             {
                 // now create a buffer with the size and get the real value
-                let mut buf = vec![0_u8; size as usize];
+                let mut buf = vec![0_u8; size as _];
 
                 if get_sys_value_by_name(
                     b"kern.osproductversion\0",
@@ -621,48 +582,15 @@ impl SystemExt for System {
             }
         }
     }
+
+    fn distribution_id(&self) -> String {
+        std::env::consts::OS.to_owned()
+    }
 }
 
 impl Default for System {
     fn default() -> System {
         System::new()
-    }
-}
-
-// code from https://github.com/Chris911/iStats
-// Not supported on iOS, or in the default macOS
-#[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
-fn get_io_service_connection() -> Option<ffi::io_connect_t> {
-    let mut master_port: mach_port_t = 0;
-    let mut iterator: ffi::io_iterator_t = 0;
-
-    unsafe {
-        ffi::IOMasterPort(libc::MACH_PORT_NULL, &mut master_port);
-
-        let matching_dictionary = ffi::IOServiceMatching(b"AppleSMC\0".as_ptr() as *const i8);
-        let result =
-            ffi::IOServiceGetMatchingServices(master_port, matching_dictionary, &mut iterator);
-        if result != ffi::KIO_RETURN_SUCCESS {
-            sysinfo_debug!("Error: IOServiceGetMatchingServices() = {}", result);
-            return None;
-        }
-
-        let device = ffi::IOIteratorNext(iterator);
-        ffi::IOObjectRelease(iterator);
-        if device == 0 {
-            sysinfo_debug!("Error: no SMC found");
-            return None;
-        }
-
-        let mut conn = 0;
-        let result = ffi::IOServiceOpen(device, libc::mach_task_self(), 0, &mut conn);
-        ffi::IOObjectRelease(device);
-        if result != ffi::KIO_RETURN_SUCCESS {
-            sysinfo_debug!("Error: IOServiceOpen() = {}", result);
-            return None;
-        }
-
-        Some(conn)
     }
 }
 
@@ -737,7 +665,7 @@ fn get_system_info(value: c_int, default: Option<&str>) -> Option<String> {
             default.map(|s| s.to_owned())
         } else {
             // set the buffer to the correct size
-            let mut buf = vec![0_u8; size as usize];
+            let mut buf = vec![0_u8; size as _];
 
             if sysctl(
                 mib.as_mut_ptr(),

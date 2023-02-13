@@ -1254,24 +1254,28 @@ fn calculate(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Arc<Fingerpri
 /// Calculate a fingerprint for a "normal" unit, or anything that's not a build
 /// script. This is an internal helper of `calculate`, don't call directly.
 fn calculate_normal(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Fingerprint> {
-    // Recursively calculate the fingerprint for all of our dependencies.
-    //
-    // Skip fingerprints of binaries because they don't actually induce a
-    // recompile, they're just dependencies in the sense that they need to be
-    // built.
-    //
-    // Create Vec since mutable cx is needed in closure.
-    let deps = Vec::from(cx.unit_deps(unit));
-    let mut deps = deps
-        .into_iter()
-        .filter(|dep| !dep.unit.target.is_bin())
-        .map(|dep| DepFingerprint::new(cx, unit, &dep))
-        .collect::<CargoResult<Vec<_>>>()?;
-    deps.sort_by(|a, b| a.pkg_id.cmp(&b.pkg_id));
+    let deps = {
+        // Recursively calculate the fingerprint for all of our dependencies.
+        //
+        // Skip fingerprints of binaries because they don't actually induce a
+        // recompile, they're just dependencies in the sense that they need to be
+        // built. The only exception here are artifact dependencies,
+        // which is an actual dependency that needs a recompile.
+        //
+        // Create Vec since mutable cx is needed in closure.
+        let deps = Vec::from(cx.unit_deps(unit));
+        let mut deps = deps
+            .into_iter()
+            .filter(|dep| !dep.unit.target.is_bin() || dep.unit.artifact.is_true())
+            .map(|dep| DepFingerprint::new(cx, unit, &dep))
+            .collect::<CargoResult<Vec<_>>>()?;
+        deps.sort_by(|a, b| a.pkg_id.cmp(&b.pkg_id));
+        deps
+    };
 
     // Afterwards calculate our own fingerprint information.
     let target_root = target_root(cx);
-    let local = if unit.mode.is_doc() {
+    let local = if unit.mode.is_doc() || unit.mode.is_doc_scrape() {
         // rustdoc does not have dep-info files.
         let fingerprint = pkg_fingerprint(cx.bcx, &unit.pkg).with_context(|| {
             format!(
@@ -1298,7 +1302,7 @@ fn calculate_normal(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Finger
     // Fill out a bunch more information that we'll be tracking typically
     // hashed to take up less space on disk as we just need to know when things
     // change.
-    let extra_flags = if unit.mode.is_doc() {
+    let extra_flags = if unit.mode.is_doc() || unit.mode.is_doc_scrape() {
         cx.bcx.rustdocflags_args(unit)
     } else {
         cx.bcx.rustflags_args(unit)

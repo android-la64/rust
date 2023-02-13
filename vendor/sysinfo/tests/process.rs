@@ -11,7 +11,6 @@ fn test_process() {
         return;
     }
     assert!(!s.processes().is_empty());
-    #[cfg(not(windows))]
     assert!(s
         .processes()
         .values()
@@ -39,7 +38,7 @@ fn test_cwd() {
             .unwrap()
     };
 
-    let pid = Pid::from_u32(p.id() as u32);
+    let pid = Pid::from_u32(p.id() as _);
     std::thread::sleep(std::time::Duration::from_secs(1));
     let mut s = sysinfo::System::new();
     s.refresh_processes();
@@ -82,7 +81,7 @@ fn test_cmd() {
     s.refresh_processes();
     p.kill().expect("Unable to kill process.");
     assert!(!s.processes().is_empty());
-    if let Some(process) = s.process(Pid::from_u32(p.id() as u32)) {
+    if let Some(process) = s.process(Pid::from_u32(p.id() as _)) {
         if cfg!(target_os = "windows") {
             // Sometimes, we get the full path instead for some reasons... So just in case,
             // we check for the command independently that from the arguments.
@@ -121,7 +120,7 @@ fn test_environ() {
             .unwrap()
     };
 
-    let pid = Pid::from_u32(p.id() as u32);
+    let pid = Pid::from_u32(p.id() as _);
     std::thread::sleep(std::time::Duration::from_secs(1));
     let mut s = sysinfo::System::new();
     s.refresh_processes();
@@ -225,6 +224,8 @@ fn cpu_usage_is_not_nan() {
         return;
     }
 
+    // We need `collect` otherwise we can't have mutable access to `system`.
+    #[allow(clippy::needless_collect)]
     let first_pids = system
         .processes()
         .iter()
@@ -266,7 +267,7 @@ fn test_process_times() {
             .unwrap()
     };
 
-    let pid = Pid::from_u32(p.id() as u32);
+    let pid = Pid::from_u32(p.id() as _);
     std::thread::sleep(std::time::Duration::from_secs(1));
     let mut s = sysinfo::System::new();
     s.refresh_processes();
@@ -314,7 +315,7 @@ fn test_refresh_processes() {
             .unwrap()
     };
 
-    let pid = Pid::from_u32(p.id() as u32);
+    let pid = Pid::from_u32(p.id() as _);
     std::thread::sleep(std::time::Duration::from_secs(1));
 
     // Checks that the process is listed as it should.
@@ -358,7 +359,7 @@ fn test_refresh_process() {
             .unwrap()
     };
 
-    let pid = Pid::from_u32(p.id() as u32);
+    let pid = Pid::from_u32(p.id() as _);
     std::thread::sleep(std::time::Duration::from_secs(1));
 
     // Checks that the process is listed as it should.
@@ -378,4 +379,79 @@ fn test_refresh_process() {
     assert!(!s.refresh_process(pid));
     // Checks that the process is still listed.
     assert!(s.process(pid).is_some());
+}
+
+#[test]
+fn test_wait_child() {
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+    let p = if cfg!(target_os = "windows") {
+        std::process::Command::new("waitfor")
+            .arg("/t")
+            .arg("300")
+            .arg("RefreshProcess")
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap()
+    } else {
+        std::process::Command::new("sleep")
+            .arg("300")
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap()
+    };
+
+    let before = std::time::Instant::now();
+    let pid = Pid::from_u32(p.id() as _);
+
+    let mut s = sysinfo::System::new();
+    s.refresh_process(pid);
+    let process = s.process(pid).unwrap();
+
+    // Kill the child process.
+    process.kill();
+    // Wait for child process should work.
+    process.wait();
+
+    // Child process should not be present.
+    assert!(!s.refresh_process(pid));
+    assert!(before.elapsed() < std::time::Duration::from_millis(1000));
+}
+
+#[test]
+fn test_wait_non_child() {
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+
+    // spawn non child process.
+    let p = if !cfg!(target_os = "linux") {
+        return;
+    } else {
+        std::process::Command::new("setsid")
+            .arg("-w")
+            .arg("sleep")
+            .arg("2")
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap()
+    };
+    let pid = Pid::from_u32(p.id());
+
+    let before = std::time::Instant::now();
+
+    let mut s = sysinfo::System::new();
+    s.refresh_process(pid);
+    let process = s.process(pid).expect("Process not found!");
+
+    // Wait for a non child process.
+    process.wait();
+
+    // Child process should not be present.
+    assert!(!s.refresh_process(pid));
+
+    // should wait for 2s.
+    assert!(before.elapsed() > std::time::Duration::from_millis(2000));
+    assert!(before.elapsed() < std::time::Duration::from_millis(3000));
 }

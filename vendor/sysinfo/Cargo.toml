@@ -11,11 +11,10 @@
 
 [package]
 edition = "2018"
-rust-version = "1.54"
+rust-version = "1.59"
 name = "sysinfo"
-version = "0.24.2"
+version = "0.26.7"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
-build = "build.rs"
 exclude = ["/test-unknown"]
 description = "Library to get system information such as processes, CPUs, disks, components and networks"
 readme = "README.md"
@@ -37,9 +36,6 @@ crate_type = [
 [dependencies.cfg-if]
 version = "1.0"
 
-[dependencies.once_cell]
-version = "1.0"
-
 [dependencies.rayon]
 version = "^1.5.1"
 optional = true
@@ -59,11 +55,14 @@ version = "3.2"
 [target."cfg(any(target_os = \"macos\", target_os = \"ios\"))".dependencies.core-foundation-sys]
 version = "0.8"
 
+[target."cfg(any(windows, target_os = \"linux\", target_os = \"android\"))".dependencies.once_cell]
+version = "1.0"
+
 [target."cfg(not(any(target_os = \"unknown\", target_arch = \"wasm32\")))".dependencies.libc]
 version = "^0.2.112"
 
 [target."cfg(windows)".dependencies.ntapi]
-version = "0.3"
+version = "0.4"
 
 [target."cfg(windows)".dependencies.winapi]
 version = "0.3.9"

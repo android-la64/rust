@@ -12,11 +12,11 @@
 #[cfg(unix)]
 use crate::net::SocketAddrUnix;
 use crate::net::{AddressFamily, SocketAddrV4, SocketAddrV6};
-use crate::{imp, io};
+use crate::{backend, io};
 #[cfg(feature = "std")]
 use core::fmt;
 
-pub use imp::net::addr::SocketAddrStorage;
+pub use backend::net::addr::SocketAddrStorage;
 
 /// `struct sockaddr_storage` as a Rust enum.
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
@@ -37,10 +37,10 @@ impl SocketAddrAny {
     #[inline]
     pub const fn address_family(&self) -> AddressFamily {
         match self {
-            SocketAddrAny::V4(_) => AddressFamily::INET,
-            SocketAddrAny::V6(_) => AddressFamily::INET6,
+            Self::V4(_) => AddressFamily::INET,
+            Self::V6(_) => AddressFamily::INET6,
             #[cfg(unix)]
-            SocketAddrAny::Unix(_) => AddressFamily::UNIX,
+            Self::Unix(_) => AddressFamily::UNIX,
         }
     }
 
@@ -53,7 +53,7 @@ impl SocketAddrAny {
     /// `storage` must point to valid memory for encoding the socket
     /// address.
     pub unsafe fn write(&self, storage: *mut SocketAddrStorage) -> usize {
-        imp::net::write_sockaddr::write_sockaddr(self, storage)
+        backend::net::write_sockaddr::write_sockaddr(self, storage)
     }
 
     /// Reads a platform-specific encoding of a socket address from
@@ -64,7 +64,7 @@ impl SocketAddrAny {
     /// `storage` must point to valid memory for decoding a socket
     /// address.
     pub unsafe fn read(storage: *const SocketAddrStorage, len: usize) -> io::Result<Self> {
-        imp::net::read_sockaddr::read_sockaddr(storage, len)
+        backend::net::read_sockaddr::read_sockaddr(storage, len)
     }
 }
 
@@ -72,10 +72,10 @@ impl SocketAddrAny {
 impl fmt::Debug for SocketAddrAny {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SocketAddrAny::V4(v4) => v4.fmt(fmt),
-            SocketAddrAny::V6(v6) => v6.fmt(fmt),
+            Self::V4(v4) => v4.fmt(fmt),
+            Self::V6(v6) => v6.fmt(fmt),
             #[cfg(unix)]
-            SocketAddrAny::Unix(unix) => unix.fmt(fmt),
+            Self::Unix(unix) => unix.fmt(fmt),
         }
     }
 }

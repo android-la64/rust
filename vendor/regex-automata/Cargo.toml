@@ -3,28 +3,41 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2018"
 name = "regex-automata"
-version = "0.1.10"
+version = "0.2.0"
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
-exclude = ["/.travis.yml", "/appveyor.yml", "/ci/*", "/scripts/*", "/regex-automata-debug"]
+exclude = [
+    "/.github",
+    "/scripts/*",
+    "/regex-cli",
+    "/regex-test",
+]
 autoexamples = false
 autotests = false
 description = "Automata construction and matching using regular expressions."
 homepage = "https://github.com/BurntSushi/regex-automata"
 documentation = "https://docs.rs/regex-automata"
 readme = "README.md"
-keywords = ["regex", "dfa", "automata", "automaton", "nfa"]
+keywords = [
+    "regex",
+    "dfa",
+    "automata",
+    "automaton",
+    "nfa",
+]
 categories = ["text-processing"]
 license = "Unlicense/MIT"
 repository = "https://github.com/BurntSushi/regex-automata"
+resolver = "2"
+
 [profile.bench]
 debug = true
 
@@ -43,44 +56,33 @@ debug = true
 bench = false
 
 [[test]]
-name = "default"
+name = "integration"
 path = "tests/tests.rs"
+
 [dependencies.fst]
-version = "0.4.0"
+version = "0.4.5"
 optional = true
 
-[dependencies.regex-syntax]
-version = "0.6.16"
+[dependencies.log]
+version = "0.4.14"
 optional = true
-[dev-dependencies.bstr]
-version = "0.2"
-features = ["std"]
+
+[dependencies.memchr]
+version = "2.4.0"
 default-features = false
 
-[dev-dependencies.lazy_static]
-version = "1.2.0"
-
-[dev-dependencies.regex]
-version = "1.1"
-
-[dev-dependencies.serde]
-version = "1.0.82"
-
-[dev-dependencies.serde_bytes]
-version = "0.11"
-
-[dev-dependencies.serde_derive]
-version = "1.0.82"
-
-[dev-dependencies.toml]
-version = "0.4.10"
+[dependencies.regex-syntax]
+version = "0.6.24"
+optional = true
 
 [features]
-default = ["std"]
-std = ["regex-syntax"]
-transducer = ["std", "fst"]
-[badges.appveyor]
-repository = "BurntSushi/regex-automata"
-
-[badges.travis-ci]
-repository = "BurntSushi/regex-automata"
+alloc = ["syntax"]
+default = [
+    "std",
+    "alloc",
+    "syntax",
+]
+logging = ["log"]
+std = []
+syntax = ["regex-syntax"]
+transducer = ["fst"]

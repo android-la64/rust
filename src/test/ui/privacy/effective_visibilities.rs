@@ -6,7 +6,7 @@ mod outer { //~ ERROR Direct: pub(crate), Reexported: pub(crate), Reachable: pub
     pub mod inner1 { //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
 
         #[rustc_effective_visibility]
-        extern "C" {} //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
+        extern "C" {} //~ ERROR not in the table
 
         #[rustc_effective_visibility]
         pub trait PubTrait { //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
@@ -17,12 +17,13 @@ mod outer { //~ ERROR Direct: pub(crate), Reexported: pub(crate), Reachable: pub
         }
 
         #[rustc_effective_visibility]
-        struct PrivStruct; //~ ERROR not in the table
+        struct PrivStruct; //~ ERROR Direct: pub(self), Reexported: pub(self), Reachable: pub(self), ReachableThroughImplTrait: pub(self)
+                           //~| ERROR Direct: pub(self), Reexported: pub(self), Reachable: pub(self), ReachableThroughImplTrait: pub(self)
 
         #[rustc_effective_visibility]
         pub union PubUnion { //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
             #[rustc_effective_visibility]
-            a: u8, //~ ERROR not in the table
+            a: u8, //~ ERROR Direct: pub(self), Reexported: pub(self), Reachable: pub(self), ReachableThroughImplTrait: pub(self)
             #[rustc_effective_visibility]
             pub b: u8, //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
         }
@@ -31,6 +32,7 @@ mod outer { //~ ERROR Direct: pub(crate), Reexported: pub(crate), Reachable: pub
         pub enum Enum { //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
             #[rustc_effective_visibility]
             A( //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
+               //~| ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
                 #[rustc_effective_visibility]
                 PubUnion,  //~ ERROR Direct: pub(crate), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
             ),
@@ -38,13 +40,13 @@ mod outer { //~ ERROR Direct: pub(crate), Reexported: pub(crate), Reachable: pub
     }
 
     #[rustc_effective_visibility]
-    macro_rules! none_macro { //~ Direct: pub(crate), Reexported: pub(crate), Reachable: pub(crate), ReachableThroughImplTrait: pub(crate)
+    macro_rules! none_macro { //~ ERROR not in the table
         () => {};
     }
 
     #[macro_export]
     #[rustc_effective_visibility]
-    macro_rules! public_macro { //~ Direct: pub, Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
+    macro_rules! public_macro { //~ ERROR Direct: pub(self), Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
         () => {};
     }
 
@@ -70,6 +72,5 @@ mod half_public_import {
 
 #[rustc_effective_visibility]
 pub use half_public_import::HalfPublicImport; //~ ERROR Direct: pub, Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
-                                              //~^ ERROR Direct: pub, Reexported: pub, Reachable: pub, ReachableThroughImplTrait: pub
 
 fn main() {}

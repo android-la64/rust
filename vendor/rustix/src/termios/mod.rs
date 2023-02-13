@@ -10,98 +10,138 @@ pub use cf::{cfgetispeed, cfgetospeed, cfmakeraw, cfsetispeed, cfsetospeed, cfse
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B1000000;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B1152000;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B1500000;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B2000000;
 #[cfg(not(any(
+    target_arch = "sparc",
+    target_arch = "sparc64",
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B2500000;
 #[cfg(not(any(
+    target_arch = "sparc",
+    target_arch = "sparc64",
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B3000000;
 #[cfg(not(any(
+    target_arch = "sparc",
+    target_arch = "sparc64",
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B3500000;
 #[cfg(not(any(
+    target_arch = "sparc",
+    target_arch = "sparc64",
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B4000000;
-#[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "openbsd")))]
+#[cfg(not(any(
+    target_os = "dragonfly",
+    target_os = "haiku",
+    target_os = "ios",
+    target_os = "macos",
+    target_os = "openbsd"
+)))]
 pub use constants::B460800;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B500000;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::B576000;
-#[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "openbsd")))]
+#[cfg(not(any(
+    target_os = "dragonfly",
+    target_os = "haiku",
+    target_os = "ios",
+    target_os = "macos",
+    target_os = "openbsd"
+)))]
 pub use constants::B921600;
 #[cfg(not(any(target_os = "ios", target_os = "macos")))]
 pub use constants::BRKINT;
@@ -115,6 +155,7 @@ pub use constants::BRKINT;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::BS0;
 #[cfg(not(any(
@@ -129,6 +170,7 @@ pub use constants::BS0;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::BS1;
 #[cfg(not(any(
@@ -140,11 +182,13 @@ pub use constants::BS1;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::BSDLY;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
@@ -155,18 +199,21 @@ pub use constants::CBAUD;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::CBAUDEX;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "emscripten",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
@@ -180,12 +227,14 @@ pub use constants::CLOCAL;
     target_os = "dragonfly",
     target_os = "emscripten",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::CMSPAR;
 #[cfg(not(any(
@@ -198,6 +247,7 @@ pub use constants::CMSPAR;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::CR0;
 #[cfg(not(any(
@@ -212,6 +262,7 @@ pub use constants::CR0;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::CR1;
 #[cfg(not(any(
@@ -226,6 +277,7 @@ pub use constants::CR1;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::CR2;
 #[cfg(not(any(
@@ -240,6 +292,7 @@ pub use constants::CR2;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::CR3;
 #[cfg(not(any(
@@ -251,6 +304,7 @@ pub use constants::CR3;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::CRDLY;
 #[cfg(not(any(target_os = "ios", target_os = "macos")))]
@@ -285,21 +339,30 @@ pub use constants::ECHONL;
 pub use constants::ECHOPRT;
 #[cfg(not(any(
     target_os = "emscripten",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::EXTA;
 #[cfg(not(any(
     target_os = "emscripten",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::EXTB;
-#[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "redox")))]
+#[cfg(not(any(
+    target_os = "haiku",
+    target_os = "ios",
+    target_os = "macos",
+    target_os = "redox"
+)))]
 pub use constants::EXTPROC;
 #[cfg(not(any(
     target_os = "dragonfly",
@@ -311,6 +374,7 @@ pub use constants::EXTPROC;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::FF0;
 #[cfg(not(any(
@@ -325,6 +389,7 @@ pub use constants::FF0;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::FF1;
 #[cfg(not(any(
@@ -337,6 +402,7 @@ pub use constants::FF1;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::FFDLY;
 #[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "redox")))]
@@ -353,7 +419,12 @@ pub use constants::IGNBRK;
 pub use constants::IGNCR;
 #[cfg(not(any(target_os = "ios", target_os = "macos")))]
 pub use constants::IGNPAR;
-#[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "redox")))]
+#[cfg(not(any(
+    target_os = "haiku",
+    target_os = "ios",
+    target_os = "macos",
+    target_os = "redox"
+)))]
 pub use constants::IMAXBEL;
 #[cfg(not(any(target_os = "ios", target_os = "macos")))]
 pub use constants::INLCR;
@@ -375,12 +446,14 @@ pub use constants::IUCLC;
     target_os = "dragonfly",
     target_os = "emscripten",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::IUTF8;
 #[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "redox")))]
@@ -399,6 +472,7 @@ pub use constants::IXON;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::NL0;
 #[cfg(not(any(
@@ -411,6 +485,7 @@ pub use constants::NL0;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::NL1;
 #[cfg(not(any(
@@ -422,6 +497,7 @@ pub use constants::NL1;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::NLDLY;
 #[cfg(not(any(target_os = "ios", target_os = "macos")))]
@@ -472,6 +548,7 @@ pub use constants::PARODD;
 #[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "redox")))]
 pub use constants::PENDIN;
 #[cfg(not(any(
+    target_os = "dragonfly",
     target_os = "fuchsia",
     target_os = "illumos",
     target_os = "ios",
@@ -479,6 +556,7 @@ pub use constants::PENDIN;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::TAB0;
 #[cfg(not(any(
@@ -493,6 +571,7 @@ pub use constants::TAB0;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::TAB1;
 #[cfg(not(any(
@@ -507,10 +586,12 @@ pub use constants::TAB1;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::TAB2;
 #[cfg(not(any(
     all(libc, target_env = "musl"),
+    target_os = "dragonfly",
     target_os = "emscripten",
     target_os = "fuchsia",
     target_os = "illumos",
@@ -519,15 +600,18 @@ pub use constants::TAB2;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::TAB3;
 #[cfg(not(any(
+    target_os = "dragonfly",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "illumos",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::TABDLY;
 #[cfg(not(any(target_os = "ios", target_os = "macos")))]
@@ -535,11 +619,13 @@ pub use constants::TOSTOP;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
+    target_os = "solaris",
 )))]
 pub use constants::VSWTC;
 #[cfg(not(any(
@@ -552,6 +638,7 @@ pub use constants::VSWTC;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::VT0;
 #[cfg(not(any(
@@ -566,6 +653,7 @@ pub use constants::VT0;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::VT1;
 #[cfg(not(any(
@@ -578,6 +666,7 @@ pub use constants::VT1;
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::VTDLY;
 #[cfg(any(linux_raw, all(libc, any(target_arch = "s390x", target_os = "haiku"))))]
@@ -585,19 +674,23 @@ pub use constants::XCASE;
 #[cfg(not(any(
     target_os = "dragonfly",
     target_os = "freebsd",
+    target_os = "haiku",
     target_os = "illumos",
     target_os = "ios",
     target_os = "macos",
     target_os = "netbsd",
     target_os = "openbsd",
     target_os = "redox",
+    target_os = "solaris",
 )))]
 pub use constants::XTABS;
 pub use constants::{
     speed_value, B0, B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300,
-    B38400, B4800, B50, B57600, B600, B75, B9600, ICANON, VDISCARD, VEOF, VEOL, VEOL2, VERASE,
-    VINTR, VKILL, VLNEXT, VMIN, VQUIT, VREPRINT, VSTART, VSTOP, VSUSP, VTIME, VWERASE,
+    B38400, B4800, B50, B57600, B600, B75, B9600, ICANON, VEOF, VEOL, VEOL2, VERASE, VINTR, VKILL,
+    VMIN, VQUIT, VSTART, VSTOP, VSUSP, VTIME,
 };
+#[cfg(not(target_os = "haiku"))]
+pub use constants::{VDISCARD, VLNEXT, VREPRINT, VWERASE};
 pub use tc::{
     tcdrain, tcflow, tcflush, tcgetattr, tcgetpgrp, tcgetsid, tcgetwinsize, tcsendbreak, tcsetattr,
     tcsetpgrp, tcsetwinsize, Action, OptionalActions, QueueSelector, Speed, Tcflag, Termios,

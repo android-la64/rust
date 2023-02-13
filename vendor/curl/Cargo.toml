@@ -12,14 +12,17 @@
 [package]
 edition = "2018"
 name = "curl"
-version = "0.4.43"
+version = "0.4.44"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 autotests = true
 description = "Rust bindings to libcurl for making HTTP requests"
 homepage = "https://github.com/alexcrichton/curl-rust"
 documentation = "https://docs.rs/curl"
 readme = "README.md"
-categories = ["api-bindings", "web-programming::http-client"]
+categories = [
+    "api-bindings",
+    "web-programming::http-client",
+]
 license = "MIT"
 repository = "https://github.com/alexcrichton/curl-rust"
 
@@ -40,7 +43,10 @@ required-features = ["ssl"]
 [[example]]
 name = "aws_sigv4"
 path = "examples/aws_sigv4.rs"
-required-features = ["static-curl", "ssl"]
+required-features = [
+    "static-curl",
+    "ssl",
+]
 
 [[example]]
 name = "multi-dl"
@@ -50,8 +56,9 @@ required-features = ["ssl"]
 [[test]]
 name = "atexit"
 harness = false
+
 [dependencies.curl-sys]
-version = "0.4.53"
+version = "0.4.56"
 default-features = false
 
 [dependencies.libc]
@@ -59,6 +66,7 @@ version = "0.2.42"
 
 [dependencies.socket2]
 version = "0.4.0"
+
 [dev-dependencies.anyhow]
 version = "1.0.31"
 
@@ -78,11 +86,19 @@ poll_7_68_0 = ["curl-sys/poll_7_68_0"]
 protocol-ftp = ["curl-sys/protocol-ftp"]
 rustls = ["curl-sys/rustls"]
 spnego = ["curl-sys/spnego"]
-ssl = ["openssl-sys", "openssl-probe", "curl-sys/ssl"]
+ssl = [
+    "openssl-sys",
+    "openssl-probe",
+    "curl-sys/ssl",
+]
 static-curl = ["curl-sys/static-curl"]
 static-ssl = ["curl-sys/static-ssl"]
 upkeep_7_62_0 = ["curl-sys/upkeep_7_62_0"]
-zlib-ng-compat = ["curl-sys/zlib-ng-compat", "static-curl"]
+zlib-ng-compat = [
+    "curl-sys/zlib-ng-compat",
+    "static-curl",
+]
+
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies.openssl-probe]
 version = "0.1.2"
 optional = true
@@ -90,12 +106,17 @@ optional = true
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies.openssl-sys]
 version = "0.9.43"
 optional = true
+
 [target."cfg(target_env = \"msvc\")".dependencies.schannel]
 version = "0.1.13"
 
 [target."cfg(target_env = \"msvc\")".dependencies.winapi]
 version = "0.3"
-features = ["libloaderapi", "wincrypt"]
+features = [
+    "libloaderapi",
+    "wincrypt",
+]
+
 [badges.appveyor]
 repository = "alexcrichton/curl-rust"
 

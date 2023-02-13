@@ -19,6 +19,8 @@
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
 #
+# SPDX-License-Identifier: curl
+#
 ###########################################################################
 
 # Experimental hooks are available to run tests remotely on machines that
@@ -162,6 +164,7 @@ my $SMBPORT=$noport;     # SMB server port
 my $SMBSPORT=$noport;    # SMBS server port
 my $TELNETPORT=$noport;  # TELNET server port with negotiation
 my $HTTPUNIXPATH;        # HTTP server Unix domain socket path
+my $SOCKSUNIXPATH;       # socks server Unix domain socket path
 
 my $use_external_proxy = 0;
 my $proxy_address;
@@ -172,10 +175,12 @@ my $SSHSRVSHA256 = "[uninitialized]"; # SHA256 of ssh server public key
 my $VERSION="";          # curl's reported version number
 
 my $srcdir = $ENV{'srcdir'} || '.';
-my $CURL="../src/curl".exe_ext('TOOL'); # what curl executable to run on the tests
+my $CURL="../src/curl".exe_ext('TOOL'); # what curl binary to run on the tests
 my $VCURL=$CURL;   # what curl binary to use to verify the servers with
                    # VCURL is handy to set to the system one when the one you
                    # just built hangs or crashes and thus prevent verification
+my $ACURL=$VCURL;  # what curl binary to use to talk to APIs (relevant for CI)
+                   # ACURL is handy to set to the system one for reliability
 my $DBGCURL=$CURL; #"../src/.libs/curl";  # alternative for debugging
 my $LOGDIR="log";
 my $TESTDIR="$srcdir/data";
@@ -275,6 +280,7 @@ my $has_libssh;     # set if built with libssh
 my $has_oldlibssh;  # set if built with libssh < 0.9.4
 my $has_wolfssh;    # set if built with wolfssh
 my $has_unicode;    # set if libcurl is built with Unicode support
+my $has_threadsafe; # set if libcurl is built with thread-safety support
 
 # this version is decided by the particular nghttp2 library that is being used
 my $h2cver = "h2c";
@@ -1435,6 +1441,7 @@ my %protofunc = ('http' => \&verifyhttp,
                  'tftp' => \&verifyftp,
                  'ssh' => \&verifyssh,
                  'socks' => \&verifysocks,
+                 'socks5unix' => \&verifysocks,
                  'gopher' => \&verifyhttp,
                  'httptls' => \&verifyhttptls,
                  'dict' => \&verifyftp,
@@ -2191,6 +2198,11 @@ sub runsshserver {
     my $logfile;
     my $port = 20000; # no lower port
 
+    if(!$USER) {
+        logmsg "Can't start ssh server due to lack of USER name";
+        return (0,0,0);
+    }
+
     $server = servername_id($proto, $ipvnum, $idnum);
 
     $pidfile = $serverpidfile{$server};
@@ -2379,7 +2391,7 @@ sub runmqttserver {
 # Start the socks server
 #
 sub runsocksserver {
-    my ($id, $verbose, $ipv6) = @_;
+    my ($id, $verbose, $ipv6, $is_unix) = @_;
     my $ip=$HOSTIP;
     my $proto = 'socks';
     my $ipvnum = 4;
@@ -2411,12 +2423,21 @@ sub runsocksserver {
     $logfile = server_logfilename($LOGDIR, $proto, $ipvnum, $idnum);
 
     # start our socks server, get commands from the FTP cmd file
-    my $cmd="server/socksd".exe_ext('SRV').
-        " --port 0 ".
-        " --pidfile $pidfile".
-        " --portfile $portfile".
-        " --backend $HOSTIP".
-        " --config $FTPDCMD";
+    my $cmd="";
+    if($is_unix) {
+        $cmd="server/socksd".exe_ext('SRV').
+            " --pidfile $pidfile".
+            " --unix-socket $SOCKSUNIXPATH".
+            " --backend $HOSTIP".
+            " --config $FTPDCMD";
+    } else {
+        $cmd="server/socksd".exe_ext('SRV').
+            " --port 0 ".
+            " --pidfile $pidfile".
+            " --portfile $portfile".
+            " --backend $HOSTIP".
+            " --config $FTPDCMD";
+    }
     my ($sockspid, $pid2) = startnew($cmd, $pidfile, 30, 0);
 
     if($sockspid <= 0 || !pidexists($sockspid)) {
@@ -2905,6 +2926,7 @@ sub setupfeatures {
     $feature{"SSLpinning"} = $has_sslpinning;
     $feature{"SSPI"} = $has_sspi;
     $feature{"threaded-resolver"} = $has_threadedres;
+    $feature{"threadsafe"} = $has_threadsafe;
     $feature{"TLS-SRP"} = $has_tls_srp;
     $feature{"TrackMemory"} = $has_memory_tracking;
     $feature{"Unicode"} = $has_unicode;
@@ -2936,7 +2958,7 @@ sub setupfeatures {
     $feature{"verbose-strings"} = 1;
     $feature{"wakeup"} = 1;
     $feature{"headers-api"} = 1;
-
+    $feature{"xattr"} = 1;
 }
 
 #######################################################################
@@ -3200,6 +3222,9 @@ sub checksystem {
             if($feat =~ /Unicode/i) {
                 $has_unicode = 1;
             }
+            if($feat =~ /threadsafe/i) {
+                $has_threadsafe = 1;
+            }
         }
         #
         # Test harness currently uses a non-stunnel server in order to
@@ -3337,6 +3362,7 @@ sub checksystem {
             logmsg "* Unix socket paths:\n";
             if($http_unix) {
                 logmsg sprintf("*   HTTP-Unix:%s\n", $HTTPUNIXPATH);
+                logmsg sprintf("*   Socks-Unix:%s\n", $SOCKSUNIXPATH);
             }
         }
     }
@@ -3397,6 +3423,7 @@ sub subVariables {
 
     # server Unix domain socket paths
     $$thing =~ s/${prefix}HTTPUNIXPATH/$HTTPUNIXPATH/g;
+    $$thing =~ s/${prefix}SOCKSUNIXPATH/$SOCKSUNIXPATH/g;
 
     # client IP addresses
     $$thing =~ s/${prefix}CLIENT6IP/$CLIENT6IP/g;
@@ -3764,10 +3791,10 @@ sub singletest {
 
     # create test result in CI services
     if(azure_check_environment() && $AZURE_RUN_ID) {
-        $AZURE_RESULT_ID = azure_create_test_result($VCURL, $AZURE_RUN_ID, $testnum, $testname);
+        $AZURE_RESULT_ID = azure_create_test_result($ACURL, $AZURE_RUN_ID, $testnum, $testname);
     }
     elsif(appveyor_check_environment()) {
-        appveyor_create_test_result($VCURL, $testnum, $testname);
+        appveyor_create_test_result($ACURL, $testnum, $testname);
     }
 
     # remove test server commands file before servers are started/verified
@@ -4128,16 +4155,17 @@ sub singletest {
         $DBGCURL=$CMDLINE;
     }
 
+    if($fail_due_event_based) {
+        logmsg "This test cannot run event based\n";
+        timestampskippedevents($testnum);
+        return -1;
+    }
+
     if($gdbthis) {
         # gdb is incompatible with valgrind, so disable it when debugging
         # Perhaps a better approach would be to run it under valgrind anyway
         # with --db-attach=yes or --vgdb=yes.
         $disablevalgrind=1;
-    }
-
-    if($fail_due_event_based) {
-        logmsg "This test cannot run event based\n";
-        return -1;
     }
 
     my @stdintest = getpart("client", "stdin");
@@ -5273,6 +5301,16 @@ sub startservers {
                 $run{'socks'}="$pid $pid2";
             }
         }
+        elsif($what eq "socks5unix") {
+            if(!$run{'socks5unix'}) {
+                ($pid, $pid2) = runsocksserver("2", $verbose, "", "unix");
+                if($pid <= 0) {
+                    return "failed starting socks5unix server";
+                }
+                printf ("* pid socks5unix => %d %d\n", $pid, $pid2) if($verbose);
+                $run{'socks5unix'}="$pid $pid2";
+            }
+        }
         elsif($what eq "mqtt" ) {
             if(!$run{'mqtt'}) {
                 ($pid, $pid2) = runmqttserver("", $verbose);
@@ -5562,6 +5600,11 @@ while(@ARGV) {
         $VCURL="\"$ARGV[1]\"";
         shift @ARGV;
     }
+    elsif ($ARGV[0] eq "-ac") {
+        # use this curl only to talk to APIs (currently only CI test APIs)
+        $ACURL="\"$ARGV[1]\"";
+        shift @ARGV;
+    }
     elsif ($ARGV[0] eq "-d") {
         # have the servers display protocol output
         $debugprotocol=1;
@@ -5720,6 +5763,7 @@ while(@ARGV) {
         print <<EOHELP
 Usage: runtests.pl [options] [test selection(s)]
   -a       continue even if a test fails
+  -ac path use this curl only to talk to APIs (currently only CI test APIs)
   -am      automake style output PASS/FAIL: [number] [name]
   -c path  use this curl executable
   -d       display server debug info
@@ -5740,6 +5784,7 @@ Usage: runtests.pl [options] [test selection(s)]
   -r       run time statistics
   -rf      full run time statistics
   -rm      force removal of files by killing locking processes (Windows only)
+  --repeat=[num] run the given tests this many times
   -s       short output
   --seed=[num] set the random seed to a fixed number
   --shallow=[num] randomly makes the torture tests "thinner"
@@ -5867,6 +5912,7 @@ if ($gdbthis) {
 }
 
 $HTTPUNIXPATH    = "http$$.sock"; # HTTP server Unix domain socket path
+$SOCKSUNIXPATH    = $pwd."/socks$$.sock"; # HTTP server Unix domain socket path, absolute path
 
 #######################################################################
 # clear and create logging directory:
@@ -6102,7 +6148,7 @@ sub displaylogs {
 #
 
 if(azure_check_environment()) {
-    $AZURE_RUN_ID = azure_create_test_run($VCURL);
+    $AZURE_RUN_ID = azure_create_test_run($ACURL);
     logmsg "Azure Run ID: $AZURE_RUN_ID\n" if ($verbose);
 }
 
@@ -6131,11 +6177,11 @@ foreach $testnum (@at) {
 
     # update test result in CI services
     if(azure_check_environment() && $AZURE_RUN_ID && $AZURE_RESULT_ID) {
-        $AZURE_RESULT_ID = azure_update_test_result($VCURL, $AZURE_RUN_ID, $AZURE_RESULT_ID, $testnum, $error,
+        $AZURE_RESULT_ID = azure_update_test_result($ACURL, $AZURE_RUN_ID, $AZURE_RESULT_ID, $testnum, $error,
                                                     $timeprepini{$testnum}, $timevrfyend{$testnum});
     }
     elsif(appveyor_check_environment()) {
-        appveyor_update_test_result($VCURL, $testnum, $error, $timeprepini{$testnum}, $timevrfyend{$testnum});
+        appveyor_update_test_result($ACURL, $testnum, $error, $timeprepini{$testnum}, $timevrfyend{$testnum});
     }
 
     if($error < 0) {
@@ -6180,7 +6226,7 @@ my $sofar = time() - $start;
 #
 
 if(azure_check_environment() && $AZURE_RUN_ID) {
-    $AZURE_RUN_ID = azure_update_test_run($VCURL, $AZURE_RUN_ID);
+    $AZURE_RUN_ID = azure_update_test_run($ACURL, $AZURE_RUN_ID);
 }
 
 # Tests done, stop the servers
@@ -6240,7 +6286,7 @@ if($total) {
     logmsg sprintf("TESTDONE: $ok tests out of $total reported OK: %d%%\n",
                    $ok/$total*100);
 
-    if($ok != $total) {
+    if($failed && ($ok != $total)) {
         logmsg "\nTESTFAIL: These test cases failed: $failed\n\n";
     }
 }

@@ -24,7 +24,7 @@ use rustc_hir::{BodyId, Mutability};
 use rustc_hir_analysis::check::intrinsic::intrinsic_operation_unsafety;
 use rustc_index::vec::IndexVec;
 use rustc_middle::ty::fast_reject::SimplifiedType;
-use rustc_middle::ty::{self, TyCtxt};
+use rustc_middle::ty::{self, DefIdTree, TyCtxt, Visibility};
 use rustc_session::Session;
 use rustc_span::hygiene::MacroKind;
 use rustc_span::source_map::DUMMY_SP;
@@ -34,7 +34,6 @@ use rustc_target::abi::VariantIdx;
 use rustc_target::spec::abi::Abi;
 
 use crate::clean::cfg::Cfg;
-use crate::clean::clean_visibility;
 use crate::clean::external_path;
 use crate::clean::inline::{self, print_inlined_const};
 use crate::clean::utils::{is_literal_expr, print_const_expr, print_evaluated_const};
@@ -51,7 +50,6 @@ pub(crate) use self::Type::{
     Array, BareFunction, BorrowedRef, DynTrait, Generic, ImplTrait, Infer, Primitive, QPath,
     RawPointer, Slice, Tuple,
 };
-pub(crate) use self::Visibility::{Inherited, Public};
 
 #[cfg(test)]
 mod tests;
@@ -117,7 +115,6 @@ impl From<DefId> for ItemId {
 #[derive(Clone, Debug)]
 pub(crate) struct Crate {
     pub(crate) module: Item,
-    pub(crate) primitives: ThinVec<(DefId, PrimitiveType)>,
     /// Only here so that they can be filtered through the rustdoc passes.
     pub(crate) external_traits: Rc<RefCell<FxHashMap<DefId, Trait>>>,
 }
@@ -245,7 +242,9 @@ impl ExternalCrate {
                         hir::ItemKind::Use(path, hir::UseKind::Single)
                             if tcx.visibility(id.owner_id).is_public() =>
                         {
-                            as_keyword(path.res.expect_non_local())
+                            path.res
+                                .iter()
+                                .find_map(|res| as_keyword(res.expect_non_local()))
                                 .map(|(_, prim)| (id.owner_id.to_def_id(), prim))
                         }
                         _ => None,
@@ -313,10 +312,11 @@ impl ExternalCrate {
                         hir::ItemKind::Use(path, hir::UseKind::Single)
                             if tcx.visibility(id.owner_id).is_public() =>
                         {
-                            as_primitive(path.res.expect_non_local()).map(|(_, prim)| {
+                            path.res
+                                .iter()
+                                .find_map(|res| as_primitive(res.expect_non_local()))
                                 // Pretend the primitive is local.
-                                (id.owner_id.to_def_id(), prim)
-                            })
+                                .map(|(_, prim)| (id.owner_id.to_def_id(), prim))
                         }
                         _ => None,
                     }
@@ -348,12 +348,12 @@ pub(crate) struct Item {
     /// Optional because not every item has a name, e.g. impls.
     pub(crate) name: Option<Symbol>,
     pub(crate) attrs: Box<Attributes>,
-    pub(crate) visibility: Visibility,
     /// Information about this item that is specific to what kind of item it is.
     /// E.g., struct vs enum vs function.
     pub(crate) kind: Box<ItemKind>,
     pub(crate) item_id: ItemId,
-
+    /// This is the `DefId` of the `use` statement if the item was inlined.
+    pub(crate) inline_stmt_id: Option<DefId>,
     pub(crate) cfg: Option<Arc<Cfg>>,
 }
 
@@ -364,9 +364,7 @@ impl fmt::Debug for Item {
         let alternate = f.alternate();
         // hand-picked fields that don't bloat the logs too much
         let mut fmt = f.debug_struct("Item");
-        fmt.field("name", &self.name)
-            .field("visibility", &self.visibility)
-            .field("item_id", &self.item_id);
+        fmt.field("name", &self.name).field("item_id", &self.item_id);
         // allow printing the full item if someone really wants to
         if alternate {
             fmt.field("attrs", &self.attrs).field("kind", &self.kind).field("cfg", &self.cfg);
@@ -386,6 +384,15 @@ pub(crate) fn rustc_span(def_id: DefId, tcx: TyCtxt<'_>) -> Span {
             hir.span_with_body(hir.local_def_id_to_hir_id(local))
         },
     ))
+}
+
+fn is_field_vis_inherited(tcx: TyCtxt<'_>, def_id: DefId) -> bool {
+    let parent = tcx.parent(def_id);
+    match tcx.def_kind(parent) {
+        DefKind::Struct | DefKind::Union => false,
+        DefKind::Variant => true,
+        parent_kind => panic!("unexpected parent kind: {:?}", parent_kind),
+    }
 }
 
 impl Item {
@@ -462,7 +469,6 @@ impl Item {
             name,
             kind,
             Box::new(Attributes::from_ast(ast_attrs)),
-            cx,
             ast_attrs.cfg(cx.tcx, &cx.cache.hidden_cfg),
         )
     }
@@ -472,21 +478,18 @@ impl Item {
         name: Option<Symbol>,
         kind: ItemKind,
         attrs: Box<Attributes>,
-        cx: &mut DocContext<'_>,
         cfg: Option<Arc<Cfg>>,
     ) -> Item {
         trace!("name={:?}, def_id={:?} cfg={:?}", name, def_id, cfg);
 
-        // Primitives and Keywords are written in the source code as private modules.
-        // The modules need to be private so that nobody actually uses them, but the
-        // keywords and primitives that they are documenting are public.
-        let visibility = if matches!(&kind, ItemKind::KeywordItem | ItemKind::PrimitiveItem(..)) {
-            Visibility::Public
-        } else {
-            clean_visibility(cx.tcx.visibility(def_id))
-        };
-
-        Item { item_id: def_id.into(), kind: Box::new(kind), name, attrs, visibility, cfg }
+        Item {
+            item_id: def_id.into(),
+            kind: Box::new(kind),
+            name,
+            attrs,
+            cfg,
+            inline_stmt_id: None,
+        }
     }
 
     /// Finds all `doc` attributes as NameValues and returns their corresponding values, joined
@@ -691,16 +694,60 @@ impl Item {
                     asyncness: hir::IsAsync::NotAsync,
                 }
             }
-            ItemKind::FunctionItem(_) | ItemKind::MethodItem(_, _) => {
+            ItemKind::FunctionItem(_) | ItemKind::MethodItem(_, _) | ItemKind::TyMethodItem(_) => {
                 let def_id = self.item_id.as_def_id().unwrap();
                 build_fn_header(def_id, tcx, tcx.asyncness(def_id))
-            }
-            ItemKind::TyMethodItem(_) => {
-                build_fn_header(self.item_id.as_def_id().unwrap(), tcx, hir::IsAsync::NotAsync)
             }
             _ => return None,
         };
         Some(header)
+    }
+
+    /// Returns the visibility of the current item. If the visibility is "inherited", then `None`
+    /// is returned.
+    pub(crate) fn visibility(&self, tcx: TyCtxt<'_>) -> Option<Visibility<DefId>> {
+        let def_id = match self.item_id {
+            // Anything but DefId *shouldn't* matter, but return a reasonable value anyway.
+            ItemId::Auto { .. } | ItemId::Blanket { .. } => return None,
+            // Primitives and Keywords are written in the source code as private modules.
+            // The modules need to be private so that nobody actually uses them, but the
+            // keywords and primitives that they are documenting are public.
+            ItemId::Primitive(..) => return Some(Visibility::Public),
+            ItemId::DefId(def_id) => def_id,
+        };
+
+        match *self.kind {
+            // Explication on `ItemId::Primitive` just above.
+            ItemKind::KeywordItem | ItemKind::PrimitiveItem(_) => return Some(Visibility::Public),
+            // Variant fields inherit their enum's visibility.
+            StructFieldItem(..) if is_field_vis_inherited(tcx, def_id) => {
+                return None;
+            }
+            // Variants always inherit visibility
+            VariantItem(..) => return None,
+            // Trait items inherit the trait's visibility
+            AssocConstItem(..) | TyAssocConstItem(..) | AssocTypeItem(..) | TyAssocTypeItem(..)
+            | TyMethodItem(..) | MethodItem(..) => {
+                let assoc_item = tcx.associated_item(def_id);
+                let is_trait_item = match assoc_item.container {
+                    ty::TraitContainer => true,
+                    ty::ImplContainer => {
+                        // Trait impl items always inherit the impl's visibility --
+                        // we don't want to show `pub`.
+                        tcx.impl_trait_ref(tcx.parent(assoc_item.def_id)).is_some()
+                    }
+                };
+                if is_trait_item {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+        let def_id = match self.inline_stmt_id {
+            Some(inlined) => inlined,
+            None => def_id,
+        };
+        Some(tcx.visibility(def_id))
     }
 }
 
@@ -747,7 +794,7 @@ pub(crate) enum ItemKind {
     /// A required associated type in a trait declaration.
     ///
     /// The bounds may be non-empty if there is a `where` clause.
-    TyAssocTypeItem(Box<Generics>, Vec<GenericBound>),
+    TyAssocTypeItem(Generics, Vec<GenericBound>),
     /// An associated type in a trait impl or a provided one in a trait declaration.
     AssocTypeItem(Box<Typedef>, Vec<GenericBound>),
     /// An item that has been stripped by a rustdoc pass
@@ -1261,7 +1308,7 @@ impl Attributes {
         for attr in self.other_attrs.lists(sym::doc).filter(|a| a.has_name(sym::alias)) {
             if let Some(values) = attr.meta_item_list() {
                 for l in values {
-                    match l.literal().unwrap().kind {
+                    match l.lit().unwrap().kind {
                         ast::LitKind::Str(s, _) => {
                             aliases.insert(s);
                         }
@@ -1392,6 +1439,10 @@ pub(crate) struct GenericParamDef {
 }
 
 impl GenericParamDef {
+    pub(crate) fn lifetime(name: Symbol) -> Self {
+        Self { name, kind: GenericParamDefKind::Lifetime { outlives: Vec::new() } }
+    }
+
     pub(crate) fn is_synthetic_type_param(&self) -> bool {
         match self.kind {
             GenericParamDefKind::Lifetime { .. } | GenericParamDefKind::Const { .. } => false,
@@ -1414,8 +1465,8 @@ impl GenericParamDef {
 // maybe use a Generic enum and use Vec<Generic>?
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Generics {
-    pub(crate) params: Vec<GenericParamDef>,
-    pub(crate) where_predicates: Vec<WherePredicate>,
+    pub(crate) params: ThinVec<GenericParamDef>,
+    pub(crate) where_predicates: ThinVec<WherePredicate>,
 }
 
 impl Generics {
@@ -1576,7 +1627,7 @@ pub(crate) enum Type {
     /// An array type.
     ///
     /// The `String` field is a stringified version of the array's length parameter.
-    Array(Box<Type>, String),
+    Array(Box<Type>, Box<str>),
     /// A raw pointer type: `*const i32`, `*mut i32`
     RawPointer(Mutability, Box<Type>),
     /// A reference type: `&i32`, `&'a mut Foo`
@@ -2030,27 +2081,9 @@ impl From<hir::PrimTy> for PrimitiveType {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-pub(crate) enum Visibility {
-    /// `pub`
-    Public,
-    /// Visibility inherited from parent.
-    ///
-    /// For example, this is the visibility of private items and of enum variants.
-    Inherited,
-    /// `pub(crate)`, `pub(super)`, or `pub(in path::to::somewhere)`
-    Restricted(DefId),
-}
-
-impl Visibility {
-    pub(crate) fn is_public(&self) -> bool {
-        matches!(self, Visibility::Public)
-    }
-}
-
 #[derive(Clone, Debug)]
 pub(crate) struct Struct {
-    pub(crate) struct_type: CtorKind,
+    pub(crate) ctor_kind: Option<CtorKind>,
     pub(crate) generics: Generics,
     pub(crate) fields: Vec<Item>,
 }
@@ -2078,7 +2111,7 @@ impl Union {
 /// only as a variant in an enum.
 #[derive(Clone, Debug)]
 pub(crate) struct VariantStruct {
-    pub(crate) struct_type: CtorKind,
+    pub(crate) ctor_kind: Option<CtorKind>,
     pub(crate) fields: Vec<Item>,
 }
 
@@ -2179,7 +2212,7 @@ impl Span {
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub(crate) struct Path {
     pub(crate) res: Res,
-    pub(crate) segments: Vec<PathSegment>,
+    pub(crate) segments: ThinVec<PathSegment>,
 }
 
 impl Path {
@@ -2329,7 +2362,7 @@ pub(crate) enum ConstantKind {
     ///
     /// Note that `ty::Const` includes generic parameters, and may not always be uniquely identified
     /// by a DefId. So this field must be different from `Extern`.
-    TyConst { expr: String },
+    TyConst { expr: Box<str> },
     /// A constant (expression) that's not an item or associated item. These are usually found
     /// nested inside types (e.g., array lengths) or expressions (e.g., repeat counts), and also
     /// used to define explicit discriminant values for enum variants.
@@ -2357,7 +2390,7 @@ impl Constant {
 impl ConstantKind {
     pub(crate) fn expr(&self, tcx: TyCtxt<'_>) -> String {
         match *self {
-            ConstantKind::TyConst { ref expr } => expr.clone(),
+            ConstantKind::TyConst { ref expr } => expr.to_string(),
             ConstantKind::Extern { def_id } => print_inlined_const(tcx, def_id),
             ConstantKind::Local { body, .. } | ConstantKind::Anonymous { body } => {
                 print_const_expr(tcx, body)
@@ -2541,14 +2574,15 @@ mod size_asserts {
     use super::*;
     use rustc_data_structures::static_assert_size;
     // tidy-alphabetical-start
-    static_assert_size!(Crate, 72); // frequently moved by-value
+    static_assert_size!(Crate, 64); // frequently moved by-value
     static_assert_size!(DocFragment, 32);
-    static_assert_size!(GenericArg, 48);
+    static_assert_size!(GenericArg, 32);
     static_assert_size!(GenericArgs, 32);
     static_assert_size!(GenericParamDef, 56);
+    static_assert_size!(Generics, 16);
     static_assert_size!(Item, 56);
-    static_assert_size!(ItemKind, 88);
+    static_assert_size!(ItemKind, 64);
     static_assert_size!(PathSegment, 40);
-    static_assert_size!(Type, 48);
+    static_assert_size!(Type, 32);
     // tidy-alphabetical-end
 }

@@ -1,11 +1,11 @@
 //! Functions which duplicate file descriptors.
 
-use crate::imp;
-use crate::io::{self, OwnedFd};
-use imp::fd::AsFd;
+use crate::fd::OwnedFd;
+use crate::{backend, io};
+use backend::fd::AsFd;
 
 #[cfg(not(target_os = "wasi"))]
-pub use imp::io::types::DupFlags;
+pub use backend::io::types::DupFlags;
 
 /// `dup(fd)`—Creates a new `OwnedFd` instance that shares the same
 /// underlying [file description] as `fd`.
@@ -23,14 +23,14 @@ pub use imp::io::types::DupFlags;
 ///  - [Apple]
 ///
 /// [file description]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_258
-/// [`fcntl_dupfd_cloexec`]: crate::fs::fcntl_dupfd_cloexec
+/// [`fcntl_dupfd_cloexec`]: crate::io::fcntl_dupfd_cloexec
 /// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/dup.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/dup.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/dup.2.html
 #[cfg(not(target_os = "wasi"))]
 #[inline]
 pub fn dup<Fd: AsFd>(fd: Fd) -> io::Result<OwnedFd> {
-    imp::io::syscalls::dup(fd.as_fd())
+    backend::io::syscalls::dup(fd.as_fd())
 }
 
 /// `dup2(fd, new)`—Changes the [file description] of a file descriptor.
@@ -50,14 +50,14 @@ pub fn dup<Fd: AsFd>(fd: Fd) -> io::Result<OwnedFd> {
 ///  - [Apple]
 ///
 /// [file description]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_258
-/// [`fcntl_dupfd_cloexec`]: crate::fs::fcntl_dupfd_cloexec
+/// [`fcntl_dupfd_cloexec`]: crate::io::fcntl_dupfd_cloexec
 /// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/dup2.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/dup2.2.html
 /// [Apple]: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/dup2.2.html
 #[cfg(not(target_os = "wasi"))]
 #[inline]
 pub fn dup2<Fd: AsFd>(fd: Fd, new: &mut OwnedFd) -> io::Result<()> {
-    imp::io::syscalls::dup2(fd.as_fd(), new)
+    backend::io::syscalls::dup2(fd.as_fd(), new)
 }
 
 /// `dup3(fd, new, flags)`—Changes the [file description] of a file
@@ -73,8 +73,8 @@ pub fn dup2<Fd: AsFd>(fd: Fd, new: &mut OwnedFd) -> io::Result<()> {
 ///
 /// [file description]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_258
 /// [Linux]: https://man7.org/linux/man-pages/man2/dup3.2.html
-#[cfg(not(target_os = "wasi"))]
+#[cfg(not(any(target_os = "aix", target_os = "wasi")))]
 #[inline]
 pub fn dup3<Fd: AsFd>(fd: Fd, new: &mut OwnedFd, flags: DupFlags) -> io::Result<()> {
-    imp::io::syscalls::dup3(fd.as_fd(), new, flags)
+    backend::io::syscalls::dup3(fd.as_fd(), new, flags)
 }

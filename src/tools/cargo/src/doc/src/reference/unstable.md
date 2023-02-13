@@ -100,6 +100,7 @@ Each new feature described below should explain how to use it.
     * [`cargo logout`](#cargo-logout) — Adds the `logout` command to remove the currently saved registry token.
     * [sparse-registry](#sparse-registry) — Adds support for fetching from static-file HTTP registries (`sparse+`)
     * [publish-timeout](#publish-timeout) — Controls the timeout between uploading the crate and being available in the index
+    * [registry-auth](#registry-auth) — Adds support for authenticated registries.
 
 ### allow-features
 
@@ -787,14 +788,14 @@ the command line) target.
 * Tracking Issue: [#9096](https://github.com/rust-lang/cargo/pull/9096)
 * Original Pull Request: [#9992](https://github.com/rust-lang/cargo/pull/9992)
 
-Allow Cargo packages to depend on `bin`, `cdylib`, and `staticlib` crates, 
+Allow Cargo packages to depend on `bin`, `cdylib`, and `staticlib` crates,
 and use the artifacts built by those crates at compile time.
 
 Run `cargo` with `-Z bindeps` to enable this functionality.
 
 **Example:** use _cdylib_ artifact in build script
 
-The `Cargo.toml` in the consuming package, building the `bar` library as `cdylib` 
+The `Cargo.toml` in the consuming package, building the `bar` library as `cdylib`
 for a specific build target…
 
 ```toml
@@ -842,6 +843,19 @@ crates, which can save significant time and bandwidth.
 
 The format of the sparse index is identical to a checkout of a git-based index.
 
+The `registries.crates-io.protocol` config option can be used to set the default protocol
+for crates.io. This option requires `-Z sparse-registry` to be enabled.
+
+* `sparse` — Use sparse index.
+* `git` — Use git index.
+* If the option is unset, it will be sparse index if `-Z sparse-registry` is enabled,
+  otherwise it will be git index.
+
+Cargo locally caches the crate metadata files, and captures an `ETag` or `Last-Modified` 
+HTTP header from the server for each entry. When refreshing crate metadata, Cargo will
+send the `If-None-Match` or `If-Modified-Since` header to allow the server to respond
+with HTTP 304 if the local cache is valid, saving time and bandwidth.
+
 ### publish-timeout
 * Tracking Issue: [11222](https://github.com/rust-lang/cargo/issues/11222)
 
@@ -857,6 +871,30 @@ It requires the `-Zpublish-timeout` command-line options to be set.
 # config.toml
 [publish]
 timeout = 300  # in seconds
+```
+
+### registry-auth
+* Tracking Issue: [10474](https://github.com/rust-lang/cargo/issues/10474)
+* RFC: [#3139](https://github.com/rust-lang/rfcs/pull/3139)
+
+Enables Cargo to include the authorization token for API requests, crate downloads
+and sparse index updates by adding a configuration option to config.json
+in the registry index.
+
+To use this feature, the registry server must include `"auth-required": true` in
+`config.json`, and you must pass the `-Z registry-auth` flag on the Cargo command line.
+
+When using the sparse protocol, Cargo will attempt to fetch the `config.json` file before
+fetching any other files. If the server responds with an HTTP 401, then Cargo will assume
+that the registry requires authentication and re-attempt the request for `config.json`
+with the authentication token included.
+
+On authentication failure (or missing authentication token) the server MAY include a
+`WWW-Authenticate` header with a `Cargo login_url` challenge to indicate where the user
+can go to get a token.
+
+```
+WWW-Authenticate: Cargo login_url="https://test-registry-login/me
 ```
 
 ### credential-process
@@ -1003,8 +1041,8 @@ interactions are:
 The following environment variables will be provided to the executed command:
 
 * `CARGO` — Path to the `cargo` binary executing the command.
-* `CARGO_REGISTRY_NAME` — Name of the registry the authentication token is for.
-* `CARGO_REGISTRY_API_URL` — The URL of the registry API.
+* `CARGO_REGISTRY_INDEX_URL` — The URL of the registry index.
+* `CARGO_REGISTRY_NAME_OPT` — Optional name of the registry. Should not be used as a storage key. Not always available.
 
 #### `cargo logout`
 
@@ -1116,14 +1154,43 @@ path = "src/main.rs"
 * RFC: [#3123](https://github.com/rust-lang/rfcs/pull/3123)
 * Tracking Issue: [#9910](https://github.com/rust-lang/cargo/issues/9910)
 
-The `-Z rustdoc-scrape-examples` argument tells Rustdoc to search crates in the current workspace
-for calls to functions. Those call-sites are then included as documentation. The flag can take an
-argument of `all` or `examples` which configures which crate in the workspace to analyze for examples.
-For instance:
+The `-Z rustdoc-scrape-examples` flag tells Rustdoc to search crates in the current workspace
+for calls to functions. Those call-sites are then included as documentation. You can use the flag
+like this:
 
 ```
-cargo doc -Z unstable-options -Z rustdoc-scrape-examples=examples
+cargo doc -Z unstable-options -Z rustdoc-scrape-examples
 ```
+
+By default, Cargo will scrape from the packages that are being documented, as well as scrape from
+examples for the packages (i.e. those corresponding to the `--examples` flag). You can individually
+enable or disable targets from being scraped with the `doc-scrape-examples` flag, such as:
+
+```toml
+# Disable scraping examples from a library
+[lib]
+doc-scrape-examples = false
+
+# Enable scraping examples from a binary
+[[bin]]
+name = "my-bin"
+doc-scrape-examples = true
+```
+
+**Note on tests:** enabling `doc-scrape-examples` on test targets will not currently have any effect. Scraping
+examples from tests is a work-in-progress.
+
+**Note on dev-dependencies:** documenting a library does not normally require the crate's dev-dependencies. However,
+example units do require dev-deps. For backwards compatibility, `-Z rustdoc-scrape-examples` will *not* introduce a 
+dev-deps requirement for `cargo doc`. Therefore examples will *not* be scraped from example targets under the 
+following conditions:
+
+1. No target being documented requires dev-deps, AND
+2. At least one crate being documented requires dev-deps, AND
+3. The `doc-scrape-examples` parameter is unset for `[[example]]` targets.
+
+If you want examples to be scraped from example targets, then you must not satisfy one of the above conditions.
+
 
 ### check-cfg
 
@@ -1376,7 +1443,7 @@ for more information.
 ### Workspace Inheritance
 
 Workspace Inheritance has been stabilized in the 1.64 release.
-See [workspace.package](workspaces.md#the-package-table), 
-[workspace.dependencies](workspaces.md#the-dependencies-table), 
+See [workspace.package](workspaces.md#the-package-table),
+[workspace.dependencies](workspaces.md#the-dependencies-table),
 and [inheriting-a-dependency-from-a-workspace](specifying-dependencies.md#inheriting-a-dependency-from-a-workspace)
 for more information.

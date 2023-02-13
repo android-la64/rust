@@ -11,8 +11,10 @@ use std::str::FromStr;
 
 use libc::{gid_t, kill, uid_t};
 
-use crate::sys::system::{SystemInfo, REMAINING_FILES};
-use crate::sys::utils::{get_all_data, get_all_data_from_file, realpath};
+use crate::sys::system::SystemInfo;
+use crate::sys::utils::{
+    get_all_data, get_all_data_from_file, realpath, FileCounter, PathHandler, PathPush,
+};
 use crate::utils::into_iter;
 use crate::{DiskUsage, Gid, Pid, ProcessExt, ProcessRefreshKind, ProcessStatus, Signal, Uid};
 
@@ -93,7 +95,7 @@ pub struct Process {
     pub(crate) status: ProcessStatus,
     /// Tasks run by this process.
     pub tasks: HashMap<Pid, Process>,
-    pub(crate) stat_file: Option<File>,
+    pub(crate) stat_file: Option<FileCounter>,
     old_read_bytes: u64,
     old_written_bytes: u64,
     read_bytes: u64,
@@ -101,16 +103,11 @@ pub struct Process {
 }
 
 impl Process {
-    pub(crate) fn new(
-        pid: Pid,
-        parent: Option<Pid>,
-        start_time_without_boot_time: u64,
-        info: &SystemInfo,
-    ) -> Process {
+    pub(crate) fn new(pid: Pid) -> Process {
         Process {
             name: String::with_capacity(20),
             pid,
-            parent,
+            parent: None,
             cmd: Vec::with_capacity(2),
             environ: Vec::with_capacity(10),
             exe: PathBuf::new(),
@@ -124,8 +121,8 @@ impl Process {
             old_utime: 0,
             old_stime: 0,
             updated: true,
-            start_time_without_boot_time,
-            start_time: start_time_without_boot_time.saturating_add(info.boot_time),
+            start_time_without_boot_time: 0,
+            start_time: 0,
             run_time: 0,
             user_id: None,
             group_id: None,
@@ -222,14 +219,16 @@ impl ProcessExt for Process {
     fn group_id(&self) -> Option<Gid> {
         self.group_id
     }
-}
 
-impl Drop for Process {
-    fn drop(&mut self) {
-        if self.stat_file.is_some() {
-            unsafe {
-                if let Ok(ref mut x) = crate::sys::system::REMAINING_FILES.lock() {
-                    **x += 1;
+    fn wait(&self) {
+        let mut status = 0;
+        // attempt waiting
+        unsafe {
+            if libc::waitpid(self.pid.0, &mut status, 0) < 0 {
+                // attempt failed (non-child process) so loop until process ends
+                let duration = std::time::Duration::from_millis(10);
+                while kill(self.pid.0, 0) == 0 {
+                    std::thread::sleep(duration);
                 }
             }
         }
@@ -260,9 +259,7 @@ pub(crate) fn set_time(p: &mut Process, utime: u64, stime: u64) {
 }
 
 pub(crate) fn update_process_disk_activity(p: &mut Process, path: &Path) {
-    let mut path = PathBuf::from(path);
-    path.push("io");
-    let data = match get_all_data(&path, 16_384) {
+    let data = match get_all_data(path.join("io"), 16_384) {
         Ok(d) => d,
         Err(_) => return,
     };
@@ -306,75 +303,50 @@ impl<'a, T> Wrap<'a, T> {
 unsafe impl<'a, T> Send for Wrap<'a, T> {}
 unsafe impl<'a, T> Sync for Wrap<'a, T> {}
 
-pub(crate) fn _get_process_data(
-    path: &Path,
-    proc_list: &mut Process,
+#[inline(always)]
+fn compute_start_time_without_boot_time(parts: &[&str], info: &SystemInfo) -> u64 {
+    // To be noted that the start time is invalid here, it still needs to be converted into
+    // "real" time.
+    u64::from_str(parts[21]).unwrap_or(0) / info.clock_cycle
+}
+
+fn _get_stat_data(path: &Path, stat_file: &mut Option<FileCounter>) -> Result<String, ()> {
+    let mut file = File::open(path.join("stat")).map_err(|_| ())?;
+    let data = get_all_data_from_file(&mut file, 1024).map_err(|_| ())?;
+    *stat_file = FileCounter::new(file);
+    Ok(data)
+}
+
+#[inline(always)]
+fn get_status(p: &mut Process, part: &str) {
+    p.status = part
+        .chars()
+        .next()
+        .map(ProcessStatus::from)
+        .unwrap_or_else(|| ProcessStatus::Unknown(0));
+}
+
+fn refresh_user_group_ids<P: PathPush>(p: &mut Process, path: &mut P) {
+    if let Some((user_id, group_id)) = get_uid_and_gid(path.join("status")) {
+        p.user_id = Some(Uid(user_id));
+        p.group_id = Some(Gid(group_id));
+    }
+}
+
+fn retrieve_all_new_process_info(
     pid: Pid,
-    uptime: u64,
+    proc_list: &Process,
+    parts: &[&str],
+    path: &Path,
     info: &SystemInfo,
     refresh_kind: ProcessRefreshKind,
-) -> Result<(Option<Process>, Pid), ()> {
-    let pid = match path.file_name().and_then(|x| x.to_str()).map(Pid::from_str) {
-        Some(Ok(nb)) if nb != pid => nb,
-        _ => return Err(()),
-    };
-
-    let get_status = |p: &mut Process, part: &str| {
-        p.status = part
-            .chars()
-            .next()
-            .map(ProcessStatus::from)
-            .unwrap_or_else(|| ProcessStatus::Unknown(0));
-    };
-    let parent_memory = proc_list.memory;
-    let parent_virtual_memory = proc_list.virtual_memory;
-    if let Some(ref mut entry) = proc_list.tasks.get_mut(&pid) {
-        let data = if let Some(ref mut f) = entry.stat_file {
-            get_all_data_from_file(f, 1024).map_err(|_| ())?
-        } else {
-            let mut tmp = PathBuf::from(path);
-            tmp.push("stat");
-            let mut file = File::open(tmp).map_err(|_| ())?;
-            let data = get_all_data_from_file(&mut file, 1024).map_err(|_| ())?;
-            entry.stat_file = check_nb_open_files(file);
-            data
-        };
-        let parts = parse_stat_file(&data)?;
-        get_status(entry, parts[2]);
-        update_time_and_memory(
-            path,
-            entry,
-            &parts,
-            parent_memory,
-            parent_virtual_memory,
-            uptime,
-            info,
-            refresh_kind,
-        );
-        if refresh_kind.disk_usage() {
-            update_process_disk_activity(entry, path);
-        }
-        if refresh_kind.user() && entry.user_id.is_none() {
-            let mut tmp = PathBuf::from(path);
-            tmp.push("status");
-            if let Some((user_id, group_id)) = get_uid_and_gid(&tmp) {
-                entry.user_id = Some(Uid(user_id));
-                entry.group_id = Some(Gid(group_id));
-            }
-        }
-        return Ok((None, pid));
-    }
-
-    let mut tmp = PathBuf::from(path);
-
-    tmp.push("stat");
-    let mut file = std::fs::File::open(&tmp).map_err(|_| ())?;
-    let data = get_all_data_from_file(&mut file, 1024).map_err(|_| ())?;
-    let stat_file = check_nb_open_files(file);
-    let parts = parse_stat_file(&data)?;
+    uptime: u64,
+) -> Process {
+    let mut p = Process::new(pid);
+    let mut tmp = PathHandler::new(path);
     let name = parts[1];
 
-    let parent_pid = if proc_list.pid.0 != 0 {
+    p.parent = if proc_list.pid.0 != 0 {
         Some(proc_list.pid)
     } else {
         match Pid::from_str(parts[3]) {
@@ -383,20 +355,15 @@ pub(crate) fn _get_process_data(
         }
     };
 
-    // To be noted that the start time is invalid here, it still needs
-    let start_time = u64::from_str(parts[21]).unwrap_or(0) / info.clock_cycle;
-    let mut p = Process::new(pid, parent_pid, start_time, info);
+    p.start_time_without_boot_time = compute_start_time_without_boot_time(parts, info);
+    p.start_time = p
+        .start_time_without_boot_time
+        .saturating_add(info.boot_time);
 
-    p.stat_file = stat_file;
     get_status(&mut p, parts[2]);
 
     if refresh_kind.user() {
-        tmp.pop();
-        tmp.push("status");
-        if let Some((user_id, group_id)) = get_uid_and_gid(&tmp) {
-            p.user_id = Some(Uid(user_id));
-            p.group_id = Some(Gid(group_id));
-        }
+        refresh_user_group_ids(&mut p, &mut tmp);
     }
 
     if proc_list.pid.0 != 0 {
@@ -410,38 +377,28 @@ pub(crate) fn _get_process_data(
         p.root = proc_list.root.clone();
     } else {
         p.name = name.into();
-        tmp.pop();
-        tmp.push("cmdline");
-        p.cmd = copy_from_file(&tmp);
-        tmp.pop();
-        tmp.push("exe");
-        match tmp.read_link() {
+
+        match tmp.join("exe").read_link() {
             Ok(exe_path) => {
                 p.exe = exe_path;
             }
             Err(_) => {
-                p.exe = if let Some(cmd) = p.cmd.get(0) {
-                    PathBuf::from(cmd)
-                } else {
-                    PathBuf::new()
-                };
+                // Do not use cmd[0] because it is not the same thing.
+                // See https://github.com/GuillaumeGomez/sysinfo/issues/697.
+                p.exe = PathBuf::new()
             }
         }
-        tmp.pop();
-        tmp.push("environ");
-        p.environ = copy_from_file(&tmp);
-        tmp.pop();
-        tmp.push("cwd");
-        p.cwd = realpath(&tmp);
-        tmp.pop();
-        tmp.push("root");
-        p.root = realpath(&tmp);
+
+        p.cmd = copy_from_file(tmp.join("cmdline"));
+        p.environ = copy_from_file(tmp.join("environ"));
+        p.cwd = realpath(tmp.join("cwd"));
+        p.root = realpath(tmp.join("root"));
     }
 
     update_time_and_memory(
         path,
         &mut p,
-        &parts,
+        parts,
         proc_list.memory,
         proc_list.virtual_memory,
         uptime,
@@ -451,7 +408,91 @@ pub(crate) fn _get_process_data(
     if refresh_kind.disk_usage() {
         update_process_disk_activity(&mut p, path);
     }
-    Ok((Some(p), pid))
+    p
+}
+
+pub(crate) fn _get_process_data(
+    path: &Path,
+    proc_list: &mut Process,
+    pid: Pid,
+    uptime: u64,
+    info: &SystemInfo,
+    refresh_kind: ProcessRefreshKind,
+) -> Result<(Option<Process>, Pid), ()> {
+    let pid = match path.file_name().and_then(|x| x.to_str()).map(Pid::from_str) {
+        Some(Ok(nb)) if nb != pid => nb,
+        _ => return Err(()),
+    };
+
+    let parent_memory = proc_list.memory;
+    let parent_virtual_memory = proc_list.virtual_memory;
+
+    let data;
+    let parts = if let Some(ref mut entry) = proc_list.tasks.get_mut(&pid) {
+        data = if let Some(mut f) = entry.stat_file.take() {
+            match get_all_data_from_file(&mut f, 1024) {
+                Ok(data) => {
+                    // Everything went fine, we put back the file descriptor.
+                    entry.stat_file = Some(f);
+                    data
+                }
+                Err(_) => {
+                    // It's possible that the file descriptor is no longer valid in case the
+                    // original process was terminated and another one took its place.
+                    _get_stat_data(path, &mut entry.stat_file)?
+                }
+            }
+        } else {
+            _get_stat_data(path, &mut entry.stat_file)?
+        };
+        let parts = parse_stat_file(&data).ok_or(())?;
+        let start_time_without_boot_time = compute_start_time_without_boot_time(&parts, info);
+
+        // It's possible that a new process took this same PID when the "original one" terminated.
+        // If the start time differs, then it means it's not the same process anymore and that we
+        // need to get all its information, hence why we check it here.
+        if start_time_without_boot_time == entry.start_time_without_boot_time {
+            get_status(entry, parts[2]);
+            update_time_and_memory(
+                path,
+                entry,
+                &parts,
+                parent_memory,
+                parent_virtual_memory,
+                uptime,
+                info,
+                refresh_kind,
+            );
+            if refresh_kind.disk_usage() {
+                update_process_disk_activity(entry, path);
+            }
+            if refresh_kind.user() && entry.user_id.is_none() {
+                refresh_user_group_ids(entry, &mut PathBuf::from(path));
+            }
+            return Ok((None, pid));
+        }
+        parts
+    } else {
+        let mut stat_file = None;
+        let data = _get_stat_data(path, &mut stat_file)?;
+        let parts = parse_stat_file(&data).ok_or(())?;
+
+        let mut p =
+            retrieve_all_new_process_info(pid, proc_list, &parts, path, info, refresh_kind, uptime);
+        p.stat_file = stat_file;
+        return Ok((Some(p), pid));
+    };
+
+    // If we're here, it means that the PID still exists but it's a different process.
+    let p = retrieve_all_new_process_info(pid, proc_list, &parts, path, info, refresh_kind, uptime);
+    match proc_list.tasks.get_mut(&pid) {
+        Some(ref mut entry) => **entry = p,
+        // If it ever enters this case, it means that the process was removed from the HashMap
+        // in-between with the usage of dark magic.
+        None => unreachable!(),
+    }
+    // Since this PID is already in the HashMap, no need to add it again.
+    Ok((None, pid))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -473,9 +514,9 @@ fn update_time_and_memory(
         if entry.memory >= parent_memory {
             entry.memory -= parent_memory;
         }
-        // vsz correspond to the Virtual memory size in bytes. Divising by 1_000 gives us kb.
+        // vsz correspond to the Virtual memory size in bytes.
         // see: https://man7.org/linux/man-pages/man5/proc.5.html
-        entry.virtual_memory = u64::from_str(parts[22]).unwrap_or(0) / 1_000;
+        entry.virtual_memory = u64::from_str(parts[22]).unwrap_or(0);
         if entry.virtual_memory >= parent_virtual_memory {
             entry.virtual_memory -= parent_virtual_memory;
         }
@@ -504,73 +545,65 @@ pub(crate) fn refresh_procs(
     info: &SystemInfo,
     refresh_kind: ProcessRefreshKind,
 ) -> bool {
-    if let Ok(d) = fs::read_dir(path) {
-        let folders = d
-            .filter_map(|entry| {
-                if let Ok(entry) = entry {
-                    let entry = entry.path();
+    let d = match fs::read_dir(path) {
+        Ok(d) => d,
+        Err(_) => return false,
+    };
+    let folders = d
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let entry = entry.path();
 
-                    if entry.is_dir() {
-                        Some(entry)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+            if entry.is_dir() {
+                Some(entry)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    if pid.0 == 0 {
+        let proc_list = Wrap(UnsafeCell::new(proc_list));
+
+        #[cfg(feature = "multithread")]
+        use rayon::iter::ParallelIterator;
+
+        into_iter(folders)
+            .filter_map(|e| {
+                let (p, _) = _get_process_data(
+                    e.as_path(),
+                    proc_list.get(),
+                    pid,
+                    uptime,
+                    info,
+                    refresh_kind,
+                )
+                .ok()?;
+                p
+            })
+            .collect::<Vec<_>>()
+    } else {
+        let mut updated_pids = Vec::with_capacity(folders.len());
+        let new_tasks = folders
+            .iter()
+            .filter_map(|e| {
+                let (p, pid) =
+                    _get_process_data(e.as_path(), proc_list, pid, uptime, info, refresh_kind)
+                        .ok()?;
+                updated_pids.push(pid);
+                p
             })
             .collect::<Vec<_>>();
-        if pid.0 == 0 {
-            let proc_list = Wrap(UnsafeCell::new(proc_list));
-
-            #[cfg(feature = "multithread")]
-            use rayon::iter::ParallelIterator;
-
-            into_iter(folders)
-                .filter_map(|e| {
-                    if let Ok((p, _)) = _get_process_data(
-                        e.as_path(),
-                        proc_list.get(),
-                        pid,
-                        uptime,
-                        info,
-                        refresh_kind,
-                    ) {
-                        p
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-        } else {
-            let mut updated_pids = Vec::with_capacity(folders.len());
-            let new_tasks = folders
-                .iter()
-                .filter_map(|e| {
-                    if let Ok((p, pid)) =
-                        _get_process_data(e.as_path(), proc_list, pid, uptime, info, refresh_kind)
-                    {
-                        updated_pids.push(pid);
-                        p
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-            // Sub-tasks are not cleaned up outside so we do it here directly.
-            proc_list
-                .tasks
-                .retain(|&pid, _| updated_pids.iter().any(|&x| x == pid));
-            new_tasks
-        }
-        .into_iter()
-        .for_each(|e| {
-            proc_list.tasks.insert(e.pid(), e);
-        });
-        true
-    } else {
-        false
+        // Sub-tasks are not cleaned up outside so we do it here directly.
+        proc_list
+            .tasks
+            .retain(|&pid, _| updated_pids.iter().any(|&x| x == pid));
+        new_tasks
     }
+    .into_iter()
+    .for_each(|e| {
+        proc_list.tasks.insert(e.pid(), e);
+    });
+    true
 }
 
 fn copy_from_file(entry: &Path) -> Vec<String> {
@@ -618,7 +651,7 @@ fn get_uid_and_gid(file_path: &Path) -> Option<(uid_t, gid_t)> {
         }
     }
 
-    let status_data = get_all_data(&file_path, 16_385).ok()?;
+    let status_data = get_all_data(file_path, 16_385).ok()?;
 
     // We're only interested in the lines starting with Uid: and Gid:
     // here. From these lines, we're looking at the second entry to get
@@ -653,29 +686,7 @@ fn get_uid_and_gid(file_path: &Path) -> Option<(uid_t, gid_t)> {
     }
 }
 
-fn check_nb_open_files(f: File) -> Option<File> {
-    unsafe {
-        if let Ok(ref mut x) = REMAINING_FILES.lock() {
-            if **x > 0 {
-                **x -= 1;
-                return Some(f);
-            }
-        }
-    }
-    // Something bad happened...
-    None
-}
-
-macro_rules! unwrap_or_return {
-    ($data:expr) => {{
-        match $data {
-            Some(x) => x,
-            None => return Err(()),
-        }
-    }};
-}
-
-fn parse_stat_file(data: &str) -> Result<Vec<&str>, ()> {
+fn parse_stat_file(data: &str) -> Option<Vec<&str>> {
     // The stat file is "interesting" to parse, because spaces cannot
     // be used as delimiters. The second field stores the command name
     // surrounded by parentheses. Unfortunately, whitespace and
@@ -687,14 +698,14 @@ fn parse_stat_file(data: &str) -> Result<Vec<&str>, ()> {
 
     let mut parts = Vec::with_capacity(52);
     let mut data_it = data.splitn(2, ' ');
-    parts.push(unwrap_or_return!(data_it.next()));
-    let mut data_it = unwrap_or_return!(data_it.next()).rsplitn(2, ')');
-    let data = unwrap_or_return!(data_it.next());
-    parts.push(unwrap_or_return!(data_it.next()));
+    parts.push(data_it.next()?);
+    let mut data_it = data_it.next()?.rsplitn(2, ')');
+    let data = data_it.next()?;
+    parts.push(data_it.next()?);
     parts.extend(data.split_whitespace());
     // Remove command name '('
     if let Some(name) = parts[1].strip_prefix('(') {
         parts[1] = name;
     }
-    Ok(parts)
+    Some(parts)
 }

@@ -466,6 +466,13 @@ s! {
         pub pi_fputypes: [::c_char; PI_FPUTYPE as usize],
         pub pi_clock: ::c_int,
     }
+
+    pub struct option {
+        pub name: *const ::c_char,
+        pub has_arg: ::c_int,
+        pub flag: *mut ::c_int,
+        pub val: ::c_int,
+    }
 }
 
 s_no_extra_traits! {
@@ -3016,24 +3023,14 @@ extern "C" {
     ) -> ::c_int;
     #[cfg_attr(
         any(target_os = "solaris", target_os = "illumos"),
-        link_name = "__posix_getpwent_r"
+        link_name = "getpwent_r"
     )]
-    pub fn getpwent_r(
-        pwd: *mut passwd,
-        buf: *mut ::c_char,
-        buflen: ::size_t,
-        result: *mut *mut passwd,
-    ) -> ::c_int;
+    fn native_getpwent_r(pwd: *mut passwd, buf: *mut ::c_char, buflen: ::c_int) -> *mut passwd;
     #[cfg_attr(
         any(target_os = "solaris", target_os = "illumos"),
-        link_name = "__posix_getgrent_r"
+        link_name = "getgrent_r"
     )]
-    pub fn getgrent_r(
-        grp: *mut ::group,
-        buf: *mut ::c_char,
-        buflen: ::size_t,
-        result: *mut *mut ::group,
-    ) -> ::c_int;
+    fn native_getgrent_r(grp: *mut ::group, buf: *mut ::c_char, buflen: ::c_int) -> *mut ::group;
     #[cfg_attr(
         any(target_os = "solaris", target_os = "illumos"),
         link_name = "__posix_sigwait"
@@ -3147,18 +3144,7 @@ extern "C" {
     pub fn sysinfo(command: ::c_int, buf: *mut ::c_char, count: ::c_long) -> ::c_int;
 
     pub fn faccessat(fd: ::c_int, path: *const ::c_char, amode: ::c_int, flag: ::c_int) -> ::c_int;
-}
 
-#[link(name = "sendfile")]
-extern "C" {
-    pub fn sendfile(out_fd: ::c_int, in_fd: ::c_int, off: *mut ::off_t, len: ::size_t)
-        -> ::ssize_t;
-    pub fn sendfilev(
-        fildes: ::c_int,
-        vec: *const sendfilevec_t,
-        sfvcnt: ::c_int,
-        xferred: *mut ::size_t,
-    ) -> ::ssize_t;
     // #include <link.h>
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     pub fn dl_iterate_phdr(
@@ -3203,6 +3189,26 @@ extern "C" {
     pub fn backtrace(buffer: *mut *mut ::c_void, size: ::c_int) -> ::c_int;
     pub fn backtrace_symbols(buffer: *const *mut ::c_void, size: ::c_int) -> *mut *mut ::c_char;
     pub fn backtrace_symbols_fd(buffer: *const *mut ::c_void, size: ::c_int, fd: ::c_int);
+
+    pub fn getopt_long(
+        argc: ::c_int,
+        argv: *const *mut c_char,
+        optstring: *const c_char,
+        longopts: *const option,
+        longindex: *mut ::c_int,
+    ) -> ::c_int;
+}
+
+#[link(name = "sendfile")]
+extern "C" {
+    pub fn sendfile(out_fd: ::c_int, in_fd: ::c_int, off: *mut ::off_t, len: ::size_t)
+        -> ::ssize_t;
+    pub fn sendfilev(
+        fildes: ::c_int,
+        vec: *const sendfilevec_t,
+        sfvcnt: ::c_int,
+        xferred: *mut ::size_t,
+    ) -> ::ssize_t;
 }
 
 #[link(name = "lgrp")]

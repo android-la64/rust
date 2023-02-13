@@ -68,7 +68,7 @@ impl<'tcx> fmt::Debug for ty::adjustment::Adjustment<'tcx> {
 impl fmt::Debug for ty::BoundRegionKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            ty::BrAnon(n) => write!(f, "BrAnon({:?})", n),
+            ty::BrAnon(n, span) => write!(f, "BrAnon({n:?}, {span:?})"),
             ty::BrNamed(did, name) => {
                 if did.is_crate_root() {
                     write!(f, "BrNamed({})", name)
@@ -150,15 +150,23 @@ impl<'tcx> fmt::Debug for ty::Predicate<'tcx> {
     }
 }
 
+impl<'tcx> fmt::Debug for ty::Clause<'tcx> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            ty::Clause::Trait(ref a) => a.fmt(f),
+            ty::Clause::RegionOutlives(ref pair) => pair.fmt(f),
+            ty::Clause::TypeOutlives(ref pair) => pair.fmt(f),
+            ty::Clause::Projection(ref pair) => pair.fmt(f),
+        }
+    }
+}
+
 impl<'tcx> fmt::Debug for ty::PredicateKind<'tcx> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            ty::PredicateKind::Trait(ref a) => a.fmt(f),
+            ty::PredicateKind::Clause(ref a) => a.fmt(f),
             ty::PredicateKind::Subtype(ref pair) => pair.fmt(f),
             ty::PredicateKind::Coerce(ref pair) => pair.fmt(f),
-            ty::PredicateKind::RegionOutlives(ref pair) => pair.fmt(f),
-            ty::PredicateKind::TypeOutlives(ref pair) => pair.fmt(f),
-            ty::PredicateKind::Projection(ref pair) => pair.fmt(f),
             ty::PredicateKind::WellFormed(data) => write!(f, "WellFormed({:?})", data),
             ty::PredicateKind::ObjectSafe(trait_def_id) => {
                 write!(f, "ObjectSafe({:?})", trait_def_id)
@@ -173,6 +181,7 @@ impl<'tcx> fmt::Debug for ty::PredicateKind<'tcx> {
             ty::PredicateKind::TypeWellFormedFromEnv(ty) => {
                 write!(f, "TypeWellFormedFromEnv({:?})", ty)
             }
+            ty::PredicateKind::Ambiguous => write!(f, "Ambiguous"),
         }
     }
 }
@@ -240,7 +249,6 @@ TrivialTypeTraversalAndLiftImpls! {
     Field,
     interpret::Scalar,
     rustc_target::abi::Size,
-    ty::DelaySpanBugEmitted,
     rustc_type_ir::DebruijnIndex,
     ty::BoundVar,
     ty::Placeholder<ty::BoundVar>,
@@ -587,9 +595,15 @@ impl<'tcx, T: TypeVisitable<'tcx>> TypeSuperVisitable<'tcx> for ty::Binder<'tcx,
     }
 }
 
-impl<'tcx> TypeFoldable<'tcx> for &'tcx ty::List<ty::Binder<'tcx, ty::ExistentialPredicate<'tcx>>> {
+impl<'tcx> TypeFoldable<'tcx> for &'tcx ty::List<ty::PolyExistentialPredicate<'tcx>> {
     fn try_fold_with<F: FallibleTypeFolder<'tcx>>(self, folder: &mut F) -> Result<Self, F::Error> {
         ty::util::fold_list(self, folder, |tcx, v| tcx.intern_poly_existential_predicates(v))
+    }
+}
+
+impl<'tcx> TypeFoldable<'tcx> for &'tcx ty::List<ty::Const<'tcx>> {
+    fn try_fold_with<F: FallibleTypeFolder<'tcx>>(self, folder: &mut F) -> Result<Self, F::Error> {
+        ty::util::fold_list(self, folder, |tcx, v| tcx.mk_const_list(v.iter()))
     }
 }
 
@@ -806,7 +820,7 @@ impl<'tcx> TypeSuperFoldable<'tcx> for ty::Const<'tcx> {
         let ty = self.ty().try_fold_with(folder)?;
         let kind = self.kind().try_fold_with(folder)?;
         if ty != self.ty() || kind != self.kind() {
-            Ok(folder.tcx().mk_const(ty::ConstS { ty, kind }))
+            Ok(folder.tcx().mk_const(kind, ty))
         } else {
             Ok(self)
         }

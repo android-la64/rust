@@ -8,8 +8,9 @@ to make your life easier.
 CI will automatically fail your build if it doesn't pass `tidy`, our
 internal tool for ensuring code quality. If you'd like, you can install a
 [Git hook](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks)
-that will automatically run `./x.py test tidy --bless` on each push, to ensure
-your code is up to par. If you decide later that this behavior is
+that will automatically run `./x.py test tidy` on each push, to ensure
+your code is up to par. If the hook fails then run `./x.py test tidy --bless`
+and commit the changes. If you decide later that the pre-push behavior is
 undesirable, you can delete the `pre-push` file in `.git/hooks`.
 
 A prebuilt git hook lives at [`src/etc/pre-push.sh`](https://github.com/rust-lang/rust/blob/master/src/etc/pre-push.sh) which can be copied into your `.git/hooks` folder as `pre-push` (without the `.sh` extension!).
@@ -22,7 +23,7 @@ You can also install the hook as a step of running `./x.py setup`!
 a file. By default, `rust-analyzer` runs the `cargo check` and `rustfmt`
 commands, but you can override these commands to use more adapted versions
 of these tools when hacking on `rustc`. For example, for Visual Studio Code,
-you can write: <!-- date-check: apr 2022 --><!-- the date comment is for the edition below -->
+you can write: <!-- date-check: nov 2022 --><!-- the date comment is for the edition below -->
 
 ```JSON
 {
@@ -135,13 +136,13 @@ lets you use `cargo fmt`.
 [the section on vscode]: suggested.md#configuring-rust-analyzer-for-rustc
 [the section on rustup]: how-to-build-and-run.md?highlight=rustup#creating-a-rustup-toolchain
 
-## Incremental builds with `--keep-stage`.
+## Faster builds with `--keep-stage`.
 
 Sometimes just checking
 whether the compiler builds is not enough. A common example is that
 you need to add a `debug!` statement to inspect the value of some
 state or better understand the problem. In that case, you really need
-a full build. By leveraging incremental, though, you can often get
+a full build. By bypassing bootstrap's cache invalidation, you can often get
 these builds to complete very fast (e.g., around 30 seconds). The only
 catch is this requires a bit of fudging and may produce compilers that
 don't work (but that is easily detected and fixed).

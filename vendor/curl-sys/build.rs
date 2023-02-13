@@ -83,6 +83,7 @@ fn main() {
         "system.h",
         "urlapi.h",
         "typecheck-gcc.h",
+        "websockets.h",
     ]
     .iter()
     {
@@ -145,22 +146,22 @@ fn main() {
         .file("curl/lib/content_encoding.c")
         .file("curl/lib/cookie.c")
         .file("curl/lib/curl_addrinfo.c")
-        .file("curl/lib/curl_ctype.c")
         .file("curl/lib/curl_get_line.c")
         .file("curl/lib/curl_memrchr.c")
         .file("curl/lib/curl_range.c")
         .file("curl/lib/curl_threads.c")
-        .file("curl/lib/dotdot.c")
         .file("curl/lib/doh.c")
         .file("curl/lib/dynbuf.c")
         .file("curl/lib/easy.c")
         .file("curl/lib/escape.c")
         .file("curl/lib/file.c")
         .file("curl/lib/fileinfo.c")
+        .file("curl/lib/fopen.c")
         .file("curl/lib/formdata.c")
         .file("curl/lib/getenv.c")
         .file("curl/lib/getinfo.c")
         .file("curl/lib/hash.c")
+        .file("curl/lib/headers.c")
         .file("curl/lib/hmac.c")
         .file("curl/lib/hostasyn.c")
         .file("curl/lib/hostip.c")
@@ -182,6 +183,7 @@ fn main() {
         .file("curl/lib/multi.c")
         .file("curl/lib/netrc.c")
         .file("curl/lib/nonblock.c")
+        .file("curl/lib/noproxy.c")
         .file("curl/lib/parsedate.c")
         .file("curl/lib/progress.c")
         .file("curl/lib/rand.c")
@@ -272,6 +274,26 @@ fn main() {
         cfg.define("USE_RUSTLS", None)
             .file("curl/lib/vtls/rustls.c")
             .include(env::var_os("DEP_RUSTLS_FFI_INCLUDE").unwrap());
+    } else if cfg!(feature = "windows-static-ssl") {
+        if windows {
+            cfg.define("USE_OPENSSL", None)
+                .file("curl/lib/vtls/openssl.c");
+            // We need both openssl and zlib
+            // Those can be installed with
+            // ```shell
+            // git clone https://github.com/microsoft/vcpkg
+            // cd vcpkg
+            // ./bootstrap-vcpkg.bat -disableMetrics
+            // ./vcpkg.exe integrate install
+            // ./vcpkg.exe install openssl:x64-windows-static-md
+            // ```
+            #[cfg(target_env = "msvc")]
+            vcpkg::Config::new().find_package("openssl").ok();
+            #[cfg(target_env = "msvc")]
+            vcpkg::Config::new().find_package("zlib").ok();
+        } else {
+            panic!("Not available on non windows platform")
+        }
     } else if cfg!(feature = "ssl") {
         if windows {
             // For windows, spnego feature is auto on in case ssl feature is on.
@@ -336,6 +358,7 @@ fn main() {
             .define("HAVE_FCNTL_O_NONBLOCK", None)
             .define("HAVE_SYS_SELECT_H", None)
             .define("HAVE_SYS_STAT_H", None)
+            .define("HAVE_SYS_TIME_H", None)
             .define("HAVE_UNISTD_H", None)
             .define("HAVE_RECV", None)
             .define("HAVE_SELECT", None)
@@ -551,7 +574,9 @@ fn curl_config_reports_http2() -> bool {
 }
 
 fn macos_link_search_path() -> Option<String> {
-    let output = Command::new("clang")
+    let output = cc::Build::new()
+        .get_compiler()
+        .to_command()
         .arg("--print-search-dirs")
         .output()
         .ok()?;

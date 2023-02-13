@@ -6,7 +6,7 @@ configuring the best space vs time trade off for your use case and provides
 support for cheap deserialization of automata for use in `no_std` environments.
 
 [![Build status](https://github.com/BurntSushi/regex-automata/workflows/ci/badge.svg)](https://github.com/BurntSushi/regex-automata/actions)
-[![on crates.io](https://meritbadge.herokuapp.com/regex-automata)](https://crates.io/crates/regex-automata)
+[![Crates.io](https://img.shields.io/crates/v/regex-automata.svg)](https://crates.io/crates/regex-automata)
 ![Minimum Supported Rust Version 1.41](https://img.shields.io/badge/rustc-1.41-green)
 
 Dual-licensed under MIT or the [UNLICENSE](https://unlicense.org/).
@@ -26,11 +26,10 @@ Add this to your `Cargo.toml`:
 regex-automata = "0.1"
 ```
 
-and this to your crate root (if you're using Rust 2015):
-
-```rust
-extern crate regex_automata;
-```
+**WARNING**: The `master` branch currently contains code for the `0.2` release,
+but this README still targets the `0.1` release. Namely, it is recommended to
+stick with the `0.1` release. The `0.2` release was made prematurely in order
+to unblock some folks.
 
 
 ### Example: basic regex searching
@@ -48,7 +47,7 @@ assert_eq!(matches, vec![(0, 10), (11, 21)]);
 ```
 
 For more examples and information about the various knobs that can be turned,
-please see the [docs](https://docs.rs/regex-automata).
+please see the [docs](https://docs.rs/regex-automata/0.1).
 
 
 ### Support for `no_std`

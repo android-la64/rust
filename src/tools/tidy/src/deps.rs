@@ -23,6 +23,7 @@ const LICENSES: &[&str] = &[
     "MIT OR Apache-2.0 OR Zlib",                // tinyvec_macros
     "MIT OR Zlib OR Apache-2.0",                // miniz_oxide
     "(MIT OR Apache-2.0) AND Unicode-DFS-2016", // unicode_ident
+    "Unicode-DFS-2016",                         // tinystr and icu4x
 ];
 
 /// These are exceptions to Rust's permissive licensing policy, and
@@ -30,23 +31,25 @@ const LICENSES: &[&str] = &[
 /// tooling. It is _crucial_ that no exception crates be dependencies
 /// of the Rust runtime (std/test).
 const EXCEPTIONS: &[(&str, &str)] = &[
-    ("mdbook", "MPL-2.0"),            // mdbook
-    ("openssl", "Apache-2.0"),        // cargo, mdbook
-    ("colored", "MPL-2.0"),           // rustfmt
-    ("ryu", "Apache-2.0 OR BSL-1.0"), // cargo/... (because of serde)
-    ("bytesize", "Apache-2.0"),       // cargo
-    ("im-rc", "MPL-2.0+"),            // cargo
-    ("sized-chunks", "MPL-2.0+"),     // cargo via im-rc
-    ("bitmaps", "MPL-2.0+"),          // cargo via im-rc
-    ("instant", "BSD-3-Clause"),      // rustc_driver/tracing-subscriber/parking_lot
-    ("snap", "BSD-3-Clause"),         // rustc
+    ("ar_archive_writer", "Apache-2.0 WITH LLVM-exception"), // rustc
+    ("mdbook", "MPL-2.0"),                                   // mdbook
+    ("openssl", "Apache-2.0"),                               // cargo, mdbook
+    ("colored", "MPL-2.0"),                                  // rustfmt
+    ("ryu", "Apache-2.0 OR BSL-1.0"),                        // cargo/... (because of serde)
+    ("bytesize", "Apache-2.0"),                              // cargo
+    ("im-rc", "MPL-2.0+"),                                   // cargo
+    ("sized-chunks", "MPL-2.0+"),                            // cargo via im-rc
+    ("bitmaps", "MPL-2.0+"),                                 // cargo via im-rc
+    ("instant", "BSD-3-Clause"), // rustc_driver/tracing-subscriber/parking_lot
+    ("snap", "BSD-3-Clause"),    // rustc
     ("fluent-langneg", "Apache-2.0"), // rustc (fluent translations)
-    ("self_cell", "Apache-2.0"),      // rustc (fluent translations)
+    ("self_cell", "Apache-2.0"), // rustc (fluent translations)
     // FIXME: this dependency violates the documentation comment above:
     ("fortanix-sgx-abi", "MPL-2.0"), // libstd but only for `sgx` target
     ("dunce", "CC0-1.0"),            // cargo (dev dependency)
     ("similar", "Apache-2.0"),       // cargo (dev dependency)
     ("normalize-line-endings", "Apache-2.0"), // cargo (dev dependency)
+    ("dissimilar", "Apache-2.0"),    // rustdoc, rustc_lexer (few tests) via expect-test, (dev deps)
     ("subtle", "BSD-3-Clause"),      // cargo
 ];
 
@@ -86,6 +89,7 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "aho-corasick",
     "annotate-snippets",
     "ansi_term",
+    "ar_archive_writer",
     "arrayvec",
     "atty",
     "autocfg",
@@ -98,6 +102,7 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "chalk-ir",
     "chalk-solve",
     "chrono",
+    "convert_case", // dependency of derive_more
     "compiler_builtins",
     "cpufeatures",
     "crc32fast",
@@ -108,14 +113,17 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "crypto-common",
     "cstr",
     "datafrog",
-    "difference",
+    "derive_more",
     "digest",
+    "displaydoc",
+    "dissimilar",
     "dlmalloc",
     "either",
     "ena",
     "env_logger",
     "expect-test",
     "fallible-iterator", // dependency of `thorin`
+    "fastrand",
     "filetime",
     "fixedbitset",
     "flate2",
@@ -131,6 +139,11 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "hashbrown",
     "hermit-abi",
     "humantime",
+    "icu_list",
+    "icu_locid",
+    "icu_provider",
+    "icu_provider_adapters",
+    "icu_provider_macros",
     "if_chain",
     "indexmap",
     "instant",
@@ -143,6 +156,7 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "libc",
     "libloading",
     "libz-sys",
+    "litemap",
     "lock_api",
     "log",
     "matchers",
@@ -252,15 +266,21 @@ const PERMITTED_RUSTC_DEPENDENCIES: &[&str] = &[
     "winapi-i686-pc-windows-gnu",
     "winapi-util",
     "winapi-x86_64-pc-windows-gnu",
+    "writeable",
     // this is a false-positive: it's only used by rustfmt, but because it's enabled through a
     // feature, tidy thinks it's used by rustc as well.
     "yansi-term",
+    "yoke",
+    "yoke-derive",
+    "zerofrom",
+    "zerofrom-derive",
+    "zerovec",
+    "zerovec-derive",
 ];
 
 const PERMITTED_CRANELIFT_DEPENDENCIES: &[&str] = &[
     "ahash",
     "anyhow",
-    "ar",
     "arrayvec",
     "autocfg",
     "bumpalo",
