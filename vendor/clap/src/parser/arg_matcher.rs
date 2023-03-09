@@ -113,6 +113,10 @@ impl ArgMatcher {
         self.matches.args.keys()
     }
 
+    pub(crate) fn args(&self) -> crate::util::flat_map::Iter<'_, Id, MatchedArg> {
+        self.matches.args.iter()
+    }
+
     pub(crate) fn entry(&mut self, arg: Id) -> crate::util::Entry<Id, MatchedArg> {
         self.matches.args.entry(arg)
     }
@@ -182,7 +186,7 @@ impl ArgMatcher {
         let num_pending = self
             .pending
             .as_ref()
-            .and_then(|p| (p.id == *o.get_id()).then(|| p.raw_vals.len()))
+            .and_then(|p| (p.id == *o.get_id()).then_some(p.raw_vals.len()))
             .unwrap_or(0);
         debug!(
             "ArgMatcher::needs_more_vals: o={}, pending={}",

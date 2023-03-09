@@ -322,7 +322,7 @@ pub(crate) trait HasFieldMap {
                 None => {
                     span_err(
                         span.unwrap(),
-                        &format!("`{}` doesn't refer to a field on this type", field),
+                        &format!("`{field}` doesn't refer to a field on this type"),
                     )
                     .emit();
                     quote! {
@@ -385,7 +385,7 @@ impl quote::ToTokens for Applicability {
 
 /// Build the mapping of field names to fields. This allows attributes to peek values from
 /// other fields.
-pub(super) fn build_field_mapping<'v>(variant: &VariantInfo<'v>) -> HashMap<String, TokenStream> {
+pub(super) fn build_field_mapping(variant: &VariantInfo<'_>) -> HashMap<String, TokenStream> {
     let mut fields_map = FieldMap::new();
     for binding in variant.bindings() {
         if let Some(ident) = &binding.ast().ident {
@@ -603,8 +603,7 @@ impl SubdiagnosticKind {
                     if suggestion_kind != SuggestionKind::Normal {
                         invalid_attr(attr, &meta)
                             .help(format!(
-                                r#"Use `#[suggestion(..., style = "{}")]` instead"#,
-                                suggestion_kind
+                                r#"Use `#[suggestion(..., style = "{suggestion_kind}")]` instead"#
                             ))
                             .emit();
                     }
@@ -621,8 +620,7 @@ impl SubdiagnosticKind {
                     if suggestion_kind != SuggestionKind::Normal {
                         invalid_attr(attr, &meta)
                             .help(format!(
-                                r#"Use `#[multipart_suggestion(..., style = "{}")]` instead"#,
-                                suggestion_kind
+                                r#"Use `#[multipart_suggestion(..., style = "{suggestion_kind}")]` instead"#
                             ))
                             .emit();
                     }

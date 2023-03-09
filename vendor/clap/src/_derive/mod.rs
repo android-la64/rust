@@ -154,8 +154,9 @@
 //!     - **TIP:** When a doc comment is also present, you most likely want to add
 //!       `#[arg(long_about = None)]` to clear the doc comment so only [`about`][crate::Command::about]
 //!       gets shown with both `-h` and `--help`.
-//! - `long_about = <expr>`: [`Command::long_about`][crate::Command::long_about]
+//! - `long_about[ = <expr>]`: [`Command::long_about`][crate::Command::long_about]
 //!   - When not present: [Doc comment](#doc-comments) if there is a blank line, else nothing
+//!   - When present without a value: [Doc comment](#doc-comments)
 //! - `verbatim_doc_comment`: Minimizes pre-processing when converting doc comments to [`about`][crate::Command::about] / [`long_about`][crate::Command::long_about]
 //! - `next_display_order`: [`Command::next_display_order`][crate::Command::next_display_order]
 //! - `next_help_heading`: [`Command::next_help_heading`][crate::Command::next_help_heading]
@@ -175,6 +176,18 @@
 //!   [`Subcommand`][crate::Subcommand])
 //! - `external_subcommand`: [`Command::allow_external_subcommand(true)`][crate::Command::allow_external_subcommands]
 //!   - Variant must be either `Variant(Vec<String>)` or `Variant(Vec<OsString>)`
+//!
+//! And for [`Args`][crate::Args] fields:
+//! - `flatten`: Delegates to the field for more arguments (must implement [`Args`][crate::Args])
+//!   - Only [`next_help_heading`][crate::Command::next_help_heading] can be used with `flatten`.  See
+//!     [clap-rs/clap#3269](https://github.com/clap-rs/clap/issues/3269) for why
+//!     arg attributes are not generally supported.
+//!   - **Tip:** Though we do apply a flattened [`Args`][crate::Args]'s Parent Command Attributes, this
+//!     makes reuse harder. Generally prefer putting the cmd attributes on the
+//!     [`Parser`][crate::Parser] or on the flattened field.
+//! - `subcommand`: Delegates definition of subcommands to the field (must implement
+//!   [`Subcommand`][crate::Subcommand])
+//!   - When `Option<T>`, the subcommand becomes optional
 //!
 //! ### ArgGroup Attributes
 //!
@@ -200,8 +213,9 @@
 //!   - When not present: will auto-select an action based on the field type
 //! - `help = <expr>`: [`Arg::help`][crate::Arg::help]
 //!   - When not present: [Doc comment summary](#doc-comments)
-//! - `long_help = <expr>`: [`Arg::long_help`][crate::Arg::long_help]
+//! - `long_help[ = <expr>]`: [`Arg::long_help`][crate::Arg::long_help]
 //!   - When not present: [Doc comment](#doc-comments) if there is a blank line, else nothing
+//!   - When present without a value: [Doc comment](#doc-comments)
 //! - `verbatim_doc_comment`: Minimizes pre-processing when converting doc comments to [`help`][crate::Arg::help] / [`long_help`][crate::Arg::long_help]
 //! - `short [= <char>]`: [`Arg::short`][crate::Arg::short]
 //!   - When not present: no short set
@@ -212,23 +226,14 @@
 //! - `env [= <str>]`: [`Arg::env`][crate::Arg::env] (needs [`env` feature][crate::_features] enabled)
 //!   - When not present: no env set
 //!   - Without `<str>`: defaults to the case-converted field name
-//! - `flatten`: Delegates to the field for more arguments (must implement [`Args`][crate::Args])
-//!   - Only [`next_help_heading`][crate::Command::next_help_heading] can be used with `flatten`.  See
-//!     [clap-rs/clap#3269](https://github.com/clap-rs/clap/issues/3269) for why
-//!     arg attributes are not generally supported.
-//!   - **Tip:** Though we do apply a flattened [`Args`][crate::Args]'s Parent Command Attributes, this
-//!     makes reuse harder. Generally prefer putting the cmd attributes on the
-//!     [`Parser`][crate::Parser] or on the flattened field.
-//! - `subcommand`: Delegates definition of subcommands to the field (must implement
-//!   [`Subcommand`][crate::Subcommand])
-//!   - When `Option<T>`, the subcommand becomes optional
 //! - `from_global`: Read a [`Arg::global`][crate::Arg::global] argument (raw attribute), regardless of what subcommand you are in
 //! - `value_enum`: Parse the value using the [`ValueEnum`][crate::ValueEnum]
 //! - `skip [= <expr>]`: Ignore this field, filling in with `<expr>`
 //!   - Without `<expr>`: fills the field with `Default::default()`
 //! - `default_value = <str>`: [`Arg::default_value`][crate::Arg::default_value] and [`Arg::required(false)`][crate::Arg::required]
 //! - `default_value_t [= <expr>]`: [`Arg::default_value`][crate::Arg::default_value] and [`Arg::required(false)`][crate::Arg::required]
-//!   - Requires `std::fmt::Display` or `#[arg(value_enum)]`
+//!   - Requires `std::fmt::Display` that roundtrips correctly with the
+//!     [`Arg::value_parser`][crate::Arg::value_parser] or `#[arg(value_enum)]`
 //!   - Without `<expr>`, relies on `Default::default()`
 //! - `default_values_t = <expr>`: [`Arg::default_values`][crate::Arg::default_values] and [`Arg::required(false)`][crate::Arg::required]
 //!   - Requires field arg to be of type `Vec<T>` and `T` to implement `std::fmt::Display` or `#[arg(value_enum)]`

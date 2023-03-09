@@ -12,6 +12,8 @@ use rustc_span::Span;
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt as _;
 use rustc_trait_selection::traits::ObligationCtxt;
 
+use crate::session_diagnostics::NonGenericOpaqueTypeParam;
+
 use super::RegionInferenceContext;
 
 impl<'tcx> RegionInferenceContext<'tcx> {
@@ -235,7 +237,7 @@ impl<'tcx> InferCtxtExt<'tcx> for InferCtxt<'tcx> {
     /// # Parameters
     ///
     /// - `def_id`, the `impl Trait` type
-    /// - `substs`, the substs  used to instantiate this opaque type
+    /// - `substs`, the substs used to instantiate this opaque type
     /// - `instantiated_ty`, the inferred type C1 -- fully resolved, lifted version of
     ///   `opaque_defn.concrete_ty`
     #[instrument(level = "debug", skip(self))]
@@ -262,7 +264,7 @@ impl<'tcx> InferCtxtExt<'tcx> for InferCtxt<'tcx> {
             return self.tcx.ty_error();
         }
 
-        // Only check this for TAIT. RPIT already supports `src/test/ui/impl-trait/nested-return-type2.rs`
+        // Only check this for TAIT. RPIT already supports `tests/ui/impl-trait/nested-return-type2.rs`
         // on stable and we'd break that.
         let OpaqueTyOrigin::TyAlias = origin else {
             return definition_ty;
@@ -318,7 +320,7 @@ impl<'tcx> InferCtxtExt<'tcx> for InferCtxt<'tcx> {
 
         // This is still required for many(half of the tests in ui/type-alias-impl-trait)
         // tests to pass
-        let _ = infcx.inner.borrow_mut().opaque_type_storage.take_opaque_types();
+        let _ = infcx.take_opaque_types();
 
         if errors.is_empty() {
             definition_ty
@@ -389,17 +391,13 @@ fn check_opaque_type_parameter_valid(
         } else {
             // Prevent `fn foo() -> Foo<u32>` from being defining.
             let opaque_param = opaque_generics.param_at(i, tcx);
-            tcx.sess
-                .struct_span_err(span, "non-defining opaque type use in defining scope")
-                .span_note(
-                    tcx.def_span(opaque_param.def_id),
-                    &format!(
-                        "used non-generic {} `{}` for generic parameter",
-                        opaque_param.kind.descr(),
-                        arg,
-                    ),
-                )
-                .emit();
+            let kind = opaque_param.kind.descr();
+            tcx.sess.emit_err(NonGenericOpaqueTypeParam {
+                ty: arg,
+                kind,
+                span,
+                param_span: tcx.def_span(opaque_param.def_id),
+            });
             return false;
         }
     }

@@ -100,6 +100,9 @@ pub trait MachInst: Clone + Debug {
     /// (ret/uncond/cond) and target if applicable.
     fn is_term(&self) -> MachTerminator;
 
+    /// Is this an "args" pseudoinst?
+    fn is_args(&self) -> bool;
+
     /// Should this instruction be included in the clobber-set?
     fn is_included_in_clobbers(&self) -> bool {
         true
@@ -167,6 +170,16 @@ pub trait MachInst: Clone + Debug {
 
     /// Is this a safepoint?
     fn is_safepoint(&self) -> bool;
+
+    /// Generate an instruction that must appear at the beginning of a basic
+    /// block, if any. Note that the return value must not be subject to
+    /// register allocation.
+    fn gen_block_start(
+        _is_indirect_branch_target: bool,
+        _is_forward_edge_cfi_enabled: bool,
+    ) -> Option<Self> {
+        None
+    }
 
     /// A label-use kind: a type that describes the types of label references that
     /// can occur in an instruction.
@@ -345,6 +358,36 @@ pub type CompiledCodeStencil = CompiledCodeBase<Stencil>;
 /// consumption.
 pub type CompiledCode = CompiledCodeBase<Final>;
 
+impl CompiledCode {
+    /// If available, return information about the code layout in the
+    /// final machine code: the offsets (in bytes) of each basic-block
+    /// start, and all basic-block edges.
+    pub fn get_code_bb_layout(&self) -> (Vec<usize>, Vec<(usize, usize)>) {
+        (
+            self.bb_starts.iter().map(|&off| off as usize).collect(),
+            self.bb_edges
+                .iter()
+                .map(|&(from, to)| (from as usize, to as usize))
+                .collect(),
+        )
+    }
+
+    /// Creates unwind information for the function.
+    ///
+    /// Returns `None` if the function has no unwind information.
+    #[cfg(feature = "unwind")]
+    pub fn create_unwind_info(
+        &self,
+        isa: &dyn crate::isa::TargetIsa,
+    ) -> CodegenResult<Option<crate::isa::unwind::UnwindInfo>> {
+        let unwind_info_kind = match isa.triple().operating_system {
+            target_lexicon::OperatingSystem::Windows => UnwindInfoKind::Windows,
+            _ => UnwindInfoKind::SystemV,
+        };
+        isa.emit_unwind_info(self, unwind_info_kind)
+    }
+}
+
 /// An object that can be used to create the text section of an executable.
 ///
 /// This primarily handles resolving relative relocations at
@@ -354,8 +397,10 @@ pub type CompiledCode = CompiledCodeBase<Final>;
 pub trait TextSectionBuilder {
     /// Appends `data` to the text section with the `align` specified.
     ///
-    /// If `labeled` is `true` then the offset of the final data is used to
-    /// resolve relocations in `resolve_reloc` in the future.
+    /// If `labeled` is `true` then this also binds the appended data to the
+    /// `n`th label for how many times this has been called with `labeled:
+    /// true`. The label target can be passed as the `target` argument to
+    /// `resolve_reloc`.
     ///
     /// This function returns the offset at which the data was placed in the
     /// text section.
@@ -375,7 +420,7 @@ pub trait TextSectionBuilder {
     /// If this builder does not know how to handle `reloc` then this function
     /// will return `false`. Otherwise this function will return `true` and this
     /// relocation will be resolved in the final bytes returned by `finish`.
-    fn resolve_reloc(&mut self, offset: u64, reloc: Reloc, addend: Addend, target: u32) -> bool;
+    fn resolve_reloc(&mut self, offset: u64, reloc: Reloc, addend: Addend, target: usize) -> bool;
 
     /// A debug-only option which is used to for
     fn force_veneers(&mut self);

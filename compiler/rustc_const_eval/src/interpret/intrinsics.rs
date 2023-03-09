@@ -2,8 +2,6 @@
 //! looking at their MIR. Intrinsics/functions supported here are shared by CTFE
 //! and miri.
 
-use std::convert::TryFrom;
-
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir::{
     self,
@@ -81,14 +79,10 @@ pub(crate) fn eval_nullary_intrinsic<'tcx>(
         }
         sym::variant_count => match tp_ty.kind() {
             // Correctly handles non-monomorphic calls, so there is no need for ensure_monomorphic_enough.
-            ty::Adt(ref adt, _) => {
-                ConstValue::from_machine_usize(adt.variants().len() as u64, &tcx)
+            ty::Adt(adt, _) => ConstValue::from_machine_usize(adt.variants().len() as u64, &tcx),
+            ty::Alias(..) | ty::Param(_) | ty::Placeholder(_) | ty::Infer(_) => {
+                throw_inval!(TooGeneric)
             }
-            ty::Projection(_)
-            | ty::Opaque(_, _)
-            | ty::Param(_)
-            | ty::Placeholder(_)
-            | ty::Infer(_) => throw_inval!(TooGeneric),
             ty::Bound(_, _) => bug!("bound ty during ctfe"),
             ty::Bool
             | ty::Char
@@ -307,7 +301,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             }
             sym::offset => {
                 let ptr = self.read_pointer(&args[0])?;
-                let offset_count = self.read_scalar(&args[1])?.to_machine_isize(self)?;
+                let offset_count = self.read_machine_isize(&args[1])?;
                 let pointee_ty = substs.type_at(0);
 
                 let offset_ptr = self.ptr_offset_inbounds(ptr, pointee_ty, offset_count)?;
@@ -315,7 +309,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             }
             sym::arith_offset => {
                 let ptr = self.read_pointer(&args[0])?;
-                let offset_count = self.read_scalar(&args[1])?.to_machine_isize(self)?;
+                let offset_count = self.read_machine_isize(&args[1])?;
                 let pointee_ty = substs.type_at(0);
 
                 let pointee_size = i64::try_from(self.layout_of(pointee_ty)?.size.bytes()).unwrap();
@@ -432,7 +426,9 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             sym::transmute => {
                 self.copy_op(&args[0], dest, /*allow_transmute*/ true)?;
             }
-            sym::assert_inhabited | sym::assert_zero_valid | sym::assert_uninit_valid => {
+            sym::assert_inhabited
+            | sym::assert_zero_valid
+            | sym::assert_mem_uninitialized_valid => {
                 let ty = instance.substs.type_at(0);
                 let layout = self.layout_of(ty)?;
 
@@ -464,7 +460,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     }
                 }
 
-                if intrinsic_name == sym::assert_uninit_valid {
+                if intrinsic_name == sym::assert_mem_uninitialized_valid {
                     let should_panic = !self.tcx.permits_uninit_init(layout);
 
                     if should_panic {
@@ -672,7 +668,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         count: &OpTy<'tcx, <M as Machine<'mir, 'tcx>>::Provenance>,
         nonoverlapping: bool,
     ) -> InterpResult<'tcx> {
-        let count = self.read_scalar(&count)?.to_machine_usize(self)?;
+        let count = self.read_machine_usize(&count)?;
         let layout = self.layout_of(src.layout.ty.builtin_deref(true).unwrap().ty)?;
         let (size, align) = (layout.size, layout.align.abi);
         // `checked_mul` enforces a too small bound (the correct one would probably be machine_isize_max),
@@ -700,7 +696,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
 
         let dst = self.read_pointer(&dst)?;
         let byte = self.read_scalar(&byte)?.to_u8()?;
-        let count = self.read_scalar(&count)?.to_machine_usize(self)?;
+        let count = self.read_machine_usize(&count)?;
 
         // `checked_mul` enforces a too small bound (the correct one would probably be machine_isize_max),
         // but no actual allocation can be big enough for the difference to be noticeable.

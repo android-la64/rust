@@ -2,6 +2,8 @@ use crate::pp::Breaks::Inconsistent;
 use crate::pprust::state::{AnnNode, IterDelimited, PrintState, State, INDENT_UNIT};
 
 use rustc_ast::ptr::P;
+use rustc_ast::token;
+use rustc_ast::util::literal::escape_byte_str_symbol;
 use rustc_ast::util::parser::{self, AssocOp, Fixity};
 use rustc_ast::{self as ast, BlockCheckMode};
 
@@ -323,7 +325,7 @@ impl<'a> State<'a> {
                 self.print_token_literal(*token_lit, expr.span);
             }
             ast::ExprKind::IncludedBytes(bytes) => {
-                let lit = ast::LitKind::ByteStr(bytes.clone()).to_token_lit();
+                let lit = token::Lit::new(token::ByteStr, escape_byte_str_symbol(bytes), None);
                 self.print_token_literal(lit, expr.span)
             }
             ast::ExprKind::Cast(expr, ty) => {
@@ -397,6 +399,7 @@ impl<'a> State<'a> {
             ast::ExprKind::Closure(box ast::Closure {
                 binder,
                 capture_clause,
+                constness,
                 asyncness,
                 movability,
                 fn_decl,
@@ -405,6 +408,7 @@ impl<'a> State<'a> {
                 fn_arg_span: _,
             }) => {
                 self.print_closure_binder(binder);
+                self.print_constness(*constness);
                 self.print_movability(*movability);
                 self.print_asyncness(*asyncness);
                 self.print_capture_clause(*capture_clause);
@@ -469,10 +473,10 @@ impl<'a> State<'a> {
                 self.word("]");
             }
             ast::ExprKind::Range(start, end, limits) => {
-                // Special case for `Range`.  `AssocOp` claims that `Range` has higher precedence
+                // Special case for `Range`. `AssocOp` claims that `Range` has higher precedence
                 // than `Assign`, but `x .. x = x` gives a parse error instead of `x .. (x = x)`.
                 // Here we use a fake precedence value so that any child with lower precedence than
-                // a "normal" binop gets parenthesized.  (`LOr` is the lowest-precedence binop.)
+                // a "normal" binop gets parenthesized. (`LOr` is the lowest-precedence binop.)
                 let fake_prec = AssocOp::LOr.precedence() as i8;
                 if let Some(e) = start {
                     self.print_expr_maybe_paren(e, fake_prec);

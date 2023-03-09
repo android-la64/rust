@@ -1,6 +1,7 @@
 //! Inlining pass for MIR functions
 use crate::deref_separator::deref_finder;
 use rustc_attr::InlineAttr;
+use rustc_hir::def_id::DefId;
 use rustc_index::bit_set::BitSet;
 use rustc_index::vec::Idx;
 use rustc_middle::middle::codegen_fn_attrs::{CodegenFnAttrFlags, CodegenFnAttrs};
@@ -26,6 +27,8 @@ const LANDINGPAD_PENALTY: usize = 50;
 const RESUME_PENALTY: usize = 45;
 
 const UNKNOWN_SIZE_COST: usize = 10;
+
+const TOP_DOWN_DEPTH_LIMIT: usize = 5;
 
 pub struct Inline;
 
@@ -86,8 +89,13 @@ fn inline<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) -> bool {
 
     let param_env = tcx.param_env_reveal_all_normalized(def_id);
 
-    let mut this =
-        Inliner { tcx, param_env, codegen_fn_attrs: tcx.codegen_fn_attrs(def_id), changed: false };
+    let mut this = Inliner {
+        tcx,
+        param_env,
+        codegen_fn_attrs: tcx.codegen_fn_attrs(def_id),
+        history: Vec::new(),
+        changed: false,
+    };
     let blocks = BasicBlock::new(0)..body.basic_blocks.next_index();
     this.process_blocks(body, blocks);
     this.changed
@@ -98,12 +106,26 @@ struct Inliner<'tcx> {
     param_env: ParamEnv<'tcx>,
     /// Caller codegen attributes.
     codegen_fn_attrs: &'tcx CodegenFnAttrs,
+    /// Stack of inlined instances.
+    /// We only check the `DefId` and not the substs because we want to
+    /// avoid inlining cases of polymorphic recursion.
+    /// The number of `DefId`s is finite, so checking history is enough
+    /// to ensure that we do not loop endlessly while inlining.
+    history: Vec<DefId>,
     /// Indicates that the caller body has been modified.
     changed: bool,
 }
 
 impl<'tcx> Inliner<'tcx> {
     fn process_blocks(&mut self, caller_body: &mut Body<'tcx>, blocks: Range<BasicBlock>) {
+        // How many callsites in this body are we allowed to inline? We need to limit this in order
+        // to prevent super-linear growth in MIR size
+        let inline_limit = match self.history.len() {
+            0 => usize::MAX,
+            1..=TOP_DOWN_DEPTH_LIMIT => 1,
+            _ => return,
+        };
+        let mut inlined_count = 0;
         for bb in blocks {
             let bb_data = &caller_body[bb];
             if bb_data.is_cleanup {
@@ -122,12 +144,16 @@ impl<'tcx> Inliner<'tcx> {
                     debug!("not-inlined {} [{}]", callsite.callee, reason);
                     continue;
                 }
-                Ok(_) => {
+                Ok(new_blocks) => {
                     debug!("inlined {}", callsite.callee);
                     self.changed = true;
-                    // We could process the blocks returned by `try_inlining` here. However, that
-                    // leads to exponential compile times due to the top-down nature of this kind
-                    // of inlining.
+                    inlined_count += 1;
+                    if inlined_count == inline_limit {
+                        return;
+                    }
+                    self.history.push(callsite.callee.def_id());
+                    self.process_blocks(caller_body, new_blocks);
+                    self.history.pop();
                 }
             }
         }
@@ -289,7 +315,7 @@ impl<'tcx> Inliner<'tcx> {
     ) -> Option<CallSite<'tcx>> {
         // Only consider direct calls to functions
         let terminator = bb_data.terminator();
-        if let TerminatorKind::Call { ref func, target, .. } = terminator.kind {
+        if let TerminatorKind::Call { ref func, target, fn_span, .. } = terminator.kind {
             let func_ty = func.ty(caller_body, self.tcx);
             if let ty::FnDef(def_id, substs) = *func_ty.kind() {
                 // To resolve an instance its substs have to be fully normalized.
@@ -301,15 +327,14 @@ impl<'tcx> Inliner<'tcx> {
                     return None;
                 }
 
-                let fn_sig = self.tcx.bound_fn_sig(def_id).subst(self.tcx, substs);
+                if self.history.contains(&callee.def_id()) {
+                    return None;
+                }
 
-                return Some(CallSite {
-                    callee,
-                    fn_sig,
-                    block: bb,
-                    target,
-                    source_info: terminator.source_info,
-                });
+                let fn_sig = self.tcx.bound_fn_sig(def_id).subst(self.tcx, substs);
+                let source_info = SourceInfo { span: fn_span, ..terminator.source_info };
+
+                return Some(CallSite { callee, fn_sig, block: bb, target, source_info });
             }
         }
 
@@ -517,6 +542,21 @@ impl<'tcx> Inliner<'tcx> {
                     destination
                 };
 
+                // Always create a local to hold the destination, as `RETURN_PLACE` may appear
+                // where a full `Place` is not allowed.
+                let (remap_destination, destination_local) = if let Some(d) = dest.as_local() {
+                    (false, d)
+                } else {
+                    (
+                        true,
+                        self.new_call_temp(
+                            caller_body,
+                            &callsite,
+                            destination.ty(caller_body, self.tcx).ty,
+                        ),
+                    )
+                };
+
                 // Copy the arguments if needed.
                 let args: Vec<_> = self.make_call_args(args, &callsite, caller_body, &callee_body);
 
@@ -535,7 +575,7 @@ impl<'tcx> Inliner<'tcx> {
                     new_locals: Local::new(caller_body.local_decls.len())..,
                     new_scopes: SourceScope::new(caller_body.source_scopes.len())..,
                     new_blocks: BasicBlock::new(caller_body.basic_blocks.len())..,
-                    destination: dest,
+                    destination: destination_local,
                     callsite_scope: caller_body.source_scopes[callsite.source_info.scope].clone(),
                     callsite,
                     cleanup_block: cleanup,
@@ -566,6 +606,16 @@ impl<'tcx> Inliner<'tcx> {
                     // To avoid repeated O(n) insert, push any new statements to the end and rotate
                     // the slice once.
                     let mut n = 0;
+                    if remap_destination {
+                        caller_body[block].statements.push(Statement {
+                            source_info: callsite.source_info,
+                            kind: StatementKind::Assign(Box::new((
+                                dest,
+                                Rvalue::Use(Operand::Move(destination_local.into())),
+                            ))),
+                        });
+                        n += 1;
+                    }
                     for local in callee_body.vars_and_temps_iter().rev() {
                         if !callee_body.local_decls[local].internal
                             && integrator.always_live_locals.contains(local)
@@ -849,7 +899,7 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
             };
 
             let kind = match parent_ty.ty.kind() {
-                &ty::Opaque(def_id, substs) => {
+                &ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) => {
                     self.tcx.bound_type_of(def_id).subst(self.tcx, substs).kind()
                 }
                 kind => kind,
@@ -934,7 +984,7 @@ struct Integrator<'a, 'tcx> {
     new_locals: RangeFrom<Local>,
     new_scopes: RangeFrom<SourceScope>,
     new_blocks: RangeFrom<BasicBlock>,
-    destination: Place<'tcx>,
+    destination: Local,
     callsite_scope: SourceScopeData<'tcx>,
     callsite: &'a CallSite<'tcx>,
     cleanup_block: Option<BasicBlock>,
@@ -947,7 +997,7 @@ struct Integrator<'a, 'tcx> {
 impl Integrator<'_, '_> {
     fn map_local(&self, local: Local) -> Local {
         let new = if local == RETURN_PLACE {
-            self.destination.local
+            self.destination
         } else {
             let idx = local.index() - 1;
             if idx < self.args.len() {
@@ -1026,27 +1076,6 @@ impl<'tcx> MutVisitor<'tcx> for Integrator<'_, 'tcx> {
     fn visit_span(&mut self, span: &mut Span) {
         // Make sure that all spans track the fact that they were inlined.
         *span = span.fresh_expansion(self.expn_data);
-    }
-
-    fn visit_place(&mut self, place: &mut Place<'tcx>, context: PlaceContext, location: Location) {
-        for elem in place.projection {
-            // FIXME: Make sure that return place is not used in an indexing projection, since it
-            // won't be rebased as it is supposed to be.
-            assert_ne!(ProjectionElem::Index(RETURN_PLACE), elem);
-        }
-
-        // If this is the `RETURN_PLACE`, we need to rebase any projections onto it.
-        let dest_proj_len = self.destination.projection.len();
-        if place.local == RETURN_PLACE && dest_proj_len > 0 {
-            let mut projs = Vec::with_capacity(dest_proj_len + place.projection.len());
-            projs.extend(self.destination.projection);
-            projs.extend(place.projection);
-
-            place.projection = self.tcx.intern_place_elems(&*projs);
-        }
-        // Handles integrating any locals that occur in the base
-        // or projections
-        self.super_place(place, context, location)
     }
 
     fn visit_basic_block_data(&mut self, block: BasicBlock, data: &mut BasicBlockData<'tcx>) {

@@ -81,6 +81,14 @@ impl SourceId {
     ///
     /// The canonical url will be calculated, but the precise field will not
     fn new(kind: SourceKind, url: Url, name: Option<&str>) -> CargoResult<SourceId> {
+        if kind == SourceKind::SparseRegistry {
+            // Sparse URLs are different because they store the kind prefix (sparse+)
+            // in the URL. This is because the prefix is necessary to differentiate
+            // from regular registries (git-based). The sparse+ prefix is included
+            // everywhere, including user-facing locations such as the `config.toml`
+            // file that defines the registry, or whenever Cargo displays it to the user.
+            assert!(url.as_str().starts_with("sparse+"));
+        }
         let source_id = SourceId::wrap(SourceIdInner {
             kind,
             canonical_url: CanonicalUrl::new(&url)?,
@@ -152,7 +160,7 @@ impl SourceId {
                     .with_precise(Some("locked".to_string())))
             }
             "sparse" => {
-                let url = url.into_url()?;
+                let url = string.into_url()?;
                 Ok(SourceId::new(SourceKind::SparseRegistry, url, None)?
                     .with_precise(Some("locked".to_string())))
             }
@@ -681,31 +689,6 @@ impl Ord for SourceKind {
     }
 }
 
-// This is a test that the hash of the `SourceId` for crates.io is a well-known
-// value.
-//
-// Note that the hash value matches what the crates.io source id has hashed
-// since long before Rust 1.30. We strive to keep this value the same across
-// versions of Cargo because changing it means that users will need to
-// redownload the index and all crates they use when using a new Cargo version.
-//
-// This isn't to say that this hash can *never* change, only that when changing
-// this it should be explicitly done. If this hash changes accidentally and
-// you're able to restore the hash to its original value, please do so!
-// Otherwise please just leave a comment in your PR as to why the hash value is
-// changing and why the old value can't be easily preserved.
-//
-// The hash value depends on endianness and bit-width, so we only run this test on
-// little-endian 64-bit CPUs (such as x86-64 and ARM64) where it matches the
-// well-known value.
-#[test]
-#[cfg(all(target_endian = "little", target_pointer_width = "64"))]
-fn test_cratesio_hash() {
-    let config = Config::default().unwrap();
-    let crates_io = SourceId::crates_io(&config).unwrap();
-    assert_eq!(crate::util::hex::short_hash(&crates_io), "1ecc6299db9ec823");
-}
-
 /// A `Display`able view into a `SourceId` that will write it as a url
 pub struct SourceIdAsUrl<'a> {
     inner: &'a SourceIdInner,
@@ -746,6 +729,7 @@ impl<'a> fmt::Display for SourceIdAsUrl<'a> {
                 ref url,
                 ..
             } => {
+                // Sparse registry URL already includes the `sparse+` prefix
                 write!(f, "{url}")
             }
             SourceIdInner {
@@ -792,7 +776,7 @@ impl<'a> fmt::Display for PrettyRef<'a> {
 #[cfg(test)]
 mod tests {
     use super::{GitReference, SourceId, SourceKind};
-    use crate::util::IntoUrl;
+    use crate::util::{Config, IntoUrl};
 
     #[test]
     fn github_sources_equal() {
@@ -808,5 +792,95 @@ mod tests {
         let foo = SourceKind::Git(GitReference::Branch("foo".to_string()));
         let s3 = SourceId::new(foo, loc, None).unwrap();
         assert_ne!(s1, s3);
+    }
+
+    // This is a test that the hash of the `SourceId` for crates.io is a well-known
+    // value.
+    //
+    // Note that the hash value matches what the crates.io source id has hashed
+    // since long before Rust 1.30. We strive to keep this value the same across
+    // versions of Cargo because changing it means that users will need to
+    // redownload the index and all crates they use when using a new Cargo version.
+    //
+    // This isn't to say that this hash can *never* change, only that when changing
+    // this it should be explicitly done. If this hash changes accidentally and
+    // you're able to restore the hash to its original value, please do so!
+    // Otherwise please just leave a comment in your PR as to why the hash value is
+    // changing and why the old value can't be easily preserved.
+    //
+    // The hash value depends on endianness and bit-width, so we only run this test on
+    // little-endian 64-bit CPUs (such as x86-64 and ARM64) where it matches the
+    // well-known value.
+    #[test]
+    #[cfg(all(target_endian = "little", target_pointer_width = "64"))]
+    fn test_cratesio_hash() {
+        let config = Config::default().unwrap();
+        let crates_io = SourceId::crates_io(&config).unwrap();
+        assert_eq!(crate::util::hex::short_hash(&crates_io), "1ecc6299db9ec823");
+    }
+
+    // See the comment in `test_cratesio_hash`.
+    //
+    // Only test on non-Windows as paths on Windows will get different hashes.
+    #[test]
+    #[cfg(all(target_endian = "little", target_pointer_width = "64", not(windows)))]
+    fn test_stable_hash() {
+        use std::hash::Hasher;
+        use std::path::Path;
+
+        let gen_hash = |source_id: SourceId| {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            source_id.stable_hash(Path::new("/tmp/ws"), &mut hasher);
+            hasher.finish()
+        };
+
+        let url = "https://my-crates.io".into_url().unwrap();
+        let source_id = SourceId::for_registry(&url).unwrap();
+        assert_eq!(gen_hash(source_id), 18108075011063494626);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "fb60813d6cb8df79");
+
+        let url = "https://your-crates.io".into_url().unwrap();
+        let source_id = SourceId::for_alt_registry(&url, "alt").unwrap();
+        assert_eq!(gen_hash(source_id), 12862859764592646184);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "09c10fd0cbd74bce");
+
+        let url = "sparse+https://my-crates.io".into_url().unwrap();
+        let source_id = SourceId::for_registry(&url).unwrap();
+        assert_eq!(gen_hash(source_id), 8763561830438022424);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "d1ea0d96f6f759b5");
+
+        let url = "sparse+https://your-crates.io".into_url().unwrap();
+        let source_id = SourceId::for_alt_registry(&url, "alt").unwrap();
+        assert_eq!(gen_hash(source_id), 5159702466575482972);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "135d23074253cb78");
+
+        let url = "file:///tmp/ws/crate".into_url().unwrap();
+        let source_id = SourceId::for_git(&url, GitReference::DefaultBranch).unwrap();
+        assert_eq!(gen_hash(source_id), 15332537265078583985);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "73a808694abda756");
+
+        let path = Path::new("/tmp/ws/crate");
+
+        let source_id = SourceId::for_local_registry(path).unwrap();
+        assert_eq!(gen_hash(source_id), 18446533307730842837);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "52a84cc73f6fd48b");
+
+        let source_id = SourceId::for_path(path).unwrap();
+        assert_eq!(gen_hash(source_id), 8764714075439899829);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "e1ddd48578620fc1");
+
+        let source_id = SourceId::for_directory(path).unwrap();
+        assert_eq!(gen_hash(source_id), 17459999773908528552);
+        assert_eq!(crate::util::hex::short_hash(&source_id), "6568fe2c2fab5bfe");
+    }
+
+    #[test]
+    fn serde_roundtrip() {
+        let url = "sparse+https://my-crates.io/".into_url().unwrap();
+        let source_id = SourceId::for_registry(&url).unwrap();
+        let formatted = format!("{}", source_id.as_url());
+        let deserialized = SourceId::from_url(&formatted).unwrap();
+        assert_eq!(formatted, "sparse+https://my-crates.io/");
+        assert_eq!(source_id, deserialized);
     }
 }

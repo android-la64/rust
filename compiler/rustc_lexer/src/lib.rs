@@ -2,7 +2,7 @@
 //!
 //! The idea with `rustc_lexer` is to make a reusable library,
 //! by separating out pure lexing and rustc-specific concerns, like spans,
-//! error reporting, and interning.  So, rustc_lexer operates directly on `&str`,
+//! error reporting, and interning. So, rustc_lexer operates directly on `&str`,
 //! produces simple tokens which are a pair of type-tag and a bit of original text,
 //! and does not report errors, instead storing them as flags on the token.
 //!
@@ -34,7 +34,6 @@ pub use crate::cursor::Cursor;
 use self::LiteralKind::*;
 use self::TokenKind::*;
 use crate::cursor::EOF_CHAR;
-use std::convert::TryFrom;
 
 /// Parsed token.
 /// It doesn't contain information about data that has been parsed,
@@ -852,7 +851,7 @@ impl Cursor<'_> {
     }
 
     // Eats the identifier. Note: succeeds on `_`, which isn't a valid
-    // identifer.
+    // identifier.
     fn eat_identifier(&mut self) {
         if !is_id_start(self.first()) {
             return;

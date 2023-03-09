@@ -52,6 +52,17 @@ pub struct LifetimesOrBoundsMismatchOnTrait {
 }
 
 #[derive(Diagnostic)]
+#[diag(hir_analysis_async_trait_impl_should_be_async)]
+pub struct AsyncTraitImplShouldBeAsync {
+    #[primary_span]
+    // #[label]
+    pub span: Span,
+    #[label(trait_item_label)]
+    pub trait_item_span: Option<Span>,
+    pub method_name: Symbol,
+}
+
+#[derive(Diagnostic)]
 #[diag(hir_analysis_drop_impl_on_wrong_item, code = "E0120")]
 pub struct DropImplOnWrongItem {
     #[primary_span]
@@ -254,13 +265,6 @@ pub struct ExternCrateNotIdiomatic {
 }
 
 #[derive(Diagnostic)]
-#[diag(hir_analysis_expected_used_symbol)]
-pub struct ExpectedUsedSymbol {
-    #[primary_span]
-    pub span: Span,
-}
-
-#[derive(Diagnostic)]
 #[diag(hir_analysis_const_impl_for_non_const_trait)]
 pub struct ConstImplForNonConstTrait {
     #[primary_span]
@@ -295,4 +299,16 @@ pub struct SelfInImplSelf {
 pub(crate) struct LinkageType {
     #[primary_span]
     pub span: Span,
+}
+
+#[derive(Diagnostic)]
+#[help]
+#[diag(hir_analysis_auto_deref_reached_recursion_limit, code = "E0055")]
+pub struct AutoDerefReachedRecursionLimit<'a> {
+    #[primary_span]
+    #[label]
+    pub span: Span,
+    pub ty: Ty<'a>,
+    pub suggested_limit: rustc_session::Limit,
+    pub crate_name: Symbol,
 }

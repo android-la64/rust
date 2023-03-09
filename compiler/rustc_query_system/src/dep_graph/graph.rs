@@ -37,7 +37,7 @@ pub struct DepGraph<K: DepKind> {
 }
 
 rustc_index::newtype_index! {
-    pub struct DepNodeIndex { .. }
+    pub struct DepNodeIndex {}
 }
 
 impl DepNodeIndex {
@@ -46,7 +46,7 @@ impl DepNodeIndex {
     pub const FOREVER_RED_NODE: DepNodeIndex = DepNodeIndex::from_u32(1);
 }
 
-impl std::convert::From<DepNodeIndex> for QueryInvocationId {
+impl From<DepNodeIndex> for QueryInvocationId {
     #[inline]
     fn from(dep_node_index: DepNodeIndex) -> Self {
         QueryInvocationId(dep_node_index.as_u32())
@@ -316,10 +316,8 @@ impl<K: DepKind> DepGraph<K> {
         assert!(
             !self.dep_node_exists(&key),
             "forcing query with already existing `DepNode`\n\
-                 - query-key: {:?}\n\
-                 - dep-node: {:?}",
-            arg,
-            key
+                 - query-key: {arg:?}\n\
+                 - dep-node: {key:?}"
         );
 
         let task_deps = if cx.dep_context().is_eval_always(key.kind) {
@@ -365,8 +363,7 @@ impl<K: DepKind> DepGraph<K> {
             debug_assert!(
                 data.colors.get(prev_index).is_none(),
                 "DepGraph::with_task() - Duplicate DepNodeColor \
-                            insertion for {:?}",
-                key
+                            insertion for {key:?}"
             );
 
             data.colors.insert(prev_index, color);
@@ -447,7 +444,7 @@ impl<K: DepKind> DepGraph<K> {
                     TaskDepsRef::Allow(deps) => deps.lock(),
                     TaskDepsRef::Ignore => return,
                     TaskDepsRef::Forbid => {
-                        panic!("Illegal read of: {:?}", dep_node_index)
+                        panic!("Illegal read of: {dep_node_index:?}")
                     }
                 };
                 let task_deps = &mut *task_deps;
@@ -493,8 +490,8 @@ impl<K: DepKind> DepGraph<K> {
     /// This is used to remove cycles during type-checking const generic parameters.
     ///
     /// As usual in the query system, we consider the current state of the calling query
-    /// only depends on the list of dependencies up to now.  As a consequence, the value
-    /// that this query gives us can only depend on those dependencies too.  Therefore,
+    /// only depends on the list of dependencies up to now. As a consequence, the value
+    /// that this query gives us can only depend on those dependencies too. Therefore,
     /// it is sound to use the current dependency set for the created node.
     ///
     /// During replay, the order of the nodes is relevant in the dependency graph.
@@ -513,9 +510,9 @@ impl<K: DepKind> DepGraph<K> {
         hash_result: Option<fn(&mut StableHashingContext<'_>, &R) -> Fingerprint>,
     ) -> DepNodeIndex {
         if let Some(data) = self.data.as_ref() {
-            // The caller query has more dependencies than the node we are creating.  We may
+            // The caller query has more dependencies than the node we are creating. We may
             // encounter a case where this created node is marked as green, but the caller query is
-            // subsequently marked as red or recomputed.  In this case, we will end up feeding a
+            // subsequently marked as red or recomputed. In this case, we will end up feeding a
             // value to an existing node.
             //
             // For sanity, we still check that the loaded stable hash and the new one match.
@@ -634,7 +631,7 @@ impl<K: DepKind> DepGraph<K> {
         if dep_node_debug.borrow().contains_key(&dep_node) {
             return;
         }
-        let debug_str = debug_str_gen();
+        let debug_str = self.with_ignore(debug_str_gen);
         dep_node_debug.borrow_mut().insert(dep_node, debug_str);
     }
 
@@ -824,12 +821,13 @@ impl<K: DepKind> DepGraph<K> {
         debug_assert!(
             data.colors.get(prev_dep_node_index).is_none(),
             "DepGraph::try_mark_previous_green() - Duplicate DepNodeColor \
-                      insertion for {:?}",
-            dep_node
+                      insertion for {dep_node:?}"
         );
 
         if !side_effects.is_empty() {
-            self.emit_side_effects(qcx, data, dep_node_index, side_effects);
+            self.with_query_deserialization(|| {
+                self.emit_side_effects(qcx, data, dep_node_index, side_effects)
+            });
         }
 
         // ... and finally storing a "Green" entry in the color map.
@@ -974,7 +972,7 @@ pub struct WorkProduct {
 
 // Index type for `DepNodeData`'s edges.
 rustc_index::newtype_index! {
-    struct EdgeIndex { .. }
+    struct EdgeIndex {}
 }
 
 /// `CurrentDepGraph` stores the dependency graph for the current session. It
@@ -982,7 +980,7 @@ rustc_index::newtype_index! {
 /// graph: they are only added.
 ///
 /// The nodes in it are identified by a `DepNodeIndex`. We avoid keeping the nodes
-/// in memory.  This is important, because these graph structures are some of the
+/// in memory. This is important, because these graph structures are some of the
 /// largest in the compiler.
 ///
 /// For this reason, we avoid storing `DepNode`s more than once as map
@@ -1162,7 +1160,7 @@ impl<K: DepKind> CurrentDepGraph<K> {
             if let Some(fingerprint) = fingerprint {
                 if fingerprint == prev_graph.fingerprint_by_index(prev_index) {
                     if print_status {
-                        eprintln!("[task::green] {:?}", key);
+                        eprintln!("[task::green] {key:?}");
                     }
 
                     // This is a green node: it existed in the previous compilation,
@@ -1184,7 +1182,7 @@ impl<K: DepKind> CurrentDepGraph<K> {
                     (dep_node_index, Some((prev_index, DepNodeColor::Green(dep_node_index))))
                 } else {
                     if print_status {
-                        eprintln!("[task::red] {:?}", key);
+                        eprintln!("[task::red] {key:?}");
                     }
 
                     // This is a red node: it existed in the previous compilation, its query
@@ -1207,7 +1205,7 @@ impl<K: DepKind> CurrentDepGraph<K> {
                 }
             } else {
                 if print_status {
-                    eprintln!("[task::unknown] {:?}", key);
+                    eprintln!("[task::unknown] {key:?}");
                 }
 
                 // This is a red node, effectively: it existed in the previous compilation
@@ -1232,7 +1230,7 @@ impl<K: DepKind> CurrentDepGraph<K> {
             }
         } else {
             if print_status {
-                eprintln!("[task::new] {:?}", key);
+                eprintln!("[task::new] {key:?}");
             }
 
             let fingerprint = fingerprint.unwrap_or(Fingerprint::ZERO);

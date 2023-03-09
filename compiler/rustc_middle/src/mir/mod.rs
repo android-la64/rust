@@ -36,7 +36,6 @@ use rustc_span::{Span, DUMMY_SP};
 use either::Either;
 
 use std::borrow::Cow;
-use std::convert::TryInto;
 use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::ops::{ControlFlow, Index, IndexMut};
 use std::{iter, mem};
@@ -534,6 +533,11 @@ impl<'tcx> Body<'tcx> {
         };
         injection_phase > self.phase
     }
+
+    #[inline]
+    pub fn is_custom_mir(&self) -> bool {
+        self.injection_phase.is_some()
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, TyEncodable, TyDecodable, HashStable)]
@@ -650,10 +654,10 @@ impl SourceInfo {
 // Variables and temps
 
 rustc_index::newtype_index! {
+    #[derive(HashStable)]
+    #[debug_format = "_{}"]
     pub struct Local {
-        derive [HashStable]
-        DEBUG_FORMAT = "_{}",
-        const RETURN_PLACE = 0,
+        const RETURN_PLACE = 0;
     }
 }
 
@@ -1142,10 +1146,10 @@ rustc_index::newtype_index! {
     ///     https://rustc-dev-guide.rust-lang.org/appendix/background.html#what-is-a-dataflow-analysis
     /// [`CriticalCallEdges`]: ../../rustc_const_eval/transform/add_call_guards/enum.AddCallGuards.html#variant.CriticalCallEdges
     /// [guide-mir]: https://rustc-dev-guide.rust-lang.org/mir/
+    #[derive(HashStable)]
+    #[debug_format = "bb{}"]
     pub struct BasicBlock {
-        derive [HashStable]
-        DEBUG_FORMAT = "bb{}",
-        const START_BLOCK = 0,
+        const START_BLOCK = 0;
     }
 }
 
@@ -1526,10 +1530,9 @@ rustc_index::newtype_index! {
     /// [wrapper]: https://rustc-dev-guide.rust-lang.org/appendix/glossary.html#newtype
     /// [CFG]: https://rustc-dev-guide.rust-lang.org/appendix/background.html#cfg
     /// [mir-datatypes]: https://rustc-dev-guide.rust-lang.org/mir/index.html#mir-data-types
-    pub struct Field {
-        derive [HashStable]
-        DEBUG_FORMAT = "field[{}]"
-    }
+    #[derive(HashStable)]
+    #[debug_format = "field[{}]"]
+    pub struct Field {}
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -1753,10 +1756,10 @@ impl Debug for Place<'_> {
 // Scopes
 
 rustc_index::newtype_index! {
+    #[derive(HashStable)]
+    #[debug_format = "scope[{}]"]
     pub struct SourceScope {
-        derive [HashStable]
-        DEBUG_FORMAT = "scope[{}]",
-        const OUTERMOST_SOURCE_SCOPE = 0,
+        const OUTERMOST_SOURCE_SCOPE = 0;
     }
 }
 
@@ -1764,9 +1767,9 @@ impl SourceScope {
     /// Finds the original HirId this MIR item came from.
     /// This is necessary after MIR optimizations, as otherwise we get a HirId
     /// from the function that was inlined instead of the function call site.
-    pub fn lint_root<'tcx>(
+    pub fn lint_root(
         self,
-        source_scopes: &IndexVec<SourceScope, SourceScopeData<'tcx>>,
+        source_scopes: &IndexVec<SourceScope, SourceScopeData<'_>>,
     ) -> Option<HirId> {
         let mut data = &source_scopes[self];
         // FIXME(oli-obk): we should be able to just walk the `inlined_parent_scope`, but it
@@ -1848,7 +1851,7 @@ impl<'tcx> Operand<'tcx> {
     pub fn function_handle(
         tcx: TyCtxt<'tcx>,
         def_id: DefId,
-        substs: SubstsRef<'tcx>,
+        substs: impl IntoIterator<Item = GenericArg<'tcx>>,
         span: Span,
     ) -> Self {
         let ty = tcx.mk_fn_def(def_id, substs);
@@ -2480,7 +2483,7 @@ impl<'tcx> ConstantKind<'tcx> {
 
         // FIXME(const_generics): We currently have to special case parameters because `min_const_generics`
         // does not provide the parents generics to anonymous constants. We still allow generic const
-        // parameters by themselves however, e.g. `N`.  These constants would cause an ICE if we were to
+        // parameters by themselves however, e.g. `N`. These constants would cause an ICE if we were to
         // ever try to substitute the generic parameters in their bodies.
         //
         // While this doesn't happen as these constants are always used as `ty::ConstKind::Param`, it does
@@ -2503,7 +2506,7 @@ impl<'tcx> ConstantKind<'tcx> {
         }
 
         let hir_id = tcx.hir().local_def_id_to_hir_id(def.did);
-        let parent_substs = if let Some(parent_hir_id) = tcx.hir().find_parent_node(hir_id) {
+        let parent_substs = if let Some(parent_hir_id) = tcx.hir().opt_parent_id(hir_id) {
             if let Some(parent_did) = tcx.hir().opt_local_def_id(parent_hir_id) {
                 InternalSubsts::identity_for_item(tcx, parent_did.to_def_id())
             } else {
@@ -2751,10 +2754,9 @@ impl<'tcx> TypeVisitable<'tcx> for UserTypeProjection {
 }
 
 rustc_index::newtype_index! {
-    pub struct Promoted {
-        derive [HashStable]
-        DEBUG_FORMAT = "promoted[{}]"
-    }
+    #[derive(HashStable)]
+    #[debug_format = "promoted[{}]"]
+    pub struct Promoted {}
 }
 
 impl<'tcx> Debug for Constant<'tcx> {
@@ -2892,7 +2894,7 @@ fn pretty_print_const_value<'tcx>(
                 if let Some(contents) = tcx.try_destructure_mir_constant(
                     ty::ParamEnv::reveal_all().and(ConstantKind::Val(ct, ty)),
                 ) {
-                    let fields = contents.fields.iter().copied().collect::<Vec<_>>();
+                    let fields = contents.fields.to_vec();
                     match *ty.kind() {
                         ty::Array(..) => {
                             fmt.write_str("[")?;

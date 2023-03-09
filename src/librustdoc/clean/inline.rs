@@ -9,7 +9,7 @@ use rustc_ast as ast;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
-use rustc_hir::def_id::DefId;
+use rustc_hir::def_id::{DefId, LocalDefId};
 use rustc_hir::Mutability;
 use rustc_metadata::creader::{CStore, LoadedMacro};
 use rustc_middle::ty::{self, TyCtxt};
@@ -162,6 +162,7 @@ pub(crate) fn try_inline(
 pub(crate) fn try_inline_glob(
     cx: &mut DocContext<'_>,
     res: Res,
+    current_mod: LocalDefId,
     visited: &mut FxHashSet<DefId>,
     inlined_names: &mut FxHashSet<(ItemType, Symbol)>,
 ) -> Option<Vec<clean::Item>> {
@@ -172,7 +173,16 @@ pub(crate) fn try_inline_glob(
 
     match res {
         Res::Def(DefKind::Mod, did) => {
-            let mut items = build_module_items(cx, did, visited, inlined_names);
+            // Use the set of module reexports to filter away names that are not actually
+            // reexported by the glob, e.g. because they are shadowed by something else.
+            let reexports = cx
+                .tcx
+                .module_reexports(current_mod)
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|child| child.res.opt_def_id())
+                .collect();
+            let mut items = build_module_items(cx, did, visited, inlined_names, Some(&reexports));
             items.drain_filter(|item| {
                 if let Some(name) = item.name {
                     // If an item with the same type and name already exists,
@@ -293,7 +303,7 @@ fn build_union(cx: &mut DocContext<'_>, did: DefId) -> clean::Union {
 
 fn build_type_alias(cx: &mut DocContext<'_>, did: DefId) -> Box<clean::Typedef> {
     let predicates = cx.tcx.explicit_predicates_of(did);
-    let type_ = clean_middle_ty(cx.tcx.type_of(did), cx, Some(did));
+    let type_ = clean_middle_ty(ty::Binder::dummy(cx.tcx.type_of(did)), cx, Some(did));
 
     Box::new(clean::Typedef {
         type_,
@@ -325,7 +335,7 @@ pub(crate) fn build_impls(
     // * https://github.com/rust-lang/rust/pull/99917 — where the feature got used
     // * https://github.com/rust-lang/rust/issues/53487 — overall tracking issue for Error
     if tcx.has_attr(did, sym::rustc_has_incoherent_inherent_impls) {
-        use rustc_middle::ty::fast_reject::SimplifiedTypeGen::*;
+        use rustc_middle::ty::fast_reject::SimplifiedType::*;
         let type_ =
             if tcx.is_trait(did) { TraitSimplifiedType(did) } else { AdtSimplifiedType(did) };
         for &did in tcx.incoherent_impls(type_) {
@@ -376,7 +386,7 @@ pub(crate) fn build_impl(
     let _prof_timer = cx.tcx.sess.prof.generic_activity("build_impl");
 
     let tcx = cx.tcx;
-    let associated_trait = tcx.impl_trait_ref(did);
+    let associated_trait = tcx.impl_trait_ref(did).map(ty::EarlyBinder::skip_binder);
 
     // Only inline impl if the implemented trait is
     // reachable in rustdoc generated documentation
@@ -405,7 +415,7 @@ pub(crate) fn build_impl(
 
     let for_ = match &impl_item {
         Some(impl_) => clean_ty(impl_.self_ty, cx),
-        None => clean_middle_ty(tcx.type_of(did), cx, Some(did)),
+        None => clean_middle_ty(ty::Binder::dummy(tcx.type_of(did)), cx, Some(did)),
     };
 
     // Only inline impl if the implementing type is
@@ -496,7 +506,8 @@ pub(crate) fn build_impl(
         ),
     };
     let polarity = tcx.impl_polarity(did);
-    let trait_ = associated_trait.map(|t| clean_trait_ref_with_bindings(cx, t, ThinVec::new()));
+    let trait_ = associated_trait
+        .map(|t| clean_trait_ref_with_bindings(cx, ty::Binder::dummy(t), ThinVec::new()));
     if trait_.as_ref().map(|t| t.def_id()) == tcx.lang_items().deref_trait() {
         super::build_deref_target_impls(cx, &trait_items, ret);
     }
@@ -562,7 +573,7 @@ fn build_module(
     did: DefId,
     visited: &mut FxHashSet<DefId>,
 ) -> clean::Module {
-    let items = build_module_items(cx, did, visited, &mut FxHashSet::default());
+    let items = build_module_items(cx, did, visited, &mut FxHashSet::default(), None);
 
     let span = clean::Span::new(cx.tcx.def_span(did));
     clean::Module { items, span }
@@ -573,6 +584,7 @@ fn build_module_items(
     did: DefId,
     visited: &mut FxHashSet<DefId>,
     inlined_names: &mut FxHashSet<(ItemType, Symbol)>,
+    allowed_def_ids: Option<&FxHashSet<DefId>>,
 ) -> Vec<clean::Item> {
     let mut items = Vec::new();
 
@@ -582,6 +594,11 @@ fn build_module_items(
     for &item in cx.tcx.module_children(did).iter() {
         if item.vis.is_public() {
             let res = item.res.expect_non_local();
+            if let Some(def_id) = res.opt_def_id()
+                && let Some(allowed_def_ids) = allowed_def_ids
+                && !allowed_def_ids.contains(&def_id) {
+                continue;
+            }
             if let Some(def_id) = res.mod_def_id() {
                 // If we're inlining a glob import, it's possible to have
                 // two distinct modules with the same name. We don't want to
@@ -599,7 +616,9 @@ fn build_module_items(
                 items.push(clean::Item {
                     name: None,
                     attrs: Box::new(clean::Attributes::default()),
-                    item_id: ItemId::Primitive(prim_ty, did.krate),
+                    // We can use the item's `DefId` directly since the only information ever used
+                    // from it is `DefId.krate`.
+                    item_id: ItemId::DefId(did),
                     kind: Box::new(clean::ImportItem(clean::Import::new_simple(
                         item.ident.name,
                         clean::ImportSource {
@@ -640,14 +659,14 @@ pub(crate) fn print_inlined_const(tcx: TyCtxt<'_>, did: DefId) -> String {
 
 fn build_const(cx: &mut DocContext<'_>, def_id: DefId) -> clean::Constant {
     clean::Constant {
-        type_: clean_middle_ty(cx.tcx.type_of(def_id), cx, Some(def_id)),
+        type_: clean_middle_ty(ty::Binder::dummy(cx.tcx.type_of(def_id)), cx, Some(def_id)),
         kind: clean::ConstantKind::Extern { def_id },
     }
 }
 
 fn build_static(cx: &mut DocContext<'_>, did: DefId, mutable: bool) -> clean::Static {
     clean::Static {
-        type_: clean_middle_ty(cx.tcx.type_of(did), cx, Some(did)),
+        type_: clean_middle_ty(ty::Binder::dummy(cx.tcx.type_of(did)), cx, Some(did)),
         mutability: if mutable { Mutability::Mut } else { Mutability::Not },
         expr: None,
     }

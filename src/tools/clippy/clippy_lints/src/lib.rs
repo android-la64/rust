@@ -66,7 +66,7 @@ mod declared_lints;
 mod renamed_lints;
 
 // begin lints modules, do not remove this comment, it’s used in `update_lints`
-mod almost_complete_letter_range;
+mod almost_complete_range;
 mod approx_const;
 mod as_conversions;
 mod asm_syntax;
@@ -125,6 +125,7 @@ mod explicit_write;
 mod fallible_impl_from;
 mod float_literal;
 mod floating_point_arithmetic;
+mod fn_null_check;
 mod format;
 mod format_args;
 mod format_impl;
@@ -234,6 +235,7 @@ mod partialeq_ne_impl;
 mod partialeq_to_none;
 mod pass_by_ref_or_value;
 mod pattern_type_mismatch;
+mod permissions_set_readonly_false;
 mod precedence;
 mod ptr;
 mod ptr_offset_with_cast;
@@ -256,12 +258,14 @@ mod return_self_not_must_use;
 mod returns;
 mod same_name_method;
 mod self_named_constructors;
+mod semicolon_block;
 mod semicolon_if_nothing_returned;
 mod serde_api;
 mod shadow;
 mod single_char_lifetime_names;
 mod single_component_path_imports;
 mod size_of_in_element_count;
+mod size_of_ref;
 mod slow_vector_initialization;
 mod std_instead_of_core;
 mod strings;
@@ -333,7 +337,7 @@ pub fn read_conf(sess: &Session, path: &io::Result<Option<PathBuf>>) -> Conf {
         Ok(Some(path)) => path,
         Ok(None) => return Conf::default(),
         Err(error) => {
-            sess.struct_err(&format!("error finding Clippy's configuration file: {error}"))
+            sess.struct_err(format!("error finding Clippy's configuration file: {error}"))
                 .emit();
             return Conf::default();
         },
@@ -507,9 +511,20 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     }
 
     let arithmetic_side_effects_allowed = conf.arithmetic_side_effects_allowed.clone();
+    let arithmetic_side_effects_allowed_binary = conf.arithmetic_side_effects_allowed_binary.clone();
+    let arithmetic_side_effects_allowed_unary = conf.arithmetic_side_effects_allowed_unary.clone();
     store.register_late_pass(move |_| {
         Box::new(operators::arithmetic_side_effects::ArithmeticSideEffects::new(
-            arithmetic_side_effects_allowed.clone(),
+            arithmetic_side_effects_allowed
+                .iter()
+                .flat_map(|el| [[el.clone(), "*".to_string()], ["*".to_string(), el.clone()]])
+                .chain(arithmetic_side_effects_allowed_binary.clone())
+                .collect(),
+            arithmetic_side_effects_allowed
+                .iter()
+                .chain(arithmetic_side_effects_allowed_unary.iter())
+                .cloned()
+                .collect(),
         ))
     });
     store.register_late_pass(|_| Box::new(utils::dump_hir::DumpHir));
@@ -538,7 +553,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(needless_bool::NeedlessBool));
     store.register_late_pass(|_| Box::new(needless_bool::BoolComparison));
     store.register_late_pass(|_| Box::new(needless_for_each::NeedlessForEach));
-    store.register_late_pass(|_| Box::new(misc::MiscLints));
+    store.register_late_pass(|_| Box::<misc::LintPass>::default());
     store.register_late_pass(|_| Box::new(eta_reduction::EtaReduction));
     store.register_late_pass(|_| Box::new(mut_mut::MutMut));
     store.register_late_pass(|_| Box::new(mut_reference::UnnecessaryMutPassed));
@@ -561,6 +576,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     let avoid_breaking_exported_api = conf.avoid_breaking_exported_api;
     let allow_expect_in_tests = conf.allow_expect_in_tests;
     let allow_unwrap_in_tests = conf.allow_unwrap_in_tests;
+    let suppress_restriction_lint_in_const = conf.suppress_restriction_lint_in_const;
     store.register_late_pass(move |_| Box::new(approx_const::ApproxConstant::new(msrv())));
     store.register_late_pass(move |_| {
         Box::new(methods::Methods::new(
@@ -623,7 +639,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(panic_unimplemented::PanicUnimplemented));
     store.register_late_pass(|_| Box::new(strings::StringLitAsBytes));
     store.register_late_pass(|_| Box::new(derive::Derive));
-    store.register_late_pass(|_| Box::new(derivable_impls::DerivableImpls));
+    store.register_late_pass(move |_| Box::new(derivable_impls::DerivableImpls::new(msrv())));
     store.register_late_pass(|_| Box::new(drop_forget_ref::DropForgetRef));
     store.register_late_pass(|_| Box::new(empty_enum::EmptyEnum));
     store.register_late_pass(|_| Box::new(invalid_upcast_comparisons::InvalidUpcastComparisons));
@@ -682,7 +698,11 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(inherent_impl::MultipleInherentImpl));
     store.register_late_pass(|_| Box::new(neg_cmp_op_on_partial_ord::NoNegCompOpForPartialOrd));
     store.register_late_pass(|_| Box::new(unwrap::Unwrap));
-    store.register_late_pass(|_| Box::new(indexing_slicing::IndexingSlicing));
+    store.register_late_pass(move |_| {
+        Box::new(indexing_slicing::IndexingSlicing::new(
+            suppress_restriction_lint_in_const,
+        ))
+    });
     store.register_late_pass(|_| Box::new(non_copy_const::NonCopyConst));
     store.register_late_pass(|_| Box::new(ptr_offset_with_cast::PtrOffsetWithCast));
     store.register_late_pass(|_| Box::new(redundant_clone::RedundantClone));
@@ -748,7 +768,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(mutable_debug_assertion::DebugAssertWithMutCall));
     store.register_late_pass(|_| Box::new(exit::Exit));
     store.register_late_pass(|_| Box::new(to_digit_is_some::ToDigitIsSome));
-    let array_size_threshold = conf.array_size_threshold;
+    let array_size_threshold = u128::from(conf.array_size_threshold);
     store.register_late_pass(move |_| Box::new(large_stack_arrays::LargeStackArrays::new(array_size_threshold)));
     store.register_late_pass(move |_| Box::new(large_const_arrays::LargeConstArrays::new(array_size_threshold)));
     store.register_late_pass(|_| Box::new(floating_point_arithmetic::FloatingPointArithmetic));
@@ -859,7 +879,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(rc_clone_in_vec_init::RcCloneInVecInit));
     store.register_early_pass(|| Box::<duplicate_mod::DuplicateMod>::default());
     store.register_early_pass(|| Box::new(unused_rounding::UnusedRounding));
-    store.register_early_pass(move || Box::new(almost_complete_letter_range::AlmostCompleteLetterRange::new(msrv())));
+    store.register_early_pass(move || Box::new(almost_complete_range::AlmostCompleteRange::new(msrv())));
     store.register_late_pass(|_| Box::new(swap_ptr_to_ref::SwapPtrToRef));
     store.register_late_pass(|_| Box::new(mismatching_type_param_order::TypeParamMismatch));
     store.register_late_pass(|_| Box::new(read_zero_byte_vec::ReadZeroByteVec));
@@ -884,6 +904,10 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(from_raw_with_void_ptr::FromRawWithVoidPtr));
     store.register_late_pass(|_| Box::new(suspicious_xor_used_as_pow::ConfusingXorAndPow));
     store.register_late_pass(move |_| Box::new(manual_is_ascii_check::ManualIsAsciiCheck::new(msrv())));
+    store.register_late_pass(|_| Box::new(semicolon_block::SemicolonBlock));
+    store.register_late_pass(|_| Box::new(fn_null_check::FnNullCheck));
+    store.register_late_pass(|_| Box::new(permissions_set_readonly_false::PermissionsSetReadonlyFalse));
+    store.register_late_pass(|_| Box::new(size_of_ref::SizeOfRef));
     // add lints here, do not remove this comment, it's used in `new_lint`
 }
 

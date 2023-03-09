@@ -5,6 +5,7 @@
 #![feature(let_chains)]
 #![feature(min_specialization)]
 #![feature(never_type)]
+#![feature(once_cell)]
 #![feature(rustc_attrs)]
 #![feature(stmt_expr_attributes)]
 #![feature(trusted_step)]
@@ -39,6 +40,7 @@ use rustc_span::{Span, Symbol};
 
 use either::Either;
 use smallvec::SmallVec;
+use std::cell::OnceCell;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -124,10 +126,7 @@ pub fn provide(providers: &mut Providers) {
     };
 }
 
-fn mir_borrowck<'tcx>(
-    tcx: TyCtxt<'tcx>,
-    def: ty::WithOptConstParam<LocalDefId>,
-) -> &'tcx BorrowCheckResult<'tcx> {
+fn mir_borrowck(tcx: TyCtxt<'_>, def: ty::WithOptConstParam<LocalDefId>) -> &BorrowCheckResult<'_> {
     let (input_body, promoted) = tcx.mir_promoted(def);
     debug!("run query mir_borrowck: {}", tcx.def_path_str(def.did.to_def_id()));
 
@@ -336,7 +335,7 @@ fn do_mir_borrowck<'tcx>(
                 used_mut: Default::default(),
                 used_mut_upvars: SmallVec::new(),
                 borrow_set: Rc::clone(&borrow_set),
-                dominators: Dominators::dummy(), // not used
+                dominators: Default::default(),
                 upvars: Vec::new(),
                 local_names: IndexVec::from_elem(None, &promoted_body.local_decls),
                 region_names: RefCell::default(),
@@ -348,8 +347,6 @@ fn do_mir_borrowck<'tcx>(
             errors = promoted_mbcx.errors;
         };
     }
-
-    let dominators = body.basic_blocks.dominators();
 
     let mut mbcx = MirBorrowckCtxt {
         infcx,
@@ -367,7 +364,7 @@ fn do_mir_borrowck<'tcx>(
         used_mut: Default::default(),
         used_mut_upvars: SmallVec::new(),
         borrow_set: Rc::clone(&borrow_set),
-        dominators,
+        dominators: Default::default(),
         upvars,
         local_names,
         region_names: RefCell::default(),
@@ -537,7 +534,7 @@ struct MirBorrowckCtxt<'cx, 'tcx> {
     borrow_set: Rc<BorrowSet<'tcx>>,
 
     /// Dominators for MIR
-    dominators: Dominators<BasicBlock>,
+    dominators: OnceCell<Dominators<BasicBlock>>,
 
     /// Information about upvars not necessarily preserved in types or MIR
     upvars: Vec<Upvar<'tcx>>,
@@ -644,7 +641,7 @@ impl<'cx, 'tcx> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx> for MirBorrowckCtx
         self.check_activations(loc, span, flow_state);
 
         match &term.kind {
-            TerminatorKind::SwitchInt { discr, switch_ty: _, targets: _ } => {
+            TerminatorKind::SwitchInt { discr, targets: _ } => {
                 self.consume_operand(loc, (discr, span), flow_state);
             }
             TerminatorKind::Drop { place, target: _, unwind: _ } => {
@@ -866,7 +863,6 @@ enum WriteKind {
 /// local place can be mutated.
 //
 // FIXME: @nikomatsakis suggested that this flag could be removed with the following modifications:
-// - Merge `check_access_permissions()` and `check_if_reassignment_to_immutable_state()`.
 // - Split `is_mutable()` into `is_assignable()` (can be directly assigned) and
 //   `is_declared_mutable()`.
 // - Take flow state into consideration in `is_assignable()` for local variables.
@@ -1055,7 +1051,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
                 (Read(kind), BorrowKind::Unique | BorrowKind::Mut { .. }) => {
                     // Reading from mere reservations of mutable-borrows is OK.
-                    if !is_active(&this.dominators, borrow, location) {
+                    if !is_active(this.dominators(), borrow, location) {
                         assert!(allow_two_phase_borrow(borrow.kind));
                         return Control::Continue;
                     }
@@ -1135,20 +1131,6 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         // Write of P[i] or *P requires P init'd.
         self.check_if_assigned_path_is_moved(location, place_span, flow_state);
 
-        // Special case: you can assign an immutable local variable
-        // (e.g., `x = ...`) so long as it has never been initialized
-        // before (at this point in the flow).
-        if let Some(local) = place_span.0.as_local() {
-            if let Mutability::Not = self.body.local_decls[local].mutability {
-                // check for reassignments to immutable local variables
-                self.check_if_reassignment_to_immutable_state(
-                    location, local, place_span, flow_state,
-                );
-                return;
-            }
-        }
-
-        // Otherwise, use the normal access permission rules.
         self.access_place(
             location,
             place_span,
@@ -1554,24 +1536,6 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             // We do not need to call `check_if_path_or_subpath_is_moved`
             // again, as we already called it when we made the
             // initial reservation.
-        }
-    }
-
-    fn check_if_reassignment_to_immutable_state(
-        &mut self,
-        location: Location,
-        local: Local,
-        place_span: (Place<'tcx>, Span),
-        flow_state: &Flows<'cx, 'tcx>,
-    ) {
-        debug!("check_if_reassignment_to_immutable_state({:?})", local);
-
-        // Check if any of the initializations of `local` have happened yet:
-        if let Some(init_index) = self.is_local_ever_initialized(local, flow_state) {
-            // And, if so, report an error.
-            let init = &self.move_data.inits[init_index];
-            let span = init.span(&self.body);
-            self.report_illegal_reassignment(location, place_span, span, place_span.0);
         }
     }
 
@@ -2040,12 +2004,19 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         // partial initialization, do not complain about mutability
         // errors except for actual mutation (as opposed to an attempt
         // to do a partial initialization).
-        let previously_initialized =
-            self.is_local_ever_initialized(place.local, flow_state).is_some();
+        let previously_initialized = self.is_local_ever_initialized(place.local, flow_state);
 
         // at this point, we have set up the error reporting state.
-        if previously_initialized {
-            self.report_mutability_error(place, span, the_place_err, error_access, location);
+        if let Some(init_index) = previously_initialized {
+            if let (AccessKind::Mutate, Some(_)) = (error_access, place.as_local()) {
+                // If this is a mutate access to an immutable local variable with no projections
+                // report the error as an illegal reassignment
+                let init = &self.move_data.inits[init_index];
+                let assigned_span = init.span(&self.body);
+                self.report_illegal_reassignment(location, (place, span), assigned_span, place);
+            } else {
+                self.report_mutability_error(place, span, the_place_err, error_access, location)
+            }
             true
         } else {
             false
@@ -2059,12 +2030,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
     ) -> Option<InitIndex> {
         let mpi = self.move_data.rev_lookup.find_local(local);
         let ii = &self.move_data.init_path_map[mpi];
-        for &index in ii {
-            if flow_state.ever_inits.contains(index) {
-                return Some(index);
-            }
-        }
-        None
+        ii.into_iter().find(|&&index| flow_state.ever_inits.contains(index)).copied()
     }
 
     /// Adds the place into the used mutable variables set
@@ -2207,7 +2173,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                                     // `self.foo` -- we want to double
                                     // check that the location `*self`
                                     // is mutable (i.e., this is not a
-                                    // `Fn` closure).  But if that
+                                    // `Fn` closure). But if that
                                     // check succeeds, we want to
                                     // *blame* the mutability on
                                     // `place` (that is,
@@ -2253,6 +2219,10 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
     fn is_upvar_field_projection(&self, place_ref: PlaceRef<'tcx>) -> Option<Field> {
         path_utils::is_upvar_field_projection(self.infcx.tcx, &self.upvars, place_ref, self.body())
     }
+
+    fn dominators(&self) -> &Dominators<BasicBlock> {
+        self.dominators.get_or_init(|| self.body.basic_blocks.dominators())
+    }
 }
 
 mod error {
@@ -2278,6 +2248,7 @@ mod error {
         /// same primary span come out in a consistent order.
         buffered_move_errors:
             BTreeMap<Vec<MoveOutIndex>, (PlaceRef<'tcx>, DiagnosticBuilder<'tcx, ErrorGuaranteed>)>,
+        buffered_mut_errors: FxHashMap<Span, (DiagnosticBuilder<'tcx, ErrorGuaranteed>, usize)>,
         /// Diagnostics to be reported buffer.
         buffered: Vec<Diagnostic>,
         /// Set to Some if we emit an error during borrowck
@@ -2289,6 +2260,7 @@ mod error {
             BorrowckErrors {
                 tcx,
                 buffered_move_errors: BTreeMap::new(),
+                buffered_mut_errors: Default::default(),
                 buffered: Default::default(),
                 tainted_by_errors: None,
             }
@@ -2339,10 +2311,32 @@ mod error {
             }
         }
 
+        pub fn get_buffered_mut_error(
+            &mut self,
+            span: Span,
+        ) -> Option<(DiagnosticBuilder<'tcx, ErrorGuaranteed>, usize)> {
+            self.errors.buffered_mut_errors.remove(&span)
+        }
+
+        pub fn buffer_mut_error(
+            &mut self,
+            span: Span,
+            t: DiagnosticBuilder<'tcx, ErrorGuaranteed>,
+            count: usize,
+        ) {
+            self.errors.buffered_mut_errors.insert(span, (t, count));
+        }
+
         pub fn emit_errors(&mut self) -> Option<ErrorGuaranteed> {
             // Buffer any move errors that we collected and de-duplicated.
             for (_, (_, diag)) in std::mem::take(&mut self.errors.buffered_move_errors) {
                 // We have already set tainted for this error, so just buffer it.
+                diag.buffer(&mut self.errors.buffered);
+            }
+            for (_, (mut diag, count)) in std::mem::take(&mut self.errors.buffered_mut_errors) {
+                if count > 10 {
+                    diag.note(&format!("...and {} other attempted mutable borrows", count - 10));
+                }
                 diag.buffer(&mut self.errors.buffered);
             }
 

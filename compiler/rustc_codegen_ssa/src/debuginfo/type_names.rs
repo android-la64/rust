@@ -93,6 +93,7 @@ fn push_debuginfo_type_name<'tcx>(
                     Err(e) => {
                         // Computing the layout can still fail here, e.g. if the target architecture
                         // cannot represent the type. See https://github.com/rust-lang/rust/issues/94961.
+                        // FIXME: migrate once `rustc_middle::mir::interpret::InterpError` is translatable.
                         tcx.sess.fatal(&format!("{}", e));
                     }
                 }
@@ -235,7 +236,7 @@ fn push_debuginfo_type_name<'tcx>(
                 let projection_bounds: SmallVec<[_; 4]> = trait_data
                     .projection_bounds()
                     .map(|bound| {
-                        let ExistentialProjection { item_def_id, term, .. } =
+                        let ExistentialProjection { def_id: item_def_id, term, .. } =
                             tcx.erase_late_bound_regions(bound);
                         // FIXME(associated_const_equality): allow for consts here
                         (item_def_id, term.ty().unwrap())
@@ -411,9 +412,8 @@ fn push_debuginfo_type_name<'tcx>(
         ty::Error(_)
         | ty::Infer(_)
         | ty::Placeholder(..)
-        | ty::Projection(..)
+        | ty::Alias(..)
         | ty::Bound(..)
-        | ty::Opaque(..)
         | ty::GeneratorWitness(..) => {
             bug!(
                 "debuginfo: Trying to create type name for \
@@ -510,7 +510,7 @@ pub fn compute_debuginfo_vtable_name<'tcx>(
         visited.clear();
         push_generic_params_internal(tcx, trait_ref.substs, &mut vtable_name, &mut visited);
     } else {
-        vtable_name.push_str("_");
+        vtable_name.push('_');
     }
 
     push_close_angle_bracket(cpp_like_debuginfo, &mut vtable_name);

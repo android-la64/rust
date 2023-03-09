@@ -114,9 +114,9 @@ pub struct Diagnostic {
     pub suggestions: Result<Vec<CodeSuggestion>, SuggestionsDisabled>,
     args: FxHashMap<DiagnosticArgName<'static>, DiagnosticArgValue<'static>>,
 
-    /// This is not used for highlighting or rendering any error message.  Rather, it can be used
-    /// as a sort key to sort a buffer of diagnostics.  By default, it is the primary span of
-    /// `span` if there is one.  Otherwise, it is `DUMMY_SP`.
+    /// This is not used for highlighting or rendering any error message. Rather, it can be used
+    /// as a sort key to sort a buffer of diagnostics. By default, it is the primary span of
+    /// `span` if there is one. Otherwise, it is `DUMMY_SP`.
     pub sort_span: Span,
 
     /// If diagnostic is from Lint, custom hash function ignores notes
@@ -365,12 +365,16 @@ impl Diagnostic {
         self
     }
 
-    pub fn replace_span_with(&mut self, after: Span) -> &mut Self {
+    pub fn replace_span_with(&mut self, after: Span, keep_label: bool) -> &mut Self {
         let before = self.span.clone();
         self.set_span(after);
         for span_label in before.span_labels() {
             if let Some(label) = span_label.label {
-                self.span.push_span_label(after, label);
+                if span_label.is_primary && keep_label {
+                    self.span.push_span_label(after, label);
+                } else {
+                    self.span.push_span_label(span_label.span, label);
+                }
             }
         }
         self
@@ -802,7 +806,7 @@ impl Diagnostic {
         debug_assert!(
             !(suggestions
                 .iter()
-                .flat_map(|suggs| suggs)
+                .flatten()
                 .any(|(sp, suggestion)| sp.is_empty() && suggestion.is_empty())),
             "Span must not be empty and have no suggestion"
         );

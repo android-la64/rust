@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use clap::builder::StyledStr;
 use clap::*;
 
 use crate::generator::{utils, Generator};
@@ -19,8 +20,7 @@ impl Generator for PowerShell {
             .get_bin_name()
             .expect("crate::generate should have set the bin_name");
 
-        let mut names = vec![];
-        let subcommands_cases = generate_inner(cmd, "", &mut names);
+        let subcommands_cases = generate_inner(cmd, "");
 
         let result = format!(
             r#"
@@ -64,18 +64,14 @@ fn escape_string(string: &str) -> String {
     string.replace('\'', "''")
 }
 
-fn get_tooltip<T: ToString>(help: Option<&str>, data: T) -> String {
+fn get_tooltip<T: ToString>(help: Option<&StyledStr>, data: T) -> String {
     match help {
-        Some(help) => escape_string(help),
+        Some(help) => escape_string(&help.to_string()),
         _ => data.to_string(),
     }
 }
 
-fn generate_inner<'help>(
-    p: &Command<'help>,
-    previous_command_name: &str,
-    names: &mut Vec<&'help str>,
-) -> String {
+fn generate_inner(p: &Command, previous_command_name: &str) -> String {
     debug!("generate_inner");
 
     let command_name = if previous_command_name.is_empty() {
@@ -170,7 +166,7 @@ fn generate_inner<'help>(
     );
 
     for subcommand in p.get_subcommands() {
-        let subcommand_subcommands_cases = generate_inner(subcommand, &command_name, names);
+        let subcommand_subcommands_cases = generate_inner(subcommand, &command_name);
         subcommands_cases.push_str(&subcommand_subcommands_cases);
     }
 

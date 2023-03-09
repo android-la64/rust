@@ -1,4 +1,4 @@
-//! Debugging code to test fingerprints computed for query results.  For each node marked with
+//! Debugging code to test fingerprints computed for query results. For each node marked with
 //! `#[rustc_clean]` we will compare the fingerprint from the current and from the previous
 //! compilation session as appropriate:
 //!
@@ -30,8 +30,6 @@ use rustc_middle::hir::nested_filter;
 use rustc_middle::ty::TyCtxt;
 use rustc_span::symbol::{sym, Symbol};
 use rustc_span::Span;
-use std::iter::FromIterator;
-use std::vec::Vec;
 
 const LOADED_FROM_DISK: Symbol = sym::loaded_from_disk;
 const EXCEPT: Symbol = sym::except;

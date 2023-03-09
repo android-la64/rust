@@ -1,19 +1,8 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "cdecl" {
-    #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-    pub fn CreateFX(clsid: *const ::windows_sys::core::GUID, peffect: *mut ::windows_sys::core::IUnknown, pinitdat: *const ::core::ffi::c_void, initdatabytesize: u32) -> ::windows_sys::core::HRESULT;
-}
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-    pub fn CreateAudioReverb(ppapo: *mut ::windows_sys::core::IUnknown) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-    pub fn CreateAudioVolumeMeter(ppapo: *mut ::windows_sys::core::IUnknown) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-    pub fn CreateHrtfApo(init: *const HrtfApoInit, xapo: *mut IXAPO) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-    pub fn XAudio2CreateWithVersionInfo(ppxaudio2: *mut IXAudio2, flags: u32, xaudio2processor: u32, ntddiversion: u32) -> ::windows_sys::core::HRESULT;
-}
+::windows_sys::core::link ! ( "xaudio2_8.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"] fn CreateAudioReverb ( ppapo : *mut :: windows_sys::core::IUnknown ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "xaudio2_8.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"] fn CreateAudioVolumeMeter ( ppapo : *mut :: windows_sys::core::IUnknown ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "xaudio2_8.dll""cdecl" #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"] fn CreateFX ( clsid : *const :: windows_sys::core::GUID , peffect : *mut :: windows_sys::core::IUnknown , pinitdat : *const ::core::ffi::c_void , initdatabytesize : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "hrtfapo.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"] fn CreateHrtfApo ( init : *const HrtfApoInit , xapo : *mut IXAPO ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "xaudio2_8.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"] fn XAudio2CreateWithVersionInfo ( ppxaudio2 : *mut IXAudio2 , flags : u32 , xaudio2processor : u32 , ntddiversion : u32 ) -> :: windows_sys::core::HRESULT );
 pub type IXAPO = *mut ::core::ffi::c_void;
 pub type IXAPOHrtfParameters = *mut ::core::ffi::c_void;
 pub type IXAPOParameters = *mut ::core::ffi::c_void;
@@ -25,8 +14,10 @@ pub type IXAudio2SourceVoice = *mut ::core::ffi::c_void;
 pub type IXAudio2SubmixVoice = *mut ::core::ffi::c_void;
 pub type IXAudio2Voice = *mut ::core::ffi::c_void;
 pub type IXAudio2VoiceCallback = *mut ::core::ffi::c_void;
-pub const AudioReverb: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3261283094, data2: 18203, data3: 17560, data4: [184, 197, 79, 9, 89, 226, 236, 9] };
-pub const AudioVolumeMeter: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1338224998, data2: 38698, data3: 16591, data4: [188, 55, 125, 176, 61, 178, 251, 163] };
+#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
+pub const AudioReverb: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc2633b16_471b_4498_b8c5_4f0959e2ec09);
+#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
+pub const AudioVolumeMeter: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x4fc3b166_972a_40cf_bc37_7db03db2fba3);
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FACILITY_XAPO: u32 = 2199u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
@@ -49,7 +40,8 @@ pub const FXECHO_MIN_DELAY: f32 = 1f32;
 pub const FXECHO_MIN_FEEDBACK: f32 = 0f32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_MIN_WETDRYMIX: f32 = 0f32;
-pub const FXEQ: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 4125102359, data2: 54980, data3: 18522, data4: [163, 245, 105, 81, 150, 243, 219, 250] };
+#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
+pub const FXEQ: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf5e01117_d6c4_485a_a3f5_695196f3dbfa);
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_DEFAULT_BANDWIDTH: f32 = 1f32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
@@ -78,7 +70,8 @@ pub const FXEQ_MIN_FRAMERATE: u32 = 22000u32;
 pub const FXEQ_MIN_FREQUENCY_CENTER: f32 = 20f32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MIN_GAIN: f32 = 0.126f32;
-pub const FXEcho: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1345967936, data2: 63286, data3: 17562, data4: [132, 211, 165, 98, 2, 85, 123, 135] };
+#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
+pub const FXEcho: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x5039d740_f736_449a_84d3_a56202557b87);
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXLOUDNESS_DEFAULT_MOMENTARY_MS: u32 = 400u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
@@ -95,7 +88,8 @@ pub const FXMASTERINGLIMITER_MAX_RELEASE: u32 = 20u32;
 pub const FXMASTERINGLIMITER_MIN_LOUDNESS: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMASTERINGLIMITER_MIN_RELEASE: u32 = 1u32;
-pub const FXMasteringLimiter: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3289610518, data2: 11233, data3: 18173, data4: [133, 153, 68, 21, 54, 244, 152, 86] };
+#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
+pub const FXMasteringLimiter: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc4137916_2be1_46fd_8599_441536f49856);
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_DEFAULT_DIFFUSION: f32 = 0.9f32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
@@ -108,7 +102,8 @@ pub const FXREVERB_MAX_ROOMSIZE: f32 = 1f32;
 pub const FXREVERB_MIN_DIFFUSION: f32 = 0f32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_MIN_ROOMSIZE: f32 = 0.0001f32;
-pub const FXReverb: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2107296342, data2: 52072, data3: 18439, data4: [182, 50, 177, 55, 53, 46, 133, 150] };
+#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
+pub const FXReverb: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7d9aca56_cb68_4807_b632_b137352e8596);
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const HRTF_DEFAULT_UNITY_GAIN_DISTANCE: f32 = 1f32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
@@ -234,11 +229,11 @@ pub const XAPO_MIN_FRAMERATE: u32 = 1000u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_REGISTRATION_STRING_LENGTH: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-pub const XAUDIO2D_DLL: &str = "xaudio2_9d.dll";
+pub const XAUDIO2D_DLL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("xaudio2_9d.dll");
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-pub const XAUDIO2D_DLL_A: &str = "xaudio2_9d.dll";
+pub const XAUDIO2D_DLL_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("xaudio2_9d.dll");
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-pub const XAUDIO2D_DLL_W: &str = "xaudio2_9d.dll";
+pub const XAUDIO2D_DLL_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("xaudio2_9d.dll");
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_7POINT1_REAR_DELAY: u32 = 20u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
@@ -390,11 +385,11 @@ pub const XAUDIO2_DEFAULT_PROCESSOR: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEFAULT_SAMPLERATE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-pub const XAUDIO2_DLL: &str = "xaudio2_9.dll";
+pub const XAUDIO2_DLL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("xaudio2_9.dll");
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-pub const XAUDIO2_DLL_A: &str = "xaudio2_9.dll";
+pub const XAUDIO2_DLL_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("xaudio2_9.dll");
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
-pub const XAUDIO2_DLL_W: &str = "xaudio2_9.dll";
+pub const XAUDIO2_DLL_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("xaudio2_9.dll");
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_END_OF_STREAM: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]

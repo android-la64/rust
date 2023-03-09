@@ -54,6 +54,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::io;
 use std::marker;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread::{self, Scope};
 use std::time::Duration;
@@ -675,7 +676,7 @@ impl<'cfg> DrainState<'cfg> {
                 // NOTE: An error here will drop the job without starting it.
                 // That should be OK, since we want to exit as soon as
                 // possible during an error.
-                self.note_working_on(cx.bcx.config, &unit, job.freshness())?;
+                self.note_working_on(cx.bcx.config, cx.bcx.ws.root(), &unit, job.freshness())?;
             }
             self.run(&unit, job, cx, scope);
         }
@@ -799,7 +800,11 @@ impl<'cfg> DrainState<'cfg> {
                             self.tokens.extend(rustc_tokens);
                         }
                         self.to_send_clients.remove(&id);
-                        self.report_warning_count(cx.bcx.config, id);
+                        self.report_warning_count(
+                            cx.bcx.config,
+                            id,
+                            &cx.bcx.rustc().workspace_wrapper,
+                        );
                         self.active.remove(&id).unwrap()
                     }
                     // ... otherwise if it hasn't finished we leave it
@@ -812,10 +817,7 @@ impl<'cfg> DrainState<'cfg> {
                 debug!("end ({:?}): {:?}", unit, result);
                 match result {
                     Ok(()) => self.finish(id, &unit, artifact, cx)?,
-                    Err(_)
-                        if unit.mode.is_doc_scrape()
-                            && unit.target.doc_scrape_examples().is_unset() =>
-                    {
+                    Err(_) if cx.bcx.unit_can_fail_for_docscraping(&unit) => {
                         cx.failed_scrape_units
                             .lock()
                             .unwrap()
@@ -1114,7 +1116,7 @@ impl<'cfg> DrainState<'cfg> {
         assert!(self.active.insert(id, unit.clone()).is_none());
 
         let messages = self.messages.clone();
-        let fresh = job.freshness();
+        let is_fresh = job.freshness().is_fresh();
         let rmeta_required = cx.rmeta_required(unit);
 
         let doit = move |state: JobState<'_, '_>| {
@@ -1165,8 +1167,8 @@ impl<'cfg> DrainState<'cfg> {
             }
         };
 
-        match fresh {
-            Freshness::Fresh => {
+        match is_fresh {
+            true => {
                 self.timings.add_fresh();
                 // Running a fresh job on the same thread is often much faster than spawning a new
                 // thread to run the job.
@@ -1178,7 +1180,7 @@ impl<'cfg> DrainState<'cfg> {
                     _marker: marker::PhantomData,
                 });
             }
-            Freshness::Dirty => {
+            false => {
                 self.timings.add_dirty();
                 scope.spawn(move || {
                     doit(JobState {
@@ -1246,7 +1248,12 @@ impl<'cfg> DrainState<'cfg> {
     }
 
     /// Displays a final report of the warnings emitted by a particular job.
-    fn report_warning_count(&mut self, config: &Config, id: JobId) {
+    fn report_warning_count(
+        &mut self,
+        config: &Config,
+        id: JobId,
+        rustc_workspace_wrapper: &Option<PathBuf>,
+    ) {
         let count = match self.warning_count.remove(&id) {
             // An error could add an entry for a `Unit`
             // with 0 warnings but having fixable
@@ -1279,7 +1286,16 @@ impl<'cfg> DrainState<'cfg> {
             if let FixableWarnings::Positive(fixable) = count.fixable {
                 // `cargo fix` doesnt have an option for custom builds
                 if !unit.target.is_custom_build() {
-                    let mut command = {
+                    // To make sure the correct command is shown for `clippy` we
+                    // check if `RUSTC_WORKSPACE_WRAPPER` is set and pointing towards
+                    // `clippy-driver`.
+                    let clippy = std::ffi::OsStr::new("clippy-driver");
+                    let command = match rustc_workspace_wrapper.as_ref().and_then(|x| x.file_stem())
+                    {
+                        Some(wrapper) if wrapper == clippy => "cargo clippy --fix",
+                        _ => "cargo fix",
+                    };
+                    let mut args = {
                         let named = unit.target.description_named();
                         // if its a lib we need to add the package to fix
                         if unit.target.is_lib() {
@@ -1291,7 +1307,7 @@ impl<'cfg> DrainState<'cfg> {
                     if unit.mode.is_rustc_test()
                         && !(unit.target.is_test() || unit.target.is_bench())
                     {
-                        command.push_str(" --tests");
+                        args.push_str(" --tests");
                     }
                     let mut suggestions = format!("{} suggestion", fixable);
                     if fixable > 1 {
@@ -1299,8 +1315,7 @@ impl<'cfg> DrainState<'cfg> {
                     }
                     drop(write!(
                         message,
-                        " (run `cargo fix --{}` to apply {})",
-                        command, suggestions
+                        " (run `{command} --{args}` to apply {suggestions})"
                     ))
                 }
             }
@@ -1340,8 +1355,9 @@ impl<'cfg> DrainState<'cfg> {
     fn note_working_on(
         &mut self,
         config: &Config,
+        ws_root: &Path,
         unit: &Unit,
-        fresh: Freshness,
+        fresh: &Freshness,
     ) -> CargoResult<()> {
         if (self.compiled.contains(&unit.pkg.package_id())
             && !unit.mode.is_doc()
@@ -1355,7 +1371,13 @@ impl<'cfg> DrainState<'cfg> {
         match fresh {
             // Any dirty stage which runs at least one command gets printed as
             // being a compiled package.
-            Dirty => {
+            Dirty(dirty_reason) => {
+                if let Some(reason) = dirty_reason {
+                    config
+                        .shell()
+                        .verbose(|shell| reason.present_to(shell, unit, ws_root))?;
+                }
+
                 if unit.mode.is_doc() {
                     self.documented.insert(unit.pkg.package_id());
                     config.shell().status("Documenting", &unit.pkg)?;

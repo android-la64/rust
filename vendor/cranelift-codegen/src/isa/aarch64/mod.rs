@@ -62,7 +62,15 @@ impl AArch64Backend {
         let emit_info = EmitInfo::new(flags.clone());
         let sigs = SigSet::new::<abi::AArch64MachineDeps>(func, &self.flags)?;
         let abi = abi::AArch64Callee::new(func, self, &self.isa_flags, &sigs)?;
-        compile::compile::<AArch64Backend>(func, self, abi, &self.machine_env, emit_info, sigs)
+        compile::compile::<AArch64Backend>(
+            func,
+            flags,
+            self,
+            abi,
+            &self.machine_env,
+            emit_info,
+            sigs,
+        )
     }
 }
 
@@ -113,6 +121,10 @@ impl TargetIsa for AArch64Backend {
 
     fn isa_flags(&self) -> Vec<shared_settings::Value> {
         self.isa_flags.iter().collect()
+    }
+
+    fn is_branch_protection_enabled(&self) -> bool {
+        self.isa_flags.use_bti()
     }
 
     fn dynamic_vector_bytes(&self, _dyn_ty: Type) -> u32 {
@@ -172,7 +184,7 @@ impl TargetIsa for AArch64Backend {
         Some(inst::unwind::systemv::create_cie())
     }
 
-    fn text_section_builder(&self, num_funcs: u32) -> Box<dyn TextSectionBuilder> {
+    fn text_section_builder(&self, num_funcs: usize) -> Box<dyn TextSectionBuilder> {
         Box::new(MachTextSectionBuilder::<inst::Inst>::new(num_funcs))
     }
 

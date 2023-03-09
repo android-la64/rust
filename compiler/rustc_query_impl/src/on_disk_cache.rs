@@ -227,7 +227,7 @@ impl<'sess> rustc_middle::ty::OnDiskCache<'sess> for OnDiskCache<'sess> {
         *self.serialized_data.write() = None;
     }
 
-    fn serialize<'tcx>(&self, tcx: TyCtxt<'tcx>, encoder: FileEncoder) -> FileEncodeResult {
+    fn serialize(&self, tcx: TyCtxt<'_>, encoder: FileEncoder) -> FileEncodeResult {
         // Serializing the `DepGraph` should not modify it.
         tcx.dep_graph.with_ignore(|| {
             // Allocate `SourceFileIndex`es.
@@ -787,7 +787,7 @@ impl<'a, 'tcx> Decodable<CacheDecoder<'a, 'tcx>> for DefId {
         // which means that the definition with this hash is guaranteed to
         // still exist in the current compilation session.
         d.tcx.def_path_hash_to_def_id(def_path_hash, &mut || {
-            panic!("Failed to convert DefPathHash {:?}", def_path_hash)
+            panic!("Failed to convert DefPathHash {def_path_hash:?}")
         })
     }
 }
@@ -965,7 +965,7 @@ impl<'a, 'tcx> Encodable<CacheEncoder<'a, 'tcx>> for Symbol {
                     s.emit_str(self.as_str());
                 }
                 Entry::Occupied(o) => {
-                    let x = o.get().clone();
+                    let x = *o.get();
                     s.emit_u8(SYMBOL_OFFSET);
                     s.emit_usize(x);
                 }

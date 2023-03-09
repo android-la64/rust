@@ -163,21 +163,25 @@ fn is_reachable_non_generic_provider_extern(tcx: TyCtxt<'_>, def_id: DefId) -> b
     tcx.reachable_non_generics(def_id.krate).contains_key(&def_id)
 }
 
-fn exported_symbols_provider_local<'tcx>(
-    tcx: TyCtxt<'tcx>,
+fn exported_symbols_provider_local(
+    tcx: TyCtxt<'_>,
     cnum: CrateNum,
-) -> &'tcx [(ExportedSymbol<'tcx>, SymbolExportInfo)] {
+) -> &[(ExportedSymbol<'_>, SymbolExportInfo)] {
     assert_eq!(cnum, LOCAL_CRATE);
 
     if !tcx.sess.opts.output_types.should_codegen() {
         return &[];
     }
 
-    let mut symbols: Vec<_> = tcx
-        .reachable_non_generics(LOCAL_CRATE)
-        .iter()
-        .map(|(&def_id, &info)| (ExportedSymbol::NonGeneric(def_id), info))
-        .collect();
+    // FIXME: Sorting this is unnecessary since we are sorting later anyway.
+    //        Can we skip the later sorting?
+    let mut symbols: Vec<_> = tcx.with_stable_hashing_context(|hcx| {
+        tcx.reachable_non_generics(LOCAL_CRATE)
+            .to_sorted(&hcx, true)
+            .into_iter()
+            .map(|(&def_id, &info)| (ExportedSymbol::NonGeneric(def_id), info))
+            .collect()
+    });
 
     if tcx.entry_fn(()).is_some() {
         let exported_symbol =

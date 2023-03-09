@@ -141,7 +141,7 @@ impl<Prov: Provenance> MemPlace<Prov> {
         match self.meta {
             MemPlaceMeta::None => Immediate::from(Scalar::from_maybe_pointer(self.ptr, cx)),
             MemPlaceMeta::Meta(meta) => {
-                Immediate::ScalarPair(Scalar::from_maybe_pointer(self.ptr, cx).into(), meta.into())
+                Immediate::ScalarPair(Scalar::from_maybe_pointer(self.ptr, cx), meta)
             }
         }
     }
@@ -233,7 +233,7 @@ impl<'tcx, Prov: Provenance> MPlaceTy<'tcx, Prov> {
                 _ => bug!("len not supported on unsized type {:?}", self.layout.ty),
             }
         } else {
-            // Go through the layout.  There are lots of types that support a length,
+            // Go through the layout. There are lots of types that support a length,
             // e.g., SIMD types. (But not all repr(simd) types even have FieldsShape::Array!)
             match self.layout.fields {
                 abi::FieldsShape::Array { count, .. } => Ok(count),
@@ -294,7 +294,7 @@ where
     M: Machine<'mir, 'tcx, Provenance = Prov>,
 {
     /// Take a value, which represents a (thin or wide) reference, and make it a place.
-    /// Alignment is just based on the type.  This is the inverse of `MemPlace::to_ref()`.
+    /// Alignment is just based on the type. This is the inverse of `MemPlace::to_ref()`.
     ///
     /// Only call this if you are sure the place is "valid" (aligned and inbounds), or do not
     /// want to ever use the place for memory access!
@@ -364,13 +364,8 @@ where
             .size_and_align_of_mplace(&mplace)?
             .unwrap_or((mplace.layout.size, mplace.layout.align.abi));
         assert!(mplace.align <= align, "dynamic alignment less strict than static one?");
-        let align = M::enforce_alignment(self).then_some(align);
-        self.check_ptr_access_align(
-            mplace.ptr,
-            size,
-            align.unwrap_or(Align::ONE),
-            CheckInAllocMsg::DerefTest,
-        )?;
+        let align = if M::enforce_alignment(self).should_check() { align } else { Align::ONE };
+        self.check_ptr_access_align(mplace.ptr, size, align, CheckInAllocMsg::DerefTest)?;
         Ok(())
     }
 
@@ -708,7 +703,7 @@ where
                     &mut Operand::Immediate(local_val) => {
                         // We need to make an allocation.
 
-                        // We need the layout of the local.  We can NOT use the layout we got,
+                        // We need the layout of the local. We can NOT use the layout we got,
                         // that might e.g., be an inner field of a struct with `Scalar` layout,
                         // that has different alignment than the outer field.
                         let local_layout =

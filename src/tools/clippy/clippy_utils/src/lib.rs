@@ -22,6 +22,9 @@ extern crate rustc_ast;
 extern crate rustc_ast_pretty;
 extern crate rustc_attr;
 extern crate rustc_data_structures;
+// The `rustc_driver` crate seems to be required in order to use the `rust_ast` crate.
+#[allow(unused_extern_crates)]
+extern crate rustc_driver;
 extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_hir_typeck;
@@ -97,7 +100,7 @@ use rustc_middle::hir::place::PlaceBase;
 use rustc_middle::ty as rustc_ty;
 use rustc_middle::ty::adjustment::{Adjust, Adjustment, AutoBorrow};
 use rustc_middle::ty::binding::BindingMode;
-use rustc_middle::ty::fast_reject::SimplifiedTypeGen::{
+use rustc_middle::ty::fast_reject::SimplifiedType::{
     ArraySimplifiedType, BoolSimplifiedType, CharSimplifiedType, FloatSimplifiedType, IntSimplifiedType,
     PtrSimplifiedType, SliceSimplifiedType, StrSimplifiedType, UintSimplifiedType,
 };
@@ -115,6 +118,8 @@ use rustc_target::abi::Integer;
 use crate::consts::{constant, Constant};
 use crate::ty::{can_partially_move_ty, expr_sig, is_copy, is_recursively_primitive_type, ty_is_fn_once_param};
 use crate::visitors::for_each_expr;
+
+use rustc_middle::hir::nested_filter;
 
 #[macro_export]
 macro_rules! extract_msrv_attr {
@@ -174,7 +179,7 @@ pub fn find_binding_init<'tcx>(cx: &LateContext<'tcx>, hir_id: HirId) -> Option<
     if_chain! {
         if let Some(Node::Pat(pat)) = hir.find(hir_id);
         if matches!(pat.kind, PatKind::Binding(BindingAnnotation::NONE, ..));
-        let parent = hir.get_parent_node(hir_id);
+        let parent = hir.parent_id(hir_id);
         if let Some(Node::Local(local)) = hir.find(parent);
         then {
             return local.init;
@@ -196,7 +201,7 @@ pub fn in_constant(cx: &LateContext<'_>, id: HirId) -> bool {
     let parent_id = cx.tcx.hir().get_parent_item(id).def_id;
     match cx.tcx.hir().get_by_def_id(parent_id) {
         Node::Item(&Item {
-            kind: ItemKind::Const(..) | ItemKind::Static(..),
+            kind: ItemKind::Const(..) | ItemKind::Static(..) | ItemKind::Enum(..),
             ..
         })
         | Node::TraitItem(&TraitItem {
@@ -1253,22 +1258,33 @@ pub fn get_item_name(cx: &LateContext<'_>, expr: &Expr<'_>) -> Option<Symbol> {
     }
 }
 
-pub struct ContainsName {
+pub struct ContainsName<'a, 'tcx> {
+    pub cx: &'a LateContext<'tcx>,
     pub name: Symbol,
     pub result: bool,
 }
 
-impl<'tcx> Visitor<'tcx> for ContainsName {
+impl<'a, 'tcx> Visitor<'tcx> for ContainsName<'a, 'tcx> {
+    type NestedFilter = nested_filter::OnlyBodies;
+
     fn visit_name(&mut self, name: Symbol) {
         if self.name == name {
             self.result = true;
         }
     }
+
+    fn nested_visit_map(&mut self) -> Self::Map {
+        self.cx.tcx.hir()
+    }
 }
 
 /// Checks if an `Expr` contains a certain name.
-pub fn contains_name(name: Symbol, expr: &Expr<'_>) -> bool {
-    let mut cn = ContainsName { name, result: false };
+pub fn contains_name<'tcx>(name: Symbol, expr: &'tcx Expr<'_>, cx: &LateContext<'tcx>) -> bool {
+    let mut cn = ContainsName {
+        name,
+        result: false,
+        cx,
+    };
     cn.visit_expr(expr);
     cn.result
 }
@@ -1287,7 +1303,7 @@ pub fn contains_return(expr: &hir::Expr<'_>) -> bool {
 
 /// Gets the parent node, if any.
 pub fn get_parent_node(tcx: TyCtxt<'_>, id: HirId) -> Option<Node<'_>> {
-    tcx.hir().parent_iter(id).next().map(|(_, node)| node)
+    tcx.hir().find_parent(id)
 }
 
 /// Gets the parent expression, if any –- this is useful to constrain a lint.
@@ -1304,6 +1320,7 @@ pub fn get_parent_expr_for_hir<'tcx>(cx: &LateContext<'tcx>, hir_id: hir::HirId)
     }
 }
 
+/// Gets the enclosing block, if any.
 pub fn get_enclosing_block<'tcx>(cx: &LateContext<'tcx>, hir_id: HirId) -> Option<&'tcx Block<'tcx>> {
     let map = &cx.tcx.hir();
     let enclosing_node = map
@@ -2075,7 +2092,7 @@ pub fn is_no_core_crate(cx: &LateContext<'_>) -> bool {
 /// }
 /// ```
 pub fn is_trait_impl_item(cx: &LateContext<'_>, hir_id: HirId) -> bool {
-    if let Some(Node::Item(item)) = cx.tcx.hir().find(cx.tcx.hir().get_parent_node(hir_id)) {
+    if let Some(Node::Item(item)) = cx.tcx.hir().find_parent(hir_id) {
         matches!(item.kind, ItemKind::Impl(hir::Impl { of_trait: Some(_), .. }))
     } else {
         false
@@ -2244,6 +2261,18 @@ pub fn peel_n_hir_expr_refs<'a>(expr: &'a Expr<'a>, count: usize) -> (&'a Expr<'
     (e, count - remaining)
 }
 
+/// Peels off all unary operators of an expression. Returns the underlying expression and the number
+/// of operators removed.
+pub fn peel_hir_expr_unary<'a>(expr: &'a Expr<'a>) -> (&'a Expr<'a>, usize) {
+    let mut count: usize = 0;
+    let mut curr_expr = expr;
+    while let ExprKind::Unary(_, local_expr) = curr_expr.kind {
+        count = count.wrapping_add(1);
+        curr_expr = local_expr;
+    }
+    (curr_expr, count)
+}
+
 /// Peels off all references on the expression. Returns the underlying expression and the number of
 /// references removed.
 pub fn peel_hir_expr_refs<'a>(expr: &'a Expr<'a>) -> (&'a Expr<'a>, usize) {
@@ -2264,7 +2293,7 @@ pub fn peel_hir_ty_refs<'a>(mut ty: &'a hir::Ty<'a>) -> (&'a hir::Ty<'a>, usize)
     let mut count = 0;
     loop {
         match &ty.kind {
-            TyKind::Rptr(_, ref_ty) => {
+            TyKind::Ref(_, ref_ty) => {
                 ty = ref_ty.ty;
                 count += 1;
             },

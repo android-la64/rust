@@ -6,1106 +6,706 @@ pub mod Certificates;
 pub mod Sip;
 #[cfg(feature = "Win32_Security_Cryptography_UI")]
 pub mod UI;
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptAddContextFunction(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pszfunction: ::windows_sys::core::PCWSTR, dwposition: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptCloseAlgorithmProvider(halgorithm: BCRYPT_ALG_HANDLE, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptConfigureContext(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, pconfig: *const CRYPT_CONTEXT_CONFIG) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptConfigureContextFunction(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pszfunction: ::windows_sys::core::PCWSTR, pconfig: *const CRYPT_CONTEXT_FUNCTION_CONFIG) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptCreateContext(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, pconfig: *const CRYPT_CONTEXT_CONFIG) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptCreateHash(halgorithm: BCRYPT_ALG_HANDLE, phhash: *mut BCRYPT_HASH_HANDLE, pbhashobject: *mut u8, cbhashobject: u32, pbsecret: *const u8, cbsecret: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptCreateMultiHash(halgorithm: BCRYPT_ALG_HANDLE, phhash: *mut BCRYPT_HASH_HANDLE, nhashes: u32, pbhashobject: *mut u8, cbhashobject: u32, pbsecret: *const u8, cbsecret: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDecrypt(hkey: BCRYPT_KEY_HANDLE, pbinput: *const u8, cbinput: u32, ppaddinginfo: *const ::core::ffi::c_void, pbiv: *mut u8, cbiv: u32, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: NCRYPT_FLAGS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDeleteContext(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDeriveKey(hsharedsecret: BCRYPT_SECRET_HANDLE, pwszkdf: ::windows_sys::core::PCWSTR, pparameterlist: *const BCryptBufferDesc, pbderivedkey: *mut u8, cbderivedkey: u32, pcbresult: *mut u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDeriveKeyCapi(hhash: BCRYPT_HASH_HANDLE, htargetalg: BCRYPT_ALG_HANDLE, pbderivedkey: *mut u8, cbderivedkey: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDeriveKeyPBKDF2(hprf: BCRYPT_ALG_HANDLE, pbpassword: *const u8, cbpassword: u32, pbsalt: *const u8, cbsalt: u32, citerations: u64, pbderivedkey: *mut u8, cbderivedkey: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDestroyHash(hhash: BCRYPT_HASH_HANDLE) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDestroyKey(hkey: BCRYPT_KEY_HANDLE) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDestroySecret(hsecret: BCRYPT_SECRET_HANDLE) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDuplicateHash(hhash: BCRYPT_HASH_HANDLE, phnewhash: *mut BCRYPT_HASH_HANDLE, pbhashobject: *mut u8, cbhashobject: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptDuplicateKey(hkey: BCRYPT_KEY_HANDLE, phnewkey: *mut BCRYPT_KEY_HANDLE, pbkeyobject: *mut u8, cbkeyobject: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptEncrypt(hkey: BCRYPT_KEY_HANDLE, pbinput: *const u8, cbinput: u32, ppaddinginfo: *const ::core::ffi::c_void, pbiv: *mut u8, cbiv: u32, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: NCRYPT_FLAGS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptEnumAlgorithms(dwalgoperations: BCRYPT_OPERATION, palgcount: *mut u32, ppalglist: *mut *mut BCRYPT_ALGORITHM_IDENTIFIER, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptEnumContextFunctionProviders(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pszfunction: ::windows_sys::core::PCWSTR, pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_CONTEXT_FUNCTION_PROVIDERS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptEnumContextFunctions(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_CONTEXT_FUNCTIONS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptEnumContexts(dwtable: BCRYPT_TABLE, pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_CONTEXTS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptEnumProviders(pszalgid: ::windows_sys::core::PCWSTR, pimplcount: *mut u32, ppimpllist: *mut *mut BCRYPT_PROVIDER_NAME, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptEnumRegisteredProviders(pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_PROVIDERS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptExportKey(hkey: BCRYPT_KEY_HANDLE, hexportkey: BCRYPT_KEY_HANDLE, pszblobtype: ::windows_sys::core::PCWSTR, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptFinalizeKeyPair(hkey: BCRYPT_KEY_HANDLE, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptFinishHash(hhash: BCRYPT_HASH_HANDLE, pboutput: *mut u8, cboutput: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn BCryptFreeBuffer(pvbuffer: *const ::core::ffi::c_void);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptGenRandom(halgorithm: BCRYPT_ALG_HANDLE, pbbuffer: *mut u8, cbbuffer: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptGenerateKeyPair(halgorithm: BCRYPT_ALG_HANDLE, phkey: *mut BCRYPT_KEY_HANDLE, dwlength: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptGenerateSymmetricKey(halgorithm: BCRYPT_ALG_HANDLE, phkey: *mut BCRYPT_KEY_HANDLE, pbkeyobject: *mut u8, cbkeyobject: u32, pbsecret: *const u8, cbsecret: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptGetFipsAlgorithmMode(pfenabled: *mut u8) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptGetProperty(hobject: BCRYPT_HANDLE, pszproperty: ::windows_sys::core::PCWSTR, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptHash(halgorithm: BCRYPT_ALG_HANDLE, pbsecret: *const u8, cbsecret: u32, pbinput: *const u8, cbinput: u32, pboutput: *mut u8, cboutput: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptHashData(hhash: BCRYPT_HASH_HANDLE, pbinput: *const u8, cbinput: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptImportKey(halgorithm: BCRYPT_ALG_HANDLE, himportkey: BCRYPT_KEY_HANDLE, pszblobtype: ::windows_sys::core::PCWSTR, phkey: *mut BCRYPT_KEY_HANDLE, pbkeyobject: *mut u8, cbkeyobject: u32, pbinput: *const u8, cbinput: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptImportKeyPair(halgorithm: BCRYPT_ALG_HANDLE, himportkey: BCRYPT_KEY_HANDLE, pszblobtype: ::windows_sys::core::PCWSTR, phkey: *mut BCRYPT_KEY_HANDLE, pbinput: *const u8, cbinput: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptKeyDerivation(hkey: BCRYPT_KEY_HANDLE, pparameterlist: *const BCryptBufferDesc, pbderivedkey: *mut u8, cbderivedkey: u32, pcbresult: *mut u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptOpenAlgorithmProvider(phalgorithm: *mut BCRYPT_ALG_HANDLE, pszalgid: ::windows_sys::core::PCWSTR, pszimplementation: ::windows_sys::core::PCWSTR, dwflags: BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptProcessMultiOperations(hobject: BCRYPT_HANDLE, operationtype: BCRYPT_MULTI_OPERATION_TYPE, poperations: *const ::core::ffi::c_void, cboperations: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptQueryContextConfiguration(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_CONTEXT_CONFIG) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptQueryContextFunctionConfiguration(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pszfunction: ::windows_sys::core::PCWSTR, pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_CONTEXT_FUNCTION_CONFIG) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptQueryContextFunctionProperty(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pszfunction: ::windows_sys::core::PCWSTR, pszproperty: ::windows_sys::core::PCWSTR, pcbvalue: *mut u32, ppbvalue: *mut *mut u8) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptQueryProviderRegistration(pszprovider: ::windows_sys::core::PCWSTR, dwmode: BCRYPT_QUERY_PROVIDER_MODE, dwinterface: BCRYPT_INTERFACE, pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_PROVIDER_REG) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptRegisterConfigChangeNotify(phevent: *mut super::super::Foundation::HANDLE) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptRemoveContextFunction(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pszfunction: ::windows_sys::core::PCWSTR) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptResolveProviders(pszcontext: ::windows_sys::core::PCWSTR, dwinterface: u32, pszfunction: ::windows_sys::core::PCWSTR, pszprovider: ::windows_sys::core::PCWSTR, dwmode: BCRYPT_QUERY_PROVIDER_MODE, dwflags: BCRYPT_RESOLVE_PROVIDERS_FLAGS, pcbbuffer: *mut u32, ppbuffer: *mut *mut CRYPT_PROVIDER_REFS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptSecretAgreement(hprivkey: BCRYPT_KEY_HANDLE, hpubkey: BCRYPT_KEY_HANDLE, phagreedsecret: *mut BCRYPT_SECRET_HANDLE, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptSetContextFunctionProperty(dwtable: BCRYPT_TABLE, pszcontext: ::windows_sys::core::PCWSTR, dwinterface: BCRYPT_INTERFACE, pszfunction: ::windows_sys::core::PCWSTR, pszproperty: ::windows_sys::core::PCWSTR, cbvalue: u32, pbvalue: *const u8) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptSetProperty(hobject: BCRYPT_HANDLE, pszproperty: ::windows_sys::core::PCWSTR, pbinput: *const u8, cbinput: u32, dwflags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptSignHash(hkey: BCRYPT_KEY_HANDLE, ppaddinginfo: *const ::core::ffi::c_void, pbinput: *const u8, cbinput: u32, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: NCRYPT_FLAGS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptUnregisterConfigChangeNotify(hevent: super::super::Foundation::HANDLE) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BCryptVerifySignature(hkey: BCRYPT_KEY_HANDLE, ppaddinginfo: *const ::core::ffi::c_void, pbhash: *const u8, cbhash: u32, pbsignature: *const u8, cbsignature: u32, dwflags: NCRYPT_FLAGS) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddCRLContextToStore(hcertstore: HCERTSTORE, pcrlcontext: *const CRL_CONTEXT, dwadddisposition: u32, ppstorecontext: *mut *mut CRL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddCRLLinkToStore(hcertstore: HCERTSTORE, pcrlcontext: *const CRL_CONTEXT, dwadddisposition: u32, ppstorecontext: *mut *mut CRL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddCTLContextToStore(hcertstore: HCERTSTORE, pctlcontext: *const CTL_CONTEXT, dwadddisposition: u32, ppstorecontext: *mut *mut CTL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddCTLLinkToStore(hcertstore: HCERTSTORE, pctlcontext: *const CTL_CONTEXT, dwadddisposition: u32, ppstorecontext: *mut *mut CTL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddCertificateContextToStore(hcertstore: HCERTSTORE, pcertcontext: *const CERT_CONTEXT, dwadddisposition: u32, ppstorecontext: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddCertificateLinkToStore(hcertstore: HCERTSTORE, pcertcontext: *const CERT_CONTEXT, dwadddisposition: u32, ppstorecontext: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddEncodedCRLToStore(hcertstore: HCERTSTORE, dwcertencodingtype: u32, pbcrlencoded: *const u8, cbcrlencoded: u32, dwadddisposition: u32, ppcrlcontext: *mut *mut CRL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddEncodedCTLToStore(hcertstore: HCERTSTORE, dwmsgandcertencodingtype: u32, pbctlencoded: *const u8, cbctlencoded: u32, dwadddisposition: u32, ppctlcontext: *mut *mut CTL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddEncodedCertificateToStore(hcertstore: HCERTSTORE, dwcertencodingtype: u32, pbcertencoded: *const u8, cbcertencoded: u32, dwadddisposition: u32, ppcertcontext: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddEncodedCertificateToSystemStoreA(szcertstorename: ::windows_sys::core::PCSTR, pbcertencoded: *const u8, cbcertencoded: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddEncodedCertificateToSystemStoreW(szcertstorename: ::windows_sys::core::PCWSTR, pbcertencoded: *const u8, cbcertencoded: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddEnhancedKeyUsageIdentifier(pcertcontext: *const CERT_CONTEXT, pszusageidentifier: ::windows_sys::core::PCSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertAddRefServerOcspResponse(hserverocspresponse: *const ::core::ffi::c_void);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertAddRefServerOcspResponseContext(pserverocspresponsecontext: *const CERT_SERVER_OCSP_RESPONSE_CONTEXT);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddSerializedElementToStore(hcertstore: HCERTSTORE, pbelement: *const u8, cbelement: u32, dwadddisposition: u32, dwflags: u32, dwcontexttypeflags: u32, pdwcontexttype: *mut u32, ppvcontext: *mut *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertAddStoreToCollection(hcollectionstore: HCERTSTORE, hsiblingstore: HCERTSTORE, dwupdateflags: u32, dwpriority: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertAlgIdToOID(dwalgid: u32) -> ::windows_sys::core::PSTR;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertCloseServerOcspResponse(hserverocspresponse: *const ::core::ffi::c_void, dwflags: u32);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCloseStore(hcertstore: HCERTSTORE, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCompareCertificate(dwcertencodingtype: u32, pcertid1: *const CERT_INFO, pcertid2: *const CERT_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCompareCertificateName(dwcertencodingtype: u32, pcertname1: *const CRYPTOAPI_BLOB, pcertname2: *const CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCompareIntegerBlob(pint1: *const CRYPTOAPI_BLOB, pint2: *const CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertComparePublicKeyInfo(dwcertencodingtype: u32, ppublickey1: *const CERT_PUBLIC_KEY_INFO, ppublickey2: *const CERT_PUBLIC_KEY_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertControlStore(hcertstore: HCERTSTORE, dwflags: CERT_CONTROL_STORE_FLAGS, dwctrltype: u32, pvctrlpara: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCreateCRLContext(dwcertencodingtype: u32, pbcrlencoded: *const u8, cbcrlencoded: u32) -> *mut CRL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCreateCTLContext(dwmsgandcertencodingtype: u32, pbctlencoded: *const u8, cbctlencoded: u32) -> *mut CTL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCreateCTLEntryFromCertificateContextProperties(pcertcontext: *const CERT_CONTEXT, coptattr: u32, rgoptattr: *const CRYPT_ATTRIBUTE, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, pctlentry: *mut CTL_ENTRY, pcbctlentry: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCreateCertificateChainEngine(pconfig: *const CERT_CHAIN_ENGINE_CONFIG, phchainengine: *mut HCERTCHAINENGINE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCreateCertificateContext(dwcertencodingtype: u32, pbcertencoded: *const u8, cbcertencoded: u32) -> *mut CERT_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCreateContext(dwcontexttype: u32, dwencodingtype: u32, pbencoded: *const u8, cbencoded: u32, dwflags: u32, pcreatepara: *const CERT_CREATE_CONTEXT_PARA) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertCreateSelfSignCertificate(hcryptprovorncryptkey: HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, psubjectissuerblob: *const CRYPTOAPI_BLOB, dwflags: CERT_CREATE_SELFSIGN_FLAGS, pkeyprovinfo: *const CRYPT_KEY_PROV_INFO, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, pstarttime: *const super::super::Foundation::SYSTEMTIME, pendtime: *const super::super::Foundation::SYSTEMTIME, pextensions: *const CERT_EXTENSIONS) -> *mut CERT_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertDeleteCRLFromStore(pcrlcontext: *const CRL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertDeleteCTLFromStore(pctlcontext: *const CTL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertDeleteCertificateFromStore(pcertcontext: *const CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertDuplicateCRLContext(pcrlcontext: *const CRL_CONTEXT) -> *mut CRL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertDuplicateCTLContext(pctlcontext: *const CTL_CONTEXT) -> *mut CTL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertDuplicateCertificateChain(pchaincontext: *const CERT_CHAIN_CONTEXT) -> *mut CERT_CHAIN_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertDuplicateCertificateContext(pcertcontext: *const CERT_CONTEXT) -> *mut CERT_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertDuplicateStore(hcertstore: HCERTSTORE) -> HCERTSTORE;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumCRLContextProperties(pcrlcontext: *const CRL_CONTEXT, dwpropid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumCRLsInStore(hcertstore: HCERTSTORE, pprevcrlcontext: *const CRL_CONTEXT) -> *mut CRL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumCTLContextProperties(pctlcontext: *const CTL_CONTEXT, dwpropid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumCTLsInStore(hcertstore: HCERTSTORE, pprevctlcontext: *const CTL_CONTEXT) -> *mut CTL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumCertificateContextProperties(pcertcontext: *const CERT_CONTEXT, dwpropid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumCertificatesInStore(hcertstore: HCERTSTORE, pprevcertcontext: *const CERT_CONTEXT) -> *mut CERT_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumPhysicalStore(pvsystemstore: *const ::core::ffi::c_void, dwflags: u32, pvarg: *mut ::core::ffi::c_void, pfnenum: PFN_CERT_ENUM_PHYSICAL_STORE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumSubjectInSortedCTL(pctlcontext: *const CTL_CONTEXT, ppvnextsubject: *mut *mut ::core::ffi::c_void, psubjectidentifier: *mut CRYPTOAPI_BLOB, pencodedattributes: *mut CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumSystemStore(dwflags: u32, pvsystemstorelocationpara: *const ::core::ffi::c_void, pvarg: *mut ::core::ffi::c_void, pfnenum: PFN_CERT_ENUM_SYSTEM_STORE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertEnumSystemStoreLocation(dwflags: u32, pvarg: *mut ::core::ffi::c_void, pfnenum: PFN_CERT_ENUM_SYSTEM_STORE_LOCATION) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertFindAttribute(pszobjid: ::windows_sys::core::PCSTR, cattr: u32, rgattr: *const CRYPT_ATTRIBUTE) -> *mut CRYPT_ATTRIBUTE;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindCRLInStore(hcertstore: HCERTSTORE, dwcertencodingtype: u32, dwfindflags: u32, dwfindtype: u32, pvfindpara: *const ::core::ffi::c_void, pprevcrlcontext: *const CRL_CONTEXT) -> *mut CRL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindCTLInStore(hcertstore: HCERTSTORE, dwmsgandcertencodingtype: u32, dwfindflags: u32, dwfindtype: CERT_FIND_TYPE, pvfindpara: *const ::core::ffi::c_void, pprevctlcontext: *const CTL_CONTEXT) -> *mut CTL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindCertificateInCRL(pcert: *const CERT_CONTEXT, pcrlcontext: *const CRL_CONTEXT, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, ppcrlentry: *mut *mut CRL_ENTRY) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindCertificateInStore(hcertstore: HCERTSTORE, dwcertencodingtype: u32, dwfindflags: u32, dwfindtype: CERT_FIND_FLAGS, pvfindpara: *const ::core::ffi::c_void, pprevcertcontext: *const CERT_CONTEXT) -> *mut CERT_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindChainInStore(hcertstore: HCERTSTORE, dwcertencodingtype: u32, dwfindflags: CERT_FIND_CHAIN_IN_STORE_FLAGS, dwfindtype: u32, pvfindpara: *const ::core::ffi::c_void, pprevchaincontext: *const CERT_CHAIN_CONTEXT) -> *mut CERT_CHAIN_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindExtension(pszobjid: ::windows_sys::core::PCSTR, cextensions: u32, rgextensions: *const CERT_EXTENSION) -> *mut CERT_EXTENSION;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertFindRDNAttr(pszobjid: ::windows_sys::core::PCSTR, pname: *const CERT_NAME_INFO) -> *mut CERT_RDN_ATTR;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindSubjectInCTL(dwencodingtype: u32, dwsubjecttype: u32, pvsubject: *const ::core::ffi::c_void, pctlcontext: *const CTL_CONTEXT, dwflags: u32) -> *mut CTL_ENTRY;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFindSubjectInSortedCTL(psubjectidentifier: *const CRYPTOAPI_BLOB, pctlcontext: *const CTL_CONTEXT, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, pencodedattributes: *mut CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFreeCRLContext(pcrlcontext: *const CRL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFreeCTLContext(pctlcontext: *const CTL_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFreeCertificateChain(pchaincontext: *const CERT_CHAIN_CONTEXT);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertFreeCertificateChainEngine(hchainengine: HCERTCHAINENGINE);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFreeCertificateChainList(prgpselection: *const *const CERT_CHAIN_CONTEXT);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertFreeCertificateContext(pcertcontext: *const CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertFreeServerOcspResponseContext(pserverocspresponsecontext: *const CERT_SERVER_OCSP_RESPONSE_CONTEXT);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetCRLContextProperty(pcrlcontext: *const CRL_CONTEXT, dwpropid: u32, pvdata: *mut ::core::ffi::c_void, pcbdata: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetCRLFromStore(hcertstore: HCERTSTORE, pissuercontext: *const CERT_CONTEXT, pprevcrlcontext: *const CRL_CONTEXT, pdwflags: *mut u32) -> *mut CRL_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetCTLContextProperty(pctlcontext: *const CTL_CONTEXT, dwpropid: u32, pvdata: *mut ::core::ffi::c_void, pcbdata: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetCertificateChain(hchainengine: HCERTCHAINENGINE, pcertcontext: *const CERT_CONTEXT, ptime: *const super::super::Foundation::FILETIME, hadditionalstore: HCERTSTORE, pchainpara: *const CERT_CHAIN_PARA, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, ppchaincontext: *mut *mut CERT_CHAIN_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetCertificateContextProperty(pcertcontext: *const CERT_CONTEXT, dwpropid: u32, pvdata: *mut ::core::ffi::c_void, pcbdata: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetEnhancedKeyUsage(pcertcontext: *const CERT_CONTEXT, dwflags: u32, pusage: *mut CTL_USAGE, pcbusage: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetIntendedKeyUsage(dwcertencodingtype: u32, pcertinfo: *const CERT_INFO, pbkeyusage: *mut u8, cbkeyusage: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetIssuerCertificateFromStore(hcertstore: HCERTSTORE, psubjectcontext: *const CERT_CONTEXT, pprevissuercontext: *const CERT_CONTEXT, pdwflags: *mut u32) -> *mut CERT_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetNameStringA(pcertcontext: *const CERT_CONTEXT, dwtype: u32, dwflags: u32, pvtypepara: *const ::core::ffi::c_void, psznamestring: ::windows_sys::core::PSTR, cchnamestring: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetNameStringW(pcertcontext: *const CERT_CONTEXT, dwtype: u32, dwflags: u32, pvtypepara: *const ::core::ffi::c_void, psznamestring: ::windows_sys::core::PWSTR, cchnamestring: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertGetPublicKeyLength(dwcertencodingtype: u32, ppublickey: *const CERT_PUBLIC_KEY_INFO) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertGetServerOcspResponseContext(hserverocspresponse: *const ::core::ffi::c_void, dwflags: u32, pvreserved: *mut ::core::ffi::c_void) -> *mut CERT_SERVER_OCSP_RESPONSE_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetStoreProperty(hcertstore: HCERTSTORE, dwpropid: u32, pvdata: *mut ::core::ffi::c_void, pcbdata: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetSubjectCertificateFromStore(hcertstore: HCERTSTORE, dwcertencodingtype: u32, pcertid: *const CERT_INFO) -> *mut CERT_CONTEXT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertGetValidUsages(ccerts: u32, rghcerts: *const *const CERT_CONTEXT, cnumoids: *mut i32, rghoids: *mut ::windows_sys::core::PSTR, pcboids: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertIsRDNAttrsInCertificateName(dwcertencodingtype: u32, dwflags: u32, pcertname: *const CRYPTOAPI_BLOB, prdn: *const CERT_RDN) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertIsStrongHashToSign(pstrongsignpara: *const CERT_STRONG_SIGN_PARA, pwszcnghashalgid: ::windows_sys::core::PCWSTR, psigningcert: *const CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertIsValidCRLForCertificate(pcert: *const CERT_CONTEXT, pcrl: *const CRL_CONTEXT, dwflags: u32, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertIsWeakHash(dwhashusetype: u32, pwszcnghashalgid: ::windows_sys::core::PCWSTR, dwchainflags: u32, psignerchaincontext: *const CERT_CHAIN_CONTEXT, ptimestamp: *const super::super::Foundation::FILETIME, pwszfilename: ::windows_sys::core::PCWSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertNameToStrA(dwcertencodingtype: u32, pname: *const CRYPTOAPI_BLOB, dwstrtype: CERT_STRING_TYPE, psz: ::windows_sys::core::PSTR, csz: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertNameToStrW(dwcertencodingtype: u32, pname: *const CRYPTOAPI_BLOB, dwstrtype: CERT_STRING_TYPE, psz: ::windows_sys::core::PWSTR, csz: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertOIDToAlgId(pszobjid: ::windows_sys::core::PCSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertOpenServerOcspResponse(pchaincontext: *const CERT_CHAIN_CONTEXT, dwflags: u32, popenpara: *const CERT_SERVER_OCSP_RESPONSE_OPEN_PARA) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertOpenStore(lpszstoreprovider: ::windows_sys::core::PCSTR, dwencodingtype: CERT_QUERY_ENCODING_TYPE, hcryptprov: HCRYPTPROV_LEGACY, dwflags: CERT_OPEN_STORE_FLAGS, pvpara: *const ::core::ffi::c_void) -> HCERTSTORE;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertOpenSystemStoreA(hprov: HCRYPTPROV_LEGACY, szsubsystemprotocol: ::windows_sys::core::PCSTR) -> HCERTSTORE;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertOpenSystemStoreW(hprov: HCRYPTPROV_LEGACY, szsubsystemprotocol: ::windows_sys::core::PCWSTR) -> HCERTSTORE;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertRDNValueToStrA(dwvaluetype: u32, pvalue: *const CRYPTOAPI_BLOB, psz: ::windows_sys::core::PSTR, csz: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertRDNValueToStrW(dwvaluetype: u32, pvalue: *const CRYPTOAPI_BLOB, psz: ::windows_sys::core::PWSTR, csz: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertRegisterPhysicalStore(pvsystemstore: *const ::core::ffi::c_void, dwflags: u32, pwszstorename: ::windows_sys::core::PCWSTR, pstoreinfo: *const CERT_PHYSICAL_STORE_INFO, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertRegisterSystemStore(pvsystemstore: *const ::core::ffi::c_void, dwflags: u32, pstoreinfo: *const CERT_SYSTEM_STORE_INFO, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertRemoveEnhancedKeyUsageIdentifier(pcertcontext: *const CERT_CONTEXT, pszusageidentifier: ::windows_sys::core::PCSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CertRemoveStoreFromCollection(hcollectionstore: HCERTSTORE, hsiblingstore: HCERTSTORE);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertResyncCertificateChainEngine(hchainengine: HCERTCHAINENGINE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertRetrieveLogoOrBiometricInfo(pcertcontext: *const CERT_CONTEXT, lpszlogoorbiometrictype: ::windows_sys::core::PCSTR, dwretrievalflags: u32, dwtimeout: u32, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, ppbdata: *mut *mut u8, pcbdata: *mut u32, ppwszmimetype: *mut ::windows_sys::core::PWSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSaveStore(hcertstore: HCERTSTORE, dwencodingtype: CERT_QUERY_ENCODING_TYPE, dwsaveas: CERT_STORE_SAVE_AS, dwsaveto: CERT_STORE_SAVE_TO, pvsavetopara: *mut ::core::ffi::c_void, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSelectCertificateChains(pselectioncontext: *const ::windows_sys::core::GUID, dwflags: u32, pchainparameters: *const CERT_SELECT_CHAIN_PARA, ccriteria: u32, rgpcriteria: *const CERT_SELECT_CRITERIA, hstore: HCERTSTORE, pcselection: *mut u32, pprgpselection: *mut *mut *mut CERT_CHAIN_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSerializeCRLStoreElement(pcrlcontext: *const CRL_CONTEXT, dwflags: u32, pbelement: *mut u8, pcbelement: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSerializeCTLStoreElement(pctlcontext: *const CTL_CONTEXT, dwflags: u32, pbelement: *mut u8, pcbelement: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSerializeCertificateStoreElement(pcertcontext: *const CERT_CONTEXT, dwflags: u32, pbelement: *mut u8, pcbelement: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSetCRLContextProperty(pcrlcontext: *const CRL_CONTEXT, dwpropid: u32, dwflags: u32, pvdata: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSetCTLContextProperty(pctlcontext: *const CTL_CONTEXT, dwpropid: u32, dwflags: u32, pvdata: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSetCertificateContextPropertiesFromCTLEntry(pcertcontext: *const CERT_CONTEXT, pctlentry: *const CTL_ENTRY, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSetCertificateContextProperty(pcertcontext: *const CERT_CONTEXT, dwpropid: u32, dwflags: u32, pvdata: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSetEnhancedKeyUsage(pcertcontext: *const CERT_CONTEXT, pusage: *const CTL_USAGE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertSetStoreProperty(hcertstore: HCERTSTORE, dwpropid: u32, dwflags: u32, pvdata: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertStrToNameA(dwcertencodingtype: u32, pszx500: ::windows_sys::core::PCSTR, dwstrtype: CERT_STRING_TYPE, pvreserved: *mut ::core::ffi::c_void, pbencoded: *mut u8, pcbencoded: *mut u32, ppszerror: *mut ::windows_sys::core::PSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertStrToNameW(dwcertencodingtype: u32, pszx500: ::windows_sys::core::PCWSTR, dwstrtype: CERT_STRING_TYPE, pvreserved: *mut ::core::ffi::c_void, pbencoded: *mut u8, pcbencoded: *mut u32, ppszerror: *mut ::windows_sys::core::PWSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertUnregisterPhysicalStore(pvsystemstore: *const ::core::ffi::c_void, dwflags: u32, pwszstorename: ::windows_sys::core::PCWSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertUnregisterSystemStore(pvsystemstore: *const ::core::ffi::c_void, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifyCRLRevocation(dwcertencodingtype: u32, pcertid: *const CERT_INFO, ccrlinfo: u32, rgpcrlinfo: *const *const CRL_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifyCRLTimeValidity(ptimetoverify: *const super::super::Foundation::FILETIME, pcrlinfo: *const CRL_INFO) -> i32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifyCTLUsage(dwencodingtype: u32, dwsubjecttype: u32, pvsubject: *const ::core::ffi::c_void, psubjectusage: *const CTL_USAGE, dwflags: u32, pverifyusagepara: *const CTL_VERIFY_USAGE_PARA, pverifyusagestatus: *mut CTL_VERIFY_USAGE_STATUS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifyCertificateChainPolicy(pszpolicyoid: ::windows_sys::core::PCSTR, pchaincontext: *const CERT_CHAIN_CONTEXT, ppolicypara: *const CERT_CHAIN_POLICY_PARA, ppolicystatus: *mut CERT_CHAIN_POLICY_STATUS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifyRevocation(dwencodingtype: u32, dwrevtype: u32, ccontext: u32, rgpvcontext: *const *const ::core::ffi::c_void, dwflags: u32, prevpara: *const CERT_REVOCATION_PARA, prevstatus: *mut CERT_REVOCATION_STATUS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifySubjectCertificateContext(psubject: *const CERT_CONTEXT, pissuer: *const CERT_CONTEXT, pdwflags: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifyTimeValidity(ptimetoverify: *const super::super::Foundation::FILETIME, pcertinfo: *const CERT_INFO) -> i32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CertVerifyValidityNesting(psubjectinfo: *const CERT_INFO, pissuerinfo: *const CERT_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CloseCryptoHandle(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptAcquireCertificatePrivateKey(pcert: *const CERT_CONTEXT, dwflags: CRYPT_ACQUIRE_FLAGS, pvparameters: *const ::core::ffi::c_void, phcryptprovorncryptkey: *mut HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, pdwkeyspec: *mut CERT_KEY_SPEC, pfcallerfreeprovorncryptkey: *mut super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptAcquireContextA(phprov: *mut usize, szcontainer: ::windows_sys::core::PCSTR, szprovider: ::windows_sys::core::PCSTR, dwprovtype: u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptAcquireContextW(phprov: *mut usize, szcontainer: ::windows_sys::core::PCWSTR, szprovider: ::windows_sys::core::PCWSTR, dwprovtype: u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptBinaryToStringA(pbbinary: *const u8, cbbinary: u32, dwflags: CRYPT_STRING, pszstring: ::windows_sys::core::PSTR, pcchstring: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptBinaryToStringW(pbbinary: *const u8, cbbinary: u32, dwflags: CRYPT_STRING, pszstring: ::windows_sys::core::PWSTR, pcchstring: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptCloseAsyncHandle(hasync: HCRYPTASYNC) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptContextAddRef(hprov: usize, pdwreserved: *mut u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptCreateAsyncHandle(dwflags: u32, phasync: *mut HCRYPTASYNC) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptCreateHash(hprov: usize, algid: u32, hkey: usize, dwflags: u32, phhash: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptCreateKeyIdentifierFromCSP(dwcertencodingtype: u32, pszpubkeyoid: ::windows_sys::core::PCSTR, ppubkeystruc: *const PUBLICKEYSTRUC, cbpubkeystruc: u32, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, pbhash: *mut u8, pcbhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDecodeMessage(dwmsgtypeflags: u32, pdecryptpara: *const CRYPT_DECRYPT_MESSAGE_PARA, pverifypara: *const CRYPT_VERIFY_MESSAGE_PARA, dwsignerindex: u32, pbencodedblob: *const u8, cbencodedblob: u32, dwprevinnercontenttype: u32, pdwmsgtype: *mut u32, pdwinnercontenttype: *mut u32, pbdecoded: *mut u8, pcbdecoded: *mut u32, ppxchgcert: *mut *mut CERT_CONTEXT, ppsignercert: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDecodeObject(dwcertencodingtype: u32, lpszstructtype: ::windows_sys::core::PCSTR, pbencoded: *const u8, cbencoded: u32, dwflags: u32, pvstructinfo: *mut ::core::ffi::c_void, pcbstructinfo: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDecodeObjectEx(dwcertencodingtype: u32, lpszstructtype: ::windows_sys::core::PCSTR, pbencoded: *const u8, cbencoded: u32, dwflags: u32, pdecodepara: *const CRYPT_DECODE_PARA, pvstructinfo: *mut ::core::ffi::c_void, pcbstructinfo: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDecrypt(hkey: usize, hhash: usize, r#final: super::super::Foundation::BOOL, dwflags: u32, pbdata: *mut u8, pdwdatalen: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDecryptAndVerifyMessageSignature(pdecryptpara: *const CRYPT_DECRYPT_MESSAGE_PARA, pverifypara: *const CRYPT_VERIFY_MESSAGE_PARA, dwsignerindex: u32, pbencryptedblob: *const u8, cbencryptedblob: u32, pbdecrypted: *mut u8, pcbdecrypted: *mut u32, ppxchgcert: *mut *mut CERT_CONTEXT, ppsignercert: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDecryptMessage(pdecryptpara: *const CRYPT_DECRYPT_MESSAGE_PARA, pbencryptedblob: *const u8, cbencryptedblob: u32, pbdecrypted: *mut u8, pcbdecrypted: *mut u32, ppxchgcert: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDeriveKey(hprov: usize, algid: u32, hbasedata: usize, dwflags: u32, phkey: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDestroyHash(hhash: usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDestroyKey(hkey: usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDuplicateHash(hhash: usize, pdwreserved: *mut u32, dwflags: u32, phhash: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptDuplicateKey(hkey: usize, pdwreserved: *mut u32, dwflags: u32, phkey: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEncodeObject(dwcertencodingtype: u32, lpszstructtype: ::windows_sys::core::PCSTR, pvstructinfo: *const ::core::ffi::c_void, pbencoded: *mut u8, pcbencoded: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEncodeObjectEx(dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, lpszstructtype: ::windows_sys::core::PCSTR, pvstructinfo: *const ::core::ffi::c_void, dwflags: CRYPT_ENCODE_OBJECT_FLAGS, pencodepara: *const CRYPT_ENCODE_PARA, pvencoded: *mut ::core::ffi::c_void, pcbencoded: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEncrypt(hkey: usize, hhash: usize, r#final: super::super::Foundation::BOOL, dwflags: u32, pbdata: *mut u8, pdwdatalen: *mut u32, dwbuflen: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEncryptMessage(pencryptpara: *const CRYPT_ENCRYPT_MESSAGE_PARA, crecipientcert: u32, rgprecipientcert: *const *const CERT_CONTEXT, pbtobeencrypted: *const u8, cbtobeencrypted: u32, pbencryptedblob: *mut u8, pcbencryptedblob: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEnumKeyIdentifierProperties(pkeyidentifier: *const CRYPTOAPI_BLOB, dwpropid: u32, dwflags: u32, pwszcomputername: ::windows_sys::core::PCWSTR, pvreserved: *mut ::core::ffi::c_void, pvarg: *mut ::core::ffi::c_void, pfnenum: PFN_CRYPT_ENUM_KEYID_PROP) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEnumOIDFunction(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pszoid: ::windows_sys::core::PCSTR, dwflags: u32, pvarg: *mut ::core::ffi::c_void, pfnenumoidfunc: PFN_CRYPT_ENUM_OID_FUNC) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEnumOIDInfo(dwgroupid: u32, dwflags: u32, pvarg: *mut ::core::ffi::c_void, pfnenumoidinfo: PFN_CRYPT_ENUM_OID_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEnumProviderTypesA(dwindex: u32, pdwreserved: *mut u32, dwflags: u32, pdwprovtype: *mut u32, sztypename: ::windows_sys::core::PSTR, pcbtypename: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEnumProviderTypesW(dwindex: u32, pdwreserved: *mut u32, dwflags: u32, pdwprovtype: *mut u32, sztypename: ::windows_sys::core::PWSTR, pcbtypename: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEnumProvidersA(dwindex: u32, pdwreserved: *mut u32, dwflags: u32, pdwprovtype: *mut u32, szprovname: ::windows_sys::core::PSTR, pcbprovname: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptEnumProvidersW(dwindex: u32, pdwreserved: *mut u32, dwflags: u32, pdwprovtype: *mut u32, szprovname: ::windows_sys::core::PWSTR, pcbprovname: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptExportKey(hkey: usize, hexpkey: usize, dwblobtype: u32, dwflags: CRYPT_KEY_FLAGS, pbdata: *mut u8, pdwdatalen: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptExportPKCS8(hcryptprov: usize, dwkeyspec: u32, pszprivatekeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pbprivatekeyblob: *mut u8, pcbprivatekeyblob: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptExportPublicKeyInfo(hcryptprovorncryptkey: HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwkeyspec: u32, dwcertencodingtype: u32, pinfo: *mut CERT_PUBLIC_KEY_INFO, pcbinfo: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptExportPublicKeyInfoEx(hcryptprovorncryptkey: HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwkeyspec: u32, dwcertencodingtype: u32, pszpublickeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pinfo: *mut CERT_PUBLIC_KEY_INFO, pcbinfo: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptExportPublicKeyInfoFromBCryptKeyHandle(hbcryptkey: BCRYPT_KEY_HANDLE, dwcertencodingtype: u32, pszpublickeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pinfo: *mut CERT_PUBLIC_KEY_INFO, pcbinfo: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptFindCertificateKeyProvInfo(pcert: *const CERT_CONTEXT, dwflags: CRYPT_FIND_FLAGS, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptFindLocalizedName(pwszcryptname: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::PWSTR;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptFindOIDInfo(dwkeytype: u32, pvkey: *const ::core::ffi::c_void, dwgroupid: u32) -> *mut CRYPT_OID_INFO;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptFormatObject(dwcertencodingtype: u32, dwformattype: u32, dwformatstrtype: u32, pformatstruct: *const ::core::ffi::c_void, lpszstructtype: ::windows_sys::core::PCSTR, pbencoded: *const u8, cbencoded: u32, pbformat: *mut ::core::ffi::c_void, pcbformat: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptFreeOIDFunctionAddress(hfuncaddr: *const ::core::ffi::c_void, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGenKey(hprov: usize, algid: u32, dwflags: CRYPT_KEY_FLAGS, phkey: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGenRandom(hprov: usize, dwlen: u32, pbbuffer: *mut u8) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetAsyncParam(hasync: HCRYPTASYNC, pszparamoid: ::windows_sys::core::PCSTR, ppvparam: *mut *mut ::core::ffi::c_void, ppfnfree: *mut PFN_CRYPT_ASYNC_PARAM_FREE_FUNC) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetDefaultOIDDllList(hfuncset: *const ::core::ffi::c_void, dwencodingtype: u32, pwszdlllist: ::windows_sys::core::PWSTR, pcchdlllist: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetDefaultOIDFunctionAddress(hfuncset: *const ::core::ffi::c_void, dwencodingtype: u32, pwszdll: ::windows_sys::core::PCWSTR, dwflags: u32, ppvfuncaddr: *mut *mut ::core::ffi::c_void, phfuncaddr: *mut *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetDefaultProviderA(dwprovtype: u32, pdwreserved: *mut u32, dwflags: u32, pszprovname: ::windows_sys::core::PSTR, pcbprovname: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetDefaultProviderW(dwprovtype: u32, pdwreserved: *mut u32, dwflags: u32, pszprovname: ::windows_sys::core::PWSTR, pcbprovname: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetHashParam(hhash: usize, dwparam: u32, pbdata: *mut u8, pdwdatalen: *mut u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetKeyIdentifierProperty(pkeyidentifier: *const CRYPTOAPI_BLOB, dwpropid: u32, dwflags: u32, pwszcomputername: ::windows_sys::core::PCWSTR, pvreserved: *mut ::core::ffi::c_void, pvdata: *mut ::core::ffi::c_void, pcbdata: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetKeyParam(hkey: usize, dwparam: CRYPT_KEY_PARAM_ID, pbdata: *mut u8, pdwdatalen: *mut u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptGetMessageCertificates(dwmsgandcertencodingtype: u32, hcryptprov: HCRYPTPROV_LEGACY, dwflags: u32, pbsignedblob: *const u8, cbsignedblob: u32) -> HCERTSTORE;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptGetMessageSignerCount(dwmsgencodingtype: u32, pbsignedblob: *const u8, cbsignedblob: u32) -> i32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetOIDFunctionAddress(hfuncset: *const ::core::ffi::c_void, dwencodingtype: u32, pszoid: ::windows_sys::core::PCSTR, dwflags: u32, ppvfuncaddr: *mut *mut ::core::ffi::c_void, phfuncaddr: *mut *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetOIDFunctionValue(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pszoid: ::windows_sys::core::PCSTR, pwszvaluename: ::windows_sys::core::PCWSTR, pdwvaluetype: *mut u32, pbvaluedata: *mut u8, pcbvaluedata: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetObjectUrl(pszurloid: ::windows_sys::core::PCSTR, pvpara: *const ::core::ffi::c_void, dwflags: CRYPT_GET_URL_FLAGS, purlarray: *mut CRYPT_URL_ARRAY, pcburlarray: *mut u32, purlinfo: *mut CRYPT_URL_INFO, pcburlinfo: *mut u32, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetProvParam(hprov: usize, dwparam: u32, pbdata: *mut u8, pdwdatalen: *mut u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptGetUserKey(hprov: usize, dwkeyspec: u32, phuserkey: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptHashCertificate(hcryptprov: HCRYPTPROV_LEGACY, algid: u32, dwflags: u32, pbencoded: *const u8, cbencoded: u32, pbcomputedhash: *mut u8, pcbcomputedhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptHashCertificate2(pwszcnghashalgid: ::windows_sys::core::PCWSTR, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, pbencoded: *const u8, cbencoded: u32, pbcomputedhash: *mut u8, pcbcomputedhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptHashData(hhash: usize, pbdata: *const u8, dwdatalen: u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptHashMessage(phashpara: *const CRYPT_HASH_MESSAGE_PARA, fdetachedhash: super::super::Foundation::BOOL, ctobehashed: u32, rgpbtobehashed: *const *const u8, rgcbtobehashed: *const u32, pbhashedblob: *mut u8, pcbhashedblob: *mut u32, pbcomputedhash: *mut u8, pcbcomputedhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptHashPublicKeyInfo(hcryptprov: HCRYPTPROV_LEGACY, algid: u32, dwflags: u32, dwcertencodingtype: u32, pinfo: *const CERT_PUBLIC_KEY_INFO, pbcomputedhash: *mut u8, pcbcomputedhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptHashSessionKey(hhash: usize, hkey: usize, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptHashToBeSigned(hcryptprov: HCRYPTPROV_LEGACY, dwcertencodingtype: u32, pbencoded: *const u8, cbencoded: u32, pbcomputedhash: *mut u8, pcbcomputedhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptImportKey(hprov: usize, pbdata: *const u8, dwdatalen: u32, hpubkey: usize, dwflags: CRYPT_KEY_FLAGS, phkey: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptImportPKCS8(sprivatekeyandparams: CRYPT_PKCS8_IMPORT_PARAMS, dwflags: CRYPT_KEY_FLAGS, phcryptprov: *mut usize, pvauxinfo: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptImportPublicKeyInfo(hcryptprov: usize, dwcertencodingtype: u32, pinfo: *const CERT_PUBLIC_KEY_INFO, phkey: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptImportPublicKeyInfoEx(hcryptprov: usize, dwcertencodingtype: u32, pinfo: *const CERT_PUBLIC_KEY_INFO, aikeyalg: u32, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, phkey: *mut usize) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptImportPublicKeyInfoEx2(dwcertencodingtype: u32, pinfo: *const CERT_PUBLIC_KEY_INFO, dwflags: CRYPT_IMPORT_PUBLIC_KEY_FLAGS, pvauxinfo: *const ::core::ffi::c_void, phkey: *mut BCRYPT_KEY_HANDLE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptInitOIDFunctionSet(pszfuncname: ::windows_sys::core::PCSTR, dwflags: u32) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptInstallCancelRetrieval(pfncancel: PFN_CRYPT_CANCEL_RETRIEVAL, pvarg: *const ::core::ffi::c_void, dwflags: u32, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptInstallDefaultContext(hcryptprov: usize, dwdefaulttype: CRYPT_DEFAULT_CONTEXT_TYPE, pvdefaultpara: *const ::core::ffi::c_void, dwflags: CRYPT_DEFAULT_CONTEXT_FLAGS, pvreserved: *mut ::core::ffi::c_void, phdefaultcontext: *mut *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptInstallOIDFunctionAddress(hmodule: super::super::Foundation::HINSTANCE, dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, cfuncentry: u32, rgfuncentry: *const CRYPT_OID_FUNC_ENTRY, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptMemAlloc(cbsize: u32) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptMemFree(pv: *const ::core::ffi::c_void);
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptMemRealloc(pv: *const ::core::ffi::c_void, cbsize: u32) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptMsgCalculateEncodedLength(dwmsgencodingtype: u32, dwflags: u32, dwmsgtype: u32, pvmsgencodeinfo: *const ::core::ffi::c_void, pszinnercontentobjid: ::windows_sys::core::PCSTR, cbdata: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgClose(hcryptmsg: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgControl(hcryptmsg: *const ::core::ffi::c_void, dwflags: u32, dwctrltype: u32, pvctrlpara: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgCountersign(hcryptmsg: *const ::core::ffi::c_void, dwindex: u32, ccountersigners: u32, rgcountersigners: *const CMSG_SIGNER_ENCODE_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgCountersignEncoded(dwencodingtype: u32, pbsignerinfo: *const u8, cbsignerinfo: u32, ccountersigners: u32, rgcountersigners: *const CMSG_SIGNER_ENCODE_INFO, pbcountersignature: *mut u8, pcbcountersignature: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptMsgDuplicate(hcryptmsg: *const ::core::ffi::c_void) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgEncodeAndSignCTL(dwmsgencodingtype: u32, pctlinfo: *const CTL_INFO, psigninfo: *const CMSG_SIGNED_ENCODE_INFO, dwflags: u32, pbencoded: *mut u8, pcbencoded: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgGetAndVerifySigner(hcryptmsg: *const ::core::ffi::c_void, csignerstore: u32, rghsignerstore: *const HCERTSTORE, dwflags: u32, ppsigner: *mut *mut CERT_CONTEXT, pdwsignerindex: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgGetParam(hcryptmsg: *const ::core::ffi::c_void, dwparamtype: u32, dwindex: u32, pvdata: *mut ::core::ffi::c_void, pcbdata: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgOpenToDecode(dwmsgencodingtype: u32, dwflags: u32, dwmsgtype: u32, hcryptprov: HCRYPTPROV_LEGACY, precipientinfo: *mut CERT_INFO, pstreaminfo: *const CMSG_STREAM_INFO) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgOpenToEncode(dwmsgencodingtype: u32, dwflags: u32, dwmsgtype: CRYPT_MSG_TYPE, pvmsgencodeinfo: *const ::core::ffi::c_void, pszinnercontentobjid: ::windows_sys::core::PCSTR, pstreaminfo: *const CMSG_STREAM_INFO) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgSignCTL(dwmsgencodingtype: u32, pbctlcontent: *const u8, cbctlcontent: u32, psigninfo: *const CMSG_SIGNED_ENCODE_INFO, dwflags: u32, pbencoded: *mut u8, pcbencoded: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgUpdate(hcryptmsg: *const ::core::ffi::c_void, pbdata: *const u8, cbdata: u32, ffinal: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgVerifyCountersignatureEncoded(hcryptprov: HCRYPTPROV_LEGACY, dwencodingtype: u32, pbsignerinfo: *const u8, cbsignerinfo: u32, pbsignerinfocountersignature: *const u8, cbsignerinfocountersignature: u32, pcicountersigner: *const CERT_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptMsgVerifyCountersignatureEncodedEx(hcryptprov: HCRYPTPROV_LEGACY, dwencodingtype: u32, pbsignerinfo: *const u8, cbsignerinfo: u32, pbsignerinfocountersignature: *const u8, cbsignerinfocountersignature: u32, dwsignertype: u32, pvsigner: *const ::core::ffi::c_void, dwflags: u32, pvextra: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptProtectData(pdatain: *const CRYPTOAPI_BLOB, szdatadescr: ::windows_sys::core::PCWSTR, poptionalentropy: *const CRYPTOAPI_BLOB, pvreserved: *mut ::core::ffi::c_void, ppromptstruct: *const CRYPTPROTECT_PROMPTSTRUCT, dwflags: u32, pdataout: *mut CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptProtectMemory(pdatain: *mut ::core::ffi::c_void, cbdatain: u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptQueryObject(dwobjecttype: CERT_QUERY_OBJECT_TYPE, pvobject: *const ::core::ffi::c_void, dwexpectedcontenttypeflags: CERT_QUERY_CONTENT_TYPE_FLAGS, dwexpectedformattypeflags: CERT_QUERY_FORMAT_TYPE_FLAGS, dwflags: u32, pdwmsgandcertencodingtype: *mut CERT_QUERY_ENCODING_TYPE, pdwcontenttype: *mut CERT_QUERY_CONTENT_TYPE, pdwformattype: *mut CERT_QUERY_FORMAT_TYPE, phcertstore: *mut HCERTSTORE, phmsg: *mut *mut ::core::ffi::c_void, ppvcontext: *mut *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptRegisterDefaultOIDFunction(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, dwindex: u32, pwszdll: ::windows_sys::core::PCWSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptRegisterOIDFunction(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pszoid: ::windows_sys::core::PCSTR, pwszdll: ::windows_sys::core::PCWSTR, pszoverridefuncname: ::windows_sys::core::PCSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptRegisterOIDInfo(pinfo: *const CRYPT_OID_INFO, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptReleaseContext(hprov: usize, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptRetrieveObjectByUrlA(pszurl: ::windows_sys::core::PCSTR, pszobjectoid: ::windows_sys::core::PCSTR, dwretrievalflags: u32, dwtimeout: u32, ppvobject: *mut *mut ::core::ffi::c_void, hasyncretrieve: HCRYPTASYNC, pcredentials: *const CRYPT_CREDENTIALS, pvverify: *const ::core::ffi::c_void, pauxinfo: *mut CRYPT_RETRIEVE_AUX_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptRetrieveObjectByUrlW(pszurl: ::windows_sys::core::PCWSTR, pszobjectoid: ::windows_sys::core::PCSTR, dwretrievalflags: u32, dwtimeout: u32, ppvobject: *mut *mut ::core::ffi::c_void, hasyncretrieve: HCRYPTASYNC, pcredentials: *const CRYPT_CREDENTIALS, pvverify: *const ::core::ffi::c_void, pauxinfo: *mut CRYPT_RETRIEVE_AUX_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptRetrieveTimeStamp(wszurl: ::windows_sys::core::PCWSTR, dwretrievalflags: u32, dwtimeout: u32, pszhashid: ::windows_sys::core::PCSTR, ppara: *const CRYPT_TIMESTAMP_PARA, pbdata: *const u8, cbdata: u32, pptscontext: *mut *mut CRYPT_TIMESTAMP_CONTEXT, pptssigner: *mut *mut CERT_CONTEXT, phstore: *mut HCERTSTORE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetAsyncParam(hasync: HCRYPTASYNC, pszparamoid: ::windows_sys::core::PCSTR, pvparam: *const ::core::ffi::c_void, pfnfree: PFN_CRYPT_ASYNC_PARAM_FREE_FUNC) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetHashParam(hhash: usize, dwparam: CRYPT_SET_HASH_PARAM, pbdata: *const u8, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetKeyIdentifierProperty(pkeyidentifier: *const CRYPTOAPI_BLOB, dwpropid: u32, dwflags: u32, pwszcomputername: ::windows_sys::core::PCWSTR, pvreserved: *mut ::core::ffi::c_void, pvdata: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetKeyParam(hkey: usize, dwparam: CRYPT_KEY_PARAM_ID, pbdata: *const u8, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`, `\"Win32_System_Registry\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Registry"))]
-    pub fn CryptSetOIDFunctionValue(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pszoid: ::windows_sys::core::PCSTR, pwszvaluename: ::windows_sys::core::PCWSTR, dwvaluetype: super::super::System::Registry::REG_VALUE_TYPE, pbvaluedata: *const u8, cbvaluedata: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetProvParam(hprov: usize, dwparam: CRYPT_SET_PROV_PARAM_ID, pbdata: *const u8, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetProviderA(pszprovname: ::windows_sys::core::PCSTR, dwprovtype: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetProviderExA(pszprovname: ::windows_sys::core::PCSTR, dwprovtype: u32, pdwreserved: *mut u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetProviderExW(pszprovname: ::windows_sys::core::PCWSTR, dwprovtype: u32, pdwreserved: *mut u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSetProviderW(pszprovname: ::windows_sys::core::PCWSTR, dwprovtype: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSignAndEncodeCertificate(hcryptprovorncryptkey: HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwkeyspec: CERT_KEY_SPEC, dwcertencodingtype: u32, lpszstructtype: ::windows_sys::core::PCSTR, pvstructinfo: *const ::core::ffi::c_void, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, pvhashauxinfo: *const ::core::ffi::c_void, pbencoded: *mut u8, pcbencoded: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSignAndEncryptMessage(psignpara: *const CRYPT_SIGN_MESSAGE_PARA, pencryptpara: *const CRYPT_ENCRYPT_MESSAGE_PARA, crecipientcert: u32, rgprecipientcert: *const *const CERT_CONTEXT, pbtobesignedandencrypted: *const u8, cbtobesignedandencrypted: u32, pbsignedandencryptedblob: *mut u8, pcbsignedandencryptedblob: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSignCertificate(hcryptprovorncryptkey: HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwkeyspec: u32, dwcertencodingtype: u32, pbencodedtobesigned: *const u8, cbencodedtobesigned: u32, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, pvhashauxinfo: *const ::core::ffi::c_void, pbsignature: *mut u8, pcbsignature: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSignHashA(hhash: usize, dwkeyspec: u32, szdescription: ::windows_sys::core::PCSTR, dwflags: u32, pbsignature: *mut u8, pdwsiglen: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSignHashW(hhash: usize, dwkeyspec: u32, szdescription: ::windows_sys::core::PCWSTR, dwflags: u32, pbsignature: *mut u8, pdwsiglen: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSignMessage(psignpara: *const CRYPT_SIGN_MESSAGE_PARA, fdetachedsignature: super::super::Foundation::BOOL, ctobesigned: u32, rgpbtobesigned: *const *const u8, rgcbtobesigned: *const u32, pbsignedblob: *mut u8, pcbsignedblob: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptSignMessageWithKey(psignpara: *const CRYPT_KEY_SIGN_MESSAGE_PARA, pbtobesigned: *const u8, cbtobesigned: u32, pbsignedblob: *mut u8, pcbsignedblob: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptStringToBinaryA(pszstring: ::windows_sys::core::PCSTR, cchstring: u32, dwflags: CRYPT_STRING, pbbinary: *mut u8, pcbbinary: *mut u32, pdwskip: *mut u32, pdwflags: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptStringToBinaryW(pszstring: ::windows_sys::core::PCWSTR, cchstring: u32, dwflags: CRYPT_STRING, pbbinary: *mut u8, pcbbinary: *mut u32, pdwskip: *mut u32, pdwflags: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUninstallCancelRetrieval(dwflags: u32, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUninstallDefaultContext(hdefaultcontext: *const ::core::ffi::c_void, dwflags: u32, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUnprotectData(pdatain: *const CRYPTOAPI_BLOB, ppszdatadescr: *mut ::windows_sys::core::PWSTR, poptionalentropy: *const CRYPTOAPI_BLOB, pvreserved: *mut ::core::ffi::c_void, ppromptstruct: *const CRYPTPROTECT_PROMPTSTRUCT, dwflags: u32, pdataout: *mut CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUnprotectMemory(pdatain: *mut ::core::ffi::c_void, cbdatain: u32, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUnregisterDefaultOIDFunction(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pwszdll: ::windows_sys::core::PCWSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUnregisterOIDFunction(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pszoid: ::windows_sys::core::PCSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUnregisterOIDInfo(pinfo: *const CRYPT_OID_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptUpdateProtectedState(poldsid: super::super::Foundation::PSID, pwszoldpassword: ::windows_sys::core::PCWSTR, dwflags: u32, pdwsuccesscount: *mut u32, pdwfailurecount: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyCertificateSignature(hcryptprov: HCRYPTPROV_LEGACY, dwcertencodingtype: u32, pbencoded: *const u8, cbencoded: u32, ppublickey: *const CERT_PUBLIC_KEY_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyCertificateSignatureEx(hcryptprov: HCRYPTPROV_LEGACY, dwcertencodingtype: u32, dwsubjecttype: u32, pvsubject: *const ::core::ffi::c_void, dwissuertype: u32, pvissuer: *const ::core::ffi::c_void, dwflags: CRYPT_VERIFY_CERT_FLAGS, pvextra: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyDetachedMessageHash(phashpara: *const CRYPT_HASH_MESSAGE_PARA, pbdetachedhashblob: *const u8, cbdetachedhashblob: u32, ctobehashed: u32, rgpbtobehashed: *const *const u8, rgcbtobehashed: *const u32, pbcomputedhash: *mut u8, pcbcomputedhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyDetachedMessageSignature(pverifypara: *const CRYPT_VERIFY_MESSAGE_PARA, dwsignerindex: u32, pbdetachedsignblob: *const u8, cbdetachedsignblob: u32, ctobesigned: u32, rgpbtobesigned: *const *const u8, rgcbtobesigned: *const u32, ppsignercert: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyMessageHash(phashpara: *const CRYPT_HASH_MESSAGE_PARA, pbhashedblob: *const u8, cbhashedblob: u32, pbtobehashed: *mut u8, pcbtobehashed: *mut u32, pbcomputedhash: *mut u8, pcbcomputedhash: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyMessageSignature(pverifypara: *const CRYPT_VERIFY_MESSAGE_PARA, dwsignerindex: u32, pbsignedblob: *const u8, cbsignedblob: u32, pbdecoded: *mut u8, pcbdecoded: *mut u32, ppsignercert: *mut *mut CERT_CONTEXT) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyMessageSignatureWithKey(pverifypara: *const CRYPT_KEY_VERIFY_MESSAGE_PARA, ppublickeyinfo: *const CERT_PUBLIC_KEY_INFO, pbsignedblob: *const u8, cbsignedblob: u32, pbdecoded: *mut u8, pcbdecoded: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifySignatureA(hhash: usize, pbsignature: *const u8, dwsiglen: u32, hpubkey: usize, szdescription: ::windows_sys::core::PCSTR, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifySignatureW(hhash: usize, pbsignature: *const u8, dwsiglen: u32, hpubkey: usize, szdescription: ::windows_sys::core::PCWSTR, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptVerifyTimeStampSignature(pbtscontentinfo: *const u8, cbtscontentinfo: u32, pbdata: *const u8, cbdata: u32, hadditionalstore: HCERTSTORE, pptscontext: *mut *mut CRYPT_TIMESTAMP_CONTEXT, pptssigner: *mut *mut CERT_CONTEXT, phstore: *mut HCERTSTORE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlAddObject(hsignatureorobject: *const ::core::ffi::c_void, dwflags: u32, rgproperty: *const CRYPT_XML_PROPERTY, cproperty: u32, pencoded: *const CRYPT_XML_BLOB, ppobject: *mut *mut CRYPT_XML_OBJECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlClose(hcryptxml: *const ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlCreateReference(hcryptxml: *const ::core::ffi::c_void, dwflags: u32, wszid: ::windows_sys::core::PCWSTR, wszuri: ::windows_sys::core::PCWSTR, wsztype: ::windows_sys::core::PCWSTR, pdigestmethod: *const CRYPT_XML_ALGORITHM, ctransform: u32, rgtransform: *const CRYPT_XML_ALGORITHM, phreference: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlDigestReference(hreference: *const ::core::ffi::c_void, dwflags: u32, pdataproviderin: *const CRYPT_XML_DATA_PROVIDER) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlEncode(hcryptxml: *const ::core::ffi::c_void, dwcharset: CRYPT_XML_CHARSET, rgproperty: *const CRYPT_XML_PROPERTY, cproperty: u32, pvcallbackstate: *mut ::core::ffi::c_void, pfnwrite: PFN_CRYPT_XML_WRITE_CALLBACK) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CryptXmlEnumAlgorithmInfo(dwgroupid: u32, dwflags: u32, pvarg: *mut ::core::ffi::c_void, pfnenumalginfo: PFN_CRYPT_XML_ENUM_ALG_INFO) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlFindAlgorithmInfo(dwfindbytype: u32, pvfindby: *const ::core::ffi::c_void, dwgroupid: u32, dwflags: u32) -> *mut CRYPT_XML_ALGORITHM_INFO;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlGetAlgorithmInfo(pxmlalgorithm: *const CRYPT_XML_ALGORITHM, dwflags: CRYPT_XML_FLAGS, ppalginfo: *mut *mut CRYPT_XML_ALGORITHM_INFO) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlGetDocContext(hcryptxml: *const ::core::ffi::c_void, ppstruct: *mut *mut CRYPT_XML_DOC_CTXT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlGetReference(hcryptxml: *const ::core::ffi::c_void, ppstruct: *mut *mut CRYPT_XML_REFERENCE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlGetSignature(hcryptxml: *const ::core::ffi::c_void, ppstruct: *mut *mut CRYPT_XML_SIGNATURE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlGetStatus(hcryptxml: *const ::core::ffi::c_void, pstatus: *mut CRYPT_XML_STATUS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlGetTransforms(ppconfig: *mut *mut CRYPT_XML_TRANSFORM_CHAIN_CONFIG) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlImportPublicKey(dwflags: CRYPT_XML_FLAGS, pkeyvalue: *const CRYPT_XML_KEY_VALUE, phkey: *mut BCRYPT_KEY_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlOpenToDecode(pconfig: *const CRYPT_XML_TRANSFORM_CHAIN_CONFIG, dwflags: CRYPT_XML_FLAGS, rgproperty: *const CRYPT_XML_PROPERTY, cproperty: u32, pencoded: *const CRYPT_XML_BLOB, phcryptxml: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlOpenToEncode(pconfig: *const CRYPT_XML_TRANSFORM_CHAIN_CONFIG, dwflags: CRYPT_XML_FLAGS, wszid: ::windows_sys::core::PCWSTR, rgproperty: *const CRYPT_XML_PROPERTY, cproperty: u32, pencoded: *const CRYPT_XML_BLOB, phsignature: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlSetHMACSecret(hsignature: *const ::core::ffi::c_void, pbsecret: *const u8, cbsecret: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlSign(hsignature: *const ::core::ffi::c_void, hkey: HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwkeyspec: CERT_KEY_SPEC, dwflags: CRYPT_XML_FLAGS, dwkeyinfospec: CRYPT_XML_KEYINFO_SPEC, pvkeyinfospec: *const ::core::ffi::c_void, psignaturemethod: *const CRYPT_XML_ALGORITHM, pcanonicalization: *const CRYPT_XML_ALGORITHM) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn CryptXmlVerifySignature(hsignature: *const ::core::ffi::c_void, hkey: BCRYPT_KEY_HANDLE, dwflags: CRYPT_XML_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn Decrypt(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, foaep: super::super::Foundation::BOOL, cbindata: u32, pindata: *const u8, pcboutdata: *mut u32, ppoutdata: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn Encrypt(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, foaep: super::super::Foundation::BOOL, cbindata: u32, pindata: *const u8, pcboutdata: *mut u32, ppoutdata: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn FindCertsByIssuer(pcertchains: *mut CERT_CHAIN, pcbcertchains: *mut u32, pccertchains: *mut u32, pbencodedissuername: *const u8, cbencodedissuername: u32, pwszpurpose: ::windows_sys::core::PCWSTR, dwkeyspec: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FreeToken(pallocmemory: *const GENERIC_XML_TOKEN) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn GenerateDerivedKey(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, cblabel: u32, plabel: *const u8, cbnonce: u32, pnonce: *const u8, derivedkeylength: u32, offset: u32, algid: ::windows_sys::core::PCWSTR, pcbkey: *mut u32, ppkey: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn GetBrowserToken(dwparamtype: u32, pparam: *const ::core::ffi::c_void, pcbtoken: *mut u32, pptoken: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn GetCryptoTransform(hsymmetriccrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, mode: u32, padding: PaddingMode, feedbacksize: u32, direction: Direction, cbiv: u32, piv: *const u8, pphtransform: *mut *mut INFORMATIONCARD_CRYPTO_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn GetKeyedHash(hsymmetriccrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, pphhash: *mut *mut INFORMATIONCARD_CRYPTO_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetToken(cpolicychain: u32, ppolicychain: *const POLICY_ELEMENT, securitytoken: *mut *mut GENERIC_XML_TOKEN, phprooftokencrypto: *mut *mut INFORMATIONCARD_CRYPTO_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn HashCore(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, cbindata: u32, pindata: *const u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn HashFinal(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, cbindata: u32, pindata: *const u8, pcboutdata: *mut u32, ppoutdata: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn ImportInformationCard(filename: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn ManageCardSpace() -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptCloseProtectionDescriptor(hdescriptor: super::NCRYPT_DESCRIPTOR_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptCreateClaim(hsubjectkey: NCRYPT_KEY_HANDLE, hauthoritykey: NCRYPT_KEY_HANDLE, dwclaimtype: u32, pparameterlist: *const BCryptBufferDesc, pbclaimblob: *mut u8, cbclaimblob: u32, pcbresult: *mut u32, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptCreatePersistedKey(hprovider: NCRYPT_PROV_HANDLE, phkey: *mut NCRYPT_KEY_HANDLE, pszalgid: ::windows_sys::core::PCWSTR, pszkeyname: ::windows_sys::core::PCWSTR, dwlegacykeyspec: CERT_KEY_SPEC, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptCreateProtectionDescriptor(pwszdescriptorstring: ::windows_sys::core::PCWSTR, dwflags: u32, phdescriptor: *mut super::NCRYPT_DESCRIPTOR_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptDecrypt(hkey: NCRYPT_KEY_HANDLE, pbinput: *const u8, cbinput: u32, ppaddinginfo: *const ::core::ffi::c_void, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptDeleteKey(hkey: NCRYPT_KEY_HANDLE, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptDeriveKey(hsharedsecret: NCRYPT_SECRET_HANDLE, pwszkdf: ::windows_sys::core::PCWSTR, pparameterlist: *const BCryptBufferDesc, pbderivedkey: *mut u8, cbderivedkey: u32, pcbresult: *mut u32, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptEncrypt(hkey: NCRYPT_KEY_HANDLE, pbinput: *const u8, cbinput: u32, ppaddinginfo: *const ::core::ffi::c_void, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptEnumAlgorithms(hprovider: NCRYPT_PROV_HANDLE, dwalgoperations: NCRYPT_OPERATION, pdwalgcount: *mut u32, ppalglist: *mut *mut NCryptAlgorithmName, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptEnumKeys(hprovider: NCRYPT_PROV_HANDLE, pszscope: ::windows_sys::core::PCWSTR, ppkeyname: *mut *mut NCryptKeyName, ppenumstate: *mut *mut ::core::ffi::c_void, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptEnumStorageProviders(pdwprovidercount: *mut u32, ppproviderlist: *mut *mut NCryptProviderName, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptExportKey(hkey: NCRYPT_KEY_HANDLE, hexportkey: NCRYPT_KEY_HANDLE, pszblobtype: ::windows_sys::core::PCWSTR, pparameterlist: *const BCryptBufferDesc, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptFinalizeKey(hkey: NCRYPT_KEY_HANDLE, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptFreeBuffer(pvinput: *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptFreeObject(hobject: NCRYPT_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptGetProperty(hobject: NCRYPT_HANDLE, pszproperty: ::windows_sys::core::PCWSTR, pboutput: *mut u8, cboutput: u32, pcbresult: *mut u32, dwflags: super::OBJECT_SECURITY_INFORMATION) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptGetProtectionDescriptorInfo(hdescriptor: super::NCRYPT_DESCRIPTOR_HANDLE, pmempara: *const NCRYPT_ALLOC_PARA, dwinfotype: u32, ppvinfo: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptImportKey(hprovider: NCRYPT_PROV_HANDLE, himportkey: NCRYPT_KEY_HANDLE, pszblobtype: ::windows_sys::core::PCWSTR, pparameterlist: *const BCryptBufferDesc, phkey: *mut NCRYPT_KEY_HANDLE, pbdata: *const u8, cbdata: u32, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptIsAlgSupported(hprovider: NCRYPT_PROV_HANDLE, pszalgid: ::windows_sys::core::PCWSTR, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptIsKeyHandle(hkey: NCRYPT_KEY_HANDLE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptKeyDerivation(hkey: NCRYPT_KEY_HANDLE, pparameterlist: *const BCryptBufferDesc, pbderivedkey: *mut u8, cbderivedkey: u32, pcbresult: *mut u32, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptNotifyChangeKey(hprovider: NCRYPT_PROV_HANDLE, phevent: *mut super::super::Foundation::HANDLE, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptOpenKey(hprovider: NCRYPT_PROV_HANDLE, phkey: *mut NCRYPT_KEY_HANDLE, pszkeyname: ::windows_sys::core::PCWSTR, dwlegacykeyspec: CERT_KEY_SPEC, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptOpenStorageProvider(phprovider: *mut NCRYPT_PROV_HANDLE, pszprovidername: ::windows_sys::core::PCWSTR, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptProtectSecret(hdescriptor: super::NCRYPT_DESCRIPTOR_HANDLE, dwflags: u32, pbdata: *const u8, cbdata: u32, pmempara: *const NCRYPT_ALLOC_PARA, hwnd: super::super::Foundation::HWND, ppbprotectedblob: *mut *mut u8, pcbprotectedblob: *mut u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptQueryProtectionDescriptorName(pwszname: ::windows_sys::core::PCWSTR, pwszdescriptorstring: ::windows_sys::core::PWSTR, pcdescriptorstring: *mut usize, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptRegisterProtectionDescriptorName(pwszname: ::windows_sys::core::PCWSTR, pwszdescriptorstring: ::windows_sys::core::PCWSTR, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptSecretAgreement(hprivkey: NCRYPT_KEY_HANDLE, hpubkey: NCRYPT_KEY_HANDLE, phagreedsecret: *mut NCRYPT_SECRET_HANDLE, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptSetProperty(hobject: NCRYPT_HANDLE, pszproperty: ::windows_sys::core::PCWSTR, pbinput: *const u8, cbinput: u32, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptSignHash(hkey: NCRYPT_KEY_HANDLE, ppaddinginfo: *const ::core::ffi::c_void, pbhashvalue: *const u8, cbhashvalue: u32, pbsignature: *mut u8, cbsignature: u32, pcbresult: *mut u32, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptStreamClose(hstream: super::NCRYPT_STREAM_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptStreamOpenToProtect(hdescriptor: super::NCRYPT_DESCRIPTOR_HANDLE, dwflags: u32, hwnd: super::super::Foundation::HWND, pstreaminfo: *const NCRYPT_PROTECT_STREAM_INFO, phstream: *mut super::NCRYPT_STREAM_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptStreamOpenToUnprotect(pstreaminfo: *const NCRYPT_PROTECT_STREAM_INFO, dwflags: u32, hwnd: super::super::Foundation::HWND, phstream: *mut super::NCRYPT_STREAM_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptStreamOpenToUnprotectEx(pstreaminfo: *const NCRYPT_PROTECT_STREAM_INFO_EX, dwflags: u32, hwnd: super::super::Foundation::HWND, phstream: *mut super::NCRYPT_STREAM_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptStreamUpdate(hstream: super::NCRYPT_STREAM_HANDLE, pbdata: *const u8, cbdata: usize, ffinal: super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptTranslateHandle(phprovider: *mut NCRYPT_PROV_HANDLE, phkey: *mut NCRYPT_KEY_HANDLE, hlegacyprov: usize, hlegacykey: usize, dwlegacykeyspec: CERT_KEY_SPEC, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NCryptUnprotectSecret(phdescriptor: *mut super::NCRYPT_DESCRIPTOR_HANDLE, dwflags: NCRYPT_FLAGS, pbprotectedblob: *const u8, cbprotectedblob: u32, pmempara: *const NCRYPT_ALLOC_PARA, hwnd: super::super::Foundation::HWND, ppbdata: *mut *mut u8, pcbdata: *mut u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptVerifyClaim(hsubjectkey: NCRYPT_KEY_HANDLE, hauthoritykey: NCRYPT_KEY_HANDLE, dwclaimtype: u32, pparameterlist: *const BCryptBufferDesc, pbclaimblob: *const u8, cbclaimblob: u32, poutput: *mut BCryptBufferDesc, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn NCryptVerifySignature(hkey: NCRYPT_KEY_HANDLE, ppaddinginfo: *const ::core::ffi::c_void, pbhashvalue: *const u8, cbhashvalue: u32, pbsignature: *const u8, cbsignature: u32, dwflags: NCRYPT_FLAGS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PFXExportCertStore(hstore: HCERTSTORE, ppfx: *mut CRYPTOAPI_BLOB, szpassword: ::windows_sys::core::PCWSTR, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PFXExportCertStoreEx(hstore: HCERTSTORE, ppfx: *mut CRYPTOAPI_BLOB, szpassword: ::windows_sys::core::PCWSTR, pvpara: *const ::core::ffi::c_void, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn PFXImportCertStore(ppfx: *const CRYPTOAPI_BLOB, szpassword: ::windows_sys::core::PCWSTR, dwflags: CRYPT_KEY_FLAGS) -> HCERTSTORE;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PFXIsPFXBlob(ppfx: *const CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PFXVerifyPassword(ppfx: *const CRYPTOAPI_BLOB, szpassword: ::windows_sys::core::PCWSTR, dwflags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn SignHash(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, cbhash: u32, phash: *const u8, hashalgoid: ::windows_sys::core::PCWSTR, pcbsig: *mut u32, ppsig: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn TransformBlock(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, cbindata: u32, pindata: *const u8, pcboutdata: *mut u32, ppoutdata: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-    pub fn TransformFinalBlock(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, cbindata: u32, pindata: *const u8, pcboutdata: *mut u32, ppoutdata: *mut *mut u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn VerifyHash(hcrypto: *const INFORMATIONCARD_CRYPTO_HANDLE, cbhash: u32, phash: *const u8, hashalgoid: ::windows_sys::core::PCWSTR, cbsig: u32, psig: *const u8, pfverified: *mut super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-}
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptAddContextFunction ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pszfunction : :: windows_sys::core::PCWSTR , dwposition : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptCloseAlgorithmProvider ( halgorithm : BCRYPT_ALG_HANDLE , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptConfigureContext ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , pconfig : *const CRYPT_CONTEXT_CONFIG ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptConfigureContextFunction ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pszfunction : :: windows_sys::core::PCWSTR , pconfig : *const CRYPT_CONTEXT_FUNCTION_CONFIG ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptCreateContext ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , pconfig : *const CRYPT_CONTEXT_CONFIG ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptCreateHash ( halgorithm : BCRYPT_ALG_HANDLE , phhash : *mut BCRYPT_HASH_HANDLE , pbhashobject : *mut u8 , cbhashobject : u32 , pbsecret : *const u8 , cbsecret : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptCreateMultiHash ( halgorithm : BCRYPT_ALG_HANDLE , phhash : *mut BCRYPT_HASH_HANDLE , nhashes : u32 , pbhashobject : *mut u8 , cbhashobject : u32 , pbsecret : *const u8 , cbsecret : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDecrypt ( hkey : BCRYPT_KEY_HANDLE , pbinput : *const u8 , cbinput : u32 , ppaddinginfo : *const ::core::ffi::c_void , pbiv : *mut u8 , cbiv : u32 , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : NCRYPT_FLAGS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDeleteContext ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDeriveKey ( hsharedsecret : BCRYPT_SECRET_HANDLE , pwszkdf : :: windows_sys::core::PCWSTR , pparameterlist : *const BCryptBufferDesc , pbderivedkey : *mut u8 , cbderivedkey : u32 , pcbresult : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDeriveKeyCapi ( hhash : BCRYPT_HASH_HANDLE , htargetalg : BCRYPT_ALG_HANDLE , pbderivedkey : *mut u8 , cbderivedkey : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDeriveKeyPBKDF2 ( hprf : BCRYPT_ALG_HANDLE , pbpassword : *const u8 , cbpassword : u32 , pbsalt : *const u8 , cbsalt : u32 , citerations : u64 , pbderivedkey : *mut u8 , cbderivedkey : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDestroyHash ( hhash : BCRYPT_HASH_HANDLE ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDestroyKey ( hkey : BCRYPT_KEY_HANDLE ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDestroySecret ( hsecret : BCRYPT_SECRET_HANDLE ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDuplicateHash ( hhash : BCRYPT_HASH_HANDLE , phnewhash : *mut BCRYPT_HASH_HANDLE , pbhashobject : *mut u8 , cbhashobject : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptDuplicateKey ( hkey : BCRYPT_KEY_HANDLE , phnewkey : *mut BCRYPT_KEY_HANDLE , pbkeyobject : *mut u8 , cbkeyobject : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptEncrypt ( hkey : BCRYPT_KEY_HANDLE , pbinput : *const u8 , cbinput : u32 , ppaddinginfo : *const ::core::ffi::c_void , pbiv : *mut u8 , cbiv : u32 , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : NCRYPT_FLAGS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptEnumAlgorithms ( dwalgoperations : BCRYPT_OPERATION , palgcount : *mut u32 , ppalglist : *mut *mut BCRYPT_ALGORITHM_IDENTIFIER , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptEnumContextFunctionProviders ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pszfunction : :: windows_sys::core::PCWSTR , pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_CONTEXT_FUNCTION_PROVIDERS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptEnumContextFunctions ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_CONTEXT_FUNCTIONS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptEnumContexts ( dwtable : BCRYPT_TABLE , pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_CONTEXTS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptEnumProviders ( pszalgid : :: windows_sys::core::PCWSTR , pimplcount : *mut u32 , ppimpllist : *mut *mut BCRYPT_PROVIDER_NAME , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptEnumRegisteredProviders ( pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_PROVIDERS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptExportKey ( hkey : BCRYPT_KEY_HANDLE , hexportkey : BCRYPT_KEY_HANDLE , pszblobtype : :: windows_sys::core::PCWSTR , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptFinalizeKeyPair ( hkey : BCRYPT_KEY_HANDLE , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptFinishHash ( hhash : BCRYPT_HASH_HANDLE , pboutput : *mut u8 , cboutput : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn BCryptFreeBuffer ( pvbuffer : *const ::core::ffi::c_void ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptGenRandom ( halgorithm : BCRYPT_ALG_HANDLE , pbbuffer : *mut u8 , cbbuffer : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptGenerateKeyPair ( halgorithm : BCRYPT_ALG_HANDLE , phkey : *mut BCRYPT_KEY_HANDLE , dwlength : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptGenerateSymmetricKey ( halgorithm : BCRYPT_ALG_HANDLE , phkey : *mut BCRYPT_KEY_HANDLE , pbkeyobject : *mut u8 , cbkeyobject : u32 , pbsecret : *const u8 , cbsecret : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptGetFipsAlgorithmMode ( pfenabled : *mut u8 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptGetProperty ( hobject : BCRYPT_HANDLE , pszproperty : :: windows_sys::core::PCWSTR , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptHash ( halgorithm : BCRYPT_ALG_HANDLE , pbsecret : *const u8 , cbsecret : u32 , pbinput : *const u8 , cbinput : u32 , pboutput : *mut u8 , cboutput : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptHashData ( hhash : BCRYPT_HASH_HANDLE , pbinput : *const u8 , cbinput : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptImportKey ( halgorithm : BCRYPT_ALG_HANDLE , himportkey : BCRYPT_KEY_HANDLE , pszblobtype : :: windows_sys::core::PCWSTR , phkey : *mut BCRYPT_KEY_HANDLE , pbkeyobject : *mut u8 , cbkeyobject : u32 , pbinput : *const u8 , cbinput : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptImportKeyPair ( halgorithm : BCRYPT_ALG_HANDLE , himportkey : BCRYPT_KEY_HANDLE , pszblobtype : :: windows_sys::core::PCWSTR , phkey : *mut BCRYPT_KEY_HANDLE , pbinput : *const u8 , cbinput : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptKeyDerivation ( hkey : BCRYPT_KEY_HANDLE , pparameterlist : *const BCryptBufferDesc , pbderivedkey : *mut u8 , cbderivedkey : u32 , pcbresult : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptOpenAlgorithmProvider ( phalgorithm : *mut BCRYPT_ALG_HANDLE , pszalgid : :: windows_sys::core::PCWSTR , pszimplementation : :: windows_sys::core::PCWSTR , dwflags : BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptProcessMultiOperations ( hobject : BCRYPT_HANDLE , operationtype : BCRYPT_MULTI_OPERATION_TYPE , poperations : *const ::core::ffi::c_void , cboperations : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptQueryContextConfiguration ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_CONTEXT_CONFIG ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptQueryContextFunctionConfiguration ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pszfunction : :: windows_sys::core::PCWSTR , pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_CONTEXT_FUNCTION_CONFIG ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptQueryContextFunctionProperty ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pszfunction : :: windows_sys::core::PCWSTR , pszproperty : :: windows_sys::core::PCWSTR , pcbvalue : *mut u32 , ppbvalue : *mut *mut u8 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptQueryProviderRegistration ( pszprovider : :: windows_sys::core::PCWSTR , dwmode : BCRYPT_QUERY_PROVIDER_MODE , dwinterface : BCRYPT_INTERFACE , pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_PROVIDER_REG ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptRegisterConfigChangeNotify ( phevent : *mut super::super::Foundation:: HANDLE ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptRemoveContextFunction ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pszfunction : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptResolveProviders ( pszcontext : :: windows_sys::core::PCWSTR , dwinterface : u32 , pszfunction : :: windows_sys::core::PCWSTR , pszprovider : :: windows_sys::core::PCWSTR , dwmode : BCRYPT_QUERY_PROVIDER_MODE , dwflags : BCRYPT_RESOLVE_PROVIDERS_FLAGS , pcbbuffer : *mut u32 , ppbuffer : *mut *mut CRYPT_PROVIDER_REFS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptSecretAgreement ( hprivkey : BCRYPT_KEY_HANDLE , hpubkey : BCRYPT_KEY_HANDLE , phagreedsecret : *mut BCRYPT_SECRET_HANDLE , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptSetContextFunctionProperty ( dwtable : BCRYPT_TABLE , pszcontext : :: windows_sys::core::PCWSTR , dwinterface : BCRYPT_INTERFACE , pszfunction : :: windows_sys::core::PCWSTR , pszproperty : :: windows_sys::core::PCWSTR , cbvalue : u32 , pbvalue : *const u8 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptSetProperty ( hobject : BCRYPT_HANDLE , pszproperty : :: windows_sys::core::PCWSTR , pbinput : *const u8 , cbinput : u32 , dwflags : u32 ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptSignHash ( hkey : BCRYPT_KEY_HANDLE , ppaddinginfo : *const ::core::ffi::c_void , pbinput : *const u8 , cbinput : u32 , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : NCRYPT_FLAGS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptUnregisterConfigChangeNotify ( hevent : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "bcrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn BCryptVerifySignature ( hkey : BCRYPT_KEY_HANDLE , ppaddinginfo : *const ::core::ffi::c_void , pbhash : *const u8 , cbhash : u32 , pbsignature : *const u8 , cbsignature : u32 , dwflags : NCRYPT_FLAGS ) -> super::super::Foundation:: NTSTATUS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddCRLContextToStore ( hcertstore : HCERTSTORE , pcrlcontext : *const CRL_CONTEXT , dwadddisposition : u32 , ppstorecontext : *mut *mut CRL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddCRLLinkToStore ( hcertstore : HCERTSTORE , pcrlcontext : *const CRL_CONTEXT , dwadddisposition : u32 , ppstorecontext : *mut *mut CRL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddCTLContextToStore ( hcertstore : HCERTSTORE , pctlcontext : *const CTL_CONTEXT , dwadddisposition : u32 , ppstorecontext : *mut *mut CTL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddCTLLinkToStore ( hcertstore : HCERTSTORE , pctlcontext : *const CTL_CONTEXT , dwadddisposition : u32 , ppstorecontext : *mut *mut CTL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddCertificateContextToStore ( hcertstore : HCERTSTORE , pcertcontext : *const CERT_CONTEXT , dwadddisposition : u32 , ppstorecontext : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddCertificateLinkToStore ( hcertstore : HCERTSTORE , pcertcontext : *const CERT_CONTEXT , dwadddisposition : u32 , ppstorecontext : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddEncodedCRLToStore ( hcertstore : HCERTSTORE , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbcrlencoded : *const u8 , cbcrlencoded : u32 , dwadddisposition : u32 , ppcrlcontext : *mut *mut CRL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddEncodedCTLToStore ( hcertstore : HCERTSTORE , dwmsgandcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbctlencoded : *const u8 , cbctlencoded : u32 , dwadddisposition : u32 , ppctlcontext : *mut *mut CTL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddEncodedCertificateToStore ( hcertstore : HCERTSTORE , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbcertencoded : *const u8 , cbcertencoded : u32 , dwadddisposition : u32 , ppcertcontext : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddEncodedCertificateToSystemStoreA ( szcertstorename : :: windows_sys::core::PCSTR , pbcertencoded : *const u8 , cbcertencoded : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddEncodedCertificateToSystemStoreW ( szcertstorename : :: windows_sys::core::PCWSTR , pbcertencoded : *const u8 , cbcertencoded : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddEnhancedKeyUsageIdentifier ( pcertcontext : *const CERT_CONTEXT , pszusageidentifier : :: windows_sys::core::PCSTR ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertAddRefServerOcspResponse ( hserverocspresponse : *const ::core::ffi::c_void ) -> ( ) );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertAddRefServerOcspResponseContext ( pserverocspresponsecontext : *const CERT_SERVER_OCSP_RESPONSE_CONTEXT ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddSerializedElementToStore ( hcertstore : HCERTSTORE , pbelement : *const u8 , cbelement : u32 , dwadddisposition : u32 , dwflags : u32 , dwcontexttypeflags : u32 , pdwcontexttype : *mut u32 , ppvcontext : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertAddStoreToCollection ( hcollectionstore : HCERTSTORE , hsiblingstore : HCERTSTORE , dwupdateflags : u32 , dwpriority : u32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertAlgIdToOID ( dwalgid : u32 ) -> :: windows_sys::core::PSTR );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertCloseServerOcspResponse ( hserverocspresponse : *const ::core::ffi::c_void , dwflags : u32 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCloseStore ( hcertstore : HCERTSTORE , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCompareCertificate ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pcertid1 : *const CERT_INFO , pcertid2 : *const CERT_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCompareCertificateName ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pcertname1 : *const CRYPT_INTEGER_BLOB , pcertname2 : *const CRYPT_INTEGER_BLOB ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCompareIntegerBlob ( pint1 : *const CRYPT_INTEGER_BLOB , pint2 : *const CRYPT_INTEGER_BLOB ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertComparePublicKeyInfo ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , ppublickey1 : *const CERT_PUBLIC_KEY_INFO , ppublickey2 : *const CERT_PUBLIC_KEY_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertControlStore ( hcertstore : HCERTSTORE , dwflags : CERT_CONTROL_STORE_FLAGS , dwctrltype : u32 , pvctrlpara : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCreateCRLContext ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbcrlencoded : *const u8 , cbcrlencoded : u32 ) -> *mut CRL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCreateCTLContext ( dwmsgandcertencodingtype : u32 , pbctlencoded : *const u8 , cbctlencoded : u32 ) -> *mut CTL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCreateCTLEntryFromCertificateContextProperties ( pcertcontext : *const CERT_CONTEXT , coptattr : u32 , rgoptattr : *const CRYPT_ATTRIBUTE , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void , pctlentry : *mut CTL_ENTRY , pcbctlentry : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCreateCertificateChainEngine ( pconfig : *const CERT_CHAIN_ENGINE_CONFIG , phchainengine : *mut HCERTCHAINENGINE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCreateCertificateContext ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbcertencoded : *const u8 , cbcertencoded : u32 ) -> *mut CERT_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCreateContext ( dwcontexttype : u32 , dwencodingtype : u32 , pbencoded : *const u8 , cbencoded : u32 , dwflags : u32 , pcreatepara : *const CERT_CREATE_CONTEXT_PARA ) -> *mut ::core::ffi::c_void );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertCreateSelfSignCertificate ( hcryptprovorncryptkey : HCRYPTPROV_OR_NCRYPT_KEY_HANDLE , psubjectissuerblob : *const CRYPT_INTEGER_BLOB , dwflags : CERT_CREATE_SELFSIGN_FLAGS , pkeyprovinfo : *const CRYPT_KEY_PROV_INFO , psignaturealgorithm : *const CRYPT_ALGORITHM_IDENTIFIER , pstarttime : *const super::super::Foundation:: SYSTEMTIME , pendtime : *const super::super::Foundation:: SYSTEMTIME , pextensions : *const CERT_EXTENSIONS ) -> *mut CERT_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertDeleteCRLFromStore ( pcrlcontext : *const CRL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertDeleteCTLFromStore ( pctlcontext : *const CTL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertDeleteCertificateFromStore ( pcertcontext : *const CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertDuplicateCRLContext ( pcrlcontext : *const CRL_CONTEXT ) -> *mut CRL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertDuplicateCTLContext ( pctlcontext : *const CTL_CONTEXT ) -> *mut CTL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertDuplicateCertificateChain ( pchaincontext : *const CERT_CHAIN_CONTEXT ) -> *mut CERT_CHAIN_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertDuplicateCertificateContext ( pcertcontext : *const CERT_CONTEXT ) -> *mut CERT_CONTEXT );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertDuplicateStore ( hcertstore : HCERTSTORE ) -> HCERTSTORE );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumCRLContextProperties ( pcrlcontext : *const CRL_CONTEXT , dwpropid : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumCRLsInStore ( hcertstore : HCERTSTORE , pprevcrlcontext : *const CRL_CONTEXT ) -> *mut CRL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumCTLContextProperties ( pctlcontext : *const CTL_CONTEXT , dwpropid : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumCTLsInStore ( hcertstore : HCERTSTORE , pprevctlcontext : *const CTL_CONTEXT ) -> *mut CTL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumCertificateContextProperties ( pcertcontext : *const CERT_CONTEXT , dwpropid : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumCertificatesInStore ( hcertstore : HCERTSTORE , pprevcertcontext : *const CERT_CONTEXT ) -> *mut CERT_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumPhysicalStore ( pvsystemstore : *const ::core::ffi::c_void , dwflags : u32 , pvarg : *mut ::core::ffi::c_void , pfnenum : PFN_CERT_ENUM_PHYSICAL_STORE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumSubjectInSortedCTL ( pctlcontext : *const CTL_CONTEXT , ppvnextsubject : *mut *mut ::core::ffi::c_void , psubjectidentifier : *mut CRYPT_INTEGER_BLOB , pencodedattributes : *mut CRYPT_INTEGER_BLOB ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumSystemStore ( dwflags : u32 , pvsystemstorelocationpara : *const ::core::ffi::c_void , pvarg : *mut ::core::ffi::c_void , pfnenum : PFN_CERT_ENUM_SYSTEM_STORE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertEnumSystemStoreLocation ( dwflags : u32 , pvarg : *mut ::core::ffi::c_void , pfnenum : PFN_CERT_ENUM_SYSTEM_STORE_LOCATION ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertFindAttribute ( pszobjid : :: windows_sys::core::PCSTR , cattr : u32 , rgattr : *const CRYPT_ATTRIBUTE ) -> *mut CRYPT_ATTRIBUTE );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindCRLInStore ( hcertstore : HCERTSTORE , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , dwfindflags : u32 , dwfindtype : u32 , pvfindpara : *const ::core::ffi::c_void , pprevcrlcontext : *const CRL_CONTEXT ) -> *mut CRL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindCTLInStore ( hcertstore : HCERTSTORE , dwmsgandcertencodingtype : u32 , dwfindflags : u32 , dwfindtype : CERT_FIND_TYPE , pvfindpara : *const ::core::ffi::c_void , pprevctlcontext : *const CTL_CONTEXT ) -> *mut CTL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindCertificateInCRL ( pcert : *const CERT_CONTEXT , pcrlcontext : *const CRL_CONTEXT , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void , ppcrlentry : *mut *mut CRL_ENTRY ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindCertificateInStore ( hcertstore : HCERTSTORE , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , dwfindflags : u32 , dwfindtype : CERT_FIND_FLAGS , pvfindpara : *const ::core::ffi::c_void , pprevcertcontext : *const CERT_CONTEXT ) -> *mut CERT_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindChainInStore ( hcertstore : HCERTSTORE , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , dwfindflags : CERT_FIND_CHAIN_IN_STORE_FLAGS , dwfindtype : u32 , pvfindpara : *const ::core::ffi::c_void , pprevchaincontext : *const CERT_CHAIN_CONTEXT ) -> *mut CERT_CHAIN_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindExtension ( pszobjid : :: windows_sys::core::PCSTR , cextensions : u32 , rgextensions : *const CERT_EXTENSION ) -> *mut CERT_EXTENSION );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertFindRDNAttr ( pszobjid : :: windows_sys::core::PCSTR , pname : *const CERT_NAME_INFO ) -> *mut CERT_RDN_ATTR );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindSubjectInCTL ( dwencodingtype : u32 , dwsubjecttype : u32 , pvsubject : *const ::core::ffi::c_void , pctlcontext : *const CTL_CONTEXT , dwflags : u32 ) -> *mut CTL_ENTRY );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFindSubjectInSortedCTL ( psubjectidentifier : *const CRYPT_INTEGER_BLOB , pctlcontext : *const CTL_CONTEXT , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void , pencodedattributes : *mut CRYPT_INTEGER_BLOB ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFreeCRLContext ( pcrlcontext : *const CRL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFreeCTLContext ( pctlcontext : *const CTL_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFreeCertificateChain ( pchaincontext : *const CERT_CHAIN_CONTEXT ) -> ( ) );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertFreeCertificateChainEngine ( hchainengine : HCERTCHAINENGINE ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFreeCertificateChainList ( prgpselection : *const *const CERT_CHAIN_CONTEXT ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertFreeCertificateContext ( pcertcontext : *const CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertFreeServerOcspResponseContext ( pserverocspresponsecontext : *const CERT_SERVER_OCSP_RESPONSE_CONTEXT ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetCRLContextProperty ( pcrlcontext : *const CRL_CONTEXT , dwpropid : u32 , pvdata : *mut ::core::ffi::c_void , pcbdata : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetCRLFromStore ( hcertstore : HCERTSTORE , pissuercontext : *const CERT_CONTEXT , pprevcrlcontext : *const CRL_CONTEXT , pdwflags : *mut u32 ) -> *mut CRL_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetCTLContextProperty ( pctlcontext : *const CTL_CONTEXT , dwpropid : u32 , pvdata : *mut ::core::ffi::c_void , pcbdata : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetCertificateChain ( hchainengine : HCERTCHAINENGINE , pcertcontext : *const CERT_CONTEXT , ptime : *const super::super::Foundation:: FILETIME , hadditionalstore : HCERTSTORE , pchainpara : *const CERT_CHAIN_PARA , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void , ppchaincontext : *mut *mut CERT_CHAIN_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetCertificateContextProperty ( pcertcontext : *const CERT_CONTEXT , dwpropid : u32 , pvdata : *mut ::core::ffi::c_void , pcbdata : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetEnhancedKeyUsage ( pcertcontext : *const CERT_CONTEXT , dwflags : u32 , pusage : *mut CTL_USAGE , pcbusage : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetIntendedKeyUsage ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pcertinfo : *const CERT_INFO , pbkeyusage : *mut u8 , cbkeyusage : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetIssuerCertificateFromStore ( hcertstore : HCERTSTORE , psubjectcontext : *const CERT_CONTEXT , pprevissuercontext : *const CERT_CONTEXT , pdwflags : *mut u32 ) -> *mut CERT_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetNameStringA ( pcertcontext : *const CERT_CONTEXT , dwtype : u32 , dwflags : u32 , pvtypepara : *const ::core::ffi::c_void , psznamestring : :: windows_sys::core::PSTR , cchnamestring : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetNameStringW ( pcertcontext : *const CERT_CONTEXT , dwtype : u32 , dwflags : u32 , pvtypepara : *const ::core::ffi::c_void , psznamestring : :: windows_sys::core::PWSTR , cchnamestring : u32 ) -> u32 );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertGetPublicKeyLength ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , ppublickey : *const CERT_PUBLIC_KEY_INFO ) -> u32 );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertGetServerOcspResponseContext ( hserverocspresponse : *const ::core::ffi::c_void , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void ) -> *mut CERT_SERVER_OCSP_RESPONSE_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetStoreProperty ( hcertstore : HCERTSTORE , dwpropid : u32 , pvdata : *mut ::core::ffi::c_void , pcbdata : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetSubjectCertificateFromStore ( hcertstore : HCERTSTORE , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pcertid : *const CERT_INFO ) -> *mut CERT_CONTEXT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertGetValidUsages ( ccerts : u32 , rghcerts : *const *const CERT_CONTEXT , cnumoids : *mut i32 , rghoids : *mut :: windows_sys::core::PSTR , pcboids : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertIsRDNAttrsInCertificateName ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , dwflags : u32 , pcertname : *const CRYPT_INTEGER_BLOB , prdn : *const CERT_RDN ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertIsStrongHashToSign ( pstrongsignpara : *const CERT_STRONG_SIGN_PARA , pwszcnghashalgid : :: windows_sys::core::PCWSTR , psigningcert : *const CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertIsValidCRLForCertificate ( pcert : *const CERT_CONTEXT , pcrl : *const CRL_CONTEXT , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertIsWeakHash ( dwhashusetype : u32 , pwszcnghashalgid : :: windows_sys::core::PCWSTR , dwchainflags : u32 , psignerchaincontext : *const CERT_CHAIN_CONTEXT , ptimestamp : *const super::super::Foundation:: FILETIME , pwszfilename : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertNameToStrA ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pname : *const CRYPT_INTEGER_BLOB , dwstrtype : CERT_STRING_TYPE , psz : :: windows_sys::core::PSTR , csz : u32 ) -> u32 );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertNameToStrW ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pname : *const CRYPT_INTEGER_BLOB , dwstrtype : CERT_STRING_TYPE , psz : :: windows_sys::core::PWSTR , csz : u32 ) -> u32 );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertOIDToAlgId ( pszobjid : :: windows_sys::core::PCSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertOpenServerOcspResponse ( pchaincontext : *const CERT_CHAIN_CONTEXT , dwflags : u32 , popenpara : *const CERT_SERVER_OCSP_RESPONSE_OPEN_PARA ) -> *mut ::core::ffi::c_void );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertOpenStore ( lpszstoreprovider : :: windows_sys::core::PCSTR , dwencodingtype : CERT_QUERY_ENCODING_TYPE , hcryptprov : HCRYPTPROV_LEGACY , dwflags : CERT_OPEN_STORE_FLAGS , pvpara : *const ::core::ffi::c_void ) -> HCERTSTORE );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertOpenSystemStoreA ( hprov : HCRYPTPROV_LEGACY , szsubsystemprotocol : :: windows_sys::core::PCSTR ) -> HCERTSTORE );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertOpenSystemStoreW ( hprov : HCRYPTPROV_LEGACY , szsubsystemprotocol : :: windows_sys::core::PCWSTR ) -> HCERTSTORE );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertRDNValueToStrA ( dwvaluetype : u32 , pvalue : *const CRYPT_INTEGER_BLOB , psz : :: windows_sys::core::PSTR , csz : u32 ) -> u32 );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertRDNValueToStrW ( dwvaluetype : u32 , pvalue : *const CRYPT_INTEGER_BLOB , psz : :: windows_sys::core::PWSTR , csz : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertRegisterPhysicalStore ( pvsystemstore : *const ::core::ffi::c_void , dwflags : u32 , pwszstorename : :: windows_sys::core::PCWSTR , pstoreinfo : *const CERT_PHYSICAL_STORE_INFO , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertRegisterSystemStore ( pvsystemstore : *const ::core::ffi::c_void , dwflags : u32 , pstoreinfo : *const CERT_SYSTEM_STORE_INFO , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertRemoveEnhancedKeyUsageIdentifier ( pcertcontext : *const CERT_CONTEXT , pszusageidentifier : :: windows_sys::core::PCSTR ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CertRemoveStoreFromCollection ( hcollectionstore : HCERTSTORE , hsiblingstore : HCERTSTORE ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertResyncCertificateChainEngine ( hchainengine : HCERTCHAINENGINE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertRetrieveLogoOrBiometricInfo ( pcertcontext : *const CERT_CONTEXT , lpszlogoorbiometrictype : :: windows_sys::core::PCSTR , dwretrievalflags : u32 , dwtimeout : u32 , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void , ppbdata : *mut *mut u8 , pcbdata : *mut u32 , ppwszmimetype : *mut :: windows_sys::core::PWSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSaveStore ( hcertstore : HCERTSTORE , dwencodingtype : CERT_QUERY_ENCODING_TYPE , dwsaveas : CERT_STORE_SAVE_AS , dwsaveto : CERT_STORE_SAVE_TO , pvsavetopara : *mut ::core::ffi::c_void , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSelectCertificateChains ( pselectioncontext : *const :: windows_sys::core::GUID , dwflags : u32 , pchainparameters : *const CERT_SELECT_CHAIN_PARA , ccriteria : u32 , rgpcriteria : *const CERT_SELECT_CRITERIA , hstore : HCERTSTORE , pcselection : *mut u32 , pprgpselection : *mut *mut *mut CERT_CHAIN_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSerializeCRLStoreElement ( pcrlcontext : *const CRL_CONTEXT , dwflags : u32 , pbelement : *mut u8 , pcbelement : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSerializeCTLStoreElement ( pctlcontext : *const CTL_CONTEXT , dwflags : u32 , pbelement : *mut u8 , pcbelement : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSerializeCertificateStoreElement ( pcertcontext : *const CERT_CONTEXT , dwflags : u32 , pbelement : *mut u8 , pcbelement : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSetCRLContextProperty ( pcrlcontext : *const CRL_CONTEXT , dwpropid : u32 , dwflags : u32 , pvdata : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSetCTLContextProperty ( pctlcontext : *const CTL_CONTEXT , dwpropid : u32 , dwflags : u32 , pvdata : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSetCertificateContextPropertiesFromCTLEntry ( pcertcontext : *const CERT_CONTEXT , pctlentry : *const CTL_ENTRY , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSetCertificateContextProperty ( pcertcontext : *const CERT_CONTEXT , dwpropid : u32 , dwflags : u32 , pvdata : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSetEnhancedKeyUsage ( pcertcontext : *const CERT_CONTEXT , pusage : *const CTL_USAGE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertSetStoreProperty ( hcertstore : HCERTSTORE , dwpropid : u32 , dwflags : u32 , pvdata : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertStrToNameA ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pszx500 : :: windows_sys::core::PCSTR , dwstrtype : CERT_STRING_TYPE , pvreserved : *mut ::core::ffi::c_void , pbencoded : *mut u8 , pcbencoded : *mut u32 , ppszerror : *mut :: windows_sys::core::PSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertStrToNameW ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pszx500 : :: windows_sys::core::PCWSTR , dwstrtype : CERT_STRING_TYPE , pvreserved : *mut ::core::ffi::c_void , pbencoded : *mut u8 , pcbencoded : *mut u32 , ppszerror : *mut :: windows_sys::core::PWSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertUnregisterPhysicalStore ( pvsystemstore : *const ::core::ffi::c_void , dwflags : u32 , pwszstorename : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertUnregisterSystemStore ( pvsystemstore : *const ::core::ffi::c_void , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifyCRLRevocation ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pcertid : *const CERT_INFO , ccrlinfo : u32 , rgpcrlinfo : *const *const CRL_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifyCRLTimeValidity ( ptimetoverify : *const super::super::Foundation:: FILETIME , pcrlinfo : *const CRL_INFO ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifyCTLUsage ( dwencodingtype : u32 , dwsubjecttype : u32 , pvsubject : *const ::core::ffi::c_void , psubjectusage : *const CTL_USAGE , dwflags : u32 , pverifyusagepara : *const CTL_VERIFY_USAGE_PARA , pverifyusagestatus : *mut CTL_VERIFY_USAGE_STATUS ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifyCertificateChainPolicy ( pszpolicyoid : :: windows_sys::core::PCSTR , pchaincontext : *const CERT_CHAIN_CONTEXT , ppolicypara : *const CERT_CHAIN_POLICY_PARA , ppolicystatus : *mut CERT_CHAIN_POLICY_STATUS ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifyRevocation ( dwencodingtype : u32 , dwrevtype : u32 , ccontext : u32 , rgpvcontext : *const *const ::core::ffi::c_void , dwflags : u32 , prevpara : *const CERT_REVOCATION_PARA , prevstatus : *mut CERT_REVOCATION_STATUS ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifySubjectCertificateContext ( psubject : *const CERT_CONTEXT , pissuer : *const CERT_CONTEXT , pdwflags : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifyTimeValidity ( ptimetoverify : *const super::super::Foundation:: FILETIME , pcertinfo : *const CERT_INFO ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CertVerifyValidityNesting ( psubjectinfo : *const CERT_INFO , pissuerinfo : *const CERT_INFO ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CloseCryptoHandle ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptAcquireCertificatePrivateKey ( pcert : *const CERT_CONTEXT , dwflags : CRYPT_ACQUIRE_FLAGS , pvparameters : *const ::core::ffi::c_void , phcryptprovorncryptkey : *mut HCRYPTPROV_OR_NCRYPT_KEY_HANDLE , pdwkeyspec : *mut CERT_KEY_SPEC , pfcallerfreeprovorncryptkey : *mut super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptAcquireContextA ( phprov : *mut usize , szcontainer : :: windows_sys::core::PCSTR , szprovider : :: windows_sys::core::PCSTR , dwprovtype : u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptAcquireContextW ( phprov : *mut usize , szcontainer : :: windows_sys::core::PCWSTR , szprovider : :: windows_sys::core::PCWSTR , dwprovtype : u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptBinaryToStringA ( pbbinary : *const u8 , cbbinary : u32 , dwflags : CRYPT_STRING , pszstring : :: windows_sys::core::PSTR , pcchstring : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptBinaryToStringW ( pbbinary : *const u8 , cbbinary : u32 , dwflags : CRYPT_STRING , pszstring : :: windows_sys::core::PWSTR , pcchstring : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptCloseAsyncHandle ( hasync : HCRYPTASYNC ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptContextAddRef ( hprov : usize , pdwreserved : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptCreateAsyncHandle ( dwflags : u32 , phasync : *mut HCRYPTASYNC ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptCreateHash ( hprov : usize , algid : u32 , hkey : usize , dwflags : u32 , phhash : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptCreateKeyIdentifierFromCSP ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pszpubkeyoid : :: windows_sys::core::PCSTR , ppubkeystruc : *const PUBLICKEYSTRUC , cbpubkeystruc : u32 , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void , pbhash : *mut u8 , pcbhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDecodeMessage ( dwmsgtypeflags : u32 , pdecryptpara : *const CRYPT_DECRYPT_MESSAGE_PARA , pverifypara : *const CRYPT_VERIFY_MESSAGE_PARA , dwsignerindex : u32 , pbencodedblob : *const u8 , cbencodedblob : u32 , dwprevinnercontenttype : u32 , pdwmsgtype : *mut u32 , pdwinnercontenttype : *mut u32 , pbdecoded : *mut u8 , pcbdecoded : *mut u32 , ppxchgcert : *mut *mut CERT_CONTEXT , ppsignercert : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDecodeObject ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , lpszstructtype : :: windows_sys::core::PCSTR , pbencoded : *const u8 , cbencoded : u32 , dwflags : u32 , pvstructinfo : *mut ::core::ffi::c_void , pcbstructinfo : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDecodeObjectEx ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , lpszstructtype : :: windows_sys::core::PCSTR , pbencoded : *const u8 , cbencoded : u32 , dwflags : u32 , pdecodepara : *const CRYPT_DECODE_PARA , pvstructinfo : *mut ::core::ffi::c_void , pcbstructinfo : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDecrypt ( hkey : usize , hhash : usize , r#final : super::super::Foundation:: BOOL , dwflags : u32 , pbdata : *mut u8 , pdwdatalen : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDecryptAndVerifyMessageSignature ( pdecryptpara : *const CRYPT_DECRYPT_MESSAGE_PARA , pverifypara : *const CRYPT_VERIFY_MESSAGE_PARA , dwsignerindex : u32 , pbencryptedblob : *const u8 , cbencryptedblob : u32 , pbdecrypted : *mut u8 , pcbdecrypted : *mut u32 , ppxchgcert : *mut *mut CERT_CONTEXT , ppsignercert : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDecryptMessage ( pdecryptpara : *const CRYPT_DECRYPT_MESSAGE_PARA , pbencryptedblob : *const u8 , cbencryptedblob : u32 , pbdecrypted : *mut u8 , pcbdecrypted : *mut u32 , ppxchgcert : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDeriveKey ( hprov : usize , algid : u32 , hbasedata : usize , dwflags : u32 , phkey : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDestroyHash ( hhash : usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDestroyKey ( hkey : usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDuplicateHash ( hhash : usize , pdwreserved : *mut u32 , dwflags : u32 , phhash : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptDuplicateKey ( hkey : usize , pdwreserved : *mut u32 , dwflags : u32 , phkey : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEncodeObject ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , lpszstructtype : :: windows_sys::core::PCSTR , pvstructinfo : *const ::core::ffi::c_void , pbencoded : *mut u8 , pcbencoded : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEncodeObjectEx ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , lpszstructtype : :: windows_sys::core::PCSTR , pvstructinfo : *const ::core::ffi::c_void , dwflags : CRYPT_ENCODE_OBJECT_FLAGS , pencodepara : *const CRYPT_ENCODE_PARA , pvencoded : *mut ::core::ffi::c_void , pcbencoded : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEncrypt ( hkey : usize , hhash : usize , r#final : super::super::Foundation:: BOOL , dwflags : u32 , pbdata : *mut u8 , pdwdatalen : *mut u32 , dwbuflen : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEncryptMessage ( pencryptpara : *const CRYPT_ENCRYPT_MESSAGE_PARA , crecipientcert : u32 , rgprecipientcert : *const *const CERT_CONTEXT , pbtobeencrypted : *const u8 , cbtobeencrypted : u32 , pbencryptedblob : *mut u8 , pcbencryptedblob : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEnumKeyIdentifierProperties ( pkeyidentifier : *const CRYPT_INTEGER_BLOB , dwpropid : u32 , dwflags : u32 , pwszcomputername : :: windows_sys::core::PCWSTR , pvreserved : *mut ::core::ffi::c_void , pvarg : *mut ::core::ffi::c_void , pfnenum : PFN_CRYPT_ENUM_KEYID_PROP ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEnumOIDFunction ( dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , pszoid : :: windows_sys::core::PCSTR , dwflags : u32 , pvarg : *mut ::core::ffi::c_void , pfnenumoidfunc : PFN_CRYPT_ENUM_OID_FUNC ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEnumOIDInfo ( dwgroupid : u32 , dwflags : u32 , pvarg : *mut ::core::ffi::c_void , pfnenumoidinfo : PFN_CRYPT_ENUM_OID_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEnumProviderTypesA ( dwindex : u32 , pdwreserved : *mut u32 , dwflags : u32 , pdwprovtype : *mut u32 , sztypename : :: windows_sys::core::PSTR , pcbtypename : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEnumProviderTypesW ( dwindex : u32 , pdwreserved : *mut u32 , dwflags : u32 , pdwprovtype : *mut u32 , sztypename : :: windows_sys::core::PWSTR , pcbtypename : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEnumProvidersA ( dwindex : u32 , pdwreserved : *mut u32 , dwflags : u32 , pdwprovtype : *mut u32 , szprovname : :: windows_sys::core::PSTR , pcbprovname : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptEnumProvidersW ( dwindex : u32 , pdwreserved : *mut u32 , dwflags : u32 , pdwprovtype : *mut u32 , szprovname : :: windows_sys::core::PWSTR , pcbprovname : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptExportKey ( hkey : usize , hexpkey : usize , dwblobtype : u32 , dwflags : CRYPT_KEY_FLAGS , pbdata : *mut u8 , pdwdatalen : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptExportPKCS8 ( hcryptprov : usize , dwkeyspec : u32 , pszprivatekeyobjid : :: windows_sys::core::PCSTR , dwflags : u32 , pvauxinfo : *const ::core::ffi::c_void , pbprivatekeyblob : *mut u8 , pcbprivatekeyblob : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptExportPublicKeyInfo ( hcryptprovorncryptkey : HCRYPTPROV_OR_NCRYPT_KEY_HANDLE , dwkeyspec : u32 , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pinfo : *mut CERT_PUBLIC_KEY_INFO , pcbinfo : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptExportPublicKeyInfoEx ( hcryptprovorncryptkey : HCRYPTPROV_OR_NCRYPT_KEY_HANDLE , dwkeyspec : u32 , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pszpublickeyobjid : :: windows_sys::core::PCSTR , dwflags : u32 , pvauxinfo : *const ::core::ffi::c_void , pinfo : *mut CERT_PUBLIC_KEY_INFO , pcbinfo : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptExportPublicKeyInfoFromBCryptKeyHandle ( hbcryptkey : BCRYPT_KEY_HANDLE , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pszpublickeyobjid : :: windows_sys::core::PCSTR , dwflags : u32 , pvauxinfo : *const ::core::ffi::c_void , pinfo : *mut CERT_PUBLIC_KEY_INFO , pcbinfo : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptFindCertificateKeyProvInfo ( pcert : *const CERT_CONTEXT , dwflags : CRYPT_FIND_FLAGS , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptFindLocalizedName ( pwszcryptname : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::PWSTR );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptFindOIDInfo ( dwkeytype : u32 , pvkey : *const ::core::ffi::c_void , dwgroupid : u32 ) -> *mut CRYPT_OID_INFO );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptFormatObject ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , dwformattype : u32 , dwformatstrtype : u32 , pformatstruct : *const ::core::ffi::c_void , lpszstructtype : :: windows_sys::core::PCSTR , pbencoded : *const u8 , cbencoded : u32 , pbformat : *mut ::core::ffi::c_void , pcbformat : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptFreeOIDFunctionAddress ( hfuncaddr : *const ::core::ffi::c_void , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGenKey ( hprov : usize , algid : u32 , dwflags : CRYPT_KEY_FLAGS , phkey : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGenRandom ( hprov : usize , dwlen : u32 , pbbuffer : *mut u8 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetAsyncParam ( hasync : HCRYPTASYNC , pszparamoid : :: windows_sys::core::PCSTR , ppvparam : *mut *mut ::core::ffi::c_void , ppfnfree : *mut PFN_CRYPT_ASYNC_PARAM_FREE_FUNC ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetDefaultOIDDllList ( hfuncset : *const ::core::ffi::c_void , dwencodingtype : u32 , pwszdlllist : :: windows_sys::core::PWSTR , pcchdlllist : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetDefaultOIDFunctionAddress ( hfuncset : *const ::core::ffi::c_void , dwencodingtype : u32 , pwszdll : :: windows_sys::core::PCWSTR , dwflags : u32 , ppvfuncaddr : *mut *mut ::core::ffi::c_void , phfuncaddr : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetDefaultProviderA ( dwprovtype : u32 , pdwreserved : *mut u32 , dwflags : u32 , pszprovname : :: windows_sys::core::PSTR , pcbprovname : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetDefaultProviderW ( dwprovtype : u32 , pdwreserved : *mut u32 , dwflags : u32 , pszprovname : :: windows_sys::core::PWSTR , pcbprovname : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetHashParam ( hhash : usize , dwparam : u32 , pbdata : *mut u8 , pdwdatalen : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetKeyIdentifierProperty ( pkeyidentifier : *const CRYPT_INTEGER_BLOB , dwpropid : u32 , dwflags : u32 , pwszcomputername : :: windows_sys::core::PCWSTR , pvreserved : *mut ::core::ffi::c_void , pvdata : *mut ::core::ffi::c_void , pcbdata : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetKeyParam ( hkey : usize , dwparam : CRYPT_KEY_PARAM_ID , pbdata : *mut u8 , pdwdatalen : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptGetMessageCertificates ( dwmsgandcertencodingtype : u32 , hcryptprov : HCRYPTPROV_LEGACY , dwflags : u32 , pbsignedblob : *const u8 , cbsignedblob : u32 ) -> HCERTSTORE );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptGetMessageSignerCount ( dwmsgencodingtype : u32 , pbsignedblob : *const u8 , cbsignedblob : u32 ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetOIDFunctionAddress ( hfuncset : *const ::core::ffi::c_void , dwencodingtype : u32 , pszoid : :: windows_sys::core::PCSTR , dwflags : u32 , ppvfuncaddr : *mut *mut ::core::ffi::c_void , phfuncaddr : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetOIDFunctionValue ( dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , pszoid : :: windows_sys::core::PCSTR , pwszvaluename : :: windows_sys::core::PCWSTR , pdwvaluetype : *mut u32 , pbvaluedata : *mut u8 , pcbvaluedata : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cryptnet.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetObjectUrl ( pszurloid : :: windows_sys::core::PCSTR , pvpara : *const ::core::ffi::c_void , dwflags : CRYPT_GET_URL_FLAGS , purlarray : *mut CRYPT_URL_ARRAY , pcburlarray : *mut u32 , purlinfo : *mut CRYPT_URL_INFO , pcburlinfo : *mut u32 , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetProvParam ( hprov : usize , dwparam : u32 , pbdata : *mut u8 , pdwdatalen : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptGetUserKey ( hprov : usize , dwkeyspec : u32 , phuserkey : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptHashCertificate ( hcryptprov : HCRYPTPROV_LEGACY , algid : u32 , dwflags : u32 , pbencoded : *const u8 , cbencoded : u32 , pbcomputedhash : *mut u8 , pcbcomputedhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptHashCertificate2 ( pwszcnghashalgid : :: windows_sys::core::PCWSTR , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void , pbencoded : *const u8 , cbencoded : u32 , pbcomputedhash : *mut u8 , pcbcomputedhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptHashData ( hhash : usize , pbdata : *const u8 , dwdatalen : u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptHashMessage ( phashpara : *const CRYPT_HASH_MESSAGE_PARA , fdetachedhash : super::super::Foundation:: BOOL , ctobehashed : u32 , rgpbtobehashed : *const *const u8 , rgcbtobehashed : *const u32 , pbhashedblob : *mut u8 , pcbhashedblob : *mut u32 , pbcomputedhash : *mut u8 , pcbcomputedhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptHashPublicKeyInfo ( hcryptprov : HCRYPTPROV_LEGACY , algid : u32 , dwflags : u32 , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pinfo : *const CERT_PUBLIC_KEY_INFO , pbcomputedhash : *mut u8 , pcbcomputedhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptHashSessionKey ( hhash : usize , hkey : usize , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptHashToBeSigned ( hcryptprov : HCRYPTPROV_LEGACY , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbencoded : *const u8 , cbencoded : u32 , pbcomputedhash : *mut u8 , pcbcomputedhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptImportKey ( hprov : usize , pbdata : *const u8 , dwdatalen : u32 , hpubkey : usize , dwflags : CRYPT_KEY_FLAGS , phkey : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptImportPKCS8 ( sprivatekeyandparams : CRYPT_PKCS8_IMPORT_PARAMS , dwflags : CRYPT_KEY_FLAGS , phcryptprov : *mut usize , pvauxinfo : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptImportPublicKeyInfo ( hcryptprov : usize , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pinfo : *const CERT_PUBLIC_KEY_INFO , phkey : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptImportPublicKeyInfoEx ( hcryptprov : usize , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pinfo : *const CERT_PUBLIC_KEY_INFO , aikeyalg : u32 , dwflags : u32 , pvauxinfo : *const ::core::ffi::c_void , phkey : *mut usize ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptImportPublicKeyInfoEx2 ( dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pinfo : *const CERT_PUBLIC_KEY_INFO , dwflags : CRYPT_IMPORT_PUBLIC_KEY_FLAGS , pvauxinfo : *const ::core::ffi::c_void , phkey : *mut BCRYPT_KEY_HANDLE ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptInitOIDFunctionSet ( pszfuncname : :: windows_sys::core::PCSTR , dwflags : u32 ) -> *mut ::core::ffi::c_void );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cryptnet.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptInstallCancelRetrieval ( pfncancel : PFN_CRYPT_CANCEL_RETRIEVAL , pvarg : *const ::core::ffi::c_void , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptInstallDefaultContext ( hcryptprov : usize , dwdefaulttype : CRYPT_DEFAULT_CONTEXT_TYPE , pvdefaultpara : *const ::core::ffi::c_void , dwflags : CRYPT_DEFAULT_CONTEXT_FLAGS , pvreserved : *mut ::core::ffi::c_void , phdefaultcontext : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptInstallOIDFunctionAddress ( hmodule : super::super::Foundation:: HINSTANCE , dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , cfuncentry : u32 , rgfuncentry : *const CRYPT_OID_FUNC_ENTRY , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptMemAlloc ( cbsize : u32 ) -> *mut ::core::ffi::c_void );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptMemFree ( pv : *const ::core::ffi::c_void ) -> ( ) );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptMemRealloc ( pv : *const ::core::ffi::c_void , cbsize : u32 ) -> *mut ::core::ffi::c_void );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptMsgCalculateEncodedLength ( dwmsgencodingtype : u32 , dwflags : u32 , dwmsgtype : u32 , pvmsgencodeinfo : *const ::core::ffi::c_void , pszinnercontentobjid : :: windows_sys::core::PCSTR , cbdata : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgClose ( hcryptmsg : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgControl ( hcryptmsg : *const ::core::ffi::c_void , dwflags : u32 , dwctrltype : u32 , pvctrlpara : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgCountersign ( hcryptmsg : *const ::core::ffi::c_void , dwindex : u32 , ccountersigners : u32 , rgcountersigners : *const CMSG_SIGNER_ENCODE_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgCountersignEncoded ( dwencodingtype : u32 , pbsignerinfo : *const u8 , cbsignerinfo : u32 , ccountersigners : u32 , rgcountersigners : *const CMSG_SIGNER_ENCODE_INFO , pbcountersignature : *mut u8 , pcbcountersignature : *mut u32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptMsgDuplicate ( hcryptmsg : *const ::core::ffi::c_void ) -> *mut ::core::ffi::c_void );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgEncodeAndSignCTL ( dwmsgencodingtype : u32 , pctlinfo : *const CTL_INFO , psigninfo : *const CMSG_SIGNED_ENCODE_INFO , dwflags : u32 , pbencoded : *mut u8 , pcbencoded : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgGetAndVerifySigner ( hcryptmsg : *const ::core::ffi::c_void , csignerstore : u32 , rghsignerstore : *const HCERTSTORE , dwflags : u32 , ppsigner : *mut *mut CERT_CONTEXT , pdwsignerindex : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgGetParam ( hcryptmsg : *const ::core::ffi::c_void , dwparamtype : u32 , dwindex : u32 , pvdata : *mut ::core::ffi::c_void , pcbdata : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgOpenToDecode ( dwmsgencodingtype : u32 , dwflags : u32 , dwmsgtype : u32 , hcryptprov : HCRYPTPROV_LEGACY , precipientinfo : *mut CERT_INFO , pstreaminfo : *const CMSG_STREAM_INFO ) -> *mut ::core::ffi::c_void );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgOpenToEncode ( dwmsgencodingtype : u32 , dwflags : u32 , dwmsgtype : CRYPT_MSG_TYPE , pvmsgencodeinfo : *const ::core::ffi::c_void , pszinnercontentobjid : :: windows_sys::core::PCSTR , pstreaminfo : *const CMSG_STREAM_INFO ) -> *mut ::core::ffi::c_void );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgSignCTL ( dwmsgencodingtype : u32 , pbctlcontent : *const u8 , cbctlcontent : u32 , psigninfo : *const CMSG_SIGNED_ENCODE_INFO , dwflags : u32 , pbencoded : *mut u8 , pcbencoded : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgUpdate ( hcryptmsg : *const ::core::ffi::c_void , pbdata : *const u8 , cbdata : u32 , ffinal : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgVerifyCountersignatureEncoded ( hcryptprov : HCRYPTPROV_LEGACY , dwencodingtype : u32 , pbsignerinfo : *const u8 , cbsignerinfo : u32 , pbsignerinfocountersignature : *const u8 , cbsignerinfocountersignature : u32 , pcicountersigner : *const CERT_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptMsgVerifyCountersignatureEncodedEx ( hcryptprov : HCRYPTPROV_LEGACY , dwencodingtype : u32 , pbsignerinfo : *const u8 , cbsignerinfo : u32 , pbsignerinfocountersignature : *const u8 , cbsignerinfocountersignature : u32 , dwsignertype : u32 , pvsigner : *const ::core::ffi::c_void , dwflags : u32 , pvextra : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptProtectData ( pdatain : *const CRYPT_INTEGER_BLOB , szdatadescr : :: windows_sys::core::PCWSTR , poptionalentropy : *const CRYPT_INTEGER_BLOB , pvreserved : *mut ::core::ffi::c_void , ppromptstruct : *const CRYPTPROTECT_PROMPTSTRUCT , dwflags : u32 , pdataout : *mut CRYPT_INTEGER_BLOB ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptProtectMemory ( pdatain : *mut ::core::ffi::c_void , cbdatain : u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptQueryObject ( dwobjecttype : CERT_QUERY_OBJECT_TYPE , pvobject : *const ::core::ffi::c_void , dwexpectedcontenttypeflags : CERT_QUERY_CONTENT_TYPE_FLAGS , dwexpectedformattypeflags : CERT_QUERY_FORMAT_TYPE_FLAGS , dwflags : u32 , pdwmsgandcertencodingtype : *mut CERT_QUERY_ENCODING_TYPE , pdwcontenttype : *mut CERT_QUERY_CONTENT_TYPE , pdwformattype : *mut CERT_QUERY_FORMAT_TYPE , phcertstore : *mut HCERTSTORE , phmsg : *mut *mut ::core::ffi::c_void , ppvcontext : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptRegisterDefaultOIDFunction ( dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , dwindex : u32 , pwszdll : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptRegisterOIDFunction ( dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , pszoid : :: windows_sys::core::PCSTR , pwszdll : :: windows_sys::core::PCWSTR , pszoverridefuncname : :: windows_sys::core::PCSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptRegisterOIDInfo ( pinfo : *const CRYPT_OID_INFO , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptReleaseContext ( hprov : usize , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cryptnet.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptRetrieveObjectByUrlA ( pszurl : :: windows_sys::core::PCSTR , pszobjectoid : :: windows_sys::core::PCSTR , dwretrievalflags : u32 , dwtimeout : u32 , ppvobject : *mut *mut ::core::ffi::c_void , hasyncretrieve : HCRYPTASYNC , pcredentials : *const CRYPT_CREDENTIALS , pvverify : *const ::core::ffi::c_void , pauxinfo : *mut CRYPT_RETRIEVE_AUX_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cryptnet.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptRetrieveObjectByUrlW ( pszurl : :: windows_sys::core::PCWSTR , pszobjectoid : :: windows_sys::core::PCSTR , dwretrievalflags : u32 , dwtimeout : u32 , ppvobject : *mut *mut ::core::ffi::c_void , hasyncretrieve : HCRYPTASYNC , pcredentials : *const CRYPT_CREDENTIALS , pvverify : *const ::core::ffi::c_void , pauxinfo : *mut CRYPT_RETRIEVE_AUX_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptRetrieveTimeStamp ( wszurl : :: windows_sys::core::PCWSTR , dwretrievalflags : u32 , dwtimeout : u32 , pszhashid : :: windows_sys::core::PCSTR , ppara : *const CRYPT_TIMESTAMP_PARA , pbdata : *const u8 , cbdata : u32 , pptscontext : *mut *mut CRYPT_TIMESTAMP_CONTEXT , pptssigner : *mut *mut CERT_CONTEXT , phstore : *mut HCERTSTORE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetAsyncParam ( hasync : HCRYPTASYNC , pszparamoid : :: windows_sys::core::PCSTR , pvparam : *const ::core::ffi::c_void , pfnfree : PFN_CRYPT_ASYNC_PARAM_FREE_FUNC ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetHashParam ( hhash : usize , dwparam : CRYPT_SET_HASH_PARAM , pbdata : *const u8 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetKeyIdentifierProperty ( pkeyidentifier : *const CRYPT_INTEGER_BLOB , dwpropid : u32 , dwflags : u32 , pwszcomputername : :: windows_sys::core::PCWSTR , pvreserved : *mut ::core::ffi::c_void , pvdata : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetKeyParam ( hkey : usize , dwparam : CRYPT_KEY_PARAM_ID , pbdata : *const u8 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Registry"))]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`, `\"Win32_System_Registry\"`*"] fn CryptSetOIDFunctionValue ( dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , pszoid : :: windows_sys::core::PCSTR , pwszvaluename : :: windows_sys::core::PCWSTR , dwvaluetype : super::super::System::Registry:: REG_VALUE_TYPE , pbvaluedata : *const u8 , cbvaluedata : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetProvParam ( hprov : usize , dwparam : CRYPT_SET_PROV_PARAM_ID , pbdata : *const u8 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetProviderA ( pszprovname : :: windows_sys::core::PCSTR , dwprovtype : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetProviderExA ( pszprovname : :: windows_sys::core::PCSTR , dwprovtype : u32 , pdwreserved : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetProviderExW ( pszprovname : :: windows_sys::core::PCWSTR , dwprovtype : u32 , pdwreserved : *mut u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSetProviderW ( pszprovname : :: windows_sys::core::PCWSTR , dwprovtype : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSignAndEncodeCertificate ( hcryptprovorncryptkey : HCRYPTPROV_OR_NCRYPT_KEY_HANDLE , dwkeyspec : CERT_KEY_SPEC , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , lpszstructtype : :: windows_sys::core::PCSTR , pvstructinfo : *const ::core::ffi::c_void , psignaturealgorithm : *const CRYPT_ALGORITHM_IDENTIFIER , pvhashauxinfo : *const ::core::ffi::c_void , pbencoded : *mut u8 , pcbencoded : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSignAndEncryptMessage ( psignpara : *const CRYPT_SIGN_MESSAGE_PARA , pencryptpara : *const CRYPT_ENCRYPT_MESSAGE_PARA , crecipientcert : u32 , rgprecipientcert : *const *const CERT_CONTEXT , pbtobesignedandencrypted : *const u8 , cbtobesignedandencrypted : u32 , pbsignedandencryptedblob : *mut u8 , pcbsignedandencryptedblob : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSignCertificate ( hcryptprovorncryptkey : HCRYPTPROV_OR_NCRYPT_KEY_HANDLE , dwkeyspec : u32 , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbencodedtobesigned : *const u8 , cbencodedtobesigned : u32 , psignaturealgorithm : *const CRYPT_ALGORITHM_IDENTIFIER , pvhashauxinfo : *const ::core::ffi::c_void , pbsignature : *mut u8 , pcbsignature : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSignHashA ( hhash : usize , dwkeyspec : u32 , szdescription : :: windows_sys::core::PCSTR , dwflags : u32 , pbsignature : *mut u8 , pdwsiglen : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSignHashW ( hhash : usize , dwkeyspec : u32 , szdescription : :: windows_sys::core::PCWSTR , dwflags : u32 , pbsignature : *mut u8 , pdwsiglen : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSignMessage ( psignpara : *const CRYPT_SIGN_MESSAGE_PARA , fdetachedsignature : super::super::Foundation:: BOOL , ctobesigned : u32 , rgpbtobesigned : *const *const u8 , rgcbtobesigned : *const u32 , pbsignedblob : *mut u8 , pcbsignedblob : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptSignMessageWithKey ( psignpara : *const CRYPT_KEY_SIGN_MESSAGE_PARA , pbtobesigned : *const u8 , cbtobesigned : u32 , pbsignedblob : *mut u8 , pcbsignedblob : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptStringToBinaryA ( pszstring : :: windows_sys::core::PCSTR , cchstring : u32 , dwflags : CRYPT_STRING , pbbinary : *mut u8 , pcbbinary : *mut u32 , pdwskip : *mut u32 , pdwflags : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptStringToBinaryW ( pszstring : :: windows_sys::core::PCWSTR , cchstring : u32 , dwflags : CRYPT_STRING , pbbinary : *mut u8 , pcbbinary : *mut u32 , pdwskip : *mut u32 , pdwflags : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cryptnet.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUninstallCancelRetrieval ( dwflags : u32 , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUninstallDefaultContext ( hdefaultcontext : *const ::core::ffi::c_void , dwflags : u32 , pvreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUnprotectData ( pdatain : *const CRYPT_INTEGER_BLOB , ppszdatadescr : *mut :: windows_sys::core::PWSTR , poptionalentropy : *const CRYPT_INTEGER_BLOB , pvreserved : *mut ::core::ffi::c_void , ppromptstruct : *const CRYPTPROTECT_PROMPTSTRUCT , dwflags : u32 , pdataout : *mut CRYPT_INTEGER_BLOB ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUnprotectMemory ( pdatain : *mut ::core::ffi::c_void , cbdatain : u32 , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUnregisterDefaultOIDFunction ( dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , pwszdll : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUnregisterOIDFunction ( dwencodingtype : u32 , pszfuncname : :: windows_sys::core::PCSTR , pszoid : :: windows_sys::core::PCSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUnregisterOIDInfo ( pinfo : *const CRYPT_OID_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptUpdateProtectedState ( poldsid : super::super::Foundation:: PSID , pwszoldpassword : :: windows_sys::core::PCWSTR , dwflags : u32 , pdwsuccesscount : *mut u32 , pdwfailurecount : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyCertificateSignature ( hcryptprov : HCRYPTPROV_LEGACY , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , pbencoded : *const u8 , cbencoded : u32 , ppublickey : *const CERT_PUBLIC_KEY_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyCertificateSignatureEx ( hcryptprov : HCRYPTPROV_LEGACY , dwcertencodingtype : CERT_QUERY_ENCODING_TYPE , dwsubjecttype : u32 , pvsubject : *const ::core::ffi::c_void , dwissuertype : u32 , pvissuer : *const ::core::ffi::c_void , dwflags : CRYPT_VERIFY_CERT_FLAGS , pvextra : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyDetachedMessageHash ( phashpara : *const CRYPT_HASH_MESSAGE_PARA , pbdetachedhashblob : *const u8 , cbdetachedhashblob : u32 , ctobehashed : u32 , rgpbtobehashed : *const *const u8 , rgcbtobehashed : *const u32 , pbcomputedhash : *mut u8 , pcbcomputedhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyDetachedMessageSignature ( pverifypara : *const CRYPT_VERIFY_MESSAGE_PARA , dwsignerindex : u32 , pbdetachedsignblob : *const u8 , cbdetachedsignblob : u32 , ctobesigned : u32 , rgpbtobesigned : *const *const u8 , rgcbtobesigned : *const u32 , ppsignercert : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyMessageHash ( phashpara : *const CRYPT_HASH_MESSAGE_PARA , pbhashedblob : *const u8 , cbhashedblob : u32 , pbtobehashed : *mut u8 , pcbtobehashed : *mut u32 , pbcomputedhash : *mut u8 , pcbcomputedhash : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyMessageSignature ( pverifypara : *const CRYPT_VERIFY_MESSAGE_PARA , dwsignerindex : u32 , pbsignedblob : *const u8 , cbsignedblob : u32 , pbdecoded : *mut u8 , pcbdecoded : *mut u32 , ppsignercert : *mut *mut CERT_CONTEXT ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyMessageSignatureWithKey ( pverifypara : *const CRYPT_KEY_VERIFY_MESSAGE_PARA , ppublickeyinfo : *const CERT_PUBLIC_KEY_INFO , pbsignedblob : *const u8 , cbsignedblob : u32 , pbdecoded : *mut u8 , pcbdecoded : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifySignatureA ( hhash : usize , pbsignature : *const u8 , dwsiglen : u32 , hpubkey : usize , szdescription : :: windows_sys::core::PCSTR , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifySignatureW ( hhash : usize , pbsignature : *const u8 , dwsiglen : u32 , hpubkey : usize , szdescription : :: windows_sys::core::PCWSTR , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptVerifyTimeStampSignature ( pbtscontentinfo : *const u8 , cbtscontentinfo : u32 , pbdata : *const u8 , cbdata : u32 , hadditionalstore : HCERTSTORE , pptscontext : *mut *mut CRYPT_TIMESTAMP_CONTEXT , pptssigner : *mut *mut CERT_CONTEXT , phstore : *mut HCERTSTORE ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlAddObject ( hsignatureorobject : *const ::core::ffi::c_void , dwflags : u32 , rgproperty : *const CRYPT_XML_PROPERTY , cproperty : u32 , pencoded : *const CRYPT_XML_BLOB , ppobject : *mut *mut CRYPT_XML_OBJECT ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlClose ( hcryptxml : *const ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlCreateReference ( hcryptxml : *const ::core::ffi::c_void , dwflags : u32 , wszid : :: windows_sys::core::PCWSTR , wszuri : :: windows_sys::core::PCWSTR , wsztype : :: windows_sys::core::PCWSTR , pdigestmethod : *const CRYPT_XML_ALGORITHM , ctransform : u32 , rgtransform : *const CRYPT_XML_ALGORITHM , phreference : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlDigestReference ( hreference : *const ::core::ffi::c_void , dwflags : u32 , pdataproviderin : *const CRYPT_XML_DATA_PROVIDER ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlEncode ( hcryptxml : *const ::core::ffi::c_void , dwcharset : CRYPT_XML_CHARSET , rgproperty : *const CRYPT_XML_PROPERTY , cproperty : u32 , pvcallbackstate : *mut ::core::ffi::c_void , pfnwrite : PFN_CRYPT_XML_WRITE_CALLBACK ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn CryptXmlEnumAlgorithmInfo ( dwgroupid : u32 , dwflags : u32 , pvarg : *mut ::core::ffi::c_void , pfnenumalginfo : PFN_CRYPT_XML_ENUM_ALG_INFO ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlFindAlgorithmInfo ( dwfindbytype : u32 , pvfindby : *const ::core::ffi::c_void , dwgroupid : u32 , dwflags : u32 ) -> *mut CRYPT_XML_ALGORITHM_INFO );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlGetAlgorithmInfo ( pxmlalgorithm : *const CRYPT_XML_ALGORITHM , dwflags : CRYPT_XML_FLAGS , ppalginfo : *mut *mut CRYPT_XML_ALGORITHM_INFO ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlGetDocContext ( hcryptxml : *const ::core::ffi::c_void , ppstruct : *mut *mut CRYPT_XML_DOC_CTXT ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlGetReference ( hcryptxml : *const ::core::ffi::c_void , ppstruct : *mut *mut CRYPT_XML_REFERENCE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlGetSignature ( hcryptxml : *const ::core::ffi::c_void , ppstruct : *mut *mut CRYPT_XML_SIGNATURE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlGetStatus ( hcryptxml : *const ::core::ffi::c_void , pstatus : *mut CRYPT_XML_STATUS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlGetTransforms ( ppconfig : *mut *mut CRYPT_XML_TRANSFORM_CHAIN_CONFIG ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlImportPublicKey ( dwflags : CRYPT_XML_FLAGS , pkeyvalue : *const CRYPT_XML_KEY_VALUE , phkey : *mut BCRYPT_KEY_HANDLE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlOpenToDecode ( pconfig : *const CRYPT_XML_TRANSFORM_CHAIN_CONFIG , dwflags : CRYPT_XML_FLAGS , rgproperty : *const CRYPT_XML_PROPERTY , cproperty : u32 , pencoded : *const CRYPT_XML_BLOB , phcryptxml : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlOpenToEncode ( pconfig : *const CRYPT_XML_TRANSFORM_CHAIN_CONFIG , dwflags : CRYPT_XML_FLAGS , wszid : :: windows_sys::core::PCWSTR , rgproperty : *const CRYPT_XML_PROPERTY , cproperty : u32 , pencoded : *const CRYPT_XML_BLOB , phsignature : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlSetHMACSecret ( hsignature : *const ::core::ffi::c_void , pbsecret : *const u8 , cbsecret : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlSign ( hsignature : *const ::core::ffi::c_void , hkey : HCRYPTPROV_OR_NCRYPT_KEY_HANDLE , dwkeyspec : CERT_KEY_SPEC , dwflags : CRYPT_XML_FLAGS , dwkeyinfospec : CRYPT_XML_KEYINFO_SPEC , pvkeyinfospec : *const ::core::ffi::c_void , psignaturemethod : *const CRYPT_XML_ALGORITHM , pcanonicalization : *const CRYPT_XML_ALGORITHM ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "cryptxml.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn CryptXmlVerifySignature ( hsignature : *const ::core::ffi::c_void , hkey : BCRYPT_KEY_HANDLE , dwflags : CRYPT_XML_FLAGS ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn Decrypt ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , foaep : super::super::Foundation:: BOOL , cbindata : u32 , pindata : *const u8 , pcboutdata : *mut u32 , ppoutdata : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn Encrypt ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , foaep : super::super::Foundation:: BOOL , cbindata : u32 , pindata : *const u8 , pcboutdata : *mut u32 , ppoutdata : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn FindCertsByIssuer ( pcertchains : *mut CERT_CHAIN , pcbcertchains : *mut u32 , pccertchains : *mut u32 , pbencodedissuername : *const u8 , cbencodedissuername : u32 , pwszpurpose : :: windows_sys::core::PCWSTR , dwkeyspec : u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn FreeToken ( pallocmemory : *const GENERIC_XML_TOKEN ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn GenerateDerivedKey ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , cblabel : u32 , plabel : *const u8 , cbnonce : u32 , pnonce : *const u8 , derivedkeylength : u32 , offset : u32 , algid : :: windows_sys::core::PCWSTR , pcbkey : *mut u32 , ppkey : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn GetBrowserToken ( dwparamtype : u32 , pparam : *const ::core::ffi::c_void , pcbtoken : *mut u32 , pptoken : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn GetCryptoTransform ( hsymmetriccrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , mode : u32 , padding : PaddingMode , feedbacksize : u32 , direction : Direction , cbiv : u32 , piv : *const u8 , pphtransform : *mut *mut INFORMATIONCARD_CRYPTO_HANDLE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn GetKeyedHash ( hsymmetriccrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , pphhash : *mut *mut INFORMATIONCARD_CRYPTO_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn GetToken ( cpolicychain : u32 , ppolicychain : *const POLICY_ELEMENT , securitytoken : *mut *mut GENERIC_XML_TOKEN , phprooftokencrypto : *mut *mut INFORMATIONCARD_CRYPTO_HANDLE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn HashCore ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , cbindata : u32 , pindata : *const u8 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn HashFinal ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , cbindata : u32 , pindata : *const u8 , pcboutdata : *mut u32 , ppoutdata : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn ImportInformationCard ( filename : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn ManageCardSpace ( ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptCloseProtectionDescriptor ( hdescriptor : super:: NCRYPT_DESCRIPTOR_HANDLE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptCreateClaim ( hsubjectkey : NCRYPT_KEY_HANDLE , hauthoritykey : NCRYPT_KEY_HANDLE , dwclaimtype : u32 , pparameterlist : *const BCryptBufferDesc , pbclaimblob : *mut u8 , cbclaimblob : u32 , pcbresult : *mut u32 , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptCreatePersistedKey ( hprovider : NCRYPT_PROV_HANDLE , phkey : *mut NCRYPT_KEY_HANDLE , pszalgid : :: windows_sys::core::PCWSTR , pszkeyname : :: windows_sys::core::PCWSTR , dwlegacykeyspec : CERT_KEY_SPEC , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptCreateProtectionDescriptor ( pwszdescriptorstring : :: windows_sys::core::PCWSTR , dwflags : u32 , phdescriptor : *mut super:: NCRYPT_DESCRIPTOR_HANDLE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptDecrypt ( hkey : NCRYPT_KEY_HANDLE , pbinput : *const u8 , cbinput : u32 , ppaddinginfo : *const ::core::ffi::c_void , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptDeleteKey ( hkey : NCRYPT_KEY_HANDLE , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptDeriveKey ( hsharedsecret : NCRYPT_SECRET_HANDLE , pwszkdf : :: windows_sys::core::PCWSTR , pparameterlist : *const BCryptBufferDesc , pbderivedkey : *mut u8 , cbderivedkey : u32 , pcbresult : *mut u32 , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptEncrypt ( hkey : NCRYPT_KEY_HANDLE , pbinput : *const u8 , cbinput : u32 , ppaddinginfo : *const ::core::ffi::c_void , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptEnumAlgorithms ( hprovider : NCRYPT_PROV_HANDLE , dwalgoperations : NCRYPT_OPERATION , pdwalgcount : *mut u32 , ppalglist : *mut *mut NCryptAlgorithmName , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptEnumKeys ( hprovider : NCRYPT_PROV_HANDLE , pszscope : :: windows_sys::core::PCWSTR , ppkeyname : *mut *mut NCryptKeyName , ppenumstate : *mut *mut ::core::ffi::c_void , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptEnumStorageProviders ( pdwprovidercount : *mut u32 , ppproviderlist : *mut *mut NCryptProviderName , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptExportKey ( hkey : NCRYPT_KEY_HANDLE , hexportkey : NCRYPT_KEY_HANDLE , pszblobtype : :: windows_sys::core::PCWSTR , pparameterlist : *const BCryptBufferDesc , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptFinalizeKey ( hkey : NCRYPT_KEY_HANDLE , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptFreeBuffer ( pvinput : *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptFreeObject ( hobject : NCRYPT_HANDLE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptGetProperty ( hobject : NCRYPT_HANDLE , pszproperty : :: windows_sys::core::PCWSTR , pboutput : *mut u8 , cboutput : u32 , pcbresult : *mut u32 , dwflags : super:: OBJECT_SECURITY_INFORMATION ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptGetProtectionDescriptorInfo ( hdescriptor : super:: NCRYPT_DESCRIPTOR_HANDLE , pmempara : *const NCRYPT_ALLOC_PARA , dwinfotype : u32 , ppvinfo : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptImportKey ( hprovider : NCRYPT_PROV_HANDLE , himportkey : NCRYPT_KEY_HANDLE , pszblobtype : :: windows_sys::core::PCWSTR , pparameterlist : *const BCryptBufferDesc , phkey : *mut NCRYPT_KEY_HANDLE , pbdata : *const u8 , cbdata : u32 , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptIsAlgSupported ( hprovider : NCRYPT_PROV_HANDLE , pszalgid : :: windows_sys::core::PCWSTR , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptIsKeyHandle ( hkey : NCRYPT_KEY_HANDLE ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptKeyDerivation ( hkey : NCRYPT_KEY_HANDLE , pparameterlist : *const BCryptBufferDesc , pbderivedkey : *mut u8 , cbderivedkey : u32 , pcbresult : *mut u32 , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptNotifyChangeKey ( hprovider : NCRYPT_PROV_HANDLE , phevent : *mut super::super::Foundation:: HANDLE , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptOpenKey ( hprovider : NCRYPT_PROV_HANDLE , phkey : *mut NCRYPT_KEY_HANDLE , pszkeyname : :: windows_sys::core::PCWSTR , dwlegacykeyspec : CERT_KEY_SPEC , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptOpenStorageProvider ( phprovider : *mut NCRYPT_PROV_HANDLE , pszprovidername : :: windows_sys::core::PCWSTR , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptProtectSecret ( hdescriptor : super:: NCRYPT_DESCRIPTOR_HANDLE , dwflags : u32 , pbdata : *const u8 , cbdata : u32 , pmempara : *const NCRYPT_ALLOC_PARA , hwnd : super::super::Foundation:: HWND , ppbprotectedblob : *mut *mut u8 , pcbprotectedblob : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptQueryProtectionDescriptorName ( pwszname : :: windows_sys::core::PCWSTR , pwszdescriptorstring : :: windows_sys::core::PWSTR , pcdescriptorstring : *mut usize , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptRegisterProtectionDescriptorName ( pwszname : :: windows_sys::core::PCWSTR , pwszdescriptorstring : :: windows_sys::core::PCWSTR , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptSecretAgreement ( hprivkey : NCRYPT_KEY_HANDLE , hpubkey : NCRYPT_KEY_HANDLE , phagreedsecret : *mut NCRYPT_SECRET_HANDLE , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptSetProperty ( hobject : NCRYPT_HANDLE , pszproperty : :: windows_sys::core::PCWSTR , pbinput : *const u8 , cbinput : u32 , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptSignHash ( hkey : NCRYPT_KEY_HANDLE , ppaddinginfo : *const ::core::ffi::c_void , pbhashvalue : *const u8 , cbhashvalue : u32 , pbsignature : *mut u8 , cbsignature : u32 , pcbresult : *mut u32 , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptStreamClose ( hstream : super:: NCRYPT_STREAM_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptStreamOpenToProtect ( hdescriptor : super:: NCRYPT_DESCRIPTOR_HANDLE , dwflags : u32 , hwnd : super::super::Foundation:: HWND , pstreaminfo : *const NCRYPT_PROTECT_STREAM_INFO , phstream : *mut super:: NCRYPT_STREAM_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptStreamOpenToUnprotect ( pstreaminfo : *const NCRYPT_PROTECT_STREAM_INFO , dwflags : u32 , hwnd : super::super::Foundation:: HWND , phstream : *mut super:: NCRYPT_STREAM_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptStreamOpenToUnprotectEx ( pstreaminfo : *const NCRYPT_PROTECT_STREAM_INFO_EX , dwflags : u32 , hwnd : super::super::Foundation:: HWND , phstream : *mut super:: NCRYPT_STREAM_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptStreamUpdate ( hstream : super:: NCRYPT_STREAM_HANDLE , pbdata : *const u8 , cbdata : usize , ffinal : super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptTranslateHandle ( phprovider : *mut NCRYPT_PROV_HANDLE , phkey : *mut NCRYPT_KEY_HANDLE , hlegacyprov : usize , hlegacykey : usize , dwlegacykeyspec : CERT_KEY_SPEC , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn NCryptUnprotectSecret ( phdescriptor : *mut super:: NCRYPT_DESCRIPTOR_HANDLE , dwflags : NCRYPT_FLAGS , pbprotectedblob : *const u8 , cbprotectedblob : u32 , pmempara : *const NCRYPT_ALLOC_PARA , hwnd : super::super::Foundation:: HWND , ppbdata : *mut *mut u8 , pcbdata : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptVerifyClaim ( hsubjectkey : NCRYPT_KEY_HANDLE , hauthoritykey : NCRYPT_KEY_HANDLE , dwclaimtype : u32 , pparameterlist : *const BCryptBufferDesc , pbclaimblob : *const u8 , cbclaimblob : u32 , poutput : *mut BCryptBufferDesc , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ncrypt.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn NCryptVerifySignature ( hkey : NCRYPT_KEY_HANDLE , ppaddinginfo : *const ::core::ffi::c_void , pbhashvalue : *const u8 , cbhashvalue : u32 , pbsignature : *const u8 , cbsignature : u32 , dwflags : NCRYPT_FLAGS ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn PFXExportCertStore ( hstore : HCERTSTORE , ppfx : *mut CRYPT_INTEGER_BLOB , szpassword : :: windows_sys::core::PCWSTR , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn PFXExportCertStoreEx ( hstore : HCERTSTORE , ppfx : *mut CRYPT_INTEGER_BLOB , szpassword : :: windows_sys::core::PCWSTR , pvpara : *const ::core::ffi::c_void , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn PFXImportCertStore ( ppfx : *const CRYPT_INTEGER_BLOB , szpassword : :: windows_sys::core::PCWSTR , dwflags : CRYPT_KEY_FLAGS ) -> HCERTSTORE );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn PFXIsPFXBlob ( ppfx : *const CRYPT_INTEGER_BLOB ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "crypt32.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn PFXVerifyPassword ( ppfx : *const CRYPT_INTEGER_BLOB , szpassword : :: windows_sys::core::PCWSTR , dwflags : u32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn SignHash ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , cbhash : u32 , phash : *const u8 , hashalgoid : :: windows_sys::core::PCWSTR , pcbsig : *mut u32 , ppsig : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn TransformBlock ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , cbindata : u32 , pindata : *const u8 , pcboutdata : *mut u32 , ppoutdata : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"] fn TransformFinalBlock ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , cbindata : u32 , pindata : *const u8 , pcboutdata : *mut u32 , ppoutdata : *mut *mut u8 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "infocardapi.dll""system" #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"] fn VerifyHash ( hcrypto : *const INFORMATIONCARD_CRYPTO_HANDLE , cbhash : u32 , phash : *const u8 , hashalgoid : :: windows_sys::core::PCWSTR , cbsig : u32 , psig : *const u8 , pfverified : *mut super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
 pub type ICertSrvSetup = *mut ::core::ffi::c_void;
 pub type ICertSrvSetupKeyInformation = *mut ::core::ffi::c_void;
 pub type ICertSrvSetupKeyInformationCollection = *mut ::core::ffi::c_void;
@@ -1285,7 +885,7 @@ pub const BASIC_CONSTRAINTS_CERT_CHAIN_POLICY_END_ENTITY_FLAG: u32 = 1073741824u
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPTBUFFER_VERSION: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_3DES_112_ALGORITHM: &str = "3DES_112";
+pub const BCRYPT_3DES_112_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("3DES_112");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_3DES_112_CBC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 369u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1293,7 +893,7 @@ pub const BCRYPT_3DES_112_CFB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 401u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_3DES_112_ECB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 385u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_3DES_ALGORITHM: &str = "3DES";
+pub const BCRYPT_3DES_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("3DES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_3DES_CBC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 321u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1301,7 +901,7 @@ pub const BCRYPT_3DES_CFB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 353u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_3DES_ECB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 337u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_AES_ALGORITHM: &str = "AES";
+pub const BCRYPT_AES_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_AES_CBC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 417u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1309,7 +909,7 @@ pub const BCRYPT_AES_CCM_ALG_HANDLE: BCRYPT_ALG_HANDLE = 465u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_AES_CFB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 449u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_AES_CMAC_ALGORITHM: &str = "AES-CMAC";
+pub const BCRYPT_AES_CMAC_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AES-CMAC");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_AES_CMAC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 257u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1317,13 +917,13 @@ pub const BCRYPT_AES_ECB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 433u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_AES_GCM_ALG_HANDLE: BCRYPT_ALG_HANDLE = 481u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_AES_GMAC_ALGORITHM: &str = "AES-GMAC";
+pub const BCRYPT_AES_GMAC_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AES-GMAC");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_AES_GMAC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 273u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_AES_WRAP_KEY_BLOB: &str = "Rfc3565KeyWrapBlob";
+pub const BCRYPT_AES_WRAP_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Rfc3565KeyWrapBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ALGORITHM_NAME: &str = "AlgorithmName";
+pub const BCRYPT_ALGORITHM_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AlgorithmName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1331,41 +931,41 @@ pub const BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_AUTH_MODE_IN_PROGRESS_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_AUTH_TAG_LENGTH: &str = "AuthTagLength";
+pub const BCRYPT_AUTH_TAG_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AuthTagLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_BLOCK_LENGTH: &str = "BlockLength";
+pub const BCRYPT_BLOCK_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BlockLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_BLOCK_PADDING: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_BLOCK_SIZE_LIST: &str = "BlockSizeList";
+pub const BCRYPT_BLOCK_SIZE_LIST: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BlockSizeList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_BUFFERS_LOCKED_FLAG: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_CAPI_AES_FLAG: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CAPI_KDF_ALGORITHM: &str = "CAPI_KDF";
+pub const BCRYPT_CAPI_KDF_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPI_KDF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_CAPI_KDF_ALG_HANDLE: BCRYPT_ALG_HANDLE = 801u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHACHA20_POLY1305_ALGORITHM: &str = "CHACHA20_POLY1305";
+pub const BCRYPT_CHACHA20_POLY1305_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CHACHA20_POLY1305");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_CHACHA20_POLY1305_ALG_HANDLE: BCRYPT_ALG_HANDLE = 929u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHAINING_MODE: &str = "ChainingMode";
+pub const BCRYPT_CHAINING_MODE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainingMode");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHAIN_MODE_CBC: &str = "ChainingModeCBC";
+pub const BCRYPT_CHAIN_MODE_CBC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainingModeCBC");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHAIN_MODE_CCM: &str = "ChainingModeCCM";
+pub const BCRYPT_CHAIN_MODE_CCM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainingModeCCM");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHAIN_MODE_CFB: &str = "ChainingModeCFB";
+pub const BCRYPT_CHAIN_MODE_CFB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainingModeCFB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHAIN_MODE_ECB: &str = "ChainingModeECB";
+pub const BCRYPT_CHAIN_MODE_ECB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainingModeECB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHAIN_MODE_GCM: &str = "ChainingModeGCM";
+pub const BCRYPT_CHAIN_MODE_GCM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainingModeGCM");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_CHAIN_MODE_NA: &str = "ChainingModeN/A";
+pub const BCRYPT_CHAIN_MODE_NA: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainingModeN/A");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DESX_ALGORITHM: &str = "DESX";
+pub const BCRYPT_DESX_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DESX");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DESX_CBC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 545u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1373,7 +973,7 @@ pub const BCRYPT_DESX_CFB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 577u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DESX_ECB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 561u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DES_ALGORITHM: &str = "DES";
+pub const BCRYPT_DES_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DES_CBC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 497u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1381,157 +981,157 @@ pub const BCRYPT_DES_CFB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 529u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DES_ECB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 513u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DH_ALGORITHM: &str = "DH";
+pub const BCRYPT_DH_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DH_ALG_HANDLE: BCRYPT_ALG_HANDLE = 641u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DH_PARAMETERS: &str = "DHParameters";
+pub const BCRYPT_DH_PARAMETERS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DHParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DH_PARAMETERS_MAGIC: u32 = 1297107012u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DH_PRIVATE_BLOB: &str = "DHPRIVATEBLOB";
+pub const BCRYPT_DH_PRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DHPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DH_PUBLIC_BLOB: &str = "DHPUBLICBLOB";
+pub const BCRYPT_DH_PUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DHPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DSA_ALGORITHM: &str = "DSA";
+pub const BCRYPT_DSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DSA_ALG_HANDLE: BCRYPT_ALG_HANDLE = 721u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DSA_PARAMETERS: &str = "DSAParameters";
+pub const BCRYPT_DSA_PARAMETERS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DSAParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DSA_PARAMETERS_MAGIC: u32 = 1297109828u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DSA_PARAMETERS_MAGIC_V2: u32 = 843927620u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DSA_PRIVATE_BLOB: &str = "DSAPRIVATEBLOB";
+pub const BCRYPT_DSA_PRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DSAPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DSA_PRIVATE_MAGIC_V2: u32 = 844517444u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_DSA_PUBLIC_BLOB: &str = "DSAPUBLICBLOB";
+pub const BCRYPT_DSA_PUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DSAPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_DSA_PUBLIC_MAGIC_V2: u32 = 843206724u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECCFULLPRIVATE_BLOB: &str = "ECCFULLPRIVATEBLOB";
+pub const BCRYPT_ECCFULLPRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCFULLPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECCFULLPUBLIC_BLOB: &str = "ECCFULLPUBLICBLOB";
+pub const BCRYPT_ECCFULLPUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCFULLPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECCPRIVATE_BLOB: &str = "ECCPRIVATEBLOB";
+pub const BCRYPT_ECCPRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECCPUBLIC_BLOB: &str = "ECCPUBLICBLOB";
+pub const BCRYPT_ECCPUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_25519: &str = "curve25519";
+pub const BCRYPT_ECC_CURVE_25519: ::windows_sys::core::PCWSTR = ::windows_sys::w!("curve25519");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP160R1: &str = "brainpoolP160r1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP160R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP160r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP160T1: &str = "brainpoolP160t1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP160T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP160t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP192R1: &str = "brainpoolP192r1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP192R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP192r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP192T1: &str = "brainpoolP192t1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP192T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP192t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP224R1: &str = "brainpoolP224r1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP224R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP224r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP224T1: &str = "brainpoolP224t1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP224T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP224t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP256R1: &str = "brainpoolP256r1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP256R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP256r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP256T1: &str = "brainpoolP256t1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP256T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP256t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP320R1: &str = "brainpoolP320r1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP320R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP320r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP320T1: &str = "brainpoolP320t1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP320T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP320t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP384R1: &str = "brainpoolP384r1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP384R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP384r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP384T1: &str = "brainpoolP384t1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP384T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP384t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP512R1: &str = "brainpoolP512r1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP512R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP512r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_BRAINPOOLP512T1: &str = "brainpoolP512t1";
+pub const BCRYPT_ECC_CURVE_BRAINPOOLP512T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("brainpoolP512t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_EC192WAPI: &str = "ec192wapi";
+pub const BCRYPT_ECC_CURVE_EC192WAPI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ec192wapi");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NAME: &str = "ECCCurveName";
+pub const BCRYPT_ECC_CURVE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCCurveName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NAME_LIST: &str = "ECCCurveNameList";
+pub const BCRYPT_ECC_CURVE_NAME_LIST: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCCurveNameList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NISTP192: &str = "nistP192";
+pub const BCRYPT_ECC_CURVE_NISTP192: ::windows_sys::core::PCWSTR = ::windows_sys::w!("nistP192");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NISTP224: &str = "nistP224";
+pub const BCRYPT_ECC_CURVE_NISTP224: ::windows_sys::core::PCWSTR = ::windows_sys::w!("nistP224");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NISTP256: &str = "nistP256";
+pub const BCRYPT_ECC_CURVE_NISTP256: ::windows_sys::core::PCWSTR = ::windows_sys::w!("nistP256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NISTP384: &str = "nistP384";
+pub const BCRYPT_ECC_CURVE_NISTP384: ::windows_sys::core::PCWSTR = ::windows_sys::w!("nistP384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NISTP521: &str = "nistP521";
+pub const BCRYPT_ECC_CURVE_NISTP521: ::windows_sys::core::PCWSTR = ::windows_sys::w!("nistP521");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NUMSP256T1: &str = "numsP256t1";
+pub const BCRYPT_ECC_CURVE_NUMSP256T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("numsP256t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NUMSP384T1: &str = "numsP384t1";
+pub const BCRYPT_ECC_CURVE_NUMSP384T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("numsP384t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_NUMSP512T1: &str = "numsP512t1";
+pub const BCRYPT_ECC_CURVE_NUMSP512T1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("numsP512t1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP160K1: &str = "secP160k1";
+pub const BCRYPT_ECC_CURVE_SECP160K1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP160k1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP160R1: &str = "secP160r1";
+pub const BCRYPT_ECC_CURVE_SECP160R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP160r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP160R2: &str = "secP160r2";
+pub const BCRYPT_ECC_CURVE_SECP160R2: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP160r2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP192K1: &str = "secP192k1";
+pub const BCRYPT_ECC_CURVE_SECP192K1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP192k1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP192R1: &str = "secP192r1";
+pub const BCRYPT_ECC_CURVE_SECP192R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP192r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP224K1: &str = "secP224k1";
+pub const BCRYPT_ECC_CURVE_SECP224K1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP224k1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP224R1: &str = "secP224r1";
+pub const BCRYPT_ECC_CURVE_SECP224R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP224r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP256K1: &str = "secP256k1";
+pub const BCRYPT_ECC_CURVE_SECP256K1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP256k1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP256R1: &str = "secP256r1";
+pub const BCRYPT_ECC_CURVE_SECP256R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP256r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP384R1: &str = "secP384r1";
+pub const BCRYPT_ECC_CURVE_SECP384R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP384r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_SECP521R1: &str = "secP521r1";
+pub const BCRYPT_ECC_CURVE_SECP521R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("secP521r1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_WTLS12: &str = "wtls12";
+pub const BCRYPT_ECC_CURVE_WTLS12: ::windows_sys::core::PCWSTR = ::windows_sys::w!("wtls12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_WTLS7: &str = "wtls7";
+pub const BCRYPT_ECC_CURVE_WTLS7: ::windows_sys::core::PCWSTR = ::windows_sys::w!("wtls7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_WTLS9: &str = "wtls9";
+pub const BCRYPT_ECC_CURVE_WTLS9: ::windows_sys::core::PCWSTR = ::windows_sys::w!("wtls9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_X962P192V1: &str = "x962P192v1";
+pub const BCRYPT_ECC_CURVE_X962P192V1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("x962P192v1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_X962P192V2: &str = "x962P192v2";
+pub const BCRYPT_ECC_CURVE_X962P192V2: ::windows_sys::core::PCWSTR = ::windows_sys::w!("x962P192v2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_X962P192V3: &str = "x962P192v3";
+pub const BCRYPT_ECC_CURVE_X962P192V3: ::windows_sys::core::PCWSTR = ::windows_sys::w!("x962P192v3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_X962P239V1: &str = "x962P239v1";
+pub const BCRYPT_ECC_CURVE_X962P239V1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("x962P239v1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_X962P239V2: &str = "x962P239v2";
+pub const BCRYPT_ECC_CURVE_X962P239V2: ::windows_sys::core::PCWSTR = ::windows_sys::w!("x962P239v2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_X962P239V3: &str = "x962P239v3";
+pub const BCRYPT_ECC_CURVE_X962P239V3: ::windows_sys::core::PCWSTR = ::windows_sys::w!("x962P239v3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_CURVE_X962P256V1: &str = "x962P256v1";
+pub const BCRYPT_ECC_CURVE_X962P256V1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("x962P256v1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECC_FULLKEY_BLOB_V1: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECC_PARAMETERS: &str = "ECCParameters";
+pub const BCRYPT_ECC_PARAMETERS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECC_PARAMETERS_MAGIC: u32 = 1346585413u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDH_ALGORITHM: &str = "ECDH";
+pub const BCRYPT_ECDH_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDH_ALG_HANDLE: BCRYPT_ALG_HANDLE = 657u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDH_P256_ALGORITHM: &str = "ECDH_P256";
+pub const BCRYPT_ECDH_P256_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH_P256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDH_P256_ALG_HANDLE: BCRYPT_ALG_HANDLE = 673u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDH_P384_ALGORITHM: &str = "ECDH_P384";
+pub const BCRYPT_ECDH_P384_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH_P384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDH_P384_ALG_HANDLE: BCRYPT_ALG_HANDLE = 689u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDH_P521_ALGORITHM: &str = "ECDH_P521";
+pub const BCRYPT_ECDH_P521_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH_P521");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDH_P521_ALG_HANDLE: BCRYPT_ALG_HANDLE = 705u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1551,19 +1151,19 @@ pub const BCRYPT_ECDH_PUBLIC_P384_MAGIC: u32 = 860570437u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDH_PUBLIC_P521_MAGIC: u32 = 894124869u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDSA_ALGORITHM: &str = "ECDSA";
+pub const BCRYPT_ECDSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDSA_ALG_HANDLE: BCRYPT_ALG_HANDLE = 241u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDSA_P256_ALGORITHM: &str = "ECDSA_P256";
+pub const BCRYPT_ECDSA_P256_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA_P256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDSA_P256_ALG_HANDLE: BCRYPT_ALG_HANDLE = 737u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDSA_P384_ALGORITHM: &str = "ECDSA_P384";
+pub const BCRYPT_ECDSA_P384_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA_P384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDSA_P384_ALG_HANDLE: BCRYPT_ALG_HANDLE = 753u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_ECDSA_P521_ALGORITHM: &str = "ECDSA_P521";
+pub const BCRYPT_ECDSA_P521_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA_P521");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDSA_P521_ALG_HANDLE: BCRYPT_ALG_HANDLE = 769u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1583,7 +1183,7 @@ pub const BCRYPT_ECDSA_PUBLIC_P384_MAGIC: u32 = 861094725u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ECDSA_PUBLIC_P521_MAGIC: u32 = 894649157u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_EFFECTIVE_KEY_LENGTH: &str = "EffectiveKeyLength";
+pub const BCRYPT_EFFECTIVE_KEY_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EffectiveKeyLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_ENABLE_INCOMPATIBLE_FIPS_CHECKS: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1591,25 +1191,25 @@ pub const BCRYPT_EXTENDED_KEYSIZE: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_GENERATE_IV: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_GLOBAL_PARAMETERS: &str = "SecretAgreementParam";
+pub const BCRYPT_GLOBAL_PARAMETERS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SecretAgreementParam");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_HASH_BLOCK_LENGTH: &str = "HashBlockLength";
+pub const BCRYPT_HASH_BLOCK_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HashBlockLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_HASH_INTERFACE_MAJORVERSION_2: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_HASH_LENGTH: &str = "HashDigestLength";
+pub const BCRYPT_HASH_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HashDigestLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_HASH_OID_LIST: &str = "HashOIDList";
+pub const BCRYPT_HASH_OID_LIST: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HashOIDList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_HKDF_ALGORITHM: &str = "HKDF";
+pub const BCRYPT_HKDF_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HKDF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_HKDF_ALG_HANDLE: BCRYPT_ALG_HANDLE = 913u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_HKDF_HASH_ALGORITHM: &str = "HkdfHashAlgorithm";
+pub const BCRYPT_HKDF_HASH_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HkdfHashAlgorithm");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_HKDF_PRK_AND_FINALIZE: &str = "HkdfPrkAndFinalize";
+pub const BCRYPT_HKDF_PRK_AND_FINALIZE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HkdfPrkAndFinalize");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_HKDF_SALT_AND_FINALIZE: &str = "HkdfSaltAndFinalize";
+pub const BCRYPT_HKDF_SALT_AND_FINALIZE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HkdfSaltAndFinalize");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_HMAC_MD2_ALG_HANDLE: BCRYPT_ALG_HANDLE = 289u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1625,27 +1225,27 @@ pub const BCRYPT_HMAC_SHA384_ALG_HANDLE: BCRYPT_ALG_HANDLE = 193u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_HMAC_SHA512_ALG_HANDLE: BCRYPT_ALG_HANDLE = 209u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_INITIALIZATION_VECTOR: &str = "IV";
+pub const BCRYPT_INITIALIZATION_VECTOR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IV");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_IS_IFX_TPM_WEAK_KEY: &str = "IsIfxTpmWeakKey";
+pub const BCRYPT_IS_IFX_TPM_WEAK_KEY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IsIfxTpmWeakKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_IS_KEYED_HASH: &str = "IsKeyedHash";
+pub const BCRYPT_IS_KEYED_HASH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IsKeyedHash");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_IS_REUSABLE_HASH: &str = "IsReusableHash";
+pub const BCRYPT_IS_REUSABLE_HASH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IsReusableHash");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KDF_HASH: &str = "HASH";
+pub const BCRYPT_KDF_HASH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HASH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KDF_HKDF: &str = "HKDF";
+pub const BCRYPT_KDF_HKDF: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HKDF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KDF_HMAC: &str = "HMAC";
+pub const BCRYPT_KDF_HMAC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HMAC");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KDF_RAW_SECRET: &str = "TRUNCATE";
+pub const BCRYPT_KDF_RAW_SECRET: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TRUNCATE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KDF_SP80056A_CONCAT: &str = "SP800_56A_CONCAT";
+pub const BCRYPT_KDF_SP80056A_CONCAT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SP800_56A_CONCAT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KDF_TLS_PRF: &str = "TLS_PRF";
+pub const BCRYPT_KDF_TLS_PRF: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TLS_PRF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KEY_DATA_BLOB: &str = "KeyDataBlob";
+pub const BCRYPT_KEY_DATA_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KeyDataBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_KEY_DATA_BLOB_MAGIC: u32 = 1296188491u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1655,13 +1255,13 @@ pub const BCRYPT_KEY_DERIVATION_INTERFACE: u32 = 7u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_KEY_DERIVATION_OPERATION: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KEY_LENGTH: &str = "KeyLength";
+pub const BCRYPT_KEY_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KeyLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KEY_LENGTHS: &str = "KeyLengths";
+pub const BCRYPT_KEY_LENGTHS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KeyLengths");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KEY_OBJECT_LENGTH: &str = "KeyObjectLength";
+pub const BCRYPT_KEY_OBJECT_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KeyObjectLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_KEY_STRENGTH: &str = "KeyStrength";
+pub const BCRYPT_KEY_STRENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KeyStrength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_KEY_VALIDATION_RANGE: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1669,61 +1269,61 @@ pub const BCRYPT_KEY_VALIDATION_RANGE_AND_ORDER: u32 = 24u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_KEY_VALIDATION_REGENERATE: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_MD2_ALGORITHM: &str = "MD2";
+pub const BCRYPT_MD2_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MD2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_MD2_ALG_HANDLE: BCRYPT_ALG_HANDLE = 1u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_MD4_ALGORITHM: &str = "MD4";
+pub const BCRYPT_MD4_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MD4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_MD4_ALG_HANDLE: BCRYPT_ALG_HANDLE = 17u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_MD5_ALGORITHM: &str = "MD5";
+pub const BCRYPT_MD5_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MD5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_MD5_ALG_HANDLE: BCRYPT_ALG_HANDLE = 33u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_MESSAGE_BLOCK_LENGTH: &str = "MessageBlockLength";
+pub const BCRYPT_MESSAGE_BLOCK_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MessageBlockLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_MULTI_FLAG: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_MULTI_OBJECT_LENGTH: &str = "MultiObjectLength";
+pub const BCRYPT_MULTI_OBJECT_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MultiObjectLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_NO_KEY_VALIDATION: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_OBJECT_ALIGNMENT: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_OBJECT_LENGTH: &str = "ObjectLength";
+pub const BCRYPT_OBJECT_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ObjectLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_OPAQUE_KEY_BLOB: &str = "OpaqueKeyBlob";
+pub const BCRYPT_OPAQUE_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("OpaqueKeyBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PADDING_SCHEMES: &str = "PaddingSchemes";
+pub const BCRYPT_PADDING_SCHEMES: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PaddingSchemes");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_PAD_PKCS1_OPTIONAL_HASH_OID: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PBKDF2_ALGORITHM: &str = "PBKDF2";
+pub const BCRYPT_PBKDF2_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PBKDF2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_PBKDF2_ALG_HANDLE: BCRYPT_ALG_HANDLE = 817u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PCP_PLATFORM_TYPE_PROPERTY: &str = "PCP_PLATFORM_TYPE";
+pub const BCRYPT_PCP_PLATFORM_TYPE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PLATFORM_TYPE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PCP_PROVIDER_VERSION_PROPERTY: &str = "PCP_PROVIDER_VERSION";
+pub const BCRYPT_PCP_PROVIDER_VERSION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PROVIDER_VERSION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PRIMITIVE_TYPE: &str = "PrimitiveType";
+pub const BCRYPT_PRIMITIVE_TYPE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PrimitiveType");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PRIVATE_KEY: &str = "PrivKeyVal";
+pub const BCRYPT_PRIVATE_KEY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PrivKeyVal");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PRIVATE_KEY_BLOB: &str = "PRIVATEBLOB";
+pub const BCRYPT_PRIVATE_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_PRIVATE_KEY_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PROVIDER_HANDLE: &str = "ProviderHandle";
+pub const BCRYPT_PROVIDER_HANDLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ProviderHandle");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PUBLIC_KEY_BLOB: &str = "PUBLICBLOB";
+pub const BCRYPT_PUBLIC_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_PUBLIC_KEY_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_PUBLIC_KEY_LENGTH: &str = "PublicKeyLength";
+pub const BCRYPT_PUBLIC_KEY_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PublicKeyLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RC2_ALGORITHM: &str = "RC2";
+pub const BCRYPT_RC2_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RC2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_RC2_CBC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 593u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1731,57 +1331,57 @@ pub const BCRYPT_RC2_CFB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 625u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_RC2_ECB_ALG_HANDLE: BCRYPT_ALG_HANDLE = 609u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RC4_ALGORITHM: &str = "RC4";
+pub const BCRYPT_RC4_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RC4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_RC4_ALG_HANDLE: BCRYPT_ALG_HANDLE = 113u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RNG_ALGORITHM: &str = "RNG";
+pub const BCRYPT_RNG_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RNG");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_RNG_ALG_HANDLE: BCRYPT_ALG_HANDLE = 129u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RNG_DUAL_EC_ALGORITHM: &str = "DUALECRNG";
+pub const BCRYPT_RNG_DUAL_EC_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DUALECRNG");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RNG_FIPS186_DSA_ALGORITHM: &str = "FIPS186DSARNG";
+pub const BCRYPT_RNG_FIPS186_DSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("FIPS186DSARNG");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_RNG_USE_ENTROPY_IN_BUFFER: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RSAFULLPRIVATE_BLOB: &str = "RSAFULLPRIVATEBLOB";
+pub const BCRYPT_RSAFULLPRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSAFULLPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RSAPRIVATE_BLOB: &str = "RSAPRIVATEBLOB";
+pub const BCRYPT_RSAPRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSAPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RSAPUBLIC_BLOB: &str = "RSAPUBLICBLOB";
+pub const BCRYPT_RSAPUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSAPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RSA_ALGORITHM: &str = "RSA";
+pub const BCRYPT_RSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_RSA_ALG_HANDLE: BCRYPT_ALG_HANDLE = 225u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_RSA_SIGN_ALGORITHM: &str = "RSA_SIGN";
+pub const BCRYPT_RSA_SIGN_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSA_SIGN");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_RSA_SIGN_ALG_HANDLE: BCRYPT_ALG_HANDLE = 785u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_SHA1_ALGORITHM: &str = "SHA1";
+pub const BCRYPT_SHA1_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_SHA1_ALG_HANDLE: BCRYPT_ALG_HANDLE = 49u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_SHA256_ALGORITHM: &str = "SHA256";
+pub const BCRYPT_SHA256_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_SHA256_ALG_HANDLE: BCRYPT_ALG_HANDLE = 65u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_SHA384_ALGORITHM: &str = "SHA384";
+pub const BCRYPT_SHA384_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_SHA384_ALG_HANDLE: BCRYPT_ALG_HANDLE = 81u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_SHA512_ALGORITHM: &str = "SHA512";
+pub const BCRYPT_SHA512_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA512");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_SHA512_ALG_HANDLE: BCRYPT_ALG_HANDLE = 97u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_SIGNATURE_LENGTH: &str = "SignatureLength";
+pub const BCRYPT_SIGNATURE_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SignatureLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_SP800108_CTR_HMAC_ALGORITHM: &str = "SP800_108_CTR_HMAC";
+pub const BCRYPT_SP800108_CTR_HMAC_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SP800_108_CTR_HMAC");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_SP800108_CTR_HMAC_ALG_HANDLE: BCRYPT_ALG_HANDLE = 833u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_SP80056A_CONCAT_ALGORITHM: &str = "SP800_56A_CONCAT";
+pub const BCRYPT_SP80056A_CONCAT_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SP800_56A_CONCAT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_SP80056A_CONCAT_ALG_HANDLE: BCRYPT_ALG_HANDLE = 849u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1795,11 +1395,11 @@ pub const BCRYPT_SUPPORTED_PAD_PSS: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_SUPPORTED_PAD_ROUTER: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_TLS1_1_KDF_ALGORITHM: &str = "TLS1_1_KDF";
+pub const BCRYPT_TLS1_1_KDF_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TLS1_1_KDF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_TLS1_1_KDF_ALG_HANDLE: BCRYPT_ALG_HANDLE = 865u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_TLS1_2_KDF_ALGORITHM: &str = "TLS1_2_KDF";
+pub const BCRYPT_TLS1_2_KDF_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TLS1_2_KDF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_TLS1_2_KDF_ALG_HANDLE: BCRYPT_ALG_HANDLE = 881u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1807,17 +1407,21 @@ pub const BCRYPT_TLS_CBC_HMAC_VERIFY_FLAG: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_USE_SYSTEM_PREFERRED_RNG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const BCRYPT_XTS_AES_ALGORITHM: &str = "XTS-AES";
+pub const BCRYPT_XTS_AES_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("XTS-AES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const BCRYPT_XTS_AES_ALG_HANDLE: BCRYPT_ALG_HANDLE = 897u32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CALG_OID_INFO_CNG_ONLY: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CALG_OID_INFO_PARAMETERS: u32 = 4294967294u32;
-pub const CCertSrvSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2518620175, data2: 62812, data3: 16701, data4: [169, 179, 125, 42, 244, 216, 228, 47] };
-pub const CCertSrvSetupKeyInformation: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 943143174, data2: 21555, data3: 17971, data4: [176, 251, 41, 183, 231, 130, 98, 225] };
-pub const CCertificateEnrollmentPolicyServerSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2950887986, data2: 16817, data3: 17821, data4: [165, 222, 73, 173, 216, 167, 33, 130] };
-pub const CCertificateEnrollmentServerSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2567107516, data2: 34991, data3: 19704, data4: [174, 98, 113, 64, 83, 21, 82, 182] };
+#[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
+pub const CCertSrvSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x961f180f_f55c_413d_a9b3_7d2af4d8e42f);
+#[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
+pub const CCertSrvSetupKeyInformation: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x38373906_5433_4633_b0fb_29b7e78262e1);
+#[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
+pub const CCertificateEnrollmentPolicyServerSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xafe2fa32_41b1_459d_a5de_49add8a72182);
+#[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
+pub const CCertificateEnrollmentServerSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9902f3bc_88af_4cf8_ae62_7140531552b6);
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_ACCESS_STATE_GP_SYSTEM_STORE_FLAG: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1855,25 +1459,25 @@ pub const CERT_AUTH_ROOT_AUTO_UPDATE_DISABLE_PARTIAL_CHAIN_LOGGING_FLAG: u32 = 2
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_AUTH_ROOT_AUTO_UPDATE_DISABLE_UNTRUSTED_ROOT_LOGGING_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_AUTO_UPDATE_ENCODED_CTL_VALUE_NAME: &str = "EncodedCtl";
+pub const CERT_AUTH_ROOT_AUTO_UPDATE_ENCODED_CTL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EncodedCtl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_AUTO_UPDATE_FLAGS_VALUE_NAME: &str = "Flags";
+pub const CERT_AUTH_ROOT_AUTO_UPDATE_FLAGS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Flags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_AUTO_UPDATE_LAST_SYNC_TIME_VALUE_NAME: &str = "LastSyncTime";
+pub const CERT_AUTH_ROOT_AUTO_UPDATE_LAST_SYNC_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LastSyncTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_AUTO_UPDATE_ROOT_DIR_URL_VALUE_NAME: &str = "RootDirUrl";
+pub const CERT_AUTH_ROOT_AUTO_UPDATE_ROOT_DIR_URL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RootDirUrl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_AUTO_UPDATE_SYNC_DELTA_TIME_VALUE_NAME: &str = "SyncDeltaTime";
+pub const CERT_AUTH_ROOT_AUTO_UPDATE_SYNC_DELTA_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SyncDeltaTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_CAB_FILENAME: &str = "authrootstl.cab";
+pub const CERT_AUTH_ROOT_CAB_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("authrootstl.cab");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_CERT_EXT: &str = ".crt";
+pub const CERT_AUTH_ROOT_CERT_EXT: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".crt");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_CTL_FILENAME: &str = "authroot.stl";
+pub const CERT_AUTH_ROOT_CTL_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("authroot.stl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_CTL_FILENAME_A: &str = "authroot.stl";
+pub const CERT_AUTH_ROOT_CTL_FILENAME_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("authroot.stl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTH_ROOT_SEQ_FILENAME: &str = "authrootseq.txt";
+pub const CERT_AUTH_ROOT_SEQ_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("authrootseq.txt");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_AUTH_ROOT_SHA256_HASH_PROP_ID: u32 = 98u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1883,9 +1487,9 @@ pub const CERT_AUTO_ENROLL_RETRY_PROP_ID: u32 = 66u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_AUTO_UPDATE_DISABLE_RANDOM_QUERY_STRING_FLAG: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTO_UPDATE_ROOT_DIR_URL_VALUE_NAME: &str = "RootDirUrl";
+pub const CERT_AUTO_UPDATE_ROOT_DIR_URL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RootDirUrl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_AUTO_UPDATE_SYNC_FROM_DIR_URL_VALUE_NAME: &str = "SyncFromDirUrl";
+pub const CERT_AUTO_UPDATE_SYNC_FROM_DIR_URL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SyncFromDirUrl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_BACKED_UP_PROP_ID: u32 = 69u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1909,13 +1513,13 @@ pub const CERT_CEP_PROP_ID: u32 = 87u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_AUTO_CURRENT_USER: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_AUTO_FLAGS_VALUE_NAME: &str = "AutoFlags";
+pub const CERT_CHAIN_AUTO_FLAGS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AutoFlags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_AUTO_FLUSH_DISABLE_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_AUTO_FLUSH_FIRST_DELTA_SECONDS_VALUE_NAME: &str = "AutoFlushFirstDeltaSeconds";
+pub const CERT_CHAIN_AUTO_FLUSH_FIRST_DELTA_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AutoFlushFirstDeltaSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_AUTO_FLUSH_NEXT_DELTA_SECONDS_VALUE_NAME: &str = "AutoFlushNextDeltaSeconds";
+pub const CERT_CHAIN_AUTO_FLUSH_NEXT_DELTA_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AutoFlushNextDeltaSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_AUTO_HPKP_RULE_INFO: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1925,7 +1529,7 @@ pub const CERT_CHAIN_AUTO_LOCAL_MACHINE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_AUTO_LOG_CREATE_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_AUTO_LOG_FILE_NAME_VALUE_NAME: &str = "AutoLogFileName";
+pub const CERT_CHAIN_AUTO_LOG_FILE_NAME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AutoLogFileName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_AUTO_LOG_FLUSH_FLAG: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1943,29 +1547,29 @@ pub const CERT_CHAIN_CACHE_END_CERT: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_CACHE_RESYNC_FILETIME_VALUE_NAME: &str = "ChainCacheResyncFiletime";
+pub const CERT_CHAIN_CACHE_RESYNC_FILETIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainCacheResyncFiletime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_CONFIG_REGPATH: &str = "Software\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CertDllCreateCertificateChainEngine\\Config";
+pub const CERT_CHAIN_CONFIG_REGPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Software\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CertDllCreateCertificateChainEngine\\Config");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_CRL_VALIDITY_EXT_PERIOD_HOURS_DEFAULT: u32 = 12u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_CRL_VALIDITY_EXT_PERIOD_HOURS_VALUE_NAME: &str = "CRLValidityExtensionPeriod";
+pub const CERT_CHAIN_CRL_VALIDITY_EXT_PERIOD_HOURS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CRLValidityExtensionPeriod");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_CROSS_CERT_DOWNLOAD_INTERVAL_HOURS_VALUE_NAME: &str = "CrossCertDownloadIntervalHours";
+pub const CERT_CHAIN_CROSS_CERT_DOWNLOAD_INTERVAL_HOURS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CrossCertDownloadIntervalHours");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DEFAULT_CONFIG_SUBDIR: &str = "Default";
+pub const CERT_CHAIN_DEFAULT_CONFIG_SUBDIR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Default");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_AIA: u32 = 8192u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DISABLE_AIA_URL_RETRIEVAL_VALUE_NAME: &str = "DisableAIAUrlRetrieval";
+pub const CERT_CHAIN_DISABLE_AIA_URL_RETRIEVAL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableAIAUrlRetrieval");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_ALL_EKU_WEAK_FLAG: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_AUTH_ROOT_AUTO_UPDATE: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DISABLE_AUTO_FLUSH_PROCESS_NAME_LIST_VALUE_NAME: &str = "DisableAutoFlushProcessNameList";
+pub const CERT_CHAIN_DISABLE_AUTO_FLUSH_PROCESS_NAME_LIST_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableAutoFlushProcessNameList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DISABLE_CA_NAME_CONSTRAINTS_VALUE_NAME: &str = "DisableCANameConstraints";
+pub const CERT_CHAIN_DISABLE_CA_NAME_CONSTRAINTS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableCANameConstraints");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_CODE_SIGNING_WEAK_FLAG: u32 = 4194304u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1973,7 +1577,7 @@ pub const CERT_CHAIN_DISABLE_ECC_PARA_FLAG: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_FILE_HASH_WEAK_FLAG: u32 = 4096u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DISABLE_MANDATORY_BASIC_CONSTRAINTS_VALUE_NAME: &str = "DisableMandatoryBasicConstraints";
+pub const CERT_CHAIN_DISABLE_MANDATORY_BASIC_CONSTRAINTS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableMandatoryBasicConstraints");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_MD2_MD4: u32 = 4096u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -1991,17 +1595,17 @@ pub const CERT_CHAIN_DISABLE_OPT_IN_SERVER_AUTH_WEAK_FLAG: u32 = 262144u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_PASS1_QUALITY_FILTERING: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DISABLE_SERIAL_CHAIN_VALUE_NAME: &str = "DisableSerialChain";
+pub const CERT_CHAIN_DISABLE_SERIAL_CHAIN_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableSerialChain");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_SERVER_AUTH_WEAK_FLAG: u32 = 1048576u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DISABLE_SYNC_WITH_SSL_TIME_VALUE_NAME: &str = "DisableSyncWithSslTime";
+pub const CERT_CHAIN_DISABLE_SYNC_WITH_SSL_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableSyncWithSslTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_TIMESTAMP_HASH_WEAK_FLAG: u32 = 16384u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_DISABLE_TIMESTAMP_WEAK_FLAG: u32 = 67108864u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_DISABLE_UNSUPPORTED_CRITICAL_EXTENSIONS_VALUE_NAME: &str = "DisableUnsupportedCriticalExtensions";
+pub const CERT_CHAIN_DISABLE_UNSUPPORTED_CRITICAL_EXTENSIONS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableUnsupportedCriticalExtensions");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_ENABLE_ALL_EKU_HYGIENE_FLAG: u32 = 131072u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2031,7 +1635,7 @@ pub const CERT_CHAIN_ENABLE_WEAK_RSA_ROOT_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_ENABLE_WEAK_SETTINGS_FLAG: u32 = 2147483648u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_ENABLE_WEAK_SIGNATURE_FLAGS_VALUE_NAME: &str = "EnableWeakSignatureFlags";
+pub const CERT_CHAIN_ENABLE_WEAK_SIGNATURE_FLAGS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EnableWeakSignatureFlags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_EXCLUSIVE_ENABLE_CA_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2041,27 +1645,27 @@ pub const CERT_CHAIN_HAS_MOTW: u32 = 16384u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MAX_AIA_URL_COUNT_IN_CERT_DEFAULT: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_MAX_AIA_URL_COUNT_IN_CERT_VALUE_NAME: &str = "MaxAIAUrlCountInCert";
+pub const CERT_CHAIN_MAX_AIA_URL_COUNT_IN_CERT_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxAIAUrlCountInCert");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_BYTE_COUNT_DEFAULT: u32 = 100000u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_BYTE_COUNT_VALUE_NAME: &str = "MaxAIAUrlRetrievalByteCount";
+pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_BYTE_COUNT_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxAIAUrlRetrievalByteCount");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_CERT_COUNT_DEFAULT: u32 = 10u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_CERT_COUNT_VALUE_NAME: &str = "MaxAIAUrlRetrievalCertCount";
+pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_CERT_COUNT_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxAIAUrlRetrievalCertCount");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_COUNT_PER_CHAIN_DEFAULT: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_COUNT_PER_CHAIN_VALUE_NAME: &str = "MaxAIAUrlRetrievalCountPerChain";
+pub const CERT_CHAIN_MAX_AIA_URL_RETRIEVAL_COUNT_PER_CHAIN_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxAIAUrlRetrievalCountPerChain");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MAX_SSL_TIME_UPDATED_EVENT_COUNT_DEFAULT: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MAX_SSL_TIME_UPDATED_EVENT_COUNT_DISABLE: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_MAX_SSL_TIME_UPDATED_EVENT_COUNT_VALUE_NAME: &str = "MaxSslTimeUpdatedEventCount";
+pub const CERT_CHAIN_MAX_SSL_TIME_UPDATED_EVENT_COUNT_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxSslTimeUpdatedEventCount");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_MAX_URL_RETRIEVAL_BYTE_COUNT_VALUE_NAME: &str = "MaxUrlRetrievalByteCount";
+pub const CERT_CHAIN_MAX_URL_RETRIEVAL_BYTE_COUNT_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxUrlRetrievalByteCount");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MIN_PUB_KEY_BIT_LENGTH_DISABLE: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2069,15 +1673,15 @@ pub const CERT_CHAIN_MIN_RSA_PUB_KEY_BIT_LENGTH_DEFAULT: u32 = 1023u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MIN_RSA_PUB_KEY_BIT_LENGTH_DISABLE: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_MIN_RSA_PUB_KEY_BIT_LENGTH_VALUE_NAME: &str = "MinRsaPubKeyBitLength";
+pub const CERT_CHAIN_MIN_RSA_PUB_KEY_BIT_LENGTH_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MinRsaPubKeyBitLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_MOTW_IGNORE_AFTER_TIME_WEAK_FLAG: u32 = 1073741824u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_OCSP_VALIDITY_SECONDS_VALUE_NAME: &str = "OcspValiditySeconds";
+pub const CERT_CHAIN_OCSP_VALIDITY_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("OcspValiditySeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_ONLY_ADDITIONAL_AND_AUTH_ROOT: u32 = 32768u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_OPTIONS_VALUE_NAME: &str = "Options";
+pub const CERT_CHAIN_OPTIONS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Options");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_OPTION_DISABLE_AIA_URL_RETRIEVAL: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2149,11 +1753,11 @@ pub const CERT_CHAIN_REVOCATION_CHECK_END_CERT: u32 = 268435456u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_REVOCATION_CHECK_OCSP_CERT: u32 = 67108864u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_REV_ACCUMULATIVE_URL_RETRIEVAL_TIMEOUT_MILLISECONDS_VALUE_NAME: &str = "ChainRevAccumulativeUrlRetrievalTimeoutMilliseconds";
+pub const CERT_CHAIN_REV_ACCUMULATIVE_URL_RETRIEVAL_TIMEOUT_MILLISECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainRevAccumulativeUrlRetrievalTimeoutMilliseconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_SERIAL_CHAIN_LOG_FILE_NAME_VALUE_NAME: &str = "SerialChainLogFileName";
+pub const CERT_CHAIN_SERIAL_CHAIN_LOG_FILE_NAME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SerialChainLogFileName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_SSL_HANDSHAKE_LOG_FILE_NAME_VALUE_NAME: &str = "SslHandshakeLogFileName";
+pub const CERT_CHAIN_SSL_HANDSHAKE_LOG_FILE_NAME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SslHandshakeLogFileName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_STRONG_SIGN_DISABLE_END_CHECK_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2161,33 +1765,33 @@ pub const CERT_CHAIN_THREAD_STORE_SYNC: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_TIMESTAMP_TIME: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_URL_RETRIEVAL_TIMEOUT_MILLISECONDS_VALUE_NAME: &str = "ChainUrlRetrievalTimeoutMilliseconds";
+pub const CERT_CHAIN_URL_RETRIEVAL_TIMEOUT_MILLISECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ChainUrlRetrievalTimeoutMilliseconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CHAIN_USE_LOCAL_MACHINE_STORE: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_AFTER_TIME_NAME: &str = "AfterTime";
+pub const CERT_CHAIN_WEAK_AFTER_TIME_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AfterTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_ALL_CONFIG_NAME: &str = "All";
+pub const CERT_CHAIN_WEAK_ALL_CONFIG_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("All");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_FILE_HASH_AFTER_TIME_NAME: &str = "FileHashAfterTime";
+pub const CERT_CHAIN_WEAK_FILE_HASH_AFTER_TIME_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("FileHashAfterTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_FLAGS_NAME: &str = "Flags";
+pub const CERT_CHAIN_WEAK_FLAGS_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Flags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_HYGIENE_NAME: &str = "Hygiene";
+pub const CERT_CHAIN_WEAK_HYGIENE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Hygiene");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_MIN_BIT_LENGTH_NAME: &str = "MinBitLength";
+pub const CERT_CHAIN_WEAK_MIN_BIT_LENGTH_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MinBitLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_PREFIX_NAME: &str = "Weak";
+pub const CERT_CHAIN_WEAK_PREFIX_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Weak");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_RSA_PUB_KEY_TIME_VALUE_NAME: &str = "WeakRsaPubKeyTime";
+pub const CERT_CHAIN_WEAK_RSA_PUB_KEY_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WeakRsaPubKeyTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_SHA256_ALLOW_NAME: &str = "Sha256Allow";
+pub const CERT_CHAIN_WEAK_SHA256_ALLOW_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Sha256Allow");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_SIGNATURE_LOG_DIR_VALUE_NAME: &str = "WeakSignatureLogDir";
+pub const CERT_CHAIN_WEAK_SIGNATURE_LOG_DIR_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WeakSignatureLogDir");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_THIRD_PARTY_CONFIG_NAME: &str = "ThirdParty";
+pub const CERT_CHAIN_WEAK_THIRD_PARTY_CONFIG_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ThirdParty");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_CHAIN_WEAK_TIMESTAMP_HASH_AFTER_TIME_NAME: &str = "TimestampHashAfterTime";
+pub const CERT_CHAIN_WEAK_TIMESTAMP_HASH_AFTER_TIME_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TimestampHashAfterTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_CLOSE_STORE_CHECK_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2269,31 +1873,31 @@ pub const CERT_DATE_STAMP_PROP_ID: u32 = 27u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_DECIPHER_ONLY_KEY_USAGE: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DEFAULT_OID_PUBLIC_KEY_SIGN: &str = "1.2.840.113549.1.1.1";
+pub const CERT_DEFAULT_OID_PUBLIC_KEY_SIGN: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.2.840.113549.1.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DEFAULT_OID_PUBLIC_KEY_XCHG: &str = "1.2.840.113549.1.1.1";
+pub const CERT_DEFAULT_OID_PUBLIC_KEY_XCHG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.2.840.113549.1.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_DESCRIPTION_PROP_ID: u32 = 13u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_DIGITAL_SIGNATURE_KEY_USAGE: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISABLE_PIN_RULES_AUTO_UPDATE_VALUE_NAME: &str = "DisablePinRulesAutoUpdate";
+pub const CERT_DISABLE_PIN_RULES_AUTO_UPDATE_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisablePinRulesAutoUpdate");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISABLE_ROOT_AUTO_UPDATE_VALUE_NAME: &str = "DisableRootAutoUpdate";
+pub const CERT_DISABLE_ROOT_AUTO_UPDATE_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableRootAutoUpdate");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_ENCODED_CTL_VALUE_NAME: &str = "DisallowedCertEncodedCtl";
+pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_ENCODED_CTL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisallowedCertEncodedCtl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_LAST_SYNC_TIME_VALUE_NAME: &str = "DisallowedCertLastSyncTime";
+pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_LAST_SYNC_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisallowedCertLastSyncTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_LIST_IDENTIFIER: &str = "DisallowedCert_AutoUpdate_1";
+pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_LIST_IDENTIFIER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisallowedCert_AutoUpdate_1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_SYNC_DELTA_TIME_VALUE_NAME: &str = "DisallowedCertSyncDeltaTime";
+pub const CERT_DISALLOWED_CERT_AUTO_UPDATE_SYNC_DELTA_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisallowedCertSyncDeltaTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISALLOWED_CERT_CAB_FILENAME: &str = "disallowedcertstl.cab";
+pub const CERT_DISALLOWED_CERT_CAB_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("disallowedcertstl.cab");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISALLOWED_CERT_CTL_FILENAME: &str = "disallowedcert.stl";
+pub const CERT_DISALLOWED_CERT_CTL_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("disallowedcert.stl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_DISALLOWED_CERT_CTL_FILENAME_A: &str = "disallowedcert.stl";
+pub const CERT_DISALLOWED_CERT_CTL_FILENAME_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("disallowedcert.stl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_DISALLOWED_ENHKEY_USAGE_PROP_ID: u32 = 122u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2303,11 +1907,11 @@ pub const CERT_DSS_R_LEN: u32 = 20u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_DSS_S_LEN: u32 = 20u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_EFSBLOB_VALUE_NAME: &str = "EFSBlob";
+pub const CERT_EFSBLOB_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EFSBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_EFS_PROP_ID: u32 = 17u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_ENABLE_DISALLOWED_CERT_AUTO_UPDATE_VALUE_NAME: &str = "EnableDisallowedCertAutoUpdate";
+pub const CERT_ENABLE_DISALLOWED_CERT_AUTO_UPDATE_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EnableDisallowedCertAutoUpdate");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_ENCIPHER_ONLY_KEY_USAGE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2335,7 +1939,7 @@ pub const CERT_FORTEZZA_DATA_PROP_ID: u32 = 18u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_FRIENDLY_NAME_PROP_ID: u32 = 11u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_GROUP_POLICY_SYSTEM_STORE_REGPATH: &str = "Software\\Policies\\Microsoft\\SystemCertificates";
+pub const CERT_GROUP_POLICY_SYSTEM_STORE_REGPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Software\\Policies\\Microsoft\\SystemCertificates");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_HASH_PROP_ID: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2345,7 +1949,7 @@ pub const CERT_HCRYPTPROV_TRANSFER_PROP_ID: u32 = 100u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_IE30_RESERVED_PROP_ID: u32 = 7u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_IE_DIRTY_FLAGS_REGPATH: &str = "Software\\Microsoft\\Cryptography\\IEDirtyFlags";
+pub const CERT_IE_DIRTY_FLAGS_REGPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Software\\Microsoft\\Cryptography\\IEDirtyFlags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_INFO_EXTENSION_FLAG: u32 = 11u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2415,7 +2019,7 @@ pub const CERT_LDAP_STORE_SIGN_FLAG: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_LDAP_STORE_UNBIND_FLAG: u32 = 524288u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_LOCAL_MACHINE_SYSTEM_STORE_REGPATH: &str = "Software\\Microsoft\\SystemCertificates";
+pub const CERT_LOCAL_MACHINE_SYSTEM_STORE_REGPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Software\\Microsoft\\SystemCertificates");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_MD5_HASH_PROP_ID: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2487,9 +2091,9 @@ pub const CERT_NO_AUTO_EXPIRE_CHECK_PROP_ID: u32 = 77u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_NO_EXPIRE_NOTIFICATION_PROP_ID: u32 = 97u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_OCM_SUBCOMPONENTS_LOCAL_MACHINE_REGPATH: &str = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\OC Manager\\Subcomponents";
+pub const CERT_OCM_SUBCOMPONENTS_LOCAL_MACHINE_REGPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\OC Manager\\Subcomponents");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_OCM_SUBCOMPONENTS_ROOT_AUTO_UPDATE_VALUE_NAME: &str = "RootAutoUpdate";
+pub const CERT_OCM_SUBCOMPONENTS_ROOT_AUTO_UPDATE_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RootAutoUpdate");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_OCSP_CACHE_PREFIX_PROP_ID: u32 = 75u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2501,21 +2105,21 @@ pub const CERT_OFFLINE_CRL_SIGN_KEY_USAGE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PHYSICAL_STORE_ADD_ENABLE_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_AUTH_ROOT_NAME: &str = ".AuthRoot";
+pub const CERT_PHYSICAL_STORE_AUTH_ROOT_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".AuthRoot");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_DEFAULT_NAME: &str = ".Default";
+pub const CERT_PHYSICAL_STORE_DEFAULT_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".Default");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_DS_USER_CERTIFICATE_NAME: &str = ".UserCertificate";
+pub const CERT_PHYSICAL_STORE_DS_USER_CERTIFICATE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".UserCertificate");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_ENTERPRISE_NAME: &str = ".Enterprise";
+pub const CERT_PHYSICAL_STORE_ENTERPRISE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".Enterprise");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_GROUP_POLICY_NAME: &str = ".GroupPolicy";
+pub const CERT_PHYSICAL_STORE_GROUP_POLICY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".GroupPolicy");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PHYSICAL_STORE_INSERT_COMPUTER_NAME_ENABLE_FLAG: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_LOCAL_MACHINE_GROUP_POLICY_NAME: &str = ".LocalMachineGroupPolicy";
+pub const CERT_PHYSICAL_STORE_LOCAL_MACHINE_GROUP_POLICY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".LocalMachineGroupPolicy");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_LOCAL_MACHINE_NAME: &str = ".LocalMachine";
+pub const CERT_PHYSICAL_STORE_LOCAL_MACHINE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".LocalMachine");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PHYSICAL_STORE_OPEN_DISABLE_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2523,21 +2127,21 @@ pub const CERT_PHYSICAL_STORE_PREDEFINED_ENUM_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PHYSICAL_STORE_REMOTE_OPEN_DISABLE_FLAG: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PHYSICAL_STORE_SMART_CARD_NAME: &str = ".SmartCard";
+pub const CERT_PHYSICAL_STORE_SMART_CARD_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!(".SmartCard");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PIN_RULES_AUTO_UPDATE_ENCODED_CTL_VALUE_NAME: &str = "PinRulesEncodedCtl";
+pub const CERT_PIN_RULES_AUTO_UPDATE_ENCODED_CTL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinRulesEncodedCtl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PIN_RULES_AUTO_UPDATE_LAST_SYNC_TIME_VALUE_NAME: &str = "PinRulesLastSyncTime";
+pub const CERT_PIN_RULES_AUTO_UPDATE_LAST_SYNC_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinRulesLastSyncTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PIN_RULES_AUTO_UPDATE_LIST_IDENTIFIER: &str = "PinRules_AutoUpdate_1";
+pub const CERT_PIN_RULES_AUTO_UPDATE_LIST_IDENTIFIER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinRules_AutoUpdate_1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PIN_RULES_AUTO_UPDATE_SYNC_DELTA_TIME_VALUE_NAME: &str = "PinRulesSyncDeltaTime";
+pub const CERT_PIN_RULES_AUTO_UPDATE_SYNC_DELTA_TIME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinRulesSyncDeltaTime");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PIN_RULES_CAB_FILENAME: &str = "pinrulesstl.cab";
+pub const CERT_PIN_RULES_CAB_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("pinrulesstl.cab");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PIN_RULES_CTL_FILENAME: &str = "pinrules.stl";
+pub const CERT_PIN_RULES_CTL_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("pinrules.stl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PIN_RULES_CTL_FILENAME_A: &str = "pinrules.stl";
+pub const CERT_PIN_RULES_CTL_FILENAME_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("pinrules.stl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PIN_SHA256_HASH_PROP_ID: u32 = 124u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2551,7 +2155,7 @@ pub const CERT_PROT_ROOT_DISABLE_NT_AUTH_REQUIRED_FLAG: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PROT_ROOT_DISABLE_PEER_TRUST: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PROT_ROOT_FLAGS_VALUE_NAME: &str = "Flags";
+pub const CERT_PROT_ROOT_FLAGS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Flags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PROT_ROOT_INHIBIT_ADD_AT_INIT_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2559,9 +2163,9 @@ pub const CERT_PROT_ROOT_INHIBIT_PURGE_LM_FLAG: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PROT_ROOT_ONLY_LM_GPT_FLAG: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PROT_ROOT_PEER_USAGES_VALUE_NAME: &str = "PeerUsages";
+pub const CERT_PROT_ROOT_PEER_USAGES_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerUsages");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_PROT_ROOT_PEER_USAGES_VALUE_NAME_A: &str = "PeerUsages";
+pub const CERT_PROT_ROOT_PEER_USAGES_VALUE_NAME_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("PeerUsages");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_PUBKEY_ALG_PARA_PROP_ID: u32 = 22u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2615,13 +2219,13 @@ pub const CERT_RETRIEVE_ISSUER_LOGO: ::windows_sys::core::PCSTR = 1i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_RETRIEVE_SUBJECT_LOGO: ::windows_sys::core::PCSTR = 2i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_RETR_BEHAVIOR_FILE_VALUE_NAME: &str = "AllowFileUrlScheme";
+pub const CERT_RETR_BEHAVIOR_FILE_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AllowFileUrlScheme");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_RETR_BEHAVIOR_INET_AUTH_VALUE_NAME: &str = "EnableInetUnknownAuth";
+pub const CERT_RETR_BEHAVIOR_INET_AUTH_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EnableInetUnknownAuth");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_RETR_BEHAVIOR_INET_STATUS_VALUE_NAME: &str = "EnableInetLocal";
+pub const CERT_RETR_BEHAVIOR_INET_STATUS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EnableInetLocal");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_RETR_BEHAVIOR_LDAP_VALUE_NAME: &str = "DisableLDAPSignAndEncrypt";
+pub const CERT_RETR_BEHAVIOR_LDAP_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableLDAPSignAndEncrypt");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_ROOT_PROGRAM_CERT_POLICIES_PROP_ID: u32 = 83u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2633,7 +2237,7 @@ pub const CERT_ROOT_PROGRAM_FLAG_OU: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_ROOT_PROGRAM_NAME_CONSTRAINTS_PROP_ID: u32 = 84u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_RSA_PUBLIC_KEY_OBJID: &str = "1.2.840.113549.1.1.1";
+pub const CERT_RSA_PUBLIC_KEY_OBJID: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.2.840.113549.1.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_SCARD_PIN_ID_PROP_ID: u32 = 90u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2719,21 +2323,21 @@ pub const CERT_SOURCE_LOCATION_PROP_ID: u32 = 72u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_SOURCE_URL_PROP_ID: u32 = 73u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_SRV_OCSP_RESP_MAX_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: &str = "SrvOcspRespMaxBeforeNextUpdateSeconds";
+pub const CERT_SRV_OCSP_RESP_MAX_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SrvOcspRespMaxBeforeNextUpdateSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_SRV_OCSP_RESP_MAX_SYNC_CERT_FILE_SECONDS_VALUE_NAME: &str = "SrvOcspRespMaxSyncCertFileSeconds";
+pub const CERT_SRV_OCSP_RESP_MAX_SYNC_CERT_FILE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SrvOcspRespMaxSyncCertFileSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_SRV_OCSP_RESP_MIN_AFTER_NEXT_UPDATE_SECONDS_VALUE_NAME: &str = "SrvOcspRespMinAfterNextUpdateSeconds";
+pub const CERT_SRV_OCSP_RESP_MIN_AFTER_NEXT_UPDATE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SrvOcspRespMinAfterNextUpdateSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_SRV_OCSP_RESP_MIN_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: &str = "SrvOcspRespMinBeforeNextUpdateSeconds";
+pub const CERT_SRV_OCSP_RESP_MIN_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SrvOcspRespMinBeforeNextUpdateSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_SRV_OCSP_RESP_MIN_SYNC_CERT_FILE_SECONDS_DEFAULT: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_SRV_OCSP_RESP_MIN_SYNC_CERT_FILE_SECONDS_VALUE_NAME: &str = "SrvOcspRespMinSyncCertFileSeconds";
+pub const CERT_SRV_OCSP_RESP_MIN_SYNC_CERT_FILE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SrvOcspRespMinSyncCertFileSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_SRV_OCSP_RESP_MIN_VALIDITY_SECONDS_VALUE_NAME: &str = "SrvOcspRespMinValiditySeconds";
+pub const CERT_SRV_OCSP_RESP_MIN_VALIDITY_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SrvOcspRespMinValiditySeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_SRV_OCSP_RESP_URL_RETRIEVAL_TIMEOUT_MILLISECONDS_VALUE_NAME: &str = "SrvOcspRespUrlRetrievalTimeoutMilliseconds";
+pub const CERT_SRV_OCSP_RESP_URL_RETRIEVAL_TIMEOUT_MILLISECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SrvOcspRespUrlRetrievalTimeoutMilliseconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_STORE_ADD_ALWAYS: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -2887,7 +2491,7 @@ pub const CERT_STORE_TIME_VALIDITY_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_STORE_UNSAFE_PHYSICAL_FLAG: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_STRONG_SIGN_ECDSA_ALGORITHM: &str = "ECDSA";
+pub const CERT_STRONG_SIGN_ECDSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_STRONG_SIGN_OID_INFO_CHOICE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3031,7 +2635,7 @@ pub const CERT_TRUST_PUB_ALLOW_MACHINE_ADMIN_TRUST: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_TRUST_PUB_ALLOW_TRUST_MASK: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CERT_TRUST_PUB_AUTHENTICODE_FLAGS_VALUE_NAME: &str = "AuthenticodeFlags";
+pub const CERT_TRUST_PUB_AUTHENTICODE_FLAGS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AuthenticodeFlags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CERT_TRUST_PUB_CHECK_PUBLISHER_REV_FLAG: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3144,7 +2748,8 @@ pub const CMC_STATUS_PENDING: u32 = 3u32;
 pub const CMC_STATUS_SUCCESS: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CMC_TAGGED_CERT_REQUEST_CHOICE: u32 = 1u32;
-pub const CMSCEPSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2857327618, data2: 36476, data3: 18884, data4: [148, 250, 103, 165, 204, 94, 173, 180] };
+#[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
+pub const CMSCEPSetup: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xaa4f5c02_8e7c_49c4_94fa_67a5cc5eadb4);
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CMSG_ATTR_CERT_COUNT_PARAM: u32 = 31u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3326,51 +2931,51 @@ pub const CMSG_MAIL_LIST_VERSION: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CMSG_MAX_LENGTH_FLAG: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CAPI1_EXPORT_KEY_AGREE_FUNC: &str = "CryptMsgDllExportKeyAgree";
+pub const CMSG_OID_CAPI1_EXPORT_KEY_AGREE_FUNC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptMsgDllExportKeyAgree");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CAPI1_EXPORT_KEY_TRANS_FUNC: &str = "CryptMsgDllExportKeyTrans";
+pub const CMSG_OID_CAPI1_EXPORT_KEY_TRANS_FUNC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptMsgDllExportKeyTrans");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CAPI1_EXPORT_MAIL_LIST_FUNC: &str = "CryptMsgDllExportMailList";
+pub const CMSG_OID_CAPI1_EXPORT_MAIL_LIST_FUNC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptMsgDllExportMailList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CAPI1_GEN_CONTENT_ENCRYPT_KEY_FUNC: &str = "CryptMsgDllGenContentEncryptKey";
+pub const CMSG_OID_CAPI1_GEN_CONTENT_ENCRYPT_KEY_FUNC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptMsgDllGenContentEncryptKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CAPI1_IMPORT_KEY_AGREE_FUNC: &str = "CryptMsgDllImportKeyAgree";
+pub const CMSG_OID_CAPI1_IMPORT_KEY_AGREE_FUNC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptMsgDllImportKeyAgree");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CAPI1_IMPORT_KEY_TRANS_FUNC: &str = "CryptMsgDllImportKeyTrans";
+pub const CMSG_OID_CAPI1_IMPORT_KEY_TRANS_FUNC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptMsgDllImportKeyTrans");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CAPI1_IMPORT_MAIL_LIST_FUNC: &str = "CryptMsgDllImportMailList";
+pub const CMSG_OID_CAPI1_IMPORT_MAIL_LIST_FUNC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptMsgDllImportMailList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CNG_EXPORT_KEY_AGREE_FUNC: &str = "CryptMsgDllCNGExportKeyAgree";
+pub const CMSG_OID_CNG_EXPORT_KEY_AGREE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllCNGExportKeyAgree");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CNG_EXPORT_KEY_TRANS_FUNC: &str = "CryptMsgDllCNGExportKeyTrans";
+pub const CMSG_OID_CNG_EXPORT_KEY_TRANS_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllCNGExportKeyTrans");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CNG_GEN_CONTENT_ENCRYPT_KEY_FUNC: &str = "CryptMsgDllCNGGenContentEncryptKey";
+pub const CMSG_OID_CNG_GEN_CONTENT_ENCRYPT_KEY_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllCNGGenContentEncryptKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CNG_IMPORT_CONTENT_ENCRYPT_KEY_FUNC: &str = "CryptMsgDllCNGImportContentEncryptKey";
+pub const CMSG_OID_CNG_IMPORT_CONTENT_ENCRYPT_KEY_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllCNGImportContentEncryptKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CNG_IMPORT_KEY_AGREE_FUNC: &str = "CryptMsgDllCNGImportKeyAgree";
+pub const CMSG_OID_CNG_IMPORT_KEY_AGREE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllCNGImportKeyAgree");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_CNG_IMPORT_KEY_TRANS_FUNC: &str = "CryptMsgDllCNGImportKeyTrans";
+pub const CMSG_OID_CNG_IMPORT_KEY_TRANS_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllCNGImportKeyTrans");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_EXPORT_ENCRYPT_KEY_FUNC: &str = "CryptMsgDllExportEncryptKey";
+pub const CMSG_OID_EXPORT_ENCRYPT_KEY_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllExportEncryptKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_EXPORT_KEY_AGREE_FUNC: &str = "CryptMsgDllExportKeyAgree";
+pub const CMSG_OID_EXPORT_KEY_AGREE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllExportKeyAgree");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_EXPORT_KEY_TRANS_FUNC: &str = "CryptMsgDllExportKeyTrans";
+pub const CMSG_OID_EXPORT_KEY_TRANS_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllExportKeyTrans");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_EXPORT_MAIL_LIST_FUNC: &str = "CryptMsgDllExportMailList";
+pub const CMSG_OID_EXPORT_MAIL_LIST_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllExportMailList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_GEN_CONTENT_ENCRYPT_KEY_FUNC: &str = "CryptMsgDllGenContentEncryptKey";
+pub const CMSG_OID_GEN_CONTENT_ENCRYPT_KEY_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllGenContentEncryptKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_GEN_ENCRYPT_KEY_FUNC: &str = "CryptMsgDllGenEncryptKey";
+pub const CMSG_OID_GEN_ENCRYPT_KEY_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllGenEncryptKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_IMPORT_ENCRYPT_KEY_FUNC: &str = "CryptMsgDllImportEncryptKey";
+pub const CMSG_OID_IMPORT_ENCRYPT_KEY_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllImportEncryptKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_IMPORT_KEY_AGREE_FUNC: &str = "CryptMsgDllImportKeyAgree";
+pub const CMSG_OID_IMPORT_KEY_AGREE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllImportKeyAgree");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_IMPORT_KEY_TRANS_FUNC: &str = "CryptMsgDllImportKeyTrans";
+pub const CMSG_OID_IMPORT_KEY_TRANS_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllImportKeyTrans");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CMSG_OID_IMPORT_MAIL_LIST_FUNC: &str = "CryptMsgDllImportMailList";
+pub const CMSG_OID_IMPORT_MAIL_LIST_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptMsgDllImportMailList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CMSG_RC4_NO_SALT_FLAG: u32 = 1073741824u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3446,7 +3051,7 @@ pub const CONTEXT_OID_CAPI2_ANY: ::windows_sys::core::PCSTR = 5i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CONTEXT_OID_CERTIFICATE: ::windows_sys::core::PCSTR = 1i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CONTEXT_OID_CREATE_OBJECT_CONTEXT_FUNC: &str = "ContextDllCreateObjectContext";
+pub const CONTEXT_OID_CREATE_OBJECT_CONTEXT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("ContextDllCreateObjectContext");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CONTEXT_OID_CRL: ::windows_sys::core::PCSTR = 2i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3524,75 +3129,75 @@ pub const CROSS_CERT_DIST_POINT_ERR_INDEX_SHIFT: u32 = 24u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_CACHED_OCSP_SWITCH_TO_CRL_COUNT_DEFAULT: u32 = 50u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CACHED_OCSP_SWITCH_TO_CRL_COUNT_VALUE_NAME: &str = "CryptnetCachedOcspSwitchToCrlCount";
+pub const CRYPTNET_CACHED_OCSP_SWITCH_TO_CRL_COUNT_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetCachedOcspSwitchToCrlCount");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_CRL_BEFORE_OCSP_ENABLE: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_DISABLE_INFORMATION_EVENTS_VALUE_NAME: &str = "DisableInformationEvents";
+pub const CRYPTNET_CRL_PRE_FETCH_DISABLE_INFORMATION_EVENTS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisableInformationEvents");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_LOG_FILE_NAME_VALUE_NAME: &str = "LogFileName";
+pub const CRYPTNET_CRL_PRE_FETCH_LOG_FILE_NAME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LogFileName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_MAX_AGE_SECONDS_VALUE_NAME: &str = "MaxAgeSeconds";
+pub const CRYPTNET_CRL_PRE_FETCH_MAX_AGE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxAgeSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_MIN_AFTER_NEXT_UPDATE_SECONDS_VALUE_NAME: &str = "MinAfterNextUpdateSeconds";
+pub const CRYPTNET_CRL_PRE_FETCH_MIN_AFTER_NEXT_UPDATE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MinAfterNextUpdateSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_MIN_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: &str = "MinBeforeNextUpdateSeconds";
+pub const CRYPTNET_CRL_PRE_FETCH_MIN_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MinBeforeNextUpdateSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_PROCESS_NAME_LIST_VALUE_NAME: &str = "ProcessNameList";
+pub const CRYPTNET_CRL_PRE_FETCH_PROCESS_NAME_LIST_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ProcessNameList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_PUBLISH_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: &str = "PublishBeforeNextUpdateSeconds";
+pub const CRYPTNET_CRL_PRE_FETCH_PUBLISH_BEFORE_NEXT_UPDATE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PublishBeforeNextUpdateSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_PUBLISH_RANDOM_INTERVAL_SECONDS_VALUE_NAME: &str = "PublishRandomIntervalSeconds";
+pub const CRYPTNET_CRL_PRE_FETCH_PUBLISH_RANDOM_INTERVAL_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PublishRandomIntervalSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_TIMEOUT_SECONDS_VALUE_NAME: &str = "TimeoutSeconds";
+pub const CRYPTNET_CRL_PRE_FETCH_TIMEOUT_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TimeoutSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_CRL_PRE_FETCH_URL_LIST_VALUE_NAME: &str = "PreFetchUrlList";
+pub const CRYPTNET_CRL_PRE_FETCH_URL_LIST_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PreFetchUrlList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_MAX_CACHED_OCSP_PER_CRL_COUNT_DEFAULT: u32 = 500u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_MAX_CACHED_OCSP_PER_CRL_COUNT_VALUE_NAME: &str = "CryptnetMaxCachedOcspPerCrlCount";
+pub const CRYPTNET_MAX_CACHED_OCSP_PER_CRL_COUNT_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetMaxCachedOcspPerCrlCount");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_OCSP_AFTER_CRL_DISABLE: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_AFTER_CURRENT_TIME_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchAfterCurrentTimePreFetchPeriodSeconds";
+pub const CRYPTNET_PRE_FETCH_AFTER_CURRENT_TIME_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchAfterCurrentTimePreFetchPeriodSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_PRE_FETCH_AFTER_PUBLISH_PRE_FETCH_DIVISOR_DEFAULT: u32 = 10u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_AFTER_PUBLISH_PRE_FETCH_DIVISOR_VALUE_NAME: &str = "CryptnetPreFetchAfterPublishPreFetchDivisor";
+pub const CRYPTNET_PRE_FETCH_AFTER_PUBLISH_PRE_FETCH_DIVISOR_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchAfterPublishPreFetchDivisor");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_PRE_FETCH_BEFORE_NEXT_UPDATE_PRE_FETCH_DIVISOR_DEFAULT: u32 = 20u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_BEFORE_NEXT_UPDATE_PRE_FETCH_DIVISOR_VALUE_NAME: &str = "CryptnetPreFetchBeforeNextUpdatePreFetchDivisor";
+pub const CRYPTNET_PRE_FETCH_BEFORE_NEXT_UPDATE_PRE_FETCH_DIVISOR_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchBeforeNextUpdatePreFetchDivisor");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_MAX_AFTER_NEXT_UPDATE_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchMaxAfterNextUpdatePreFetchPeriodSeconds";
+pub const CRYPTNET_PRE_FETCH_MAX_AFTER_NEXT_UPDATE_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchMaxAfterNextUpdatePreFetchPeriodSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_MAX_MAX_AGE_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchMaxMaxAgeSeconds";
+pub const CRYPTNET_PRE_FETCH_MAX_MAX_AGE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchMaxMaxAgeSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_MIN_AFTER_NEXT_UPDATE_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchMinAfterNextUpdatePreFetchPeriodSeconds";
+pub const CRYPTNET_PRE_FETCH_MIN_AFTER_NEXT_UPDATE_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchMinAfterNextUpdatePreFetchPeriodSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_MIN_BEFORE_NEXT_UPDATE_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchMinBeforeNextUpdatePreFetchSeconds";
+pub const CRYPTNET_PRE_FETCH_MIN_BEFORE_NEXT_UPDATE_PRE_FETCH_PERIOD_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchMinBeforeNextUpdatePreFetchSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_MIN_MAX_AGE_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchMinMaxAgeSeconds";
+pub const CRYPTNET_PRE_FETCH_MIN_MAX_AGE_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchMinMaxAgeSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_MIN_OCSP_VALIDITY_PERIOD_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchMinOcspValidityPeriodSeconds";
+pub const CRYPTNET_PRE_FETCH_MIN_OCSP_VALIDITY_PERIOD_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchMinOcspValidityPeriodSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_RETRIEVAL_TIMEOUT_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchRetrievalTimeoutSeconds";
+pub const CRYPTNET_PRE_FETCH_RETRIEVAL_TIMEOUT_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchRetrievalTimeoutSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_PRE_FETCH_SCAN_AFTER_TRIGGER_DELAY_SECONDS_DEFAULT: u32 = 60u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_SCAN_AFTER_TRIGGER_DELAY_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchScanAfterTriggerDelaySeconds";
+pub const CRYPTNET_PRE_FETCH_SCAN_AFTER_TRIGGER_DELAY_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchScanAfterTriggerDelaySeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_PRE_FETCH_TRIGGER_DISABLE: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_TRIGGER_PERIOD_SECONDS_VALUE_NAME: &str = "CryptnetPreFetchTriggerPeriodSeconds";
+pub const CRYPTNET_PRE_FETCH_TRIGGER_PERIOD_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchTriggerPeriodSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_PRE_FETCH_VALIDITY_PERIOD_AFTER_NEXT_UPDATE_PRE_FETCH_DIVISOR_DEFAULT: u32 = 10u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_PRE_FETCH_VALIDITY_PERIOD_AFTER_NEXT_UPDATE_PRE_FETCH_DIVISOR_VALUE_NAME: &str = "CryptnetPreFetchValidityPeriodAfterNextUpdatePreFetchDivisor";
+pub const CRYPTNET_PRE_FETCH_VALIDITY_PERIOD_AFTER_NEXT_UPDATE_PRE_FETCH_DIVISOR_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetPreFetchValidityPeriodAfterNextUpdatePreFetchDivisor");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_URL_CACHE_DEFAULT_FLUSH: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPTNET_URL_CACHE_DEFAULT_FLUSH_EXEMPT_SECONDS_VALUE_NAME: &str = "CryptnetDefaultFlushExemptSeconds";
+pub const CRYPTNET_URL_CACHE_DEFAULT_FLUSH_EXEMPT_SECONDS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptnetDefaultFlushExemptSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPTNET_URL_CACHE_DISABLE_FLUSH: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3698,9 +3303,9 @@ pub const CRYPT_DECRYPT_RSA_NO_PADDING_CHECK: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_DEFAULT_CONTAINER_OPTIONAL: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_DEFAULT_CONTEXT: &str = "Default";
+pub const CRYPT_DEFAULT_CONTEXT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Default");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_DEFAULT_OID: &str = "DEFAULT";
+pub const CRYPT_DEFAULT_OID: ::windows_sys::core::PCSTR = ::windows_sys::s!("DEFAULT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_DELETEKEYSET: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3834,7 +3439,7 @@ pub const CRYPT_LITTLE_ENDIAN: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_LOCALIZED_NAME_ENCODING_TYPE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_LOCALIZED_NAME_OID: &str = "LocalizedNames";
+pub const CRYPT_LOCALIZED_NAME_OID: ::windows_sys::core::PCSTR = ::windows_sys::s!("LocalizedNames");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_MAC: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3898,43 +3503,43 @@ pub const CRYPT_OCSP_ONLY_RETRIEVAL: u32 = 16777216u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OFFLINE_CHECK_RETRIEVAL: u32 = 16384u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_CREATE_COM_OBJECT_FUNC: &str = "CryptDllCreateCOMObject";
+pub const CRYPT_OID_CREATE_COM_OBJECT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllCreateCOMObject");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_DECODE_OBJECT_EX_FUNC: &str = "CryptDllDecodeObjectEx";
+pub const CRYPT_OID_DECODE_OBJECT_EX_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllDecodeObjectEx");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_DECODE_OBJECT_FUNC: &str = "CryptDllDecodeObject";
+pub const CRYPT_OID_DECODE_OBJECT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllDecodeObject");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_DISABLE_SEARCH_DS_FLAG: u32 = 2147483648u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_ENCODE_OBJECT_EX_FUNC: &str = "CryptDllEncodeObjectEx";
+pub const CRYPT_OID_ENCODE_OBJECT_EX_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllEncodeObjectEx");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_ENCODE_OBJECT_FUNC: &str = "CryptDllEncodeObject";
+pub const CRYPT_OID_ENCODE_OBJECT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllEncodeObject");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_ENUM_PHYSICAL_STORE_FUNC: &str = "CertDllEnumPhysicalStore";
+pub const CRYPT_OID_ENUM_PHYSICAL_STORE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllEnumPhysicalStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_ENUM_SYSTEM_STORE_FUNC: &str = "CertDllEnumSystemStore";
+pub const CRYPT_OID_ENUM_SYSTEM_STORE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllEnumSystemStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_EXPORT_PRIVATE_KEY_INFO_FUNC: &str = "CryptDllExportPrivateKeyInfoEx";
+pub const CRYPT_OID_EXPORT_PRIVATE_KEY_INFO_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllExportPrivateKeyInfoEx");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_EXPORT_PUBLIC_KEY_INFO_EX2_FUNC: &str = "CryptDllExportPublicKeyInfoEx2";
+pub const CRYPT_OID_EXPORT_PUBLIC_KEY_INFO_EX2_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllExportPublicKeyInfoEx2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_EXPORT_PUBLIC_KEY_INFO_FROM_BCRYPT_HANDLE_FUNC: &str = "CryptDllExportPublicKeyInfoFromBCryptKeyHandle";
+pub const CRYPT_OID_EXPORT_PUBLIC_KEY_INFO_FROM_BCRYPT_HANDLE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllExportPublicKeyInfoFromBCryptKeyHandle");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_EXPORT_PUBLIC_KEY_INFO_FUNC: &str = "CryptDllExportPublicKeyInfoEx";
+pub const CRYPT_OID_EXPORT_PUBLIC_KEY_INFO_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllExportPublicKeyInfoEx");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_EXTRACT_ENCODED_SIGNATURE_PARAMETERS_FUNC: &str = "CryptDllExtractEncodedSignatureParameters";
+pub const CRYPT_OID_EXTRACT_ENCODED_SIGNATURE_PARAMETERS_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllExtractEncodedSignatureParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_FIND_LOCALIZED_NAME_FUNC: &str = "CryptDllFindLocalizedName";
+pub const CRYPT_OID_FIND_LOCALIZED_NAME_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllFindLocalizedName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_FIND_OID_INFO_FUNC: &str = "CryptDllFindOIDInfo";
+pub const CRYPT_OID_FIND_OID_INFO_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllFindOIDInfo");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_FORMAT_OBJECT_FUNC: &str = "CryptDllFormatObject";
+pub const CRYPT_OID_FORMAT_OBJECT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllFormatObject");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_IMPORT_PRIVATE_KEY_INFO_FUNC: &str = "CryptDllImportPrivateKeyInfoEx";
+pub const CRYPT_OID_IMPORT_PRIVATE_KEY_INFO_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllImportPrivateKeyInfoEx");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_IMPORT_PUBLIC_KEY_INFO_EX2_FUNC: &str = "CryptDllImportPublicKeyInfoEx2";
+pub const CRYPT_OID_IMPORT_PUBLIC_KEY_INFO_EX2_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllImportPublicKeyInfoEx2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_IMPORT_PUBLIC_KEY_INFO_FUNC: &str = "CryptDllImportPublicKeyInfoEx";
+pub const CRYPT_OID_IMPORT_PUBLIC_KEY_INFO_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllImportPublicKeyInfoEx");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_INFO_ALGID_KEY: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3942,21 +3547,21 @@ pub const CRYPT_OID_INFO_CNG_ALGID_KEY: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_INFO_CNG_SIGN_KEY: u32 = 6u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_INFO_ECC_PARAMETERS_ALGORITHM: &str = "CryptOIDInfoECCParameters";
+pub const CRYPT_OID_INFO_ECC_PARAMETERS_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptOIDInfoECCParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_INFO_ECC_WRAP_PARAMETERS_ALGORITHM: &str = "CryptOIDInfoECCWrapParameters";
+pub const CRYPT_OID_INFO_ECC_WRAP_PARAMETERS_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptOIDInfoECCWrapParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_INFO_HASH_PARAMETERS_ALGORITHM: &str = "CryptOIDInfoHashParameters";
+pub const CRYPT_OID_INFO_HASH_PARAMETERS_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptOIDInfoHashParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_INFO_MGF1_PARAMETERS_ALGORITHM: &str = "CryptOIDInfoMgf1Parameters";
+pub const CRYPT_OID_INFO_MGF1_PARAMETERS_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptOIDInfoMgf1Parameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_INFO_NAME_KEY: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_INFO_NO_PARAMETERS_ALGORITHM: &str = "CryptOIDInfoNoParameters";
+pub const CRYPT_OID_INFO_NO_PARAMETERS_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptOIDInfoNoParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_INFO_NO_SIGN_ALGORITHM: &str = "CryptOIDInfoNoSign";
+pub const CRYPT_OID_INFO_NO_SIGN_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptOIDInfoNoSign");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_INFO_OAEP_PARAMETERS_ALGORITHM: &str = "CryptOIDInfoOAEPParameters";
+pub const CRYPT_OID_INFO_OAEP_PARAMETERS_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptOIDInfoOAEPParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_INFO_OID_GROUP_BIT_LEN_MASK: u32 = 268369920u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3972,9 +3577,9 @@ pub const CRYPT_OID_INHIBIT_SIGNATURE_FORMAT_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_NO_NULL_ALGORITHM_PARA_FLAG: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_OPEN_STORE_PROV_FUNC: &str = "CertDllOpenStoreProv";
+pub const CRYPT_OID_OPEN_STORE_PROV_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllOpenStoreProv");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_OPEN_SYSTEM_STORE_PROV_FUNC: &str = "CertDllOpenSystemStoreProv";
+pub const CRYPT_OID_OPEN_SYSTEM_STORE_PROV_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllOpenSystemStoreProv");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_PREFER_CNG_ALGID_FLAG: u32 = 1073741824u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -3982,29 +3587,29 @@ pub const CRYPT_OID_PUBKEY_ENCRYPT_ONLY_FLAG: u32 = 1073741824u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_PUBKEY_SIGN_ONLY_FLAG: u32 = 2147483648u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REGISTER_PHYSICAL_STORE_FUNC: &str = "CertDllRegisterPhysicalStore";
+pub const CRYPT_OID_REGISTER_PHYSICAL_STORE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllRegisterPhysicalStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REGISTER_SYSTEM_STORE_FUNC: &str = "CertDllRegisterSystemStore";
+pub const CRYPT_OID_REGISTER_SYSTEM_STORE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllRegisterSystemStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REGPATH: &str = "Software\\Microsoft\\Cryptography\\OID";
+pub const CRYPT_OID_REGPATH: ::windows_sys::core::PCSTR = ::windows_sys::s!("Software\\Microsoft\\Cryptography\\OID");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REG_DLL_VALUE_NAME: &str = "Dll";
+pub const CRYPT_OID_REG_DLL_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Dll");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REG_ENCODING_TYPE_PREFIX: &str = "EncodingType ";
+pub const CRYPT_OID_REG_ENCODING_TYPE_PREFIX: ::windows_sys::core::PCSTR = ::windows_sys::s!("EncodingType ");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REG_FLAGS_VALUE_NAME: &str = "CryptFlags";
+pub const CRYPT_OID_REG_FLAGS_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CryptFlags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REG_FUNC_NAME_VALUE_NAME: &str = "FuncName";
+pub const CRYPT_OID_REG_FUNC_NAME_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("FuncName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_REG_FUNC_NAME_VALUE_NAME_A: &str = "FuncName";
+pub const CRYPT_OID_REG_FUNC_NAME_VALUE_NAME_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("FuncName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_SIGN_AND_ENCODE_HASH_FUNC: &str = "CryptDllSignAndEncodeHash";
+pub const CRYPT_OID_SIGN_AND_ENCODE_HASH_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllSignAndEncodeHash");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_SYSTEM_STORE_LOCATION_VALUE_NAME: &str = "SystemStoreLocation";
+pub const CRYPT_OID_SYSTEM_STORE_LOCATION_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SystemStoreLocation");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_UNREGISTER_PHYSICAL_STORE_FUNC: &str = "CertDllUnregisterPhysicalStore";
+pub const CRYPT_OID_UNREGISTER_PHYSICAL_STORE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllUnregisterPhysicalStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_UNREGISTER_SYSTEM_STORE_FUNC: &str = "CertDllUnregisterSystemStore";
+pub const CRYPT_OID_UNREGISTER_SYSTEM_STORE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllUnregisterSystemStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_USE_CURVE_NAME_FOR_ENCODE_FLAG: u32 = 536870912u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4012,13 +3617,13 @@ pub const CRYPT_OID_USE_CURVE_PARAMETERS_FOR_ENCODE_FLAG: u32 = 268435456u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OID_USE_PUBKEY_PARA_FOR_PKCS7_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_VERIFY_CERTIFICATE_CHAIN_POLICY_FUNC: &str = "CertDllVerifyCertificateChainPolicy";
+pub const CRYPT_OID_VERIFY_CERTIFICATE_CHAIN_POLICY_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllVerifyCertificateChainPolicy");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_VERIFY_CTL_USAGE_FUNC: &str = "CertDllVerifyCTLUsage";
+pub const CRYPT_OID_VERIFY_CTL_USAGE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllVerifyCTLUsage");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_VERIFY_ENCODED_SIGNATURE_FUNC: &str = "CryptDllVerifyEncodedSignature";
+pub const CRYPT_OID_VERIFY_ENCODED_SIGNATURE_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CryptDllVerifyEncodedSignature");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const CRYPT_OID_VERIFY_REVOCATION_FUNC: &str = "CertDllVerifyRevocation";
+pub const CRYPT_OID_VERIFY_REVOCATION_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("CertDllVerifyRevocation");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const CRYPT_OVERWRITE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4246,9 +3851,9 @@ pub const ECC_CMS_SHARED_INFO: ::windows_sys::core::PCSTR = 77i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const EXPORT_PRIVATE_KEYS: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const EXPO_OFFLOAD_FUNC_NAME: &str = "OffloadModExpo";
+pub const EXPO_OFFLOAD_FUNC_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("OffloadModExpo");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const EXPO_OFFLOAD_REG_VALUE: &str = "ExpoOffload";
+pub const EXPO_OFFLOAD_REG_VALUE: ::windows_sys::core::PCSTR = ::windows_sys::s!("ExpoOffload");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const E_ICARD_ARGUMENT: ::windows_sys::core::HRESULT = -1073413883i32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4442,21 +4047,21 @@ pub const KP_X: u32 = 14u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const KP_Y: u32 = 15u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_DH_PRIVATE_BLOB: &str = "CAPIDHPRIVATEBLOB";
+pub const LEGACY_DH_PRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPIDHPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_DH_PUBLIC_BLOB: &str = "CAPIDHPUBLICBLOB";
+pub const LEGACY_DH_PUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPIDHPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_DSA_PRIVATE_BLOB: &str = "CAPIDSAPRIVATEBLOB";
+pub const LEGACY_DSA_PRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPIDSAPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_DSA_PUBLIC_BLOB: &str = "CAPIDSAPUBLICBLOB";
+pub const LEGACY_DSA_PUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPIDSAPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_DSA_V2_PRIVATE_BLOB: &str = "V2CAPIDSAPRIVATEBLOB";
+pub const LEGACY_DSA_V2_PRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("V2CAPIDSAPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_DSA_V2_PUBLIC_BLOB: &str = "V2CAPIDSAPUBLICBLOB";
+pub const LEGACY_DSA_V2_PUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("V2CAPIDSAPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_RSAPRIVATE_BLOB: &str = "CAPIPRIVATEBLOB";
+pub const LEGACY_RSAPRIVATE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPIPRIVATEBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const LEGACY_RSAPUBLIC_BLOB: &str = "CAPIPUBLICBLOB";
+pub const LEGACY_RSAPUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPIPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const MAXUIDLEN: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4466,91 +4071,91 @@ pub const MICROSOFT_ROOT_CERT_CHAIN_POLICY_DISABLE_FLIGHT_ROOT_FLAG: u32 = 26214
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DH_SCHANNEL_PROV: &str = "Microsoft DH SChannel Cryptographic Provider";
+pub const MS_DEF_DH_SCHANNEL_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft DH SChannel Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DH_SCHANNEL_PROV_A: &str = "Microsoft DH SChannel Cryptographic Provider";
+pub const MS_DEF_DH_SCHANNEL_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft DH SChannel Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DH_SCHANNEL_PROV_W: &str = "Microsoft DH SChannel Cryptographic Provider";
+pub const MS_DEF_DH_SCHANNEL_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft DH SChannel Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DSS_DH_PROV: &str = "Microsoft Base DSS and Diffie-Hellman Cryptographic Provider";
+pub const MS_DEF_DSS_DH_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base DSS and Diffie-Hellman Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DSS_DH_PROV_A: &str = "Microsoft Base DSS and Diffie-Hellman Cryptographic Provider";
+pub const MS_DEF_DSS_DH_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Base DSS and Diffie-Hellman Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DSS_DH_PROV_W: &str = "Microsoft Base DSS and Diffie-Hellman Cryptographic Provider";
+pub const MS_DEF_DSS_DH_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base DSS and Diffie-Hellman Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DSS_PROV: &str = "Microsoft Base DSS Cryptographic Provider";
+pub const MS_DEF_DSS_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base DSS Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DSS_PROV_A: &str = "Microsoft Base DSS Cryptographic Provider";
+pub const MS_DEF_DSS_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Base DSS Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_DSS_PROV_W: &str = "Microsoft Base DSS Cryptographic Provider";
+pub const MS_DEF_DSS_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base DSS Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_PROV: &str = "Microsoft Base Cryptographic Provider v1.0";
+pub const MS_DEF_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base Cryptographic Provider v1.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_PROV_A: &str = "Microsoft Base Cryptographic Provider v1.0";
+pub const MS_DEF_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Base Cryptographic Provider v1.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_PROV_W: &str = "Microsoft Base Cryptographic Provider v1.0";
+pub const MS_DEF_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base Cryptographic Provider v1.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_RSA_SCHANNEL_PROV: &str = "Microsoft RSA SChannel Cryptographic Provider";
+pub const MS_DEF_RSA_SCHANNEL_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft RSA SChannel Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_RSA_SCHANNEL_PROV_A: &str = "Microsoft RSA SChannel Cryptographic Provider";
+pub const MS_DEF_RSA_SCHANNEL_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft RSA SChannel Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_RSA_SCHANNEL_PROV_W: &str = "Microsoft RSA SChannel Cryptographic Provider";
+pub const MS_DEF_RSA_SCHANNEL_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft RSA SChannel Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_RSA_SIG_PROV: &str = "Microsoft RSA Signature Cryptographic Provider";
+pub const MS_DEF_RSA_SIG_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft RSA Signature Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_RSA_SIG_PROV_A: &str = "Microsoft RSA Signature Cryptographic Provider";
+pub const MS_DEF_RSA_SIG_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft RSA Signature Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_DEF_RSA_SIG_PROV_W: &str = "Microsoft RSA Signature Cryptographic Provider";
+pub const MS_DEF_RSA_SIG_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft RSA Signature Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENHANCED_PROV: &str = "Microsoft Enhanced Cryptographic Provider v1.0";
+pub const MS_ENHANCED_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced Cryptographic Provider v1.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENHANCED_PROV_A: &str = "Microsoft Enhanced Cryptographic Provider v1.0";
+pub const MS_ENHANCED_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Enhanced Cryptographic Provider v1.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENHANCED_PROV_W: &str = "Microsoft Enhanced Cryptographic Provider v1.0";
+pub const MS_ENHANCED_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced Cryptographic Provider v1.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_DSS_DH_PROV: &str = "Microsoft Enhanced DSS and Diffie-Hellman Cryptographic Provider";
+pub const MS_ENH_DSS_DH_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced DSS and Diffie-Hellman Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_DSS_DH_PROV_A: &str = "Microsoft Enhanced DSS and Diffie-Hellman Cryptographic Provider";
+pub const MS_ENH_DSS_DH_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Enhanced DSS and Diffie-Hellman Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_DSS_DH_PROV_W: &str = "Microsoft Enhanced DSS and Diffie-Hellman Cryptographic Provider";
+pub const MS_ENH_DSS_DH_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced DSS and Diffie-Hellman Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_RSA_AES_PROV: &str = "Microsoft Enhanced RSA and AES Cryptographic Provider";
+pub const MS_ENH_RSA_AES_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced RSA and AES Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_RSA_AES_PROV_A: &str = "Microsoft Enhanced RSA and AES Cryptographic Provider";
+pub const MS_ENH_RSA_AES_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Enhanced RSA and AES Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_RSA_AES_PROV_W: &str = "Microsoft Enhanced RSA and AES Cryptographic Provider";
+pub const MS_ENH_RSA_AES_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced RSA and AES Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_RSA_AES_PROV_XP: &str = "Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)";
+pub const MS_ENH_RSA_AES_PROV_XP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_RSA_AES_PROV_XP_A: &str = "Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)";
+pub const MS_ENH_RSA_AES_PROV_XP_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_ENH_RSA_AES_PROV_XP_W: &str = "Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)";
+pub const MS_ENH_RSA_AES_PROV_XP_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_KEY_PROTECTION_PROVIDER: &str = "Microsoft Key Protection Provider";
+pub const MS_KEY_PROTECTION_PROVIDER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Key Protection Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_KEY_STORAGE_PROVIDER: &str = "Microsoft Software Key Storage Provider";
+pub const MS_KEY_STORAGE_PROVIDER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Software Key Storage Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_NGC_KEY_STORAGE_PROVIDER: &str = "Microsoft Passport Key Storage Provider";
+pub const MS_NGC_KEY_STORAGE_PROVIDER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Passport Key Storage Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_PLATFORM_CRYPTO_PROVIDER: &str = "Microsoft Platform Crypto Provider";
+pub const MS_PLATFORM_CRYPTO_PROVIDER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Platform Crypto Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_PLATFORM_KEY_STORAGE_PROVIDER: &str = "Microsoft Platform Crypto Provider";
+pub const MS_PLATFORM_KEY_STORAGE_PROVIDER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Platform Crypto Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_PRIMITIVE_PROVIDER: &str = "Microsoft Primitive Provider";
+pub const MS_PRIMITIVE_PROVIDER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Primitive Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_SCARD_PROV: &str = "Microsoft Base Smart Card Crypto Provider";
+pub const MS_SCARD_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base Smart Card Crypto Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_SCARD_PROV_A: &str = "Microsoft Base Smart Card Crypto Provider";
+pub const MS_SCARD_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Base Smart Card Crypto Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_SCARD_PROV_W: &str = "Microsoft Base Smart Card Crypto Provider";
+pub const MS_SCARD_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Base Smart Card Crypto Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_SMART_CARD_KEY_STORAGE_PROVIDER: &str = "Microsoft Smart Card Key Storage Provider";
+pub const MS_SMART_CARD_KEY_STORAGE_PROVIDER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Smart Card Key Storage Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_STRONG_PROV: &str = "Microsoft Strong Cryptographic Provider";
+pub const MS_STRONG_PROV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Strong Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_STRONG_PROV_A: &str = "Microsoft Strong Cryptographic Provider";
+pub const MS_STRONG_PROV_A: ::windows_sys::core::PCSTR = ::windows_sys::s!("Microsoft Strong Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const MS_STRONG_PROV_W: &str = "Microsoft Strong Cryptographic Provider";
+pub const MS_STRONG_PROV_W: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Microsoft Strong Cryptographic Provider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPTBUFFER_ATTESTATIONSTATEMENT_BLOB: u32 = 51u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4622,17 +4227,17 @@ pub const NCRYPTBUFFER_VERSION: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPTBUFFER_VSM_KEY_ATTESTATION_CLAIM_RESTRICTIONS: u32 = 54u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_3DES_112_ALGORITHM: &str = "3DES_112";
+pub const NCRYPT_3DES_112_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("3DES_112");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_3DES_ALGORITHM: &str = "3DES";
+pub const NCRYPT_3DES_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("3DES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_AES_ALGORITHM: &str = "AES";
+pub const NCRYPT_AES_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_AES_ALGORITHM_GROUP: &str = "AES";
+pub const NCRYPT_AES_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ALGORITHM_GROUP_PROPERTY: &str = "Algorithm Group";
+pub const NCRYPT_ALGORITHM_GROUP_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Algorithm Group");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ALGORITHM_PROPERTY: &str = "Algorithm Name";
+pub const NCRYPT_ALGORITHM_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Algorithm Name");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_ALLOW_ALL_USAGES: u32 = 16777215u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4654,29 +4259,29 @@ pub const NCRYPT_ALLOW_SIGNING_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_ALLOW_SILENT_KEY_ACCESS: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ALTERNATE_KEY_STORAGE_LOCATION_PROPERTY: &str = "PCP_ALTERNATE_KEY_STORAGE_LOCATION";
+pub const NCRYPT_ALTERNATE_KEY_STORAGE_LOCATION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_ALTERNATE_KEY_STORAGE_LOCATION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ASSOCIATED_ECDH_KEY: &str = "SmartCardAssociatedECDHKey";
+pub const NCRYPT_ASSOCIATED_ECDH_KEY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardAssociatedECDHKey");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_ATTESTATION_FLAG: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_AUTHORITY_KEY_FLAG: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_AUTH_TAG_LENGTH: &str = "AuthTagLength";
+pub const NCRYPT_AUTH_TAG_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AuthTagLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_BLOCK_LENGTH_PROPERTY: &str = "Block Length";
+pub const NCRYPT_BLOCK_LENGTH_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Block Length");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_CAPI_KDF_ALGORITHM: &str = "CAPI_KDF";
+pub const NCRYPT_CAPI_KDF_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CAPI_KDF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_CERTIFICATE_PROPERTY: &str = "SmartCardKeyCertificate";
+pub const NCRYPT_CERTIFICATE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardKeyCertificate");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_CHAINING_MODE_PROPERTY: &str = "Chaining Mode";
+pub const NCRYPT_CHAINING_MODE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Chaining Mode");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_CHANGEPASSWORD_PROPERTY: &str = "PCP_CHANGEPASSWORD";
+pub const NCRYPT_CHANGEPASSWORD_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_CHANGEPASSWORD");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_CIPHER_BLOCK_PADDING_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_CIPHER_KEY_BLOB: &str = "CipherKeyBlob";
+pub const NCRYPT_CIPHER_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CipherKeyBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_CIPHER_KEY_BLOB_MAGIC: u32 = 1380470851u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4698,57 +4303,57 @@ pub const NCRYPT_CLAIM_VSM_KEY_ATTESTATION_STATEMENT: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_CLAIM_WEB_AUTH_SUBJECT_ONLY: u32 = 258u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DESCR_DELIMITER_AND: &str = "AND";
+pub const NCRYPT_DESCR_DELIMITER_AND: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AND");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DESCR_DELIMITER_OR: &str = "OR";
+pub const NCRYPT_DESCR_DELIMITER_OR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("OR");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DESCR_EQUAL: &str = "=";
+pub const NCRYPT_DESCR_EQUAL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("=");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DESX_ALGORITHM: &str = "DESX";
+pub const NCRYPT_DESX_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DESX");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DES_ALGORITHM: &str = "DES";
+pub const NCRYPT_DES_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DES_ALGORITHM_GROUP: &str = "DES";
+pub const NCRYPT_DES_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DES");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DH_ALGORITHM: &str = "DH";
+pub const NCRYPT_DH_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DH_ALGORITHM_GROUP: &str = "DH";
+pub const NCRYPT_DH_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DH_PARAMETERS_PROPERTY: &str = "DHParameters";
+pub const NCRYPT_DH_PARAMETERS_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DHParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DISMISS_UI_TIMEOUT_SEC_PROPERTY: &str = "SmartCardDismissUITimeoutSeconds";
+pub const NCRYPT_DISMISS_UI_TIMEOUT_SEC_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardDismissUITimeoutSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_DO_NOT_FINALIZE_FLAG: u32 = 1024u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DSA_ALGORITHM: &str = "DSA";
+pub const NCRYPT_DSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_DSA_ALGORITHM_GROUP: &str = "DSA";
+pub const NCRYPT_DSA_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECC_CURVE_NAME_LIST_PROPERTY: &str = "ECCCurveNameList";
+pub const NCRYPT_ECC_CURVE_NAME_LIST_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCCurveNameList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECC_CURVE_NAME_PROPERTY: &str = "ECCCurveName";
+pub const NCRYPT_ECC_CURVE_NAME_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCCurveName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECC_PARAMETERS_PROPERTY: &str = "ECCParameters";
+pub const NCRYPT_ECC_PARAMETERS_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECCParameters");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDH_ALGORITHM: &str = "ECDH";
+pub const NCRYPT_ECDH_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDH_ALGORITHM_GROUP: &str = "ECDH";
+pub const NCRYPT_ECDH_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDH_P256_ALGORITHM: &str = "ECDH_P256";
+pub const NCRYPT_ECDH_P256_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH_P256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDH_P384_ALGORITHM: &str = "ECDH_P384";
+pub const NCRYPT_ECDH_P384_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH_P384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDH_P521_ALGORITHM: &str = "ECDH_P521";
+pub const NCRYPT_ECDH_P521_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDH_P521");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDSA_ALGORITHM: &str = "ECDSA";
+pub const NCRYPT_ECDSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDSA_ALGORITHM_GROUP: &str = "ECDSA";
+pub const NCRYPT_ECDSA_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDSA_P256_ALGORITHM: &str = "ECDSA_P256";
+pub const NCRYPT_ECDSA_P256_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA_P256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDSA_P384_ALGORITHM: &str = "ECDSA_P384";
+pub const NCRYPT_ECDSA_P384_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA_P384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ECDSA_P521_ALGORITHM: &str = "ECDSA_P521";
+pub const NCRYPT_ECDSA_P521_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ECDSA_P521");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_EXPORTED_ISOLATED_KEY_HEADER_CURRENT_VERSION: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4756,9 +4361,9 @@ pub const NCRYPT_EXPORTED_ISOLATED_KEY_HEADER_V0: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_EXPORT_LEGACY_FLAG: u32 = 2048u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_EXPORT_POLICY_PROPERTY: &str = "Export Policy";
+pub const NCRYPT_EXPORT_POLICY_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Export Policy");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_HMAC_SHA256_ALGORITHM: &str = "HMAC-SHA256";
+pub const NCRYPT_HMAC_SHA256_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HMAC-SHA256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_IGNORE_DEVICE_STATE_FLAG: u32 = 4096u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -4770,257 +4375,257 @@ pub const NCRYPT_IMPL_REMOVABLE_FLAG: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_IMPL_SOFTWARE_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_IMPL_TYPE_PROPERTY: &str = "Impl Type";
+pub const NCRYPT_IMPL_TYPE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Impl Type");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_IMPL_VIRTUAL_ISOLATION_FLAG: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_INITIALIZATION_VECTOR: &str = "IV";
+pub const NCRYPT_INITIALIZATION_VECTOR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IV");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_ISOLATED_KEY_ATTESTED_ATTRIBUTES_CURRENT_VERSION: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_ISOLATED_KEY_ATTESTED_ATTRIBUTES_V0: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ISOLATED_KEY_ENVELOPE_BLOB: &str = "ISOLATED_KEY_ENVELOPE";
+pub const NCRYPT_ISOLATED_KEY_ENVELOPE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ISOLATED_KEY_ENVELOPE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_ISOLATED_KEY_FLAG_CREATED_IN_ISOLATION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_ISOLATED_KEY_FLAG_IMPORT_ONLY: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KDF_KEY_BLOB: &str = "KDFKeyBlob";
+pub const NCRYPT_KDF_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KDFKeyBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_KDF_KEY_BLOB_MAGIC: u32 = 826688587u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KDF_SECRET_VALUE: &str = "KDFKeySecret";
+pub const NCRYPT_KDF_SECRET_VALUE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KDFKeySecret");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_ACCESS_POLICY_PROPERTY: &str = "Key Access Policy";
+pub const NCRYPT_KEY_ACCESS_POLICY_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Key Access Policy");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_KEY_ACCESS_POLICY_VERSION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_KEY_ATTEST_MAGIC: u32 = 1146110283u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_DERIVATION_GROUP: &str = "KEY_DERIVATION";
+pub const NCRYPT_KEY_DERIVATION_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KEY_DERIVATION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_KEY_DERIVATION_INTERFACE: u32 = 7u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_KEY_DERIVATION_OPERATION: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_ALGORITHM_CERTIFICATE: &str = "CERTIFICATE";
+pub const NCRYPT_KEY_PROTECTION_ALGORITHM_CERTIFICATE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CERTIFICATE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_ALGORITHM_LOCAL: &str = "LOCAL";
+pub const NCRYPT_KEY_PROTECTION_ALGORITHM_LOCAL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LOCAL");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_ALGORITHM_LOCKEDCREDENTIALS: &str = "LOCKEDCREDENTIALS";
+pub const NCRYPT_KEY_PROTECTION_ALGORITHM_LOCKEDCREDENTIALS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LOCKEDCREDENTIALS");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_ALGORITHM_SDDL: &str = "SDDL";
+pub const NCRYPT_KEY_PROTECTION_ALGORITHM_SDDL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SDDL");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_ALGORITHM_SID: &str = "SID";
+pub const NCRYPT_KEY_PROTECTION_ALGORITHM_SID: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SID");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_ALGORITHM_WEBCREDENTIALS: &str = "WEBCREDENTIALS";
+pub const NCRYPT_KEY_PROTECTION_ALGORITHM_WEBCREDENTIALS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WEBCREDENTIALS");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_CERT_CERTBLOB: &str = "CertBlob";
+pub const NCRYPT_KEY_PROTECTION_CERT_CERTBLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CertBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_CERT_HASHID: &str = "HashId";
+pub const NCRYPT_KEY_PROTECTION_CERT_HASHID: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HashId");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_KEY_PROTECTION_INTERFACE: u32 = 65540u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_LOCAL_LOGON: &str = "logon";
+pub const NCRYPT_KEY_PROTECTION_LOCAL_LOGON: ::windows_sys::core::PCWSTR = ::windows_sys::w!("logon");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_LOCAL_MACHINE: &str = "machine";
+pub const NCRYPT_KEY_PROTECTION_LOCAL_MACHINE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("machine");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_PROTECTION_LOCAL_USER: &str = "user";
+pub const NCRYPT_KEY_PROTECTION_LOCAL_USER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("user");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_STORAGE_ALGORITHM: &str = "KEY_STORAGE";
+pub const NCRYPT_KEY_STORAGE_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("KEY_STORAGE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_TYPE_PROPERTY: &str = "Key Type";
+pub const NCRYPT_KEY_TYPE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Key Type");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_KEY_USAGE_PROPERTY: &str = "Key Usage";
+pub const NCRYPT_KEY_USAGE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Key Usage");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_LAST_MODIFIED_PROPERTY: &str = "Modified";
+pub const NCRYPT_LAST_MODIFIED_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Modified");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_LENGTHS_PROPERTY: &str = "Lengths";
+pub const NCRYPT_LENGTHS_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Lengths");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_LENGTH_PROPERTY: &str = "Length";
+pub const NCRYPT_LENGTH_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Length");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_MAX_ALG_ID_LENGTH: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_MAX_KEY_NAME_LENGTH: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_MAX_NAME_LENGTH_PROPERTY: &str = "Max Name Length";
+pub const NCRYPT_MAX_NAME_LENGTH_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Max Name Length");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_MAX_PROPERTY_DATA: u32 = 1048576u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_MAX_PROPERTY_NAME: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_MD2_ALGORITHM: &str = "MD2";
+pub const NCRYPT_MD2_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MD2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_MD4_ALGORITHM: &str = "MD4";
+pub const NCRYPT_MD4_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MD4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_MD5_ALGORITHM: &str = "MD5";
+pub const NCRYPT_MD5_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MD5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_NAMED_DESCRIPTOR_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_NAME_PROPERTY: &str = "Name";
+pub const NCRYPT_NAME_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Name");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_NO_CACHED_PASSWORD: u32 = 16384u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_OPAQUETRANSPORT_BLOB: &str = "OpaqueTransport";
+pub const NCRYPT_OPAQUETRANSPORT_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("OpaqueTransport");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PAD_CIPHER_FLAG: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PBKDF2_ALGORITHM: &str = "PBKDF2";
+pub const NCRYPT_PBKDF2_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PBKDF2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_ALTERNATE_KEY_STORAGE_LOCATION_PROPERTY: &str = "PCP_ALTERNATE_KEY_STORAGE_LOCATION";
+pub const NCRYPT_PCP_ALTERNATE_KEY_STORAGE_LOCATION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_ALTERNATE_KEY_STORAGE_LOCATION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_CHANGEPASSWORD_PROPERTY: &str = "PCP_CHANGEPASSWORD";
+pub const NCRYPT_PCP_CHANGEPASSWORD_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_CHANGEPASSWORD");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_ECC_EKCERT_PROPERTY: &str = "PCP_ECC_EKCERT";
+pub const NCRYPT_PCP_ECC_EKCERT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_ECC_EKCERT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_ECC_EKNVCERT_PROPERTY: &str = "PCP_ECC_EKNVCERT";
+pub const NCRYPT_PCP_ECC_EKNVCERT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_ECC_EKNVCERT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_ECC_EKPUB_PROPERTY: &str = "PCP_ECC_EKPUB";
+pub const NCRYPT_PCP_ECC_EKPUB_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_ECC_EKPUB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_EKCERT_PROPERTY: &str = "PCP_EKCERT";
+pub const NCRYPT_PCP_EKCERT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_EKCERT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_EKNVCERT_PROPERTY: &str = "PCP_EKNVCERT";
+pub const NCRYPT_PCP_EKNVCERT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_EKNVCERT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_EKPUB_PROPERTY: &str = "PCP_EKPUB";
+pub const NCRYPT_PCP_EKPUB_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_EKPUB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PCP_ENCRYPTION_KEY: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_EXPORT_ALLOWED_PROPERTY: &str = "PCP_EXPORT_ALLOWED";
+pub const NCRYPT_PCP_EXPORT_ALLOWED_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_EXPORT_ALLOWED");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PCP_HMACVERIFICATION_KEY: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_HMAC_AUTH_NONCE: &str = "PCP_HMAC_AUTH_NONCE";
+pub const NCRYPT_PCP_HMAC_AUTH_NONCE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_HMAC_AUTH_NONCE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_HMAC_AUTH_POLICYINFO: &str = "PCP_HMAC_AUTH_POLICYINFO";
+pub const NCRYPT_PCP_HMAC_AUTH_POLICYINFO: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_HMAC_AUTH_POLICYINFO");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_HMAC_AUTH_POLICYREF: &str = "PCP_HMAC_AUTH_POLICYREF";
+pub const NCRYPT_PCP_HMAC_AUTH_POLICYREF: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_HMAC_AUTH_POLICYREF");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_HMAC_AUTH_SIGNATURE: &str = "PCP_HMAC_AUTH_SIGNATURE";
+pub const NCRYPT_PCP_HMAC_AUTH_SIGNATURE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_HMAC_AUTH_SIGNATURE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_HMAC_AUTH_TICKET: &str = "PCP_HMAC_AUTH_TICKET";
+pub const NCRYPT_PCP_HMAC_AUTH_TICKET: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_HMAC_AUTH_TICKET");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PCP_IDENTITY_KEY: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_INTERMEDIATE_CA_EKCERT_PROPERTY: &str = "PCP_INTERMEDIATE_CA_EKCERT";
+pub const NCRYPT_PCP_INTERMEDIATE_CA_EKCERT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_INTERMEDIATE_CA_EKCERT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_KEYATTESTATION_PROPERTY: &str = "PCP_TPM12_KEYATTESTATION";
+pub const NCRYPT_PCP_KEYATTESTATION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM12_KEYATTESTATION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_KEY_CREATIONHASH_PROPERTY: &str = "PCP_KEY_CREATIONHASH";
+pub const NCRYPT_PCP_KEY_CREATIONHASH_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_KEY_CREATIONHASH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_KEY_CREATIONTICKET_PROPERTY: &str = "PCP_KEY_CREATIONTICKET";
+pub const NCRYPT_PCP_KEY_CREATIONTICKET_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_KEY_CREATIONTICKET");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_KEY_USAGE_POLICY_PROPERTY: &str = "PCP_KEY_USAGE_POLICY";
+pub const NCRYPT_PCP_KEY_USAGE_POLICY_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_KEY_USAGE_POLICY");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_MIGRATIONPASSWORD_PROPERTY: &str = "PCP_MIGRATIONPASSWORD";
+pub const NCRYPT_PCP_MIGRATIONPASSWORD_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_MIGRATIONPASSWORD");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_NO_DA_PROTECTION_PROPERTY: &str = "PCP_NO_DA_PROTECTION";
+pub const NCRYPT_PCP_NO_DA_PROTECTION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_NO_DA_PROTECTION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PASSWORD_REQUIRED_PROPERTY: &str = "PCP_PASSWORD_REQUIRED";
+pub const NCRYPT_PCP_PASSWORD_REQUIRED_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PASSWORD_REQUIRED");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PCRTABLE_ALGORITHM_PROPERTY: &str = "PCP_PCRTABLE_ALGORITHM";
+pub const NCRYPT_PCP_PCRTABLE_ALGORITHM_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PCRTABLE_ALGORITHM");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PCRTABLE_PROPERTY: &str = "PCP_PCRTABLE";
+pub const NCRYPT_PCP_PCRTABLE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PCRTABLE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PLATFORMHANDLE_PROPERTY: &str = "PCP_PLATFORMHANDLE";
+pub const NCRYPT_PCP_PLATFORMHANDLE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PLATFORMHANDLE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PLATFORM_BINDING_PCRALGID_PROPERTY: &str = "PCP_PLATFORM_BINDING_PCRALGID";
+pub const NCRYPT_PCP_PLATFORM_BINDING_PCRALGID_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PLATFORM_BINDING_PCRALGID");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PLATFORM_BINDING_PCRDIGESTLIST_PROPERTY: &str = "PCP_PLATFORM_BINDING_PCRDIGESTLIST";
+pub const NCRYPT_PCP_PLATFORM_BINDING_PCRDIGESTLIST_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PLATFORM_BINDING_PCRDIGESTLIST");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PLATFORM_BINDING_PCRDIGEST_PROPERTY: &str = "PCP_PLATFORM_BINDING_PCRDIGEST";
+pub const NCRYPT_PCP_PLATFORM_BINDING_PCRDIGEST_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PLATFORM_BINDING_PCRDIGEST");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PLATFORM_BINDING_PCRMASK_PROPERTY: &str = "PCP_PLATFORM_BINDING_PCRMASK";
+pub const NCRYPT_PCP_PLATFORM_BINDING_PCRMASK_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PLATFORM_BINDING_PCRMASK");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PLATFORM_TYPE_PROPERTY: &str = "PCP_PLATFORM_TYPE";
+pub const NCRYPT_PCP_PLATFORM_TYPE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PLATFORM_TYPE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PROVIDERHANDLE_PROPERTY: &str = "PCP_PROVIDERMHANDLE";
+pub const NCRYPT_PCP_PROVIDERHANDLE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PROVIDERMHANDLE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PROVIDER_VERSION_PROPERTY: &str = "PCP_PROVIDER_VERSION";
+pub const NCRYPT_PCP_PROVIDER_VERSION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_PROVIDER_VERSION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_PSS_SALT_SIZE_PROPERTY: &str = "PSS Salt Size";
+pub const NCRYPT_PCP_PSS_SALT_SIZE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PSS Salt Size");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_RAW_POLICYDIGEST_PROPERTY: &str = "PCP_RAW_POLICYDIGEST";
+pub const NCRYPT_PCP_RAW_POLICYDIGEST_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_RAW_POLICYDIGEST");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_RSA_EKCERT_PROPERTY: &str = "PCP_RSA_EKCERT";
+pub const NCRYPT_PCP_RSA_EKCERT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_RSA_EKCERT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_RSA_EKNVCERT_PROPERTY: &str = "PCP_RSA_EKNVCERT";
+pub const NCRYPT_PCP_RSA_EKNVCERT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_RSA_EKNVCERT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_RSA_EKPUB_PROPERTY: &str = "PCP_RSA_EKPUB";
+pub const NCRYPT_PCP_RSA_EKPUB_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_RSA_EKPUB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_RSA_SCHEME_HASH_ALG_PROPERTY: &str = "PCP_RSA_SCHEME_HASH_ALG";
+pub const NCRYPT_PCP_RSA_SCHEME_HASH_ALG_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_RSA_SCHEME_HASH_ALG");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_RSA_SCHEME_PROPERTY: &str = "PCP_RSA_SCHEME";
+pub const NCRYPT_PCP_RSA_SCHEME_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_RSA_SCHEME");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_SESSIONID_PROPERTY: &str = "PCP_SESSIONID";
+pub const NCRYPT_PCP_SESSIONID_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_SESSIONID");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PCP_SIGNATURE_KEY: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_SRKPUB_PROPERTY: &str = "PCP_SRKPUB";
+pub const NCRYPT_PCP_SRKPUB_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_SRKPUB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_STORAGEPARENT_PROPERTY: &str = "PCP_STORAGEPARENT";
+pub const NCRYPT_PCP_STORAGEPARENT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_STORAGEPARENT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PCP_STORAGE_KEY: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_SYMMETRIC_KEYBITS_PROPERTY: &str = "PCP_SYMMETRIC_KEYBITS";
+pub const NCRYPT_PCP_SYMMETRIC_KEYBITS_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_SYMMETRIC_KEYBITS");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM12_IDACTIVATION_PROPERTY: &str = "PCP_TPM12_IDACTIVATION";
+pub const NCRYPT_PCP_TPM12_IDACTIVATION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM12_IDACTIVATION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM12_IDBINDING_DYNAMIC_PROPERTY: &str = "PCP_TPM12_IDBINDING_DYNAMIC";
+pub const NCRYPT_PCP_TPM12_IDBINDING_DYNAMIC_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM12_IDBINDING_DYNAMIC");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM12_IDBINDING_PROPERTY: &str = "PCP_TPM12_IDBINDING";
+pub const NCRYPT_PCP_TPM12_IDBINDING_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM12_IDBINDING");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM2BNAME_PROPERTY: &str = "PCP_TPM2BNAME";
+pub const NCRYPT_PCP_TPM2BNAME_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM2BNAME");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM_FW_VERSION_PROPERTY: &str = "PCP_TPM_FW_VERSION";
+pub const NCRYPT_PCP_TPM_FW_VERSION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM_FW_VERSION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM_IFX_RSA_KEYGEN_PROHIBITED_PROPERTY: &str = "PCP_TPM_IFX_RSA_KEYGEN_PROHIBITED";
+pub const NCRYPT_PCP_TPM_IFX_RSA_KEYGEN_PROHIBITED_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM_IFX_RSA_KEYGEN_PROHIBITED");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM_IFX_RSA_KEYGEN_VULNERABILITY_PROPERTY: &str = "PCP_TPM_IFX_RSA_KEYGEN_VULNERABILITY";
+pub const NCRYPT_PCP_TPM_IFX_RSA_KEYGEN_VULNERABILITY_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM_IFX_RSA_KEYGEN_VULNERABILITY");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM_MANUFACTURER_ID_PROPERTY: &str = "PCP_TPM_MANUFACTURER_ID";
+pub const NCRYPT_PCP_TPM_MANUFACTURER_ID_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM_MANUFACTURER_ID");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_TPM_VERSION_PROPERTY: &str = "PCP_TPM_VERSION";
+pub const NCRYPT_PCP_TPM_VERSION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_TPM_VERSION");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PCP_USAGEAUTH_PROPERTY: &str = "PCP_USAGEAUTH";
+pub const NCRYPT_PCP_USAGEAUTH_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PCP_USAGEAUTH");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_APPLICATION_IMAGE_PROPERTY: &str = "PinCacheApplicationImage";
+pub const NCRYPT_PIN_CACHE_APPLICATION_IMAGE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCacheApplicationImage");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_APPLICATION_STATUS_PROPERTY: &str = "PinCacheApplicationStatus";
+pub const NCRYPT_PIN_CACHE_APPLICATION_STATUS_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCacheApplicationStatus");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PIN_CACHE_APPLICATION_TICKET_BYTE_LENGTH: u32 = 90u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_APPLICATION_TICKET_PROPERTY: &str = "PinCacheApplicationTicket";
+pub const NCRYPT_PIN_CACHE_APPLICATION_TICKET_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCacheApplicationTicket");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PIN_CACHE_CLEAR_FOR_CALLING_PROCESS_OPTION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_CLEAR_PROPERTY: &str = "PinCacheClear";
+pub const NCRYPT_PIN_CACHE_CLEAR_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCacheClear");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PIN_CACHE_DISABLE_DPL_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_FLAGS_PROPERTY: &str = "PinCacheFlags";
+pub const NCRYPT_PIN_CACHE_FLAGS_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCacheFlags");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_FREE_APPLICATION_TICKET_PROPERTY: &str = "PinCacheFreeApplicationTicket";
+pub const NCRYPT_PIN_CACHE_FREE_APPLICATION_TICKET_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCacheFreeApplicationTicket");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_IS_GESTURE_REQUIRED_PROPERTY: &str = "PinCacheIsGestureRequired";
+pub const NCRYPT_PIN_CACHE_IS_GESTURE_REQUIRED_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCacheIsGestureRequired");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_CACHE_PIN_PROPERTY: &str = "PinCachePin";
+pub const NCRYPT_PIN_CACHE_PIN_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PinCachePin");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PIN_CACHE_REQUIRE_GESTURE_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_PROMPT_PROPERTY: &str = "SmartCardPinPrompt";
+pub const NCRYPT_PIN_PROMPT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardPinPrompt");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PIN_PROPERTY: &str = "SmartCardPin";
+pub const NCRYPT_PIN_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardPin");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PKCS7_ENVELOPE_BLOB: &str = "PKCS7_ENVELOPE";
+pub const NCRYPT_PKCS7_ENVELOPE_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PKCS7_ENVELOPE");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PKCS8_PRIVATE_KEY_BLOB: &str = "PKCS8_PRIVATEKEY";
+pub const NCRYPT_PKCS8_PRIVATE_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PKCS8_PRIVATEKEY");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PLATFORM_ATTEST_MAGIC: u32 = 1146110288u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PREFER_VIRTUAL_ISOLATION_FLAG: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PROTECTED_KEY_BLOB: &str = "ProtectedKeyBlob";
+pub const NCRYPT_PROTECTED_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ProtectedKeyBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PROTECTED_KEY_BLOB_MAGIC: u32 = 1263817296u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5028,59 +4633,59 @@ pub const NCRYPT_PROTECTION_INFO_TYPE_DESCRIPTOR_STRING: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_PROTECT_TO_LOCAL_SYSTEM: u32 = 32768u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PROVIDER_HANDLE_PROPERTY: &str = "Provider Handle";
+pub const NCRYPT_PROVIDER_HANDLE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Provider Handle");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_PUBLIC_LENGTH_PROPERTY: &str = "PublicKeyLength";
+pub const NCRYPT_PUBLIC_LENGTH_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PublicKeyLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_RC2_ALGORITHM: &str = "RC2";
+pub const NCRYPT_RC2_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RC2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_RC2_ALGORITHM_GROUP: &str = "RC2";
+pub const NCRYPT_RC2_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RC2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_READER_ICON_PROPERTY: &str = "SmartCardReaderIcon";
+pub const NCRYPT_READER_ICON_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardReaderIcon");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_READER_PROPERTY: &str = "SmartCardReader";
+pub const NCRYPT_READER_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardReader");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_ROOT_CERTSTORE_PROPERTY: &str = "SmartcardRootCertStore";
+pub const NCRYPT_ROOT_CERTSTORE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartcardRootCertStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_RSA_ALGORITHM: &str = "RSA";
+pub const NCRYPT_RSA_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_RSA_ALGORITHM_GROUP: &str = "RSA";
+pub const NCRYPT_RSA_ALGORITHM_GROUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSA");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_RSA_SIGN_ALGORITHM: &str = "RSA_SIGN";
+pub const NCRYPT_RSA_SIGN_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RSA_SIGN");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SCARD_NGC_KEY_NAME: &str = "SmartCardNgcKeyName";
+pub const NCRYPT_SCARD_NGC_KEY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardNgcKeyName");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SCARD_PIN_ID: &str = "SmartCardPinId";
+pub const NCRYPT_SCARD_PIN_ID: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardPinId");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SCARD_PIN_INFO: &str = "SmartCardPinInfo";
+pub const NCRYPT_SCARD_PIN_INFO: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardPinInfo");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_SEALING_FLAG: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SECURE_PIN_PROPERTY: &str = "SmartCardSecurePin";
+pub const NCRYPT_SECURE_PIN_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardSecurePin");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SECURITY_DESCR_PROPERTY: &str = "Security Descr";
+pub const NCRYPT_SECURITY_DESCR_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Security Descr");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SECURITY_DESCR_SUPPORT_PROPERTY: &str = "Security Descr Support";
+pub const NCRYPT_SECURITY_DESCR_SUPPORT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Security Descr Support");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SHA1_ALGORITHM: &str = "SHA1";
+pub const NCRYPT_SHA1_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SHA256_ALGORITHM: &str = "SHA256";
+pub const NCRYPT_SHA256_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SHA384_ALGORITHM: &str = "SHA384";
+pub const NCRYPT_SHA384_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SHA512_ALGORITHM: &str = "SHA512";
+pub const NCRYPT_SHA512_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SHA512");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SIGNATURE_LENGTH_PROPERTY: &str = "SignatureLength";
+pub const NCRYPT_SIGNATURE_LENGTH_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SignatureLength");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SMARTCARD_GUID_PROPERTY: &str = "SmartCardGuid";
+pub const NCRYPT_SMARTCARD_GUID_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardGuid");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SP800108_CTR_HMAC_ALGORITHM: &str = "SP800_108_CTR_HMAC";
+pub const NCRYPT_SP800108_CTR_HMAC_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SP800_108_CTR_HMAC");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_SP80056A_CONCAT_ALGORITHM: &str = "SP800_56A_CONCAT";
+pub const NCRYPT_SP80056A_CONCAT_ALGORITHM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SP800_56A_CONCAT");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_TPM12_PROVIDER: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_TPM_LOADABLE_KEY_BLOB: &str = "PcpTpmProtectedKeyBlob";
+pub const NCRYPT_TPM_LOADABLE_KEY_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PcpTpmProtectedKeyBlob");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_TPM_LOADABLE_KEY_BLOB_MAGIC: u32 = 1297371211u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5104,29 +4709,29 @@ pub const NCRYPT_UI_FINGERPRINT_PROTECTION_FLAG: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_UI_FORCE_HIGH_PROTECTION_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_UI_POLICY_PROPERTY: &str = "UI Policy";
+pub const NCRYPT_UI_POLICY_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("UI Policy");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_UI_PROTECT_KEY_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_UNIQUE_NAME_PROPERTY: &str = "Unique Name";
+pub const NCRYPT_UNIQUE_NAME_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Unique Name");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_USER_CERTSTORE_PROPERTY: &str = "SmartCardUserCertStore";
+pub const NCRYPT_USER_CERTSTORE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCardUserCertStore");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_USE_CONTEXT_PROPERTY: &str = "Use Context";
+pub const NCRYPT_USE_CONTEXT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Use Context");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_USE_COUNT_ENABLED_PROPERTY: &str = "Enabled Use Count";
+pub const NCRYPT_USE_COUNT_ENABLED_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Enabled Use Count");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_USE_COUNT_PROPERTY: &str = "Use Count";
+pub const NCRYPT_USE_COUNT_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Use Count");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_USE_PER_BOOT_KEY_FLAG: u32 = 262144u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_USE_PER_BOOT_KEY_PROPERTY: &str = "Per Boot Key";
+pub const NCRYPT_USE_PER_BOOT_KEY_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Per Boot Key");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_USE_VIRTUAL_ISOLATION_FLAG: u32 = 131072u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_USE_VIRTUAL_ISOLATION_PROPERTY: &str = "Virtual Iso";
+pub const NCRYPT_USE_VIRTUAL_ISOLATION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Virtual Iso");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_VERSION_PROPERTY: &str = "Version";
+pub const NCRYPT_VERSION_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Version");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_VSM_KEY_ATTESTATION_CLAIM_RESTRICTIONS_CURRENT_VERSION: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5136,7 +4741,7 @@ pub const NCRYPT_VSM_KEY_ATTESTATION_STATEMENT_CURRENT_VERSION: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NCRYPT_VSM_KEY_ATTESTATION_STATEMENT_V0: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const NCRYPT_WINDOW_HANDLE_PROPERTY: &str = "HWND Handle";
+pub const NCRYPT_WINDOW_HANDLE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HWND Handle");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const NETSCAPE_SIGN_CA_CERT_TYPE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5190,13 +4795,13 @@ pub const OCSP_UNAUTHORIZED_RESPONSE: u32 = 6u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const OPAQUEKEYBLOB: u32 = 9u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_CONFIG_REGPATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\PFX";
+pub const PKCS12_CONFIG_REGPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Software\\Microsoft\\Windows\\CurrentVersion\\PFX");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const PKCS12_DISABLE_ENCRYPT_CERTIFICATES: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const PKCS12_ENCRYPT_CERTIFICATES: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_ENCRYPT_CERTIFICATES_VALUE_NAME: &str = "EncryptCertificates";
+pub const PKCS12_ENCRYPT_CERTIFICATES_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EncryptCertificates");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const PKCS12_EXPORT_ECC_CURVE_OID: u32 = 8192u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5214,23 +4819,23 @@ pub const PKCS12_IMPORT_SILENT: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const PKCS12_ONLY_CERTIFICATES: u32 = 1024u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_ONLY_CERTIFICATES_CONTAINER_NAME: &str = "PfxContainer";
+pub const PKCS12_ONLY_CERTIFICATES_CONTAINER_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PfxContainer");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_ONLY_CERTIFICATES_PROVIDER_NAME: &str = "PfxProvider";
+pub const PKCS12_ONLY_CERTIFICATES_PROVIDER_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PfxProvider");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const PKCS12_ONLY_CERTIFICATES_PROVIDER_TYPE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const PKCS12_ONLY_NOT_ENCRYPTED_CERTIFICATES: u32 = 2048u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_PBES2_ALG_AES256_SHA256: &str = "AES256-SHA256";
+pub const PKCS12_PBES2_ALG_AES256_SHA256: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AES256-SHA256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_PBKDF2_ID_HMAC_SHA1: &str = "1.2.840.113549.2.7";
+pub const PKCS12_PBKDF2_ID_HMAC_SHA1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_PBKDF2_ID_HMAC_SHA256: &str = "1.2.840.113549.2.9";
+pub const PKCS12_PBKDF2_ID_HMAC_SHA256: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_PBKDF2_ID_HMAC_SHA384: &str = "1.2.840.113549.2.10";
+pub const PKCS12_PBKDF2_ID_HMAC_SHA384: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const PKCS12_PBKDF2_ID_HMAC_SHA512: &str = "1.2.840.113549.2.11";
+pub const PKCS12_PBKDF2_ID_HMAC_SHA512: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const PKCS12_PROTECT_TO_DOMAIN_SIDS: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5408,9 +5013,9 @@ pub const SCHANNEL_ENC_KEY: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const SCHANNEL_MAC_KEY: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const SCHEME_OID_RETRIEVE_ENCODED_OBJECTW_FUNC: &str = "SchemeDllRetrieveEncodedObjectW";
+pub const SCHEME_OID_RETRIEVE_ENCODED_OBJECTW_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("SchemeDllRetrieveEncodedObjectW");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const SCHEME_OID_RETRIEVE_ENCODED_OBJECT_FUNC: &str = "SchemeDllRetrieveEncodedObject";
+pub const SCHEME_OID_RETRIEVE_ENCODED_OBJECT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("SchemeDllRetrieveEncodedObject");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const SIGNATURE_RESOURCE_NUMBER: u32 = 666u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5420,7 +5025,7 @@ pub const SITE_PIN_RULES_ALL_SUBDOMAINS_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const SORTED_CTL_EXT_HASHED_SUBJECT_IDENTIFIER_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const SSL_ECCPUBLIC_BLOB: &str = "SSLECCPUBLICBLOB";
+pub const SSL_ECCPUBLIC_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SSLECCPUBLICBLOB");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const SSL_F12_ERROR_TEXT_LENGTH: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5432,11 +5037,11 @@ pub const SSL_HPKP_PKP_RO_HEADER_INDEX: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const SSL_KEY_PIN_ERROR_TEXT_LENGTH: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const SSL_OBJECT_LOCATOR_CERT_VALIDATION_CONFIG_FUNC: &str = "SslObjectLocatorInitializeCertValidationConfig";
+pub const SSL_OBJECT_LOCATOR_CERT_VALIDATION_CONFIG_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("SslObjectLocatorInitializeCertValidationConfig");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const SSL_OBJECT_LOCATOR_ISSUER_LIST_FUNC: &str = "SslObjectLocatorInitializeIssuerList";
+pub const SSL_OBJECT_LOCATOR_ISSUER_LIST_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("SslObjectLocatorInitializeIssuerList");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const SSL_OBJECT_LOCATOR_PFX_FUNC: &str = "SslObjectLocatorInitializePfx";
+pub const SSL_OBJECT_LOCATOR_PFX_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("SslObjectLocatorInitializePfx");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const SYMMETRICWRAPKEYBLOB: u32 = 11u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5478,7 +5083,7 @@ pub const TIME_VALID_OID_FLUSH_FRESHEST_CRL_FROM_CERT: ::windows_sys::core::PCST
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const TIME_VALID_OID_FLUSH_FRESHEST_CRL_FROM_CRL: ::windows_sys::core::PCSTR = 5i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const TIME_VALID_OID_FLUSH_OBJECT_FUNC: &str = "TimeValidDllFlushObject";
+pub const TIME_VALID_OID_FLUSH_OBJECT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("TimeValidDllFlushObject");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const TIME_VALID_OID_GET_CRL: ::windows_sys::core::PCSTR = 2i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5490,9 +5095,9 @@ pub const TIME_VALID_OID_GET_FRESHEST_CRL_FROM_CERT: ::windows_sys::core::PCSTR 
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const TIME_VALID_OID_GET_FRESHEST_CRL_FROM_CRL: ::windows_sys::core::PCSTR = 5i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const TIME_VALID_OID_GET_OBJECT_FUNC: &str = "TimeValidDllGetObject";
+pub const TIME_VALID_OID_GET_OBJECT_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("TimeValidDllGetObject");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const TPM_RSA_SRK_SEAL_KEY: &str = "MICROSOFT_PCP_KSP_RSA_SEAL_KEY_3BD1C4BF-004E-4E2F-8A4D-0BF633DCB074";
+pub const TPM_RSA_SRK_SEAL_KEY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MICROSOFT_PCP_KSP_RSA_SEAL_KEY_3BD1C4BF-004E-4E2F-8A4D-0BF633DCB074");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const URL_OID_CERTIFICATE_CRL_DIST_POINT: ::windows_sys::core::PCSTR = 2i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5520,7 +5125,7 @@ pub const URL_OID_CTL_ISSUER: ::windows_sys::core::PCSTR = 3i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const URL_OID_CTL_NEXT_UPDATE: ::windows_sys::core::PCSTR = 4i32 as _;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const URL_OID_GET_OBJECT_URL_FUNC: &str = "UrlDllGetObjectUrl";
+pub const URL_OID_GET_OBJECT_URL_FUNC: ::windows_sys::core::PCSTR = ::windows_sys::s!("UrlDllGetObjectUrl");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const USAGE_MATCH_TYPE_AND: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -5662,1155 +5267,1155 @@ pub const dwFORCE_KEY_PROTECTION_HIGH: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub const dwFORCE_KEY_PROTECTION_USER_SELECT: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szFORCE_KEY_PROTECTION: &str = "ForceKeyProtection";
+pub const szFORCE_KEY_PROTECTION: ::windows_sys::core::PCSTR = ::windows_sys::s!("ForceKeyProtection");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szKEY_CACHE_ENABLED: &str = "CachePrivateKeys";
+pub const szKEY_CACHE_ENABLED: ::windows_sys::core::PCSTR = ::windows_sys::s!("CachePrivateKeys");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szKEY_CACHE_SECONDS: &str = "PrivateKeyLifetimeSeconds";
+pub const szKEY_CACHE_SECONDS: ::windows_sys::core::PCSTR = ::windows_sys::s!("PrivateKeyLifetimeSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szKEY_CRYPTOAPI_PRIVATE_KEY_OPTIONS: &str = "Software\\Policies\\Microsoft\\Cryptography";
+pub const szKEY_CRYPTOAPI_PRIVATE_KEY_OPTIONS: ::windows_sys::core::PCSTR = ::windows_sys::s!("Software\\Policies\\Microsoft\\Cryptography");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOIDVerisign_FailInfo: &str = "2.16.840.1.113733.1.9.4";
+pub const szOIDVerisign_FailInfo: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.9.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOIDVerisign_MessageType: &str = "2.16.840.1.113733.1.9.2";
+pub const szOIDVerisign_MessageType: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.9.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOIDVerisign_PkiStatus: &str = "2.16.840.1.113733.1.9.3";
+pub const szOIDVerisign_PkiStatus: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.9.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOIDVerisign_RecipientNonce: &str = "2.16.840.1.113733.1.9.6";
+pub const szOIDVerisign_RecipientNonce: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.9.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOIDVerisign_SenderNonce: &str = "2.16.840.1.113733.1.9.5";
+pub const szOIDVerisign_SenderNonce: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.9.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOIDVerisign_TransactionID: &str = "2.16.840.1.113733.1.9.7";
+pub const szOIDVerisign_TransactionID: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.9.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ANSI_X942: &str = "1.2.840.10046";
+pub const szOID_ANSI_X942: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10046");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ANSI_X942_DH: &str = "1.2.840.10046.2.1";
+pub const szOID_ANSI_X942_DH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10046.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ANY_APPLICATION_POLICY: &str = "1.3.6.1.4.1.311.10.12.1";
+pub const szOID_ANY_APPLICATION_POLICY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.12.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ANY_CERT_POLICY: &str = "2.5.29.32.0";
+pub const szOID_ANY_CERT_POLICY: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.32.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ANY_ENHANCED_KEY_USAGE: &str = "2.5.29.37.0";
+pub const szOID_ANY_ENHANCED_KEY_USAGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.37.0");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_APPLICATION_CERT_POLICIES: &str = "1.3.6.1.4.1.311.21.10";
+pub const szOID_APPLICATION_CERT_POLICIES: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_APPLICATION_POLICY_CONSTRAINTS: &str = "1.3.6.1.4.1.311.21.12";
+pub const szOID_APPLICATION_POLICY_CONSTRAINTS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_APPLICATION_POLICY_MAPPINGS: &str = "1.3.6.1.4.1.311.21.11";
+pub const szOID_APPLICATION_POLICY_MAPPINGS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ARCHIVED_KEY_ATTR: &str = "1.3.6.1.4.1.311.21.13";
+pub const szOID_ARCHIVED_KEY_ATTR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ARCHIVED_KEY_CERT_HASH: &str = "1.3.6.1.4.1.311.21.16";
+pub const szOID_ARCHIVED_KEY_CERT_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ATTEST_WHQL_CRYPTO: &str = "1.3.6.1.4.1.311.10.3.5.1";
+pub const szOID_ATTEST_WHQL_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.5.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ATTR_PLATFORM_SPECIFICATION: &str = "2.23.133.2.17";
+pub const szOID_ATTR_PLATFORM_SPECIFICATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.17");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ATTR_SUPPORTED_ALGORITHMS: &str = "2.5.4.52";
+pub const szOID_ATTR_SUPPORTED_ALGORITHMS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.52");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ATTR_TPM_SECURITY_ASSERTIONS: &str = "2.23.133.2.18";
+pub const szOID_ATTR_TPM_SECURITY_ASSERTIONS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.18");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ATTR_TPM_SPECIFICATION: &str = "2.23.133.2.16";
+pub const szOID_ATTR_TPM_SPECIFICATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_AUTHORITY_INFO_ACCESS: &str = "1.3.6.1.5.5.7.1.1";
+pub const szOID_AUTHORITY_INFO_ACCESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_AUTHORITY_KEY_IDENTIFIER: &str = "2.5.29.1";
+pub const szOID_AUTHORITY_KEY_IDENTIFIER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_AUTHORITY_KEY_IDENTIFIER2: &str = "2.5.29.35";
+pub const szOID_AUTHORITY_KEY_IDENTIFIER2: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.35");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_AUTHORITY_REVOCATION_LIST: &str = "2.5.4.38";
+pub const szOID_AUTHORITY_REVOCATION_LIST: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.38");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_AUTO_ENROLL_CTL_USAGE: &str = "1.3.6.1.4.1.311.20.1";
+pub const szOID_AUTO_ENROLL_CTL_USAGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.20.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_BACKGROUND_OTHER_LOGOTYPE: &str = "1.3.6.1.5.5.7.20.2";
+pub const szOID_BACKGROUND_OTHER_LOGOTYPE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.20.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_BASIC_CONSTRAINTS: &str = "2.5.29.10";
+pub const szOID_BASIC_CONSTRAINTS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_BASIC_CONSTRAINTS2: &str = "2.5.29.19";
+pub const szOID_BASIC_CONSTRAINTS2: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.19");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_BIOMETRIC_EXT: &str = "1.3.6.1.5.5.7.1.2";
+pub const szOID_BIOMETRIC_EXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_BIOMETRIC_SIGNING: &str = "1.3.6.1.4.1.311.10.3.41";
+pub const szOID_BIOMETRIC_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.41");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_BUSINESS_CATEGORY: &str = "2.5.4.15";
+pub const szOID_BUSINESS_CATEGORY: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CA_CERTIFICATE: &str = "2.5.4.37";
+pub const szOID_CA_CERTIFICATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.37");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERTIFICATE_REVOCATION_LIST: &str = "2.5.4.39";
+pub const szOID_CERTIFICATE_REVOCATION_LIST: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.39");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERTIFICATE_TEMPLATE: &str = "1.3.6.1.4.1.311.21.7";
+pub const szOID_CERTIFICATE_TEMPLATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERTSRV_CA_VERSION: &str = "1.3.6.1.4.1.311.21.1";
+pub const szOID_CERTSRV_CA_VERSION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERTSRV_CROSSCA_VERSION: &str = "1.3.6.1.4.1.311.21.22";
+pub const szOID_CERTSRV_CROSSCA_VERSION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.22");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERTSRV_PREVIOUS_CERT_HASH: &str = "1.3.6.1.4.1.311.21.2";
+pub const szOID_CERTSRV_PREVIOUS_CERT_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_DISALLOWED_FILETIME_PROP_ID: &str = "1.3.6.1.4.1.311.10.11.104";
+pub const szOID_CERT_DISALLOWED_FILETIME_PROP_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.11.104");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_EXTENSIONS: &str = "1.3.6.1.4.1.311.2.1.14";
+pub const szOID_CERT_EXTENSIONS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_ISSUER_SERIAL_NUMBER_MD5_HASH_PROP_ID: &str = "1.3.6.1.4.1.311.10.11.28";
+pub const szOID_CERT_ISSUER_SERIAL_NUMBER_MD5_HASH_PROP_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.11.28");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_KEY_IDENTIFIER_PROP_ID: &str = "1.3.6.1.4.1.311.10.11.20";
+pub const szOID_CERT_KEY_IDENTIFIER_PROP_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.11.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_MANIFOLD: &str = "1.3.6.1.4.1.311.20.3";
+pub const szOID_CERT_MANIFOLD: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.20.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_MD5_HASH_PROP_ID: &str = "1.3.6.1.4.1.311.10.11.4";
+pub const szOID_CERT_MD5_HASH_PROP_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.11.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_POLICIES: &str = "2.5.29.32";
+pub const szOID_CERT_POLICIES: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.32");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_POLICIES_95: &str = "2.5.29.3";
+pub const szOID_CERT_POLICIES_95: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_POLICIES_95_QUALIFIER1: &str = "2.16.840.1.113733.1.7.1.1";
+pub const szOID_CERT_POLICIES_95_QUALIFIER1: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.7.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_PROP_ID_PREFIX: &str = "1.3.6.1.4.1.311.10.11.";
+pub const szOID_CERT_PROP_ID_PREFIX: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.11.");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_SIGNATURE_HASH_PROP_ID: &str = "1.3.6.1.4.1.311.10.11.15";
+pub const szOID_CERT_SIGNATURE_HASH_PROP_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.11.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_STRONG_KEY_OS_1: &str = "1.3.6.1.4.1.311.72.2.1";
+pub const szOID_CERT_STRONG_KEY_OS_1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.72.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_STRONG_KEY_OS_CURRENT: &str = "1.3.6.1.4.1.311.72.2.1";
+pub const szOID_CERT_STRONG_KEY_OS_CURRENT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.6.1.4.1.311.72.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_STRONG_KEY_OS_PREFIX: &str = "1.3.6.1.4.1.311.72.2.";
+pub const szOID_CERT_STRONG_KEY_OS_PREFIX: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.72.2.");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_STRONG_SIGN_OS_1: &str = "1.3.6.1.4.1.311.72.1.1";
+pub const szOID_CERT_STRONG_SIGN_OS_1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.72.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_STRONG_SIGN_OS_CURRENT: &str = "1.3.6.1.4.1.311.72.1.1";
+pub const szOID_CERT_STRONG_SIGN_OS_CURRENT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.6.1.4.1.311.72.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_STRONG_SIGN_OS_PREFIX: &str = "1.3.6.1.4.1.311.72.1.";
+pub const szOID_CERT_STRONG_SIGN_OS_PREFIX: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.72.1.");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CERT_SUBJECT_NAME_MD5_HASH_PROP_ID: &str = "1.3.6.1.4.1.311.10.11.29";
+pub const szOID_CERT_SUBJECT_NAME_MD5_HASH_PROP_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.11.29");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC: &str = "1.3.6.1.5.5.7.7";
+pub const szOID_CMC: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_ADD_ATTRIBUTES: &str = "1.3.6.1.4.1.311.10.10.1";
+pub const szOID_CMC_ADD_ATTRIBUTES: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.10.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_ADD_EXTENSIONS: &str = "1.3.6.1.5.5.7.7.8";
+pub const szOID_CMC_ADD_EXTENSIONS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_DATA_RETURN: &str = "1.3.6.1.5.5.7.7.4";
+pub const szOID_CMC_DATA_RETURN: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_DECRYPTED_POP: &str = "1.3.6.1.5.5.7.7.10";
+pub const szOID_CMC_DECRYPTED_POP: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_ENCRYPTED_POP: &str = "1.3.6.1.5.5.7.7.9";
+pub const szOID_CMC_ENCRYPTED_POP: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_GET_CERT: &str = "1.3.6.1.5.5.7.7.15";
+pub const szOID_CMC_GET_CERT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_GET_CRL: &str = "1.3.6.1.5.5.7.7.16";
+pub const szOID_CMC_GET_CRL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_IDENTIFICATION: &str = "1.3.6.1.5.5.7.7.2";
+pub const szOID_CMC_IDENTIFICATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_IDENTITY_PROOF: &str = "1.3.6.1.5.5.7.7.3";
+pub const szOID_CMC_IDENTITY_PROOF: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_ID_CONFIRM_CERT_ACCEPTANCE: &str = "1.3.6.1.5.5.7.7.24";
+pub const szOID_CMC_ID_CONFIRM_CERT_ACCEPTANCE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.24");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_ID_POP_LINK_RANDOM: &str = "1.3.6.1.5.5.7.7.22";
+pub const szOID_CMC_ID_POP_LINK_RANDOM: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.22");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_ID_POP_LINK_WITNESS: &str = "1.3.6.1.5.5.7.7.23";
+pub const szOID_CMC_ID_POP_LINK_WITNESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.23");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_LRA_POP_WITNESS: &str = "1.3.6.1.5.5.7.7.11";
+pub const szOID_CMC_LRA_POP_WITNESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_QUERY_PENDING: &str = "1.3.6.1.5.5.7.7.21";
+pub const szOID_CMC_QUERY_PENDING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_RECIPIENT_NONCE: &str = "1.3.6.1.5.5.7.7.7";
+pub const szOID_CMC_RECIPIENT_NONCE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_REG_INFO: &str = "1.3.6.1.5.5.7.7.18";
+pub const szOID_CMC_REG_INFO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.18");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_RESPONSE_INFO: &str = "1.3.6.1.5.5.7.7.19";
+pub const szOID_CMC_RESPONSE_INFO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.19");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_REVOKE_REQUEST: &str = "1.3.6.1.5.5.7.7.17";
+pub const szOID_CMC_REVOKE_REQUEST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.17");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_SENDER_NONCE: &str = "1.3.6.1.5.5.7.7.6";
+pub const szOID_CMC_SENDER_NONCE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_STATUS_INFO: &str = "1.3.6.1.5.5.7.7.1";
+pub const szOID_CMC_STATUS_INFO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CMC_TRANSACTION_ID: &str = "1.3.6.1.5.5.7.7.5";
+pub const szOID_CMC_TRANSACTION_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.7.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CN_ECDSA_SHA256: &str = "1.2.156.11235.1.1.1";
+pub const szOID_CN_ECDSA_SHA256: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.156.11235.1.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_COMMON_NAME: &str = "2.5.4.3";
+pub const szOID_COMMON_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_COUNTRY_NAME: &str = "2.5.4.6";
+pub const szOID_COUNTRY_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CRL_DIST_POINTS: &str = "2.5.29.31";
+pub const szOID_CRL_DIST_POINTS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.31");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CRL_NEXT_PUBLISH: &str = "1.3.6.1.4.1.311.21.4";
+pub const szOID_CRL_NEXT_PUBLISH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CRL_NUMBER: &str = "2.5.29.20";
+pub const szOID_CRL_NUMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CRL_REASON_CODE: &str = "2.5.29.21";
+pub const szOID_CRL_REASON_CODE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CRL_SELF_CDP: &str = "1.3.6.1.4.1.311.21.14";
+pub const szOID_CRL_SELF_CDP: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CRL_VIRTUAL_BASE: &str = "1.3.6.1.4.1.311.21.3";
+pub const szOID_CRL_VIRTUAL_BASE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CROSS_CERTIFICATE_PAIR: &str = "2.5.4.40";
+pub const szOID_CROSS_CERTIFICATE_PAIR: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.40");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CROSS_CERT_DIST_POINTS: &str = "1.3.6.1.4.1.311.10.9.1";
+pub const szOID_CROSS_CERT_DIST_POINTS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.9.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CTL: &str = "1.3.6.1.4.1.311.10.1";
+pub const szOID_CTL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CT_CERT_SCTLIST: &str = "1.3.6.1.4.1.11129.2.4.2";
+pub const szOID_CT_CERT_SCTLIST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.11129.2.4.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CT_PKI_DATA: &str = "1.3.6.1.5.5.7.12.2";
+pub const szOID_CT_PKI_DATA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.12.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_CT_PKI_RESPONSE: &str = "1.3.6.1.5.5.7.12.3";
+pub const szOID_CT_PKI_RESPONSE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.12.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DELTA_CRL_INDICATOR: &str = "2.5.29.27";
+pub const szOID_DELTA_CRL_INDICATOR: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.27");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DESCRIPTION: &str = "2.5.4.13";
+pub const szOID_DESCRIPTION: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DESTINATION_INDICATOR: &str = "2.5.4.27";
+pub const szOID_DESTINATION_INDICATOR: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.27");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DEVICE_SERIAL_NUMBER: &str = "2.5.4.5";
+pub const szOID_DEVICE_SERIAL_NUMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DH_SINGLE_PASS_STDDH_SHA1_KDF: &str = "1.3.133.16.840.63.0.2";
+pub const szOID_DH_SINGLE_PASS_STDDH_SHA1_KDF: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.133.16.840.63.0.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DH_SINGLE_PASS_STDDH_SHA256_KDF: &str = "1.3.132.1.11.1";
+pub const szOID_DH_SINGLE_PASS_STDDH_SHA256_KDF: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.1.11.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DH_SINGLE_PASS_STDDH_SHA384_KDF: &str = "1.3.132.1.11.2";
+pub const szOID_DH_SINGLE_PASS_STDDH_SHA384_KDF: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.1.11.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DISALLOWED_HASH: &str = "1.3.6.1.4.1.311.10.11.15";
+pub const szOID_DISALLOWED_HASH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.6.1.4.1.311.10.11.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DISALLOWED_LIST: &str = "1.3.6.1.4.1.311.10.3.30";
+pub const szOID_DISALLOWED_LIST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.30");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DN_QUALIFIER: &str = "2.5.4.46";
+pub const szOID_DN_QUALIFIER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.46");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DOMAIN_COMPONENT: &str = "0.9.2342.19200300.100.1.25";
+pub const szOID_DOMAIN_COMPONENT: ::windows_sys::core::PCSTR = ::windows_sys::s!("0.9.2342.19200300.100.1.25");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DRM: &str = "1.3.6.1.4.1.311.10.5.1";
+pub const szOID_DRM: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.5.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DRM_INDIVIDUALIZATION: &str = "1.3.6.1.4.1.311.10.5.2";
+pub const szOID_DRM_INDIVIDUALIZATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.5.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DS: &str = "2.5";
+pub const szOID_DS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DSALG: &str = "2.5.8";
+pub const szOID_DSALG: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DSALG_CRPT: &str = "2.5.8.1";
+pub const szOID_DSALG_CRPT: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.8.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DSALG_HASH: &str = "2.5.8.2";
+pub const szOID_DSALG_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.8.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DSALG_RSA: &str = "2.5.8.1.1";
+pub const szOID_DSALG_RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.8.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DSALG_SIGN: &str = "2.5.8.3";
+pub const szOID_DSALG_SIGN: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.8.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DS_EMAIL_REPLICATION: &str = "1.3.6.1.4.1.311.21.19";
+pub const szOID_DS_EMAIL_REPLICATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.19");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_DYNAMIC_CODE_GEN_SIGNER: &str = "1.3.6.1.4.1.311.76.5.1";
+pub const szOID_DYNAMIC_CODE_GEN_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.76.5.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP160R1: &str = "1.3.36.3.3.2.8.1.1.1";
+pub const szOID_ECC_CURVE_BRAINPOOLP160R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP160T1: &str = "1.3.36.3.3.2.8.1.1.2";
+pub const szOID_ECC_CURVE_BRAINPOOLP160T1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP192R1: &str = "1.3.36.3.3.2.8.1.1.3";
+pub const szOID_ECC_CURVE_BRAINPOOLP192R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP192T1: &str = "1.3.36.3.3.2.8.1.1.4";
+pub const szOID_ECC_CURVE_BRAINPOOLP192T1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP224R1: &str = "1.3.36.3.3.2.8.1.1.5";
+pub const szOID_ECC_CURVE_BRAINPOOLP224R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP224T1: &str = "1.3.36.3.3.2.8.1.1.6";
+pub const szOID_ECC_CURVE_BRAINPOOLP224T1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP256R1: &str = "1.3.36.3.3.2.8.1.1.7";
+pub const szOID_ECC_CURVE_BRAINPOOLP256R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP256T1: &str = "1.3.36.3.3.2.8.1.1.8";
+pub const szOID_ECC_CURVE_BRAINPOOLP256T1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP320R1: &str = "1.3.36.3.3.2.8.1.1.9";
+pub const szOID_ECC_CURVE_BRAINPOOLP320R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP320T1: &str = "1.3.36.3.3.2.8.1.1.10";
+pub const szOID_ECC_CURVE_BRAINPOOLP320T1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP384R1: &str = "1.3.36.3.3.2.8.1.1.11";
+pub const szOID_ECC_CURVE_BRAINPOOLP384R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP384T1: &str = "1.3.36.3.3.2.8.1.1.12";
+pub const szOID_ECC_CURVE_BRAINPOOLP384T1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP512R1: &str = "1.3.36.3.3.2.8.1.1.13";
+pub const szOID_ECC_CURVE_BRAINPOOLP512R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_BRAINPOOLP512T1: &str = "1.3.36.3.3.2.8.1.1.14";
+pub const szOID_ECC_CURVE_BRAINPOOLP512T1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.36.3.3.2.8.1.1.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_EC192WAPI: &str = "1.2.156.11235.1.1.2.1";
+pub const szOID_ECC_CURVE_EC192WAPI: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.156.11235.1.1.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_NISTP192: &str = "1.2.840.10045.3.1.1";
+pub const szOID_ECC_CURVE_NISTP192: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_NISTP224: &str = "1.3.132.0.33";
+pub const szOID_ECC_CURVE_NISTP224: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.33");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_NISTP256: &str = "1.2.840.10045.3.1.7";
+pub const szOID_ECC_CURVE_NISTP256: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.2.840.10045.3.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_NISTP384: &str = "1.3.132.0.34";
+pub const szOID_ECC_CURVE_NISTP384: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.132.0.34");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_NISTP521: &str = "1.3.132.0.35";
+pub const szOID_ECC_CURVE_NISTP521: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.132.0.35");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_P256: &str = "1.2.840.10045.3.1.7";
+pub const szOID_ECC_CURVE_P256: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_P384: &str = "1.3.132.0.34";
+pub const szOID_ECC_CURVE_P384: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.34");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_P521: &str = "1.3.132.0.35";
+pub const szOID_ECC_CURVE_P521: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.35");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP160K1: &str = "1.3.132.0.9";
+pub const szOID_ECC_CURVE_SECP160K1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP160R1: &str = "1.3.132.0.8";
+pub const szOID_ECC_CURVE_SECP160R1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP160R2: &str = "1.3.132.0.30";
+pub const szOID_ECC_CURVE_SECP160R2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.30");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP192K1: &str = "1.3.132.0.31";
+pub const szOID_ECC_CURVE_SECP192K1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.31");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP192R1: &str = "1.2.840.10045.3.1.1";
+pub const szOID_ECC_CURVE_SECP192R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.2.840.10045.3.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP224K1: &str = "1.3.132.0.32";
+pub const szOID_ECC_CURVE_SECP224K1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.32");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP224R1: &str = "1.3.132.0.33";
+pub const szOID_ECC_CURVE_SECP224R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.132.0.33");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP256K1: &str = "1.3.132.0.10";
+pub const szOID_ECC_CURVE_SECP256K1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.132.0.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP256R1: &str = "1.2.840.10045.3.1.7";
+pub const szOID_ECC_CURVE_SECP256R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.2.840.10045.3.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP384R1: &str = "1.3.132.0.34";
+pub const szOID_ECC_CURVE_SECP384R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.132.0.34");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_SECP521R1: &str = "1.3.132.0.35";
+pub const szOID_ECC_CURVE_SECP521R1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.132.0.35");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_WTLS12: &str = "1.3.132.0.33";
+pub const szOID_ECC_CURVE_WTLS12: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.132.0.33");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_WTLS7: &str = "1.3.132.0.30";
+pub const szOID_ECC_CURVE_WTLS7: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.3.132.0.30");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_WTLS9: &str = "2.23.43.1.4.9";
+pub const szOID_ECC_CURVE_WTLS9: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.43.1.4.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_X962P192V1: &str = "1.2.840.10045.3.1.1";
+pub const szOID_ECC_CURVE_X962P192V1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_X962P192V2: &str = "1.2.840.10045.3.1.2";
+pub const szOID_ECC_CURVE_X962P192V2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_X962P192V3: &str = "1.2.840.10045.3.1.3";
+pub const szOID_ECC_CURVE_X962P192V3: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_X962P239V1: &str = "1.2.840.10045.3.1.4";
+pub const szOID_ECC_CURVE_X962P239V1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_X962P239V2: &str = "1.2.840.10045.3.1.5";
+pub const szOID_ECC_CURVE_X962P239V2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_X962P239V3: &str = "1.2.840.10045.3.1.6";
+pub const szOID_ECC_CURVE_X962P239V3: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.3.1.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_CURVE_X962P256V1: &str = "1.2.840.10045.3.1.7";
+pub const szOID_ECC_CURVE_X962P256V1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("1.2.840.10045.3.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECC_PUBLIC_KEY: &str = "1.2.840.10045.2.1";
+pub const szOID_ECC_PUBLIC_KEY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECDSA_SHA1: &str = "1.2.840.10045.4.1";
+pub const szOID_ECDSA_SHA1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.4.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECDSA_SHA256: &str = "1.2.840.10045.4.3.2";
+pub const szOID_ECDSA_SHA256: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.4.3.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECDSA_SHA384: &str = "1.2.840.10045.4.3.3";
+pub const szOID_ECDSA_SHA384: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.4.3.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECDSA_SHA512: &str = "1.2.840.10045.4.3.4";
+pub const szOID_ECDSA_SHA512: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.4.3.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ECDSA_SPECIFIED: &str = "1.2.840.10045.4.3";
+pub const szOID_ECDSA_SPECIFIED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10045.4.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_EFS_RECOVERY: &str = "1.3.6.1.4.1.311.10.3.4.1";
+pub const szOID_EFS_RECOVERY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.4.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_EMBEDDED_NT_CRYPTO: &str = "1.3.6.1.4.1.311.10.3.8";
+pub const szOID_EMBEDDED_NT_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENCLAVE_SIGNING: &str = "1.3.6.1.4.1.311.10.3.42";
+pub const szOID_ENCLAVE_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.42");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENCRYPTED_KEY_HASH: &str = "1.3.6.1.4.1.311.21.21";
+pub const szOID_ENCRYPTED_KEY_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENHANCED_KEY_USAGE: &str = "2.5.29.37";
+pub const szOID_ENHANCED_KEY_USAGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.37");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLLMENT_AGENT: &str = "1.3.6.1.4.1.311.20.2.1";
+pub const szOID_ENROLLMENT_AGENT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.20.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLLMENT_CSP_PROVIDER: &str = "1.3.6.1.4.1.311.13.2.2";
+pub const szOID_ENROLLMENT_CSP_PROVIDER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.13.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLLMENT_NAME_VALUE_PAIR: &str = "1.3.6.1.4.1.311.13.2.1";
+pub const szOID_ENROLLMENT_NAME_VALUE_PAIR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.13.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_AIK_INFO: &str = "1.3.6.1.4.1.311.21.39";
+pub const szOID_ENROLL_AIK_INFO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.39");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_ATTESTATION_CHALLENGE: &str = "1.3.6.1.4.1.311.21.28";
+pub const szOID_ENROLL_ATTESTATION_CHALLENGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.28");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_ATTESTATION_STATEMENT: &str = "1.3.6.1.4.1.311.21.24";
+pub const szOID_ENROLL_ATTESTATION_STATEMENT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.24");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_CAXCHGCERT_HASH: &str = "1.3.6.1.4.1.311.21.27";
+pub const szOID_ENROLL_CAXCHGCERT_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.27");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_CERTTYPE_EXTENSION: &str = "1.3.6.1.4.1.311.20.2";
+pub const szOID_ENROLL_CERTTYPE_EXTENSION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.20.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_EKPUB_CHALLENGE: &str = "1.3.6.1.4.1.311.21.26";
+pub const szOID_ENROLL_EKPUB_CHALLENGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.26");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_EKVERIFYCERT: &str = "1.3.6.1.4.1.311.21.31";
+pub const szOID_ENROLL_EKVERIFYCERT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.31");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_EKVERIFYCREDS: &str = "1.3.6.1.4.1.311.21.32";
+pub const szOID_ENROLL_EKVERIFYCREDS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.32");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_EKVERIFYKEY: &str = "1.3.6.1.4.1.311.21.30";
+pub const szOID_ENROLL_EKVERIFYKEY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.30");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_EK_CA_KEYID: &str = "1.3.6.1.4.1.311.21.43";
+pub const szOID_ENROLL_EK_CA_KEYID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.43");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_EK_INFO: &str = "1.3.6.1.4.1.311.21.23";
+pub const szOID_ENROLL_EK_INFO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.23");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_ENCRYPTION_ALGORITHM: &str = "1.3.6.1.4.1.311.21.29";
+pub const szOID_ENROLL_ENCRYPTION_ALGORITHM: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.29");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_KEY_AFFINITY: &str = "1.3.6.1.4.1.311.21.41";
+pub const szOID_ENROLL_KEY_AFFINITY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.41");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_KSP_NAME: &str = "1.3.6.1.4.1.311.21.25";
+pub const szOID_ENROLL_KSP_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.25");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_SCEP_CHALLENGE_ANSWER: &str = "1.3.6.1.4.1.311.21.35";
+pub const szOID_ENROLL_SCEP_CHALLENGE_ANSWER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.35");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_SCEP_CLIENT_REQUEST: &str = "1.3.6.1.4.1.311.21.37";
+pub const szOID_ENROLL_SCEP_CLIENT_REQUEST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.37");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_SCEP_ERROR: &str = "1.3.6.1.4.1.311.21.33";
+pub const szOID_ENROLL_SCEP_ERROR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.33");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_SCEP_SERVER_MESSAGE: &str = "1.3.6.1.4.1.311.21.38";
+pub const szOID_ENROLL_SCEP_SERVER_MESSAGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.38");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_SCEP_SERVER_SECRET: &str = "1.3.6.1.4.1.311.21.40";
+pub const szOID_ENROLL_SCEP_SERVER_SECRET: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.40");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_SCEP_SERVER_STATE: &str = "1.3.6.1.4.1.311.21.34";
+pub const szOID_ENROLL_SCEP_SERVER_STATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.34");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENROLL_SCEP_SIGNER_HASH: &str = "1.3.6.1.4.1.311.21.42";
+pub const szOID_ENROLL_SCEP_SIGNER_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.42");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ENTERPRISE_OID_ROOT: &str = "1.3.6.1.4.1.311.21.8";
+pub const szOID_ENTERPRISE_OID_ROOT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_EV_RDN_COUNTRY: &str = "1.3.6.1.4.1.311.60.2.1.3";
+pub const szOID_EV_RDN_COUNTRY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.60.2.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_EV_RDN_LOCALE: &str = "1.3.6.1.4.1.311.60.2.1.1";
+pub const szOID_EV_RDN_LOCALE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.60.2.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_EV_RDN_STATE_OR_PROVINCE: &str = "1.3.6.1.4.1.311.60.2.1.2";
+pub const szOID_EV_RDN_STATE_OR_PROVINCE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.60.2.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_EV_WHQL_CRYPTO: &str = "1.3.6.1.4.1.311.10.3.39";
+pub const szOID_EV_WHQL_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.39");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_FACSIMILE_TELEPHONE_NUMBER: &str = "2.5.4.23";
+pub const szOID_FACSIMILE_TELEPHONE_NUMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.23");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_FRESHEST_CRL: &str = "2.5.29.46";
+pub const szOID_FRESHEST_CRL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.46");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_GIVEN_NAME: &str = "2.5.4.42";
+pub const szOID_GIVEN_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.42");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_HPKP_DOMAIN_NAME_CTL: &str = "1.3.6.1.4.1.311.10.3.60";
+pub const szOID_HPKP_DOMAIN_NAME_CTL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.60");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_HPKP_HEADER_VALUE_CTL: &str = "1.3.6.1.4.1.311.10.3.61";
+pub const szOID_HPKP_HEADER_VALUE_CTL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.61");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC: &str = "2.16.840.1.101.2.1";
+pub const szOID_INFOSEC: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_SuiteAConfidentiality: &str = "2.16.840.1.101.2.1.1.14";
+pub const szOID_INFOSEC_SuiteAConfidentiality: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_SuiteAIntegrity: &str = "2.16.840.1.101.2.1.1.15";
+pub const szOID_INFOSEC_SuiteAIntegrity: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_SuiteAKMandSig: &str = "2.16.840.1.101.2.1.1.18";
+pub const szOID_INFOSEC_SuiteAKMandSig: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.18");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_SuiteAKeyManagement: &str = "2.16.840.1.101.2.1.1.17";
+pub const szOID_INFOSEC_SuiteAKeyManagement: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.17");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_SuiteASignature: &str = "2.16.840.1.101.2.1.1.13";
+pub const szOID_INFOSEC_SuiteASignature: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_SuiteATokenProtection: &str = "2.16.840.1.101.2.1.1.16";
+pub const szOID_INFOSEC_SuiteATokenProtection: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicConfidentiality: &str = "2.16.840.1.101.2.1.1.4";
+pub const szOID_INFOSEC_mosaicConfidentiality: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicIntegrity: &str = "2.16.840.1.101.2.1.1.6";
+pub const szOID_INFOSEC_mosaicIntegrity: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicKMandSig: &str = "2.16.840.1.101.2.1.1.12";
+pub const szOID_INFOSEC_mosaicKMandSig: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicKMandUpdSig: &str = "2.16.840.1.101.2.1.1.20";
+pub const szOID_INFOSEC_mosaicKMandUpdSig: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicKeyManagement: &str = "2.16.840.1.101.2.1.1.10";
+pub const szOID_INFOSEC_mosaicKeyManagement: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicSignature: &str = "2.16.840.1.101.2.1.1.2";
+pub const szOID_INFOSEC_mosaicSignature: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicTokenProtection: &str = "2.16.840.1.101.2.1.1.8";
+pub const szOID_INFOSEC_mosaicTokenProtection: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicUpdatedInteg: &str = "2.16.840.1.101.2.1.1.21";
+pub const szOID_INFOSEC_mosaicUpdatedInteg: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_mosaicUpdatedSig: &str = "2.16.840.1.101.2.1.1.19";
+pub const szOID_INFOSEC_mosaicUpdatedSig: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.19");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_sdnsConfidentiality: &str = "2.16.840.1.101.2.1.1.3";
+pub const szOID_INFOSEC_sdnsConfidentiality: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_sdnsIntegrity: &str = "2.16.840.1.101.2.1.1.5";
+pub const szOID_INFOSEC_sdnsIntegrity: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_sdnsKMandSig: &str = "2.16.840.1.101.2.1.1.11";
+pub const szOID_INFOSEC_sdnsKMandSig: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_sdnsKeyManagement: &str = "2.16.840.1.101.2.1.1.9";
+pub const szOID_INFOSEC_sdnsKeyManagement: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_sdnsSignature: &str = "2.16.840.1.101.2.1.1.1";
+pub const szOID_INFOSEC_sdnsSignature: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INFOSEC_sdnsTokenProtection: &str = "2.16.840.1.101.2.1.1.7";
+pub const szOID_INFOSEC_sdnsTokenProtection: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.2.1.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INHIBIT_ANY_POLICY: &str = "2.5.29.54";
+pub const szOID_INHIBIT_ANY_POLICY: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.54");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INITIALS: &str = "2.5.4.43";
+pub const szOID_INITIALS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.43");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INTERNATIONALIZED_EMAIL_ADDRESS: &str = "1.3.6.1.4.1.311.20.2.4";
+pub const szOID_INTERNATIONALIZED_EMAIL_ADDRESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.20.2.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_INTERNATIONAL_ISDN_NUMBER: &str = "2.5.4.25";
+pub const szOID_INTERNATIONAL_ISDN_NUMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.25");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_IPSEC_KP_IKE_INTERMEDIATE: &str = "1.3.6.1.5.5.8.2.2";
+pub const szOID_IPSEC_KP_IKE_INTERMEDIATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.8.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ISSUED_CERT_HASH: &str = "1.3.6.1.4.1.311.21.17";
+pub const szOID_ISSUED_CERT_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.17");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ISSUER_ALT_NAME: &str = "2.5.29.8";
+pub const szOID_ISSUER_ALT_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ISSUER_ALT_NAME2: &str = "2.5.29.18";
+pub const szOID_ISSUER_ALT_NAME2: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.18");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ISSUING_DIST_POINT: &str = "2.5.29.28";
+pub const szOID_ISSUING_DIST_POINT: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.28");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_IUM_SIGNING: &str = "1.3.6.1.4.1.311.10.3.37";
+pub const szOID_IUM_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.37");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KEYID_RDN: &str = "1.3.6.1.4.1.311.10.7.1";
+pub const szOID_KEYID_RDN: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.7.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KEY_ATTRIBUTES: &str = "2.5.29.2";
+pub const szOID_KEY_ATTRIBUTES: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KEY_USAGE: &str = "2.5.29.15";
+pub const szOID_KEY_USAGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KEY_USAGE_RESTRICTION: &str = "2.5.29.4";
+pub const szOID_KEY_USAGE_RESTRICTION: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_CA_EXCHANGE: &str = "1.3.6.1.4.1.311.21.5";
+pub const szOID_KP_CA_EXCHANGE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_CSP_SIGNATURE: &str = "1.3.6.1.4.1.311.10.3.16";
+pub const szOID_KP_CSP_SIGNATURE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_CTL_USAGE_SIGNING: &str = "1.3.6.1.4.1.311.10.3.1";
+pub const szOID_KP_CTL_USAGE_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_DOCUMENT_SIGNING: &str = "1.3.6.1.4.1.311.10.3.12";
+pub const szOID_KP_DOCUMENT_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_EFS: &str = "1.3.6.1.4.1.311.10.3.4";
+pub const szOID_KP_EFS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_FLIGHT_SIGNING: &str = "1.3.6.1.4.1.311.10.3.27";
+pub const szOID_KP_FLIGHT_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.27");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_KERNEL_MODE_CODE_SIGNING: &str = "1.3.6.1.4.1.311.61.1.1";
+pub const szOID_KP_KERNEL_MODE_CODE_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.61.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_KERNEL_MODE_HAL_EXTENSION_SIGNING: &str = "1.3.6.1.4.1.311.61.5.1";
+pub const szOID_KP_KERNEL_MODE_HAL_EXTENSION_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.61.5.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_KERNEL_MODE_TRUSTED_BOOT_SIGNING: &str = "1.3.6.1.4.1.311.61.4.1";
+pub const szOID_KP_KERNEL_MODE_TRUSTED_BOOT_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.61.4.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_KEY_RECOVERY: &str = "1.3.6.1.4.1.311.10.3.11";
+pub const szOID_KP_KEY_RECOVERY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_KEY_RECOVERY_AGENT: &str = "1.3.6.1.4.1.311.21.6";
+pub const szOID_KP_KEY_RECOVERY_AGENT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_LIFETIME_SIGNING: &str = "1.3.6.1.4.1.311.10.3.13";
+pub const szOID_KP_LIFETIME_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_MOBILE_DEVICE_SOFTWARE: &str = "1.3.6.1.4.1.311.10.3.14";
+pub const szOID_KP_MOBILE_DEVICE_SOFTWARE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_PRIVACY_CA: &str = "1.3.6.1.4.1.311.21.36";
+pub const szOID_KP_PRIVACY_CA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.36");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_QUALIFIED_SUBORDINATION: &str = "1.3.6.1.4.1.311.10.3.10";
+pub const szOID_KP_QUALIFIED_SUBORDINATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_SMARTCARD_LOGON: &str = "1.3.6.1.4.1.311.20.2.2";
+pub const szOID_KP_SMARTCARD_LOGON: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.20.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_SMART_DISPLAY: &str = "1.3.6.1.4.1.311.10.3.15";
+pub const szOID_KP_SMART_DISPLAY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_TIME_STAMP_SIGNING: &str = "1.3.6.1.4.1.311.10.3.2";
+pub const szOID_KP_TIME_STAMP_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_TPM_AIK_CERTIFICATE: &str = "2.23.133.8.3";
+pub const szOID_KP_TPM_AIK_CERTIFICATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.8.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_TPM_EK_CERTIFICATE: &str = "2.23.133.8.1";
+pub const szOID_KP_TPM_EK_CERTIFICATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.8.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_KP_TPM_PLATFORM_CERTIFICATE: &str = "2.23.133.8.2";
+pub const szOID_KP_TPM_PLATFORM_CERTIFICATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.8.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_LEGACY_POLICY_MAPPINGS: &str = "2.5.29.5";
+pub const szOID_LEGACY_POLICY_MAPPINGS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_LICENSES: &str = "1.3.6.1.4.1.311.10.6.1";
+pub const szOID_LICENSES: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.6.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_LICENSE_SERVER: &str = "1.3.6.1.4.1.311.10.6.2";
+pub const szOID_LICENSE_SERVER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.6.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_LOCALITY_NAME: &str = "2.5.4.7";
+pub const szOID_LOCALITY_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_LOCAL_MACHINE_KEYSET: &str = "1.3.6.1.4.1.311.17.2";
+pub const szOID_LOCAL_MACHINE_KEYSET: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.17.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_LOGOTYPE_EXT: &str = "1.3.6.1.5.5.7.1.12";
+pub const szOID_LOGOTYPE_EXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.1.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_LOYALTY_OTHER_LOGOTYPE: &str = "1.3.6.1.5.5.7.20.1";
+pub const szOID_LOYALTY_OTHER_LOGOTYPE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.20.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_MEMBER: &str = "2.5.4.31";
+pub const szOID_MEMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.31");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_MICROSOFT_PUBLISHER_SIGNER: &str = "1.3.6.1.4.1.311.76.8.1";
+pub const szOID_MICROSOFT_PUBLISHER_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.76.8.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NAME_CONSTRAINTS: &str = "2.5.29.30";
+pub const szOID_NAME_CONSTRAINTS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.30");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE: &str = "2.16.840.1.113730";
+pub const szOID_NETSCAPE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_BASE_URL: &str = "2.16.840.1.113730.1.2";
+pub const szOID_NETSCAPE_BASE_URL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_CA_POLICY_URL: &str = "2.16.840.1.113730.1.8";
+pub const szOID_NETSCAPE_CA_POLICY_URL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_CA_REVOCATION_URL: &str = "2.16.840.1.113730.1.4";
+pub const szOID_NETSCAPE_CA_REVOCATION_URL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_CERT_EXTENSION: &str = "2.16.840.1.113730.1";
+pub const szOID_NETSCAPE_CERT_EXTENSION: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_CERT_RENEWAL_URL: &str = "2.16.840.1.113730.1.7";
+pub const szOID_NETSCAPE_CERT_RENEWAL_URL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_CERT_SEQUENCE: &str = "2.16.840.1.113730.2.5";
+pub const szOID_NETSCAPE_CERT_SEQUENCE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.2.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_CERT_TYPE: &str = "2.16.840.1.113730.1.1";
+pub const szOID_NETSCAPE_CERT_TYPE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_COMMENT: &str = "2.16.840.1.113730.1.13";
+pub const szOID_NETSCAPE_COMMENT: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_DATA_TYPE: &str = "2.16.840.1.113730.2";
+pub const szOID_NETSCAPE_DATA_TYPE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_REVOCATION_URL: &str = "2.16.840.1.113730.1.3";
+pub const szOID_NETSCAPE_REVOCATION_URL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NETSCAPE_SSL_SERVER_NAME: &str = "2.16.840.1.113730.1.12";
+pub const szOID_NETSCAPE_SSL_SERVER_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.1.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NEXT_UPDATE_LOCATION: &str = "1.3.6.1.4.1.311.10.2";
+pub const szOID_NEXT_UPDATE_LOCATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_AES128_CBC: &str = "2.16.840.1.101.3.4.1.2";
+pub const szOID_NIST_AES128_CBC: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_AES128_WRAP: &str = "2.16.840.1.101.3.4.1.5";
+pub const szOID_NIST_AES128_WRAP: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_AES192_CBC: &str = "2.16.840.1.101.3.4.1.22";
+pub const szOID_NIST_AES192_CBC: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.1.22");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_AES192_WRAP: &str = "2.16.840.1.101.3.4.1.25";
+pub const szOID_NIST_AES192_WRAP: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.1.25");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_AES256_CBC: &str = "2.16.840.1.101.3.4.1.42";
+pub const szOID_NIST_AES256_CBC: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.1.42");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_AES256_WRAP: &str = "2.16.840.1.101.3.4.1.45";
+pub const szOID_NIST_AES256_WRAP: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.1.45");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_sha256: &str = "2.16.840.1.101.3.4.2.1";
+pub const szOID_NIST_sha256: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_sha384: &str = "2.16.840.1.101.3.4.2.2";
+pub const szOID_NIST_sha384: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NIST_sha512: &str = "2.16.840.1.101.3.4.2.3";
+pub const szOID_NIST_sha512: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.101.3.4.2.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NT5_CRYPTO: &str = "1.3.6.1.4.1.311.10.3.6";
+pub const szOID_NT5_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NTDS_REPLICATION: &str = "1.3.6.1.4.1.311.25.1";
+pub const szOID_NTDS_REPLICATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.25.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_NT_PRINCIPAL_NAME: &str = "1.3.6.1.4.1.311.20.2.3";
+pub const szOID_NT_PRINCIPAL_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.20.2.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OEM_WHQL_CRYPTO: &str = "1.3.6.1.4.1.311.10.3.7";
+pub const szOID_OEM_WHQL_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIW: &str = "1.3.14";
+pub const szOID_OIW: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWDIR: &str = "1.3.14.7.2";
+pub const szOID_OIWDIR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.7.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWDIR_CRPT: &str = "1.3.14.7.2.1";
+pub const szOID_OIWDIR_CRPT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.7.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWDIR_HASH: &str = "1.3.14.7.2.2";
+pub const szOID_OIWDIR_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.7.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWDIR_SIGN: &str = "1.3.14.7.2.3";
+pub const szOID_OIWDIR_SIGN: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.7.2.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWDIR_md2: &str = "1.3.14.7.2.2.1";
+pub const szOID_OIWDIR_md2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.7.2.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWDIR_md2RSA: &str = "1.3.14.7.2.3.1";
+pub const szOID_OIWDIR_md2RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.7.2.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC: &str = "1.3.14.3.2";
+pub const szOID_OIWSEC: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_desCBC: &str = "1.3.14.3.2.7";
+pub const szOID_OIWSEC_desCBC: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_desCFB: &str = "1.3.14.3.2.9";
+pub const szOID_OIWSEC_desCFB: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_desECB: &str = "1.3.14.3.2.6";
+pub const szOID_OIWSEC_desECB: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_desEDE: &str = "1.3.14.3.2.17";
+pub const szOID_OIWSEC_desEDE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.17");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_desMAC: &str = "1.3.14.3.2.10";
+pub const szOID_OIWSEC_desMAC: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_desOFB: &str = "1.3.14.3.2.8";
+pub const szOID_OIWSEC_desOFB: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_dhCommMod: &str = "1.3.14.3.2.16";
+pub const szOID_OIWSEC_dhCommMod: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_dsa: &str = "1.3.14.3.2.12";
+pub const szOID_OIWSEC_dsa: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_dsaComm: &str = "1.3.14.3.2.20";
+pub const szOID_OIWSEC_dsaComm: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_dsaCommSHA: &str = "1.3.14.3.2.21";
+pub const szOID_OIWSEC_dsaCommSHA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_dsaCommSHA1: &str = "1.3.14.3.2.28";
+pub const szOID_OIWSEC_dsaCommSHA1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.28");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_dsaSHA1: &str = "1.3.14.3.2.27";
+pub const szOID_OIWSEC_dsaSHA1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.27");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_keyHashSeal: &str = "1.3.14.3.2.23";
+pub const szOID_OIWSEC_keyHashSeal: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.23");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_md2RSASign: &str = "1.3.14.3.2.24";
+pub const szOID_OIWSEC_md2RSASign: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.24");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_md4RSA: &str = "1.3.14.3.2.2";
+pub const szOID_OIWSEC_md4RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_md4RSA2: &str = "1.3.14.3.2.4";
+pub const szOID_OIWSEC_md4RSA2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_md5RSA: &str = "1.3.14.3.2.3";
+pub const szOID_OIWSEC_md5RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_md5RSASign: &str = "1.3.14.3.2.25";
+pub const szOID_OIWSEC_md5RSASign: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.25");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_mdc2: &str = "1.3.14.3.2.19";
+pub const szOID_OIWSEC_mdc2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.19");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_mdc2RSA: &str = "1.3.14.3.2.14";
+pub const szOID_OIWSEC_mdc2RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_rsaSign: &str = "1.3.14.3.2.11";
+pub const szOID_OIWSEC_rsaSign: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_rsaXchg: &str = "1.3.14.3.2.22";
+pub const szOID_OIWSEC_rsaXchg: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.22");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_sha: &str = "1.3.14.3.2.18";
+pub const szOID_OIWSEC_sha: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.18");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_sha1: &str = "1.3.14.3.2.26";
+pub const szOID_OIWSEC_sha1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.26");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_sha1RSASign: &str = "1.3.14.3.2.29";
+pub const szOID_OIWSEC_sha1RSASign: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.29");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_shaDSA: &str = "1.3.14.3.2.13";
+pub const szOID_OIWSEC_shaDSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OIWSEC_shaRSA: &str = "1.3.14.3.2.15";
+pub const szOID_OIWSEC_shaRSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.14.3.2.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ORGANIZATIONAL_UNIT_NAME: &str = "2.5.4.11";
+pub const szOID_ORGANIZATIONAL_UNIT_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ORGANIZATION_NAME: &str = "2.5.4.10";
+pub const szOID_ORGANIZATION_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OS_VERSION: &str = "1.3.6.1.4.1.311.13.2.3";
+pub const szOID_OS_VERSION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.13.2.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_OWNER: &str = "2.5.4.32";
+pub const szOID_OWNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.32");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PHYSICAL_DELIVERY_OFFICE_NAME: &str = "2.5.4.19";
+pub const szOID_PHYSICAL_DELIVERY_OFFICE_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.19");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PIN_RULES_CTL: &str = "1.3.6.1.4.1.311.10.3.32";
+pub const szOID_PIN_RULES_CTL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.32");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PIN_RULES_DOMAIN_NAME: &str = "1.3.6.1.4.1.311.10.3.34";
+pub const szOID_PIN_RULES_DOMAIN_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.34");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PIN_RULES_EXT: &str = "1.3.6.1.4.1.311.10.3.33";
+pub const szOID_PIN_RULES_EXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.33");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PIN_RULES_LOG_END_DATE_EXT: &str = "1.3.6.1.4.1.311.10.3.35";
+pub const szOID_PIN_RULES_LOG_END_DATE_EXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.35");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PIN_RULES_SIGNER: &str = "1.3.6.1.4.1.311.10.3.31";
+pub const szOID_PIN_RULES_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.31");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS: &str = "1.2.840.113549.1";
+pub const szOID_PKCS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_1: &str = "1.2.840.113549.1.1";
+pub const szOID_PKCS_1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_10: &str = "1.2.840.113549.1.10";
+pub const szOID_PKCS_10: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12: &str = "1.2.840.113549.1.12";
+pub const szOID_PKCS_12: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_EXTENDED_ATTRIBUTES: &str = "1.3.6.1.4.1.311.17.3";
+pub const szOID_PKCS_12_EXTENDED_ATTRIBUTES: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.17.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_FRIENDLY_NAME_ATTR: &str = "1.2.840.113549.1.9.20";
+pub const szOID_PKCS_12_FRIENDLY_NAME_ATTR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_KEY_PROVIDER_NAME_ATTR: &str = "1.3.6.1.4.1.311.17.1";
+pub const szOID_PKCS_12_KEY_PROVIDER_NAME_ATTR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.17.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_LOCAL_KEY_ID: &str = "1.2.840.113549.1.9.21";
+pub const szOID_PKCS_12_LOCAL_KEY_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_PROTECTED_PASSWORD_SECRET_BAG_TYPE_ID: &str = "1.3.6.1.4.1.311.17.4";
+pub const szOID_PKCS_12_PROTECTED_PASSWORD_SECRET_BAG_TYPE_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.17.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_PbeIds: &str = "1.2.840.113549.1.12.1";
+pub const szOID_PKCS_12_PbeIds: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_pbeWithSHA1And128BitRC2: &str = "1.2.840.113549.1.12.1.5";
+pub const szOID_PKCS_12_pbeWithSHA1And128BitRC2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_pbeWithSHA1And128BitRC4: &str = "1.2.840.113549.1.12.1.1";
+pub const szOID_PKCS_12_pbeWithSHA1And128BitRC4: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_pbeWithSHA1And2KeyTripleDES: &str = "1.2.840.113549.1.12.1.4";
+pub const szOID_PKCS_12_pbeWithSHA1And2KeyTripleDES: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_pbeWithSHA1And3KeyTripleDES: &str = "1.2.840.113549.1.12.1.3";
+pub const szOID_PKCS_12_pbeWithSHA1And3KeyTripleDES: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_pbeWithSHA1And40BitRC2: &str = "1.2.840.113549.1.12.1.6";
+pub const szOID_PKCS_12_pbeWithSHA1And40BitRC2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12.1.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_12_pbeWithSHA1And40BitRC4: &str = "1.2.840.113549.1.12.1.2";
+pub const szOID_PKCS_12_pbeWithSHA1And40BitRC4: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.12.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_2: &str = "1.2.840.113549.1.2";
+pub const szOID_PKCS_2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_3: &str = "1.2.840.113549.1.3";
+pub const szOID_PKCS_3: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_4: &str = "1.2.840.113549.1.4";
+pub const szOID_PKCS_4: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_5: &str = "1.2.840.113549.1.5";
+pub const szOID_PKCS_5: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_5_PBES2: &str = "1.2.840.113549.1.5.13";
+pub const szOID_PKCS_5_PBES2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.5.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_5_PBKDF2: &str = "1.2.840.113549.1.5.12";
+pub const szOID_PKCS_5_PBKDF2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.5.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_6: &str = "1.2.840.113549.1.6";
+pub const szOID_PKCS_6: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_7: &str = "1.2.840.113549.1.7";
+pub const szOID_PKCS_7: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_7_DATA: &str = "1.2.840.113549.1.7.1";
+pub const szOID_PKCS_7_DATA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_7_DIGESTED: &str = "1.2.840.113549.1.7.5";
+pub const szOID_PKCS_7_DIGESTED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_7_ENCRYPTED: &str = "1.2.840.113549.1.7.6";
+pub const szOID_PKCS_7_ENCRYPTED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_7_ENVELOPED: &str = "1.2.840.113549.1.7.3";
+pub const szOID_PKCS_7_ENVELOPED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_7_SIGNED: &str = "1.2.840.113549.1.7.2";
+pub const szOID_PKCS_7_SIGNED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_7_SIGNEDANDENVELOPED: &str = "1.2.840.113549.1.7.4";
+pub const szOID_PKCS_7_SIGNEDANDENVELOPED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_8: &str = "1.2.840.113549.1.8";
+pub const szOID_PKCS_8: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_9: &str = "1.2.840.113549.1.9";
+pub const szOID_PKCS_9: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_9_CONTENT_TYPE: &str = "1.2.840.113549.1.9.3";
+pub const szOID_PKCS_9_CONTENT_TYPE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKCS_9_MESSAGE_DIGEST: &str = "1.2.840.113549.1.9.4";
+pub const szOID_PKCS_9_MESSAGE_DIGEST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKINIT_KP_KDC: &str = "1.3.6.1.5.2.3.5";
+pub const szOID_PKINIT_KP_KDC: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.2.3.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX: &str = "1.3.6.1.5.5.7";
+pub const szOID_PKIX: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_ACC_DESCR: &str = "1.3.6.1.5.5.7.48";
+pub const szOID_PKIX_ACC_DESCR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_CA_ISSUERS: &str = "1.3.6.1.5.5.7.48.2";
+pub const szOID_PKIX_CA_ISSUERS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_CA_REPOSITORY: &str = "1.3.6.1.5.5.7.48.5";
+pub const szOID_PKIX_CA_REPOSITORY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP: &str = "1.3.6.1.5.5.7.3";
+pub const szOID_PKIX_KP: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_CLIENT_AUTH: &str = "1.3.6.1.5.5.7.3.2";
+pub const szOID_PKIX_KP_CLIENT_AUTH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_CODE_SIGNING: &str = "1.3.6.1.5.5.7.3.3";
+pub const szOID_PKIX_KP_CODE_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_EMAIL_PROTECTION: &str = "1.3.6.1.5.5.7.3.4";
+pub const szOID_PKIX_KP_EMAIL_PROTECTION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_IPSEC_END_SYSTEM: &str = "1.3.6.1.5.5.7.3.5";
+pub const szOID_PKIX_KP_IPSEC_END_SYSTEM: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_IPSEC_TUNNEL: &str = "1.3.6.1.5.5.7.3.6";
+pub const szOID_PKIX_KP_IPSEC_TUNNEL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_IPSEC_USER: &str = "1.3.6.1.5.5.7.3.7";
+pub const szOID_PKIX_KP_IPSEC_USER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_OCSP_SIGNING: &str = "1.3.6.1.5.5.7.3.9";
+pub const szOID_PKIX_KP_OCSP_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_SERVER_AUTH: &str = "1.3.6.1.5.5.7.3.1";
+pub const szOID_PKIX_KP_SERVER_AUTH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_KP_TIMESTAMP_SIGNING: &str = "1.3.6.1.5.5.7.3.8";
+pub const szOID_PKIX_KP_TIMESTAMP_SIGNING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.3.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_NO_SIGNATURE: &str = "1.3.6.1.5.5.7.6.2";
+pub const szOID_PKIX_NO_SIGNATURE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.6.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_OCSP: &str = "1.3.6.1.5.5.7.48.1";
+pub const szOID_PKIX_OCSP: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_OCSP_BASIC_SIGNED_RESPONSE: &str = "1.3.6.1.5.5.7.48.1.1";
+pub const szOID_PKIX_OCSP_BASIC_SIGNED_RESPONSE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_OCSP_NOCHECK: &str = "1.3.6.1.5.5.7.48.1.5";
+pub const szOID_PKIX_OCSP_NOCHECK: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_OCSP_NONCE: &str = "1.3.6.1.5.5.7.48.1.2";
+pub const szOID_PKIX_OCSP_NONCE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_PE: &str = "1.3.6.1.5.5.7.1";
+pub const szOID_PKIX_PE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_POLICY_QUALIFIER_CPS: &str = "1.3.6.1.5.5.7.2.1";
+pub const szOID_PKIX_POLICY_QUALIFIER_CPS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_POLICY_QUALIFIER_USERNOTICE: &str = "1.3.6.1.5.5.7.2.2";
+pub const szOID_PKIX_POLICY_QUALIFIER_USERNOTICE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PKIX_TIME_STAMPING: &str = "1.3.6.1.5.5.7.48.3";
+pub const szOID_PKIX_TIME_STAMPING: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.48.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PLATFORM_MANIFEST_BINARY_ID: &str = "1.3.6.1.4.1.311.10.3.28";
+pub const szOID_PLATFORM_MANIFEST_BINARY_ID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.28");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_POLICY_CONSTRAINTS: &str = "2.5.29.36";
+pub const szOID_POLICY_CONSTRAINTS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.36");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_POLICY_MAPPINGS: &str = "2.5.29.33";
+pub const szOID_POLICY_MAPPINGS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.33");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_POSTAL_ADDRESS: &str = "2.5.4.16";
+pub const szOID_POSTAL_ADDRESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_POSTAL_CODE: &str = "2.5.4.17";
+pub const szOID_POSTAL_CODE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.17");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_POST_OFFICE_BOX: &str = "2.5.4.18";
+pub const szOID_POST_OFFICE_BOX: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.18");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PREFERRED_DELIVERY_METHOD: &str = "2.5.4.28";
+pub const szOID_PREFERRED_DELIVERY_METHOD: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.28");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PRESENTATION_ADDRESS: &str = "2.5.4.29";
+pub const szOID_PRESENTATION_ADDRESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.29");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PRIVATEKEY_USAGE_PERIOD: &str = "2.5.29.16";
+pub const szOID_PRIVATEKEY_USAGE_PERIOD: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.16");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PRODUCT_UPDATE: &str = "1.3.6.1.4.1.311.31.1";
+pub const szOID_PRODUCT_UPDATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.31.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PROTECTED_PROCESS_LIGHT_SIGNER: &str = "1.3.6.1.4.1.311.10.3.22";
+pub const szOID_PROTECTED_PROCESS_LIGHT_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.22");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_PROTECTED_PROCESS_SIGNER: &str = "1.3.6.1.4.1.311.10.3.24";
+pub const szOID_PROTECTED_PROCESS_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.24");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_QC_EU_COMPLIANCE: &str = "0.4.0.1862.1.1";
+pub const szOID_QC_EU_COMPLIANCE: ::windows_sys::core::PCSTR = ::windows_sys::s!("0.4.0.1862.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_QC_SSCD: &str = "0.4.0.1862.1.4";
+pub const szOID_QC_SSCD: ::windows_sys::core::PCSTR = ::windows_sys::s!("0.4.0.1862.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_QC_STATEMENTS_EXT: &str = "1.3.6.1.5.5.7.1.3";
+pub const szOID_QC_STATEMENTS_EXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RDN_DUMMY_SIGNER: &str = "1.3.6.1.4.1.311.21.9";
+pub const szOID_RDN_DUMMY_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RDN_TCG_PLATFORM_MANUFACTURER: &str = "2.23.133.2.4";
+pub const szOID_RDN_TCG_PLATFORM_MANUFACTURER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RDN_TCG_PLATFORM_MODEL: &str = "2.23.133.2.5";
+pub const szOID_RDN_TCG_PLATFORM_MODEL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RDN_TCG_PLATFORM_VERSION: &str = "2.23.133.2.6";
+pub const szOID_RDN_TCG_PLATFORM_VERSION: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RDN_TPM_MANUFACTURER: &str = "2.23.133.2.1";
+pub const szOID_RDN_TPM_MANUFACTURER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RDN_TPM_MODEL: &str = "2.23.133.2.2";
+pub const szOID_RDN_TPM_MODEL: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RDN_TPM_VERSION: &str = "2.23.133.2.3";
+pub const szOID_RDN_TPM_VERSION: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.23.133.2.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_REASON_CODE_HOLD: &str = "2.5.29.23";
+pub const szOID_REASON_CODE_HOLD: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.23");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_REGISTERED_ADDRESS: &str = "2.5.4.26";
+pub const szOID_REGISTERED_ADDRESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.26");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_REMOVE_CERTIFICATE: &str = "1.3.6.1.4.1.311.10.8.1";
+pub const szOID_REMOVE_CERTIFICATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.8.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RENEWAL_CERTIFICATE: &str = "1.3.6.1.4.1.311.13.1";
+pub const szOID_RENEWAL_CERTIFICATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.13.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_REQUEST_CLIENT_INFO: &str = "1.3.6.1.4.1.311.21.20";
+pub const szOID_REQUEST_CLIENT_INFO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_REQUIRE_CERT_CHAIN_POLICY: &str = "1.3.6.1.4.1.311.21.15";
+pub const szOID_REQUIRE_CERT_CHAIN_POLICY: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.21.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_REVOKED_LIST_SIGNER: &str = "1.3.6.1.4.1.311.10.3.19";
+pub const szOID_REVOKED_LIST_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.19");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RFC3161_counterSign: &str = "1.3.6.1.4.1.311.3.3.1";
+pub const szOID_RFC3161_counterSign: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.3.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ROLE_OCCUPANT: &str = "2.5.4.33";
+pub const szOID_ROLE_OCCUPANT: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.33");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ROOT_LIST_SIGNER: &str = "1.3.6.1.4.1.311.10.3.9";
+pub const szOID_ROOT_LIST_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ROOT_PROGRAM_AUTO_UPDATE_CA_REVOCATION: &str = "1.3.6.1.4.1.311.60.3.1";
+pub const szOID_ROOT_PROGRAM_AUTO_UPDATE_CA_REVOCATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.60.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ROOT_PROGRAM_AUTO_UPDATE_END_REVOCATION: &str = "1.3.6.1.4.1.311.60.3.2";
+pub const szOID_ROOT_PROGRAM_AUTO_UPDATE_END_REVOCATION: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.60.3.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ROOT_PROGRAM_FLAGS: &str = "1.3.6.1.4.1.311.60.1.1";
+pub const szOID_ROOT_PROGRAM_FLAGS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.60.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_ROOT_PROGRAM_NO_OCSP_FAILOVER_TO_CRL: &str = "1.3.6.1.4.1.311.60.3.3";
+pub const szOID_ROOT_PROGRAM_NO_OCSP_FAILOVER_TO_CRL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.60.3.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA: &str = "1.2.840.113549";
+pub const szOID_RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSAES_OAEP: &str = "1.2.840.113549.1.1.7";
+pub const szOID_RSAES_OAEP: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_DES_EDE3_CBC: &str = "1.2.840.113549.3.7";
+pub const szOID_RSA_DES_EDE3_CBC: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.3.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_DH: &str = "1.2.840.113549.1.3.1";
+pub const szOID_RSA_DH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_ENCRYPT: &str = "1.2.840.113549.3";
+pub const szOID_RSA_ENCRYPT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_HASH: &str = "1.2.840.113549.2";
+pub const szOID_RSA_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_MD2: &str = "1.2.840.113549.2.2";
+pub const szOID_RSA_MD2: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_MD2RSA: &str = "1.2.840.113549.1.1.2";
+pub const szOID_RSA_MD2RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_MD4: &str = "1.2.840.113549.2.4";
+pub const szOID_RSA_MD4: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_MD4RSA: &str = "1.2.840.113549.1.1.3";
+pub const szOID_RSA_MD4RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_MD5: &str = "1.2.840.113549.2.5";
+pub const szOID_RSA_MD5: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.2.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_MD5RSA: &str = "1.2.840.113549.1.1.4";
+pub const szOID_RSA_MD5RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_MGF1: &str = "1.2.840.113549.1.1.8";
+pub const szOID_RSA_MGF1: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_PSPECIFIED: &str = "1.2.840.113549.1.1.9";
+pub const szOID_RSA_PSPECIFIED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_RC2CBC: &str = "1.2.840.113549.3.2";
+pub const szOID_RSA_RC2CBC: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.3.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_RC4: &str = "1.2.840.113549.3.4";
+pub const szOID_RSA_RC4: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.3.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_RC5_CBCPad: &str = "1.2.840.113549.3.9";
+pub const szOID_RSA_RC5_CBCPad: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.3.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_RSA: &str = "1.2.840.113549.1.1.1";
+pub const szOID_RSA_RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SETOAEP_RSA: &str = "1.2.840.113549.1.1.6";
+pub const szOID_RSA_SETOAEP_RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SHA1RSA: &str = "1.2.840.113549.1.1.5";
+pub const szOID_RSA_SHA1RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SHA256RSA: &str = "1.2.840.113549.1.1.11";
+pub const szOID_RSA_SHA256RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SHA384RSA: &str = "1.2.840.113549.1.1.12";
+pub const szOID_RSA_SHA384RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SHA512RSA: &str = "1.2.840.113549.1.1.13";
+pub const szOID_RSA_SHA512RSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SMIMECapabilities: &str = "1.2.840.113549.1.9.15";
+pub const szOID_RSA_SMIMECapabilities: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.15");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SMIMEalg: &str = "1.2.840.113549.1.9.16.3";
+pub const szOID_RSA_SMIMEalg: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.16.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SMIMEalgCMS3DESwrap: &str = "1.2.840.113549.1.9.16.3.6";
+pub const szOID_RSA_SMIMEalgCMS3DESwrap: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.16.3.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SMIMEalgCMSRC2wrap: &str = "1.2.840.113549.1.9.16.3.7";
+pub const szOID_RSA_SMIMEalgCMSRC2wrap: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.16.3.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SMIMEalgESDH: &str = "1.2.840.113549.1.9.16.3.5";
+pub const szOID_RSA_SMIMEalgESDH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.16.3.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_SSA_PSS: &str = "1.2.840.113549.1.1.10";
+pub const szOID_RSA_SSA_PSS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.1.10");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_certExtensions: &str = "1.2.840.113549.1.9.14";
+pub const szOID_RSA_certExtensions: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_challengePwd: &str = "1.2.840.113549.1.9.7";
+pub const szOID_RSA_challengePwd: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_contentType: &str = "1.2.840.113549.1.9.3";
+pub const szOID_RSA_contentType: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_counterSign: &str = "1.2.840.113549.1.9.6";
+pub const szOID_RSA_counterSign: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_data: &str = "1.2.840.113549.1.7.1";
+pub const szOID_RSA_data: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_digestedData: &str = "1.2.840.113549.1.7.5";
+pub const szOID_RSA_digestedData: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_emailAddr: &str = "1.2.840.113549.1.9.1";
+pub const szOID_RSA_emailAddr: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_encryptedData: &str = "1.2.840.113549.1.7.6";
+pub const szOID_RSA_encryptedData: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.6");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_envelopedData: &str = "1.2.840.113549.1.7.3";
+pub const szOID_RSA_envelopedData: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_extCertAttrs: &str = "1.2.840.113549.1.9.9";
+pub const szOID_RSA_extCertAttrs: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_hashedData: &str = "1.2.840.113549.1.7.5";
+pub const szOID_RSA_hashedData: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_messageDigest: &str = "1.2.840.113549.1.9.4";
+pub const szOID_RSA_messageDigest: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_preferSignedData: &str = "1.2.840.113549.1.9.15.1";
+pub const szOID_RSA_preferSignedData: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.15.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_signEnvData: &str = "1.2.840.113549.1.7.4";
+pub const szOID_RSA_signEnvData: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_signedData: &str = "1.2.840.113549.1.7.2";
+pub const szOID_RSA_signedData: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.7.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_signingTime: &str = "1.2.840.113549.1.9.5";
+pub const szOID_RSA_signingTime: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_unstructAddr: &str = "1.2.840.113549.1.9.8";
+pub const szOID_RSA_unstructAddr: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_RSA_unstructName: &str = "1.2.840.113549.1.9.2";
+pub const szOID_RSA_unstructName: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SEARCH_GUIDE: &str = "2.5.4.14";
+pub const szOID_SEARCH_GUIDE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SEE_ALSO: &str = "2.5.4.34";
+pub const szOID_SEE_ALSO: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.34");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SERIALIZED: &str = "1.3.6.1.4.1.311.10.3.3.1";
+pub const szOID_SERIALIZED: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SERVER_GATED_CRYPTO: &str = "1.3.6.1.4.1.311.10.3.3";
+pub const szOID_SERVER_GATED_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SGC_NETSCAPE: &str = "2.16.840.1.113730.4.1";
+pub const szOID_SGC_NETSCAPE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113730.4.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SITE_PIN_RULES_FLAGS_ATTR: &str = "1.3.6.1.4.1.311.10.4.3";
+pub const szOID_SITE_PIN_RULES_FLAGS_ATTR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.4.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SITE_PIN_RULES_INDEX_ATTR: &str = "1.3.6.1.4.1.311.10.4.2";
+pub const szOID_SITE_PIN_RULES_INDEX_ATTR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.4.2");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SORTED_CTL: &str = "1.3.6.1.4.1.311.10.1.1";
+pub const szOID_SORTED_CTL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.1.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_STATE_OR_PROVINCE_NAME: &str = "2.5.4.8";
+pub const szOID_STATE_OR_PROVINCE_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.8");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_STREET_ADDRESS: &str = "2.5.4.9";
+pub const szOID_STREET_ADDRESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SUBJECT_ALT_NAME: &str = "2.5.29.7";
+pub const szOID_SUBJECT_ALT_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SUBJECT_ALT_NAME2: &str = "2.5.29.17";
+pub const szOID_SUBJECT_ALT_NAME2: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.17");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SUBJECT_DIR_ATTRS: &str = "2.5.29.9";
+pub const szOID_SUBJECT_DIR_ATTRS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SUBJECT_INFO_ACCESS: &str = "1.3.6.1.5.5.7.1.11";
+pub const szOID_SUBJECT_INFO_ACCESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.1.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SUBJECT_KEY_IDENTIFIER: &str = "2.5.29.14";
+pub const szOID_SUBJECT_KEY_IDENTIFIER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.29.14");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SUPPORTED_APPLICATION_CONTEXT: &str = "2.5.4.30";
+pub const szOID_SUPPORTED_APPLICATION_CONTEXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.30");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SUR_NAME: &str = "2.5.4.4";
+pub const szOID_SUR_NAME: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_SYNC_ROOT_CTL_EXT: &str = "1.3.6.1.4.1.311.10.3.50";
+pub const szOID_SYNC_ROOT_CTL_EXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.50");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_TELEPHONE_NUMBER: &str = "2.5.4.20";
+pub const szOID_TELEPHONE_NUMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_TELETEXT_TERMINAL_IDENTIFIER: &str = "2.5.4.22";
+pub const szOID_TELETEXT_TERMINAL_IDENTIFIER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.22");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_TELEX_NUMBER: &str = "2.5.4.21";
+pub const szOID_TELEX_NUMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_TIMESTAMP_TOKEN: &str = "1.2.840.113549.1.9.16.1.4";
+pub const szOID_TIMESTAMP_TOKEN: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.16.1.4");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_TITLE: &str = "2.5.4.12";
+pub const szOID_TITLE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_TLS_FEATURES_EXT: &str = "1.3.6.1.5.5.7.1.24";
+pub const szOID_TLS_FEATURES_EXT: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.5.5.7.1.24");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_USER_CERTIFICATE: &str = "2.5.4.36";
+pub const szOID_USER_CERTIFICATE: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.36");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_USER_PASSWORD: &str = "2.5.4.35";
+pub const szOID_USER_PASSWORD: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.35");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_VERISIGN_BITSTRING_6_13: &str = "2.16.840.1.113733.1.6.13";
+pub const szOID_VERISIGN_BITSTRING_6_13: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.6.13");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_VERISIGN_ISS_STRONG_CRYPTO: &str = "2.16.840.1.113733.1.8.1";
+pub const szOID_VERISIGN_ISS_STRONG_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.8.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_VERISIGN_ONSITE_JURISDICTION_HASH: &str = "2.16.840.1.113733.1.6.11";
+pub const szOID_VERISIGN_ONSITE_JURISDICTION_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.6.11");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_VERISIGN_PRIVATE_6_9: &str = "2.16.840.1.113733.1.6.9";
+pub const szOID_VERISIGN_PRIVATE_6_9: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.16.840.1.113733.1.6.9");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_WHQL_CRYPTO: &str = "1.3.6.1.4.1.311.10.3.5";
+pub const szOID_WHQL_CRYPTO: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.5");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_WINDOWS_KITS_SIGNER: &str = "1.3.6.1.4.1.311.10.3.20";
+pub const szOID_WINDOWS_KITS_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.20");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_WINDOWS_RT_SIGNER: &str = "1.3.6.1.4.1.311.10.3.21";
+pub const szOID_WINDOWS_RT_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.21");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_WINDOWS_SOFTWARE_EXTENSION_SIGNER: &str = "1.3.6.1.4.1.311.10.3.26";
+pub const szOID_WINDOWS_SOFTWARE_EXTENSION_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.26");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_WINDOWS_STORE_SIGNER: &str = "1.3.6.1.4.1.311.76.3.1";
+pub const szOID_WINDOWS_STORE_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.76.3.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_WINDOWS_TCB_SIGNER: &str = "1.3.6.1.4.1.311.10.3.23";
+pub const szOID_WINDOWS_TCB_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.23");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_WINDOWS_THIRD_PARTY_COMPONENT_SIGNER: &str = "1.3.6.1.4.1.311.10.3.25";
+pub const szOID_WINDOWS_THIRD_PARTY_COMPONENT_SIGNER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.3.25");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_X21_ADDRESS: &str = "2.5.4.24";
+pub const szOID_X21_ADDRESS: ::windows_sys::core::PCSTR = ::windows_sys::s!("2.5.4.24");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_X957: &str = "1.2.840.10040";
+pub const szOID_X957: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10040");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_X957_DSA: &str = "1.2.840.10040.4.1";
+pub const szOID_X957_DSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10040.4.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_X957_SHA1DSA: &str = "1.2.840.10040.4.3";
+pub const szOID_X957_SHA1DSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.10040.4.3");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szOID_YESNO_TRUST_ATTR: &str = "1.3.6.1.4.1.311.10.4.1";
+pub const szOID_YESNO_TRUST_ATTR: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.4.1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szPRIV_KEY_CACHE_MAX_ITEMS: &str = "PrivKeyCacheMaxItems";
+pub const szPRIV_KEY_CACHE_MAX_ITEMS: ::windows_sys::core::PCSTR = ::windows_sys::s!("PrivKeyCacheMaxItems");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const szPRIV_KEY_CACHE_PURGE_INTERVAL_SECONDS: &str = "PrivKeyCachePurgeIntervalSeconds";
+pub const szPRIV_KEY_CACHE_PURGE_INTERVAL_SECONDS: ::windows_sys::core::PCSTR = ::windows_sys::s!("PrivKeyCachePurgeIntervalSeconds");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_COLLECTION: &str = "Collection";
+pub const sz_CERT_STORE_PROV_COLLECTION: ::windows_sys::core::PCSTR = ::windows_sys::s!("Collection");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_FILENAME: &str = "File";
+pub const sz_CERT_STORE_PROV_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("File");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_FILENAME_W: &str = "File";
+pub const sz_CERT_STORE_PROV_FILENAME_W: ::windows_sys::core::PCSTR = ::windows_sys::s!("File");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_LDAP: &str = "Ldap";
+pub const sz_CERT_STORE_PROV_LDAP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Ldap");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_LDAP_W: &str = "Ldap";
+pub const sz_CERT_STORE_PROV_LDAP_W: ::windows_sys::core::PCSTR = ::windows_sys::s!("Ldap");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_MEMORY: &str = "Memory";
+pub const sz_CERT_STORE_PROV_MEMORY: ::windows_sys::core::PCSTR = ::windows_sys::s!("Memory");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_PHYSICAL: &str = "Physical";
+pub const sz_CERT_STORE_PROV_PHYSICAL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Physical");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_PHYSICAL_W: &str = "Physical";
+pub const sz_CERT_STORE_PROV_PHYSICAL_W: ::windows_sys::core::PCSTR = ::windows_sys::s!("Physical");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_PKCS12: &str = "PKCS12";
+pub const sz_CERT_STORE_PROV_PKCS12: ::windows_sys::core::PCSTR = ::windows_sys::s!("PKCS12");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_PKCS7: &str = "PKCS7";
+pub const sz_CERT_STORE_PROV_PKCS7: ::windows_sys::core::PCSTR = ::windows_sys::s!("PKCS7");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_SERIALIZED: &str = "Serialized";
+pub const sz_CERT_STORE_PROV_SERIALIZED: ::windows_sys::core::PCSTR = ::windows_sys::s!("Serialized");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_SMART_CARD: &str = "SmartCard";
+pub const sz_CERT_STORE_PROV_SMART_CARD: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SmartCard");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_SMART_CARD_W: &str = "SmartCard";
+pub const sz_CERT_STORE_PROV_SMART_CARD_W: ::windows_sys::core::PCSTR = ::windows_sys::s!("SmartCard");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_SYSTEM: &str = "System";
+pub const sz_CERT_STORE_PROV_SYSTEM: ::windows_sys::core::PCWSTR = ::windows_sys::w!("System");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_SYSTEM_REGISTRY: &str = "SystemRegistry";
+pub const sz_CERT_STORE_PROV_SYSTEM_REGISTRY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SystemRegistry");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_SYSTEM_REGISTRY_W: &str = "SystemRegistry";
+pub const sz_CERT_STORE_PROV_SYSTEM_REGISTRY_W: ::windows_sys::core::PCSTR = ::windows_sys::s!("SystemRegistry");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const sz_CERT_STORE_PROV_SYSTEM_W: &str = "System";
+pub const sz_CERT_STORE_PROV_SYSTEM_W: ::windows_sys::core::PCSTR = ::windows_sys::s!("System");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_CANONICALIZATION_C14N: &str = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315";
+pub const wszURI_CANONICALIZATION_C14N: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/TR/2001/REC-xml-c14n-20010315");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_CANONICALIZATION_C14NC: &str = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments";
+pub const wszURI_CANONICALIZATION_C14NC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_CANONICALIZATION_EXSLUSIVE_C14N: &str = "http://www.w3.org/2001/10/xml-exc-c14n#";
+pub const wszURI_CANONICALIZATION_EXSLUSIVE_C14N: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/10/xml-exc-c14n#");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_CANONICALIZATION_EXSLUSIVE_C14NC: &str = "http://www.w3.org/2001/10/xml-exc-c14n#WithComments";
+pub const wszURI_CANONICALIZATION_EXSLUSIVE_C14NC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/10/xml-exc-c14n#WithComments");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_TRANSFORM_XPATH: &str = "http://www.w3.org/TR/1999/REC-xpath-19991116";
+pub const wszURI_TRANSFORM_XPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/TR/1999/REC-xpath-19991116");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_BASE64: &str = "http://www.w3.org/2000/09/xmldsig#base64";
+pub const wszURI_XMLNS_DIGSIG_BASE64: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#base64");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_DSA_SHA1: &str = "http://www.w3.org/2000/09/xmldsig#dsa-sha1";
+pub const wszURI_XMLNS_DIGSIG_DSA_SHA1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#dsa-sha1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA1: &str = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha1";
+pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA256: &str = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256";
+pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA256: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA384: &str = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384";
+pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA384: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA512: &str = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512";
+pub const wszURI_XMLNS_DIGSIG_ECDSA_SHA512: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_HMAC_SHA1: &str = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
+pub const wszURI_XMLNS_DIGSIG_HMAC_SHA1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#hmac-sha1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_HMAC_SHA256: &str = "http://www.w3.org/2001/04/xmldsig-more#hmac-sha256";
+pub const wszURI_XMLNS_DIGSIG_HMAC_SHA256: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#hmac-sha256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_HMAC_SHA384: &str = "http://www.w3.org/2001/04/xmldsig-more#hmac-sha384";
+pub const wszURI_XMLNS_DIGSIG_HMAC_SHA384: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#hmac-sha384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_HMAC_SHA512: &str = "http://www.w3.org/2001/04/xmldsig-more#hmac-sha512";
+pub const wszURI_XMLNS_DIGSIG_HMAC_SHA512: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#hmac-sha512");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_RSA_SHA1: &str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
+pub const wszURI_XMLNS_DIGSIG_RSA_SHA1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#rsa-sha1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_RSA_SHA256: &str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
+pub const wszURI_XMLNS_DIGSIG_RSA_SHA256: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_RSA_SHA384: &str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384";
+pub const wszURI_XMLNS_DIGSIG_RSA_SHA384: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#rsa-sha384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_RSA_SHA512: &str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512";
+pub const wszURI_XMLNS_DIGSIG_RSA_SHA512: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#rsa-sha512");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_SHA1: &str = "http://www.w3.org/2000/09/xmldsig#sha1";
+pub const wszURI_XMLNS_DIGSIG_SHA1: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#sha1");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_SHA256: &str = "http://www.w3.org/2001/04/xmlenc#sha256";
+pub const wszURI_XMLNS_DIGSIG_SHA256: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmlenc#sha256");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_SHA384: &str = "http://www.w3.org/2001/04/xmldsig-more#sha384";
+pub const wszURI_XMLNS_DIGSIG_SHA384: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmldsig-more#sha384");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_DIGSIG_SHA512: &str = "http://www.w3.org/2001/04/xmlenc#sha512";
+pub const wszURI_XMLNS_DIGSIG_SHA512: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2001/04/xmlenc#sha512");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_TRANSFORM_BASE64: &str = "http://www.w3.org/2000/09/xmldsig#base64";
+pub const wszURI_XMLNS_TRANSFORM_BASE64: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#base64");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszURI_XMLNS_TRANSFORM_ENVELOPED: &str = "http://www.w3.org/2000/09/xmldsig#enveloped-signature";
+pub const wszURI_XMLNS_TRANSFORM_ENVELOPED: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#enveloped-signature");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszXMLNS_DIGSIG: &str = "http://www.w3.org/2000/09/xmldsig#";
+pub const wszXMLNS_DIGSIG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszXMLNS_DIGSIG_Id: &str = "Id";
+pub const wszXMLNS_DIGSIG_Id: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Id");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub const wszXMLNS_DIGSIG_SignatureProperties: &str = "http://www.w3.org/2000/09/xmldsig#SignatureProperties";
+pub const wszXMLNS_DIGSIG_SignatureProperties: ::windows_sys::core::PCWSTR = ::windows_sys::w!("http://www.w3.org/2000/09/xmldsig#SignatureProperties");
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub type BCRYPT_DH_KEY_BLOB_MAGIC = u32;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -8426,7 +8031,7 @@ impl ::core::clone::Clone for BCryptBufferDesc {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERTIFICATE_CHAIN_BLOB {
     pub certCount: u32,
-    pub rawCertificates: *mut CRYPTOAPI_BLOB,
+    pub rawCertificates: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERTIFICATE_CHAIN_BLOB {}
 impl ::core::clone::Clone for CERTIFICATE_CHAIN_BLOB {
@@ -8464,9 +8069,9 @@ pub union CERT_ALT_NAME_ENTRY_0 {
     pub pOtherName: *mut CERT_OTHER_NAME,
     pub pwszRfc822Name: ::windows_sys::core::PWSTR,
     pub pwszDNSName: ::windows_sys::core::PWSTR,
-    pub DirectoryName: CRYPTOAPI_BLOB,
+    pub DirectoryName: CRYPT_INTEGER_BLOB,
     pub pwszURL: ::windows_sys::core::PWSTR,
-    pub IPAddress: CRYPTOAPI_BLOB,
+    pub IPAddress: CRYPT_INTEGER_BLOB,
     pub pszRegisteredID: ::windows_sys::core::PSTR,
 }
 impl ::core::marker::Copy for CERT_ALT_NAME_ENTRY_0 {}
@@ -8502,9 +8107,9 @@ impl ::core::clone::Clone for CERT_AUTHORITY_INFO_ACCESS {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_AUTHORITY_KEY_ID2_INFO {
-    pub KeyId: CRYPTOAPI_BLOB,
+    pub KeyId: CRYPT_INTEGER_BLOB,
     pub AuthorityCertIssuer: CERT_ALT_NAME_INFO,
-    pub AuthorityCertSerialNumber: CRYPTOAPI_BLOB,
+    pub AuthorityCertSerialNumber: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_AUTHORITY_KEY_ID2_INFO {}
 impl ::core::clone::Clone for CERT_AUTHORITY_KEY_ID2_INFO {
@@ -8515,9 +8120,9 @@ impl ::core::clone::Clone for CERT_AUTHORITY_KEY_ID2_INFO {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_AUTHORITY_KEY_ID_INFO {
-    pub KeyId: CRYPTOAPI_BLOB,
-    pub CertIssuer: CRYPTOAPI_BLOB,
-    pub CertSerialNumber: CRYPTOAPI_BLOB,
+    pub KeyId: CRYPT_INTEGER_BLOB,
+    pub CertIssuer: CRYPT_INTEGER_BLOB,
+    pub CertSerialNumber: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_AUTHORITY_KEY_ID_INFO {}
 impl ::core::clone::Clone for CERT_AUTHORITY_KEY_ID_INFO {
@@ -8549,7 +8154,7 @@ pub struct CERT_BASIC_CONSTRAINTS_INFO {
     pub fPathLenConstraint: super::super::Foundation::BOOL,
     pub dwPathLenConstraint: u32,
     pub cSubtreesConstraint: u32,
-    pub rgSubtreesConstraint: *mut CRYPTOAPI_BLOB,
+    pub rgSubtreesConstraint: *mut CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for CERT_BASIC_CONSTRAINTS_INFO {}
@@ -8600,7 +8205,7 @@ impl ::core::clone::Clone for CERT_BIOMETRIC_EXT_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_CHAIN {
     pub cCerts: u32,
-    pub certs: *mut CRYPTOAPI_BLOB,
+    pub certs: *mut CRYPT_INTEGER_BLOB,
     pub keyLocatorInfo: CRYPT_KEY_PROV_INFO,
 }
 impl ::core::marker::Copy for CERT_CHAIN {}
@@ -8684,7 +8289,7 @@ pub struct CERT_CHAIN_FIND_BY_ISSUER_PARA {
     pub dwKeySpec: u32,
     pub dwAcquirePrivateKeyFlags: u32,
     pub cIssuer: u32,
-    pub rgIssuer: *mut CRYPTOAPI_BLOB,
+    pub rgIssuer: *mut CRYPT_INTEGER_BLOB,
     pub pfnFindCallback: PFN_CERT_CHAIN_FIND_BY_ISSUER_CALLBACK,
     pub pvFindArg: *mut ::core::ffi::c_void,
 }
@@ -8740,7 +8345,7 @@ impl ::core::clone::Clone for CERT_CHAIN_POLICY_STATUS {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CERT_CONTEXT {
-    pub dwCertEncodingType: u32,
+    pub dwCertEncodingType: CERT_QUERY_ENCODING_TYPE,
     pub pbCertEncoded: *mut u8,
     pub cbCertEncoded: u32,
     pub pCertInfo: *mut CERT_INFO,
@@ -8790,8 +8395,8 @@ impl ::core::clone::Clone for CERT_CRL_CONTEXT_PAIR {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_DH_PARAMETERS {
-    pub p: CRYPTOAPI_BLOB,
-    pub g: CRYPTOAPI_BLOB,
+    pub p: CRYPT_INTEGER_BLOB,
+    pub g: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_DH_PARAMETERS {}
 impl ::core::clone::Clone for CERT_DH_PARAMETERS {
@@ -8802,9 +8407,9 @@ impl ::core::clone::Clone for CERT_DH_PARAMETERS {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_DSS_PARAMETERS {
-    pub p: CRYPTOAPI_BLOB,
-    pub q: CRYPTOAPI_BLOB,
-    pub g: CRYPTOAPI_BLOB,
+    pub p: CRYPT_INTEGER_BLOB,
+    pub q: CRYPT_INTEGER_BLOB,
+    pub g: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_DSS_PARAMETERS {}
 impl ::core::clone::Clone for CERT_DSS_PARAMETERS {
@@ -8815,8 +8420,8 @@ impl ::core::clone::Clone for CERT_DSS_PARAMETERS {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_ECC_SIGNATURE {
-    pub r: CRYPTOAPI_BLOB,
-    pub s: CRYPTOAPI_BLOB,
+    pub r: CRYPT_INTEGER_BLOB,
+    pub s: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_ECC_SIGNATURE {}
 impl ::core::clone::Clone for CERT_ECC_SIGNATURE {
@@ -8830,7 +8435,7 @@ impl ::core::clone::Clone for CERT_ECC_SIGNATURE {
 pub struct CERT_EXTENSION {
     pub pszObjId: ::windows_sys::core::PSTR,
     pub fCritical: super::super::Foundation::BOOL,
-    pub Value: CRYPTOAPI_BLOB,
+    pub Value: CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for CERT_EXTENSION {}
@@ -8889,7 +8494,7 @@ impl ::core::clone::Clone for CERT_GENERAL_SUBTREE {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_HASHED_URL {
     pub HashAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub Hash: CRYPTOAPI_BLOB,
+    pub Hash: CRYPT_INTEGER_BLOB,
     pub pwszUrl: ::windows_sys::core::PWSTR,
 }
 impl ::core::marker::Copy for CERT_HASHED_URL {}
@@ -8914,8 +8519,8 @@ impl ::core::clone::Clone for CERT_ID {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub union CERT_ID_0 {
     pub IssuerSerialNumber: CERT_ISSUER_SERIAL_NUMBER,
-    pub KeyId: CRYPTOAPI_BLOB,
-    pub HashId: CRYPTOAPI_BLOB,
+    pub KeyId: CRYPT_INTEGER_BLOB,
+    pub HashId: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_ID_0 {}
 impl ::core::clone::Clone for CERT_ID_0 {
@@ -8928,12 +8533,12 @@ impl ::core::clone::Clone for CERT_ID_0 {
 #[cfg(feature = "Win32_Foundation")]
 pub struct CERT_INFO {
     pub dwVersion: u32,
-    pub SerialNumber: CRYPTOAPI_BLOB,
+    pub SerialNumber: CRYPT_INTEGER_BLOB,
     pub SignatureAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub Issuer: CRYPTOAPI_BLOB,
+    pub Issuer: CRYPT_INTEGER_BLOB,
     pub NotBefore: super::super::Foundation::FILETIME,
     pub NotAfter: super::super::Foundation::FILETIME,
-    pub Subject: CRYPTOAPI_BLOB,
+    pub Subject: CRYPT_INTEGER_BLOB,
     pub SubjectPublicKeyInfo: CERT_PUBLIC_KEY_INFO,
     pub IssuerUniqueId: CRYPT_BIT_BLOB,
     pub SubjectUniqueId: CRYPT_BIT_BLOB,
@@ -8951,8 +8556,8 @@ impl ::core::clone::Clone for CERT_INFO {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_ISSUER_SERIAL_NUMBER {
-    pub Issuer: CRYPTOAPI_BLOB,
-    pub SerialNumber: CRYPTOAPI_BLOB,
+    pub Issuer: CRYPT_INTEGER_BLOB,
+    pub SerialNumber: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_ISSUER_SERIAL_NUMBER {}
 impl ::core::clone::Clone for CERT_ISSUER_SERIAL_NUMBER {
@@ -8977,7 +8582,7 @@ impl ::core::clone::Clone for CERT_KEYGEN_REQUEST_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CERT_KEY_ATTRIBUTES_INFO {
-    pub KeyId: CRYPTOAPI_BLOB,
+    pub KeyId: CRYPT_INTEGER_BLOB,
     pub IntendedKeyUsage: CRYPT_BIT_BLOB,
     pub pPrivateKeyUsagePeriod: *mut CERT_PRIVATE_KEY_VALIDITY,
 }
@@ -9219,7 +8824,7 @@ impl ::core::clone::Clone for CERT_NAME_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_NAME_VALUE {
     pub dwValueType: u32,
-    pub Value: CRYPTOAPI_BLOB,
+    pub Value: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_NAME_VALUE {}
 impl ::core::clone::Clone for CERT_NAME_VALUE {
@@ -9268,7 +8873,7 @@ impl ::core::clone::Clone for CERT_OTHER_LOGOTYPE_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_OTHER_NAME {
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub Value: CRYPTOAPI_BLOB,
+    pub Value: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_OTHER_NAME {}
 impl ::core::clone::Clone for CERT_OTHER_NAME {
@@ -9279,8 +8884,8 @@ impl ::core::clone::Clone for CERT_OTHER_NAME {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_PAIR {
-    pub Forward: CRYPTOAPI_BLOB,
-    pub Reverse: CRYPTOAPI_BLOB,
+    pub Forward: CRYPT_INTEGER_BLOB,
+    pub Reverse: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_PAIR {}
 impl ::core::clone::Clone for CERT_PAIR {
@@ -9295,7 +8900,7 @@ pub struct CERT_PHYSICAL_STORE_INFO {
     pub pszOpenStoreProvider: ::windows_sys::core::PSTR,
     pub dwOpenEncodingType: u32,
     pub dwOpenFlags: u32,
-    pub OpenParameters: CRYPTOAPI_BLOB,
+    pub OpenParameters: CRYPT_INTEGER_BLOB,
     pub dwFlags: u32,
     pub dwPriority: u32,
 }
@@ -9402,7 +9007,7 @@ impl ::core::clone::Clone for CERT_POLICY_MAPPINGS_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_POLICY_QUALIFIER_INFO {
     pub pszPolicyQualifierId: ::windows_sys::core::PSTR,
-    pub Qualifier: CRYPTOAPI_BLOB,
+    pub Qualifier: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_POLICY_QUALIFIER_INFO {}
 impl ::core::clone::Clone for CERT_POLICY_QUALIFIER_INFO {
@@ -9466,7 +9071,7 @@ impl ::core::clone::Clone for CERT_PUBLIC_KEY_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_QC_STATEMENT {
     pub pszStatementId: ::windows_sys::core::PSTR,
-    pub StatementInfo: CRYPTOAPI_BLOB,
+    pub StatementInfo: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_QC_STATEMENT {}
 impl ::core::clone::Clone for CERT_QC_STATEMENT {
@@ -9503,7 +9108,7 @@ impl ::core::clone::Clone for CERT_RDN {
 pub struct CERT_RDN_ATTR {
     pub pszObjId: ::windows_sys::core::PSTR,
     pub dwValueType: CERT_RDN_ATTR_VALUE_TYPE,
-    pub Value: CRYPTOAPI_BLOB,
+    pub Value: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CERT_RDN_ATTR {}
 impl ::core::clone::Clone for CERT_RDN_ATTR {
@@ -9545,7 +9150,7 @@ impl ::core::clone::Clone for CERT_REGISTRY_STORE_ROAMING_PARA {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_REQUEST_INFO {
     pub dwVersion: u32,
-    pub Subject: CRYPTOAPI_BLOB,
+    pub Subject: CRYPT_INTEGER_BLOB,
     pub SubjectPublicKeyInfo: CERT_PUBLIC_KEY_INFO,
     pub cAttribute: u32,
     pub rgAttribute: *mut CRYPT_ATTRIBUTE,
@@ -9719,7 +9324,7 @@ impl ::core::clone::Clone for CERT_SERVER_OCSP_RESPONSE_OPEN_PARA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_SIGNED_CONTENT_INFO {
-    pub ToBeSigned: CRYPTOAPI_BLOB,
+    pub ToBeSigned: CRYPT_INTEGER_BLOB,
     pub SignatureAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
     pub Signature: CRYPT_BIT_BLOB,
 }
@@ -9962,10 +9567,10 @@ impl ::core::clone::Clone for CERT_USAGE_MATCH {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CERT_X942_DH_PARAMETERS {
-    pub p: CRYPTOAPI_BLOB,
-    pub g: CRYPTOAPI_BLOB,
-    pub q: CRYPTOAPI_BLOB,
-    pub j: CRYPTOAPI_BLOB,
+    pub p: CRYPT_INTEGER_BLOB,
+    pub g: CRYPT_INTEGER_BLOB,
+    pub q: CRYPT_INTEGER_BLOB,
+    pub j: CRYPT_INTEGER_BLOB,
     pub pValidationParams: *mut CERT_X942_DH_VALIDATION_PARAMS,
 }
 impl ::core::marker::Copy for CERT_X942_DH_PARAMETERS {}
@@ -10053,7 +9658,7 @@ impl ::core::clone::Clone for CMC_DATA_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CMC_PEND_INFO {
-    pub PendToken: CRYPTOAPI_BLOB,
+    pub PendToken: CRYPT_INTEGER_BLOB,
     pub PendTime: super::super::Foundation::FILETIME,
 }
 #[cfg(feature = "Win32_Foundation")]
@@ -10130,7 +9735,7 @@ impl ::core::clone::Clone for CMC_TAGGED_ATTRIBUTE {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CMC_TAGGED_CERT_REQUEST {
     pub dwBodyPartID: u32,
-    pub SignedCertRequest: CRYPTOAPI_BLOB,
+    pub SignedCertRequest: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CMC_TAGGED_CERT_REQUEST {}
 impl ::core::clone::Clone for CMC_TAGGED_CERT_REQUEST {
@@ -10142,7 +9747,7 @@ impl ::core::clone::Clone for CMC_TAGGED_CERT_REQUEST {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CMC_TAGGED_CONTENT_INFO {
     pub dwBodyPartID: u32,
-    pub EncodedContentInfo: CRYPTOAPI_BLOB,
+    pub EncodedContentInfo: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CMC_TAGGED_CONTENT_INFO {}
 impl ::core::clone::Clone for CMC_TAGGED_CONTENT_INFO {
@@ -10155,7 +9760,7 @@ impl ::core::clone::Clone for CMC_TAGGED_CONTENT_INFO {
 pub struct CMC_TAGGED_OTHER_MSG {
     pub dwBodyPartID: u32,
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub Value: CRYPTOAPI_BLOB,
+    pub Value: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CMC_TAGGED_OTHER_MSG {}
 impl ::core::clone::Clone for CMC_TAGGED_OTHER_MSG {
@@ -10224,7 +9829,7 @@ pub struct CMSG_CMS_SIGNER_INFO {
     pub SignerId: CERT_ID,
     pub HashAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
     pub HashEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EncryptedHash: CRYPTOAPI_BLOB,
+    pub EncryptedHash: CRYPT_INTEGER_BLOB,
     pub AuthAttrs: CRYPT_ATTRIBUTES,
     pub UnauthAttrs: CRYPT_ATTRIBUTES,
 }
@@ -10301,7 +9906,7 @@ impl ::core::clone::Clone for CMSG_CONTENT_ENCRYPT_INFO_0 {
 pub struct CMSG_CTRL_ADD_SIGNER_UNAUTH_ATTR_PARA {
     pub cbSize: u32,
     pub dwSignerIndex: u32,
-    pub blob: CRYPTOAPI_BLOB,
+    pub blob: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CMSG_CTRL_ADD_SIGNER_UNAUTH_ATTR_PARA {}
 impl ::core::clone::Clone for CMSG_CTRL_ADD_SIGNER_UNAUTH_ATTR_PARA {
@@ -10511,7 +10116,7 @@ pub struct CMSG_KEY_AGREE_ENCRYPT_INFO {
     pub cbSize: u32,
     pub dwRecipientIndex: u32,
     pub KeyEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub UserKeyingMaterial: CRYPTOAPI_BLOB,
+    pub UserKeyingMaterial: CRYPT_INTEGER_BLOB,
     pub dwOriginatorChoice: CMSG_KEY_AGREE_ORIGINATOR,
     pub Anonymous: CMSG_KEY_AGREE_ENCRYPT_INFO_0,
     pub cKeyAgreeKeyEncryptInfo: u32,
@@ -10540,7 +10145,7 @@ impl ::core::clone::Clone for CMSG_KEY_AGREE_ENCRYPT_INFO_0 {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CMSG_KEY_AGREE_KEY_ENCRYPT_INFO {
     pub cbSize: u32,
-    pub EncryptedKey: CRYPTOAPI_BLOB,
+    pub EncryptedKey: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CMSG_KEY_AGREE_KEY_ENCRYPT_INFO {}
 impl ::core::clone::Clone for CMSG_KEY_AGREE_KEY_ENCRYPT_INFO {
@@ -10561,7 +10166,7 @@ pub struct CMSG_KEY_AGREE_RECIPIENT_ENCODE_INFO {
     pub dwKeySpec: u32,
     pub dwKeyChoice: CMSG_KEY_AGREE_OPTION,
     pub Anonymous: CMSG_KEY_AGREE_RECIPIENT_ENCODE_INFO_0,
-    pub UserKeyingMaterial: CRYPTOAPI_BLOB,
+    pub UserKeyingMaterial: CRYPT_INTEGER_BLOB,
     pub cRecipientEncryptedKeys: u32,
     pub rgpRecipientEncryptedKeys: *mut *mut CMSG_RECIPIENT_ENCRYPTED_KEY_ENCODE_INFO,
 }
@@ -10595,7 +10200,7 @@ pub struct CMSG_KEY_AGREE_RECIPIENT_INFO {
     pub dwVersion: u32,
     pub dwOriginatorChoice: CMSG_KEY_AGREE_ORIGINATOR,
     pub Anonymous: CMSG_KEY_AGREE_RECIPIENT_INFO_0,
-    pub UserKeyingMaterial: CRYPTOAPI_BLOB,
+    pub UserKeyingMaterial: CRYPT_INTEGER_BLOB,
     pub KeyEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
     pub cRecipientEncryptedKeys: u32,
     pub rgpRecipientEncryptedKeys: *mut *mut CMSG_RECIPIENT_ENCRYPTED_KEY_INFO,
@@ -10629,7 +10234,7 @@ pub struct CMSG_KEY_TRANS_ENCRYPT_INFO {
     pub cbSize: u32,
     pub dwRecipientIndex: u32,
     pub KeyEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EncryptedKey: CRYPTOAPI_BLOB,
+    pub EncryptedKey: CRYPT_INTEGER_BLOB,
     pub dwFlags: u32,
 }
 impl ::core::marker::Copy for CMSG_KEY_TRANS_ENCRYPT_INFO {}
@@ -10660,7 +10265,7 @@ pub struct CMSG_KEY_TRANS_RECIPIENT_INFO {
     pub dwVersion: u32,
     pub RecipientId: CERT_ID,
     pub KeyEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EncryptedKey: CRYPTOAPI_BLOB,
+    pub EncryptedKey: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CMSG_KEY_TRANS_RECIPIENT_INFO {}
 impl ::core::clone::Clone for CMSG_KEY_TRANS_RECIPIENT_INFO {
@@ -10674,7 +10279,7 @@ pub struct CMSG_MAIL_LIST_ENCRYPT_INFO {
     pub cbSize: u32,
     pub dwRecipientIndex: u32,
     pub KeyEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EncryptedKey: CRYPTOAPI_BLOB,
+    pub EncryptedKey: CRYPT_INTEGER_BLOB,
     pub dwFlags: u32,
 }
 impl ::core::marker::Copy for CMSG_MAIL_LIST_ENCRYPT_INFO {}
@@ -10693,7 +10298,7 @@ pub struct CMSG_MAIL_LIST_RECIPIENT_ENCODE_INFO {
     pub hCryptProv: usize,
     pub dwKeyChoice: u32,
     pub Anonymous: CMSG_MAIL_LIST_RECIPIENT_ENCODE_INFO_0,
-    pub KeyId: CRYPTOAPI_BLOB,
+    pub KeyId: CRYPT_INTEGER_BLOB,
     pub Date: super::super::Foundation::FILETIME,
     pub pOtherAttr: *mut CRYPT_ATTRIBUTE_TYPE_VALUE,
 }
@@ -10725,9 +10330,9 @@ impl ::core::clone::Clone for CMSG_MAIL_LIST_RECIPIENT_ENCODE_INFO_0 {
 #[cfg(feature = "Win32_Foundation")]
 pub struct CMSG_MAIL_LIST_RECIPIENT_INFO {
     pub dwVersion: u32,
-    pub KeyId: CRYPTOAPI_BLOB,
+    pub KeyId: CRYPT_INTEGER_BLOB,
     pub KeyEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EncryptedKey: CRYPTOAPI_BLOB,
+    pub EncryptedKey: CRYPT_INTEGER_BLOB,
     pub Date: super::super::Foundation::FILETIME,
     pub pOtherAttr: *mut CRYPT_ATTRIBUTE_TYPE_VALUE,
 }
@@ -10817,7 +10422,7 @@ impl ::core::clone::Clone for CMSG_RECIPIENT_ENCRYPTED_KEY_ENCODE_INFO {
 #[cfg(feature = "Win32_Foundation")]
 pub struct CMSG_RECIPIENT_ENCRYPTED_KEY_INFO {
     pub RecipientId: CERT_ID,
-    pub EncryptedKey: CRYPTOAPI_BLOB,
+    pub EncryptedKey: CRYPT_INTEGER_BLOB,
     pub Date: super::super::Foundation::FILETIME,
     pub pOtherAttr: *mut CRYPT_ATTRIBUTE_TYPE_VALUE,
 }
@@ -10853,9 +10458,9 @@ pub struct CMSG_SIGNED_ENCODE_INFO {
     pub cSigners: u32,
     pub rgSigners: *mut CMSG_SIGNER_ENCODE_INFO,
     pub cCertEncoded: u32,
-    pub rgCertEncoded: *mut CRYPTOAPI_BLOB,
+    pub rgCertEncoded: *mut CRYPT_INTEGER_BLOB,
     pub cCrlEncoded: u32,
-    pub rgCrlEncoded: *mut CRYPTOAPI_BLOB,
+    pub rgCrlEncoded: *mut CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for CMSG_SIGNED_ENCODE_INFO {}
@@ -10907,11 +10512,11 @@ impl ::core::clone::Clone for CMSG_SIGNER_ENCODE_INFO_0 {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CMSG_SIGNER_INFO {
     pub dwVersion: u32,
-    pub Issuer: CRYPTOAPI_BLOB,
-    pub SerialNumber: CRYPTOAPI_BLOB,
+    pub Issuer: CRYPT_INTEGER_BLOB,
+    pub SerialNumber: CRYPT_INTEGER_BLOB,
     pub HashAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
     pub HashEncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EncryptedHash: CRYPTOAPI_BLOB,
+    pub EncryptedHash: CRYPT_INTEGER_BLOB,
     pub AuthAttrs: CRYPT_ATTRIBUTES,
     pub UnauthAttrs: CRYPT_ATTRIBUTES,
 }
@@ -10955,7 +10560,7 @@ pub struct CMS_DH_KEY_INFO {
     pub dwVersion: u32,
     pub Algid: u32,
     pub pszContentEncObjId: ::windows_sys::core::PSTR,
-    pub PubInfo: CRYPTOAPI_BLOB,
+    pub PubInfo: CRYPT_INTEGER_BLOB,
     pub pReserved: *mut ::core::ffi::c_void,
 }
 impl ::core::marker::Copy for CMS_DH_KEY_INFO {}
@@ -10983,7 +10588,7 @@ impl ::core::clone::Clone for CMS_KEY_INFO {
 pub struct CPS_URLS {
     pub pszURL: ::windows_sys::core::PWSTR,
     pub pAlgorithm: *mut CRYPT_ALGORITHM_IDENTIFIER,
-    pub pDigest: *mut CRYPTOAPI_BLOB,
+    pub pDigest: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CPS_URLS {}
 impl ::core::clone::Clone for CPS_URLS {
@@ -10995,7 +10600,7 @@ impl ::core::clone::Clone for CPS_URLS {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CRL_CONTEXT {
-    pub dwCertEncodingType: u32,
+    pub dwCertEncodingType: CERT_QUERY_ENCODING_TYPE,
     pub pbCrlEncoded: *mut u8,
     pub cbCrlEncoded: u32,
     pub pCrlInfo: *mut CRL_INFO,
@@ -11061,7 +10666,7 @@ impl ::core::clone::Clone for CRL_DIST_POINT_NAME_0 {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CRL_ENTRY {
-    pub SerialNumber: CRYPTOAPI_BLOB,
+    pub SerialNumber: CRYPT_INTEGER_BLOB,
     pub RevocationDate: super::super::Foundation::FILETIME,
     pub cExtension: u32,
     pub rgExtension: *mut CERT_EXTENSION,
@@ -11095,7 +10700,7 @@ impl ::core::clone::Clone for CRL_FIND_ISSUED_FOR_PARA {
 pub struct CRL_INFO {
     pub dwVersion: u32,
     pub SignatureAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub Issuer: CRYPTOAPI_BLOB,
+    pub Issuer: CRYPT_INTEGER_BLOB,
     pub ThisUpdate: super::super::Foundation::FILETIME,
     pub NextUpdate: super::super::Foundation::FILETIME,
     pub cCRLEntry: u32,
@@ -11215,18 +10820,6 @@ impl ::core::clone::Clone for CRYPTNET_URL_CACHE_RESPONSE_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub struct CRYPTOAPI_BLOB {
-    pub cbData: u32,
-    pub pbData: *mut u8,
-}
-impl ::core::marker::Copy for CRYPTOAPI_BLOB {}
-impl ::core::clone::Clone for CRYPTOAPI_BLOB {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-#[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CRYPTPROTECT_PROMPTSTRUCT {
@@ -11290,7 +10883,7 @@ impl ::core::clone::Clone for CRYPT_AES_256_KEY_STATE {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_ALGORITHM_IDENTIFIER {
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub Parameters: CRYPTOAPI_BLOB,
+    pub Parameters: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_ALGORITHM_IDENTIFIER {}
 impl ::core::clone::Clone for CRYPT_ALGORITHM_IDENTIFIER {
@@ -11315,7 +10908,7 @@ impl ::core::clone::Clone for CRYPT_ASYNC_RETRIEVAL_COMPLETION {
 pub struct CRYPT_ATTRIBUTE {
     pub pszObjId: ::windows_sys::core::PSTR,
     pub cValue: u32,
-    pub rgValue: *mut CRYPTOAPI_BLOB,
+    pub rgValue: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_ATTRIBUTE {}
 impl ::core::clone::Clone for CRYPT_ATTRIBUTE {
@@ -11339,7 +10932,7 @@ impl ::core::clone::Clone for CRYPT_ATTRIBUTES {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_ATTRIBUTE_TYPE_VALUE {
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub Value: CRYPTOAPI_BLOB,
+    pub Value: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_ATTRIBUTE_TYPE_VALUE {}
 impl ::core::clone::Clone for CRYPT_ATTRIBUTE_TYPE_VALUE {
@@ -11364,7 +10957,7 @@ impl ::core::clone::Clone for CRYPT_BIT_BLOB {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_BLOB_ARRAY {
     pub cBlob: u32,
-    pub rgBlob: *mut CRYPTOAPI_BLOB,
+    pub rgBlob: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_BLOB_ARRAY {}
 impl ::core::clone::Clone for CRYPT_BLOB_ARRAY {
@@ -11376,7 +10969,7 @@ impl ::core::clone::Clone for CRYPT_BLOB_ARRAY {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_CONTENT_INFO {
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub Content: CRYPTOAPI_BLOB,
+    pub Content: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_CONTENT_INFO {}
 impl ::core::clone::Clone for CRYPT_CONTENT_INFO {
@@ -11389,7 +10982,7 @@ impl ::core::clone::Clone for CRYPT_CONTENT_INFO {
 pub struct CRYPT_CONTENT_INFO_SEQUENCE_OF_ANY {
     pub pszObjId: ::windows_sys::core::PSTR,
     pub cValue: u32,
-    pub rgValue: *mut CRYPTOAPI_BLOB,
+    pub rgValue: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_CONTENT_INFO_SEQUENCE_OF_ANY {}
 impl ::core::clone::Clone for CRYPT_CONTENT_INFO_SEQUENCE_OF_ANY {
@@ -11539,7 +11132,7 @@ impl ::core::clone::Clone for CRYPT_DES_KEY_STATE {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_ECC_CMS_SHARED_INFO {
     pub Algorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EntityUInfo: CRYPTOAPI_BLOB,
+    pub EntityUInfo: CRYPT_INTEGER_BLOB,
     pub rgbSuppPubInfo: [u8; 4],
 }
 impl ::core::marker::Copy for CRYPT_ECC_CMS_SHARED_INFO {}
@@ -11552,7 +11145,7 @@ impl ::core::clone::Clone for CRYPT_ECC_CMS_SHARED_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_ECC_PRIVATE_KEY_INFO {
     pub dwVersion: u32,
-    pub PrivateKey: CRYPTOAPI_BLOB,
+    pub PrivateKey: CRYPT_INTEGER_BLOB,
     pub szCurveOid: ::windows_sys::core::PSTR,
     pub PublicKey: CRYPT_BIT_BLOB,
 }
@@ -11579,7 +11172,7 @@ impl ::core::clone::Clone for CRYPT_ENCODE_PARA {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_ENCRYPTED_PRIVATE_KEY_INFO {
     pub EncryptionAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub EncryptedPrivateKey: CRYPTOAPI_BLOB,
+    pub EncryptedPrivateKey: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_ENCRYPTED_PRIVATE_KEY_INFO {}
 impl ::core::clone::Clone for CRYPT_ENCRYPTED_PRIVATE_KEY_INFO {
@@ -11626,7 +11219,7 @@ pub struct CRYPT_GET_TIME_VALID_OBJECT_EXTRA_INFO {
     pub pLastSyncTime: *mut super::super::Foundation::FILETIME,
     pub pMaxAgeTime: *mut super::super::Foundation::FILETIME,
     pub pChainPara: *mut CERT_REVOCATION_CHAIN_PARA,
-    pub pDeltaCrlIndicator: *mut CRYPTOAPI_BLOB,
+    pub pDeltaCrlIndicator: *mut CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for CRYPT_GET_TIME_VALID_OBJECT_EXTRA_INFO {}
@@ -11640,7 +11233,7 @@ impl ::core::clone::Clone for CRYPT_GET_TIME_VALID_OBJECT_EXTRA_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_HASH_INFO {
     pub HashAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub Hash: CRYPTOAPI_BLOB,
+    pub Hash: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_HASH_INFO {}
 impl ::core::clone::Clone for CRYPT_HASH_INFO {
@@ -11684,6 +11277,18 @@ pub struct CRYPT_IMAGE_REG {
 }
 impl ::core::marker::Copy for CRYPT_IMAGE_REG {}
 impl ::core::clone::Clone for CRYPT_IMAGE_REG {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+#[repr(C)]
+#[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
+pub struct CRYPT_INTEGER_BLOB {
+    pub cbData: u32,
+    pub pbData: *mut u8,
+}
+impl ::core::marker::Copy for CRYPT_INTEGER_BLOB {}
+impl ::core::clone::Clone for CRYPT_INTEGER_BLOB {
     fn clone(&self) -> Self {
         *self
     }
@@ -11838,7 +11443,7 @@ pub struct CRYPT_OID_INFO {
     pub pwszName: ::windows_sys::core::PCWSTR,
     pub dwGroupId: u32,
     pub Anonymous: CRYPT_OID_INFO_0,
-    pub ExtraInfo: CRYPTOAPI_BLOB,
+    pub ExtraInfo: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_OID_INFO {}
 impl ::core::clone::Clone for CRYPT_OID_INFO {
@@ -11919,7 +11524,7 @@ impl ::core::clone::Clone for CRYPT_PKCS8_EXPORT_PARAMS {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CRYPT_PKCS8_IMPORT_PARAMS {
-    pub PrivateKey: CRYPTOAPI_BLOB,
+    pub PrivateKey: CRYPT_INTEGER_BLOB,
     pub pResolvehCryptProvFunc: PCRYPT_RESOLVE_HCRYPTPROV_FUNC,
     pub pVoidResolveFunc: *mut ::core::ffi::c_void,
     pub pDecryptPrivateKeyFunc: PCRYPT_DECRYPT_PRIVATE_KEY_FUNC,
@@ -11938,7 +11543,7 @@ impl ::core::clone::Clone for CRYPT_PKCS8_IMPORT_PARAMS {
 pub struct CRYPT_PRIVATE_KEY_INFO {
     pub Version: u32,
     pub Algorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub PrivateKey: CRYPTOAPI_BLOB,
+    pub PrivateKey: CRYPT_INTEGER_BLOB,
     pub pAttributes: *mut CRYPT_ATTRIBUTES,
 }
 impl ::core::marker::Copy for CRYPT_PRIVATE_KEY_INFO {}
@@ -12019,7 +11624,7 @@ impl ::core::clone::Clone for CRYPT_PROVIDER_REG {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_PSOURCE_ALGORITHM {
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub EncodingParameters: CRYPTOAPI_BLOB,
+    pub EncodingParameters: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_PSOURCE_ALGORITHM {}
 impl ::core::clone::Clone for CRYPT_PSOURCE_ALGORITHM {
@@ -12072,7 +11677,7 @@ pub struct CRYPT_RETRIEVE_AUX_INFO {
     pub fProxyCacheRetrieval: super::super::Foundation::BOOL,
     pub dwHttpStatusCode: u32,
     pub ppwszErrorResponseHeaders: *mut ::windows_sys::core::PWSTR,
-    pub ppErrorContentBlob: *mut *mut CRYPTOAPI_BLOB,
+    pub ppErrorContentBlob: *mut *mut CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for CRYPT_RETRIEVE_AUX_INFO {}
@@ -12113,7 +11718,7 @@ impl ::core::clone::Clone for CRYPT_RSA_SSA_PSS_PARAMETERS {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_SEQUENCE_OF_ANY {
     pub cValue: u32,
-    pub rgValue: *mut CRYPTOAPI_BLOB,
+    pub rgValue: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_SEQUENCE_OF_ANY {}
 impl ::core::clone::Clone for CRYPT_SEQUENCE_OF_ANY {
@@ -12177,7 +11782,7 @@ impl ::core::clone::Clone for CRYPT_SMIME_CAPABILITIES {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_SMIME_CAPABILITY {
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub Parameters: CRYPTOAPI_BLOB,
+    pub Parameters: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_SMIME_CAPABILITY {}
 impl ::core::clone::Clone for CRYPT_SMIME_CAPABILITY {
@@ -12221,13 +11826,13 @@ pub struct CRYPT_TIMESTAMP_INFO {
     pub dwVersion: u32,
     pub pszTSAPolicyId: ::windows_sys::core::PSTR,
     pub HashAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub HashedMessage: CRYPTOAPI_BLOB,
-    pub SerialNumber: CRYPTOAPI_BLOB,
+    pub HashedMessage: CRYPT_INTEGER_BLOB,
+    pub SerialNumber: CRYPT_INTEGER_BLOB,
     pub ftTime: super::super::Foundation::FILETIME,
     pub pvAccuracy: *mut CRYPT_TIMESTAMP_ACCURACY,
     pub fOrdering: super::super::Foundation::BOOL,
-    pub Nonce: CRYPTOAPI_BLOB,
-    pub Tsa: CRYPTOAPI_BLOB,
+    pub Nonce: CRYPT_INTEGER_BLOB,
+    pub Tsa: CRYPT_INTEGER_BLOB,
     pub cExtension: u32,
     pub rgExtension: *mut CERT_EXTENSION,
 }
@@ -12245,7 +11850,7 @@ impl ::core::clone::Clone for CRYPT_TIMESTAMP_INFO {
 pub struct CRYPT_TIMESTAMP_PARA {
     pub pszTSAPolicyId: ::windows_sys::core::PCSTR,
     pub fRequestCerts: super::super::Foundation::BOOL,
-    pub Nonce: CRYPTOAPI_BLOB,
+    pub Nonce: CRYPT_INTEGER_BLOB,
     pub cExtension: u32,
     pub rgExtension: *mut CERT_EXTENSION,
 }
@@ -12263,9 +11868,9 @@ impl ::core::clone::Clone for CRYPT_TIMESTAMP_PARA {
 pub struct CRYPT_TIMESTAMP_REQUEST {
     pub dwVersion: CRYPT_TIMESTAMP_VERSION,
     pub HashAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub HashedMessage: CRYPTOAPI_BLOB,
+    pub HashedMessage: CRYPT_INTEGER_BLOB,
     pub pszTSAPolicyId: ::windows_sys::core::PSTR,
-    pub Nonce: CRYPTOAPI_BLOB,
+    pub Nonce: CRYPT_INTEGER_BLOB,
     pub fCertReq: super::super::Foundation::BOOL,
     pub cExtension: u32,
     pub rgExtension: *mut CERT_EXTENSION,
@@ -12285,7 +11890,7 @@ pub struct CRYPT_TIMESTAMP_RESPONSE {
     pub cFreeText: u32,
     pub rgFreeText: *mut ::windows_sys::core::PWSTR,
     pub FailureInfo: CRYPT_BIT_BLOB,
-    pub ContentInfo: CRYPTOAPI_BLOB,
+    pub ContentInfo: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_TIMESTAMP_RESPONSE {}
 impl ::core::clone::Clone for CRYPT_TIMESTAMP_RESPONSE {
@@ -12298,7 +11903,7 @@ impl ::core::clone::Clone for CRYPT_TIMESTAMP_RESPONSE {
 pub struct CRYPT_TIME_STAMP_REQUEST_INFO {
     pub pszTimeStampAlgorithm: ::windows_sys::core::PSTR,
     pub pszContentType: ::windows_sys::core::PSTR,
-    pub Content: CRYPTOAPI_BLOB,
+    pub Content: CRYPT_INTEGER_BLOB,
     pub cAttribute: u32,
     pub rgAttribute: *mut CRYPT_ATTRIBUTE,
 }
@@ -12337,8 +11942,8 @@ impl ::core::clone::Clone for CRYPT_URL_INFO {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CRYPT_VERIFY_CERT_SIGN_STRONG_PROPERTIES_INFO {
-    pub CertSignHashCNGAlgPropData: CRYPTOAPI_BLOB,
-    pub CertIssuerPubKeyBitLengthPropData: CRYPTOAPI_BLOB,
+    pub CertSignHashCNGAlgPropData: CRYPT_INTEGER_BLOB,
+    pub CertIssuerPubKeyBitLengthPropData: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_VERIFY_CERT_SIGN_STRONG_PROPERTIES_INFO {}
 impl ::core::clone::Clone for CRYPT_VERIFY_CERT_SIGN_STRONG_PROPERTIES_INFO {
@@ -12383,7 +11988,7 @@ pub struct CRYPT_X942_OTHER_INFO {
     pub pszContentEncryptionObjId: ::windows_sys::core::PSTR,
     pub rgbCounter: [u8; 4],
     pub rgbKeyLength: [u8; 4],
-    pub PubInfo: CRYPTOAPI_BLOB,
+    pub PubInfo: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_X942_OTHER_INFO {}
 impl ::core::clone::Clone for CRYPT_X942_OTHER_INFO {
@@ -12514,12 +12119,12 @@ impl ::core::clone::Clone for CRYPT_XML_ISSUER_SERIAL {
 pub struct CRYPT_XML_KEYINFO_PARAM {
     pub wszId: ::windows_sys::core::PCWSTR,
     pub wszKeyName: ::windows_sys::core::PCWSTR,
-    pub SKI: CRYPTOAPI_BLOB,
+    pub SKI: CRYPT_INTEGER_BLOB,
     pub wszSubjectName: ::windows_sys::core::PCWSTR,
     pub cCertificate: u32,
-    pub rgCertificate: *mut CRYPTOAPI_BLOB,
+    pub rgCertificate: *mut CRYPT_INTEGER_BLOB,
     pub cCRL: u32,
-    pub rgCRL: *mut CRYPTOAPI_BLOB,
+    pub rgCRL: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CRYPT_XML_KEYINFO_PARAM {}
 impl ::core::clone::Clone for CRYPT_XML_KEYINFO_PARAM {
@@ -12677,7 +12282,7 @@ pub struct CRYPT_XML_REFERENCE {
     pub wszUri: ::windows_sys::core::PCWSTR,
     pub wszType: ::windows_sys::core::PCWSTR,
     pub DigestMethod: CRYPT_XML_ALGORITHM,
-    pub DigestValue: CRYPTOAPI_BLOB,
+    pub DigestValue: CRYPT_INTEGER_BLOB,
     pub cTransform: u32,
     pub rgTransform: *mut CRYPT_XML_ALGORITHM,
 }
@@ -12706,7 +12311,7 @@ pub struct CRYPT_XML_SIGNATURE {
     pub hSignature: *mut ::core::ffi::c_void,
     pub wszId: ::windows_sys::core::PCWSTR,
     pub SignedInfo: CRYPT_XML_SIGNED_INFO,
-    pub SignatureValue: CRYPTOAPI_BLOB,
+    pub SignatureValue: CRYPT_INTEGER_BLOB,
     pub pKeyInfo: *mut CRYPT_XML_KEY_INFO,
     pub cObject: u32,
     pub rgpObject: *mut *mut CRYPT_XML_OBJECT,
@@ -12819,7 +12424,7 @@ impl ::core::clone::Clone for CRYPT_XML_X509DATA_ITEM_0 {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CTL_ANY_SUBJECT_INFO {
     pub SubjectAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub SubjectIdentifier: CRYPTOAPI_BLOB,
+    pub SubjectIdentifier: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for CTL_ANY_SUBJECT_INFO {}
 impl ::core::clone::Clone for CTL_ANY_SUBJECT_INFO {
@@ -12851,7 +12456,7 @@ impl ::core::clone::Clone for CTL_CONTEXT {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CTL_ENTRY {
-    pub SubjectIdentifier: CRYPTOAPI_BLOB,
+    pub SubjectIdentifier: CRYPT_INTEGER_BLOB,
     pub cAttribute: u32,
     pub rgAttribute: *mut CRYPT_ATTRIBUTE,
 }
@@ -12884,7 +12489,7 @@ impl ::core::clone::Clone for CTL_FIND_SUBJECT_PARA {
 pub struct CTL_FIND_USAGE_PARA {
     pub cbSize: u32,
     pub SubjectUsage: CTL_USAGE,
-    pub ListIdentifier: CRYPTOAPI_BLOB,
+    pub ListIdentifier: CRYPT_INTEGER_BLOB,
     pub pSigner: *mut CERT_INFO,
 }
 #[cfg(feature = "Win32_Foundation")]
@@ -12901,8 +12506,8 @@ impl ::core::clone::Clone for CTL_FIND_USAGE_PARA {
 pub struct CTL_INFO {
     pub dwVersion: u32,
     pub SubjectUsage: CTL_USAGE,
-    pub ListIdentifier: CRYPTOAPI_BLOB,
-    pub SequenceNumber: CRYPTOAPI_BLOB,
+    pub ListIdentifier: CRYPT_INTEGER_BLOB,
+    pub SequenceNumber: CRYPT_INTEGER_BLOB,
     pub ThisUpdate: super::super::Foundation::FILETIME,
     pub NextUpdate: super::super::Foundation::FILETIME,
     pub SubjectAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
@@ -12947,7 +12552,7 @@ impl ::core::clone::Clone for CTL_USAGE_MATCH {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct CTL_VERIFY_USAGE_PARA {
     pub cbSize: u32,
-    pub ListIdentifier: CRYPTOAPI_BLOB,
+    pub ListIdentifier: CRYPT_INTEGER_BLOB,
     pub cCtlStore: u32,
     pub rghCtlStore: *mut HCERTSTORE,
     pub cSignerStore: u32,
@@ -12996,7 +12601,7 @@ impl ::core::clone::Clone for DSSSEED {
 pub struct ENDPOINTADDRESS {
     pub serviceUrl: ::windows_sys::core::PCWSTR,
     pub policyUrl: ::windows_sys::core::PCWSTR,
-    pub rawCertificate: CRYPTOAPI_BLOB,
+    pub rawCertificate: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for ENDPOINTADDRESS {}
 impl ::core::clone::Clone for ENDPOINTADDRESS {
@@ -13600,8 +13205,8 @@ impl ::core::clone::Clone for OCSP_BASIC_RESPONSE_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub union OCSP_BASIC_RESPONSE_INFO_0 {
-    pub ByNameResponderId: CRYPTOAPI_BLOB,
-    pub ByKeyResponderId: CRYPTOAPI_BLOB,
+    pub ByNameResponderId: CRYPT_INTEGER_BLOB,
+    pub ByKeyResponderId: CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for OCSP_BASIC_RESPONSE_INFO_0 {}
@@ -13629,7 +13234,7 @@ impl ::core::clone::Clone for OCSP_BASIC_REVOKED_INFO {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct OCSP_BASIC_SIGNED_RESPONSE_INFO {
-    pub ToBeSigned: CRYPTOAPI_BLOB,
+    pub ToBeSigned: CRYPT_INTEGER_BLOB,
     pub SignatureInfo: OCSP_SIGNATURE_INFO,
 }
 impl ::core::marker::Copy for OCSP_BASIC_SIGNED_RESPONSE_INFO {}
@@ -13642,9 +13247,9 @@ impl ::core::clone::Clone for OCSP_BASIC_SIGNED_RESPONSE_INFO {
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct OCSP_CERT_ID {
     pub HashAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
-    pub IssuerNameHash: CRYPTOAPI_BLOB,
-    pub IssuerKeyHash: CRYPTOAPI_BLOB,
-    pub SerialNumber: CRYPTOAPI_BLOB,
+    pub IssuerNameHash: CRYPT_INTEGER_BLOB,
+    pub IssuerKeyHash: CRYPT_INTEGER_BLOB,
+    pub SerialNumber: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for OCSP_CERT_ID {}
 impl ::core::clone::Clone for OCSP_CERT_ID {
@@ -13692,7 +13297,7 @@ impl ::core::clone::Clone for OCSP_REQUEST_INFO {
 pub struct OCSP_RESPONSE_INFO {
     pub dwStatus: u32,
     pub pszObjId: ::windows_sys::core::PSTR,
-    pub Value: CRYPTOAPI_BLOB,
+    pub Value: CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for OCSP_RESPONSE_INFO {}
 impl ::core::clone::Clone for OCSP_RESPONSE_INFO {
@@ -13706,7 +13311,7 @@ pub struct OCSP_SIGNATURE_INFO {
     pub SignatureAlgorithm: CRYPT_ALGORITHM_IDENTIFIER,
     pub Signature: CRYPT_BIT_BLOB,
     pub cCertEncoded: u32,
-    pub rgCertEncoded: *mut CRYPTOAPI_BLOB,
+    pub rgCertEncoded: *mut CRYPT_INTEGER_BLOB,
 }
 impl ::core::marker::Copy for OCSP_SIGNATURE_INFO {}
 impl ::core::clone::Clone for OCSP_SIGNATURE_INFO {
@@ -13717,7 +13322,7 @@ impl ::core::clone::Clone for OCSP_SIGNATURE_INFO {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub struct OCSP_SIGNED_REQUEST_INFO {
-    pub ToBeSigned: CRYPTOAPI_BLOB,
+    pub ToBeSigned: CRYPT_INTEGER_BLOB,
     pub pOptionalSignatureInfo: *mut OCSP_SIGNATURE_INFO,
 }
 impl ::core::marker::Copy for OCSP_SIGNED_REQUEST_INFO {}
@@ -14019,10 +13624,10 @@ pub type CryptXmlDllSignData = ::core::option::Option<unsafe extern "system" fn(
 pub type CryptXmlDllVerifySignature = ::core::option::Option<unsafe extern "system" fn(psignaturemethod: *const CRYPT_XML_ALGORITHM, hkey: BCRYPT_KEY_HANDLE, pbinput: *const u8, cbinput: u32, pbsignature: *const u8, cbsignature: u32) -> ::windows_sys::core::HRESULT>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PCRYPT_DECRYPT_PRIVATE_KEY_FUNC = ::core::option::Option<unsafe extern "system" fn(algorithm: CRYPT_ALGORITHM_IDENTIFIER, encryptedprivatekey: CRYPTOAPI_BLOB, pbcleartextkey: *mut u8, pcbcleartextkey: *mut u32, pvoiddecryptfunc: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
+pub type PCRYPT_DECRYPT_PRIVATE_KEY_FUNC = ::core::option::Option<unsafe extern "system" fn(algorithm: CRYPT_ALGORITHM_IDENTIFIER, encryptedprivatekey: CRYPT_INTEGER_BLOB, pbcleartextkey: *mut u8, pcbcleartextkey: *mut u32, pvoiddecryptfunc: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PCRYPT_ENCRYPT_PRIVATE_KEY_FUNC = ::core::option::Option<unsafe extern "system" fn(palgorithm: *mut CRYPT_ALGORITHM_IDENTIFIER, pcleartextprivatekey: *const CRYPTOAPI_BLOB, pbencryptedkey: *mut u8, pcbencryptedkey: *mut u32, pvoidencryptfunc: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
+pub type PCRYPT_ENCRYPT_PRIVATE_KEY_FUNC = ::core::option::Option<unsafe extern "system" fn(palgorithm: *mut CRYPT_ALGORITHM_IDENTIFIER, pcleartextprivatekey: *const CRYPT_INTEGER_BLOB, pbencryptedkey: *mut u8, pcbencryptedkey: *mut u32, pvoidencryptfunc: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PCRYPT_RESOLVE_HCRYPTPROV_FUNC = ::core::option::Option<unsafe extern "system" fn(pprivatekeyinfo: *mut CRYPT_PRIVATE_KEY_INFO, phcryptprov: *mut usize, pvoidresolvefunc: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
@@ -14058,9 +13663,9 @@ pub type PFN_CERT_ENUM_SYSTEM_STORE_LOCATION = ::core::option::Option<unsafe ext
 pub type PFN_CERT_IS_WEAK_HASH = ::core::option::Option<unsafe extern "system" fn(dwhashusetype: u32, pwszcnghashalgid: ::windows_sys::core::PCWSTR, dwchainflags: u32, psignerchaincontext: *const CERT_CHAIN_CONTEXT, ptimestamp: *const super::super::Foundation::FILETIME, pwszfilename: ::windows_sys::core::PCWSTR) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CERT_SERVER_OCSP_RESPONSE_UPDATE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(pchaincontext: *const CERT_CHAIN_CONTEXT, pserverocspresponsecontext: *const CERT_SERVER_OCSP_RESPONSE_CONTEXT, pnewcrlcontext: *const CRL_CONTEXT, pprevcrlcontext: *const CRL_CONTEXT, pvarg: *mut ::core::ffi::c_void, dwwriteocspfileerror: u32)>;
+pub type PFN_CERT_SERVER_OCSP_RESPONSE_UPDATE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(pchaincontext: *const CERT_CHAIN_CONTEXT, pserverocspresponsecontext: *const CERT_SERVER_OCSP_RESPONSE_CONTEXT, pnewcrlcontext: *const CRL_CONTEXT, pprevcrlcontext: *const CRL_CONTEXT, pvarg: *mut ::core::ffi::c_void, dwwriteocspfileerror: u32) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CERT_STORE_PROV_CLOSE = ::core::option::Option<unsafe extern "system" fn(hstoreprov: HCERTSTOREPROV, dwflags: u32)>;
+pub type PFN_CERT_STORE_PROV_CLOSE = ::core::option::Option<unsafe extern "system" fn(hstoreprov: HCERTSTOREPROV, dwflags: u32) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_CERT_STORE_PROV_CONTROL = ::core::option::Option<unsafe extern "system" fn(hstoreprov: HCERTSTOREPROV, dwflags: u32, dwctrltype: u32, pvctrlpara: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
@@ -14151,7 +13756,7 @@ pub type PFN_CMSG_EXPORT_KEY_TRANS = ::core::option::Option<unsafe extern "syste
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_CMSG_EXPORT_MAIL_LIST = ::core::option::Option<unsafe extern "system" fn(pcontentencryptinfo: *const CMSG_CONTENT_ENCRYPT_INFO, pmaillistencodeinfo: *const CMSG_MAIL_LIST_RECIPIENT_ENCODE_INFO, pmaillistencryptinfo: *mut CMSG_MAIL_LIST_ENCRYPT_INFO, dwflags: u32, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CMSG_FREE = ::core::option::Option<unsafe extern "system" fn(pv: *mut ::core::ffi::c_void)>;
+pub type PFN_CMSG_FREE = ::core::option::Option<unsafe extern "system" fn(pv: *mut ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_CMSG_GEN_CONTENT_ENCRYPT_KEY = ::core::option::Option<unsafe extern "system" fn(pcontentencryptinfo: *mut CMSG_CONTENT_ENCRYPT_INFO, dwflags: u32, pvreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
@@ -14176,58 +13781,58 @@ pub type PFN_CMSG_STREAM_OUTPUT = ::core::option::Option<unsafe extern "system" 
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub type PFN_CRYPT_ALLOC = ::core::option::Option<unsafe extern "system" fn(cbsize: usize) -> *mut ::core::ffi::c_void>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CRYPT_ASYNC_PARAM_FREE_FUNC = ::core::option::Option<unsafe extern "system" fn(pszparamoid: ::windows_sys::core::PCSTR, pvparam: *const ::core::ffi::c_void)>;
+pub type PFN_CRYPT_ASYNC_PARAM_FREE_FUNC = ::core::option::Option<unsafe extern "system" fn(pszparamoid: ::windows_sys::core::PCSTR, pvparam: *const ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CRYPT_ASYNC_RETRIEVAL_COMPLETION_FUNC = ::core::option::Option<unsafe extern "system" fn(pvcompletion: *mut ::core::ffi::c_void, dwcompletioncode: u32, pszurl: ::windows_sys::core::PCSTR, pszobjectoid: ::windows_sys::core::PCSTR, pvobject: *const ::core::ffi::c_void)>;
+pub type PFN_CRYPT_ASYNC_RETRIEVAL_COMPLETION_FUNC = ::core::option::Option<unsafe extern "system" fn(pvcompletion: *mut ::core::ffi::c_void, dwcompletioncode: u32, pszurl: ::windows_sys::core::PCSTR, pszobjectoid: ::windows_sys::core::PCSTR, pvobject: *const ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_CRYPT_CANCEL_RETRIEVAL = ::core::option::Option<unsafe extern "system" fn(dwflags: u32, pvarg: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_ENUM_KEYID_PROP = ::core::option::Option<unsafe extern "system" fn(pkeyidentifier: *const CRYPTOAPI_BLOB, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, pvarg: *mut ::core::ffi::c_void, cprop: u32, rgdwpropid: *const u32, rgpvdata: *const *const ::core::ffi::c_void, rgcbdata: *const u32) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_ENUM_KEYID_PROP = ::core::option::Option<unsafe extern "system" fn(pkeyidentifier: *const CRYPT_INTEGER_BLOB, dwflags: u32, pvreserved: *mut ::core::ffi::c_void, pvarg: *mut ::core::ffi::c_void, cprop: u32, rgdwpropid: *const u32, rgpvdata: *const *const ::core::ffi::c_void, rgcbdata: *const u32) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_ENUM_OID_FUNC = ::core::option::Option<unsafe extern "system" fn(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pszoid: ::windows_sys::core::PCSTR, cvalue: u32, rgdwvaluetype: *const u32, rgpwszvaluename: *const ::windows_sys::core::PWSTR, rgpbvaluedata: *const *const u8, rgcbvaluedata: *const u32, pvarg: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_ENUM_OID_FUNC = ::core::option::Option<unsafe extern "system" fn(dwencodingtype: u32, pszfuncname: ::windows_sys::core::PCSTR, pszoid: ::windows_sys::core::PCSTR, cvalue: u32, rgdwvaluetype: *const u32, rgpwszvaluename: *const ::windows_sys::core::PCWSTR, rgpbvaluedata: *const *const u8, rgcbvaluedata: *const u32, pvarg: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_CRYPT_ENUM_OID_INFO = ::core::option::Option<unsafe extern "system" fn(pinfo: *const CRYPT_OID_INFO, pvarg: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_EXPORT_PUBLIC_KEY_INFO_EX2_FUNC = ::core::option::Option<unsafe extern "system" fn(hncryptkey: NCRYPT_KEY_HANDLE, dwcertencodingtype: u32, pszpublickeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pinfo: *mut CERT_PUBLIC_KEY_INFO, pcbinfo: *mut u32) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_EXPORT_PUBLIC_KEY_INFO_EX2_FUNC = ::core::option::Option<unsafe extern "system" fn(hncryptkey: NCRYPT_KEY_HANDLE, dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, pszpublickeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pinfo: *mut CERT_PUBLIC_KEY_INFO, pcbinfo: *mut u32) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_EXPORT_PUBLIC_KEY_INFO_FROM_BCRYPT_HANDLE_FUNC = ::core::option::Option<unsafe extern "system" fn(hbcryptkey: BCRYPT_KEY_HANDLE, dwcertencodingtype: u32, pszpublickeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pinfo: *mut CERT_PUBLIC_KEY_INFO, pcbinfo: *mut u32) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_EXPORT_PUBLIC_KEY_INFO_FROM_BCRYPT_HANDLE_FUNC = ::core::option::Option<unsafe extern "system" fn(hbcryptkey: BCRYPT_KEY_HANDLE, dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, pszpublickeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pinfo: *mut CERT_PUBLIC_KEY_INFO, pcbinfo: *mut u32) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_EXTRACT_ENCODED_SIGNATURE_PARAMETERS_FUNC = ::core::option::Option<unsafe extern "system" fn(dwcertencodingtype: u32, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, ppvdecodedsignpara: *mut *mut ::core::ffi::c_void, ppwszcnghashalgid: *mut ::windows_sys::core::PWSTR) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_EXTRACT_ENCODED_SIGNATURE_PARAMETERS_FUNC = ::core::option::Option<unsafe extern "system" fn(dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, ppvdecodedsignpara: *mut *mut ::core::ffi::c_void, ppwszcnghashalgid: *mut ::windows_sys::core::PWSTR) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CRYPT_FREE = ::core::option::Option<unsafe extern "system" fn(pv: *const ::core::ffi::c_void)>;
+pub type PFN_CRYPT_FREE = ::core::option::Option<unsafe extern "system" fn(pv: *const ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_GET_SIGNER_CERTIFICATE = ::core::option::Option<unsafe extern "system" fn(pvgetarg: *mut ::core::ffi::c_void, dwcertencodingtype: u32, psignerid: *const CERT_INFO, hmsgcertstore: HCERTSTORE) -> *mut CERT_CONTEXT>;
+pub type PFN_CRYPT_GET_SIGNER_CERTIFICATE = ::core::option::Option<unsafe extern "system" fn(pvgetarg: *mut ::core::ffi::c_void, dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, psignerid: *const CERT_INFO, hmsgcertstore: HCERTSTORE) -> *mut CERT_CONTEXT>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FLUSH = ::core::option::Option<unsafe extern "system" fn(pcontext: *const ::core::ffi::c_void, rgidentifierornamelist: *const *const CRYPTOAPI_BLOB, dwidentifierornamelistcount: u32) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FLUSH = ::core::option::Option<unsafe extern "system" fn(pcontext: *const ::core::ffi::c_void, rgidentifierornamelist: *const *const CRYPT_INTEGER_BLOB, dwidentifierornamelistcount: u32) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FREE = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pbdata: *const u8)>;
+pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FREE = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pbdata: *const u8) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FREE_IDENTIFIER = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pidentifier: *const CRYPTOAPI_BLOB)>;
+pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FREE_IDENTIFIER = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pidentifier: *const CRYPT_INTEGER_BLOB) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FREE_PASSWORD = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pwszpassword: ::windows_sys::core::PCWSTR)>;
+pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FREE_PASSWORD = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pwszpassword: ::windows_sys::core::PCWSTR) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_GET = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pidentifier: *const CRYPTOAPI_BLOB, dwnametype: u32, pnameblob: *const CRYPTOAPI_BLOB, ppbcontent: *mut *mut u8, pcbcontent: *mut u32, ppwszpassword: *mut ::windows_sys::core::PWSTR, ppidentifier: *mut *mut CRYPTOAPI_BLOB) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_GET = ::core::option::Option<unsafe extern "system" fn(pplugincontext: *const ::core::ffi::c_void, pidentifier: *const CRYPT_INTEGER_BLOB, dwnametype: u32, pnameblob: *const CRYPT_INTEGER_BLOB, ppbcontent: *mut *mut u8, pcbcontent: *mut u32, ppwszpassword: *mut ::windows_sys::core::PWSTR, ppidentifier: *mut *mut CRYPT_INTEGER_BLOB) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_INITIALIZE = ::core::option::Option<unsafe extern "system" fn(pfnflush: PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_FLUSH, pcontext: *const ::core::ffi::c_void, pdwexpectedobjectcount: *mut u32, ppfunctable: *mut *mut CRYPT_OBJECT_LOCATOR_PROVIDER_TABLE, ppplugincontext: *mut *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_RELEASE = ::core::option::Option<unsafe extern "system" fn(dwreason: CRYPT_OBJECT_LOCATOR_RELEASE_REASON, pplugincontext: *const ::core::ffi::c_void)>;
+pub type PFN_CRYPT_OBJECT_LOCATOR_PROVIDER_RELEASE = ::core::option::Option<unsafe extern "system" fn(dwreason: CRYPT_OBJECT_LOCATOR_RELEASE_REASON, pplugincontext: *const ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_SIGN_AND_ENCODE_HASH_FUNC = ::core::option::Option<unsafe extern "system" fn(hkey: NCRYPT_KEY_HANDLE, dwcertencodingtype: u32, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, pvdecodedsignpara: *const ::core::ffi::c_void, pwszcngpubkeyalgid: ::windows_sys::core::PCWSTR, pwszcnghashalgid: ::windows_sys::core::PCWSTR, pbcomputedhash: *const u8, cbcomputedhash: u32, pbsignature: *mut u8, pcbsignature: *mut u32) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_SIGN_AND_ENCODE_HASH_FUNC = ::core::option::Option<unsafe extern "system" fn(hkey: NCRYPT_KEY_HANDLE, dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, pvdecodedsignpara: *const ::core::ffi::c_void, pwszcngpubkeyalgid: ::windows_sys::core::PCWSTR, pwszcnghashalgid: ::windows_sys::core::PCWSTR, pbcomputedhash: *const u8, cbcomputedhash: u32, pbsignature: *mut u8, pcbsignature: *mut u32) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_CRYPT_VERIFY_ENCODED_SIGNATURE_FUNC = ::core::option::Option<unsafe extern "system" fn(dwcertencodingtype: u32, ppubkeyinfo: *const CERT_PUBLIC_KEY_INFO, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, pvdecodedsignpara: *const ::core::ffi::c_void, pwszcngpubkeyalgid: ::windows_sys::core::PCWSTR, pwszcnghashalgid: ::windows_sys::core::PCWSTR, pbcomputedhash: *const u8, cbcomputedhash: u32, pbsignature: *const u8, cbsignature: u32) -> super::super::Foundation::BOOL>;
+pub type PFN_CRYPT_VERIFY_ENCODED_SIGNATURE_FUNC = ::core::option::Option<unsafe extern "system" fn(dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, ppubkeyinfo: *const CERT_PUBLIC_KEY_INFO, psignaturealgorithm: *const CRYPT_ALGORITHM_IDENTIFIER, pvdecodedsignpara: *const ::core::ffi::c_void, pwszcngpubkeyalgid: ::windows_sys::core::PCWSTR, pwszcnghashalgid: ::windows_sys::core::PCWSTR, pbcomputedhash: *const u8, cbcomputedhash: u32, pbsignature: *const u8, cbsignature: u32) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub type PFN_CRYPT_XML_CREATE_TRANSFORM = ::core::option::Option<unsafe extern "system" fn(ptransform: *const CRYPT_XML_ALGORITHM, pproviderin: *const CRYPT_XML_DATA_PROVIDER, pproviderout: *mut CRYPT_XML_DATA_PROVIDER) -> ::windows_sys::core::HRESULT>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
@@ -14243,14 +13848,14 @@ pub type PFN_CRYPT_XML_WRITE_CALLBACK = ::core::option::Option<unsafe extern "sy
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_EXPORT_PRIV_KEY_FUNC = ::core::option::Option<unsafe extern "system" fn(hcryptprov: usize, dwkeyspec: u32, pszprivatekeyobjid: ::windows_sys::core::PCSTR, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, pprivatekeyinfo: *mut CRYPT_PRIVATE_KEY_INFO, pcbprivatekeyinfo: *mut u32) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_FREE_ENCODED_OBJECT_FUNC = ::core::option::Option<unsafe extern "system" fn(pszobjectoid: ::windows_sys::core::PCSTR, pobject: *mut CRYPT_BLOB_ARRAY, pvfreecontext: *mut ::core::ffi::c_void)>;
+pub type PFN_FREE_ENCODED_OBJECT_FUNC = ::core::option::Option<unsafe extern "system" fn(pszobjectoid: ::windows_sys::core::PCSTR, pobject: *mut CRYPT_BLOB_ARRAY, pvfreecontext: *mut ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_IMPORT_PRIV_KEY_FUNC = ::core::option::Option<unsafe extern "system" fn(hcryptprov: usize, pprivatekeyinfo: *const CRYPT_PRIVATE_KEY_INFO, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type PFN_IMPORT_PUBLIC_KEY_INFO_EX2_FUNC = ::core::option::Option<unsafe extern "system" fn(dwcertencodingtype: u32, pinfo: *const CERT_PUBLIC_KEY_INFO, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, phkey: *mut BCRYPT_KEY_HANDLE) -> super::super::Foundation::BOOL>;
+pub type PFN_IMPORT_PUBLIC_KEY_INFO_EX2_FUNC = ::core::option::Option<unsafe extern "system" fn(dwcertencodingtype: CERT_QUERY_ENCODING_TYPE, pinfo: *const CERT_PUBLIC_KEY_INFO, dwflags: u32, pvauxinfo: *const ::core::ffi::c_void, phkey: *mut BCRYPT_KEY_HANDLE) -> super::super::Foundation::BOOL>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
 pub type PFN_NCRYPT_ALLOC = ::core::option::Option<unsafe extern "system" fn(cbsize: usize) -> *mut ::core::ffi::c_void>;
 #[doc = "*Required features: `\"Win32_Security_Cryptography\"`*"]
-pub type PFN_NCRYPT_FREE = ::core::option::Option<unsafe extern "system" fn(pv: *const ::core::ffi::c_void)>;
+pub type PFN_NCRYPT_FREE = ::core::option::Option<unsafe extern "system" fn(pv: *const ::core::ffi::c_void) -> ()>;

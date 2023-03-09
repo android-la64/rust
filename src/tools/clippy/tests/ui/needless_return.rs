@@ -1,6 +1,7 @@
 // run-rustfix
 
 #![feature(lint_reasons)]
+#![feature(yeet_expr)]
 #![allow(unused)]
 #![allow(
     clippy::if_same_then_else,
@@ -279,6 +280,20 @@ mod issue9416 {
     #[rustfmt::skip]
     pub fn oneline() {
         let _ = 42; return;
+    }
+}
+
+fn issue9947() -> Result<(), String> {
+    do yeet "hello";
+}
+
+// without anyhow, but triggers the same bug I believe
+#[expect(clippy::useless_format)]
+fn issue10051() -> Result<String, String> {
+    if true {
+        return Ok(format!("ok!"));
+    } else {
+        return Err(format!("err!"));
     }
 }
 

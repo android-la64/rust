@@ -8,11 +8,12 @@ use crate::isa::x64::abi::*;
 use crate::isa::x64::inst::args::*;
 use crate::isa::x64::inst::*;
 use crate::isa::{x64::settings as x64_settings, x64::X64Backend, CallConv};
+use crate::machinst::abi::SmallInstVec;
 use crate::machinst::lower::*;
 use crate::machinst::*;
 use crate::result::CodegenResult;
 use crate::settings::Flags;
-use smallvec::SmallVec;
+use smallvec::{smallvec, SmallVec};
 use target_lexicon::Triple;
 
 //=============================================================================
@@ -21,7 +22,6 @@ use target_lexicon::Triple;
 fn is_int_or_ref_ty(ty: Type) -> bool {
     match ty {
         types::I8 | types::I16 | types::I32 | types::I64 | types::R64 => true,
-        types::B1 | types::B8 | types::B16 | types::B32 | types::B64 => true,
         types::R32 => panic!("shouldn't have 32-bits refs on x64"),
         _ => false,
     }
@@ -168,16 +168,18 @@ fn emit_vm_call(
     assert_eq!(inputs.len(), abi.num_args(ctx.sigs()));
 
     for (i, input) in inputs.iter().enumerate() {
-        for inst in abi.gen_copy_regs_to_arg(ctx, i, ValueRegs::one(*input)) {
+        for inst in abi.gen_arg(ctx, i, ValueRegs::one(*input)) {
             ctx.emit(inst);
         }
     }
 
-    abi.emit_call(ctx);
+    let mut retval_insts: SmallInstVec<_> = smallvec![];
     for (i, output) in outputs.iter().enumerate() {
-        for inst in abi.gen_copy_retval_to_regs(ctx, i, ValueRegs::one(*output)) {
-            ctx.emit(inst);
-        }
+        retval_insts.extend(abi.gen_retval(ctx, i, ValueRegs::one(*output)).into_iter());
+    }
+    abi.emit_call(ctx);
+    for inst in retval_insts {
+        ctx.emit(inst);
     }
     abi.emit_stack_post_adjust(ctx);
 
@@ -325,7 +327,6 @@ fn lower_insn_to_regs(
     let op = ctx.data(insn).opcode();
     match op {
         Opcode::Iconst
-        | Opcode::Bconst
         | Opcode::F32const
         | Opcode::F64const
         | Opcode::Null
@@ -343,9 +344,9 @@ fn lower_insn_to_regs(
         | Opcode::Imul
         | Opcode::BandNot
         | Opcode::Iabs
-        | Opcode::Imax
+        | Opcode::Smax
         | Opcode::Umax
-        | Opcode::Imin
+        | Opcode::Smin
         | Opcode::Umin
         | Opcode::Bnot
         | Opcode::Bitselect
@@ -362,14 +363,12 @@ fn lower_insn_to_regs(
         | Opcode::Ctz
         | Opcode::Popcnt
         | Opcode::Bitrev
+        | Opcode::Bswap
         | Opcode::IsNull
         | Opcode::IsInvalid
         | Opcode::Uextend
         | Opcode::Sextend
-        | Opcode::Breduce
-        | Opcode::Bextend
         | Opcode::Ireduce
-        | Opcode::Bint
         | Opcode::Debugtrap
         | Opcode::WideningPairwiseDotProductS
         | Opcode::Fadd
@@ -415,14 +414,11 @@ fn lower_insn_to_regs(
         | Opcode::Return
         | Opcode::Call
         | Opcode::CallIndirect
-        | Opcode::Trapif
-        | Opcode::Trapff
         | Opcode::GetFramePointer
         | Opcode::GetStackPointer
         | Opcode::GetReturnAddress
         | Opcode::Select
-        | Opcode::Selectif
-        | Opcode::SelectifSpectreGuard
+        | Opcode::SelectSpectreGuard
         | Opcode::FcvtFromSint
         | Opcode::FcvtLowFromSint
         | Opcode::FcvtFromUint
@@ -455,7 +451,6 @@ fn lower_insn_to_regs(
         | Opcode::GetPinnedReg
         | Opcode::SetPinnedReg
         | Opcode::Vconst
-        | Opcode::RawBitcast
         | Opcode::Insertlane
         | Opcode::Shuffle
         | Opcode::Swizzle
@@ -470,7 +465,8 @@ fn lower_insn_to_regs(
         | Opcode::TlsValue
         | Opcode::SqmulRoundSat
         | Opcode::Uunarrow
-        | Opcode::Nop => {
+        | Opcode::Nop
+        | Opcode::Bmask => {
             let ty = if outputs.len() > 0 {
                 Some(ctx.output_ty(insn, 0))
             } else {
@@ -498,10 +494,6 @@ fn lower_insn_to_regs(
         Opcode::BorNot | Opcode::BxorNot => {
             unimplemented!("or-not / xor-not opcodes not implemented");
         }
-
-        Opcode::Bmask => unimplemented!("Bmask not implemented"),
-
-        Opcode::Trueif | Opcode::Trueff => unimplemented!("trueif / trueff not implemented"),
 
         Opcode::Vsplit | Opcode::Vconcat => {
             unimplemented!("Vector split/concat ops not implemented.");
@@ -532,6 +524,7 @@ fn lower_insn_to_regs(
         | Opcode::IsubIfbout
         | Opcode::IsubBorrow
         | Opcode::IsubIfborrow
+        | Opcode::UaddOverflowTrap
         | Opcode::BandImm
         | Opcode::BorImm
         | Opcode::BxorImm
@@ -564,21 +557,11 @@ fn lower_insn_to_regs(
             panic!("table_addr should have been removed by legalization!");
         }
 
-        Opcode::Copy => {
-            panic!("Unused opcode should not be encountered.");
-        }
-
         Opcode::Trapz | Opcode::Trapnz | Opcode::ResumableTrapnz => {
             panic!("trapz / trapnz / resumable_trapnz should have been removed by legalization!");
         }
 
-        Opcode::Jump
-        | Opcode::Brz
-        | Opcode::Brnz
-        | Opcode::BrIcmp
-        | Opcode::Brif
-        | Opcode::Brff
-        | Opcode::BrTable => {
+        Opcode::Jump | Opcode::Brz | Opcode::Brnz | Opcode::BrTable => {
             panic!("Branch opcode reached non-branch lowering logic!");
         }
     }

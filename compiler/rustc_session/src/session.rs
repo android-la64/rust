@@ -1,12 +1,13 @@
 use crate::cgu_reuse_tracker::CguReuseTracker;
 use crate::code_stats::CodeStats;
 pub use crate::code_stats::{DataTypeKind, FieldInfo, SizeKind, VariantInfo};
+use crate::config::Input;
 use crate::config::{self, CrateType, InstrumentCoverage, OptLevel, OutputType, SwitchWithOptPath};
 use crate::errors::{
-    CannotEnableCrtStaticLinux, CannotMixAndMatchSanitizers, LinkerPluginToWindowsNotSupported,
-    NotCircumventFeature, ProfileSampleUseFileDoesNotExist, ProfileUseFileDoesNotExist,
-    SanitizerCfiEnabled, SanitizerNotSupported, SanitizersNotSupported, SkippingConstChecks,
-    SplitDebugInfoUnstablePlatform, StackProtectorNotSupportedForTarget,
+    BranchProtectionRequiresAArch64, CannotEnableCrtStaticLinux, CannotMixAndMatchSanitizers,
+    LinkerPluginToWindowsNotSupported, NotCircumventFeature, ProfileSampleUseFileDoesNotExist,
+    ProfileUseFileDoesNotExist, SanitizerCfiEnabled, SanitizerNotSupported, SanitizersNotSupported,
+    SkippingConstChecks, SplitDebugInfoUnstablePlatform, StackProtectorNotSupportedForTarget,
     TargetRequiresUnwindTables, UnleashedFeatureHelp, UnstableVirtualFunctionElimination,
     UnsupportedDwarfVersion,
 };
@@ -137,6 +138,13 @@ pub struct Limits {
     pub const_eval_limit: Limit,
 }
 
+pub struct CompilerIO {
+    pub input: Input,
+    pub output_dir: Option<PathBuf>,
+    pub output_file: Option<PathBuf>,
+    pub temps_dir: Option<PathBuf>,
+}
+
 /// Represents the data associated with a compilation
 /// session for a single crate.
 pub struct Session {
@@ -147,9 +155,8 @@ pub struct Session {
     pub target_tlib_path: Lrc<SearchPath>,
     pub parse_sess: ParseSess,
     pub sysroot: PathBuf,
-    /// The name of the root source file of the crate, in the local file system.
-    /// `None` means that there is no source file.
-    pub local_crate_source_file: Option<PathBuf>,
+    /// Input, input file path and output file path to this compilation process.
+    pub io: CompilerIO,
 
     crate_types: OnceCell<Vec<CrateType>>,
     /// The `stable_crate_id` is constructed out of the crate name and all the
@@ -197,7 +204,7 @@ pub struct Session {
     pub ctfe_backtrace: Lock<CtfeBacktrace>,
 
     /// This tracks where `-Zunleash-the-miri-inside-of-you` was used to get around a
-    /// const check, optionally with the relevant feature gate.  We use this to
+    /// const check, optionally with the relevant feature gate. We use this to
     /// warn about unleashing, but with a single diagnostic instead of dozens that
     /// drown everything else in noise.
     miri_unleashed_features: Lock<Vec<(Span, Option<Symbol>)>>,
@@ -226,6 +233,11 @@ pub struct PerfStats {
 impl Session {
     pub fn miri_unleashed_feature(&self, span: Span, feature_gate: Option<Symbol>) {
         self.miri_unleashed_features.lock().push((span, feature_gate));
+    }
+
+    pub fn local_crate_source_file(&self) -> Option<PathBuf> {
+        let path = self.io.input.opt_path()?;
+        Some(self.opts.file_path_mapping().map_prefix(path).0.into_owned())
     }
 
     fn check_miri_unleashed_features(&self) {
@@ -590,7 +602,19 @@ impl Session {
     pub fn warn(&self, msg: impl Into<DiagnosticMessage>) {
         self.diagnostic().warn(msg)
     }
-    /// Delay a span_bug() call until abort_if_errors()
+
+    /// Ensures that compilation cannot succeed.
+    ///
+    /// If this function has been called but no errors have been emitted and
+    /// compilation succeeds, it will cause an internal compiler error (ICE).
+    ///
+    /// This can be used in code paths that should never run on successful compilations.
+    /// For example, it can be used to create an [`ErrorGuaranteed`]
+    /// (but you should prefer threading through the [`ErrorGuaranteed`] from an error emission directly).
+    ///
+    /// If no span is available, use [`DUMMY_SP`].
+    ///
+    /// [`DUMMY_SP`]: rustc_span::DUMMY_SP
     #[track_caller]
     pub fn delay_span_bug<S: Into<MultiSpan>>(
         &self,
@@ -684,6 +708,10 @@ impl Session {
 
     pub fn is_sanitizer_cfi_enabled(&self) -> bool {
         self.opts.unstable_opts.sanitizer.contains(SanitizerSet::CFI)
+    }
+
+    pub fn is_sanitizer_kcfi_enabled(&self) -> bool {
+        self.opts.unstable_opts.sanitizer.contains(SanitizerSet::KCFI)
     }
 
     /// Check whether this compile session and crate type use static crt.
@@ -972,32 +1000,8 @@ impl Session {
         self.opts.unstable_opts.verbose
     }
 
-    pub fn instrument_mcount(&self) -> bool {
-        self.opts.unstable_opts.instrument_mcount
-    }
-
-    pub fn time_passes(&self) -> bool {
-        self.opts.unstable_opts.time_passes
-    }
-
-    pub fn time_llvm_passes(&self) -> bool {
-        self.opts.unstable_opts.time_llvm_passes
-    }
-
-    pub fn meta_stats(&self) -> bool {
-        self.opts.unstable_opts.meta_stats
-    }
-
-    pub fn asm_comments(&self) -> bool {
-        self.opts.unstable_opts.asm_comments
-    }
-
     pub fn verify_llvm_ir(&self) -> bool {
         self.opts.unstable_opts.verify_llvm_ir || option_env!("RUSTC_VERIFY_LLVM_IR").is_some()
-    }
-
-    pub fn print_llvm_passes(&self) -> bool {
-        self.opts.unstable_opts.print_llvm_passes
     }
 
     pub fn binary_dep_depinfo(&self) -> bool {
@@ -1306,7 +1310,7 @@ fn default_emitter(
 #[allow(rustc::bad_opt_access)]
 pub fn build_session(
     sopts: config::Options,
-    local_crate_source_file: Option<PathBuf>,
+    io: CompilerIO,
     bundle: Option<Lrc<rustc_errors::FluentBundle>>,
     registry: rustc_errors::registry::Registry,
     driver_lint_caps: FxHashMap<lint::LintId, lint::Level>,
@@ -1319,7 +1323,7 @@ pub fn build_session(
     let warnings_allow = sopts
         .lint_opts
         .iter()
-        .rfind(|&&(ref key, _)| *key == "warnings")
+        .rfind(|&(key, _)| *key == "warnings")
         .map_or(false, |&(_, level)| level == lint::Allow);
     let cap_lints_allow = sopts.lint_cap.map_or(false, |cap| cap == lint::Allow);
     let can_emit_warnings = !(warnings_allow || cap_lints_allow);
@@ -1399,11 +1403,6 @@ pub fn build_session(
         Lrc::new(SearchPath::from_sysroot_and_triple(&sysroot, target_triple))
     };
 
-    let file_path_mapping = sopts.file_path_mapping();
-
-    let local_crate_source_file =
-        local_crate_source_file.map(|path| file_path_mapping.map_prefix(path).0);
-
     let optimization_fuel = Lock::new(OptimizationFuel {
         remaining: sopts.unstable_opts.fuel.as_ref().map_or(0, |&(_, i)| i),
         out_of_fuel: false,
@@ -1435,7 +1434,7 @@ pub fn build_session(
         target_tlib_path,
         parse_sess,
         sysroot,
-        local_crate_source_file,
+        io,
         crate_types: OnceCell::new(),
         stable_crate_id: OnceCell::new(),
         features: OnceCell::new(),
@@ -1544,6 +1543,14 @@ fn validate_commandline_args_with_session_available(sess: &Session) {
         }
     }
 
+    // LLVM CFI and KCFI are mutually exclusive
+    if sess.is_sanitizer_cfi_enabled() && sess.is_sanitizer_kcfi_enabled() {
+        sess.emit_err(CannotMixAndMatchSanitizers {
+            first: "cfi".to_string(),
+            second: "kcfi".to_string(),
+        });
+    }
+
     if sess.opts.unstable_opts.stack_protector != StackProtector::None {
         if !sess.target.options.supports_stack_protector {
             sess.emit_warning(StackProtectorNotSupportedForTarget {
@@ -1551,6 +1558,10 @@ fn validate_commandline_args_with_session_available(sess: &Session) {
                 target_triple: &sess.opts.target_triple,
             });
         }
+    }
+
+    if sess.opts.unstable_opts.branch_protection.is_some() && sess.target.arch != "aarch64" {
+        sess.emit_err(BranchProtectionRequiresAArch64);
     }
 
     if let Some(dwarf_version) = sess.opts.unstable_opts.dwarf_version {

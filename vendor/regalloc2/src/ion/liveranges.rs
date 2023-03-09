@@ -366,6 +366,9 @@ impl<'a, F: Function> Env<'a, F> {
 
                 for pos in &[OperandPos::Late, OperandPos::Early] {
                     for op in self.func.inst_operands(inst) {
+                        if op.as_fixed_nonallocatable().is_some() {
+                            continue;
+                        }
                         if op.pos() == *pos {
                             let was_live = live.get(op.vreg().vreg());
                             trace!("op {:?} was_live = {}", op, was_live);
@@ -511,6 +514,9 @@ impl<'a, F: Function> Env<'a, F> {
                 let mut reused_input = None;
                 for op in self.func.inst_operands(inst) {
                     if let OperandConstraint::Reuse(i) = op.constraint() {
+                        debug_assert!(self.func.inst_operands(inst)[i]
+                            .as_fixed_nonallocatable()
+                            .is_none());
                         reused_input = Some(self.func.inst_operands(inst)[i].vreg());
                         break;
                     }
@@ -567,7 +573,7 @@ impl<'a, F: Function> Env<'a, F> {
                                     InsertMovePrio::MultiFixedRegInitial,
                                     Allocation::reg(src_preg),
                                     Allocation::reg(dst_preg),
-                                    Some(dst.vreg()),
+                                    dst.vreg(),
                                 );
                             }
 
@@ -712,14 +718,14 @@ impl<'a, F: Function> Env<'a, F> {
                                             InsertMovePrio::Regular,
                                             Allocation::reg(preg),
                                             Allocation::reg(preg),
-                                            Some(dst.vreg()),
+                                            dst.vreg(),
                                         );
                                         self.insert_move(
                                             ProgPoint::before(inst.next()),
                                             InsertMovePrio::MultiFixedRegInitial,
                                             Allocation::reg(preg),
                                             Allocation::reg(preg),
-                                            Some(src.vreg()),
+                                            src.vreg(),
                                         );
                                     } else {
                                         if inst > self.cfginfo.block_entry[block.index()].inst() {
@@ -745,7 +751,7 @@ impl<'a, F: Function> Env<'a, F> {
                                             InsertMovePrio::BlockParam,
                                             Allocation::reg(preg),
                                             Allocation::reg(preg),
-                                            Some(dst.vreg()),
+                                            dst.vreg(),
                                         );
                                     }
                                 } else {
@@ -775,7 +781,7 @@ impl<'a, F: Function> Env<'a, F> {
                                             InsertMovePrio::PostRegular,
                                             Allocation::reg(preg),
                                             Allocation::reg(preg),
-                                            Some(dst.vreg()),
+                                            dst.vreg(),
                                         );
                                     }
                                     // Otherwise, if dead, no need to create
@@ -929,8 +935,8 @@ impl<'a, F: Function> Env<'a, F> {
                 // constraint, and (ii) move the def to Early position
                 // to reserve the register for the whole instruction.
                 let mut operand_rewrites: FxHashMap<usize, Operand> = FxHashMap::default();
-                let mut late_def_fixed: SmallVec<[(PReg, Operand, usize); 2]> = smallvec![];
-                for (i, &operand) in self.func.inst_operands(inst).iter().enumerate() {
+                let mut late_def_fixed: SmallVec<[PReg; 8]> = smallvec![];
+                for &operand in self.func.inst_operands(inst) {
                     if let OperandConstraint::FixedReg(preg) = operand.constraint() {
                         match operand.pos() {
                             OperandPos::Late => {
@@ -945,28 +951,31 @@ impl<'a, F: Function> Env<'a, F> {
                                     "Invalid operand: fixed constraint on Use/Mod at Late point"
                                 );
 
-                                late_def_fixed.push((preg, operand, i));
+                                late_def_fixed.push(preg);
                             }
                             _ => {}
                         }
                     }
                 }
                 for (i, &operand) in self.func.inst_operands(inst).iter().enumerate() {
+                    if operand.as_fixed_nonallocatable().is_some() {
+                        continue;
+                    }
                     if let OperandConstraint::FixedReg(preg) = operand.constraint() {
                         match operand.pos() {
-                            OperandPos::Early => {
+                            OperandPos::Early if live.get(operand.vreg().vreg()) => {
                                 assert!(operand.kind() == OperandKind::Use,
                                             "Invalid operand: fixed constraint on Def/Mod at Early position");
 
                                 // If we have a constraint at the
                                 // Early point for a fixed preg, and
                                 // this preg is also constrained with
-                                // a *separate* def at Late, and *if*
-                                // the vreg is live downward, we have
-                                // to use the multi-fixed-reg
-                                // mechanism for a fixup and rewrite
-                                // here without the constraint. See
-                                // #53.
+                                // a *separate* def at Late or is
+                                // clobbered, and *if* the vreg is
+                                // live downward, we have to use the
+                                // multi-fixed-reg mechanism for a
+                                // fixup and rewrite here without the
+                                // constraint. See #53.
                                 //
                                 // We adjust the def liverange and Use
                                 // to an "early" position to reserve
@@ -978,10 +987,18 @@ impl<'a, F: Function> Env<'a, F> {
                                 // conflicting constraints for the
                                 // same vreg in a separate pass (see
                                 // `fixup_multi_fixed_vregs` below).
-                                if let Some((_, def_op, def_slot)) = late_def_fixed
-                                    .iter()
-                                    .find(|(def_preg, _, _)| *def_preg == preg)
+                                if late_def_fixed.contains(&preg)
+                                    || self.func.inst_clobbers(inst).contains(preg)
                                 {
+                                    log::trace!(
+                                        concat!(
+                                            "-> operand {:?} is fixed to preg {:?}, ",
+                                            "is downward live, and there is also a ",
+                                            "def or clobber at this preg"
+                                        ),
+                                        operand,
+                                        preg
+                                    );
                                     let pos = ProgPoint::before(inst);
                                     self.multi_fixed_reg_fixups.push(MultiFixedRegFixup {
                                         pos,
@@ -992,6 +1009,14 @@ impl<'a, F: Function> Env<'a, F> {
                                         level: FixedRegFixupLevel::Initial,
                                     });
 
+                                    // We need to insert a reservation
+                                    // at the before-point to reserve
+                                    // the reg for the use too.
+                                    let range = CodeRange::singleton(pos);
+                                    self.add_liverange_to_preg(range, preg);
+
+                                    // Remove the fixed-preg
+                                    // constraint from the Use.
                                     operand_rewrites.insert(
                                         i,
                                         Operand::new(
@@ -999,15 +1024,6 @@ impl<'a, F: Function> Env<'a, F> {
                                             OperandConstraint::Any,
                                             operand.kind(),
                                             operand.pos(),
-                                        ),
-                                    );
-                                    operand_rewrites.insert(
-                                        *def_slot,
-                                        Operand::new(
-                                            def_op.vreg(),
-                                            def_op.constraint(),
-                                            def_op.kind(),
-                                            OperandPos::Early,
                                         ),
                                     );
                                 }
@@ -1056,6 +1072,15 @@ impl<'a, F: Function> Env<'a, F> {
                             pos,
                             operand
                         );
+
+                        // If this is a "fixed non-allocatable
+                        // register" operand, set the alloc
+                        // immediately and then ignore the operand
+                        // hereafter.
+                        if let Some(preg) = operand.as_fixed_nonallocatable() {
+                            self.set_alloc(inst, i, Allocation::reg(preg));
+                            continue;
+                        }
 
                         match operand.kind() {
                             OperandKind::Def | OperandKind::Mod => {
@@ -1289,7 +1314,7 @@ impl<'a, F: Function> Env<'a, F> {
         // have to split the multiple uses at the same progpoint into
         // different bundles, which breaks invariants related to
         // disjoint ranges and bundles).
-        let mut extra_clobbers: SmallVec<[(PReg, Inst); 8]> = smallvec![];
+        let mut extra_clobbers: SmallVec<[(PReg, ProgPoint); 8]> = smallvec![];
         for vreg in 0..self.vregs.len() {
             for range_idx in 0..self.vregs[vreg].ranges.len() {
                 let entry = self.vregs[vreg].ranges[range_idx];
@@ -1398,15 +1423,15 @@ impl<'a, F: Function> Env<'a, F> {
                                 u.operand.pos(),
                             );
                             trace!(" -> extra clobber {} at inst{}", preg, u.pos.inst().index());
-                            extra_clobbers.push((preg, u.pos.inst()));
+                            extra_clobbers.push((preg, u.pos));
                         }
                     }
                 }
 
-                for &(clobber, inst) in &extra_clobbers {
+                for &(clobber, pos) in &extra_clobbers {
                     let range = CodeRange {
-                        from: ProgPoint::before(inst),
-                        to: ProgPoint::before(inst.next()),
+                        from: pos,
+                        to: pos.next(),
                     };
                     self.add_liverange_to_preg(range, clobber);
                 }

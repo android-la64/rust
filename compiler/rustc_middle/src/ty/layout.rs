@@ -271,7 +271,7 @@ impl<'tcx> SizeSkeleton<'tcx> {
                 let non_zero = !ty.is_unsafe_ptr();
                 let tail = tcx.struct_tail_erasing_lifetimes(pointee, param_env);
                 match tail.kind() {
-                    ty::Param(_) | ty::Projection(_) => {
+                    ty::Param(_) | ty::Alias(ty::Projection, _) => {
                         debug_assert!(tail.has_non_region_param());
                         Ok(SizeSkeleton::Pointer { non_zero, tail: tcx.erase_regions(tail) })
                     }
@@ -349,7 +349,7 @@ impl<'tcx> SizeSkeleton<'tcx> {
                 }
             }
 
-            ty::Projection(_) | ty::Opaque(..) => {
+            ty::Alias(..) => {
                 let normalized = tcx.normalize_erasing_regions(param_env, ty);
                 if ty == normalized {
                     Err(err)
@@ -670,29 +670,50 @@ where
                         });
                     }
 
-                    match tcx.struct_tail_erasing_lifetimes(pointee, cx.param_env()).kind() {
-                        ty::Slice(_) | ty::Str => TyMaybeWithLayout::Ty(tcx.types.usize),
-                        ty::Dynamic(_, _, ty::Dyn) => {
-                            TyMaybeWithLayout::Ty(tcx.mk_imm_ref(
-                                tcx.lifetimes.re_static,
-                                tcx.mk_array(tcx.types.usize, 3),
-                            ))
-                            /* FIXME: use actual fn pointers
-                            Warning: naively computing the number of entries in the
-                            vtable by counting the methods on the trait + methods on
-                            all parent traits does not work, because some methods can
-                            be not object safe and thus excluded from the vtable.
-                            Increase this counter if you tried to implement this but
-                            failed to do it without duplicating a lot of code from
-                            other places in the compiler: 2
-                            tcx.mk_tup(&[
-                                tcx.mk_array(tcx.types.usize, 3),
-                                tcx.mk_array(Option<fn()>),
-                            ])
-                            */
+                    let mk_dyn_vtable = || {
+                        tcx.mk_imm_ref(tcx.lifetimes.re_static, tcx.mk_array(tcx.types.usize, 3))
+                        /* FIXME: use actual fn pointers
+                        Warning: naively computing the number of entries in the
+                        vtable by counting the methods on the trait + methods on
+                        all parent traits does not work, because some methods can
+                        be not object safe and thus excluded from the vtable.
+                        Increase this counter if you tried to implement this but
+                        failed to do it without duplicating a lot of code from
+                        other places in the compiler: 2
+                        tcx.mk_tup(&[
+                            tcx.mk_array(tcx.types.usize, 3),
+                            tcx.mk_array(Option<fn()>),
+                        ])
+                        */
+                    };
+
+                    let metadata = if let Some(metadata_def_id) = tcx.lang_items().metadata_type() {
+                        let metadata = tcx.normalize_erasing_regions(
+                            cx.param_env(),
+                            tcx.mk_projection(metadata_def_id, [pointee]),
+                        );
+
+                        // Map `Metadata = DynMetadata<dyn Trait>` back to a vtable, since it
+                        // offers better information than `std::ptr::metadata::VTable`,
+                        // and we rely on this layout information to trigger a panic in
+                        // `std::mem::uninitialized::<&dyn Trait>()`, for example.
+                        if let ty::Adt(def, substs) = metadata.kind()
+                            && Some(def.did()) == tcx.lang_items().dyn_metadata()
+                            && substs.type_at(0).is_trait()
+                        {
+                            mk_dyn_vtable()
+                        } else {
+                            metadata
                         }
-                        _ => bug!("TyAndLayout::field({:?}): not applicable", this),
-                    }
+                    } else {
+                        match tcx.struct_tail_erasing_lifetimes(pointee, cx.param_env()).kind() {
+                            ty::Slice(_) | ty::Str => tcx.types.usize,
+                            ty::Dynamic(_, _, ty::Dyn) => mk_dyn_vtable(),
+                            _ => bug!("TyAndLayout::field({:?}): not applicable", this),
+                        }
+                    };
+
+                    TyMaybeWithLayout::Ty(metadata)
                 }
 
                 // Arrays and slices.
@@ -757,10 +778,9 @@ where
                     }
                 }
 
-                ty::Projection(_)
+                ty::Alias(..)
                 | ty::Bound(..)
                 | ty::Placeholder(..)
-                | ty::Opaque(..)
                 | ty::Param(_)
                 | ty::Infer(_)
                 | ty::Error(_) => bug!("TyAndLayout::field: unexpected type `{}`", this.ty),
@@ -859,7 +879,7 @@ where
                     //
                     // If the niche is a pointer, it's either valid (according
                     // to its type), or null (which the niche field's scalar
-                    // validity range encodes).  This allows using
+                    // validity range encodes). This allows using
                     // `dereferenceable_or_null` for e.g., `Option<&T>`, and
                     // this will continue to work as long as we don't start
                     // using more niches than just null (e.g., the first page of
@@ -994,7 +1014,7 @@ where
 /// might (from a foreign exception or similar).
 #[inline]
 #[tracing::instrument(level = "debug", skip(tcx))]
-pub fn fn_can_unwind<'tcx>(tcx: TyCtxt<'tcx>, fn_def_id: Option<DefId>, abi: SpecAbi) -> bool {
+pub fn fn_can_unwind(tcx: TyCtxt<'_>, fn_def_id: Option<DefId>, abi: SpecAbi) -> bool {
     if let Some(did) = fn_def_id {
         // Special attribute for functions which can't unwind.
         if tcx.codegen_fn_attrs(did).flags.contains(CodegenFnAttrFlags::NEVER_UNWIND) {

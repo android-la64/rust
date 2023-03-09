@@ -29,10 +29,10 @@ pub struct ObjectBuilder {
     isa: Box<dyn TargetIsa>,
     binary_format: object::BinaryFormat,
     architecture: object::Architecture,
+    flags: object::FileFlags,
     endian: object::Endianness,
     name: Vec<u8>,
     libcall_names: Box<dyn Fn(ir::LibCall) -> String + Send + Sync>,
-    function_alignment: u64,
     per_function_section: bool,
 }
 
@@ -49,6 +49,7 @@ impl ObjectBuilder {
         name: V,
         libcall_names: Box<dyn Fn(ir::LibCall) -> String + Send + Sync>,
     ) -> ModuleResult<Self> {
+        let mut file_flags = object::FileFlags::None;
         let binary_format = match isa.triple().binary_format {
             target_lexicon::BinaryFormat::Elf => object::BinaryFormat::Elf,
             target_lexicon::BinaryFormat::Coff => object::BinaryFormat::Coff,
@@ -73,6 +74,21 @@ impl ObjectBuilder {
             target_lexicon::Architecture::X86_64 => object::Architecture::X86_64,
             target_lexicon::Architecture::Arm(_) => object::Architecture::Arm,
             target_lexicon::Architecture::Aarch64(_) => object::Architecture::Aarch64,
+            target_lexicon::Architecture::Riscv64(_) => {
+                if binary_format != object::BinaryFormat::Elf {
+                    return Err(ModuleError::Backend(anyhow!(
+                        "binary format {:?} is not supported for riscv64",
+                        binary_format,
+                    )));
+                }
+                // FIXME(#4994) get the right variant from the TargetIsa
+                file_flags = object::FileFlags::Elf {
+                    os_abi: object::elf::ELFOSABI_NONE,
+                    abi_version: 0,
+                    e_flags: object::elf::EF_RISCV_RVC | object::elf::EF_RISCV_FLOAT_ABI_DOUBLE,
+                };
+                object::Architecture::Riscv64
+            }
             target_lexicon::Architecture::S390x => object::Architecture::S390x,
             architecture => {
                 return Err(ModuleError::Backend(anyhow!(
@@ -89,18 +105,12 @@ impl ObjectBuilder {
             isa,
             binary_format,
             architecture,
+            flags: file_flags,
             endian,
             name: name.into(),
             libcall_names,
-            function_alignment: 1,
             per_function_section: false,
         })
-    }
-
-    /// Set the alignment used for functions.
-    pub fn function_alignment(&mut self, alignment: u64) -> &mut Self {
-        self.function_alignment = alignment;
-        self
     }
 
     /// Set if every function should end up in their own section.
@@ -123,7 +133,6 @@ pub struct ObjectModule {
     libcalls: HashMap<ir::LibCall, SymbolId>,
     libcall_names: Box<dyn Fn(ir::LibCall) -> String + Send + Sync>,
     known_symbols: HashMap<ir::KnownSymbol, SymbolId>,
-    function_alignment: u64,
     per_function_section: bool,
     anon_func_number: u64,
     anon_data_number: u64,
@@ -133,6 +142,7 @@ impl ObjectModule {
     /// Create a new `ObjectModule` using the given Cranelift target.
     pub fn new(builder: ObjectBuilder) -> Self {
         let mut object = Object::new(builder.binary_format, builder.architecture, builder.endian);
+        object.flags = builder.flags;
         object.add_file_symbol(builder.name);
         Self {
             isa: builder.isa,
@@ -144,7 +154,6 @@ impl ObjectModule {
             libcalls: HashMap::new(),
             libcall_names: builder.libcall_names,
             known_symbols: HashMap::new(),
-            function_alignment: builder.function_alignment,
             per_function_section: builder.per_function_section,
             anon_func_number: 0,
             anon_data_number: 0,
@@ -351,10 +360,9 @@ impl Module for ObjectModule {
         }
         *defined = true;
 
-        let align = self
-            .function_alignment
-            .max(self.isa.symbol_alignment())
-            .max(alignment);
+        let align = alignment
+            .max(self.isa.function_alignment() as u64)
+            .max(self.isa.symbol_alignment());
         let (section, offset) = if self.per_function_section {
             let symbol_name = self.object.symbol(symbol).name.clone();
             let (section, offset) =
@@ -696,6 +704,18 @@ impl ObjectModule {
                 );
                 (
                     RelocationKind::Elf(object::elf::R_390_TLS_GDCALL),
+                    RelocationEncoding::Generic,
+                    0,
+                )
+            }
+            Reloc::RiscvCall => {
+                assert_eq!(
+                    self.object.format(),
+                    object::BinaryFormat::Elf,
+                    "RiscvCall is not supported for this file format"
+                );
+                (
+                    RelocationKind::Elf(object::elf::R_RISCV_CALL),
                     RelocationEncoding::Generic,
                     0,
                 )

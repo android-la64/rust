@@ -9,7 +9,6 @@ use rustc_data_structures::sync::Lock;
 use rustc_macros::HashStable_Generic;
 use rustc_serialize::{Decodable, Decoder, Encodable, Encoder};
 
-use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str;
@@ -165,6 +164,7 @@ symbols! {
         Capture,
         Center,
         Clone,
+        Context,
         Continue,
         Copy,
         Count,
@@ -194,6 +194,7 @@ symbols! {
         FromIterator,
         FromResidual,
         Future,
+        FutureOutput,
         FxHashMap,
         FxHashSet,
         GlobalAlloc,
@@ -214,6 +215,7 @@ symbols! {
         Is,
         ItemContext,
         Iterator,
+        IteratorItem,
         Layout,
         Left,
         LinkedList,
@@ -377,9 +379,9 @@ symbols! {
         assert_eq_macro,
         assert_inhabited,
         assert_macro,
+        assert_mem_uninitialized_valid,
         assert_ne_macro,
         assert_receiver_is_total_eq,
-        assert_uninit_valid,
         assert_zero_valid,
         asserting,
         associated_const_equality,
@@ -497,6 +499,7 @@ symbols! {
         console,
         const_allocate,
         const_async_blocks,
+        const_closures,
         const_compare_raw_pointers,
         const_constructor,
         const_deallocate,
@@ -612,6 +615,7 @@ symbols! {
         dispatch_from_dyn,
         div,
         div_assign,
+        do_not_recommend,
         doc,
         doc_alias,
         doc_auto_cfg,
@@ -829,6 +833,8 @@ symbols! {
         item_like_imports,
         iter,
         iter_repeat,
+        iterator_collect_fn,
+        kcfi,
         keyword,
         kind,
         kreg,
@@ -1040,6 +1046,7 @@ symbols! {
         panic_2021,
         panic_abort,
         panic_bounds_check,
+        panic_cannot_unwind,
         panic_display,
         panic_fmt,
         panic_handler,
@@ -1047,7 +1054,7 @@ symbols! {
         panic_implementation,
         panic_info,
         panic_location,
-        panic_no_unwind,
+        panic_nounwind,
         panic_runtime,
         panic_str,
         panic_unwind,
@@ -1711,7 +1718,8 @@ impl fmt::Display for Ident {
     }
 }
 
-/// This is the most general way to print identifiers.
+/// The most general type to print identifiers.
+///
 /// AST pretty-printer is used as a fallback for turning AST structures into token streams for
 /// proc macros. Additionally, proc macros may stringify their input and expect it survive the
 /// stringification (especially true for proc macro derives written between Rust 1.15 and 1.30).
@@ -1800,7 +1808,7 @@ impl fmt::Display for MacroRulesNormalizedIdent {
 pub struct Symbol(SymbolIndex);
 
 rustc_index::newtype_index! {
-    struct SymbolIndex { .. }
+    struct SymbolIndex {}
 }
 
 impl Symbol {
@@ -1974,7 +1982,6 @@ pub mod kw {
 /// For example `sym::rustfmt` or `sym::u8`.
 pub mod sym {
     use super::Symbol;
-    use std::convert::TryInto;
 
     #[doc(inline)]
     pub use super::sym_generated::*;

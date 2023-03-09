@@ -1,7 +1,9 @@
 //! Miscellaneous type-system utilities that are too small to deserve their own modules.
 
 use crate::middle::codegen_fn_attrs::CodegenFnAttrFlags;
+use crate::mir;
 use crate::ty::layout::IntegerExt;
+use crate::ty::query::TyCtxtAt;
 use crate::ty::{
     self, DefIdTree, FallibleTypeFolder, Ty, TyCtxt, TypeFoldable, TypeFolder, TypeSuperFoldable,
     TypeVisitable,
@@ -15,6 +17,7 @@ use rustc_hir as hir;
 use rustc_hir::def::{CtorOf, DefKind, Res};
 use rustc_hir::def_id::DefId;
 use rustc_index::bit_set::GrowableBitSet;
+use rustc_index::vec::{Idx, IndexVec};
 use rustc_macros::HashStable;
 use rustc_span::{sym, DUMMY_SP};
 use rustc_target::abi::{Integer, IntegerType, Size, TargetDataLayout};
@@ -257,7 +260,7 @@ impl<'tcx> TyCtxt<'tcx> {
 
                 ty::Tuple(_) => break,
 
-                ty::Projection(_) | ty::Opaque(..) => {
+                ty::Alias(..) => {
                     let normalized = normalize(ty);
                     if ty == normalized {
                         return ty;
@@ -330,8 +333,7 @@ impl<'tcx> TyCtxt<'tcx> {
                         break;
                     }
                 }
-                (ty::Projection(_) | ty::Opaque(..), _)
-                | (_, ty::Projection(_) | ty::Opaque(..)) => {
+                (ty::Alias(..), _) | (_, ty::Alias(..)) => {
                     // If either side is a projection, attempt to
                     // progress via normalization. (Should be safe to
                     // apply to both sides as normalization is
@@ -639,22 +641,15 @@ impl<'tcx> TyCtxt<'tcx> {
         ty::EarlyBinder(self.type_of(def_id))
     }
 
-    pub fn bound_trait_impl_trait_tys(
+    pub fn bound_return_position_impl_trait_in_trait_tys(
         self,
         def_id: DefId,
     ) -> ty::EarlyBinder<Result<&'tcx FxHashMap<DefId, Ty<'tcx>>, ErrorGuaranteed>> {
-        ty::EarlyBinder(self.collect_trait_impl_trait_tys(def_id))
+        ty::EarlyBinder(self.collect_return_position_impl_trait_in_trait_tys(def_id))
     }
 
     pub fn bound_fn_sig(self, def_id: DefId) -> ty::EarlyBinder<ty::PolyFnSig<'tcx>> {
         ty::EarlyBinder(self.fn_sig(def_id))
-    }
-
-    pub fn bound_impl_trait_ref(
-        self,
-        def_id: DefId,
-    ) -> Option<ty::EarlyBinder<ty::TraitRef<'tcx>>> {
-        self.impl_trait_ref(def_id).map(|i| ty::EarlyBinder(i))
     }
 
     pub fn bound_explicit_item_bounds(
@@ -664,33 +659,88 @@ impl<'tcx> TyCtxt<'tcx> {
         ty::EarlyBinder(self.explicit_item_bounds(def_id))
     }
 
-    pub fn bound_item_bounds(
-        self,
-        def_id: DefId,
-    ) -> ty::EarlyBinder<&'tcx ty::List<ty::Predicate<'tcx>>> {
-        ty::EarlyBinder(self.item_bounds(def_id))
-    }
-
-    pub fn bound_const_param_default(self, def_id: DefId) -> ty::EarlyBinder<ty::Const<'tcx>> {
-        ty::EarlyBinder(self.const_param_default(def_id))
-    }
-
-    pub fn bound_predicates_of(
-        self,
-        def_id: DefId,
-    ) -> ty::EarlyBinder<ty::generics::GenericPredicates<'tcx>> {
-        ty::EarlyBinder(self.predicates_of(def_id))
-    }
-
-    pub fn bound_explicit_predicates_of(
-        self,
-        def_id: DefId,
-    ) -> ty::EarlyBinder<ty::generics::GenericPredicates<'tcx>> {
-        ty::EarlyBinder(self.explicit_predicates_of(def_id))
-    }
-
     pub fn bound_impl_subject(self, def_id: DefId) -> ty::EarlyBinder<ty::ImplSubject<'tcx>> {
         ty::EarlyBinder(self.impl_subject(def_id))
+    }
+
+    /// Returns names of captured upvars for closures and generators.
+    ///
+    /// Here are some examples:
+    ///  - `name__field1__field2` when the upvar is captured by value.
+    ///  - `_ref__name__field` when the upvar is captured by reference.
+    ///
+    /// For generators this only contains upvars that are shared by all states.
+    pub fn closure_saved_names_of_captured_variables(
+        self,
+        def_id: DefId,
+    ) -> SmallVec<[String; 16]> {
+        let body = self.optimized_mir(def_id);
+
+        body.var_debug_info
+            .iter()
+            .filter_map(|var| {
+                let is_ref = match var.value {
+                    mir::VarDebugInfoContents::Place(place)
+                        if place.local == mir::Local::new(1) =>
+                    {
+                        // The projection is either `[.., Field, Deref]` or `[.., Field]`. It
+                        // implies whether the variable is captured by value or by reference.
+                        matches!(place.projection.last().unwrap(), mir::ProjectionElem::Deref)
+                    }
+                    _ => return None,
+                };
+                let prefix = if is_ref { "_ref__" } else { "" };
+                Some(prefix.to_owned() + var.name.as_str())
+            })
+            .collect()
+    }
+
+    // FIXME(eddyb) maybe precompute this? Right now it's computed once
+    // per generator monomorphization, but it doesn't depend on substs.
+    pub fn generator_layout_and_saved_local_names(
+        self,
+        def_id: DefId,
+    ) -> (
+        &'tcx ty::GeneratorLayout<'tcx>,
+        IndexVec<mir::GeneratorSavedLocal, Option<rustc_span::Symbol>>,
+    ) {
+        let tcx = self;
+        let body = tcx.optimized_mir(def_id);
+        let generator_layout = body.generator_layout().unwrap();
+        let mut generator_saved_local_names =
+            IndexVec::from_elem(None, &generator_layout.field_tys);
+
+        let state_arg = mir::Local::new(1);
+        for var in &body.var_debug_info {
+            let mir::VarDebugInfoContents::Place(place) = &var.value else { continue };
+            if place.local != state_arg {
+                continue;
+            }
+            match place.projection[..] {
+                [
+                    // Deref of the `Pin<&mut Self>` state argument.
+                    mir::ProjectionElem::Field(..),
+                    mir::ProjectionElem::Deref,
+                    // Field of a variant of the state.
+                    mir::ProjectionElem::Downcast(_, variant),
+                    mir::ProjectionElem::Field(field, _),
+                ] => {
+                    let name = &mut generator_saved_local_names
+                        [generator_layout.variant_fields[variant][field]];
+                    if name.is_none() {
+                        name.replace(var.name);
+                    }
+                }
+                _ => {}
+            }
+        }
+        (generator_layout, generator_saved_local_names)
+    }
+}
+
+impl<'tcx> TyCtxtAt<'tcx> {
+    pub fn bound_type_of(self, def_id: DefId) -> ty::EarlyBinder<Ty<'tcx>> {
+        ty::EarlyBinder(self.type_of(def_id))
     }
 }
 
@@ -750,7 +800,7 @@ impl<'tcx> TypeFolder<'tcx> for OpaqueTypeExpander<'tcx> {
     }
 
     fn fold_ty(&mut self, t: Ty<'tcx>) -> Ty<'tcx> {
-        if let ty::Opaque(def_id, substs) = *t.kind() {
+        if let ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) = *t.kind() {
             self.expand_opaque_ty(def_id, substs).unwrap_or(t)
         } else if t.has_opaque_types() {
             t.super_fold_with(self)
@@ -862,10 +912,9 @@ impl<'tcx> Ty<'tcx> {
             | ty::Generator(..)
             | ty::GeneratorWitness(_)
             | ty::Infer(_)
-            | ty::Opaque(..)
+            | ty::Alias(..)
             | ty::Param(_)
-            | ty::Placeholder(_)
-            | ty::Projection(_) => false,
+            | ty::Placeholder(_) => false,
         }
     }
 
@@ -902,10 +951,9 @@ impl<'tcx> Ty<'tcx> {
             | ty::Generator(..)
             | ty::GeneratorWitness(_)
             | ty::Infer(_)
-            | ty::Opaque(..)
+            | ty::Alias(..)
             | ty::Param(_)
-            | ty::Placeholder(_)
-            | ty::Projection(_) => false,
+            | ty::Placeholder(_) => false,
         }
     }
 
@@ -1025,12 +1073,9 @@ impl<'tcx> Ty<'tcx> {
             //
             // FIXME(ecstaticmorse): Maybe we should `bug` here? This should probably only be
             // called for known, fully-monomorphized types.
-            ty::Projection(_)
-            | ty::Opaque(..)
-            | ty::Param(_)
-            | ty::Bound(..)
-            | ty::Placeholder(_)
-            | ty::Infer(_) => false,
+            ty::Alias(..) | ty::Param(_) | ty::Bound(..) | ty::Placeholder(_) | ty::Infer(_) => {
+                false
+            }
 
             ty::Foreign(_) | ty::GeneratorWitness(..) | ty::Error(_) => false,
         }
@@ -1161,18 +1206,17 @@ pub fn needs_drop_components<'tcx>(
 
         // These require checking for `Copy` bounds or `Adt` destructors.
         ty::Adt(..)
-        | ty::Projection(..)
+        | ty::Alias(..)
         | ty::Param(_)
         | ty::Bound(..)
         | ty::Placeholder(..)
-        | ty::Opaque(..)
         | ty::Infer(_)
         | ty::Closure(..)
         | ty::Generator(..) => Ok(smallvec![ty]),
     }
 }
 
-pub fn is_trivially_const_drop<'tcx>(ty: Ty<'tcx>) -> bool {
+pub fn is_trivially_const_drop(ty: Ty<'_>) -> bool {
     match *ty.kind() {
         ty::Bool
         | ty::Char
@@ -1189,13 +1233,12 @@ pub fn is_trivially_const_drop<'tcx>(ty: Ty<'tcx>) -> bool {
         | ty::Never
         | ty::Foreign(_) => true,
 
-        ty::Opaque(..)
+        ty::Alias(..)
         | ty::Dynamic(..)
         | ty::Error(_)
         | ty::Bound(..)
         | ty::Param(_)
         | ty::Placeholder(_)
-        | ty::Projection(_)
         | ty::Infer(_) => false,
 
         // Not trivial because they have components, and instead of looking inside,

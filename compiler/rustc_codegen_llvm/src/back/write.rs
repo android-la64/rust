@@ -203,7 +203,7 @@ pub fn target_machine_factory(
         sess.opts.unstable_opts.trap_unreachable.unwrap_or(sess.target.trap_unreachable);
     let emit_stack_size_section = sess.opts.unstable_opts.emit_stack_sizes;
 
-    let asm_comments = sess.asm_comments();
+    let asm_comments = sess.opts.unstable_opts.asm_comments;
     let relax_elf_relocations =
         sess.opts.unstable_opts.relax_elf_relocations.unwrap_or(sess.target.relax_elf_relocations);
 
@@ -909,7 +909,7 @@ unsafe fn embed_bitcode(
 
 // Create a `__imp_<symbol> = &symbol` global for every public static `symbol`.
 // This is required to satisfy `dllimport` references to static data in .rlibs
-// when using MSVC linker.  We do this only for data, as linker can fix up
+// when using MSVC linker. We do this only for data, as linker can fix up
 // code references on its own.
 // See #26591, #27438
 fn create_msvc_imps(

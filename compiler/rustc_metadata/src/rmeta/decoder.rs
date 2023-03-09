@@ -78,10 +78,6 @@ pub(crate) struct CrateMetadata {
     blob: MetadataBlob,
 
     // --- Some data pre-decoded from the metadata blob, usually for performance ---
-    /// NOTE(eddyb) we pass `'static` to a `'tcx` parameter because this
-    /// lifetime is only used behind `LazyValue`, `LazyArray`, or `LazyTable`, and therefore acts like a
-    /// universal (`for<'tcx>`), that is paired up with whichever `TyCtxt`
-    /// is being used to decode those values.
     root: CrateRoot,
     /// Trait impl data.
     /// FIXME: Used only from queries and can use query cache,
@@ -466,7 +462,7 @@ impl<'a, 'tcx> Decodable<DecodeContext<'a, 'tcx>> for SyntaxContext {
                 .root
                 .syntax_contexts
                 .get(cdata, id)
-                .unwrap_or_else(|| panic!("Missing SyntaxContext {:?} for crate {:?}", id, cname))
+                .unwrap_or_else(|| panic!("Missing SyntaxContext {id:?} for crate {cname:?}"))
                 .decode((cdata, sess))
         })
     }
@@ -688,10 +684,10 @@ impl MetadataBlob {
     pub(crate) fn get_root(&self) -> CrateRoot {
         let slice = &self.blob()[..];
         let offset = METADATA_HEADER.len();
-        let pos = (((slice[offset + 0] as u32) << 24)
-            | ((slice[offset + 1] as u32) << 16)
-            | ((slice[offset + 2] as u32) << 8)
-            | ((slice[offset + 3] as u32) << 0)) as usize;
+
+        let pos_bytes = slice[offset..][..4].try_into().unwrap();
+        let pos = u32::from_be_bytes(pos_bytes) as usize;
+
         LazyValue::<CrateRoot>::from_position(NonZeroUsize::new(pos).unwrap()).decode(self)
     }
 
@@ -702,16 +698,14 @@ impl MetadataBlob {
         writeln!(out, "hash {} stable_crate_id {:?}", root.hash, root.stable_crate_id)?;
         writeln!(out, "proc_macro {:?}", root.proc_macro_data.is_some())?;
         writeln!(out, "=External Dependencies=")?;
+
         for (i, dep) in root.crate_deps.decode(self).enumerate() {
+            let CrateDep { name, extra_filename, hash, host_hash, kind } = dep;
+            let number = i + 1;
+
             writeln!(
                 out,
-                "{} {}{} hash {} host_hash {:?} kind {:?}",
-                i + 1,
-                dep.name,
-                dep.extra_filename,
-                dep.hash,
-                dep.host_hash,
-                dep.kind
+                "{number} {name}{extra_filename} hash {hash} host_hash {host_hash:?} kind {kind:?}"
             )?;
         }
         write!(out, "\n")?;
@@ -812,7 +806,7 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
             .tables
             .def_span
             .get(self, index)
-            .unwrap_or_else(|| panic!("Missing span for {:?}", index))
+            .unwrap_or_else(|| panic!("Missing span for {index:?}"))
             .decode((self, sess))
     }
 
@@ -1255,7 +1249,7 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
             .tables
             .proc_macro_quoted_spans
             .get(self, index)
-            .unwrap_or_else(|| panic!("Missing proc macro quoted span: {:?}", index))
+            .unwrap_or_else(|| panic!("Missing proc macro quoted span: {index:?}"))
             .decode((self, sess))
     }
 
@@ -1527,13 +1521,15 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
                 if let Some(virtual_dir) = &sess.opts.unstable_opts.simulate_remapped_rust_src_base
                 {
                     if let Some(real_dir) = &sess.opts.real_rust_source_base_dir {
-                        if let rustc_span::FileName::Real(ref mut old_name) = name {
-                            if let rustc_span::RealFileName::LocalPath(local) = old_name {
-                                if let Ok(rest) = local.strip_prefix(real_dir) {
-                                    *old_name = rustc_span::RealFileName::Remapped {
-                                        local_path: None,
-                                        virtual_name: virtual_dir.join(rest),
-                                    };
+                        for subdir in ["library", "compiler"] {
+                            if let rustc_span::FileName::Real(ref mut old_name) = name {
+                                if let rustc_span::RealFileName::LocalPath(local) = old_name {
+                                    if let Ok(rest) = local.strip_prefix(real_dir.join(subdir)) {
+                                        *old_name = rustc_span::RealFileName::Remapped {
+                                            local_path: None,
+                                            virtual_name: virtual_dir.join(subdir).join(rest),
+                                        };
+                                    }
                                 }
                             }
                         }

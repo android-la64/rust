@@ -9,6 +9,7 @@ use rustc_span::edition::Edition;
 use rustc_span::symbol::{Ident, MacroRulesNormalizedIdent, Symbol};
 use rustc_target::abi::TargetDataLayoutErrors;
 use rustc_target::spec::{PanicStrategy, SplitDebuginfo, StackProtector, TargetTriple};
+use rustc_type_ir as type_ir;
 use std::borrow::Cow;
 use std::fmt;
 use std::num::ParseIntError;
@@ -59,7 +60,7 @@ into_diagnostic_arg_using_display!(
     i128,
     u128,
     std::io::Error,
-    std::boxed::Box<dyn std::error::Error>,
+    Box<dyn std::error::Error>,
     std::num::NonZeroU32,
     hir::Target,
     Edition,
@@ -152,6 +153,12 @@ impl IntoDiagnosticArg for ast::Path {
     }
 }
 
+impl IntoDiagnosticArg for &ast::Path {
+    fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
+        DiagnosticArgValue::Str(Cow::Owned(pprust::path_to_string(self)))
+    }
+}
+
 impl IntoDiagnosticArg for ast::token::Token {
     fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
         DiagnosticArgValue::Str(pprust::token_to_string(&self))
@@ -164,18 +171,15 @@ impl IntoDiagnosticArg for ast::token::TokenKind {
     }
 }
 
+impl IntoDiagnosticArg for type_ir::FloatTy {
+    fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
+        DiagnosticArgValue::Str(Cow::Borrowed(self.name_str()))
+    }
+}
+
 impl IntoDiagnosticArg for Level {
     fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
-        DiagnosticArgValue::Str(Cow::Borrowed(match self {
-            Level::Allow => "-A",
-            Level::Warn => "-W",
-            Level::ForceWarn(_) => "--force-warn",
-            Level::Deny => "-D",
-            Level::Forbid => "-F",
-            Level::Expect(_) => {
-                unreachable!("lints with the level of `expect` should not run this code");
-            }
-        }))
+        DiagnosticArgValue::Str(Cow::Borrowed(self.to_cmd_flag()))
     }
 }
 

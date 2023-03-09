@@ -116,6 +116,10 @@ pub struct StackProtectorNotSupportedForTarget<'a> {
 }
 
 #[derive(Diagnostic)]
+#[diag(session_branch_protection_requires_aarch64)]
+pub(crate) struct BranchProtectionRequiresAArch64;
+
+#[derive(Diagnostic)]
 #[diag(session_split_debuginfo_unstable_platform)]
 pub struct SplitDebugInfoUnstablePlatform {
     pub debuginfo: SplitDebuginfo,
@@ -176,7 +180,7 @@ impl ExprParenthesesNeeded {
 #[derive(Diagnostic)]
 #[diag(session_skipping_const_checks)]
 pub struct SkippingConstChecks {
-    #[subdiagnostic(eager)]
+    #[subdiagnostic]
     pub unleashed_features: Vec<UnleashedFeatureHelp>,
 }
 
@@ -256,9 +260,11 @@ pub(crate) struct InvalidFloatLiteralSuffix {
 
 #[derive(Diagnostic)]
 #[diag(session_int_literal_too_large)]
+#[note]
 pub(crate) struct IntLiteralTooLarge {
     #[primary_span]
     pub span: Span,
+    pub limit: String,
 }
 
 #[derive(Diagnostic)]
@@ -291,20 +297,33 @@ pub fn report_lit_error(sess: &ParseSess, err: LitError, lit: token::Lit, span: 
         s.len() > 1 && s.starts_with(first_chars) && s[1..].chars().all(|c| c.is_ascii_digit())
     }
 
-    // Try to lowercase the prefix if it's a valid base prefix.
-    fn fix_base_capitalisation(s: &str) -> Option<String> {
-        if let Some(stripped) = s.strip_prefix('B') {
-            Some(format!("0b{stripped}"))
-        } else if let Some(stripped) = s.strip_prefix('O') {
-            Some(format!("0o{stripped}"))
-        } else if let Some(stripped) = s.strip_prefix('X') {
-            Some(format!("0x{stripped}"))
+    // Try to lowercase the prefix if the prefix and suffix are valid.
+    fn fix_base_capitalisation(prefix: &str, suffix: &str) -> Option<String> {
+        let mut chars = suffix.chars();
+
+        let base_char = chars.next().unwrap();
+        let base = match base_char {
+            'B' => 2,
+            'O' => 8,
+            'X' => 16,
+            _ => return None,
+        };
+
+        // check that the suffix contains only base-appropriate characters
+        let valid = prefix == "0"
+            && chars
+                .filter(|c| *c != '_')
+                .take_while(|c| *c != 'i' && *c != 'u')
+                .all(|c| c.to_digit(base).is_some());
+
+        if valid {
+            Some(format!("0{}{}", base_char.to_ascii_lowercase(), &suffix[1..]))
         } else {
             None
         }
     }
 
-    let token::Lit { kind, suffix, .. } = lit;
+    let token::Lit { kind, symbol, suffix, .. } = lit;
     match err {
         // `LexerError` is an error, but it was already reported
         // by lexer, so here we don't report it the second time.
@@ -320,7 +339,7 @@ pub fn report_lit_error(sess: &ParseSess, err: LitError, lit: token::Lit, span: 
             if looks_like_width_suffix(&['i', 'u'], suf) {
                 // If it looks like a width, try to be helpful.
                 sess.emit_err(InvalidIntLiteralWidth { span, width: suf[1..].into() });
-            } else if let Some(fixed) = fix_base_capitalisation(suf) {
+            } else if let Some(fixed) = fix_base_capitalisation(symbol.as_str(), suf) {
                 sess.emit_err(InvalidNumLiteralBasePrefix { span, fixed });
             } else {
                 sess.emit_err(InvalidNumLiteralSuffix { span, suffix: suf.to_string() });
@@ -344,8 +363,15 @@ pub fn report_lit_error(sess: &ParseSess, err: LitError, lit: token::Lit, span: 
                 _ => unreachable!(),
             };
         }
-        LitError::IntTooLarge => {
-            sess.emit_err(IntLiteralTooLarge { span });
+        LitError::IntTooLarge(base) => {
+            let max = u128::MAX;
+            let limit = match base {
+                2 => format!("{max:#b}"),
+                8 => format!("{max:#o}"),
+                16 => format!("{max:#x}"),
+                _ => format!("{max}"),
+            };
+            sess.emit_err(IntLiteralTooLarge { span, limit });
         }
     }
 }

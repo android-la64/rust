@@ -59,9 +59,9 @@ struct ParameterCollector {
 impl<'tcx> TypeVisitor<'tcx> for ParameterCollector {
     fn visit_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
         match *t.kind() {
-            ty::Projection(..) if !self.include_nonconstraining => {
+            ty::Alias(ty::Projection, ..) if !self.include_nonconstraining => {
                 // projections are not injective
-                return ControlFlow::CONTINUE;
+                return ControlFlow::Continue(());
             }
             ty::Param(data) => {
                 self.parameters.push(Parameter::from(data));
@@ -76,7 +76,7 @@ impl<'tcx> TypeVisitor<'tcx> for ParameterCollector {
         if let ty::ReEarlyBound(data) = *r {
             self.parameters.push(Parameter::from(data));
         }
-        ControlFlow::CONTINUE
+        ControlFlow::Continue(())
     }
 
     fn visit_const(&mut self, c: ty::Const<'tcx>) -> ControlFlow<Self::BreakTy> {

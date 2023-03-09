@@ -24,7 +24,7 @@ use rustc_span::symbol::kw;
 use rustc_span::{sym, Span};
 use rustc_target::spec::abi::Abi;
 use rustc_trait_selection::traits;
-use rustc_trait_selection::traits::misc::can_type_implement_copy;
+use rustc_trait_selection::traits::misc::type_allowed_to_implement_copy;
 use std::borrow::Cow;
 
 declare_clippy_lint! {
@@ -100,7 +100,7 @@ impl<'tcx> LateLintPass<'tcx> for NeedlessPassByValue {
         }
 
         // Exclude non-inherent impls
-        if let Some(Node::Item(item)) = cx.tcx.hir().find(cx.tcx.hir().get_parent_node(hir_id)) {
+        if let Some(Node::Item(item)) = cx.tcx.hir().find_parent(hir_id) {
             if matches!(
                 item.kind,
                 ItemKind::Impl(Impl { of_trait: Some(_), .. }) | ItemKind::Trait(..)
@@ -200,7 +200,7 @@ impl<'tcx> LateLintPass<'tcx> for NeedlessPassByValue {
                     let sugg = |diag: &mut Diagnostic| {
                         if let ty::Adt(def, ..) = ty.kind() {
                             if let Some(span) = cx.tcx.hir().span_if_local(def.did()) {
-                                if can_type_implement_copy(
+                                if type_allowed_to_implement_copy(
                                     cx.tcx,
                                     cx.param_env,
                                     ty,

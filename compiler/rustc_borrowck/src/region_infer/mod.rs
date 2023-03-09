@@ -527,6 +527,14 @@ impl<'tcx> RegionInferenceContext<'tcx> {
         self.scc_values.region_value_str(scc)
     }
 
+    pub(crate) fn placeholders_contained_in<'a>(
+        &'a self,
+        r: RegionVid,
+    ) -> impl Iterator<Item = ty::PlaceholderRegion> + 'a {
+        let scc = self.constraint_sccs.scc(r.to_region_vid());
+        self.scc_values.placeholders_contained_in(scc)
+    }
+
     /// Returns access to the value of `r` for debugging purposes.
     pub(crate) fn region_universe(&self, r: RegionVid) -> ty::UniverseIndex {
         let scc = self.constraint_sccs.scc(r.to_region_vid());
@@ -562,7 +570,7 @@ impl<'tcx> RegionInferenceContext<'tcx> {
         let mir_def_id = body.source.def_id();
         self.propagate_constraints(body);
 
-        let mut errors_buffer = RegionErrors::new();
+        let mut errors_buffer = RegionErrors::new(infcx.tcx);
 
         // If this is a closure, we can propagate unsatisfied
         // `outlives_requirements` to our creator, so create a vector
@@ -680,7 +688,7 @@ impl<'tcx> RegionInferenceContext<'tcx> {
     /// enforce the constraint).
     ///
     /// The current value of `scc` at the time the method is invoked
-    /// is considered a *lower bound*.  If possible, we will modify
+    /// is considered a *lower bound*. If possible, we will modify
     /// the constraint to set it equal to one of the option regions.
     /// If we make any changes, returns true, else false.
     #[instrument(skip(self, member_constraint_index), level = "debug")]
@@ -747,27 +755,14 @@ impl<'tcx> RegionInferenceContext<'tcx> {
         // Otherwise, we need to find the minimum remaining choice, if
         // any, and take that.
         debug!("choice_regions remaining are {:#?}", choice_regions);
-        let min = |r1: ty::RegionVid, r2: ty::RegionVid| -> Option<ty::RegionVid> {
-            let r1_outlives_r2 = self.universal_region_relations.outlives(r1, r2);
-            let r2_outlives_r1 = self.universal_region_relations.outlives(r2, r1);
-            match (r1_outlives_r2, r2_outlives_r1) {
-                (true, true) => Some(r1.min(r2)),
-                (true, false) => Some(r2),
-                (false, true) => Some(r1),
-                (false, false) => None,
-            }
+        let Some(&min_choice) = choice_regions.iter().find(|&r1| {
+            choice_regions.iter().all(|&r2| {
+                self.universal_region_relations.outlives(r2, *r1)
+            })
+        }) else {
+            debug!("no choice region outlived by all others");
+            return false;
         };
-        let mut min_choice = choice_regions[0];
-        for &other_option in &choice_regions[1..] {
-            debug!(?min_choice, ?other_option,);
-            match min(min_choice, other_option) {
-                Some(m) => min_choice = m,
-                None => {
-                    debug!(?min_choice, ?other_option, "incomparable; no min choice",);
-                    return false;
-                }
-            }
-        }
 
         let min_choice_scc = self.constraint_sccs.scc(min_choice);
         debug!(?min_choice, ?min_choice_scc);
@@ -844,7 +839,6 @@ impl<'tcx> RegionInferenceContext<'tcx> {
             if self.eval_verify_bound(
                 infcx,
                 param_env,
-                body,
                 generic_ty,
                 type_test.lower_bound,
                 &type_test.verify_bound,
@@ -973,16 +967,9 @@ impl<'tcx> RegionInferenceContext<'tcx> {
             //
             // This is needed because -- particularly in the case
             // where `ur` is a local bound -- we are sometimes in a
-            // position to prove things that our caller cannot.  See
+            // position to prove things that our caller cannot. See
             // #53570 for an example.
-            if self.eval_verify_bound(
-                infcx,
-                param_env,
-                body,
-                generic_ty,
-                ur,
-                &type_test.verify_bound,
-            ) {
+            if self.eval_verify_bound(infcx, param_env, generic_ty, ur, &type_test.verify_bound) {
                 continue;
             }
 
@@ -1203,7 +1190,6 @@ impl<'tcx> RegionInferenceContext<'tcx> {
         &self,
         infcx: &InferCtxt<'tcx>,
         param_env: ty::ParamEnv<'tcx>,
-        body: &Body<'tcx>,
         generic_ty: Ty<'tcx>,
         lower_bound: RegionVid,
         verify_bound: &VerifyBound<'tcx>,
@@ -1226,25 +1212,11 @@ impl<'tcx> RegionInferenceContext<'tcx> {
             }
 
             VerifyBound::AnyBound(verify_bounds) => verify_bounds.iter().any(|verify_bound| {
-                self.eval_verify_bound(
-                    infcx,
-                    param_env,
-                    body,
-                    generic_ty,
-                    lower_bound,
-                    verify_bound,
-                )
+                self.eval_verify_bound(infcx, param_env, generic_ty, lower_bound, verify_bound)
             }),
 
             VerifyBound::AllBounds(verify_bounds) => verify_bounds.iter().all(|verify_bound| {
-                self.eval_verify_bound(
-                    infcx,
-                    param_env,
-                    body,
-                    generic_ty,
-                    lower_bound,
-                    verify_bound,
-                )
+                self.eval_verify_bound(infcx, param_env, generic_ty, lower_bound, verify_bound)
             }),
         }
     }
@@ -1683,26 +1655,29 @@ impl<'tcx> RegionInferenceContext<'tcx> {
         let longer_fr_scc = self.constraint_sccs.scc(longer_fr);
         debug!("check_bound_universal_region: longer_fr_scc={:?}", longer_fr_scc,);
 
-        // If we have some bound universal region `'a`, then the only
-        // elements it can contain is itself -- we don't know anything
-        // else about it!
-        let Some(error_element) = ({
-            self.scc_values.elements_contained_in(longer_fr_scc).find(|element| match element {
-                RegionElement::Location(_) => true,
-                RegionElement::RootUniversalRegion(_) => true,
-                RegionElement::PlaceholderRegion(placeholder1) => placeholder != *placeholder1,
-            })
-        }) else {
-            return;
-        };
-        debug!("check_bound_universal_region: error_element = {:?}", error_element);
+        for error_element in self.scc_values.elements_contained_in(longer_fr_scc) {
+            match error_element {
+                RegionElement::Location(_) | RegionElement::RootUniversalRegion(_) => {}
+                // If we have some bound universal region `'a`, then the only
+                // elements it can contain is itself -- we don't know anything
+                // else about it!
+                RegionElement::PlaceholderRegion(placeholder1) => {
+                    if placeholder == placeholder1 {
+                        continue;
+                    }
+                }
+            }
 
-        // Find the region that introduced this `error_element`.
-        errors_buffer.push(RegionErrorKind::BoundUniversalRegionError {
-            longer_fr,
-            error_element,
-            placeholder,
-        });
+            errors_buffer.push(RegionErrorKind::BoundUniversalRegionError {
+                longer_fr,
+                error_element,
+                placeholder,
+            });
+
+            // Stop after the first error, it gets too noisy otherwise, and does not provide more information.
+            break;
+        }
+        debug!("check_bound_universal_region: all bounds satisfied");
     }
 
     #[instrument(level = "debug", skip(self, infcx, errors_buffer))]
@@ -2068,7 +2043,7 @@ impl<'tcx> RegionInferenceContext<'tcx> {
         //    '5: '6 ('6 is the target)
         //
         // Some of those regions are unified with `'6` (in the same
-        // SCC).  We want to screen those out. After that point, the
+        // SCC). We want to screen those out. After that point, the
         // "closest" constraint we have to the end is going to be the
         // most likely to be the point where the value escapes -- but
         // we still want to screen for an "interesting" point to

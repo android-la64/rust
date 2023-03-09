@@ -277,11 +277,7 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                 let override_suggestion =
                     if ["true", "false"].contains(&item_str.to_string().to_lowercase().as_str()) {
                         let item_typo = item_str.to_string().to_lowercase();
-                        Some((
-                            item_span,
-                            "you may want to use a bool value instead",
-                            format!("{}", item_typo),
-                        ))
+                        Some((item_span, "you may want to use a bool value instead", item_typo))
                     // FIXME(vincenzopalazzo): make the check smarter,
                     // and maybe expand with levenshtein distance checks
                     } else if item_str.as_str() == "printf" {
@@ -623,6 +619,22 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                 return (true, candidates);
             }
         }
+
+        // Try to find in last block rib
+        if let Some(rib) = &self.last_block_rib && let RibKind::NormalRibKind = rib.kind {
+            for (ident, &res) in &rib.bindings {
+                if let Res::Local(_) = res && path.len() == 1 &&
+                    ident.span.eq_ctxt(path[0].ident.span) &&
+                    ident.name == path[0].ident.name {
+                    err.span_help(
+                        ident.span,
+                        &format!("the binding `{}` is available in a different scope in the same function", path_str),
+                    );
+                    return (true, candidates);
+                }
+            }
+        }
+
         return (false, candidates);
     }
 
@@ -1439,6 +1451,17 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                         .collect();
 
                     if non_visible_spans.len() > 0 {
+                        if let Some(fields) = self.r.field_visibility_spans.get(&def_id) {
+                            err.multipart_suggestion_verbose(
+                                &format!(
+                                    "consider making the field{} publicly accessible",
+                                    pluralize!(fields.len())
+                                ),
+                                fields.iter().map(|span| (*span, "pub ".to_string())).collect(),
+                                Applicability::MaybeIncorrect,
+                            );
+                        }
+
                         let mut m: MultiSpan = non_visible_spans.clone().into();
                         non_visible_spans
                             .into_iter()
@@ -1542,7 +1565,7 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
         fn extract_node_id(t: &Ty) -> Option<NodeId> {
             match t.kind {
                 TyKind::Path(None, _) => Some(t.id),
-                TyKind::Rptr(_, ref mut_ty) => extract_node_id(&mut_ty.ty),
+                TyKind::Ref(_, ref mut_ty) => extract_node_id(&mut_ty.ty),
                 // This doesn't handle the remaining `Ty` variants as they are not
                 // that commonly the self_type, it might be interesting to provide
                 // support for those in future.
@@ -1663,8 +1686,10 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                         if !module.no_implicit_prelude {
                             let extern_prelude = self.r.extern_prelude.clone();
                             names.extend(extern_prelude.iter().flat_map(|(ident, _)| {
-                                self.r.crate_loader.maybe_process_path_extern(ident.name).and_then(
-                                    |crate_id| {
+                                self.r
+                                    .crate_loader()
+                                    .maybe_process_path_extern(ident.name)
+                                    .and_then(|crate_id| {
                                         let crate_mod =
                                             Res::Def(DefKind::Mod, crate_id.as_def_id());
 
@@ -1673,8 +1698,7 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                                         } else {
                                             None
                                         }
-                                    },
-                                )
+                                    })
                             }));
 
                             if let Some(prelude) = self.r.prelude {
@@ -2041,7 +2065,11 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
         path: &[Segment],
     ) -> Option<(Span, &'static str, String, Applicability)> {
         let (ident, span) = match path {
-            [segment] if !segment.has_generic_args && segment.ident.name != kw::SelfUpper => {
+            [segment]
+                if !segment.has_generic_args
+                    && segment.ident.name != kw::SelfUpper
+                    && segment.ident.name != kw::Dyn =>
+            {
                 (segment.ident.to_string(), segment.ident.span)
             }
             _ => return None,
@@ -2160,15 +2188,31 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
             let deletion_span = || {
                 if params.len() == 1 {
                     // if sole lifetime, remove the entire `<>` brackets
-                    generics_span
+                    Some(generics_span)
                 } else if param_index == 0 {
                     // if removing within `<>` brackets, we also want to
                     // delete a leading or trailing comma as appropriate
-                    param.span().to(params[param_index + 1].span().shrink_to_lo())
+                    match (
+                        param.span().find_ancestor_inside(generics_span),
+                        params[param_index + 1].span().find_ancestor_inside(generics_span),
+                    ) {
+                        (Some(param_span), Some(next_param_span)) => {
+                            Some(param_span.to(next_param_span.shrink_to_lo()))
+                        }
+                        _ => None,
+                    }
                 } else {
                     // if removing within `<>` brackets, we also want to
                     // delete a leading or trailing comma as appropriate
-                    params[param_index - 1].span().shrink_to_hi().to(param.span())
+                    match (
+                        param.span().find_ancestor_inside(generics_span),
+                        params[param_index - 1].span().find_ancestor_inside(generics_span),
+                    ) {
+                        (Some(param_span), Some(prev_param_span)) => {
+                            Some(prev_param_span.shrink_to_hi().to(param_span))
+                        }
+                        _ => None,
+                    }
                 }
             };
             match use_set {
@@ -2176,7 +2220,7 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                 Some(LifetimeUseSet::One { use_span, use_ctxt }) => {
                     debug!(?param.ident, ?param.ident.span, ?use_span);
 
-                    let elidable = matches!(use_ctxt, LifetimeCtxt::Rptr);
+                    let elidable = matches!(use_ctxt, LifetimeCtxt::Ref);
 
                     let deletion_span = deletion_span();
                     self.r.lint_buffer.buffer_lint_with_diagnostic(
@@ -2307,7 +2351,7 @@ impl<'a: 'ast, 'ast> LateResolutionVisitor<'a, '_, 'ast> {
                         let message = format!("consider introducing lifetime `{}` here", name);
                         should_continue = suggest(err, false, span, &message, sugg);
                     } else {
-                        let message = format!("consider introducing a named lifetime parameter");
+                        let message = "consider introducing a named lifetime parameter";
                         should_continue = suggest(err, false, span, &message, sugg);
                     }
                 }

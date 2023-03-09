@@ -5,11 +5,11 @@
 #![feature(assert_matches)]
 #![feature(associated_type_bounds)]
 #![feature(box_patterns)]
-#![feature(control_flow_enum)]
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(min_specialization)]
 #![feature(once_cell)]
+#![feature(try_blocks)]
 #![recursion_limit = "256"]
 
 #[macro_use]
@@ -19,6 +19,7 @@ extern crate rustc_middle;
 
 mod build;
 mod check_unsafety;
+mod errors;
 mod lints;
 pub mod thir;
 

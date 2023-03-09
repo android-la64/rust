@@ -22,7 +22,7 @@ A zero-allocation no_std-compatible zero-cost way to add color to your Rust term
     * [x] Enabled for CI
     * [x] Disabled by default for non-terminal outputs
     * [x] Overridable by `NO_COLOR`/`FORCE_COLOR` environment variables
-    * [x] Overridable programatically via [`set_override`](https://docs.rs/owo-colors/3.1.0/owo_colors/fn.set_override.html)
+    * [x] Overridable programatically via [`set_override`](https://docs.rs/owo-colors/latest/owo_colors/fn.set_override.html)
 * [x] Dependency-less by default
 * [x] Hand picked names for all ANSI (4-bit) and Xterm (8-bit) colors
 * [x] Support for RGB colors
@@ -33,7 +33,7 @@ A zero-allocation no_std-compatible zero-cost way to add color to your Rust term
     * [x] Truecolor support (modern, 48-bit color)
 * [x] Styling (underline, strikethrough, etc)
 
-owo-colors is also more-or-less a drop-in replacement for [colored](https://crates.io/crates/colored), allowing colored to work in a no_std environment. No allocations, unsafe, or dependencies required because embedded systems deserve to be pretty too uwu.
+owo-colors is also more-or-less a drop-in replacement for [colored](https://crates.io/crates/colored), allowing colored to work in a no_std environment. No allocations or dependencies required because embedded systems deserve to be pretty too uwu.
 
 To add to your Cargo.toml:
 ```toml

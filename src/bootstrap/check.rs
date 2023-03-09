@@ -101,7 +101,7 @@ impl Step for Std {
         std_cargo(builder, target, compiler.stage, &mut cargo);
 
         builder.info(&format!(
-            "Checking stage{} std artifacts ({} -> {})",
+            "Checking stage{} library artifacts ({} -> {})",
             builder.top_stage, &compiler.host, target
         ));
         run_cargo(
@@ -111,6 +111,7 @@ impl Step for Std {
             &libstd_stamp(builder, compiler, target),
             vec![],
             true,
+            false,
         );
 
         // We skip populating the sysroot in non-zero stage because that'll lead
@@ -157,7 +158,7 @@ impl Step for Std {
         }
 
         builder.info(&format!(
-            "Checking stage{} std test/bench/example targets ({} -> {})",
+            "Checking stage{} library test/bench/example targets ({} -> {})",
             builder.top_stage, &compiler.host, target
         ));
         run_cargo(
@@ -167,6 +168,7 @@ impl Step for Std {
             &libstd_test_stamp(builder, compiler, target),
             vec![],
             true,
+            false,
         );
     }
 }
@@ -243,6 +245,7 @@ impl Step for Rustc {
             &librustc_stamp(builder, compiler, target),
             vec![],
             true,
+            false,
         );
 
         let libdir = builder.sysroot_libdir(compiler, target);
@@ -303,6 +306,7 @@ impl Step for CodegenBackend {
             &codegen_backend_stamp(builder, compiler, target, backend),
             vec![],
             true,
+            false,
         );
     }
 }
@@ -342,9 +346,7 @@ impl Step for RustAnalyzer {
             &["rust-analyzer/in-rust-tree".to_owned()],
         );
 
-        cargo.rustflag(
-            "-Zallow-features=proc_macro_internals,proc_macro_diagnostic,proc_macro_span",
-        );
+        cargo.allow_features(crate::tool::RustAnalyzer::ALLOW_FEATURES);
 
         // For ./x.py clippy, don't check those targets because
         // linting tests and benchmarks can produce very noisy results
@@ -359,7 +361,15 @@ impl Step for RustAnalyzer {
             "Checking stage{} {} artifacts ({} -> {})",
             compiler.stage, "rust-analyzer", &compiler.host.triple, target.triple
         ));
-        run_cargo(builder, cargo, args(builder), &stamp(builder, compiler, target), vec![], true);
+        run_cargo(
+            builder,
+            cargo,
+            args(builder),
+            &stamp(builder, compiler, target),
+            vec![],
+            true,
+            false,
+        );
 
         /// Cargo's output path in a given stage, compiled by a particular
         /// compiler for the specified target.
@@ -432,6 +442,7 @@ macro_rules! tool_check_step {
                     &stamp(builder, compiler, target),
                     vec![],
                     true,
+                    false,
                 );
 
                 /// Cargo's output path in a given stage, compiled by a particular

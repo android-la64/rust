@@ -164,7 +164,10 @@ impl<'a> Parser<'a> {
             // Perform this outside of the `collect_tokens_trailing_token` closure,
             // since our outer attributes do not apply to this part of the expression
             let expr = self.with_res(Restrictions::STMT_EXPR, |this| {
-                this.parse_assoc_expr_with(0, LhsExpr::AlreadyParsed(expr))
+                this.parse_assoc_expr_with(
+                    0,
+                    LhsExpr::AlreadyParsed { expr, starts_statement: true },
+                )
             })?;
             Ok(self.mk_stmt(lo.to(self.prev_token.span), StmtKind::Expr(expr)))
         } else {
@@ -198,7 +201,10 @@ impl<'a> Parser<'a> {
             let e = self.mk_expr(lo.to(hi), ExprKind::MacCall(mac));
             let e = self.maybe_recover_from_bad_qpath(e)?;
             let e = self.parse_dot_or_call_expr_with(e, lo, attrs)?;
-            let e = self.parse_assoc_expr_with(0, LhsExpr::AlreadyParsed(e))?;
+            let e = self.parse_assoc_expr_with(
+                0,
+                LhsExpr::AlreadyParsed { expr: e, starts_statement: false },
+            )?;
             StmtKind::Expr(e)
         };
         Ok(self.mk_stmt(lo.to(hi), kind))
@@ -498,7 +504,7 @@ impl<'a> Parser<'a> {
 
     /// Parses a block. Inner attributes are allowed.
     pub(super) fn parse_inner_attrs_and_block(&mut self) -> PResult<'a, (AttrVec, P<Block>)> {
-        self.parse_block_common(self.token.span, BlockCheckMode::Default)
+        self.parse_block_common(self.token.span, BlockCheckMode::Default, true)
     }
 
     /// Parses a block. Inner attributes are allowed.
@@ -506,16 +512,23 @@ impl<'a> Parser<'a> {
         &mut self,
         lo: Span,
         blk_mode: BlockCheckMode,
+        can_be_struct_literal: bool,
     ) -> PResult<'a, (AttrVec, P<Block>)> {
         maybe_whole!(self, NtBlock, |x| (AttrVec::new(), x));
 
+        let maybe_ident = self.prev_token.clone();
         self.maybe_recover_unexpected_block_label();
         if !self.eat(&token::OpenDelim(Delimiter::Brace)) {
             return self.error_block_no_opening_brace();
         }
 
         let attrs = self.parse_inner_attributes()?;
-        let tail = match self.maybe_suggest_struct_literal(lo, blk_mode) {
+        let tail = match self.maybe_suggest_struct_literal(
+            lo,
+            blk_mode,
+            maybe_ident,
+            can_be_struct_literal,
+        ) {
             Some(tail) => tail?,
             None => self.parse_block_tail(lo, blk_mode, AttemptLocalParseRecovery::Yes)?,
         };
@@ -531,13 +544,23 @@ impl<'a> Parser<'a> {
         recover: AttemptLocalParseRecovery,
     ) -> PResult<'a, P<Block>> {
         let mut stmts = vec![];
+        let mut snapshot = None;
         while !self.eat(&token::CloseDelim(Delimiter::Brace)) {
             if self.token == token::Eof {
                 break;
             }
+            if self.is_diff_marker(&TokenKind::BinOp(token::Shl), &TokenKind::Lt) {
+                // Account for `<<<<<<<` diff markers. We can't proactively error here because
+                // that can be a valid path start, so we snapshot and reparse only we've
+                // encountered another parse error.
+                snapshot = Some(self.create_snapshot_for_diagnostic());
+            }
             let stmt = match self.parse_full_stmt(recover) {
                 Err(mut err) if recover.yes() => {
                     self.maybe_annotate_with_ascription(&mut err, false);
+                    if let Some(ref mut snapshot) = snapshot {
+                        snapshot.recover_diff_marker();
+                    }
                     err.emit();
                     self.recover_stmt_(SemiColonMode::Ignore, BlockMode::Ignore);
                     Some(self.mk_stmt_err(self.token.span))

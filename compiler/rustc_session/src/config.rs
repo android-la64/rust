@@ -32,9 +32,10 @@ use std::collections::btree_map::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::hash::Hash;
-use std::iter::{self, FromIterator};
+use std::iter;
 use std::path::{Path, PathBuf};
 use std::str::{self, FromStr};
+use std::sync::LazyLock;
 
 pub mod sigpipe;
 
@@ -554,6 +555,16 @@ pub enum PrintRequest {
     SplitDebuginfo,
 }
 
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum TraitSolver {
+    /// Classic trait solver in `rustc_trait_selection::traits::select`
+    Classic,
+    /// Chalk trait solver
+    Chalk,
+    /// Experimental trait solver in `rustc_trait_selection::solve`
+    Next,
+}
+
 pub enum Input {
     /// Load source code from a file.
     File(PathBuf),
@@ -578,6 +589,24 @@ impl Input {
         match *self {
             Input::File(ref ifile) => ifile.clone().into(),
             Input::Str { ref name, .. } => name.clone(),
+        }
+    }
+
+    pub fn opt_path(&self) -> Option<&Path> {
+        match self {
+            Input::File(file) => Some(file),
+            Input::Str { name, .. } => match name {
+                FileName::Real(real) => real.local_path(),
+                FileName::QuoteExpansion(_) => None,
+                FileName::Anon(_) => None,
+                FileName::MacroExpansion(_) => None,
+                FileName::ProcMacroSourceCode(_) => None,
+                FileName::CfgSpec(_) => None,
+                FileName::CliCrateAttr(_) => None,
+                FileName::Custom(_) => None,
+                FileName::DocTest(path, _) => Some(path),
+                FileName::InlineAsm(_) => None,
+            },
         }
     }
 }
@@ -704,7 +733,7 @@ impl OutputFilenames {
 pub fn host_triple() -> &'static str {
     // Get the host triple out of the build environment. This ensures that our
     // idea of the host triple is the same as for the set of libraries we've
-    // actually built.  We can't just take LLVM's host triple because they
+    // actually built. We can't just take LLVM's host triple because they
     // normalize all ix86 architectures to i386.
     //
     // Instead of grabbing the host triple (for the current host), we grab (at
@@ -786,6 +815,12 @@ impl Options {
 
     pub fn get_symbol_mangling_version(&self) -> SymbolManglingVersion {
         self.cg.symbol_mangling_version.unwrap_or(SymbolManglingVersion::Legacy)
+    }
+
+    #[allow(rustc::bad_opt_access)]
+    pub fn incremental_relative_spans(&self) -> bool {
+        self.unstable_opts.incremental_relative_spans
+            || (self.unstable_features.is_nightly_build() && self.incremental.is_some())
     }
 }
 
@@ -875,16 +910,10 @@ pub struct PacRet {
     pub key: PAuthKey,
 }
 
-#[derive(Clone, Copy, Hash, Debug, PartialEq)]
+#[derive(Clone, Copy, Hash, Debug, PartialEq, Default)]
 pub struct BranchProtection {
     pub bti: bool,
     pub pac_ret: Option<PacRet>,
-}
-
-impl Default for BranchProtection {
-    fn default() -> Self {
-        BranchProtection { bti: false, pac_ret: None }
-    }
 }
 
 pub const fn default_lib_output() -> CrateType {
@@ -1260,7 +1289,7 @@ impl RustcOptGroup {
 
 // The `opt` local module holds wrappers around the `getopts` API that
 // adds extra rustc-specific metadata to each option; such metadata
-// is exposed by .  The public
+// is exposed by . The public
 // functions below ending with `_u` are the functions that return
 // *unstable* options, i.e., options that are only enabled when the
 // user also passes the `-Z unstable-options` debugging flag.
@@ -1312,7 +1341,12 @@ mod opt {
         unstable(longer(a, b), move |opts| opts.optmulti(a, b, c, d))
     }
 }
-
+static EDITION_STRING: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "Specify which edition of the compiler to use when compiling code. \
+The default is {DEFAULT_EDITION} and the latest stable edition is {LATEST_STABLE_EDITION}."
+    )
+});
 /// Returns the "short" subset of the rustc command line options,
 /// including metadata for each option, such as whether the option is
 /// part of the stable long-term interface for rustc.
@@ -1345,7 +1379,7 @@ pub fn rustc_short_optgroups() -> Vec<RustcOptGroup> {
         opt::opt_s(
             "",
             "edition",
-            "Specify which edition of the compiler to use when compiling code.",
+            &*EDITION_STRING,
             EDITION_NAME_LIST,
         ),
         opt::multi_s(
@@ -1875,7 +1909,7 @@ fn parse_opt_level(
         .into_iter()
         .flat_map(|(i, s)| {
             // NB: This can match a string without `=`.
-            if let Some("opt-level") = s.splitn(2, '=').next() { Some(i) } else { None }
+            if let Some("opt-level") = s.split('=').next() { Some(i) } else { None }
         })
         .max();
     if max_o > max_c {
@@ -1912,7 +1946,7 @@ fn select_debuginfo(
         .into_iter()
         .flat_map(|(i, s)| {
             // NB: This can match a string without `=`.
-            if let Some("debuginfo") = s.splitn(2, '=').next() { Some(i) } else { None }
+            if let Some("debuginfo") = s.split('=').next() { Some(i) } else { None }
         })
         .max();
     if max_g > max_c {
@@ -2075,7 +2109,7 @@ fn parse_libs(matches: &getopts::Matches, error_format: ErrorOutputType) -> Vec<
         .map(|s| {
             // Parse string of the form "[KIND[:MODIFIERS]=]lib[:new_name]",
             // where KIND is one of "dylib", "framework", "static", "link-arg" and
-            // where MODIFIERS are  a comma separated list of supported modifiers
+            // where MODIFIERS are a comma separated list of supported modifiers
             // (bundle, verbatim, whole-archive, as-needed). Each modifier is prefixed
             // with either + or - to indicate whether it is enabled or disabled.
             // The last value specified for a given modifier wins.
@@ -2443,6 +2477,11 @@ pub fn build_session_options(matches: &getopts::Matches) -> Options {
 
     let pretty = parse_pretty(&unstable_opts, error_format);
 
+    // query-dep-graph is required if dump-dep-graph is given #106736
+    if unstable_opts.dump_dep_graph && !unstable_opts.query_dep_graph {
+        early_error(error_format, "can't dump dependency graph without `-Z query-dep-graph`");
+    }
+
     // Try to find a directory containing the Rust `src`, for more details see
     // the doc comment on the `real_rust_source_base_dir` field.
     let tmp_buf;
@@ -2475,12 +2514,12 @@ pub fn build_session_options(matches: &getopts::Matches) -> Options {
         early_error(error_format, &format!("Current directory is invalid: {e}"));
     });
 
-    let (path, remapped) =
-        FilePathMapping::new(remap_path_prefix.clone()).map_prefix(working_dir.clone());
+    let remap = FilePathMapping::new(remap_path_prefix.clone());
+    let (path, remapped) = remap.map_prefix(&working_dir);
     let working_dir = if remapped {
-        RealFileName::Remapped { local_path: Some(working_dir), virtual_name: path }
+        RealFileName::Remapped { virtual_name: path.into_owned(), local_path: Some(working_dir) }
     } else {
-        RealFileName::LocalPath(path)
+        RealFileName::LocalPath(path.into_owned())
     };
 
     Options {
@@ -2761,7 +2800,7 @@ pub(crate) mod dep_tracking {
         BranchProtection, CFGuard, CFProtection, CrateType, DebugInfo, ErrorOutputType,
         InstrumentCoverage, LdImpl, LinkerPluginLto, LocationDetail, LtoCli, OomStrategy, OptLevel,
         OutputType, OutputTypes, Passes, SourceFileHashAlgorithm, SplitDwarfKind,
-        SwitchWithOptPath, SymbolManglingVersion, TrimmedDefPaths,
+        SwitchWithOptPath, SymbolManglingVersion, TraitSolver, TrimmedDefPaths,
     };
     use crate::lint;
     use crate::options::WasiExecModel;
@@ -2861,6 +2900,7 @@ pub(crate) mod dep_tracking {
         BranchProtection,
         OomStrategy,
         LanguageIdentifier,
+        TraitSolver,
     );
 
     impl<T1, T2> DepTrackingHash for (T1, T2)
@@ -2980,4 +3020,22 @@ pub enum ProcMacroExecutionStrategy {
 
     /// Run the proc-macro code on a different thread.
     CrossThread,
+}
+
+/// Which format to use for `-Z dump-mono-stats`
+#[derive(Clone, Copy, PartialEq, Hash, Debug)]
+pub enum DumpMonoStatsFormat {
+    /// Pretty-print a markdown table
+    Markdown,
+    /// Emit structured JSON
+    Json,
+}
+
+impl DumpMonoStatsFormat {
+    pub fn extension(self) -> &'static str {
+        match self {
+            Self::Markdown => "md",
+            Self::Json => "json",
+        }
+    }
 }

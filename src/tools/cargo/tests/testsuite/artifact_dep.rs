@@ -2321,8 +2321,10 @@ fn calc_bin_artifact_fingerprint() {
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr(
             "\
+[DIRTY] bar v0.5.0 ([CWD]/bar): the file `bar/src/main.rs` has changed ([..])
 [COMPILING] bar v0.5.0 ([CWD]/bar)
 [RUNNING] `rustc --crate-name bar [..]`
+[DIRTY] foo v0.1.0 ([CWD]): the dependency bar was rebuilt
 [CHECKING] foo v0.1.0 ([CWD])
 [RUNNING] `rustc --crate-name foo [..]`
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
@@ -2337,6 +2339,518 @@ fn calc_bin_artifact_fingerprint() {
             "\
 [FRESH] bar v0.5.0 ([CWD]/bar)
 [FRESH] foo v0.1.0 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn with_target_and_optional() {
+    // See rust-lang/cargo#10526
+    if cross_compile::disabled() {
+        return;
+    }
+    let target = cross_compile::alternate();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                edition = "2021"
+                [dependencies]
+                d1 = { path = "d1", artifact = "bin", optional = true, target = "$TARGET" }
+            "#
+            .replace("$TARGET", target),
+        )
+        .file(
+            "src/main.rs",
+            r#"
+                fn main() {
+                    let _b = include_bytes!(env!("CARGO_BIN_FILE_D1"));
+                }
+            "#,
+        )
+        .file(
+            "d1/Cargo.toml",
+            r#"
+                [package]
+                name = "d1"
+                version = "0.0.1"
+                edition = "2021"
+            "#,
+        )
+        .file("d1/src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("check -Z bindeps -F d1 -v")
+        .masquerade_as_nightly_cargo(&["bindeps"])
+        .with_stderr(
+            "\
+[COMPILING] d1 v0.0.1 [..]
+[RUNNING] `rustc --crate-name d1 [..]--crate-type bin[..]
+[CHECKING] foo v0.0.1 [..]
+[RUNNING] `rustc --crate-name foo [..]--cfg[..]d1[..]
+[FINISHED] dev [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn with_assumed_host_target_and_optional_build_dep() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                edition = "2021"
+                [build-dependencies]
+                d1 = { path = "d1", artifact = "bin", optional = true, target = "target" }
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file(
+            "build.rs",
+            r#"
+                fn main() {
+                    std::env::var("CARGO_BIN_FILE_D1").unwrap();
+                }
+            "#,
+        )
+        .file(
+            "d1/Cargo.toml",
+            r#"
+                [package]
+                name = "d1"
+                version = "0.0.1"
+                edition = "2021"
+            "#,
+        )
+        .file("d1/src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("check -Z bindeps -F d1 -v")
+        .masquerade_as_nightly_cargo(&["bindeps"])
+        .with_stderr_unordered(
+            "\
+[COMPILING] foo v0.0.1 ([CWD])
+[COMPILING] d1 v0.0.1 ([CWD]/d1)
+[RUNNING] `rustc --crate-name build_script_build [..]--crate-type bin[..]
+[RUNNING] `rustc --crate-name d1 [..]--crate-type bin[..]
+[RUNNING] `[CWD]/target/debug/build/foo-[..]/build-script-build`
+[RUNNING] `rustc --crate-name foo [..]--cfg[..]d1[..]
+[FINISHED] dev [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn decouple_same_target_transitive_dep_from_artifact_dep() {
+    // See https://github.com/rust-lang/cargo/issues/11463
+    let target = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2021"
+
+                [dependencies]
+                a = {{ path = "a" }}
+                bar = {{ path = "bar", artifact = "bin", target = "{target}" }}
+            "#
+            ),
+        )
+        .file(
+            "src/main.rs",
+            r#"
+                fn main() {}
+            "#,
+        )
+        .file(
+            "bar/Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.1.0"
+
+                [dependencies]
+                a = { path = "../a", features = ["feature"] }
+            "#,
+        )
+        .file(
+            "bar/src/main.rs",
+            r#"
+                fn main() {}
+            "#,
+        )
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.1.0"
+                edition = "2021"
+
+                [dependencies]
+                b = { path = "../b" }
+                c = { path = "../c" }
+
+                [features]
+                feature = ["c/feature"]
+            "#,
+        )
+        .file(
+            "a/src/lib.rs",
+            r#"
+                use b::Trait as _;
+
+                pub fn use_b_trait(x: &impl c::Trait) {
+                    x.b();
+                }
+            "#,
+        )
+        .file(
+            "b/Cargo.toml",
+            r#"
+                [package]
+                name = "b"
+                version = "0.1.0"
+
+                [dependencies]
+                c = { path = "../c" }
+            "#,
+        )
+        .file(
+            "b/src/lib.rs",
+            r#"
+                pub trait Trait {
+                    fn b(&self) {}
+                }
+
+                impl<T: c::Trait> Trait for T {}
+            "#,
+        )
+        .file(
+            "c/Cargo.toml",
+            r#"
+                [package]
+                name = "c"
+                version = "0.1.0"
+
+                [features]
+                feature = []
+            "#,
+        )
+        .file(
+            "c/src/lib.rs",
+            r#"
+                pub trait Trait {}
+            "#,
+        )
+        .build();
+    p.cargo("build -Z bindeps")
+        .masquerade_as_nightly_cargo(&["bindeps"])
+        .with_stderr(
+            "\
+[COMPILING] c v0.1.0 ([CWD]/c)
+[COMPILING] b v0.1.0 ([CWD]/b)
+[COMPILING] a v0.1.0 ([CWD]/a)
+[COMPILING] bar v0.1.0 ([CWD]/bar)
+[COMPILING] foo v0.1.0 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn decouple_same_target_transitive_dep_from_artifact_dep_lib() {
+    // See https://github.com/rust-lang/cargo/issues/10837
+    let target = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2021"
+
+                [dependencies]
+                a = {{ path = "a" }}
+                b = {{ path = "b", features = ["feature"] }}
+                bar = {{ path = "bar", artifact = "bin", lib = true, target = "{target}" }}
+            "#
+            ),
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "bar/Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.1.0"
+                edition = "2021"
+
+                [dependencies]
+                a = { path = "../a", features = ["b"] }
+                b = { path = "../b" }
+            "#,
+        )
+        .file("bar/src/lib.rs", "")
+        .file(
+            "bar/src/main.rs",
+            r#"
+                use b::Trait;
+
+                fn main() {
+                    a::A.b()
+                }
+            "#,
+        )
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.1.0"
+
+                [dependencies]
+                b = { path = "../b", optional = true }
+            "#,
+        )
+        .file(
+            "a/src/lib.rs",
+            r#"
+                pub struct A;
+
+                #[cfg(feature = "b")]
+                impl b::Trait for A {}
+            "#,
+        )
+        .file(
+            "b/Cargo.toml",
+            r#"
+                [package]
+                name = "b"
+                version = "0.1.0"
+
+                [features]
+                feature = []
+            "#,
+        )
+        .file(
+            "b/src/lib.rs",
+            r#"
+                pub trait Trait {
+                    fn b(&self) {}
+                }
+            "#,
+        )
+        .build();
+    p.cargo("build -Z bindeps")
+        .masquerade_as_nightly_cargo(&["bindeps"])
+        .with_stderr(
+            "\
+[COMPILING] b v0.1.0 ([CWD]/b)
+[COMPILING] a v0.1.0 ([CWD]/a)
+[COMPILING] bar v0.1.0 ([CWD]/bar)
+[COMPILING] foo v0.1.0 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn decouple_same_target_transitive_dep_from_artifact_dep_and_proc_macro() {
+    let target = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2021"
+
+                [dependencies]
+                c = {{ path = "c" }}
+                bar = {{ path = "bar", artifact = "bin", target = "{target}" }}
+            "#
+            ),
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "bar/Cargo.toml",
+            r#"
+            [package]
+            name = "bar"
+            version = "0.1.0"
+
+            [dependencies]
+            b = { path = "../b" }
+            "#,
+        )
+        .file("bar/src/main.rs", "fn main() {}")
+        .file(
+            "b/Cargo.toml",
+            r#"
+            [package]
+            name = "b"
+            version = "0.1.0"
+            edition = "2021"
+
+            [dependencies]
+            a = { path = "../a" }
+
+            [lib]
+            proc-macro = true
+            "#,
+        )
+        .file("b/src/lib.rs", "")
+        .file(
+            "c/Cargo.toml",
+            r#"
+            [package]
+            name = "c"
+            version = "0.1.0"
+            edition = "2021"
+
+            [dependencies]
+            d = { path = "../d", features = ["feature"] }
+            a = { path = "../a" }
+
+            [lib]
+            proc-macro = true
+            "#,
+        )
+        .file(
+            "c/src/lib.rs",
+            r#"
+            use a::Trait;
+
+            fn _c() {
+                d::D.a()
+            }
+            "#,
+        )
+        .file(
+            "a/Cargo.toml",
+            r#"
+            [package]
+            name = "a"
+            version = "0.1.0"
+
+            [dependencies]
+            d = { path = "../d" }
+            "#,
+        )
+        .file(
+            "a/src/lib.rs",
+            r#"
+            pub trait Trait {
+                fn a(&self) {}
+            }
+
+            impl Trait for d::D {}
+            "#,
+        )
+        .file(
+            "d/Cargo.toml",
+            r#"
+            [package]
+            name = "d"
+            version = "0.1.0"
+
+            [features]
+            feature = []
+            "#,
+        )
+        .file("d/src/lib.rs", "pub struct D;")
+        .build();
+
+    p.cargo("build -Z bindeps")
+        .masquerade_as_nightly_cargo(&["bindeps"])
+        .with_stderr_unordered(
+            "\
+[COMPILING] d v0.1.0 ([CWD]/d)
+[COMPILING] a v0.1.0 ([CWD]/a)
+[COMPILING] b v0.1.0 ([CWD]/b)
+[COMPILING] c v0.1.0 ([CWD]/c)
+[COMPILING] bar v0.1.0 ([CWD]/bar)
+[COMPILING] foo v0.1.0 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn same_target_artifact_dep_sharing() {
+    let target = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                a = {{ path = "a" }}
+                bar = {{ path = "bar", artifact = "bin", target = "{target}" }}
+            "#
+            ),
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "bar/Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.1.0"
+
+                [dependencies]
+                a = { path = "../a" }
+            "#,
+        )
+        .file(
+            "bar/src/main.rs",
+            r#"
+                fn main() {}
+            "#,
+        )
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.1.0"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo(&format!("build -Z bindeps --target {target}"))
+        .masquerade_as_nightly_cargo(&["bindeps"])
+        .with_stderr(
+            "\
+[COMPILING] a v0.1.0 ([CWD]/a)
+[COMPILING] bar v0.1.0 ([CWD]/bar)
+[COMPILING] foo v0.1.0 ([CWD])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
 ",
         )

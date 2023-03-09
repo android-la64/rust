@@ -36,7 +36,7 @@ impl<'a, 'tcx> HashStable<StableHashingContext<'a>> for Owner<'tcx> {
 }
 
 /// Gather the LocalDefId for each item-like within a module, including items contained within
-/// bodies.  The Ids are in visitor order.  This is used to partition a pass between modules.
+/// bodies. The Ids are in visitor order. This is used to partition a pass between modules.
 #[derive(Debug, HashStable, Encodable, Decodable)]
 pub struct ModuleItems {
     submodules: Box<[OwnerId]>,
@@ -102,6 +102,7 @@ impl<'tcx> TyCtxt<'tcx> {
 
     pub fn impl_subject(self, def_id: DefId) -> ImplSubject<'tcx> {
         self.impl_trait_ref(def_id)
+            .map(|t| t.subst_identity())
             .map(ImplSubject::Trait)
             .unwrap_or_else(|| ImplSubject::Inherent(self.type_of(def_id)))
     }
@@ -141,8 +142,6 @@ pub fn provide(providers: &mut Providers) {
     providers.hir_attrs = |tcx, id| {
         tcx.hir_crate(()).owners[id.def_id].as_owner().map_or(AttributeMap::EMPTY, |o| &o.attrs)
     };
-    providers.source_span =
-        |tcx, def_id| tcx.resolutions(()).source_span.get(def_id).copied().unwrap_or(DUMMY_SP);
     providers.def_span = |tcx, def_id| {
         let def_id = def_id.expect_local();
         let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
@@ -162,9 +161,13 @@ pub fn provide(providers: &mut Providers) {
         } else if let Node::TraitItem(&TraitItem {
             kind: TraitItemKind::Fn(_, TraitFn::Required(idents)),
             ..
+        })
+        | Node::ForeignItem(&ForeignItem {
+            kind: ForeignItemKind::Fn(_, idents, _),
+            ..
         }) = hir.get(hir_id)
         {
-            tcx.arena.alloc_slice(idents)
+            idents
         } else {
             span_bug!(hir.span(hir_id), "fn_arg_names: unexpected item {:?}", id);
         }

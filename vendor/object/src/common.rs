@@ -5,6 +5,8 @@
 pub enum Architecture {
     Unknown,
     Aarch64,
+    #[allow(non_camel_case_types)]
+    Aarch64_Ilp32,
     Arm,
     Avr,
     Bpf,
@@ -22,8 +24,10 @@ pub enum Architecture {
     Riscv32,
     Riscv64,
     S390x,
+    Sbf,
     Sparc64,
     Wasm32,
+    Xtensa,
 }
 
 impl Architecture {
@@ -34,6 +38,7 @@ impl Architecture {
         match self {
             Architecture::Unknown => None,
             Architecture::Aarch64 => Some(AddressSize::U64),
+            Architecture::Aarch64_Ilp32 => Some(AddressSize::U32),
             Architecture::Arm => Some(AddressSize::U32),
             Architecture::Avr => Some(AddressSize::U8),
             Architecture::Bpf => Some(AddressSize::U64),
@@ -50,8 +55,10 @@ impl Architecture {
             Architecture::Riscv32 => Some(AddressSize::U32),
             Architecture::Riscv64 => Some(AddressSize::U64),
             Architecture::S390x => Some(AddressSize::U64),
+            Architecture::Sbf => Some(AddressSize::U64),
             Architecture::Sparc64 => Some(AddressSize::U64),
             Architecture::Wasm32 => Some(AddressSize::U32),
+            Architecture::Xtensa => Some(AddressSize::U32),
         }
     }
 }
@@ -88,6 +95,7 @@ pub enum BinaryFormat {
     MachO,
     Pe,
     Wasm,
+    Xcoff,
 }
 
 /// The kind of a section.
@@ -305,6 +313,8 @@ pub enum RelocationKind {
     },
     /// Some other COFF relocation. The value is dependent on the architecture.
     Coff(u16),
+    /// Some other XCOFF relocation.
+    Xcoff(u8),
 }
 
 /// Information about how the result of the relocation operation is encoded in the place.
@@ -343,6 +353,11 @@ pub enum RelocationEncoding {
     ///
     /// The `RelocationKind` must be PC relative.
     AArch64Call,
+
+    /// LoongArch branch offset with two trailing zeros.
+    ///
+    /// The `RelocationKind` must be PC relative.
+    LoongArchBranch,
 }
 
 /// File flags that are specific to each file format.
@@ -369,6 +384,11 @@ pub enum FileFlags {
     Coff {
         /// `Characteristics` field in the COFF file header.
         characteristics: u16,
+    },
+    /// XCOFF file flags.
+    Xcoff {
+        /// `f_flags` field in the XCOFF file header.
+        f_flags: u16,
     },
 }
 
@@ -419,6 +439,11 @@ pub enum SectionFlags {
     Coff {
         /// `Characteristics` field in the section header.
         characteristics: u32,
+    },
+    /// XCOFF section flags.
+    Xcoff {
+        /// `s_flags` field in the section header.
+        s_flags: u32,
     },
 }
 

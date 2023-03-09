@@ -22,7 +22,7 @@ impl FlagComputation {
         result
     }
 
-    pub fn for_predicate<'tcx>(binder: ty::Binder<'tcx, ty::PredicateKind<'_>>) -> FlagComputation {
+    pub fn for_predicate(binder: ty::Binder<'_, ty::PredicateKind<'_>>) -> FlagComputation {
         let mut result = FlagComputation::new();
         result.add_predicate(binder);
         result
@@ -59,8 +59,18 @@ impl FlagComputation {
     {
         let mut computation = FlagComputation::new();
 
-        if !value.bound_vars().is_empty() {
-            computation.flags = computation.flags | TypeFlags::HAS_RE_LATE_BOUND;
+        for bv in value.bound_vars() {
+            match bv {
+                ty::BoundVariableKind::Ty(_) => {
+                    computation.flags |= TypeFlags::HAS_TY_LATE_BOUND;
+                }
+                ty::BoundVariableKind::Region(_) => {
+                    computation.flags |= TypeFlags::HAS_RE_LATE_BOUND;
+                }
+                ty::BoundVariableKind::Const => {
+                    computation.flags |= TypeFlags::HAS_CT_LATE_BOUND;
+                }
+            }
         }
 
         f(&mut computation, value.skip_binder());
@@ -95,7 +105,7 @@ impl FlagComputation {
                 self.add_flags(TypeFlags::STILL_FURTHER_SPECIALIZABLE);
             }
 
-            &ty::Generator(_, ref substs, _) => {
+            ty::Generator(_, substs, _) => {
                 let substs = substs.as_generator();
                 let should_remove_further_specializable =
                     !self.flags.contains(TypeFlags::STILL_FURTHER_SPECIALIZABLE);
@@ -131,6 +141,7 @@ impl FlagComputation {
 
             &ty::Bound(debruijn, _) => {
                 self.add_bound_var(debruijn);
+                self.add_flags(TypeFlags::HAS_TY_LATE_BOUND);
             }
 
             &ty::Placeholder(..) => {
@@ -155,12 +166,12 @@ impl FlagComputation {
                 self.add_substs(substs);
             }
 
-            &ty::Projection(data) => {
+            &ty::Alias(ty::Projection, data) => {
                 self.add_flags(TypeFlags::HAS_TY_PROJECTION);
                 self.add_projection_ty(data);
             }
 
-            &ty::Opaque(_, substs) => {
+            &ty::Alias(ty::Opaque, ty::AliasTy { substs, .. }) => {
                 self.add_flags(TypeFlags::HAS_TY_OPAQUE);
                 self.add_substs(substs);
             }
@@ -186,7 +197,7 @@ impl FlagComputation {
 
             &ty::Slice(tt) => self.add_ty(tt),
 
-            &ty::RawPtr(ref m) => {
+            ty::RawPtr(m) => {
                 self.add_ty(m.ty);
             }
 
@@ -303,6 +314,7 @@ impl FlagComputation {
             }
             ty::ConstKind::Bound(debruijn, _) => {
                 self.add_bound_var(debruijn);
+                self.add_flags(TypeFlags::HAS_CT_LATE_BOUND);
             }
             ty::ConstKind::Param(_) => {
                 self.add_flags(TypeFlags::HAS_CT_PARAM);
@@ -345,7 +357,7 @@ impl FlagComputation {
         }
     }
 
-    fn add_projection_ty(&mut self, projection_ty: ty::ProjectionTy<'_>) {
+    fn add_projection_ty(&mut self, projection_ty: ty::AliasTy<'_>) {
         self.add_substs(projection_ty.substs);
     }
 

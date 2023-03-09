@@ -363,7 +363,7 @@ use crate::vec::Vec;
 /// [`as_str()`]: String::as_str
 #[derive(PartialOrd, Eq, Ord)]
 #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg_attr(all(not(bootstrap), not(test)), lang = "String")]
+#[cfg_attr(not(test), lang = "String")]
 pub struct String {
     vec: Vec<u8>,
 }
@@ -2549,6 +2549,15 @@ impl ToString for char {
 }
 
 #[cfg(not(no_global_oom_handling))]
+#[stable(feature = "bool_to_string_specialization", since = "1.68.0")]
+impl ToString for bool {
+    #[inline]
+    fn to_string(&self) -> String {
+        String::from(if *self { "true" } else { "false" })
+    }
+}
+
+#[cfg(not(no_global_oom_handling))]
 #[stable(feature = "u8_to_string_specialization", since = "1.54.0")]
 impl ToString for u8 {
     #[inline]
@@ -2678,7 +2687,7 @@ impl From<&String> for String {
     }
 }
 
-// note: test pulls in libstd, which causes errors here
+// note: test pulls in std, which causes errors here
 #[cfg(not(test))]
 #[stable(feature = "string_from_box", since = "1.18.0")]
 impl From<Box<str>> for String {

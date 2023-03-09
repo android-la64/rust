@@ -30,7 +30,6 @@ mod test;
 mod util;
 
 use std::borrow::Borrow;
-use std::convert::TryFrom;
 use std::mem;
 
 impl<'a, 'tcx> Builder<'a, 'tcx> {
@@ -95,7 +94,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
 
                 let then_block = this.cfg.start_new_block();
                 let else_block = this.cfg.start_new_block();
-                let term = TerminatorKind::if_(this.tcx, operand, then_block, else_block);
+                let term = TerminatorKind::if_(operand, then_block, else_block);
 
                 let source_info = this.source_info(expr_span);
                 this.cfg.terminate(block, source_info, term);
@@ -1871,7 +1870,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         // ```
         // let place = Foo::new();
         // match place { foo if inspect(foo)
-        //     => feed(foo), ...  }
+        //     => feed(foo), ... }
         // ```
         //
         // will be treated as if it were really something like:
@@ -1886,7 +1885,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         // ```
         // let place = Foo::new();
         // match place { ref mut foo if inspect(foo)
-        //     => feed(foo), ...  }
+        //     => feed(foo), ... }
         // ```
         //
         // will be treated as if it were really something like:
@@ -2211,7 +2210,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             BindingMode::ByValue => ty::BindingMode::BindByValue(mutability),
             BindingMode::ByRef(_) => ty::BindingMode::BindByReference(mutability),
         };
-        let local = LocalDecl::<'tcx> {
+        let local = LocalDecl {
             mutability,
             ty: var_ty,
             user_ty: if user_ty.is_empty() { None } else { Some(Box::new(user_ty)) },

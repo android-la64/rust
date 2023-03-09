@@ -22,11 +22,11 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use clap::{Command, AppSettings, Arg, ValueHint};
+//! use clap::{Command, Arg, ValueHint, value_parser, ArgAction};
 //! use clap_complete::{generate, Generator, Shell};
 //! use std::io;
 //!
-//! fn build_cli() -> Command<'static> {
+//! fn build_cli() -> Command {
 //!     Command::new("example")
 //!          .arg(Arg::new("file")
 //!              .help("some input file")
@@ -35,7 +35,8 @@
 //!        .arg(
 //!            Arg::new("generator")
 //!                .long("generate")
-//!                .possible_values(Shell::possible_values()),
+//!                .action(ArgAction::Set)
+//!                .value_parser(value_parser!(Shell)),
 //!        )
 //! }
 //!
@@ -46,7 +47,7 @@
 //! fn main() {
 //!     let matches = build_cli().get_matches();
 //!
-//!     if let Ok(generator) = matches.value_of_t::<Shell>("generator") {
+//!     if let Some(generator) = matches.get_one::<Shell>("generator").copied() {
 //!         let mut cmd = build_cli();
 //!         eprintln!("Generating completion file for {}...", generator);
 //!         print_completions(generator, &mut cmd);
@@ -68,3 +69,6 @@ pub use generator::generate;
 pub use generator::generate_to;
 pub use generator::Generator;
 pub use shells::Shell;
+
+#[cfg(feature = "unstable-dynamic")]
+pub mod dynamic;

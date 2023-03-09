@@ -823,7 +823,7 @@ fn iter_fields<'tcx>(
 }
 
 /// Returns all locals with projections that have their reference or address taken.
-fn excluded_locals<'tcx>(body: &Body<'tcx>) -> IndexVec<Local, bool> {
+fn excluded_locals(body: &Body<'_>) -> IndexVec<Local, bool> {
     struct Collector {
         result: IndexVec<Local, bool>,
     }
@@ -920,7 +920,7 @@ fn debug_with_context<V: Debug + Eq>(
 ) -> std::fmt::Result {
     for (local, place) in map.locals.iter_enumerated() {
         if let Some(place) = place {
-            debug_with_context_rec(*place, &format!("{:?}", local), new, old, map, f)?;
+            debug_with_context_rec(*place, &format!("{local:?}"), new, old, map, f)?;
         }
     }
     Ok(())

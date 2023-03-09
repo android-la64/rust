@@ -86,7 +86,6 @@ use crate::fx::FxHashMap;
 
 use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
-use std::convert::Into;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -206,10 +205,7 @@ impl SelfProfilerRef {
     /// VerboseTimingGuard returned from this call is dropped. In addition to recording
     /// a measureme event, "verbose" generic activities also print a timing entry to
     /// stderr if the compiler is invoked with -Ztime-passes.
-    pub fn verbose_generic_activity<'a>(
-        &'a self,
-        event_label: &'static str,
-    ) -> VerboseTimingGuard<'a> {
+    pub fn verbose_generic_activity(&self, event_label: &'static str) -> VerboseTimingGuard<'_> {
         let message =
             if self.print_verbose_generic_activities { Some(event_label.to_owned()) } else { None };
 
@@ -217,11 +213,11 @@ impl SelfProfilerRef {
     }
 
     /// Like `verbose_generic_activity`, but with an extra arg.
-    pub fn verbose_generic_activity_with_arg<'a, A>(
-        &'a self,
+    pub fn verbose_generic_activity_with_arg<A>(
+        &self,
         event_label: &'static str,
         event_arg: A,
-    ) -> VerboseTimingGuard<'a>
+    ) -> VerboseTimingGuard<'_>
     where
         A: Borrow<str> + Into<String>,
     {
@@ -549,7 +545,7 @@ impl SelfProfiler {
         // length can behave as a source of entropy for heap addresses, when
         // ASLR is disabled and the heap is otherwise determinic.
         let pid: u32 = process::id();
-        let filename = format!("{}-{:07}.rustc_profile", crate_name, pid);
+        let filename = format!("{crate_name}-{pid:07}.rustc_profile");
         let path = output_directory.join(&filename);
         let profiler =
             Profiler::with_counter(&path, measureme::counters::Counter::by_name(counter_name)?)?;

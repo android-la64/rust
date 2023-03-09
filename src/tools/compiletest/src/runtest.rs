@@ -44,6 +44,8 @@ use debugger::{check_debugger_output, DebuggerCommands};
 #[cfg(test)]
 mod tests;
 
+const FAKE_SRC_BASE: &str = "fake-test-src-base";
+
 #[cfg(windows)]
 fn disable_error_reporting<F: FnOnce() -> R, R>(f: F) -> R {
     use std::sync::Mutex;
@@ -117,8 +119,12 @@ pub fn run(config: Config, testpaths: &TestPaths, revision: Option<&str>) {
     }
     debug!("running {:?}", testpaths.file.display());
     let mut props = TestProps::from_file(&testpaths.file, revision, &config);
+
+    // For non-incremental (i.e. regular UI) tests, the incremental directory
+    // takes into account the revision name, since the revisions are independent
+    // of each other and can race.
     if props.incremental {
-        props.incremental_dir = Some(incremental_dir(&config, testpaths));
+        props.incremental_dir = Some(incremental_dir(&config, testpaths, revision));
     }
 
     let cx = TestCx { config: &config, props: &props, testpaths, revision };
@@ -1324,12 +1330,19 @@ impl<'test> TestCx<'test> {
             return;
         }
 
+        // On Windows, translate all '\' path separators to '/'
+        let file_name = format!("{}", self.testpaths.file.display()).replace(r"\", "/");
+
         // On Windows, keep all '\' path separators to match the paths reported in the JSON output
         // from the compiler
-        let os_file_name = self.testpaths.file.display().to_string();
-
-        // on windows, translate all '\' path separators to '/'
-        let file_name = format!("{}", self.testpaths.file.display()).replace(r"\", "/");
+        let diagnostic_file_name = if self.props.remap_src_base {
+            let mut p = PathBuf::from(FAKE_SRC_BASE);
+            p.push(&self.testpaths.relative_dir);
+            p.push(self.testpaths.file.file_name().unwrap());
+            p.display().to_string()
+        } else {
+            self.testpaths.file.display().to_string()
+        };
 
         // If the testcase being checked contains at least one expected "help"
         // message, then we'll ensure that all "help" messages are expected.
@@ -1339,7 +1352,7 @@ impl<'test> TestCx<'test> {
         let expect_note = expected_errors.iter().any(|ee| ee.kind == Some(ErrorKind::Note));
 
         // Parse the JSON output from the compiler and extract out the messages.
-        let actual_errors = json::parse_output(&os_file_name, &proc_res.stderr, proc_res);
+        let actual_errors = json::parse_output(&diagnostic_file_name, &proc_res.stderr, proc_res);
         let mut unexpected = Vec::new();
         let mut found = vec![false; expected_errors.len()];
         for actual_error in &actual_errors {
@@ -1924,7 +1937,15 @@ impl<'test> TestCx<'test> {
                     rustc.args(&["--json", "future-incompat"]);
                 }
                 rustc.arg("-Ccodegen-units=1");
+                // Hide line numbers to reduce churn
                 rustc.arg("-Zui-testing");
+                // Hide libstd sources from ui tests to make sure we generate the stderr
+                // output that users will see.
+                // Without this, we may be producing good diagnostics in-tree but users
+                // will not see half the information.
+                rustc.arg("-Zsimulate-remapped-rust-src-base=/rustc/FAKE_PREFIX");
+                rustc.arg("-Ztranslate-remapped-path-to-local-path=no");
+
                 rustc.arg("-Zdeduplicate-diagnostics=no");
                 // FIXME: use this for other modes too, for perf?
                 rustc.arg("-Cstrip=debuginfo");
@@ -1956,6 +1977,14 @@ impl<'test> TestCx<'test> {
             | CodegenUnits | JsDocTest | Assembly => {
                 // do not use JSON output
             }
+        }
+
+        if self.props.remap_src_base {
+            rustc.arg(format!(
+                "--remap-path-prefix={}={}",
+                self.config.src_base.display(),
+                FAKE_SRC_BASE,
+            ));
         }
 
         match emit {
@@ -1999,7 +2028,7 @@ impl<'test> TestCx<'test> {
                 rustc.args(&["-Zpolonius"]);
             }
             Some(CompareMode::Chalk) => {
-                rustc.args(&["-Zchalk"]);
+                rustc.args(&["-Ztrait-solver=chalk"]);
             }
             Some(CompareMode::SplitDwarf) if self.config.target.contains("windows") => {
                 rustc.args(&["-Csplit-debuginfo=unpacked", "-Zunstable-options"]);
@@ -2090,9 +2119,7 @@ impl<'test> TestCx<'test> {
                 .parent()
                 .unwrap() // chop off `ui`
                 .parent()
-                .unwrap() // chop off `test`
-                .parent()
-                .unwrap(); // chop off `src`
+                .unwrap(); // chop off `tests`
             args.push(src.join("src/etc/wasm32-shim.js").display().to_string());
         }
 
@@ -2291,6 +2318,8 @@ impl<'test> TestCx<'test> {
         } else {
             filecheck.args(&["--check-prefixes", &prefixes]);
         }
+        // Provide more context on failures.
+        filecheck.args(&["--dump-input-context", "100"]);
         self.compose_and_run(filecheck, "", None, None)
     }
 
@@ -2918,7 +2947,7 @@ impl<'test> TestCx<'test> {
 
     fn run_rmake_test(&self) {
         let cwd = env::current_dir().unwrap();
-        let src_root = self.config.src_base.parent().unwrap().parent().unwrap().parent().unwrap();
+        let src_root = self.config.src_base.parent().unwrap().parent().unwrap();
         let src_root = cwd.join(&src_root);
 
         let tmpdir = cwd.join(self.output_base_name());
@@ -3533,9 +3562,17 @@ impl<'test> TestCx<'test> {
         let parent_dir = self.testpaths.file.parent().unwrap();
         normalize_path(parent_dir, "$DIR");
 
+        if self.props.remap_src_base {
+            let mut remapped_parent_dir = PathBuf::from(FAKE_SRC_BASE);
+            if self.testpaths.relative_dir != Path::new("") {
+                remapped_parent_dir.push(&self.testpaths.relative_dir);
+            }
+            normalize_path(&remapped_parent_dir, "$DIR");
+        }
+
         let source_bases = &[
-            // Source base on the current filesystem (calculated as parent of `src/test/$suite`):
-            Some(self.config.src_base.parent().unwrap().parent().unwrap().parent().unwrap().into()),
+            // Source base on the current filesystem (calculated as parent of `tests/$suite`):
+            Some(self.config.src_base.parent().unwrap().parent().unwrap().into()),
             // Source base on the sysroot (from the src components downloaded by `download-rustc`):
             Some(self.config.sysroot_base.join("lib").join("rustlib").join("src").join("rust")),
             // Virtual `/rustc/$sha` remapped paths (if `remap-debuginfo` is enabled):

@@ -10,7 +10,6 @@ use std::{cmp, fmt, iter};
 use arrayvec::ArrayVec;
 use thin_vec::ThinVec;
 
-use rustc_ast::attr;
 use rustc_ast::util::comments::beautify_doc_string;
 use rustc_ast::{self as ast, AttrStyle};
 use rustc_attr::{ConstStability, Deprecation, Stability, StabilityLevel};
@@ -27,7 +26,6 @@ use rustc_middle::ty::fast_reject::SimplifiedType;
 use rustc_middle::ty::{self, DefIdTree, TyCtxt, Visibility};
 use rustc_session::Session;
 use rustc_span::hygiene::MacroKind;
-use rustc_span::source_map::DUMMY_SP;
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
 use rustc_span::{self, FileName, Loc};
 use rustc_target::abi::VariantIdx;
@@ -64,8 +62,6 @@ pub(crate) enum ItemId {
     Auto { trait_: DefId, for_: DefId },
     /// Identifier that is used for blanket implementations.
     Blanket { impl_id: DefId, for_: DefId },
-    /// Identifier for primitive types.
-    Primitive(PrimitiveType, CrateNum),
 }
 
 impl ItemId {
@@ -75,7 +71,6 @@ impl ItemId {
             ItemId::Auto { for_: id, .. }
             | ItemId::Blanket { for_: id, .. }
             | ItemId::DefId(id) => id.is_local(),
-            ItemId::Primitive(_, krate) => krate == LOCAL_CRATE,
         }
     }
 
@@ -100,7 +95,6 @@ impl ItemId {
             ItemId::Auto { for_: id, .. }
             | ItemId::Blanket { for_: id, .. }
             | ItemId::DefId(id) => id.krate,
-            ItemId::Primitive(_, krate) => krate,
         }
     }
 }
@@ -682,7 +676,8 @@ impl Item {
         }
         let header = match *self.kind {
             ItemKind::ForeignFunctionItem(_) => {
-                let abi = tcx.fn_sig(self.item_id.as_def_id().unwrap()).abi();
+                let def_id = self.item_id.as_def_id().unwrap();
+                let abi = tcx.fn_sig(def_id).abi();
                 hir::FnHeader {
                     unsafety: if abi == Abi::RustIntrinsic {
                         intrinsic_operation_unsafety(tcx, self.item_id.as_def_id().unwrap())
@@ -690,7 +685,14 @@ impl Item {
                         hir::Unsafety::Unsafe
                     },
                     abi,
-                    constness: hir::Constness::NotConst,
+                    constness: if abi == Abi::RustIntrinsic
+                        && tcx.is_const_fn(def_id)
+                        && is_unstable_const_fn(tcx, def_id).is_none()
+                    {
+                        hir::Constness::Const
+                    } else {
+                        hir::Constness::NotConst
+                    },
                     asyncness: hir::IsAsync::NotAsync,
                 }
             }
@@ -709,15 +711,13 @@ impl Item {
         let def_id = match self.item_id {
             // Anything but DefId *shouldn't* matter, but return a reasonable value anyway.
             ItemId::Auto { .. } | ItemId::Blanket { .. } => return None,
-            // Primitives and Keywords are written in the source code as private modules.
-            // The modules need to be private so that nobody actually uses them, but the
-            // keywords and primitives that they are documenting are public.
-            ItemId::Primitive(..) => return Some(Visibility::Public),
             ItemId::DefId(def_id) => def_id,
         };
 
         match *self.kind {
-            // Explication on `ItemId::Primitive` just above.
+            // Primitives and Keywords are written in the source code as private modules.
+            // The modules need to be private so that nobody actually uses them, but the
+            // keywords and primitives that they are documenting are public.
             ItemKind::KeywordItem | ItemKind::PrimitiveItem(_) => return Some(Visibility::Public),
             // Variant fields inherit their enum's visibility.
             StructFieldItem(..) if is_field_vis_inherited(tcx, def_id) => {
@@ -809,8 +809,11 @@ impl ItemKind {
         match self {
             StructItem(s) => s.fields.iter(),
             UnionItem(u) => u.fields.iter(),
-            VariantItem(Variant::Struct(v)) => v.fields.iter(),
-            VariantItem(Variant::Tuple(v)) => v.iter(),
+            VariantItem(v) => match &v.kind {
+                VariantKind::CLike => [].iter(),
+                VariantKind::Tuple(t) => t.iter(),
+                VariantKind::Struct(s) => s.fields.iter(),
+            },
             EnumItem(e) => e.variants.iter(),
             TraitItem(t) => t.items.iter(),
             ImplItem(i) => i.items.iter(),
@@ -826,7 +829,6 @@ impl ItemKind {
             | TyMethodItem(_)
             | MethodItem(_, _)
             | StructFieldItem(_)
-            | VariantItem(_)
             | ForeignFunctionItem(_)
             | ForeignStaticItem(_)
             | ForeignTypeItem
@@ -982,12 +984,12 @@ impl AttributesExt for [ast::Attribute] {
         // #[doc(cfg(target_feature = "feat"))] attributes as well
         for attr in self.lists(sym::target_feature) {
             if attr.has_name(sym::enable) {
-                if let Some(feat) = attr.value_str() {
-                    let meta = attr::mk_name_value_item_str(
-                        Ident::with_dummy_span(sym::target_feature),
-                        feat,
-                        DUMMY_SP,
-                    );
+                if attr.value_str().is_some() {
+                    // Clone `enable = "feat"`, change to `target_feature = "feat"`.
+                    // Unwrap is safe because `value_str` succeeded above.
+                    let mut meta = attr.meta_item().unwrap().clone();
+                    meta.path = ast::Path::from_ident(Ident::with_dummy_span(sym::target_feature));
+
                     if let Ok(feat_cfg) = Cfg::parse(&meta) {
                         cfg &= feat_cfg;
                     }
@@ -1345,7 +1347,7 @@ pub(crate) enum GenericBound {
 impl GenericBound {
     pub(crate) fn maybe_sized(cx: &mut DocContext<'_>) -> GenericBound {
         let did = cx.tcx.require_lang_item(LangItem::Sized, None);
-        let empty = cx.tcx.intern_substs(&[]);
+        let empty = ty::Binder::dummy(ty::InternalSubsts::empty());
         let path = external_path(cx, did, false, ThinVec::new(), empty);
         inline::record_extern_fqn(cx, did, ItemType::Trait);
         GenericBound::TraitBound(
@@ -1742,7 +1744,7 @@ impl Type {
     fn inner_def_id(&self, cache: Option<&Cache>) -> Option<DefId> {
         let t: PrimitiveType = match *self {
             Type::Path { ref path } => return Some(path.def_id()),
-            DynTrait(ref bounds, _) => return Some(bounds[0].trait_.def_id()),
+            DynTrait(ref bounds, _) => return bounds.get(0).map(|b| b.trait_.def_id()),
             Primitive(p) => return cache.and_then(|c| c.primitive_locations.get(&p).cloned()),
             BorrowedRef { type_: box Generic(..), .. } => PrimitiveType::Reference,
             BorrowedRef { ref type_, .. } => return type_.inner_def_id(cache),
@@ -1872,7 +1874,7 @@ impl PrimitiveType {
     }
 
     pub(crate) fn simplified_types() -> &'static SimplifiedTypes {
-        use ty::fast_reject::SimplifiedTypeGen::*;
+        use ty::fast_reject::SimplifiedType::*;
         use ty::{FloatTy, IntTy, UintTy};
         use PrimitiveType::*;
         static CELL: OnceCell<SimplifiedTypes> = OnceCell::new();
@@ -2111,7 +2113,6 @@ impl Union {
 /// only as a variant in an enum.
 #[derive(Clone, Debug)]
 pub(crate) struct VariantStruct {
-    pub(crate) ctor_kind: Option<CtorKind>,
     pub(crate) fields: Vec<Item>,
 }
 
@@ -2138,17 +2139,23 @@ impl Enum {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum Variant {
-    CLike(Option<Discriminant>),
+pub(crate) struct Variant {
+    pub kind: VariantKind,
+    pub discriminant: Option<Discriminant>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum VariantKind {
+    CLike,
     Tuple(Vec<Item>),
     Struct(VariantStruct),
 }
 
 impl Variant {
     pub(crate) fn has_stripped_entries(&self) -> Option<bool> {
-        match *self {
-            Self::Struct(ref struct_) => Some(struct_.has_stripped_entries()),
-            Self::CLike(..) | Self::Tuple(_) => None,
+        match &self.kind {
+            VariantKind::Struct(struct_) => Some(struct_.has_stripped_entries()),
+            VariantKind::CLike | VariantKind::Tuple(_) => None,
         }
     }
 }
@@ -2488,6 +2495,17 @@ impl Import {
 
     pub(crate) fn new_glob(source: ImportSource, should_be_displayed: bool) -> Self {
         Self { kind: ImportKind::Glob, source, should_be_displayed }
+    }
+
+    pub(crate) fn imported_item_is_doc_hidden(&self, tcx: TyCtxt<'_>) -> bool {
+        match self.source.did {
+            Some(did) => tcx
+                .get_attrs(did, sym::doc)
+                .filter_map(ast::Attribute::meta_item_list)
+                .flatten()
+                .has_word(sym::hidden),
+            None => false,
+        }
     }
 }
 

@@ -68,6 +68,22 @@ pub struct CanonicalVarValues<'tcx> {
     pub var_values: IndexVec<BoundVar, GenericArg<'tcx>>,
 }
 
+impl CanonicalVarValues<'_> {
+    pub fn is_identity(&self) -> bool {
+        self.var_values.iter_enumerated().all(|(bv, arg)| match arg.unpack() {
+            ty::GenericArgKind::Lifetime(r) => {
+                matches!(*r, ty::ReLateBound(ty::INNERMOST, br) if br.var == bv)
+            }
+            ty::GenericArgKind::Type(ty) => {
+                matches!(*ty.kind(), ty::Bound(ty::INNERMOST, bt) if bt.var == bv)
+            }
+            ty::GenericArgKind::Const(ct) => {
+                matches!(ct.kind(), ty::ConstKind::Bound(ty::INNERMOST, bc) if bc == bv)
+            }
+        })
+    }
+}
+
 /// When we canonicalize a value to form a query, we wind up replacing
 /// various parts of it with canonical variables. This struct stores
 /// those replaced bits to remember for when we process the query
@@ -213,9 +229,7 @@ impl QueryRegionConstraints<'_> {
     }
 }
 
-pub type Canonicalized<'tcx, V> = Canonical<'tcx, V>;
-
-pub type CanonicalizedQueryResponse<'tcx, T> = &'tcx Canonical<'tcx, QueryResponse<'tcx, T>>;
+pub type CanonicalQueryResponse<'tcx, T> = &'tcx Canonical<'tcx, QueryResponse<'tcx, T>>;
 
 /// Indicates whether or not we were able to prove the query to be
 /// true.
@@ -300,6 +314,16 @@ impl<'tcx, V> Canonical<'tcx, V> {
         let Canonical { max_universe, variables, value } = self;
         Canonical { max_universe, variables, value: map_op(value) }
     }
+
+    /// Allows you to map the `value` of a canonical while keeping the same set of
+    /// bound variables.
+    ///
+    /// **WARNING:** This function is very easy to mis-use, hence the name! See
+    /// the comment of [Canonical::unchecked_map] for more details.
+    pub fn unchecked_rebind<W>(self, value: W) -> Canonical<'tcx, W> {
+        let Canonical { max_universe, variables, value: _ } = self;
+        Canonical { max_universe, variables, value }
+    }
 }
 
 pub type QueryOutlivesConstraint<'tcx> = (
@@ -315,6 +339,12 @@ TrivialTypeTraversalAndLiftImpls! {
 }
 
 impl<'tcx> CanonicalVarValues<'tcx> {
+    /// Creates dummy var values which should not be used in a
+    /// canonical response.
+    pub fn dummy() -> CanonicalVarValues<'tcx> {
+        CanonicalVarValues { var_values: Default::default() }
+    }
+
     #[inline]
     pub fn len(&self) -> usize {
         self.var_values.len()

@@ -3,13 +3,14 @@
 use std::ops::ControlFlow;
 
 use crate::ty::{
-    visit::TypeVisitable, Const, ConstKind, DefIdTree, ExistentialPredicate, InferConst, InferTy,
-    PolyTraitPredicate, Ty, TyCtxt, TypeSuperVisitable, TypeVisitor,
+    visit::TypeVisitable, AliasTy, Const, ConstKind, DefIdTree, InferConst, InferTy, Opaque,
+    PolyTraitPredicate, Projection, Ty, TyCtxt, TypeSuperVisitable, TypeVisitor,
 };
 
 use rustc_data_structures::fx::FxHashMap;
 use rustc_errors::{Applicability, Diagnostic, DiagnosticArgValue, IntoDiagnosticArg};
 use rustc_hir as hir;
+use rustc_hir::def::DefKind;
 use rustc_hir::def_id::DefId;
 use rustc_hir::WherePredicate;
 use rustc_span::Span;
@@ -17,7 +18,7 @@ use rustc_type_ir::sty::TyKind::*;
 
 impl<'tcx> IntoDiagnosticArg for Ty<'tcx> {
     fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
-        format!("{}", self).into_diagnostic_arg()
+        self.to_string().into_diagnostic_arg()
     }
 }
 
@@ -443,7 +444,7 @@ impl<'tcx> TypeVisitor<'tcx> for IsSuggestableVisitor<'tcx> {
     type BreakTy = ();
 
     fn visit_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
-        match t.kind() {
+        match *t.kind() {
             Infer(InferTy::TyVar(_)) if self.infer_suggestable => {}
 
             FnDef(..)
@@ -457,11 +458,11 @@ impl<'tcx> TypeVisitor<'tcx> for IsSuggestableVisitor<'tcx> {
                 return ControlFlow::Break(());
             }
 
-            Opaque(did, _) => {
-                let parent = self.tcx.parent(*did);
-                if let hir::def::DefKind::TyAlias | hir::def::DefKind::AssocTy = self.tcx.def_kind(parent)
-                    && let Opaque(parent_did, _) = self.tcx.type_of(parent).kind()
-                    && parent_did == did
+            Alias(Opaque, AliasTy { def_id, .. }) => {
+                let parent = self.tcx.parent(def_id);
+                if let DefKind::TyAlias | DefKind::AssocTy = self.tcx.def_kind(parent)
+                    && let Alias(Opaque, AliasTy { def_id: parent_opaque_def_id, .. }) = *self.tcx.type_of(parent).kind()
+                    && parent_opaque_def_id == def_id
                 {
                     // Okay
                 } else {
@@ -469,14 +470,9 @@ impl<'tcx> TypeVisitor<'tcx> for IsSuggestableVisitor<'tcx> {
                 }
             }
 
-            Dynamic(dty, _, _) => {
-                for pred in *dty {
-                    match pred.skip_binder() {
-                        ExistentialPredicate::Trait(_) | ExistentialPredicate::Projection(_) => {
-                            // Okay
-                        }
-                        _ => return ControlFlow::Break(()),
-                    }
+            Alias(Projection, AliasTy { def_id, .. }) => {
+                if self.tcx.def_kind(def_id) != DefKind::AssocTy {
+                    return ControlFlow::Break(());
                 }
             }
 

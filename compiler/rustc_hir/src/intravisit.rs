@@ -742,6 +742,7 @@ pub fn walk_expr<'v, V: Visitor<'v>>(visitor: &mut V, expression: &'v Expr<'v>) 
             fn_decl_span: _,
             fn_arg_span: _,
             movability: _,
+            constness: _,
         }) => {
             walk_list!(visitor, visit_generic_param, bound_generic_params);
             visitor.visit_fn(FnKind::Closure, fn_decl, body, expression.span, expression.hir_id)
@@ -809,7 +810,7 @@ pub fn walk_ty<'v, V: Visitor<'v>>(visitor: &mut V, typ: &'v Ty<'v>) {
     match typ.kind {
         TyKind::Slice(ref ty) => visitor.visit_ty(ty),
         TyKind::Ptr(ref mutable_type) => visitor.visit_ty(mutable_type.ty),
-        TyKind::Rptr(ref lifetime, ref mutable_type) => {
+        TyKind::Ref(ref lifetime, ref mutable_type) => {
             visitor.visit_lifetime(lifetime);
             visitor.visit_ty(mutable_type.ty)
         }

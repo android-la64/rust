@@ -6,11 +6,181 @@ document.
 
 ## Unreleased / Beta / In Rust Nightly
 
-[b52fb523...master](https://github.com/rust-lang/rust-clippy/compare/b52fb523...master)
+[4f142aa1...master](https://github.com/rust-lang/rust-clippy/compare/4f142aa1...master)
+
+## Rust 1.66
+
+Current stable, released 2022-12-15
+
+[b52fb523...4f142aa1](https://github.com/rust-lang/rust-clippy/compare/b52fb523...4f142aa1)
+
+### New Lints
+
+* [`manual_clamp`]
+  [#9484](https://github.com/rust-lang/rust-clippy/pull/9484)
+* [`missing_trait_methods`]
+  [#9670](https://github.com/rust-lang/rust-clippy/pull/9670)
+* [`unused_format_specs`]
+  [#9637](https://github.com/rust-lang/rust-clippy/pull/9637)
+* [`iter_kv_map`]
+  [#9409](https://github.com/rust-lang/rust-clippy/pull/9409)
+* [`manual_filter`]
+  [#9451](https://github.com/rust-lang/rust-clippy/pull/9451)
+* [`box_default`]
+  [#9511](https://github.com/rust-lang/rust-clippy/pull/9511)
+* [`implicit_saturating_add`]
+  [#9549](https://github.com/rust-lang/rust-clippy/pull/9549)
+* [`as_ptr_cast_mut`]
+  [#9572](https://github.com/rust-lang/rust-clippy/pull/9572)
+* [`disallowed_macros`]
+  [#9495](https://github.com/rust-lang/rust-clippy/pull/9495)
+* [`partial_pub_fields`]
+  [#9658](https://github.com/rust-lang/rust-clippy/pull/9658)
+* [`uninlined_format_args`]
+  [#9233](https://github.com/rust-lang/rust-clippy/pull/9233)
+* [`cast_nan_to_int`]
+  [#9617](https://github.com/rust-lang/rust-clippy/pull/9617)
+
+### Moves and Deprecations
+
+* `positional_named_format_parameters` was uplifted to rustc under the new name
+  `named_arguments_used_positionally`
+  [#8518](https://github.com/rust-lang/rust-clippy/pull/8518)
+* Moved [`implicit_saturating_sub`] to `style` (Now warn-by-default)
+  [#9584](https://github.com/rust-lang/rust-clippy/pull/9584)
+* Moved `derive_partial_eq_without_eq` to `nursery` (now allow-by-default)
+  [#9536](https://github.com/rust-lang/rust-clippy/pull/9536)
+
+### Enhancements
+
+* [`nonstandard_macro_braces`]: Now includes `matches!()` in the default lint config
+  [#9471](https://github.com/rust-lang/rust-clippy/pull/9471)
+* [`suboptimal_flops`]: Now supports multiplication and subtraction operations
+  [#9581](https://github.com/rust-lang/rust-clippy/pull/9581)
+* [`arithmetic_side_effects`]: Now detects cases with literals behind references
+  [#9587](https://github.com/rust-lang/rust-clippy/pull/9587)
+* [`upper_case_acronyms`]: Now also checks enum names
+  [#9580](https://github.com/rust-lang/rust-clippy/pull/9580)
+* [`needless_borrowed_reference`]: Now lints nested patterns
+  [#9573](https://github.com/rust-lang/rust-clippy/pull/9573)
+* [`unnecessary_cast`]: Now works for non-trivial non-literal expressions
+  [#9576](https://github.com/rust-lang/rust-clippy/pull/9576)
+* [`arithmetic_side_effects`]: Now detects operations with custom types
+  [#9559](https://github.com/rust-lang/rust-clippy/pull/9559)
+* [`disallowed_methods`], [`disallowed_types`]: Not correctly lints types, functions and macros
+  with the same path
+  [#9495](https://github.com/rust-lang/rust-clippy/pull/9495)
+* [`self_named_module_files`], [`mod_module_files`]: Now take remapped path prefixes into account
+  [#9475](https://github.com/rust-lang/rust-clippy/pull/9475)
+* [`bool_to_int_with_if`]: Now detects the inverse if case
+  [#9476](https://github.com/rust-lang/rust-clippy/pull/9476)
+
+### False Positive Fixes
+
+* [`arithmetic_side_effects`]: Now allows operations that can't overflow
+  [#9474](https://github.com/rust-lang/rust-clippy/pull/9474)
+* [`unnecessary_lazy_evaluations`]: No longer lints in external macros
+  [#9486](https://github.com/rust-lang/rust-clippy/pull/9486)
+* [`needless_borrow`], [`explicit_auto_deref`]: No longer lint on unions that require the reference
+  [#9490](https://github.com/rust-lang/rust-clippy/pull/9490)
+* [`almost_complete_letter_range`]: No longer lints in external macros
+  [#9467](https://github.com/rust-lang/rust-clippy/pull/9467)
+* [`drop_copy`]: No longer lints on idiomatic cases in match arms 
+  [#9491](https://github.com/rust-lang/rust-clippy/pull/9491)
+* [`question_mark`]: No longer lints in const context
+  [#9487](https://github.com/rust-lang/rust-clippy/pull/9487)
+* [`collapsible_if`]: Suggestion now work in macros
+  [#9410](https://github.com/rust-lang/rust-clippy/pull/9410)
+* [`std_instead_of_core`]: No longer triggers on unstable modules
+  [#9545](https://github.com/rust-lang/rust-clippy/pull/9545)
+* [`unused_peekable`]: No longer lints, if the peak is done in a closure or function
+  [#9465](https://github.com/rust-lang/rust-clippy/pull/9465)
+* [`useless_attribute`]: No longer lints on `#[allow]` attributes for [`unsafe_removed_from_name`]
+  [#9593](https://github.com/rust-lang/rust-clippy/pull/9593)
+* [`unnecessary_lazy_evaluations`]: No longer suggest switching to early evaluation when type has
+  custom `Drop` implementation
+  [#9551](https://github.com/rust-lang/rust-clippy/pull/9551)
+* [`unnecessary_cast`]: No longer lints on negative hexadecimal literals when cast as floats
+  [#9609](https://github.com/rust-lang/rust-clippy/pull/9609)
+* [`use_self`]: No longer lints in proc macros
+  [#9454](https://github.com/rust-lang/rust-clippy/pull/9454)
+* [`never_loop`]: Now takes `let ... else` statements into consideration.
+  [#9496](https://github.com/rust-lang/rust-clippy/pull/9496)
+* [`default_numeric_fallback`]: Now ignores constants
+  [#9636](https://github.com/rust-lang/rust-clippy/pull/9636)
+* [`uninit_vec`]: No longer lints `Vec::set_len(0)`
+  [#9519](https://github.com/rust-lang/rust-clippy/pull/9519)
+* [`arithmetic_side_effects`]: Now ignores references to integer types
+  [#9507](https://github.com/rust-lang/rust-clippy/pull/9507)
+* [`large_stack_arrays`]: No longer lints inside static items
+  [#9466](https://github.com/rust-lang/rust-clippy/pull/9466)
+* [`ref_option_ref`]: No longer lints if the inner reference is mutable
+  [#9684](https://github.com/rust-lang/rust-clippy/pull/9684)
+* [`ptr_arg`]: No longer lints if the argument is used as an incomplete trait object
+  [#9645](https://github.com/rust-lang/rust-clippy/pull/9645)
+* [`should_implement_trait`]: Now also works for `default` methods
+  [#9546](https://github.com/rust-lang/rust-clippy/pull/9546)
+
+### Suggestion Fixes/Improvements
+
+* [`derivable_impls`]: The suggestion is now machine applicable
+  [#9429](https://github.com/rust-lang/rust-clippy/pull/9429)
+* [`match_single_binding`]: The suggestion now handles scrutinies with side effects better
+  [#9601](https://github.com/rust-lang/rust-clippy/pull/9601)
+* [`zero_prefixed_literal`]: Only suggests using octal numbers, if this is possible
+  [#9652](https://github.com/rust-lang/rust-clippy/pull/9652)
+* [`rc_buffer`]: The suggestion is no longer machine applicable to avoid semantic changes
+  [#9633](https://github.com/rust-lang/rust-clippy/pull/9633)
+* [`print_literal`], [`write_literal`], [`uninlined_format_args`]: The suggestion now ignores
+  comments after the macro call.
+  [#9586](https://github.com/rust-lang/rust-clippy/pull/9586)
+* [`expect_fun_call`]:Improved the suggestion for `format!` calls with captured variables
+  [#9586](https://github.com/rust-lang/rust-clippy/pull/9586)
+* [`nonstandard_macro_braces`]: The suggestion is now machine applicable and will no longer
+  replace brackets inside the macro argument.
+  [#9499](https://github.com/rust-lang/rust-clippy/pull/9499)
+* [`from_over_into`]: The suggestion is now a machine applicable and contains explanations
+  [#9649](https://github.com/rust-lang/rust-clippy/pull/9649)
+* [`needless_return`]: The automatic suggestion now removes all required semicolons
+  [#9497](https://github.com/rust-lang/rust-clippy/pull/9497)
+* [`to_string_in_format_args`]: The suggestion now keeps parenthesis around values
+  [#9590](https://github.com/rust-lang/rust-clippy/pull/9590)
+* [`manual_assert`]: The suggestion now preserves comments
+  [#9479](https://github.com/rust-lang/rust-clippy/pull/9479)
+* [`redundant_allocation`]: The suggestion applicability is now marked `MaybeIncorrect` to
+  avoid semantic changes
+  [#9634](https://github.com/rust-lang/rust-clippy/pull/9634)
+* [`assertions_on_result_states`]: The suggestion has been corrected, for cases where the
+  `assert!` is not in a statement.
+  [#9453](https://github.com/rust-lang/rust-clippy/pull/9453)
+* [`nonminimal_bool`]: The suggestion no longer expands macros
+  [#9457](https://github.com/rust-lang/rust-clippy/pull/9457)
+* [`collapsible_match`]: Now specifies field names, when a struct is destructed
+  [#9685](https://github.com/rust-lang/rust-clippy/pull/9685)
+* [`unnecessary_cast`]: The suggestion now adds parenthesis for negative numbers
+  [#9577](https://github.com/rust-lang/rust-clippy/pull/9577)
+* [`redundant_closure`]: The suggestion now works for `impl FnMut` arguments
+  [#9556](https://github.com/rust-lang/rust-clippy/pull/9556)
+
+### ICE Fixes
+
+* [`unnecessary_to_owned`]: Avoid ICEs in favor of false negatives if information is missing
+  [#9505](https://github.com/rust-lang/rust-clippy/pull/9505)
+* [`manual_range_contains`]: No longer ICEs on values behind references
+  [#9627](https://github.com/rust-lang/rust-clippy/pull/9627)
+* [`needless_pass_by_value`]: No longer ICEs on unsized `dyn Fn` arguments
+  [#9531](https://github.com/rust-lang/rust-clippy/pull/9531)
+* `*_interior_mutable_const` lints: no longer ICE on const unions containing `!Freeze` types
+  [#9539](https://github.com/rust-lang/rust-clippy/pull/9539)
+
+### Others
+
+* Released `rustc_tools_util` for version information on `Crates.io`. (Further adjustments will
+  not be published as part of this changelog)
 
 ## Rust 1.65
 
-Current stable, released 2022-11-03
+Released 2022-11-03
 
 [3c7e7dbc...b52fb523](https://github.com/rust-lang/rust-clippy/compare/3c7e7dbc...b52fb523)
 
@@ -3875,6 +4045,7 @@ Released 2018-09-13
 [`alloc_instead_of_core`]: https://rust-lang.github.io/rust-clippy/master/index.html#alloc_instead_of_core
 [`allow_attributes_without_reason`]: https://rust-lang.github.io/rust-clippy/master/index.html#allow_attributes_without_reason
 [`almost_complete_letter_range`]: https://rust-lang.github.io/rust-clippy/master/index.html#almost_complete_letter_range
+[`almost_complete_range`]: https://rust-lang.github.io/rust-clippy/master/index.html#almost_complete_range
 [`almost_swapped`]: https://rust-lang.github.io/rust-clippy/master/index.html#almost_swapped
 [`approx_constant`]: https://rust-lang.github.io/rust-clippy/master/index.html#approx_constant
 [`arithmetic_side_effects`]: https://rust-lang.github.io/rust-clippy/master/index.html#arithmetic_side_effects
@@ -3966,6 +4137,7 @@ Released 2018-09-13
 [`derive_hash_xor_eq`]: https://rust-lang.github.io/rust-clippy/master/index.html#derive_hash_xor_eq
 [`derive_ord_xor_partial_ord`]: https://rust-lang.github.io/rust-clippy/master/index.html#derive_ord_xor_partial_ord
 [`derive_partial_eq_without_eq`]: https://rust-lang.github.io/rust-clippy/master/index.html#derive_partial_eq_without_eq
+[`derived_hash_with_manual_eq`]: https://rust-lang.github.io/rust-clippy/master/index.html#derived_hash_with_manual_eq
 [`disallowed_macros`]: https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_macros
 [`disallowed_method`]: https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_method
 [`disallowed_methods`]: https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
@@ -4032,6 +4204,7 @@ Released 2018-09-13
 [`float_cmp_const`]: https://rust-lang.github.io/rust-clippy/master/index.html#float_cmp_const
 [`float_equality_without_abs`]: https://rust-lang.github.io/rust-clippy/master/index.html#float_equality_without_abs
 [`fn_address_comparisons`]: https://rust-lang.github.io/rust-clippy/master/index.html#fn_address_comparisons
+[`fn_null_check`]: https://rust-lang.github.io/rust-clippy/master/index.html#fn_null_check
 [`fn_params_excessive_bools`]: https://rust-lang.github.io/rust-clippy/master/index.html#fn_params_excessive_bools
 [`fn_to_numeric_cast`]: https://rust-lang.github.io/rust-clippy/master/index.html#fn_to_numeric_cast
 [`fn_to_numeric_cast_any`]: https://rust-lang.github.io/rust-clippy/master/index.html#fn_to_numeric_cast_any
@@ -4289,6 +4462,7 @@ Released 2018-09-13
 [`partialeq_to_none`]: https://rust-lang.github.io/rust-clippy/master/index.html#partialeq_to_none
 [`path_buf_push_overwrite`]: https://rust-lang.github.io/rust-clippy/master/index.html#path_buf_push_overwrite
 [`pattern_type_mismatch`]: https://rust-lang.github.io/rust-clippy/master/index.html#pattern_type_mismatch
+[`permissions_set_readonly_false`]: https://rust-lang.github.io/rust-clippy/master/index.html#permissions_set_readonly_false
 [`positional_named_format_parameters`]: https://rust-lang.github.io/rust-clippy/master/index.html#positional_named_format_parameters
 [`possible_missing_comma`]: https://rust-lang.github.io/rust-clippy/master/index.html#possible_missing_comma
 [`precedence`]: https://rust-lang.github.io/rust-clippy/master/index.html#precedence
@@ -4353,6 +4527,8 @@ Released 2018-09-13
 [`self_named_constructors`]: https://rust-lang.github.io/rust-clippy/master/index.html#self_named_constructors
 [`self_named_module_files`]: https://rust-lang.github.io/rust-clippy/master/index.html#self_named_module_files
 [`semicolon_if_nothing_returned`]: https://rust-lang.github.io/rust-clippy/master/index.html#semicolon_if_nothing_returned
+[`semicolon_inside_block`]: https://rust-lang.github.io/rust-clippy/master/index.html#semicolon_inside_block
+[`semicolon_outside_block`]: https://rust-lang.github.io/rust-clippy/master/index.html#semicolon_outside_block
 [`separated_literal_suffix`]: https://rust-lang.github.io/rust-clippy/master/index.html#separated_literal_suffix
 [`serde_api_misuse`]: https://rust-lang.github.io/rust-clippy/master/index.html#serde_api_misuse
 [`shadow_reuse`]: https://rust-lang.github.io/rust-clippy/master/index.html#shadow_reuse
@@ -4372,6 +4548,7 @@ Released 2018-09-13
 [`single_match`]: https://rust-lang.github.io/rust-clippy/master/index.html#single_match
 [`single_match_else`]: https://rust-lang.github.io/rust-clippy/master/index.html#single_match_else
 [`size_of_in_element_count`]: https://rust-lang.github.io/rust-clippy/master/index.html#size_of_in_element_count
+[`size_of_ref`]: https://rust-lang.github.io/rust-clippy/master/index.html#size_of_ref
 [`skip_while_next`]: https://rust-lang.github.io/rust-clippy/master/index.html#skip_while_next
 [`slow_vector_initialization`]: https://rust-lang.github.io/rust-clippy/master/index.html#slow_vector_initialization
 [`stable_sort_primitive`]: https://rust-lang.github.io/rust-clippy/master/index.html#stable_sort_primitive
@@ -4417,6 +4594,7 @@ Released 2018-09-13
 [`transmute_int_to_bool`]: https://rust-lang.github.io/rust-clippy/master/index.html#transmute_int_to_bool
 [`transmute_int_to_char`]: https://rust-lang.github.io/rust-clippy/master/index.html#transmute_int_to_char
 [`transmute_int_to_float`]: https://rust-lang.github.io/rust-clippy/master/index.html#transmute_int_to_float
+[`transmute_null_to_fn`]: https://rust-lang.github.io/rust-clippy/master/index.html#transmute_null_to_fn
 [`transmute_num_to_bytes`]: https://rust-lang.github.io/rust-clippy/master/index.html#transmute_num_to_bytes
 [`transmute_ptr_to_ptr`]: https://rust-lang.github.io/rust-clippy/master/index.html#transmute_ptr_to_ptr
 [`transmute_ptr_to_ref`]: https://rust-lang.github.io/rust-clippy/master/index.html#transmute_ptr_to_ref

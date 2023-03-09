@@ -6,12 +6,13 @@ use generated_code::Context;
 
 // Types that the generated ISLE code uses via `use super::*`.
 use super::{
-    fp_reg, lower_constant_f128, lower_constant_f32, lower_constant_f64, lower_fp_condcode,
-    stack_reg, writable_zero_reg, zero_reg, AMode, ASIMDFPModImm, ASIMDMovModImm, BranchTarget,
-    CallIndInfo, CallInfo, Cond, CondBrKind, ExtendOp, FPUOpRI, FPUOpRIMod, FloatCC, Imm12,
-    ImmLogic, ImmShift, Inst as MInst, IntCC, JTSequenceInfo, MachLabel, MemLabel, MoveWideConst,
-    MoveWideOp, NarrowValueMode, Opcode, OperandSize, PairAMode, Reg, SImm9, ScalarSize,
-    ShiftOpAndAmt, UImm12Scaled, UImm5, VecMisc2, VectorSize, NZCV,
+    fp_reg, lower_condcode, lower_constant_f128, lower_constant_f32, lower_constant_f64,
+    lower_fp_condcode, stack_reg, writable_link_reg, writable_zero_reg, zero_reg, AMode,
+    ASIMDFPModImm, ASIMDMovModImm, BranchTarget, CallIndInfo, CallInfo, Cond, CondBrKind, ExtendOp,
+    FPUOpRI, FPUOpRIMod, FloatCC, Imm12, ImmLogic, ImmShift, Inst as MInst, IntCC, JTSequenceInfo,
+    MachLabel, MemLabel, MoveWideConst, MoveWideOp, NarrowValueMode, Opcode, OperandSize,
+    PairAMode, Reg, SImm9, ScalarSize, ShiftOpAndAmt, UImm12Scaled, UImm5, VecMisc2, VectorSize,
+    NZCV,
 };
 use crate::ir::condcodes;
 use crate::isa::aarch64::inst::{FPULeftShiftImm, FPURightShiftImm};
@@ -29,8 +30,11 @@ use crate::{
     isa::aarch64::abi::AArch64Caller,
     isa::aarch64::inst::args::{ShiftOp, ShiftOpShiftImm},
     isa::unwind::UnwindInst,
-    machinst::{ty_bits, InsnOutput, Lower, MachInst, VCodeConstant, VCodeConstantData},
+    machinst::{
+        abi::ArgPair, ty_bits, InsnOutput, Lower, MachInst, VCodeConstant, VCodeConstantData,
+    },
 };
+use crate::{isle_common_prelude_methods, isle_lower_prelude_methods};
 use regalloc2::PReg;
 use std::boxed::Box;
 use std::convert::TryFrom;
@@ -42,6 +46,7 @@ type BoxCallIndInfo = Box<CallIndInfo>;
 type VecMachLabel = Vec<MachLabel>;
 type BoxJTSequenceInfo = Box<JTSequenceInfo>;
 type BoxExternalName = Box<ExternalName>;
+type VecArgPair = Vec<ArgPair>;
 
 /// The main entry point for lowering with ISLE.
 pub(crate) fn lower(
@@ -63,6 +68,25 @@ pub(crate) fn lower(
     )
 }
 
+pub(crate) fn lower_branch(
+    lower_ctx: &mut Lower<MInst>,
+    triple: &Triple,
+    flags: &Flags,
+    isa_flags: &IsaFlags,
+    branch: Inst,
+    targets: &[MachLabel],
+) -> Result<(), ()> {
+    lower_common(
+        lower_ctx,
+        triple,
+        flags,
+        isa_flags,
+        &[],
+        branch,
+        |cx, insn| generated_code::constructor_lower_branch(cx, insn, &targets.to_vec()),
+    )
+}
+
 pub struct ExtendedValue {
     val: Value,
     extend: ExtendOp,
@@ -73,7 +97,7 @@ impl IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
 }
 
 impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
-    isle_prelude_methods!();
+    isle_lower_prelude_methods!();
     isle_prelude_caller_methods!(crate::isa::aarch64::abi::AArch64MachineDeps, AArch64Caller);
 
     fn sign_return_address_disabled(&mut self) -> Option<()> {
@@ -85,7 +109,7 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
     }
 
     fn use_lse(&mut self, _: Inst) -> Option<()> {
-        if self.isa_flags.use_lse() {
+        if self.isa_flags.has_lse() {
             Some(())
         } else {
             None
@@ -141,7 +165,6 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
     fn integral_ty(&mut self, ty: Type) -> Option<Type> {
         match ty {
             I8 | I16 | I32 | I64 | R64 => Some(ty),
-            ty if ty.is_bool() => Some(ty),
             _ => None,
         }
     }
@@ -312,6 +335,10 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         fp_reg()
     }
 
+    fn writable_link_reg(&mut self) -> WritableReg {
+        writable_link_reg()
+    }
+
     fn extended_value_from_value(&mut self, val: Value) -> Option<ExtendedValue> {
         let (val, extend) =
             super::get_as_extended_value(self.lower_ctx, val, NarrowValueMode::None)?;
@@ -332,6 +359,10 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
 
     fn cond_br_zero(&mut self, reg: Reg) -> CondBrKind {
         CondBrKind::Zero(reg)
+    }
+
+    fn cond_br_not_zero(&mut self, reg: Reg) -> CondBrKind {
+        CondBrKind::NotZero(reg)
     }
 
     fn cond_br_cond(&mut self, cond: &Cond) -> CondBrKind {
@@ -509,6 +540,13 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         lower_fp_condcode(*cc)
     }
 
+    fn cond_code(&mut self, cc: &condcodes::IntCC) -> Cond {
+        lower_condcode(*cc)
+    }
+
+    fn invert_cond(&mut self, cond: &Cond) -> Cond {
+        (*cond).invert()
+    }
     fn preg_sp(&mut self) -> PReg {
         super::regs::stack_reg().to_real_reg().unwrap().into()
     }
@@ -519,6 +557,34 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
 
     fn preg_link(&mut self) -> PReg {
         super::regs::link_reg().to_real_reg().unwrap().into()
+    }
+
+    fn branch_target(&mut self, elements: &VecMachLabel, idx: u8) -> BranchTarget {
+        BranchTarget::Label(elements[idx as usize])
+    }
+
+    fn targets_jt_size(&mut self, elements: &VecMachLabel) -> u32 {
+        (elements.len() - 1) as u32
+    }
+
+    fn targets_jt_space(&mut self, elements: &VecMachLabel) -> CodeOffset {
+        // calculate the number of bytes needed for the jumptable sequence:
+        // 4 bytes per instruction, with 8 instructions base + the size of
+        // the jumptable more.
+        4 * (8 + self.targets_jt_size(elements))
+    }
+
+    fn targets_jt_info(&mut self, elements: &VecMachLabel) -> BoxJTSequenceInfo {
+        let targets: Vec<BranchTarget> = elements
+            .iter()
+            .skip(1)
+            .map(|bix| BranchTarget::Label(*bix))
+            .collect();
+        let default_target = BranchTarget::Label(elements[0]);
+        Box::new(JTSequenceInfo {
+            targets,
+            default_target,
+        })
     }
 
     fn min_fp_value(&mut self, signed: bool, in_bits: u8, out_bits: u8) -> Reg {
@@ -616,68 +682,6 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         } else {
             unimplemented!(
                 "unexpected input size for max_fp_value: {} (signed: {}, output size: {})",
-                in_bits,
-                signed,
-                out_bits
-            );
-        }
-
-        tmp.to_reg()
-    }
-
-    fn min_fp_value_sat(&mut self, signed: bool, in_bits: u8, out_bits: u8) -> Reg {
-        let tmp = self.lower_ctx.alloc_tmp(I8X16).only_reg().unwrap();
-
-        let min: f64 = match (out_bits, signed) {
-            (32, true) => i32::MIN as f64,
-            (32, false) => 0.0,
-            (64, true) => i64::MIN as f64,
-            (64, false) => 0.0,
-            _ => unimplemented!(
-                "unexpected {} output size of {} bits",
-                if signed { "signed" } else { "unsigned" },
-                out_bits
-            ),
-        };
-
-        if in_bits == 32 {
-            lower_constant_f32(self.lower_ctx, tmp, min as f32)
-        } else if in_bits == 64 {
-            lower_constant_f64(self.lower_ctx, tmp, min)
-        } else {
-            unimplemented!(
-                "unexpected input size for min_fp_value_sat: {} (signed: {}, output size: {})",
-                in_bits,
-                signed,
-                out_bits
-            );
-        }
-
-        tmp.to_reg()
-    }
-
-    fn max_fp_value_sat(&mut self, signed: bool, in_bits: u8, out_bits: u8) -> Reg {
-        let tmp = self.lower_ctx.alloc_tmp(I8X16).only_reg().unwrap();
-
-        let max = match (out_bits, signed) {
-            (32, true) => i32::MAX as f64,
-            (32, false) => u32::MAX as f64,
-            (64, true) => i64::MAX as f64,
-            (64, false) => u64::MAX as f64,
-            _ => unimplemented!(
-                "unexpected {} output size of {} bits",
-                if signed { "signed" } else { "unsigned" },
-                out_bits
-            ),
-        };
-
-        if in_bits == 32 {
-            lower_constant_f32(self.lower_ctx, tmp, max as f32)
-        } else if in_bits == 64 {
-            lower_constant_f64(self.lower_ctx, tmp, max)
-        } else {
-            unimplemented!(
-                "unexpected input size for max_fp_value_sat: {} (signed: {}, output size: {})",
                 in_bits,
                 signed,
                 out_bits

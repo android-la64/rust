@@ -30,7 +30,12 @@ macro_rules! arena_types {
             [decode] typeck_results: rustc_middle::ty::TypeckResults<'tcx>,
             [decode] borrowck_result:
                 rustc_middle::mir::BorrowCheckResult<'tcx>,
-            [] resolver: rustc_data_structures::steal::Steal<rustc_middle::ty::ResolverAstLowering>,
+            [] resolver: rustc_data_structures::steal::Steal<(
+                rustc_middle::ty::ResolverAstLowering,
+                rustc_data_structures::sync::Lrc<rustc_ast::Crate>,
+            )>,
+            [] output_filenames: std::sync::Arc<rustc_session::config::OutputFilenames>,
+            [] resolutions: rustc_middle::ty::ResolverGlobalCtxt,
             [decode] unsafety_check_result: rustc_middle::mir::UnsafetyCheckResult,
             [decode] code_region: rustc_middle::mir::coverage::CodeRegion,
             [] const_allocs: rustc_middle::mir::interpret::Allocation,
@@ -93,7 +98,7 @@ macro_rules! arena_types {
             // Interned types
             [] tys: rustc_type_ir::WithCachedTypeInfo<rustc_middle::ty::TyKind<'tcx>>,
             [] predicates: rustc_type_ir::WithCachedTypeInfo<rustc_middle::ty::PredicateKind<'tcx>>,
-            [] consts: rustc_middle::ty::ConstS<'tcx>,
+            [] consts: rustc_middle::ty::ConstData<'tcx>,
 
             // Note that this deliberately duplicates items in the `rustc_hir::arena`,
             // since we need to allocate this type on both the `rustc_hir` arena

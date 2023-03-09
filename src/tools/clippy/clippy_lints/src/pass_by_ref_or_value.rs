@@ -184,16 +184,16 @@ impl<'tcx> PassByRefOrValue {
                     if is_copy(cx, ty)
                         && let Some(size) = cx.layout_of(ty).ok().map(|l| l.size.bytes())
                         && size <= self.ref_min_size
-                        && let hir::TyKind::Rptr(_, MutTy { ty: decl_ty, .. }) = input.kind
+                        && let hir::TyKind::Ref(_, MutTy { ty: decl_ty, .. }) = input.kind
                     {
                         if let Some(typeck) = cx.maybe_typeck_results() {
                             // Don't lint if an unsafe pointer is created.
                             // TODO: Limit the check only to unsafe pointers to the argument (or part of the argument)
                             //       which escape the current function.
-                            if typeck.node_types().iter().any(|(_, &ty)| ty.is_unsafe_ptr())
+                            if typeck.node_types().items().any(|(_, &ty)| ty.is_unsafe_ptr())
                                 || typeck
                                     .adjustments()
-                                    .iter()
+                                    .items()
                                     .flat_map(|(_, a)| a)
                                     .any(|a| matches!(a.kind, Adjust::Pointer(PointerCast::UnsafeFnPointer)))
                             {
@@ -299,7 +299,7 @@ impl<'tcx> LateLintPass<'tcx> for PassByRefOrValue {
         }
 
         // Exclude non-inherent impls
-        if let Some(Node::Item(item)) = cx.tcx.hir().find(cx.tcx.hir().get_parent_node(hir_id)) {
+        if let Some(Node::Item(item)) = cx.tcx.hir().find_parent(hir_id) {
             if matches!(
                 item.kind,
                 ItemKind::Impl(Impl { of_trait: Some(_), .. }) | ItemKind::Trait(..)

@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.60.0"
+rust-version = "1.64.0"
 name = "clap"
-version = "4.0.15"
+version = "4.1.4"
 include = [
     "build.rs",
     "src/**/*",
@@ -44,7 +44,7 @@ rustdoc-args = [
 ]
 cargo-args = [
     "-Zunstable-options",
-    "-Zrustdoc-scrape-examples=examples",
+    "-Zrustdoc-scrape-examples",
 ]
 
 [package.metadata.playground]
@@ -355,10 +355,6 @@ name = "interop_flatten_hand_args"
 path = "examples/derive_ref/flatten_hand_args.rs"
 required-features = ["derive"]
 
-[dependencies.atty]
-version = "0.2"
-optional = true
-
 [dependencies.backtrace]
 version = "0.3"
 optional = true
@@ -367,11 +363,15 @@ optional = true
 version = "1.2"
 
 [dependencies.clap_derive]
-version = "=4.0.13"
+version = "=4.1.0"
 optional = true
 
 [dependencies.clap_lex]
 version = "0.3.0"
+
+[dependencies.is-terminal]
+version = "0.4.1"
+optional = true
 
 [dependencies.once_cell]
 version = "1.12.0"
@@ -413,10 +413,10 @@ version = "0.4"
 version = "1.1.0"
 
 [dev-dependencies.trybuild]
-version = "1.0.65"
+version = "1.0.73"
 
 [dev-dependencies.trycmd]
-version = "0.13"
+version = "0.14.9"
 features = [
     "color-auto",
     "diff",
@@ -430,7 +430,7 @@ version = "0.9.0"
 [features]
 cargo = ["dep:once_cell"]
 color = [
-    "dep:atty",
+    "dep:is-terminal",
     "dep:termcolor",
 ]
 debug = [
@@ -471,7 +471,6 @@ unstable-doc = [
     "unicode",
     "string",
     "unstable-replace",
-    "unstable-grouped",
 ]
 unstable-grouped = []
 unstable-replace = []

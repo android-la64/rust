@@ -36,7 +36,6 @@ use rustc_span::symbol::Ident;
 use rustc_span::*;
 
 use std::cell::Cell;
-use std::default::Default;
 use std::env;
 use std::fs::File;
 use std::io::BufWriter;
@@ -601,7 +600,7 @@ impl<'tcx> SaveContext<'tcx> {
                 if seg.res != Res::Err {
                     seg.res
                 } else {
-                    let parent_node = self.tcx.hir().get_parent_node(hir_id);
+                    let parent_node = self.tcx.hir().parent_id(hir_id);
                     self.get_path_res(parent_node)
                 }
             }
@@ -958,10 +957,10 @@ impl SaveHandler for CallbackHandler<'_> {
     }
 }
 
-pub fn process_crate<'l, 'tcx, H: SaveHandler>(
-    tcx: TyCtxt<'tcx>,
+pub fn process_crate<H: SaveHandler>(
+    tcx: TyCtxt<'_>,
     cratename: Symbol,
-    input: &'l Input,
+    input: &Input,
     config: Option<Config>,
     mut handler: H,
 ) {

@@ -2,6 +2,7 @@ use rustc_data_structures::fx::FxIndexSet;
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_middle::ty::{self, Binder, Predicate, PredicateKind, ToPredicate, Ty, TyCtxt};
+use rustc_session::config::TraitSolver;
 use rustc_trait_selection::traits;
 
 fn sized_constraint_for_ty<'tcx>(
@@ -37,7 +38,7 @@ fn sized_constraint_for_ty<'tcx>(
                 .collect()
         }
 
-        Projection(..) | Opaque(..) => {
+        Alias(..) => {
             // must calculate explicitly.
             // FIXME: consider special-casing always-Sized projections
             vec![ty]
@@ -121,7 +122,7 @@ fn param_env(tcx: TyCtxt<'_>, def_id: DefId) -> ty::ParamEnv<'_> {
     // are any errors at that point, so outside of type inference you can be
     // sure that this will succeed without errors anyway.
 
-    if tcx.sess.opts.unstable_opts.chalk {
+    if tcx.sess.opts.unstable_opts.trait_solver == TraitSolver::Chalk {
         let environment = well_formed_types_in_env(tcx, def_id);
         predicates.extend(environment);
     }
@@ -161,7 +162,7 @@ fn param_env(tcx: TyCtxt<'_>, def_id: DefId) -> ty::ParamEnv<'_> {
                 kind: hir::ImplItemKind::Type(..) | hir::ImplItemKind::Fn(..),
                 ..
             }) => {
-                let parent_hir_id = tcx.hir().get_parent_node(hir_id);
+                let parent_hir_id = tcx.hir().parent_id(hir_id);
                 match tcx.hir().get(parent_hir_id) {
                     hir::Node::Item(hir::Item {
                         kind: hir::ItemKind::Impl(hir::Impl { constness, .. }),
@@ -225,10 +226,7 @@ fn param_env(tcx: TyCtxt<'_>, def_id: DefId) -> ty::ParamEnv<'_> {
 /// that are assumed to be well-formed (because they come from the environment).
 ///
 /// Used only in chalk mode.
-fn well_formed_types_in_env<'tcx>(
-    tcx: TyCtxt<'tcx>,
-    def_id: DefId,
-) -> &'tcx ty::List<Predicate<'tcx>> {
+fn well_formed_types_in_env(tcx: TyCtxt<'_>, def_id: DefId) -> &ty::List<Predicate<'_>> {
     use rustc_hir::{ForeignItemKind, ImplItemKind, ItemKind, Node, TraitItemKind};
     use rustc_middle::ty::subst::GenericArgKind;
 
@@ -291,7 +289,7 @@ fn well_formed_types_in_env<'tcx>(
         // In a trait impl, we assume that the header trait ref and all its
         // constituents are well-formed.
         NodeKind::TraitImpl => {
-            let trait_ref = tcx.impl_trait_ref(def_id).expect("not an impl");
+            let trait_ref = tcx.impl_trait_ref(def_id).expect("not an impl").subst_identity();
 
             // FIXME(chalk): this has problems because of late-bound regions
             //inputs.extend(trait_ref.substs.iter().flat_map(|arg| arg.walk()));
@@ -362,7 +360,8 @@ fn issue33140_self_ty(tcx: TyCtxt<'_>, def_id: DefId) -> Option<Ty<'_>> {
 
     let trait_ref = tcx
         .impl_trait_ref(def_id)
-        .unwrap_or_else(|| bug!("issue33140_self_ty called on inherent impl {:?}", def_id));
+        .unwrap_or_else(|| bug!("issue33140_self_ty called on inherent impl {:?}", def_id))
+        .skip_binder();
 
     debug!("issue33140_self_ty({:?}), trait-ref={:?}", def_id, trait_ref);
 

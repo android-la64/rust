@@ -45,9 +45,7 @@ use rustc_span::symbol::{sym, Symbol};
 use serde_json::Value;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 use std::hash::{Hash, Hasher};
-use std::iter::FromIterator;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -804,7 +802,7 @@ impl ToJson for StackProbeType {
 
 bitflags::bitflags! {
     #[derive(Default, Encodable, Decodable)]
-    pub struct SanitizerSet: u8 {
+    pub struct SanitizerSet: u16 {
         const ADDRESS = 1 << 0;
         const LEAK    = 1 << 1;
         const MEMORY  = 1 << 2;
@@ -813,6 +811,7 @@ bitflags::bitflags! {
         const CFI     = 1 << 5;
         const MEMTAG  = 1 << 6;
         const SHADOWCALLSTACK = 1 << 7;
+        const KCFI    = 1 << 8;
     }
 }
 
@@ -824,6 +823,7 @@ impl SanitizerSet {
         Some(match self {
             SanitizerSet::ADDRESS => "address",
             SanitizerSet::CFI => "cfi",
+            SanitizerSet::KCFI => "kcfi",
             SanitizerSet::LEAK => "leak",
             SanitizerSet::MEMORY => "memory",
             SanitizerSet::MEMTAG => "memtag",
@@ -840,7 +840,7 @@ impl fmt::Display for SanitizerSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut first = true;
         for s in *self {
-            let name = s.as_str().unwrap_or_else(|| panic!("unrecognized sanitizer {:?}", s));
+            let name = s.as_str().unwrap_or_else(|| panic!("unrecognized sanitizer {s:?}"));
             if !first {
                 f.write_str(", ")?;
             }
@@ -859,6 +859,7 @@ impl IntoIterator for SanitizerSet {
         [
             SanitizerSet::ADDRESS,
             SanitizerSet::CFI,
+            SanitizerSet::KCFI,
             SanitizerSet::LEAK,
             SanitizerSet::MEMORY,
             SanitizerSet::MEMTAG,
@@ -980,7 +981,7 @@ impl fmt::Display for StackProtector {
 }
 
 macro_rules! supported_targets {
-    ( $(($triple:literal, $module:ident ),)+ ) => {
+    ( $(($triple:literal, $module:ident),)+ ) => {
         $(mod $module;)+
 
         /// List of supported targets
@@ -1108,8 +1109,12 @@ supported_targets! {
     ("x86_64-apple-darwin", x86_64_apple_darwin),
     ("i686-apple-darwin", i686_apple_darwin),
 
+    // FIXME(#106649): Remove aarch64-fuchsia in favor of aarch64-unknown-fuchsia
     ("aarch64-fuchsia", aarch64_fuchsia),
+    ("aarch64-unknown-fuchsia", aarch64_unknown_fuchsia),
+    // FIXME(#106649): Remove x86_64-fuchsia in favor of x86_64-unknown-fuchsia
     ("x86_64-fuchsia", x86_64_fuchsia),
+    ("x86_64-unknown-fuchsia", x86_64_unknown_fuchsia),
 
     ("avr-unknown-gnu-atmega328", avr_unknown_gnu_atmega328),
 
@@ -1240,6 +1245,8 @@ supported_targets! {
 
     ("aarch64-nintendo-switch-freestanding", aarch64_nintendo_switch_freestanding),
 
+    ("armv7-sony-vita-newlibeabihf", armv7_sony_vita_newlibeabihf),
+
     ("armv7-unknown-linux-uclibceabi", armv7_unknown_linux_uclibceabi),
     ("armv7-unknown-linux-uclibceabihf", armv7_unknown_linux_uclibceabihf),
 
@@ -1318,7 +1325,7 @@ pub struct Target {
 }
 
 impl Target {
-    pub fn parse_data_layout<'a>(&'a self) -> Result<TargetDataLayout, TargetDataLayoutErrors<'a>> {
+    pub fn parse_data_layout(&self) -> Result<TargetDataLayout, TargetDataLayoutErrors<'_>> {
         let mut dl = TargetDataLayout::parse_from_llvm_datalayout_string(&self.data_layout)?;
 
         // Perform consistency checks against the Target information.
@@ -2071,7 +2078,7 @@ impl Target {
         let mut get_req_field = |name: &str| {
             obj.remove(name)
                 .and_then(|j| j.as_str().map(str::to_string))
-                .ok_or_else(|| format!("Field {} in target specification is required", name))
+                .ok_or_else(|| format!("Field {name} in target specification is required"))
         };
 
         let mut base = Target {
@@ -2290,7 +2297,7 @@ impl Target {
                     } else {
                         return Some(Err(format!(
                             "'{}' is not a valid value for lld-flavor. \
-                             Use 'darwin', 'gnu', 'link' or 'wasm.",
+                             Use 'darwin', 'gnu', 'link' or 'wasm'.",
                             s)))
                     }
                     Some(Ok(()))
@@ -2327,6 +2334,7 @@ impl Target {
                             base.$key_name |= match s.as_str() {
                                 Some("address") => SanitizerSet::ADDRESS,
                                 Some("cfi") => SanitizerSet::CFI,
+                                Some("kcfi") => SanitizerSet::KCFI,
                                 Some("leak") => SanitizerSet::LEAK,
                                 Some("memory") => SanitizerSet::MEMORY,
                                 Some("memtag") => SanitizerSet::MEMTAG,
@@ -2476,7 +2484,7 @@ impl Target {
             if let Some(s) = fp.as_str() {
                 base.frame_pointer = s
                     .parse()
-                    .map_err(|()| format!("'{}' is not a valid value for frame-pointer", s))?;
+                    .map_err(|()| format!("'{s}' is not a valid value for frame-pointer"))?;
             } else {
                 incorrect_type.push("frame-pointer".into())
             }
@@ -2614,7 +2622,7 @@ impl Target {
     /// Search for a JSON file specifying the given target triple.
     ///
     /// If none is found in `$RUST_TARGET_PATH`, look for a file called `target.json` inside the
-    /// sysroot under the target-triple's `rustlib` directory.  Note that it could also just be a
+    /// sysroot under the target-triple's `rustlib` directory. Note that it could also just be a
     /// bare filename already, so also check for that. If one of the hardcoded targets we know
     /// about, just return it directly.
     ///
@@ -2668,7 +2676,7 @@ impl Target {
                     return load_file(&p);
                 }
 
-                Err(format!("Could not find specification for target {:?}", target_triple))
+                Err(format!("Could not find specification for target {target_triple:?}"))
             }
             TargetTriple::TargetJson { ref contents, .. } => {
                 let obj = serde_json::from_str(contents).map_err(|e| e.to_string())?;
@@ -2932,7 +2940,7 @@ impl TargetTriple {
         let contents = std::fs::read_to_string(&canonicalized_path).map_err(|err| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
-                format!("target path {:?} is not a valid file: {}", canonicalized_path, err),
+                format!("target path {canonicalized_path:?} is not a valid file: {err}"),
             )
         })?;
         let triple = canonicalized_path
@@ -2967,7 +2975,7 @@ impl TargetTriple {
                 let mut hasher = DefaultHasher::new();
                 content.hash(&mut hasher);
                 let hash = hasher.finish();
-                format!("{}-{}", triple, hash)
+                format!("{triple}-{hash}")
             }
         }
     }

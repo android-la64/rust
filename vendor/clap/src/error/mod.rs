@@ -242,7 +242,10 @@ impl<F: ErrorFormatter> Error<F> {
     /// ```
     pub fn print(&self) -> io::Result<()> {
         let style = self.formatted();
-        let color_when = if self.kind() == ErrorKind::DisplayHelp {
+        let color_when = if matches!(
+            self.kind(),
+            ErrorKind::DisplayHelp | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
+        ) {
             self.inner.color_help_when
         } else {
             self.inner.color_when
@@ -431,8 +434,9 @@ impl<F: ErrorFormatter> Error<F> {
         #[cfg(feature = "error-context")]
         {
             let mut styled_suggestion = StyledStr::new();
-            styled_suggestion
-                .none("If you believe you received this message in error, try re-running with '");
+            styled_suggestion.none("to pass '");
+            styled_suggestion.warning(&subcmd);
+            styled_suggestion.none("' as a value, use '");
             styled_suggestion.good(name);
             styled_suggestion.good(" -- ");
             styled_suggestion.good(&subcmd);
@@ -504,17 +508,21 @@ impl<F: ErrorFormatter> Error<F> {
 
     pub(crate) fn missing_subcommand(
         cmd: &Command,
-        name: String,
+        parent: String,
+        available: Vec<String>,
         usage: Option<StyledStr>,
     ) -> Self {
         let mut err = Self::new(ErrorKind::MissingSubcommand).with_cmd(cmd);
 
         #[cfg(feature = "error-context")]
         {
-            err = err.extend_context_unchecked([(
-                ContextKind::InvalidSubcommand,
-                ContextValue::String(name),
-            )]);
+            err = err.extend_context_unchecked([
+                (ContextKind::InvalidSubcommand, ContextValue::String(parent)),
+                (
+                    ContextKind::ValidSubcommand,
+                    ContextValue::Strings(available),
+                ),
+            ]);
             if let Some(usage) = usage {
                 err = err
                     .insert_context_unchecked(ContextKind::Usage, ContextValue::StyledStr(usage));
@@ -655,9 +663,9 @@ impl<F: ErrorFormatter> Error<F> {
             let mut suggestions = vec![];
             if suggested_trailing_arg {
                 let mut styled_suggestion = StyledStr::new();
-                styled_suggestion.none("If you tried to supply '");
+                styled_suggestion.none("to pass '");
                 styled_suggestion.warning(&arg);
-                styled_suggestion.none("' as a value rather than a flag, use '");
+                styled_suggestion.none("' as a value, use '");
                 styled_suggestion.good("-- ");
                 styled_suggestion.good(&arg);
                 styled_suggestion.none("'");
@@ -673,12 +681,12 @@ impl<F: ErrorFormatter> Error<F> {
             match did_you_mean {
                 Some((flag, Some(sub))) => {
                     let mut styled_suggestion = StyledStr::new();
-                    styled_suggestion.none("Did you mean to put '");
+                    styled_suggestion.none("'");
+                    styled_suggestion.good(sub);
+                    styled_suggestion.none(" ");
                     styled_suggestion.good("--");
                     styled_suggestion.good(flag);
-                    styled_suggestion.none("' after the subcommand '");
-                    styled_suggestion.good(sub);
-                    styled_suggestion.none("'?");
+                    styled_suggestion.none("' exists");
                     suggestions.push(styled_suggestion);
                 }
                 Some((flag, None)) => {
@@ -710,11 +718,11 @@ impl<F: ErrorFormatter> Error<F> {
         #[cfg(feature = "error-context")]
         {
             let mut styled_suggestion = StyledStr::new();
-            styled_suggestion.none("If you tried to supply '");
-            styled_suggestion.warning(&arg);
-            styled_suggestion.none("' as a subcommand, remove the '");
+            styled_suggestion.none("subcommand '");
+            styled_suggestion.good(&arg);
+            styled_suggestion.none("' exists; to use it, remove the '");
             styled_suggestion.warning("--");
-            styled_suggestion.none("' before it.");
+            styled_suggestion.none("' before it");
 
             err = err.extend_context_unchecked([
                 (ContextKind::InvalidArg, ContextValue::String(arg)),

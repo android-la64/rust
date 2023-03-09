@@ -83,10 +83,8 @@ pub trait Generator {
 ///
 /// ```
 /// // src/cli.rs
-///
-/// use clap::{Command, Arg};
-///
-/// pub fn build_cli() -> Command<'static> {
+/// # use clap::{Command, Arg, ArgAction};
+/// pub fn build_cli() -> Command {
 ///     Command::new("compl")
 ///         .about("Tests completions")
 ///         .arg(Arg::new("file")
@@ -95,7 +93,7 @@ pub trait Generator {
 ///             .about("tests things")
 ///             .arg(Arg::new("case")
 ///                 .long("case")
-///                 .takes_value(true)
+///                 .action(ArgAction::Set)
 ///                 .help("the case to test")))
 /// }
 /// ```
@@ -195,7 +193,7 @@ where
 ///
 /// # Examples
 ///
-/// Assuming a separate `cli.rs` like the [example above](generate_to()),
+/// Assuming a separate `cli.rs` like the [`generate_to` example](generate_to()),
 /// we can let users generate a completion script using a command:
 ///
 /// ```ignore
@@ -236,7 +234,7 @@ where
     G: Generator,
     S: Into<String>,
 {
-    cmd._build_all();
+    cmd.build();
 
     gen.generate(cmd, buf)
 }

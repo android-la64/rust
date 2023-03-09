@@ -29,7 +29,7 @@ impl SubdiagnosticDeriveBuilder {
         Self { diag, f }
     }
 
-    pub(crate) fn into_tokens<'a>(self, mut structure: Structure<'a>) -> TokenStream {
+    pub(crate) fn into_tokens(self, mut structure: Structure<'_>) -> TokenStream {
         let implementation = {
             let ast = structure.ast();
             let span = ast.span().unwrap();
@@ -198,8 +198,7 @@ impl<'parent, 'a> SubdiagnosticDeriveVariantBuilder<'parent, 'a> {
                 throw_span_err!(
                     attr.span().unwrap(),
                     &format!(
-                        "diagnostic slug must be first argument of a `#[{}(...)]` attribute",
-                        name
+                        "diagnostic slug must be first argument of a `#[{name}(...)]` attribute"
                     )
                 );
             };

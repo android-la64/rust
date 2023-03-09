@@ -240,7 +240,7 @@ pub struct Config {
     pub mode: Mode,
 
     /// The test suite (essentially which directory is running, but without the
-    /// directory prefix such as src/test)
+    /// directory prefix such as tests)
     pub suite: String,
 
     /// The debugger to use in debuginfo mode. Unset otherwise.
@@ -617,6 +617,6 @@ pub fn output_base_name(config: &Config, testpaths: &TestPaths, revision: Option
 
 /// Absolute path to the directory to use for incremental compilation. Example:
 ///   /path/to/build/host-triple/test/ui/relative/testname.mode/testname.inc
-pub fn incremental_dir(config: &Config, testpaths: &TestPaths) -> PathBuf {
-    output_base_name(config, testpaths, None).with_extension("inc")
+pub fn incremental_dir(config: &Config, testpaths: &TestPaths, revision: Option<&str>) -> PathBuf {
+    output_base_name(config, testpaths, revision).with_extension("inc")
 }

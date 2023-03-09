@@ -7,8 +7,8 @@ use crate::ty::subst::{GenericArg, InternalSubsts, SubstsRef};
 use crate::ty::visit::ValidateBoundVars;
 use crate::ty::InferTy::*;
 use crate::ty::{
-    self, AdtDef, DefIdTree, Discr, Term, Ty, TyCtxt, TypeFlags, TypeSuperVisitable, TypeVisitable,
-    TypeVisitor,
+    self, AdtDef, DefIdTree, Discr, FallibleTypeFolder, Term, Ty, TyCtxt, TypeFlags, TypeFoldable,
+    TypeSuperFoldable, TypeSuperVisitable, TypeVisitable, TypeVisitor,
 };
 use crate::ty::{List, ParamEnv};
 use hir::def::DefKind;
@@ -99,6 +99,13 @@ impl BoundRegionKind {
         }
 
         None
+    }
+
+    pub fn get_id(&self) -> Option<DefId> {
+        match *self {
+            BoundRegionKind::BrNamed(id, _) => return Some(id),
+            _ => None,
+        }
     }
 }
 
@@ -205,7 +212,7 @@ static_assert_size!(TyKind<'_>, 32);
 ///
 /// ## Generators
 ///
-/// Generators are handled similarly in `GeneratorSubsts`.  The set of
+/// Generators are handled similarly in `GeneratorSubsts`. The set of
 /// type parameters is similar, but `CK` and `CS` are replaced by the
 /// following type parameters:
 ///
@@ -217,7 +224,7 @@ static_assert_size!(TyKind<'_>, 32);
 /// * `GR`: The "return type", which is the type of value returned upon
 ///   completion of the generator.
 /// * `GW`: The "generator witness".
-#[derive(Copy, Clone, Debug, TypeFoldable, TypeVisitable, Lift)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, TypeFoldable, TypeVisitable, Lift)]
 pub struct ClosureSubsts<'tcx> {
     /// Lifetime and type parameters from the enclosing function,
     /// concatenated with a tuple containing the types of the upvars.
@@ -348,7 +355,7 @@ impl<'tcx> ClosureSubsts<'tcx> {
 }
 
 /// Similar to `ClosureSubsts`; see the above documentation for more.
-#[derive(Copy, Clone, Debug, TypeFoldable, TypeVisitable, Lift)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, TypeFoldable, TypeVisitable, Lift)]
 pub struct GeneratorSubsts<'tcx> {
     pub substs: SubstsRef<'tcx>,
 }
@@ -693,7 +700,7 @@ impl<'tcx> ExistentialPredicate<'tcx> {
         match (*self, *other) {
             (Trait(_), Trait(_)) => Ordering::Equal,
             (Projection(ref a), Projection(ref b)) => {
-                tcx.def_path_hash(a.item_def_id).cmp(&tcx.def_path_hash(b.item_def_id))
+                tcx.def_path_hash(a.def_id).cmp(&tcx.def_path_hash(b.def_id))
             }
             (AutoTrait(ref a), AutoTrait(ref b)) => {
                 tcx.def_path_hash(*a).cmp(&tcx.def_path_hash(*b))
@@ -816,14 +823,13 @@ impl<'tcx> List<ty::PolyExistentialPredicate<'tcx>> {
 pub struct TraitRef<'tcx> {
     pub def_id: DefId,
     pub substs: SubstsRef<'tcx>,
+    /// This field exists to prevent the creation of `TraitRef` without
+    /// calling [TyCtxt::mk_trait_ref].
+    pub(super) _use_mk_trait_ref_instead: (),
 }
 
 impl<'tcx> TraitRef<'tcx> {
-    pub fn new(def_id: DefId, substs: SubstsRef<'tcx>) -> TraitRef<'tcx> {
-        TraitRef { def_id, substs }
-    }
-
-    pub fn with_self_type(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
+    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
         tcx.mk_trait_ref(
             self.def_id,
             [self_ty.into()].into_iter().chain(self.substs.iter().skip(1)),
@@ -833,10 +839,7 @@ impl<'tcx> TraitRef<'tcx> {
     /// Returns a `TraitRef` of the form `P0: Foo<P1..Pn>` where `Pi`
     /// are the parameters defined on trait.
     pub fn identity(tcx: TyCtxt<'tcx>, def_id: DefId) -> Binder<'tcx, TraitRef<'tcx>> {
-        ty::Binder::dummy(TraitRef {
-            def_id,
-            substs: InternalSubsts::identity_for_item(tcx, def_id),
-        })
+        ty::Binder::dummy(tcx.mk_trait_ref(def_id, InternalSubsts::identity_for_item(tcx, def_id)))
     }
 
     #[inline]
@@ -850,7 +853,7 @@ impl<'tcx> TraitRef<'tcx> {
         substs: SubstsRef<'tcx>,
     ) -> ty::TraitRef<'tcx> {
         let defs = tcx.generics_of(trait_id);
-        ty::TraitRef { def_id: trait_id, substs: tcx.intern_substs(&substs[..defs.params.len()]) }
+        tcx.mk_trait_ref(trait_id, tcx.intern_substs(&substs[..defs.params.len()]))
     }
 }
 
@@ -980,8 +983,12 @@ where
     /// contain any bound vars that would be bound by the
     /// binder. This is commonly used to 'inject' a value T into a
     /// different binding level.
+    #[track_caller]
     pub fn dummy(value: T) -> Binder<'tcx, T> {
-        assert!(!value.has_escaping_bound_vars());
+        assert!(
+            !value.has_escaping_bound_vars(),
+            "`{value:?}` has escaping bound vars, so it cannot be wrapped in a dummy binder."
+        );
         Binder(value, ty::List::empty())
     }
 
@@ -1128,30 +1135,144 @@ impl<'tcx, T> Binder<'tcx, Option<T>> {
     }
 }
 
-/// Represents the projection of an associated type. In explicit UFCS
-/// form this would be written `<T as Trait<..>>::N`.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TyEncodable, TyDecodable)]
-#[derive(HashStable, TypeFoldable, TypeVisitable, Lift)]
-pub struct ProjectionTy<'tcx> {
-    /// The parameters of the associated item.
-    pub substs: SubstsRef<'tcx>,
-
-    /// The `DefId` of the `TraitItem` for the associated type `N`.
-    ///
-    /// Note that this is not the `DefId` of the `TraitRef` containing this
-    /// associated type, which is in `tcx.associated_item(item_def_id).container`,
-    /// aka. `tcx.parent(item_def_id).unwrap()`.
-    pub item_def_id: DefId,
+impl<'tcx, T: IntoIterator> Binder<'tcx, T> {
+    pub fn iter(self) -> impl Iterator<Item = ty::Binder<'tcx, T::Item>> {
+        let bound_vars = self.1;
+        self.0.into_iter().map(|v| Binder(v, bound_vars))
+    }
 }
 
-impl<'tcx> ProjectionTy<'tcx> {
-    pub fn trait_def_id(&self, tcx: TyCtxt<'tcx>) -> DefId {
-        match tcx.def_kind(self.item_def_id) {
-            DefKind::AssocTy | DefKind::AssocConst => tcx.parent(self.item_def_id),
-            DefKind::ImplTraitPlaceholder => {
-                tcx.parent(tcx.impl_trait_in_trait_parent(self.item_def_id))
+struct SkipBindersAt<'tcx> {
+    tcx: TyCtxt<'tcx>,
+    index: ty::DebruijnIndex,
+}
+
+impl<'tcx> FallibleTypeFolder<'tcx> for SkipBindersAt<'tcx> {
+    type Error = ();
+
+    fn tcx(&self) -> TyCtxt<'tcx> {
+        self.tcx
+    }
+
+    fn try_fold_binder<T>(&mut self, t: Binder<'tcx, T>) -> Result<Binder<'tcx, T>, Self::Error>
+    where
+        T: ty::TypeFoldable<'tcx>,
+    {
+        self.index.shift_in(1);
+        let value = t.try_map_bound(|t| t.try_fold_with(self));
+        self.index.shift_out(1);
+        value
+    }
+
+    fn try_fold_ty(&mut self, ty: Ty<'tcx>) -> Result<Ty<'tcx>, Self::Error> {
+        if !ty.has_escaping_bound_vars() {
+            Ok(ty)
+        } else if let ty::Bound(index, bv) = *ty.kind() {
+            if index == self.index {
+                Err(())
+            } else {
+                Ok(self.tcx().mk_ty(ty::Bound(index.shifted_out(1), bv)))
             }
-            kind => bug!("unexpected DefKind in ProjectionTy: {kind:?}"),
+        } else {
+            ty.try_super_fold_with(self)
+        }
+    }
+
+    fn try_fold_region(&mut self, r: ty::Region<'tcx>) -> Result<ty::Region<'tcx>, Self::Error> {
+        if !r.has_escaping_bound_vars() {
+            Ok(r)
+        } else if let ty::ReLateBound(index, bv) = r.kind() {
+            if index == self.index {
+                Err(())
+            } else {
+                Ok(self.tcx().mk_region(ty::ReLateBound(index.shifted_out(1), bv)))
+            }
+        } else {
+            r.try_super_fold_with(self)
+        }
+    }
+
+    fn try_fold_const(&mut self, ct: ty::Const<'tcx>) -> Result<ty::Const<'tcx>, Self::Error> {
+        if !ct.has_escaping_bound_vars() {
+            Ok(ct)
+        } else if let ty::ConstKind::Bound(index, bv) = ct.kind() {
+            if index == self.index {
+                Err(())
+            } else {
+                Ok(self.tcx().mk_const(
+                    ty::ConstKind::Bound(index.shifted_out(1), bv),
+                    ct.ty().try_fold_with(self)?,
+                ))
+            }
+        } else {
+            ct.try_super_fold_with(self)
+        }
+    }
+
+    fn try_fold_predicate(
+        &mut self,
+        p: ty::Predicate<'tcx>,
+    ) -> Result<ty::Predicate<'tcx>, Self::Error> {
+        if !p.has_escaping_bound_vars() { Ok(p) } else { p.try_super_fold_with(self) }
+    }
+}
+
+/// Represents the projection of an associated type.
+///
+/// For a projection, this would be `<Ty as Trait<...>>::N`.
+///
+/// For an opaque type, there is no explicit syntax.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, TyEncodable, TyDecodable)]
+#[derive(HashStable, TypeFoldable, TypeVisitable, Lift)]
+pub struct AliasTy<'tcx> {
+    /// The parameters of the associated or opaque item.
+    ///
+    /// For a projection, these are the substitutions for the trait and the
+    /// GAT substitutions, if there are any.
+    ///
+    /// For RPIT the substitutions are for the generics of the function,
+    /// while for TAIT it is used for the generic parameters of the alias.
+    pub substs: SubstsRef<'tcx>,
+
+    /// The `DefId` of the `TraitItem` for the associated type `N` if this is a projection,
+    /// or the `OpaqueType` item if this is an opaque.
+    ///
+    /// During codegen, `tcx.type_of(def_id)` can be used to get the type of the
+    /// underlying type if the type is an opaque.
+    ///
+    /// Note that if this is an associated type, this is not the `DefId` of the
+    /// `TraitRef` containing this associated type, which is in `tcx.associated_item(def_id).container`,
+    /// aka. `tcx.parent(def_id)`.
+    pub def_id: DefId,
+
+    /// This field exists to prevent the creation of `AliasTy` without using
+    /// [TyCtxt::mk_alias_ty].
+    pub(super) _use_mk_alias_ty_instead: (),
+}
+
+impl<'tcx> AliasTy<'tcx> {
+    pub fn kind(self, tcx: TyCtxt<'tcx>) -> ty::AliasKind {
+        match tcx.def_kind(self.def_id) {
+            DefKind::AssocTy | DefKind::ImplTraitPlaceholder => ty::Projection,
+            DefKind::OpaqueTy => ty::Opaque,
+            kind => bug!("unexpected DefKind in AliasTy: {kind:?}"),
+        }
+    }
+
+    pub fn to_ty(self, tcx: TyCtxt<'tcx>) -> Ty<'tcx> {
+        tcx.mk_ty(ty::Alias(self.kind(tcx), self))
+    }
+}
+
+/// The following methods work only with associated type projections.
+impl<'tcx> AliasTy<'tcx> {
+    pub fn trait_def_id(self, tcx: TyCtxt<'tcx>) -> DefId {
+        match tcx.def_kind(self.def_id) {
+            DefKind::AssocTy | DefKind::AssocConst => tcx.parent(self.def_id),
+            DefKind::ImplTraitPlaceholder => {
+                tcx.parent(tcx.impl_trait_in_trait_parent(self.def_id))
+            }
+            kind => bug!("expected a projection AliasTy; found {kind:?}"),
         }
     }
 
@@ -1159,14 +1280,14 @@ impl<'tcx> ProjectionTy<'tcx> {
     /// For example, if this is a projection of `<T as StreamingIterator>::Item<'a>`,
     /// then this function would return a `T: Iterator` trait reference and `['a]` as the own substs
     pub fn trait_ref_and_own_substs(
-        &self,
+        self,
         tcx: TyCtxt<'tcx>,
     ) -> (ty::TraitRef<'tcx>, &'tcx [ty::GenericArg<'tcx>]) {
-        let def_id = tcx.parent(self.item_def_id);
-        assert_eq!(tcx.def_kind(def_id), DefKind::Trait);
-        let trait_generics = tcx.generics_of(def_id);
+        debug_assert!(matches!(tcx.def_kind(self.def_id), DefKind::AssocTy | DefKind::AssocConst));
+        let trait_def_id = self.trait_def_id(tcx);
+        let trait_generics = tcx.generics_of(trait_def_id);
         (
-            ty::TraitRef { def_id, substs: self.substs.truncate_to(tcx, trait_generics) },
+            tcx.mk_trait_ref(trait_def_id, self.substs.truncate_to(tcx, trait_generics)),
             &self.substs[trait_generics.count()..],
         )
     }
@@ -1178,13 +1299,17 @@ impl<'tcx> ProjectionTy<'tcx> {
     /// WARNING: This will drop the substs for generic associated types
     /// consider calling [Self::trait_ref_and_own_substs] to get those
     /// as well.
-    pub fn trait_ref(&self, tcx: TyCtxt<'tcx>) -> ty::TraitRef<'tcx> {
+    pub fn trait_ref(self, tcx: TyCtxt<'tcx>) -> ty::TraitRef<'tcx> {
         let def_id = self.trait_def_id(tcx);
-        ty::TraitRef { def_id, substs: self.substs.truncate_to(tcx, tcx.generics_of(def_id)) }
+        tcx.mk_trait_ref(def_id, self.substs.truncate_to(tcx, tcx.generics_of(def_id)))
     }
 
-    pub fn self_ty(&self) -> Ty<'tcx> {
+    pub fn self_ty(self) -> Ty<'tcx> {
         self.substs.type_at(0)
+    }
+
+    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
+        tcx.mk_alias_ty(self.def_id, [self_ty.into()].into_iter().chain(self.substs.iter().skip(1)))
     }
 }
 
@@ -1354,9 +1479,8 @@ pub struct ConstVid<'tcx> {
 rustc_index::newtype_index! {
     /// A **region** (lifetime) **v**ariable **ID**.
     #[derive(HashStable)]
-    pub struct RegionVid {
-        DEBUG_FORMAT = custom,
-    }
+    #[debug_format = "'_#{}r"]
+    pub struct RegionVid {}
 }
 
 impl Atom for RegionVid {
@@ -1367,7 +1491,7 @@ impl Atom for RegionVid {
 
 rustc_index::newtype_index! {
     #[derive(HashStable)]
-    pub struct BoundVar { .. }
+    pub struct BoundVar {}
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TyEncodable, TyDecodable)]
@@ -1394,7 +1518,7 @@ impl From<BoundVar> for BoundTy {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, TyEncodable, TyDecodable)]
 #[derive(HashStable, TypeFoldable, TypeVisitable, Lift)]
 pub struct ExistentialProjection<'tcx> {
-    pub item_def_id: DefId,
+    pub def_id: DefId,
     pub substs: SubstsRef<'tcx>,
     pub term: Term<'tcx>,
 }
@@ -1407,7 +1531,7 @@ impl<'tcx> ExistentialProjection<'tcx> {
     /// then this function would return an `exists T. T: Iterator` existential trait
     /// reference.
     pub fn trait_ref(&self, tcx: TyCtxt<'tcx>) -> ty::ExistentialTraitRef<'tcx> {
-        let def_id = tcx.parent(self.item_def_id);
+        let def_id = tcx.parent(self.def_id);
         let subst_count = tcx.generics_of(def_id).count() - 1;
         let substs = tcx.intern_substs(&self.substs[..subst_count]);
         ty::ExistentialTraitRef { def_id, substs }
@@ -1422,10 +1546,8 @@ impl<'tcx> ExistentialProjection<'tcx> {
         debug_assert!(!self_ty.has_escaping_bound_vars());
 
         ty::ProjectionPredicate {
-            projection_ty: ty::ProjectionTy {
-                item_def_id: self.item_def_id,
-                substs: tcx.mk_substs_trait(self_ty, self.substs),
-            },
+            projection_ty: tcx
+                .mk_alias_ty(self.def_id, [self_ty.into()].into_iter().chain(self.substs)),
             term: self.term,
         }
     }
@@ -1438,7 +1560,7 @@ impl<'tcx> ExistentialProjection<'tcx> {
         projection_predicate.projection_ty.substs.type_at(0);
 
         Self {
-            item_def_id: projection_predicate.projection_ty.item_def_id,
+            def_id: projection_predicate.projection_ty.def_id,
             substs: tcx.intern_substs(&projection_predicate.projection_ty.substs[1..]),
             term: projection_predicate.term,
         }
@@ -1455,7 +1577,7 @@ impl<'tcx> PolyExistentialProjection<'tcx> {
     }
 
     pub fn item_def_id(&self) -> DefId {
-        self.skip_binder().item_def_id
+        self.skip_binder().def_id
     }
 }
 
@@ -1661,7 +1783,7 @@ impl<'tcx> Ty<'tcx> {
     }
 
     #[inline]
-    pub fn is_ty_infer(self) -> bool {
+    pub fn is_ty_or_numeric_infer(self) -> bool {
         matches!(self.kind(), Infer(_))
     }
 
@@ -1904,7 +2026,7 @@ impl<'tcx> Ty<'tcx> {
             type BreakTy = ();
 
             fn visit_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
-                if self.0 == t { ControlFlow::BREAK } else { t.super_visit_with(self) }
+                if self.0 == t { ControlFlow::Break(()) } else { t.super_visit_with(self) }
             }
         }
 
@@ -1962,7 +2084,7 @@ impl<'tcx> Ty<'tcx> {
 
     #[inline]
     pub fn is_impl_trait(self) -> bool {
-        matches!(self.kind(), Opaque(..))
+        matches!(self.kind(), Alias(ty::Opaque, ..))
     }
 
     #[inline]
@@ -2029,7 +2151,7 @@ impl<'tcx> Ty<'tcx> {
             ty::Adt(adt, _) if adt.is_enum() => adt.repr().discr_type().to_ty(tcx),
             ty::Generator(_, substs, _) => substs.as_generator().discr_ty(tcx),
 
-            ty::Param(_) | ty::Projection(_) | ty::Opaque(..) | ty::Infer(ty::TyVar(_)) => {
+            ty::Param(_) | ty::Alias(..) | ty::Infer(ty::TyVar(_)) => {
                 let assoc_items = tcx.associated_item_def_ids(
                     tcx.require_lang_item(hir::LangItem::DiscriminantKind, None),
                 );
@@ -2109,7 +2231,7 @@ impl<'tcx> Ty<'tcx> {
 
             // type parameters only have unit metadata if they're sized, so return true
             // to make sure we double check this during confirmation
-            ty::Param(_) |  ty::Projection(_) | ty::Opaque(..) => (tcx.types.unit, true),
+            ty::Param(_) |  ty::Alias(..) => (tcx.types.unit, true),
 
             ty::Infer(ty::TyVar(_))
             | ty::Bound(..)
@@ -2185,7 +2307,7 @@ impl<'tcx> Ty<'tcx> {
 
             ty::Adt(def, _substs) => def.sized_constraint(tcx).0.is_empty(),
 
-            ty::Projection(_) | ty::Param(_) | ty::Opaque(..) => false,
+            ty::Alias(..) | ty::Param(_) => false,
 
             ty::Infer(ty::TyVar(_)) => false,
 
@@ -2241,9 +2363,12 @@ impl<'tcx> Ty<'tcx> {
             ty::Generator(..) | ty::GeneratorWitness(..) => false,
 
             // Might be, but not "trivial" so just giving the safe answer.
-            ty::Adt(..) | ty::Closure(..) | ty::Opaque(..) => false,
+            ty::Adt(..) | ty::Closure(..) => false,
 
-            ty::Projection(..) | ty::Param(..) | ty::Infer(..) | ty::Error(..) => false,
+            // Needs normalization or revealing to determine, so no is the safe answer.
+            ty::Alias(..) => false,
+
+            ty::Param(..) | ty::Infer(..) | ty::Error(..) => false,
 
             ty::Bound(..) | ty::Placeholder(..) => {
                 bug!("`is_trivially_pure_clone_copy` applied to unexpected type: {:?}", self);

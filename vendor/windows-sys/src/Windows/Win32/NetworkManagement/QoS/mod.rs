@@ -1,95 +1,61 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
-    pub fn QOSAddSocketToFlow(qoshandle: super::super::Foundation::HANDLE, socket: super::super::Networking::WinSock::SOCKET, destaddr: *const super::super::Networking::WinSock::SOCKADDR, traffictype: QOS_TRAFFIC_TYPE, flags: u32, flowid: *mut u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-    pub fn QOSCancel(qoshandle: super::super::Foundation::HANDLE, overlapped: *const super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn QOSCloseHandle(qoshandle: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn QOSCreateHandle(version: *const QOS_VERSION, qoshandle: *mut super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn QOSEnumerateFlows(qoshandle: super::super::Foundation::HANDLE, size: *mut u32, buffer: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-    pub fn QOSNotifyFlow(qoshandle: super::super::Foundation::HANDLE, flowid: u32, operation: QOS_NOTIFY_FLOW, size: *mut u32, buffer: *mut ::core::ffi::c_void, flags: u32, overlapped: *mut super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-    pub fn QOSQueryFlow(qoshandle: super::super::Foundation::HANDLE, flowid: u32, operation: QOS_QUERY_FLOW, size: *mut u32, buffer: *mut ::core::ffi::c_void, flags: u32, overlapped: *mut super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
-    pub fn QOSRemoveSocketFromFlow(qoshandle: super::super::Foundation::HANDLE, socket: super::super::Networking::WinSock::SOCKET, flowid: u32, flags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-    pub fn QOSSetFlow(qoshandle: super::super::Foundation::HANDLE, flowid: u32, operation: QOS_SET_FLOW, size: u32, buffer: *const ::core::ffi::c_void, flags: u32, overlapped: *mut super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
-    pub fn QOSStartTrackingClient(qoshandle: super::super::Foundation::HANDLE, destaddr: *const super::super::Networking::WinSock::SOCKADDR, flags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
-    pub fn QOSStopTrackingClient(qoshandle: super::super::Foundation::HANDLE, destaddr: *const super::super::Networking::WinSock::SOCKADDR, flags: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcAddFilter(flowhandle: super::super::Foundation::HANDLE, pgenericfilter: *const TC_GEN_FILTER, pfilterhandle: *mut super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
-    pub fn TcAddFlow(ifchandle: super::super::Foundation::HANDLE, clflowctx: super::super::Foundation::HANDLE, flags: u32, pgenericflow: *const TC_GEN_FLOW, pflowhandle: *mut super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcCloseInterface(ifchandle: super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcDeleteFilter(filterhandle: super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcDeleteFlow(flowhandle: super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcDeregisterClient(clienthandle: super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
-    pub fn TcEnumerateFlows(ifchandle: super::super::Foundation::HANDLE, penumhandle: *mut super::super::Foundation::HANDLE, pflowcount: *mut u32, pbufsize: *mut u32, buffer: *mut ENUMERATION_BUFFER) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_NetworkManagement_Ndis\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_NetworkManagement_Ndis"))]
-    pub fn TcEnumerateInterfaces(clienthandle: super::super::Foundation::HANDLE, pbuffersize: *mut u32, interfacebuffer: *mut TC_IFC_DESCRIPTOR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcGetFlowNameA(flowhandle: super::super::Foundation::HANDLE, strsize: u32, pflowname: ::windows_sys::core::PSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcGetFlowNameW(flowhandle: super::super::Foundation::HANDLE, strsize: u32, pflowname: ::windows_sys::core::PWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
-    pub fn TcModifyFlow(flowhandle: super::super::Foundation::HANDLE, pgenericflow: *const TC_GEN_FLOW) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcOpenInterfaceA(pinterfacename: ::windows_sys::core::PCSTR, clienthandle: super::super::Foundation::HANDLE, clifcctx: super::super::Foundation::HANDLE, pifchandle: *mut super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcOpenInterfaceW(pinterfacename: ::windows_sys::core::PCWSTR, clienthandle: super::super::Foundation::HANDLE, clifcctx: super::super::Foundation::HANDLE, pifchandle: *mut super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
-    pub fn TcQueryFlowA(pflowname: ::windows_sys::core::PCSTR, pguidparam: *const ::windows_sys::core::GUID, pbuffersize: *mut u32, buffer: *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
-    pub fn TcQueryFlowW(pflowname: ::windows_sys::core::PCWSTR, pguidparam: *const ::windows_sys::core::GUID, pbuffersize: *mut u32, buffer: *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcQueryInterface(ifchandle: super::super::Foundation::HANDLE, pguidparam: *const ::windows_sys::core::GUID, notifychange: super::super::Foundation::BOOLEAN, pbuffersize: *mut u32, buffer: *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcRegisterClient(tciversion: u32, clregctx: super::super::Foundation::HANDLE, clienthandlerlist: *const TCI_CLIENT_FUNC_LIST, pclienthandle: *mut super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
-    pub fn TcSetFlowA(pflowname: ::windows_sys::core::PCSTR, pguidparam: *const ::windows_sys::core::GUID, buffersize: u32, buffer: *const ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
-    pub fn TcSetFlowW(pflowname: ::windows_sys::core::PCWSTR, pguidparam: *const ::windows_sys::core::GUID, buffersize: u32, buffer: *const ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TcSetInterface(ifchandle: super::super::Foundation::HANDLE, pguidparam: *const ::windows_sys::core::GUID, buffersize: u32, buffer: *const ::core::ffi::c_void) -> u32;
-}
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"] fn QOSAddSocketToFlow ( qoshandle : super::super::Foundation:: HANDLE , socket : super::super::Networking::WinSock:: SOCKET , destaddr : *const super::super::Networking::WinSock:: SOCKADDR , traffictype : QOS_TRAFFIC_TYPE , flags : u32 , flowid : *mut u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn QOSCancel ( qoshandle : super::super::Foundation:: HANDLE , overlapped : *const super::super::System::IO:: OVERLAPPED ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn QOSCloseHandle ( qoshandle : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn QOSCreateHandle ( version : *const QOS_VERSION , qoshandle : *mut super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn QOSEnumerateFlows ( qoshandle : super::super::Foundation:: HANDLE , size : *mut u32 , buffer : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn QOSNotifyFlow ( qoshandle : super::super::Foundation:: HANDLE , flowid : u32 , operation : QOS_NOTIFY_FLOW , size : *mut u32 , buffer : *mut ::core::ffi::c_void , flags : u32 , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn QOSQueryFlow ( qoshandle : super::super::Foundation:: HANDLE , flowid : u32 , operation : QOS_QUERY_FLOW , size : *mut u32 , buffer : *mut ::core::ffi::c_void , flags : u32 , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"] fn QOSRemoveSocketFromFlow ( qoshandle : super::super::Foundation:: HANDLE , socket : super::super::Networking::WinSock:: SOCKET , flowid : u32 , flags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn QOSSetFlow ( qoshandle : super::super::Foundation:: HANDLE , flowid : u32 , operation : QOS_SET_FLOW , size : u32 , buffer : *const ::core::ffi::c_void , flags : u32 , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"] fn QOSStartTrackingClient ( qoshandle : super::super::Foundation:: HANDLE , destaddr : *const super::super::Networking::WinSock:: SOCKADDR , flags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
+::windows_sys::core::link ! ( "qwave.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"] fn QOSStopTrackingClient ( qoshandle : super::super::Foundation:: HANDLE , destaddr : *const super::super::Networking::WinSock:: SOCKADDR , flags : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcAddFilter ( flowhandle : super::super::Foundation:: HANDLE , pgenericfilter : *const TC_GEN_FILTER , pfilterhandle : *mut super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"] fn TcAddFlow ( ifchandle : super::super::Foundation:: HANDLE , clflowctx : super::super::Foundation:: HANDLE , flags : u32 , pgenericflow : *const TC_GEN_FLOW , pflowhandle : *mut super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcCloseInterface ( ifchandle : super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcDeleteFilter ( filterhandle : super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcDeleteFlow ( flowhandle : super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcDeregisterClient ( clienthandle : super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"] fn TcEnumerateFlows ( ifchandle : super::super::Foundation:: HANDLE , penumhandle : *mut super::super::Foundation:: HANDLE , pflowcount : *mut u32 , pbufsize : *mut u32 , buffer : *mut ENUMERATION_BUFFER ) -> u32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_NetworkManagement_Ndis"))]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_NetworkManagement_Ndis\"`*"] fn TcEnumerateInterfaces ( clienthandle : super::super::Foundation:: HANDLE , pbuffersize : *mut u32 , interfacebuffer : *mut TC_IFC_DESCRIPTOR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcGetFlowNameA ( flowhandle : super::super::Foundation:: HANDLE , strsize : u32 , pflowname : :: windows_sys::core::PSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcGetFlowNameW ( flowhandle : super::super::Foundation:: HANDLE , strsize : u32 , pflowname : :: windows_sys::core::PWSTR ) -> u32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Networking_WinSock"))]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`, `\"Win32_Networking_WinSock\"`*"] fn TcModifyFlow ( flowhandle : super::super::Foundation:: HANDLE , pgenericflow : *const TC_GEN_FLOW ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcOpenInterfaceA ( pinterfacename : :: windows_sys::core::PCSTR , clienthandle : super::super::Foundation:: HANDLE , clifcctx : super::super::Foundation:: HANDLE , pifchandle : *mut super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcOpenInterfaceW ( pinterfacename : :: windows_sys::core::PCWSTR , clienthandle : super::super::Foundation:: HANDLE , clifcctx : super::super::Foundation:: HANDLE , pifchandle : *mut super::super::Foundation:: HANDLE ) -> u32 );
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"] fn TcQueryFlowA ( pflowname : :: windows_sys::core::PCSTR , pguidparam : *const :: windows_sys::core::GUID , pbuffersize : *mut u32 , buffer : *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"] fn TcQueryFlowW ( pflowname : :: windows_sys::core::PCWSTR , pguidparam : *const :: windows_sys::core::GUID , pbuffersize : *mut u32 , buffer : *mut ::core::ffi::c_void ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcQueryInterface ( ifchandle : super::super::Foundation:: HANDLE , pguidparam : *const :: windows_sys::core::GUID , notifychange : super::super::Foundation:: BOOLEAN , pbuffersize : *mut u32 , buffer : *mut ::core::ffi::c_void ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcRegisterClient ( tciversion : u32 , clregctx : super::super::Foundation:: HANDLE , clienthandlerlist : *const TCI_CLIENT_FUNC_LIST , pclienthandle : *mut super::super::Foundation:: HANDLE ) -> u32 );
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"] fn TcSetFlowA ( pflowname : :: windows_sys::core::PCSTR , pguidparam : *const :: windows_sys::core::GUID , buffersize : u32 , buffer : *const ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"] fn TcSetFlowW ( pflowname : :: windows_sys::core::PCWSTR , pguidparam : *const :: windows_sys::core::GUID , buffersize : u32 , buffer : *const ::core::ffi::c_void ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "traffic.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"] fn TcSetInterface ( ifchandle : super::super::Foundation:: HANDLE , pguidparam : *const :: windows_sys::core::GUID , buffersize : u32 , buffer : *const ::core::ffi::c_void ) -> u32 );
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
 pub const ABLE_TO_RECV_RSVP: u32 = 50002u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
@@ -117,7 +83,7 @@ pub const CREDENTIAL_SUB_TYPE_X509_V3_CERT: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
 pub const CURRENT_TCI_VERSION: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
-pub const DD_TCP_DEVICE_NAME: &str = "\\Device\\Tcp";
+pub const DD_TCP_DEVICE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("\\Device\\Tcp");
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
 pub const DUP_RESULTS: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
@@ -246,22 +212,38 @@ pub const GUAR_ADSPARM_D: i32 = 132i32;
 pub const GUAR_ADSPARM_Dsum: i32 = 136i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
 pub const GUAR_ADSPARM_Dtot: i32 = 134i32;
-pub const GUID_QOS_BESTEFFORT_BANDWIDTH: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3985134224, data2: 16620, data3: 4561, data4: [44, 145, 0, 170, 0, 87, 73, 21] };
-pub const GUID_QOS_ENABLE_AVG_STATS: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3137039633, data2: 10180, data3: 18433, data4: [164, 111, 239, 128, 128, 193, 136, 200] };
-pub const GUID_QOS_ENABLE_WINDOW_ADJUSTMENT: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2861983525, data2: 54249, data3: 19541, data4: [179, 53, 42, 0, 39, 154, 30, 100] };
-pub const GUID_QOS_FLOW_8021P_CONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 146923539, data2: 64722, data3: 4562, data4: [190, 30, 0, 160, 201, 158, 230, 59] };
-pub const GUID_QOS_FLOW_8021P_NONCONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 151142289, data2: 64722, data3: 4562, data4: [190, 30, 0, 160, 201, 158, 230, 59] };
-pub const GUID_QOS_FLOW_COUNT: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 289929344, data2: 16621, data3: 4561, data4: [44, 145, 0, 170, 0, 87, 73, 21] };
-pub const GUID_QOS_FLOW_IP_CONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 133798539, data2: 64722, data3: 4562, data4: [190, 30, 0, 160, 201, 158, 230, 59] };
-pub const GUID_QOS_FLOW_IP_NONCONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 142236039, data2: 64722, data3: 4562, data4: [190, 30, 0, 160, 201, 158, 230, 59] };
-pub const GUID_QOS_FLOW_MODE: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1552034058, data2: 20826, data3: 4562, data4: [142, 88, 0, 192, 79, 201, 191, 203] };
-pub const GUID_QOS_ISSLOW_FLOW: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2884793252, data2: 60935, data3: 4562, data4: [190, 27, 0, 160, 201, 158, 230, 59] };
-pub const GUID_QOS_LATENCY: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 4232089328, data2: 16620, data3: 4561, data4: [44, 145, 0, 170, 0, 87, 73, 21] };
-pub const GUID_QOS_MAX_OUTSTANDING_SENDS: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 371194502, data2: 24864, data3: 4561, data4: [44, 145, 0, 170, 0, 87, 73, 21] };
-pub const GUID_QOS_NON_BESTEFFORT_LIMIT: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 408700128, data2: 16621, data3: 4561, data4: [44, 145, 0, 170, 0, 87, 73, 21] };
-pub const GUID_QOS_REMAINING_BANDWIDTH: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3301250848, data2: 16620, data3: 4561, data4: [44, 145, 0, 170, 0, 87, 73, 21] };
-pub const GUID_QOS_STATISTICS_BUFFER: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3140225408, data2: 59648, data3: 4561, data4: [176, 126, 0, 128, 199, 19, 130, 191] };
-pub const GUID_QOS_TIMER_RESOLUTION: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3121663112, data2: 61758, data3: 4562, data4: [190, 27, 0, 160, 201, 158, 230, 59] };
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_BESTEFFORT_BANDWIDTH: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xed885290_40ec_11d1_2c91_00aa00574915);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_ENABLE_AVG_STATS: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbafb6d11_27c4_4801_a46f_ef8080c188c8);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_ENABLE_WINDOW_ADJUSTMENT: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xaa966725_d3e9_4c55_b335_2a00279a1e64);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_FLOW_8021P_CONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x08c1e013_fcd2_11d2_be1e_00a0c99ee63b);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_FLOW_8021P_NONCONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x09023f91_fcd2_11d2_be1e_00a0c99ee63b);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_FLOW_COUNT: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x1147f880_40ed_11d1_2c91_00aa00574915);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_FLOW_IP_CONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x07f99a8b_fcd2_11d2_be1e_00a0c99ee63b);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_FLOW_IP_NONCONFORMING: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x087a5987_fcd2_11d2_be1e_00a0c99ee63b);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_FLOW_MODE: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x5c82290a_515a_11d2_8e58_00c04fc9bfcb);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_ISSLOW_FLOW: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xabf273a4_ee07_11d2_be1b_00a0c99ee63b);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_LATENCY: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xfc408ef0_40ec_11d1_2c91_00aa00574915);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_MAX_OUTSTANDING_SENDS: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x161ffa86_6120_11d1_2c91_00aa00574915);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_NON_BESTEFFORT_LIMIT: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x185c44e0_40ed_11d1_2c91_00aa00574915);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_REMAINING_BANDWIDTH: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc4c51720_40ec_11d1_2c91_00aa00574915);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_STATISTICS_BUFFER: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbb2c0980_e900_11d1_b07e_0080c71382bf);
+#[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
+pub const GUID_QOS_TIMER_RESOLUTION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xba10cc88_f13e_11d2_be1b_00a0c99ee63b);
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
 pub const HIGHLY_DELAY_SENSITIVE: u32 = 4294967294u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
@@ -2742,16 +2724,16 @@ pub type CBGETRSVPOBJECTS = ::core::option::Option<unsafe extern "system" fn(lpm
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
 pub type PALLOCMEM = ::core::option::Option<unsafe extern "system" fn(size: u32) -> *mut ::core::ffi::c_void>;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`*"]
-pub type PFREEMEM = ::core::option::Option<unsafe extern "system" fn(pv: *mut ::core::ffi::c_void)>;
+pub type PFREEMEM = ::core::option::Option<unsafe extern "system" fn(pv: *mut ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type TCI_ADD_FLOW_COMPLETE_HANDLER = ::core::option::Option<unsafe extern "system" fn(clflowctx: super::super::Foundation::HANDLE, status: u32)>;
+pub type TCI_ADD_FLOW_COMPLETE_HANDLER = ::core::option::Option<unsafe extern "system" fn(clflowctx: super::super::Foundation::HANDLE, status: u32) -> ()>;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type TCI_DEL_FLOW_COMPLETE_HANDLER = ::core::option::Option<unsafe extern "system" fn(clflowctx: super::super::Foundation::HANDLE, status: u32)>;
+pub type TCI_DEL_FLOW_COMPLETE_HANDLER = ::core::option::Option<unsafe extern "system" fn(clflowctx: super::super::Foundation::HANDLE, status: u32) -> ()>;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type TCI_MOD_FLOW_COMPLETE_HANDLER = ::core::option::Option<unsafe extern "system" fn(clflowctx: super::super::Foundation::HANDLE, status: u32)>;
+pub type TCI_MOD_FLOW_COMPLETE_HANDLER = ::core::option::Option<unsafe extern "system" fn(clflowctx: super::super::Foundation::HANDLE, status: u32) -> ()>;
 #[doc = "*Required features: `\"Win32_NetworkManagement_QoS\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
-pub type TCI_NOTIFY_HANDLER = ::core::option::Option<unsafe extern "system" fn(clregctx: super::super::Foundation::HANDLE, clifcctx: super::super::Foundation::HANDLE, event: u32, subcode: super::super::Foundation::HANDLE, bufsize: u32, buffer: *const ::core::ffi::c_void)>;
+pub type TCI_NOTIFY_HANDLER = ::core::option::Option<unsafe extern "system" fn(clregctx: super::super::Foundation::HANDLE, clifcctx: super::super::Foundation::HANDLE, event: u32, subcode: super::super::Foundation::HANDLE, bufsize: u32, buffer: *const ::core::ffi::c_void) -> ()>;

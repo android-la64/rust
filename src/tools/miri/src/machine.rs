@@ -9,6 +9,7 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 
 use rustc_ast::ast::Mutability;
+use rustc_const_eval::const_eval::CheckAlignment;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 #[allow(unused)]
 use rustc_data_structures::static_assert_size;
@@ -22,7 +23,7 @@ use rustc_middle::{
 };
 use rustc_span::def_id::{CrateNum, DefId};
 use rustc_span::Symbol;
-use rustc_target::abi::Size;
+use rustc_target::abi::{Align, Size};
 use rustc_target::spec::abi::Abi;
 
 use crate::{
@@ -31,10 +32,9 @@ use crate::{
     *,
 };
 
-// Some global facts about the emulated machine.
-pub const PAGE_SIZE: u64 = 4 * 1024; // FIXME: adjust to target architecture
-pub const STACK_ADDR: u64 = 32 * PAGE_SIZE; // not really about the "stack", but where we start assigning integer addresses to allocations
-pub const STACK_SIZE: u64 = 16 * PAGE_SIZE; // whatever
+/// The number of the available real-time signal with the lowest priority.
+/// Dummy constant related to epoll, must be between 32 and 64.
+pub const SIGRTMAX: i32 = 42;
 
 /// Extra data stored with each stack frame
 pub struct FrameExtra<'tcx> {
@@ -469,6 +469,10 @@ pub struct MiriMachine<'mir, 'tcx> {
     pub(crate) since_gc: u32,
     /// The number of CPUs to be reported by miri.
     pub(crate) num_cpus: u32,
+    /// Determines Miri's page size and associated values
+    pub(crate) page_size: u64,
+    pub(crate) stack_addr: u64,
+    pub(crate) stack_size: u64,
 }
 
 impl<'mir, 'tcx> MiriMachine<'mir, 'tcx> {
@@ -482,11 +486,31 @@ impl<'mir, 'tcx> MiriMachine<'mir, 'tcx> {
         let rng = StdRng::seed_from_u64(config.seed.unwrap_or(0));
         let borrow_tracker = config.borrow_tracker.map(|bt| bt.instanciate_global_state(config));
         let data_race = config.data_race_detector.then(|| data_race::GlobalState::new(config));
+        let page_size = if let Some(page_size) = config.page_size {
+            page_size
+        } else {
+            let target = &layout_cx.tcx.sess.target;
+            match target.arch.as_ref() {
+                "wasm32" | "wasm64" => 64 * 1024, // https://webassembly.github.io/spec/core/exec/runtime.html#memory-instances
+                "aarch64" =>
+                    if target.options.vendor.as_ref() == "apple" {
+                        // No "definitive" source, but see:
+                        // https://www.wwdcnotes.com/notes/wwdc20/10214/
+                        // https://github.com/ziglang/zig/issues/11308 etc.
+                        16 * 1024
+                    } else {
+                        4 * 1024
+                    },
+                _ => 4 * 1024,
+            }
+        };
+        let stack_addr = page_size * 32;
+        let stack_size = page_size * 16;
         MiriMachine {
             tcx: layout_cx.tcx,
             borrow_tracker,
             data_race,
-            intptrcast: RefCell::new(intptrcast::GlobalStateInner::new(config)),
+            intptrcast: RefCell::new(intptrcast::GlobalStateInner::new(config, stack_addr)),
             // `env_vars` depends on a full interpreter so we cannot properly initialize it yet.
             env_vars: EnvVars::default(),
             main_fn_ret_place: None,
@@ -548,6 +572,9 @@ impl<'mir, 'tcx> MiriMachine<'mir, 'tcx> {
             gc_interval: config.gc_interval,
             since_gc: 0,
             num_cpus: config.num_cpus,
+            page_size,
+            stack_addr,
+            stack_size,
         }
     }
 
@@ -692,6 +719,9 @@ impl VisitTags for MiriMachine<'_, '_> {
             gc_interval: _,
             since_gc: _,
             num_cpus: _,
+            page_size: _,
+            stack_addr: _,
+            stack_size: _,
         } = self;
 
         threads.visit_tags(visit);
@@ -752,13 +782,26 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
     const PANIC_ON_ALLOC_FAIL: bool = false;
 
     #[inline(always)]
-    fn enforce_alignment(ecx: &MiriInterpCx<'mir, 'tcx>) -> bool {
-        ecx.machine.check_alignment != AlignmentCheck::None
+    fn enforce_alignment(ecx: &MiriInterpCx<'mir, 'tcx>) -> CheckAlignment {
+        if ecx.machine.check_alignment == AlignmentCheck::None {
+            CheckAlignment::No
+        } else {
+            CheckAlignment::Error
+        }
     }
 
     #[inline(always)]
     fn use_addr_for_alignment_check(ecx: &MiriInterpCx<'mir, 'tcx>) -> bool {
         ecx.machine.check_alignment == AlignmentCheck::Int
+    }
+
+    fn alignment_check_failed(
+        _ecx: &InterpCx<'mir, 'tcx, Self>,
+        has: Align,
+        required: Align,
+        _check: CheckAlignment,
+    ) -> InterpResult<'tcx, ()> {
+        throw_ub!(AlignmentCheckFailed { has, required })
     }
 
     #[inline(always)]
@@ -913,6 +956,7 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
                 &ecx.machine.threads,
                 alloc.size(),
                 kind,
+                ecx.machine.current_span(),
             )
         });
         let buffer_alloc = ecx.machine.weak_memory.then(weak_memory::AllocState::new_allocation);
@@ -967,9 +1011,8 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
         ptr: Pointer<Self::Provenance>,
     ) -> InterpResult<'tcx> {
         match ptr.provenance {
-            Provenance::Concrete { alloc_id, tag } => {
-                intptrcast::GlobalStateInner::expose_ptr(ecx, alloc_id, tag)
-            }
+            Provenance::Concrete { alloc_id, tag } =>
+                intptrcast::GlobalStateInner::expose_ptr(ecx, alloc_id, tag),
             Provenance::Wildcard => {
                 // No need to do anything for wildcard pointers as
                 // their provenances have already been previously exposed.

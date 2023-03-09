@@ -49,6 +49,7 @@
 
 #![deny(missing_docs)]
 
+use log::{debug, trace, warn};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::env;
@@ -295,7 +296,7 @@ impl Default for Config {
     }
 }
 
-impl<'de> Deserialize<'de> for Config {
+impl<'de> serde::Deserialize<'de> for Config {
     fn deserialize<D: Deserializer<'de>>(de: D) -> std::result::Result<Self, D::Error> {
         let raw = Value::deserialize(de)?;
 
@@ -437,6 +438,8 @@ pub struct BuildConfig {
     /// Should the default preprocessors always be used when they are
     /// compatible with the renderer?
     pub use_default_preprocessors: bool,
+    /// Extra directories to trigger rebuild when watching/serving
+    pub extra_watch_dirs: Vec<PathBuf>,
 }
 
 impl Default for BuildConfig {
@@ -445,6 +448,7 @@ impl Default for BuildConfig {
             build_dir: PathBuf::from("book"),
             create_missing: true,
             use_default_preprocessors: true,
+            extra_watch_dirs: Vec::new(),
         }
     }
 }
@@ -526,10 +530,9 @@ pub struct HtmlConfig {
     /// directly jumping to editing the currently viewed page.
     /// Contains {path} that is replaced with chapter source file path
     pub edit_url_template: Option<String>,
-    /// Endpoint of websocket, for livereload usage. Value loaded from .toml file
-    /// is ignored, because our code overrides this field with the value [`LIVE_RELOAD_ENDPOINT`]
-    ///
-    /// [`LIVE_RELOAD_ENDPOINT`]: cmd::serve::LIVE_RELOAD_ENDPOINT
+    /// Endpoint of websocket, for livereload usage. Value loaded from .toml
+    /// file is ignored, because our code overrides this field with an
+    /// internal value (`LIVE_RELOAD_ENDPOINT)
     ///
     /// This config item *should not be edited* by the end user.
     #[doc(hidden)]
@@ -717,6 +720,7 @@ impl<'de, T> Updateable<'de> for T where T: Serialize + Deserialize<'de> {}
 mod tests {
     use super::*;
     use crate::utils::fs::get_404_output_file;
+    use serde_json::json;
 
     const COMPLEX_CONFIG: &str = r#"
         [book]
@@ -770,6 +774,7 @@ mod tests {
             build_dir: PathBuf::from("outputs"),
             create_missing: false,
             use_default_preprocessors: true,
+            extra_watch_dirs: Vec::new(),
         };
         let rust_should_be = RustConfig { edition: None };
         let playground_should_be = Playground {
@@ -980,6 +985,7 @@ mod tests {
             build_dir: PathBuf::from("my-book"),
             create_missing: true,
             use_default_preprocessors: true,
+            extra_watch_dirs: Vec::new(),
         };
 
         let html_should_be = HtmlConfig {

@@ -31,6 +31,44 @@ impl<'hir> LoweringContext<'_, 'hir> {
 
     pub(super) fn lower_expr_mut(&mut self, e: &Expr) -> hir::Expr<'hir> {
         ensure_sufficient_stack(|| {
+            match &e.kind {
+                // Paranthesis expression does not have a HirId and is handled specially.
+                ExprKind::Paren(ex) => {
+                    let mut ex = self.lower_expr_mut(ex);
+                    // Include parens in span, but only if it is a super-span.
+                    if e.span.contains(ex.span) {
+                        ex.span = self.lower_span(e.span);
+                    }
+                    // Merge attributes into the inner expression.
+                    if !e.attrs.is_empty() {
+                        let old_attrs =
+                            self.attrs.get(&ex.hir_id.local_id).map(|la| *la).unwrap_or(&[]);
+                        self.attrs.insert(
+                            ex.hir_id.local_id,
+                            &*self.arena.alloc_from_iter(
+                                e.attrs
+                                    .iter()
+                                    .map(|a| self.lower_attr(a))
+                                    .chain(old_attrs.iter().cloned()),
+                            ),
+                        );
+                    }
+                    return ex;
+                }
+                // Desugar `ExprForLoop`
+                // from: `[opt_ident]: for <pat> in <head> <body>`
+                //
+                // This also needs special handling because the HirId of the returned `hir::Expr` will not
+                // correspond to the `e.id`, so `lower_expr_for` handles attribute lowering itself.
+                ExprKind::ForLoop(pat, head, body, opt_label) => {
+                    return self.lower_expr_for(e, pat, head, body, *opt_label);
+                }
+                _ => (),
+            }
+
+            let hir_id = self.lower_node_id(e.id);
+            self.lower_attrs(hir_id, &e.attrs);
+
             let kind = match &e.kind {
                 ExprKind::Box(inner) => hir::ExprKind::Box(self.lower_expr(inner)),
                 ExprKind::Array(exprs) => hir::ExprKind::Array(self.lower_exprs(exprs)),
@@ -48,7 +86,6 @@ impl<'hir> LoweringContext<'_, 'hir> {
                     if e.attrs.get(0).map_or(false, |a| a.has_name(sym::rustc_box)) {
                         if let [inner] = &args[..] && e.attrs.len() == 1 {
                             let kind = hir::ExprKind::Box(self.lower_expr(&inner));
-                            let hir_id = self.lower_node_id(e.id);
                             return hir::Expr { hir_id, kind, span: self.lower_span(e.span) };
                         } else {
                             self.tcx.sess.emit_err(RustcBoxAttributeError { span: e.span });
@@ -97,7 +134,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 }
                 ExprKind::IncludedBytes(bytes) => hir::ExprKind::Lit(respan(
                     self.lower_span(e.span),
-                    LitKind::ByteStr(bytes.clone()),
+                    LitKind::ByteStr(bytes.clone(), StrStyle::Cooked),
                 )),
                 ExprKind::Cast(expr, ty) => {
                     let expr = self.lower_expr(expr);
@@ -147,7 +184,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 ),
                 ExprKind::Async(capture_clause, closure_node_id, block) => self.make_async_expr(
                     *capture_clause,
-                    None,
+                    hir_id,
                     *closure_node_id,
                     None,
                     e.span,
@@ -172,6 +209,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 ExprKind::Closure(box Closure {
                     binder,
                     capture_clause,
+                    constness,
                     asyncness,
                     movability,
                     fn_decl,
@@ -184,6 +222,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                             binder,
                             *capture_clause,
                             e.id,
+                            hir_id,
                             *closure_id,
                             fn_decl,
                             body,
@@ -195,6 +234,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                             binder,
                             *capture_clause,
                             e.id,
+                            *constness,
                             *movability,
                             fn_decl,
                             body,
@@ -279,39 +319,12 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 ExprKind::Yield(opt_expr) => self.lower_expr_yield(e.span, opt_expr.as_deref()),
                 ExprKind::Err => hir::ExprKind::Err,
                 ExprKind::Try(sub_expr) => self.lower_expr_try(e.span, sub_expr),
-                ExprKind::Paren(ex) => {
-                    let mut ex = self.lower_expr_mut(ex);
-                    // Include parens in span, but only if it is a super-span.
-                    if e.span.contains(ex.span) {
-                        ex.span = self.lower_span(e.span);
-                    }
-                    // Merge attributes into the inner expression.
-                    if !e.attrs.is_empty() {
-                        let old_attrs =
-                            self.attrs.get(&ex.hir_id.local_id).map(|la| *la).unwrap_or(&[]);
-                        self.attrs.insert(
-                            ex.hir_id.local_id,
-                            &*self.arena.alloc_from_iter(
-                                e.attrs
-                                    .iter()
-                                    .map(|a| self.lower_attr(a))
-                                    .chain(old_attrs.iter().cloned()),
-                            ),
-                        );
-                    }
-                    return ex;
-                }
 
-                // Desugar `ExprForLoop`
-                // from: `[opt_ident]: for <pat> in <head> <body>`
-                ExprKind::ForLoop(pat, head, body, opt_label) => {
-                    return self.lower_expr_for(e, pat, head, body, *opt_label);
-                }
+                ExprKind::Paren(_) | ExprKind::ForLoop(..) => unreachable!("already handled"),
+
                 ExprKind::MacCall(_) => panic!("{:?} shouldn't exist here", e.span),
             };
 
-            let hir_id = self.lower_node_id(e.id);
-            self.lower_attrs(hir_id, &e.attrs);
             hir::Expr { hir_id, kind, span: self.lower_span(e.span) }
         })
     }
@@ -576,7 +589,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
     pub(super) fn make_async_expr(
         &mut self,
         capture_clause: CaptureBy,
-        outer_hir_id: Option<hir::HirId>,
+        outer_hir_id: hir::HirId,
         closure_node_id: NodeId,
         ret_ty: Option<hir::FnRetTy<'hir>>,
         span: Span,
@@ -640,6 +653,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 fn_decl_span: self.lower_span(span),
                 fn_arg_span: None,
                 movability: Some(hir::Movability::Static),
+                constness: hir::Constness::NotConst,
             });
 
             hir::ExprKind::Closure(c)
@@ -650,7 +664,6 @@ impl<'hir> LoweringContext<'_, 'hir> {
             self.mark_span_with_reason(DesugaringKind::Async, span, self.allow_gen_future.clone());
 
         if self.tcx.features().closure_track_caller
-            && let Some(outer_hir_id) = outer_hir_id
             && let Some(attrs) = self.attrs.get(&outer_hir_id.local_id)
             && attrs.into_iter().any(|attr| attr.has_name(sym::track_caller))
         {
@@ -679,8 +692,8 @@ impl<'hir> LoweringContext<'_, 'hir> {
         // call (like the identity function), as otherwise type and lifetime
         // inference have a hard time figuring things out.
         // Without this, we would get:
-        // E0720 in src/test/ui/impl-trait/in-trait/default-body-with-rpit.rs
-        // E0700 in src/test/ui/self/self_lifetime-async.rs
+        // E0720 in tests/ui/impl-trait/in-trait/default-body-with-rpit.rs
+        // E0700 in tests/ui/self/self_lifetime-async.rs
 
         // `future::identity_future`:
         let identity_future =
@@ -880,6 +893,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
         binder: &ClosureBinder,
         capture_clause: CaptureBy,
         closure_id: NodeId,
+        constness: Const,
         movability: Movability,
         decl: &FnDecl,
         body: &Expr,
@@ -917,6 +931,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
             fn_decl_span: self.lower_span(fn_decl_span),
             fn_arg_span: Some(self.lower_span(fn_arg_span)),
             movability: generator_option,
+            constness: self.lower_constness(constness),
         });
 
         hir::ExprKind::Closure(c)
@@ -968,6 +983,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
         binder: &ClosureBinder,
         capture_clause: CaptureBy,
         closure_id: NodeId,
+        closure_hir_id: hir::HirId,
         inner_closure_id: NodeId,
         decl: &FnDecl,
         body: &Expr,
@@ -1001,9 +1017,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
 
                 let async_body = this.make_async_expr(
                     capture_clause,
-                    // FIXME(nbdd0121): This should also use a proper HIR id so `#[track_caller]`
-                    // can be applied on async closures as well.
-                    None,
+                    closure_hir_id,
                     inner_closure_id,
                     async_ret_ty,
                     body.span,
@@ -1032,6 +1046,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
             fn_decl_span: self.lower_span(fn_decl_span),
             fn_arg_span: Some(self.lower_span(fn_arg_span)),
             movability: None,
+            constness: hir::Constness::NotConst,
         });
         hir::ExprKind::Closure(c)
     }

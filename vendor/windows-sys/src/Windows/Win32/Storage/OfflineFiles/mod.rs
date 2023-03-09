@@ -1,17 +1,10 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn OfflineFilesEnable(benable: super::super::Foundation::BOOL, pbrebootrequired: *mut super::super::Foundation::BOOL) -> u32;
-    #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn OfflineFilesQueryStatus(pbactive: *mut super::super::Foundation::BOOL, pbenabled: *mut super::super::Foundation::BOOL) -> u32;
-    #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn OfflineFilesQueryStatusEx(pbactive: *mut super::super::Foundation::BOOL, pbenabled: *mut super::super::Foundation::BOOL, pbavailable: *mut super::super::Foundation::BOOL) -> u32;
-    #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
-    pub fn OfflineFilesStart() -> u32;
-}
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cscapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`, `\"Win32_Foundation\"`*"] fn OfflineFilesEnable ( benable : super::super::Foundation:: BOOL , pbrebootrequired : *mut super::super::Foundation:: BOOL ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cscapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`, `\"Win32_Foundation\"`*"] fn OfflineFilesQueryStatus ( pbactive : *mut super::super::Foundation:: BOOL , pbenabled : *mut super::super::Foundation:: BOOL ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "cscapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`, `\"Win32_Foundation\"`*"] fn OfflineFilesQueryStatusEx ( pbactive : *mut super::super::Foundation:: BOOL , pbenabled : *mut super::super::Foundation:: BOOL , pbavailable : *mut super::super::Foundation:: BOOL ) -> u32 );
+::windows_sys::core::link ! ( "cscapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"] fn OfflineFilesStart ( ) -> u32 );
 pub type IEnumOfflineFilesItems = *mut ::core::ffi::c_void;
 pub type IEnumOfflineFilesSettings = *mut ::core::ffi::c_void;
 pub type IOfflineFilesCache = *mut ::core::ffi::c_void;
@@ -178,7 +171,7 @@ pub const OFFLINEFILES_PIN_CONTROL_FLAG_LOWPRIORITY: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
 pub const OFFLINEFILES_PIN_CONTROL_FLAG_PINLINKTARGETS: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
-pub const OFFLINEFILES_SETTING_PinLinkTargets: &str = "LinkTargetCaching";
+pub const OFFLINEFILES_SETTING_PinLinkTargets: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LinkTargetCaching");
 #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
 pub const OFFLINEFILES_SETTING_SCOPE_COMPUTER: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
@@ -243,8 +236,10 @@ pub const OFFLINEFILES_SYNC_STATE_REMOTE_KNOWN: u32 = 2u32;
 pub const OFFLINEFILES_TRANSITION_FLAG_CONSOLE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
 pub const OFFLINEFILES_TRANSITION_FLAG_INTERACTIVE: u32 = 1u32;
-pub const OfflineFilesCache: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1220984444, data2: 14449, data3: 17356, data4: [180, 111, 20, 73, 161, 187, 47, 243] };
-pub const OfflineFilesSetting: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 4248197609, data2: 43296, data3: 16675, data4: [173, 100, 127, 199, 108, 122, 172, 223] };
+#[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
+pub const OfflineFilesCache: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x48c6be7c_3871_43cc_b46f_1449a1bb2ff3);
+#[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
+pub const OfflineFilesSetting: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xfd3659e9_a920_4123_ad64_7fc76c7aacdf);
 #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]
 pub type OFFLINEFILES_CACHING_MODE = i32;
 #[doc = "*Required features: `\"Win32_Storage_OfflineFiles\"`*"]

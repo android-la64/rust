@@ -307,7 +307,7 @@ impl<'a> State<'a> {
                 self.word("*");
                 self.print_mt(mt, true);
             }
-            hir::TyKind::Rptr(ref lifetime, ref mt) => {
+            hir::TyKind::Ref(ref lifetime, ref mt) => {
                 self.word("&");
                 self.print_opt_lifetime(lifetime);
                 self.print_mt(mt, false);
@@ -1245,7 +1245,7 @@ impl<'a> State<'a> {
 
     fn print_literal(&mut self, lit: &hir::Lit) {
         self.maybe_print_comment(lit.span.lo());
-        self.word(lit.node.to_token_lit().to_string())
+        self.word(lit.node.to_string())
     }
 
     fn print_inline_asm(&mut self, asm: &hir::InlineAsm<'_>) {
@@ -1268,7 +1268,7 @@ impl<'a> State<'a> {
                 hir::InlineAsmOperand::In { reg, ref expr } => {
                     s.word("in");
                     s.popen();
-                    s.word(format!("{}", reg));
+                    s.word(format!("{reg}"));
                     s.pclose();
                     s.space();
                     s.print_expr(expr);
@@ -1276,7 +1276,7 @@ impl<'a> State<'a> {
                 hir::InlineAsmOperand::Out { reg, late, ref expr } => {
                     s.word(if late { "lateout" } else { "out" });
                     s.popen();
-                    s.word(format!("{}", reg));
+                    s.word(format!("{reg}"));
                     s.pclose();
                     s.space();
                     match expr {
@@ -1287,7 +1287,7 @@ impl<'a> State<'a> {
                 hir::InlineAsmOperand::InOut { reg, late, ref expr } => {
                     s.word(if late { "inlateout" } else { "inout" });
                     s.popen();
-                    s.word(format!("{}", reg));
+                    s.word(format!("{reg}"));
                     s.pclose();
                     s.space();
                     s.print_expr(expr);
@@ -1295,7 +1295,7 @@ impl<'a> State<'a> {
                 hir::InlineAsmOperand::SplitInOut { reg, late, ref in_expr, ref out_expr } => {
                     s.word(if late { "inlateout" } else { "inout" });
                     s.popen();
-                    s.word(format!("{}", reg));
+                    s.word(format!("{reg}"));
                     s.pclose();
                     s.space();
                     s.print_expr(in_expr);
@@ -1464,6 +1464,7 @@ impl<'a> State<'a> {
             }
             hir::ExprKind::Closure(&hir::Closure {
                 binder,
+                constness,
                 capture_clause,
                 bound_generic_params,
                 fn_decl,
@@ -1474,6 +1475,7 @@ impl<'a> State<'a> {
                 def_id: _,
             }) => {
                 self.print_closure_binder(binder, bound_generic_params);
+                self.print_constness(constness);
                 self.print_capture_clause(capture_clause);
 
                 self.print_closure_params(fn_decl, body);
@@ -1757,7 +1759,6 @@ impl<'a> State<'a> {
                 self.print_qpath(qpath, true);
                 self.popen();
                 if let Some(ddpos) = ddpos.as_opt_usize() {
-                    let ddpos = ddpos as usize;
                     self.commasep(Inconsistent, &elts[..ddpos], |s, p| s.print_pat(p));
                     if ddpos != 0 {
                         self.word_space(",");
@@ -2273,10 +2274,7 @@ impl<'a> State<'a> {
     }
 
     pub fn print_fn_header_info(&mut self, header: hir::FnHeader) {
-        match header.constness {
-            hir::Constness::NotConst => {}
-            hir::Constness::Const => self.word_nbsp("const"),
-        }
+        self.print_constness(header.constness);
 
         match header.asyncness {
             hir::IsAsync::NotAsync => {}
@@ -2291,6 +2289,13 @@ impl<'a> State<'a> {
         }
 
         self.word("fn")
+    }
+
+    pub fn print_constness(&mut self, s: hir::Constness) {
+        match s {
+            hir::Constness::NotConst => {}
+            hir::Constness::Const => self.word_nbsp("const"),
+        }
     }
 
     pub fn print_unsafety(&mut self, s: hir::Unsafety) {

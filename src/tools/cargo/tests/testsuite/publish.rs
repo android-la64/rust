@@ -135,6 +135,83 @@ See [..]
 // Check that the `token` key works at the root instead of under a
 // `[registry]` table.
 #[cargo_test]
+fn simple_publish_with_http() {
+    let _reg = registry::RegistryBuilder::new()
+        .http_api()
+        .token(registry::Token::Plaintext("sekrit".to_string()))
+        .build();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+                license = "MIT"
+                description = "foo"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("publish --no-verify --token sekrit --registry dummy-registry")
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+[WARNING] manifest has no documentation, [..]
+See [..]
+[PACKAGING] foo v0.0.1 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
+[UPLOADING] foo v0.0.1 ([CWD])
+[UPDATING] `dummy-registry` index
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn simple_publish_with_asymmetric() {
+    let _reg = registry::RegistryBuilder::new()
+        .http_api()
+        .http_index()
+        .alternative_named("dummy-registry")
+        .token(registry::Token::rfc_key())
+        .build();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+                license = "MIT"
+                description = "foo"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("publish --no-verify -Zregistry-auth --registry dummy-registry")
+        .masquerade_as_nightly_cargo(&["registry-auth"])
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+[WARNING] manifest has no documentation, [..]
+See [..]
+[PACKAGING] foo v0.0.1 ([CWD])
+[PACKAGED] [..] files, [..] ([..] compressed)
+[UPLOADING] foo v0.0.1 ([CWD])
+[UPDATING] `dummy-registry` index
+",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn old_token_location() {
     // `publish` generally requires a remote registry
     let registry = registry::RegistryBuilder::new().http_api().build();
@@ -154,7 +231,7 @@ fn old_token_location() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    let credentials = paths::home().join(".cargo/credentials");
+    let credentials = paths::home().join(".cargo/credentials.toml");
     fs::remove_file(&credentials).unwrap();
 
     // Verify can't publish without a token.
@@ -1537,8 +1614,9 @@ fn credentials_ambiguous_filename() {
     // `publish` generally requires a remote registry
     let registry = registry::RegistryBuilder::new().http_api().build();
 
+    // Make token in `credentials.toml` incorrect to ensure it is not read.
     let credentials_toml = paths::home().join(".cargo/credentials.toml");
-    fs::write(credentials_toml, r#"token = "api-token""#).unwrap();
+    fs::write(credentials_toml, r#"token = "wrong-token""#).unwrap();
 
     let p = project()
         .file(
@@ -1554,6 +1632,16 @@ fn credentials_ambiguous_filename() {
         )
         .file("src/main.rs", "fn main() {}")
         .build();
+
+    p.cargo("publish --no-verify")
+        .replace_crates_io(registry.index_url())
+        .with_status(101)
+        .with_stderr_contains("[..]Unauthorized message from server[..]")
+        .run();
+
+    // Favor `credentials` if exists.
+    let credentials = paths::home().join(".cargo/credentials");
+    fs::write(credentials, r#"token = "sekrit""#).unwrap();
 
     p.cargo("publish --no-verify")
         .replace_crates_io(registry.index_url())
@@ -1579,7 +1667,7 @@ fn index_requires_token() {
     // Use local registry for faster test times since no publish will occur
     let registry = registry::init();
 
-    let credentials = paths::home().join(".cargo/credentials");
+    let credentials = paths::home().join(".cargo/credentials.toml");
     fs::remove_file(&credentials).unwrap();
 
     let p = project()
@@ -2430,8 +2518,7 @@ fn wait_for_first_publish() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify -Z sparse-registry")
-        .masquerade_as_nightly_cargo(&["sparse-registry"])
+    p.cargo("publish --no-verify")
         .replace_crates_io(registry.index_url())
         .with_status(0)
         .with_stderr(
@@ -2468,10 +2555,7 @@ See [..]
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -Z sparse-registry")
-        .masquerade_as_nightly_cargo(&["sparse-registry"])
-        .with_status(0)
-        .run();
+    p.cargo("build").with_status(0).run();
 }
 
 /// A separate test is needed for package names with - or _ as they hit
@@ -2514,8 +2598,7 @@ fn wait_for_first_publish_underscore() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify -Z sparse-registry")
-        .masquerade_as_nightly_cargo(&["sparse-registry"])
+    p.cargo("publish --no-verify")
         .replace_crates_io(registry.index_url())
         .with_status(0)
         .with_stderr(
@@ -2552,10 +2635,7 @@ See [..]
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -Z sparse-registry")
-        .masquerade_as_nightly_cargo(&["sparse-registry"])
-        .with_status(0)
-        .run();
+    p.cargo("build").with_status(0).run();
 }
 
 #[cargo_test]
@@ -2579,7 +2659,9 @@ fn wait_for_subsequent_publish() {
             *lock += 1;
             if *lock == 3 {
                 // Run the publish on the 3rd attempt
-                server.publish(&publish_req2.lock().unwrap().as_ref().unwrap());
+                let rep = server
+                    .check_authorized_publish(&publish_req2.lock().unwrap().as_ref().unwrap());
+                assert_eq!(rep.code, 200);
             }
             server.index(req)
         })
@@ -2606,8 +2688,7 @@ fn wait_for_subsequent_publish() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("publish --no-verify -Z sparse-registry")
-        .masquerade_as_nightly_cargo(&["sparse-registry"])
+    p.cargo("publish --no-verify")
         .replace_crates_io(registry.index_url())
         .with_status(0)
         .with_stderr(
@@ -2644,10 +2725,7 @@ See [..]
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("build -Z sparse-registry")
-        .masquerade_as_nightly_cargo(&["sparse-registry"])
-        .with_status(0)
-        .run();
+    p.cargo("build").with_status(0).run();
 }
 
 #[cargo_test]

@@ -4,11 +4,13 @@
 
 // run-rustfix
 
+#![allow(clippy::almost_complete_range)]
 #![allow(clippy::disallowed_names)]
 #![allow(clippy::blocks_in_if_conditions)]
 #![allow(clippy::box_collection)]
 #![allow(clippy::redundant_static_lifetimes)]
 #![allow(clippy::cognitive_complexity)]
+#![allow(clippy::derived_hash_with_manual_eq)]
 #![allow(clippy::disallowed_methods)]
 #![allow(clippy::disallowed_types)]
 #![allow(clippy::mixed_read_write_in_expression)]
@@ -37,12 +39,14 @@
 #![allow(temporary_cstring_as_ptr)]
 #![allow(unknown_lints)]
 #![allow(unused_labels)]
+#![warn(clippy::almost_complete_letter_range)]
 #![warn(clippy::blacklisted_name)]
 #![warn(clippy::block_in_if_condition_expr)]
 #![warn(clippy::block_in_if_condition_stmt)]
 #![warn(clippy::box_vec)]
 #![warn(clippy::const_static_lifetime)]
 #![warn(clippy::cyclomatic_complexity)]
+#![warn(clippy::derive_hash_xor_eq)]
 #![warn(clippy::disallowed_method)]
 #![warn(clippy::disallowed_type)]
 #![warn(clippy::eval_order_dependence)]

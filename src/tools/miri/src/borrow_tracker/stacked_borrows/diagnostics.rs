@@ -88,11 +88,7 @@ impl fmt::Display for InvalidationCause {
         match self {
             InvalidationCause::Access(kind) => write!(f, "{kind}"),
             InvalidationCause::Retag(perm, kind) =>
-                if *kind == RetagCause::FnEntry {
-                    write!(f, "{perm:?} FnEntry retag")
-                } else {
-                    write!(f, "{perm:?} retag")
-                },
+                write!(f, "{perm:?} {retag}", retag = kind.summary()),
         }
     }
 }
@@ -193,7 +189,7 @@ struct RetagOp {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RetagCause {
     Normal,
-    FnReturn,
+    FnReturnPlace,
     FnEntry,
     TwoPhase,
 }
@@ -462,7 +458,9 @@ impl<'history, 'ecx, 'mir, 'tcx> DiagnosticCx<'history, 'ecx, 'mir, 'tcx> {
             Operation::Retag(RetagOp { orig_tag, permission, new_tag, .. }) => {
                 let permission = permission
                     .expect("start_grant should set the current permission before popping a tag");
-                format!(" due to {permission:?} retag from {orig_tag:?} (that retag created {new_tag:?})")
+                format!(
+                    " due to {permission:?} retag from {orig_tag:?} (that retag created {new_tag:?})"
+                )
             }
         };
 
@@ -493,8 +491,8 @@ impl RetagCause {
     fn summary(&self) -> String {
         match self {
             RetagCause::Normal => "retag",
-            RetagCause::FnEntry => "FnEntry retag",
-            RetagCause::FnReturn => "FnReturn retag",
+            RetagCause::FnEntry => "function-entry retag",
+            RetagCause::FnReturnPlace => "return-place retag",
             RetagCause::TwoPhase => "two-phase retag",
         }
         .to_string()

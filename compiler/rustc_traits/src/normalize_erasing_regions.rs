@@ -47,14 +47,14 @@ fn try_normalize_after_erasing_regions<'tcx, T: TypeFoldable<'tcx> + PartialEq +
             // us a test case.
             debug_assert_eq!(normalized_value, resolved_value);
             let erased = infcx.tcx.erase_regions(resolved_value);
-            debug_assert!(!erased.needs_infer(), "{:?}", erased);
+            debug_assert!(!erased.needs_infer(), "{erased:?}");
             Ok(erased)
         }
         Err(NoSolution) => Err(NoSolution),
     }
 }
 
-fn not_outlives_predicate<'tcx>(p: ty::Predicate<'tcx>) -> bool {
+fn not_outlives_predicate(p: ty::Predicate<'_>) -> bool {
     match p.kind().skip_binder() {
         ty::PredicateKind::Clause(ty::Clause::RegionOutlives(..))
         | ty::PredicateKind::Clause(ty::Clause::TypeOutlives(..)) => false,

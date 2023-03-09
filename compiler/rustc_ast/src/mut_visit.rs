@@ -459,7 +459,7 @@ pub fn noop_visit_ty<T: MutVisitor>(ty: &mut P<Ty>, vis: &mut T) {
         TyKind::Infer | TyKind::ImplicitSelf | TyKind::Err | TyKind::Never | TyKind::CVarArgs => {}
         TyKind::Slice(ty) => vis.visit_ty(ty),
         TyKind::Ptr(mt) => vis.visit_mt(mt),
-        TyKind::Rptr(lt, mt) => {
+        TyKind::Ref(lt, mt) => {
             visit_opt(lt, |lt| noop_visit_lifetime(lt, vis));
             vis.visit_mt(mt);
         }
@@ -1362,6 +1362,7 @@ pub fn noop_visit_expr<T: MutVisitor>(
         ExprKind::Closure(box Closure {
             binder,
             capture_clause: _,
+            constness,
             asyncness,
             movability: _,
             fn_decl,
@@ -1370,6 +1371,7 @@ pub fn noop_visit_expr<T: MutVisitor>(
             fn_arg_span: _,
         }) => {
             vis.visit_closure_binder(binder);
+            visit_constness(constness, vis);
             vis.visit_asyncness(asyncness);
             vis.visit_fn_decl(fn_decl);
             vis.visit_expr(body);

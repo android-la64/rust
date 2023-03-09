@@ -210,7 +210,7 @@ pub fn lit_to_mir_constant(lit: &LitKind, ty: Option<Ty<'_>>) -> Constant {
     match *lit {
         LitKind::Str(ref is, _) => Constant::Str(is.to_string()),
         LitKind::Byte(b) => Constant::Int(u128::from(b)),
-        LitKind::ByteStr(ref s) => Constant::Binary(Lrc::clone(s)),
+        LitKind::ByteStr(ref s, _) => Constant::Binary(Lrc::clone(s)),
         LitKind::Char(c) => Constant::Char(c),
         LitKind::Int(n, _) => Constant::Int(n),
         LitKind::Float(ref is, LitFloatType::Suffixed(fty)) => match fty {
@@ -620,12 +620,7 @@ pub fn miri_to_const<'tcx>(tcx: TyCtxt<'tcx>, result: mir::ConstantKind<'tcx>) -
                 ty::Float(FloatTy::F64) => Some(Constant::F64(f64::from_bits(
                     int.try_into().expect("invalid f64 bit representation"),
                 ))),
-                ty::RawPtr(type_and_mut) => {
-                    if let ty::Uint(_) = type_and_mut.ty.kind() {
-                        return Some(Constant::RawPtr(int.assert_bits(int.size())));
-                    }
-                    None
-                },
+                ty::RawPtr(_) => Some(Constant::RawPtr(int.assert_bits(int.size()))),
                 // FIXME: implement other conversions.
                 _ => None,
             }

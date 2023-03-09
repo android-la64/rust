@@ -70,14 +70,6 @@ impl GenericParamDef {
         }
     }
 
-    pub fn has_default(&self) -> bool {
-        match self.kind {
-            GenericParamDefKind::Type { has_default, .. }
-            | GenericParamDefKind::Const { has_default } => has_default,
-            GenericParamDefKind::Lifetime => false,
-        }
-    }
-
     pub fn is_anonymous_lifetime(&self) -> bool {
         match self.kind {
             GenericParamDefKind::Lifetime => {
@@ -96,7 +88,7 @@ impl GenericParamDef {
                 Some(tcx.bound_type_of(self.def_id).map_bound(|t| t.into()))
             }
             GenericParamDefKind::Const { has_default } if has_default => {
-                Some(tcx.bound_const_param_default(self.def_id).map_bound(|c| c.into()))
+                Some(tcx.const_param_default(self.def_id).map_bound(|c| c.into()))
             }
             _ => None,
         }
@@ -234,6 +226,15 @@ impl<'tcx> Generics {
         }
     }
 
+    pub fn params_to(&'tcx self, param_index: usize, tcx: TyCtxt<'tcx>) -> &'tcx [GenericParamDef] {
+        if let Some(index) = param_index.checked_sub(self.parent_count) {
+            &self.params[..index]
+        } else {
+            tcx.generics_of(self.parent.expect("parent_count > 0 but no parent?"))
+                .params_to(param_index, tcx)
+        }
+    }
+
     /// Returns the `GenericParamDef` associated with this `EarlyBoundRegion`.
     pub fn region_param(
         &'tcx self,
@@ -340,15 +341,9 @@ impl<'tcx> GenericPredicates<'tcx> {
         &self,
         tcx: TyCtxt<'tcx>,
         substs: SubstsRef<'tcx>,
-    ) -> InstantiatedPredicates<'tcx> {
-        InstantiatedPredicates {
-            predicates: self
-                .predicates
-                .iter()
-                .map(|(p, _)| EarlyBinder(*p).subst(tcx, substs))
-                .collect(),
-            spans: self.predicates.iter().map(|(_, sp)| *sp).collect(),
-        }
+    ) -> impl Iterator<Item = (Predicate<'tcx>, Span)> + DoubleEndedIterator + ExactSizeIterator
+    {
+        EarlyBinder(self.predicates).subst_iter_copied(tcx, substs)
     }
 
     #[instrument(level = "debug", skip(self, tcx))]

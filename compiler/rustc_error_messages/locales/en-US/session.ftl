@@ -41,6 +41,8 @@ session_unsupported_dwarf_version = requested DWARF version {$dwarf_version} is 
 
 session_target_stack_protector_not_supported = `-Z stack-protector={$stack_protector}` is not supported for target {$target_triple} and will be ignored
 
+session_branch_protection_requires_aarch64 = `-Zbranch-protection` is only supported on aarch64
+
 session_split_debuginfo_unstable_platform = `-Csplit-debuginfo={$debuginfo}` is unstable on this platform
 
 session_file_is_not_writeable = output file {$file} is not writeable -- check its permissions
@@ -83,6 +85,7 @@ session_invalid_float_literal_suffix = invalid suffix `{$suffix}` for float lite
     .help = valid suffixes are `f32` and `f64`
 
 session_int_literal_too_large = integer literal is too large
+    .note = value exceeds limit of `{$limit}`
 
 session_invalid_int_literal_width = invalid width `{$width}` for integer literal
     .help = valid widths are 8, 16, 32, 64 and 128

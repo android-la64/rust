@@ -94,7 +94,7 @@ pub enum LifetimeName {
     /// Implicit lifetime in a context like `dyn Foo`. This is
     /// distinguished from implicit lifetimes elsewhere because the
     /// lifetime that they default to must appear elsewhere within the
-    /// enclosing type.  This means that, in an `impl Trait` context, we
+    /// enclosing type. This means that, in an `impl Trait` context, we
     /// don't have to create a parameter for them. That is, `impl
     /// Trait<Item = &u32>` expands to an opaque type like `type
     /// Foo<'a> = impl Trait<Item = &'a u32>`, but `impl Trait<item =
@@ -548,12 +548,7 @@ impl<'hir> Generics<'hir> {
     }
 
     pub fn get_named(&self, name: Symbol) -> Option<&GenericParam<'hir>> {
-        for param in self.params {
-            if name == param.name.ident().name {
-                return Some(param);
-            }
-        }
-        None
+        self.params.iter().find(|&param| name == param.name.ident().name)
     }
 
     pub fn spans(&self) -> MultiSpan {
@@ -831,7 +826,7 @@ pub struct OwnerNodes<'tcx> {
     pub hash_without_bodies: Fingerprint,
     /// Full HIR for the current owner.
     // The zeroth node's parent should never be accessed: the owner's parent is computed by the
-    // hir_owner_parent query.  It is set to `ItemLocalId::INVALID` to force an ICE if accidentally
+    // hir_owner_parent query. It is set to `ItemLocalId::INVALID` to force an ICE if accidentally
     // used.
     pub nodes: IndexVec<ItemLocalId, Option<ParentedNode<'tcx>>>,
     /// Content of local bodies.
@@ -859,7 +854,11 @@ impl fmt::Debug for OwnerNodes<'_> {
                 &self
                     .nodes
                     .iter_enumerated()
-                    .map(|(id, parented_node)| (id, parented_node.as_ref().map(|node| node.parent)))
+                    .map(|(id, parented_node)| {
+                        let parented_node = parented_node.as_ref().map(|node| node.parent);
+
+                        debug_fn(move |f| write!(f, "({id:?}, {parented_node:?})"))
+                    })
                     .collect::<Vec<_>>(),
             )
             .field("bodies", &self.bodies)
@@ -939,6 +938,7 @@ pub struct Crate<'hir> {
 pub struct Closure<'hir> {
     pub def_id: LocalDefId,
     pub binder: ClosureBinder,
+    pub constness: Constness,
     pub capture_clause: CaptureBy,
     pub bound_generic_params: &'hir [GenericParam<'hir>],
     pub fn_decl: &'hir FnDecl<'hir>,
@@ -1787,6 +1787,14 @@ impl Expr<'_> {
         expr
     }
 
+    pub fn peel_borrows(&self) -> &Self {
+        let mut expr = self;
+        while let ExprKind::AddrOf(.., inner) = &expr.kind {
+            expr = inner;
+        }
+        expr
+    }
+
     pub fn can_have_side_effects(&self) -> bool {
         match self.peel_drop_temps().kind {
             ExprKind::Path(_) | ExprKind::Lit(_) => false,
@@ -2436,7 +2444,7 @@ impl<'hir> Ty<'hir> {
 
     pub fn peel_refs(&self) -> &Self {
         let mut final_ty = self;
-        while let TyKind::Rptr(_, MutTy { ty, .. }) = &final_ty.kind {
+        while let TyKind::Ref(_, MutTy { ty, .. }) = &final_ty.kind {
             final_ty = ty;
         }
         final_ty
@@ -2593,7 +2601,7 @@ pub enum TyKind<'hir> {
     /// A raw pointer (i.e., `*const T` or `*mut T`).
     Ptr(MutTy<'hir>),
     /// A reference (i.e., `&'a T` or `&'a mut T`).
-    Rptr(&'hir Lifetime, MutTy<'hir>),
+    Ref(&'hir Lifetime, MutTy<'hir>),
     /// A bare function (e.g., `fn(usize) -> bool`).
     BareFn(&'hir BareFnTy<'hir>),
     /// The never type (`!`).
@@ -3461,7 +3469,7 @@ impl<'hir> Node<'hir> {
     /// ```ignore (illustrative)
     /// ctor
     ///     .ctor_hir_id()
-    ///     .and_then(|ctor_id| tcx.hir().find(tcx.hir().get_parent_node(ctor_id)))
+    ///     .and_then(|ctor_id| tcx.hir().find_parent(ctor_id))
     ///     .and_then(|parent| parent.ident())
     /// ```
     pub fn ident(&self) -> Option<Ident> {
@@ -3614,16 +3622,19 @@ mod size_asserts {
     static_assert_size!(Res, 12);
     static_assert_size!(Stmt<'_>, 32);
     static_assert_size!(StmtKind<'_>, 16);
-    // tidy-alphabetical-end
-    // FIXME: move the tidy directive to the end after the next bootstrap bump
-    #[cfg(bootstrap)]
-    static_assert_size!(TraitItem<'_>, 88);
-    #[cfg(not(bootstrap))]
     static_assert_size!(TraitItem<'_>, 80);
-    #[cfg(bootstrap)]
-    static_assert_size!(TraitItemKind<'_>, 48);
-    #[cfg(not(bootstrap))]
     static_assert_size!(TraitItemKind<'_>, 40);
     static_assert_size!(Ty<'_>, 48);
     static_assert_size!(TyKind<'_>, 32);
+    // tidy-alphabetical-end
+}
+
+fn debug_fn(f: impl Fn(&mut fmt::Formatter<'_>) -> fmt::Result) -> impl fmt::Debug {
+    struct DebugFn<F>(F);
+    impl<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result> fmt::Debug for DebugFn<F> {
+        fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+            (self.0)(fmt)
+        }
+    }
+    DebugFn(f)
 }

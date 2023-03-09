@@ -361,6 +361,7 @@ pub enum ValuePairs<'tcx> {
     Terms(ExpectedFound<ty::Term<'tcx>>),
     TraitRefs(ExpectedFound<ty::TraitRef<'tcx>>),
     PolyTraitRefs(ExpectedFound<ty::PolyTraitRef<'tcx>>),
+    Sigs(ExpectedFound<ty::FnSig<'tcx>>),
 }
 
 impl<'tcx> ValuePairs<'tcx> {
@@ -408,12 +409,6 @@ pub enum SubregionOrigin<'tcx> {
 
     /// Creating a pointer `b` to contents of another reference
     Reborrow(Span),
-
-    /// Creating a pointer `b` to contents of an upvar
-    ReborrowUpvar(Span, ty::UpvarId),
-
-    /// Data with type `Ty<'tcx>` was borrowed
-    DataBorrowed(Ty<'tcx>, Span),
 
     /// (&'a &'b T) where a >= b
     ReferenceOutlivesReferent(Ty<'tcx>, Span),
@@ -690,6 +685,10 @@ impl<'tcx> InferCtxt<'tcx> {
             typeck_results: None,
             fallback_has_occurred: false,
             normalize_fn_sig: Box::new(|fn_sig| fn_sig),
+            autoderef_steps: Box::new(|ty| {
+                debug_assert!(false, "shouldn't be using autoderef_steps outside of typeck");
+                vec![(ty, vec![])]
+            }),
         }
     }
 
@@ -1106,7 +1105,7 @@ impl<'tcx> InferCtxt<'tcx> {
         self.tcx.mk_region(ty::ReVar(region_var))
     }
 
-    /// Return the universe that the region `r` was created in.  For
+    /// Return the universe that the region `r` was created in. For
     /// most regions (e.g., `'static`, named regions from the user,
     /// etc) this is the root universe U0. For inference variables or
     /// placeholders, however, it will return the universe which they
@@ -1340,6 +1339,12 @@ impl<'tcx> InferCtxt<'tcx> {
         var_infos
     }
 
+    #[instrument(level = "debug", skip(self), ret)]
+    pub fn take_opaque_types(&self) -> opaque_types::OpaqueTypeMap<'tcx> {
+        debug_assert_ne!(self.defining_use_anchor, DefiningAnchor::Error);
+        std::mem::take(&mut self.inner.borrow_mut().opaque_type_storage.opaque_types)
+    }
+
     pub fn ty_to_string(&self, t: Ty<'tcx>) -> String {
         self.resolve_vars_if_possible(t).to_string()
     }
@@ -1356,7 +1361,7 @@ impl<'tcx> InferCtxt<'tcx> {
     }
 
     /// Resolve any type variables found in `value` -- but only one
-    /// level.  So, if the variable `?X` is bound to some type
+    /// level. So, if the variable `?X` is bound to some type
     /// `Foo<?Y>`, then this would return `Foo<?Y>` (but `?Y` may
     /// itself be bound to a type).
     ///
@@ -1681,33 +1686,54 @@ impl<'tcx> InferCtxt<'tcx> {
 }
 
 impl<'tcx> TypeErrCtxt<'_, 'tcx> {
+    /// Processes registered region obliations and resolves regions, reporting
+    /// any errors if any were raised. Prefer using this function over manually
+    /// calling `resolve_regions_and_report_errors`.
+    pub fn check_region_obligations_and_report_errors(
+        &self,
+        generic_param_scope: LocalDefId,
+        outlives_env: &OutlivesEnvironment<'tcx>,
+    ) -> Result<(), ErrorGuaranteed> {
+        self.process_registered_region_obligations(
+            outlives_env.region_bound_pairs(),
+            outlives_env.param_env,
+        );
+
+        self.resolve_regions_and_report_errors(generic_param_scope, outlives_env)
+    }
+
     /// Process the region constraints and report any errors that
     /// result. After this, no more unification operations should be
     /// done -- or the compiler will panic -- but it is legal to use
     /// `resolve_vars_if_possible` as well as `fully_resolve`.
     ///
     /// Make sure to call [`InferCtxt::process_registered_region_obligations`]
-    /// first, or preferably use [`InferCtxt::check_region_obligations_and_report_errors`]
+    /// first, or preferably use [`TypeErrCtxt::check_region_obligations_and_report_errors`]
     /// to do both of these operations together.
     pub fn resolve_regions_and_report_errors(
         &self,
         generic_param_scope: LocalDefId,
         outlives_env: &OutlivesEnvironment<'tcx>,
-    ) -> Option<ErrorGuaranteed> {
+    ) -> Result<(), ErrorGuaranteed> {
         let errors = self.resolve_regions(outlives_env);
 
         if let None = self.tainted_by_errors() {
             // As a heuristic, just skip reporting region errors
             // altogether if other errors have been reported while
-            // this infcx was in use.  This is totally hokey but
+            // this infcx was in use. This is totally hokey but
             // otherwise we have a hard time separating legit region
             // errors from silly ones.
             self.report_region_errors(generic_param_scope, &errors);
         }
 
-        (!errors.is_empty()).then(|| {
-            self.tcx.sess.delay_span_bug(rustc_span::DUMMY_SP, "error should have been emitted")
-        })
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(self
+                .tcx
+                .sess
+                .delay_span_bug(rustc_span::DUMMY_SP, "error should have been emitted"))
+        }
     }
 
     // [Note-Type-error-reporting]
@@ -1924,7 +1950,7 @@ impl<'tcx> TypeTrace<'tcx> {
     ) -> TypeTrace<'tcx> {
         TypeTrace {
             cause: cause.clone(),
-            values: PolyTraitRefs(ExpectedFound::new(a_is_expected, a.into(), b.into())),
+            values: PolyTraitRefs(ExpectedFound::new(a_is_expected, a, b)),
         }
     }
 
@@ -1949,8 +1975,6 @@ impl<'tcx> SubregionOrigin<'tcx> {
             RelateParamBound(a, ..) => a,
             RelateRegionParamBound(a) => a,
             Reborrow(a) => a,
-            ReborrowUpvar(a, _) => a,
-            DataBorrowed(_, a) => a,
             ReferenceOutlivesReferent(_, a) => a,
             CompareImplItemObligation { span, .. } => span,
             AscribeUserTypeProvePredicate(span) => span,
@@ -2018,31 +2042,54 @@ fn replace_param_and_infer_substs_with_placeholder<'tcx>(
     tcx: TyCtxt<'tcx>,
     substs: SubstsRef<'tcx>,
 ) -> SubstsRef<'tcx> {
-    tcx.mk_substs(substs.iter().enumerate().map(|(idx, arg)| {
-        match arg.unpack() {
-            GenericArgKind::Type(_) if arg.has_non_region_param() || arg.has_non_region_infer() => {
-                tcx.mk_ty(ty::Placeholder(ty::PlaceholderType {
+    struct ReplaceParamAndInferWithPlaceholder<'tcx> {
+        tcx: TyCtxt<'tcx>,
+        idx: usize,
+    }
+
+    impl<'tcx> TypeFolder<'tcx> for ReplaceParamAndInferWithPlaceholder<'tcx> {
+        fn tcx(&self) -> TyCtxt<'tcx> {
+            self.tcx
+        }
+
+        fn fold_ty(&mut self, t: Ty<'tcx>) -> Ty<'tcx> {
+            if let ty::Infer(_) = t.kind() {
+                self.tcx.mk_ty(ty::Placeholder(ty::PlaceholderType {
                     universe: ty::UniverseIndex::ROOT,
-                    name: ty::BoundVar::from_usize(idx),
+                    name: ty::BoundVar::from_usize({
+                        let idx = self.idx;
+                        self.idx += 1;
+                        idx
+                    }),
                 }))
-                .into()
+            } else {
+                t.super_fold_with(self)
             }
-            GenericArgKind::Const(ct) if ct.has_non_region_infer() || ct.has_non_region_param() => {
-                let ty = ct.ty();
-                // If the type references param or infer, replace that too...
+        }
+
+        fn fold_const(&mut self, c: ty::Const<'tcx>) -> ty::Const<'tcx> {
+            if let ty::ConstKind::Infer(_) = c.kind() {
+                let ty = c.ty();
+                // If the type references param or infer then ICE ICE ICE
                 if ty.has_non_region_param() || ty.has_non_region_infer() {
-                    bug!("const `{ct}`'s type should not reference params or types");
+                    bug!("const `{c}`'s type should not reference params or types");
                 }
-                tcx.mk_const(
+                self.tcx.mk_const(
                     ty::PlaceholderConst {
                         universe: ty::UniverseIndex::ROOT,
-                        name: ty::BoundVar::from_usize(idx),
+                        name: ty::BoundVar::from_usize({
+                            let idx = self.idx;
+                            self.idx += 1;
+                            idx
+                        }),
                     },
                     ty,
                 )
-                .into()
+            } else {
+                c.super_fold_with(self)
             }
-            _ => arg,
         }
-    }))
+    }
+
+    substs.fold_with(&mut ReplaceParamAndInferWithPlaceholder { tcx, idx: 0 })
 }

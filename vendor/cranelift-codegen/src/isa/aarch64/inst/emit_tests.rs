@@ -58,6 +58,13 @@ fn test_aarch64_binemit() {
     ));
     insns.push((Inst::Pacisp { key: APIKey::B }, "7F2303D5", "pacibsp"));
     insns.push((Inst::Xpaclri, "FF2003D5", "xpaclri"));
+    insns.push((
+        Inst::Bti {
+            targets: BranchTargetType::J,
+        },
+        "9F2403D5",
+        "bti j",
+    ));
     insns.push((Inst::Nop0, "", "nop-zero-len"));
     insns.push((Inst::Nop4, "1F2003D5", "nop"));
     insns.push((Inst::Csdb, "9F2203D5", "csdb"));
@@ -1366,6 +1373,61 @@ fn test_aarch64_binemit() {
         },
         "1516C0DA",
         "cls x21, x16",
+    ));
+
+    insns.push((
+        Inst::BitRR {
+            op: BitOp::Rev16,
+            size: OperandSize::Size64,
+            rd: writable_xreg(2),
+            rn: xreg(11),
+        },
+        "6205C0DA",
+        "rev16 x2, x11",
+    ));
+
+    insns.push((
+        Inst::BitRR {
+            op: BitOp::Rev16,
+            size: OperandSize::Size32,
+            rd: writable_xreg(3),
+            rn: xreg(21),
+        },
+        "A306C05A",
+        "rev16 w3, w21",
+    ));
+
+    insns.push((
+        Inst::BitRR {
+            op: BitOp::Rev32,
+            size: OperandSize::Size64,
+            rd: writable_xreg(2),
+            rn: xreg(11),
+        },
+        "6209C0DA",
+        "rev32 x2, x11",
+    ));
+
+    insns.push((
+        Inst::BitRR {
+            op: BitOp::Rev32,
+            size: OperandSize::Size32,
+            rd: writable_xreg(3),
+            rn: xreg(21),
+        },
+        "A30AC05A",
+        "rev32 w3, w21",
+    ));
+
+    insns.push((
+        Inst::BitRR {
+            op: BitOp::Rev64,
+            size: OperandSize::Size64,
+            rd: writable_xreg(1),
+            rn: xreg(10),
+        },
+        "410DC0DA",
+        "rev64 x1, x10",
     ));
 
     insns.push((

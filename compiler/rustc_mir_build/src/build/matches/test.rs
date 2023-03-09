@@ -203,7 +203,6 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     self.source_info(match_start_span),
                     TerminatorKind::SwitchInt {
                         discr: Operand::Move(discr),
-                        switch_ty: discr_ty,
                         targets: switch_targets,
                     },
                 );
@@ -221,7 +220,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                         0 => (second_bb, first_bb),
                         v => span_bug!(test.span, "expected boolean value but got {:?}", v),
                     };
-                    TerminatorKind::if_(self.tcx, Operand::Copy(place), true_bb, false_bb)
+                    TerminatorKind::if_(Operand::Copy(place), true_bb, false_bb)
                 } else {
                     // The switch may be inexhaustive so we have a catch all block
                     debug_assert_eq!(options.len() + 1, target_blocks.len());
@@ -232,7 +231,6 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     );
                     TerminatorKind::SwitchInt {
                         discr: Operand::Copy(place),
-                        switch_ty,
                         targets: switch_targets,
                     }
                 };
@@ -378,7 +376,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         self.cfg.terminate(
             block,
             source_info,
-            TerminatorKind::if_(self.tcx, Operand::Move(result), success_block, fail_block),
+            TerminatorKind::if_(Operand::Move(result), success_block, fail_block),
         );
     }
 
@@ -458,7 +456,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     span: source_info.span,
 
                     // FIXME(#54571): This constant comes from user input (a
-                    // constant in a pattern).  Are there forms where users can add
+                    // constant in a pattern). Are there forms where users can add
                     // type annotations here?  For example, an associated constant?
                     // Need to experiment.
                     user_ty: None,
@@ -482,7 +480,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         self.cfg.terminate(
             eq_block,
             source_info,
-            TerminatorKind::if_(self.tcx, Operand::Move(eq_result), success_block, fail_block),
+            TerminatorKind::if_(Operand::Move(eq_result), success_block, fail_block),
         );
     }
 
@@ -506,7 +504,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
     /// This is used by the overall `match_candidates` algorithm to structure
     /// the match as a whole. See `match_candidates` for more details.
     ///
-    /// FIXME(#29623). In some cases, we have some tricky choices to make.  for
+    /// FIXME(#29623). In some cases, we have some tricky choices to make. for
     /// example, if we are testing that `x == 22`, but the candidate is `x @
     /// 13..55`, what should we do? In the event that the test is true, we know
     /// that the candidate applies, but in the event of false, we don't know
@@ -553,16 +551,15 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             //
             // FIXME(#29623) we could use PatKind::Range to rule
             // things out here, in some cases.
-            (
-                &TestKind::SwitchInt { switch_ty: _, ref options },
-                &PatKind::Constant { ref value },
-            ) if is_switch_ty(match_pair.pattern.ty) => {
+            (TestKind::SwitchInt { switch_ty: _, options }, PatKind::Constant { value })
+                if is_switch_ty(match_pair.pattern.ty) =>
+            {
                 let index = options.get_index_of(value).unwrap();
                 self.candidate_without_match_pair(match_pair_index, candidate);
                 Some(index)
             }
 
-            (&TestKind::SwitchInt { switch_ty: _, ref options }, &PatKind::Range(ref range)) => {
+            (TestKind::SwitchInt { switch_ty: _, options }, PatKind::Range(range)) => {
                 let not_contained =
                     self.values_not_contained_in_range(&*range, options).unwrap_or(false);
 
@@ -580,7 +577,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
 
             (
                 &TestKind::Len { len: test_len, op: BinOp::Eq },
-                &PatKind::Slice { ref prefix, ref slice, ref suffix },
+                PatKind::Slice { prefix, slice, suffix },
             ) => {
                 let pat_len = (prefix.len() + suffix.len()) as u64;
                 match (test_len.cmp(&pat_len), slice) {
@@ -617,7 +614,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
 
             (
                 &TestKind::Len { len: test_len, op: BinOp::Ge },
-                &PatKind::Slice { ref prefix, ref slice, ref suffix },
+                PatKind::Slice { prefix, slice, suffix },
             ) => {
                 // the test is `$actual_len >= test_len`
                 let pat_len = (prefix.len() + suffix.len()) as u64;
@@ -653,7 +650,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                 }
             }
 
-            (&TestKind::Range(ref test), &PatKind::Range(ref pat)) => {
+            (TestKind::Range(test), PatKind::Range(pat)) => {
                 use std::cmp::Ordering::*;
 
                 if test == pat {
@@ -680,7 +677,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                 no_overlap
             }
 
-            (&TestKind::Range(ref range), &PatKind::Constant { value }) => {
+            (TestKind::Range(range), &PatKind::Constant { value }) => {
                 if let Some(false) = self.const_range_contains(&*range, value) {
                     // `value` is not contained in the testing range,
                     // so `value` can be matched only if this test fails.
@@ -840,8 +837,6 @@ fn trait_method<'tcx>(
     method_name: Symbol,
     substs: impl IntoIterator<Item = impl Into<GenericArg<'tcx>>>,
 ) -> ConstantKind<'tcx> {
-    let substs = tcx.mk_substs(substs.into_iter().map(Into::into));
-
     // The unhygienic comparison here is acceptable because this is only
     // used on known traits.
     let item = tcx

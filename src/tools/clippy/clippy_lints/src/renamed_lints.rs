@@ -2,12 +2,14 @@
 
 #[rustfmt::skip]
 pub static RENAMED_LINTS: &[(&str, &str)] = &[
+    ("clippy::almost_complete_letter_range", "clippy::almost_complete_range"),
     ("clippy::blacklisted_name", "clippy::disallowed_names"),
     ("clippy::block_in_if_condition_expr", "clippy::blocks_in_if_conditions"),
     ("clippy::block_in_if_condition_stmt", "clippy::blocks_in_if_conditions"),
     ("clippy::box_vec", "clippy::box_collection"),
     ("clippy::const_static_lifetime", "clippy::redundant_static_lifetimes"),
     ("clippy::cyclomatic_complexity", "clippy::cognitive_complexity"),
+    ("clippy::derive_hash_xor_eq", "clippy::derived_hash_with_manual_eq"),
     ("clippy::disallowed_method", "clippy::disallowed_methods"),
     ("clippy::disallowed_type", "clippy::disallowed_types"),
     ("clippy::eval_order_dependence", "clippy::mixed_read_write_in_expression"),

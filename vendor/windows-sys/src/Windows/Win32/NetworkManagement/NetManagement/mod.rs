@@ -1,386 +1,205 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "cdecl" {
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventExA(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwerrorcode: u32, dwmessageid: u32, ptszformat: ::windows_sys::core::PCSTR);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventExW(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwerrorcode: u32, dwmessageid: u32, ptszformat: ::windows_sys::core::PCWSTR);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TracePrintfA(dwtraceid: u32, lpszformat: ::windows_sys::core::PCSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TracePrintfExA(dwtraceid: u32, dwflags: u32, lpszformat: ::windows_sys::core::PCSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TracePrintfExW(dwtraceid: u32, dwflags: u32, lpszformat: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TracePrintfW(dwtraceid: u32, lpszformat: ::windows_sys::core::PCWSTR) -> u32;
-}
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn GetNetScheduleAccountInformation(pwszservername: ::windows_sys::core::PCWSTR, ccaccount: u32, wszaccount: ::windows_sys::core::PWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn I_NetLogonControl2(servername: ::windows_sys::core::PCWSTR, functioncode: u32, querylevel: u32, data: *const u8, buffer: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn LogErrorA(dwmessageid: u32, cnumberofsubstrings: u32, plpwssubstrings: *const ::windows_sys::core::PSTR, dwerrorcode: u32);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn LogErrorW(dwmessageid: u32, cnumberofsubstrings: u32, plpwssubstrings: *const ::windows_sys::core::PWSTR, dwerrorcode: u32);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn LogEventA(weventtype: u32, dwmessageid: u32, cnumberofsubstrings: u32, plpwssubstrings: *const ::windows_sys::core::PSTR);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn LogEventW(weventtype: u32, dwmessageid: u32, cnumberofsubstrings: u32, plpwssubstrings: *const ::windows_sys::core::PWSTR);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn MprSetupProtocolEnum(dwtransportid: u32, lplpbuffer: *mut *mut u8, lpdwentriesread: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn MprSetupProtocolFree(lpbuffer: *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAccessAdd(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAccessDel(servername: ::windows_sys::core::PCWSTR, resource: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAccessEnum(servername: ::windows_sys::core::PCWSTR, basepath: ::windows_sys::core::PCWSTR, recursive: u32, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAccessGetInfo(servername: ::windows_sys::core::PCWSTR, resource: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAccessGetUserPerms(servername: ::windows_sys::core::PCWSTR, ugname: ::windows_sys::core::PCWSTR, resource: ::windows_sys::core::PCWSTR, perms: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAccessSetInfo(servername: ::windows_sys::core::PCWSTR, resource: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAddAlternateComputerName(server: ::windows_sys::core::PCWSTR, alternatename: ::windows_sys::core::PCWSTR, domainaccount: ::windows_sys::core::PCWSTR, domainaccountpassword: ::windows_sys::core::PCWSTR, reserved: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NetAddServiceAccount(servername: ::windows_sys::core::PCWSTR, accountname: ::windows_sys::core::PCWSTR, password: ::windows_sys::core::PCWSTR, flags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAlertRaise(alerttype: ::windows_sys::core::PCWSTR, buffer: *const ::core::ffi::c_void, buffersize: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAlertRaiseEx(alerttype: ::windows_sys::core::PCWSTR, variableinfo: *const ::core::ffi::c_void, variableinfosize: u32, servicename: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetApiBufferAllocate(bytecount: u32, buffer: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetApiBufferFree(buffer: *const ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetApiBufferReallocate(oldbuffer: *const ::core::ffi::c_void, newbytecount: u32, newbuffer: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetApiBufferSize(buffer: *const ::core::ffi::c_void, bytecount: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAuditClear(server: ::windows_sys::core::PCWSTR, backupfile: ::windows_sys::core::PCWSTR, service: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAuditRead(server: ::windows_sys::core::PCWSTR, service: ::windows_sys::core::PCWSTR, auditloghandle: *mut HLOG, offset: u32, reserved1: *mut u32, reserved2: u32, offsetflag: u32, bufptr: *mut *mut u8, prefmaxlen: u32, bytesread: *mut u32, totalavailable: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetAuditWrite(r#type: u32, buf: *mut u8, numbytes: u32, service: ::windows_sys::core::PCWSTR, reserved: *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetConfigGet(server: ::windows_sys::core::PCWSTR, component: ::windows_sys::core::PCWSTR, parameter: ::windows_sys::core::PCWSTR, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetConfigGetAll(server: ::windows_sys::core::PCWSTR, component: ::windows_sys::core::PCWSTR, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetConfigSet(server: ::windows_sys::core::PCWSTR, reserved1: ::windows_sys::core::PCWSTR, component: ::windows_sys::core::PCWSTR, level: u32, reserved2: u32, buf: *mut u8, reserved3: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetCreateProvisioningPackage(pprovisioningparams: *const NETSETUP_PROVISIONING_PARAMS, pppackagebindata: *mut *mut u8, pdwpackagebindatasize: *mut u32, pppackagetextdata: *mut ::windows_sys::core::PWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetEnumerateComputerNames(server: ::windows_sys::core::PCWSTR, nametype: NET_COMPUTER_NAME_TYPE, reserved: u32, entrycount: *mut u32, computernames: *mut *mut ::windows_sys::core::PWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NetEnumerateServiceAccounts(servername: ::windows_sys::core::PCWSTR, flags: u32, accountscount: *mut u32, accounts: *mut *mut *mut u16) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetErrorLogClear(uncservername: ::windows_sys::core::PCWSTR, backupfile: ::windows_sys::core::PCWSTR, reserved: *const u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetErrorLogRead(uncservername: ::windows_sys::core::PCWSTR, reserved1: ::windows_sys::core::PCWSTR, errorloghandle: *const HLOG, offset: u32, reserved2: *const u32, reserved3: u32, offsetflag: u32, bufptr: *mut *mut u8, prefmaxsize: u32, bytesread: *mut u32, totalavailable: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetErrorLogWrite(reserved1: *const u8, code: u32, component: ::windows_sys::core::PCWSTR, buffer: *const u8, numbytes: u32, msgbuf: *const u8, strcount: u32, reserved2: *const u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-    pub fn NetFreeAadJoinInformation(pjoininfo: *const DSREG_JOIN_INFO);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-    pub fn NetGetAadJoinInformation(pcsztenantid: ::windows_sys::core::PCWSTR, ppjoininfo: *mut *mut DSREG_JOIN_INFO) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGetAnyDCName(servername: ::windows_sys::core::PCWSTR, domainname: ::windows_sys::core::PCWSTR, buffer: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGetDCName(servername: ::windows_sys::core::PCWSTR, domainname: ::windows_sys::core::PCWSTR, buffer: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGetDisplayInformationIndex(servername: ::windows_sys::core::PCWSTR, level: u32, prefix: ::windows_sys::core::PCWSTR, index: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGetJoinInformation(lpserver: ::windows_sys::core::PCWSTR, lpnamebuffer: *mut ::windows_sys::core::PWSTR, buffertype: *mut NETSETUP_JOIN_STATUS) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGetJoinableOUs(lpserver: ::windows_sys::core::PCWSTR, lpdomain: ::windows_sys::core::PCWSTR, lpaccount: ::windows_sys::core::PCWSTR, lppassword: ::windows_sys::core::PCWSTR, oucount: *mut u32, ous: *mut *mut ::windows_sys::core::PWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupAdd(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupAddUser(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupDel(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupDelUser(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut usize) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupGetInfo(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupGetUsers(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut usize) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupSetInfo(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetGroupSetUsers(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, totalentries: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NetIsServiceAccount(servername: ::windows_sys::core::PCWSTR, accountname: ::windows_sys::core::PCWSTR, isservice: *mut super::super::Foundation::BOOL) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetJoinDomain(lpserver: ::windows_sys::core::PCWSTR, lpdomain: ::windows_sys::core::PCWSTR, lpmachineaccountou: ::windows_sys::core::PCWSTR, lpaccount: ::windows_sys::core::PCWSTR, lppassword: ::windows_sys::core::PCWSTR, fjoinoptions: NET_JOIN_DOMAIN_JOIN_OPTIONS) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupAdd(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NetLocalGroupAddMember(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, membersid: super::super::Foundation::PSID) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupAddMembers(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, totalentries: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupDel(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NetLocalGroupDelMember(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, membersid: super::super::Foundation::PSID) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupDelMembers(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, totalentries: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut usize) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupGetInfo(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupGetMembers(servername: ::windows_sys::core::PCWSTR, localgroupname: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut usize) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupSetInfo(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetLocalGroupSetMembers(servername: ::windows_sys::core::PCWSTR, groupname: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, totalentries: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetMessageBufferSend(servername: ::windows_sys::core::PCWSTR, msgname: ::windows_sys::core::PCWSTR, fromname: ::windows_sys::core::PCWSTR, buf: *const u8, buflen: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetMessageNameAdd(servername: ::windows_sys::core::PCWSTR, msgname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetMessageNameDel(servername: ::windows_sys::core::PCWSTR, msgname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetMessageNameEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *const *const u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetMessageNameGetInfo(servername: ::windows_sys::core::PCWSTR, msgname: ::windows_sys::core::PCWSTR, level: u32, bufptr: *const *const u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetProvisionComputerAccount(lpdomain: ::windows_sys::core::PCWSTR, lpmachinename: ::windows_sys::core::PCWSTR, lpmachineaccountou: ::windows_sys::core::PCWSTR, lpdcname: ::windows_sys::core::PCWSTR, dwoptions: NETSETUP_PROVISION, pprovisionbindata: *mut *mut u8, pdwprovisionbindatasize: *mut u32, pprovisiontextdata: *mut ::windows_sys::core::PWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetQueryDisplayInformation(servername: ::windows_sys::core::PCWSTR, level: u32, index: u32, entriesrequested: u32, preferredmaximumlength: u32, returnedentrycount: *mut u32, sortedbuffer: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NetQueryServiceAccount(servername: ::windows_sys::core::PCWSTR, accountname: ::windows_sys::core::PCWSTR, infolevel: u32, buffer: *mut *mut u8) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetRemoteComputerSupports(uncservername: ::windows_sys::core::PCWSTR, optionswanted: NET_REMOTE_COMPUTER_SUPPORTS_OPTIONS, optionssupported: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetRemoteTOD(uncservername: ::windows_sys::core::PCWSTR, bufferptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetRemoveAlternateComputerName(server: ::windows_sys::core::PCWSTR, alternatename: ::windows_sys::core::PCWSTR, domainaccount: ::windows_sys::core::PCWSTR, domainaccountpassword: ::windows_sys::core::PCWSTR, reserved: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn NetRemoveServiceAccount(servername: ::windows_sys::core::PCWSTR, accountname: ::windows_sys::core::PCWSTR, flags: u32) -> super::super::Foundation::NTSTATUS;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetRenameMachineInDomain(lpserver: ::windows_sys::core::PCWSTR, lpnewmachinename: ::windows_sys::core::PCWSTR, lpaccount: ::windows_sys::core::PCWSTR, lppassword: ::windows_sys::core::PCWSTR, frenameoptions: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplExportDirAdd(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplExportDirDel(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplExportDirEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplExportDirGetInfo(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplExportDirLock(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplExportDirSetInfo(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplExportDirUnlock(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR, unlockforce: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplGetInfo(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplImportDirAdd(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplImportDirDel(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplImportDirEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplImportDirGetInfo(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplImportDirLock(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplImportDirUnlock(servername: ::windows_sys::core::PCWSTR, dirname: ::windows_sys::core::PCWSTR, unlockforce: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetReplSetInfo(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetRequestOfflineDomainJoin(pprovisionbindata: *const u8, cbprovisionbindatasize: u32, dwoptions: NET_REQUEST_PROVISION_OPTIONS, lpwindowspath: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetRequestProvisioningPackageInstall(ppackagebindata: *const u8, dwpackagebindatasize: u32, dwprovisionoptions: NET_REQUEST_PROVISION_OPTIONS, lpwindowspath: ::windows_sys::core::PCWSTR, pvreserved: *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetScheduleJobAdd(servername: ::windows_sys::core::PCWSTR, buffer: *mut u8, jobid: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetScheduleJobDel(servername: ::windows_sys::core::PCWSTR, minjobid: u32, maxjobid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetScheduleJobEnum(servername: ::windows_sys::core::PCWSTR, pointertobuffer: *mut *mut u8, prefferedmaximumlength: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetScheduleJobGetInfo(servername: ::windows_sys::core::PCWSTR, jobid: u32, pointertobuffer: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerComputerNameAdd(servername: ::windows_sys::core::PCWSTR, emulateddomainname: ::windows_sys::core::PCWSTR, emulatedservername: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerComputerNameDel(servername: ::windows_sys::core::PCWSTR, emulatedservername: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerDiskEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, servertype: NET_SERVER_TYPE, domain: ::windows_sys::core::PCWSTR, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerGetInfo(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerSetInfo(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parmerror: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerTransportAdd(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *const u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerTransportAddEx(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *const u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerTransportDel(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *const u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServerTransportEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServiceControl(servername: ::windows_sys::core::PCWSTR, service: ::windows_sys::core::PCWSTR, opcode: u32, arg: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServiceEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServiceGetInfo(servername: ::windows_sys::core::PCWSTR, service: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetServiceInstall(servername: ::windows_sys::core::PCWSTR, service: ::windows_sys::core::PCWSTR, argc: u32, argv: *const ::windows_sys::core::PWSTR, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetSetPrimaryComputerName(server: ::windows_sys::core::PCWSTR, primaryname: ::windows_sys::core::PCWSTR, domainaccount: ::windows_sys::core::PCWSTR, domainaccountpassword: ::windows_sys::core::PCWSTR, reserved: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUnjoinDomain(lpserver: ::windows_sys::core::PCWSTR, lpaccount: ::windows_sys::core::PCWSTR, lppassword: ::windows_sys::core::PCWSTR, funjoinoptions: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUseAdd(servername: *const i8, levelflags: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUseDel(uncservername: ::windows_sys::core::PCWSTR, usename: ::windows_sys::core::PCWSTR, forcelevelflags: FORCE_LEVEL_FLAGS) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUseEnum(uncservername: ::windows_sys::core::PCWSTR, levelflags: u32, bufptr: *mut *mut u8, preferedmaximumsize: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUseGetInfo(uncservername: ::windows_sys::core::PCWSTR, usename: ::windows_sys::core::PCWSTR, levelflags: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserAdd(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserChangePassword(domainname: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR, oldpassword: ::windows_sys::core::PCWSTR, newpassword: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserDel(servername: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserEnum(servername: ::windows_sys::core::PCWSTR, level: u32, filter: NET_USER_ENUM_FILTER_FLAGS, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserGetGroups(servername: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserGetInfo(servername: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserGetLocalGroups(servername: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR, level: u32, flags: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserModalsGet(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserModalsSet(servername: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserSetGroups(servername: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, num_entries: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetUserSetInfo(servername: ::windows_sys::core::PCWSTR, username: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetValidateName(lpserver: ::windows_sys::core::PCWSTR, lpname: ::windows_sys::core::PCWSTR, lpaccount: ::windows_sys::core::PCWSTR, lppassword: ::windows_sys::core::PCWSTR, nametype: NETSETUP_NAME_TYPE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetValidatePasswordPolicy(servername: ::windows_sys::core::PCWSTR, qualifier: *mut ::core::ffi::c_void, validationtype: NET_VALIDATE_PASSWORD_TYPE, inputarg: *mut ::core::ffi::c_void, outputarg: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetValidatePasswordPolicyFree(outputarg: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaGetInfo(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaSetInfo(servername: ::windows_sys::core::PCWSTR, level: u32, buffer: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaTransportAdd(servername: *const i8, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaTransportDel(servername: ::windows_sys::core::PCWSTR, transportname: ::windows_sys::core::PCWSTR, ucond: FORCE_LEVEL_FLAGS) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaTransportEnum(servername: *const i8, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resume_handle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaUserEnum(servername: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8, prefmaxlen: u32, entriesread: *mut u32, totalentries: *mut u32, resumehandle: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaUserGetInfo(reserved: ::windows_sys::core::PCWSTR, level: u32, bufptr: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn NetWkstaUserSetInfo(reserved: ::windows_sys::core::PCWSTR, level: u32, buf: *const u8, parm_err: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn RouterAssert(pszfailedassertion: ::windows_sys::core::PCSTR, pszfilename: ::windows_sys::core::PCSTR, dwlinenumber: u32, pszmessage: ::windows_sys::core::PCSTR);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn RouterGetErrorStringA(dwerrorcode: u32, lplpszerrorstring: *mut ::windows_sys::core::PSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn RouterGetErrorStringW(dwerrorcode: u32, lplpwszerrorstring: *mut ::windows_sys::core::PWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogDeregisterA(hloghandle: super::super::Foundation::HANDLE);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogDeregisterW(hloghandle: super::super::Foundation::HANDLE);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventA(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwmessageid: u32, dwsubstringcount: u32, plpszsubstringarray: *const ::windows_sys::core::PSTR, dwerrorcode: u32);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventDataA(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwmessageid: u32, dwsubstringcount: u32, plpszsubstringarray: *const ::windows_sys::core::PSTR, dwdatabytes: u32, lpdatabytes: *mut u8);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventDataW(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwmessageid: u32, dwsubstringcount: u32, plpszsubstringarray: *const ::windows_sys::core::PWSTR, dwdatabytes: u32, lpdatabytes: *mut u8);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventStringA(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwmessageid: u32, dwsubstringcount: u32, plpszsubstringarray: *const ::windows_sys::core::PSTR, dwerrorcode: u32, dwerrorindex: u32);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventStringW(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwmessageid: u32, dwsubstringcount: u32, plpszsubstringarray: *const ::windows_sys::core::PWSTR, dwerrorcode: u32, dwerrorindex: u32);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventValistExA(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwerrorcode: u32, dwmessageid: u32, ptszformat: ::windows_sys::core::PCSTR, arglist: *mut i8);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventValistExW(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwerrorcode: u32, dwmessageid: u32, ptszformat: ::windows_sys::core::PCWSTR, arglist: *mut i8);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogEventW(hloghandle: super::super::Foundation::HANDLE, dweventtype: u32, dwmessageid: u32, dwsubstringcount: u32, plpszsubstringarray: *const ::windows_sys::core::PWSTR, dwerrorcode: u32);
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogRegisterA(lpszsource: ::windows_sys::core::PCSTR) -> super::super::Foundation::HANDLE;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RouterLogRegisterW(lpszsource: ::windows_sys::core::PCWSTR) -> super::super::Foundation::HANDLE;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn SetNetScheduleAccountInformation(pwszservername: ::windows_sys::core::PCWSTR, pwszaccount: ::windows_sys::core::PCWSTR, pwszpassword: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceDeregisterA(dwtraceid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceDeregisterExA(dwtraceid: u32, dwflags: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceDeregisterExW(dwtraceid: u32, dwflags: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceDeregisterW(dwtraceid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TraceDumpExA(dwtraceid: u32, dwflags: u32, lpbbytes: *mut u8, dwbytecount: u32, dwgroupsize: u32, baddressprefix: super::super::Foundation::BOOL, lpszprefix: ::windows_sys::core::PCSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TraceDumpExW(dwtraceid: u32, dwflags: u32, lpbbytes: *mut u8, dwbytecount: u32, dwgroupsize: u32, baddressprefix: super::super::Foundation::BOOL, lpszprefix: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TraceGetConsoleA(dwtraceid: u32, lphconsole: *mut super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TraceGetConsoleW(dwtraceid: u32, lphconsole: *mut super::super::Foundation::HANDLE) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TracePutsExA(dwtraceid: u32, dwflags: u32, lpszstring: ::windows_sys::core::PCSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TracePutsExW(dwtraceid: u32, dwflags: u32, lpszstring: ::windows_sys::core::PCWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceRegisterExA(lpszcallername: ::windows_sys::core::PCSTR, dwflags: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceRegisterExW(lpszcallername: ::windows_sys::core::PCWSTR, dwflags: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceVprintfExA(dwtraceid: u32, dwflags: u32, lpszformat: ::windows_sys::core::PCSTR, arglist: *mut i8) -> u32;
-    #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-    pub fn TraceVprintfExW(dwtraceid: u32, dwflags: u32, lpszformat: ::windows_sys::core::PCWSTR, arglist: *mut i8) -> u32;
-}
+::windows_sys::core::link ! ( "mstask.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn GetNetScheduleAccountInformation ( pwszservername : :: windows_sys::core::PCWSTR , ccaccount : u32 , wszaccount : :: windows_sys::core::PWSTR ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn I_NetLogonControl2 ( servername : :: windows_sys::core::PCWSTR , functioncode : u32 , querylevel : u32 , data : *const u8 , buffer : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn LogErrorA ( dwmessageid : u32 , cnumberofsubstrings : u32 , plpwssubstrings : *const :: windows_sys::core::PCSTR , dwerrorcode : u32 ) -> ( ) );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn LogErrorW ( dwmessageid : u32 , cnumberofsubstrings : u32 , plpwssubstrings : *const :: windows_sys::core::PCWSTR , dwerrorcode : u32 ) -> ( ) );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn LogEventA ( weventtype : u32 , dwmessageid : u32 , cnumberofsubstrings : u32 , plpwssubstrings : *const :: windows_sys::core::PCSTR ) -> ( ) );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn LogEventW ( weventtype : u32 , dwmessageid : u32 , cnumberofsubstrings : u32 , plpwssubstrings : *const :: windows_sys::core::PCWSTR ) -> ( ) );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn MprSetupProtocolEnum ( dwtransportid : u32 , lplpbuffer : *mut *mut u8 , lpdwentriesread : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn MprSetupProtocolFree ( lpbuffer : *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAccessAdd ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAccessDel ( servername : :: windows_sys::core::PCWSTR , resource : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAccessEnum ( servername : :: windows_sys::core::PCWSTR , basepath : :: windows_sys::core::PCWSTR , recursive : u32 , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAccessGetInfo ( servername : :: windows_sys::core::PCWSTR , resource : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAccessGetUserPerms ( servername : :: windows_sys::core::PCWSTR , ugname : :: windows_sys::core::PCWSTR , resource : :: windows_sys::core::PCWSTR , perms : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAccessSetInfo ( servername : :: windows_sys::core::PCWSTR , resource : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAddAlternateComputerName ( server : :: windows_sys::core::PCWSTR , alternatename : :: windows_sys::core::PCWSTR , domainaccount : :: windows_sys::core::PCWSTR , domainaccountpassword : :: windows_sys::core::PCWSTR , reserved : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn NetAddServiceAccount ( servername : :: windows_sys::core::PCWSTR , accountname : :: windows_sys::core::PCWSTR , password : :: windows_sys::core::PCWSTR , flags : u32 ) -> super::super::Foundation:: NTSTATUS );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAlertRaise ( alerttype : :: windows_sys::core::PCWSTR , buffer : *const ::core::ffi::c_void , buffersize : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAlertRaiseEx ( alerttype : :: windows_sys::core::PCWSTR , variableinfo : *const ::core::ffi::c_void , variableinfosize : u32 , servicename : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetApiBufferAllocate ( bytecount : u32 , buffer : *mut *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetApiBufferFree ( buffer : *const ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetApiBufferReallocate ( oldbuffer : *const ::core::ffi::c_void , newbytecount : u32 , newbuffer : *mut *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetApiBufferSize ( buffer : *const ::core::ffi::c_void , bytecount : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAuditClear ( server : :: windows_sys::core::PCWSTR , backupfile : :: windows_sys::core::PCWSTR , service : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAuditRead ( server : :: windows_sys::core::PCWSTR , service : :: windows_sys::core::PCWSTR , auditloghandle : *mut HLOG , offset : u32 , reserved1 : *mut u32 , reserved2 : u32 , offsetflag : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , bytesread : *mut u32 , totalavailable : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetAuditWrite ( r#type : u32 , buf : *mut u8 , numbytes : u32 , service : :: windows_sys::core::PCWSTR , reserved : *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetConfigGet ( server : :: windows_sys::core::PCWSTR , component : :: windows_sys::core::PCWSTR , parameter : :: windows_sys::core::PCWSTR , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetConfigGetAll ( server : :: windows_sys::core::PCWSTR , component : :: windows_sys::core::PCWSTR , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetConfigSet ( server : :: windows_sys::core::PCWSTR , reserved1 : :: windows_sys::core::PCWSTR , component : :: windows_sys::core::PCWSTR , level : u32 , reserved2 : u32 , buf : *mut u8 , reserved3 : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetCreateProvisioningPackage ( pprovisioningparams : *const NETSETUP_PROVISIONING_PARAMS , pppackagebindata : *mut *mut u8 , pdwpackagebindatasize : *mut u32 , pppackagetextdata : *mut :: windows_sys::core::PWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetEnumerateComputerNames ( server : :: windows_sys::core::PCWSTR , nametype : NET_COMPUTER_NAME_TYPE , reserved : u32 , entrycount : *mut u32 , computernames : *mut *mut :: windows_sys::core::PWSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn NetEnumerateServiceAccounts ( servername : :: windows_sys::core::PCWSTR , flags : u32 , accountscount : *mut u32 , accounts : *mut *mut *mut u16 ) -> super::super::Foundation:: NTSTATUS );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetErrorLogClear ( uncservername : :: windows_sys::core::PCWSTR , backupfile : :: windows_sys::core::PCWSTR , reserved : *const u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetErrorLogRead ( uncservername : :: windows_sys::core::PCWSTR , reserved1 : :: windows_sys::core::PCWSTR , errorloghandle : *const HLOG , offset : u32 , reserved2 : *const u32 , reserved3 : u32 , offsetflag : u32 , bufptr : *mut *mut u8 , prefmaxsize : u32 , bytesread : *mut u32 , totalavailable : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetErrorLogWrite ( reserved1 : *const u8 , code : u32 , component : :: windows_sys::core::PCWSTR , buffer : *const u8 , numbytes : u32 , msgbuf : *const u8 , strcount : u32 , reserved2 : *const u8 ) -> u32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"] fn NetFreeAadJoinInformation ( pjoininfo : *const DSREG_JOIN_INFO ) -> ( ) );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"] fn NetGetAadJoinInformation ( pcsztenantid : :: windows_sys::core::PCWSTR , ppjoininfo : *mut *mut DSREG_JOIN_INFO ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGetAnyDCName ( servername : :: windows_sys::core::PCWSTR , domainname : :: windows_sys::core::PCWSTR , buffer : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGetDCName ( servername : :: windows_sys::core::PCWSTR , domainname : :: windows_sys::core::PCWSTR , buffer : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGetDisplayInformationIndex ( servername : :: windows_sys::core::PCWSTR , level : u32 , prefix : :: windows_sys::core::PCWSTR , index : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGetJoinInformation ( lpserver : :: windows_sys::core::PCWSTR , lpnamebuffer : *mut :: windows_sys::core::PWSTR , buffertype : *mut NETSETUP_JOIN_STATUS ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGetJoinableOUs ( lpserver : :: windows_sys::core::PCWSTR , lpdomain : :: windows_sys::core::PCWSTR , lpaccount : :: windows_sys::core::PCWSTR , lppassword : :: windows_sys::core::PCWSTR , oucount : *mut u32 , ous : *mut *mut :: windows_sys::core::PWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupAdd ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupAddUser ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupDel ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupDelUser ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut usize ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupGetInfo ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupGetUsers ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut usize ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupSetInfo ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetGroupSetUsers ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , totalentries : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn NetIsServiceAccount ( servername : :: windows_sys::core::PCWSTR , accountname : :: windows_sys::core::PCWSTR , isservice : *mut super::super::Foundation:: BOOL ) -> super::super::Foundation:: NTSTATUS );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetJoinDomain ( lpserver : :: windows_sys::core::PCWSTR , lpdomain : :: windows_sys::core::PCWSTR , lpmachineaccountou : :: windows_sys::core::PCWSTR , lpaccount : :: windows_sys::core::PCWSTR , lppassword : :: windows_sys::core::PCWSTR , fjoinoptions : NET_JOIN_DOMAIN_JOIN_OPTIONS ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupAdd ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn NetLocalGroupAddMember ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , membersid : super::super::Foundation:: PSID ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupAddMembers ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , totalentries : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupDel ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn NetLocalGroupDelMember ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , membersid : super::super::Foundation:: PSID ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupDelMembers ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , totalentries : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut usize ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupGetInfo ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupGetMembers ( servername : :: windows_sys::core::PCWSTR , localgroupname : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut usize ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupSetInfo ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetLocalGroupSetMembers ( servername : :: windows_sys::core::PCWSTR , groupname : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , totalentries : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetMessageBufferSend ( servername : :: windows_sys::core::PCWSTR , msgname : :: windows_sys::core::PCWSTR , fromname : :: windows_sys::core::PCWSTR , buf : *const u8 , buflen : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetMessageNameAdd ( servername : :: windows_sys::core::PCWSTR , msgname : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetMessageNameDel ( servername : :: windows_sys::core::PCWSTR , msgname : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetMessageNameEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *const *const u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetMessageNameGetInfo ( servername : :: windows_sys::core::PCWSTR , msgname : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *const *const u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetProvisionComputerAccount ( lpdomain : :: windows_sys::core::PCWSTR , lpmachinename : :: windows_sys::core::PCWSTR , lpmachineaccountou : :: windows_sys::core::PCWSTR , lpdcname : :: windows_sys::core::PCWSTR , dwoptions : NETSETUP_PROVISION , pprovisionbindata : *mut *mut u8 , pdwprovisionbindatasize : *mut u32 , pprovisiontextdata : *mut :: windows_sys::core::PWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetQueryDisplayInformation ( servername : :: windows_sys::core::PCWSTR , level : u32 , index : u32 , entriesrequested : u32 , preferredmaximumlength : u32 , returnedentrycount : *mut u32 , sortedbuffer : *mut *mut ::core::ffi::c_void ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn NetQueryServiceAccount ( servername : :: windows_sys::core::PCWSTR , accountname : :: windows_sys::core::PCWSTR , infolevel : u32 , buffer : *mut *mut u8 ) -> super::super::Foundation:: NTSTATUS );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetRemoteComputerSupports ( uncservername : :: windows_sys::core::PCWSTR , optionswanted : NET_REMOTE_COMPUTER_SUPPORTS_OPTIONS , optionssupported : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetRemoteTOD ( uncservername : :: windows_sys::core::PCWSTR , bufferptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetRemoveAlternateComputerName ( server : :: windows_sys::core::PCWSTR , alternatename : :: windows_sys::core::PCWSTR , domainaccount : :: windows_sys::core::PCWSTR , domainaccountpassword : :: windows_sys::core::PCWSTR , reserved : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn NetRemoveServiceAccount ( servername : :: windows_sys::core::PCWSTR , accountname : :: windows_sys::core::PCWSTR , flags : u32 ) -> super::super::Foundation:: NTSTATUS );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetRenameMachineInDomain ( lpserver : :: windows_sys::core::PCWSTR , lpnewmachinename : :: windows_sys::core::PCWSTR , lpaccount : :: windows_sys::core::PCWSTR , lppassword : :: windows_sys::core::PCWSTR , frenameoptions : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplExportDirAdd ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplExportDirDel ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplExportDirEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplExportDirGetInfo ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplExportDirLock ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplExportDirSetInfo ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplExportDirUnlock ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR , unlockforce : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplGetInfo ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplImportDirAdd ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplImportDirDel ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplImportDirEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplImportDirGetInfo ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplImportDirLock ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplImportDirUnlock ( servername : :: windows_sys::core::PCWSTR , dirname : :: windows_sys::core::PCWSTR , unlockforce : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetReplSetInfo ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetRequestOfflineDomainJoin ( pprovisionbindata : *const u8 , cbprovisionbindatasize : u32 , dwoptions : NET_REQUEST_PROVISION_OPTIONS , lpwindowspath : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetRequestProvisioningPackageInstall ( ppackagebindata : *const u8 , dwpackagebindatasize : u32 , dwprovisionoptions : NET_REQUEST_PROVISION_OPTIONS , lpwindowspath : :: windows_sys::core::PCWSTR , pvreserved : *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetScheduleJobAdd ( servername : :: windows_sys::core::PCWSTR , buffer : *mut u8 , jobid : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetScheduleJobDel ( servername : :: windows_sys::core::PCWSTR , minjobid : u32 , maxjobid : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetScheduleJobEnum ( servername : :: windows_sys::core::PCWSTR , pointertobuffer : *mut *mut u8 , prefferedmaximumlength : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetScheduleJobGetInfo ( servername : :: windows_sys::core::PCWSTR , jobid : u32 , pointertobuffer : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerComputerNameAdd ( servername : :: windows_sys::core::PCWSTR , emulateddomainname : :: windows_sys::core::PCWSTR , emulatedservername : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerComputerNameDel ( servername : :: windows_sys::core::PCWSTR , emulatedservername : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerDiskEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , servertype : NET_SERVER_TYPE , domain : :: windows_sys::core::PCWSTR , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerGetInfo ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerSetInfo ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parmerror : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerTransportAdd ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *const u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerTransportAddEx ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *const u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerTransportDel ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *const u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServerTransportEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServiceControl ( servername : :: windows_sys::core::PCWSTR , service : :: windows_sys::core::PCWSTR , opcode : u32 , arg : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServiceEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServiceGetInfo ( servername : :: windows_sys::core::PCWSTR , service : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetServiceInstall ( servername : :: windows_sys::core::PCWSTR , service : :: windows_sys::core::PCWSTR , argc : u32 , argv : *const :: windows_sys::core::PCWSTR , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetSetPrimaryComputerName ( server : :: windows_sys::core::PCWSTR , primaryname : :: windows_sys::core::PCWSTR , domainaccount : :: windows_sys::core::PCWSTR , domainaccountpassword : :: windows_sys::core::PCWSTR , reserved : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUnjoinDomain ( lpserver : :: windows_sys::core::PCWSTR , lpaccount : :: windows_sys::core::PCWSTR , lppassword : :: windows_sys::core::PCWSTR , funjoinoptions : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUseAdd ( servername : *const i8 , levelflags : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUseDel ( uncservername : :: windows_sys::core::PCWSTR , usename : :: windows_sys::core::PCWSTR , forcelevelflags : FORCE_LEVEL_FLAGS ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUseEnum ( uncservername : :: windows_sys::core::PCWSTR , levelflags : u32 , bufptr : *mut *mut u8 , preferedmaximumsize : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUseGetInfo ( uncservername : :: windows_sys::core::PCWSTR , usename : :: windows_sys::core::PCWSTR , levelflags : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserAdd ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserChangePassword ( domainname : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR , oldpassword : :: windows_sys::core::PCWSTR , newpassword : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserDel ( servername : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , filter : NET_USER_ENUM_FILTER_FLAGS , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserGetGroups ( servername : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserGetInfo ( servername : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserGetLocalGroups ( servername : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR , level : u32 , flags : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserModalsGet ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserModalsSet ( servername : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserSetGroups ( servername : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , num_entries : u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetUserSetInfo ( servername : :: windows_sys::core::PCWSTR , username : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetValidateName ( lpserver : :: windows_sys::core::PCWSTR , lpname : :: windows_sys::core::PCWSTR , lpaccount : :: windows_sys::core::PCWSTR , lppassword : :: windows_sys::core::PCWSTR , nametype : NETSETUP_NAME_TYPE ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetValidatePasswordPolicy ( servername : :: windows_sys::core::PCWSTR , qualifier : *mut ::core::ffi::c_void , validationtype : NET_VALIDATE_PASSWORD_TYPE , inputarg : *mut ::core::ffi::c_void , outputarg : *mut *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetValidatePasswordPolicyFree ( outputarg : *mut *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaGetInfo ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaSetInfo ( servername : :: windows_sys::core::PCWSTR , level : u32 , buffer : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaTransportAdd ( servername : *const i8 , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaTransportDel ( servername : :: windows_sys::core::PCWSTR , transportname : :: windows_sys::core::PCWSTR , ucond : FORCE_LEVEL_FLAGS ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaTransportEnum ( servername : *const i8 , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resume_handle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaUserEnum ( servername : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 , prefmaxlen : u32 , entriesread : *mut u32 , totalentries : *mut u32 , resumehandle : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaUserGetInfo ( reserved : :: windows_sys::core::PCWSTR , level : u32 , bufptr : *mut *mut u8 ) -> u32 );
+::windows_sys::core::link ! ( "netapi32.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn NetWkstaUserSetInfo ( reserved : :: windows_sys::core::PCWSTR , level : u32 , buf : *const u8 , parm_err : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn RouterAssert ( pszfailedassertion : :: windows_sys::core::PCSTR , pszfilename : :: windows_sys::core::PCSTR , dwlinenumber : u32 , pszmessage : :: windows_sys::core::PCSTR ) -> ( ) );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn RouterGetErrorStringA ( dwerrorcode : u32 , lplpszerrorstring : *mut :: windows_sys::core::PSTR ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn RouterGetErrorStringW ( dwerrorcode : u32 , lplpwszerrorstring : *mut :: windows_sys::core::PWSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogDeregisterA ( hloghandle : super::super::Foundation:: HANDLE ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogDeregisterW ( hloghandle : super::super::Foundation:: HANDLE ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventA ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwmessageid : u32 , dwsubstringcount : u32 , plpszsubstringarray : *const :: windows_sys::core::PCSTR , dwerrorcode : u32 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventDataA ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwmessageid : u32 , dwsubstringcount : u32 , plpszsubstringarray : *const :: windows_sys::core::PCSTR , dwdatabytes : u32 , lpdatabytes : *mut u8 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventDataW ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwmessageid : u32 , dwsubstringcount : u32 , plpszsubstringarray : *const :: windows_sys::core::PCWSTR , dwdatabytes : u32 , lpdatabytes : *mut u8 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""cdecl" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventExA ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwerrorcode : u32 , dwmessageid : u32 , ptszformat : :: windows_sys::core::PCSTR ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""cdecl" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventExW ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwerrorcode : u32 , dwmessageid : u32 , ptszformat : :: windows_sys::core::PCWSTR ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventStringA ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwmessageid : u32 , dwsubstringcount : u32 , plpszsubstringarray : *const :: windows_sys::core::PCSTR , dwerrorcode : u32 , dwerrorindex : u32 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventStringW ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwmessageid : u32 , dwsubstringcount : u32 , plpszsubstringarray : *const :: windows_sys::core::PCWSTR , dwerrorcode : u32 , dwerrorindex : u32 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventValistExA ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwerrorcode : u32 , dwmessageid : u32 , ptszformat : :: windows_sys::core::PCSTR , arglist : *mut i8 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventValistExW ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwerrorcode : u32 , dwmessageid : u32 , ptszformat : :: windows_sys::core::PCWSTR , arglist : *mut i8 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogEventW ( hloghandle : super::super::Foundation:: HANDLE , dweventtype : u32 , dwmessageid : u32 , dwsubstringcount : u32 , plpszsubstringarray : *const :: windows_sys::core::PCWSTR , dwerrorcode : u32 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogRegisterA ( lpszsource : :: windows_sys::core::PCSTR ) -> super::super::Foundation:: HANDLE );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn RouterLogRegisterW ( lpszsource : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: HANDLE );
+::windows_sys::core::link ! ( "mstask.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn SetNetScheduleAccountInformation ( pwszservername : :: windows_sys::core::PCWSTR , pwszaccount : :: windows_sys::core::PCWSTR , pwszpassword : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceDeregisterA ( dwtraceid : u32 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceDeregisterExA ( dwtraceid : u32 , dwflags : u32 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceDeregisterExW ( dwtraceid : u32 , dwflags : u32 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceDeregisterW ( dwtraceid : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn TraceDumpExA ( dwtraceid : u32 , dwflags : u32 , lpbbytes : *mut u8 , dwbytecount : u32 , dwgroupsize : u32 , baddressprefix : super::super::Foundation:: BOOL , lpszprefix : :: windows_sys::core::PCSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn TraceDumpExW ( dwtraceid : u32 , dwflags : u32 , lpbbytes : *mut u8 , dwbytecount : u32 , dwgroupsize : u32 , baddressprefix : super::super::Foundation:: BOOL , lpszprefix : :: windows_sys::core::PCWSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn TraceGetConsoleA ( dwtraceid : u32 , lphconsole : *mut super::super::Foundation:: HANDLE ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`, `\"Win32_Foundation\"`*"] fn TraceGetConsoleW ( dwtraceid : u32 , lphconsole : *mut super::super::Foundation:: HANDLE ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""cdecl" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TracePrintfA ( dwtraceid : u32 , lpszformat : :: windows_sys::core::PCSTR ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""cdecl" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TracePrintfExA ( dwtraceid : u32 , dwflags : u32 , lpszformat : :: windows_sys::core::PCSTR ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""cdecl" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TracePrintfExW ( dwtraceid : u32 , dwflags : u32 , lpszformat : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""cdecl" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TracePrintfW ( dwtraceid : u32 , lpszformat : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TracePutsExA ( dwtraceid : u32 , dwflags : u32 , lpszstring : :: windows_sys::core::PCSTR ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TracePutsExW ( dwtraceid : u32 , dwflags : u32 , lpszstring : :: windows_sys::core::PCWSTR ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceRegisterExA ( lpszcallername : :: windows_sys::core::PCSTR , dwflags : u32 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceRegisterExW ( lpszcallername : :: windows_sys::core::PCWSTR , dwflags : u32 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceVprintfExA ( dwtraceid : u32 , dwflags : u32 , lpszformat : :: windows_sys::core::PCSTR , arglist : *mut i8 ) -> u32 );
+::windows_sys::core::link ! ( "rtutils.dll""system" #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"] fn TraceVprintfExW ( dwtraceid : u32 , dwflags : u32 , lpszformat : :: windows_sys::core::PCWSTR , arglist : *mut i8 ) -> u32 );
 pub type IEnumNetCfgBindingInterface = *mut ::core::ffi::c_void;
 pub type IEnumNetCfgBindingPath = *mut ::core::ffi::c_void;
 pub type IEnumNetCfgComponent = *mut ::core::ffi::c_void;
@@ -465,7 +284,7 @@ pub const ACCESS_FAIL_WRITE: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const ACCESS_GROUP: u32 = 32768u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const ACCESS_LETTERS: &str = "RWCXDAP         ";
+pub const ACCESS_LETTERS: ::windows_sys::core::PCSTR = ::windows_sys::s!("RWCXDAP         ");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const ACCESS_NONE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -595,25 +414,25 @@ pub const AE_USER: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const AE_USERLIMIT: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const ALERTER_MAILSLOT: &str = "\\\\.\\MAILSLOT\\Alerter";
+pub const ALERTER_MAILSLOT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("\\\\.\\MAILSLOT\\Alerter");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const ALERTSZ: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const ALERT_ADMIN_EVENT: &str = "ADMIN";
+pub const ALERT_ADMIN_EVENT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ADMIN");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const ALERT_ERRORLOG_EVENT: &str = "ERRORLOG";
+pub const ALERT_ERRORLOG_EVENT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ERRORLOG");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const ALERT_MESSAGE_EVENT: &str = "MESSAGE";
+pub const ALERT_MESSAGE_EVENT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MESSAGE");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const ALERT_PRINT_EVENT: &str = "PRINTING";
+pub const ALERT_PRINT_EVENT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PRINTING");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const ALERT_USER_EVENT: &str = "USER";
+pub const ALERT_USER_EVENT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("USER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const ALIGN_SIZE: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const ALLOCATE_RESPONSE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const BACKUP_MSG_FILENAME: &str = "BAK.MSG";
+pub const BACKUP_MSG_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BAK.MSG");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const CLTYPE_LEN: u32 = 12u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -1765,17 +1584,17 @@ pub const GROUP_COMMENT_PARMNUM: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const GROUP_NAME_PARMNUM: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const GROUP_SPECIALGRP_ADMINS: &str = "ADMINS";
+pub const GROUP_SPECIALGRP_ADMINS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ADMINS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const GROUP_SPECIALGRP_GUESTS: &str = "GUESTS";
+pub const GROUP_SPECIALGRP_GUESTS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("GUESTS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const GROUP_SPECIALGRP_LOCAL: &str = "LOCAL";
+pub const GROUP_SPECIALGRP_LOCAL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LOCAL");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const GROUP_SPECIALGRP_USERS: &str = "USERS";
+pub const GROUP_SPECIALGRP_USERS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("USERS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const HARDWARE_ADDRESS_LENGTH: u32 = 6u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const HELP_MSG_FILENAME: &str = "NETH";
+pub const HELP_MSG_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETH");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const INTERFACE_INFO_REVISION_1: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -1873,7 +1692,7 @@ pub const MAX_PROTOCOL_DLL_LEN: u32 = 48u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const MAX_PROTOCOL_NAME_LEN: u32 = 40u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const MESSAGE_FILENAME: &str = "NETMSG";
+pub const MESSAGE_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETMSG");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const MFE_BOUNDARY_REACHED: u32 = 6u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3101,7 +2920,7 @@ pub const NERR_WriteFault: u32 = 2295u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NETBIOS_NAME_LEN: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_CLIENT_CID_MS_MSClient: &str = "ms_msclient";
+pub const NETCFG_CLIENT_CID_MS_MSClient: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_msclient");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NETCFG_E_ACTIVE_RAS_CONNECTIONS: ::windows_sys::core::HRESULT = -2147180506i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3125,13 +2944,13 @@ pub const NETCFG_E_NO_WRITE_LOCK: ::windows_sys::core::HRESULT = -2147180508i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NETCFG_E_VMSWITCH_ACTIVE_OVER_ADAPTER: ::windows_sys::core::HRESULT = -2147180502i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_SERVICE_CID_MS_NETBIOS: &str = "ms_netbios";
+pub const NETCFG_SERVICE_CID_MS_NETBIOS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_netbios");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_SERVICE_CID_MS_PSCHED: &str = "ms_pschedpc";
+pub const NETCFG_SERVICE_CID_MS_PSCHED: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_pschedpc");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_SERVICE_CID_MS_SERVER: &str = "ms_server";
+pub const NETCFG_SERVICE_CID_MS_SERVER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_server");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_SERVICE_CID_MS_WLBS: &str = "ms_wlbs";
+pub const NETCFG_SERVICE_CID_MS_WLBS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_wlbs");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NETCFG_S_CAUSED_SETUP_CHANGE: ::windows_sys::core::HRESULT = 303140i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3143,17 +2962,17 @@ pub const NETCFG_S_REBOOT: ::windows_sys::core::HRESULT = 303136i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NETCFG_S_STILL_REFERENCED: ::windows_sys::core::HRESULT = 303139i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_TRANS_CID_MS_APPLETALK: &str = "ms_appletalk";
+pub const NETCFG_TRANS_CID_MS_APPLETALK: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_appletalk");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_TRANS_CID_MS_NETBEUI: &str = "ms_netbeui";
+pub const NETCFG_TRANS_CID_MS_NETBEUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_netbeui");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_TRANS_CID_MS_NETMON: &str = "ms_netmon";
+pub const NETCFG_TRANS_CID_MS_NETMON: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_netmon");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_TRANS_CID_MS_NWIPX: &str = "ms_nwipx";
+pub const NETCFG_TRANS_CID_MS_NWIPX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_nwipx");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_TRANS_CID_MS_NWSPX: &str = "ms_nwspx";
+pub const NETCFG_TRANS_CID_MS_NWSPX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_nwspx");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NETCFG_TRANS_CID_MS_TCPIP: &str = "ms_tcpip";
+pub const NETCFG_TRANS_CID_MS_TCPIP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ms_tcpip");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NETLOGON_CONTROL_BACKUP_CHANGE_LOG: u32 = 65532u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3289,9 +3108,9 @@ pub const NTFRSPRF_VIRTUALALLOC_ERROR_CONN: i32 = -1073728288i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NTFRSPRF_VIRTUALALLOC_ERROR_SET: i32 = -1073728289i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NULL_USERSETINFO_PASSWD: &str = "              ";
+pub const NULL_USERSETINFO_PASSWD: ::windows_sys::core::PCSTR = ::windows_sys::s!("              ");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const NWSAP_DISPLAY_NAME: &str = "NW Sap Agent";
+pub const NWSAP_DISPLAY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NW Sap Agent");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NWSAP_EVENT_BADWANFILTER_VALUE: i32 = -1073733302i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3360,9 +3179,10 @@ pub const NWSAP_EVENT_WANSEM_FAIL: i32 = -1073733298i32;
 pub const NWSAP_EVENT_WANSOCKET_FAILED: i32 = -1073733297i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const NWSAP_EVENT_WSASTARTUP_FAILED: i32 = -1073733323i32;
-pub const NetProvisioning: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 715306494, data2: 47174, data3: 19719, data4: [129, 12, 178, 30, 228, 83, 32, 227] };
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const OS2MSG_FILENAME: &str = "BASE";
+pub const NetProvisioning: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x2aa2b5fe_b846_4d07_810c_b21ee45320e3);
+#[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
+pub const OS2MSG_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BASE");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const PARMNUM_ALL: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3468,7 +3288,7 @@ pub const PWLEN: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const QNLEN: u32 = 80u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const REGISTER_PROTOCOL_ENTRY_POINT_STRING: &str = "RegisterProtocol";
+pub const REGISTER_PROTOCOL_ENTRY_POINT_STRING: ::windows_sys::core::PCSTR = ::windows_sys::s!("RegisterProtocol");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const REPL_EXPORT_EXTENT_INFOLEVEL: u32 = 1001u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3538,9 +3358,9 @@ pub const RTUTILS_MAX_PROTOCOL_DLL_LEN: u32 = 48u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const RTUTILS_MAX_PROTOCOL_NAME_LEN: u32 = 40u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVCE_LM20_W32TIME: &str = "w32time";
+pub const SERVCE_LM20_W32TIME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("w32time");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVER_DISPLAY_NAME: &str = "Server";
+pub const SERVER_DISPLAY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Server");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE2_BASE: u32 = 5600u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3552,19 +3372,19 @@ pub const SERVICE_ACCOUNT_FLAG_REMOVE_OFFLINE: i32 = 2i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_ACCOUNT_FLAG_UNLINK_FROM_HOST_ONLY: i32 = 1i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_ACCOUNT_PASSWORD: &str = "_SA_{262E99C9-6160-4871-ACEC-4E61736B6F21}";
+pub const SERVICE_ACCOUNT_PASSWORD: ::windows_sys::core::PCWSTR = ::windows_sys::w!("_SA_{262E99C9-6160-4871-ACEC-4E61736B6F21}");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_ACCOUNT_SECRET_PREFIX: &str = "_SC_{262E99C9-6160-4871-ACEC-4E61736B6F21}_";
+pub const SERVICE_ACCOUNT_SECRET_PREFIX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("_SC_{262E99C9-6160-4871-ACEC-4E61736B6F21}_");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_ADWS: &str = "ADWS";
+pub const SERVICE_ADWS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ADWS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_AFP: &str = "AFP";
+pub const SERVICE_AFP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AFP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_ALERTER: &str = "ALERTER";
+pub const SERVICE_ALERTER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ALERTER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_BASE: u32 = 3050u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_BROWSER: &str = "BROWSER";
+pub const SERVICE_BROWSER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BROWSER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_CCP_CHKPT_NUM: u32 = 255u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3588,13 +3408,13 @@ pub const SERVICE_CTRL_REDIR_PRINT: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_CTRL_UNINSTALL: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_DHCP: &str = "DHCP";
+pub const SERVICE_DHCP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DHCP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_DNS_CACHE: &str = "DnsCache";
+pub const SERVICE_DNS_CACHE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DnsCache");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_DOS_ENCRYPTION: &str = "ENCRYPT";
+pub const SERVICE_DOS_ENCRYPTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ENCRYPT");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_DSROLE: &str = "DsRoleSvc";
+pub const SERVICE_DSROLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DsRoleSvc");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_INSTALLED: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3612,103 +3432,103 @@ pub const SERVICE_IP_WAITTIME_SHIFT: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_IP_WAIT_TIME: u32 = 65280u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_ISMSERV: &str = "IsmServ";
+pub const SERVICE_ISMSERV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IsmServ");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_KDC: &str = "kdc";
+pub const SERVICE_KDC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("kdc");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_AFP: &str = "AFP";
+pub const SERVICE_LM20_AFP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AFP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_ALERTER: &str = "ALERTER";
+pub const SERVICE_LM20_ALERTER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ALERTER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_BROWSER: &str = "BROWSER";
+pub const SERVICE_LM20_BROWSER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BROWSER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_DHCP: &str = "DHCP";
+pub const SERVICE_LM20_DHCP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DHCP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_DSROLE: &str = "DsRoleSvc";
+pub const SERVICE_LM20_DSROLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DsRoleSvc");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_ISMSERV: &str = "IsmServ";
+pub const SERVICE_LM20_ISMSERV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IsmServ");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_KDC: &str = "kdc";
+pub const SERVICE_LM20_KDC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("kdc");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_LMHOSTS: &str = "LMHOSTS";
+pub const SERVICE_LM20_LMHOSTS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LMHOSTS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_MESSENGER: &str = "MESSENGER";
+pub const SERVICE_LM20_MESSENGER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MESSENGER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_NBT: &str = "NBT";
+pub const SERVICE_LM20_NBT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NBT");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_NETLOGON: &str = "NETLOGON";
+pub const SERVICE_LM20_NETLOGON: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETLOGON");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_NETPOPUP: &str = "NETPOPUP";
+pub const SERVICE_LM20_NETPOPUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETPOPUP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_NETRUN: &str = "NETRUN";
+pub const SERVICE_LM20_NETRUN: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETRUN");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_NTDS: &str = "NTDS";
+pub const SERVICE_LM20_NTDS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NTDS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_NTFRS: &str = "NtFrs";
+pub const SERVICE_LM20_NTFRS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NtFrs");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_NWSAP: &str = "NwSapAgent";
+pub const SERVICE_LM20_NWSAP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NwSapAgent");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_REPL: &str = "REPLICATOR";
+pub const SERVICE_LM20_REPL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("REPLICATOR");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_RIPL: &str = "REMOTEBOOT";
+pub const SERVICE_LM20_RIPL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("REMOTEBOOT");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_RPCLOCATOR: &str = "RPCLOCATOR";
+pub const SERVICE_LM20_RPCLOCATOR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RPCLOCATOR");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_SCHEDULE: &str = "Schedule";
+pub const SERVICE_LM20_SCHEDULE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Schedule");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_SERVER: &str = "SERVER";
+pub const SERVICE_LM20_SERVER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SERVER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_SPOOLER: &str = "SPOOLER";
+pub const SERVICE_LM20_SPOOLER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SPOOLER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_SQLSERVER: &str = "SQLSERVER";
+pub const SERVICE_LM20_SQLSERVER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SQLSERVER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_TCPIP: &str = "TCPIP";
+pub const SERVICE_LM20_TCPIP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TCPIP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_TELNET: &str = "Telnet";
+pub const SERVICE_LM20_TELNET: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Telnet");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_TIMESOURCE: &str = "TIMESOURCE";
+pub const SERVICE_LM20_TIMESOURCE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TIMESOURCE");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_TRKSVR: &str = "TrkSvr";
+pub const SERVICE_LM20_TRKSVR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TrkSvr");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_TRKWKS: &str = "TrkWks";
+pub const SERVICE_LM20_TRKWKS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TrkWks");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_UPS: &str = "UPS";
+pub const SERVICE_LM20_UPS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("UPS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_WORKSTATION: &str = "WORKSTATION";
+pub const SERVICE_LM20_WORKSTATION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WORKSTATION");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LM20_XACTSRV: &str = "XACTSRV";
+pub const SERVICE_LM20_XACTSRV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("XACTSRV");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_LMHOSTS: &str = "LMHOSTS";
+pub const SERVICE_LMHOSTS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LMHOSTS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_MAXTIME: u32 = 255u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_MESSENGER: &str = "MESSENGER";
+pub const SERVICE_MESSENGER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MESSENGER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NBT: &str = "NBT";
+pub const SERVICE_NBT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NBT");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NETLOGON: &str = "NETLOGON";
+pub const SERVICE_NETLOGON: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETLOGON");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NETPOPUP: &str = "NETPOPUP";
+pub const SERVICE_NETPOPUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETPOPUP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NETRUN: &str = "NETRUN";
+pub const SERVICE_NETRUN: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NETRUN");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_NOT_PAUSABLE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_NOT_UNINSTALLABLE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NTDS: &str = "NTDS";
+pub const SERVICE_NTDS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NTDS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NTFRS: &str = "NtFrs";
+pub const SERVICE_NTFRS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NtFrs");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_NTIP_WAITTIME_SHIFT: u32 = 12u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NTLMSSP: &str = "NtLmSsp";
+pub const SERVICE_NTLMSSP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NtLmSsp");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_NT_MAXTIME: u32 = 65535u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NWCS: &str = "NWCWorkstation";
+pub const SERVICE_NWCS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NWCWorkstation");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_NWSAP: &str = "NwSapAgent";
+pub const SERVICE_NWSAP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NwSapAgent");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_PAUSABLE: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3722,31 +3542,31 @@ pub const SERVICE_REDIR_PAUSED: u32 = 1792u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_REDIR_PRINT_PAUSED: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_REPL: &str = "REPLICATOR";
+pub const SERVICE_REPL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("REPLICATOR");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_RESRV_MASK: u32 = 131071u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_RIPL: &str = "REMOTEBOOT";
+pub const SERVICE_RIPL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("REMOTEBOOT");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_RPCLOCATOR: &str = "RPCLOCATOR";
+pub const SERVICE_RPCLOCATOR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RPCLOCATOR");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_SCHEDULE: &str = "Schedule";
+pub const SERVICE_SCHEDULE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Schedule");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_SERVER: &str = "LanmanServer";
+pub const SERVICE_SERVER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LanmanServer");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_SPOOLER: &str = "SPOOLER";
+pub const SERVICE_SPOOLER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SPOOLER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_SQLSERVER: &str = "SQLSERVER";
+pub const SERVICE_SQLSERVER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SQLSERVER");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_TCPIP: &str = "TCPIP";
+pub const SERVICE_TCPIP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TCPIP");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_TELNET: &str = "Telnet";
+pub const SERVICE_TELNET: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Telnet");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_TIMESOURCE: &str = "TIMESOURCE";
+pub const SERVICE_TIMESOURCE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TIMESOURCE");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_TRKSVR: &str = "TrkSvr";
+pub const SERVICE_TRKSVR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TrkSvr");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_TRKWKS: &str = "TrkWks";
+pub const SERVICE_TRKWKS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TrkWks");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_UIC_AMBIGPARM: u32 = 3058u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -3850,13 +3670,13 @@ pub const SERVICE_UNINSTALLED: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SERVICE_UNINSTALL_PENDING: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_UPS: &str = "UPS";
+pub const SERVICE_UPS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("UPS");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_W32TIME: &str = "w32time";
+pub const SERVICE_W32TIME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("w32time");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_WORKSTATION: &str = "LanmanWorkstation";
+pub const SERVICE_WORKSTATION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LanmanWorkstation");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const SERVICE_XACTSRV: &str = "XACTSRV";
+pub const SERVICE_XACTSRV: ::windows_sys::core::PCWSTR = ::windows_sys::w!("XACTSRV");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SESSION_CRYPT_KLEN: u32 = 21u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -4207,7 +4027,8 @@ pub const SV_XACTMEMSIZE_PARMNUM: u32 = 531u32;
 pub const SW_AUTOPROF_LOAD_MASK: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const SW_AUTOPROF_SAVE_MASK: u32 = 2u32;
-pub const ServiceAccountPasswordGUID: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 640588233, data2: 24928, data3: 18545, data4: [172, 236, 78, 97, 115, 107, 111, 33] };
+#[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
+pub const ServiceAccountPasswordGUID: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x262e99c9_6160_4871_acec_4e61736b6f21);
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const TITLE_SC_MESSAGE_BOX: i32 = -1073734795i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -4467,7 +4288,7 @@ pub const WKSTA_VER_MINOR_PARMNUM: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const WKSTA_WRKHEURISTICS_PARMNUM: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub const WORKSTATION_DISPLAY_NAME: &str = "Workstation";
+pub const WORKSTATION_DISPLAY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Workstation");
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
 pub const WZC_PROFILE_API_ERROR_FAILED_TO_LOAD_SCHEMA: u32 = 34u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
@@ -9276,4 +9097,4 @@ impl ::core::clone::Clone for WKSTA_USER_INFO_1101 {
     }
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_NetManagement\"`*"]
-pub type WORKERFUNCTION = ::core::option::Option<unsafe extern "system" fn(param0: *mut ::core::ffi::c_void)>;
+pub type WORKERFUNCTION = ::core::option::Option<unsafe extern "system" fn(param0: *mut ::core::ffi::c_void) -> ()>;

@@ -121,6 +121,7 @@ known-hosts = ["..."]       # known SSH host keys
 # Same keys as for [patch] in Cargo.toml
 
 [profile.<name>]         # Modify profile settings via config.
+inherits = "dev"         # Inherits settings from [profile.dev].
 opt-level = 0            # Optimization level.
 debug = true             # Include debug info.
 split-debuginfo = '...'  # Debug info splitting behavior.
@@ -260,7 +261,7 @@ In particular, rules are:
 > is also relative to two levels up from the config file itself.
 >
 > To avoid unexpected results, the rule of thumb is putting your extra config files
-> at the same level of discovered `.cargo/config.toml` in your porject.
+> at the same level of discovered `.cargo/config.toml` in your project.
 > For instance, given a project `/my/project`,
 > it is recommended to put config files under `/my/project/.cargo`
 > or a new directory at the same level, such as `/my/project/.config`.
@@ -929,6 +930,20 @@ only appear in the [credentials](#credentials) file. This is used for registry
 commands like [`cargo publish`] that require authentication.
 
 Can be overridden with the `--token` command-line option.
+
+##### `registries.crates-io.protocol`
+* Type: string
+* Default: `git`
+* Environment: `CARGO_REGISTRIES_CRATES_IO_PROTOCOL`
+
+Specifies the protocol used to access crates.io. Allowed values are `git` or `sparse`.
+
+`git` causes Cargo to clone the entire index of all packages ever published to [crates.io] from <https://github.com/rust-lang/crates.io-index/>.
+This can have performance implications due to the size of the index.
+`sparse` is a newer protocol which uses HTTPS to download only what is necessary from <https://index.crates.io/>.
+This can result in a significant performance improvement for resolving new dependencies in most situations.
+
+More information about registry protocols may be found in the [Registries chapter](registries.md).
 
 #### `[registry]`
 

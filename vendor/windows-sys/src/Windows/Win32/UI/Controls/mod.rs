@@ -2,604 +2,387 @@
 pub mod Dialogs;
 #[cfg(feature = "Win32_UI_Controls_RichEdit")]
 pub mod RichEdit;
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn BeginBufferedAnimation(hwnd: super::super::Foundation::HWND, hdctarget: super::super::Graphics::Gdi::HDC, prctarget: *const super::super::Foundation::RECT, dwformat: BP_BUFFERFORMAT, ppaintparams: *const BP_PAINTPARAMS, panimationparams: *const BP_ANIMATIONPARAMS, phdcfrom: *mut super::super::Graphics::Gdi::HDC, phdcto: *mut super::super::Graphics::Gdi::HDC) -> isize;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn BeginBufferedPaint(hdctarget: super::super::Graphics::Gdi::HDC, prctarget: *const super::super::Foundation::RECT, dwformat: BP_BUFFERFORMAT, ppaintparams: *const BP_PAINTPARAMS, phdc: *mut super::super::Graphics::Gdi::HDC) -> isize;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BeginPanningFeedback(hwnd: super::super::Foundation::HWND) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BufferedPaintClear(hbufferedpaint: isize, prc: *const super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn BufferedPaintInit() -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn BufferedPaintRenderAnimation(hwnd: super::super::Foundation::HWND, hdctarget: super::super::Graphics::Gdi::HDC) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BufferedPaintSetAlpha(hbufferedpaint: isize, prc: *const super::super::Foundation::RECT, alpha: u8) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BufferedPaintStopAllAnimations(hwnd: super::super::Foundation::HWND) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn BufferedPaintUnInit() -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CheckDlgButton(hdlg: super::super::Foundation::HWND, nidbutton: i32, ucheck: DLG_BUTTON_CHECK_STATE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CheckRadioButton(hdlg: super::super::Foundation::HWND, nidfirstbutton: i32, nidlastbutton: i32, nidcheckbutton: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn CloseThemeData(htheme: isize) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn CreateMappedBitmap(hinstance: super::super::Foundation::HINSTANCE, idbitmap: isize, wflags: u32, lpcolormap: *const COLORMAP, inummaps: i32) -> super::super::Graphics::Gdi::HBITMAP;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn CreatePropertySheetPageA(constpropsheetpagepointer: *mut PROPSHEETPAGEA) -> HPROPSHEETPAGE;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn CreatePropertySheetPageW(constpropsheetpagepointer: *mut PROPSHEETPAGEW) -> HPROPSHEETPAGE;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CreateStatusWindowA(style: i32, lpsztext: ::windows_sys::core::PCSTR, hwndparent: super::super::Foundation::HWND, wid: u32) -> super::super::Foundation::HWND;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CreateStatusWindowW(style: i32, lpsztext: ::windows_sys::core::PCWSTR, hwndparent: super::super::Foundation::HWND, wid: u32) -> super::super::Foundation::HWND;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(feature = "Win32_UI_WindowsAndMessaging")]
-    pub fn CreateSyntheticPointerDevice(pointertype: super::WindowsAndMessaging::POINTER_INPUT_TYPE, maxcount: u32, mode: POINTER_FEEDBACK_MODE) -> HSYNTHETICPOINTERDEVICE;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CreateToolbarEx(hwnd: super::super::Foundation::HWND, ws: u32, wid: u32, nbitmaps: i32, hbminst: super::super::Foundation::HINSTANCE, wbmid: usize, lpbuttons: *mut TBBUTTON, inumbuttons: i32, dxbutton: i32, dybutton: i32, dxbitmap: i32, dybitmap: i32, ustructsize: u32) -> super::super::Foundation::HWND;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CreateUpDownControl(dwstyle: u32, x: i32, y: i32, cx: i32, cy: i32, hparent: super::super::Foundation::HWND, nid: i32, hinst: super::super::Foundation::HINSTANCE, hbuddy: super::super::Foundation::HWND, nupper: i32, nlower: i32, npos: i32) -> super::super::Foundation::HWND;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_Clone(hdpa: HDPA, hdpanew: HDPA) -> HDPA;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_Create(citemgrow: i32) -> HDPA;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_CreateEx(cpgrow: i32, hheap: super::super::Foundation::HANDLE) -> HDPA;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_DeleteAllPtrs(hdpa: HDPA) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_DeletePtr(hdpa: HDPA, i: i32) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_Destroy(hdpa: HDPA) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_DestroyCallback(hdpa: HDPA, pfncb: PFNDAENUMCALLBACK, pdata: *const ::core::ffi::c_void);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_EnumCallback(hdpa: HDPA, pfncb: PFNDAENUMCALLBACK, pdata: *const ::core::ffi::c_void);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_GetPtr(hdpa: HDPA, i: isize) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_GetPtrIndex(hdpa: HDPA, p: *const ::core::ffi::c_void) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_GetSize(hdpa: HDPA) -> u64;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_Grow(pdpa: HDPA, cp: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DPA_InsertPtr(hdpa: HDPA, i: i32, p: *const ::core::ffi::c_void) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(feature = "Win32_System_Com")]
-    pub fn DPA_LoadStream(phdpa: *mut HDPA, pfn: PFNDPASTREAM, pstream: super::super::System::Com::IStream, pvinstdata: *const ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_Merge(hdpadest: HDPA, hdpasrc: HDPA, dwflags: u32, pfncompare: PFNDACOMPARE, pfnmerge: PFNDPAMERGE, lparam: super::super::Foundation::LPARAM) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(feature = "Win32_System_Com")]
-    pub fn DPA_SaveStream(hdpa: HDPA, pfn: PFNDPASTREAM, pstream: super::super::System::Com::IStream, pvinstdata: *const ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_Search(hdpa: HDPA, pfind: *const ::core::ffi::c_void, istart: i32, pfncompare: PFNDACOMPARE, lparam: super::super::Foundation::LPARAM, options: u32) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_SetPtr(hdpa: HDPA, i: i32, p: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DPA_Sort(hdpa: HDPA, pfncompare: PFNDACOMPARE, lparam: super::super::Foundation::LPARAM) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DSA_Clone(hdsa: HDSA) -> HDSA;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DSA_Create(cbitem: i32, citemgrow: i32) -> HDSA;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DSA_DeleteAllItems(hdsa: HDSA) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DSA_DeleteItem(hdsa: HDSA, i: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DSA_Destroy(hdsa: HDSA) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DSA_DestroyCallback(hdsa: HDSA, pfncb: PFNDAENUMCALLBACK, pdata: *const ::core::ffi::c_void);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DSA_EnumCallback(hdsa: HDSA, pfncb: PFNDAENUMCALLBACK, pdata: *const ::core::ffi::c_void);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DSA_GetItem(hdsa: HDSA, i: i32, pitem: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DSA_GetItemPtr(hdsa: HDSA, i: i32) -> *mut ::core::ffi::c_void;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DSA_GetSize(hdsa: HDSA) -> u64;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DSA_InsertItem(hdsa: HDSA, i: i32, pitem: *const ::core::ffi::c_void) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DSA_SetItem(hdsa: HDSA, i: i32, pitem: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DSA_Sort(pdsa: HDSA, pfncompare: PFNDACOMPARE, lparam: super::super::Foundation::LPARAM) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DestroyPropertySheetPage(param0: HPROPSHEETPAGE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn DestroySyntheticPointerDevice(device: HSYNTHETICPOINTERDEVICE);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirListA(hdlg: super::super::Foundation::HWND, lppathspec: ::windows_sys::core::PSTR, nidlistbox: i32, nidstaticpath: i32, ufiletype: DLG_DIR_LIST_FILE_TYPE) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirListComboBoxA(hdlg: super::super::Foundation::HWND, lppathspec: ::windows_sys::core::PSTR, nidcombobox: i32, nidstaticpath: i32, ufiletype: DLG_DIR_LIST_FILE_TYPE) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirListComboBoxW(hdlg: super::super::Foundation::HWND, lppathspec: ::windows_sys::core::PWSTR, nidcombobox: i32, nidstaticpath: i32, ufiletype: DLG_DIR_LIST_FILE_TYPE) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirListW(hdlg: super::super::Foundation::HWND, lppathspec: ::windows_sys::core::PWSTR, nidlistbox: i32, nidstaticpath: i32, ufiletype: DLG_DIR_LIST_FILE_TYPE) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirSelectComboBoxExA(hwnddlg: super::super::Foundation::HWND, lpstring: ::windows_sys::core::PSTR, cchout: i32, idcombobox: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirSelectComboBoxExW(hwnddlg: super::super::Foundation::HWND, lpstring: ::windows_sys::core::PWSTR, cchout: i32, idcombobox: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirSelectExA(hwnddlg: super::super::Foundation::HWND, lpstring: ::windows_sys::core::PSTR, chcount: i32, idlistbox: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DlgDirSelectExW(hwnddlg: super::super::Foundation::HWND, lpstring: ::windows_sys::core::PWSTR, chcount: i32, idlistbox: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn DrawInsert(handparent: super::super::Foundation::HWND, hlb: super::super::Foundation::HWND, nitem: i32);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawShadowText(hdc: super::super::Graphics::Gdi::HDC, psztext: ::windows_sys::core::PCWSTR, cch: u32, prc: *const super::super::Foundation::RECT, dwflags: u32, crtext: super::super::Foundation::COLORREF, crshadow: super::super::Foundation::COLORREF, ixoffset: i32, iyoffset: i32) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawStatusTextA(hdc: super::super::Graphics::Gdi::HDC, lprc: *mut super::super::Foundation::RECT, psztext: ::windows_sys::core::PCSTR, uflags: u32);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawStatusTextW(hdc: super::super::Graphics::Gdi::HDC, lprc: *mut super::super::Foundation::RECT, psztext: ::windows_sys::core::PCWSTR, uflags: u32);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeBackground(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, prect: *const super::super::Foundation::RECT, pcliprect: *const super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeBackgroundEx(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, prect: *const super::super::Foundation::RECT, poptions: *const DTBGOPTS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeEdge(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, pdestrect: *const super::super::Foundation::RECT, uedge: super::super::Graphics::Gdi::DRAWEDGE_FLAGS, uflags: super::super::Graphics::Gdi::DRAW_EDGE_FLAGS, pcontentrect: *mut super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeIcon(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, prect: *const super::super::Foundation::RECT, himl: HIMAGELIST, iimageindex: i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeParentBackground(hwnd: super::super::Foundation::HWND, hdc: super::super::Graphics::Gdi::HDC, prc: *const super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeParentBackgroundEx(hwnd: super::super::Foundation::HWND, hdc: super::super::Graphics::Gdi::HDC, dwflags: DRAW_THEME_PARENT_BACKGROUND_FLAGS, prc: *const super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeText(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, psztext: ::windows_sys::core::PCWSTR, cchtext: i32, dwtextflags: super::super::Graphics::Gdi::DRAW_TEXT_FORMAT, dwtextflags2: u32, prect: *const super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DrawThemeTextEx(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, psztext: ::windows_sys::core::PCWSTR, cchtext: i32, dwtextflags: super::super::Graphics::Gdi::DRAW_TEXT_FORMAT, prect: *mut super::super::Foundation::RECT, poptions: *const DTTOPTS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn EnableScrollBar(hwnd: super::super::Foundation::HWND, wsbflags: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, warrows: ENABLE_SCROLL_BAR_ARROWS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EnableThemeDialogTexture(hwnd: super::super::Foundation::HWND, dwflags: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EnableTheming(fenable: super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EndBufferedAnimation(hbpanimation: isize, fupdatetarget: super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EndBufferedPaint(hbufferedpaint: isize, fupdatetarget: super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EndPanningFeedback(hwnd: super::super::Foundation::HWND, fanimateback: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EvaluateProximityToPolygon(numvertices: u32, controlpolygon: *const super::super::Foundation::POINT, phittestinginput: *const TOUCH_HIT_TESTING_INPUT, pproximityeval: *mut TOUCH_HIT_TESTING_PROXIMITY_EVALUATION) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EvaluateProximityToRect(controlboundingbox: *const super::super::Foundation::RECT, phittestinginput: *const TOUCH_HIT_TESTING_INPUT, pproximityeval: *mut TOUCH_HIT_TESTING_PROXIMITY_EVALUATION) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FlatSB_EnableScrollBar(param0: super::super::Foundation::HWND, param1: i32, param2: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn FlatSB_GetScrollInfo(param0: super::super::Foundation::HWND, code: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, param2: *mut super::WindowsAndMessaging::SCROLLINFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn FlatSB_GetScrollPos(param0: super::super::Foundation::HWND, code: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FlatSB_GetScrollProp(param0: super::super::Foundation::HWND, propindex: WSB_PROP, param2: *mut i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn FlatSB_GetScrollRange(param0: super::super::Foundation::HWND, code: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, param2: *mut i32, param3: *mut i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn FlatSB_SetScrollInfo(param0: super::super::Foundation::HWND, code: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, psi: *mut super::WindowsAndMessaging::SCROLLINFO, fredraw: super::super::Foundation::BOOL) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn FlatSB_SetScrollPos(param0: super::super::Foundation::HWND, code: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, pos: i32, fredraw: super::super::Foundation::BOOL) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FlatSB_SetScrollProp(param0: super::super::Foundation::HWND, index: WSB_PROP, newvalue: isize, param3: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn FlatSB_SetScrollRange(param0: super::super::Foundation::HWND, code: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, min: i32, max: i32, fredraw: super::super::Foundation::BOOL) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn FlatSB_ShowScrollBar(param0: super::super::Foundation::HWND, code: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, param2: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetBufferedPaintBits(hbufferedpaint: isize, ppbbuffer: *mut *mut super::super::Graphics::Gdi::RGBQUAD, pcxrow: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetBufferedPaintDC(hbufferedpaint: isize) -> super::super::Graphics::Gdi::HDC;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetBufferedPaintTargetDC(hbufferedpaint: isize) -> super::super::Graphics::Gdi::HDC;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetBufferedPaintTargetRect(hbufferedpaint: isize, prc: *mut super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetComboBoxInfo(hwndcombo: super::super::Foundation::HWND, pcbi: *mut COMBOBOXINFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetCurrentThemeName(pszthemefilename: ::windows_sys::core::PWSTR, cchmaxnamechars: i32, pszcolorbuff: ::windows_sys::core::PWSTR, cchmaxcolorchars: i32, pszsizebuff: ::windows_sys::core::PWSTR, cchmaxsizechars: i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetEffectiveClientRect(hwnd: super::super::Foundation::HWND, lprc: *mut super::super::Foundation::RECT, lpinfo: *const i32);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetListBoxInfo(hwnd: super::super::Foundation::HWND) -> u32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetMUILanguage() -> u16;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeAnimationProperty(htheme: isize, istoryboardid: i32, itargetid: i32, eproperty: TA_PROPERTY, pvproperty: *mut ::core::ffi::c_void, cbsize: u32, pcbsizeout: *mut u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeAnimationTransform(htheme: isize, istoryboardid: i32, itargetid: i32, dwtransformindex: u32, ptransform: *mut TA_TRANSFORM, cbsize: u32, pcbsizeout: *mut u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeAppProperties() -> SET_THEME_APP_PROPERTIES_FLAGS;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn GetThemeBackgroundContentRect(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, pboundingrect: *const super::super::Foundation::RECT, pcontentrect: *mut super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn GetThemeBackgroundExtent(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, pcontentrect: *const super::super::Foundation::RECT, pextentrect: *mut super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn GetThemeBackgroundRegion(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, prect: *const super::super::Foundation::RECT, pregion: *mut super::super::Graphics::Gdi::HRGN) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetThemeBitmap(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, dwflags: GET_THEME_BITMAP_FLAGS, phbitmap: *mut super::super::Graphics::Gdi::HBITMAP) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetThemeBool(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, pfval: *mut super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetThemeColor(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, pcolor: *mut super::super::Foundation::COLORREF) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeDocumentationProperty(pszthemename: ::windows_sys::core::PCWSTR, pszpropertyname: ::windows_sys::core::PCWSTR, pszvaluebuff: ::windows_sys::core::PWSTR, cchmaxvalchars: i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeEnumValue(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, pival: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeFilename(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, pszthemefilename: ::windows_sys::core::PWSTR, cchmaxbuffchars: i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetThemeFont(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, ipropid: i32, pfont: *mut super::super::Graphics::Gdi::LOGFONTW) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeInt(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, pival: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeIntList(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, pintlist: *mut INTLIST) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn GetThemeMargins(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, prc: *const super::super::Foundation::RECT, pmargins: *mut MARGINS) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetThemeMetric(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, pival: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn GetThemePartSize(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, prc: *const super::super::Foundation::RECT, esize: THEMESIZE, psz: *mut super::super::Foundation::SIZE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetThemePosition(htheme: isize, ipartid: i32, istateid: i32, ipropid: THEME_PROPERTY_SYMBOL_ID, ppoint: *mut super::super::Foundation::POINT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemePropertyOrigin(htheme: isize, ipartid: i32, istateid: i32, ipropid: i32, porigin: *mut PROPERTYORIGIN) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetThemeRect(htheme: isize, ipartid: i32, istateid: i32, ipropid: i32, prect: *mut super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetThemeStream(htheme: isize, ipartid: i32, istateid: i32, ipropid: i32, ppvstream: *mut *mut ::core::ffi::c_void, pcbstream: *mut u32, hinst: super::super::Foundation::HINSTANCE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeString(htheme: isize, ipartid: i32, istateid: i32, ipropid: i32, pszbuff: ::windows_sys::core::PWSTR, cchmaxbuffchars: i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetThemeSysBool(htheme: isize, iboolid: THEME_PROPERTY_SYMBOL_ID) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetThemeSysColor(htheme: isize, icolorid: i32) -> super::super::Foundation::COLORREF;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetThemeSysColorBrush(htheme: isize, icolorid: THEME_PROPERTY_SYMBOL_ID) -> super::super::Graphics::Gdi::HBRUSH;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetThemeSysFont(htheme: isize, ifontid: THEME_PROPERTY_SYMBOL_ID, plf: *mut super::super::Graphics::Gdi::LOGFONTW) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeSysInt(htheme: isize, iintid: THEME_PROPERTY_SYMBOL_ID, pivalue: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeSysSize(htheme: isize, isizeid: i32) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeSysString(htheme: isize, istringid: THEME_PROPERTY_SYMBOL_ID, pszstringbuff: ::windows_sys::core::PWSTR, cchmaxstringchars: i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn GetThemeTextExtent(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, psztext: ::windows_sys::core::PCWSTR, cchcharcount: i32, dwtextflags: super::super::Graphics::Gdi::DRAW_TEXT_FORMAT, pboundingrect: *const super::super::Foundation::RECT, pextentrect: *mut super::super::Foundation::RECT) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn GetThemeTextMetrics(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, ptm: *mut super::super::Graphics::Gdi::TEXTMETRICW) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeTimingFunction(htheme: isize, itimingfunctionid: i32, ptimingfunction: *mut TA_TIMINGFUNCTION, cbsize: u32, pcbsizeout: *mut u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn GetThemeTransitionDuration(htheme: isize, ipartid: i32, istateidfrom: i32, istateidto: i32, ipropid: i32, pdwduration: *mut u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetWindowFeedbackSetting(hwnd: super::super::Foundation::HWND, feedback: FEEDBACK_TYPE, dwflags: u32, psize: *mut u32, config: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetWindowTheme(hwnd: super::super::Foundation::HWND) -> isize;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn HIMAGELIST_QueryInterface(himl: HIMAGELIST, riid: *const ::windows_sys::core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn HitTestThemeBackground(htheme: isize, hdc: super::super::Graphics::Gdi::HDC, ipartid: i32, istateid: i32, dwoptions: HIT_TEST_BACKGROUND_OPTIONS, prect: *const super::super::Foundation::RECT, hrgn: super::super::Graphics::Gdi::HRGN, pttest: super::super::Foundation::POINT, pwhittestcode: *mut u16) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn ImageList_Add(himl: HIMAGELIST, hbmimage: super::super::Graphics::Gdi::HBITMAP, hbmmask: super::super::Graphics::Gdi::HBITMAP) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ImageList_AddMasked(himl: HIMAGELIST, hbmimage: super::super::Graphics::Gdi::HBITMAP, crmask: super::super::Foundation::COLORREF) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_BeginDrag(himltrack: HIMAGELIST, itrack: i32, dxhotspot: i32, dyhotspot: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn ImageList_CoCreateInstance(rclsid: *const ::windows_sys::core::GUID, punkouter: ::windows_sys::core::IUnknown, riid: *const ::windows_sys::core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_Copy(himldst: HIMAGELIST, idst: i32, himlsrc: HIMAGELIST, isrc: i32, uflags: IMAGE_LIST_COPY_FLAGS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn ImageList_Create(cx: i32, cy: i32, flags: IMAGELIST_CREATION_FLAGS, cinitial: i32, cgrow: i32) -> HIMAGELIST;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_Destroy(himl: HIMAGELIST) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_DragEnter(hwndlock: super::super::Foundation::HWND, x: i32, y: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_DragLeave(hwndlock: super::super::Foundation::HWND) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_DragMove(x: i32, y: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_DragShowNolock(fshow: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ImageList_Draw(himl: HIMAGELIST, i: i32, hdcdst: super::super::Graphics::Gdi::HDC, x: i32, y: i32, fstyle: IMAGE_LIST_DRAW_STYLE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ImageList_DrawEx(himl: HIMAGELIST, i: i32, hdcdst: super::super::Graphics::Gdi::HDC, x: i32, y: i32, dx: i32, dy: i32, rgbbk: super::super::Foundation::COLORREF, rgbfg: super::super::Foundation::COLORREF, fstyle: IMAGE_LIST_DRAW_STYLE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ImageList_DrawIndirect(pimldp: *const IMAGELISTDRAWPARAMS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn ImageList_Duplicate(himl: HIMAGELIST) -> HIMAGELIST;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn ImageList_EndDrag();
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_GetBkColor(himl: HIMAGELIST) -> super::super::Foundation::COLORREF;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_GetDragImage(ppt: *mut super::super::Foundation::POINT, ppthotspot: *mut super::super::Foundation::POINT) -> HIMAGELIST;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(feature = "Win32_UI_WindowsAndMessaging")]
-    pub fn ImageList_GetIcon(himl: HIMAGELIST, i: i32, flags: u32) -> super::WindowsAndMessaging::HICON;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_GetIconSize(himl: HIMAGELIST, cx: *mut i32, cy: *mut i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn ImageList_GetImageCount(himl: HIMAGELIST) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ImageList_GetImageInfo(himl: HIMAGELIST, i: i32, pimageinfo: *mut IMAGEINFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn ImageList_LoadImageA(hi: super::super::Foundation::HINSTANCE, lpbmp: ::windows_sys::core::PCSTR, cx: i32, cgrow: i32, crmask: super::super::Foundation::COLORREF, utype: u32, uflags: super::WindowsAndMessaging::IMAGE_FLAGS) -> HIMAGELIST;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn ImageList_LoadImageW(hi: super::super::Foundation::HINSTANCE, lpbmp: ::windows_sys::core::PCWSTR, cx: i32, cgrow: i32, crmask: super::super::Foundation::COLORREF, utype: u32, uflags: super::WindowsAndMessaging::IMAGE_FLAGS) -> HIMAGELIST;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn ImageList_Merge(himl1: HIMAGELIST, i1: i32, himl2: HIMAGELIST, i2: i32, dx: i32, dy: i32) -> HIMAGELIST;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(feature = "Win32_System_Com")]
-    pub fn ImageList_Read(pstm: super::super::System::Com::IStream) -> HIMAGELIST;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(feature = "Win32_System_Com")]
-    pub fn ImageList_ReadEx(dwflags: u32, pstm: super::super::System::Com::IStream, riid: *const ::windows_sys::core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_Remove(himl: HIMAGELIST, i: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ImageList_Replace(himl: HIMAGELIST, i: i32, hbmimage: super::super::Graphics::Gdi::HBITMAP, hbmmask: super::super::Graphics::Gdi::HBITMAP) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(feature = "Win32_UI_WindowsAndMessaging")]
-    pub fn ImageList_ReplaceIcon(himl: HIMAGELIST, i: i32, hicon: super::WindowsAndMessaging::HICON) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_SetBkColor(himl: HIMAGELIST, clrbk: super::super::Foundation::COLORREF) -> super::super::Foundation::COLORREF;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_SetDragCursorImage(himldrag: HIMAGELIST, idrag: i32, dxhotspot: i32, dyhotspot: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_SetIconSize(himl: HIMAGELIST, cx: i32, cy: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_SetImageCount(himl: HIMAGELIST, unewcount: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ImageList_SetOverlayImage(himl: HIMAGELIST, iimage: i32, ioverlay: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-    pub fn ImageList_Write(himl: HIMAGELIST, pstm: super::super::System::Com::IStream) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(feature = "Win32_System_Com")]
-    pub fn ImageList_WriteEx(himl: HIMAGELIST, dwflags: IMAGE_LIST_WRITE_STREAM_FLAGS, pstm: super::super::System::Com::IStream) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn InitCommonControls();
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn InitCommonControlsEx(picce: *const INITCOMMONCONTROLSEX) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn InitMUILanguage(uilang: u16);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn InitializeFlatSB(param0: super::super::Foundation::HWND) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsAppThemed() -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsCharLowerW(ch: u16) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsCompositionActive() -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsDlgButtonChecked(hdlg: super::super::Foundation::HWND, nidbutton: i32) -> u32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsThemeActive() -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsThemeBackgroundPartiallyTransparent(htheme: isize, ipartid: i32, istateid: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsThemeDialogTextureEnabled(hwnd: super::super::Foundation::HWND) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn IsThemePartDefined(htheme: isize, ipartid: i32, istateid: i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn LBItemFromPt(hlb: super::super::Foundation::HWND, pt: super::super::Foundation::POINT, bautoscroll: super::super::Foundation::BOOL) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn LoadIconMetric(hinst: super::super::Foundation::HINSTANCE, pszname: ::windows_sys::core::PCWSTR, lims: _LI_METRIC, phico: *mut super::WindowsAndMessaging::HICON) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn LoadIconWithScaleDown(hinst: super::super::Foundation::HINSTANCE, pszname: ::windows_sys::core::PCWSTR, cx: i32, cy: i32, phico: *mut super::WindowsAndMessaging::HICON) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn MakeDragList(hlb: super::super::Foundation::HWND) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn MenuHelp(umsg: u32, wparam: super::super::Foundation::WPARAM, lparam: super::super::Foundation::LPARAM, hmainmenu: super::WindowsAndMessaging::HMENU, hinst: super::super::Foundation::HINSTANCE, hwndstatus: super::super::Foundation::HWND, lpwids: *const u32);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn OpenThemeData(hwnd: super::super::Foundation::HWND, pszclasslist: ::windows_sys::core::PCWSTR) -> isize;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn OpenThemeDataEx(hwnd: super::super::Foundation::HWND, pszclasslist: ::windows_sys::core::PCWSTR, dwflags: OPEN_THEME_DATA_FLAGS) -> isize;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PackTouchHitTestingProximityEvaluation(phittestinginput: *const TOUCH_HIT_TESTING_INPUT, pproximityeval: *const TOUCH_HIT_TESTING_PROXIMITY_EVALUATION) -> super::super::Foundation::LRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn PropertySheetA(param0: *mut PROPSHEETHEADERA_V2) -> isize;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn PropertySheetW(param0: *mut PROPSHEETHEADERW_V2) -> isize;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RegisterPointerDeviceNotifications(window: super::super::Foundation::HWND, notifyrange: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RegisterTouchHitTestingWindow(hwnd: super::super::Foundation::HWND, value: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn SetScrollInfo(hwnd: super::super::Foundation::HWND, nbar: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, lpsi: *const super::WindowsAndMessaging::SCROLLINFO, redraw: super::super::Foundation::BOOL) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn SetScrollPos(hwnd: super::super::Foundation::HWND, nbar: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, npos: i32, bredraw: super::super::Foundation::BOOL) -> i32;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn SetScrollRange(hwnd: super::super::Foundation::HWND, nbar: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, nminpos: i32, nmaxpos: i32, bredraw: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-    pub fn SetThemeAppProperties(dwflags: SET_THEME_APP_PROPERTIES_FLAGS);
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn SetWindowFeedbackSetting(hwnd: super::super::Foundation::HWND, feedback: FEEDBACK_TYPE, dwflags: u32, size: u32, configuration: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn SetWindowTheme(hwnd: super::super::Foundation::HWND, pszsubappname: ::windows_sys::core::PCWSTR, pszsubidlist: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn SetWindowThemeAttribute(hwnd: super::super::Foundation::HWND, eattribute: WINDOWTHEMEATTRIBUTETYPE, pvattribute: *const ::core::ffi::c_void, cbattribute: u32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ShowHideMenuCtl(hwnd: super::super::Foundation::HWND, uflags: usize, lpinfo: *const i32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn ShowScrollBar(hwnd: super::super::Foundation::HWND, wbar: super::WindowsAndMessaging::SCROLLBAR_CONSTANTS, bshow: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn Str_SetPtrW(ppsz: *mut ::windows_sys::core::PWSTR, psz: ::windows_sys::core::PCWSTR) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn TaskDialog(hwndowner: super::super::Foundation::HWND, hinstance: super::super::Foundation::HINSTANCE, pszwindowtitle: ::windows_sys::core::PCWSTR, pszmaininstruction: ::windows_sys::core::PCWSTR, pszcontent: ::windows_sys::core::PCWSTR, dwcommonbuttons: TASKDIALOG_COMMON_BUTTON_FLAGS, pszicon: ::windows_sys::core::PCWSTR, pnbutton: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn TaskDialogIndirect(ptaskconfig: *const TASKDIALOGCONFIG, pnbutton: *mut i32, pnradiobutton: *mut i32, pfverificationflagchecked: *mut super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn UninitializeFlatSB(param0: super::super::Foundation::HWND) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn UpdatePanningFeedback(hwnd: super::super::Foundation::HWND, ltotaloverpanoffsetx: i32, ltotaloverpanoffsety: i32, fininertia: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-}
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn BeginBufferedAnimation ( hwnd : super::super::Foundation:: HWND , hdctarget : super::super::Graphics::Gdi:: HDC , prctarget : *const super::super::Foundation:: RECT , dwformat : BP_BUFFERFORMAT , ppaintparams : *const BP_PAINTPARAMS , panimationparams : *const BP_ANIMATIONPARAMS , phdcfrom : *mut super::super::Graphics::Gdi:: HDC , phdcto : *mut super::super::Graphics::Gdi:: HDC ) -> isize );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn BeginBufferedPaint ( hdctarget : super::super::Graphics::Gdi:: HDC , prctarget : *const super::super::Foundation:: RECT , dwformat : BP_BUFFERFORMAT , ppaintparams : *const BP_PAINTPARAMS , phdc : *mut super::super::Graphics::Gdi:: HDC ) -> isize );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn BeginPanningFeedback ( hwnd : super::super::Foundation:: HWND ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn BufferedPaintClear ( hbufferedpaint : isize , prc : *const super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn BufferedPaintInit ( ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn BufferedPaintRenderAnimation ( hwnd : super::super::Foundation:: HWND , hdctarget : super::super::Graphics::Gdi:: HDC ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn BufferedPaintSetAlpha ( hbufferedpaint : isize , prc : *const super::super::Foundation:: RECT , alpha : u8 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn BufferedPaintStopAllAnimations ( hwnd : super::super::Foundation:: HWND ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn BufferedPaintUnInit ( ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn CheckDlgButton ( hdlg : super::super::Foundation:: HWND , nidbutton : i32 , ucheck : DLG_BUTTON_CHECK_STATE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn CheckRadioButton ( hdlg : super::super::Foundation:: HWND , nidfirstbutton : i32 , nidlastbutton : i32 , nidcheckbutton : i32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn CloseThemeData ( htheme : HTHEME ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn CreateMappedBitmap ( hinstance : super::super::Foundation:: HINSTANCE , idbitmap : isize , wflags : u32 , lpcolormap : *const COLORMAP , inummaps : i32 ) -> super::super::Graphics::Gdi:: HBITMAP );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn CreatePropertySheetPageA ( constpropsheetpagepointer : *mut PROPSHEETPAGEA ) -> HPROPSHEETPAGE );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn CreatePropertySheetPageW ( constpropsheetpagepointer : *mut PROPSHEETPAGEW ) -> HPROPSHEETPAGE );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn CreateStatusWindowA ( style : i32 , lpsztext : :: windows_sys::core::PCSTR , hwndparent : super::super::Foundation:: HWND , wid : u32 ) -> super::super::Foundation:: HWND );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn CreateStatusWindowW ( style : i32 , lpsztext : :: windows_sys::core::PCWSTR , hwndparent : super::super::Foundation:: HWND , wid : u32 ) -> super::super::Foundation:: HWND );
+#[cfg(feature = "Win32_UI_WindowsAndMessaging")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn CreateSyntheticPointerDevice ( pointertype : super::WindowsAndMessaging:: POINTER_INPUT_TYPE , maxcount : u32 , mode : POINTER_FEEDBACK_MODE ) -> HSYNTHETICPOINTERDEVICE );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn CreateToolbarEx ( hwnd : super::super::Foundation:: HWND , ws : u32 , wid : u32 , nbitmaps : i32 , hbminst : super::super::Foundation:: HINSTANCE , wbmid : usize , lpbuttons : *mut TBBUTTON , inumbuttons : i32 , dxbutton : i32 , dybutton : i32 , dxbitmap : i32 , dybitmap : i32 , ustructsize : u32 ) -> super::super::Foundation:: HWND );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn CreateUpDownControl ( dwstyle : u32 , x : i32 , y : i32 , cx : i32 , cy : i32 , hparent : super::super::Foundation:: HWND , nid : i32 , hinst : super::super::Foundation:: HINSTANCE , hbuddy : super::super::Foundation:: HWND , nupper : i32 , nlower : i32 , npos : i32 ) -> super::super::Foundation:: HWND );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_Clone ( hdpa : HDPA , hdpanew : HDPA ) -> HDPA );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_Create ( citemgrow : i32 ) -> HDPA );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_CreateEx ( cpgrow : i32 , hheap : super::super::Foundation:: HANDLE ) -> HDPA );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_DeleteAllPtrs ( hdpa : HDPA ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_DeletePtr ( hdpa : HDPA , i : i32 ) -> *mut ::core::ffi::c_void );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_Destroy ( hdpa : HDPA ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_DestroyCallback ( hdpa : HDPA , pfncb : PFNDAENUMCALLBACK , pdata : *const ::core::ffi::c_void ) -> ( ) );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_EnumCallback ( hdpa : HDPA , pfncb : PFNDAENUMCALLBACK , pdata : *const ::core::ffi::c_void ) -> ( ) );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_GetPtr ( hdpa : HDPA , i : isize ) -> *mut ::core::ffi::c_void );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_GetPtrIndex ( hdpa : HDPA , p : *const ::core::ffi::c_void ) -> i32 );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_GetSize ( hdpa : HDPA ) -> u64 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_Grow ( pdpa : HDPA , cp : i32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DPA_InsertPtr ( hdpa : HDPA , i : i32 , p : *const ::core::ffi::c_void ) -> i32 );
+#[cfg(feature = "Win32_System_Com")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"] fn DPA_LoadStream ( phdpa : *mut HDPA , pfn : PFNDPASTREAM , pstream : super::super::System::Com:: IStream , pvinstdata : *const ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_Merge ( hdpadest : HDPA , hdpasrc : HDPA , dwflags : u32 , pfncompare : PFNDACOMPARE , pfnmerge : PFNDPAMERGE , lparam : super::super::Foundation:: LPARAM ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_System_Com")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"] fn DPA_SaveStream ( hdpa : HDPA , pfn : PFNDPASTREAM , pstream : super::super::System::Com:: IStream , pvinstdata : *const ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_Search ( hdpa : HDPA , pfind : *const ::core::ffi::c_void , istart : i32 , pfncompare : PFNDACOMPARE , lparam : super::super::Foundation:: LPARAM , options : u32 ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_SetPtr ( hdpa : HDPA , i : i32 , p : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DPA_Sort ( hdpa : HDPA , pfncompare : PFNDACOMPARE , lparam : super::super::Foundation:: LPARAM ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DSA_Clone ( hdsa : HDSA ) -> HDSA );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DSA_Create ( cbitem : i32 , citemgrow : i32 ) -> HDSA );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DSA_DeleteAllItems ( hdsa : HDSA ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DSA_DeleteItem ( hdsa : HDSA , i : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DSA_Destroy ( hdsa : HDSA ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DSA_DestroyCallback ( hdsa : HDSA , pfncb : PFNDAENUMCALLBACK , pdata : *const ::core::ffi::c_void ) -> ( ) );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DSA_EnumCallback ( hdsa : HDSA , pfncb : PFNDAENUMCALLBACK , pdata : *const ::core::ffi::c_void ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DSA_GetItem ( hdsa : HDSA , i : i32 , pitem : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DSA_GetItemPtr ( hdsa : HDSA , i : i32 ) -> *mut ::core::ffi::c_void );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DSA_GetSize ( hdsa : HDSA ) -> u64 );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DSA_InsertItem ( hdsa : HDSA , i : i32 , pitem : *const ::core::ffi::c_void ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DSA_SetItem ( hdsa : HDSA , i : i32 , pitem : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DSA_Sort ( pdsa : HDSA , pfncompare : PFNDACOMPARE , lparam : super::super::Foundation:: LPARAM ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DestroyPropertySheetPage ( param0 : HPROPSHEETPAGE ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn DestroySyntheticPointerDevice ( device : HSYNTHETICPOINTERDEVICE ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirListA ( hdlg : super::super::Foundation:: HWND , lppathspec : :: windows_sys::core::PSTR , nidlistbox : i32 , nidstaticpath : i32 , ufiletype : DLG_DIR_LIST_FILE_TYPE ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirListComboBoxA ( hdlg : super::super::Foundation:: HWND , lppathspec : :: windows_sys::core::PSTR , nidcombobox : i32 , nidstaticpath : i32 , ufiletype : DLG_DIR_LIST_FILE_TYPE ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirListComboBoxW ( hdlg : super::super::Foundation:: HWND , lppathspec : :: windows_sys::core::PWSTR , nidcombobox : i32 , nidstaticpath : i32 , ufiletype : DLG_DIR_LIST_FILE_TYPE ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirListW ( hdlg : super::super::Foundation:: HWND , lppathspec : :: windows_sys::core::PWSTR , nidlistbox : i32 , nidstaticpath : i32 , ufiletype : DLG_DIR_LIST_FILE_TYPE ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirSelectComboBoxExA ( hwnddlg : super::super::Foundation:: HWND , lpstring : :: windows_sys::core::PSTR , cchout : i32 , idcombobox : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirSelectComboBoxExW ( hwnddlg : super::super::Foundation:: HWND , lpstring : :: windows_sys::core::PWSTR , cchout : i32 , idcombobox : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirSelectExA ( hwnddlg : super::super::Foundation:: HWND , lpstring : :: windows_sys::core::PSTR , chcount : i32 , idlistbox : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DlgDirSelectExW ( hwnddlg : super::super::Foundation:: HWND , lpstring : :: windows_sys::core::PWSTR , chcount : i32 , idlistbox : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn DrawInsert ( handparent : super::super::Foundation:: HWND , hlb : super::super::Foundation:: HWND , nitem : i32 ) -> ( ) );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawShadowText ( hdc : super::super::Graphics::Gdi:: HDC , psztext : :: windows_sys::core::PCWSTR , cch : u32 , prc : *const super::super::Foundation:: RECT , dwflags : u32 , crtext : super::super::Foundation:: COLORREF , crshadow : super::super::Foundation:: COLORREF , ixoffset : i32 , iyoffset : i32 ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawStatusTextA ( hdc : super::super::Graphics::Gdi:: HDC , lprc : *mut super::super::Foundation:: RECT , psztext : :: windows_sys::core::PCSTR , uflags : u32 ) -> ( ) );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawStatusTextW ( hdc : super::super::Graphics::Gdi:: HDC , lprc : *mut super::super::Foundation:: RECT , psztext : :: windows_sys::core::PCWSTR , uflags : u32 ) -> ( ) );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeBackground ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , prect : *const super::super::Foundation:: RECT , pcliprect : *const super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeBackgroundEx ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , prect : *const super::super::Foundation:: RECT , poptions : *const DTBGOPTS ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeEdge ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , pdestrect : *const super::super::Foundation:: RECT , uedge : super::super::Graphics::Gdi:: DRAWEDGE_FLAGS , uflags : super::super::Graphics::Gdi:: DRAW_EDGE_FLAGS , pcontentrect : *mut super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeIcon ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , prect : *const super::super::Foundation:: RECT , himl : HIMAGELIST , iimageindex : i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeParentBackground ( hwnd : super::super::Foundation:: HWND , hdc : super::super::Graphics::Gdi:: HDC , prc : *const super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeParentBackgroundEx ( hwnd : super::super::Foundation:: HWND , hdc : super::super::Graphics::Gdi:: HDC , dwflags : DRAW_THEME_PARENT_BACKGROUND_FLAGS , prc : *const super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeText ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , psztext : :: windows_sys::core::PCWSTR , cchtext : i32 , dwtextflags : super::super::Graphics::Gdi:: DRAW_TEXT_FORMAT , dwtextflags2 : u32 , prect : *const super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DrawThemeTextEx ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , psztext : :: windows_sys::core::PCWSTR , cchtext : i32 , dwtextflags : super::super::Graphics::Gdi:: DRAW_TEXT_FORMAT , prect : *mut super::super::Foundation:: RECT , poptions : *const DTTOPTS ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn EnableScrollBar ( hwnd : super::super::Foundation:: HWND , wsbflags : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , warrows : ENABLE_SCROLL_BAR_ARROWS ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn EnableThemeDialogTexture ( hwnd : super::super::Foundation:: HWND , dwflags : u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn EnableTheming ( fenable : super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn EndBufferedAnimation ( hbpanimation : isize , fupdatetarget : super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn EndBufferedPaint ( hbufferedpaint : isize , fupdatetarget : super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn EndPanningFeedback ( hwnd : super::super::Foundation:: HWND , fanimateback : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn EvaluateProximityToPolygon ( numvertices : u32 , controlpolygon : *const super::super::Foundation:: POINT , phittestinginput : *const TOUCH_HIT_TESTING_INPUT , pproximityeval : *mut TOUCH_HIT_TESTING_PROXIMITY_EVALUATION ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn EvaluateProximityToRect ( controlboundingbox : *const super::super::Foundation:: RECT , phittestinginput : *const TOUCH_HIT_TESTING_INPUT , pproximityeval : *mut TOUCH_HIT_TESTING_PROXIMITY_EVALUATION ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn FlatSB_EnableScrollBar ( param0 : super::super::Foundation:: HWND , param1 : i32 , param2 : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn FlatSB_GetScrollInfo ( param0 : super::super::Foundation:: HWND , code : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , param2 : *mut super::WindowsAndMessaging:: SCROLLINFO ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn FlatSB_GetScrollPos ( param0 : super::super::Foundation:: HWND , code : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn FlatSB_GetScrollProp ( param0 : super::super::Foundation:: HWND , propindex : WSB_PROP , param2 : *mut i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn FlatSB_GetScrollRange ( param0 : super::super::Foundation:: HWND , code : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , param2 : *mut i32 , param3 : *mut i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn FlatSB_SetScrollInfo ( param0 : super::super::Foundation:: HWND , code : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , psi : *mut super::WindowsAndMessaging:: SCROLLINFO , fredraw : super::super::Foundation:: BOOL ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn FlatSB_SetScrollPos ( param0 : super::super::Foundation:: HWND , code : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , pos : i32 , fredraw : super::super::Foundation:: BOOL ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn FlatSB_SetScrollProp ( param0 : super::super::Foundation:: HWND , index : WSB_PROP , newvalue : isize , param3 : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn FlatSB_SetScrollRange ( param0 : super::super::Foundation:: HWND , code : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , min : i32 , max : i32 , fredraw : super::super::Foundation:: BOOL ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn FlatSB_ShowScrollBar ( param0 : super::super::Foundation:: HWND , code : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , param2 : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetBufferedPaintBits ( hbufferedpaint : isize , ppbbuffer : *mut *mut super::super::Graphics::Gdi:: RGBQUAD , pcxrow : *mut i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetBufferedPaintDC ( hbufferedpaint : isize ) -> super::super::Graphics::Gdi:: HDC );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetBufferedPaintTargetDC ( hbufferedpaint : isize ) -> super::super::Graphics::Gdi:: HDC );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetBufferedPaintTargetRect ( hbufferedpaint : isize , prc : *mut super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetComboBoxInfo ( hwndcombo : super::super::Foundation:: HWND , pcbi : *mut COMBOBOXINFO ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetCurrentThemeName ( pszthemefilename : :: windows_sys::core::PWSTR , cchmaxnamechars : i32 , pszcolorbuff : :: windows_sys::core::PWSTR , cchmaxcolorchars : i32 , pszsizebuff : :: windows_sys::core::PWSTR , cchmaxsizechars : i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetEffectiveClientRect ( hwnd : super::super::Foundation:: HWND , lprc : *mut super::super::Foundation:: RECT , lpinfo : *const i32 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetListBoxInfo ( hwnd : super::super::Foundation:: HWND ) -> u32 );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetMUILanguage ( ) -> u16 );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeAnimationProperty ( htheme : HTHEME , istoryboardid : i32 , itargetid : i32 , eproperty : TA_PROPERTY , pvproperty : *mut ::core::ffi::c_void , cbsize : u32 , pcbsizeout : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeAnimationTransform ( htheme : HTHEME , istoryboardid : i32 , itargetid : i32 , dwtransformindex : u32 , ptransform : *mut TA_TRANSFORM , cbsize : u32 , pcbsizeout : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeAppProperties ( ) -> SET_THEME_APP_PROPERTIES_FLAGS );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeBackgroundContentRect ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , pboundingrect : *const super::super::Foundation:: RECT , pcontentrect : *mut super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeBackgroundExtent ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , pcontentrect : *const super::super::Foundation:: RECT , pextentrect : *mut super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeBackgroundRegion ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , prect : *const super::super::Foundation:: RECT , pregion : *mut super::super::Graphics::Gdi:: HRGN ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeBitmap ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , dwflags : GET_THEME_BITMAP_FLAGS , phbitmap : *mut super::super::Graphics::Gdi:: HBITMAP ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetThemeBool ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , pfval : *mut super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetThemeColor ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , pcolor : *mut super::super::Foundation:: COLORREF ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeDocumentationProperty ( pszthemename : :: windows_sys::core::PCWSTR , pszpropertyname : :: windows_sys::core::PCWSTR , pszvaluebuff : :: windows_sys::core::PWSTR , cchmaxvalchars : i32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeEnumValue ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , pival : *mut i32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeFilename ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , pszthemefilename : :: windows_sys::core::PWSTR , cchmaxbuffchars : i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeFont ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , ipropid : i32 , pfont : *mut super::super::Graphics::Gdi:: LOGFONTW ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeInt ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , pival : *mut i32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeIntList ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , pintlist : *mut INTLIST ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeMargins ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , prc : *const super::super::Foundation:: RECT , pmargins : *mut MARGINS ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeMetric ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , pival : *mut i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemePartSize ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , prc : *const super::super::Foundation:: RECT , esize : THEMESIZE , psz : *mut super::super::Foundation:: SIZE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetThemePosition ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : THEME_PROPERTY_SYMBOL_ID , ppoint : *mut super::super::Foundation:: POINT ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemePropertyOrigin ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : i32 , porigin : *mut PROPERTYORIGIN ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetThemeRect ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : i32 , prect : *mut super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetThemeStream ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : i32 , ppvstream : *mut *mut ::core::ffi::c_void , pcbstream : *mut u32 , hinst : super::super::Foundation:: HINSTANCE ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeString ( htheme : HTHEME , ipartid : i32 , istateid : i32 , ipropid : i32 , pszbuff : :: windows_sys::core::PWSTR , cchmaxbuffchars : i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetThemeSysBool ( htheme : HTHEME , iboolid : THEME_PROPERTY_SYMBOL_ID ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetThemeSysColor ( htheme : HTHEME , icolorid : i32 ) -> super::super::Foundation:: COLORREF );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeSysColorBrush ( htheme : HTHEME , icolorid : THEME_PROPERTY_SYMBOL_ID ) -> super::super::Graphics::Gdi:: HBRUSH );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeSysFont ( htheme : HTHEME , ifontid : THEME_PROPERTY_SYMBOL_ID , plf : *mut super::super::Graphics::Gdi:: LOGFONTW ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeSysInt ( htheme : HTHEME , iintid : THEME_PROPERTY_SYMBOL_ID , pivalue : *mut i32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeSysSize ( htheme : HTHEME , isizeid : i32 ) -> i32 );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeSysString ( htheme : HTHEME , istringid : THEME_PROPERTY_SYMBOL_ID , pszstringbuff : :: windows_sys::core::PWSTR , cchmaxstringchars : i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeTextExtent ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , psztext : :: windows_sys::core::PCWSTR , cchcharcount : i32 , dwtextflags : super::super::Graphics::Gdi:: DRAW_TEXT_FORMAT , pboundingrect : *const super::super::Foundation:: RECT , pextentrect : *mut super::super::Foundation:: RECT ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn GetThemeTextMetrics ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , ptm : *mut super::super::Graphics::Gdi:: TEXTMETRICW ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeTimingFunction ( htheme : HTHEME , itimingfunctionid : i32 , ptimingfunction : *mut TA_TIMINGFUNCTION , cbsize : u32 , pcbsizeout : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn GetThemeTransitionDuration ( htheme : HTHEME , ipartid : i32 , istateidfrom : i32 , istateidto : i32 , ipropid : i32 , pdwduration : *mut u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetWindowFeedbackSetting ( hwnd : super::super::Foundation:: HWND , feedback : FEEDBACK_TYPE , dwflags : u32 , psize : *mut u32 , config : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn GetWindowTheme ( hwnd : super::super::Foundation:: HWND ) -> HTHEME );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn HIMAGELIST_QueryInterface ( himl : HIMAGELIST , riid : *const :: windows_sys::core::GUID , ppv : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn HitTestThemeBackground ( htheme : HTHEME , hdc : super::super::Graphics::Gdi:: HDC , ipartid : i32 , istateid : i32 , dwoptions : HIT_TEST_BACKGROUND_OPTIONS , prect : *const super::super::Foundation:: RECT , hrgn : super::super::Graphics::Gdi:: HRGN , pttest : super::super::Foundation:: POINT , pwhittestcode : *mut u16 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Graphics_Gdi\"`*"] fn ImageList_Add ( himl : HIMAGELIST , hbmimage : super::super::Graphics::Gdi:: HBITMAP , hbmmask : super::super::Graphics::Gdi:: HBITMAP ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ImageList_AddMasked ( himl : HIMAGELIST , hbmimage : super::super::Graphics::Gdi:: HBITMAP , crmask : super::super::Foundation:: COLORREF ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_BeginDrag ( himltrack : HIMAGELIST , itrack : i32 , dxhotspot : i32 , dyhotspot : i32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn ImageList_CoCreateInstance ( rclsid : *const :: windows_sys::core::GUID , punkouter : :: windows_sys::core::IUnknown , riid : *const :: windows_sys::core::GUID , ppv : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_Copy ( himldst : HIMAGELIST , idst : i32 , himlsrc : HIMAGELIST , isrc : i32 , uflags : IMAGE_LIST_COPY_FLAGS ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn ImageList_Create ( cx : i32 , cy : i32 , flags : IMAGELIST_CREATION_FLAGS , cinitial : i32 , cgrow : i32 ) -> HIMAGELIST );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_Destroy ( himl : HIMAGELIST ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_DragEnter ( hwndlock : super::super::Foundation:: HWND , x : i32 , y : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_DragLeave ( hwndlock : super::super::Foundation:: HWND ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_DragMove ( x : i32 , y : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_DragShowNolock ( fshow : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ImageList_Draw ( himl : HIMAGELIST , i : i32 , hdcdst : super::super::Graphics::Gdi:: HDC , x : i32 , y : i32 , fstyle : IMAGE_LIST_DRAW_STYLE ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ImageList_DrawEx ( himl : HIMAGELIST , i : i32 , hdcdst : super::super::Graphics::Gdi:: HDC , x : i32 , y : i32 , dx : i32 , dy : i32 , rgbbk : super::super::Foundation:: COLORREF , rgbfg : super::super::Foundation:: COLORREF , fstyle : IMAGE_LIST_DRAW_STYLE ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ImageList_DrawIndirect ( pimldp : *const IMAGELISTDRAWPARAMS ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn ImageList_Duplicate ( himl : HIMAGELIST ) -> HIMAGELIST );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn ImageList_EndDrag ( ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_GetBkColor ( himl : HIMAGELIST ) -> super::super::Foundation:: COLORREF );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_GetDragImage ( ppt : *mut super::super::Foundation:: POINT , ppthotspot : *mut super::super::Foundation:: POINT ) -> HIMAGELIST );
+#[cfg(feature = "Win32_UI_WindowsAndMessaging")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn ImageList_GetIcon ( himl : HIMAGELIST , i : i32 , flags : u32 ) -> super::WindowsAndMessaging:: HICON );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_GetIconSize ( himl : HIMAGELIST , cx : *mut i32 , cy : *mut i32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn ImageList_GetImageCount ( himl : HIMAGELIST ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ImageList_GetImageInfo ( himl : HIMAGELIST , i : i32 , pimageinfo : *mut IMAGEINFO ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn ImageList_LoadImageA ( hi : super::super::Foundation:: HINSTANCE , lpbmp : :: windows_sys::core::PCSTR , cx : i32 , cgrow : i32 , crmask : super::super::Foundation:: COLORREF , utype : u32 , uflags : super::WindowsAndMessaging:: IMAGE_FLAGS ) -> HIMAGELIST );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn ImageList_LoadImageW ( hi : super::super::Foundation:: HINSTANCE , lpbmp : :: windows_sys::core::PCWSTR , cx : i32 , cgrow : i32 , crmask : super::super::Foundation:: COLORREF , utype : u32 , uflags : super::WindowsAndMessaging:: IMAGE_FLAGS ) -> HIMAGELIST );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn ImageList_Merge ( himl1 : HIMAGELIST , i1 : i32 , himl2 : HIMAGELIST , i2 : i32 , dx : i32 , dy : i32 ) -> HIMAGELIST );
+#[cfg(feature = "Win32_System_Com")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"] fn ImageList_Read ( pstm : super::super::System::Com:: IStream ) -> HIMAGELIST );
+#[cfg(feature = "Win32_System_Com")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"] fn ImageList_ReadEx ( dwflags : u32 , pstm : super::super::System::Com:: IStream , riid : *const :: windows_sys::core::GUID , ppv : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_Remove ( himl : HIMAGELIST , i : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ImageList_Replace ( himl : HIMAGELIST , i : i32 , hbmimage : super::super::Graphics::Gdi:: HBITMAP , hbmmask : super::super::Graphics::Gdi:: HBITMAP ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_UI_WindowsAndMessaging")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn ImageList_ReplaceIcon ( himl : HIMAGELIST , i : i32 , hicon : super::WindowsAndMessaging:: HICON ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_SetBkColor ( himl : HIMAGELIST , clrbk : super::super::Foundation:: COLORREF ) -> super::super::Foundation:: COLORREF );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_SetDragCursorImage ( himldrag : HIMAGELIST , idrag : i32 , dxhotspot : i32 , dyhotspot : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_SetIconSize ( himl : HIMAGELIST , cx : i32 , cy : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_SetImageCount ( himl : HIMAGELIST , unewcount : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ImageList_SetOverlayImage ( himl : HIMAGELIST , iimage : i32 , ioverlay : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`*"] fn ImageList_Write ( himl : HIMAGELIST , pstm : super::super::System::Com:: IStream ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_System_Com")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_System_Com\"`*"] fn ImageList_WriteEx ( himl : HIMAGELIST , dwflags : IMAGE_LIST_WRITE_STREAM_FLAGS , pstm : super::super::System::Com:: IStream ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn InitCommonControls ( ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn InitCommonControlsEx ( picce : *const INITCOMMONCONTROLSEX ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn InitMUILanguage ( uilang : u16 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn InitializeFlatSB ( param0 : super::super::Foundation:: HWND ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsAppThemed ( ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsCharLowerW ( ch : u16 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsCompositionActive ( ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsDlgButtonChecked ( hdlg : super::super::Foundation:: HWND , nidbutton : i32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsThemeActive ( ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsThemeBackgroundPartiallyTransparent ( htheme : HTHEME , ipartid : i32 , istateid : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsThemeDialogTextureEnabled ( hwnd : super::super::Foundation:: HWND ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn IsThemePartDefined ( htheme : HTHEME , ipartid : i32 , istateid : i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn LBItemFromPt ( hlb : super::super::Foundation:: HWND , pt : super::super::Foundation:: POINT , bautoscroll : super::super::Foundation:: BOOL ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn LoadIconMetric ( hinst : super::super::Foundation:: HINSTANCE , pszname : :: windows_sys::core::PCWSTR , lims : _LI_METRIC , phico : *mut super::WindowsAndMessaging:: HICON ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn LoadIconWithScaleDown ( hinst : super::super::Foundation:: HINSTANCE , pszname : :: windows_sys::core::PCWSTR , cx : i32 , cy : i32 , phico : *mut super::WindowsAndMessaging:: HICON ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn MakeDragList ( hlb : super::super::Foundation:: HWND ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn MenuHelp ( umsg : u32 , wparam : super::super::Foundation:: WPARAM , lparam : super::super::Foundation:: LPARAM , hmainmenu : super::WindowsAndMessaging:: HMENU , hinst : super::super::Foundation:: HINSTANCE , hwndstatus : super::super::Foundation:: HWND , lpwids : *const u32 ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn OpenThemeData ( hwnd : super::super::Foundation:: HWND , pszclasslist : :: windows_sys::core::PCWSTR ) -> HTHEME );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn OpenThemeDataEx ( hwnd : super::super::Foundation:: HWND , pszclasslist : :: windows_sys::core::PCWSTR , dwflags : OPEN_THEME_DATA_FLAGS ) -> HTHEME );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn PackTouchHitTestingProximityEvaluation ( phittestinginput : *const TOUCH_HIT_TESTING_INPUT , pproximityeval : *const TOUCH_HIT_TESTING_PROXIMITY_EVALUATION ) -> super::super::Foundation:: LRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn PropertySheetA ( param0 : *mut PROPSHEETHEADERA_V2 ) -> isize );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn PropertySheetW ( param0 : *mut PROPSHEETHEADERW_V2 ) -> isize );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn RegisterPointerDeviceNotifications ( window : super::super::Foundation:: HWND , notifyrange : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn RegisterTouchHitTestingWindow ( hwnd : super::super::Foundation:: HWND , value : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn SetScrollInfo ( hwnd : super::super::Foundation:: HWND , nbar : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , lpsi : *const super::WindowsAndMessaging:: SCROLLINFO , redraw : super::super::Foundation:: BOOL ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn SetScrollPos ( hwnd : super::super::Foundation:: HWND , nbar : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , npos : i32 , bredraw : super::super::Foundation:: BOOL ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn SetScrollRange ( hwnd : super::super::Foundation:: HWND , nbar : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , nminpos : i32 , nmaxpos : i32 , bredraw : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`*"] fn SetThemeAppProperties ( dwflags : SET_THEME_APP_PROPERTIES_FLAGS ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn SetWindowFeedbackSetting ( hwnd : super::super::Foundation:: HWND , feedback : FEEDBACK_TYPE , dwflags : u32 , size : u32 , configuration : *const ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn SetWindowTheme ( hwnd : super::super::Foundation:: HWND , pszsubappname : :: windows_sys::core::PCWSTR , pszsubidlist : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn SetWindowThemeAttribute ( hwnd : super::super::Foundation:: HWND , eattribute : WINDOWTHEMEATTRIBUTETYPE , pvattribute : *const ::core::ffi::c_void , cbattribute : u32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn ShowHideMenuCtl ( hwnd : super::super::Foundation:: HWND , uflags : usize , lpinfo : *const i32 ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn ShowScrollBar ( hwnd : super::super::Foundation:: HWND , wbar : super::WindowsAndMessaging:: SCROLLBAR_CONSTANTS , bshow : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn Str_SetPtrW ( ppsz : *mut :: windows_sys::core::PWSTR , psz : :: windows_sys::core::PCWSTR ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn TaskDialog ( hwndowner : super::super::Foundation:: HWND , hinstance : super::super::Foundation:: HINSTANCE , pszwindowtitle : :: windows_sys::core::PCWSTR , pszmaininstruction : :: windows_sys::core::PCWSTR , pszcontent : :: windows_sys::core::PCWSTR , dwcommonbuttons : TASKDIALOG_COMMON_BUTTON_FLAGS , pszicon : :: windows_sys::core::PCWSTR , pnbutton : *mut i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn TaskDialogIndirect ( ptaskconfig : *const TASKDIALOGCONFIG , pnbutton : *mut i32 , pnradiobutton : *mut i32 , pfverificationflagchecked : *mut super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comctl32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn UninitializeFlatSB ( param0 : super::super::Foundation:: HWND ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "uxtheme.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`*"] fn UpdatePanningFeedback ( hwnd : super::super::Foundation:: HWND , ltotaloverpanoffsetx : i32 , ltotaloverpanoffsety : i32 , fininertia : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
 pub type IImageList = *mut ::core::ffi::c_void;
 pub type IImageList2 = *mut ::core::ffi::c_void;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -627,11 +410,11 @@ pub const ACS_TIMER: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const ACS_TRANSPARENT: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ANIMATE_CLASS: &str = "SysAnimate32";
+pub const ANIMATE_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysAnimate32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ANIMATE_CLASSA: &str = "SysAnimate32";
+pub const ANIMATE_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysAnimate32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ANIMATE_CLASSW: &str = "SysAnimate32";
+pub const ANIMATE_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysAnimate32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const BCM_FIRST: u32 = 5632u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -869,11 +652,11 @@ pub const COLORMGMTDLGORD: u32 = 1551u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const COMCTL32_VERSION: u32 = 6u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const DATETIMEPICK_CLASS: &str = "SysDateTimePick32";
+pub const DATETIMEPICK_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysDateTimePick32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const DATETIMEPICK_CLASSA: &str = "SysDateTimePick32";
+pub const DATETIMEPICK_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysDateTimePick32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const DATETIMEPICK_CLASSW: &str = "SysDateTimePick32";
+pub const DATETIMEPICK_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysDateTimePick32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const DA_ERR: i32 = -1i32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -905,7 +688,7 @@ pub const DPA_APPEND: u32 = 2147483647u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const DPA_ERR: i32 = -1i32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const DRAGLISTMSGSTRING: &str = "commctrl_DragListMsg";
+pub const DRAGLISTMSGSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commctrl_DragListMsg");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const DSA_APPEND: u32 = 2147483647u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -1279,11 +1062,11 @@ pub const HOTKEYF_EXT: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const HOTKEYF_SHIFT: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const HOTKEY_CLASS: &str = "msctls_hotkey32";
+pub const HOTKEY_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_hotkey32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const HOTKEY_CLASSA: &str = "msctls_hotkey32";
+pub const HOTKEY_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("msctls_hotkey32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const HOTKEY_CLASSW: &str = "msctls_hotkey32";
+pub const HOTKEY_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_hotkey32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const HOVER_DEFAULT: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -1322,24 +1105,6 @@ pub const ILDI_STANDBY: u32 = 2u32;
 pub const ILDRF_IMAGELOWQUALITY: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const ILDRF_OVERLAYLOWQUALITY: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_ASYNC: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_BLEND25: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_DPISCALE: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_IMAGE: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_OVERLAYMASK: u32 = 3840u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_PRESERVEALPHA: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_ROP: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_SCALE: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_TRANSPARENT: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const ILFIP_ALWAYS: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -1402,7 +1167,8 @@ pub const I_IMAGECALLBACK: i32 = -1i32;
 pub const I_IMAGENONE: i32 = -2i32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const I_INDENTCALLBACK: i32 = -1i32;
-pub const ImageList: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2085055394, data2: 689, data3: 18676, data4: [128, 72, 178, 70, 25, 221, 192, 88] };
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ImageList: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7c476ba2_02b1_48f4_8048_b24619ddc058);
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const LM_GETIDEALHEIGHT: u32 = 1793u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -2076,11 +1842,11 @@ pub const MCS_SHORTDAYSOFWEEK: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const MCS_WEEKNUMBERS: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const MONTHCAL_CLASS: &str = "SysMonthCal32";
+pub const MONTHCAL_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysMonthCal32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const MONTHCAL_CLASSA: &str = "SysMonthCal32";
+pub const MONTHCAL_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysMonthCal32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const MONTHCAL_CLASSW: &str = "SysMonthCal32";
+pub const MONTHCAL_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysMonthCal32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const MSGF_COMMCTRL_BEGINDRAG: u32 = 16896u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -2224,11 +1990,11 @@ pub const PRINTDLGORD: u32 = 1538u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const PRNSETUPDLGORD: u32 = 1539u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const PROGRESS_CLASS: &str = "msctls_progress32";
+pub const PROGRESS_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_progress32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const PROGRESS_CLASSA: &str = "msctls_progress32";
+pub const PROGRESS_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("msctls_progress32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const PROGRESS_CLASSW: &str = "msctls_progress32";
+pub const PROGRESS_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_progress32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const PROP_LG_CXDLG: u32 = 252u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -2642,11 +2408,11 @@ pub const RB_SHOWBAND: u32 = 1059u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const RB_SIZETORECT: u32 = 1047u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const REBARCLASSNAME: &str = "ReBarWindow32";
+pub const REBARCLASSNAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ReBarWindow32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const REBARCLASSNAMEA: &str = "ReBarWindow32";
+pub const REBARCLASSNAMEA: ::windows_sys::core::PCSTR = ::windows_sys::s!("ReBarWindow32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const REBARCLASSNAMEW: &str = "ReBarWindow32";
+pub const REBARCLASSNAMEW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ReBarWindow32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const REPLACEDLGORD: u32 = 1541u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -2720,11 +2486,11 @@ pub const SB_SIMPLE: u32 = 1033u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const SB_SIMPLEID: u32 = 255u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const STATUSCLASSNAME: &str = "msctls_statusbar32";
+pub const STATUSCLASSNAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_statusbar32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const STATUSCLASSNAMEA: &str = "msctls_statusbar32";
+pub const STATUSCLASSNAMEA: ::windows_sys::core::PCSTR = ::windows_sys::s!("msctls_statusbar32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const STATUSCLASSNAMEW: &str = "msctls_statusbar32";
+pub const STATUSCLASSNAMEW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_statusbar32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const STD_COPY: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -2756,13 +2522,13 @@ pub const STD_REPLACE: u32 = 13u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const STD_UNDO: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const SZ_THDOCPROP_AUTHOR: &str = "author";
+pub const SZ_THDOCPROP_AUTHOR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("author");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const SZ_THDOCPROP_CANONICALNAME: &str = "ThemeName";
+pub const SZ_THDOCPROP_CANONICALNAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ThemeName");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const SZ_THDOCPROP_DISPLAYNAME: &str = "DisplayName";
+pub const SZ_THDOCPROP_DISPLAYNAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DisplayName");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const SZ_THDOCPROP_TOOLTIP: &str = "ToolTip";
+pub const SZ_THDOCPROP_TOOLTIP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ToolTip");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const TBBF_LARGE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -3342,23 +3108,23 @@ pub const TMTVS_RESERVEDHIGH: u32 = 19999u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const TMTVS_RESERVEDLOW: u32 = 100000u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TOOLBARCLASSNAME: &str = "ToolbarWindow32";
+pub const TOOLBARCLASSNAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ToolbarWindow32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TOOLBARCLASSNAMEA: &str = "ToolbarWindow32";
+pub const TOOLBARCLASSNAMEA: ::windows_sys::core::PCSTR = ::windows_sys::s!("ToolbarWindow32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TOOLBARCLASSNAMEW: &str = "ToolbarWindow32";
+pub const TOOLBARCLASSNAMEW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ToolbarWindow32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TOOLTIPS_CLASS: &str = "tooltips_class32";
+pub const TOOLTIPS_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("tooltips_class32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TOOLTIPS_CLASSA: &str = "tooltips_class32";
+pub const TOOLTIPS_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("tooltips_class32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TOOLTIPS_CLASSW: &str = "tooltips_class32";
+pub const TOOLTIPS_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("tooltips_class32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TRACKBAR_CLASS: &str = "msctls_trackbar32";
+pub const TRACKBAR_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_trackbar32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TRACKBAR_CLASSA: &str = "msctls_trackbar32";
+pub const TRACKBAR_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("msctls_trackbar32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const TRACKBAR_CLASSW: &str = "msctls_trackbar32";
+pub const TRACKBAR_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_trackbar32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const TTDT_AUTOMATIC: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -3774,11 +3540,11 @@ pub const UDS_WRAP: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const UD_MAXVAL: u32 = 32767u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const UPDOWN_CLASS: &str = "msctls_updown32";
+pub const UPDOWN_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_updown32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const UPDOWN_CLASSA: &str = "msctls_updown32";
+pub const UPDOWN_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("msctls_updown32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const UPDOWN_CLASSW: &str = "msctls_updown32";
+pub const UPDOWN_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("msctls_updown32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const VIEW_DETAILS: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -3806,225 +3572,225 @@ pub const VIEW_SORTTYPE: u32 = 7u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const VIEW_VIEWMENU: u32 = 12u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_AEROWIZARD: &str = "AEROWIZARD";
+pub const VSCLASS_AEROWIZARD: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AEROWIZARD");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_AEROWIZARDSTYLE: &str = "AEROWIZARDSTYLE";
+pub const VSCLASS_AEROWIZARDSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AEROWIZARDSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_BUTTON: &str = "BUTTON";
+pub const VSCLASS_BUTTON: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BUTTON");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_BUTTONSTYLE: &str = "BUTTONSTYLE";
+pub const VSCLASS_BUTTONSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("BUTTONSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_CLOCK: &str = "CLOCK";
+pub const VSCLASS_CLOCK: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CLOCK");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_COMBOBOX: &str = "COMBOBOX";
+pub const VSCLASS_COMBOBOX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("COMBOBOX");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_COMBOBOXSTYLE: &str = "COMBOBOXSTYLE";
+pub const VSCLASS_COMBOBOXSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("COMBOBOXSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_COMMUNICATIONS: &str = "COMMUNICATIONS";
+pub const VSCLASS_COMMUNICATIONS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("COMMUNICATIONS");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_COMMUNICATIONSSTYLE: &str = "COMMUNICATIONSSTYLE";
+pub const VSCLASS_COMMUNICATIONSSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("COMMUNICATIONSSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_CONTROLPANEL: &str = "CONTROLPANEL";
+pub const VSCLASS_CONTROLPANEL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CONTROLPANEL");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_CONTROLPANELSTYLE: &str = "CONTROLPANELSTYLE";
+pub const VSCLASS_CONTROLPANELSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("CONTROLPANELSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_DATEPICKER: &str = "DATEPICKER";
+pub const VSCLASS_DATEPICKER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DATEPICKER");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_DATEPICKERSTYLE: &str = "DATEPICKERSTYLE";
+pub const VSCLASS_DATEPICKERSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DATEPICKERSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_DRAGDROP: &str = "DRAGDROP";
+pub const VSCLASS_DRAGDROP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DRAGDROP");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_DRAGDROPSTYLE: &str = "DRAGDROPSTYLE";
+pub const VSCLASS_DRAGDROPSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DRAGDROPSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_EDIT: &str = "EDIT";
+pub const VSCLASS_EDIT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EDIT");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_EDITSTYLE: &str = "EDITSTYLE";
+pub const VSCLASS_EDITSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EDITSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_EMPTYMARKUP: &str = "EMPTYMARKUP";
+pub const VSCLASS_EMPTYMARKUP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EMPTYMARKUP");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_EXPLORERBAR: &str = "EXPLORERBAR";
+pub const VSCLASS_EXPLORERBAR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EXPLORERBAR");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_EXPLORERBARSTYLE: &str = "EXPLORERBARSTYLE";
+pub const VSCLASS_EXPLORERBARSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EXPLORERBARSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_FLYOUT: &str = "FLYOUT";
+pub const VSCLASS_FLYOUT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("FLYOUT");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_FLYOUTSTYLE: &str = "FLYOUTSTYLE";
+pub const VSCLASS_FLYOUTSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("FLYOUTSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_HEADER: &str = "HEADER";
+pub const VSCLASS_HEADER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HEADER");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_HEADERSTYLE: &str = "HEADERSTYLE";
+pub const VSCLASS_HEADERSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HEADERSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_LINK: &str = "LINK";
+pub const VSCLASS_LINK: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LINK");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_LISTBOX: &str = "LISTBOX";
+pub const VSCLASS_LISTBOX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LISTBOX");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_LISTBOXSTYLE: &str = "LISTBOXSTYLE";
+pub const VSCLASS_LISTBOXSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LISTBOXSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_LISTVIEW: &str = "LISTVIEW";
+pub const VSCLASS_LISTVIEW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LISTVIEW");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_LISTVIEWSTYLE: &str = "LISTVIEWSTYLE";
+pub const VSCLASS_LISTVIEWSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("LISTVIEWSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_MENU: &str = "MENU";
+pub const VSCLASS_MENU: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MENU");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_MENUBAND: &str = "MENUBAND";
+pub const VSCLASS_MENUBAND: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MENUBAND");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_MENUSTYLE: &str = "MENUSTYLE";
+pub const VSCLASS_MENUSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MENUSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_MONTHCAL: &str = "MONTHCAL";
+pub const VSCLASS_MONTHCAL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MONTHCAL");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_NAVIGATION: &str = "NAVIGATION";
+pub const VSCLASS_NAVIGATION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NAVIGATION");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_PAGE: &str = "PAGE";
+pub const VSCLASS_PAGE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PAGE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_PROGRESS: &str = "PROGRESS";
+pub const VSCLASS_PROGRESS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PROGRESS");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_PROGRESSSTYLE: &str = "PROGRESSSTYLE";
+pub const VSCLASS_PROGRESSSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PROGRESSSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_REBAR: &str = "REBAR";
+pub const VSCLASS_REBAR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("REBAR");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_REBARSTYLE: &str = "REBARSTYLE";
+pub const VSCLASS_REBARSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("REBARSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_SCROLLBAR: &str = "SCROLLBAR";
+pub const VSCLASS_SCROLLBAR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SCROLLBAR");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_SCROLLBARSTYLE: &str = "SCROLLBARSTYLE";
+pub const VSCLASS_SCROLLBARSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SCROLLBARSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_SPIN: &str = "SPIN";
+pub const VSCLASS_SPIN: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SPIN");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_SPINSTYLE: &str = "SPINSTYLE";
+pub const VSCLASS_SPINSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SPINSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_STARTPANEL: &str = "STARTPANEL";
+pub const VSCLASS_STARTPANEL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("STARTPANEL");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_STATIC: &str = "STATIC";
+pub const VSCLASS_STATIC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("STATIC");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_STATUS: &str = "STATUS";
+pub const VSCLASS_STATUS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("STATUS");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_STATUSSTYLE: &str = "STATUSSTYLE";
+pub const VSCLASS_STATUSSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("STATUSSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TAB: &str = "TAB";
+pub const VSCLASS_TAB: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TAB");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TABSTYLE: &str = "TABSTYLE";
+pub const VSCLASS_TABSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TABSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TASKBAND: &str = "TASKBAND";
+pub const VSCLASS_TASKBAND: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TASKBAND");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TASKBAR: &str = "TASKBAR";
+pub const VSCLASS_TASKBAR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TASKBAR");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TASKDIALOG: &str = "TASKDIALOG";
+pub const VSCLASS_TASKDIALOG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TASKDIALOG");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TASKDIALOGSTYLE: &str = "TASKDIALOGSTYLE";
+pub const VSCLASS_TASKDIALOGSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TASKDIALOGSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TEXTSELECTIONGRIPPER: &str = "TEXTSELECTIONGRIPPER";
+pub const VSCLASS_TEXTSELECTIONGRIPPER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TEXTSELECTIONGRIPPER");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TEXTSTYLE: &str = "TEXTSTYLE";
+pub const VSCLASS_TEXTSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TEXTSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TOOLBAR: &str = "TOOLBAR";
+pub const VSCLASS_TOOLBAR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TOOLBAR");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TOOLBARSTYLE: &str = "TOOLBARSTYLE";
+pub const VSCLASS_TOOLBARSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TOOLBARSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TOOLTIP: &str = "TOOLTIP";
+pub const VSCLASS_TOOLTIP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TOOLTIP");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TOOLTIPSTYLE: &str = "TOOLTIPSTYLE";
+pub const VSCLASS_TOOLTIPSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TOOLTIPSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TRACKBAR: &str = "TRACKBAR";
+pub const VSCLASS_TRACKBAR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TRACKBAR");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TRACKBARSTYLE: &str = "TRACKBARSTYLE";
+pub const VSCLASS_TRACKBARSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TRACKBARSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TRAYNOTIFY: &str = "TRAYNOTIFY";
+pub const VSCLASS_TRAYNOTIFY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TRAYNOTIFY");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TREEVIEW: &str = "TREEVIEW";
+pub const VSCLASS_TREEVIEW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TREEVIEW");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_TREEVIEWSTYLE: &str = "TREEVIEWSTYLE";
+pub const VSCLASS_TREEVIEWSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("TREEVIEWSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_USERTILE: &str = "USERTILE";
+pub const VSCLASS_USERTILE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("USERTILE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_WINDOW: &str = "WINDOW";
+pub const VSCLASS_WINDOW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WINDOW");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const VSCLASS_WINDOWSTYLE: &str = "WINDOWSTYLE";
+pub const VSCLASS_WINDOWSTYLE: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WINDOWSTYLE");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_BUTTON: &str = "Button";
+pub const WC_BUTTON: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Button");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_BUTTONA: &str = "Button";
+pub const WC_BUTTONA: ::windows_sys::core::PCSTR = ::windows_sys::s!("Button");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_BUTTONW: &str = "Button";
+pub const WC_BUTTONW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Button");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_COMBOBOX: &str = "ComboBox";
+pub const WC_COMBOBOX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ComboBox");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_COMBOBOXA: &str = "ComboBox";
+pub const WC_COMBOBOXA: ::windows_sys::core::PCSTR = ::windows_sys::s!("ComboBox");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_COMBOBOXEX: &str = "ComboBoxEx32";
+pub const WC_COMBOBOXEX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ComboBoxEx32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_COMBOBOXEXA: &str = "ComboBoxEx32";
+pub const WC_COMBOBOXEXA: ::windows_sys::core::PCSTR = ::windows_sys::s!("ComboBoxEx32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_COMBOBOXEXW: &str = "ComboBoxEx32";
+pub const WC_COMBOBOXEXW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ComboBoxEx32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_COMBOBOXW: &str = "ComboBox";
+pub const WC_COMBOBOXW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ComboBox");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_EDIT: &str = "Edit";
+pub const WC_EDIT: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Edit");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_EDITA: &str = "Edit";
+pub const WC_EDITA: ::windows_sys::core::PCSTR = ::windows_sys::s!("Edit");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_EDITW: &str = "Edit";
+pub const WC_EDITW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Edit");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_HEADER: &str = "SysHeader32";
+pub const WC_HEADER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysHeader32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_HEADERA: &str = "SysHeader32";
+pub const WC_HEADERA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysHeader32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_HEADERW: &str = "SysHeader32";
+pub const WC_HEADERW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysHeader32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_IPADDRESS: &str = "SysIPAddress32";
+pub const WC_IPADDRESS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysIPAddress32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_IPADDRESSA: &str = "SysIPAddress32";
+pub const WC_IPADDRESSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysIPAddress32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_IPADDRESSW: &str = "SysIPAddress32";
+pub const WC_IPADDRESSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysIPAddress32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_LINK: &str = "SysLink";
+pub const WC_LINK: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysLink");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_LISTBOX: &str = "ListBox";
+pub const WC_LISTBOX: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ListBox");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_LISTBOXA: &str = "ListBox";
+pub const WC_LISTBOXA: ::windows_sys::core::PCSTR = ::windows_sys::s!("ListBox");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_LISTBOXW: &str = "ListBox";
+pub const WC_LISTBOXW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ListBox");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_LISTVIEW: &str = "SysListView32";
+pub const WC_LISTVIEW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysListView32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_LISTVIEWA: &str = "SysListView32";
+pub const WC_LISTVIEWA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysListView32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_LISTVIEWW: &str = "SysListView32";
+pub const WC_LISTVIEWW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysListView32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_NATIVEFONTCTL: &str = "NativeFontCtl";
+pub const WC_NATIVEFONTCTL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NativeFontCtl");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_NATIVEFONTCTLA: &str = "NativeFontCtl";
+pub const WC_NATIVEFONTCTLA: ::windows_sys::core::PCSTR = ::windows_sys::s!("NativeFontCtl");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_NATIVEFONTCTLW: &str = "NativeFontCtl";
+pub const WC_NATIVEFONTCTLW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NativeFontCtl");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_PAGESCROLLER: &str = "SysPager";
+pub const WC_PAGESCROLLER: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysPager");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_PAGESCROLLERA: &str = "SysPager";
+pub const WC_PAGESCROLLERA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysPager");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_PAGESCROLLERW: &str = "SysPager";
+pub const WC_PAGESCROLLERW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysPager");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_SCROLLBAR: &str = "ScrollBar";
+pub const WC_SCROLLBAR: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ScrollBar");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_SCROLLBARA: &str = "ScrollBar";
+pub const WC_SCROLLBARA: ::windows_sys::core::PCSTR = ::windows_sys::s!("ScrollBar");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_SCROLLBARW: &str = "ScrollBar";
+pub const WC_SCROLLBARW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ScrollBar");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_STATIC: &str = "Static";
+pub const WC_STATIC: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Static");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_STATICA: &str = "Static";
+pub const WC_STATICA: ::windows_sys::core::PCSTR = ::windows_sys::s!("Static");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_STATICW: &str = "Static";
+pub const WC_STATICW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Static");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_TABCONTROL: &str = "SysTabControl32";
+pub const WC_TABCONTROL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysTabControl32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_TABCONTROLA: &str = "SysTabControl32";
+pub const WC_TABCONTROLA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysTabControl32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_TABCONTROLW: &str = "SysTabControl32";
+pub const WC_TABCONTROLW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysTabControl32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_TREEVIEW: &str = "SysTreeView32";
+pub const WC_TREEVIEW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysTreeView32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_TREEVIEWA: &str = "SysTreeView32";
+pub const WC_TREEVIEWA: ::windows_sys::core::PCSTR = ::windows_sys::s!("SysTreeView32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const WC_TREEVIEWW: &str = "SysTreeView32";
+pub const WC_TREEVIEWW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SysTreeView32");
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const WIZ_BODYCX: u32 = 184u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -5928,17 +5694,35 @@ pub const ILCF_SWAP: IMAGE_LIST_COPY_FLAGS = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub type IMAGE_LIST_DRAW_STYLE = u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_BLEND: IMAGE_LIST_DRAW_STYLE = 4u32;
+pub const ILD_NORMAL: IMAGE_LIST_DRAW_STYLE = 0u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_BLEND50: IMAGE_LIST_DRAW_STYLE = 4u32;
+pub const ILD_TRANSPARENT: IMAGE_LIST_DRAW_STYLE = 1u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_BLEND25: IMAGE_LIST_DRAW_STYLE = 2u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const ILD_FOCUS: IMAGE_LIST_DRAW_STYLE = 2u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_MASK: IMAGE_LIST_DRAW_STYLE = 16u32;
-#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
-pub const ILD_NORMAL: IMAGE_LIST_DRAW_STYLE = 0u32;
+pub const ILD_BLEND50: IMAGE_LIST_DRAW_STYLE = 4u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub const ILD_SELECTED: IMAGE_LIST_DRAW_STYLE = 4u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_BLEND: IMAGE_LIST_DRAW_STYLE = 4u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_MASK: IMAGE_LIST_DRAW_STYLE = 16u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_IMAGE: IMAGE_LIST_DRAW_STYLE = 32u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_ROP: IMAGE_LIST_DRAW_STYLE = 64u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_OVERLAYMASK: IMAGE_LIST_DRAW_STYLE = 3840u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_PRESERVEALPHA: IMAGE_LIST_DRAW_STYLE = 4096u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_SCALE: IMAGE_LIST_DRAW_STYLE = 8192u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_DPISCALE: IMAGE_LIST_DRAW_STYLE = 16384u32;
+#[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
+pub const ILD_ASYNC: IMAGE_LIST_DRAW_STYLE = 32768u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
 pub type IMAGE_LIST_ITEM_FLAGS = u32;
 #[doc = "*Required features: `\"Win32_UI_Controls\"`*"]
@@ -9529,6 +9313,7 @@ impl ::core::clone::Clone for HD_TEXTFILTERW {
 pub type HIMAGELIST = isize;
 pub type HPROPSHEETPAGE = isize;
 pub type HSYNTHETICPOINTERDEVICE = isize;
+pub type HTHEME = isize;
 pub type HTREEITEM = isize;
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_UI_Controls\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]

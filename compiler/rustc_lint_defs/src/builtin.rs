@@ -708,7 +708,7 @@ declare_lint! {
     ///
     /// ### Example
     ///
-    /// ```rust
+    /// ```rust,compile_fail
     /// pub enum Enum {
     ///     Foo,
     ///     Bar,
@@ -743,7 +743,7 @@ declare_lint! {
     /// [identifier pattern]: https://doc.rust-lang.org/reference/patterns.html#identifier-patterns
     /// [path pattern]: https://doc.rust-lang.org/reference/patterns.html#path-patterns
     pub BINDINGS_WITH_VARIANT_NAME,
-    Warn,
+    Deny,
     "detects pattern bindings with the same name as one of the matched variants"
 }
 
@@ -911,8 +911,7 @@ declare_lint! {
 
 declare_lint! {
     /// The `trivial_casts` lint detects trivial casts which could be replaced
-    /// with coercion, which may require [type ascription] or a temporary
-    /// variable.
+    /// with coercion, which may require a temporary variable.
     ///
     /// ### Example
     ///
@@ -934,12 +933,14 @@ declare_lint! {
     /// with FFI interfaces or complex type aliases, where it triggers
     /// incorrectly, or in situations where it will be more difficult to
     /// clearly express the intent. It may be possible that this will become a
-    /// warning in the future, possibly with [type ascription] providing a
-    /// convenient way to work around the current issues. See [RFC 401] for
-    /// historical context.
+    /// warning in the future, possibly with an explicit syntax for coercions
+    /// providing a convenient way to work around the current issues.
+    /// See [RFC 401 (coercions)][rfc-401], [RFC 803 (type ascription)][rfc-803] and
+    /// [RFC 3307 (remove type ascription)][rfc-3307] for historical context.
     ///
-    /// [type ascription]: https://github.com/rust-lang/rust/issues/23416
-    /// [RFC 401]: https://github.com/rust-lang/rfcs/blob/master/text/0401-coercions.md
+    /// [rfc-401]: https://github.com/rust-lang/rfcs/blob/master/text/0401-coercions.md
+    /// [rfc-803]: https://github.com/rust-lang/rfcs/blob/master/text/0803-type-ascription.md
+    /// [rfc-3307]: https://github.com/rust-lang/rfcs/blob/master/text/3307-de-rfc-type-ascription.md
     pub TRIVIAL_CASTS,
     Allow,
     "detects trivial casts which could be removed"
@@ -967,12 +968,14 @@ declare_lint! {
     /// with FFI interfaces or complex type aliases, where it triggers
     /// incorrectly, or in situations where it will be more difficult to
     /// clearly express the intent. It may be possible that this will become a
-    /// warning in the future, possibly with [type ascription] providing a
-    /// convenient way to work around the current issues. See [RFC 401] for
-    /// historical context.
+    /// warning in the future, possibly with an explicit syntax for coercions
+    /// providing a convenient way to work around the current issues.
+    /// See [RFC 401 (coercions)][rfc-401], [RFC 803 (type ascription)][rfc-803] and
+    /// [RFC 3307 (remove type ascription)][rfc-3307] for historical context.
     ///
-    /// [type ascription]: https://github.com/rust-lang/rust/issues/23416
-    /// [RFC 401]: https://github.com/rust-lang/rfcs/blob/master/text/0401-coercions.md
+    /// [rfc-401]: https://github.com/rust-lang/rfcs/blob/master/text/0401-coercions.md
+    /// [rfc-803]: https://github.com/rust-lang/rfcs/blob/master/text/0803-type-ascription.md
+    /// [rfc-3307]: https://github.com/rust-lang/rfcs/blob/master/text/3307-de-rfc-type-ascription.md
     pub TRIVIAL_NUMERIC_CASTS,
     Allow,
     "detects trivial casts of numeric types which could be removed"
@@ -1013,6 +1016,44 @@ declare_lint! {
     "detect private items in public interfaces not caught by the old implementation",
     @future_incompatible = FutureIncompatibleInfo {
         reference: "issue #34537 <https://github.com/rust-lang/rust/issues/34537>",
+    };
+}
+
+declare_lint! {
+    /// The `invalid_alignment` lint detects dereferences of misaligned pointers during
+    /// constant evluation.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// #![feature(const_ptr_read)]
+    /// const FOO: () = unsafe {
+    ///     let x = &[0_u8; 4];
+    ///     let y = x.as_ptr().cast::<u32>();
+    ///     y.read(); // the address of a `u8` array is unknown and thus we don't know if
+    ///     // it is aligned enough for reading a `u32`.
+    /// };
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// The compiler allowed dereferencing raw pointers irrespective of alignment
+    /// during const eval due to the const evaluator at the time not making it easy
+    /// or cheap to check. Now that it is both, this is not accepted anymore.
+    ///
+    /// Since it was undefined behaviour to begin with, this breakage does not violate
+    /// Rust's stability guarantees. Using undefined behaviour can cause arbitrary
+    /// behaviour, including failure to build.
+    ///
+    /// [future-incompatible]: ../index.md#future-incompatible-lints
+    pub INVALID_ALIGNMENT,
+    Deny,
+    "raw pointers must be aligned before dereferencing",
+    @future_incompatible = FutureIncompatibleInfo {
+        reference: "issue #68585 <https://github.com/rust-lang/rust/issues/104616>",
+        reason: FutureIncompatibilityReason::FutureReleaseErrorReportNow,
     };
 }
 
@@ -1364,7 +1405,7 @@ declare_lint! {
     /// struct S;
     ///
     /// impl S {
-    ///     fn late<'a, 'b>(self, _: &'a u8, _: &'b u8) {}
+    ///     fn late(self, _: &u8, _: &u8) {}
     /// }
     ///
     /// fn main() {
@@ -2974,6 +3015,7 @@ declare_lint! {
     "trailing semicolon in macro body used as expression",
     @future_incompatible = FutureIncompatibleInfo {
         reference: "issue #79813 <https://github.com/rust-lang/rust/issues/79813>",
+        reason: FutureIncompatibilityReason::FutureReleaseErrorReportNow,
     };
 }
 
@@ -3608,7 +3650,7 @@ declare_lint! {
     /// fn main() {
     ///     let x: String = "3".try_into().unwrap();
     ///     //                  ^^^^^^^^
-    ///     // This call to try_into matches both Foo:try_into and TryInto::try_into as
+    ///     // This call to try_into matches both Foo::try_into and TryInto::try_into as
     ///     // `TryInto` has been added to the Rust prelude in 2021 edition.
     ///     println!("{x}");
     /// }
@@ -4060,10 +4102,10 @@ declare_lint! {
     ///
     /// This can be used to implement an unsound API if used incorrectly.
     pub IMPLIED_BOUNDS_ENTAILMENT,
-    Warn,
+    Deny,
     "impl method assumes more implied bounds than its corresponding trait method",
     @future_incompatible = FutureIncompatibleInfo {
         reference: "issue #105572 <https://github.com/rust-lang/rust/issues/105572>",
-        reason: FutureIncompatibilityReason::FutureReleaseError,
+        reason: FutureIncompatibilityReason::FutureReleaseErrorReportNow,
     };
 }

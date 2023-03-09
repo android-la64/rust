@@ -7,17 +7,19 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-#![doc(html_root_url = "https://docs.rs/pest_derive")]
+#![doc(
+    html_root_url = "https://docs.rs/pest_derive",
+    html_logo_url = "https://raw.githubusercontent.com/pest-parser/pest/master/pest-logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/pest-parser/pest/master/pest-logo.svg"
+)]
+#![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
 #![recursion_limit = "256"]
+//! # pest generator
+//!
+//! This crate generates code from ASTs (which is used in the `pest_derive` crate).
 
-extern crate pest;
-extern crate pest_meta;
-
-extern crate proc_macro;
-extern crate proc_macro2;
 #[macro_use]
 extern crate quote;
-extern crate syn;
 
 use std::env;
 use std::fs::File;
@@ -31,9 +33,12 @@ use syn::{Attribute, DeriveInput, Generics, Ident, Lit, Meta};
 mod macros;
 mod generator;
 
-use pest_meta::parser::{self, Rule};
+use pest_meta::parser::{self, rename_meta_rule, Rule};
 use pest_meta::{optimizer, unwrap_or_report, validator};
 
+/// Processes the derive/proc macro input and generates the corresponding parser based
+/// on the parsed grammar. If `include_grammar` is set to true, it'll generate an explicit
+/// "include_str" statement (done in pest_derive, but turned off in the local bootstrap).
 pub fn derive_parser(input: TokenStream, include_grammar: bool) -> TokenStream {
     let ast: DeriveInput = syn::parse2(input).unwrap();
     let (name, generics, content) = parse_derive(ast);
@@ -41,7 +46,21 @@ pub fn derive_parser(input: TokenStream, include_grammar: bool) -> TokenStream {
     let (data, path) = match content {
         GrammarSource::File(ref path) => {
             let root = env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into());
-            let path = Path::new(&root).join("src/").join(&path);
+
+            // Check whether we can find a file at the path relative to the CARGO_MANIFEST_DIR
+            // first.
+            //
+            // If we cannot find the expected file over there, fallback to the
+            // `CARGO_MANIFEST_DIR/src`, which is the old default and kept for convenience
+            // reasons.
+            // TODO: This could be refactored once `std::path::absolute()` get's stabilized.
+            // https://doc.rust-lang.org/std/path/fn.absolute.html
+            let path = if Path::new(&root).join(path).exists() {
+                Path::new(&root).join(path)
+            } else {
+                Path::new(&root).join("src/").join(path)
+            };
+
             let file_name = match path.file_name() {
                 Some(file_name) => file_name,
                 None => panic!("grammar attribute should point to a file"),
@@ -58,37 +77,7 @@ pub fn derive_parser(input: TokenStream, include_grammar: bool) -> TokenStream {
 
     let pairs = match parser::parse(Rule::grammar_rules, &data) {
         Ok(pairs) => pairs,
-        Err(error) => panic!(
-            "error parsing \n{}",
-            error.renamed_rules(|rule| match *rule {
-                Rule::grammar_rule => "rule".to_owned(),
-                Rule::_push => "PUSH".to_owned(),
-                Rule::assignment_operator => "`=`".to_owned(),
-                Rule::silent_modifier => "`_`".to_owned(),
-                Rule::atomic_modifier => "`@`".to_owned(),
-                Rule::compound_atomic_modifier => "`$`".to_owned(),
-                Rule::non_atomic_modifier => "`!`".to_owned(),
-                Rule::opening_brace => "`{`".to_owned(),
-                Rule::closing_brace => "`}`".to_owned(),
-                Rule::opening_brack => "`[`".to_owned(),
-                Rule::closing_brack => "`]`".to_owned(),
-                Rule::opening_paren => "`(`".to_owned(),
-                Rule::positive_predicate_operator => "`&`".to_owned(),
-                Rule::negative_predicate_operator => "`!`".to_owned(),
-                Rule::sequence_operator => "`&`".to_owned(),
-                Rule::choice_operator => "`|`".to_owned(),
-                Rule::optional_operator => "`?`".to_owned(),
-                Rule::repeat_operator => "`*`".to_owned(),
-                Rule::repeat_once_operator => "`+`".to_owned(),
-                Rule::comma => "`,`".to_owned(),
-                Rule::closing_paren => "`)`".to_owned(),
-                Rule::quote => "`\"`".to_owned(),
-                Rule::insensitive_string => "`^`".to_owned(),
-                Rule::range_operator => "`..`".to_owned(),
-                Rule::single_quote => "`'`".to_owned(),
-                other_rule => format!("{:?}", other_rule),
-            })
-        ),
+        Err(error) => panic!("error parsing \n{}", error.renamed_rules(rename_meta_rule)),
     };
 
     let defaults = unwrap_or_report(validator::validate_pairs(pairs.clone()));
@@ -155,7 +144,6 @@ fn get_attribute(attr: &Attribute) -> GrammarSource {
 mod tests {
     use super::parse_derive;
     use super::GrammarSource;
-    use syn;
 
     #[test]
     fn derive_inline_file() {

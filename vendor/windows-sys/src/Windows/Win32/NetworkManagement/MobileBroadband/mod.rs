@@ -40,10 +40,14 @@ pub type IMbnSmsReadMsgTextCdma = *mut ::core::ffi::c_void;
 pub type IMbnSubscriberInformation = *mut ::core::ffi::c_void;
 pub type IMbnVendorSpecificEvents = *mut ::core::ffi::c_void;
 pub type IMbnVendorSpecificOperation = *mut ::core::ffi::c_void;
-pub const MbnConnectionManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3187597404, data2: 17432, data3: 4573, data4: [144, 237, 0, 28, 37, 124, 207, 241] };
-pub const MbnConnectionProfileManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3187597402, data2: 17432, data3: 4573, data4: [144, 237, 0, 28, 37, 124, 207, 241] };
-pub const MbnDeviceServicesManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 577362595, data2: 10911, data3: 16741, data4: [165, 1, 206, 0, 166, 247, 167, 91] };
-pub const MbnInterfaceManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3187597403, data2: 17432, data3: 4573, data4: [144, 237, 0, 28, 37, 124, 207, 241] };
+#[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`*"]
+pub const MbnConnectionManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbdfee05c_4418_11dd_90ed_001c257ccff1);
+#[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`*"]
+pub const MbnConnectionProfileManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbdfee05a_4418_11dd_90ed_001c257ccff1);
+#[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`*"]
+pub const MbnDeviceServicesManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x2269daa3_2a9f_4165_a501_ce00a6f7a75b);
+#[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`*"]
+pub const MbnInterfaceManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbdfee05b_4418_11dd_90ed_001c257ccff1);
 #[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`*"]
 pub type MBN_ACTIVATION_STATE = i32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`*"]
@@ -506,13 +510,16 @@ impl ::core::clone::Clone for MBN_CONTEXT {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`*"]
+#[doc = "*Required features: `\"Win32_NetworkManagement_MobileBroadband\"`, `\"Win32_Foundation\"`*"]
+#[cfg(feature = "Win32_Foundation")]
 pub struct MBN_DEVICE_SERVICE {
     pub deviceServiceID: ::windows_sys::core::BSTR,
-    pub dataWriteSupported: i16,
-    pub dataReadSupported: i16,
+    pub dataWriteSupported: super::super::Foundation::VARIANT_BOOL,
+    pub dataReadSupported: super::super::Foundation::VARIANT_BOOL,
 }
+#[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for MBN_DEVICE_SERVICE {}
+#[cfg(feature = "Win32_Foundation")]
 impl ::core::clone::Clone for MBN_DEVICE_SERVICE {
     fn clone(&self) -> Self {
         *self

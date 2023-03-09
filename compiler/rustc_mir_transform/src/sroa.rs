@@ -182,7 +182,7 @@ fn replace_flattened_locals<'tcx>(
     let mut fragments = IndexVec::new();
     for (k, v) in &replacements.fields {
         fragments.ensure_contains_elem(k.local, || Vec::new());
-        fragments[k.local].push((&k.projection[..], *v));
+        fragments[k.local].push((k.projection, *v));
     }
     debug!(?fragments);
 
@@ -215,7 +215,7 @@ struct ReplacementVisitor<'tcx, 'll> {
     replacements: ReplacementMap<'tcx>,
     /// This is used to check that we are not leaving references to replaced locals behind.
     all_dead_locals: BitSet<Local>,
-    /// Pre-computed list of all "new" locals for each "old" local.  This is used to expand storage
+    /// Pre-computed list of all "new" locals for each "old" local. This is used to expand storage
     /// and deinit statement and debuginfo.
     fragments: IndexVec<Local, Vec<(&'tcx [PlaceElem<'tcx>], Local)>>,
 }

@@ -58,6 +58,11 @@ fn _assert_is_object_safe(_: &dyn Iterator<Item = ()>) {}
         note = "if you want to iterate between `start` until a value `end`, use the exclusive range \
               syntax `start..end` or the inclusive range syntax `start..=end`"
     ),
+    on(
+        _Self = "{float}",
+        note = "if you want to iterate between `start` until a value `end`, use the exclusive range \
+              syntax `start..end` or the inclusive range syntax `start..=end`"
+    ),
     label = "`{Self}` is not an iterator",
     message = "`{Self}` is not an iterator"
 )]
@@ -66,6 +71,7 @@ fn _assert_is_object_safe(_: &dyn Iterator<Item = ()>) {}
 #[must_use = "iterators are lazy and do nothing unless consumed"]
 pub trait Iterator {
     /// The type of the elements being iterated over.
+    #[rustc_diagnostic_item = "IteratorItem"]
     #[stable(feature = "rust1", since = "1.0.0")]
     type Item;
 
@@ -803,7 +809,7 @@ pub trait Iterator {
     /// (0..5).map(|x| x * 2 + 1)
     ///       .for_each(move |x| tx.send(x).unwrap());
     ///
-    /// let v: Vec<_> =  rx.iter().collect();
+    /// let v: Vec<_> = rx.iter().collect();
     /// assert_eq!(v, vec![1, 3, 5, 7, 9]);
     /// ```
     ///
@@ -1380,8 +1386,8 @@ pub trait Iterator {
         Take::new(self, n)
     }
 
-    /// An iterator adapter similar to [`fold`] that holds internal state and
-    /// produces a new iterator.
+    /// An iterator adapter which, like [`fold`], holds internal state, but
+    /// unlike [`fold`], produces a new iterator.
     ///
     /// [`fold`]: Iterator::fold
     ///
@@ -1393,20 +1399,25 @@ pub trait Iterator {
     ///
     /// On iteration, the closure will be applied to each element of the
     /// iterator and the return value from the closure, an [`Option`], is
-    /// yielded by the iterator.
+    /// returned by the `next` method. Thus the closure can return
+    /// `Some(value)` to yield `value`, or `None` to end the iteration.
     ///
     /// # Examples
     ///
     /// Basic usage:
     ///
     /// ```
-    /// let a = [1, 2, 3];
+    /// let a = [1, 2, 3, 4];
     ///
     /// let mut iter = a.iter().scan(1, |state, &x| {
-    ///     // each iteration, we'll multiply the state by the element
+    ///     // each iteration, we'll multiply the state by the element ...
     ///     *state = *state * x;
     ///
-    ///     // then, we'll yield the negation of the state
+    ///     // ... and terminate if the state exceeds 6
+    ///     if *state > 6 {
+    ///         return None;
+    ///     }
+    ///     // ... else yield the negation of the state
     ///     Some(-*state)
     /// });
     ///
@@ -1506,6 +1517,18 @@ pub trait Iterator {
     ///                           .flat_map(|s| s.chars())
     ///                           .collect();
     /// assert_eq!(merged, "alphabetagamma");
+    /// ```
+    ///
+    /// Flattening works on any `IntoIterator` type, including `Option` and `Result`:
+    ///
+    /// ```
+    /// let options = vec![Some(123), Some(321), None, Some(231)];
+    /// let flattened_options: Vec<_> = options.into_iter().flatten().collect();
+    /// assert_eq!(flattened_options, vec![123, 321, 231]);
+    ///
+    /// let results = vec![Ok(123), Ok(321), Err(456), Ok(231)];
+    /// let flattened_results: Vec<_> = results.into_iter().flatten().collect();
+    /// assert_eq!(flattened_results, vec![123, 321, 231]);
     /// ```
     ///
     /// Flattening only removes one level of nesting at a time:
@@ -1829,6 +1852,7 @@ pub trait Iterator {
     #[inline]
     #[stable(feature = "rust1", since = "1.0.0")]
     #[must_use = "if you really need to exhaust the iterator, consider `.for_each(drop)` instead"]
+    #[cfg_attr(not(test), rustc_diagnostic_item = "iterator_collect_fn")]
     fn collect<B: FromIterator<Self::Item>>(self) -> B
     where
         Self: Sized,
@@ -2652,7 +2676,10 @@ pub trait Iterator {
     /// argument is a double reference. You can see this effect in the
     /// examples below, with `&&x`.
     ///
+    /// If you need the index of the element, see [`position()`].
+    ///
     /// [`Some(element)`]: Some
+    /// [`position()`]: Iterator::position
     ///
     /// # Examples
     ///
@@ -2733,7 +2760,7 @@ pub trait Iterator {
     /// the first true result or the first error.
     ///
     /// The return type of this method depends on the return type of the closure.
-    /// If you return `Result<bool, E>` from the closure, you'll get a `Result<Option<Self::Item>; E>`.
+    /// If you return `Result<bool, E>` from the closure, you'll get a `Result<Option<Self::Item>, E>`.
     /// If you return `Option<bool>` from the closure, you'll get an `Option<Option<Self::Item>>`.
     ///
     /// # Examples

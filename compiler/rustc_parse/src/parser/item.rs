@@ -3,6 +3,7 @@ use crate::errors::{DocCommentDoesNotDocumentAnything, UseEmptyBlockNotSemi};
 use super::diagnostics::{dummy_arg, ConsumeClosingDelim};
 use super::ty::{AllowPlus, RecoverQPath, RecoverReturnSign};
 use super::{AttrWrapper, FollowedByType, ForceCollect, Parser, PathStyle, TrailingToken};
+use crate::errors::FnTypoWithImpl;
 use rustc_ast::ast::*;
 use rustc_ast::ptr::P;
 use rustc_ast::token::{self, Delimiter, TokenKind};
@@ -21,10 +22,8 @@ use rustc_span::lev_distance::lev_distance;
 use rustc_span::source_map::{self, Span};
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
 use rustc_span::DUMMY_SP;
-use std::convert::TryFrom;
 use std::mem;
 use thin_vec::ThinVec;
-use tracing::debug;
 
 impl<'a> Parser<'a> {
     /// Parses a source module as a crate. This is the main entry point for the parser.
@@ -99,7 +98,9 @@ impl<'a> Parser<'a> {
         fn_parse_mode: FnParseMode,
         force_collect: ForceCollect,
     ) -> PResult<'a, Option<Item>> {
+        self.recover_diff_marker();
         let attrs = self.parse_outer_attributes()?;
+        self.recover_diff_marker();
         self.parse_item_common(attrs, true, false, fn_parse_mode, force_collect)
     }
 
@@ -705,11 +706,12 @@ impl<'a> Parser<'a> {
             if self.recover_doc_comment_before_brace() {
                 continue;
             }
+            self.recover_diff_marker();
             match parse_item(self) {
                 Ok(None) => {
-                    let is_unnecessary_semicolon = !items.is_empty()
+                    let mut is_unnecessary_semicolon = !items.is_empty()
                         // When the close delim is `)` in a case like the following, `token.kind` is expected to be `token::CloseDelim(Delimiter::Parenthesis)`,
-                        // but the actual `token.kind` is `token::CloseDelim(Delimiter::Bracket)`.
+                        // but the actual `token.kind` is `token::CloseDelim(Delimiter::Brace)`.
                         // This is because the `token.kind` of the close delim is treated as the same as
                         // that of the open delim in `TokenTreesReader::parse_token_tree`, even if the delimiters of them are different.
                         // Therefore, `token.kind` should not be compared here.
@@ -728,7 +730,13 @@ impl<'a> Parser<'a> {
                             .span_to_snippet(self.prev_token.span)
                             .map_or(false, |snippet| snippet == "}")
                         && self.token.kind == token::Semi;
-                    let semicolon_span = self.token.span;
+                    let mut semicolon_span = self.token.span;
+                    if !is_unnecessary_semicolon {
+                        // #105369, Detect spurious `;` before assoc fn body
+                        is_unnecessary_semicolon = self.token == token::OpenDelim(Delimiter::Brace)
+                            && self.prev_token.kind == token::Semi;
+                        semicolon_span = self.prev_token.span;
+                    }
                     // We have to bail or we'll potentially never make progress.
                     let non_item_span = self.token.span;
                     let is_let = self.token.is_keyword(kw::Let);
@@ -1034,8 +1042,11 @@ impl<'a> Parser<'a> {
     /// USE_TREE_LIST = Ø | (USE_TREE `,`)* USE_TREE [`,`]
     /// ```
     fn parse_use_tree_list(&mut self) -> PResult<'a, Vec<(UseTree, ast::NodeId)>> {
-        self.parse_delim_comma_seq(Delimiter::Brace, |p| Ok((p.parse_use_tree()?, DUMMY_NODE_ID)))
-            .map(|(r, _)| r)
+        self.parse_delim_comma_seq(Delimiter::Brace, |p| {
+            p.recover_diff_marker();
+            Ok((p.parse_use_tree()?, DUMMY_NODE_ID))
+        })
+        .map(|(r, _)| r)
     }
 
     fn parse_rename(&mut self) -> PResult<'a, Option<Ident>> {
@@ -1374,7 +1385,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_enum_variant(&mut self) -> PResult<'a, Option<Variant>> {
+        self.recover_diff_marker();
         let variant_attrs = self.parse_outer_attributes()?;
+        self.recover_diff_marker();
         self.collect_tokens_trailing_token(
             variant_attrs,
             ForceCollect::No,
@@ -1441,8 +1454,16 @@ impl<'a> Parser<'a> {
         // struct.
 
         let vdata = if self.token.is_keyword(kw::Where) {
-            generics.where_clause = self.parse_where_clause()?;
-            if self.eat(&token::Semi) {
+            let tuple_struct_body;
+            (generics.where_clause, tuple_struct_body) =
+                self.parse_struct_where_clause(class_name, generics.span)?;
+
+            if let Some(body) = tuple_struct_body {
+                // If we see a misplaced tuple struct body: `struct Foo<T> where T: Copy, (T);`
+                let body = VariantData::Tuple(body, DUMMY_NODE_ID);
+                self.expect_semi()?;
+                body
+            } else if self.eat(&token::Semi) {
                 // If we see a: `struct Foo<T> where T: Copy;` style decl.
                 VariantData::Unit(DUMMY_NODE_ID)
             } else {
@@ -1562,15 +1583,38 @@ impl<'a> Parser<'a> {
         Ok((fields, recovered))
     }
 
-    fn parse_tuple_struct_body(&mut self) -> PResult<'a, Vec<FieldDef>> {
+    pub(super) fn parse_tuple_struct_body(&mut self) -> PResult<'a, Vec<FieldDef>> {
         // This is the case where we find `struct Foo<T>(T) where T: Copy;`
         // Unit like structs are handled in parse_item_struct function
         self.parse_paren_comma_seq(|p| {
             let attrs = p.parse_outer_attributes()?;
             p.collect_tokens_trailing_token(attrs, ForceCollect::No, |p, attrs| {
+                let mut snapshot = None;
+                if p.is_diff_marker(&TokenKind::BinOp(token::Shl), &TokenKind::Lt) {
+                    // Account for `<<<<<<<` diff markers. We can't proactively error here because
+                    // that can be a valid type start, so we snapshot and reparse only we've
+                    // encountered another parse error.
+                    snapshot = Some(p.create_snapshot_for_diagnostic());
+                }
                 let lo = p.token.span;
-                let vis = p.parse_visibility(FollowedByType::Yes)?;
-                let ty = p.parse_ty()?;
+                let vis = match p.parse_visibility(FollowedByType::Yes) {
+                    Ok(vis) => vis,
+                    Err(err) => {
+                        if let Some(ref mut snapshot) = snapshot {
+                            snapshot.recover_diff_marker();
+                        }
+                        return Err(err);
+                    }
+                };
+                let ty = match p.parse_ty() {
+                    Ok(ty) => ty,
+                    Err(err) => {
+                        if let Some(ref mut snapshot) = snapshot {
+                            snapshot.recover_diff_marker();
+                        }
+                        return Err(err);
+                    }
+                };
 
                 Ok((
                     FieldDef {
@@ -1591,7 +1635,9 @@ impl<'a> Parser<'a> {
 
     /// Parses an element of a struct declaration.
     fn parse_field_def(&mut self, adt_ty: &str) -> PResult<'a, FieldDef> {
+        self.recover_diff_marker();
         let attrs = self.parse_outer_attributes()?;
+        self.recover_diff_marker();
         self.collect_tokens_trailing_token(attrs, ForceCollect::No, |this, attrs| {
             let lo = this.token.span;
             let vis = this.parse_visibility(FollowedByType::No)?;
@@ -2126,11 +2172,26 @@ impl<'a> Parser<'a> {
         vis: &Visibility,
         case: Case,
     ) -> PResult<'a, (Ident, FnSig, Generics, Option<P<Block>>)> {
+        let fn_span = self.token.span;
         let header = self.parse_fn_front_matter(vis, case)?; // `const ... fn`
         let ident = self.parse_ident()?; // `foo`
         let mut generics = self.parse_generics()?; // `<'a, T, ...>`
-        let decl =
-            self.parse_fn_decl(fn_parse_mode.req_name, AllowPlus::Yes, RecoverReturnSign::Yes)?; // `(p: u8, ...)`
+        let decl = match self.parse_fn_decl(
+            fn_parse_mode.req_name,
+            AllowPlus::Yes,
+            RecoverReturnSign::Yes,
+        ) {
+            Ok(decl) => decl,
+            Err(old_err) => {
+                // If we see `for Ty ...` then user probably meant `impl` item.
+                if self.token.is_keyword(kw::For) {
+                    old_err.cancel();
+                    return Err(self.sess.create_err(FnTypoWithImpl { fn_span }));
+                } else {
+                    return Err(old_err);
+                }
+            }
+        };
         generics.where_clause = self.parse_where_clause()?; // `where T: Ord`
 
         let mut sig_hi = self.prev_token.span;
@@ -2161,7 +2222,8 @@ impl<'a> Parser<'a> {
             *sig_hi = self.prev_token.span;
             (AttrVec::new(), None)
         } else if self.check(&token::OpenDelim(Delimiter::Brace)) || self.token.is_whole_block() {
-            self.parse_inner_attrs_and_block().map(|(attrs, body)| (attrs, Some(body)))?
+            self.parse_block_common(self.token.span, BlockCheckMode::Default, false)
+                .map(|(attrs, body)| (attrs, Some(body)))?
         } else if self.token.kind == token::Eq {
             // Recover `fn foo() = $expr;`.
             self.bump(); // `=`
@@ -2403,10 +2465,11 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses the parameter list of a function, including the `(` and `)` delimiters.
-    fn parse_fn_params(&mut self, req_name: ReqName) -> PResult<'a, Vec<Param>> {
+    pub(super) fn parse_fn_params(&mut self, req_name: ReqName) -> PResult<'a, Vec<Param>> {
         let mut first_param = true;
         // Parse the arguments, starting out with `self` being allowed...
         let (mut params, _) = self.parse_paren_comma_seq(|p| {
+            p.recover_diff_marker();
             let param = p.parse_param_general(req_name, first_param).or_else(|mut e| {
                 e.emit();
                 let lo = p.prev_token.span;
@@ -2444,7 +2507,6 @@ impl<'a> Parser<'a> {
             };
             let (pat, ty) = if is_name_required || this.is_named_param() {
                 debug!("parse_param_general parse_pat (is_name_required:{})", is_name_required);
-
                 let (pat, colon) = this.parse_fn_param_pat_colon()?;
                 if !colon {
                     let mut err = this.unexpected::<()>().unwrap_err();

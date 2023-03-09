@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "rustc_tools_util"
-version = "0.2.1"
+version = "0.3.0"
 description = "small helper to generate version information for git packages"
 readme = "README.md"
 keywords = [

@@ -7,7 +7,8 @@ use crate::{
     ir::AtomicRmwOp,
     machinst::{InputSourceInst, Reg, Writable},
 };
-use generated_code::{Context, MInst};
+use crate::{isle_common_prelude_methods, isle_lower_prelude_methods};
+use generated_code::{Context, MInst, RegisterClass};
 
 // Types that the generated ISLE code uses via `use super::*`.
 use super::{is_int_or_ref_ty, is_mergeable_load, lower_to_amode};
@@ -30,8 +31,8 @@ use crate::{
         },
     },
     machinst::{
-        isle::*, valueregs, InsnInput, InsnOutput, Lower, MachAtomicRmwOp, MachInst, VCodeConstant,
-        VCodeConstantData,
+        isle::*, valueregs, ArgPair, InsnInput, InsnOutput, Lower, MachAtomicRmwOp, MachInst,
+        VCodeConstant, VCodeConstantData,
     },
 };
 use alloc::vec::Vec;
@@ -44,6 +45,7 @@ use target_lexicon::Triple;
 type BoxCallInfo = Box<CallInfo>;
 type BoxVecMachLabel = Box<SmallVec<[MachLabel; 4]>>;
 type MachLabelSlice = [MachLabel];
+type VecArgPair = Vec<ArgPair>;
 
 pub struct SinkableLoad {
     inst: Inst,
@@ -91,7 +93,7 @@ pub(crate) fn lower_branch(
 }
 
 impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
-    isle_prelude_methods!();
+    isle_lower_prelude_methods!();
     isle_prelude_caller_methods!(X64ABIMachineSpec, X64Caller);
 
     #[inline]
@@ -201,93 +203,53 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
     }
 
     #[inline]
-    fn avx512vl_enabled(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_avx512vl_simd() {
-            Some(())
-        } else {
-            None
-        }
+    fn avx512vl_enabled(&mut self, _: Type) -> bool {
+        self.isa_flags.use_avx512vl_simd()
     }
 
     #[inline]
-    fn avx512dq_enabled(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_avx512dq_simd() {
-            Some(())
-        } else {
-            None
-        }
+    fn avx512dq_enabled(&mut self, _: Type) -> bool {
+        self.isa_flags.use_avx512dq_simd()
     }
 
     #[inline]
-    fn avx512f_enabled(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_avx512f_simd() {
-            Some(())
-        } else {
-            None
-        }
+    fn avx512f_enabled(&mut self, _: Type) -> bool {
+        self.isa_flags.use_avx512f_simd()
     }
 
     #[inline]
-    fn avx512bitalg_enabled(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_avx512bitalg_simd() {
-            Some(())
-        } else {
-            None
-        }
+    fn avx512bitalg_enabled(&mut self, _: Type) -> bool {
+        self.isa_flags.use_avx512bitalg_simd()
     }
 
     #[inline]
-    fn avx512vbmi_enabled(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_avx512vbmi_simd() {
-            Some(())
-        } else {
-            None
-        }
+    fn avx512vbmi_enabled(&mut self, _: Type) -> bool {
+        self.isa_flags.use_avx512vbmi_simd()
     }
 
     #[inline]
-    fn use_lzcnt(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_lzcnt() {
-            Some(())
-        } else {
-            None
-        }
+    fn use_lzcnt(&mut self, _: Type) -> bool {
+        self.isa_flags.use_lzcnt()
     }
 
     #[inline]
-    fn use_bmi1(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_bmi1() {
-            Some(())
-        } else {
-            None
-        }
+    fn use_bmi1(&mut self, _: Type) -> bool {
+        self.isa_flags.use_bmi1()
     }
 
     #[inline]
-    fn use_popcnt(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_popcnt() {
-            Some(())
-        } else {
-            None
-        }
+    fn use_popcnt(&mut self, _: Type) -> bool {
+        self.isa_flags.use_popcnt()
     }
 
     #[inline]
-    fn use_fma(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_fma() {
-            Some(())
-        } else {
-            None
-        }
+    fn use_fma(&mut self, _: Type) -> bool {
+        self.isa_flags.use_fma()
     }
 
     #[inline]
-    fn use_sse41(&mut self, _: Type) -> Option<()> {
-        if self.isa_flags.use_sse41() {
-            Some(())
-        } else {
-            None
-        }
+    fn use_sse41(&mut self, _: Type) -> bool {
+        self.isa_flags.use_sse41()
     }
 
     #[inline]
@@ -402,6 +364,11 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
     #[inline]
     fn amode_to_synthetic_amode(&mut self, amode: &Amode) -> SyntheticAmode {
         amode.clone().into()
+    }
+
+    #[inline]
+    fn const_to_synthetic_amode(&mut self, c: VCodeConstant) -> SyntheticAmode {
+        SyntheticAmode::ConstantOffset(c)
     }
 
     #[inline]
@@ -580,27 +547,14 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         Imm8Gpr::new(Imm8Reg::Imm8 { imm }).unwrap()
     }
 
-    fn is_gpr_type(&mut self, ty: Type) -> Option<Type> {
-        if is_int_or_ref_ty(ty) || ty == I128 || ty == B128 {
-            Some(ty)
-        } else {
-            None
-        }
-    }
-
     #[inline]
-    fn is_xmm_type(&mut self, ty: Type) -> Option<Type> {
-        if ty == F32 || ty == F64 || (ty.is_vector() && ty.bits() == 128) {
-            Some(ty)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn is_single_register_type(&mut self, ty: Type) -> Option<Type> {
-        if ty != I128 {
-            Some(ty)
+    fn type_register_class(&mut self, ty: Type) -> Option<RegisterClass> {
+        if is_int_or_ref_ty(ty) || ty == I128 {
+            Some(RegisterClass::Gpr {
+                single_register: ty != I128,
+            })
+        } else if ty == F32 || ty == F64 || (ty.is_vector() && ty.bits() == 128) {
+            Some(RegisterClass::Xmm)
         } else {
             None
         }
@@ -610,29 +564,14 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
     fn ty_int_bool_or_ref(&mut self, ty: Type) -> Option<()> {
         match ty {
             types::I8 | types::I16 | types::I32 | types::I64 | types::R64 => Some(()),
-            types::B1 | types::B8 | types::B16 | types::B32 | types::B64 => Some(()),
             types::R32 => panic!("shouldn't have 32-bits refs on x64"),
             _ => None,
         }
     }
 
     #[inline]
-    fn intcc_neq(&mut self, x: &IntCC, y: &IntCC) -> Option<IntCC> {
-        if x != y {
-            Some(*x)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
     fn intcc_without_eq(&mut self, x: &IntCC) -> IntCC {
         x.without_equal()
-    }
-
-    #[inline]
-    fn intcc_unsigned(&mut self, x: &IntCC) -> IntCC {
-        x.unsigned()
     }
 
     #[inline]
@@ -652,16 +591,6 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
             CC::NZ => Some(*cc),
             _ => None,
         }
-    }
-
-    #[inline]
-    fn intcc_reverse(&mut self, cc: &IntCC) -> IntCC {
-        cc.reverse()
-    }
-
-    #[inline]
-    fn floatcc_inverse(&mut self, cc: &FloatCC) -> FloatCC {
-        cc.inverse()
     }
 
     #[inline]
@@ -782,6 +711,15 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
     #[inline]
     fn jump_table_size(&mut self, targets: &BoxVecMachLabel) -> u32 {
         targets.len() as u32
+    }
+
+    #[inline]
+    fn vconst_all_ones_or_all_zeros(&mut self, constant: Constant) -> Option<()> {
+        let const_data = self.lower_ctx.get_constant_data(constant);
+        if const_data.iter().all(|&b| b == 0 || b == 0xFF) {
+            return Some(());
+        }
+        None
     }
 
     #[inline]

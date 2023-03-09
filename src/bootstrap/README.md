@@ -59,10 +59,10 @@ The script accepts commands, flags, and arguments to determine what to do:
   ./x.py test tidy
 
   # execute the UI test suite
-  ./x.py test src/test/ui
+  ./x.py test tests/ui
 
   # execute only some tests in the UI test suite
-  ./x.py test src/test/ui --test-args substring-of-test-name
+  ./x.py test tests/ui --test-args substring-of-test-name
 
   # execute tests in the standard library in stage0
   ./x.py test --stage 0 library/std
@@ -80,18 +80,12 @@ The script accepts commands, flags, and arguments to determine what to do:
 
 ## Configuring rustbuild
 
-There are currently two methods for configuring the rustbuild build system.
-
-First, rustbuild offers a TOML-based configuration system with a `config.toml`
+rustbuild offers a TOML-based configuration system with a `config.toml`
 file. An example of this configuration can be found at `config.toml.example`,
 and the configuration file can also be passed as `--config path/to/config.toml`
 if the build system is being invoked manually (via the python script).
 
-Next, the `./configure` options serialized in `config.mk` will be
-parsed and read. That is, if any `./configure` options are passed, they'll be
-handled naturally. `./configure` should almost never be used for local
-installations, and is primarily useful for CI. Prefer to customize behavior
-using `config.toml`.
+You can generate a config.toml using `./configure` options if you want to automate creating the file without having to edit it.
 
 Finally, rustbuild makes use of the [cc-rs crate] which has [its own
 method][env-vars] of configuring C compilers and C flags via environment

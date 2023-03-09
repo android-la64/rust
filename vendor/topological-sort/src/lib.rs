@@ -1,8 +1,8 @@
 // Copyright 2016 oauth-client-rs Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
-// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
-// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// https://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
 //! Performs topological sorting.
@@ -18,21 +18,17 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 #![warn(unused_results)]
-#![cfg_attr(feature = "cargo-clippy", warn(if_not_else))]
-#![cfg_attr(feature = "cargo-clippy", warn(invalid_upcast_comparisons))]
-#![cfg_attr(feature = "cargo-clippy", warn(items_after_statements))]
-#![cfg_attr(feature = "cargo-clippy", warn(mut_mut))]
-#![cfg_attr(feature = "cargo-clippy", warn(never_loop))]
-#![cfg_attr(feature = "cargo-clippy", warn(nonminimal_bool))]
-#![cfg_attr(feature = "cargo-clippy", warn(option_map_unwrap_or))]
-#![cfg_attr(feature = "cargo-clippy", warn(option_map_unwrap_or_else))]
-#![cfg_attr(feature = "cargo-clippy", warn(option_unwrap_used))]
-#![cfg_attr(feature = "cargo-clippy", warn(result_unwrap_used))]
-#![cfg_attr(feature = "cargo-clippy", warn(used_underscore_binding))]
+#![warn(clippy::if_not_else)]
+#![warn(clippy::invalid_upcast_comparisons)]
+#![warn(clippy::items_after_statements)]
+#![warn(clippy::mut_mut)]
+#![warn(clippy::never_loop)]
+#![warn(clippy::nonminimal_bool)]
+#![warn(clippy::used_underscore_binding)]
 
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
 use std::iter::FromIterator;
@@ -52,12 +48,18 @@ impl<T: Hash + Eq> Dependency<T> {
     }
 }
 
-
-
 /// Performs topological sorting.
 #[derive(Clone)]
 pub struct TopologicalSort<T> {
     top: HashMap<T, Dependency<T>>,
+}
+
+impl<T> Default for TopologicalSort<T> {
+    fn default() -> TopologicalSort<T> {
+        TopologicalSort {
+            top: HashMap::new(),
+        }
+    }
 }
 
 impl<T: Hash + Eq + Clone> TopologicalSort<T> {
@@ -83,9 +85,7 @@ impl<T: Hash + Eq + Clone> TopologicalSort<T> {
     /// ```
     #[inline]
     pub fn new() -> TopologicalSort<T> {
-        TopologicalSort {
-            top: HashMap::new(),
-        }
+        Default::default()
     }
 
     /// Returns the number of elements in the `TopologicalSort`.
@@ -176,13 +176,13 @@ impl<T: Hash + Eq + Clone> TopologicalSort<T> {
         })
     }
 
-
     /// Removes all items that are not depended on by any other items and returns it, or empty
     /// vector if there are no such items.
     ///
     /// If `pop_all` returns an empty vector and `len` is not 0, there is cyclic dependencies.
     pub fn pop_all(&mut self) -> Vec<T> {
-        let keys = self.top
+        let keys = self
+            .top
             .iter()
             .filter(|&(_, v)| v.num_prec == 0)
             .map(|(k, _)| k.clone())
@@ -212,7 +212,6 @@ impl<T: Hash + Eq + Clone> TopologicalSort<T> {
             .map(|(k, _)| k)
             .collect::<Vec<_>>()
     }
-
 
     fn remove(&mut self, prec: &T) -> Option<Dependency<T>> {
         let result = self.top.remove(prec);
@@ -298,10 +297,10 @@ impl<T: fmt::Debug + Hash + Eq + Clone> fmt::Debug for TopologicalSort<T> {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::TopologicalSort;
+    use quickcheck_macros::quickcheck;
     use std::iter::FromIterator;
 
     #[test]
@@ -380,5 +379,74 @@ mod test {
         assert_eq!(ts.pop(), Some("stone"));
         assert!(ts.pop().is_none());
         println!("{:?}", ts);
+    }
+
+    #[quickcheck]
+    fn topo_test_quickcheck(n: usize, edges: Vec<(usize, usize)>) {
+        use std::collections::{HashMap, HashSet};
+
+        let n = n.max(1).min(1000);
+        let mut marked = vec![false; n];
+        let edges = edges
+            .into_iter()
+            .map(|(x, y)| (x % n, y % n))
+            .collect::<Vec<_>>();
+        let mut deps = HashMap::new();
+        let mut toposort = TopologicalSort::<usize>::new();
+
+        for i in 0..n {
+            let _ = deps.insert(i, HashSet::new());
+            assert!(toposort.insert(i));
+        }
+
+        for (op, inp) in edges.iter().map(|(x, y)| (y, x)) {
+            let inps = deps.get_mut(op).unwrap();
+            let _ = inps.insert(*inp);
+        }
+
+        let deps = deps;
+        for (inp, op) in edges {
+            toposort.add_dependency(inp, op);
+        }
+        while let Some(x) = toposort.pop() {
+            for dep in deps.get(&x).unwrap().iter() {
+                assert!(marked[*dep]);
+            }
+            marked[x] = true;
+        }
+
+        if toposort.is_empty() {
+            assert!(marked.into_iter().all(|x| x));
+        } else {
+            let dep_fixed = {
+                let mut ret = (0..n)
+                    .map(|i| (i, HashSet::new()))
+                    .collect::<HashMap<_, _>>();
+                let mut new_to_add = deps;
+
+                while !new_to_add.is_empty() {
+                    for (k, v) in new_to_add.drain() {
+                        let inps = ret.get_mut(&k).unwrap();
+                        inps.extend(v.into_iter());
+                    }
+                    for (k, vs) in ret.iter() {
+                        for k2 in vs.iter() {
+                            for v2 in ret.get(k2).unwrap().iter() {
+                                if !vs.contains(v2) {
+                                    let _ = new_to_add
+                                        .entry(*k)
+                                        .or_insert_with(HashSet::new)
+                                        .insert(*v2);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ret
+            };
+
+            assert!(dep_fixed.into_iter().any(|(op, deps)| deps.contains(&op)));
+        }
     }
 }

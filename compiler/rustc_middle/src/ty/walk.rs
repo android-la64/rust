@@ -4,7 +4,7 @@
 use crate::ty::subst::{GenericArg, GenericArgKind};
 use crate::ty::{self, Ty};
 use rustc_data_structures::sso::SsoHashSet;
-use smallvec::{self, SmallVec};
+use smallvec::SmallVec;
 
 // The TypeWalker's stack is hot enough that it's worth going to some effort to
 // avoid heap allocations.
@@ -165,7 +165,7 @@ fn push_inner<'tcx>(stack: &mut TypeWalkerStack<'tcx>, parent: GenericArg<'tcx>)
                 stack.push(ty.into());
                 stack.push(lt.into());
             }
-            ty::Projection(data) => {
+            ty::Alias(_, data) => {
                 stack.extend(data.substs.iter().rev());
             }
             ty::Dynamic(obj, lt, _) => {
@@ -188,7 +188,6 @@ fn push_inner<'tcx>(stack: &mut TypeWalkerStack<'tcx>, parent: GenericArg<'tcx>)
                 }));
             }
             ty::Adt(_, substs)
-            | ty::Opaque(_, substs)
             | ty::Closure(_, substs)
             | ty::Generator(_, substs, _)
             | ty::FnDef(_, substs) => {

@@ -1,3 +1,16 @@
+# The Crates.io Version Can No Longer Be Updated!
+
+The original maintainer is out of contact, and the new maintainers (the Portable SIMD Project Group) do not have the appropriate crates.io permissions to issue updates.
+
+We are aware that the version available on crates.io is currently broken, and will not build.
+
+If you need to continue to use the crate, we have published a "next version" under an alternative name.
+
+Adjust your `[dependencies]` section of `Cargo.toml` to be the following:
+```toml
+packed_simd = { version = "0.3.8", package = "packed_simd_2" }
+```
+
 # `Simd<[T; N]>`
 
 ## Implementation of [Rust RFC #2366: `std::simd`][rfc2366]
@@ -5,7 +18,7 @@
 [![Travis-CI Status]][travis] <!-- [![Appveyor Status]][appveyor] --> [![Latest Version]][crates.io] [![docs]][master_docs]
 
 **WARNING**: this crate only supports the most recent nightly Rust toolchain
-and will be superceded by [stdsimd](https://github.com/rust-lang/stdsimd).
+and will be superseded by [stdsimd](https://github.com/rust-lang/stdsimd).
 
 ## Documentation
 
@@ -133,11 +146,11 @@ dual licensed as above, without any additional terms or conditions.
 [Travis-CI Status]: https://travis-ci.com/rust-lang/packed_simd.svg?branch=master
 [appveyor]: https://ci.appveyor.com/project/gnzlbg/packed-simd
 [Appveyor Status]: https://ci.appveyor.com/api/projects/status/hd7v9dvr442hgdix?svg=true
-[Latest Version]: https://img.shields.io/crates/v/packed_simd.svg
-[crates.io]: https://crates.io/crates/packed_simd
-[docs]: https://docs.rs/packed_simd/badge.svg
-[docs.rs]: https://docs.rs/packed_simd/
-[master_docs]: https://rust-lang-nursery.github.io/packed_simd/packed_simd/
+[Latest Version]: https://img.shields.io/crates/v/packed_simd_2.svg
+[crates.io]: https://crates.io/crates/packed_simd_2
+[docs]: https://docs.rs/packed_simd_2/badge.svg
+[docs.rs]: https://docs.rs/packed_simd_2
+[master_docs]: https://rust-lang-nursery.github.io/packed_simd/packed_simd_2/
 [perf_guide]: https://rust-lang-nursery.github.io/packed_simd/perf-guide/
 [rfc2366]: https://github.com/rust-lang/rfcs/pull/2366
 [ISPC]: https://ispc.github.io/

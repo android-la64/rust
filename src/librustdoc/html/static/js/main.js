@@ -184,7 +184,6 @@ function browserSupportsHistoryApi() {
 function loadCss(cssUrl) {
     const link = document.createElement("link");
     link.href = cssUrl;
-    link.type = "text/css";
     link.rel = "stylesheet";
     document.getElementsByTagName("head")[0].appendChild(link);
 }
@@ -391,7 +390,8 @@ function loadCss(cssUrl) {
         }
 
         if (document.activeElement.tagName === "INPUT" &&
-            document.activeElement.type !== "checkbox") {
+            document.activeElement.type !== "checkbox" &&
+            document.activeElement.type !== "radio") {
             switch (getVirtualKey(ev)) {
             case "Escape":
                 handleEscape(ev);
@@ -527,7 +527,7 @@ function loadCss(cssUrl) {
         }
 
         let currentNbImpls = implementors.getElementsByClassName("impl").length;
-        const traitName = document.querySelector("h1.fqn > .trait").textContent;
+        const traitName = document.querySelector(".main-heading h1 > .trait").textContent;
         const baseIdName = "impl-" + traitName + "-";
         const libs = Object.getOwnPropertyNames(imp);
         // We don't want to include impls from this JS file, when the HTML already has them.
@@ -564,7 +564,7 @@ function loadCss(cssUrl) {
                 onEachLazy(code.getElementsByTagName("a"), elem => {
                     const href = elem.getAttribute("href");
 
-                    if (href && href.indexOf("http") !== 0) {
+                    if (href && !/^(?:[a-z+]+:)?\/\//.test(href)) {
                         elem.setAttribute("href", window.rootPath + href);
                     }
                 });
@@ -621,7 +621,7 @@ function loadCss(cssUrl) {
     function expandAllDocs() {
         const innerToggle = document.getElementById(toggleAllDocsId);
         removeClass(innerToggle, "will-expand");
-        onEachLazy(document.getElementsByClassName("rustdoc-toggle"), e => {
+        onEachLazy(document.getElementsByClassName("toggle"), e => {
             if (!hasClass(e, "type-contents-toggle") && !hasClass(e, "more-examples-toggle")) {
                 e.open = true;
             }
@@ -633,7 +633,7 @@ function loadCss(cssUrl) {
     function collapseAllDocs() {
         const innerToggle = document.getElementById(toggleAllDocsId);
         addClass(innerToggle, "will-expand");
-        onEachLazy(document.getElementsByClassName("rustdoc-toggle"), e => {
+        onEachLazy(document.getElementsByClassName("toggle"), e => {
             if (e.parentNode.id !== "implementations-list" ||
                 (!hasClass(e, "implementors-toggle") &&
                  !hasClass(e, "type-contents-toggle"))
@@ -681,7 +681,7 @@ function loadCss(cssUrl) {
             setImplementorsTogglesOpen("blanket-implementations-list", false);
         }
 
-        onEachLazy(document.getElementsByClassName("rustdoc-toggle"), e => {
+        onEachLazy(document.getElementsByClassName("toggle"), e => {
             if (!hideLargeItemContents && hasClass(e, "type-contents-toggle")) {
                 e.open = true;
             }
@@ -804,29 +804,22 @@ function loadCss(cssUrl) {
         }
     });
 
-    function handleClick(id, f) {
-        const elem = document.getElementById(id);
-        if (elem) {
-            elem.addEventListener("click", f);
-        }
+    const mainElem = document.getElementById(MAIN_ID);
+    if (mainElem) {
+        mainElem.addEventListener("click", hideSidebar);
     }
-    handleClick(MAIN_ID, () => {
-        hideSidebar();
-    });
 
-    onEachLazy(document.getElementsByTagName("a"), el => {
+    onEachLazy(document.querySelectorAll("a[href^='#']"), el => {
         // For clicks on internal links (<A> tags with a hash property), we expand the section we're
         // jumping to *before* jumping there. We can't do this in onHashChange, because it changes
         // the height of the document so we wind up scrolled to the wrong place.
-        if (el.hash) {
-            el.addEventListener("click", () => {
-                expandSection(el.hash.slice(1));
-                hideSidebar();
-            });
-        }
+        el.addEventListener("click", () => {
+            expandSection(el.hash.slice(1));
+            hideSidebar();
+        });
     });
 
-    onEachLazy(document.querySelectorAll(".rustdoc-toggle > summary:not(.hideme)"), el => {
+    onEachLazy(document.querySelectorAll(".toggle > summary:not(.hideme)"), el => {
         el.addEventListener("click", e => {
             if (e.target.tagName !== "SUMMARY" && e.target.tagName !== "A") {
                 e.preventDefault();
@@ -850,7 +843,7 @@ function loadCss(cssUrl) {
         window.hideAllModals(false);
         const ty = e.getAttribute("data-ty");
         const wrapper = document.createElement("div");
-        wrapper.innerHTML = "<div class=\"docblock\">" + window.NOTABLE_TRAITS[ty] + "</div>";
+        wrapper.innerHTML = "<div class=\"content\">" + window.NOTABLE_TRAITS[ty] + "</div>";
         wrapper.className = "notable popover";
         const focusCatcher = document.createElement("div");
         focusCatcher.setAttribute("tabindex", "0");
@@ -948,7 +941,7 @@ function loadCss(cssUrl) {
                 return;
             }
             if (!this.NOTABLE_FORCE_VISIBLE &&
-                !elemIsInParent(event.relatedTarget, window.CURRENT_NOTABLE_ELEMENT)) {
+                !elemIsInParent(ev.relatedTarget, window.CURRENT_NOTABLE_ELEMENT)) {
                 hideNotable(true);
             }
         };
@@ -1043,9 +1036,6 @@ function loadCss(cssUrl) {
             help_button.appendChild(container);
 
             container.onblur = helpBlurHandler;
-            container.onclick = event => {
-                event.preventDefault();
-            };
             help_button.onblur = helpBlurHandler;
             help_button.children[0].onblur = helpBlurHandler;
         }
@@ -1093,6 +1083,9 @@ function loadCss(cssUrl) {
      * Show the help popup menu.
      */
     function showHelp() {
+        // Prevent `blur` events from being dispatched as a result of closing
+        // other modals.
+        getHelpButton().querySelector("a").focus();
         const menu = getHelpMenu(true);
         if (menu.style.display === "none") {
             window.hideAllModals();

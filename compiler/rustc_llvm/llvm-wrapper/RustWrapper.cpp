@@ -257,7 +257,7 @@ template<typename T> static inline void AddAttributes(T *t, unsigned Index,
   PALNew = PAL.addAttributes(t->getContext(), Index, B);
 #else
   AttrBuilder B(t->getContext());
-  for (LLVMAttributeRef Attr : makeArrayRef(Attrs, AttrsLen))
+  for (LLVMAttributeRef Attr : ArrayRef<LLVMAttributeRef>(Attrs, AttrsLen))
     B.addAttribute(unwrap(Attr));
   PALNew = PAL.addAttributesAtIndex(t->getContext(), Index, B);
 #endif
@@ -322,7 +322,13 @@ extern "C" LLVMAttributeRef LLVMRustCreateUWTableAttr(LLVMContextRef C, bool Asy
 }
 
 extern "C" LLVMAttributeRef LLVMRustCreateAllocSizeAttr(LLVMContextRef C, uint32_t ElementSizeArg) {
-  return wrap(Attribute::getWithAllocSizeArgs(*unwrap(C), ElementSizeArg, None));
+  return wrap(Attribute::getWithAllocSizeArgs(*unwrap(C), ElementSizeArg,
+#if LLVM_VERSION_LT(16, 0)
+                                              None
+#else
+                                              std::nullopt
+#endif
+                                              ));
 }
 
 #if LLVM_VERSION_GE(15, 0)
@@ -717,7 +723,11 @@ static std::optional<DIFile::ChecksumKind> fromRust(LLVMRustChecksumKind Kind) {
 #endif
   switch (Kind) {
   case LLVMRustChecksumKind::None:
+#if LLVM_VERSION_LT(16, 0)
     return None;
+#else
+    return std::nullopt;
+#endif
   case LLVMRustChecksumKind::MD5:
     return DIFile::ChecksumKind::CSK_MD5;
   case LLVMRustChecksumKind::SHA1:
@@ -1054,7 +1064,7 @@ extern "C" LLVMMetadataRef LLVMRustDIBuilderCreateEnumerator(
     LLVMRustDIBuilderRef Builder, const char *Name, size_t NameLen,
     const uint64_t Value[2], unsigned SizeInBits, bool IsUnsigned) {
   return wrap(Builder->createEnumerator(StringRef(Name, NameLen),
-      APSInt(APInt(SizeInBits, makeArrayRef(Value, 2)), IsUnsigned)));
+      APSInt(APInt(SizeInBits, ArrayRef<uint64_t>(Value, 2)), IsUnsigned)));
 }
 
 extern "C" LLVMMetadataRef LLVMRustDIBuilderCreateEnumerationType(
@@ -1339,18 +1349,16 @@ extern "C" LLVMTypeKind LLVMRustGetTypeKind(LLVMTypeRef Ty) {
     return LLVMBFloatTypeKind;
   case Type::X86_AMXTyID:
     return LLVMX86_AMXTypeKind;
-#if LLVM_VERSION_GE(15, 0) && LLVM_VERSION_LT(16, 0)
-  case Type::DXILPointerTyID:
-    report_fatal_error("Rust does not support DirectX typed pointers.");
-    break;
-#endif
-#if LLVM_VERSION_GE(16, 0)
-  case Type::TypedPointerTyID:
-    report_fatal_error("Rust does not support typed pointers.");
-    break;
-#endif
+  default:
+    {
+      std::string error;
+      llvm::raw_string_ostream stream(error);
+      stream << "Rust does not support the TypeID: " << unwrap(Ty)->getTypeID()
+             << " for the type: " << *unwrap(Ty);
+      stream.flush();
+      report_fatal_error(error.c_str());
+    }
   }
-  report_fatal_error("Unhandled TypeID.");
 }
 
 DEFINE_SIMPLE_CONVERSION_FUNCTIONS(SMDiagnostic, LLVMSMDiagnosticRef)
@@ -1467,7 +1475,7 @@ extern "C" void LLVMRustAddHandler(LLVMValueRef CatchSwitchRef,
 extern "C" OperandBundleDef *LLVMRustBuildOperandBundleDef(const char *Name,
                                                            LLVMValueRef *Inputs,
                                                            unsigned NumInputs) {
-  return new OperandBundleDef(Name, makeArrayRef(unwrap(Inputs), NumInputs));
+  return new OperandBundleDef(Name, ArrayRef<Value*>(unwrap(Inputs), NumInputs));
 }
 
 extern "C" void LLVMRustFreeOperandBundleDef(OperandBundleDef *Bundle) {
@@ -1476,13 +1484,13 @@ extern "C" void LLVMRustFreeOperandBundleDef(OperandBundleDef *Bundle) {
 
 extern "C" LLVMValueRef LLVMRustBuildCall(LLVMBuilderRef B, LLVMTypeRef Ty, LLVMValueRef Fn,
                                           LLVMValueRef *Args, unsigned NumArgs,
-                                          OperandBundleDef *Bundle) {
+                                          OperandBundleDef **OpBundles,
+                                          unsigned NumOpBundles) {
   Value *Callee = unwrap(Fn);
   FunctionType *FTy = unwrap<FunctionType>(Ty);
-  unsigned Len = Bundle ? 1 : 0;
-  ArrayRef<OperandBundleDef> Bundles = makeArrayRef(Bundle, Len);
   return wrap(unwrap(B)->CreateCall(
-      FTy, Callee, makeArrayRef(unwrap(Args), NumArgs), Bundles));
+      FTy, Callee, ArrayRef<Value*>(unwrap(Args), NumArgs),
+      ArrayRef<OperandBundleDef>(*OpBundles, NumOpBundles)));
 }
 
 extern "C" LLVMValueRef LLVMRustGetInstrProfIncrementIntrinsic(LLVMModuleRef M) {
@@ -1522,14 +1530,14 @@ extern "C" LLVMValueRef
 LLVMRustBuildInvoke(LLVMBuilderRef B, LLVMTypeRef Ty, LLVMValueRef Fn,
                     LLVMValueRef *Args, unsigned NumArgs,
                     LLVMBasicBlockRef Then, LLVMBasicBlockRef Catch,
-                    OperandBundleDef *Bundle, const char *Name) {
+                    OperandBundleDef **OpBundles, unsigned NumOpBundles,
+                    const char *Name) {
   Value *Callee = unwrap(Fn);
   FunctionType *FTy = unwrap<FunctionType>(Ty);
-  unsigned Len = Bundle ? 1 : 0;
-  ArrayRef<OperandBundleDef> Bundles = makeArrayRef(Bundle, Len);
   return wrap(unwrap(B)->CreateInvoke(FTy, Callee, unwrap(Then), unwrap(Catch),
-                                      makeArrayRef(unwrap(Args), NumArgs),
-                                      Bundles, Name));
+                                      ArrayRef<Value*>(unwrap(Args), NumArgs),
+                                      ArrayRef<OperandBundleDef>(*OpBundles, NumOpBundles),
+                                      Name));
 }
 
 extern "C" void LLVMRustPositionBuilderAtStart(LLVMBuilderRef B,

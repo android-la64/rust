@@ -25,6 +25,7 @@ pub mod unit_graph;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::{OsStr, OsString};
+use std::fmt::Display;
 use std::fs::{self, File};
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
@@ -44,6 +45,7 @@ pub use self::compile_kind::{CompileKind, CompileTarget};
 pub use self::context::{Context, Metadata};
 pub use self::crate_type::CrateType;
 pub use self::custom_build::{BuildOutput, BuildScriptOutputs, BuildScripts};
+pub(crate) use self::fingerprint::DirtyReason;
 pub use self::job::Freshness;
 use self::job::{Job, Work};
 use self::job_queue::{JobQueue, JobState};
@@ -163,11 +165,11 @@ fn compile<'cfg>(
         // We run these targets later, so this is just a no-op for now.
         Job::new_fresh()
     } else if build_plan {
-        Job::new_dirty(rustc(cx, unit, &exec.clone())?)
+        Job::new_dirty(rustc(cx, unit, &exec.clone())?, None)
     } else {
         let force = exec.force_rebuild(unit) || force_rebuild;
         let mut job = fingerprint::prepare_target(cx, unit, force)?;
-        job.before(if job.freshness() == Freshness::Dirty {
+        job.before(if job.freshness().is_dirty() {
             let work = if unit.mode.is_doc() || unit.mode.is_doc_scrape() {
                 rustdoc(cx, unit)?
             } else {
@@ -205,6 +207,27 @@ fn compile<'cfg>(
     }
 
     Ok(())
+}
+
+/// Generates the warning message used when fallible doc-scrape units fail,
+/// either for rustdoc or rustc.
+fn make_failed_scrape_diagnostic(
+    cx: &Context<'_, '_>,
+    unit: &Unit,
+    top_line: impl Display,
+) -> String {
+    let manifest_path = unit.pkg.manifest_path();
+    let relative_manifest_path = manifest_path
+        .strip_prefix(cx.bcx.ws.root())
+        .unwrap_or(&manifest_path);
+
+    format!(
+        "\
+{top_line}
+    Try running with `--verbose` to see the error message.
+    If an example should not be scanned, then consider adding `doc-scrape-examples = false` to its `[[example]]` definition in {}",
+        relative_manifest_path.display()
+    )
 }
 
 fn rustc(cx: &mut Context<'_, '_>, unit: &Unit, exec: &Arc<dyn Executor>) -> CargoResult<Work> {
@@ -264,6 +287,26 @@ fn rustc(cx: &mut Context<'_, '_>, unit: &Unit, exec: &Arc<dyn Executor>) -> Car
     let script_metadata = cx.find_build_script_metadata(unit);
     let is_local = unit.is_local();
     let artifact = unit.artifact;
+
+    let hide_diagnostics_for_scrape_unit = cx.bcx.unit_can_fail_for_docscraping(unit)
+        && !matches!(cx.bcx.config.shell().verbosity(), Verbosity::Verbose);
+    let failed_scrape_diagnostic = hide_diagnostics_for_scrape_unit.then(|| {
+        // If this unit is needed for doc-scraping, then we generate a diagnostic that
+        // describes the set of reverse-dependencies that cause the unit to be needed.
+        let target_desc = unit.target.description_named();
+        let mut for_scrape_units = cx
+            .bcx
+            .scrape_units_have_dep_on(unit)
+            .into_iter()
+            .map(|unit| unit.target.description_named())
+            .collect::<Vec<_>>();
+        for_scrape_units.sort();
+        let for_scrape_units = for_scrape_units.join(", ");
+        make_failed_scrape_diagnostic(cx, unit, format_args!("failed to check {target_desc} in package `{name}` as a prerequisite for scraping examples from: {for_scrape_units}"))
+    });
+    if hide_diagnostics_for_scrape_unit {
+        output_options.show_diagnostics = false;
+    }
 
     return Ok(Work::new(move |state| {
         // Artifacts are in a different location than typical units,
@@ -339,38 +382,48 @@ fn rustc(cx: &mut Context<'_, '_>, unit: &Unit, exec: &Arc<dyn Executor>) -> Car
         if build_plan {
             state.build_plan(buildkey, rustc.clone(), outputs.clone());
         } else {
-            exec.exec(
-                &rustc,
-                package_id,
-                &target,
-                mode,
-                &mut |line| on_stdout_line(state, line, package_id, &target),
-                &mut |line| {
-                    on_stderr_line(
-                        state,
-                        line,
-                        package_id,
-                        &manifest_path,
-                        &target,
-                        &mut output_options,
-                    )
-                },
-            )
-            .map_err(verbose_if_simple_exit_code)
-            .with_context(|| {
-                // adapted from rustc_errors/src/lib.rs
-                let warnings = match output_options.warnings_seen {
-                    0 => String::new(),
-                    1 => "; 1 warning emitted".to_string(),
-                    count => format!("; {} warnings emitted", count),
-                };
-                let errors = match output_options.errors_seen {
-                    0 => String::new(),
-                    1 => " due to previous error".to_string(),
-                    count => format!(" due to {} previous errors", count),
-                };
-                format!("could not compile `{}`{}{}", name, errors, warnings)
-            })?;
+            let result = exec
+                .exec(
+                    &rustc,
+                    package_id,
+                    &target,
+                    mode,
+                    &mut |line| on_stdout_line(state, line, package_id, &target),
+                    &mut |line| {
+                        on_stderr_line(
+                            state,
+                            line,
+                            package_id,
+                            &manifest_path,
+                            &target,
+                            &mut output_options,
+                        )
+                    },
+                )
+                .map_err(verbose_if_simple_exit_code)
+                .with_context(|| {
+                    // adapted from rustc_errors/src/lib.rs
+                    let warnings = match output_options.warnings_seen {
+                        0 => String::new(),
+                        1 => "; 1 warning emitted".to_string(),
+                        count => format!("; {} warnings emitted", count),
+                    };
+                    let errors = match output_options.errors_seen {
+                        0 => String::new(),
+                        1 => " due to previous error".to_string(),
+                        count => format!(" due to {} previous errors", count),
+                    };
+                    format!("could not compile `{}`{}{}", name, errors, warnings)
+                });
+
+            if let Err(e) = result {
+                if let Some(diagnostic) = failed_scrape_diagnostic {
+                    state.warning(diagnostic)?;
+                }
+
+                return Err(e);
+            }
+
             // Exec should never return with success *and* generate an error.
             debug_assert_eq!(output_options.errors_seen, 0);
         }
@@ -713,20 +766,24 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
     let build_script_outputs = Arc::clone(&cx.build_script_outputs);
     let package_id = unit.pkg.package_id();
     let manifest_path = PathBuf::from(unit.pkg.manifest_path());
-    let relative_manifest_path = manifest_path
-        .strip_prefix(cx.bcx.ws.root())
-        .unwrap_or(&manifest_path)
-        .to_owned();
     let target = Target::clone(&unit.target);
     let mut output_options = OutputOptions::new(cx, unit);
     let script_metadata = cx.find_build_script_metadata(unit);
+
     let failed_scrape_units = Arc::clone(&cx.failed_scrape_units);
-    let hide_diagnostics_for_scrape_unit = unit.mode.is_doc_scrape()
-        && unit.target.doc_scrape_examples().is_unset()
+    let hide_diagnostics_for_scrape_unit = cx.bcx.unit_can_fail_for_docscraping(unit)
         && !matches!(cx.bcx.config.shell().verbosity(), Verbosity::Verbose);
+    let failed_scrape_diagnostic = hide_diagnostics_for_scrape_unit.then(|| {
+        make_failed_scrape_diagnostic(
+            cx,
+            unit,
+            format_args!("failed to scan {target_desc} in package `{name}` for example code usage"),
+        )
+    });
     if hide_diagnostics_for_scrape_unit {
         output_options.show_diagnostics = false;
     }
+
     Ok(Work::new(move |state| {
         add_custom_flags(
             &mut rustdoc,
@@ -774,15 +831,8 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
             .with_context(|| format!("could not document `{}`", name));
 
         if let Err(e) = result {
-            if hide_diagnostics_for_scrape_unit {
-                let diag = format!(
-                    "\
-failed to scan {target_desc} in package `{name}` for example code usage
-    Try running with `--verbose` to see the error message.
-    If this example should not be scanned, consider adding `doc-scrape-examples = false` to the `[[example]]` definition in {}",
-                    relative_manifest_path.display()
-                );
-                state.warning(diag)?;
+            if let Some(diagnostic) = failed_scrape_diagnostic {
+                state.warning(diagnostic)?;
             }
 
             return Err(e);
@@ -850,22 +900,8 @@ fn add_error_format_and_color(cx: &Context<'_, '_>, cmd: &mut ProcessBuilder) {
     cmd.arg(json);
 
     let config = cx.bcx.config;
-    if config.nightly_features_allowed {
-        match (
-            config.cli_unstable().terminal_width,
-            config.shell().err_width().diagnostic_terminal_width(),
-        ) {
-            // Terminal width explicitly provided - only useful for testing.
-            (Some(Some(width)), _) => {
-                cmd.arg(format!("--diagnostic-width={}", width));
-            }
-            // Terminal width was not explicitly provided but flag was provided - common case.
-            (Some(None), Some(width)) => {
-                cmd.arg(format!("--diagnostic-width={}", width));
-            }
-            // User didn't opt-in.
-            _ => (),
-        }
+    if let Some(width) = config.shell().err_width().diagnostic_terminal_width() {
+        cmd.arg(format!("--diagnostic-width={width}"));
     }
 }
 
@@ -944,10 +980,17 @@ fn build_base_args(
     cmd.args(&lto_args(cx, unit));
 
     // This is generally just an optimization on build time so if we don't pass
-    // it then it's ok. As of the time of this writing it's a very new flag, so
-    // we need to dynamically check if it's available.
-    if cx.bcx.target_data.info(unit.kind).supports_split_debuginfo {
-        if let Some(split) = split_debuginfo {
+    // it then it's ok. The values for the flag (off, packed, unpacked) may be supported
+    // or not depending on the platform, so availability is checked per-value.
+    // For example, at the time of writing this code, on Windows the only stable valid
+    // value for split-debuginfo is "packed", while on Linux "unpacked" is also stable.
+    if let Some(split) = split_debuginfo {
+        if cx
+            .bcx
+            .target_data
+            .info(unit.kind)
+            .supports_debuginfo_split(split)
+        {
             cmd.arg("-C").arg(format!("split-debuginfo={}", split));
         }
     }

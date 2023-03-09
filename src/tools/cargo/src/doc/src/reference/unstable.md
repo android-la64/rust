@@ -70,7 +70,6 @@ Each new feature described below should explain how to use it.
     * [public-dependency](#public-dependency) — Allows dependencies to be classified as either public or private.
 * Output behavior
     * [out-dir](#out-dir) — Adds a directory where artifacts are copied to.
-    * [terminal-width](#terminal-width) — Tells rustc the width of the terminal so that long diagnostic messages can be truncated to be more readable.
     * [Different binary name](#different-binary-name) — Assign a name to the built binary that is separate from the crate name.
 * Compile behavior
     * [mtime-on-use](#mtime-on-use) — Updates the last-modified timestamp on every dependency every time it is used, to provide a mechanism to delete unused artifacts.
@@ -86,6 +85,7 @@ Each new feature described below should explain how to use it.
     * [rustdoc-map](#rustdoc-map) — Provides mappings for documentation to link to external sites like [docs.rs](https://docs.rs/).
 * `Cargo.toml` extensions
     * [Profile `rustflags` option](#profile-rustflags-option) — Passed directly to rustc.
+    * [codegen-backend](#codegen-backend) — Select the codegen backend used by rustc.
     * [per-package-target](#per-package-target) — Sets the `--target` to use for each individual package.
     * [artifact dependencies](#artifact-dependencies) - Allow build artifacts to be included into other build artifacts and build them for different targets.
 * Information and metadata
@@ -98,9 +98,8 @@ Each new feature described below should explain how to use it.
 * Registries
     * [credential-process](#credential-process) — Adds support for fetching registry tokens from an external authentication program.
     * [`cargo logout`](#cargo-logout) — Adds the `logout` command to remove the currently saved registry token.
-    * [sparse-registry](#sparse-registry) — Adds support for fetching from static-file HTTP registries (`sparse+`)
     * [publish-timeout](#publish-timeout) — Controls the timeout between uploading the crate and being available in the index
-    * [registry-auth](#registry-auth) — Adds support for authenticated registries.
+    * [registry-auth](#registry-auth) — Adds support for authenticated registries, and generate registry authentication tokens using asymmetric cryptography.
 
 ### allow-features
 
@@ -682,6 +681,18 @@ cargo-features = ["profile-rustflags"]
 rustflags = [ "-C", "..." ]
 ```
 
+To set this in a profile in Cargo configuration, you need to use either
+`-Z profile-rustflags` or `[unstable]` table to enable it. For example,
+
+```toml
+# .cargo/config.toml
+[unstable]
+profile-rustflags = true
+
+[profile.release]
+rustflags = [ "-C", "..." ]
+```
+
 ### rustdoc-map
 * Tracking Issue: [#8296](https://github.com/rust-lang/cargo/issues/8296)
 
@@ -722,43 +733,6 @@ sysroot. If you are using rustup, this documentation can be installed with
 The default value is `"remote"`.
 
 The value may also take a URL for a custom location.
-
-### terminal-width
-
-* Tracking Issue: [#84673](https://github.com/rust-lang/rust/issues/84673)
-
-This feature provides a new flag, `-Z terminal-width`, which is used to pass
-a terminal width to `rustc` so that error messages containing long lines
-can be intelligently truncated.
-
-For example, passing `-Z terminal-width=20` (an arbitrarily low value) might
-produce the following error:
-
-```text
-error[E0308]: mismatched types
-  --> src/main.rs:2:17
-  |
-2 | ..._: () = 42;
-  |       --   ^^ expected `()`, found integer
-  |       |
-  |       expected due to this
-
-error: aborting due to previous error
-```
-
-In contrast, without `-Z terminal-width`, the error would look as shown below:
-
-```text
-error[E0308]: mismatched types
- --> src/main.rs:2:17
-  |
-2 |     let _: () = 42;
-  |            --   ^^ expected `()`, found integer
-  |            |
-  |            expected due to this
-
-error: aborting due to previous error
-```
 
 ### per-package-target
 * Tracking Issue: [#9406](https://github.com/rust-lang/cargo/pull/9406)
@@ -830,32 +804,6 @@ fn main() {
 }
 ```
 
-### sparse-registry
-* Tracking Issue: [9069](https://github.com/rust-lang/cargo/issues/9069)
-* RFC: [#2789](https://github.com/rust-lang/rfcs/pull/2789)
-
-The `sparse-registry` feature allows cargo to interact with remote registries served
-over plain HTTP rather than git. These registries can be identified by urls starting with
-`sparse+http://` or `sparse+https://`.
-
-When fetching index metadata over HTTP, Cargo only downloads the metadata for relevant
-crates, which can save significant time and bandwidth.
-
-The format of the sparse index is identical to a checkout of a git-based index.
-
-The `registries.crates-io.protocol` config option can be used to set the default protocol
-for crates.io. This option requires `-Z sparse-registry` to be enabled.
-
-* `sparse` — Use sparse index.
-* `git` — Use git index.
-* If the option is unset, it will be sparse index if `-Z sparse-registry` is enabled,
-  otherwise it will be git index.
-
-Cargo locally caches the crate metadata files, and captures an `ETag` or `Last-Modified` 
-HTTP header from the server for each entry. When refreshing crate metadata, Cargo will
-send the `If-None-Match` or `If-Modified-Since` header to allow the server to respond
-with HTTP 304 if the local cache is valid, saving time and bandwidth.
-
 ### publish-timeout
 * Tracking Issue: [11222](https://github.com/rust-lang/cargo/issues/11222)
 
@@ -897,6 +845,46 @@ can go to get a token.
 WWW-Authenticate: Cargo login_url="https://test-registry-login/me
 ```
 
+This same flag is also used to enable asymmetric authentication tokens.
+* Tracking Issue: [10519](https://github.com/rust-lang/cargo/issues/10519)
+* RFC: [#3231](https://github.com/rust-lang/rfcs/pull/3231)
+
+Add support for Cargo to authenticate the user to registries without sending secrets over the network.
+
+In [`config.toml`](config.md) and `credentials.toml` files there is a field called `private-key`, which is a private key formatted in the secret [subset of `PASERK`](https://github.com/paseto-standard/paserk/blob/master/types/secret.md) and is used to sign asymmetric tokens
+
+A keypair can be generated with `cargo login --generate-keypair` which will:
+- generate a public/private keypair in the currently recommended fashion.
+- save the private key in `credentials.toml`.
+- print the public key in [PASERK public](https://github.com/paseto-standard/paserk/blob/master/types/public.md) format.
+
+It is recommended that the `private-key` be saved in `credentials.toml`. It is also supported in `config.toml`, primarily so that it can be set using the associated environment variable, which is the recommended way to provide it in CI contexts. This setup is what we have for the `token` field for setting a secret token.
+
+There is also an optional field called `private-key-subject` which is a string chosen by the registry.
+This string will be included as part of an asymmetric token and should not be secret.
+It is intended for the rare use cases like "cryptographic proof that the central CA server authorized this action". Cargo requires it to be non-whitespace printable ASCII. Registries that need non-ASCII data should base64 encode it.
+
+Both fields can be set with `cargo login --registry=name --private-key --private-key-subject="subject"` which will prompt you to put in the key value.
+
+A registry can have at most one of `private-key`, `token`, or `credential-process` set.
+
+All PASETOs will include `iat`, the current time in ISO 8601 format. Cargo will include the following where appropriate:
+- `sub` an optional, non-secret string chosen by the registry that is expected to be claimed with every request. The value will be the `private-key-subject` from the `config.toml` file.
+- `mutation` if present, indicates that this request is a mutating operation (or a read-only operation if not present), must be one of the strings `publish`, `yank`, or `unyank`.
+  - `name` name of the crate related to this request.
+  - `vers` version string of the crate related to this request.
+  - `cksum` the SHA256 hash of the crate contents, as a string of 64 lowercase hexadecimal digits, must be present only when `mutation` is equal to `publish`
+- `challenge` the challenge string received from a 401/403 from this server this session. Registries that issue challenges must track which challenges have been issued/used and never accept a given challenge more than once within the same validity period (avoiding the need to track every challenge ever issued).
+
+The "footer" (which is part of the signature) will be a JSON string in UTF-8 and include:
+- `url` the RFC 3986 compliant URL where cargo got the config.json file,
+  - If this is a registry with an HTTP index, then this is the base URL that all index queries are relative to.
+  - If this is a registry with a GIT index, it is the URL Cargo used to clone the index.
+- `kid` the identifier of the private key used to sign the request, using the [PASERK IDs](https://github.com/paseto-standard/paserk/blob/master/operations/ID.md) standard.
+
+PASETO includes the message that was signed, so the server does not have to reconstruct the exact string from the request in order to check the signature. The server does need to check that the signature is valid for the string in the PASETO and that the contents of that string matches the request.
+If a claim should be expected for the request but is missing in the PASETO then the request must be rejected.
+
 ### credential-process
 * Tracking Issue: [#8933](https://github.com/rust-lang/cargo/issues/8933)
 * RFC: [#2730](https://github.com/rust-lang/rfcs/pull/2730)
@@ -910,7 +898,7 @@ a new `cargo logout` command.
 
 To use this feature, you must pass the `-Z credential-process` flag on the
 command-line. Additionally, you must remove any current tokens currently saved
-in the [`credentials` file] (which can be done with the new `logout` command).
+in the [`credentials.toml` file] (which can be done with the new `logout` command).
 
 #### `credential-process` Configuration
 
@@ -1047,10 +1035,10 @@ The following environment variables will be provided to the executed command:
 #### `cargo logout`
 
 A new `cargo logout` command has been added to make it easier to remove a
-token from storage. This supports both [`credentials` file] tokens and
+token from storage. This supports both [`credentials.toml` file] tokens and
 `credential-process` tokens.
 
-When used with `credentials` file tokens, it needs the `-Z unstable-options`
+When used with `credentials.toml` file tokens, it needs the `-Z unstable-options`
 command-line option:
 
 ```console
@@ -1069,7 +1057,7 @@ cargo logout -Z credential-process
 [`cargo publish`]: ../commands/cargo-publish.md
 [`cargo owner`]: ../commands/cargo-owner.md
 [`cargo yank`]: ../commands/cargo-yank.md
-[`credentials` file]: config.md#credentials
+[`credentials.toml` file]: config.md#credentials
 [crates.io]: https://crates.io/
 [config file]: config.md
 
@@ -1162,34 +1150,35 @@ like this:
 cargo doc -Z unstable-options -Z rustdoc-scrape-examples
 ```
 
-By default, Cargo will scrape from the packages that are being documented, as well as scrape from
-examples for the packages (i.e. those corresponding to the `--examples` flag). You can individually
-enable or disable targets from being scraped with the `doc-scrape-examples` flag, such as:
+By default, Cargo will scrape examples from the example targets of packages being documented. 
+You can individually enable or disable targets from being scraped with the `doc-scrape-examples` flag, such as:
 
 ```toml
-# Disable scraping examples from a library
+# Enable scraping examples from a library
 [lib]
-doc-scrape-examples = false
-
-# Enable scraping examples from a binary
-[[bin]]
-name = "my-bin"
 doc-scrape-examples = true
+
+# Disable scraping examples from an example target
+[[example]]
+name = "my-example"
+doc-scrape-examples = false
 ```
 
 **Note on tests:** enabling `doc-scrape-examples` on test targets will not currently have any effect. Scraping
 examples from tests is a work-in-progress.
 
 **Note on dev-dependencies:** documenting a library does not normally require the crate's dev-dependencies. However,
-example units do require dev-deps. For backwards compatibility, `-Z rustdoc-scrape-examples` will *not* introduce a 
+example targets require dev-deps. For backwards compatibility, `-Z rustdoc-scrape-examples` will *not* introduce a 
 dev-deps requirement for `cargo doc`. Therefore examples will *not* be scraped from example targets under the 
 following conditions:
 
 1. No target being documented requires dev-deps, AND
-2. At least one crate being documented requires dev-deps, AND
-3. The `doc-scrape-examples` parameter is unset for `[[example]]` targets.
+2. At least one crate with targets being documented has dev-deps, AND
+3. The `doc-scrape-examples` parameter is unset or false for all `[[example]]` targets.
 
 If you want examples to be scraped from example targets, then you must not satisfy one of the above conditions.
+For example, you can set `doc-scrape-examples` to true for one example target, and that signals to Cargo that
+you are ok with dev-deps being build for `cargo doc`.
 
 
 ### check-cfg
@@ -1375,6 +1364,18 @@ serde = "1.0.117"
 codegen-backend = "cranelift"
 ```
 
+To set this in a profile in Cargo configuration, you need to use either
+`-Z codegen-backend` or `[unstable]` table to enable it. For example,
+
+```toml
+# .cargo/config.toml
+[unstable]
+codegen-backend = true
+
+[profile.dev.package.foo]
+codegen-backend = "cranelift"
+```
+
 ### patch-in-config
 
 The `-Z patch-in-config` flag, and the corresponding support for
@@ -1447,3 +1448,14 @@ See [workspace.package](workspaces.md#the-package-table),
 [workspace.dependencies](workspaces.md#the-dependencies-table),
 and [inheriting-a-dependency-from-a-workspace](specifying-dependencies.md#inheriting-a-dependency-from-a-workspace)
 for more information.
+
+### terminal-width
+
+The `-Z terminal-width` option has been stabilized in the 1.68 release.
+The terminal width is always passed to the compiler when running from a
+terminal where Cargo can automatically detect the width.
+
+### sparse-registry
+
+Sparse registry support has been stabilized in the 1.68 release.
+See [Registry Protocols](registries.md#registry-protocols) for more information.

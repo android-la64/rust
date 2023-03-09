@@ -116,7 +116,7 @@ pub trait Printer<'tcx>: Sized {
             DefPathData::Impl => {
                 let generics = self.tcx().generics_of(def_id);
                 let self_ty = self.tcx().bound_type_of(def_id);
-                let impl_trait_ref = self.tcx().bound_impl_trait_ref(def_id);
+                let impl_trait_ref = self.tcx().impl_trait_ref(def_id);
                 let (self_ty, impl_trait_ref) = if substs.len() >= generics.count() {
                     (
                         self_ty.subst(self.tcx(), substs),
@@ -169,10 +169,8 @@ pub trait Printer<'tcx>: Sized {
                 self.path_append(
                     |cx: Self| {
                         if trait_qualify_parent {
-                            let trait_ref = ty::TraitRef::new(
-                                parent_def_id,
-                                cx.tcx().intern_substs(parent_substs),
-                            );
+                            let trait_ref =
+                                cx.tcx().mk_trait_ref(parent_def_id, parent_substs.iter().copied());
                             cx.path_qualified(trait_ref.self_ty(), Some(trait_ref))
                         } else {
                             cx.print_def_path(parent_def_id, parent_substs)
@@ -275,10 +273,9 @@ fn characteristic_def_id_of_type_cached<'a>(
         | ty::Uint(_)
         | ty::Str
         | ty::FnPtr(_)
-        | ty::Projection(_)
+        | ty::Alias(..)
         | ty::Placeholder(..)
         | ty::Param(_)
-        | ty::Opaque(..)
         | ty::Infer(_)
         | ty::Bound(..)
         | ty::Error(_)

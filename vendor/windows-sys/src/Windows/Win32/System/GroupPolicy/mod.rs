@@ -1,91 +1,56 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn BrowseForGPO(lpbrowseinfo: *mut GPOBROWSEINFO) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn CommandLineFromMsiDescriptor(descriptor: ::windows_sys::core::PCWSTR, commandline: ::windows_sys::core::PWSTR, commandlinelength: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn CreateGPOLink(lpgpo: ::windows_sys::core::PCWSTR, lpcontainer: ::windows_sys::core::PCWSTR, fhighpriority: super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn DeleteAllGPOLinks(lpcontainer: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn DeleteGPOLink(lpgpo: ::windows_sys::core::PCWSTR, lpcontainer: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EnterCriticalPolicySection(bmachine: super::super::Foundation::BOOL) -> super::super::Foundation::HANDLE;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn ExportRSoPData(lpnamespace: ::windows_sys::core::PCWSTR, lpfilename: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FreeGPOListA(pgpolist: *const GROUP_POLICY_OBJECTA) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FreeGPOListW(pgpolist: *const GROUP_POLICY_OBJECTW) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GenerateGPNotification(bmachine: super::super::Foundation::BOOL, lpwszmgmtproduct: ::windows_sys::core::PCWSTR, dwmgmtproductoptions: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetAppliedGPOListA(dwflags: u32, pmachinename: ::windows_sys::core::PCSTR, psiduser: super::super::Foundation::PSID, pguidextension: *const ::windows_sys::core::GUID, ppgpolist: *mut *mut GROUP_POLICY_OBJECTA) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetAppliedGPOListW(dwflags: u32, pmachinename: ::windows_sys::core::PCWSTR, psiduser: super::super::Foundation::PSID, pguidextension: *const ::windows_sys::core::GUID, ppgpolist: *mut *mut GROUP_POLICY_OBJECTW) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetGPOListA(htoken: super::super::Foundation::HANDLE, lpname: ::windows_sys::core::PCSTR, lphostname: ::windows_sys::core::PCSTR, lpcomputername: ::windows_sys::core::PCSTR, dwflags: u32, pgpolist: *mut *mut GROUP_POLICY_OBJECTA) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetGPOListW(htoken: super::super::Foundation::HANDLE, lpname: ::windows_sys::core::PCWSTR, lphostname: ::windows_sys::core::PCWSTR, lpcomputername: ::windows_sys::core::PCWSTR, dwflags: u32, pgpolist: *mut *mut GROUP_POLICY_OBJECTW) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn GetLocalManagedApplicationData(productcode: ::windows_sys::core::PCWSTR, displayname: *mut ::windows_sys::core::PWSTR, supporturl: *mut ::windows_sys::core::PWSTR);
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetLocalManagedApplications(buserapps: super::super::Foundation::BOOL, pdwapps: *mut u32, prglocalapps: *mut *mut LOCALMANAGEDAPPLICATION) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_UI_Shell\"`*"]
-    #[cfg(feature = "Win32_UI_Shell")]
-    pub fn GetManagedApplicationCategories(dwreserved: u32, pappcategory: *mut super::super::UI::Shell::APPCATEGORYINFOLIST) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetManagedApplications(pcategory: *const ::windows_sys::core::GUID, dwqueryflags: u32, dwinfolevel: u32, pdwapps: *mut u32, prgmanagedapps: *mut *mut MANAGEDAPPLICATION) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn ImportRSoPData(lpnamespace: ::windows_sys::core::PCWSTR, lpfilename: ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn InstallApplication(pinstallinfo: *const INSTALLDATA) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn LeaveCriticalPolicySection(hsection: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn ProcessGroupPolicyCompleted(extensionid: *const ::windows_sys::core::GUID, pasynchandle: usize, dwstatus: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn ProcessGroupPolicyCompletedEx(extensionid: *const ::windows_sys::core::GUID, pasynchandle: usize, dwstatus: u32, rsopstatus: ::windows_sys::core::HRESULT) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RefreshPolicy(bmachine: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RefreshPolicyEx(bmachine: super::super::Foundation::BOOL, dwoptions: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn RegisterGPNotification(hevent: super::super::Foundation::HANDLE, bmachine: super::super::Foundation::BOOL) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`, `\"Win32_Security\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security"))]
-    pub fn RsopAccessCheckByType(psecuritydescriptor: super::super::Security::PSECURITY_DESCRIPTOR, pprincipalselfsid: super::super::Foundation::PSID, prsoptoken: *const ::core::ffi::c_void, dwdesiredaccessmask: u32, pobjecttypelist: *const super::super::Security::OBJECT_TYPE_LIST, objecttypelistlength: u32, pgenericmapping: *const super::super::Security::GENERIC_MAPPING, pprivilegeset: *const super::super::Security::PRIVILEGE_SET, pdwprivilegesetlength: *const u32, pdwgrantedaccessmask: *mut u32, pbaccessstatus: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn RsopFileAccessCheck(pszfilename: ::windows_sys::core::PCWSTR, prsoptoken: *const ::core::ffi::c_void, dwdesiredaccessmask: u32, pdwgrantedaccessmask: *mut u32, pbaccessstatus: *mut i32) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_System_Wmi\"`*"]
-    #[cfg(feature = "Win32_System_Wmi")]
-    pub fn RsopResetPolicySettingStatus(dwflags: u32, pservices: super::Wmi::IWbemServices, psettinginstance: super::Wmi::IWbemClassObject) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`, `\"Win32_System_Wmi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Wmi"))]
-    pub fn RsopSetPolicySettingStatus(dwflags: u32, pservices: super::Wmi::IWbemServices, psettinginstance: super::Wmi::IWbemClassObject, ninfo: u32, pstatus: *const POLICYSETTINGSTATUSINFO) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-    pub fn UninstallApplication(productcode: ::windows_sys::core::PCWSTR, dwstatus: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn UnregisterGPNotification(hevent: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL;
-}
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "gpedit.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn BrowseForGPO ( lpbrowseinfo : *mut GPOBROWSEINFO ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn CommandLineFromMsiDescriptor ( descriptor : :: windows_sys::core::PCWSTR , commandline : :: windows_sys::core::PWSTR , commandlinelength : *mut u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "gpedit.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn CreateGPOLink ( lpgpo : :: windows_sys::core::PCWSTR , lpcontainer : :: windows_sys::core::PCWSTR , fhighpriority : super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "gpedit.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn DeleteAllGPOLinks ( lpcontainer : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "gpedit.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn DeleteGPOLink ( lpgpo : :: windows_sys::core::PCWSTR , lpcontainer : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn EnterCriticalPolicySection ( bmachine : super::super::Foundation:: BOOL ) -> super::super::Foundation:: HANDLE );
+::windows_sys::core::link ! ( "gpedit.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn ExportRSoPData ( lpnamespace : :: windows_sys::core::PCWSTR , lpfilename : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn FreeGPOListA ( pgpolist : *const GROUP_POLICY_OBJECTA ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn FreeGPOListW ( pgpolist : *const GROUP_POLICY_OBJECTW ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn GenerateGPNotification ( bmachine : super::super::Foundation:: BOOL , lpwszmgmtproduct : :: windows_sys::core::PCWSTR , dwmgmtproductoptions : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn GetAppliedGPOListA ( dwflags : u32 , pmachinename : :: windows_sys::core::PCSTR , psiduser : super::super::Foundation:: PSID , pguidextension : *const :: windows_sys::core::GUID , ppgpolist : *mut *mut GROUP_POLICY_OBJECTA ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn GetAppliedGPOListW ( dwflags : u32 , pmachinename : :: windows_sys::core::PCWSTR , psiduser : super::super::Foundation:: PSID , pguidextension : *const :: windows_sys::core::GUID , ppgpolist : *mut *mut GROUP_POLICY_OBJECTW ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn GetGPOListA ( htoken : super::super::Foundation:: HANDLE , lpname : :: windows_sys::core::PCSTR , lphostname : :: windows_sys::core::PCSTR , lpcomputername : :: windows_sys::core::PCSTR , dwflags : u32 , pgpolist : *mut *mut GROUP_POLICY_OBJECTA ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn GetGPOListW ( htoken : super::super::Foundation:: HANDLE , lpname : :: windows_sys::core::PCWSTR , lphostname : :: windows_sys::core::PCWSTR , lpcomputername : :: windows_sys::core::PCWSTR , dwflags : u32 , pgpolist : *mut *mut GROUP_POLICY_OBJECTW ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn GetLocalManagedApplicationData ( productcode : :: windows_sys::core::PCWSTR , displayname : *mut :: windows_sys::core::PWSTR , supporturl : *mut :: windows_sys::core::PWSTR ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn GetLocalManagedApplications ( buserapps : super::super::Foundation:: BOOL , pdwapps : *mut u32 , prglocalapps : *mut *mut LOCALMANAGEDAPPLICATION ) -> u32 );
+#[cfg(feature = "Win32_UI_Shell")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_UI_Shell\"`*"] fn GetManagedApplicationCategories ( dwreserved : u32 , pappcategory : *mut super::super::UI::Shell:: APPCATEGORYINFOLIST ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn GetManagedApplications ( pcategory : *const :: windows_sys::core::GUID , dwqueryflags : u32 , dwinfolevel : u32 , pdwapps : *mut u32 , prgmanagedapps : *mut *mut MANAGEDAPPLICATION ) -> u32 );
+::windows_sys::core::link ! ( "gpedit.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn ImportRSoPData ( lpnamespace : :: windows_sys::core::PCWSTR , lpfilename : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn InstallApplication ( pinstallinfo : *const INSTALLDATA ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn LeaveCriticalPolicySection ( hsection : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn ProcessGroupPolicyCompleted ( extensionid : *const :: windows_sys::core::GUID , pasynchandle : usize , dwstatus : u32 ) -> u32 );
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn ProcessGroupPolicyCompletedEx ( extensionid : *const :: windows_sys::core::GUID , pasynchandle : usize , dwstatus : u32 , rsopstatus : :: windows_sys::core::HRESULT ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn RefreshPolicy ( bmachine : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn RefreshPolicyEx ( bmachine : super::super::Foundation:: BOOL , dwoptions : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn RegisterGPNotification ( hevent : super::super::Foundation:: HANDLE , bmachine : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security"))]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`, `\"Win32_Security\"`*"] fn RsopAccessCheckByType ( psecuritydescriptor : super::super::Security:: PSECURITY_DESCRIPTOR , pprincipalselfsid : super::super::Foundation:: PSID , prsoptoken : *const ::core::ffi::c_void , dwdesiredaccessmask : u32 , pobjecttypelist : *const super::super::Security:: OBJECT_TYPE_LIST , objecttypelistlength : u32 , pgenericmapping : *const super::super::Security:: GENERIC_MAPPING , pprivilegeset : *const super::super::Security:: PRIVILEGE_SET , pdwprivilegesetlength : *const u32 , pdwgrantedaccessmask : *mut u32 , pbaccessstatus : *mut i32 ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn RsopFileAccessCheck ( pszfilename : :: windows_sys::core::PCWSTR , prsoptoken : *const ::core::ffi::c_void , dwdesiredaccessmask : u32 , pdwgrantedaccessmask : *mut u32 , pbaccessstatus : *mut i32 ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_System_Wmi")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_System_Wmi\"`*"] fn RsopResetPolicySettingStatus ( dwflags : u32 , pservices : super::Wmi:: IWbemServices , psettinginstance : super::Wmi:: IWbemClassObject ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Wmi"))]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`, `\"Win32_System_Wmi\"`*"] fn RsopSetPolicySettingStatus ( dwflags : u32 , pservices : super::Wmi:: IWbemServices , psettinginstance : super::Wmi:: IWbemClassObject , ninfo : u32 , pstatus : *const POLICYSETTINGSTATUSINFO ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "advapi32.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"] fn UninstallApplication ( productcode : :: windows_sys::core::PCWSTR , dwstatus : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "userenv.dll""system" #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`, `\"Win32_Foundation\"`*"] fn UnregisterGPNotification ( hevent : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOL );
 pub type IGPEInformation = *mut ::core::ffi::c_void;
 pub type IGPM = *mut ::core::ffi::c_void;
 pub type IGPM2 = *mut ::core::ffi::c_void;
@@ -130,9 +95,12 @@ pub type IGPMWMIFilter = *mut ::core::ffi::c_void;
 pub type IGPMWMIFilterCollection = *mut ::core::ffi::c_void;
 pub type IGroupPolicyObject = *mut ::core::ffi::c_void;
 pub type IRSOPInformation = *mut ::core::ffi::c_void;
-pub const CLSID_GPESnapIn: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2411771700, data2: 41185, data3: 4561, data4: [167, 211, 0, 0, 248, 117, 113, 227] };
-pub const CLSID_GroupPolicyObject: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3931121442, data2: 41533, data3: 4561, data4: [167, 211, 0, 0, 248, 117, 113, 227] };
-pub const CLSID_RSOPSnapIn: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1841528907, data2: 29202, data3: 17805, data4: [173, 176, 154, 7, 226, 174, 31, 162] };
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const CLSID_GPESnapIn: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8fc0b734_a0e1_11d1_a7d3_0000f87571e3);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const CLSID_GroupPolicyObject: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xea502722_a23d_11d1_a7d3_0000f87571e3);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const CLSID_RSOPSnapIn: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6dc3804b_7212_458d_adb0_9a07e2ae1fa2);
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
 pub const FLAG_ASSUME_COMP_WQLFILTER_TRUE: u32 = 33554432u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
@@ -157,40 +125,74 @@ pub const FLAG_NO_USER: u32 = 1u32;
 pub const FLAG_PLANNING_MODE: u32 = 16777216u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
 pub const GPC_BLOCK_POLICY: u32 = 1u32;
-pub const GPM: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 4117317384, data2: 35070, data3: 19253, data4: [186, 191, 229, 97, 98, 213, 251, 200] };
-pub const GPMAsyncCancel: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 925341353, data2: 30444, data3: 18333, data4: [173, 108, 85, 99, 24, 237, 95, 157] };
-pub const GPMBackup: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3977925816, data2: 24314, data3: 18474, data4: [147, 192, 138, 216, 111, 13, 104, 195] };
-pub const GPMBackupCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3952018267, data2: 28891, data3: 19103, data4: [150, 118, 55, 194, 89, 148, 233, 220] };
-pub const GPMBackupDir: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 4242843037, data2: 3873, data3: 19194, data4: [184, 89, 230, 208, 198, 44, 209, 12] };
-pub const GPMBackupDirEx: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3904936074, data2: 52995, data3: 19547, data4: [139, 226, 42, 169, 173, 50, 170, 218] };
-pub const GPMCSECollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3482499112, data2: 11588, data3: 19297, data4: [177, 10, 179, 39, 175, 212, 45, 168] };
-pub const GPMClientSideExtension: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3248678670, data2: 26012, data3: 19226, data4: [148, 11, 248, 139, 10, 249, 200, 164] };
-pub const GPMConstants: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 945154176, data2: 52638, data3: 19724, data4: [158, 175, 21, 121, 40, 58, 24, 136] };
-pub const GPMDomain: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1896415678, data2: 4176, data3: 19633, data4: [131, 138, 197, 207, 242, 89, 225, 131] };
-pub const GPMGPO: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3536726420, data2: 22965, data3: 16484, data4: [181, 129, 77, 104, 72, 106, 22, 196] };
-pub const GPMGPOCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2047177509, data2: 33581, data3: 19939, data4: [164, 31, 199, 128, 67, 106, 78, 9] };
-pub const GPMGPOLink: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3252656256, data2: 21251, data3: 17094, data4: [138, 60, 4, 136, 225, 191, 115, 100] };
-pub const GPMGPOLinksCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 4142749722, data2: 18853, data3: 18402, data4: [183, 113, 253, 141, 192, 43, 98, 89] };
-pub const GPMMapEntry: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2358727251, data2: 21553, data3: 17521, data4: [179, 93, 6, 38, 201, 40, 37, 138] };
-pub const GPMMapEntryCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 217537883, data2: 41889, data3: 19541, data4: [180, 254, 158, 20, 156, 65, 246, 109] };
-pub const GPMMigrationTable: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1437548611, data2: 10758, data3: 20338, data4: [171, 239, 99, 27, 68, 7, 156, 118] };
-pub const GPMPermission: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1483842570, data2: 59840, data3: 18156, data4: [145, 62, 148, 78, 249, 34, 90, 148] };
-pub const GPMRSOP: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1218120879, data2: 40642, data3: 20151, data4: [145, 245, 182, 247, 29, 67, 218, 140] };
-pub const GPMResult: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2450528960, data2: 37511, data3: 16902, data4: [163, 178, 75, 219, 115, 210, 37, 246] };
-pub const GPMSOM: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 853098412, data2: 17678, data3: 17615, data4: [130, 156, 139, 34, 255, 107, 218, 225] };
-pub const GPMSOMCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 616689991, data2: 14112, data3: 20315, data4: [169, 195, 6, 180, 228, 249, 49, 210] };
-pub const GPMSearchCriteria: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 397068838, data2: 23776, data3: 17658, data4: [140, 192, 82, 89, 230, 72, 53, 102] };
-pub const GPMSecurityInfo: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1417305743, data2: 37218, data3: 17686, data4: [164, 223, 157, 219, 150, 134, 216, 70] };
-pub const GPMSitesContainer: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 580869186, data2: 34092, data3: 19248, data4: [148, 95, 197, 34, 190, 155, 211, 134] };
-pub const GPMStarterGPOBackup: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 949895178, data2: 55535, data3: 17755, data4: [168, 97, 95, 156, 163, 74, 106, 2] };
-pub const GPMStarterGPOBackupCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3881739677, data2: 6891, data3: 19637, data4: [167, 138, 40, 29, 170, 88, 36, 6] };
-pub const GPMStarterGPOCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2197334667, data2: 18874, data3: 17330, data4: [149, 110, 51, 151, 249, 185, 76, 58] };
-pub const GPMStatusMessage: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1266142356, data2: 53845, data3: 16539, data4: [188, 98, 55, 8, 129, 113, 90, 25] };
-pub const GPMStatusMsgCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 673506494, data2: 19404, data3: 19628, data4: [158, 96, 14, 62, 215, 241, 36, 150] };
-pub const GPMTemplate: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3975271508, data2: 29146, data3: 20015, data4: [168, 192, 129, 133, 70, 89, 17, 217] };
-pub const GPMTrustee: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3309989901, data2: 6582, data3: 16913, data4: [188, 176, 232, 226, 71, 94, 71, 30] };
-pub const GPMWMIFilter: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1650935256, data2: 3562, data3: 16482, data4: [191, 96, 207, 197, 177, 202, 18, 134] };
-pub const GPMWMIFilterCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1960602920, data2: 59424, data3: 18390, data4: [160, 184, 240, 141, 147, 215, 250, 51] };
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPM: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf5694708_88fe_4b35_babf_e56162d5fbc8);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMAsyncCancel: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x372796a9_76ec_479d_ad6c_556318ed5f9d);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMBackup: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xed1a54b8_5efa_482a_93c0_8ad86f0d68c3);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMBackupCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xeb8f035b_70db_4a9f_9676_37c25994e9dc);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMBackupDir: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xfce4a59d_0f21_4afa_b859_e6d0c62cd10c);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMBackupDirEx: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe8c0988a_cf03_4c5b_8be2_2aa9ad32aada);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMCSECollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xcf92b828_2d44_4b61_b10a_b327afd42da8);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMClientSideExtension: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc1a2e70e_659c_4b1a_940b_f88b0af9c8a4);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMConstants: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x3855e880_cd9e_4d0c_9eaf_1579283a1888);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMDomain: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x710901be_1050_4cb1_838a_c5cff259e183);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMGPO: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xd2ce2994_59b5_4064_b581_4d68486a16c4);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMGPOCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7a057325_832d_4de3_a41f_c780436a4e09);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMGPOLink: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc1df9880_5303_42c6_8a3c_0488e1bf7364);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMGPOLinksCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf6ed581a_49a5_47e2_b771_fd8dc02b6259);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMMapEntry: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8c975253_5431_4471_b35d_0626c928258a);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMMapEntryCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x0cf75d5b_a3a1_4c55_b4fe_9e149c41f66d);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMMigrationTable: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x55af4043_2a06_4f72_abef_631b44079c76);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMPermission: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x5871a40a_e9c0_46ec_913e_944ef9225a94);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMRSOP: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x489b0caf_9ec2_4eb7_91f5_b6f71d43da8c);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMResult: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x92101ac0_9287_4206_a3b2_4bdb73d225f6);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMSOM: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x32d93fac_450e_44cf_829c_8b22ff6bdae1);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMSOMCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x24c1f147_3720_4f5b_a9c3_06b4e4f931d2);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMSearchCriteria: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x17aaca26_5ce0_44fa_8cc0_5259e6483566);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMSecurityInfo: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x547a5e8f_9162_4516_a4df_9ddb9686d846);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMSitesContainer: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x229f5c42_852c_4b30_945f_c522be9bd386);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMStarterGPOBackup: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x389e400a_d8ef_455b_a861_5f9ca34a6a02);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMStarterGPOBackupCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe75ea59d_1aeb_4cb5_a78a_281daa582406);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMStarterGPOCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x82f8aa8b_49ba_43b2_956e_3397f9b94c3a);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMStatusMessage: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x4b77cc94_d255_409b_bc62_370881715a19);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMStatusMsgCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x2824e4be_4bcc_4cac_9e60_0e3ed7f12496);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMTemplate: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xecf1d454_71da_4e2f_a8c0_8185465911d9);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMTrustee: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc54a700d_19b6_4211_bcb0_e8e2475e471e);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMWMIFilter: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x626745d8_0dea_4062_bf60_cfc5b1ca1286);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const GPMWMIFilterCollection: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x74dc6d28_e820_47d6_a0b8_f08d93d7fa33);
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
 pub const GPM_DONOTUSE_W2KDC: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
@@ -264,29 +266,29 @@ pub const GPO_SECTION_ROOT: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
 pub const GPO_SECTION_USER: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_DLLNAME: &str = "DllName";
+pub const GP_DLLNAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DllName");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_ENABLEASYNCHRONOUSPROCESSING: &str = "EnableAsynchronousProcessing";
+pub const GP_ENABLEASYNCHRONOUSPROCESSING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("EnableAsynchronousProcessing");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_MAXNOGPOLISTCHANGESINTERVAL: &str = "MaxNoGPOListChangesInterval";
+pub const GP_MAXNOGPOLISTCHANGESINTERVAL: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxNoGPOListChangesInterval");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_NOBACKGROUNDPOLICY: &str = "NoBackgroundPolicy";
+pub const GP_NOBACKGROUNDPOLICY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NoBackgroundPolicy");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_NOGPOLISTCHANGES: &str = "NoGPOListChanges";
+pub const GP_NOGPOLISTCHANGES: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NoGPOListChanges");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_NOMACHINEPOLICY: &str = "NoMachinePolicy";
+pub const GP_NOMACHINEPOLICY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NoMachinePolicy");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_NOSLOWLINK: &str = "NoSlowLink";
+pub const GP_NOSLOWLINK: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NoSlowLink");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_NOTIFYLINKTRANSITION: &str = "NotifyLinkTransition";
+pub const GP_NOTIFYLINKTRANSITION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NotifyLinkTransition");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_NOUSERPOLICY: &str = "NoUserPolicy";
+pub const GP_NOUSERPOLICY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("NoUserPolicy");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_PERUSERLOCALSETTINGS: &str = "PerUserLocalSettings";
+pub const GP_PERUSERLOCALSETTINGS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PerUserLocalSettings");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_PROCESSGROUPPOLICY: &str = "ProcessGroupPolicy";
+pub const GP_PROCESSGROUPPOLICY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ProcessGroupPolicy");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
-pub const GP_REQUIRESSUCCESSFULREGISTRY: &str = "RequiresSuccessfulRegistry";
+pub const GP_REQUIRESSUCCESSFULREGISTRY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RequiresSuccessfulRegistry");
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
 pub const LOCALSTATE_ASSIGNED: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
@@ -313,14 +315,22 @@ pub const MANAGED_APPTYPE_SETUPEXE: u32 = 2u32;
 pub const MANAGED_APPTYPE_UNSUPPORTED: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
 pub const MANAGED_APPTYPE_WINDOWSINSTALLER: u32 = 1u32;
-pub const NODEID_Machine: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2411771703, data2: 41185, data3: 4561, data4: [167, 211, 0, 0, 248, 117, 113, 227] };
-pub const NODEID_MachineSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2411771706, data2: 41185, data3: 4561, data4: [167, 211, 0, 0, 248, 117, 113, 227] };
-pub const NODEID_RSOPMachine: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3175881262, data2: 2938, data3: 19042, data4: [166, 176, 192, 87, 117, 57, 201, 126] };
-pub const NODEID_RSOPMachineSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1786128190, data2: 60302, data3: 17883, data4: [148, 197, 37, 102, 58, 95, 44, 26] };
-pub const NODEID_RSOPUser: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2877765199, data2: 3308, data3: 19672, data4: [155, 248, 137, 143, 52, 98, 143, 184] };
-pub const NODEID_RSOPUserSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3844889827, data2: 64807, data3: 17410, data4: [132, 222, 217, 165, 242, 133, 137, 16] };
-pub const NODEID_User: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2411771704, data2: 41185, data3: 4561, data4: [167, 211, 0, 0, 248, 117, 113, 227] };
-pub const NODEID_UserSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2411771708, data2: 41185, data3: 4561, data4: [167, 211, 0, 0, 248, 117, 113, 227] };
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_Machine: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8fc0b737_a0e1_11d1_a7d3_0000f87571e3);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_MachineSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8fc0b73a_a0e1_11d1_a7d3_0000f87571e3);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_RSOPMachine: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbd4c1a2e_0b7a_4a62_a6b0_c0577539c97e);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_RSOPMachineSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6a76273e_eb8e_45db_94c5_25663a5f2c1a);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_RSOPUser: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xab87364f_0cec_4cd8_9bf8_898f34628fb8);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_RSOPUserSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe52c5ce3_fd27_4402_84de_d9a5f2858910);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_User: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8fc0b738_a0e1_11d1_a7d3_0000f87571e3);
+#[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
+pub const NODEID_UserSWSettings: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8fc0b73c_a0e1_11d1_a7d3_0000f87571e3);
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]
 pub const PI_APPLYPOLICY: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_GroupPolicy\"`*"]

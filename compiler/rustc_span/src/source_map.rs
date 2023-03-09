@@ -15,11 +15,10 @@ pub use crate::*;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::stable_hasher::StableHasher;
 use rustc_data_structures::sync::{AtomicU32, Lrc, MappedReadGuard, ReadGuard, RwLock};
+use std::cmp;
 use std::hash::Hash;
-use std::path::{Path, PathBuf};
+use std::path::{self, Path, PathBuf};
 use std::sync::atomic::Ordering;
-use std::{clone::Clone, cmp};
-use std::{convert::TryFrom, unreachable};
 
 use std::fs;
 use std::io;
@@ -439,7 +438,11 @@ impl SourceMap {
         }
     }
 
-    fn span_to_string(&self, sp: Span, filename_display_pref: FileNameDisplayPreference) -> String {
+    pub fn span_to_string(
+        &self,
+        sp: Span,
+        filename_display_pref: FileNameDisplayPreference,
+    ) -> String {
         if self.files.borrow().source_files.is_empty() || sp.is_dummy() {
             return "no-location".to_string();
         }
@@ -447,12 +450,15 @@ impl SourceMap {
         let lo = self.lookup_char_pos(sp.lo());
         let hi = self.lookup_char_pos(sp.hi());
         format!(
-            "{}:{}:{}: {}:{}",
+            "{}:{}:{}{}",
             lo.file.name.display(filename_display_pref),
             lo.line,
             lo.col.to_usize() + 1,
-            hi.line,
-            hi.col.to_usize() + 1,
+            if let FileNameDisplayPreference::Short = filename_display_pref {
+                String::new()
+            } else {
+                format!(": {}:{}", hi.line, hi.col.to_usize() + 1)
+            }
         )
     }
 
@@ -942,7 +948,7 @@ impl SourceMap {
     /// Otherwise, the span reached to limit is returned.
     pub fn span_look_ahead(&self, span: Span, expect: Option<&str>, limit: Option<usize>) -> Span {
         let mut sp = span;
-        for _ in 0..limit.unwrap_or(100 as usize) {
+        for _ in 0..limit.unwrap_or(100_usize) {
             sp = self.next_point(sp);
             if let Ok(ref snippet) = self.span_to_snippet(sp) {
                 if expect.map_or(false, |es| snippet == es) {
@@ -958,45 +964,40 @@ impl SourceMap {
 
     /// Finds the width of the character, either before or after the end of provided span,
     /// depending on the `forwards` parameter.
+    #[instrument(skip(self, sp))]
     fn find_width_of_character_at_span(&self, sp: Span, forwards: bool) -> u32 {
         let sp = sp.data();
 
         if sp.lo == sp.hi && !forwards {
-            debug!("find_width_of_character_at_span: early return empty span");
+            debug!("early return empty span");
             return 1;
         }
 
         let local_begin = self.lookup_byte_offset(sp.lo);
         let local_end = self.lookup_byte_offset(sp.hi);
-        debug!(
-            "find_width_of_character_at_span: local_begin=`{:?}`, local_end=`{:?}`",
-            local_begin, local_end
-        );
+        debug!("local_begin=`{:?}`, local_end=`{:?}`", local_begin, local_end);
 
         if local_begin.sf.start_pos != local_end.sf.start_pos {
-            debug!("find_width_of_character_at_span: begin and end are in different files");
+            debug!("begin and end are in different files");
             return 1;
         }
 
         let start_index = local_begin.pos.to_usize();
         let end_index = local_end.pos.to_usize();
-        debug!(
-            "find_width_of_character_at_span: start_index=`{:?}`, end_index=`{:?}`",
-            start_index, end_index
-        );
+        debug!("start_index=`{:?}`, end_index=`{:?}`", start_index, end_index);
 
         // Disregard indexes that are at the start or end of their spans, they can't fit bigger
         // characters.
         if (!forwards && end_index == usize::MIN) || (forwards && start_index == usize::MAX) {
-            debug!("find_width_of_character_at_span: start or end of span, cannot be multibyte");
+            debug!("start or end of span, cannot be multibyte");
             return 1;
         }
 
         let source_len = (local_begin.sf.end_pos - local_begin.sf.start_pos).to_usize();
-        debug!("find_width_of_character_at_span: source_len=`{:?}`", source_len);
+        debug!("source_len=`{:?}`", source_len);
         // Ensure indexes are also not malformed.
         if start_index > end_index || end_index > source_len - 1 {
-            debug!("find_width_of_character_at_span: source indexes are malformed");
+            debug!("source indexes are malformed");
             return 1;
         }
 
@@ -1011,10 +1012,10 @@ impl SourceMap {
         } else {
             return 1;
         };
-        debug!("find_width_of_character_at_span: snippet=`{:?}`", snippet);
+        debug!("snippet=`{:?}`", snippet);
 
         let mut target = if forwards { end_index + 1 } else { end_index - 1 };
-        debug!("find_width_of_character_at_span: initial target=`{:?}`", target);
+        debug!("initial target=`{:?}`", target);
 
         while !snippet.is_char_boundary(target - start_index) && target < source_len {
             target = if forwards {
@@ -1027,9 +1028,9 @@ impl SourceMap {
                     }
                 }
             };
-            debug!("find_width_of_character_at_span: target=`{:?}`", target);
+            debug!("target=`{:?}`", target);
         }
-        debug!("find_width_of_character_at_span: final target=`{:?}`", target);
+        debug!("final target=`{:?}`", target);
 
         if forwards { (target - end_index) as u32 } else { (end_index - target) as u32 }
     }
@@ -1070,12 +1071,24 @@ impl SourceMap {
 
     pub fn ensure_source_file_source_present(&self, source_file: Lrc<SourceFile>) -> bool {
         source_file.add_external_src(|| {
-            match source_file.name {
-                FileName::Real(ref name) if let Some(local_path) = name.local_path() => {
-                    self.file_loader.read_file(local_path).ok()
+            let FileName::Real(ref name) = source_file.name else {
+                return None;
+            };
+
+            let local_path: Cow<'_, Path> = match name {
+                RealFileName::LocalPath(local_path) => local_path.into(),
+                RealFileName::Remapped { local_path: Some(local_path), .. } => local_path.into(),
+                RealFileName::Remapped { local_path: None, virtual_name } => {
+                    // The compiler produces better error messages if the sources of dependencies
+                    // are available. Attempt to undo any path mapping so we can find remapped
+                    // dependencies.
+                    // We can only use the heuristic because `add_external_src` checks the file
+                    // content hash.
+                    self.path_mapping.reverse_map_prefix_heuristically(virtual_name)?.into()
                 }
-                _ => None,
-            }
+            };
+
+            self.file_loader.read_file(&local_path).ok()
         })
     }
 
@@ -1137,7 +1150,8 @@ impl FilePathMapping {
     /// Applies any path prefix substitution as defined by the mapping.
     /// The return value is the remapped path and a boolean indicating whether
     /// the path was affected by the mapping.
-    pub fn map_prefix(&self, path: PathBuf) -> (PathBuf, bool) {
+    pub fn map_prefix<'a>(&'a self, path: impl Into<Cow<'a, Path>>) -> (Cow<'a, Path>, bool) {
+        let path = path.into();
         if path.as_os_str().is_empty() {
             // Exit early if the path is empty and therefore there's nothing to remap.
             // This is mostly to reduce spam for `RUSTC_LOG=[remap_path_prefix]`.
@@ -1147,11 +1161,14 @@ impl FilePathMapping {
         return remap_path_prefix(&self.mapping, path);
 
         #[instrument(level = "debug", skip(mapping), ret)]
-        fn remap_path_prefix(mapping: &[(PathBuf, PathBuf)], path: PathBuf) -> (PathBuf, bool) {
+        fn remap_path_prefix<'a>(
+            mapping: &'a [(PathBuf, PathBuf)],
+            path: Cow<'a, Path>,
+        ) -> (Cow<'a, Path>, bool) {
             // NOTE: We are iterating over the mapping entries from last to first
             //       because entries specified later on the command line should
             //       take precedence.
-            for &(ref from, ref to) in mapping.iter().rev() {
+            for (from, to) in mapping.iter().rev() {
                 debug!("Trying to apply {from:?} => {to:?}");
 
                 if let Ok(rest) = path.strip_prefix(from) {
@@ -1162,9 +1179,9 @@ impl FilePathMapping {
                         // in remapped paths down the line.
                         // So, if we have an exact match, we just return that without a call
                         // to `Path::join()`.
-                        to.clone()
+                        to.into()
                     } else {
-                        to.join(rest)
+                        to.join(rest).into()
                     };
                     debug!("Match - remapped");
 
@@ -1182,11 +1199,11 @@ impl FilePathMapping {
     fn map_filename_prefix(&self, file: &FileName) -> (FileName, bool) {
         match file {
             FileName::Real(realfile) if let RealFileName::LocalPath(local_path) = realfile => {
-                let (mapped_path, mapped) = self.map_prefix(local_path.to_path_buf());
+                let (mapped_path, mapped) = self.map_prefix(local_path);
                 let realfile = if mapped {
                     RealFileName::Remapped {
                         local_path: Some(local_path.clone()),
-                        virtual_name: mapped_path,
+                        virtual_name: mapped_path.into_owned(),
                     }
                 } else {
                     realfile.clone()
@@ -1227,14 +1244,17 @@ impl FilePathMapping {
                 let (new_path, was_remapped) = self.map_prefix(unmapped_file_path);
                 if was_remapped {
                     // It was remapped, so don't modify further
-                    return RealFileName::Remapped { local_path: None, virtual_name: new_path };
+                    return RealFileName::Remapped {
+                        local_path: None,
+                        virtual_name: new_path.into_owned(),
+                    };
                 }
 
                 if new_path.is_absolute() {
                     // No remapping has applied to this path and it is absolute,
                     // so the working directory cannot influence it either, so
                     // we are done.
-                    return RealFileName::LocalPath(new_path);
+                    return RealFileName::LocalPath(new_path.into_owned());
                 }
 
                 debug_assert!(new_path.is_relative());
@@ -1252,12 +1272,12 @@ impl FilePathMapping {
                             RealFileName::Remapped {
                                 // Erase the actual path
                                 local_path: None,
-                                virtual_name: file_path_abs,
+                                virtual_name: file_path_abs.into_owned(),
                             }
                         } else {
                             // No kind of remapping applied to this path, so
                             // we leave it as it is.
-                            RealFileName::LocalPath(file_path_abs)
+                            RealFileName::LocalPath(file_path_abs.into_owned())
                         }
                     }
                     RealFileName::Remapped {
@@ -1275,5 +1295,44 @@ impl FilePathMapping {
                 }
             }
         }
+    }
+
+    /// Attempts to (heuristically) reverse a prefix mapping.
+    ///
+    /// Returns [`Some`] if there is exactly one mapping where the "to" part is
+    /// a prefix of `path` and has at least one non-empty
+    /// [`Normal`](path::Component::Normal) component. The component
+    /// restriction exists to avoid reverse mapping overly generic paths like
+    /// `/` or `.`).
+    ///
+    /// This is a heuristic and not guaranteed to return the actual original
+    /// path! Do not rely on the result unless you have other means to verify
+    /// that the mapping is correct (e.g. by checking the file content hash).
+    #[instrument(level = "debug", skip(self), ret)]
+    fn reverse_map_prefix_heuristically(&self, path: &Path) -> Option<PathBuf> {
+        let mut found = None;
+
+        for (from, to) in self.mapping.iter() {
+            let has_normal_component = to.components().any(|c| match c {
+                path::Component::Normal(s) => !s.is_empty(),
+                _ => false,
+            });
+
+            if !has_normal_component {
+                continue;
+            }
+
+            let Ok(rest) = path.strip_prefix(to) else {
+                continue;
+            };
+
+            if found.is_some() {
+                return None;
+            }
+
+            found = Some(from.join(rest));
+        }
+
+        found
     }
 }

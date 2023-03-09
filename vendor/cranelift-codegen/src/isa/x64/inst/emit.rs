@@ -1115,6 +1115,21 @@ pub(crate) fn emit(
             );
         }
 
+        Inst::Bswap { size, src, dst } => {
+            let src = allocs.next(src.to_reg());
+            let dst = allocs.next(dst.to_reg().to_reg());
+            debug_assert_eq!(src, dst);
+            let enc_reg = int_reg_enc(dst);
+
+            // BSWAP reg32 is (REX.W==0) 0F C8
+            // BSWAP reg64 is (REX.W==1) 0F C8
+            let rex_flags = RexFlags::from(*size);
+            rex_flags.emit_one_op(sink, enc_reg);
+
+            sink.put1(0x0F);
+            sink.put1(0xC8 | (enc_reg & 7));
+        }
+
         Inst::Cmove {
             size,
             cc,
@@ -1405,6 +1420,8 @@ pub(crate) fn emit(
                 sink.add_call_site(call_info.opcode);
             }
         }
+
+        Inst::Args { .. } => {}
 
         Inst::Ret { .. } => sink.put1(0xC3),
 
@@ -2136,13 +2153,6 @@ pub(crate) fn emit(
                 }
             }
             sink.put1(*imm);
-        }
-
-        Inst::XmmLoadConst { src, dst, ty } => {
-            let dst = allocs.next(dst.to_reg());
-            let load_offset = Amode::rip_relative(sink.get_label_for_constant(*src));
-            let load = Inst::load(*ty, load_offset, Writable::from_reg(dst), ExtKind::None);
-            load.emit(&[], sink, info, state);
         }
 
         Inst::XmmUninitializedValue { .. } => {

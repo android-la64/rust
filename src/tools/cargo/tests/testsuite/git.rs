@@ -2521,6 +2521,7 @@ fn include_overrides_gitignore() {
     p.cargo("build -v")
         .with_stderr(
             "\
+[DIRTY] foo v0.5.0 ([..]): the precalculated components changed
 [COMPILING] foo v0.5.0 ([..])
 [RUNNING] `[..]build-script-build[..]`
 [RUNNING] `rustc --crate-name foo src/lib.rs [..]`
@@ -2748,6 +2749,8 @@ fn use_the_cli() {
     let stderr = "\
 [UPDATING] git repository `[..]`
 [RUNNING] `git fetch [..]`
+From [..]
+ * [new ref]                    -> origin/HEAD
 [COMPILING] dep1 [..]
 [RUNNING] `rustc [..]`
 [COMPILING] foo [..]

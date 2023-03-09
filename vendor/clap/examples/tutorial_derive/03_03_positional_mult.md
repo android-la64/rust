@@ -8,13 +8,16 @@ Arguments:
   [NAME]...  
 
 Options:
-  -h, --help     Print help information
-  -V, --version  Print version information
+  -h, --help     Print help
+  -V, --version  Print version
 
 $ 03_03_positional_mult_derive
 name: []
 
 $ 03_03_positional_mult_derive bob
 name: ["bob"]
+
+$ 03_03_positional_mult_derive bob john
+name: ["bob", "john"]
 
 ```

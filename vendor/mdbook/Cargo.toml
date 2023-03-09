@@ -10,9 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.60"
 name = "mdbook"
-version = "0.4.21"
+version = "0.4.25"
 authors = [
     "Mathieu David <mathieudavid@mathieudavid.org>",
     "Michael-F-Bryan <michaelfbryan@gmail.com>",
@@ -20,7 +21,7 @@ authors = [
 ]
 exclude = ["/guide/*"]
 description = "Creates a book from markdown files"
-documentation = "http://rust-lang.github.io/mdBook/index.html"
+documentation = "https://rust-lang.github.io/mdBook/index.html"
 readme = "README.md"
 keywords = [
     "book",
@@ -35,6 +36,10 @@ repository = "https://github.com/rust-lang/mdBook"
 name = "mdbook"
 doc = false
 
+[[example]]
+name = "nop-preprocessor"
+test = true
+
 [dependencies.ammonia]
 version = "3"
 optional = true
@@ -46,18 +51,21 @@ version = "1.0.28"
 version = "0.4"
 
 [dependencies.clap]
-version = "3.0"
-features = ["cargo"]
+version = "4.0.29"
+features = [
+    "cargo",
+    "wrap_help",
+]
 
 [dependencies.clap_complete]
-version = "3.0"
+version = "4.0.6"
 
 [dependencies.elasticlunr-rs]
 version = "3.0.0"
 optional = true
 
 [dependencies.env_logger]
-version = "0.9.0"
+version = "0.10.0"
 
 [dependencies.futures-util]
 version = "0.3.4"
@@ -70,9 +78,6 @@ optional = true
 [dependencies.handlebars]
 version = "4.0"
 
-[dependencies.lazy_static]
-version = "1.0"
-
 [dependencies.log]
 version = "0.4"
 
@@ -80,8 +85,15 @@ version = "0.4"
 version = "2.0"
 
 [dependencies.notify]
-version = "4.0"
+version = "5.0.0"
 optional = true
+
+[dependencies.notify-debouncer-mini]
+version = "0.2.1"
+optional = true
+
+[dependencies.once_cell]
+version = "1"
 
 [dependencies.opener]
 version = "0.5"
@@ -118,7 +130,7 @@ optional = true
 version = "0.5.1"
 
 [dependencies.topological-sort]
-version = "0.1.0"
+version = "0.2.2"
 
 [dependencies.warp]
 version = "0.3.2"
@@ -127,7 +139,7 @@ optional = true
 default-features = false
 
 [dev-dependencies.assert_cmd]
-version = "1"
+version = "2.0.7"
 
 [dev-dependencies.predicates]
 version = "2"
@@ -136,7 +148,7 @@ version = "2"
 version = "1.2.1"
 
 [dev-dependencies.select]
-version = "0.5"
+version = "0.6.0"
 
 [dev-dependencies.semver]
 version = "1.0"
@@ -161,5 +173,6 @@ serve = [
 ]
 watch = [
     "notify",
+    "notify-debouncer-mini",
     "gitignore",
 ]

@@ -334,6 +334,15 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
         self.r.field_names.insert(def_id, field_names);
     }
 
+    fn insert_field_visibilities_local(&mut self, def_id: DefId, vdata: &ast::VariantData) {
+        let field_vis = vdata
+            .fields()
+            .iter()
+            .map(|field| field.vis.span.until(field.ident.map_or(field.ty.span, |i| i.span)))
+            .collect();
+        self.r.field_visibility_spans.insert(def_id, field_vis);
+    }
+
     fn insert_field_names_extern(&mut self, def_id: DefId) {
         let field_names =
             self.r.cstore().struct_field_names_untracked(def_id, self.r.session).collect();
@@ -514,7 +523,7 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
                             ModuleKind::Block => unreachable!(),
                         };
                         // HACK(eddyb) unclear how good this is, but keeping `$crate`
-                        // in `source` breaks `src/test/ui/imports/import-crate-var.rs`,
+                        // in `source` breaks `tests/ui/imports/import-crate-var.rs`,
                         // while the current crate doesn't have a valid `crate_name`.
                         if crate_name != kw::Empty {
                             // `crate_name` should not be interpreted as relative.
@@ -576,7 +585,7 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
                 // Ensure there is at most one `self` in the list
                 let self_spans = items
                     .iter()
-                    .filter_map(|&(ref use_tree, _)| {
+                    .filter_map(|(use_tree, _)| {
                         if let ast::UseTreeKind::Simple(..) = use_tree.kind {
                             if use_tree.ident().name == kw::SelfLower {
                                 return Some(use_tree.span);
@@ -737,6 +746,7 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
 
                 // Record field names for error reporting.
                 self.insert_field_names_local(def_id, vdata);
+                self.insert_field_visibilities_local(def_id, vdata);
 
                 // If this is a tuple or unit struct, define a name
                 // in the value namespace as well.
@@ -770,6 +780,8 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
                         Res::Def(DefKind::Ctor(CtorOf::Struct, ctor_kind), ctor_def_id.to_def_id());
                     self.r.define(parent, ident, ValueNS, (ctor_res, ctor_vis, sp, expansion));
                     self.r.visibilities.insert(ctor_def_id, ctor_vis);
+                    // We need the field visibility spans also for the constructor for E0603.
+                    self.insert_field_visibilities_local(ctor_def_id.to_def_id(), vdata);
 
                     self.r
                         .struct_constructors
@@ -783,6 +795,7 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
 
                 // Record field names for error reporting.
                 self.insert_field_names_local(def_id, vdata);
+                self.insert_field_visibilities_local(def_id, vdata);
             }
 
             ItemKind::Trait(..) => {
@@ -836,12 +849,11 @@ impl<'a, 'b> BuildReducedGraphVisitor<'a, 'b> {
         } else if orig_name == Some(kw::SelfLower) {
             Some(self.r.graph_root)
         } else {
-            self.r.crate_loader.process_extern_crate(item, &self.r.definitions, local_def_id).map(
-                |crate_id| {
-                    self.r.extern_crate_map.insert(local_def_id, crate_id);
-                    self.r.expect_module(crate_id.as_def_id())
-                },
-            )
+            let crate_id = self.r.crate_loader().process_extern_crate(item, local_def_id);
+            crate_id.map(|crate_id| {
+                self.r.extern_crate_map.insert(local_def_id, crate_id);
+                self.r.expect_module(crate_id.as_def_id())
+            })
         }
         .map(|module| {
             let used = self.process_macro_use_imports(item, module);
@@ -1511,6 +1523,7 @@ impl<'a, 'b> Visitor<'b> for BuildReducedGraphVisitor<'a, 'b> {
 
         // Record field names for error reporting.
         self.insert_field_names_local(def_id.to_def_id(), &variant.data);
+        self.insert_field_visibilities_local(def_id.to_def_id(), &variant.data);
 
         visit::walk_variant(self, variant);
     }

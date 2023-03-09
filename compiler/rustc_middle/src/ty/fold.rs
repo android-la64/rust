@@ -290,7 +290,7 @@ pub struct RegionFolder<'a, 'tcx> {
     tcx: TyCtxt<'tcx>,
 
     /// Stores the index of a binder *just outside* the stuff we have
-    /// visited.  So this begins as INNERMOST; when we pass through a
+    /// visited. So this begins as INNERMOST; when we pass through a
     /// binder, it is incremented (via `shift_in`).
     current_index: ty::DebruijnIndex,
 
@@ -581,36 +581,6 @@ impl<'tcx> TyCtxt<'tcx> {
         T: TypeFoldable<'tcx>,
     {
         self.replace_late_bound_regions(value, |_| self.lifetimes.re_erased).0
-    }
-
-    /// Rewrite any late-bound regions so that they are anonymous. Region numbers are
-    /// assigned starting at 0 and increasing monotonically in the order traversed
-    /// by the fold operation.
-    ///
-    /// The chief purpose of this function is to canonicalize regions so that two
-    /// `FnSig`s or `TraitRef`s which are equivalent up to region naming will become
-    /// structurally identical. For example, `for<'a, 'b> fn(&'a isize, &'b isize)` and
-    /// `for<'a, 'b> fn(&'b isize, &'a isize)` will become identical after anonymization.
-    pub fn anonymize_late_bound_regions<T>(self, sig: Binder<'tcx, T>) -> Binder<'tcx, T>
-    where
-        T: TypeFoldable<'tcx>,
-    {
-        let mut counter = 0;
-        let inner = self
-            .replace_late_bound_regions(sig, |_| {
-                let br = ty::BoundRegion {
-                    var: ty::BoundVar::from_u32(counter),
-                    kind: ty::BrAnon(counter, None),
-                };
-                let r = self.mk_region(ty::ReLateBound(ty::INNERMOST, br));
-                counter += 1;
-                r
-            })
-            .0;
-        let bound_vars = self.mk_bound_variable_kinds(
-            (0..counter).map(|i| ty::BoundVariableKind::Region(ty::BrAnon(i, None))),
-        );
-        Binder::bind_with_vars(inner, bound_vars)
     }
 
     /// Anonymize all bound variables in `value`, this is mostly used to improve caching.

@@ -320,8 +320,10 @@ pub enum StatementKind<'tcx> {
     /// <https://internals.rust-lang.org/t/stacked-borrows-an-aliasing-model-for-rust/8153/> for
     /// more details.
     ///
-    /// For code that is not specific to stacked borrows, you should consider retags to read
-    /// and modify the place in an opaque way.
+    /// For code that is not specific to stacked borrows, you should consider retags to read and
+    /// modify the place in an opaque way.
+    ///
+    /// Only `RetagKind::Default` and `RetagKind::FnEntry` are permitted.
     Retag(RetagKind, Box<Place<'tcx>>),
 
     /// Encodes a user's type ascription. These need to be preserved
@@ -510,6 +512,16 @@ pub struct CopyNonOverlapping<'tcx> {
 ///     must also be `cleanup`. This is a part of the type system and checked statically, so it is
 ///     still an error to have such an edge in the CFG even if it's known that it won't be taken at
 ///     runtime.
+///  4. The control flow between cleanup blocks must look like an upside down tree. Roughly
+///     speaking, this means that control flow that looks like a V is allowed, while control flow
+///     that looks like a W is not. This is necessary to ensure that landing pad information can be
+///     correctly codegened on MSVC. More precisely:
+///
+///     Begin with the standard control flow graph `G`. Modify `G` as follows: for any two cleanup
+///     vertices `u` and `v` such that `u` dominates `v`, contract `u` and `v` into a single vertex,
+///     deleting self edges and duplicate edges in the process. Now remove all vertices from `G`
+///     that are not cleanup vertices or are not reachable. The resulting graph must be an inverted
+///     tree, that is each vertex may have at most one successor and there may be no cycles.
 #[derive(Clone, TyEncodable, TyDecodable, Hash, HashStable, PartialEq, TypeFoldable, TypeVisitable)]
 pub enum TerminatorKind<'tcx> {
     /// Block has one successor; we continue execution there.
@@ -526,12 +538,6 @@ pub enum TerminatorKind<'tcx> {
     SwitchInt {
         /// The discriminant value being tested.
         discr: Operand<'tcx>,
-
-        /// The type of value being tested.
-        /// This is always the same as the type of `discr`.
-        /// FIXME: remove this redundant information. Currently, it is relied on by pretty-printing.
-        switch_ty: Ty<'tcx>,
-
         targets: SwitchTargets,
     },
 
@@ -568,14 +574,13 @@ pub enum TerminatorKind<'tcx> {
     Unreachable,
 
     /// The behavior of this statement differs significantly before and after drop elaboration.
-    /// After drop elaboration, `Drop` executes the drop glue for the specified place, after which
-    /// it continues execution/unwinds at the given basic blocks. It is possible that executing drop
-    /// glue is special - this would be part of Rust's memory model. (**FIXME**: due we have an
-    /// issue tracking if drop glue has any interesting semantics in addition to those of a function
-    /// call?)
     ///
-    /// `Drop` before drop elaboration is a *conditional* execution of the drop glue. Specifically, the
-    /// `Drop` will be executed if...
+    /// After drop elaboration: `Drop` terminators are a complete nop for types that have no drop
+    /// glue. For other types, `Drop` terminators behave exactly like a call to
+    /// `core::mem::drop_in_place` with a pointer to the given place.
+    ///
+    /// `Drop` before drop elaboration is a *conditional* execution of the drop glue. Specifically,
+    /// the `Drop` will be executed if...
     ///
     /// **Needs clarification**: End of that sentence. This in effect should document the exact
     /// behavior of drop elaboration. The following sounds vaguely right, but I'm not quite sure:

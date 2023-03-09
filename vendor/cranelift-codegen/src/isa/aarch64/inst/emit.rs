@@ -934,6 +934,9 @@ impl MachInstEmit for Inst {
                     BitOp::RBit => (0b00000, 0b000000),
                     BitOp::Clz => (0b00000, 0b000100),
                     BitOp::Cls => (0b00000, 0b000101),
+                    BitOp::Rev16 => (0b00000, 0b000001),
+                    BitOp::Rev32 => (0b00000, 0b000010),
+                    BitOp::Rev64 => (0b00000, 0b000011),
                 };
                 sink.put4(enc_bit_rr(size.sf_bit(), op1, op2, rn, rd))
             }
@@ -3015,6 +3018,10 @@ impl MachInstEmit for Inst {
                 // Emit the jump itself.
                 sink.put4(enc_jump26(0b000101, dest.as_offset26_or_zero()));
             }
+            &Inst::Args { .. } => {
+                // Nothing: this is a pseudoinstruction that serves
+                // only to constrain registers at a certain point.
+            }
             &Inst::Ret { .. } => {
                 sink.put4(0xd65f03c0);
             }
@@ -3332,6 +3339,16 @@ impl MachInstEmit for Inst {
                 sink.put4(0xd503233f | key << 6);
             }
             &Inst::Xpaclri => sink.put4(0xd50320ff),
+            &Inst::Bti { targets } => {
+                let targets = match targets {
+                    BranchTargetType::None => 0b00,
+                    BranchTargetType::C => 0b01,
+                    BranchTargetType::J => 0b10,
+                    BranchTargetType::JC => 0b11,
+                };
+
+                sink.put4(0xd503241f | targets << 6);
+            }
             &Inst::VirtualSPOffsetAdj { offset } => {
                 trace!(
                     "virtual sp offset adjusted by {} -> {}",

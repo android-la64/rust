@@ -10,7 +10,7 @@
 //! - Download any packages needed (see [`PackageSet`](crate::core::PackageSet)).
 //! - Generate a list of top-level "units" of work for the targets the user
 //!   requested on the command-line. Each [`Unit`] corresponds to a compiler
-//!   invocation. This is done in this module ([`UnitGenerator::generate_units`]).
+//!   invocation. This is done in this module ([`UnitGenerator::generate_root_units`]).
 //! - Build the graph of `Unit` dependencies (see [`unit_dependencies`]).
 //! - Create a [`Context`] which will perform the following steps:
 //!     - Prepare the `target` directory (see [`Layout`]).
@@ -33,7 +33,6 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use crate::core::compiler::rustdoc::RustdocScrapeExamples;
 use crate::core::compiler::unit_dependencies::build_unit_dependencies;
 use crate::core::compiler::unit_graph::{self, UnitDep, UnitGraph};
 use crate::core::compiler::{standard_lib, CrateType, TargetInfo};
@@ -69,7 +68,7 @@ pub use packages::Packages;
 /// of it as `CompileOptions` are high-level settings requested on the
 /// command-line, and `BuildConfig` are low-level settings for actually
 /// driving `rustc`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompileOptions {
     /// Configuration information for a rustc build
     pub build_config: BuildConfig,
@@ -344,7 +343,7 @@ pub fn create_bcx<'a, 'cfg>(
         .collect();
 
     // Passing `build_config.requested_kinds` instead of
-    // `explicit_host_kinds` here so that `generate_units` can do
+    // `explicit_host_kinds` here so that `generate_root_units` can do
     // its own special handling of `CompileKind::Host`. It will
     // internally replace the host kind by the `explicit_host_kind`
     // before setting as a unit.
@@ -363,7 +362,7 @@ pub fn create_bcx<'a, 'cfg>(
         interner,
         has_dev_units,
     };
-    let mut units = generator.generate_units()?;
+    let mut units = generator.generate_root_units()?;
 
     if let Some(args) = target_rustc_crate_types {
         override_rustc_crate_types(&mut units, args, interner)?;
@@ -371,23 +370,11 @@ pub fn create_bcx<'a, 'cfg>(
 
     let should_scrape = build_config.mode.is_doc() && config.cli_unstable().rustdoc_scrape_examples;
     let mut scrape_units = if should_scrape {
-        let scrape_generator = UnitGenerator {
+        UnitGenerator {
             mode: CompileMode::Docscrape,
             ..generator
-        };
-        let all_units = scrape_generator.generate_units()?;
-
-        let valid_units = all_units
-            .into_iter()
-            .filter(|unit| {
-                ws.unit_needs_doc_scrape(unit)
-                    && !matches!(
-                        unit.target.doc_scrape_examples(),
-                        RustdocScrapeExamples::Disabled
-                    )
-            })
-            .collect::<Vec<_>>();
-        valid_units
+        }
+        .generate_scrape_units(&units)?
     } else {
         Vec::new()
     };
@@ -428,20 +415,25 @@ pub fn create_bcx<'a, 'cfg>(
         remove_duplicate_doc(build_config, &units, &mut unit_graph);
     }
 
-    if build_config
+    let host_kind_requested = build_config
         .requested_kinds
         .iter()
-        .any(CompileKind::is_host)
-    {
+        .any(CompileKind::is_host);
+    let should_share_deps = host_kind_requested
+        || config.cli_unstable().bindeps
+            && unit_graph
+                .iter()
+                .any(|(unit, _)| unit.artifact_target_for_features.is_some());
+    if should_share_deps {
         // Rebuild the unit graph, replacing the explicit host targets with
-        // CompileKind::Host, merging any dependencies shared with build
-        // dependencies.
+        // CompileKind::Host, removing `artifact_target_for_features` and merging any dependencies
+        // shared with build and artifact dependencies.
         let new_graph = rebuild_unit_graph_shared(
             interner,
             unit_graph,
             &units,
             &scrape_units,
-            explicit_host_kind,
+            host_kind_requested.then_some(explicit_host_kind),
         );
         // This would be nicer with destructuring assignment.
         units = new_graph.0;
@@ -553,29 +545,31 @@ pub fn create_bcx<'a, 'cfg>(
 /// This is used to rebuild the unit graph, sharing host dependencies if possible.
 ///
 /// This will translate any unit's `CompileKind::Target(host)` to
-/// `CompileKind::Host` if the kind is equal to `to_host`. This also handles
-/// generating the unit `dep_hash`, and merging shared units if possible.
+/// `CompileKind::Host` if `to_host` is not `None` and the kind is equal to `to_host`.
+/// This also handles generating the unit `dep_hash`, and merging shared units if possible.
 ///
 /// This is necessary because if normal dependencies used `CompileKind::Host`,
 /// there would be no way to distinguish those units from build-dependency
-/// units. This can cause a problem if a shared normal/build dependency needs
+/// units or artifact dependency units.
+/// This can cause a problem if a shared normal/build/artifact dependency needs
 /// to link to another dependency whose features differ based on whether or
-/// not it is a normal or build dependency. If both units used
+/// not it is a normal, build or artifact dependency. If all units used
 /// `CompileKind::Host`, then they would end up being identical, causing a
 /// collision in the `UnitGraph`, and Cargo would end up randomly choosing one
 /// value or the other.
 ///
-/// The solution is to keep normal and build dependencies separate when
+/// The solution is to keep normal, build and artifact dependencies separate when
 /// building the unit graph, and then run this second pass which will try to
 /// combine shared dependencies safely. By adding a hash of the dependencies
 /// to the `Unit`, this allows the `CompileKind` to be changed back to `Host`
-/// without fear of an unwanted collision.
+/// and `artifact_target_for_features` to be removed without fear of an unwanted
+/// collision for build or artifact dependencies.
 fn rebuild_unit_graph_shared(
     interner: &UnitInterner,
     unit_graph: UnitGraph,
     roots: &[Unit],
     scrape_units: &[Unit],
-    to_host: CompileKind,
+    to_host: Option<CompileKind>,
 ) -> (Vec<Unit>, Vec<Unit>, UnitGraph) {
     let mut result = UnitGraph::new();
     // Map of the old unit to the new unit, used to avoid recursing into units
@@ -608,7 +602,7 @@ fn traverse_and_share(
     new_graph: &mut UnitGraph,
     unit_graph: &UnitGraph,
     unit: &Unit,
-    to_host: CompileKind,
+    to_host: Option<CompileKind>,
 ) -> Unit {
     if let Some(new_unit) = memo.get(unit) {
         // Already computed, no need to recompute.
@@ -628,10 +622,9 @@ fn traverse_and_share(
         })
         .collect();
     let new_dep_hash = dep_hash.finish();
-    let new_kind = if unit.kind == to_host {
-        CompileKind::Host
-    } else {
-        unit.kind
+    let new_kind = match to_host {
+        Some(to_host) if to_host == unit.kind => CompileKind::Host,
+        _ => unit.kind,
     };
     let new_unit = interner.intern(
         &unit.pkg,
@@ -643,6 +636,9 @@ fn traverse_and_share(
         unit.is_std,
         new_dep_hash,
         unit.artifact,
+        // Since `dep_hash` is now filled in, there's no need to specify the artifact target
+        // for target-dependent feature resolution
+        None,
     );
     assert!(memo.insert(unit.clone(), new_unit.clone()).is_none());
     new_graph.entry(new_unit.clone()).or_insert(new_deps);
@@ -801,6 +797,7 @@ fn override_rustc_crate_types(
             unit.is_std,
             unit.dep_hash,
             unit.artifact,
+            unit.artifact_target_for_features,
         )
     };
     units[0] = match unit.target.kind() {

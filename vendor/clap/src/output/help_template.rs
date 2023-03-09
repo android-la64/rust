@@ -137,6 +137,7 @@ impl<'cmd, 'writer> HelpTemplate<'cmd, 'writer> {
                     "name" => {
                         self.write_display_name();
                     }
+                    #[cfg(not(feature = "unstable-v5"))]
                     "bin" => {
                         self.write_bin_name();
                     }
@@ -427,7 +428,7 @@ impl<'cmd, 'writer> HelpTemplate<'cmd, 'writer> {
             // If it's NextLineHelp we don't care to compute how long it is because it may be
             // NextLineHelp on purpose simply *because* it's so long and would throw off all other
             // args alignment
-            should_show_arg(self.use_long, *arg)
+            should_show_arg(self.use_long, arg)
         }) {
             if longest_filter(arg) {
                 longest = longest.max(display_width(&arg.to_string()));
@@ -674,7 +675,7 @@ impl<'cmd, 'writer> HelpTemplate<'cmd, 'writer> {
     /// Will use next line help on writing args.
     fn will_args_wrap(&self, args: &[&Arg], longest: usize) -> bool {
         args.iter()
-            .filter(|arg| should_show_arg(self.use_long, *arg))
+            .filter(|arg| should_show_arg(self.use_long, arg))
             .any(|arg| {
                 let spec_vals = &self.spec_vals(arg);
                 self.arg_next_line_help(arg, spec_vals, longest)
@@ -689,7 +690,11 @@ impl<'cmd, 'writer> HelpTemplate<'cmd, 'writer> {
             // force_next_line
             let h = arg.get_help().unwrap_or_default();
             let h_w = h.display_width() + display_width(spec_vals);
-            let taken = longest + 12;
+            let taken = if arg.is_positional() {
+                longest + TAB_WIDTH * 2
+            } else {
+                longest + TAB_WIDTH * 2 + 4 // See `fn short` for the 4
+            };
             self.term_w >= taken
                 && (taken as f32 / self.term_w as f32) > 0.40
                 && h_w > (self.term_w - taken)
@@ -925,7 +930,7 @@ impl<'cmd, 'writer> HelpTemplate<'cmd, 'writer> {
             // force_next_line
             let h = cmd.get_about().unwrap_or_default();
             let h_w = h.display_width() + display_width(spec_vals);
-            let taken = longest + 12;
+            let taken = longest + TAB_WIDTH * 2;
             self.term_w >= taken
                 && (taken as f32 / self.term_w as f32) > 0.40
                 && h_w > (self.term_w - taken)
@@ -939,7 +944,7 @@ impl<'cmd, 'writer> HelpTemplate<'cmd, 'writer> {
         self.none(TAB);
         self.writer.extend(sc_str.into_iter());
         if !next_line_help {
-            self.spaces(width.max(longest + TAB_WIDTH) - width);
+            self.spaces(longest + TAB_WIDTH - width);
         }
     }
 }

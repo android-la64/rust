@@ -55,6 +55,10 @@ use self::spec_extend::SpecExtend;
 
 mod spec_extend;
 
+use self::spec_from_iter::SpecFromIter;
+
+mod spec_from_iter;
+
 #[cfg(test)]
 mod tests;
 
@@ -531,12 +535,13 @@ impl<T> VecDeque<T> {
     ///
     /// let deque: VecDeque<u32> = VecDeque::new();
     /// ```
-    // FIXME: This should probably be const
     #[inline]
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[rustc_const_stable(feature = "const_vec_deque_new", since = "1.68.0")]
     #[must_use]
-    pub fn new() -> VecDeque<T> {
-        VecDeque::new_in(Global)
+    pub const fn new() -> VecDeque<T> {
+        // FIXME: This should just be `VecDeque::new_in(Global)` once that hits stable.
+        VecDeque { head: 0, len: 0, buf: RawVec::NEW }
     }
 
     /// Creates an empty deque with space for at least `capacity` elements.
@@ -586,6 +591,38 @@ impl<T, A: Allocator> VecDeque<T, A> {
         VecDeque { head: 0, len: 0, buf: RawVec::with_capacity_in(capacity, alloc) }
     }
 
+    /// Creates a `VecDeque` from a raw allocation, when the initialized
+    /// part of that allocation forms a *contiguous* subslice thereof.
+    ///
+    /// For use by `vec::IntoIter::into_vecdeque`
+    ///
+    /// # Safety
+    ///
+    /// All the usual requirements on the allocated memory like in
+    /// `Vec::from_raw_parts_in`, but takes a *range* of elements that are
+    /// initialized rather than only supporting `0..len`.  Requires that
+    /// `initialized.start` ≤ `initialized.end` ≤ `capacity`.
+    #[inline]
+    pub(crate) unsafe fn from_contiguous_raw_parts_in(
+        ptr: *mut T,
+        initialized: Range<usize>,
+        capacity: usize,
+        alloc: A,
+    ) -> Self {
+        debug_assert!(initialized.start <= initialized.end);
+        debug_assert!(initialized.end <= capacity);
+
+        // SAFETY: Our safety precondition guarantees the range length won't wrap,
+        // and that the allocation is valid for use in `RawVec`.
+        unsafe {
+            VecDeque {
+                head: initialized.start,
+                len: initialized.end.unchecked_sub(initialized.start),
+                buf: RawVec::from_raw_parts_in(ptr, capacity, alloc),
+            }
+        }
+    }
+
     /// Provides a reference to the element at the given index.
     ///
     /// Element at index 0 is the front of the queue.
@@ -599,6 +636,7 @@ impl<T, A: Allocator> VecDeque<T, A> {
     /// buf.push_back(3);
     /// buf.push_back(4);
     /// buf.push_back(5);
+    /// buf.push_back(6);
     /// assert_eq!(buf.get(1), Some(&4));
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
@@ -624,10 +662,11 @@ impl<T, A: Allocator> VecDeque<T, A> {
     /// buf.push_back(3);
     /// buf.push_back(4);
     /// buf.push_back(5);
+    /// buf.push_back(6);
+    /// assert_eq!(buf[1], 4);
     /// if let Some(elem) = buf.get_mut(1) {
     ///     *elem = 7;
     /// }
-    ///
     /// assert_eq!(buf[1], 7);
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
@@ -905,65 +944,72 @@ impl<T, A: Allocator> VecDeque<T, A> {
             return;
         }
 
-        if target_cap < self.capacity() {
-            // There are three cases of interest:
-            //   All elements are out of desired bounds
-            //   Elements are contiguous, and head is out of desired bounds
-            //   Elements are discontiguous, and tail is out of desired bounds
-            //
-            // At all other times, element positions are unaffected.
-            //
-            // Indicates that elements at the head should be moved.
+        // There are three cases of interest:
+        //   All elements are out of desired bounds
+        //   Elements are contiguous, and tail is out of desired bounds
+        //   Elements are discontiguous
+        //
+        // At all other times, element positions are unaffected.
 
-            let tail_outside = (target_cap + 1..=self.capacity()).contains(&(self.head + self.len));
-            // Move elements from out of desired bounds (positions after target_cap)
-            if self.len == 0 {
-                self.head = 0;
-            } else if self.head >= target_cap && tail_outside {
-                //  H := head
-                //  L := last element
-                //                    H           L
-                //   [. . . . . . . . o o o o o o o . ]
-                //    H           L
-                //   [o o o o o o o . ]
-                unsafe {
-                    // nonoverlapping because self.head >= target_cap >= self.len
-                    self.copy_nonoverlapping(self.head, 0, self.len);
-                }
-                self.head = 0;
-            } else if self.head < target_cap && tail_outside {
-                //  H := head
-                //  L := last element
-                //          H           L
-                //   [. . . o o o o o o o . . . . . . ]
-                //      L   H
-                //   [o o . o o o o o ]
-                let len = self.head + self.len - target_cap;
-                unsafe {
-                    self.copy_nonoverlapping(target_cap, 0, len);
-                }
-            } else if self.head >= target_cap {
-                //  H := head
-                //  L := last element
-                //            L                   H
-                //   [o o o o o . . . . . . . . . o o ]
-                //            L   H
-                //   [o o o o o . o o ]
-                let len = self.capacity() - self.head;
-                let new_head = target_cap - len;
-                unsafe {
-                    // can't use copy_nonoverlapping here for the same reason
-                    // as in `handle_capacity_increase()`
-                    self.copy(self.head, new_head, len);
-                }
-                self.head = new_head;
+        // `head` and `len` are at most `isize::MAX` and `target_cap < self.capacity()`, so nothing can
+        // overflow.
+        let tail_outside = (target_cap + 1..=self.capacity()).contains(&(self.head + self.len));
+
+        if self.len == 0 {
+            self.head = 0;
+        } else if self.head >= target_cap && tail_outside {
+            // Head and tail are both out of bounds, so copy all of them to the front.
+            //
+            //  H := head
+            //  L := last element
+            //                    H           L
+            //   [. . . . . . . . o o o o o o o . ]
+            //    H           L
+            //   [o o o o o o o . ]
+            unsafe {
+                // nonoverlapping because `self.head >= target_cap >= self.len`.
+                self.copy_nonoverlapping(self.head, 0, self.len);
             }
-
-            self.buf.shrink_to_fit(target_cap);
-
-            debug_assert!(self.head < self.capacity() || self.capacity() == 0);
-            debug_assert!(self.len <= self.capacity());
+            self.head = 0;
+        } else if self.head < target_cap && tail_outside {
+            // Head is in bounds, tail is out of bounds.
+            // Copy the overflowing part to the beginning of the
+            // buffer. This won't overlap because `target_cap >= self.len`.
+            //
+            //  H := head
+            //  L := last element
+            //          H           L
+            //   [. . . o o o o o o o . . . . . . ]
+            //      L   H
+            //   [o o . o o o o o ]
+            let len = self.head + self.len - target_cap;
+            unsafe {
+                self.copy_nonoverlapping(target_cap, 0, len);
+            }
+        } else if !self.is_contiguous() {
+            // The head slice is at least partially out of bounds, tail is in bounds.
+            // Copy the head backwards so it lines up with the target capacity.
+            // This won't overlap because `target_cap >= self.len`.
+            //
+            //  H := head
+            //  L := last element
+            //            L                   H
+            //   [o o o o o . . . . . . . . . o o ]
+            //            L   H
+            //   [o o o o o . o o ]
+            let head_len = self.capacity() - self.head;
+            let new_head = target_cap - head_len;
+            unsafe {
+                // can't use `copy_nonoverlapping()` here because the new and old
+                // regions for the head might overlap.
+                self.copy(self.head, new_head, head_len);
+            }
+            self.head = new_head;
         }
+        self.buf.shrink_to_fit(target_cap);
+
+        debug_assert!(self.head < self.capacity() || self.capacity() == 0);
+        debug_assert!(self.len <= self.capacity());
     }
 
     /// Shortens the deque, keeping the first `len` elements and dropping
@@ -1878,7 +1924,7 @@ impl<T, A: Allocator> VecDeque<T, A> {
     #[stable(feature = "append", since = "1.4.0")]
     pub fn append(&mut self, other: &mut Self) {
         if T::IS_ZST {
-            self.len += other.len;
+            self.len = self.len.checked_add(other.len).expect("capacity overflow");
             other.len = 0;
             other.head = 0;
             return;
@@ -2505,7 +2551,7 @@ impl<T, A: Allocator> VecDeque<T, A> {
     /// The deque is assumed to be partitioned according to the given predicate.
     /// This means that all elements for which the predicate returns true are at the start of the deque
     /// and all elements for which the predicate returns false are at the end.
-    /// For example, [7, 15, 3, 5, 4, 12, 6] is a partitioned under the predicate x % 2 != 0
+    /// For example, `[7, 15, 3, 5, 4, 12, 6]` is partitioned under the predicate `x % 2 != 0`
     /// (all odd numbers are at the start, all even at the end).
     ///
     /// If the deque is not partitioned, the returned result is unspecified and meaningless,
@@ -2699,18 +2745,8 @@ impl<T, A: Allocator> IndexMut<usize> for VecDeque<T, A> {
 
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T> FromIterator<T> for VecDeque<T> {
-    #[inline]
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> VecDeque<T> {
-        // Since converting is O(1) now, might as well re-use that logic
-        // (including things like the `vec::IntoIter`→`Vec` specialization)
-        // especially as that could save us some monomorphiziation work
-        // if one uses the same iterators (like slice ones) with both.
-        return from_iter_via_vec(iter.into_iter());
-
-        #[inline]
-        fn from_iter_via_vec<U>(iter: impl Iterator<Item = U>) -> VecDeque<U> {
-            Vec::from_iter(iter).into()
-        }
+        SpecFromIter::spec_from_iter(iter.into_iter())
     }
 }
 
@@ -2794,9 +2830,9 @@ impl<T, A: Allocator> From<Vec<T, A>> for VecDeque<T, A> {
     /// [`Vec<T>`]: crate::vec::Vec
     /// [`VecDeque<T>`]: crate::collections::VecDeque
     ///
-    /// In its current implementation, this is a very cheap
-    /// conversion. This isn't yet a guarantee though, and
-    /// shouldn't be relied on.
+    /// This conversion is guaranteed to run in *O*(1) time
+    /// and to not re-allocate the `Vec`'s buffer or allocate
+    /// any additional memory.
     #[inline]
     fn from(other: Vec<T, A>) -> Self {
         let (ptr, len, cap, alloc) = other.into_raw_parts_with_alloc();

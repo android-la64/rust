@@ -368,7 +368,7 @@ mod desc {
     pub const parse_opt_panic_strategy: &str = parse_panic_strategy;
     pub const parse_oom_strategy: &str = "either `panic` or `abort`";
     pub const parse_relro_level: &str = "one of: `full`, `partial`, or `off`";
-    pub const parse_sanitizers: &str = "comma separated list of sanitizers: `address`, `cfi`, `hwaddress`, `leak`, `memory`, `memtag`, `shadow-call-stack`, or `thread`";
+    pub const parse_sanitizers: &str = "comma separated list of sanitizers: `address`, `cfi`, `hwaddress`, `kcfi`, `leak`, `memory`, `memtag`, `shadow-call-stack`, or `thread`";
     pub const parse_sanitizer_memory_track_origins: &str = "0, 1, or 2";
     pub const parse_cfguard: &str =
         "either a boolean (`yes`, `no`, `on`, `off`, etc), `checks`, or `nochecks`";
@@ -377,10 +377,13 @@ mod desc {
     pub const parse_linker_flavor: &str = ::rustc_target::spec::LinkerFlavorCli::one_of();
     pub const parse_optimization_fuel: &str = "crate=integer";
     pub const parse_mir_spanview: &str = "`statement` (default), `terminator`, or `block`";
+    pub const parse_dump_mono_stats: &str = "`markdown` (default) or `json`";
     pub const parse_instrument_coverage: &str =
         "`all` (default), `except-unused-generics`, `except-unused-functions`, or `off`";
     pub const parse_unpretty: &str = "`string` or `string=string`";
     pub const parse_treat_err_as_bug: &str = "either no value or a number bigger than 0";
+    pub const parse_trait_solver: &str =
+        "one of the supported solver modes (`classic`, `chalk`, or `next`)";
     pub const parse_lto: &str =
         "either a boolean (`yes`, `no`, `on`, `off`, etc), `thin`, `fat`, or omitted";
     pub const parse_linker_plugin_lto: &str =
@@ -675,6 +678,7 @@ mod parse {
                 *slot |= match s {
                     "address" => SanitizerSet::ADDRESS,
                     "cfi" => SanitizerSet::CFI,
+                    "kcfi" => SanitizerSet::KCFI,
                     "leak" => SanitizerSet::LEAK,
                     "memory" => SanitizerSet::MEMORY,
                     "memtag" => SanitizerSet::MEMTAG,
@@ -819,6 +823,21 @@ mod parse {
         true
     }
 
+    pub(crate) fn parse_dump_mono_stats(slot: &mut DumpMonoStatsFormat, v: Option<&str>) -> bool {
+        match v {
+            None => true,
+            Some("json") => {
+                *slot = DumpMonoStatsFormat::Json;
+                true
+            }
+            Some("markdown") => {
+                *slot = DumpMonoStatsFormat::Markdown;
+                true
+            }
+            Some(_) => false,
+        }
+    }
+
     pub(crate) fn parse_instrument_coverage(
         slot: &mut Option<InstrumentCoverage>,
         v: Option<&str>,
@@ -861,6 +880,18 @@ mod parse {
                 true
             }
         }
+    }
+
+    pub(crate) fn parse_trait_solver(slot: &mut TraitSolver, v: Option<&str>) -> bool {
+        match v {
+            Some("classic") => *slot = TraitSolver::Classic,
+            Some("chalk") => *slot = TraitSolver::Chalk,
+            Some("next") => *slot = TraitSolver::Next,
+            // default trait solver is subject to change..
+            Some("default") => *slot = TraitSolver::Classic,
+            _ => return false,
+        }
+        true
     }
 
     pub(crate) fn parse_lto(slot: &mut LtoCli, v: Option<&str>) -> bool {
@@ -1210,10 +1241,9 @@ options! {
 
     // tidy-alphabetical-start
     allow_features: Option<Vec<String>> = (None, parse_opt_comma_list, [TRACKED],
-        "only allow the listed language features to be enabled in code (space separated)"),
+        "only allow the listed language features to be enabled in code (comma separated)"),
     always_encode_mir: bool = (false, parse_bool, [TRACKED],
         "encode MIR of all functions into the crate metadata (default: no)"),
-    #[rustc_lint_opt_deny_field_access("use `Session::asm_comments` instead of this field")]
     asm_comments: bool = (false, parse_bool, [TRACKED],
         "generate comments into the assembly (may change behavior) (default: no)"),
     assert_incr_state: Option<String> = (None, parse_opt_string, [UNTRACKED],
@@ -1225,7 +1255,7 @@ options! {
     binary_dep_depinfo: bool = (false, parse_bool, [TRACKED],
         "include artifacts (sysroot, crate dependencies) used during compilation in dep-info \
         (default: no)"),
-    box_noalias: Option<bool> = (None, parse_opt_bool, [TRACKED],
+    box_noalias: bool = (true, parse_bool, [TRACKED],
         "emit noalias metadata for box (default: yes)"),
     branch_protection: Option<BranchProtection> = (None, parse_branch_protection, [TRACKED],
         "set options for branch target identification and pointer authentication on AArch64"),
@@ -1233,8 +1263,6 @@ options! {
         "instrument control-flow architecture protection"),
     cgu_partitioning_strategy: Option<String> = (None, parse_opt_string, [TRACKED],
         "the codegen unit partitioning strategy to use"),
-    chalk: bool = (false, parse_bool, [TRACKED],
-        "enable the experimental Chalk-based trait solving engine"),
     codegen_backend: Option<String> = (None, parse_opt_string, [TRACKED],
         "the backend to use"),
     combine_cgu: bool = (false, parse_bool, [TRACKED],
@@ -1293,6 +1321,11 @@ options! {
         computed `block` spans (one span encompassing a block's terminator and \
         all statements). If `-Z instrument-coverage` is also enabled, create \
         an additional `.html` file showing the computed coverage spans."),
+    dump_mono_stats: SwitchWithOptPath = (SwitchWithOptPath::Disabled,
+        parse_switch_with_opt_path, [UNTRACKED],
+        "output statistics about monomorphization collection"),
+    dump_mono_stats_format: DumpMonoStatsFormat = (DumpMonoStatsFormat::Markdown, parse_dump_mono_stats, [UNTRACKED],
+        "the format to use for -Z dump-mono-stats (`markdown` (default) or `json`)"),
     dwarf_version: Option<u32> = (None, parse_opt_number, [TRACKED],
         "version of DWARF debug information to emit (default: 2 or 4, depending on platform)"),
     dylib_lto: bool = (false, parse_bool, [UNTRACKED],
@@ -1329,11 +1362,12 @@ options! {
         "generate human-readable, predictable names for codegen units (default: no)"),
     identify_regions: bool = (false, parse_bool, [UNTRACKED],
         "display unnamed regions as `'<id>`, using a non-ident unique id (default: no)"),
-    incremental_ignore_spans: bool = (false, parse_bool, [UNTRACKED],
+    incremental_ignore_spans: bool = (false, parse_bool, [TRACKED],
         "ignore spans during ICH computation -- used for testing (default: no)"),
     incremental_info: bool = (false, parse_bool, [UNTRACKED],
         "print high-level information about incremental reuse (or the lack thereof) \
         (default: no)"),
+    #[rustc_lint_opt_deny_field_access("use `Session::incremental_relative_spans` instead of this field")]
     incremental_relative_spans: bool = (false, parse_bool, [TRACKED],
         "hash spans relative to their parent item for incr. comp. (default: no)"),
     incremental_verify_ich: bool = (false, parse_bool, [UNTRACKED],
@@ -1359,7 +1393,6 @@ options! {
         `=except-unused-generics`
         `=except-unused-functions`
         `=off` (default)"),
-    #[rustc_lint_opt_deny_field_access("use `Session::instrument_mcount` instead of this field")]
     instrument_mcount: bool = (false, parse_bool, [TRACKED],
         "insert function instrument code for mcount-based tracing (default: no)"),
     keep_hygiene_data: bool = (false, parse_bool, [UNTRACKED],
@@ -1378,6 +1411,8 @@ options! {
         "what location details should be tracked when using caller_location, either \
         `none`, or a comma separated list of location details, for which \
         valid options are `file`, `line`, and `column` (default: `file,line,column`)"),
+    log_backtrace: Option<String> = (None, parse_opt_string, [TRACKED],
+        "add a backtrace along with logging"),
     ls: bool = (false, parse_bool, [UNTRACKED],
         "list the symbols defined by a library crate (default: no)"),
     macro_backtrace: bool = (false, parse_bool, [UNTRACKED],
@@ -1388,7 +1423,6 @@ options! {
     merge_functions: Option<MergeFunctions> = (None, parse_merge_functions, [TRACKED],
         "control the operation of the MergeFunctions LLVM pass, taking \
         the same values as the target option of the same name"),
-    #[rustc_lint_opt_deny_field_access("use `Session::meta_stats` instead of this field")]
     meta_stats: bool = (false, parse_bool, [UNTRACKED],
         "gather metadata statistics (default: no)"),
     mir_emit_retag: bool = (false, parse_bool, [TRACKED],
@@ -1405,7 +1439,7 @@ options! {
         "use line numbers relative to the function in mir pretty printing"),
     move_size_limit: Option<usize> = (None, parse_opt_number, [TRACKED],
         "the size at which the `large_assignments` lint starts to be emitted"),
-    mutable_noalias: Option<bool> = (None, parse_opt_bool, [TRACKED],
+    mutable_noalias: bool = (true, parse_bool, [TRACKED],
         "emit noalias metadata for mutable references (default: yes)"),
     nll_facts: bool = (false, parse_bool, [UNTRACKED],
         "dump facts from NLL analysis into side files (default: no)"),
@@ -1417,6 +1451,8 @@ options! {
         "run all passes except codegen; no output"),
     no_generate_arange_section: bool = (false, parse_no_flag, [TRACKED],
         "omit DWARF address ranges that give faster lookups"),
+    no_jump_tables: bool = (false, parse_no_flag, [TRACKED],
+        "disable the jump tables and lookup tables that can be generated from a switch case lowering"),
     no_leak_check: bool = (false, parse_no_flag, [UNTRACKED],
         "disable the 'leak check' for subtyping; unsound, but useful for tests"),
     no_link: bool = (false, parse_no_flag, [TRACKED],
@@ -1463,7 +1499,6 @@ options! {
         See #77382 and #74551."),
     print_fuel: Option<String> = (None, parse_opt_string, [TRACKED],
         "make rustc print the total optimization fuel used by a crate"),
-    #[rustc_lint_opt_deny_field_access("use `Session::print_llvm_passes` instead of this field")]
     print_llvm_passes: bool = (false, parse_bool, [UNTRACKED],
         "print the LLVM optimization passes being run (default: no)"),
     print_mono_items: Option<String> = (None, parse_opt_string, [UNTRACKED],
@@ -1537,7 +1572,7 @@ options! {
     /// o/w tests have closure@path
     span_free_formats: bool = (false, parse_bool, [UNTRACKED],
         "exclude spans when debug-printing compiler state (default: no)"),
-    split_dwarf_inlining: bool = (true, parse_bool, [TRACKED],
+    split_dwarf_inlining: bool = (false, parse_bool, [TRACKED],
         "provide minimal debug info in the object/executable to facilitate online \
          symbolication/stack traces in the absence of .dwo/.dwp files when using Split DWARF"),
     split_dwarf_kind: SplitDwarfKind = (SplitDwarfKind::Split, parse_split_dwarf_kind, [TRACKED],
@@ -1577,10 +1612,8 @@ options! {
     #[rustc_lint_opt_deny_field_access("use `Session::threads` instead of this field")]
     threads: usize = (1, parse_threads, [UNTRACKED],
         "use a thread pool with N threads"),
-    #[rustc_lint_opt_deny_field_access("use `Session::time_llvm_passes` instead of this field")]
     time_llvm_passes: bool = (false, parse_bool, [UNTRACKED],
         "measure time of each LLVM pass (default: no)"),
-    #[rustc_lint_opt_deny_field_access("use `Session::time_passes` instead of this field")]
     time_passes: bool = (false, parse_bool, [UNTRACKED],
         "measure time of each rustc pass (default: no)"),
     #[rustc_lint_opt_deny_field_access("use `Session::tls_model` instead of this field")]
@@ -1590,6 +1623,8 @@ options! {
         "for every macro invocation, print its name and arguments (default: no)"),
     track_diagnostics: bool = (false, parse_bool, [UNTRACKED],
         "tracks where in rustc a diagnostic was emitted"),
+    trait_solver: TraitSolver = (TraitSolver::Classic, parse_trait_solver, [TRACKED],
+        "specify the trait solver mode used by rustc (default: classic)"),
     // Diagnostics are considered side-effects of a query (see `QuerySideEffects`) and are saved
     // alongside query results and changes to translation options can affect diagnostics - so
     // translation options should be tracked.

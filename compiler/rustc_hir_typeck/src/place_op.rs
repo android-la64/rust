@@ -3,6 +3,7 @@ use crate::{has_expected_num_generic_args, FnCtxt, PlaceOp};
 use rustc_ast as ast;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
+use rustc_hir_analysis::autoderef::Autoderef;
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
 use rustc_infer::infer::InferOk;
 use rustc_middle::ty::adjustment::{Adjust, Adjustment, OverloadedDeref, PointerCast};
@@ -10,7 +11,6 @@ use rustc_middle::ty::adjustment::{AllowTwoPhase, AutoBorrow, AutoBorrowMutabili
 use rustc_middle::ty::{self, Ty};
 use rustc_span::symbol::{sym, Ident};
 use rustc_span::Span;
-use rustc_trait_selection::autoderef::Autoderef;
 use std::slice;
 
 impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
@@ -225,7 +225,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         imm_tr.and_then(|trait_did| {
             self.lookup_method_in_trait(
-                span,
+                self.misc(span),
                 Ident::with_dummy_span(imm_op),
                 trait_did,
                 base_ty,
@@ -264,7 +264,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         mut_tr.and_then(|trait_did| {
             self.lookup_method_in_trait(
-                span,
+                self.misc(span),
                 Ident::with_dummy_span(mut_op),
                 trait_did,
                 base_ty,

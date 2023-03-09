@@ -9,7 +9,6 @@ use rustc_data_structures::sharded::Sharded;
 use rustc_data_structures::sync::Lock;
 use rustc_data_structures::sync::WorkerLocal;
 use rustc_index::vec::{Idx, IndexVec};
-use std::default::Default;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -117,7 +116,7 @@ where
         let mut lock = self.cache.get_shard_by_value(&key).lock();
         #[cfg(not(parallel_compiler))]
         let mut lock = self.cache.lock();
-        // We may be overwriting another value.  This is all right, since the dep-graph
+        // We may be overwriting another value. This is all right, since the dep-graph
         // will check that the fingerprint matches.
         lock.insert(key, (value.clone(), index));
         value
@@ -204,7 +203,7 @@ where
         let mut lock = self.cache.get_shard_by_value(&key).lock();
         #[cfg(not(parallel_compiler))]
         let mut lock = self.cache.lock();
-        // We may be overwriting another value.  This is all right, since the dep-graph
+        // We may be overwriting another value. This is all right, since the dep-graph
         // will check that the fingerprint matches.
         lock.insert(key, value);
         &value.0

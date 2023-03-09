@@ -271,8 +271,8 @@ pub(crate) fn assert_app(cmd: &Command) {
             );
 
             assert!(
-                arg.is_trailing_var_arg_set(),
-                "Command {}: Positional argument '{}' has hint CommandWithArguments, so Command must have TrailingVarArg set.",
+                arg.is_trailing_var_arg_set() || arg.is_last_set(),
+                "Command {}: Positional argument '{}' has hint CommandWithArguments, so Command must have `trailing_var_arg(true)` or `last(true)` set.",
                     cmd.get_name(),
                 arg.get_id()
             );
@@ -359,6 +359,13 @@ pub(crate) fn assert_app(cmd: &Command) {
             cmd.get_name(),
             "`{unified}` template variable was removed in clap3, use `{options}` instead"
         );
+        #[cfg(feature = "unstable-v5")]
+        assert!(
+            !help_template.to_string().contains("{bin}"),
+            "Command {}: {}",
+            cmd.get_name(),
+            "`{bin}` template variable was removed in clap5, use `{name}` instead"
+        )
     }
 
     cmd._panic_on_missing_help(cmd.is_help_expected_set());

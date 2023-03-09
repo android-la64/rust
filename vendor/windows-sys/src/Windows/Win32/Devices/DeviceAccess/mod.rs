@@ -1,12 +1,9 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Devices_DeviceAccess\"`*"]
-    pub fn CreateDeviceAccessInstance(deviceinterfacepath: ::windows_sys::core::PCWSTR, desiredaccess: u32, createasync: *mut ICreateDeviceAccessAsync) -> ::windows_sys::core::HRESULT;
-}
+::windows_sys::core::link ! ( "deviceaccess.dll""system" #[doc = "*Required features: `\"Win32_Devices_DeviceAccess\"`*"] fn CreateDeviceAccessInstance ( deviceinterfacepath : :: windows_sys::core::PCWSTR , desiredaccess : u32 , createasync : *mut ICreateDeviceAccessAsync ) -> :: windows_sys::core::HRESULT );
 pub type ICreateDeviceAccessAsync = *mut ::core::ffi::c_void;
 pub type IDeviceIoControl = *mut ::core::ffi::c_void;
 pub type IDeviceRequestCompletionCallback = *mut ::core::ffi::c_void;
-pub const CLSID_DeviceIoControl: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 315876210, data2: 34635, data3: 17789, data4: [159, 223, 115, 151, 119, 120, 104, 108] };
+#[doc = "*Required features: `\"Win32_Devices_DeviceAccess\"`*"]
+pub const CLSID_DeviceIoControl: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x12d3e372_874b_457d_9fdf_73977778686c);
 #[doc = "*Required features: `\"Win32_Devices_DeviceAccess\"`*"]
 pub const DEV_PORT_1394: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Devices_DeviceAccess\"`*"]

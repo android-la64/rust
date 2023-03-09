@@ -31,14 +31,16 @@
 use super::FnCtxt;
 
 use crate::type_error_struct;
-use rustc_errors::{struct_span_err, Applicability, DelayDm, DiagnosticBuilder, ErrorGuaranteed};
+use hir::ExprKind;
+use rustc_errors::{
+    struct_span_err, Applicability, DelayDm, Diagnostic, DiagnosticBuilder, ErrorGuaranteed,
+};
 use rustc_hir as hir;
 use rustc_macros::{TypeFoldable, TypeVisitable};
 use rustc_middle::mir::Mutability;
 use rustc_middle::ty::adjustment::AllowTwoPhase;
 use rustc_middle::ty::cast::{CastKind, CastTy};
 use rustc_middle::ty::error::TypeError;
-use rustc_middle::ty::subst::SubstsRef;
 use rustc_middle::ty::{self, Ty, TypeAndMut, TypeVisitable, VariantDef};
 use rustc_session::lint;
 use rustc_session::Session;
@@ -75,10 +77,8 @@ enum PointerKind<'tcx> {
     VTable(Option<DefId>),
     /// Slice
     Length,
-    /// The unsize info of this projection
-    OfProjection(ty::ProjectionTy<'tcx>),
-    /// The unsize info of this opaque ty
-    OfOpaque(DefId, SubstsRef<'tcx>),
+    /// The unsize info of this projection or opaque type
+    OfAlias(ty::AliasTy<'tcx>),
     /// The unsize info of this parameter
     OfParam(ty::ParamTy),
 }
@@ -118,8 +118,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // Pointers to foreign types are thin, despite being unsized
             ty::Foreign(..) => Some(PointerKind::Thin),
             // We should really try to normalize here.
-            ty::Projection(pi) => Some(PointerKind::OfProjection(pi)),
-            ty::Opaque(def_id, substs) => Some(PointerKind::OfOpaque(def_id, substs)),
+            ty::Alias(_, pi) => Some(PointerKind::OfAlias(pi)),
             ty::Param(p) => Some(PointerKind::OfParam(p)),
             // Insufficient type information.
             ty::Placeholder(..) | ty::Bound(..) | ty::Infer(_) => None,
@@ -153,7 +152,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
 #[derive(Copy, Clone)]
 pub enum CastError {
-    ErrorGuaranteed,
+    ErrorGuaranteed(ErrorGuaranteed),
 
     CastToBool,
     CastToChar,
@@ -178,8 +177,8 @@ pub enum CastError {
 }
 
 impl From<ErrorGuaranteed> for CastError {
-    fn from(_: ErrorGuaranteed) -> Self {
-        CastError::ErrorGuaranteed
+    fn from(err: ErrorGuaranteed) -> Self {
+        CastError::ErrorGuaranteed(err)
     }
 }
 
@@ -227,11 +226,10 @@ impl<'a, 'tcx> CastCheck<'tcx> {
 
     fn report_cast_error(&self, fcx: &FnCtxt<'a, 'tcx>, e: CastError) {
         match e {
-            CastError::ErrorGuaranteed => {
+            CastError::ErrorGuaranteed(_) => {
                 // an error has already been reported
             }
             CastError::NeedDeref => {
-                let error_span = self.span;
                 let mut err = make_invalid_casting_error(
                     fcx.tcx.sess,
                     self.span,
@@ -239,21 +237,25 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                     self.cast_ty,
                     fcx,
                 );
-                let cast_ty = fcx.ty_to_string(self.cast_ty);
-                err.span_label(
-                    error_span,
-                    format!("cannot cast `{}` as `{}`", fcx.ty_to_string(self.expr_ty), cast_ty),
-                );
-                if let Ok(snippet) = fcx.sess().source_map().span_to_snippet(self.expr_span) {
-                    err.span_suggestion(
-                        self.expr_span,
-                        "dereference the expression",
-                        format!("*{}", snippet),
-                        Applicability::MaybeIncorrect,
+
+                if matches!(self.expr.kind, ExprKind::AddrOf(..)) {
+                    // get just the borrow part of the expression
+                    let span = self.expr_span.with_hi(self.expr.peel_borrows().span.lo());
+                    err.span_suggestion_verbose(
+                        span,
+                        "remove the unneeded borrow",
+                        "",
+                        Applicability::MachineApplicable,
                     );
                 } else {
-                    err.span_help(self.expr_span, "dereference the expression with `*`");
+                    err.span_suggestion_verbose(
+                        self.expr_span.shrink_to_lo(),
+                        "dereference the expression",
+                        "*",
+                        Applicability::MachineApplicable,
+                    );
                 }
+
                 err.emit();
             }
             CastError::NeedViaThinPtr | CastError::NeedViaPtr => {
@@ -274,6 +276,9 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                         }
                     ));
                 }
+
+                self.try_suggest_collection_to_bool(fcx, &mut err);
+
                 err.emit();
             }
             CastError::NeedViaInt => {
@@ -521,6 +526,9 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                 } else {
                     err.span_label(self.span, "invalid cast");
                 }
+
+                self.try_suggest_collection_to_bool(fcx, &mut err);
+
                 err.emit();
             }
             CastError::SizedUnsizedCast => {
@@ -851,13 +859,15 @@ impl<'a, 'tcx> CastCheck<'tcx> {
 
             (Int(_) | Float, Int(_) | Float) => Ok(CastKind::NumericCast),
 
-            (_, DynStar) | (DynStar, _) => {
+            (_, DynStar) => {
                 if fcx.tcx.features().dyn_star {
                     bug!("should be handled by `try_coerce`")
                 } else {
                     Err(CastError::IllegalCast)
                 }
             }
+
+            (DynStar, _) => Err(CastError::IllegalCast),
         }
     }
 
@@ -976,11 +986,9 @@ impl<'a, 'tcx> CastCheck<'tcx> {
             Some(PointerKind::Thin) => Ok(CastKind::AddrPtrCast),
             Some(PointerKind::VTable(_)) => Err(CastError::IntToFatCast(Some("a vtable"))),
             Some(PointerKind::Length) => Err(CastError::IntToFatCast(Some("a length"))),
-            Some(
-                PointerKind::OfProjection(_)
-                | PointerKind::OfOpaque(_, _)
-                | PointerKind::OfParam(_),
-            ) => Err(CastError::IntToFatCast(None)),
+            Some(PointerKind::OfAlias(_) | PointerKind::OfParam(_)) => {
+                Err(CastError::IntToFatCast(None))
+            }
         }
     }
 
@@ -1083,5 +1091,41 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                 lint
             },
         );
+    }
+
+    /// Attempt to suggest using `.is_empty` when trying to cast from a
+    /// collection type to a boolean.
+    fn try_suggest_collection_to_bool(&self, fcx: &FnCtxt<'a, 'tcx>, err: &mut Diagnostic) {
+        if self.cast_ty.is_bool() {
+            let derefed = fcx
+                .autoderef(self.expr_span, self.expr_ty)
+                .silence_errors()
+                .find(|t| matches!(t.0.kind(), ty::Str | ty::Slice(..)));
+
+            if let Some((deref_ty, _)) = derefed {
+                // Give a note about what the expr derefs to.
+                if deref_ty != self.expr_ty.peel_refs() {
+                    err.span_note(
+                        self.expr_span,
+                        format!(
+                            "this expression `Deref`s to `{}` which implements `is_empty`",
+                            fcx.ty_to_string(deref_ty)
+                        ),
+                    );
+                }
+
+                // Create a multipart suggestion: add `!` and `.is_empty()` in
+                // place of the cast.
+                let suggestion = vec![
+                    (self.expr_span.shrink_to_lo(), "!".to_string()),
+                    (self.span.with_lo(self.expr_span.hi()), ".is_empty()".to_string()),
+                ];
+
+                err.multipart_suggestion_verbose(format!(
+                    "consider using the `is_empty` method on `{}` to determine if it contains anything",
+                    fcx.ty_to_string(self.expr_ty),
+                ),  suggestion, Applicability::MaybeIncorrect);
+            }
+        }
     }
 }

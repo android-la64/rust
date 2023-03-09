@@ -185,7 +185,7 @@ As a developer to this repository, you don't have to treat the following externa
 differently from other crates that are directly in this repo:
 
 * [Clippy](https://github.com/rust-lang/rust-clippy)
-* [Miri](https://github.com/rust-lang/miri)
+* [Miri]
 * [rustfmt](https://github.com/rust-lang/rustfmt)
 * [rust-analyzer](https://github.com/rust-lang/rust-analyzer)
 
@@ -348,7 +348,7 @@ the entire stage 2 compiler and compile the various books published on
 [doc.rust-lang.org][docs]. When updating documentation for the standard library,
 first try `./x.py doc library`. If that fails, or if you need to
 see the output from the latest version of `rustdoc`, add `--stage 1`.
-Results should appear in `build/$TARGET/doc`.
+Results should appear in `build/host/doc`.
 
 [docs]: https://doc.rust-lang.org
 
@@ -549,3 +549,4 @@ are:
 [ro]: https://www.rustaceans.org/
 [rctd]: tests/intro.md
 [cheatsheet]: https://bors.rust-lang.org/
+[Miri]: https://github.com/rust-lang/miri

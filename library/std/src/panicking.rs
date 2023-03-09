@@ -306,11 +306,11 @@ pub mod panic_count {
     // and after increase and decrease, but not necessarily during their execution.
     //
     // Additionally, the top bit of GLOBAL_PANIC_COUNT (GLOBAL_ALWAYS_ABORT_FLAG)
-    // records whether panic::always_abort() has been called.  This can only be
+    // records whether panic::always_abort() has been called. This can only be
     // set, never cleared.
     // panic::always_abort() is usually called to prevent memory allocations done by
     // the panic handling in the child created by `libc::fork`.
-    // Memory allocations performed in  a child created with `libc::fork` are undefined
+    // Memory allocations performed in a child created with `libc::fork` are undefined
     // behavior in most operating systems.
     // Accessing LOCAL_PANIC_COUNT in a child created by `libc::fork` would lead to a memory
     // allocation. Only GLOBAL_PANIC_COUNT can be accessed in this situation. This is
@@ -517,7 +517,7 @@ pub fn panicking() -> bool {
     !panic_count::count_is_zero()
 }
 
-/// Entry point of panics from the libcore crate (`panic_impl` lang item).
+/// Entry point of panics from the core crate (`panic_impl` lang item).
 #[cfg(not(test))]
 #[panic_handler]
 pub fn begin_panic_handler(info: &PanicInfo<'_>) -> ! {
@@ -699,7 +699,11 @@ fn rust_panic_with_hook(
         // have limited options. Currently our preference is to
         // just abort. In the future we may consider resuming
         // unwinding or otherwise exiting the thread cleanly.
-        rtprintpanic!("thread panicked while panicking. aborting.\n");
+        if !can_unwind {
+            rtprintpanic!("thread caused non-unwinding panic. aborting.\n");
+        } else {
+            rtprintpanic!("thread panicked while panicking. aborting.\n");
+        }
         crate::sys::abort_internal();
     }
 

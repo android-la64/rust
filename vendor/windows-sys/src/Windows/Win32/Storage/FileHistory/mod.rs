@@ -1,27 +1,17 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"]
-    #[cfg(feature = "Win32_System_WindowsProgramming")]
-    pub fn FhServiceBlockBackup(pipe: super::super::System::WindowsProgramming::FH_SERVICE_PIPE_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"]
-    #[cfg(feature = "Win32_System_WindowsProgramming")]
-    pub fn FhServiceClosePipe(pipe: super::super::System::WindowsProgramming::FH_SERVICE_PIPE_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_Foundation\"`, `\"Win32_System_WindowsProgramming\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_WindowsProgramming"))]
-    pub fn FhServiceOpenPipe(startserviceifstopped: super::super::Foundation::BOOL, pipe: *mut super::super::System::WindowsProgramming::FH_SERVICE_PIPE_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"]
-    #[cfg(feature = "Win32_System_WindowsProgramming")]
-    pub fn FhServiceReloadConfiguration(pipe: super::super::System::WindowsProgramming::FH_SERVICE_PIPE_HANDLE) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_Foundation\"`, `\"Win32_System_WindowsProgramming\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_WindowsProgramming"))]
-    pub fn FhServiceStartBackup(pipe: super::super::System::WindowsProgramming::FH_SERVICE_PIPE_HANDLE, lowpriorityio: super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_Foundation\"`, `\"Win32_System_WindowsProgramming\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_WindowsProgramming"))]
-    pub fn FhServiceStopBackup(pipe: super::super::System::WindowsProgramming::FH_SERVICE_PIPE_HANDLE, stoptracking: super::super::Foundation::BOOL) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"]
-    #[cfg(feature = "Win32_System_WindowsProgramming")]
-    pub fn FhServiceUnblockBackup(pipe: super::super::System::WindowsProgramming::FH_SERVICE_PIPE_HANDLE) -> ::windows_sys::core::HRESULT;
-}
+#[cfg(feature = "Win32_System_WindowsProgramming")]
+::windows_sys::core::link ! ( "fhsvcctl.dll""system" #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"] fn FhServiceBlockBackup ( pipe : super::super::System::WindowsProgramming:: FH_SERVICE_PIPE_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_System_WindowsProgramming")]
+::windows_sys::core::link ! ( "fhsvcctl.dll""system" #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"] fn FhServiceClosePipe ( pipe : super::super::System::WindowsProgramming:: FH_SERVICE_PIPE_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_WindowsProgramming"))]
+::windows_sys::core::link ! ( "fhsvcctl.dll""system" #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_Foundation\"`, `\"Win32_System_WindowsProgramming\"`*"] fn FhServiceOpenPipe ( startserviceifstopped : super::super::Foundation:: BOOL , pipe : *mut super::super::System::WindowsProgramming:: FH_SERVICE_PIPE_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_System_WindowsProgramming")]
+::windows_sys::core::link ! ( "fhsvcctl.dll""system" #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"] fn FhServiceReloadConfiguration ( pipe : super::super::System::WindowsProgramming:: FH_SERVICE_PIPE_HANDLE ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_WindowsProgramming"))]
+::windows_sys::core::link ! ( "fhsvcctl.dll""system" #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_Foundation\"`, `\"Win32_System_WindowsProgramming\"`*"] fn FhServiceStartBackup ( pipe : super::super::System::WindowsProgramming:: FH_SERVICE_PIPE_HANDLE , lowpriorityio : super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_WindowsProgramming"))]
+::windows_sys::core::link ! ( "fhsvcctl.dll""system" #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_Foundation\"`, `\"Win32_System_WindowsProgramming\"`*"] fn FhServiceStopBackup ( pipe : super::super::System::WindowsProgramming:: FH_SERVICE_PIPE_HANDLE , stoptracking : super::super::Foundation:: BOOL ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_System_WindowsProgramming")]
+::windows_sys::core::link ! ( "fhsvcctl.dll""system" #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`, `\"Win32_System_WindowsProgramming\"`*"] fn FhServiceUnblockBackup ( pipe : super::super::System::WindowsProgramming:: FH_SERVICE_PIPE_HANDLE ) -> :: windows_sys::core::HRESULT );
 pub type IFhConfigMgr = *mut ::core::ffi::c_void;
 pub type IFhReassociation = *mut ::core::ffi::c_void;
 pub type IFhScopeIterator = *mut ::core::ffi::c_void;
@@ -110,8 +100,10 @@ pub const FH_STATE_TARGET_LOW_SPACE_RETENTION_MAX: u32 = 19u32;
 pub const FH_STATE_TARGET_VOLUME_DIRTY: u32 = 15u32;
 #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`*"]
 pub const FH_STATE_TOO_MUCH_BEHIND: u32 = 240u32;
-pub const FhConfigMgr: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3980639036, data2: 2537, data3: 18826, data4: [157, 246, 33, 119, 36, 76, 109, 180] };
-pub const FhReassociation: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1299353141, data2: 5882, data3: 17184, data4: [158, 139, 191, 215, 16, 10, 136, 70] };
+#[doc = "*Required features: `\"Win32_Storage_FileHistory\"`*"]
+pub const FhConfigMgr: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xed43bb3c_09e9_498a_9df6_2177244c6db4);
+#[doc = "*Required features: `\"Win32_Storage_FileHistory\"`*"]
+pub const FhReassociation: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x4d728e35_16fa_4320_9e8b_bfd7100a8846);
 #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`*"]
 pub type FH_BACKUP_STATUS = i32;
 #[doc = "*Required features: `\"Win32_Storage_FileHistory\"`*"]

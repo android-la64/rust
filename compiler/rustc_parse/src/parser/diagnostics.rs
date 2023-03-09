@@ -12,9 +12,10 @@ use crate::errors::{
     IncorrectAwait, IncorrectSemicolon, IncorrectUseOfAwait, ParenthesesInForHead,
     ParenthesesInForHeadSugg, PatternMethodParamWithoutBody, QuestionMarkInType,
     QuestionMarkInTypeSugg, SelfParamNotFirst, StructLiteralBodyWithoutPath,
-    StructLiteralBodyWithoutPathSugg, SuggEscapeToUseAsIdentifier, SuggRemoveComma,
-    UnexpectedConstInGenericParam, UnexpectedConstParamDeclaration,
-    UnexpectedConstParamDeclarationSugg, UnmatchedAngleBrackets, UseEqInstead,
+    StructLiteralBodyWithoutPathSugg, StructLiteralNeedingParens, StructLiteralNeedingParensSugg,
+    SuggEscapeToUseAsIdentifier, SuggRemoveComma, UnexpectedConstInGenericParam,
+    UnexpectedConstParamDeclaration, UnexpectedConstParamDeclarationSugg, UnmatchedAngleBrackets,
+    UseEqInstead,
 };
 
 use crate::lexer::UnmatchedBrace;
@@ -31,7 +32,8 @@ use rustc_ast::{
 use rustc_ast_pretty::pprust;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_errors::{
-    fluent, Applicability, DiagnosticBuilder, DiagnosticMessage, Handler, MultiSpan, PResult,
+    fluent, Applicability, DiagnosticBuilder, DiagnosticMessage, FatalError, Handler, MultiSpan,
+    PResult,
 };
 use rustc_errors::{pluralize, Diagnostic, ErrorGuaranteed, IntoDiagnostic};
 use rustc_session::errors::ExprParenthesesNeeded;
@@ -41,7 +43,6 @@ use rustc_span::{Span, SpanSnippetError, DUMMY_SP};
 use std::mem::take;
 use std::ops::{Deref, DerefMut};
 use thin_vec::{thin_vec, ThinVec};
-use tracing::{debug, trace};
 
 /// Creates a placeholder argument.
 pub(super) fn dummy_arg(ident: Ident) -> Param {
@@ -159,8 +160,6 @@ enum IsStandalone {
     Standalone,
     /// It's a subexpression, i.e., *not* standalone.
     Subexpr,
-    /// It's maybe standalone; we're not sure.
-    Maybe,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -213,14 +212,8 @@ impl MultiSugg {
         err.multipart_suggestion(&self.msg, self.patches, self.applicability);
     }
 
-    /// Overrides individual messages and applicabilities.
-    fn emit_many(
-        err: &mut Diagnostic,
-        msg: &str,
-        applicability: Applicability,
-        suggestions: impl Iterator<Item = Self>,
-    ) {
-        err.multipart_suggestions(msg, suggestions.map(|s| s.patches), applicability);
+    fn emit_verbose(self, err: &mut Diagnostic) {
+        err.multipart_suggestion_verbose(&self.msg, self.patches, self.applicability);
     }
 }
 
@@ -631,12 +624,15 @@ impl<'a> Parser<'a> {
         &mut self,
         lo: Span,
         s: BlockCheckMode,
+        maybe_struct_name: token::Token,
+        can_be_struct_literal: bool,
     ) -> Option<PResult<'a, P<Block>>> {
         if self.token.is_ident() && self.look_ahead(1, |t| t == &token::Colon) {
             // We might be having a struct literal where people forgot to include the path:
             // fn foo() -> Foo {
             //     field: value,
             // }
+            info!(?maybe_struct_name, ?self.token);
             let mut snapshot = self.create_snapshot_for_diagnostic();
             let path = Path {
                 segments: ThinVec::new(),
@@ -656,13 +652,6 @@ impl<'a> Parser<'a> {
                     //     field: value,
                     // } }
                     err.delay_as_bug();
-                    self.sess.emit_err(StructLiteralBodyWithoutPath {
-                        span: expr.span,
-                        sugg: StructLiteralBodyWithoutPathSugg {
-                            before: expr.span.shrink_to_lo(),
-                            after: expr.span.shrink_to_hi(),
-                        },
-                    });
                     self.restore_snapshot(snapshot);
                     let mut tail = self.mk_block(
                         vec![self.mk_stmt_err(expr.span)],
@@ -670,7 +659,25 @@ impl<'a> Parser<'a> {
                         lo.to(self.prev_token.span),
                     );
                     tail.could_be_bare_literal = true;
-                    Ok(tail)
+                    if maybe_struct_name.is_ident() && can_be_struct_literal {
+                        // Account for `if Example { a: one(), }.is_pos() {}`.
+                        Err(self.sess.create_err(StructLiteralNeedingParens {
+                            span: maybe_struct_name.span.to(expr.span),
+                            sugg: StructLiteralNeedingParensSugg {
+                                before: maybe_struct_name.span.shrink_to_lo(),
+                                after: expr.span.shrink_to_hi(),
+                            },
+                        }))
+                    } else {
+                        self.sess.emit_err(StructLiteralBodyWithoutPath {
+                            span: expr.span,
+                            sugg: StructLiteralBodyWithoutPathSugg {
+                                before: expr.span.shrink_to_lo(),
+                                after: expr.span.shrink_to_hi(),
+                            },
+                        });
+                        Ok(tail)
+                    }
                 }
                 (Err(err), Ok(tail)) => {
                     // We have a block tail that contains a somehow valid type ascription expr.
@@ -1112,7 +1119,11 @@ impl<'a> Parser<'a> {
                     return if token::ModSep == self.token.kind {
                         // We have some certainty that this was a bad turbofish at this point.
                         // `foo< bar >::`
-                        err.suggest_turbofish = Some(op.span.shrink_to_lo());
+                        if let ExprKind::Binary(o, ..) = inner_op.kind && o.node == BinOpKind::Lt {
+                            err.suggest_turbofish = Some(op.span.shrink_to_lo());
+                        } else {
+                            err.help_turbofish = Some(());
+                        }
 
                         let snapshot = self.create_snapshot_for_diagnostic();
                         self.bump(); // `::`
@@ -1138,7 +1149,11 @@ impl<'a> Parser<'a> {
                     } else if token::OpenDelim(Delimiter::Parenthesis) == self.token.kind {
                         // We have high certainty that this was a bad turbofish at this point.
                         // `foo< bar >(`
-                        err.suggest_turbofish = Some(op.span.shrink_to_lo());
+                        if let ExprKind::Binary(o, ..) = inner_op.kind && o.node == BinOpKind::Lt {
+                            err.suggest_turbofish = Some(op.span.shrink_to_lo());
+                        } else {
+                            err.help_turbofish = Some(());
+                        }
                         // Consume the fn call arguments.
                         match self.consume_fn_args() {
                             Err(()) => Err(err.into_diagnostic(&self.sess.span_diagnostic)),
@@ -1238,7 +1253,7 @@ impl<'a> Parser<'a> {
         let sum_span = ty.span.to(self.prev_token.span);
 
         let sub = match &ty.kind {
-            TyKind::Rptr(lifetime, mut_ty) => {
+            TyKind::Ref(lifetime, mut_ty) => {
                 let sum_with_parens = pprust::to_string(|s| {
                     s.s.word("&");
                     s.print_opt_lifetime(lifetime);
@@ -1267,12 +1282,10 @@ impl<'a> Parser<'a> {
         &mut self,
         operand_expr: P<Expr>,
         op_span: Span,
-        prev_is_semi: bool,
+        start_stmt: bool,
     ) -> PResult<'a, P<Expr>> {
-        let standalone =
-            if prev_is_semi { IsStandalone::Standalone } else { IsStandalone::Subexpr };
+        let standalone = if start_stmt { IsStandalone::Standalone } else { IsStandalone::Subexpr };
         let kind = IncDecRecovery { standalone, op: IncOrDec::Inc, fixity: UnaryFixity::Pre };
-
         self.recover_from_inc_dec(operand_expr, kind, op_span)
     }
 
@@ -1280,13 +1293,13 @@ impl<'a> Parser<'a> {
         &mut self,
         operand_expr: P<Expr>,
         op_span: Span,
+        start_stmt: bool,
     ) -> PResult<'a, P<Expr>> {
         let kind = IncDecRecovery {
-            standalone: IsStandalone::Maybe,
+            standalone: if start_stmt { IsStandalone::Standalone } else { IsStandalone::Subexpr },
             op: IncOrDec::Inc,
             fixity: UnaryFixity::Post,
         };
-
         self.recover_from_inc_dec(operand_expr, kind, op_span)
     }
 
@@ -1315,33 +1328,24 @@ impl<'a> Parser<'a> {
         };
 
         match kind.standalone {
-            IsStandalone::Standalone => self.inc_dec_standalone_suggest(kind, spans).emit(&mut err),
+            IsStandalone::Standalone => {
+                self.inc_dec_standalone_suggest(kind, spans).emit_verbose(&mut err)
+            }
             IsStandalone::Subexpr => {
                 let Ok(base_src) = self.span_to_snippet(base.span)
-                    else { return help_base_case(err, base) };
+                else { return help_base_case(err, base) };
                 match kind.fixity {
                     UnaryFixity::Pre => {
                         self.prefix_inc_dec_suggest(base_src, kind, spans).emit(&mut err)
                     }
                     UnaryFixity::Post => {
-                        self.postfix_inc_dec_suggest(base_src, kind, spans).emit(&mut err)
+                        // won't suggest since we can not handle the precedences
+                        // for example: `a + b++` has been parsed (a + b)++ and we can not suggest here
+                        if !matches!(base.kind, ExprKind::Binary(_, _, _)) {
+                            self.postfix_inc_dec_suggest(base_src, kind, spans).emit(&mut err)
+                        }
                     }
                 }
-            }
-            IsStandalone::Maybe => {
-                let Ok(base_src) = self.span_to_snippet(base.span)
-                    else { return help_base_case(err, base) };
-                let sugg1 = match kind.fixity {
-                    UnaryFixity::Pre => self.prefix_inc_dec_suggest(base_src, kind, spans),
-                    UnaryFixity::Post => self.postfix_inc_dec_suggest(base_src, kind, spans),
-                };
-                let sugg2 = self.inc_dec_standalone_suggest(kind, spans);
-                MultiSugg::emit_many(
-                    &mut err,
-                    "use `+= 1` instead",
-                    Applicability::Unspecified,
-                    [sugg1, sugg2].into_iter(),
-                )
             }
         }
         Err(err)
@@ -1392,7 +1396,6 @@ impl<'a> Parser<'a> {
         }
 
         patches.push((post_span, format!(" {}= 1", kind.op.chr())));
-
         MultiSugg {
             msg: format!("use `{}= 1` instead", kind.op.chr()),
             patches,
@@ -2575,6 +2578,75 @@ impl<'a> Parser<'a> {
             }
         }
         Ok(())
+    }
+
+    pub fn is_diff_marker(&mut self, long_kind: &TokenKind, short_kind: &TokenKind) -> bool {
+        (0..3).all(|i| self.look_ahead(i, |tok| tok == long_kind))
+            && self.look_ahead(3, |tok| tok == short_kind)
+    }
+
+    fn diff_marker(&mut self, long_kind: &TokenKind, short_kind: &TokenKind) -> Option<Span> {
+        if self.is_diff_marker(long_kind, short_kind) {
+            let lo = self.token.span;
+            for _ in 0..4 {
+                self.bump();
+            }
+            return Some(lo.to(self.prev_token.span));
+        }
+        None
+    }
+
+    pub fn recover_diff_marker(&mut self) {
+        let Some(start) = self.diff_marker(&TokenKind::BinOp(token::Shl), &TokenKind::Lt) else {
+            return;
+        };
+        let mut spans = Vec::with_capacity(3);
+        spans.push(start);
+        let mut middlediff3 = None;
+        let mut middle = None;
+        let mut end = None;
+        loop {
+            if self.token.kind == TokenKind::Eof {
+                break;
+            }
+            if let Some(span) = self.diff_marker(&TokenKind::OrOr, &TokenKind::BinOp(token::Or)) {
+                middlediff3 = Some(span);
+            }
+            if let Some(span) = self.diff_marker(&TokenKind::EqEq, &TokenKind::Eq) {
+                middle = Some(span);
+            }
+            if let Some(span) = self.diff_marker(&TokenKind::BinOp(token::Shr), &TokenKind::Gt) {
+                spans.push(span);
+                end = Some(span);
+                break;
+            }
+            self.bump();
+        }
+        let mut err = self.struct_span_err(spans, "encountered diff marker");
+        err.span_label(start, "after this is the code before the merge");
+        if let Some(middle) = middlediff3 {
+            err.span_label(middle, "");
+        }
+        if let Some(middle) = middle {
+            err.span_label(middle, "");
+        }
+        if let Some(end) = end {
+            err.span_label(end, "above this are the incoming code changes");
+        }
+        err.help(
+            "if you're having merge conflicts after pulling new code, the top section is the code \
+             you already had and the bottom section is the remote code",
+        );
+        err.help(
+            "if you're in the middle of a rebase, the top section is the code being rebased onto \
+             and the bottom section is the code coming from the current commit being rebased",
+        );
+        err.note(
+            "for an explanation on these markers from the `git` documentation, visit \
+             <https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging#_checking_out_conflicts>",
+        );
+        err.emit();
+        FatalError.raise()
     }
 
     /// Parse and throw away a parenthesized comma separated

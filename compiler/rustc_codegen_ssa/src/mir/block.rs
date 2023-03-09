@@ -289,16 +289,13 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             bx.cleanup_ret(funclet, None);
         } else {
             let slot = self.get_personality_slot(bx);
-            let lp0 = slot.project_field(bx, 0);
-            let lp0 = bx.load_operand(lp0).immediate();
-            let lp1 = slot.project_field(bx, 1);
-            let lp1 = bx.load_operand(lp1).immediate();
+            let exn0 = slot.project_field(bx, 0);
+            let exn0 = bx.load_operand(exn0).immediate();
+            let exn1 = slot.project_field(bx, 1);
+            let exn1 = bx.load_operand(exn1).immediate();
             slot.storage_dead(bx);
 
-            let mut lp = bx.const_undef(self.landing_pad_type());
-            lp = bx.insert_value(lp, lp0, 0);
-            lp = bx.insert_value(lp, lp1, 1);
-            bx.resume(lp);
+            bx.resume(exn0, exn1);
         }
     }
 
@@ -307,12 +304,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         helper: TerminatorCodegenHelper<'tcx>,
         bx: &mut Bx,
         discr: &mir::Operand<'tcx>,
-        switch_ty: Ty<'tcx>,
         targets: &SwitchTargets,
     ) {
         let discr = self.codegen_operand(bx, &discr);
-        // `switch_ty` is redundant, sanity-check that.
-        assert_eq!(discr.layout.ty, switch_ty);
+        let switch_ty = discr.layout.ty;
         let mut target_iter = targets.iter();
         if target_iter.len() == 1 {
             // If there are two targets (one conditional, one fallback), emit `br` instead of
@@ -642,7 +637,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         self.set_debug_loc(bx, terminator.source_info);
 
         // Obtain the panic entry point.
-        let (fn_abi, llfn) = common::build_langcall(bx, Some(span), LangItem::PanicNoUnwind);
+        let (fn_abi, llfn) = common::build_langcall(bx, Some(span), LangItem::PanicCannotUnwind);
 
         // Codegen the actual panic invoke/call.
         let merging_succ = helper.do_call(self, bx, fn_abi, llfn, &[], None, None, &[], false);
@@ -668,12 +663,12 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         enum AssertIntrinsic {
             Inhabited,
             ZeroValid,
-            UninitValid,
+            MemUninitializedValid,
         }
         let panic_intrinsic = intrinsic.and_then(|i| match i {
             sym::assert_inhabited => Some(AssertIntrinsic::Inhabited),
             sym::assert_zero_valid => Some(AssertIntrinsic::ZeroValid),
-            sym::assert_uninit_valid => Some(AssertIntrinsic::UninitValid),
+            sym::assert_mem_uninitialized_valid => Some(AssertIntrinsic::MemUninitializedValid),
             _ => None,
         });
         if let Some(intrinsic) = panic_intrinsic {
@@ -684,7 +679,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             let do_panic = match intrinsic {
                 Inhabited => layout.abi.is_uninhabited(),
                 ZeroValid => !bx.tcx().permits_zero_init(layout),
-                UninitValid => !bx.tcx().permits_uninit_init(layout),
+                MemUninitializedValid => !bx.tcx().permits_uninit_init(layout),
             };
             Some(if do_panic {
                 let msg_str = with_no_visible_paths!({
@@ -703,11 +698,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     })
                 });
                 let msg = bx.const_str(&msg_str);
-                let location = self.get_caller_location(bx, source_info).immediate();
 
                 // Obtain the panic entry point.
                 let (fn_abi, llfn) =
-                    common::build_langcall(bx, Some(source_info.span), LangItem::Panic);
+                    common::build_langcall(bx, Some(source_info.span), LangItem::PanicNounwind);
 
                 // Codegen the actual panic invoke/call.
                 helper.do_call(
@@ -715,7 +709,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     bx,
                     fn_abi,
                     llfn,
-                    &[msg.0, msg.1, location],
+                    &[msg.0, msg.1],
                     target.as_ref().map(|bb| (ReturnDest::Nothing, *bb)),
                     cleanup,
                     &[],
@@ -753,10 +747,13 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         let (instance, mut llfn) = match *callee.layout.ty.kind() {
             ty::FnDef(def_id, substs) => (
                 Some(
-                    ty::Instance::resolve(bx.tcx(), ty::ParamEnv::reveal_all(), def_id, substs)
-                        .unwrap()
-                        .unwrap()
-                        .polymorphize(bx.tcx()),
+                    ty::Instance::expect_resolve(
+                        bx.tcx(),
+                        ty::ParamEnv::reveal_all(),
+                        def_id,
+                        substs,
+                    )
+                    .polymorphize(bx.tcx()),
                 ),
                 None,
             ),
@@ -1293,8 +1290,8 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 helper.funclet_br(self, bx, target, mergeable_succ())
             }
 
-            mir::TerminatorKind::SwitchInt { ref discr, switch_ty, ref targets } => {
-                self.codegen_switchint_terminator(helper, bx, discr, switch_ty, targets);
+            mir::TerminatorKind::SwitchInt { ref discr, ref targets } => {
+                self.codegen_switchint_terminator(helper, bx, discr, targets);
                 MergingSucc::False
             }
 
@@ -1635,22 +1632,15 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             let mut cleanup_bx = Bx::build(self.cx, cleanup_llbb);
 
             let llpersonality = self.cx.eh_personality();
-            let llretty = self.landing_pad_type();
-            let lp = cleanup_bx.cleanup_landing_pad(llretty, llpersonality);
+            let (exn0, exn1) = cleanup_bx.cleanup_landing_pad(llpersonality);
 
             let slot = self.get_personality_slot(&mut cleanup_bx);
             slot.storage_live(&mut cleanup_bx);
-            Pair(cleanup_bx.extract_value(lp, 0), cleanup_bx.extract_value(lp, 1))
-                .store(&mut cleanup_bx, slot);
+            Pair(exn0, exn1).store(&mut cleanup_bx, slot);
 
             cleanup_bx.br(llbb);
             cleanup_llbb
         }
-    }
-
-    fn landing_pad_type(&self) -> Bx::Type {
-        let cx = self.cx;
-        cx.type_struct(&[cx.type_i8p(), cx.type_i32()], false)
     }
 
     fn unreachable_block(&mut self) -> Bx::BasicBlock {
@@ -1672,10 +1662,9 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             self.set_debug_loc(&mut bx, mir::SourceInfo::outermost(self.mir.span));
 
             let llpersonality = self.cx.eh_personality();
-            let llretty = self.landing_pad_type();
-            bx.cleanup_landing_pad(llretty, llpersonality);
+            bx.cleanup_landing_pad(llpersonality);
 
-            let (fn_abi, fn_ptr) = common::build_langcall(&bx, None, LangItem::PanicNoUnwind);
+            let (fn_abi, fn_ptr) = common::build_langcall(&bx, None, LangItem::PanicCannotUnwind);
             let fn_ty = bx.fn_decl_backend_type(&fn_abi);
 
             let llret = bx.call(fn_ty, Some(&fn_abi), fn_ptr, &[], None);
@@ -1812,15 +1801,20 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         match (src.layout.abi, dst.layout.abi) {
             (abi::Abi::Scalar(src_scalar), abi::Abi::Scalar(dst_scalar)) => {
                 // HACK(eddyb) LLVM doesn't like `bitcast`s between pointers and non-pointers.
-                if (src_scalar.primitive() == abi::Pointer)
-                    == (dst_scalar.primitive() == abi::Pointer)
-                {
+                let src_is_ptr = src_scalar.primitive() == abi::Pointer;
+                let dst_is_ptr = dst_scalar.primitive() == abi::Pointer;
+                if src_is_ptr == dst_is_ptr {
                     assert_eq!(src.layout.size, dst.layout.size);
 
                     // NOTE(eddyb) the `from_immediate` and `to_immediate_scalar`
                     // conversions allow handling `bool`s the same as `u8`s.
                     let src = bx.from_immediate(src.immediate());
-                    let src_as_dst = bx.bitcast(src, bx.backend_type(dst.layout));
+                    // LLVM also doesn't like `bitcast`s between pointers in different address spaces.
+                    let src_as_dst = if src_is_ptr {
+                        bx.pointercast(src, bx.backend_type(dst.layout))
+                    } else {
+                        bx.bitcast(src, bx.backend_type(dst.layout))
+                    };
                     Immediate(bx.to_immediate_scalar(src_as_dst, dst_scalar)).store(bx, dst);
                     return;
                 }

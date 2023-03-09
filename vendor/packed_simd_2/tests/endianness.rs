@@ -1,7 +1,7 @@
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
-use packed_simd::*;
+use packed_simd_2::*;
 use std::{mem, slice};
 
 #[cfg_attr(not(target_arch = "wasm32"), test)]
@@ -57,9 +57,7 @@ fn endian_load_and_stores() {
         8, 9, 10, 11, 12, 13, 14, 15,
     );
     let mut y: [i16; 8] = [0; 8];
-    x.write_to_slice_unaligned(unsafe {
-        slice::from_raw_parts_mut(&mut y as *mut _ as *mut i8, 16)
-    });
+    x.write_to_slice_unaligned(unsafe { slice::from_raw_parts_mut(&mut y as *mut _ as *mut i8, 16) });
 
     let e: [i16; 8] = if cfg!(target_endian = "little") {
         [256, 770, 1284, 1798, 2312, 2826, 3340, 3854]
@@ -68,9 +66,7 @@ fn endian_load_and_stores() {
     };
     assert_eq!(y, e);
 
-    let z = i8x16::from_slice_unaligned(unsafe {
-        slice::from_raw_parts(&y as *const _ as *const i8, 16)
-    });
+    let z = i8x16::from_slice_unaligned(unsafe { slice::from_raw_parts(&y as *const _ as *const i8, 16) });
     assert_eq!(z, x);
 }
 

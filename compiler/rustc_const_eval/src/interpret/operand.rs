@@ -39,7 +39,7 @@ pub enum Immediate<Prov: Provenance = AllocId> {
 impl<Prov: Provenance> From<Scalar<Prov>> for Immediate<Prov> {
     #[inline(always)]
     fn from(val: Scalar<Prov>) -> Self {
-        Immediate::Scalar(val.into())
+        Immediate::Scalar(val)
     }
 }
 
@@ -53,7 +53,7 @@ impl<Prov: Provenance> Immediate<Prov> {
     }
 
     pub fn new_slice(val: Scalar<Prov>, len: u64, cx: &impl HasDataLayout) -> Self {
-        Immediate::ScalarPair(val.into(), Scalar::from_machine_usize(len, cx).into())
+        Immediate::ScalarPair(val, Scalar::from_machine_usize(len, cx))
     }
 
     pub fn new_dyn_trait(
@@ -61,7 +61,7 @@ impl<Prov: Provenance> Immediate<Prov> {
         vtable: Pointer<Option<Prov>>,
         cx: &impl HasDataLayout,
     ) -> Self {
-        Immediate::ScalarPair(val.into(), Scalar::from_maybe_pointer(vtable, cx))
+        Immediate::ScalarPair(val, Scalar::from_maybe_pointer(vtable, cx))
     }
 
     #[inline]
@@ -341,10 +341,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     alloc_range(b_offset, b_size),
                     /*read_provenance*/ b.is_ptr(),
                 )?;
-                Some(ImmTy {
-                    imm: Immediate::ScalarPair(a_val.into(), b_val.into()),
-                    layout: mplace.layout,
-                })
+                Some(ImmTy { imm: Immediate::ScalarPair(a_val, b_val), layout: mplace.layout })
             }
             _ => {
                 // Neither a scalar nor scalar pair.
@@ -407,12 +404,23 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         Ok(self.read_immediate(op)?.to_scalar())
     }
 
+    // Pointer-sized reads are fairly common and need target layout access, so we wrap them in
+    // convenience functions.
+
     /// Read a pointer from a place.
     pub fn read_pointer(
         &self,
         op: &OpTy<'tcx, M::Provenance>,
     ) -> InterpResult<'tcx, Pointer<Option<M::Provenance>>> {
         self.read_scalar(op)?.to_pointer(self)
+    }
+    /// Read a pointer-sized unsigned integer from a place.
+    pub fn read_machine_usize(&self, op: &OpTy<'tcx, M::Provenance>) -> InterpResult<'tcx, u64> {
+        self.read_scalar(op)?.to_machine_usize(self)
+    }
+    /// Read a pointer-sized signed integer from a place.
+    pub fn read_machine_isize(&self, op: &OpTy<'tcx, M::Provenance>) -> InterpResult<'tcx, i64> {
+        self.read_scalar(op)?.to_machine_isize(self)
     }
 
     /// Turn the wide MPlace into a string (must already be dereferenced!)
@@ -480,7 +488,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         Ok(OpTy { op, layout: place.layout, align: Some(place.align) })
     }
 
-    /// Evaluate a place with the goal of reading from it.  This lets us sometimes
+    /// Evaluate a place with the goal of reading from it. This lets us sometimes
     /// avoid allocations.
     pub fn eval_place_to_op(
         &self,
@@ -525,11 +533,11 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         layout: Option<TyAndLayout<'tcx>>,
     ) -> InterpResult<'tcx, OpTy<'tcx, M::Provenance>> {
         use rustc_middle::mir::Operand::*;
-        let op = match *mir_op {
+        let op = match mir_op {
             // FIXME: do some more logic on `move` to invalidate the old location
-            Copy(place) | Move(place) => self.eval_place_to_op(place, layout)?,
+            &Copy(place) | &Move(place) => self.eval_place_to_op(place, layout)?,
 
-            Constant(ref constant) => {
+            Constant(constant) => {
                 let c =
                     self.subst_from_current_frame_and_normalize_erasing_regions(constant.literal)?;
 
@@ -569,8 +577,10 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             ty::ConstKind::Unevaluated(uv) => {
                 let instance = self.resolve(uv.def, uv.substs)?;
                 let cid = GlobalId { instance, promoted: None };
-                self.ctfe_query(span, |tcx| tcx.eval_to_valtree(self.param_env.and(cid)))?
-                    .unwrap_or_else(|| bug!("unable to create ValTree for {uv:?}"))
+                self.ctfe_query(span, |tcx| {
+                    tcx.eval_to_valtree(self.param_env.with_const().and(cid))
+                })?
+                .unwrap_or_else(|| bug!("unable to create ValTree for {uv:?}"))
             }
             ty::ConstKind::Bound(..) | ty::ConstKind::Infer(..) => {
                 span_bug!(self.cur_span(), "unexpected ConstKind in ctfe: {val:?}")

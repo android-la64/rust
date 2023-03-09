@@ -258,8 +258,7 @@ impl AttrTokenStream {
 
                         assert!(
                             found,
-                            "Failed to find trailing delimited group in: {:?}",
-                            target_tokens
+                            "Failed to find trailing delimited group in: {target_tokens:?}"
                         );
                     }
                     let mut flat: SmallVec<[_; 1]> = SmallVec::new();
@@ -362,7 +361,7 @@ impl TokenStream {
     }
 }
 
-impl iter::FromIterator<TokenTree> for TokenStream {
+impl FromIterator<TokenTree> for TokenStream {
     fn from_iter<I: IntoIterator<Item = TokenTree>>(iter: I) -> Self {
         TokenStream::new(iter.into_iter().collect::<Vec<TokenTree>>())
     }

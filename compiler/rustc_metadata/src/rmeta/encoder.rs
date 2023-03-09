@@ -76,7 +76,7 @@ pub(super) struct EncodeContext<'a, 'tcx> {
     symbol_table: FxHashMap<Symbol, usize>,
 }
 
-/// If the current crate is a proc-macro, returns early with `Lazy:empty()`.
+/// If the current crate is a proc-macro, returns early with `LazyArray::empty()`.
 /// This is useful for skipping the encoding of things that aren't needed
 /// for proc-macro crates.
 macro_rules! empty_proc_macro {
@@ -145,7 +145,7 @@ impl<'a, 'tcx, I, T> Encodable<EncodeContext<'a, 'tcx>> for LazyTable<I, T> {
 impl<'a, 'tcx> Encodable<EncodeContext<'a, 'tcx>> for CrateNum {
     fn encode(&self, s: &mut EncodeContext<'a, 'tcx>) {
         if *self != LOCAL_CRATE && s.is_proc_macro {
-            panic!("Attempted to encode non-local CrateNum {:?} for proc-macro crate", self);
+            panic!("Attempted to encode non-local CrateNum {self:?} for proc-macro crate");
         }
         s.emit_u32(self.as_u32());
     }
@@ -172,7 +172,7 @@ impl<'a, 'tcx> Encodable<EncodeContext<'a, 'tcx>> for SyntaxContext {
 impl<'a, 'tcx> Encodable<EncodeContext<'a, 'tcx>> for ExpnId {
     fn encode(&self, s: &mut EncodeContext<'a, 'tcx>) {
         if self.krate == LOCAL_CRATE {
-            // We will only write details for local expansions.  Non-local expansions will fetch
+            // We will only write details for local expansions. Non-local expansions will fetch
             // data from the corresponding crate's metadata.
             // FIXME(#43047) FIXME(#74731) We may eventually want to avoid relying on external
             // metadata from proc-macro crates.
@@ -276,7 +276,7 @@ impl<'a, 'tcx> Encodable<EncodeContext<'a, 'tcx>> for Span {
                 // Introduce a new scope so that we drop the 'lock()' temporary
                 match &*source_file.external_src.lock() {
                     ExternalSource::Foreign { metadata_index, .. } => *metadata_index,
-                    src => panic!("Unexpected external source {:?}", src),
+                    src => panic!("Unexpected external source {src:?}"),
                 }
             };
 
@@ -332,7 +332,7 @@ impl<'a, 'tcx> Encodable<EncodeContext<'a, 'tcx>> for Symbol {
                     s.emit_str(self.as_str());
                 }
                 Entry::Occupied(o) => {
-                    let x = o.get().clone();
+                    let x = *o.get();
                     s.emit_u8(SYMBOL_OFFSET);
                     s.emit_usize(x);
                 }
@@ -713,7 +713,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
         let computed_total_bytes: usize = stats.iter().map(|(_, size)| size).sum();
         assert_eq!(total_bytes, computed_total_bytes);
 
-        if tcx.sess.meta_stats() {
+        if tcx.sess.opts.unstable_opts.meta_stats {
             self.opaque.flush();
 
             // Rewind and re-read all the metadata to count the zero bytes we wrote.
@@ -733,12 +733,9 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             let prefix = "meta-stats";
             let perc = |bytes| (bytes * 100) as f64 / total_bytes as f64;
 
-            eprintln!("{} METADATA STATS", prefix);
+            eprintln!("{prefix} METADATA STATS");
             eprintln!("{} {:<23}{:>10}", prefix, "Section", "Size");
-            eprintln!(
-                "{} ----------------------------------------------------------------",
-                prefix
-            );
+            eprintln!("{prefix} ----------------------------------------------------------------");
             for (label, size) in stats {
                 eprintln!(
                     "{} {:<23}{:>10} ({:4.1}%)",
@@ -748,10 +745,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
                     perc(size)
                 );
             }
-            eprintln!(
-                "{} ----------------------------------------------------------------",
-                prefix
-            );
+            eprintln!("{prefix} ----------------------------------------------------------------");
             eprintln!(
                 "{} {:<23}{:>10} (of which {:.1}% are zero bytes)",
                 prefix,
@@ -759,7 +753,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
                 to_readable_str(total_bytes),
                 perc(zero_bytes)
             );
-            eprintln!("{}", prefix);
+            eprintln!("{prefix}");
         }
 
         root
@@ -894,8 +888,8 @@ fn should_encode_mir(tcx: TyCtxt<'_>, def_id: LocalDefId) -> (bool, bool) {
         | DefKind::AssocConst
         | DefKind::Static(..)
         | DefKind::Const => (true, false),
-        // Full-fledged functions
-        DefKind::AssocFn | DefKind::Fn => {
+        // Full-fledged functions + closures
+        DefKind::AssocFn | DefKind::Fn | DefKind::Closure => {
             let generics = tcx.generics_of(def_id);
             let needs_inline = (generics.requires_monomorphization(tcx)
                 || tcx.codegen_fn_attrs(def_id).requests_inline())
@@ -905,15 +899,6 @@ fn should_encode_mir(tcx: TyCtxt<'_>, def_id: LocalDefId) -> (bool, bool) {
                 || tcx.is_const_default_method(def_id.to_def_id());
             let always_encode_mir = tcx.sess.opts.unstable_opts.always_encode_mir;
             (is_const_fn, needs_inline || always_encode_mir)
-        }
-        // Closures can't be const fn.
-        DefKind::Closure => {
-            let generics = tcx.generics_of(def_id);
-            let needs_inline = (generics.requires_monomorphization(tcx)
-                || tcx.codegen_fn_attrs(def_id).requests_inline())
-                && tcx.sess.opts.output_types.should_codegen();
-            let always_encode_mir = tcx.sess.opts.unstable_opts.always_encode_mir;
-            (false, needs_inline || always_encode_mir)
         }
         // Generators require optimized MIR to compute layout.
         DefKind::Generator => (false, true),
@@ -1093,7 +1078,7 @@ fn should_encode_const(def_kind: DefKind) -> bool {
     }
 }
 
-fn should_encode_trait_impl_trait_tys<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId) -> bool {
+fn should_encode_trait_impl_trait_tys(tcx: TyCtxt<'_>, def_id: DefId) -> bool {
     if tcx.def_kind(def_id) != DefKind::AssocFn {
         return false;
     }
@@ -1111,8 +1096,8 @@ fn should_encode_trait_impl_trait_tys<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId) ->
     // associated types.
     tcx.fn_sig(trait_item_def_id).skip_binder().output().walk().any(|arg| {
         if let ty::GenericArgKind::Type(ty) = arg.unpack()
-            && let ty::Projection(data) = ty.kind()
-            && tcx.def_kind(data.item_def_id) == DefKind::ImplTraitPlaceholder
+            && let ty::Alias(ty::Projection, data) = ty.kind()
+            && tcx.def_kind(data.def_id) == DefKind::ImplTraitPlaceholder
         {
             true
         } else {
@@ -1197,13 +1182,16 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
                 record!(self.tables.params_in_repr[def_id] <- params_in_repr);
             }
             if should_encode_trait_impl_trait_tys(tcx, def_id)
-                && let Ok(table) = self.tcx.collect_trait_impl_trait_tys(def_id)
+                && let Ok(table) = self.tcx.collect_return_position_impl_trait_in_trait_tys(def_id)
             {
                 record!(self.tables.trait_impl_trait_tys[def_id] <- table);
             }
         }
-        let inherent_impls = tcx.crate_inherent_impls(());
-        for (def_id, implementations) in inherent_impls.inherent_impls.iter() {
+        let inherent_impls = tcx.with_stable_hashing_context(|hcx| {
+            tcx.crate_inherent_impls(()).inherent_impls.to_sorted(&hcx, true)
+        });
+
+        for (def_id, implementations) in inherent_impls {
             if implementations.is_empty() {
                 continue;
             }
@@ -1337,24 +1325,16 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
         debug!("EncodeContext::encode_info_for_trait_item({:?})", def_id);
         let tcx = self.tcx;
 
-        let ast_item = tcx.hir().expect_trait_item(def_id.expect_local());
-        self.tables.impl_defaultness.set(def_id.index, ast_item.defaultness);
+        let impl_defaultness = tcx.impl_defaultness(def_id.expect_local());
+        self.tables.impl_defaultness.set(def_id.index, impl_defaultness);
         let trait_item = tcx.associated_item(def_id);
         self.tables.assoc_container.set(def_id.index, trait_item.container);
 
         match trait_item.kind {
             ty::AssocKind::Const => {}
             ty::AssocKind::Fn => {
-                let hir::TraitItemKind::Fn(m_sig, m) = &ast_item.kind else { bug!() };
-                match *m {
-                    hir::TraitFn::Required(ref names) => {
-                        record_array!(self.tables.fn_arg_names[def_id] <- *names)
-                    }
-                    hir::TraitFn::Provided(body) => {
-                        record_array!(self.tables.fn_arg_names[def_id] <- self.tcx.hir().body_param_names(body))
-                    }
-                };
-                self.tables.asyncness.set(def_id.index, m_sig.header.asyncness);
+                record_array!(self.tables.fn_arg_names[def_id] <- tcx.fn_arg_names(def_id));
+                self.tables.asyncness.set(def_id.index, tcx.asyncness(def_id));
                 self.tables.constness.set(def_id.index, hir::Constness::NotConst);
             }
             ty::AssocKind::Type => {
@@ -1443,7 +1423,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             let instance =
                 ty::InstanceDef::Item(ty::WithOptConstParam::unknown(def_id.to_def_id()));
             let unused = tcx.unused_generic_params(instance);
-            if !unused.is_empty() {
+            if !unused.all_used() {
                 record!(self.tables.unused_generic_params[def_id.to_def_id()] <- unused);
             }
         }
@@ -1572,10 +1552,10 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
                 self.tables.impl_defaultness.set(def_id.index, *defaultness);
                 self.tables.constness.set(def_id.index, *constness);
 
-                let trait_ref = self.tcx.impl_trait_ref(def_id);
+                let trait_ref = self.tcx.impl_trait_ref(def_id).map(ty::EarlyBinder::skip_binder);
                 if let Some(trait_ref) = trait_ref {
                     let trait_def = self.tcx.trait_def(trait_ref.def_id);
-                    if let Some(mut an) = trait_def.ancestors(self.tcx, def_id).ok() {
+                    if let Ok(mut an) = trait_def.ancestors(self.tcx, def_id) {
                         if let Some(specialization_graph::Node::Impl(parent)) = an.nth(1) {
                             self.tables.impl_parent.set(def_id.index, parent.into());
                         }
@@ -1703,6 +1683,8 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             }
 
             ty::Closure(_, substs) => {
+                let constness = self.tcx.constness(def_id.to_def_id());
+                self.tables.constness.set(def_id.to_def_id().index, constness);
                 record!(self.tables.fn_sig[def_id.to_def_id()] <- substs.as_closure().sig());
             }
 
@@ -1860,7 +1842,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
         // the assumption that they are numbered 1 to n.
         // FIXME (#2166): This is not nearly enough to support correct versioning
         // but is enough to get transitive crate dependencies working.
-        self.lazy_array(deps.iter().map(|&(_, ref dep)| dep))
+        self.lazy_array(deps.iter().map(|(_, dep)| dep))
     }
 
     fn encode_lib_features(&mut self) -> LazyArray<(Symbol, Option<Symbol>)> {
@@ -1914,6 +1896,8 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
         for id in tcx.hir().items() {
             if matches!(tcx.def_kind(id.owner_id), DefKind::Impl) {
                 if let Some(trait_ref) = tcx.impl_trait_ref(id.owner_id) {
+                    let trait_ref = trait_ref.subst_identity();
+
                     let simplified_self_ty = fast_reject::simplify_type(
                         self.tcx,
                         trait_ref.self_ty(),
@@ -1997,7 +1981,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
         self.lazy_array(
             exported_symbols
                 .iter()
-                .filter(|&&(ref exported_symbol, _)| match *exported_symbol {
+                .filter(|&(exported_symbol, _)| match *exported_symbol {
                     ExportedSymbol::NoDefId(symbol_name) => symbol_name != metadata_symbol_name,
                     _ => true,
                 })

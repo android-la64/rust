@@ -174,6 +174,11 @@ pub trait Write {
     /// This method should generally not be invoked manually, but rather through
     /// the [`write!`] macro itself.
     ///
+    /// # Errors
+    ///
+    /// This function will return an instance of [`Error`] on error. Please see
+    /// [write_str](Write::write_str) for details.
+    ///
     /// # Examples
     ///
     /// ```
@@ -405,7 +410,7 @@ impl<'a> Arguments<'a> {
     /// 1. The `pieces` slice must be at least as long as `fmt`.
     /// 2. Every [`rt::v1::Argument::position`] value within `fmt` must be a
     ///    valid index of `args`.
-    /// 3. Every [`Count::Param`] within `fmt` must contain a valid index of
+    /// 3. Every [`rt::v1::Count::Param`] within `fmt` must contain a valid index of
     ///    `args`.
     #[doc(hidden)]
     #[inline]
@@ -558,7 +563,7 @@ impl Display for Arguments<'_> {
 ///
 /// Derived `Debug` formats are not stable, and so may change with future Rust
 /// versions. Additionally, `Debug` implementations of types provided by the
-/// standard library (`libstd`, `libcore`, `liballoc`, etc.) are not stable, and
+/// standard library (`std`, `core`, `alloc`, etc.) are not stable, and
 /// may also change with future Rust versions.
 ///
 /// # Examples
@@ -2471,8 +2476,8 @@ impl Display for char {
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> Pointer for *const T {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        // Cast is needed here because `.addr()` requires `T: Sized`.
-        pointer_fmt_inner((*self as *const ()).addr(), f)
+        // Cast is needed here because `.expose_addr()` requires `T: Sized`.
+        pointer_fmt_inner((*self as *const ()).expose_addr(), f)
     }
 }
 

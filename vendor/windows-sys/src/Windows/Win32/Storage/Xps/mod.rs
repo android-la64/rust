@@ -1,44 +1,29 @@
 #[cfg(feature = "Win32_Storage_Xps_Printing")]
 pub mod Printing;
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn AbortDoc(hdc: super::super::Graphics::Gdi::HDC) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DeviceCapabilitiesA(pdevice: ::windows_sys::core::PCSTR, pport: ::windows_sys::core::PCSTR, fwcapability: DEVICE_CAPABILITIES, poutput: ::windows_sys::core::PSTR, pdevmode: *const super::super::Graphics::Gdi::DEVMODEA) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn DeviceCapabilitiesW(pdevice: ::windows_sys::core::PCWSTR, pport: ::windows_sys::core::PCWSTR, fwcapability: DEVICE_CAPABILITIES, poutput: ::windows_sys::core::PWSTR, pdevmode: *const super::super::Graphics::Gdi::DEVMODEW) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn EndDoc(hdc: super::super::Graphics::Gdi::HDC) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn EndPage(hdc: super::super::Graphics::Gdi::HDC) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn Escape(hdc: super::super::Graphics::Gdi::HDC, iescape: i32, cjin: i32, pvin: ::windows_sys::core::PCSTR, pvout: *mut ::core::ffi::c_void) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn ExtEscape(hdc: super::super::Graphics::Gdi::HDC, iescape: i32, cjinput: i32, lpindata: ::windows_sys::core::PCSTR, cjoutput: i32, lpoutdata: ::windows_sys::core::PSTR) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn PrintWindow(hwnd: super::super::Foundation::HWND, hdcblt: super::super::Graphics::Gdi::HDC, nflags: PRINT_WINDOW_FLAGS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn SetAbortProc(hdc: super::super::Graphics::Gdi::HDC, proc: ABORTPROC) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn StartDocA(hdc: super::super::Graphics::Gdi::HDC, lpdi: *const DOCINFOA) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn StartDocW(hdc: super::super::Graphics::Gdi::HDC, lpdi: *const DOCINFOW) -> i32;
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(feature = "Win32_Graphics_Gdi")]
-    pub fn StartPage(hdc: super::super::Graphics::Gdi::HDC) -> i32;
-}
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn AbortDoc ( hdc : super::super::Graphics::Gdi:: HDC ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "winspool.drv""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DeviceCapabilitiesA ( pdevice : :: windows_sys::core::PCSTR , pport : :: windows_sys::core::PCSTR , fwcapability : DEVICE_CAPABILITIES , poutput : :: windows_sys::core::PSTR , pdevmode : *const super::super::Graphics::Gdi:: DEVMODEA ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "winspool.drv""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn DeviceCapabilitiesW ( pdevice : :: windows_sys::core::PCWSTR , pport : :: windows_sys::core::PCWSTR , fwcapability : DEVICE_CAPABILITIES , poutput : :: windows_sys::core::PWSTR , pdevmode : *const super::super::Graphics::Gdi:: DEVMODEW ) -> i32 );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn EndDoc ( hdc : super::super::Graphics::Gdi:: HDC ) -> i32 );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn EndPage ( hdc : super::super::Graphics::Gdi:: HDC ) -> i32 );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn Escape ( hdc : super::super::Graphics::Gdi:: HDC , iescape : i32 , cjin : i32 , pvin : :: windows_sys::core::PCSTR , pvout : *mut ::core::ffi::c_void ) -> i32 );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn ExtEscape ( hdc : super::super::Graphics::Gdi:: HDC , iescape : i32 , cjinput : i32 , lpindata : :: windows_sys::core::PCSTR , cjoutput : i32 , lpoutdata : :: windows_sys::core::PSTR ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "user32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn PrintWindow ( hwnd : super::super::Foundation:: HWND , hdcblt : super::super::Graphics::Gdi:: HDC , nflags : PRINT_WINDOW_FLAGS ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn SetAbortProc ( hdc : super::super::Graphics::Gdi:: HDC , proc : ABORTPROC ) -> i32 );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn StartDocA ( hdc : super::super::Graphics::Gdi:: HDC , lpdi : *const DOCINFOA ) -> i32 );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn StartDocW ( hdc : super::super::Graphics::Gdi:: HDC , lpdi : *const DOCINFOW ) -> i32 );
+#[cfg(feature = "Win32_Graphics_Gdi")]
+::windows_sys::core::link ! ( "gdi32.dll""system" #[doc = "*Required features: `\"Win32_Storage_Xps\"`, `\"Win32_Graphics_Gdi\"`*"] fn StartPage ( hdc : super::super::Graphics::Gdi:: HDC ) -> i32 );
 pub type IXpsDocumentPackageTarget = *mut ::core::ffi::c_void;
 pub type IXpsDocumentPackageTarget3D = *mut ::core::ffi::c_void;
 pub type IXpsOMBrush = *mut ::core::ffi::c_void;
@@ -277,9 +262,12 @@ pub const XPS_E_UNEXPECTED_RESTRICTED_FONT_RELATIONSHIP: ::windows_sys::core::HR
 pub const XPS_E_VISUAL_CIRCULAR_REF: ::windows_sys::core::HRESULT = -2142108415i32;
 #[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
 pub const XPS_E_XKEY_ATTR_PRESENT_OUTSIDE_RES_DICT: ::windows_sys::core::HRESULT = -2142108672i32;
-pub const XpsOMObjectFactory: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3916747373, data2: 15771, data3: 19783, data4: [136, 204, 56, 114, 242, 220, 53, 133] };
-pub const XpsOMThumbnailGenerator: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2118788066, data2: 47465, data3: 18273, data4: [190, 53, 26, 140, 237, 88, 227, 35] };
-pub const XpsSignatureManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2965648160, data2: 8981, data3: 17570, data4: [183, 10, 9, 67, 161, 64, 168, 238] };
+#[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
+pub const XpsOMObjectFactory: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe974d26d_3d9b_4d47_88cc_3872f2dc3585);
+#[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
+pub const XpsOMThumbnailGenerator: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7e4a23e2_b969_4761_be35_1a8ced58e323);
+#[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
+pub const XpsSignatureManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xb0c43320_2315_44a2_b70a_0943a140a8ee);
 #[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
 pub type DEVICE_CAPABILITIES = u16;
 #[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]

@@ -55,7 +55,7 @@ impl X64Backend {
         let emit_info = EmitInfo::new(flags.clone(), self.x64_flags.clone());
         let sigs = SigSet::new::<abi::X64ABIMachineSpec>(func, &self.flags)?;
         let abi = abi::X64Callee::new(&func, self, &self.x64_flags, &sigs)?;
-        compile::compile::<Self>(&func, self, abi, &self.reg_env, emit_info, sigs)
+        compile::compile::<Self>(&func, flags, self, abi, &self.reg_env, emit_info, sigs)
     }
 }
 
@@ -156,7 +156,7 @@ impl TargetIsa for X64Backend {
         inst::unwind::systemv::map_reg(reg).map(|reg| reg.0)
     }
 
-    fn text_section_builder(&self, num_funcs: u32) -> Box<dyn TextSectionBuilder> {
+    fn text_section_builder(&self, num_funcs: usize) -> Box<dyn TextSectionBuilder> {
         Box::new(MachTextSectionBuilder::<inst::Inst>::new(num_funcs))
     }
 

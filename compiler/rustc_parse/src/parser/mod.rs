@@ -25,7 +25,7 @@ use rustc_ast::tokenstream::{TokenStream, TokenTree};
 use rustc_ast::util::case::Case;
 use rustc_ast::AttrId;
 use rustc_ast::DUMMY_NODE_ID;
-use rustc_ast::{self as ast, AnonConst, AttrStyle, AttrVec, Const, DelimArgs, Extern};
+use rustc_ast::{self as ast, AnonConst, AttrStyle, Const, DelimArgs, Extern};
 use rustc_ast::{Async, AttrArgs, AttrArgsEq, Expr, ExprKind, MacDelimiter, Mutability, StrLit};
 use rustc_ast::{HasAttrs, HasTokens, Unsafe, Visibility, VisibilityKind};
 use rustc_ast_pretty::pprust;
@@ -317,7 +317,7 @@ impl TokenCursor {
         // required to wrap the text. E.g.
         // - `abc d` is wrapped as `r"abc d"` (num_of_hashes = 0)
         // - `abc "d"` is wrapped as `r#"abc "d""#` (num_of_hashes = 1)
-        // - `abc "##d##"` is wrapped as `r###"abc "d""###` (num_of_hashes = 3)
+        // - `abc "##d##"` is wrapped as `r###"abc ##"d"##"###` (num_of_hashes = 3)
         let mut num_of_hashes = 0;
         let mut count = 0;
         for ch in data.as_str().chars() {
@@ -542,9 +542,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Expect next token to be edible or inedible token.  If edible,
+    /// Expect next token to be edible or inedible token. If edible,
     /// then consume it; if inedible, then return without consuming
-    /// anything.  Signal a fatal error if next token is unexpected.
+    /// anything. Signal a fatal error if next token is unexpected.
     pub fn expect_one_of(
         &mut self,
         edible: &[TokenKind],
@@ -734,6 +734,16 @@ impl<'a> Parser<'a> {
 
     fn check_const_arg(&mut self) -> bool {
         self.check_or_expected(self.token.can_begin_const_arg(), TokenType::Const)
+    }
+
+    fn check_const_closure(&self) -> bool {
+        self.is_keyword_ahead(0, &[kw::Const])
+            && self.look_ahead(1, |t| match &t.kind {
+                token::Ident(kw::Move | kw::Static | kw::Async, _)
+                | token::OrOr
+                | token::BinOp(token::Or) => true,
+                _ => false,
+            })
     }
 
     fn check_inline_const(&self, dist: usize) -> bool {
@@ -1217,11 +1227,7 @@ impl<'a> Parser<'a> {
             value: self.mk_expr(blk.span, ExprKind::Block(blk, None)),
         };
         let blk_span = anon_const.value.span;
-        Ok(self.mk_expr_with_attrs(
-            span.to(blk_span),
-            ExprKind::ConstBlock(anon_const),
-            AttrVec::from(attrs),
-        ))
+        Ok(self.mk_expr_with_attrs(span.to(blk_span), ExprKind::ConstBlock(anon_const), attrs))
     }
 
     /// Parses mutability (`mut` or nothing).
@@ -1502,6 +1508,10 @@ impl<'a> Parser<'a> {
 
     pub fn clear_expected_tokens(&mut self) {
         self.expected_tokens.clear();
+    }
+
+    pub fn approx_token_stream_pos(&self) -> usize {
+        self.token_cursor.num_next_calls
     }
 }
 

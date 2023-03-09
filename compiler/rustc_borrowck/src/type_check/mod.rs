@@ -38,7 +38,6 @@ use rustc_middle::ty::{
 use rustc_span::def_id::CRATE_DEF_ID;
 use rustc_span::{Span, DUMMY_SP};
 use rustc_target::abi::VariantIdx;
-use rustc_trait_selection::traits::query::type_op;
 use rustc_trait_selection::traits::query::type_op::custom::scrape_region_constraints;
 use rustc_trait_selection::traits::query::type_op::custom::CustomTypeOp;
 use rustc_trait_selection::traits::query::type_op::{TypeOp, TypeOpOutput};
@@ -197,6 +196,8 @@ pub(crate) fn type_check<'mir, 'tcx>(
     }
 
     checker.equate_inputs_and_outputs(&body, universal_regions, &normalized_inputs_and_output);
+    checker.check_signature_annotation(&body);
+
     liveness::generate(
         &mut checker,
         body,
@@ -208,7 +209,7 @@ pub(crate) fn type_check<'mir, 'tcx>(
     );
 
     translate_outlives_facts(&mut checker);
-    let opaque_type_values = infcx.inner.borrow_mut().opaque_type_storage.take_opaque_types();
+    let opaque_type_values = infcx.take_opaque_types();
 
     let opaque_type_values = opaque_type_values
         .into_iter()
@@ -391,23 +392,14 @@ impl<'a, 'b, 'tcx> Visitor<'tcx> for TypeVerifier<'a, 'b, 'tcx> {
                         check_err(self, promoted_body, ty, promoted_ty);
                     }
                 } else {
-                    if let Err(terr) = self.cx.fully_perform_op(
-                        locations,
-                        ConstraintCategory::Boring,
-                        self.cx.param_env.and(type_op::ascribe_user_type::AscribeUserType::new(
-                            constant.literal.ty(),
+                    self.cx.ascribe_user_type(
+                        constant.literal.ty(),
+                        UserType::TypeOf(
                             uv.def.did,
                             UserSubsts { substs: uv.substs, user_self_ty: None },
-                        )),
-                    ) {
-                        span_mirbug!(
-                            self,
-                            constant,
-                            "bad constant type {:?} ({:?})",
-                            constant,
-                            terr
-                        );
-                    }
+                        ),
+                        locations.span(&self.cx.body),
+                    );
                 }
             } else if let Some(static_def_id) = constant.check_static_ptr(tcx) {
                 let unnormalized_ty = tcx.type_of(static_def_id);
@@ -612,7 +604,7 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
 
         let locations = location.to_locations();
         for constraint in constraints.outlives().iter() {
-            let mut constraint = constraint.clone();
+            let mut constraint = *constraint;
             constraint.locations = locations;
             if let ConstraintCategory::Return(_)
             | ConstraintCategory::UseAsConst
@@ -1041,58 +1033,8 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         debug!(?self.user_type_annotations);
         for user_annotation in self.user_type_annotations {
             let CanonicalUserTypeAnnotation { span, ref user_ty, inferred_ty } = *user_annotation;
-            let inferred_ty = self.normalize(inferred_ty, Locations::All(span));
             let annotation = self.instantiate_canonical_with_fresh_inference_vars(span, user_ty);
-            debug!(?annotation);
-            match annotation {
-                UserType::Ty(mut ty) => {
-                    ty = self.normalize(ty, Locations::All(span));
-
-                    if let Err(terr) = self.eq_types(
-                        ty,
-                        inferred_ty,
-                        Locations::All(span),
-                        ConstraintCategory::BoringNoLocation,
-                    ) {
-                        span_mirbug!(
-                            self,
-                            user_annotation,
-                            "bad user type ({:?} = {:?}): {:?}",
-                            ty,
-                            inferred_ty,
-                            terr
-                        );
-                    }
-
-                    self.prove_predicate(
-                        ty::Binder::dummy(ty::PredicateKind::WellFormed(inferred_ty.into())),
-                        Locations::All(span),
-                        ConstraintCategory::TypeAnnotation,
-                    );
-                }
-                UserType::TypeOf(def_id, user_substs) => {
-                    if let Err(terr) = self.fully_perform_op(
-                        Locations::All(span),
-                        ConstraintCategory::BoringNoLocation,
-                        self.param_env.and(type_op::ascribe_user_type::AscribeUserType::new(
-                            inferred_ty,
-                            def_id,
-                            user_substs,
-                        )),
-                    ) {
-                        span_mirbug!(
-                            self,
-                            user_annotation,
-                            "bad user type AscribeUserType({:?}, {:?} {:?}, type_of={:?}): {:?}",
-                            inferred_ty,
-                            def_id,
-                            user_substs,
-                            self.tcx().type_of(def_id),
-                            terr,
-                        );
-                    }
-                }
-            }
+            self.ascribe_user_type(inferred_ty, annotation, span);
         }
     }
 
@@ -1153,16 +1095,23 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         category: ConstraintCategory<'tcx>,
     ) -> Fallible<()> {
         let annotated_type = self.user_type_annotations[user_ty.base].inferred_ty;
+        trace!(?annotated_type);
         let mut curr_projected_ty = PlaceTy::from_ty(annotated_type);
 
         let tcx = self.infcx.tcx;
 
         for proj in &user_ty.projs {
+            if let ty::Alias(ty::Opaque, ..) = curr_projected_ty.ty.kind() {
+                // There is nothing that we can compare here if we go through an opaque type.
+                // We're always in its defining scope as we can otherwise not project through
+                // it, so we're constraining it anyways.
+                return Ok(());
+            }
             let projected_ty = curr_projected_ty.projection_ty_core(
                 tcx,
                 self.param_env,
                 proj,
-                |this, field, _| {
+                |this, field, ()| {
                     let ty = this.field_ty(tcx, field);
                     self.normalize(ty, locations)
                 },
@@ -1170,10 +1119,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             );
             curr_projected_ty = projected_ty;
         }
-        debug!(
-            "user_ty base: {:?} freshened: {:?} projs: {:?} yields: {:?}",
-            user_ty.base, annotated_type, user_ty.projs, curr_projected_ty
-        );
+        trace!(?curr_projected_ty);
 
         let ty = curr_projected_ty.ty;
         self.relate_types(ty, v.xform(ty::Variance::Contravariant), a, locations, category)?;
@@ -1360,25 +1306,10 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                     );
                 }
             }
-            TerminatorKind::SwitchInt { discr, switch_ty, .. } => {
+            TerminatorKind::SwitchInt { discr, .. } => {
                 self.check_operand(discr, term_location);
 
-                let discr_ty = discr.ty(body, tcx);
-                if let Err(terr) = self.sub_types(
-                    discr_ty,
-                    *switch_ty,
-                    term_location.to_locations(),
-                    ConstraintCategory::Assignment,
-                ) {
-                    span_mirbug!(
-                        self,
-                        term,
-                        "bad SwitchInt ({:?} on {:?}): {:?}",
-                        switch_ty,
-                        discr_ty,
-                        terr
-                    );
-                }
+                let switch_ty = discr.ty(body, tcx);
                 if !switch_ty.is_integral() && !switch_ty.is_char() && !switch_ty.is_bool() {
                     span_mirbug!(self, term, "bad SwitchInt discr ty {:?}", switch_ty);
                 }
@@ -1734,7 +1665,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
     fn ensure_place_sized(&mut self, ty: Ty<'tcx>, span: Span) {
         let tcx = self.tcx();
 
-        // Erase the regions from `ty` to get a global type.  The
+        // Erase the regions from `ty` to get a global type. The
         // `Sized` bound in no way depends on precise regions, so this
         // shouldn't affect `is_sized`.
         let erased_ty = tcx.erase_regions(ty);

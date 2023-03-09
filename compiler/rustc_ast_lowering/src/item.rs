@@ -1,6 +1,6 @@
 use super::errors::{InvalidAbi, InvalidAbiSuggestion, MisplacedRelaxTraitBound};
 use super::ResolverAstLoweringExt;
-use super::{Arena, AstOwner, ImplTraitContext, ImplTraitPosition};
+use super::{AstOwner, ImplTraitContext, ImplTraitPosition};
 use super::{FnDeclKind, LoweringContext, ParamMode};
 
 use rustc_ast::ptr::P;
@@ -24,7 +24,6 @@ use thin_vec::ThinVec;
 pub(super) struct ItemLowerer<'a, 'hir> {
     pub(super) tcx: TyCtxt<'hir>,
     pub(super) resolver: &'a mut ResolverAstLowering,
-    pub(super) ast_arena: &'a Arena<'static>,
     pub(super) ast_index: &'a IndexVec<LocalDefId, AstOwner<'a>>,
     pub(super) owners: &'a mut IndexVec<LocalDefId, hir::MaybeOwner<&'hir hir::OwnerInfo<'hir>>>,
 }
@@ -60,7 +59,6 @@ impl<'a, 'hir> ItemLowerer<'a, 'hir> {
             tcx: self.tcx,
             resolver: self.resolver,
             arena: self.tcx.hir_arena,
-            ast_arena: self.ast_arena,
 
             // HirId handling.
             bodies: Vec::new(),
@@ -261,8 +259,8 @@ impl<'hir> LoweringContext<'_, 'hir> {
                         body.as_deref(),
                     );
 
-                    let mut itctx = ImplTraitContext::Universal;
-                    let (generics, decl) = this.lower_generics(generics, id, &mut itctx, |this| {
+                    let itctx = ImplTraitContext::Universal;
+                    let (generics, decl) = this.lower_generics(generics, id, &itctx, |this| {
                         let ret_id = asyncness.opt_return_id();
                         this.lower_fn_decl(&decl, id, *fn_sig_span, FnDeclKind::Fn, ret_id)
                     });
@@ -371,9 +369,9 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 // method, it will not be considered an in-band
                 // lifetime to be added, but rather a reference to a
                 // parent lifetime.
-                let mut itctx = ImplTraitContext::Universal;
+                let itctx = ImplTraitContext::Universal;
                 let (generics, (trait_ref, lowered_ty)) =
-                    self.lower_generics(ast_generics, id, &mut itctx, |this| {
+                    self.lower_generics(ast_generics, id, &itctx, |this| {
                         let trait_ref = trait_ref.as_ref().map(|trait_ref| {
                             this.lower_trait_ref(
                                 trait_ref,
@@ -525,7 +523,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 //
                 // The first two are produced by recursively invoking
                 // `lower_use_tree` (and indeed there may be things
-                // like `use foo::{a::{b, c}}` and so forth).  They
+                // like `use foo::{a::{b, c}}` and so forth). They
                 // wind up being directly added to
                 // `self.items`. However, the structure of this
                 // function also requires us to return one item, and
@@ -592,9 +590,9 @@ impl<'hir> LoweringContext<'_, 'hir> {
             kind: match &i.kind {
                 ForeignItemKind::Fn(box Fn { sig, generics, .. }) => {
                     let fdec = &sig.decl;
-                    let mut itctx = ImplTraitContext::Universal;
+                    let itctx = ImplTraitContext::Universal;
                     let (generics, (fn_dec, fn_args)) =
-                        self.lower_generics(generics, i.id, &mut itctx, |this| {
+                        self.lower_generics(generics, i.id, &itctx, |this| {
                             (
                                 // Disallow `impl Trait` in foreign items.
                                 this.lower_fn_decl(
@@ -1053,7 +1051,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
                     }
                     _ => {
                         // Replace the ident for bindings that aren't simple.
-                        let name = format!("__arg{}", index);
+                        let name = format!("__arg{index}");
                         let ident = Ident::from_str(&name);
 
                         (ident, false)
@@ -1139,7 +1137,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
 
             let async_expr = this.make_async_expr(
                 CaptureBy::Value,
-                Some(fn_id),
+                fn_id,
                 closure_id,
                 None,
                 body.span,
@@ -1186,8 +1184,8 @@ impl<'hir> LoweringContext<'_, 'hir> {
         is_async: Option<(NodeId, Span)>,
     ) -> (&'hir hir::Generics<'hir>, hir::FnSig<'hir>) {
         let header = self.lower_fn_header(sig.header);
-        let mut itctx = ImplTraitContext::Universal;
-        let (generics, decl) = self.lower_generics(generics, id, &mut itctx, |this| {
+        let itctx = ImplTraitContext::Universal;
+        let (generics, decl) = self.lower_generics(generics, id, &itctx, |this| {
             this.lower_fn_decl(&sig.decl, id, sig.span, kind, is_async)
         });
         (generics, hir::FnSig { header, decl, span: self.lower_span(sig.span) })
@@ -1241,7 +1239,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
         }
     }
 
-    fn lower_constness(&mut self, c: Const) -> hir::Constness {
+    pub(super) fn lower_constness(&mut self, c: Const) -> hir::Constness {
         match c {
             Const::Yes(_) => hir::Constness::Const,
             Const::No => hir::Constness::NotConst,
@@ -1318,6 +1316,8 @@ impl<'hir> LoweringContext<'_, 'hir> {
                 param.id,
                 &param.kind,
                 &param.bounds,
+                param.colon_span,
+                generics.span,
                 itctx,
                 PredicateOrigin::GenericParam,
             )
@@ -1367,6 +1367,8 @@ impl<'hir> LoweringContext<'_, 'hir> {
         id: NodeId,
         kind: &GenericParamKind,
         bounds: &[GenericBound],
+        colon_span: Option<Span>,
+        parent_span: Span,
         itctx: &ImplTraitContext,
         origin: PredicateOrigin,
     ) -> Option<hir::WherePredicate<'hir>> {
@@ -1379,21 +1381,17 @@ impl<'hir> LoweringContext<'_, 'hir> {
 
         let ident = self.lower_ident(ident);
         let param_span = ident.span;
-        let span = bounds
-            .iter()
-            .fold(Some(param_span.shrink_to_hi()), |span: Option<Span>, bound| {
-                let bound_span = bound.span();
-                // We include bounds that come from a `#[derive(_)]` but point at the user's code,
-                // as we use this method to get a span appropriate for suggestions.
-                if !bound_span.can_be_used_for_suggestions() {
-                    None
-                } else if let Some(span) = span {
-                    Some(span.to(bound_span))
-                } else {
-                    Some(bound_span)
-                }
-            })
-            .unwrap_or(param_span.shrink_to_hi());
+
+        // Reconstruct the span of the entire predicate from the individual generic bounds.
+        let span_start = colon_span.unwrap_or_else(|| param_span.shrink_to_hi());
+        let span = bounds.iter().fold(span_start, |span_accum, bound| {
+            match bound.span().find_ancestor_inside(parent_span) {
+                Some(bound_span) => span_accum.to(bound_span),
+                None => span_accum,
+            }
+        });
+        let span = self.lower_span(span);
+
         match kind {
             GenericParamKind::Const { .. } => None,
             GenericParamKind::Type { .. } => {

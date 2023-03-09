@@ -2,7 +2,6 @@ use rustc_apfloat::ieee::{Double, Single};
 use rustc_apfloat::Float;
 use rustc_serialize::{Decodable, Decoder, Encodable, Encoder};
 use rustc_target::abi::Size;
-use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::num::NonZeroU8;
 
@@ -233,7 +232,7 @@ impl ScalarInt {
     }
 
     #[inline]
-    pub fn try_to_machine_usize<'tcx>(&self, tcx: TyCtxt<'tcx>) -> Result<u64, Size> {
+    pub fn try_to_machine_usize(&self, tcx: TyCtxt<'_>) -> Result<u64, Size> {
         Ok(self.to_bits(tcx.data_layout.pointer_size)? as u64)
     }
 

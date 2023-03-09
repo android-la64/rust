@@ -42,7 +42,6 @@ extern crate tracing;
 
 use crate::errors::{AssocTyParentheses, AssocTyParenthesesSub, MisplacedImplTrait, TraitFnAsync};
 
-use rustc_arena::declare_arena;
 use rustc_ast::ptr::P;
 use rustc_ast::visit;
 use rustc_ast::{self as ast, *};
@@ -94,13 +93,6 @@ struct LoweringContext<'a, 'hir> {
     /// Used to allocate HIR nodes.
     arena: &'hir hir::Arena<'hir>,
 
-    /// Used to allocate temporary AST nodes for use during lowering.
-    /// This allows us to create "fake" AST -- these nodes can sometimes
-    /// be allocated on the stack, but other times we need them to live longer
-    /// than the current stack frame, so they can be collected into vectors
-    /// and things like that.
-    ast_arena: &'a Arena<'static>,
-
     /// Bodies inside the owner being lowered.
     bodies: Vec<(hir::ItemLocalId, &'hir hir::Body<'hir>)>,
     /// Attributes inside the owner being lowered.
@@ -145,15 +137,6 @@ struct LoweringContext<'a, 'hir> {
     /// field from the original parameter 'a to the new parameter 'a1.
     generics_def_id_map: Vec<FxHashMap<LocalDefId, LocalDefId>>,
 }
-
-declare_arena!([
-    [] tys: rustc_ast::Ty,
-    [] aba: rustc_ast::AngleBracketedArgs,
-    [] ptr: rustc_ast::PolyTraitRef,
-    // This _marker field is needed because `declare_arena` creates `Arena<'tcx>` and we need to
-    // use `'tcx`. If we don't have this we get a compile error.
-    [] _marker: std::marker::PhantomData<&'tcx ()>,
-]);
 
 trait ResolverAstLoweringExt {
     fn legacy_const_generic_args(&self, expr: &Expr) -> Option<Vec<usize>>;
@@ -313,7 +296,7 @@ impl std::fmt::Display for ImplTraitPosition {
             ImplTraitPosition::ImplReturn => "`impl` method return",
         };
 
-        write!(f, "{}", name)
+        write!(f, "{name}")
     }
 }
 
@@ -431,10 +414,9 @@ fn compute_hir_hash(
     })
 }
 
-pub fn lower_to_hir<'hir>(tcx: TyCtxt<'hir>, (): ()) -> hir::Crate<'hir> {
+pub fn lower_to_hir(tcx: TyCtxt<'_>, (): ()) -> hir::Crate<'_> {
     let sess = tcx.sess;
-    let krate = tcx.untracked_crate.steal();
-    let mut resolver = tcx.resolver_for_lowering(()).steal();
+    let (mut resolver, krate) = tcx.resolver_for_lowering(()).steal();
 
     let ast_index = index_crate(&resolver.node_id_to_def_id, &krate);
     let mut owners = IndexVec::from_fn_n(
@@ -442,13 +424,10 @@ pub fn lower_to_hir<'hir>(tcx: TyCtxt<'hir>, (): ()) -> hir::Crate<'hir> {
         tcx.definitions_untracked().def_index_count(),
     );
 
-    let ast_arena = Arena::default();
-
     for def_id in ast_index.indices() {
         item::ItemLowerer {
             tcx,
             resolver: &mut resolver,
-            ast_arena: &ast_arena,
             ast_index: &ast_index,
             owners: &mut owners,
         }
@@ -456,8 +435,8 @@ pub fn lower_to_hir<'hir>(tcx: TyCtxt<'hir>, (): ()) -> hir::Crate<'hir> {
     }
 
     // Drop AST to free memory
-    std::mem::drop(ast_index);
-    sess.time("drop_ast", || std::mem::drop(krate));
+    drop(ast_index);
+    sess.time("drop_ast", || drop(krate));
 
     // Discard hygiene data, which isn't required after lowering to HIR.
     if !sess.opts.unstable_opts.keep_hygiene_data {
@@ -523,7 +502,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
 
     fn orig_local_def_id(&self, node: NodeId) -> LocalDefId {
         self.orig_opt_local_def_id(node)
-            .unwrap_or_else(|| panic!("no entry for node id: `{:?}`", node))
+            .unwrap_or_else(|| panic!("no entry for node id: `{node:?}`"))
     }
 
     /// Given the id of some node in the AST, finds the `LocalDefId` associated with it by the name
@@ -544,7 +523,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     }
 
     fn local_def_id(&self, node: NodeId) -> LocalDefId {
-        self.opt_local_def_id(node).unwrap_or_else(|| panic!("no entry for node id: `{:?}`", node))
+        self.opt_local_def_id(node).unwrap_or_else(|| panic!("no entry for node id: `{node:?}`"))
     }
 
     /// Get the previously recorded `to` local def id given the `from` local def id, obtained using
@@ -620,7 +599,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         self.impl_trait_defs = current_impl_trait_defs;
         self.impl_trait_bounds = current_impl_trait_bounds;
 
-        debug_assert!(self.children.iter().find(|(id, _)| id == &def_id).is_none());
+        debug_assert!(!self.children.iter().any(|(id, _)| id == &def_id));
         self.children.push((def_id, hir::MaybeOwner::Owner(info)));
     }
 
@@ -683,7 +662,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         self.arena.alloc(hir::OwnerInfo { nodes, parenting, attrs, trait_map })
     }
 
-    /// Hash the HIR node twice, one deep and one shallow hash.  This allows to differentiate
+    /// Hash the HIR node twice, one deep and one shallow hash. This allows to differentiate
     /// queries which depend on the full HIR tree and those which only depend on the item signature.
     fn hash_owner(
         &mut self,
@@ -796,7 +775,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     /// Intercept all spans entering HIR.
     /// Mark a span as relative to the current owning item.
     fn lower_span(&self, span: Span) -> Span {
-        if self.tcx.sess.opts.unstable_opts.incremental_relative_spans {
+        if self.tcx.sess.opts.incremental_relative_spans() {
             span.with_parent(Some(self.current_hir_id_owner.def_id))
         } else {
             // Do not make spans relative when not using incremental compilation.
@@ -958,7 +937,8 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                     lit
                 } else {
                     MetaItemLit {
-                        token_lit: token::Lit::new(token::LitKind::Err, kw::Empty, None),
+                        symbol: kw::Empty,
+                        suffix: None,
                         kind: LitKind::Err,
                         span: DUMMY_SP,
                     }
@@ -1000,8 +980,12 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                 }
                 GenericArgs::Parenthesized(data) => {
                     self.emit_bad_parenthesized_trait_in_assoc_ty(data);
-                    let aba = self.ast_arena.aba.alloc(data.as_angle_bracketed_args());
-                    self.lower_angle_bracketed_parameter_data(aba, ParamMode::Explicit, itctx).0
+                    self.lower_angle_bracketed_parameter_data(
+                        &data.as_angle_bracketed_args(),
+                        ParamMode::Explicit,
+                        itctx,
+                    )
+                    .0
                 }
             };
             gen_args_ctor.into_generic_args(self)
@@ -1066,13 +1050,15 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
 
                     self.with_dyn_type_scope(false, |this| {
                         let node_id = this.next_node_id();
-                        let ty = this.ast_arena.tys.alloc(Ty {
-                            id: node_id,
-                            kind: TyKind::ImplTrait(impl_trait_node_id, bounds.clone()),
-                            span: this.lower_span(constraint.span),
-                            tokens: None,
-                        });
-                        let ty = this.lower_ty(ty, itctx);
+                        let ty = this.lower_ty(
+                            &Ty {
+                                id: node_id,
+                                kind: TyKind::ImplTrait(impl_trait_node_id, bounds.clone()),
+                                span: this.lower_span(constraint.span),
+                                tokens: None,
+                            },
+                            itctx,
+                        );
 
                         hir::TypeBindingKind::Equality { term: ty.into() }
                     })
@@ -1207,7 +1193,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         itctx: &ImplTraitContext,
     ) -> hir::Ty<'hir> {
         // Check whether we should interpret this as a bare trait object.
-        // This check mirrors the one in late resolution.  We only introduce this special case in
+        // This check mirrors the one in late resolution. We only introduce this special case in
         // the rare occurrence we need to lower `Fresh` anonymous lifetimes.
         // The other cases when a qpath should be opportunistically made a trait object are handled
         // by `ty_path`.
@@ -1216,13 +1202,12 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             && let Some(Res::Def(DefKind::Trait | DefKind::TraitAlias, _)) = partial_res.full_res()
         {
             let (bounds, lifetime_bound) = self.with_dyn_type_scope(true, |this| {
-                let poly_trait_ref = this.ast_arena.ptr.alloc(PolyTraitRef {
-                    bound_generic_params: vec![],
-                    trait_ref: TraitRef { path: path.clone(), ref_id: t.id },
-                    span: t.span
-                });
                 let bound = this.lower_poly_trait_ref(
-                    poly_trait_ref,
+                    &PolyTraitRef {
+                        bound_generic_params: vec![],
+                        trait_ref: TraitRef { path: path.clone(), ref_id: t.id },
+                        span: t.span
+                    },
                     itctx,
                 );
                 let bounds = this.arena.alloc_from_iter([bound]);
@@ -1252,7 +1237,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             TyKind::Err => hir::TyKind::Err,
             TyKind::Slice(ty) => hir::TyKind::Slice(self.lower_ty(ty, itctx)),
             TyKind::Ptr(mt) => hir::TyKind::Ptr(self.lower_mt(mt, itctx)),
-            TyKind::Rptr(region, mt) => {
+            TyKind::Ref(region, mt) => {
                 let region = region.unwrap_or_else(|| {
                     let id = if let Some(LifetimeRes::ElidedAnchor { start, end }) =
                         self.resolver.get_lifetime_res(t.id)
@@ -1266,7 +1251,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                     Lifetime { ident: Ident::new(kw::UnderscoreLifetime, span), id }
                 });
                 let lifetime = self.lower_lifetime(&region);
-                hir::TyKind::Rptr(lifetime, self.lower_mt(mt, itctx))
+                hir::TyKind::Ref(lifetime, self.lower_mt(mt, itctx))
             }
             TyKind::BareFn(f) => {
                 let generic_params = self.lower_lifetime_binder(t.id, &f.generic_params);
@@ -1670,9 +1655,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     // Lowers a function declaration.
     //
     // `decl`: the unlowered (AST) function declaration.
-    // `fn_def_id`: if `Some`, impl Trait arguments are lowered into generic parameters on the
-    //      given DefId, otherwise impl Trait is disallowed. Must be `Some` if
-    //      `make_ret_async` is also `Some`.
+    // `fn_node_id`: `impl Trait` arguments are lowered into generic parameters on the given `NodeId`.
     // `make_ret_async`: if `Some`, converts `-> T` into `-> impl Future<Output = T>` in the
     //      return type. This is used for `async fn` declarations. The `NodeId` is the ID of the
     //      return type `impl Trait` item, and the `Span` points to the `async` keyword.
@@ -1787,7 +1770,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                     // Given we are only considering `ImplicitSelf` types, we needn't consider
                     // the case where we have a mutable pattern to a reference as that would
                     // no longer be an `ImplicitSelf`.
-                    TyKind::Rptr(_, mt) if mt.ty.kind.is_implicit_self() => match mt.mutbl {
+                    TyKind::Ref(_, mt) if mt.ty.kind.is_implicit_self() => match mt.mutbl {
                         hir::Mutability::Not => hir::ImplicitSelfKind::ImmRef,
                         hir::Mutability::Mut => hir::ImplicitSelfKind::MutRef,
                     },
@@ -1803,7 +1786,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     //     type OpaqueTy<generics_from_parent_fn> = impl Future<Output = T>;
     //
     // `output`: unlowered output type (`T` in `-> T`)
-    // `fn_def_id`: `DefId` of the parent function (used to create child impl trait definition)
+    // `fn_node_id`: `NodeId` of the parent function (used to create child impl trait definition)
     // `opaque_ty_node_id`: `NodeId` of the opaque `impl Trait` type that should be created
     #[instrument(level = "debug", skip(self))]
     fn lower_async_fn_ret_ty(
@@ -1935,7 +1918,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             this.with_remapping(new_remapping, |this| {
                 // We have to be careful to get elision right here. The
                 // idea is that we create a lifetime parameter for each
-                // lifetime in the return type.  So, given a return type
+                // lifetime in the return type. So, given a return type
                 // like `async fn foo(..) -> &[&u32]`, we lower to `impl
                 // Future<Output = &'1 [ &'2 u32 ]>`.
                 //
@@ -2029,7 +2012,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
 
         // Create the `Foo<...>` reference itself. Note that the `type
         // Foo = impl Trait` is, internally, created as a child of the
-        // async fn, so the *type parameters* are inherited.  It's
+        // async fn, so the *type parameters* are inherited. It's
         // only the lifetime parameters that we must supply.
         let opaque_ty_ref = hir::TyKind::OpaqueDef(
             hir::ItemId { owner_id: hir::OwnerId { def_id: opaque_ty_def_id } },
@@ -2045,7 +2028,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         &mut self,
         output: &FnRetTy,
         span: Span,
-        mut nested_impl_trait_context: ImplTraitContext,
+        nested_impl_trait_context: ImplTraitContext,
     ) -> hir::GenericBound<'hir> {
         // Compute the `T` in `Future<Output = T>` from the return type.
         let output_ty = match output {
@@ -2053,7 +2036,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                 // Not `OpaqueTyOrigin::AsyncFn`: that's only used for the
                 // `impl Future` opaque type that `async fn` implicitly
                 // generates.
-                self.lower_ty(ty, &mut nested_impl_trait_context)
+                self.lower_ty(ty, &nested_impl_trait_context)
             }
             FnRetTy::Default(ret_ty_span) => self.arena.alloc(self.ty_tup(*ret_ty_span, &[])),
         };
@@ -2213,7 +2196,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     fn lower_trait_ref(&mut self, p: &TraitRef, itctx: &ImplTraitContext) -> hir::TraitRef<'hir> {
         let path = match self.lower_qpath(p.ref_id, &None, &p.path, ParamMode::Explicit, itctx) {
             hir::QPath::Resolved(None, path) => path,
-            qpath => panic!("lower_trait_ref: unexpected QPath `{:?}`", qpath),
+            qpath => panic!("lower_trait_ref: unexpected QPath `{qpath:?}`"),
         };
         hir::TraitRef { path, hir_ref_id: self.lower_node_id(p.ref_id) }
     }
@@ -2261,6 +2244,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     ) -> (hir::GenericParam<'hir>, Option<hir::WherePredicate<'hir>>, hir::TyKind<'hir>) {
         // Add a definition for the in-band `Param`.
         let def_id = self.local_def_id(node_id);
+        let span = self.lower_span(span);
 
         // Set the name to `impl Bound1 + Bound2`.
         let param = hir::GenericParam {
@@ -2268,7 +2252,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             def_id,
             name: ParamName::Plain(self.lower_ident(ident)),
             pure_wrt_drop: false,
-            span: self.lower_span(span),
+            span,
             kind: hir::GenericParamKind::Type { default: None, synthetic: true },
             colon_span: None,
         };
@@ -2278,6 +2262,8 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             node_id,
             &GenericParamKind::Type { default: None },
             bounds,
+            /* colon_span */ None,
+            span,
             &ImplTraitContext::Universal,
             hir::PredicateOrigin::ImplTrait,
         );
@@ -2287,7 +2273,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         let ty = hir::TyKind::Path(hir::QPath::Resolved(
             None,
             self.arena.alloc(hir::Path {
-                span: self.lower_span(span),
+                span,
                 res,
                 segments:
                     arena_vec![self; hir::PathSegment::new(self.lower_ident(ident), hir_id, res)],

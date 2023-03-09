@@ -333,7 +333,7 @@ pub fn make_format_args(
             parse::Piece::String(s) => {
                 unfinished_literal.push_str(s);
             }
-            parse::Piece::NextArgument(parse::Argument { position, position_span, format }) => {
+            parse::Piece::NextArgument(box parse::Argument { position, position_span, format }) => {
                 if !unfinished_literal.is_empty() {
                     template.push(FormatArgsPiece::Literal(Symbol::intern(&unfinished_literal)));
                     unfinished_literal.clear();
@@ -583,7 +583,7 @@ fn report_missing_placeholders(
     if detect_foreign_fmt {
         use super::format_foreign as foreign;
 
-        // The set of foreign substitutions we've explained.  This prevents spamming the user
+        // The set of foreign substitutions we've explained. This prevents spamming the user
         // with `%d should be written as {}` over and over again.
         let mut explained = FxHashSet::default();
 
@@ -638,7 +638,7 @@ fn report_missing_placeholders(
                 if show_doc_note {
                     diag.note(concat!(
                         stringify!($kind),
-                        " formatting not supported; see the documentation for `std::fmt`",
+                        " formatting is not supported; see the documentation for `std::fmt`",
                     ));
                 }
                 if suggestions.len() > 0 {

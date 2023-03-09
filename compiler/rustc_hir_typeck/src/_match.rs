@@ -212,7 +212,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 self.can_coerce(arm_ty, ret_ty)
                     && prior_arm.map_or(true, |(_, ty, _)| self.can_coerce(ty, ret_ty))
                     // The match arms need to unify for the case of `impl Trait`.
-                    && !matches!(ret_ty.kind(), ty::Opaque(..))
+                    && !matches!(ret_ty.kind(), ty::Alias(ty::Opaque, ..))
             }
             _ => false,
         };
@@ -224,14 +224,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let mut ret_span: MultiSpan = semi_span.into();
         ret_span.push_span_label(
             expr.span,
-            "this could be implicitly returned but it is a statement, not a \
-                            tail expression",
+            "this could be implicitly returned but it is a statement, not a tail expression",
         );
         ret_span.push_span_label(ret, "the `match` arms can conform to this return type");
         ret_span.push_span_label(
             semi_span,
-            "the `match` is a statement because of this semicolon, consider \
-                            removing it",
+            "the `match` is a statement because of this semicolon, consider removing it",
         );
         diag.span_note(ret_span, "you might have meant to return the `match` expression");
         diag.tool_only_span_suggestion(
@@ -289,15 +287,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     fn maybe_get_coercion_reason(&self, hir_id: hir::HirId, sp: Span) -> Option<(Span, String)> {
         let node = {
-            let rslt = self.tcx.hir().get_parent_node(self.tcx.hir().get_parent_node(hir_id));
+            let rslt = self.tcx.hir().parent_id(self.tcx.hir().parent_id(hir_id));
             self.tcx.hir().get(rslt)
         };
         if let hir::Node::Block(block) = node {
             // check that the body's parent is an fn
-            let parent = self
-                .tcx
-                .hir()
-                .get(self.tcx.hir().get_parent_node(self.tcx.hir().get_parent_node(block.hir_id)));
+            let parent = self.tcx.hir().get_parent(self.tcx.hir().parent_id(block.hir_id));
             if let (Some(expr), hir::Node::Item(hir::Item { kind: hir::ItemKind::Fn(..), .. })) =
                 (&block.expr, parent)
             {
@@ -518,7 +513,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
                 let substs = sig.output().walk().find_map(|arg| {
                     if let ty::GenericArgKind::Type(ty) = arg.unpack()
-                        && let ty::Opaque(def_id, substs) = *ty.kind()
+                        && let ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) = *ty.kind()
                         && def_id == rpit_def_id
                     {
                         Some(substs)
@@ -526,7 +521,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         None
                     }
                 })?;
-                let opaque_ty = self.tcx.mk_opaque(rpit_def_id, substs);
 
                 if !self.can_coerce(first_ty, expected) || !self.can_coerce(second_ty, expected) {
                     return None;
@@ -540,17 +534,23 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     {
                         let pred = pred.kind().rebind(match pred.kind().skip_binder() {
                             ty::PredicateKind::Clause(ty::Clause::Trait(trait_pred)) => {
-                                assert_eq!(trait_pred.trait_ref.self_ty(), opaque_ty);
+                                // FIXME(rpitit): This will need to be fixed when we move to associated types
+                                assert!(matches!(
+                                    *trait_pred.trait_ref.self_ty().kind(),
+                                    ty::Alias(_, ty::AliasTy { def_id, substs, .. })
+                                    if def_id == rpit_def_id && substs == substs
+                                ));
                                 ty::PredicateKind::Clause(ty::Clause::Trait(
-                                    trait_pred.with_self_type(self.tcx, ty),
+                                    trait_pred.with_self_ty(self.tcx, ty),
                                 ))
                             }
                             ty::PredicateKind::Clause(ty::Clause::Projection(mut proj_pred)) => {
-                                assert_eq!(proj_pred.projection_ty.self_ty(), opaque_ty);
-                                proj_pred.projection_ty.substs = self.tcx.mk_substs_trait(
-                                    ty,
-                                    proj_pred.projection_ty.substs.iter().skip(1),
-                                );
+                                assert!(matches!(
+                                    *proj_pred.projection_ty.self_ty().kind(),
+                                    ty::Alias(_, ty::AliasTy { def_id, substs, .. })
+                                    if def_id == rpit_def_id && substs == substs
+                                ));
+                                proj_pred = proj_pred.with_self_ty(self.tcx, ty);
                                 ty::PredicateKind::Clause(ty::Clause::Projection(proj_pred))
                             }
                             _ => continue,

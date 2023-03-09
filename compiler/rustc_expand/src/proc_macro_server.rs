@@ -6,6 +6,7 @@ use pm::{Delimiter, Level, LineColumn};
 use rustc_ast as ast;
 use rustc_ast::token;
 use rustc_ast::tokenstream::{self, Spacing::*, TokenStream};
+use rustc_ast::util::literal::escape_byte_str_symbol;
 use rustc_ast_pretty::pprust;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::sync::Lrc;
@@ -229,7 +230,7 @@ impl FromInternal<(TokenStream, &mut Rustc<'_, '_>)> for Vec<TokenTree<TokenStre
                     let stream = TokenStream::from_nonterminal_ast(&nt);
                     // A hack used to pass AST fragments to attribute and derive
                     // macros as a single nonterminal token instead of a token
-                    // stream.  Such token needs to be "unwrapped" and not
+                    // stream. Such token needs to be "unwrapped" and not
                     // represented as a delimited group.
                     // FIXME: It needs to be removed, but there are some
                     // compatibility issues (see #73345).
@@ -526,7 +527,7 @@ impl server::TokenStream for Rustc<'_, '_> {
                 Ok(tokenstream::TokenStream::token_alone(token::Literal(*token_lit), expr.span))
             }
             ast::ExprKind::IncludedBytes(bytes) => {
-                let lit = ast::LitKind::ByteStr(bytes.clone()).to_token_lit();
+                let lit = token::Lit::new(token::ByteStr, escape_byte_str_symbol(bytes), None);
                 Ok(tokenstream::TokenStream::token_alone(token::TokenKind::Literal(lit), expr.span))
             }
             ast::ExprKind::Unary(ast::UnOp::Neg, e) => match &e.kind {
@@ -596,8 +597,8 @@ impl server::SourceFile for Rustc<'_, '_> {
     }
 
     fn path(&mut self, file: &Self::SourceFile) -> String {
-        match file.name {
-            FileName::Real(ref name) => name
+        match &file.name {
+            FileName::Real(name) => name
                 .local_path()
                 .expect("attempting to get a file path in an imported file in `proc_macro::SourceFile::path`")
                 .to_str()

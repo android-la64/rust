@@ -191,7 +191,7 @@ fn dump_vtable_entries<'tcx>(
     });
 }
 
-fn own_existential_vtable_entries<'tcx>(tcx: TyCtxt<'tcx>, trait_def_id: DefId) -> &'tcx [DefId] {
+fn own_existential_vtable_entries(tcx: TyCtxt<'_>, trait_def_id: DefId) -> &[DefId] {
     let trait_methods = tcx
         .associated_items(trait_def_id)
         .in_definition_order()
@@ -261,7 +261,10 @@ fn vtable_entries<'tcx>(
                     // Note that this method could then never be called, so we
                     // do not want to try and codegen it, in that case (see #23435).
                     let predicates = tcx.predicates_of(def_id).instantiate_own(tcx, substs);
-                    if impossible_predicates(tcx, predicates.predicates) {
+                    if impossible_predicates(
+                        tcx,
+                        predicates.map(|(predicate, _)| predicate).collect(),
+                    ) {
                         debug!("vtable_entries: predicates do not hold");
                         return VtblEntry::Vacant;
                     }

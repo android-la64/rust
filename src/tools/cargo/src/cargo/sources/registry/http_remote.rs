@@ -14,7 +14,7 @@ use anyhow::Context;
 use cargo_util::paths;
 use curl::easy::{HttpVersion, List};
 use curl::multi::{EasyHandle, Multi};
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
@@ -157,9 +157,6 @@ impl<'cfg> HttpRegistry<'cfg> {
         config: &'cfg Config,
         name: &str,
     ) -> CargoResult<HttpRegistry<'cfg>> {
-        if !config.cli_unstable().sparse_registry {
-            anyhow::bail!("usage of sparse registries requires `-Z sparse-registry`");
-        }
         let url = source_id.url().as_str();
         // Ensure the url ends with a slash so we can concatenate paths.
         if !url.ends_with('/') {
@@ -337,13 +334,6 @@ impl<'cfg> HttpRegistry<'cfg> {
         }
     }
 
-    fn check_registry_auth_unstable(&self) -> CargoResult<()> {
-        if self.auth_required && !self.config.cli_unstable().registry_auth {
-            anyhow::bail!("authenticated registries require `-Z registry-auth`");
-        }
-        Ok(())
-    }
-
     /// Get the cached registry configuration, if it exists.
     fn config_cached(&mut self) -> CargoResult<Option<&RegistryConfig>> {
         if self.registry_config.is_some() {
@@ -489,7 +479,9 @@ impl<'cfg> RegistryData for HttpRegistry<'cfg> {
                     return Poll::Ready(Ok(LoadResponse::NotFound));
                 }
                 StatusCode::Unauthorized
-                    if !self.auth_required && path == Path::new("config.json") =>
+                    if !self.auth_required
+                        && path == Path::new("config.json")
+                        && self.config.cli_unstable().registry_auth =>
                 {
                     debug!("re-attempting request for config.json with authorization included.");
                     self.fresh.remove(path);
@@ -545,6 +537,10 @@ impl<'cfg> RegistryData for HttpRegistry<'cfg> {
             }
         }
 
+        if !self.config.cli_unstable().registry_auth {
+            self.auth_required = false;
+        }
+
         // Looks like we're going to have to do a network request.
         self.start_fetch()?;
 
@@ -557,7 +553,7 @@ impl<'cfg> RegistryData for HttpRegistry<'cfg> {
 
         // Enable HTTP/2 if possible.
         if self.multiplexing {
-            handle.http_version(HttpVersion::V2)?;
+            crate::try_old_curl!(handle.http_version(HttpVersion::V2), "HTTP2");
         } else {
             handle.http_version(HttpVersion::V11)?;
         }
@@ -569,7 +565,7 @@ impl<'cfg> RegistryData for HttpRegistry<'cfg> {
         // Once the main one is opened we realized that pipelining is possible
         // and multiplexing is possible with static.crates.io. All in all this
         // reduces the number of connections done to a more manageable state.
-        handle.pipewait(true)?;
+        crate::try_old_curl!(handle.pipewait(true), "pipewait");
 
         let mut headers = List::new();
         // Include a header to identify the protocol. This allows the server to
@@ -590,9 +586,8 @@ impl<'cfg> RegistryData for HttpRegistry<'cfg> {
             }
         }
         if self.auth_required {
-            self.check_registry_auth_unstable()?;
             let authorization =
-                auth::auth_token(self.config, &self.source_id, self.login_url.as_ref())?;
+                auth::auth_token(self.config, &self.source_id, self.login_url.as_ref(), None)?;
             headers.append(&format!("Authorization: {}", authorization))?;
             trace!("including authorization for {}", full_url);
         }
@@ -663,8 +658,10 @@ impl<'cfg> RegistryData for HttpRegistry<'cfg> {
     }
 
     fn config(&mut self) -> Poll<CargoResult<Option<RegistryConfig>>> {
-        let cfg = ready!(self.config()?).clone();
-        self.check_registry_auth_unstable()?;
+        let mut cfg = ready!(self.config()?).clone();
+        if !self.config.cli_unstable().registry_auth {
+            cfg.auth_required = false;
+        }
         Poll::Ready(Ok(Some(cfg)))
     }
 

@@ -38,14 +38,13 @@ use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
 use rustc_data_structures::tagged_ptr::CopyTaggedPtr;
 use rustc_hir as hir;
 use rustc_hir::def::{CtorKind, CtorOf, DefKind, LifetimeRes, Res};
-use rustc_hir::def_id::{CrateNum, DefId, LocalDefId, LocalDefIdMap};
-use rustc_hir::definitions::Definitions;
+use rustc_hir::def_id::{CrateNum, DefId, DefIdMap, LocalDefId, LocalDefIdMap};
 use rustc_hir::Node;
 use rustc_index::vec::IndexVec;
 use rustc_macros::HashStable;
 use rustc_query_system::ich::StableHashingContext;
 use rustc_serialize::{Decodable, Encodable};
-use rustc_session::cstore::CrateStoreDyn;
+use rustc_session::cstore::Untracked;
 use rustc_span::hygiene::MacroKind;
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
 use rustc_span::{ExpnId, Span};
@@ -64,6 +63,7 @@ use std::ops::ControlFlow;
 use std::{fmt, str};
 
 pub use crate::ty::diagnostics::*;
+pub use rustc_type_ir::AliasKind::*;
 pub use rustc_type_ir::DynKind::*;
 pub use rustc_type_ir::InferTy::*;
 pub use rustc_type_ir::RegionKind::*;
@@ -79,30 +79,32 @@ pub use self::closure::{
     CAPTURE_STRUCT_LOCAL,
 };
 pub use self::consts::{
-    Const, ConstInt, ConstKind, ConstS, Expr, InferConst, ScalarInt, UnevaluatedConst, ValTree,
+    Const, ConstData, ConstInt, ConstKind, Expr, InferConst, ScalarInt, UnevaluatedConst, ValTree,
 };
 pub use self::context::{
-    tls, CanonicalUserType, CanonicalUserTypeAnnotation, CanonicalUserTypeAnnotations,
-    CtxtInterners, DeducedParamAttrs, FreeRegionInfo, GeneratorDiagnosticData,
-    GeneratorInteriorTypeCause, GlobalCtxt, Lift, OnDiskCache, TyCtxt, TyCtxtFeed, TypeckResults,
-    UserType, UserTypeAnnotationIndex,
+    tls, CtxtInterners, DeducedParamAttrs, FreeRegionInfo, GlobalCtxt, Lift, OnDiskCache, TyCtxt,
+    TyCtxtFeed,
 };
-pub use self::instance::{Instance, InstanceDef, ShortInstance};
+pub use self::instance::{Instance, InstanceDef, ShortInstance, UnusedGenericParams};
 pub use self::list::List;
 pub use self::parameterized::ParameterizedOverTcx;
 pub use self::rvalue_scopes::RvalueScopes;
 pub use self::sty::BoundRegionKind::*;
 pub use self::sty::{
-    Article, Binder, BoundRegion, BoundRegionKind, BoundTy, BoundTyKind, BoundVar,
+    AliasTy, Article, Binder, BoundRegion, BoundRegionKind, BoundTy, BoundTyKind, BoundVar,
     BoundVariableKind, CanonicalPolyFnSig, ClosureSubsts, ClosureSubstsParts, ConstVid,
     EarlyBoundRegion, ExistentialPredicate, ExistentialProjection, ExistentialTraitRef, FnSig,
     FreeRegion, GenSig, GeneratorSubsts, GeneratorSubstsParts, InlineConstSubsts,
     InlineConstSubstsParts, ParamConst, ParamTy, PolyExistentialPredicate,
     PolyExistentialProjection, PolyExistentialTraitRef, PolyFnSig, PolyGenSig, PolyTraitRef,
-    ProjectionTy, Region, RegionKind, RegionVid, TraitRef, TyKind, TypeAndMut, UpvarSubsts,
-    VarianceDiagInfo,
+    Region, RegionKind, RegionVid, TraitRef, TyKind, TypeAndMut, UpvarSubsts, VarianceDiagInfo,
 };
 pub use self::trait_def::TraitDef;
+pub use self::typeck_results::{
+    CanonicalUserType, CanonicalUserTypeAnnotation, CanonicalUserTypeAnnotations,
+    GeneratorDiagnosticData, GeneratorInteriorTypeCause, TypeckResults, UserType,
+    UserTypeAnnotationIndex,
+};
 
 pub mod _match;
 pub mod abstract_const;
@@ -143,27 +145,25 @@ mod parameterized;
 mod rvalue_scopes;
 mod structural_impls;
 mod sty;
+mod typeck_results;
 
 // Data types
 
 pub type RegisteredTools = FxHashSet<Ident>;
 
 pub struct ResolverOutputs {
-    pub definitions: Definitions,
     pub global_ctxt: ResolverGlobalCtxt,
     pub ast_lowering: ResolverAstLowering,
+    pub untracked: Untracked,
 }
 
 #[derive(Debug)]
 pub struct ResolverGlobalCtxt {
-    pub cstore: Box<CrateStoreDyn>,
     pub visibilities: FxHashMap<LocalDefId, Visibility>,
     /// This field is used to decide whether we should make `PRIVATE_IN_PUBLIC` a hard error.
     pub has_pub_restricted: bool,
     /// Item with a given `LocalDefId` was defined during macro expansion with ID `ExpnId`.
     pub expn_that_defined: FxHashMap<LocalDefId, ExpnId>,
-    /// Reference span for definitions.
-    pub source_span: IndexVec<LocalDefId, Span>,
     pub effective_visibilities: EffectiveVisibilities,
     pub extern_crate_map: FxHashMap<LocalDefId, CrateNum>,
     pub maybe_unused_trait_imports: FxIndexSet<LocalDefId>,
@@ -238,7 +238,7 @@ pub struct ImplHeader<'tcx> {
     pub predicates: Vec<Predicate<'tcx>>,
 }
 
-#[derive(Copy, Clone, Debug, TypeFoldable, TypeVisitable)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, TypeFoldable, TypeVisitable)]
 pub enum ImplSubject<'tcx> {
     Trait(TraitRef<'tcx>),
     Inherent(Ty<'tcx>),
@@ -436,7 +436,7 @@ pub struct CrateVariancesMap<'tcx> {
     /// For each item with generics, maps to a vector of the variance
     /// of its generics. If an item has no generics, it will have no
     /// entry.
-    pub variances: FxHashMap<DefId, &'tcx [ty::Variance]>,
+    pub variances: DefIdMap<&'tcx [ty::Variance]>,
 }
 
 // Contains information needed to resolve types and (in the future) look up
@@ -532,6 +532,17 @@ impl<'tcx> Predicate<'tcx> {
             }))));
         }
         self
+    }
+
+    #[instrument(level = "debug", skip(tcx), ret)]
+    pub fn is_coinductive(self, tcx: TyCtxt<'tcx>) -> bool {
+        match self.kind().skip_binder() {
+            ty::PredicateKind::Clause(ty::Clause::Trait(data)) => {
+                tcx.trait_is_coinductive(data.def_id())
+            }
+            ty::PredicateKind::WellFormed(_) => true,
+            _ => false,
+        }
     }
 
     /// Whether this projection can be soundly normalized.
@@ -677,7 +688,7 @@ impl<'tcx> Predicate<'tcx> {
         //
         // In terms of why this is sound, the idea is that whenever there
         // is an impl of `T:Foo<'a>`, it must show that `T:Bar<'a,'a>`
-        // holds.  So if there is an impl of `T:Foo<'a>` that applies to
+        // holds. So if there is an impl of `T:Foo<'a>` that applies to
         // all `'a`, then we must know that `T:Bar<'a,'a>` holds for all
         // `'a`.
         //
@@ -689,7 +700,7 @@ impl<'tcx> Predicate<'tcx> {
         // Here, if we have `for<'x> T: Foo1<'x>`, then what do we know?
         // The answer is that we know `for<'x,'b> T: Bar1<'x,'b>`. The
         // reason is similar to the previous example: any impl of
-        // `T:Foo1<'x>` must show that `for<'b> T: Bar1<'x, 'b>`.  So
+        // `T:Foo1<'x>` must show that `for<'b> T: Bar1<'x, 'b>`. So
         // basically we would want to collapse the bound lifetimes from
         // the input (`trait_ref`) and the supertraits.
         //
@@ -784,8 +795,8 @@ impl<'tcx> TraitPredicate<'tcx> {
         }
     }
 
-    pub fn with_self_type(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
-        Self { trait_ref: self.trait_ref.with_self_type(tcx, self_ty), ..self }
+    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
+        Self { trait_ref: self.trait_ref.with_self_ty(tcx, self_ty), ..self }
     }
 
     pub fn def_id(self) -> DefId {
@@ -944,7 +955,7 @@ impl<'tcx> Term<'tcx> {
                     &*((ptr & !TAG_MASK) as *const WithCachedTypeInfo<ty::TyKind<'tcx>>),
                 ))),
                 CONST_TAG => TermKind::Const(ty::Const(Interned::new_unchecked(
-                    &*((ptr & !TAG_MASK) as *const ty::ConstS<'tcx>),
+                    &*((ptr & !TAG_MASK) as *const ty::ConstData<'tcx>),
                 ))),
                 _ => core::intrinsics::unreachable(),
             }
@@ -990,7 +1001,7 @@ impl<'tcx> TermKind<'tcx> {
             TermKind::Const(ct) => {
                 // Ensure we can use the tag bits.
                 assert_eq!(mem::align_of_val(&*ct.0.0) & TAG_MASK, 0);
-                (CONST_TAG, ct.0.0 as *const ty::ConstS<'tcx> as usize)
+                (CONST_TAG, ct.0.0 as *const ty::ConstData<'tcx> as usize)
             }
         };
 
@@ -1013,8 +1024,26 @@ impl<'tcx> TermKind<'tcx> {
 #[derive(Copy, Clone, PartialEq, Eq, Hash, TyEncodable, TyDecodable)]
 #[derive(HashStable, TypeFoldable, TypeVisitable, Lift)]
 pub struct ProjectionPredicate<'tcx> {
-    pub projection_ty: ProjectionTy<'tcx>,
+    pub projection_ty: AliasTy<'tcx>,
     pub term: Term<'tcx>,
+}
+
+impl<'tcx> ProjectionPredicate<'tcx> {
+    pub fn self_ty(self) -> Ty<'tcx> {
+        self.projection_ty.self_ty()
+    }
+
+    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> ProjectionPredicate<'tcx> {
+        Self { projection_ty: self.projection_ty.with_self_ty(tcx, self_ty), ..self }
+    }
+
+    pub fn trait_def_id(self, tcx: TyCtxt<'tcx>) -> DefId {
+        self.projection_ty.trait_def_id(tcx)
+    }
+
+    pub fn def_id(self) -> DefId {
+        self.projection_ty.def_id
+    }
 }
 
 pub type PolyProjectionPredicate<'tcx> = Binder<'tcx, ProjectionPredicate<'tcx>>;
@@ -1049,7 +1078,7 @@ impl<'tcx> PolyProjectionPredicate<'tcx> {
     /// associated type, which is in `tcx.associated_item(projection_def_id()).container`.
     pub fn projection_def_id(&self) -> DefId {
         // Ok to skip binder since trait `DefId` does not care about regions.
-        self.skip_binder().projection_ty.item_def_id
+        self.skip_binder().projection_ty.def_id
     }
 }
 
@@ -1222,6 +1251,35 @@ impl<'tcx> InstantiatedPredicates<'tcx> {
     pub fn is_empty(&self) -> bool {
         self.predicates.is_empty()
     }
+
+    pub fn iter(&self) -> <&Self as IntoIterator>::IntoIter {
+        (&self).into_iter()
+    }
+}
+
+impl<'tcx> IntoIterator for InstantiatedPredicates<'tcx> {
+    type Item = (Predicate<'tcx>, Span);
+
+    type IntoIter = std::iter::Zip<std::vec::IntoIter<Predicate<'tcx>>, std::vec::IntoIter<Span>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        debug_assert_eq!(self.predicates.len(), self.spans.len());
+        std::iter::zip(self.predicates, self.spans)
+    }
+}
+
+impl<'a, 'tcx> IntoIterator for &'a InstantiatedPredicates<'tcx> {
+    type Item = (Predicate<'tcx>, Span);
+
+    type IntoIter = std::iter::Zip<
+        std::iter::Copied<std::slice::Iter<'a, Predicate<'tcx>>>,
+        std::iter::Copied<std::slice::Iter<'a, Span>>,
+    >;
+
+    fn into_iter(self) -> Self::IntoIter {
+        debug_assert_eq!(self.predicates.len(), self.spans.len());
+        std::iter::zip(self.predicates.iter().copied(), self.spans.iter().copied())
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, HashStable, TyEncodable, TyDecodable, Lift)]
@@ -1299,7 +1357,7 @@ impl<'tcx> OpaqueHiddenType<'tcx> {
         debug!(?id_substs);
 
         // This zip may have several times the same lifetime in `substs` paired with a different
-        // lifetime from `id_substs`.  Simply `collect`ing the iterator is the correct behaviour:
+        // lifetime from `id_substs`. Simply `collect`ing the iterator is the correct behaviour:
         // it will pick the last one, which is the one we introduced in the impl-trait desugaring.
         let map = substs.iter().zip(id_substs).collect();
         debug!("map = {:#?}", map);
@@ -2087,7 +2145,7 @@ impl<'tcx> TyCtxt<'tcx> {
 
     /// Look up the name of a definition across crates. This does not look at HIR.
     ///
-    /// This method will ICE if the corresponding item does not have a name.  In these cases, use
+    /// This method will ICE if the corresponding item does not have a name. In these cases, use
     /// [`opt_item_name`] instead.
     ///
     /// [`opt_item_name`]: Self::opt_item_name
@@ -2133,8 +2191,10 @@ impl<'tcx> TyCtxt<'tcx> {
     ) -> Option<ImplOverlapKind> {
         // If either trait impl references an error, they're allowed to overlap,
         // as one of them essentially doesn't exist.
-        if self.impl_trait_ref(def_id1).map_or(false, |tr| tr.references_error())
-            || self.impl_trait_ref(def_id2).map_or(false, |tr| tr.references_error())
+        if self.impl_trait_ref(def_id1).map_or(false, |tr| tr.subst_identity().references_error())
+            || self
+                .impl_trait_ref(def_id2)
+                .map_or(false, |tr| tr.subst_identity().references_error())
         {
             return Some(ImplOverlapKind::Permitted { marker: false });
         }
@@ -2164,7 +2224,7 @@ impl<'tcx> TyCtxt<'tcx> {
         let is_marker_overlap = {
             let is_marker_impl = |def_id: DefId| -> bool {
                 let trait_ref = self.impl_trait_ref(def_id);
-                trait_ref.map_or(false, |tr| self.trait_def(tr.def_id).is_marker)
+                trait_ref.map_or(false, |tr| self.trait_def(tr.skip_binder().def_id).is_marker)
             };
             is_marker_impl(def_id1) && is_marker_impl(def_id2)
         };
@@ -2297,6 +2357,11 @@ impl<'tcx> TyCtxt<'tcx> {
         self.trait_def(trait_def_id).has_auto_impl
     }
 
+    /// Returns `true` if this is a trait alias.
+    pub fn trait_is_alias(self, trait_def_id: DefId) -> bool {
+        self.def_kind(trait_def_id) == DefKind::TraitAlias
+    }
+
     pub fn trait_is_coinductive(self, trait_def_id: DefId) -> bool {
         self.trait_is_auto(trait_def_id) || self.lang_items().sized_trait() == Some(trait_def_id)
     }
@@ -2310,7 +2375,7 @@ impl<'tcx> TyCtxt<'tcx> {
     /// Given the `DefId` of an impl, returns the `DefId` of the trait it implements.
     /// If it implements no trait, returns `None`.
     pub fn trait_id_of_impl(self, def_id: DefId) -> Option<DefId> {
-        self.impl_trait_ref(def_id).map(|tr| tr.def_id)
+        self.impl_trait_ref(def_id).map(|tr| tr.skip_binder().def_id)
     }
 
     /// If the given `DefId` describes an item belonging to a trait,
@@ -2411,8 +2476,10 @@ impl<'tcx> TyCtxt<'tcx> {
 
     #[inline]
     pub fn is_const_fn_raw(self, def_id: DefId) -> bool {
-        matches!(self.def_kind(def_id), DefKind::Fn | DefKind::AssocFn | DefKind::Ctor(..))
-            && self.constness(def_id) == hir::Constness::Const
+        matches!(
+            self.def_kind(def_id),
+            DefKind::Fn | DefKind::AssocFn | DefKind::Ctor(..) | DefKind::Closure
+        ) && self.constness(def_id) == hir::Constness::Const
     }
 
     #[inline]

@@ -81,7 +81,6 @@ use rustc_span::Span;
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt;
 use rustc_trait_selection::traits::outlives_bounds::InferCtxtExt as _;
 use rustc_trait_selection::traits::{self, translate_substs, wf, ObligationCtxt};
-use tracing::instrument;
 
 pub(super) fn check_min_specialization(tcx: TyCtxt<'_>, impl_def_id: LocalDefId) {
     if let Some(node) = parent_specialization_node(tcx, impl_def_id) {
@@ -91,7 +90,7 @@ pub(super) fn check_min_specialization(tcx: TyCtxt<'_>, impl_def_id: LocalDefId)
 
 fn parent_specialization_node(tcx: TyCtxt<'_>, impl1_def_id: LocalDefId) -> Option<Node> {
     let trait_ref = tcx.impl_trait_ref(impl1_def_id)?;
-    let trait_def = tcx.trait_def(trait_ref.def_id);
+    let trait_def = tcx.trait_def(trait_ref.skip_binder().def_id);
 
     let impl2_node = trait_def.ancestors(tcx, impl1_def_id.to_def_id()).ok()?.nth(1)?;
 
@@ -157,11 +156,11 @@ fn check_constness(tcx: TyCtxt<'_>, impl1_def_id: LocalDefId, impl2_node: Node, 
 /// ```
 ///
 /// Would return `S1 = [C]` and `S2 = [Vec<C>, C]`.
-fn get_impl_substs<'tcx>(
-    tcx: TyCtxt<'tcx>,
+fn get_impl_substs(
+    tcx: TyCtxt<'_>,
     impl1_def_id: LocalDefId,
     impl2_node: Node,
-) -> Option<(SubstsRef<'tcx>, SubstsRef<'tcx>)> {
+) -> Option<(SubstsRef<'_>, SubstsRef<'_>)> {
     let infcx = &tcx.infer_ctxt().build();
     let ocx = ObligationCtxt::new(infcx);
     let param_env = tcx.param_env(impl1_def_id);
@@ -182,7 +181,8 @@ fn get_impl_substs<'tcx>(
 
     let implied_bounds = infcx.implied_bounds_tys(param_env, impl1_hir_id, assumed_wf_types);
     let outlives_env = OutlivesEnvironment::with_bounds(param_env, Some(infcx), implied_bounds);
-    infcx.check_region_obligations_and_report_errors(impl1_def_id, &outlives_env);
+    let _ =
+        infcx.err_ctxt().check_region_obligations_and_report_errors(impl1_def_id, &outlives_env);
     let Ok(impl2_substs) = infcx.fully_resolve(impl2_substs) else {
         let span = tcx.def_span(impl1_def_id);
         tcx.sess.emit_err(SubstsOnOverriddenImpl { span });
@@ -207,7 +207,7 @@ fn unconstrained_parent_impl_substs<'tcx>(
     let impl_generic_predicates = tcx.predicates_of(impl_def_id);
     let mut unconstrained_parameters = FxHashSet::default();
     let mut constrained_params = FxHashSet::default();
-    let impl_trait_ref = tcx.impl_trait_ref(impl_def_id);
+    let impl_trait_ref = tcx.impl_trait_ref(impl_def_id).map(ty::EarlyBinder::subst_identity);
 
     // Unfortunately the functions in `constrained_generic_parameters` don't do
     // what we want here. We want only a list of constrained parameters while
@@ -370,7 +370,7 @@ fn check_predicates<'tcx>(
     });
 
     // Include the well-formed predicates of the type parameters of the impl.
-    for arg in tcx.impl_trait_ref(impl1_def_id).unwrap().substs {
+    for arg in tcx.impl_trait_ref(impl1_def_id).unwrap().subst_identity().substs {
         let infcx = &tcx.infer_ctxt().build();
         let obligations = wf::obligations(
             infcx,

@@ -1,9 +1,10 @@
 use rustc_hir::def::DefKind;
-use rustc_hir::LangItem;
+use rustc_hir::{LangItem, CRATE_HIR_ID};
 use rustc_middle::mir;
 use rustc_middle::mir::interpret::PointerArithmetic;
 use rustc_middle::ty::layout::FnAbiOf;
 use rustc_middle::ty::{self, Ty, TyCtxt};
+use rustc_session::lint::builtin::INVALID_ALIGNMENT;
 use std::borrow::Borrow;
 use std::hash::Hash;
 use std::ops::ControlFlow;
@@ -47,14 +48,34 @@ pub struct CompileTimeInterpreter<'mir, 'tcx> {
     pub(super) can_access_statics: bool,
 
     /// Whether to check alignment during evaluation.
-    pub(super) check_alignment: bool,
+    pub(super) check_alignment: CheckAlignment,
+}
+
+#[derive(Copy, Clone)]
+pub enum CheckAlignment {
+    /// Ignore alignment when following relocations.
+    /// This is mainly used in interning.
+    No,
+    /// Hard error when dereferencing a misaligned pointer.
+    Error,
+    /// Emit a future incompat lint when dereferencing a misaligned pointer.
+    FutureIncompat,
+}
+
+impl CheckAlignment {
+    pub fn should_check(&self) -> bool {
+        match self {
+            CheckAlignment::No => false,
+            CheckAlignment::Error | CheckAlignment::FutureIncompat => true,
+        }
+    }
 }
 
 impl<'mir, 'tcx> CompileTimeInterpreter<'mir, 'tcx> {
     pub(crate) fn new(
         const_eval_limit: Limit,
         can_access_statics: bool,
-        check_alignment: bool,
+        check_alignment: CheckAlignment,
     ) -> Self {
         CompileTimeInterpreter {
             steps_remaining: const_eval_limit.0,
@@ -204,7 +225,7 @@ impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
     /// `align_offset(ptr, target_align)` needs special handling in const eval, because the pointer
     /// may not have an address.
     ///
-    /// If `ptr` does have a known address, then we return `CONTINUE` and the function call should
+    /// If `ptr` does have a known address, then we return `Continue(())` and the function call should
     /// proceed as normal.
     ///
     /// If `ptr` doesn't have an address, but its underlying allocation's alignment is at most
@@ -252,18 +273,18 @@ impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
                         ret,
                         StackPopUnwind::NotAllowed,
                     )?;
-                    Ok(ControlFlow::BREAK)
+                    Ok(ControlFlow::Break(()))
                 } else {
                     // Not alignable in const, return `usize::MAX`.
                     let usize_max = Scalar::from_machine_usize(self.machine_usize_max(), self);
                     self.write_scalar(usize_max, dest)?;
                     self.return_to_block(ret)?;
-                    Ok(ControlFlow::BREAK)
+                    Ok(ControlFlow::Break(()))
                 }
             }
             Err(_addr) => {
                 // The pointer has an address, continue with function call.
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::Continue(()))
             }
         }
     }
@@ -309,13 +330,43 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
     const PANIC_ON_ALLOC_FAIL: bool = false; // will be raised as a proper error
 
     #[inline(always)]
-    fn enforce_alignment(ecx: &InterpCx<'mir, 'tcx, Self>) -> bool {
+    fn enforce_alignment(ecx: &InterpCx<'mir, 'tcx, Self>) -> CheckAlignment {
         ecx.machine.check_alignment
     }
 
     #[inline(always)]
     fn enforce_validity(ecx: &InterpCx<'mir, 'tcx, Self>) -> bool {
         ecx.tcx.sess.opts.unstable_opts.extra_const_ub_checks
+    }
+
+    fn alignment_check_failed(
+        ecx: &InterpCx<'mir, 'tcx, Self>,
+        has: Align,
+        required: Align,
+        check: CheckAlignment,
+    ) -> InterpResult<'tcx, ()> {
+        let err = err_ub!(AlignmentCheckFailed { has, required }).into();
+        match check {
+            CheckAlignment::Error => Err(err),
+            CheckAlignment::No => span_bug!(
+                ecx.cur_span(),
+                "`alignment_check_failed` called when no alignment check requested"
+            ),
+            CheckAlignment::FutureIncompat => {
+                let err = ConstEvalErr::new(ecx, err, None);
+                ecx.tcx.struct_span_lint_hir(
+                    INVALID_ALIGNMENT,
+                    ecx.stack().iter().find_map(|frame| frame.lint_root()).unwrap_or(CRATE_HIR_ID),
+                    err.span,
+                    err.error.to_string(),
+                    |db| {
+                        err.decorate(db, |_| {});
+                        db
+                    },
+                );
+                Ok(())
+            }
+        }
     }
 
     fn load_mir(
@@ -357,7 +408,7 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
         // Only check non-glue functions
         if let ty::InstanceDef::Item(def) = instance.def {
             // Execution might have wandered off into other crates, so we cannot do a stability-
-            // sensitive check here.  But we can at least rule out functions that are not const
+            // sensitive check here. But we can at least rule out functions that are not const
             // at all.
             if !ecx.tcx.is_const_fn_raw(def.did) {
                 // allow calling functions inside a trait marked with #[const_trait].
@@ -482,7 +533,7 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
         let eval_to_int =
             |op| ecx.read_immediate(&ecx.eval_operand(op, None)?).map(|x| x.to_const_int());
         let err = match msg {
-            BoundsCheck { ref len, ref index } => {
+            BoundsCheck { len, index } => {
                 let len = eval_to_int(len)?;
                 let index = eval_to_int(index)?;
                 BoundsCheck { len, index }

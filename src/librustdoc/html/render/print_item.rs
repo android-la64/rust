@@ -204,7 +204,7 @@ fn should_hide_fields(n_fields: usize) -> bool {
 fn toggle_open(w: &mut Buffer, text: impl fmt::Display) {
     write!(
         w,
-        "<details class=\"rustdoc-toggle type-contents-toggle\">\
+        "<details class=\"toggle type-contents-toggle\">\
             <summary class=\"hideme\">\
                 <span>Show {}</span>\
             </summary>",
@@ -531,7 +531,7 @@ fn item_function(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, f: &cle
         f.decl.output.as_return().and_then(|output| notable_traits_button(output, cx));
 
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "fn", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_pre(w, it, "");
             w.reserve(header_len);
             write!(
@@ -570,7 +570,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
 
     // Output the trait definition
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "trait", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_pre(w, it, "");
             write!(
                 w,
@@ -732,7 +732,8 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
         document(&mut content, cx, m, Some(t), HeadingOffset::H5);
         let toggled = !content.is_empty();
         if toggled {
-            write!(w, "<details class=\"rustdoc-toggle method-toggle\" open><summary>");
+            let method_toggle_class = if item_type.is_method() { " method-toggle" } else { "" };
+            write!(w, "<details class=\"toggle{method_toggle_class}\" open><summary>");
         }
         write!(w, "<section id=\"{}\" class=\"method has-srclink\">", id);
         render_rightside(w, cx, m, t, RenderMode::Normal);
@@ -1026,8 +1027,8 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
         .chain(std::iter::once("implementors"))
         .collect();
     if let Some(did) = it.item_id.as_def_id() &&
-        let get_extern = { || cache.external_paths.get(&did).map(|s| s.0.clone()) } &&
-        let Some(fqp) = cache.exact_paths.get(&did).cloned().or_else(get_extern) {
+        let get_extern = { || cache.external_paths.get(&did).map(|s| &s.0) } &&
+        let Some(fqp) = cache.exact_paths.get(&did).or_else(get_extern) {
         js_src_path.extend(fqp[..fqp.len() - 1].iter().copied());
         js_src_path.push_fmt(format_args!("{}.{}.js", it.type_(), fqp.last().unwrap()));
     } else {
@@ -1050,7 +1051,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
 
 fn item_trait_alias(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean::TraitAlias) {
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "trait-alias", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_pre(w, it, "");
             write!(
                 w,
@@ -1074,7 +1075,7 @@ fn item_trait_alias(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &
 
 fn item_opaque_ty(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean::OpaqueTy) {
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "opaque", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_pre(w, it, "");
             write!(
                 w,
@@ -1098,7 +1099,7 @@ fn item_opaque_ty(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &cl
 
 fn item_typedef(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean::Typedef) {
     fn write_content(w: &mut Buffer, cx: &Context<'_>, it: &clean::Item, t: &clean::Typedef) {
-        wrap_item(w, "typedef", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_pre(w, it, "");
             write!(w, "{}", visibility_print_with_space(it.visibility(cx.tcx()), it.item_id, cx));
             write!(
@@ -1127,7 +1128,7 @@ fn item_typedef(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clea
 
 fn item_union(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, s: &clean::Union) {
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "union", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_pre(w, it, "");
             render_union(w, it, Some(&s.generics), &s.fields, "", cx);
         });
@@ -1192,7 +1193,7 @@ fn item_enum(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, e: &clean::
     let tcx = cx.tcx();
     let count_variants = e.variants().count();
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "enum", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_pre(w, it, "");
             write!(
                 w,
@@ -1219,25 +1220,16 @@ fn item_enum(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, e: &clean::
                     w.write_str("    ");
                     let name = v.name.unwrap();
                     match *v.kind {
-                        clean::VariantItem(ref var) => match var {
-                            // FIXME(#101337): Show discriminant
-                            clean::Variant::CLike(..) => write!(w, "{}", name),
-                            clean::Variant::Tuple(ref s) => {
+                        // FIXME(#101337): Show discriminant
+                        clean::VariantItem(ref var) => match var.kind {
+                            clean::VariantKind::CLike => write!(w, "{}", name),
+                            clean::VariantKind::Tuple(ref s) => {
                                 write!(w, "{}(", name);
                                 print_tuple_struct_fields(w, cx, s);
                                 w.write_str(")");
                             }
-                            clean::Variant::Struct(ref s) => {
-                                render_struct(
-                                    w,
-                                    v,
-                                    None,
-                                    s.ctor_kind,
-                                    &s.fields,
-                                    "    ",
-                                    false,
-                                    cx,
-                                );
+                            clean::VariantKind::Struct(ref s) => {
+                                render_struct(w, v, None, None, &s.fields, "    ", false, cx);
                             }
                         },
                         _ => unreachable!(),
@@ -1285,25 +1277,28 @@ fn item_enum(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, e: &clean::
                 " rightside",
             );
             write!(w, "<h3 class=\"code-header\">{name}", name = variant.name.unwrap());
-            if let clean::VariantItem(clean::Variant::Tuple(ref s)) = *variant.kind {
+
+            let clean::VariantItem(variant_data) = &*variant.kind else { unreachable!() };
+
+            if let clean::VariantKind::Tuple(ref s) = variant_data.kind {
                 w.write_str("(");
                 print_tuple_struct_fields(w, cx, s);
                 w.write_str(")");
             }
             w.write_str("</h3></section>");
 
-            use crate::clean::Variant;
-
-            let heading_and_fields = match &*variant.kind {
-                clean::VariantItem(Variant::Struct(s)) => Some(("Fields", &s.fields)),
-                // Documentation on tuple variant fields is rare, so to reduce noise we only emit
-                // the section if at least one field is documented.
-                clean::VariantItem(Variant::Tuple(fields))
-                    if fields.iter().any(|f| f.doc_value().is_some()) =>
-                {
-                    Some(("Tuple Fields", fields))
+            let heading_and_fields = match &variant_data.kind {
+                clean::VariantKind::Struct(s) => Some(("Fields", &s.fields)),
+                clean::VariantKind::Tuple(fields) => {
+                    // Documentation on tuple variant fields is rare, so to reduce noise we only emit
+                    // the section if at least one field is documented.
+                    if fields.iter().any(|f| f.doc_value().is_some()) {
+                        Some(("Tuple Fields", fields))
+                    } else {
+                        None
+                    }
                 }
-                _ => None,
+                clean::VariantKind::CLike => None,
             };
 
             if let Some((heading, fields)) = heading_and_fields {
@@ -1362,17 +1357,17 @@ fn item_proc_macro(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, m: &c
         let name = it.name.expect("proc-macros always have names");
         match m.kind {
             MacroKind::Bang => {
-                wrap_item(w, "macro", |w| {
+                wrap_item(w, |w| {
                     write!(w, "{}!() {{ /* proc-macro */ }}", name);
                 });
             }
             MacroKind::Attr => {
-                wrap_item(w, "attr", |w| {
+                wrap_item(w, |w| {
                     write!(w, "#[{}]", name);
                 });
             }
             MacroKind::Derive => {
-                wrap_item(w, "derive", |w| {
+                wrap_item(w, |w| {
                     write!(w, "#[derive({})]", name);
                     if !m.helpers.is_empty() {
                         w.push_str("\n{\n");
@@ -1406,7 +1401,7 @@ fn item_primitive(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item) {
 
 fn item_constant(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, c: &clean::Constant) {
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "const", |w| {
+        wrap_item(w, |w| {
             let tcx = cx.tcx();
             render_attributes_in_code(w, it);
 
@@ -1456,7 +1451,7 @@ fn item_constant(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, c: &cle
 
 fn item_struct(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, s: &clean::Struct) {
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "struct", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_code(w, it);
             render_struct(w, it, Some(&s.generics), s.ctor_kind, &s.fields, "", true, cx);
         });
@@ -1509,7 +1504,7 @@ fn item_struct(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, s: &clean
 
 fn item_static(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, s: &clean::Static) {
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "static", |w| {
+        wrap_item(w, |w| {
             render_attributes_in_code(w, it);
             write!(
                 w,
@@ -1526,7 +1521,7 @@ fn item_static(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, s: &clean
 
 fn item_foreign_type(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item) {
     wrap_into_item_decl(w, |w| {
-        wrap_item(w, "foreigntype", |w| {
+        wrap_item(w, |w| {
             w.write_str("extern {\n");
             render_attributes_in_code(w, it);
             write!(
@@ -1623,11 +1618,11 @@ where
     w.write_str("</div>")
 }
 
-fn wrap_item<F>(w: &mut Buffer, item_name: &str, f: F)
+fn wrap_item<F>(w: &mut Buffer, f: F)
 where
     F: FnOnce(&mut Buffer),
 {
-    w.write_fmt(format_args!("<pre class=\"rust {}\"><code>", item_name));
+    w.write_str(r#"<pre class="rust"><code>"#);
     f(w);
     w.write_str("</code></pre>");
 }
@@ -1845,7 +1840,7 @@ fn document_non_exhaustive(w: &mut Buffer, item: &clean::Item) {
     if item.is_non_exhaustive() {
         write!(
             w,
-            "<details class=\"rustdoc-toggle non-exhaustive\">\
+            "<details class=\"toggle non-exhaustive\">\
                  <summary class=\"hideme\"><span>{}</span></summary>\
                  <div class=\"docblock\">",
             {

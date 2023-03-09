@@ -38,6 +38,8 @@
 #![feature(never_type)]
 #![feature(rustc_attrs)]
 #![recursion_limit = "256"]
+#![deny(rustc::untranslatable_diagnostic)]
+#![deny(rustc::diagnostic_outside_of_impl)]
 
 #[macro_use]
 extern crate rustc_middle;
@@ -60,6 +62,7 @@ mod internal;
 mod late;
 mod let_underscore;
 mod levels;
+mod lints;
 mod methods;
 mod non_ascii_idents;
 mod non_fmt_panic;
@@ -142,7 +145,7 @@ early_lint_methods!(
     [
         pub BuiltinCombinedEarlyLintPass,
         [
-            UnusedParens: UnusedParens,
+            UnusedParens: UnusedParens::new(),
             UnusedBraces: UnusedBraces,
             UnusedImportBraces: UnusedImportBraces,
             UnsafeCode: UnsafeCode,
@@ -162,7 +165,8 @@ early_lint_methods!(
     ]
 );
 
-// FIXME: Make a separate lint type which do not require typeck tables
+// FIXME: Make a separate lint type which does not require typeck tables.
+
 late_lint_methods!(
     declare_combined_late_lint_pass,
     [
@@ -179,8 +183,7 @@ late_lint_methods!(
             // Keeps a global list of foreign declarations.
             ClashingExternDeclarations: ClashingExternDeclarations::new(),
         ]
-    ],
-    ['tcx]
+    ]
 );
 
 late_lint_methods!(
@@ -230,8 +233,7 @@ late_lint_methods!(
             NamedAsmLabels: NamedAsmLabels,
             OpaqueHiddenInferredBound: OpaqueHiddenInferredBound,
         ]
-    ],
-    ['tcx]
+    ]
 );
 
 pub fn new_lint_store(internal_lints: bool) -> LintStore {

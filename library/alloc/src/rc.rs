@@ -336,7 +336,7 @@ impl<T: RefUnwindSafe + ?Sized> UnwindSafe for Rc<T> {}
 #[stable(feature = "rc_ref_unwind_safe", since = "1.58.0")]
 impl<T: RefUnwindSafe + ?Sized> RefUnwindSafe for Rc<T> {}
 
-#[unstable(feature = "coerce_unsized", issue = "27732")]
+#[unstable(feature = "coerce_unsized", issue = "18598")]
 impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<Rc<U>> for Rc<T> {}
 
 #[unstable(feature = "dispatch_from_dyn", issue = "none")]
@@ -2179,7 +2179,7 @@ pub struct Weak<T: ?Sized> {
     // This is a `NonNull` to allow optimizing the size of this type in enums,
     // but it is not necessarily a valid pointer.
     // `Weak::new` sets this to `usize::MAX` so that it doesn’t need
-    // to allocate space on the heap.  That's not a value a real pointer
+    // to allocate space on the heap. That's not a value a real pointer
     // will ever have because RcBox has alignment at least 2.
     // This is only possible when `T: Sized`; unsized `T` never dangle.
     ptr: NonNull<RcBox<T>>,
@@ -2190,7 +2190,7 @@ impl<T: ?Sized> !marker::Send for Weak<T> {}
 #[stable(feature = "rc_weak", since = "1.4.0")]
 impl<T: ?Sized> !marker::Sync for Weak<T> {}
 
-#[unstable(feature = "coerce_unsized", issue = "27732")]
+#[unstable(feature = "coerce_unsized", issue = "18598")]
 impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<Weak<U>> for Weak<T> {}
 
 #[unstable(feature = "dispatch_from_dyn", issue = "none")]
@@ -2561,7 +2561,7 @@ impl<T: ?Sized> Clone for Weak<T> {
 }
 
 #[stable(feature = "rc_weak", since = "1.4.0")]
-impl<T: ?Sized + fmt::Debug> fmt::Debug for Weak<T> {
+impl<T: ?Sized> fmt::Debug for Weak<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(Weak)")
     }

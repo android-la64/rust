@@ -70,7 +70,7 @@ impl std::fmt::Debug for AttributeGate {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Self::Gated(ref stab, name, expl, _) => {
-                write!(fmt, "Gated({:?}, {}, {})", stab, name, expl)
+                write!(fmt, "Gated({stab:?}, {name}, {expl})")
             }
             Self::Ungated => write!(fmt, "Ungated"),
         }
@@ -394,7 +394,7 @@ pub const BUILTIN_ATTRIBUTES: &[BuiltinAttribute] = &[
     ungated!(instruction_set, Normal, template!(List: "set"), ErrorPreceding),
     gated!(
         no_sanitize, Normal,
-        template!(List: "address, memory, thread"), DuplicatesOk,
+        template!(List: "address, kcfi, memory, thread"), DuplicatesOk,
         experimental!(no_sanitize)
     ),
     gated!(no_coverage, Normal, template!(Word), WarnFollowing, experimental!(no_coverage)),
@@ -486,6 +486,9 @@ pub const BUILTIN_ATTRIBUTES: &[BuiltinAttribute] = &[
         collapse_debuginfo, Normal, template!(Word), WarnFollowing,
         experimental!(collapse_debuginfo)
     ),
+
+    // RFC 2397
+    gated!(do_not_recommend, Normal, template!(Word), WarnFollowing, experimental!(do_not_recommend)),
 
     // ==========================================================================
     // Internal attributes: Stability, deprecation, and unsafe:

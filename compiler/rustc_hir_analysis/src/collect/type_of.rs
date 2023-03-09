@@ -5,6 +5,7 @@ use rustc_hir::intravisit;
 use rustc_hir::intravisit::Visitor;
 use rustc_hir::{HirId, Node};
 use rustc_middle::hir::nested_filter;
+use rustc_middle::ty::print::with_forced_trimmed_paths;
 use rustc_middle::ty::subst::InternalSubsts;
 use rustc_middle::ty::util::IntTypeExt;
 use rustc_middle::ty::{self, DefIdTree, Ty, TyCtxt, TypeFolder, TypeSuperFoldable, TypeVisitable};
@@ -27,7 +28,7 @@ pub(super) fn opt_const_param_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<
         _ => return None,
     };
 
-    let parent_node_id = tcx.hir().get_parent_node(hir_id);
+    let parent_node_id = tcx.hir().parent_id(hir_id);
     let parent_node = tcx.hir().get(parent_node_id);
 
     let (generics, arg_idx) = match parent_node {
@@ -52,7 +53,7 @@ pub(super) fn opt_const_param_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<
             // Using the ItemCtxt convert the HIR for the unresolved assoc type into a
             // ty which is a fully resolved projection.
             // For the code example above, this would mean converting Self::Assoc<3>
-            // into a ty::Projection(<Self as Foo>::Assoc<3>)
+            // into a ty::Alias(ty::Projection, <Self as Foo>::Assoc<3>)
             let item_hir_id = tcx
                 .hir()
                 .parent_iter(hir_id)
@@ -68,8 +69,8 @@ pub(super) fn opt_const_param_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<
             // the def_id that this query was called with. We filter to only type and const args here
             // as a precaution for if it's ever allowed to elide lifetimes in GAT's. It currently isn't
             // but it can't hurt to be safe ^^
-            if let ty::Projection(projection) = ty.kind() {
-                let generics = tcx.generics_of(projection.item_def_id);
+            if let ty::Alias(ty::Projection, projection) = ty.kind() {
+                let generics = tcx.generics_of(projection.def_id);
 
                 let arg_index = segment
                     .args
@@ -378,7 +379,7 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
             ForeignItemKind::Type => tcx.mk_foreign(def_id.to_def_id()),
         },
 
-        Node::Ctor(&ref def) | Node::Variant(Variant { data: ref def, .. }) => match *def {
+        Node::Ctor(def) | Node::Variant(Variant { data: def, .. }) => match def {
             VariantData::Unit(..) | VariantData::Struct(..) => {
                 tcx.type_of(tcx.hir().get_parent_item(hir_id))
             }
@@ -401,19 +402,19 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
         }
 
         Node::AnonConst(_) => {
-            let parent_node = tcx.hir().get(tcx.hir().get_parent_node(hir_id));
+            let parent_node = tcx.hir().get_parent(hir_id);
             match parent_node {
-                Node::Ty(&Ty { kind: TyKind::Array(_, ref constant), .. })
-                | Node::Expr(&Expr { kind: ExprKind::Repeat(_, ref constant), .. })
+                Node::Ty(Ty { kind: TyKind::Array(_, constant), .. })
+                | Node::Expr(Expr { kind: ExprKind::Repeat(_, constant), .. })
                     if constant.hir_id() == hir_id =>
                 {
                     tcx.types.usize
                 }
-                Node::Ty(&Ty { kind: TyKind::Typeof(ref e), .. }) if e.hir_id == hir_id => {
+                Node::Ty(Ty { kind: TyKind::Typeof(e), .. }) if e.hir_id == hir_id => {
                     tcx.typeck(def_id).node_type(e.hir_id)
                 }
 
-                Node::Expr(&Expr { kind: ExprKind::ConstBlock(ref anon_const), .. })
+                Node::Expr(Expr { kind: ExprKind::ConstBlock(anon_const), .. })
                     if anon_const.hir_id == hir_id =>
                 {
                     let substs = InternalSubsts::identity_for_item(tcx, def_id.to_def_id());
@@ -433,18 +434,19 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
                     tcx.typeck(def_id).node_type(hir_id)
                 }
 
-                Node::Variant(Variant { disr_expr: Some(ref e), .. }) if e.hir_id == hir_id => {
+                Node::Variant(Variant { disr_expr: Some(e), .. }) if e.hir_id == hir_id => {
                     tcx.adt_def(tcx.hir().get_parent_item(hir_id)).repr().discr_type().to_ty(tcx)
                 }
 
                 Node::TypeBinding(
-                    binding @ &TypeBinding {
+                    TypeBinding {
                         hir_id: binding_id,
-                        kind: TypeBindingKind::Equality { term: Term::Const(ref e) },
+                        kind: TypeBindingKind::Equality { term: Term::Const(e) },
+                        ident,
                         ..
                     },
                 ) if let Node::TraitRef(trait_ref) =
-                    tcx.hir().get(tcx.hir().get_parent_node(binding_id))
+                    tcx.hir().get_parent(*binding_id)
                     && e.hir_id == hir_id =>
                 {
                     let Some(trait_def_id) = trait_ref.trait_def_id() else {
@@ -453,7 +455,7 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
                     let assoc_items = tcx.associated_items(trait_def_id);
                     let assoc_item = assoc_items.find_by_name_and_kind(
                         tcx,
-                        binding.ident,
+                        *ident,
                         ty::AssocKind::Const,
                         def_id.to_def_id(),
                     );
@@ -469,9 +471,9 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
                 }
 
                 Node::TypeBinding(
-                    binding @ &TypeBinding { hir_id: binding_id, gen_args, ref kind, .. },
+                    TypeBinding { hir_id: binding_id, gen_args, kind, ident, .. },
                 ) if let Node::TraitRef(trait_ref) =
-                    tcx.hir().get(tcx.hir().get_parent_node(binding_id))
+                    tcx.hir().get_parent(*binding_id)
                     && let Some((idx, _)) =
                         gen_args.args.iter().enumerate().find(|(_, arg)| {
                             if let GenericArg::Const(ct) = arg {
@@ -487,7 +489,7 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
                     let assoc_items = tcx.associated_items(trait_def_id);
                     let assoc_item = assoc_items.find_by_name_and_kind(
                         tcx,
-                        binding.ident,
+                        *ident,
                         match kind {
                             // I think `<A: T>` type bindings requires that `A` is a type
                             TypeBindingKind::Constraint { .. }
@@ -666,7 +668,7 @@ fn find_opaque_ty_constraints_for_tait(tcx: TyCtxt<'_>, def_id: LocalDefId) -> T
 
     let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
     let scope = tcx.hir().get_defining_scope(hir_id);
-    let mut locator = ConstraintLocator { def_id: def_id, tcx, found: None, typeck_types: vec![] };
+    let mut locator = ConstraintLocator { def_id, tcx, found: None, typeck_types: vec![] };
 
     debug!(?scope);
 
@@ -803,7 +805,7 @@ fn find_opaque_ty_constraints_for_rpit(
     if let Some(concrete) = concrete {
         let scope = tcx.hir().local_def_id_to_hir_id(owner_def_id);
         debug!(?scope);
-        let mut locator = ConstraintChecker { def_id: def_id, tcx, found: concrete };
+        let mut locator = ConstraintChecker { def_id, tcx, found: concrete };
 
         match tcx.hir().get(scope) {
             Node::Item(it) => intravisit::walk_item(&mut locator, it),
@@ -907,10 +909,10 @@ fn infer_placeholder_type<'a>(
                         Applicability::MachineApplicable,
                     );
                 } else {
-                    err.span_note(
+                    with_forced_trimmed_paths!(err.span_note(
                         tcx.hir().body(body_id).value.span,
-                        &format!("however, the inferred type `{}` cannot be named", ty),
-                    );
+                        &format!("however, the inferred type `{ty}` cannot be named"),
+                    ));
                 }
             }
 
@@ -931,10 +933,10 @@ fn infer_placeholder_type<'a>(
                         Applicability::MaybeIncorrect,
                     );
                 } else {
-                    diag.span_note(
+                    with_forced_trimmed_paths!(diag.span_note(
                         tcx.hir().body(body_id).value.span,
-                        &format!("however, the inferred type `{}` cannot be named", ty),
-                    );
+                        &format!("however, the inferred type `{ty}` cannot be named"),
+                    ));
                 }
             }
 

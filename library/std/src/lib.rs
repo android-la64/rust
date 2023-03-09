@@ -14,7 +14,7 @@
 //! # How to read this documentation
 //!
 //! If you already know the name of what you are looking for, the fastest way to
-//! find it is to use the <a href="#" onclick="focusSearchBar();">search
+//! find it is to use the <a href="#" onclick="window.searchState.focus();">search
 //! bar</a> at the top of the page.
 //!
 //! Otherwise, you may want to jump to one of these useful sections:
@@ -202,7 +202,7 @@
     no_global_oom_handling,
     not(no_global_oom_handling)
 ))]
-// To run libstd tests without x.py without ending up with two copies of libstd, Miri needs to be
+// To run std tests without x.py without ending up with two copies of std, Miri needs to be
 // able to "empty" this crate. See <https://github.com/rust-lang/miri-test-libstd/issues/4>.
 // rustc itself never sets the feature, so this line has no affect there.
 #![cfg(any(not(feature = "miri-test-libstd"), test, doctest))]
@@ -532,7 +532,7 @@ pub mod process;
 pub mod sync;
 pub mod time;
 
-// Pull in `std_float` crate  into libstd. The contents of
+// Pull in `std_float` crate  into std. The contents of
 // `std_float` are in a different repository: rust-lang/portable-simd.
 #[path = "../../portable-simd/crates/std_float/src/lib.rs"]
 #[allow(missing_debug_implementations, dead_code, unsafe_op_in_unsafe_fn, unused_unsafe)]
@@ -602,7 +602,7 @@ mod personality;
 #[allow(dead_code, unused_attributes, fuzzy_provenance_casts)]
 mod backtrace_rs;
 
-// Re-export macros defined in libcore.
+// Re-export macros defined in core.
 #[stable(feature = "rust1", since = "1.0.0")]
 #[allow(deprecated, deprecated_in_future)]
 pub use core::{
@@ -610,7 +610,7 @@ pub use core::{
     unimplemented, unreachable, write, writeln,
 };
 
-// Re-export built-in macros defined through libcore.
+// Re-export built-in macros defined through core.
 #[stable(feature = "builtin_macro_prelude", since = "1.38.0")]
 #[allow(deprecated)]
 pub use core::{
@@ -651,4 +651,31 @@ mod sealed {
     /// This allows adding more trait methods in the future.
     #[unstable(feature = "sealed", issue = "none")]
     pub trait Sealed {}
+}
+
+#[cfg(test)]
+#[allow(dead_code)] // Not used in all configurations.
+pub(crate) mod test_helpers {
+    /// Test-only replacement for `rand::thread_rng()`, which is unusable for
+    /// us, as we want to allow running stdlib tests on tier-3 targets which may
+    /// not have `getrandom` support.
+    ///
+    /// Does a bit of a song and dance to ensure that the seed is different on
+    /// each call (as some tests sadly rely on this), but doesn't try that hard.
+    ///
+    /// This is duplicated in the `core`, `alloc` test suites (as well as
+    /// `std`'s integration tests), but figuring out a mechanism to share these
+    /// seems far more painful than copy-pasting a 7 line function a couple
+    /// times, given that even under a perma-unstable feature, I don't think we
+    /// want to expose types from `rand` from `std`.
+    #[track_caller]
+    pub(crate) fn test_rng() -> rand_xorshift::XorShiftRng {
+        use core::hash::{BuildHasher, Hash, Hasher};
+        let mut hasher = crate::collections::hash_map::RandomState::new().build_hasher();
+        core::panic::Location::caller().hash(&mut hasher);
+        let hc64 = hasher.finish();
+        let seed_vec = hc64.to_le_bytes().into_iter().chain(0u8..8).collect::<Vec<u8>>();
+        let seed: [u8; 16] = seed_vec.as_slice().try_into().unwrap();
+        rand::SeedableRng::from_seed(seed)
+    }
 }

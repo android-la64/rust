@@ -204,14 +204,13 @@ fn scan_escape(chars: &mut Chars<'_>, is_byte: bool) -> Result<char, EscapeError
                         })?;
                     }
                     Some(c) => {
-                        let digit =
+                        let digit: u32 =
                             c.to_digit(16).ok_or(EscapeError::InvalidCharInUnicodeEscape)?;
                         n_digits += 1;
                         if n_digits > 6 {
                             // Stop updating value since we're sure that it's incorrect already.
                             continue;
                         }
-                        let digit = digit as u32;
                         value = value * 16 + digit;
                     }
                 };
@@ -300,7 +299,7 @@ where
         let tail = &tail[first_non_space..];
         if let Some(c) = tail.chars().nth(0) {
             // For error reporting, we would like the span to contain the character that was not
-            // skipped.  The +1 is necessary to account for the leading \ that started the escape.
+            // skipped. The +1 is necessary to account for the leading \ that started the escape.
             let end = start + first_non_space + c.len_utf8() + 1;
             if c.is_whitespace() {
                 callback(start..end, Err(EscapeError::UnskippedWhitespaceWarning));

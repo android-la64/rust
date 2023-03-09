@@ -1,69 +1,48 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn OpenPersonalTrustDBDialog(hwndparent: super::super::Foundation::HWND) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn OpenPersonalTrustDBDialogEx(hwndparent: super::super::Foundation::HWND, dwflags: u32, pvreserved: *mut *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
-    pub fn WTHelperCertCheckValidSignature(pprovdata: *mut CRYPT_PROVIDER_DATA) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-    pub fn WTHelperCertIsSelfSigned(dwencoding: u32, pcert: *mut super::Cryptography::CERT_INFO) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-    pub fn WTHelperGetProvCertFromChain(psgnr: *mut CRYPT_PROVIDER_SGNR, idxcert: u32) -> *mut CRYPT_PROVIDER_CERT;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
-    pub fn WTHelperGetProvPrivateDataFromChain(pprovdata: *mut CRYPT_PROVIDER_DATA, pgproviderid: *mut ::windows_sys::core::GUID) -> *mut CRYPT_PROVIDER_PRIVDATA;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
-    pub fn WTHelperGetProvSignerFromChain(pprovdata: *mut CRYPT_PROVIDER_DATA, idxsigner: u32, fcountersigner: super::super::Foundation::BOOL, idxcountersigner: u32) -> *mut CRYPT_PROVIDER_SGNR;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
-    pub fn WTHelperProvDataFromStateData(hstatedata: super::super::Foundation::HANDLE) -> *mut CRYPT_PROVIDER_DATA;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn WinVerifyTrust(hwnd: super::super::Foundation::HWND, pgactionid: *mut ::windows_sys::core::GUID, pwvtdata: *mut ::core::ffi::c_void) -> i32;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-    pub fn WinVerifyTrustEx(hwnd: super::super::Foundation::HWND, pgactionid: *mut ::windows_sys::core::GUID, pwintrustdata: *mut WINTRUST_DATA) -> i32;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn WintrustAddActionID(pgactionid: *const ::windows_sys::core::GUID, fdwflags: u32, psprovinfo: *const CRYPT_REGISTER_ACTIONID) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn WintrustAddDefaultForUsage(pszusageoid: ::windows_sys::core::PCSTR, psdefusage: *const CRYPT_PROVIDER_REGDEFUSAGE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn WintrustGetDefaultForUsage(dwaction: WINTRUST_GET_DEFAULT_FOR_USAGE_ACTION, pszusageoid: ::windows_sys::core::PCSTR, psusage: *mut CRYPT_PROVIDER_DEFUSAGE) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-    pub fn WintrustGetRegPolicyFlags(pdwpolicyflags: *mut WINTRUST_POLICY_FLAGS);
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
-    pub fn WintrustLoadFunctionPointers(pgactionid: *mut ::windows_sys::core::GUID, ppfns: *mut CRYPT_PROVIDER_FUNCTIONS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn WintrustRemoveActionID(pgactionid: *const ::windows_sys::core::GUID) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn WintrustSetDefaultIncludePEPageHashes(fincludepepagehashes: super::super::Foundation::BOOL);
-    #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn WintrustSetRegPolicyFlags(dwpolicyflags: WINTRUST_POLICY_FLAGS) -> super::super::Foundation::BOOL;
-}
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn OpenPersonalTrustDBDialog ( hwndparent : super::super::Foundation:: HWND ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn OpenPersonalTrustDBDialogEx ( hwndparent : super::super::Foundation:: HWND , dwflags : u32 , pvreserved : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"] fn WTHelperCertCheckValidSignature ( pprovdata : *mut CRYPT_PROVIDER_DATA ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"] fn WTHelperCertIsSelfSigned ( dwencoding : u32 , pcert : *mut super::Cryptography:: CERT_INFO ) -> super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"] fn WTHelperGetProvCertFromChain ( psgnr : *mut CRYPT_PROVIDER_SGNR , idxcert : u32 ) -> *mut CRYPT_PROVIDER_CERT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"] fn WTHelperGetProvPrivateDataFromChain ( pprovdata : *mut CRYPT_PROVIDER_DATA , pgproviderid : *mut :: windows_sys::core::GUID ) -> *mut CRYPT_PROVIDER_PRIVDATA );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"] fn WTHelperGetProvSignerFromChain ( pprovdata : *mut CRYPT_PROVIDER_DATA , idxsigner : u32 , fcountersigner : super::super::Foundation:: BOOL , idxcountersigner : u32 ) -> *mut CRYPT_PROVIDER_SGNR );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"] fn WTHelperProvDataFromStateData ( hstatedata : super::super::Foundation:: HANDLE ) -> *mut CRYPT_PROVIDER_DATA );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn WinVerifyTrust ( hwnd : super::super::Foundation:: HWND , pgactionid : *mut :: windows_sys::core::GUID , pwvtdata : *mut ::core::ffi::c_void ) -> i32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`*"] fn WinVerifyTrustEx ( hwnd : super::super::Foundation:: HWND , pgactionid : *mut :: windows_sys::core::GUID , pwintrustdata : *mut WINTRUST_DATA ) -> i32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn WintrustAddActionID ( pgactionid : *const :: windows_sys::core::GUID , fdwflags : u32 , psprovinfo : *const CRYPT_REGISTER_ACTIONID ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn WintrustAddDefaultForUsage ( pszusageoid : :: windows_sys::core::PCSTR , psdefusage : *const CRYPT_PROVIDER_REGDEFUSAGE ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn WintrustGetDefaultForUsage ( dwaction : WINTRUST_GET_DEFAULT_FOR_USAGE_ACTION , pszusageoid : :: windows_sys::core::PCSTR , psusage : *mut CRYPT_PROVIDER_DEFUSAGE ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"] fn WintrustGetRegPolicyFlags ( pdwpolicyflags : *mut WINTRUST_POLICY_FLAGS ) -> ( ) );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography_Catalog", feature = "Win32_Security_Cryptography_Sip"))]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography_Catalog\"`, `\"Win32_Security_Cryptography_Sip\"`*"] fn WintrustLoadFunctionPointers ( pgactionid : *mut :: windows_sys::core::GUID , ppfns : *mut CRYPT_PROVIDER_FUNCTIONS ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn WintrustRemoveActionID ( pgactionid : *const :: windows_sys::core::GUID ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn WintrustSetDefaultIncludePEPageHashes ( fincludepepagehashes : super::super::Foundation:: BOOL ) -> ( ) );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "wintrust.dll""system" #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"] fn WintrustSetRegPolicyFlags ( dwpolicyflags : WINTRUST_POLICY_FLAGS ) -> super::super::Foundation:: BOOL );
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const CAT_MEMBERINFO2_OBJID: &str = "1.3.6.1.4.1.311.12.2.3";
+pub const CAT_MEMBERINFO2_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.12.2.3");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const CAT_MEMBERINFO2_STRUCT: ::windows_sys::core::PCSTR = 2223i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const CAT_MEMBERINFO_OBJID: &str = "1.3.6.1.4.1.311.12.2.2";
+pub const CAT_MEMBERINFO_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.12.2.2");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const CAT_MEMBERINFO_STRUCT: ::windows_sys::core::PCSTR = 2222i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const CAT_NAMEVALUE_OBJID: &str = "1.3.6.1.4.1.311.12.2.1";
+pub const CAT_NAMEVALUE_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.12.2.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const CAT_NAMEVALUE_STRUCT: ::windows_sys::core::PCSTR = 2221i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
@@ -107,29 +86,29 @@ pub const CPD_UISTATE_MODE_PROMPT: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const CPD_USE_NT5_CHAIN_FLAG: u32 = 2147483648u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const DRIVER_CLEANUPPOLICY_FUNCTION: &str = "DriverCleanupPolicy";
+pub const DRIVER_CLEANUPPOLICY_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DriverCleanupPolicy");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const DRIVER_FINALPOLPROV_FUNCTION: &str = "DriverFinalPolicy";
+pub const DRIVER_FINALPOLPROV_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DriverFinalPolicy");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const DRIVER_INITPROV_FUNCTION: &str = "DriverInitializePolicy";
+pub const DRIVER_INITPROV_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("DriverInitializePolicy");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const GENERIC_CHAIN_CERTTRUST_FUNCTION: &str = "GenericChainCertificateTrust";
+pub const GENERIC_CHAIN_CERTTRUST_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("GenericChainCertificateTrust");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const GENERIC_CHAIN_FINALPOLICY_FUNCTION: &str = "GenericChainFinalProv";
+pub const GENERIC_CHAIN_FINALPOLICY_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("GenericChainFinalProv");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const HTTPS_CERTTRUST_FUNCTION: &str = "HTTPSCertificateTrust";
+pub const HTTPS_CERTTRUST_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HTTPSCertificateTrust");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const HTTPS_CHKCERT_FUNCTION: &str = "HTTPSCheckCertProv";
+pub const HTTPS_CHKCERT_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HTTPSCheckCertProv");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const HTTPS_FINALPOLICY_FUNCTION: &str = "HTTPSFinalProv";
+pub const HTTPS_FINALPOLICY_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("HTTPSFinalProv");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const INTENT_TO_SEAL_ATTRIBUTE_STRUCT: ::windows_sys::core::PCSTR = 2010i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const OFFICE_CLEANUPPOLICY_FUNCTION: &str = "OfficeCleanupPolicy";
+pub const OFFICE_CLEANUPPOLICY_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("OfficeCleanupPolicy");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const OFFICE_INITPROV_FUNCTION: &str = "OfficeInitializePolicy";
+pub const OFFICE_INITPROV_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("OfficeInitializePolicy");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const OFFICE_POLICY_PROVIDER_DLL_NAME: &str = "WINTRUST.DLL";
+pub const OFFICE_POLICY_PROVIDER_DLL_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WINTRUST.DLL");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SEALING_SIGNATURE_ATTRIBUTE_STRUCT: ::windows_sys::core::PCSTR = 2011i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
@@ -137,103 +116,103 @@ pub const SEALING_TIMESTAMP_ATTRIBUTE_STRUCT: ::windows_sys::core::PCSTR = 2012i
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SGNR_TYPE_TIMESTAMP: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_CAB_DATA_OBJID: &str = "1.3.6.1.4.1.311.2.1.25";
+pub const SPC_CAB_DATA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.25");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_CAB_DATA_STRUCT: ::windows_sys::core::PCSTR = 2008i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_CERT_EXTENSIONS_OBJID: &str = "1.3.6.1.4.1.311.2.1.14";
+pub const SPC_CERT_EXTENSIONS_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.14");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_COMMERCIAL_SP_KEY_PURPOSE_OBJID: &str = "1.3.6.1.4.1.311.2.1.22";
+pub const SPC_COMMERCIAL_SP_KEY_PURPOSE_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.22");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_COMMON_NAME_OBJID: &str = "2.5.4.3";
+pub const SPC_COMMON_NAME_OBJID: ::windows_sys::core::PCWSTR = ::windows_sys::w!("2.5.4.3");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_ENCRYPTED_DIGEST_RETRY_COUNT_OBJID: &str = "1.3.6.1.4.1.311.2.6.2";
+pub const SPC_ENCRYPTED_DIGEST_RETRY_COUNT_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.6.2");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_FILE_LINK_CHOICE: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_FINANCIAL_CRITERIA_OBJID: &str = "1.3.6.1.4.1.311.2.1.27";
+pub const SPC_FINANCIAL_CRITERIA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.27");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_FINANCIAL_CRITERIA_STRUCT: ::windows_sys::core::PCSTR = 2002i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_GLUE_RDN_OBJID: &str = "1.3.6.1.4.1.311.2.1.25";
+pub const SPC_GLUE_RDN_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.25");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_INDIRECT_DATA_CONTENT_STRUCT: ::windows_sys::core::PCSTR = 2003i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_INDIRECT_DATA_OBJID: &str = "1.3.6.1.4.1.311.2.1.4";
+pub const SPC_INDIRECT_DATA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.4");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID: &str = "1.3.6.1.4.1.311.2.1.21";
+pub const SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.21");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_JAVA_CLASS_DATA_OBJID: &str = "1.3.6.1.4.1.311.2.1.20";
+pub const SPC_JAVA_CLASS_DATA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.20");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_JAVA_CLASS_DATA_STRUCT: ::windows_sys::core::PCSTR = 2009i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_LINK_OBJID: &str = "1.3.6.1.4.1.311.2.1.28";
+pub const SPC_LINK_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.28");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_LINK_STRUCT: ::windows_sys::core::PCSTR = 2005i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_MINIMAL_CRITERIA_OBJID: &str = "1.3.6.1.4.1.311.2.1.26";
+pub const SPC_MINIMAL_CRITERIA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.26");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_MINIMAL_CRITERIA_STRUCT: ::windows_sys::core::PCSTR = 2001i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_MONIKER_LINK_CHOICE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_NATURAL_AUTH_PLUGIN_OBJID: &str = "1.3.6.1.4.1.311.96.1.1";
+pub const SPC_NATURAL_AUTH_PLUGIN_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.96.1.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_PE_IMAGE_DATA_OBJID: &str = "1.3.6.1.4.1.311.2.1.15";
+pub const SPC_PE_IMAGE_DATA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.15");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_PE_IMAGE_DATA_STRUCT: ::windows_sys::core::PCSTR = 2004i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_PE_IMAGE_PAGE_HASHES_V1_OBJID: &str = "1.3.6.1.4.1.311.2.3.1";
+pub const SPC_PE_IMAGE_PAGE_HASHES_V1_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.3.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_PE_IMAGE_PAGE_HASHES_V2_OBJID: &str = "1.3.6.1.4.1.311.2.3.2";
+pub const SPC_PE_IMAGE_PAGE_HASHES_V2_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.3.2");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_RAW_FILE_DATA_OBJID: &str = "1.3.6.1.4.1.311.2.1.18";
+pub const SPC_RAW_FILE_DATA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.18");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_RELAXED_PE_MARKER_CHECK_OBJID: &str = "1.3.6.1.4.1.311.2.6.1";
+pub const SPC_RELAXED_PE_MARKER_CHECK_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.6.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_SIGINFO_OBJID: &str = "1.3.6.1.4.1.311.2.1.30";
+pub const SPC_SIGINFO_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.30");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_SIGINFO_STRUCT: ::windows_sys::core::PCSTR = 2130i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_SP_AGENCY_INFO_OBJID: &str = "1.3.6.1.4.1.311.2.1.10";
+pub const SPC_SP_AGENCY_INFO_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.10");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_SP_AGENCY_INFO_STRUCT: ::windows_sys::core::PCSTR = 2000i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_SP_OPUS_INFO_OBJID: &str = "1.3.6.1.4.1.311.2.1.12";
+pub const SPC_SP_OPUS_INFO_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.12");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_SP_OPUS_INFO_STRUCT: ::windows_sys::core::PCSTR = 2007i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_STATEMENT_TYPE_OBJID: &str = "1.3.6.1.4.1.311.2.1.11";
+pub const SPC_STATEMENT_TYPE_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.11");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_STATEMENT_TYPE_STRUCT: ::windows_sys::core::PCSTR = 2006i32 as _;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_STRUCTURED_STORAGE_DATA_OBJID: &str = "1.3.6.1.4.1.311.2.1.19";
+pub const SPC_STRUCTURED_STORAGE_DATA_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.1.19");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_TIME_STAMP_REQUEST_OBJID: &str = "1.3.6.1.4.1.311.3.2.1";
+pub const SPC_TIME_STAMP_REQUEST_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.3.2.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_URL_LINK_CHOICE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const SPC_UUID_LENGTH: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SPC_WINDOWS_HELLO_COMPATIBILITY_OBJID: &str = "1.3.6.1.4.1.311.10.41.1";
+pub const SPC_WINDOWS_HELLO_COMPATIBILITY_OBJID: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.10.41.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_CHKCERT_FUNCTION: &str = "SoftpubCheckCert";
+pub const SP_CHKCERT_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubCheckCert");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_CLEANUPPOLICY_FUNCTION: &str = "SoftpubCleanup";
+pub const SP_CLEANUPPOLICY_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubCleanup");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_FINALPOLICY_FUNCTION: &str = "SoftpubAuthenticode";
+pub const SP_FINALPOLICY_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubAuthenticode");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_GENERIC_CERT_INIT_FUNCTION: &str = "SoftpubDefCertInit";
+pub const SP_GENERIC_CERT_INIT_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubDefCertInit");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_INIT_FUNCTION: &str = "SoftpubInitialize";
+pub const SP_INIT_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubInitialize");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_OBJTRUST_FUNCTION: &str = "SoftpubLoadMessage";
+pub const SP_OBJTRUST_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubLoadMessage");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_POLICY_PROVIDER_DLL_NAME: &str = "WINTRUST.DLL";
+pub const SP_POLICY_PROVIDER_DLL_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WINTRUST.DLL");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_SIGTRUST_FUNCTION: &str = "SoftpubLoadSignature";
+pub const SP_SIGTRUST_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubLoadSignature");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const SP_TESTDUMPPOLICY_FUNCTION_TEST: &str = "SoftpubDumpStructure";
+pub const SP_TESTDUMPPOLICY_FUNCTION_TEST: ::windows_sys::core::PCWSTR = ::windows_sys::w!("SoftpubDumpStructure");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const TRUSTERROR_MAX_STEPS: u32 = 38u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
@@ -289,15 +268,15 @@ pub const TRUSTERROR_STEP_VERIFY_MSGINDIRECTDATA: u32 = 19u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const TRUSTERROR_STEP_WVTPARAMS: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const WINTRUST_CONFIG_REGPATH: &str = "Software\\Microsoft\\Cryptography\\Wintrust\\Config";
+pub const WINTRUST_CONFIG_REGPATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Software\\Microsoft\\Cryptography\\Wintrust\\Config");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const WINTRUST_MAX_HASH_BYTES_TO_MAP_DEFAULT: u32 = 1048576u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const WINTRUST_MAX_HASH_BYTES_TO_MAP_VALUE_NAME: &str = "MaxHashBytesToMap";
+pub const WINTRUST_MAX_HASH_BYTES_TO_MAP_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxHashBytesToMap");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const WINTRUST_MAX_HEADER_BYTES_TO_MAP_DEFAULT: u32 = 10485760u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const WINTRUST_MAX_HEADER_BYTES_TO_MAP_VALUE_NAME: &str = "MaxHeaderBytesToMap";
+pub const WINTRUST_MAX_HEADER_BYTES_TO_MAP_VALUE_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MaxHeaderBytesToMap");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const WIN_CERT_REVISION_1_0: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
@@ -343,9 +322,9 @@ pub const WT_ADD_ACTION_ID_RET_RESULT_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const WT_CURRENT_VERSION: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const WT_PROVIDER_CERTTRUST_FUNCTION: &str = "WintrustCertificateTrust";
+pub const WT_PROVIDER_CERTTRUST_FUNCTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WintrustCertificateTrust");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const WT_PROVIDER_DLL_NAME: &str = "WINTRUST.DLL";
+pub const WT_PROVIDER_DLL_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("WINTRUST.DLL");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const WT_TRUSTDBDIALOG_NO_UI_FLAG: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
@@ -355,23 +334,23 @@ pub const WT_TRUSTDBDIALOG_WRITE_IEAK_STORE_FLAG: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub const WT_TRUSTDBDIALOG_WRITE_LEGACY_REG_FLAG: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_ENHANCED_HASH: &str = "1.3.6.1.4.1.311.2.5.1";
+pub const szOID_ENHANCED_HASH: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.5.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_INTENT_TO_SEAL: &str = "1.3.6.1.4.1.311.2.4.2";
+pub const szOID_INTENT_TO_SEAL: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.4.2");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_NESTED_SIGNATURE: &str = "1.3.6.1.4.1.311.2.4.1";
+pub const szOID_NESTED_SIGNATURE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.4.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_PKCS_9_SEQUENCE_NUMBER: &str = "1.2.840.113549.1.9.25.4";
+pub const szOID_PKCS_9_SEQUENCE_NUMBER: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.2.840.113549.1.9.25.4");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_SEALING_SIGNATURE: &str = "1.3.6.1.4.1.311.2.4.3";
+pub const szOID_SEALING_SIGNATURE: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.4.3");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_SEALING_TIMESTAMP: &str = "1.3.6.1.4.1.311.2.4.4";
+pub const szOID_SEALING_TIMESTAMP: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.4.4");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_TRUSTED_CLIENT_AUTH_CA_LIST: &str = "1.3.6.1.4.1.311.2.2.2";
+pub const szOID_TRUSTED_CLIENT_AUTH_CA_LIST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.2.2");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_TRUSTED_CODESIGNING_CA_LIST: &str = "1.3.6.1.4.1.311.2.2.1";
+pub const szOID_TRUSTED_CODESIGNING_CA_LIST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.2.1");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub const szOID_TRUSTED_SERVER_AUTH_CA_LIST: &str = "1.3.6.1.4.1.311.2.2.3";
+pub const szOID_TRUSTED_SERVER_AUTH_CA_LIST: ::windows_sys::core::PCSTR = ::windows_sys::s!("1.3.6.1.4.1.311.2.2.3");
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub type WINTRUST_DATA_PROVIDER_FLAGS = u32;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
@@ -514,7 +493,7 @@ impl ::core::clone::Clone for CAT_MEMBERINFO2 {
 pub struct CAT_NAMEVALUE {
     pub pwszTag: ::windows_sys::core::PWSTR,
     pub fdwFlags: u32,
-    pub Value: super::Cryptography::CRYPTOAPI_BLOB,
+    pub Value: super::Cryptography::CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Security_Cryptography")]
 impl ::core::marker::Copy for CAT_NAMEVALUE {}
@@ -530,7 +509,7 @@ impl ::core::clone::Clone for CAT_NAMEVALUE {
 pub struct CONFIG_CI_PROV_INFO {
     pub cbSize: u32,
     pub dwPolicies: u32,
-    pub pPolicies: *mut super::Cryptography::CRYPTOAPI_BLOB,
+    pub pPolicies: *mut super::Cryptography::CRYPT_INTEGER_BLOB,
     pub result: CONFIG_CI_PROV_INFO_RESULT,
     pub dwScenario: u32,
 }
@@ -916,7 +895,7 @@ pub struct SEALING_SIGNATURE_ATTRIBUTE {
     pub version: u32,
     pub signerIndex: u32,
     pub signatureAlgorithm: super::Cryptography::CRYPT_ALGORITHM_IDENTIFIER,
-    pub encryptedDigest: super::Cryptography::CRYPTOAPI_BLOB,
+    pub encryptedDigest: super::Cryptography::CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Security_Cryptography")]
 impl ::core::marker::Copy for SEALING_SIGNATURE_ATTRIBUTE {}
@@ -932,7 +911,7 @@ impl ::core::clone::Clone for SEALING_SIGNATURE_ATTRIBUTE {
 pub struct SEALING_TIMESTAMP_ATTRIBUTE {
     pub version: u32,
     pub signerIndex: u32,
-    pub sealTimeStampToken: super::Cryptography::CRYPTOAPI_BLOB,
+    pub sealTimeStampToken: super::Cryptography::CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Security_Cryptography")]
 impl ::core::marker::Copy for SEALING_TIMESTAMP_ATTRIBUTE {}
@@ -962,10 +941,10 @@ impl ::core::clone::Clone for SPC_FINANCIAL_CRITERIA {
 #[cfg(feature = "Win32_Security_Cryptography")]
 pub struct SPC_IMAGE {
     pub pImageLink: *mut SPC_LINK,
-    pub Bitmap: super::Cryptography::CRYPTOAPI_BLOB,
-    pub Metafile: super::Cryptography::CRYPTOAPI_BLOB,
-    pub EnhancedMetafile: super::Cryptography::CRYPTOAPI_BLOB,
-    pub GifFile: super::Cryptography::CRYPTOAPI_BLOB,
+    pub Bitmap: super::Cryptography::CRYPT_INTEGER_BLOB,
+    pub Metafile: super::Cryptography::CRYPT_INTEGER_BLOB,
+    pub EnhancedMetafile: super::Cryptography::CRYPT_INTEGER_BLOB,
+    pub GifFile: super::Cryptography::CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Security_Cryptography")]
 impl ::core::marker::Copy for SPC_IMAGE {}
@@ -981,7 +960,7 @@ impl ::core::clone::Clone for SPC_IMAGE {
 pub struct SPC_INDIRECT_DATA_CONTENT {
     pub Data: super::Cryptography::CRYPT_ATTRIBUTE_TYPE_VALUE,
     pub DigestAlgorithm: super::Cryptography::CRYPT_ALGORITHM_IDENTIFIER,
-    pub Digest: super::Cryptography::CRYPTOAPI_BLOB,
+    pub Digest: super::Cryptography::CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Security_Cryptography")]
 impl ::core::marker::Copy for SPC_INDIRECT_DATA_CONTENT {}
@@ -1042,7 +1021,7 @@ impl ::core::clone::Clone for SPC_PE_IMAGE_DATA {
 #[cfg(feature = "Win32_Security_Cryptography")]
 pub struct SPC_SERIALIZED_OBJECT {
     pub ClassId: [u8; 16],
-    pub SerializedData: super::Cryptography::CRYPTOAPI_BLOB,
+    pub SerializedData: super::Cryptography::CRYPT_INTEGER_BLOB,
 }
 #[cfg(feature = "Win32_Security_Cryptography")]
 impl ::core::marker::Copy for SPC_SERIALIZED_OBJECT {}
@@ -1479,7 +1458,7 @@ pub type PFN_CPD_ADD_STORE = ::core::option::Option<unsafe extern "system" fn(pp
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
 pub type PFN_CPD_MEM_ALLOC = ::core::option::Option<unsafe extern "system" fn(cbsize: u32) -> *mut ::core::ffi::c_void>;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`*"]
-pub type PFN_CPD_MEM_FREE = ::core::option::Option<unsafe extern "system" fn(pvmem2free: *const ::core::ffi::c_void)>;
+pub type PFN_CPD_MEM_FREE = ::core::option::Option<unsafe extern "system" fn(pvmem2free: *const ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Security_WinTrust\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_FREEDEFUSAGE = ::core::option::Option<unsafe extern "system" fn(pszusageoid: ::windows_sys::core::PCSTR, psdefusage: *const CRYPT_PROVIDER_DEFUSAGE) -> super::super::Foundation::BOOL>;

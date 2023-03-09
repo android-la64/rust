@@ -11,7 +11,7 @@ pub use self::suggest::SelfSource;
 pub use self::MethodError::*;
 
 use crate::errors::OpMethodGenericParams;
-use crate::{Expectation, FnCtxt};
+use crate::FnCtxt;
 use rustc_data_structures::sync::Lrc;
 use rustc_errors::{Applicability, Diagnostic};
 use rustc_hir as hir;
@@ -57,7 +57,12 @@ pub enum MethodError<'tcx> {
     PrivateMatch(DefKind, DefId, Vec<DefId>),
 
     // Found a `Self: Sized` bound where `Self` is a trait object.
-    IllegalSizedBound(Vec<DefId>, bool, Span),
+    IllegalSizedBound {
+        candidates: Vec<DefId>,
+        needs_mut: bool,
+        bound_span: Span,
+        self_expr: &'tcx hir::Expr<'tcx>,
+    },
 
     // Found a match, but the return type is wrong
     BadReturnType,
@@ -92,10 +97,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         self_ty: Ty<'tcx>,
         call_expr_id: hir::HirId,
         allow_private: bool,
+        return_type: Option<Ty<'tcx>>,
     ) -> bool {
         match self.probe_for_name(
             probe::Mode::MethodCall,
             method_name,
+            return_type,
             IsSuggestion(false),
             self_ty,
             call_expr_id,
@@ -112,8 +119,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             Err(NoMatch(..)) => false,
             Err(Ambiguity(..)) => true,
             Err(PrivateMatch(..)) => allow_private,
-            Err(IllegalSizedBound(..)) => true,
-            Err(BadReturnType) => bug!("no return type expectations but got BadReturnType"),
+            Err(IllegalSizedBound { .. }) => true,
+            Err(BadReturnType) => false,
         }
     }
 
@@ -125,17 +132,16 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         msg: &str,
         method_name: Ident,
         self_ty: Ty<'tcx>,
-        call_expr: &hir::Expr<'_>,
+        call_expr: &hir::Expr<'tcx>,
         span: Option<Span>,
     ) {
         let params = self
-            .probe_for_name(
-                probe::Mode::MethodCall,
+            .lookup_probe_for_diagnostic(
                 method_name,
-                IsSuggestion(true),
                 self_ty,
-                call_expr.hir_id,
+                call_expr,
                 ProbeScope::TraitsInScope,
+                None,
             )
             .map(|pick| {
                 let sig = self.tcx.fn_sig(pick.item.def_id);
@@ -192,8 +198,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         self.tcx.check_stability(pick.item.def_id, Some(call_expr.hir_id), span, None);
 
-        let result =
-            self.confirm_method(span, self_expr, call_expr, self_ty, pick.clone(), segment);
+        let result = self.confirm_method(span, self_expr, call_expr, self_ty, &pick, segment);
         debug!("result = {:?}", result);
 
         if let Some(span) = result.illegal_sized_bound {
@@ -210,34 +215,39 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     ProbeScope::TraitsInScope,
                 ) {
                     Ok(ref new_pick) if pick.differs_from(new_pick) => {
-                        needs_mut = true;
+                        needs_mut = new_pick.self_ty.ref_mutability() != self_ty.ref_mutability();
                     }
                     _ => {}
                 }
             }
 
             // We probe again, taking all traits into account (not only those in scope).
-            let candidates =
-                match self.lookup_probe(segment.ident, self_ty, call_expr, ProbeScope::AllTraits) {
-                    // If we find a different result the caller probably forgot to import a trait.
-                    Ok(ref new_pick) if pick.differs_from(new_pick) => {
-                        vec![new_pick.item.container_id(self.tcx)]
-                    }
-                    Err(Ambiguity(ref sources)) => sources
-                        .iter()
-                        .filter_map(|source| {
-                            match *source {
-                                // Note: this cannot come from an inherent impl,
-                                // because the first probing succeeded.
-                                CandidateSource::Impl(def) => self.tcx.trait_id_of_impl(def),
-                                CandidateSource::Trait(_) => None,
-                            }
-                        })
-                        .collect(),
-                    _ => Vec::new(),
-                };
+            let candidates = match self.lookup_probe_for_diagnostic(
+                segment.ident,
+                self_ty,
+                call_expr,
+                ProbeScope::AllTraits,
+                None,
+            ) {
+                // If we find a different result the caller probably forgot to import a trait.
+                Ok(ref new_pick) if pick.differs_from(new_pick) => {
+                    vec![new_pick.item.container_id(self.tcx)]
+                }
+                Err(Ambiguity(ref sources)) => sources
+                    .iter()
+                    .filter_map(|source| {
+                        match *source {
+                            // Note: this cannot come from an inherent impl,
+                            // because the first probing succeeded.
+                            CandidateSource::Impl(def) => self.tcx.trait_id_of_impl(def),
+                            CandidateSource::Trait(_) => None,
+                        }
+                    })
+                    .collect(),
+                _ => Vec::new(),
+            };
 
-            return Err(IllegalSizedBound(candidates, needs_mut, span));
+            return Err(IllegalSizedBound { candidates, needs_mut, bound_span: span, self_expr });
         }
 
         Ok(result.callee)
@@ -248,12 +258,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         &self,
         method_name: Ident,
         self_ty: Ty<'tcx>,
-        call_expr: &'tcx hir::Expr<'tcx>,
+        call_expr: &hir::Expr<'_>,
         scope: ProbeScope,
     ) -> probe::PickResult<'tcx> {
         let pick = self.probe_for_name(
             probe::Mode::MethodCall,
             method_name,
+            None,
             IsSuggestion(false),
             self_ty,
             call_expr.hir_id,
@@ -263,9 +274,29 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         Ok(pick)
     }
 
+    pub fn lookup_probe_for_diagnostic(
+        &self,
+        method_name: Ident,
+        self_ty: Ty<'tcx>,
+        call_expr: &hir::Expr<'_>,
+        scope: ProbeScope,
+        return_type: Option<Ty<'tcx>>,
+    ) -> probe::PickResult<'tcx> {
+        let pick = self.probe_for_name(
+            probe::Mode::MethodCall,
+            method_name,
+            return_type,
+            IsSuggestion(true),
+            self_ty,
+            call_expr.hir_id,
+            scope,
+        )?;
+        Ok(pick)
+    }
+
     pub(super) fn obligation_for_method(
         &self,
-        span: Span,
+        cause: ObligationCause<'tcx>,
         trait_def_id: DefId,
         self_ty: Ty<'tcx>,
         opt_input_types: Option<&[Ty<'tcx>]>,
@@ -283,71 +314,19 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     }
                 }
             }
-            self.var_for_def(span, param)
+            self.var_for_def(cause.span, param)
         });
 
-        let trait_ref = ty::TraitRef::new(trait_def_id, substs);
+        let trait_ref = self.tcx.mk_trait_ref(trait_def_id, substs);
 
         // Construct an obligation
         let poly_trait_ref = ty::Binder::dummy(trait_ref);
-        (
-            traits::Obligation::misc(
-                self.tcx,
-                span,
-                self.body_id,
-                self.param_env,
-                poly_trait_ref.without_const(),
-            ),
-            substs,
-        )
-    }
-
-    pub(super) fn obligation_for_op_method(
-        &self,
-        span: Span,
-        trait_def_id: DefId,
-        self_ty: Ty<'tcx>,
-        opt_input_type: Option<Ty<'tcx>>,
-        opt_input_expr: Option<&'tcx hir::Expr<'tcx>>,
-        expected: Expectation<'tcx>,
-    ) -> (traits::Obligation<'tcx, ty::Predicate<'tcx>>, &'tcx ty::List<ty::subst::GenericArg<'tcx>>)
-    {
-        // Construct a trait-reference `self_ty : Trait<input_tys>`
-        let substs = InternalSubsts::for_item(self.tcx, trait_def_id, |param, _| {
-            match param.kind {
-                GenericParamDefKind::Lifetime | GenericParamDefKind::Const { .. } => {}
-                GenericParamDefKind::Type { .. } => {
-                    if param.index == 0 {
-                        return self_ty.into();
-                    } else if let Some(input_type) = opt_input_type {
-                        return input_type.into();
-                    }
-                }
-            }
-            self.var_for_def(span, param)
-        });
-
-        let trait_ref = ty::TraitRef::new(trait_def_id, substs);
-
-        // Construct an obligation
-        let poly_trait_ref = ty::Binder::dummy(trait_ref);
-        let output_ty = expected.only_has_type(self).and_then(|ty| (!ty.needs_infer()).then(|| ty));
-
         (
             traits::Obligation::new(
                 self.tcx,
-                traits::ObligationCause::new(
-                    span,
-                    self.body_id,
-                    traits::BinOp {
-                        rhs_span: opt_input_expr.map(|expr| expr.span),
-                        is_lit: opt_input_expr
-                            .map_or(false, |expr| matches!(expr.kind, hir::ExprKind::Lit(_))),
-                        output_ty,
-                    },
-                ),
+                cause,
                 self.param_env,
-                poly_trait_ref,
+                poly_trait_ref.without_const(),
             ),
             substs,
         )
@@ -358,55 +337,18 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// In particular, it doesn't really do any probing: it simply constructs
     /// an obligation for a particular trait with the given self type and checks
     /// whether that trait is implemented.
-    #[instrument(level = "debug", skip(self, span))]
+    #[instrument(level = "debug", skip(self))]
     pub(super) fn lookup_method_in_trait(
         &self,
-        span: Span,
+        cause: ObligationCause<'tcx>,
         m_name: Ident,
         trait_def_id: DefId,
         self_ty: Ty<'tcx>,
         opt_input_types: Option<&[Ty<'tcx>]>,
     ) -> Option<InferOk<'tcx, MethodCallee<'tcx>>> {
         let (obligation, substs) =
-            self.obligation_for_method(span, trait_def_id, self_ty, opt_input_types);
-        self.construct_obligation_for_trait(
-            span,
-            m_name,
-            trait_def_id,
-            obligation,
-            substs,
-            None,
-            false,
-        )
-    }
-
-    pub(super) fn lookup_op_method_in_trait(
-        &self,
-        span: Span,
-        m_name: Ident,
-        trait_def_id: DefId,
-        self_ty: Ty<'tcx>,
-        opt_input_type: Option<Ty<'tcx>>,
-        opt_input_expr: Option<&'tcx hir::Expr<'tcx>>,
-        expected: Expectation<'tcx>,
-    ) -> Option<InferOk<'tcx, MethodCallee<'tcx>>> {
-        let (obligation, substs) = self.obligation_for_op_method(
-            span,
-            trait_def_id,
-            self_ty,
-            opt_input_type,
-            opt_input_expr,
-            expected,
-        );
-        self.construct_obligation_for_trait(
-            span,
-            m_name,
-            trait_def_id,
-            obligation,
-            substs,
-            opt_input_expr,
-            true,
-        )
+            self.obligation_for_method(cause, trait_def_id, self_ty, opt_input_types);
+        self.construct_obligation_for_trait(m_name, trait_def_id, obligation, substs)
     }
 
     // FIXME(#18741): it seems likely that we can consolidate some of this
@@ -414,13 +356,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     // of this method is basically the same as confirmation.
     fn construct_obligation_for_trait(
         &self,
-        span: Span,
         m_name: Ident,
         trait_def_id: DefId,
         obligation: traits::PredicateObligation<'tcx>,
         substs: &'tcx ty::List<ty::subst::GenericArg<'tcx>>,
-        opt_input_expr: Option<&'tcx hir::Expr<'tcx>>,
-        is_op: bool,
     ) -> Option<InferOk<'tcx, MethodCallee<'tcx>>> {
         debug!(?obligation);
 
@@ -436,7 +375,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let tcx = self.tcx;
         let Some(method_item) = self.associated_value(trait_def_id, m_name) else {
             tcx.sess.delay_span_bug(
-                span,
+                obligation.cause.span,
                 "operator trait does not have corresponding operator method",
             );
             return None;
@@ -457,29 +396,16 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // Instantiate late-bound regions and substitute the trait
         // parameters into the method type to get the actual method type.
         //
-        // N.B., instantiate late-bound regions first so that
-        // `instantiate_type_scheme` can normalize associated types that
-        // may reference those regions.
+        // N.B., instantiate late-bound regions before normalizing the
+        // function signature so that normalization does not need to deal
+        // with bound regions.
         let fn_sig = tcx.bound_fn_sig(def_id);
         let fn_sig = fn_sig.subst(self.tcx, substs);
-        let fn_sig = self.replace_bound_vars_with_fresh_vars(span, infer::FnCall, fn_sig);
+        let fn_sig =
+            self.replace_bound_vars_with_fresh_vars(obligation.cause.span, infer::FnCall, fn_sig);
 
-        let cause = if is_op {
-            ObligationCause::new(
-                span,
-                self.body_id,
-                traits::BinOp {
-                    rhs_span: opt_input_expr.map(|expr| expr.span),
-                    is_lit: opt_input_expr
-                        .map_or(false, |expr| matches!(expr.kind, hir::ExprKind::Lit(_))),
-                    output_ty: None,
-                },
-            )
-        } else {
-            traits::ObligationCause::misc(span, self.body_id)
-        };
-
-        let InferOk { value, obligations: o } = self.at(&cause, self.param_env).normalize(fn_sig);
+        let InferOk { value, obligations: o } =
+            self.at(&obligation.cause, self.param_env).normalize(fn_sig);
         let fn_sig = {
             obligations.extend(o);
             value
@@ -487,7 +413,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         // Register obligations for the parameters. This will include the
         // `Self` parameter, which in turn has a bound of the main trait,
-        // so this also effectively registers `obligation` as well.  (We
+        // so this also effectively registers `obligation` as well. (We
         // used to register `obligation` explicitly, but that resulted in
         // double error messages being reported.)
         //
@@ -495,7 +421,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // any late-bound regions appearing in its bounds.
         let bounds = self.tcx.predicates_of(def_id).instantiate(self.tcx, substs);
 
-        let InferOk { value, obligations: o } = self.at(&cause, self.param_env).normalize(bounds);
+        let InferOk { value, obligations: o } =
+            self.at(&obligation.cause, self.param_env).normalize(bounds);
         let bounds = {
             obligations.extend(o);
             value
@@ -503,7 +430,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         assert!(!bounds.has_escaping_bound_vars());
 
-        let predicates_cause = cause.clone();
+        let predicates_cause = obligation.cause.clone();
         obligations.extend(traits::predicates_for_generics(
             move |_, _| predicates_cause.clone(),
             self.param_env,
@@ -518,7 +445,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         );
         obligations.push(traits::Obligation::new(
             tcx,
-            cause,
+            obligation.cause,
             self.param_env,
             ty::Binder::dummy(ty::PredicateKind::WellFormed(method_ty.into())),
         ));
@@ -584,6 +511,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let pick = self.probe_for_name(
             probe::Mode::Path,
             method_name,
+            None,
             IsSuggestion(false),
             self_ty,
             expr_id,

@@ -67,7 +67,11 @@ fn saved_reg_stack_size(
 /// point for the trait; it is never actually instantiated.
 pub struct AArch64MachineDeps;
 
-impl IsaFlags for aarch64_settings::Flags {}
+impl IsaFlags for aarch64_settings::Flags {
+    fn is_forward_edge_cfi_enabled(&self) -> bool {
+        self.use_bti()
+    }
+}
 
 impl ABIMachineSpec for AArch64MachineDeps {
     type I = Inst;
@@ -83,13 +87,17 @@ impl ABIMachineSpec for AArch64MachineDeps {
         16
     }
 
-    fn compute_arg_locs(
+    fn compute_arg_locs<'a, I>(
         call_conv: isa::CallConv,
         _flags: &settings::Flags,
-        params: &[ir::AbiParam],
+        params: I,
         args_or_rets: ArgsOrRets,
         add_ret_area_ptr: bool,
-    ) -> CodegenResult<(ABIArgVec, i64, Option<usize>)> {
+        mut args: ArgsAccumulator<'_>,
+    ) -> CodegenResult<(i64, Option<usize>)>
+    where
+        I: IntoIterator<Item = &'a ir::AbiParam>,
+    {
         let is_apple_cc = call_conv.extends_apple_aarch64();
 
         // See AArch64 ABI (https://github.com/ARM-software/abi-aa/blob/2021Q1/aapcs64/aapcs64.rst#64parameter-passing), sections 6.4.
@@ -109,7 +117,6 @@ impl ABIMachineSpec for AArch64MachineDeps {
         let mut next_xreg = 0;
         let mut next_vreg = 0;
         let mut next_stack: u64 = 0;
-        let mut ret = ABIArgVec::new();
 
         let (max_per_class_reg_vals, mut remaining_reg_vals) = match args_or_rets {
             ArgsOrRets::Args => (8, 16), // x0-x7 and v0-v7
@@ -148,7 +155,7 @@ impl ABIMachineSpec for AArch64MachineDeps {
                 let size = size as u64;
                 assert!(size % 8 == 0, "StructArgument size is not properly aligned");
                 next_stack += size;
-                ret.push(ABIArg::StructArg {
+                args.push(ABIArg::StructArg {
                     pointer: None,
                     offset,
                     size,
@@ -164,7 +171,7 @@ impl ABIMachineSpec for AArch64MachineDeps {
                     param.value_type == types::I64,
                     "StructReturn must be a pointer sized integer"
                 );
-                ret.push(ABIArg::Slots {
+                args.push(ABIArg::Slots {
                     slots: smallvec![ABIArgSlot::Reg {
                         reg: xreg(8).to_real_reg().unwrap(),
                         ty: types::I64,
@@ -221,7 +228,7 @@ impl ABIMachineSpec for AArch64MachineDeps {
                     let lower_reg = xreg(next_xreg);
                     let upper_reg = xreg(next_xreg + 1);
 
-                    ret.push(ABIArg::Slots {
+                    args.push(ABIArg::Slots {
                         slots: smallvec![
                             ABIArgSlot::Reg {
                                 reg: lower_reg.to_real_reg().unwrap(),
@@ -260,7 +267,7 @@ impl ABIMachineSpec for AArch64MachineDeps {
                     } else {
                         param.value_type
                     };
-                    ret.push(ABIArg::reg(
+                    args.push(ABIArg::reg(
                         reg.to_real_reg().unwrap(),
                         ty,
                         param.extension,
@@ -312,7 +319,7 @@ impl ABIMachineSpec for AArch64MachineDeps {
                 })
                 .collect();
 
-            ret.push(ABIArg::Slots {
+            args.push(ABIArg::Slots {
                 slots,
                 purpose: param.purpose,
             });
@@ -323,14 +330,14 @@ impl ABIMachineSpec for AArch64MachineDeps {
         let extra_arg = if add_ret_area_ptr {
             debug_assert!(args_or_rets == ArgsOrRets::Args);
             if next_xreg < max_per_class_reg_vals && remaining_reg_vals > 0 {
-                ret.push(ABIArg::reg(
+                args.push(ABIArg::reg(
                     xreg(next_xreg).to_real_reg().unwrap(),
                     I64,
                     ir::ArgumentExtension::None,
                     ir::ArgumentPurpose::Normal,
                 ));
             } else {
-                ret.push(ABIArg::stack(
+                args.push(ABIArg::stack(
                     next_stack as i64,
                     I64,
                     ir::ArgumentExtension::None,
@@ -338,7 +345,7 @@ impl ABIMachineSpec for AArch64MachineDeps {
                 ));
                 next_stack += 8;
             }
-            Some(ret.len() - 1)
+            Some(args.args().len() - 1)
         } else {
             None
         };
@@ -351,7 +358,7 @@ impl ABIMachineSpec for AArch64MachineDeps {
             return Err(CodegenError::ImplLimitExceeded);
         }
 
-        Ok((ret, next_stack as i64, extra_arg))
+        Ok((next_stack as i64, extra_arg))
     }
 
     fn fp_to_arg_offset(_call_conv: isa::CallConv, _flags: &settings::Flags) -> i64 {
@@ -385,6 +392,10 @@ impl ABIMachineSpec for AArch64MachineDeps {
             from_bits,
             to_bits,
         }
+    }
+
+    fn gen_args(_isa_flags: &aarch64_settings::Flags, args: Vec<ArgPair>) -> Inst {
+        Inst::Args { args }
     }
 
     fn gen_ret(setup_frame: bool, isa_flags: &aarch64_settings::Flags, rets: Vec<Reg>) -> Inst {
@@ -549,13 +560,21 @@ impl ABIMachineSpec for AArch64MachineDeps {
                     },
                 });
             }
-        } else if flags.unwind_info() && call_conv.extends_apple_aarch64() {
-            // The macOS unwinder seems to require this.
-            insts.push(Inst::Unwind {
-                inst: UnwindInst::Aarch64SetPointerAuth {
-                    return_addresses: false,
-                },
-            });
+        } else {
+            if isa_flags.use_bti() {
+                insts.push(Inst::Bti {
+                    targets: BranchTargetType::C,
+                });
+            }
+
+            if flags.unwind_info() && call_conv.extends_apple_aarch64() {
+                // The macOS unwinder seems to require this.
+                insts.push(Inst::Unwind {
+                    inst: UnwindInst::Aarch64SetPointerAuth {
+                        return_addresses: false,
+                    },
+                });
+            }
         }
 
         insts
@@ -903,8 +922,8 @@ impl ABIMachineSpec for AArch64MachineDeps {
 
     fn gen_call(
         dest: &CallDest,
-        uses: SmallVec<[Reg; 8]>,
-        defs: SmallVec<[Writable<Reg>; 8]>,
+        uses: CallArgList,
+        defs: CallRetList,
         clobbers: PRegSet,
         opcode: ir::Opcode,
         tmp: Writable<Reg>,
@@ -962,19 +981,32 @@ impl ABIMachineSpec for AArch64MachineDeps {
         call_conv: isa::CallConv,
         dst: Reg,
         src: Reg,
+        tmp: Writable<Reg>,
+        _tmp2: Writable<Reg>,
         size: usize,
     ) -> SmallVec<[Self::I; 8]> {
         let mut insts = SmallVec::new();
         let arg0 = writable_xreg(0);
         let arg1 = writable_xreg(1);
         let arg2 = writable_xreg(2);
-        insts.push(Inst::gen_move(arg0, dst, I64));
-        insts.push(Inst::gen_move(arg1, src, I64));
-        insts.extend(Inst::load_constant(arg2, size as u64).into_iter());
+        insts.extend(Inst::load_constant(tmp, size as u64).into_iter());
         insts.push(Inst::Call {
             info: Box::new(CallInfo {
                 dest: ExternalName::LibCall(LibCall::Memcpy),
-                uses: smallvec![arg0.to_reg(), arg1.to_reg(), arg2.to_reg()],
+                uses: smallvec![
+                    CallArgPair {
+                        vreg: dst,
+                        preg: arg0.to_reg()
+                    },
+                    CallArgPair {
+                        vreg: src,
+                        preg: arg1.to_reg()
+                    },
+                    CallArgPair {
+                        vreg: tmp.to_reg(),
+                        preg: arg2.to_reg()
+                    }
+                ],
                 defs: smallvec![],
                 clobbers: Self::get_regs_clobbered_by_call(call_conv),
                 opcode: Opcode::Call,

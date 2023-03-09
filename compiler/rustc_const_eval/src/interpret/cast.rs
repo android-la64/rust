@@ -1,5 +1,4 @@
 use std::assert_matches::assert_matches;
-use std::convert::TryFrom;
 
 use rustc_apfloat::ieee::{Double, Single};
 use rustc_apfloat::{Float, FloatConvert};
@@ -333,7 +332,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     Immediate::new_slice(ptr, length.eval_usize(*self.tcx, self.param_env), self);
                 self.write_immediate(val, dest)
             }
-            (&ty::Dynamic(ref data_a, ..), &ty::Dynamic(ref data_b, ..)) => {
+            (ty::Dynamic(data_a, ..), ty::Dynamic(data_b, ..)) => {
                 let val = self.read_immediate(src)?;
                 if data_a.principal() == data_b.principal() {
                     // A NOP cast that doesn't actually change anything, should be allowed even with mismatching vtables.
@@ -348,7 +347,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 let new_vptr = self.get_vtable_ptr(ty, data_b.principal())?;
                 self.write_immediate(Immediate::new_dyn_trait(old_data, new_vptr, self), dest)
             }
-            (_, &ty::Dynamic(ref data, _, ty::Dyn)) => {
+            (_, &ty::Dynamic(data, _, ty::Dyn)) => {
                 // Initial cast from sized to dyn trait
                 let vtable = self.get_vtable_ptr(src_pointee_ty, data.principal())?;
                 let ptr = self.read_scalar(src)?;

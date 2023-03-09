@@ -33,7 +33,7 @@ impl<'a, 'tcx> BlanketImplFinder<'a, 'tcx> {
                     trait_def_id,
                     impl_def_id
                 );
-                let trait_ref = cx.tcx.bound_impl_trait_ref(impl_def_id).unwrap();
+                let trait_ref = cx.tcx.impl_trait_ref(impl_def_id).unwrap();
                 if !matches!(trait_ref.0.self_ty().kind(), ty::Param(_)) {
                     continue;
                 }
@@ -105,10 +105,10 @@ impl<'a, 'tcx> BlanketImplFinder<'a, 'tcx> {
                         // the post-inference `trait_ref`, as it's more accurate.
                         trait_: Some(clean_trait_ref_with_bindings(
                             cx,
-                            trait_ref.0,
+                            ty::Binder::dummy(trait_ref.0),
                             ThinVec::new(),
                         )),
-                        for_: clean_middle_ty(ty.0, cx, None),
+                        for_: clean_middle_ty(ty::Binder::dummy(ty.0), cx, None),
                         items: cx
                             .tcx
                             .associated_items(impl_def_id)
@@ -117,7 +117,7 @@ impl<'a, 'tcx> BlanketImplFinder<'a, 'tcx> {
                             .collect::<Vec<_>>(),
                         polarity: ty::ImplPolarity::Positive,
                         kind: ImplKind::Blanket(Box::new(clean_middle_ty(
-                            trait_ref.0.self_ty(),
+                            ty::Binder::dummy(trait_ref.0.self_ty()),
                             cx,
                             None,
                         ))),

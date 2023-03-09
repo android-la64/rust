@@ -29,7 +29,7 @@ use rustc_ast::{self as ast, NodeId, CRATE_NODE_ID};
 use rustc_ast::{AngleBracketedArg, Crate, Expr, ExprKind, GenericArg, GenericArgs, LitKind, Path};
 use rustc_data_structures::fx::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 use rustc_data_structures::intern::Interned;
-use rustc_data_structures::sync::Lrc;
+use rustc_data_structures::sync::{Lrc, RwLock};
 use rustc_errors::{Applicability, DiagnosticBuilder, ErrorGuaranteed};
 use rustc_expand::base::{DeriveResolutions, SyntaxExtension, SyntaxExtensionKind};
 use rustc_hir::def::Namespace::*;
@@ -46,7 +46,7 @@ use rustc_middle::span_bug;
 use rustc_middle::ty::{self, DefIdTree, MainDefinition, RegisteredTools};
 use rustc_middle::ty::{ResolverGlobalCtxt, ResolverOutputs};
 use rustc_query_system::ich::StableHashingContext;
-use rustc_session::cstore::{CrateStore, MetadataLoaderDyn};
+use rustc_session::cstore::{CrateStore, MetadataLoaderDyn, Untracked};
 use rustc_session::lint::LintBuffer;
 use rustc_session::Session;
 use rustc_span::hygiene::{ExpnId, LocalExpnId, MacroKind, SyntaxContext, Transparency};
@@ -868,11 +868,8 @@ struct MacroData {
 pub struct Resolver<'a> {
     session: &'a Session,
 
-    definitions: Definitions,
     /// Item with a given `LocalDefId` was defined during macro expansion with ID `ExpnId`.
     expn_that_defined: FxHashMap<LocalDefId, ExpnId>,
-    /// Reference span for definitions.
-    source_span: IndexVec<LocalDefId, Span>,
 
     graph_root: Module<'a>,
 
@@ -885,6 +882,10 @@ pub struct Resolver<'a> {
     /// Names of fields of an item `DefId` accessible with dot syntax.
     /// Used for hints during error reporting.
     field_names: FxHashMap<DefId, Vec<Spanned<Symbol>>>,
+
+    /// Span of the privacy modifier in fields of an item `DefId` accessible with dot syntax.
+    /// Used for hints during error reporting.
+    field_visibility_spans: FxHashMap<DefId, Vec<Span>>,
 
     /// All imports known to succeed or fail.
     determined_imports: Vec<&'a Import<'a>>,
@@ -956,7 +957,10 @@ pub struct Resolver<'a> {
     arenas: &'a ResolverArenas<'a>,
     dummy_binding: &'a NameBinding<'a>,
 
-    crate_loader: CrateLoader<'a>,
+    local_crate_name: Symbol,
+    metadata_loader: Box<MetadataLoaderDyn>,
+    untracked: Untracked,
+    used_extern_options: FxHashSet<Symbol>,
     macro_names: FxHashSet<Ident>,
     builtin_macros: FxHashMap<Symbol, BuiltinMacroState>,
     /// A small map keeping true kinds of built-in macros that appear to be fn-like on
@@ -1114,15 +1118,15 @@ impl<'a> AsMut<Resolver<'a>> for Resolver<'a> {
 /// A minimal subset of resolver that can implemenent `DefIdTree`, sometimes
 /// required to satisfy borrow checker by avoiding borrowing the whole resolver.
 #[derive(Clone, Copy)]
-struct ResolverTree<'a, 'b>(&'a Definitions, &'a CrateLoader<'b>);
+struct ResolverTree<'a>(&'a Untracked);
 
-impl DefIdTree for ResolverTree<'_, '_> {
+impl DefIdTree for ResolverTree<'_> {
     #[inline]
     fn opt_parent(self, id: DefId) -> Option<DefId> {
-        let ResolverTree(definitions, crate_loader) = self;
+        let ResolverTree(Untracked { definitions, cstore, .. }) = self;
         match id.as_local() {
-            Some(id) => definitions.def_key(id).parent,
-            None => crate_loader.cstore().def_key(id).parent,
+            Some(id) => definitions.read().def_key(id).parent,
+            None => cstore.as_any().downcast_ref::<CStore>().unwrap().def_key(id).parent,
         }
         .map(|index| DefId { index, ..id })
     }
@@ -1131,11 +1135,11 @@ impl DefIdTree for ResolverTree<'_, '_> {
 impl<'a, 'b> DefIdTree for &'a Resolver<'b> {
     #[inline]
     fn opt_parent(self, id: DefId) -> Option<DefId> {
-        ResolverTree(&self.definitions, &self.crate_loader).opt_parent(id)
+        ResolverTree(&self.untracked).opt_parent(id)
     }
 }
 
-impl Resolver<'_> {
+impl<'a> Resolver<'a> {
     fn opt_local_def_id(&self, node: NodeId) -> Option<LocalDefId> {
         self.node_id_to_def_id.get(&node).copied()
     }
@@ -1158,10 +1162,10 @@ impl Resolver<'_> {
             "adding a def'n for node-id {:?} and data {:?} but a previous def'n exists: {:?}",
             node_id,
             data,
-            self.definitions.def_key(self.node_id_to_def_id[&node_id]),
+            self.untracked.definitions.read().def_key(self.node_id_to_def_id[&node_id]),
         );
 
-        let def_id = self.definitions.create_def(parent, data);
+        let def_id = self.untracked.definitions.write().create_def(parent, data);
 
         // Create the definition.
         if expn_id != ExpnId::root() {
@@ -1170,7 +1174,7 @@ impl Resolver<'_> {
 
         // A relative span's parent must be an absolute span.
         debug_assert_eq!(span.data_untracked().parent, None);
-        let _id = self.source_span.push(span);
+        let _id = self.untracked.source_span.push(span);
         debug_assert_eq!(_id, def_id);
 
         // Some things for which we allocate `LocalDefId`s don't correspond to
@@ -1191,6 +1195,10 @@ impl Resolver<'_> {
         } else {
             self.cstore().item_generics_num_lifetimes(def_id, self.session)
         }
+    }
+
+    pub fn sess(&self) -> &'a Session {
+        self.session
     }
 }
 
@@ -1260,9 +1268,7 @@ impl<'a> Resolver<'a> {
         let mut resolver = Resolver {
             session,
 
-            definitions,
             expn_that_defined: Default::default(),
-            source_span,
 
             // The outermost module has def ID 0; this is not reflected in the
             // AST.
@@ -1272,6 +1278,7 @@ impl<'a> Resolver<'a> {
 
             has_self: FxHashSet::default(),
             field_names: FxHashMap::default(),
+            field_visibility_spans: FxHashMap::default(),
 
             determined_imports: Vec::new(),
             indeterminate_imports: Vec::new(),
@@ -1313,7 +1320,14 @@ impl<'a> Resolver<'a> {
                 vis: ty::Visibility::Public,
             }),
 
-            crate_loader: CrateLoader::new(session, metadata_loader, crate_name),
+            metadata_loader,
+            local_crate_name: crate_name,
+            used_extern_options: Default::default(),
+            untracked: Untracked {
+                cstore: Box::new(CStore::new(session)),
+                source_span,
+                definitions: RwLock::new(definitions),
+            },
             macro_names: FxHashSet::default(),
             builtin_macros: Default::default(),
             builtin_macro_kinds: Default::default(),
@@ -1404,9 +1418,6 @@ impl<'a> Resolver<'a> {
 
     pub fn into_outputs(self) -> ResolverOutputs {
         let proc_macros = self.proc_macros.iter().map(|id| self.local_def_id(*id)).collect();
-        let definitions = self.definitions;
-        let cstore = Box::new(self.crate_loader.into_cstore());
-        let source_span = self.source_span;
         let expn_that_defined = self.expn_that_defined;
         let visibilities = self.visibilities;
         let has_pub_restricted = self.has_pub_restricted;
@@ -1418,9 +1429,8 @@ impl<'a> Resolver<'a> {
         let main_def = self.main_def;
         let confused_type_with_std_module = self.confused_type_with_std_module;
         let effective_visibilities = self.effective_visibilities;
+        let untracked = self.untracked;
         let global_ctxt = ResolverGlobalCtxt {
-            cstore,
-            source_span,
             expn_that_defined,
             visibilities,
             has_pub_restricted,
@@ -1455,16 +1465,16 @@ impl<'a> Resolver<'a> {
             builtin_macro_kinds: self.builtin_macro_kinds,
             lifetime_elision_allowed: self.lifetime_elision_allowed,
         };
-        ResolverOutputs { definitions, global_ctxt, ast_lowering }
+        ResolverOutputs { global_ctxt, ast_lowering, untracked }
     }
 
     pub fn clone_outputs(&self) -> ResolverOutputs {
         let proc_macros = self.proc_macros.iter().map(|id| self.local_def_id(*id)).collect();
-        let definitions = self.definitions.clone();
+        let definitions = self.untracked.definitions.clone();
         let cstore = Box::new(self.cstore().clone());
+        let untracked =
+            Untracked { cstore, source_span: self.untracked.source_span.clone(), definitions };
         let global_ctxt = ResolverGlobalCtxt {
-            cstore,
-            source_span: self.source_span.clone(),
             expn_that_defined: self.expn_that_defined.clone(),
             visibilities: self.visibilities.clone(),
             has_pub_restricted: self.has_pub_restricted,
@@ -1492,27 +1502,33 @@ impl<'a> Resolver<'a> {
             label_res_map: self.label_res_map.clone(),
             lifetimes_res_map: self.lifetimes_res_map.clone(),
             extra_lifetime_params_map: self.extra_lifetime_params_map.clone(),
-            next_node_id: self.next_node_id.clone(),
+            next_node_id: self.next_node_id,
             node_id_to_def_id: self.node_id_to_def_id.clone(),
             def_id_to_node_id: self.def_id_to_node_id.clone(),
             trait_map: self.trait_map.clone(),
             builtin_macro_kinds: self.builtin_macro_kinds.clone(),
             lifetime_elision_allowed: self.lifetime_elision_allowed.clone(),
         };
-        ResolverOutputs { definitions, global_ctxt, ast_lowering }
+        ResolverOutputs { global_ctxt, ast_lowering, untracked }
     }
 
     fn create_stable_hashing_context(&self) -> StableHashingContext<'_> {
-        StableHashingContext::new(
-            self.session,
-            &self.definitions,
-            self.crate_loader.cstore(),
-            &self.source_span,
+        StableHashingContext::new(self.session, &self.untracked)
+    }
+
+    pub fn crate_loader(&mut self) -> CrateLoader<'_> {
+        CrateLoader::new(
+            &self.session,
+            &*self.metadata_loader,
+            self.local_crate_name,
+            &mut *self.untracked.cstore.untracked_as_any().downcast_mut().unwrap(),
+            self.untracked.definitions.read(),
+            &mut self.used_extern_options,
         )
     }
 
     pub fn cstore(&self) -> &CStore {
-        self.crate_loader.cstore()
+        self.untracked.cstore.as_any().downcast_ref().unwrap()
     }
 
     fn dummy_ext(&self, macro_kind: MacroKind) -> Lrc<SyntaxExtension> {
@@ -1555,7 +1571,7 @@ impl<'a> Resolver<'a> {
             self.session.time("resolve_main", || self.resolve_main());
             self.session.time("resolve_check_unused", || self.check_unused(krate));
             self.session.time("resolve_report_errors", || self.report_errors(krate));
-            self.session.time("resolve_postprocess", || self.crate_loader.postprocess(krate));
+            self.session.time("resolve_postprocess", || self.crate_loader().postprocess(krate));
         });
     }
 
@@ -1681,6 +1697,24 @@ impl<'a> Resolver<'a> {
             .or_insert_with(|| self.arenas.alloc_name_resolution())
     }
 
+    /// Test if AmbiguityError ambi is any identical to any one inside ambiguity_errors
+    fn matches_previous_ambiguity_error(&mut self, ambi: &AmbiguityError<'_>) -> bool {
+        for ambiguity_error in &self.ambiguity_errors {
+            // if the span location and ident as well as its span are the same
+            if ambiguity_error.kind == ambi.kind
+                && ambiguity_error.ident == ambi.ident
+                && ambiguity_error.ident.span == ambi.ident.span
+                && ambiguity_error.b1.span == ambi.b1.span
+                && ambiguity_error.b2.span == ambi.b2.span
+                && ambiguity_error.misc1 == ambi.misc1
+                && ambiguity_error.misc2 == ambi.misc2
+            {
+                return true;
+            }
+        }
+        false
+    }
+
     fn record_use(
         &mut self,
         ident: Ident,
@@ -1688,14 +1722,18 @@ impl<'a> Resolver<'a> {
         is_lexical_scope: bool,
     ) {
         if let Some((b2, kind)) = used_binding.ambiguity {
-            self.ambiguity_errors.push(AmbiguityError {
+            let ambiguity_error = AmbiguityError {
                 kind,
                 ident,
                 b1: used_binding,
                 b2,
                 misc1: AmbiguityErrorMisc::None,
                 misc2: AmbiguityErrorMisc::None,
-            });
+            };
+            if !self.matches_previous_ambiguity_error(&ambiguity_error) {
+                // avoid dumplicated span information to be emitt out
+                self.ambiguity_errors.push(ambiguity_error);
+            }
         }
         if let NameBindingKind::Import { import, binding, ref used } = used_binding.kind {
             // Avoid marking `extern crate` items that refer to a name from extern prelude,
@@ -1873,10 +1911,10 @@ impl<'a> Resolver<'a> {
             } else {
                 let crate_id = if finalize {
                     let Some(crate_id) =
-                        self.crate_loader.process_path_extern(ident.name, ident.span) else { return Some(self.dummy_binding); };
+                        self.crate_loader().process_path_extern(ident.name, ident.span) else { return Some(self.dummy_binding); };
                     crate_id
                 } else {
-                    self.crate_loader.maybe_process_path_extern(ident.name)?
+                    self.crate_loader().maybe_process_path_extern(ident.name)?
                 };
                 let crate_root = self.expect_module(crate_id.as_def_id());
                 let vis = ty::Visibility::<LocalDefId>::Public;
@@ -1948,14 +1986,14 @@ impl<'a> Resolver<'a> {
     /// Retrieves the span of the given `DefId` if `DefId` is in the local crate.
     #[inline]
     pub fn opt_span(&self, def_id: DefId) -> Option<Span> {
-        def_id.as_local().map(|def_id| self.source_span[def_id])
+        def_id.as_local().map(|def_id| self.untracked.source_span[def_id])
     }
 
     /// Retrieves the name of the given `DefId`.
     #[inline]
     pub fn opt_name(&self, def_id: DefId) -> Option<Symbol> {
         let def_key = match def_id.as_local() {
-            Some(def_id) => self.definitions.def_key(def_id),
+            Some(def_id) => self.untracked.definitions.read().def_key(def_id),
             None => self.cstore().def_key(def_id),
         };
         def_key.get_opt_name()

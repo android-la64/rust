@@ -8,13 +8,16 @@ Arguments:
   [name]...  
 
 Options:
-  -h, --help     Print help information
-  -V, --version  Print version information
+  -h, --help     Print help
+  -V, --version  Print version
 
 $ 03_03_positional_mult
-name: None
+names: []
 
 $ 03_03_positional_mult bob
-name: Some("bob")
+names: ["bob"]
+
+$ 03_03_positional_mult bob john
+names: ["bob", "john"]
 
 ```

@@ -322,6 +322,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Add32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "1A12",
@@ -331,6 +332,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Add64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B9080045",
@@ -340,6 +342,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Add64Ext32,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B9180045",
@@ -349,6 +352,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::AddLogical32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "1E12",
@@ -358,6 +362,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::AddLogical64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B90A0045",
@@ -367,6 +372,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::AddLogical64Ext32,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B91A0045",
@@ -376,6 +382,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Sub32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "1B12",
@@ -385,6 +392,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Sub64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B9090045",
@@ -394,6 +402,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Sub64Ext32,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B9190045",
@@ -403,6 +412,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::SubLogical32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "1F12",
@@ -412,6 +422,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::SubLogical64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B90B0045",
@@ -421,6 +432,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::SubLogical64Ext32,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B91B0045",
@@ -430,6 +442,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Mul32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "B2520012",
@@ -439,6 +452,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Mul64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B90C0045",
@@ -448,6 +462,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Mul64Ext32,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B91C0045",
@@ -457,6 +472,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::And32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "1412",
@@ -466,6 +482,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::And64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B9800045",
@@ -475,6 +492,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Orr32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "1612",
@@ -484,6 +502,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B9810045",
@@ -493,6 +512,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Xor32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             rm: gpr(2),
         },
         "1712",
@@ -502,6 +522,7 @@ fn test_s390x_binemit() {
         Inst::AluRR {
             alu_op: ALUOp::Xor64,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rm: gpr(5),
         },
         "B9820045",
@@ -512,6 +533,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Add32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -526,6 +548,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Add32Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -540,6 +563,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Add32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -554,6 +578,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Add32Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -568,6 +593,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Add64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -582,6 +608,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Add64Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -596,6 +623,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Add64Ext32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -610,6 +638,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::AddLogical32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -624,6 +653,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::AddLogical32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -638,6 +668,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::AddLogical64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -652,6 +683,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::AddLogical64Ext32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -666,6 +698,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Sub32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -680,6 +713,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Sub32Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -694,6 +728,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Sub32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -708,6 +743,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Sub32Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -722,6 +758,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Sub64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -736,6 +773,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Sub64Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -750,6 +788,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Sub64Ext32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -764,6 +803,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::SubLogical32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -778,6 +818,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::SubLogical32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -792,6 +833,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::SubLogical64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -806,6 +848,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::SubLogical64Ext32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -820,6 +863,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Mul32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -834,6 +878,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Mul32Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -848,6 +893,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Mul32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -862,6 +908,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Mul32Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -876,6 +923,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Mul64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -890,6 +938,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Mul64Ext16,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -904,6 +953,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Mul64Ext32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -918,6 +968,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::And32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -932,6 +983,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::And32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -946,6 +998,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::And64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -960,6 +1013,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Orr32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -974,6 +1028,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Orr32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -988,6 +1043,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -1002,6 +1058,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Xor32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -1016,6 +1073,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Xor32,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD20 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -1030,6 +1088,7 @@ fn test_s390x_binemit() {
         Inst::AluRX {
             alu_op: ALUOp::Xor64,
             rd: writable_gpr(1),
+            ri: gpr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -1045,6 +1104,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Add32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -32768,
         },
         "A77A8000",
@@ -1054,6 +1114,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Add32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 32767,
         },
         "A77A7FFF",
@@ -1063,6 +1124,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Add64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -32768,
         },
         "A77B8000",
@@ -1072,6 +1134,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Add64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 32767,
         },
         "A77B7FFF",
@@ -1081,6 +1144,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Mul32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -32768,
         },
         "A77C8000",
@@ -1090,6 +1154,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Mul32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 32767,
         },
         "A77C7FFF",
@@ -1099,6 +1164,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Mul64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -32768,
         },
         "A77D8000",
@@ -1108,6 +1174,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm16 {
             alu_op: ALUOp::Mul64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 32767,
         },
         "A77D7FFF",
@@ -1118,6 +1185,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Add32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -2147483648,
         },
         "C27980000000",
@@ -1127,6 +1195,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Add32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 2147483647,
         },
         "C2797FFFFFFF",
@@ -1136,6 +1205,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Mul32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -2147483648,
         },
         "C27180000000",
@@ -1145,6 +1215,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Mul32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 2147483647,
         },
         "C2717FFFFFFF",
@@ -1154,6 +1225,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Add64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -2147483648,
         },
         "C27880000000",
@@ -1163,6 +1235,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Add64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 2147483647,
         },
         "C2787FFFFFFF",
@@ -1172,6 +1245,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Mul64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: -2147483648,
         },
         "C27080000000",
@@ -1181,6 +1255,7 @@ fn test_s390x_binemit() {
         Inst::AluRSImm32 {
             alu_op: ALUOp::Mul64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 2147483647,
         },
         "C2707FFFFFFF",
@@ -1191,6 +1266,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::AddLogical32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 0,
         },
         "C27B00000000",
@@ -1200,6 +1276,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::AddLogical32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 4294967295,
         },
         "C27BFFFFFFFF",
@@ -1209,6 +1286,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::SubLogical32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 0,
         },
         "C27500000000",
@@ -1218,6 +1296,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::SubLogical32,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 4294967295,
         },
         "C275FFFFFFFF",
@@ -1227,6 +1306,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::AddLogical64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 0,
         },
         "C27A00000000",
@@ -1236,6 +1316,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::AddLogical64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 4294967295,
         },
         "C27AFFFFFFFF",
@@ -1245,6 +1326,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::SubLogical64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 0,
         },
         "C27400000000",
@@ -1254,6 +1336,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32 {
             alu_op: ALUOp::SubLogical64,
             rd: writable_gpr(7),
+            ri: gpr(7),
             imm: 4294967295,
         },
         "C274FFFFFFFF",
@@ -1264,6 +1347,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::And32,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_ffff).unwrap(),
         },
         "A587FFFF",
@@ -1273,6 +1357,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::And32,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0xffff_0000).unwrap(),
         },
         "A586FFFF",
@@ -1282,6 +1367,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::And64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_0000_0000_ffff).unwrap(),
         },
         "A587FFFF",
@@ -1291,6 +1377,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::And64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_0000_ffff_0000).unwrap(),
         },
         "A586FFFF",
@@ -1300,6 +1387,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::And64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_ffff_0000_0000).unwrap(),
         },
         "A585FFFF",
@@ -1309,6 +1397,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::And64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0xffff_0000_0000_0000).unwrap(),
         },
         "A584FFFF",
@@ -1318,6 +1407,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::Orr32,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_ffff).unwrap(),
         },
         "A58BFFFF",
@@ -1327,6 +1417,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::Orr32,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0xffff_0000).unwrap(),
         },
         "A58AFFFF",
@@ -1336,6 +1427,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_0000_0000_ffff).unwrap(),
         },
         "A58BFFFF",
@@ -1345,6 +1437,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_0000_ffff_0000).unwrap(),
         },
         "A58AFFFF",
@@ -1354,6 +1447,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_ffff_0000_0000).unwrap(),
         },
         "A589FFFF",
@@ -1363,6 +1457,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm16Shifted {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0xffff_0000_0000_0000).unwrap(),
         },
         "A588FFFF",
@@ -1373,6 +1468,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::And32,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0xffff_ffff).unwrap(),
         },
         "C08BFFFFFFFF",
@@ -1382,6 +1478,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::And64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0x0000_0000_ffff_ffff).unwrap(),
         },
         "C08BFFFFFFFF",
@@ -1391,6 +1488,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::And64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0xffff_ffff_0000_0000).unwrap(),
         },
         "C08AFFFFFFFF",
@@ -1400,6 +1498,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::Orr32,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0xffff_ffff).unwrap(),
         },
         "C08DFFFFFFFF",
@@ -1409,6 +1508,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0x0000_0000_ffff_ffff).unwrap(),
         },
         "C08DFFFFFFFF",
@@ -1418,6 +1518,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::Orr64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0xffff_ffff_0000_0000).unwrap(),
         },
         "C08CFFFFFFFF",
@@ -1427,6 +1528,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::Xor32,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0xffff_ffff).unwrap(),
         },
         "C087FFFFFFFF",
@@ -1436,6 +1538,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::Xor64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0x0000_0000_ffff_ffff).unwrap(),
         },
         "C087FFFFFFFF",
@@ -1445,6 +1548,7 @@ fn test_s390x_binemit() {
         Inst::AluRUImm32Shifted {
             alu_op: ALUOp::Xor64,
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0xffff_ffff_0000_0000).unwrap(),
         },
         "C086FFFFFFFF",
@@ -2104,21 +2208,78 @@ fn test_s390x_binemit() {
         "clgite %r7, 65535",
     ));
 
+    let w_regpair = WritableRegPair {
+        hi: writable_gpr(2),
+        lo: writable_gpr(3),
+    };
+    let regpair = RegPair {
+        hi: gpr(2),
+        lo: gpr(3),
+    };
+
     insns.push((
         Inst::SMulWide {
+            rd: w_regpair,
             rn: gpr(5),
             rm: gpr(6),
         },
-        "B9EC6005",
-        "mgrk %r0, %r5, %r6",
+        "B9EC6025",
+        "mgrk %r2, %r5, %r6",
     ));
-    insns.push((Inst::UMulWide { rn: gpr(5) }, "B9860005", "mlgr %r0, %r5"));
-    insns.push((Inst::SDivMod32 { rn: gpr(5) }, "B91D0005", "dsgfr %r0, %r5"));
-    insns.push((Inst::SDivMod64 { rn: gpr(5) }, "B90D0005", "dsgr %r0, %r5"));
-    insns.push((Inst::UDivMod32 { rn: gpr(5) }, "B9970005", "dlr %r0, %r5"));
-    insns.push((Inst::UDivMod64 { rn: gpr(5) }, "B9870005", "dlgr %r0, %r5"));
+    insns.push((
+        Inst::UMulWide {
+            rd: w_regpair,
+            ri: gpr(3),
+            rn: gpr(5),
+        },
+        "B9860025",
+        "mlgr %r2, %r5",
+    ));
+    insns.push((
+        Inst::SDivMod32 {
+            rd: w_regpair,
+            ri: gpr(3),
+            rn: gpr(5),
+        },
+        "B91D0025",
+        "dsgfr %r2, %r5",
+    ));
+    insns.push((
+        Inst::SDivMod64 {
+            rd: w_regpair,
+            ri: gpr(3),
+            rn: gpr(5),
+        },
+        "B90D0025",
+        "dsgr %r2, %r5",
+    ));
+    insns.push((
+        Inst::UDivMod32 {
+            rd: w_regpair,
+            ri: regpair,
+            rn: gpr(5),
+        },
+        "B9970025",
+        "dlr %r2, %r5",
+    ));
+    insns.push((
+        Inst::UDivMod64 {
+            rd: w_regpair,
+            ri: regpair,
+            rn: gpr(5),
+        },
+        "B9870025",
+        "dlgr %r2, %r5",
+    ));
 
-    insns.push((Inst::Flogr { rn: gpr(5) }, "B9830005", "flogr %r0, %r5"));
+    insns.push((
+        Inst::Flogr {
+            rd: w_regpair,
+            rn: gpr(5),
+        },
+        "B9830025",
+        "flogr %r2, %r5",
+    ));
 
     insns.push((
         Inst::ShiftRR {
@@ -2477,6 +2638,7 @@ fn test_s390x_binemit() {
         Inst::RxSBG {
             op: RxSBGOp::Insert,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             start_bit: 8,
             end_bit: 32,
@@ -2489,6 +2651,7 @@ fn test_s390x_binemit() {
         Inst::RxSBG {
             op: RxSBGOp::And,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             start_bit: 8,
             end_bit: 32,
@@ -2501,6 +2664,7 @@ fn test_s390x_binemit() {
         Inst::RxSBG {
             op: RxSBGOp::Or,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             start_bit: 8,
             end_bit: 32,
@@ -2513,6 +2677,7 @@ fn test_s390x_binemit() {
         Inst::RxSBG {
             op: RxSBGOp::Xor,
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             start_bit: 8,
             end_bit: 32,
@@ -3161,6 +3326,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD12 {
                 base: zero_reg(),
@@ -3175,6 +3341,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD12 {
                 base: zero_reg(),
@@ -3189,6 +3356,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: zero_reg(),
@@ -3203,6 +3371,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: zero_reg(),
@@ -3217,6 +3386,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD12 {
                 base: gpr(6),
@@ -3231,6 +3401,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD12 {
                 base: gpr(6),
@@ -3245,6 +3416,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: gpr(6),
@@ -3259,6 +3431,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas32 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: gpr(6),
@@ -3273,6 +3446,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas64 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: zero_reg(),
@@ -3287,6 +3461,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas64 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: zero_reg(),
@@ -3301,6 +3476,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas64 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: gpr(6),
@@ -3315,6 +3491,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::AtomicCas64 {
             rd: writable_gpr(4),
+            ri: gpr(4),
             rn: gpr(5),
             mem: MemArg::BXD20 {
                 base: gpr(6),
@@ -6347,6 +6524,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::Insert64UImm16Shifted {
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_0000_0000_ffff).unwrap(),
         },
         "A583FFFF",
@@ -6355,6 +6533,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::Insert64UImm16Shifted {
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_0000_ffff_0000).unwrap(),
         },
         "A582FFFF",
@@ -6363,6 +6542,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::Insert64UImm16Shifted {
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0x0000_ffff_0000_0000).unwrap(),
         },
         "A581FFFF",
@@ -6371,6 +6551,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::Insert64UImm16Shifted {
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm16Shifted::maybe_from_u64(0xffff_0000_0000_0000).unwrap(),
         },
         "A580FFFF",
@@ -6379,6 +6560,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::Insert64UImm32Shifted {
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0x0000_0000_ffff_ffff).unwrap(),
         },
         "C089FFFFFFFF",
@@ -6387,6 +6569,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::Insert64UImm32Shifted {
             rd: writable_gpr(8),
+            ri: gpr(8),
             imm: UImm32Shifted::maybe_from_u64(0xffff_ffff_0000_0000).unwrap(),
         },
         "C088FFFFFFFF",
@@ -6397,6 +6580,7 @@ fn test_s390x_binemit() {
         Inst::CMov32 {
             rd: writable_gpr(8),
             cond: Cond::from_mask(1),
+            ri: gpr(8),
             rm: gpr(9),
         },
         "B9F21089",
@@ -6406,6 +6590,7 @@ fn test_s390x_binemit() {
         Inst::CMov64 {
             rd: writable_gpr(8),
             cond: Cond::from_mask(1),
+            ri: gpr(8),
             rm: gpr(9),
         },
         "B9E21089",
@@ -6417,6 +6602,7 @@ fn test_s390x_binemit() {
             rd: writable_gpr(8),
             cond: Cond::from_mask(1),
             imm: -32768,
+            ri: gpr(8),
         },
         "EC8180000042",
         "lochio %r8, -32768",
@@ -6426,6 +6612,7 @@ fn test_s390x_binemit() {
             rd: writable_gpr(8),
             cond: Cond::from_mask(1),
             imm: 32767,
+            ri: gpr(8),
         },
         "EC817FFF0042",
         "lochio %r8, 32767",
@@ -6435,6 +6622,7 @@ fn test_s390x_binemit() {
             rd: writable_gpr(8),
             cond: Cond::from_mask(1),
             imm: -32768,
+            ri: gpr(8),
         },
         "EC8180000046",
         "locghio %r8, -32768",
@@ -6444,6 +6632,7 @@ fn test_s390x_binemit() {
             rd: writable_gpr(8),
             cond: Cond::from_mask(1),
             imm: 32767,
+            ri: gpr(8),
         },
         "EC817FFF0046",
         "locghio %r8, 32767",
@@ -6892,6 +7081,7 @@ fn test_s390x_binemit() {
                 },
                 Inst::AtomicCas32 {
                     rd: writable_gpr(4),
+                    ri: gpr(4),
                     rn: gpr(5),
                     mem: MemArg::BXD12 {
                         base: gpr(6),
@@ -6942,6 +7132,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::FpuCMov32 {
             rd: writable_vr(8),
+            ri: vr(8),
             rm: vr(4),
             cond: Cond::from_mask(1),
         },
@@ -6951,6 +7142,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::FpuCMov32 {
             rd: writable_vr(8),
+            ri: vr(8),
             rm: vr(20),
             cond: Cond::from_mask(1),
         },
@@ -6960,6 +7152,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::FpuCMov64 {
             rd: writable_vr(8),
+            ri: vr(8),
             rm: vr(4),
             cond: Cond::from_mask(1),
         },
@@ -6969,6 +7162,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::FpuCMov64 {
             rd: writable_vr(8),
+            ri: vr(8),
             rm: vr(20),
             cond: Cond::from_mask(1),
         },
@@ -10747,6 +10941,7 @@ fn test_s390x_binemit() {
     insns.push((
         Inst::VecCMov {
             rd: writable_vr(8),
+            ri: vr(8),
             rm: vr(20),
             cond: Cond::from_mask(1),
         },
@@ -10878,6 +11073,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 8,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -10893,6 +11089,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 8,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -10908,6 +11105,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 8,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -10923,6 +11121,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 8,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -10938,6 +11137,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 16,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -10953,6 +11153,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 16,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -10968,6 +11169,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 16,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -10983,6 +11185,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 16,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -10998,6 +11201,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 32,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -11013,6 +11217,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 32,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -11028,6 +11233,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 32,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -11043,6 +11249,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 32,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -11058,6 +11265,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 64,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -11073,6 +11281,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 64,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -11088,6 +11297,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 64,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -11103,6 +11313,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLane {
             size: 64,
             rd: writable_vr(17),
+            ri: vr(17),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -11958,6 +12169,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 16,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -11973,6 +12185,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 16,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -11988,6 +12201,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 16,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -12003,6 +12217,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 16,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -12018,6 +12233,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 32,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -12033,6 +12249,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 32,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -12048,6 +12265,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 32,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -12063,6 +12281,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 32,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -12078,6 +12297,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 64,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -12093,6 +12313,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 64,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(2),
                 index: zero_reg(),
@@ -12108,6 +12329,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 64,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -12123,6 +12345,7 @@ fn test_s390x_binemit() {
         Inst::VecLoadLaneRev {
             size: 64,
             rd: writable_vr(1),
+            ri: vr(1),
             mem: MemArg::BXD12 {
                 base: gpr(3),
                 index: gpr(2),
@@ -12679,6 +12902,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 8,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: zero_reg(),
@@ -12690,6 +12914,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 8,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 255,
             lane_reg: zero_reg(),
@@ -12701,6 +12926,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 8,
             rd: writable_vr(24),
+            ri: vr(24),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: gpr(3),
@@ -12712,6 +12938,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 16,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: zero_reg(),
@@ -12723,6 +12950,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 16,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 255,
             lane_reg: zero_reg(),
@@ -12734,6 +12962,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 16,
             rd: writable_vr(24),
+            ri: vr(24),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: gpr(3),
@@ -12745,6 +12974,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 32,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: zero_reg(),
@@ -12756,6 +12986,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 32,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 255,
             lane_reg: zero_reg(),
@@ -12767,6 +12998,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 32,
             rd: writable_vr(24),
+            ri: vr(24),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: gpr(3),
@@ -12778,6 +13010,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 64,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: zero_reg(),
@@ -12789,6 +13022,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 64,
             rd: writable_vr(8),
+            ri: vr(8),
             rn: gpr(4),
             lane_imm: 255,
             lane_reg: zero_reg(),
@@ -12800,6 +13034,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLane {
             size: 64,
             rd: writable_vr(24),
+            ri: vr(24),
             rn: gpr(4),
             lane_imm: 0,
             lane_reg: gpr(3),
@@ -13064,6 +13299,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLaneImm {
             size: 8,
             rd: writable_vr(20),
+            ri: vr(20),
             imm: 0x1234,
             lane_imm: 15,
         },
@@ -13074,6 +13310,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLaneImm {
             size: 16,
             rd: writable_vr(20),
+            ri: vr(20),
             imm: 0x1234,
             lane_imm: 7,
         },
@@ -13084,6 +13321,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLaneImm {
             size: 32,
             rd: writable_vr(20),
+            ri: vr(20),
             imm: 0x1234,
             lane_imm: 3,
         },
@@ -13094,6 +13332,7 @@ fn test_s390x_binemit() {
         Inst::VecInsertLaneImm {
             size: 64,
             rd: writable_vr(20),
+            ri: vr(20),
             imm: 0x1234,
             lane_imm: 1,
         },

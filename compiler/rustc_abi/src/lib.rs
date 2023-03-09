@@ -1,6 +1,5 @@
 #![cfg_attr(feature = "nightly", feature(step_trait, rustc_attrs, min_specialization))]
 
-use std::convert::{TryFrom, TryInto};
 use std::fmt;
 #[cfg(feature = "nightly")]
 use std::iter::Step;
@@ -775,6 +774,18 @@ impl Integer {
         }
     }
 
+    /// Returns the largest signed value that can be represented by this Integer.
+    #[inline]
+    pub fn signed_max(self) -> i128 {
+        match self {
+            I8 => i8::MAX as i128,
+            I16 => i16::MAX as i128,
+            I32 => i32::MAX as i128,
+            I64 => i64::MAX as i128,
+            I128 => i128::MAX,
+        }
+    }
+
     /// Finds the smallest Integer type which can represent the signed value.
     #[inline]
     pub fn fit_signed(x: i128) -> Integer {
@@ -803,12 +814,9 @@ impl Integer {
     pub fn for_align<C: HasDataLayout>(cx: &C, wanted: Align) -> Option<Integer> {
         let dl = cx.data_layout();
 
-        for candidate in [I8, I16, I32, I64, I128] {
-            if wanted == candidate.align(dl).abi && wanted.bytes() == candidate.size().bytes() {
-                return Some(candidate);
-            }
-        }
-        None
+        [I8, I16, I32, I64, I128].into_iter().find(|&candidate| {
+            wanted == candidate.align(dl).abi && wanted.bytes() == candidate.size().bytes()
+        })
     }
 
     /// Find the largest integer with the given alignment or less.
@@ -1092,7 +1100,7 @@ pub enum FieldsShape {
         /// named `inverse_memory_index`.
         ///
         // FIXME(eddyb) build a better abstraction for permutations, if possible.
-        // FIXME(camlorn) also consider small vector  optimization here.
+        // FIXME(camlorn) also consider small vector optimization here.
         memory_index: Vec<u32>,
     },
 }
@@ -1255,8 +1263,8 @@ pub enum Variants<V: Idx> {
 
     /// Enum-likes with more than one inhabited variant: each variant comes with
     /// a *discriminant* (usually the same as the variant index but the user can
-    /// assign explicit discriminant values).  That discriminant is encoded
-    /// as a *tag* on the machine.  The layout of each variant is
+    /// assign explicit discriminant values). That discriminant is encoded
+    /// as a *tag* on the machine. The layout of each variant is
     /// a struct, and they all have space reserved for the tag.
     /// For enums, the tag is the sole field of the layout.
     Multiple {

@@ -1,9 +1,7 @@
 //! This module defines aarch64-specific machine instruction types.
 
 use crate::binemit::{Addend, CodeOffset, Reloc};
-use crate::ir::types::{
-    B1, B128, B16, B32, B64, B8, F32, F64, FFLAGS, I128, I16, I32, I64, I8, I8X16, IFLAGS, R32, R64,
-};
+use crate::ir::types::{F32, F64, FFLAGS, I128, I16, I32, I64, I8, I8X16, IFLAGS, R32, R64};
 use crate::ir::{types, ExternalName, MemFlags, Opcode, Type};
 use crate::isa::CallConv;
 use crate::machinst::*;
@@ -36,10 +34,10 @@ mod emit_tests;
 // Instructions (top level): definition
 
 pub use crate::isa::aarch64::lower::isle::generated_code::{
-    ALUOp, ALUOp3, AMode, APIKey, AtomicRMWLoopOp, AtomicRMWOp, BitOp, FPUOp1, FPUOp2, FPUOp3,
-    FpuRoundMode, FpuToIntOp, IntToFpuOp, MInst as Inst, MoveWideOp, VecALUModOp, VecALUOp,
-    VecExtendOp, VecLanesOp, VecMisc2, VecPairOp, VecRRLongOp, VecRRNarrowOp, VecRRPairLongOp,
-    VecRRRLongModOp, VecRRRLongOp, VecShiftImmModOp, VecShiftImmOp,
+    ALUOp, ALUOp3, AMode, APIKey, AtomicRMWLoopOp, AtomicRMWOp, BitOp, BranchTargetType, FPUOp1,
+    FPUOp2, FPUOp3, FpuRoundMode, FpuToIntOp, IntToFpuOp, MInst as Inst, MoveWideOp, VecALUModOp,
+    VecALUOp, VecExtendOp, VecLanesOp, VecMisc2, VecPairOp, VecRRLongOp, VecRRNarrowOp,
+    VecRRPairLongOp, VecRRRLongModOp, VecRRRLongOp, VecShiftImmModOp, VecShiftImmOp,
 };
 
 /// A floating-point unit (FPU) operation with two args, a register and an immediate.
@@ -69,6 +67,9 @@ impl BitOp {
             BitOp::RBit => "rbit",
             BitOp::Clz => "clz",
             BitOp::Cls => "cls",
+            BitOp::Rev16 => "rev16",
+            BitOp::Rev32 => "rev32",
+            BitOp::Rev64 => "rev64",
         }
     }
 }
@@ -78,8 +79,8 @@ impl BitOp {
 #[derive(Clone, Debug)]
 pub struct CallInfo {
     pub dest: ExternalName,
-    pub uses: SmallVec<[Reg; 8]>,
-    pub defs: SmallVec<[Writable<Reg>; 8]>,
+    pub uses: CallArgList,
+    pub defs: CallRetList,
     pub clobbers: PRegSet,
     pub opcode: Opcode,
     pub caller_callconv: CallConv,
@@ -91,8 +92,8 @@ pub struct CallInfo {
 #[derive(Clone, Debug)]
 pub struct CallIndInfo {
     pub rn: Reg,
-    pub uses: SmallVec<[Reg; 8]>,
-    pub defs: SmallVec<[Writable<Reg>; 8]>,
+    pub uses: SmallVec<[CallArgPair; 8]>,
+    pub defs: SmallVec<[CallRetPair; 8]>,
     pub clobbers: PRegSet,
     pub opcode: Opcode,
     pub caller_callconv: CallConv,
@@ -440,22 +441,22 @@ impl Inst {
     /// Generic constructor for a load (zero-extending where appropriate).
     pub fn gen_load(into_reg: Writable<Reg>, mem: AMode, ty: Type, flags: MemFlags) -> Inst {
         match ty {
-            B1 | B8 | I8 => Inst::ULoad8 {
+            I8 => Inst::ULoad8 {
                 rd: into_reg,
                 mem,
                 flags,
             },
-            B16 | I16 => Inst::ULoad16 {
+            I16 => Inst::ULoad16 {
                 rd: into_reg,
                 mem,
                 flags,
             },
-            B32 | I32 | R32 => Inst::ULoad32 {
+            I32 | R32 => Inst::ULoad32 {
                 rd: into_reg,
                 mem,
                 flags,
             },
-            B64 | I64 | R64 => Inst::ULoad64 {
+            I64 | R64 => Inst::ULoad64 {
                 rd: into_reg,
                 mem,
                 flags,
@@ -491,22 +492,22 @@ impl Inst {
     /// Generic constructor for a store.
     pub fn gen_store(mem: AMode, from_reg: Reg, ty: Type, flags: MemFlags) -> Inst {
         match ty {
-            B1 | B8 | I8 => Inst::Store8 {
+            I8 => Inst::Store8 {
                 rd: from_reg,
                 mem,
                 flags,
             },
-            B16 | I16 => Inst::Store16 {
+            I16 => Inst::Store16 {
                 rd: from_reg,
                 mem,
                 flags,
             },
-            B32 | I32 | R32 => Inst::Store32 {
+            I32 | R32 => Inst::Store32 {
                 rd: from_reg,
                 mem,
                 flags,
             },
-            B64 | I64 | R64 => Inst::Store64 {
+            I64 | R64 => Inst::Store64 {
                 rd: from_reg,
                 mem,
                 flags,
@@ -1015,6 +1016,11 @@ fn aarch64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
             collector.reg_def(rd);
             collector.reg_use(rn);
         }
+        &Inst::Args { ref args } => {
+            for arg in args {
+                collector.reg_fixed_def(arg.vreg, arg.preg);
+            }
+        }
         &Inst::Ret { ref rets } | &Inst::AuthenticatedRet { ref rets, .. } => {
             for &ret in rets {
                 collector.reg_use(ret);
@@ -1022,14 +1028,22 @@ fn aarch64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
         }
         &Inst::Jump { .. } => {}
         &Inst::Call { ref info, .. } => {
-            collector.reg_uses(&info.uses[..]);
-            collector.reg_defs(&info.defs[..]);
+            for u in &info.uses {
+                collector.reg_fixed_use(u.vreg, u.preg);
+            }
+            for d in &info.defs {
+                collector.reg_fixed_def(d.vreg, d.preg);
+            }
             collector.reg_clobbers(info.clobbers);
         }
         &Inst::CallInd { ref info, .. } => {
             collector.reg_use(info.rn);
-            collector.reg_uses(&info.uses[..]);
-            collector.reg_defs(&info.defs[..]);
+            for u in &info.uses {
+                collector.reg_fixed_use(u.vreg, u.preg);
+            }
+            for d in &info.defs {
+                collector.reg_fixed_def(d.vreg, d.preg);
+            }
             collector.reg_clobbers(info.clobbers);
         }
         &Inst::CondBr { ref kind, .. } => match kind {
@@ -1072,6 +1086,7 @@ fn aarch64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
             // Neither LR nor SP is an allocatable register, so there is no need
             // to do anything.
         }
+        &Inst::Bti { .. } => {}
         &Inst::VirtualSPOffsetAdj { .. } => {}
 
         &Inst::ElfTlsGetAddr { rd, .. } => {
@@ -1127,6 +1142,13 @@ impl MachInst for Inst {
             &Inst::Call { ref info } => info.caller_callconv != info.callee_callconv,
             &Inst::CallInd { ref info } => info.caller_callconv != info.callee_callconv,
             _ => true,
+        }
+    }
+
+    fn is_args(&self) -> bool {
+        match self {
+            Self::Args { .. } => true,
+            _ => false,
         }
     }
 
@@ -1188,9 +1210,7 @@ impl MachInst for Inst {
         match ty {
             F64 => Inst::load_fp_constant64(to_reg.unwrap(), value as u64, alloc_tmp),
             F32 => Inst::load_fp_constant32(to_reg.unwrap(), value as u32, alloc_tmp),
-            B1 | B8 | B16 | B32 | B64 | I8 | I16 | I32 | I64 | R32 | R64 => {
-                Inst::load_constant(to_reg.unwrap(), value as u64)
-            }
+            I8 | I16 | I32 | I64 | R32 | R64 => Inst::load_constant(to_reg.unwrap(), value as u64),
             I128 => Inst::load_constant128(to_regs, value),
             _ => panic!("Cannot generate constant for type: {}", ty),
         }
@@ -1215,17 +1235,11 @@ impl MachInst for Inst {
             I16 => Ok((&[RegClass::Int], &[I16])),
             I32 => Ok((&[RegClass::Int], &[I32])),
             I64 => Ok((&[RegClass::Int], &[I64])),
-            B1 => Ok((&[RegClass::Int], &[B1])),
-            B8 => Ok((&[RegClass::Int], &[B8])),
-            B16 => Ok((&[RegClass::Int], &[B16])),
-            B32 => Ok((&[RegClass::Int], &[B32])),
-            B64 => Ok((&[RegClass::Int], &[B64])),
             R32 => panic!("32-bit reftype pointer should never be seen on AArch64"),
             R64 => Ok((&[RegClass::Int], &[R64])),
             F32 => Ok((&[RegClass::Float], &[F32])),
             F64 => Ok((&[RegClass::Float], &[F64])),
             I128 => Ok((&[RegClass::Int, RegClass::Int], &[I64, I64])),
-            B128 => Ok((&[RegClass::Int, RegClass::Int], &[B64, B64])),
             _ if ty.is_vector() => {
                 assert!(ty.bits() <= 128);
                 Ok((&[RegClass::Float], &[I8X16]))
@@ -1265,6 +1279,19 @@ impl MachInst for Inst {
 
     fn ref_type_regclass(_: &settings::Flags) -> RegClass {
         RegClass::Int
+    }
+
+    fn gen_block_start(
+        is_indirect_branch_target: bool,
+        is_forward_edge_cfi_enabled: bool,
+    ) -> Option<Self> {
+        if is_indirect_branch_target && is_forward_edge_cfi_enabled {
+            Some(Inst::Bti {
+                targets: BranchTargetType::J,
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -2618,6 +2645,16 @@ impl Inst {
                 let rn = pretty_print_reg(info.rn, allocs);
                 format!("blr {}", rn)
             }
+            &Inst::Args { ref args } => {
+                let mut s = "args".to_string();
+                for arg in args {
+                    use std::fmt::Write;
+                    let preg = pretty_print_reg(arg.preg, &mut empty_allocs);
+                    let def = pretty_print_reg(arg.vreg.to_reg(), allocs);
+                    write!(&mut s, " {}={}", def, preg).unwrap();
+                }
+                s
+            }
             &Inst::Ret { .. } => "ret".to_string(),
             &Inst::AuthenticatedRet { key, is_hint, .. } => {
                 let key = match key {
@@ -2700,7 +2737,7 @@ impl Inst {
                         "csel {}, xzr, {}, hs ; ",
                         "csdb ; ",
                         "adr {}, pc+16 ; ",
-                        "ldrsw {}, [{}, {}, LSL 2] ; ",
+                        "ldrsw {}, [{}, {}, uxtw #2] ; ",
                         "add {}, {}, {} ; ",
                         "br {} ; ",
                         "jt_entries {:?}"
@@ -2812,6 +2849,16 @@ impl Inst {
                 "paci".to_string() + key + "sp"
             }
             &Inst::Xpaclri => "xpaclri".to_string(),
+            &Inst::Bti { targets } => {
+                let targets = match targets {
+                    BranchTargetType::None => "",
+                    BranchTargetType::C => " c",
+                    BranchTargetType::J => " j",
+                    BranchTargetType::JC => " jc",
+                };
+
+                "bti".to_string() + targets
+            }
             &Inst::VirtualSPOffsetAdj { offset } => {
                 state.virtual_sp_offset += offset;
                 format!("virtual_sp_offset_adjust {}", offset)

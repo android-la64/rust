@@ -1,7 +1,7 @@
 //! This module defines x86_64-specific machine instruction types.
 
 use crate::binemit::{Addend, CodeOffset, Reloc, StackMap};
-use crate::ir::{types, ExternalName, Opcode, RelSourceLoc, TrapCode, Type};
+use crate::ir::{types, ExternalName, LibCall, Opcode, RelSourceLoc, TrapCode, Type};
 use crate::isa::x64::abi::X64ABIMachineSpec;
 use crate::isa::x64::inst::regs::pretty_print_reg;
 use crate::isa::x64::settings as x64_settings;
@@ -34,9 +34,9 @@ pub use super::lower::isle::generated_code::MInst as Inst;
 #[derive(Clone, Debug)]
 pub struct CallInfo {
     /// Register uses of this call.
-    pub uses: SmallVec<[Reg; 8]>,
+    pub uses: CallArgList,
     /// Register defs of this call.
-    pub defs: SmallVec<[Writable<Reg>; 8]>,
+    pub defs: CallRetList,
     /// Registers clobbered by this call, as per its calling convention.
     pub clobbers: PRegSet,
     /// The opcode of this call.
@@ -48,7 +48,7 @@ pub struct CallInfo {
 fn inst_size_test() {
     // This test will help with unintentionally growing the size
     // of the Inst enum.
-    assert_eq!(48, std::mem::size_of::<Inst>());
+    assert_eq!(40, std::mem::size_of::<Inst>());
 }
 
 pub(crate) fn low32_will_sign_extend_to_64(x: u64) -> bool {
@@ -68,6 +68,7 @@ impl Inst {
             Inst::AluRmiR { .. }
             | Inst::AluRM { .. }
             | Inst::AtomicRmwSeq { .. }
+            | Inst::Bswap { .. }
             | Inst::CallKnown { .. }
             | Inst::CallUnknown { .. }
             | Inst::CheckedDivOrRemSeq { .. }
@@ -101,6 +102,7 @@ impl Inst {
             | Inst::Pop64 { .. }
             | Inst::Push64 { .. }
             | Inst::StackProbeLoop { .. }
+            | Inst::Args { .. }
             | Inst::Ret { .. }
             | Inst::Setcc { .. }
             | Inst::ShiftR { .. }
@@ -112,7 +114,6 @@ impl Inst {
             | Inst::VirtualSPOffsetAdj { .. }
             | Inst::XmmCmove { .. }
             | Inst::XmmCmpRmR { .. }
-            | Inst::XmmLoadConst { .. }
             | Inst::XmmMinMaxSeq { .. }
             | Inst::XmmUninitializedValue { .. }
             | Inst::ElfTlsGetAddr { .. }
@@ -490,8 +491,8 @@ impl Inst {
 
     pub(crate) fn call_known(
         dest: ExternalName,
-        uses: SmallVec<[Reg; 8]>,
-        defs: SmallVec<[Writable<Reg>; 8]>,
+        uses: CallArgList,
+        defs: CallRetList,
         clobbers: PRegSet,
         opcode: Opcode,
     ) -> Inst {
@@ -508,8 +509,8 @@ impl Inst {
 
     pub(crate) fn call_unknown(
         dest: RegMem,
-        uses: SmallVec<[Reg; 8]>,
-        defs: SmallVec<[Writable<Reg>; 8]>,
+        uses: CallArgList,
+        defs: CallRetList,
         clobbers: PRegSet,
         opcode: Opcode,
     ) -> Inst {
@@ -1081,11 +1082,6 @@ impl PrettyPrint for Inst {
                 format!("{} {}", ljustify("uninit".into()), dst)
             }
 
-            Inst::XmmLoadConst { src, dst, .. } => {
-                let dst = pretty_print_reg(dst.to_reg(), 8, allocs);
-                format!("load_const {:?}, {}", src, dst)
-            }
-
             Inst::XmmToGpr {
                 op,
                 src,
@@ -1378,6 +1374,17 @@ impl PrettyPrint for Inst {
                 format!("{} {}", ljustify2("set".to_string(), cc.to_string()), dst)
             }
 
+            Inst::Bswap { size, src, dst } => {
+                let src = pretty_print_reg(src.to_reg(), size.to_bytes(), allocs);
+                let dst = pretty_print_reg(dst.to_reg().to_reg(), size.to_bytes(), allocs);
+                format!(
+                    "{} {}, {}",
+                    ljustify2("bswap".to_string(), suffix_bwlq(*size)),
+                    src,
+                    dst
+                )
+            }
+
             Inst::Cmove {
                 size,
                 cc,
@@ -1451,11 +1458,24 @@ impl PrettyPrint for Inst {
                 format!("{} {}", ljustify("popq".to_string()), dst)
             }
 
-            Inst::CallKnown { dest, .. } => format!("{} {:?}", ljustify("call".to_string()), dest),
+            Inst::CallKnown { dest, .. } => {
+                format!("{} {:?}", ljustify("call".to_string()), dest)
+            }
 
             Inst::CallUnknown { dest, .. } => {
                 let dest = dest.pretty_print(8, allocs);
                 format!("{} *{}", ljustify("call".to_string()), dest)
+            }
+
+            Inst::Args { args } => {
+                let mut s = "args".to_string();
+                for arg in args {
+                    use std::fmt::Write;
+                    let preg = regs::show_reg(arg.preg);
+                    let def = pretty_print_reg(arg.vreg.to_reg(), 8, allocs);
+                    write!(&mut s, " {}={}", def, preg).unwrap();
+                }
+                s
             }
 
             Inst::Ret { .. } => "ret".to_string(),
@@ -1830,7 +1850,6 @@ fn x64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandCol
             }
         }
         Inst::XmmUninitializedValue { dst } => collector.reg_def(dst.to_writable_reg()),
-        Inst::XmmLoadConst { dst, .. } => collector.reg_def(*dst),
         Inst::XmmMinMaxSeq { lhs, rhs, dst, .. } => {
             collector.reg_use(rhs.to_reg());
             collector.reg_use(lhs.to_reg());
@@ -1946,6 +1965,10 @@ fn x64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandCol
         Inst::Setcc { dst, .. } => {
             collector.reg_def(dst.to_writable_reg());
         }
+        Inst::Bswap { src, dst, .. } => {
+            collector.reg_use(src.to_reg());
+            collector.reg_reuse_def(dst.to_writable_reg(), 0);
+        }
         Inst::Cmove {
             consequent,
             alternative,
@@ -1976,23 +1999,28 @@ fn x64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandCol
             collector.reg_early_def(*tmp);
         }
 
-        Inst::CallKnown { ref info, .. } => {
-            for &u in &info.uses {
-                collector.reg_use(u);
+        Inst::CallKnown { dest, ref info, .. } => {
+            // Probestack is special and is only inserted after
+            // regalloc, so we do not need to represent its ABI to the
+            // register allocator. Assert that we don't alter that
+            // arrangement.
+            debug_assert_ne!(*dest, ExternalName::LibCall(LibCall::Probestack));
+            for u in &info.uses {
+                collector.reg_fixed_use(u.vreg, u.preg);
             }
-            for &d in &info.defs {
-                collector.reg_def(d);
+            for d in &info.defs {
+                collector.reg_fixed_def(d.vreg, d.preg);
             }
             collector.reg_clobbers(info.clobbers);
         }
 
         Inst::CallUnknown { ref info, dest, .. } => {
             dest.get_operands(collector);
-            for &u in &info.uses {
-                collector.reg_use(u);
+            for u in &info.uses {
+                collector.reg_fixed_use(u.vreg, u.preg);
             }
-            for &d in &info.defs {
-                collector.reg_def(d);
+            for d in &info.defs {
+                collector.reg_fixed_def(d.vreg, d.preg);
             }
             collector.reg_clobbers(info.clobbers);
         }
@@ -2042,6 +2070,12 @@ fn x64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandCol
             // register implicitly.
             collector.reg_fixed_def(*dst_old, regs::rax());
             mem.get_operands_late(collector)
+        }
+
+        Inst::Args { args } => {
+            for arg in args {
+                collector.reg_fixed_def(arg.vreg, arg.preg);
+            }
         }
 
         Inst::Ret { rets } => {
@@ -2141,6 +2175,13 @@ impl MachInst for Inst {
         }
     }
 
+    fn is_args(&self) -> bool {
+        match self {
+            Self::Args { .. } => true,
+            _ => false,
+        }
+    }
+
     fn is_term(&self) -> MachTerminator {
         match self {
             // Interesting cases.
@@ -2192,17 +2233,11 @@ impl MachInst for Inst {
             types::I16 => Ok((&[RegClass::Int], &[types::I16])),
             types::I32 => Ok((&[RegClass::Int], &[types::I32])),
             types::I64 => Ok((&[RegClass::Int], &[types::I64])),
-            types::B1 => Ok((&[RegClass::Int], &[types::B1])),
-            types::B8 => Ok((&[RegClass::Int], &[types::B8])),
-            types::B16 => Ok((&[RegClass::Int], &[types::B16])),
-            types::B32 => Ok((&[RegClass::Int], &[types::B32])),
-            types::B64 => Ok((&[RegClass::Int], &[types::B64])),
             types::R32 => panic!("32-bit reftype pointer should never be seen on x86-64"),
             types::R64 => Ok((&[RegClass::Int], &[types::R64])),
             types::F32 => Ok((&[RegClass::Float], &[types::F32])),
             types::F64 => Ok((&[RegClass::Float], &[types::F64])),
             types::I128 => Ok((&[RegClass::Int, RegClass::Int], &[types::I64, types::I64])),
-            types::B128 => Ok((&[RegClass::Int, RegClass::Int], &[types::B64, types::B64])),
             _ if ty.is_vector() => {
                 assert!(ty.bits() <= 128);
                 Ok((&[RegClass::Float], &[types::I8X16]))
@@ -2301,15 +2336,10 @@ impl MachInst for Inst {
             } else {
                 // Must be an integer type.
                 debug_assert!(
-                    ty == types::B1
-                        || ty == types::I8
-                        || ty == types::B8
+                    ty == types::I8
                         || ty == types::I16
-                        || ty == types::B16
                         || ty == types::I32
-                        || ty == types::B32
                         || ty == types::I64
-                        || ty == types::B64
                         || ty == types::R32
                         || ty == types::R64
                 );

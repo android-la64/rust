@@ -71,10 +71,8 @@ impl<'a, 'tcx> InteriorVisitor<'a, 'tcx> {
                                 yield_data.expr_and_pat_count, self.expr_count, source_span
                             );
 
-                            if self.fcx.sess().opts.unstable_opts.drop_tracking
-                                && self
-                                    .drop_ranges
-                                    .is_dropped_at(hir_id, yield_data.expr_and_pat_count)
+                            if self
+                                .is_dropped_at_yield_location(hir_id, yield_data.expr_and_pat_count)
                             {
                                 debug!("value is dropped at yield point; not recording");
                                 return false;
@@ -172,6 +170,18 @@ impl<'a, 'tcx> InteriorVisitor<'a, 'tcx> {
                 self.prev_unresolved_span = unresolved_type_span;
             }
         }
+    }
+
+    /// If drop tracking is enabled, consult drop_ranges to see if a value is
+    /// known to be dropped at a yield point and therefore can be omitted from
+    /// the generator witness.
+    fn is_dropped_at_yield_location(&self, value_hir_id: HirId, yield_location: usize) -> bool {
+        // short-circuit if drop tracking is not enabled.
+        if !self.fcx.sess().opts.unstable_opts.drop_tracking {
+            return false;
+        }
+
+        self.drop_ranges.is_dropped_at(value_hir_id, yield_location)
     }
 }
 
@@ -448,7 +458,7 @@ impl<'a, 'tcx> Visitor<'tcx> for InteriorVisitor<'a, 'tcx> {
         // the yield, even if it's not borrowed or referenced after the yield. Ideally this would
         // *only* happen for types with observable drop, not all types which wrap them, but that
         // doesn't match the behavior of MIR borrowck and causes ICEs. See the FIXME comment in
-        // src/test/ui/generator/drop-tracking-parent-expression.rs.
+        // tests/ui/generator/drop-tracking-parent-expression.rs.
         let scope = if self.drop_ranges.is_borrowed_temporary(expr)
             || ty.map_or(true, |ty| {
                 // Avoid ICEs in needs_drop.
@@ -563,7 +573,7 @@ fn check_must_not_suspend_ty<'tcx>(
         }
         ty::Adt(def, _) => check_must_not_suspend_def(fcx.tcx, def.did(), hir_id, data),
         // FIXME: support adding the attribute to TAITs
-        ty::Opaque(def, _) => {
+        ty::Alias(ty::Opaque, ty::AliasTy { def_id: def, .. }) => {
             let mut has_emitted = false;
             for &(predicate, _) in fcx.tcx.explicit_item_bounds(def) {
                 // We only look at the `DefId`, so it is safe to skip the binder here.
@@ -607,10 +617,7 @@ fn check_must_not_suspend_ty<'tcx>(
         ty::Tuple(fields) => {
             let mut has_emitted = false;
             let comps = match data.expr.map(|e| &e.kind) {
-                Some(hir::ExprKind::Tup(comps)) => {
-                    debug_assert_eq!(comps.len(), fields.len());
-                    Some(comps)
-                }
+                Some(hir::ExprKind::Tup(comps)) if comps.len() == fields.len() => Some(comps),
                 _ => None,
             };
             for (i, ty) in fields.iter().enumerate() {

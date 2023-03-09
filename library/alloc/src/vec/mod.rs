@@ -166,7 +166,7 @@ mod spec_extend;
 /// vec[0] = 7;
 /// assert_eq!(vec[0], 7);
 ///
-/// vec.extend([1, 2, 3].iter().copied());
+/// vec.extend([1, 2, 3]);
 ///
 /// for x in &vec {
 ///     println!("{x}");
@@ -490,6 +490,8 @@ impl<T> Vec<T> {
     /// This is highly unsafe, due to the number of invariants that aren't
     /// checked:
     ///
+    /// * `ptr` must have been allocated using the global allocator, such as via
+    ///   the [`alloc::alloc`] function.
     /// * `T` needs to have the same alignment as what `ptr` was allocated with.
     ///   (`T` having a less strict alignment is not sufficient, the alignment really
     ///   needs to be equal to satisfy the [`dealloc`] requirement that memory must be
@@ -526,6 +528,7 @@ impl<T> Vec<T> {
     /// function.
     ///
     /// [`String`]: crate::string::String
+    /// [`alloc::alloc`]: crate::alloc::alloc
     /// [`dealloc`]: crate::alloc::GlobalAlloc::dealloc
     ///
     /// # Examples
@@ -681,6 +684,7 @@ impl<T, A: Allocator> Vec<T, A> {
     /// This is highly unsafe, due to the number of invariants that aren't
     /// checked:
     ///
+    /// * `ptr` must be [*currently allocated*] via the given allocator `alloc`.
     /// * `T` needs to have the same alignment as what `ptr` was allocated with.
     ///   (`T` having a less strict alignment is not sufficient, the alignment really
     ///   needs to be equal to satisfy the [`dealloc`] requirement that memory must be
@@ -714,6 +718,7 @@ impl<T, A: Allocator> Vec<T, A> {
     ///
     /// [`String`]: crate::string::String
     /// [`dealloc`]: crate::alloc::GlobalAlloc::dealloc
+    /// [*currently allocated*]: crate::alloc::Allocator#currently-allocated-memory
     /// [*fit*]: crate::alloc::Allocator#memory-fitting
     ///
     /// # Examples
@@ -2424,7 +2429,7 @@ impl<T: Clone, A: Allocator> Vec<T, A> {
         self.reserve(range.len());
 
         // SAFETY:
-        // - `slice::range` guarantees  that the given range is valid for indexing self
+        // - `slice::range` guarantees that the given range is valid for indexing self
         unsafe {
             self.spec_extend_from_within(range);
         }
@@ -2681,7 +2686,7 @@ impl<T: Clone, A: Allocator + Clone> Clone for Vec<T, A> {
 
     // HACK(japaric): with cfg(test) the inherent `[T]::to_vec` method, which is
     // required for this method definition, is not available. Instead use the
-    // `slice::to_vec`  function which is only available with cfg(test)
+    // `slice::to_vec` function which is only available with cfg(test)
     // NB see the slice::hack module in slice.rs for more information
     #[cfg(test)]
     fn clone(&self) -> Self {
@@ -3191,7 +3196,7 @@ where
     }
 }
 
-// note: test pulls in libstd, which causes errors here
+// note: test pulls in std, which causes errors here
 #[cfg(not(test))]
 #[stable(feature = "vec_from_box", since = "1.18.0")]
 impl<T, A: Allocator> From<Box<[T], A>> for Vec<T, A> {
@@ -3209,7 +3214,7 @@ impl<T, A: Allocator> From<Box<[T], A>> for Vec<T, A> {
     }
 }
 
-// note: test pulls in libstd, which causes errors here
+// note: test pulls in std, which causes errors here
 #[cfg(not(no_global_oom_handling))]
 #[cfg(not(test))]
 #[stable(feature = "box_from_vec", since = "1.20.0")]

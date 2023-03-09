@@ -13,7 +13,7 @@
 //! useful for freezing mut things (that is, when the expected type is &T
 //! but you have &mut T) and also for avoiding the linearity
 //! of mut things (when the expected is &mut T and you have &mut T). See
-//! the various `src/test/ui/coerce/*.rs` tests for
+//! the various `tests/ui/coerce/*.rs` tests for
 //! examples of where this is useful.
 //!
 //! ## Subtle note
@@ -118,7 +118,7 @@ fn identity(_: Ty<'_>) -> Vec<Adjustment<'_>> {
     vec![]
 }
 
-fn simple<'tcx>(kind: Adjust<'tcx>) -> impl FnOnce(Ty<'tcx>) -> Vec<Adjustment<'tcx>> {
+fn simple<'tcx>(kind: Adjust<'tcx>) -> impl FnOnce(Ty<'tcx>) -> Vec<Adjustment<'_>> {
     move |target| vec![Adjustment { kind, target }]
 }
 
@@ -171,6 +171,10 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
 
         // Just ignore error types.
         if a.references_error() || b.references_error() {
+            // Best-effort try to unify these types -- we're already on the error path,
+            // so this will have the side-effect of making sure we have no ambiguities
+            // due to `[type error]` and `_` not coercing together.
+            let _ = self.commit_if_ok(|_| self.at(&self.cause, self.param_env).eq(a, b));
             return success(vec![], self.fcx.tcx.ty_error(), vec![]);
         }
 
@@ -309,7 +313,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
 
         // If we have a parameter of type `&M T_a` and the value
         // provided is `expr`, we will be adding an implicit borrow,
-        // meaning that we convert `f(expr)` to `f(&M *expr)`.  Therefore,
+        // meaning that we convert `f(expr)` to `f(&M *expr)`. Therefore,
         // to type check, we will construct the type that `&M*expr` would
         // yield.
 
@@ -336,7 +340,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
                 continue;
             }
 
-            // At this point, we have deref'd `a` to `referent_ty`.  So
+            // At this point, we have deref'd `a` to `referent_ty`. So
             // imagine we are coercing from `&'a mut Vec<T>` to `&'b mut [T]`.
             // In the autoderef loop for `&'a mut Vec<T>`, we would get
             // three callbacks:
@@ -367,7 +371,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
             // - if in sub mode, that means we want to use `'b` (the
             //   region from the target reference) for both
             //   pointers [2]. This is because sub mode (somewhat
-            //   arbitrarily) returns the subtype region.  In the case
+            //   arbitrarily) returns the subtype region. In the case
             //   where we are coercing to a target type, we know we
             //   want to use that target type region (`'b`) because --
             //   for the program to type-check -- it must be the
@@ -379,7 +383,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
             //     annotate the region of a borrow), and regionck has
             //     code that adds edges from the region of a borrow
             //     (`'b`, here) into the regions in the borrowed
-            //     expression (`*x`, here).  (Search for "link".)
+            //     expression (`*x`, here). (Search for "link".)
             // - if in lub mode, things can get fairly complicated. The
             //   easiest thing is just to make a fresh
             //   region variable [4], which effectively means we defer
@@ -453,7 +457,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
         if ty == a && mt_a.mutbl.is_not() && autoderef.step_count() == 1 {
             // As a special case, if we would produce `&'a *x`, that's
             // a total no-op. We end up with the type `&'a T` just as
-            // we started with.  In that case, just skip it
+            // we started with. In that case, just skip it
             // altogether. This is just an optimization.
             //
             // Note that for `&mut`, we DO want to reborrow --
@@ -1472,7 +1476,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
             //     if let Some(x) = ... { }
             //
             // we wind up with a second match arm that is like `_ =>
-            // ()`.  That is the case we are considering here. We take
+            // ()`. That is the case we are considering here. We take
             // a different path to get the right "expected, found"
             // message and so forth (and because we know that
             // `expression_ty` will be unit).
@@ -1543,12 +1547,12 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                         err.span_label(cause.span, "return type is not `()`");
                     }
                     ObligationCauseCode::BlockTailExpression(blk_id) => {
-                        let parent_id = fcx.tcx.hir().get_parent_node(blk_id);
+                        let parent_id = fcx.tcx.hir().parent_id(blk_id);
                         err = self.report_return_mismatched_types(
                             cause,
                             expected,
                             found,
-                            coercion_error.clone(),
+                            coercion_error,
                             fcx,
                             parent_id,
                             expression,
@@ -1567,14 +1571,14 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                             cause,
                             expected,
                             found,
-                            coercion_error.clone(),
+                            coercion_error,
                             fcx,
                             id,
                             expression,
                             None,
                         );
                         if !fcx.tcx.features().unsized_locals {
-                            let id = fcx.tcx.hir().get_parent_node(id);
+                            let id = fcx.tcx.hir().parent_id(id);
                             unsized_return = self.is_return_ty_unsized(fcx, id);
                         }
                     }
@@ -1583,7 +1587,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                             cause,
                             expected,
                             found,
-                            coercion_error.clone(),
+                            coercion_error,
                         );
                     }
                 }
@@ -1664,7 +1668,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
         let mut pointing_at_return_type = false;
         let mut fn_output = None;
 
-        let parent_id = fcx.tcx.hir().get_parent_node(id);
+        let parent_id = fcx.tcx.hir().parent_id(id);
         let parent = fcx.tcx.hir().get(parent_id);
         if let Some(expr) = expression
             && let hir::Node::Expr(hir::Expr { kind: hir::ExprKind::Closure(&hir::Closure { body, .. }), .. }) = parent
@@ -1803,9 +1807,9 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
             // Get the return type.
             && let hir::TyKind::OpaqueDef(..) = ty.kind
         {
-            let ty = <dyn AstConv<'_>>::ast_ty_to_ty(fcx, ty);
+            let ty = fcx.astconv().ast_ty_to_ty( ty);
             // Get the `impl Trait`'s `DefId`.
-            if let ty::Opaque(def_id, _) = ty.kind()
+            if let ty::Alias(ty::Opaque, ty::AliasTy { def_id, .. }) = ty.kind()
                 // Get the `impl Trait`'s `Item` so that we can get its trait bounds and
                 // get the `Trait`'s `DefId`.
                 && let hir::ItemKind::OpaqueTy(hir::OpaqueTy { bounds, .. }) =
@@ -1862,7 +1866,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
     fn is_return_ty_unsized<'a>(&self, fcx: &FnCtxt<'a, 'tcx>, blk_id: hir::HirId) -> bool {
         if let Some((fn_decl, _)) = fcx.get_fn_decl(blk_id)
             && let hir::FnRetTy::Return(ty) = fn_decl.output
-            && let ty = <dyn AstConv<'_>>::ast_ty_to_ty(fcx, ty)
+            && let ty = fcx.astconv().ast_ty_to_ty( ty)
             && let ty::Dynamic(..) = ty.kind()
         {
             return true;

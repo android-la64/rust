@@ -35,7 +35,6 @@ use rustc_middle::mir::visit::{MutVisitor, MutatingUseContext, PlaceContext, Vis
 use rustc_middle::mir::*;
 use rustc_middle::ty::TyCtxt;
 use smallvec::SmallVec;
-use std::convert::TryInto;
 
 pub struct SimplifyCfg {
     label: String,
@@ -380,9 +379,21 @@ fn save_unreachable_coverage(
     ));
 }
 
-pub struct SimplifyLocals;
+pub struct SimplifyLocals {
+    label: String,
+}
+
+impl SimplifyLocals {
+    pub fn new(label: &str) -> SimplifyLocals {
+        SimplifyLocals { label: format!("SimplifyLocals-{}", label) }
+    }
+}
 
 impl<'tcx> MirPass<'tcx> for SimplifyLocals {
+    fn name(&self) -> &str {
+        &self.label
+    }
+
     fn is_enabled(&self, sess: &rustc_session::Session) -> bool {
         sess.mir_opt_level() > 0
     }
@@ -558,6 +569,7 @@ fn remove_unused_definitions(used_locals: &mut UsedLocals, body: &mut Body<'_>) 
 
                     StatementKind::SetDiscriminant { ref place, .. }
                     | StatementKind::Deinit(ref place) => used_locals.is_used(place.local),
+                    StatementKind::Nop => false,
                     _ => true,
                 };
 

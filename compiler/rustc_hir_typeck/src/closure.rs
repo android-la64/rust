@@ -13,7 +13,7 @@ use rustc_infer::infer::{InferOk, InferResult};
 use rustc_macros::{TypeFoldable, TypeVisitable};
 use rustc_middle::ty::subst::InternalSubsts;
 use rustc_middle::ty::visit::TypeVisitable;
-use rustc_middle::ty::{self, Ty};
+use rustc_middle::ty::{self, Ty, TypeSuperVisitable, TypeVisitor};
 use rustc_span::source_map::Span;
 use rustc_target::spec::abi::Abi;
 use rustc_trait_selection::traits;
@@ -21,6 +21,7 @@ use rustc_trait_selection::traits::error_reporting::ArgKind;
 use rustc_trait_selection::traits::error_reporting::InferCtxtExt as _;
 use std::cmp;
 use std::iter;
+use std::ops::ControlFlow;
 
 /// What signature do we *expect* the closure to have from context?
 #[derive(Debug, Clone, TypeFoldable, TypeVisitable)]
@@ -54,7 +55,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // closure sooner rather than later, so first examine the expected
         // type, and see if can glean a closure kind from there.
         let (expected_sig, expected_kind) = match expected.to_option(self) {
-            Some(ty) => self.deduce_expectations_from_expected_type(ty),
+            Some(ty) => self.deduce_closure_signature(ty),
             None => (None, None),
         };
         let body = self.tcx.hir().body(closure.body);
@@ -162,14 +163,16 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// Given the expected type, figures out what it can about this closure we
     /// are about to type check:
     #[instrument(skip(self), level = "debug")]
-    fn deduce_expectations_from_expected_type(
+    fn deduce_closure_signature(
         &self,
         expected_ty: Ty<'tcx>,
     ) -> (Option<ExpectedSig<'tcx>>, Option<ty::ClosureKind>) {
         match *expected_ty.kind() {
-            ty::Opaque(def_id, substs) => self.deduce_signature_from_predicates(
-                self.tcx.bound_explicit_item_bounds(def_id).subst_iter_copied(self.tcx, substs),
-            ),
+            ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) => self
+                .deduce_closure_signature_from_predicates(
+                    expected_ty,
+                    self.tcx.bound_explicit_item_bounds(def_id).subst_iter_copied(self.tcx, substs),
+                ),
             ty::Dynamic(ref object_type, ..) => {
                 let sig = object_type.projection_bounds().find_map(|pb| {
                     let pb = pb.with_self_ty(self.tcx, self.tcx.types.trait_object_dummy_self);
@@ -180,7 +183,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     .and_then(|did| self.tcx.fn_trait_kind_from_def_id(did));
                 (sig, kind)
             }
-            ty::Infer(ty::TyVar(vid)) => self.deduce_signature_from_predicates(
+            ty::Infer(ty::TyVar(vid)) => self.deduce_closure_signature_from_predicates(
+                self.tcx.mk_ty_var(self.root_var(vid)),
                 self.obligations_for_self_ty(vid).map(|obl| (obl.predicate, obl.cause.span)),
             ),
             ty::FnPtr(sig) => {
@@ -191,8 +195,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
     }
 
-    fn deduce_signature_from_predicates(
+    fn deduce_closure_signature_from_predicates(
         &self,
+        expected_ty: Ty<'tcx>,
         predicates: impl DoubleEndedIterator<Item = (ty::Predicate<'tcx>, Span)>,
     ) -> (Option<ExpectedSig<'tcx>>, Option<ty::ClosureKind>) {
         let mut expected_sig = None;
@@ -213,13 +218,33 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             if expected_sig.is_none()
                 && let ty::PredicateKind::Clause(ty::Clause::Projection(proj_predicate)) = bound_predicate.skip_binder()
             {
-                expected_sig = self.normalize(
+                let inferred_sig = self.normalize(
                     obligation.cause.span,
                     self.deduce_sig_from_projection(
                     Some(obligation.cause.span),
                         bound_predicate.rebind(proj_predicate),
                     ),
                 );
+                // Make sure that we didn't infer a signature that mentions itself.
+                // This can happen when we elaborate certain supertrait bounds that
+                // mention projections containing the `Self` type. See #105401.
+                struct MentionsTy<'tcx> {
+                    expected_ty: Ty<'tcx>,
+                }
+                impl<'tcx> TypeVisitor<'tcx> for MentionsTy<'tcx> {
+                    type BreakTy = ();
+
+                    fn visit_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
+                        if t == self.expected_ty {
+                            ControlFlow::Break(())
+                        } else {
+                            t.super_visit_with(self)
+                        }
+                    }
+                }
+                if inferred_sig.visit_with(&mut MentionsTy { expected_ty }).is_continue() {
+                    expected_sig = inferred_sig;
+                }
             }
 
             // Even if we can't infer the full signature, we may be able to
@@ -425,7 +450,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // `deduce_expectations_from_expected_type` introduces
         // late-bound lifetimes defined elsewhere, which we now
         // anonymize away, so as not to confuse the user.
-        let bound_sig = self.tcx.anonymize_late_bound_regions(bound_sig);
+        let bound_sig = self.tcx.anonymize_bound_vars(bound_sig);
 
         let closure_sigs = self.closure_sigs(expr_def_id, body, bound_sig);
 
@@ -499,7 +524,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         // FIXME(#45727): As discussed in [this comment][c1], naively
         // forcing equality here actually results in suboptimal error
-        // messages in some cases.  For now, if there would have been
+        // messages in some cases. For now, if there would have been
         // an obvious error, we fallback to declaring the type of the
         // closure to be the one the user gave, which allows other
         // error message code to trigger.
@@ -622,14 +647,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             ),
             bound_vars,
         );
-        // Astconv can't normalize inputs or outputs with escaping bound vars,
-        // so normalize them here, after we've wrapped them in a binder.
-        let result = self.normalize(self.tcx.hir().span(hir_id), result);
 
         let c_result = self.inh.infcx.canonicalize_response(result);
         self.typeck_results.borrow_mut().user_provided_sigs.insert(expr_def_id, c_result);
 
-        result
+        // Normalize only after registering in `user_provided_sigs`.
+        self.normalize(self.tcx.hir().span(hir_id), result)
     }
 
     /// Invoked when we are translating the generator that results
@@ -677,17 +700,17 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     get_future_output(obligation.predicate, obligation.cause.span)
                 })?
             }
-            ty::Opaque(def_id, substs) => self
+            ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) => self
                 .tcx
                 .bound_explicit_item_bounds(def_id)
                 .subst_iter_copied(self.tcx, substs)
                 .find_map(|(p, s)| get_future_output(p, s))?,
             ty::Error(_) => return None,
-            ty::Projection(proj)
-                if self.tcx.def_kind(proj.item_def_id) == DefKind::ImplTraitPlaceholder =>
+            ty::Alias(ty::Projection, proj)
+                if self.tcx.def_kind(proj.def_id) == DefKind::ImplTraitPlaceholder =>
             {
                 self.tcx
-                    .bound_explicit_item_bounds(proj.item_def_id)
+                    .bound_explicit_item_bounds(proj.def_id)
                     .subst_iter_copied(self.tcx, proj.substs)
                     .find_map(|(p, s)| get_future_output(p, s))?
             }
@@ -743,11 +766,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // The `Future` trait has only one associated item, `Output`,
         // so check that this is what we see.
         let output_assoc_item = self.tcx.associated_item_def_ids(future_trait)[0];
-        if output_assoc_item != predicate.projection_ty.item_def_id {
+        if output_assoc_item != predicate.projection_ty.def_id {
             span_bug!(
                 cause_span,
                 "projecting associated item `{:?}` from future, which is not Output `{:?}`",
-                predicate.projection_ty.item_def_id,
+                predicate.projection_ty.def_id,
                 output_assoc_item,
             );
         }

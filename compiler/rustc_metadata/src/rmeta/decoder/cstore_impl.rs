@@ -232,14 +232,14 @@ provide! { tcx, def_id, other, cdata,
             .get(cdata, def_id.index)
             .is_some()
     }
-    collect_trait_impl_trait_tys => {
+    collect_return_position_impl_trait_in_trait_tys => {
         Ok(cdata
             .root
             .tables
             .trait_impl_trait_tys
             .get(cdata, def_id.index)
             .map(|lazy| lazy.decode((cdata, tcx)))
-            .process_decoded(tcx, || panic!("{:?} does not have trait_impl_trait_tys", def_id)))
+            .process_decoded(tcx, || panic!("{def_id:?} does not have trait_impl_trait_tys")))
      }
 
     visibility => { cdata.get_visibility(def_id.index) }
@@ -391,7 +391,7 @@ pub(in crate::rmeta) fn provide(providers: &mut Providers) {
             // keys from the former.
             // This is a rudimentary check that does not catch all cases,
             // just the easiest.
-            let mut fallback_map: DefIdMap<DefId> = Default::default();
+            let mut fallback_map: Vec<(DefId, DefId)> = Default::default();
 
             // Issue 46112: We want the map to prefer the shortest
             // paths when reporting the path to an item. Therefore we
@@ -421,12 +421,12 @@ pub(in crate::rmeta) fn provide(providers: &mut Providers) {
 
                 if let Some(def_id) = child.res.opt_def_id() {
                     if child.ident.name == kw::Underscore {
-                        fallback_map.insert(def_id, parent);
+                        fallback_map.push((def_id, parent));
                         return;
                     }
 
                     if ty::util::is_doc_hidden(tcx, parent) {
-                        fallback_map.insert(def_id, parent);
+                        fallback_map.push((def_id, parent));
                         return;
                     }
 
@@ -460,6 +460,7 @@ pub(in crate::rmeta) fn provide(providers: &mut Providers) {
             // Fill in any missing entries with the less preferable path.
             // If this path re-exports the child as `_`, we still use this
             // path in a diagnostic that suggests importing `::*`.
+
             for (child, parent) in fallback_map {
                 visible_parent_map.entry(child).or_insert(parent);
             }
@@ -636,6 +637,9 @@ impl CStore {
 
 impl CrateStore for CStore {
     fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn untracked_as_any(&mut self) -> &mut dyn Any {
         self
     }
 

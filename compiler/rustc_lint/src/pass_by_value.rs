@@ -1,5 +1,5 @@
+use crate::lints::PassByValueDiag;
 use crate::{LateContext, LateLintPass, LintContext};
-use rustc_errors::{fluent, Applicability};
 use rustc_hir as hir;
 use rustc_hir::def::Res;
 use rustc_hir::{GenericArg, PathSegment, QPath, TyKind};
@@ -22,27 +22,18 @@ declare_lint_pass!(PassByValue => [PASS_BY_VALUE]);
 impl<'tcx> LateLintPass<'tcx> for PassByValue {
     fn check_ty(&mut self, cx: &LateContext<'_>, ty: &'tcx hir::Ty<'tcx>) {
         match &ty.kind {
-            TyKind::Rptr(_, hir::MutTy { ty: inner_ty, mutbl: hir::Mutability::Not }) => {
+            TyKind::Ref(_, hir::MutTy { ty: inner_ty, mutbl: hir::Mutability::Not }) => {
                 if let Some(impl_did) = cx.tcx.impl_of_method(ty.hir_id.owner.to_def_id()) {
                     if cx.tcx.impl_trait_ref(impl_did).is_some() {
                         return;
                     }
                 }
                 if let Some(t) = path_for_pass_by_value(cx, &inner_ty) {
-                    cx.struct_span_lint(
+                    cx.emit_spanned_lint(
                         PASS_BY_VALUE,
                         ty.span,
-                        fluent::lint_pass_by_value,
-                        |lint| {
-                            lint.set_arg("ty", t.clone()).span_suggestion(
-                                ty.span,
-                                fluent::suggestion,
-                                t,
-                                // Changing type of function argument
-                                Applicability::MaybeIncorrect,
-                            )
-                        },
-                    )
+                        PassByValueDiag { ty: t, suggestion: ty.span },
+                    );
                 }
             }
             _ => {}

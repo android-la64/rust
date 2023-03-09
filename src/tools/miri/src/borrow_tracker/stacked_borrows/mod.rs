@@ -14,6 +14,7 @@ use rustc_middle::mir::{Mutability, RetagKind};
 use rustc_middle::ty::{
     self,
     layout::{HasParamEnv, LayoutOf},
+    Ty,
 };
 use rustc_target::abi::{Abi, Size};
 
@@ -64,7 +65,7 @@ impl NewPermission {
     /// A key function: determine the permissions to grant at a retag for the given kind of
     /// reference/pointer.
     fn from_ref_ty<'tcx>(
-        ty: ty::Ty<'tcx>,
+        ty: Ty<'tcx>,
         kind: RetagKind,
         cx: &crate::MiriInterpCx<'_, 'tcx>,
     ) -> Self {
@@ -864,7 +865,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
             RetagKind::FnEntry => unreachable!(),
             RetagKind::Raw | RetagKind::Default => RetagCause::Normal,
         };
-        this.sb_retag_reference(&val, new_perm, retag_cause)
+        this.sb_retag_reference(val, new_perm, retag_cause)
     }
 
     fn sb_retag_place_contents(
@@ -997,7 +998,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
             access: Some(AccessKind::Write),
             protector: Some(ProtectorKind::StrongProtector),
         };
-        let val = this.sb_retag_reference(&val, new_perm, RetagCause::FnReturn)?;
+        let val = this.sb_retag_reference(&val, new_perm, RetagCause::FnReturnPlace)?;
         // And use reborrowed pointer for return place.
         let return_place = this.ref_to_mplace(&val)?;
         this.frame_mut().return_place = return_place.into();

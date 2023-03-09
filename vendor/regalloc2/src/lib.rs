@@ -95,14 +95,7 @@ impl PReg {
     /// Create a new PReg. The `hw_enc` range is 6 bits.
     #[inline(always)]
     pub const fn new(hw_enc: usize, class: RegClass) -> Self {
-        // We don't have const panics yet (rust-lang/rust#85194) so we
-        // need to use a little indexing trick here. We unfortunately
-        // can't use the `static-assertions` crate because we need
-        // this to work both for const `hw_enc` and for runtime
-        // values.
-        const HW_ENC_MUST_BE_IN_BOUNDS: &[bool; PReg::MAX + 1] = &[true; PReg::MAX + 1];
-        let _ = HW_ENC_MUST_BE_IN_BOUNDS[hw_enc];
-
+        debug_assert!(hw_enc <= PReg::MAX);
         PReg {
             bits: ((class as u8) << Self::MAX_BITS) | (hw_enc as u8),
         }
@@ -110,13 +103,13 @@ impl PReg {
 
     /// The physical register number, as encoded by the ISA for the particular register class.
     #[inline(always)]
-    pub fn hw_enc(self) -> usize {
+    pub const fn hw_enc(self) -> usize {
         self.bits as usize & Self::MAX
     }
 
     /// The register class.
     #[inline(always)]
-    pub fn class(self) -> RegClass {
+    pub const fn class(self) -> RegClass {
         if self.bits & (1 << Self::MAX_BITS) == 0 {
             RegClass::Int
         } else {
@@ -143,7 +136,7 @@ impl PReg {
     /// Return the "invalid PReg", which can be used to initialize
     /// data structures.
     #[inline(always)]
-    pub fn invalid() -> Self {
+    pub const fn invalid() -> Self {
         PReg::new(Self::MAX, RegClass::Int)
     }
 }
@@ -185,6 +178,13 @@ impl PRegSet {
     /// Create an empty set.
     pub const fn empty() -> Self {
         Self { bits: 0 }
+    }
+
+    /// Returns whether the given register is part of the set.
+    pub fn contains(&self, reg: PReg) -> bool {
+        let bit = reg.index();
+        debug_assert!(bit < 128);
+        self.bits & 1u128 << bit != 0
     }
 
     /// Add a physical register (PReg) to the set, returning the new value.
@@ -264,11 +264,7 @@ impl VReg {
 
     #[inline(always)]
     pub const fn new(virt_reg: usize, class: RegClass) -> Self {
-        // See comment in `PReg::new()`: we are emulating a const
-        // assert here until const panics are stable.
-        const VIRT_REG_MUST_BE_IN_BOUNDS: &[bool; VReg::MAX + 1] = &[true; VReg::MAX + 1];
-        let _ = VIRT_REG_MUST_BE_IN_BOUNDS[virt_reg];
-
+        debug_assert!(virt_reg <= VReg::MAX);
         VReg {
             bits: ((virt_reg as u32) << 1) | (class as u8 as u32),
         }
@@ -281,7 +277,7 @@ impl VReg {
     }
 
     #[inline(always)]
-    pub fn class(self) -> RegClass {
+    pub const fn class(self) -> RegClass {
         match self.bits & 1 {
             0 => RegClass::Int,
             1 => RegClass::Float,
@@ -290,7 +286,7 @@ impl VReg {
     }
 
     #[inline(always)]
-    pub fn invalid() -> Self {
+    pub const fn invalid() -> Self {
         VReg::new(Self::MAX, RegClass::Int)
     }
 }
@@ -328,13 +324,11 @@ impl SpillSlot {
     /// The maximum spillslot index.
     pub const MAX: usize = (1 << 24) - 1;
 
-    /// Create a new SpillSlot of a given class.
+    /// Create a new SpillSlot.
     #[inline(always)]
-    pub fn new(slot: usize, class: RegClass) -> Self {
+    pub fn new(slot: usize) -> Self {
         debug_assert!(slot <= Self::MAX);
-        SpillSlot {
-            bits: (slot as u32) | (class as u8 as u32) << 24,
-        }
+        SpillSlot { bits: slot as u32 }
     }
 
     /// Get the spillslot index for this spillslot.
@@ -343,20 +337,10 @@ impl SpillSlot {
         (self.bits & 0x00ffffff) as usize
     }
 
-    /// Get the class for this spillslot.
-    #[inline(always)]
-    pub fn class(self) -> RegClass {
-        match (self.bits >> 24) as u8 {
-            0 => RegClass::Int,
-            1 => RegClass::Float,
-            _ => unreachable!(),
-        }
-    }
-
     /// Get the spillslot `offset` slots away.
     #[inline(always)]
     pub fn plus(self, offset: usize) -> Self {
-        SpillSlot::new(self.index() + offset, self.class())
+        SpillSlot::new(self.index() + offset)
     }
 
     /// Get the invalid spillslot, used for initializing data structures.
@@ -688,6 +672,19 @@ impl Operand {
         )
     }
 
+    /// Create an `Operand` that always results in an assignment to the
+    /// given fixed `preg`, *without* tracking liveranges in that
+    /// `preg`. Must only be used for non-allocatable registers.
+    #[inline(always)]
+    pub fn fixed_nonallocatable(preg: PReg) -> Self {
+        Operand::new(
+            VReg::new(VReg::MAX, preg.class()),
+            OperandConstraint::FixedReg(preg),
+            OperandKind::Use,
+            OperandPos::Early,
+        )
+    }
+
     /// Get the virtual register designated by an operand. Every
     /// operand must name some virtual register, even if it constrains
     /// the operand to a fixed physical register as well; the vregs
@@ -752,6 +749,17 @@ impl Operand {
                 2 => OperandConstraint::Stack,
                 _ => unreachable!(),
             }
+        }
+    }
+
+    /// If this operand is for a fixed non-allocatable register (see
+    /// [`Operand::fixed`]), then returns the physical register that it will
+    /// be assigned to.
+    #[inline(always)]
+    pub fn as_fixed_nonallocatable(self) -> Option<PReg> {
+        match self.constraint() {
+            OperandConstraint::FixedReg(preg) if self.vreg().vreg() == VReg::MAX => Some(preg),
+            _ => None,
         }
     }
 
@@ -945,18 +953,6 @@ pub enum AllocationKind {
     Stack = 2,
 }
 
-impl Allocation {
-    /// Get the register class of an allocation's value.
-    #[inline(always)]
-    pub fn class(self) -> RegClass {
-        match self.kind() {
-            AllocationKind::None => panic!("Allocation::None has no class"),
-            AllocationKind::Reg => self.as_reg().unwrap().class(),
-            AllocationKind::Stack => self.as_stack().unwrap().class(),
-        }
-    }
-}
-
 /// A trait defined by the regalloc client to provide access to its
 /// machine-instruction / CFG representation.
 ///
@@ -1036,7 +1032,7 @@ pub trait Function {
     /// that must be live across the instruction.
     ///
     /// Another way of seeing this is that a clobber is equivalent to
-    /// an "early def" of a fresh vreg that is not used anywhere else
+    /// a "late def" of a fresh vreg that is not used anywhere else
     /// in the program, with a fixed-register constraint that places
     /// it in a given PReg chosen by the client prior to regalloc.
     ///
@@ -1320,7 +1316,7 @@ impl<'a> Iterator for OutputIter<'a> {
     }
 }
 
-/// A machine envrionment tells the register allocator which registers
+/// A machine environment tells the register allocator which registers
 /// are available to allocate and what register may be used as a
 /// scratch register for each class, and some other miscellaneous info
 /// as well.

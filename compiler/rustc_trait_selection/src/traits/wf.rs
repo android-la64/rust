@@ -76,7 +76,7 @@ pub fn obligations<'tcx>(
 }
 
 /// Returns the obligations that make this trait reference
-/// well-formed.  For example, if there is a trait `Set` defined like
+/// well-formed. For example, if there is a trait `Set` defined like
 /// `trait Set<K:Eq>`, then the trait reference `Foo: Set<Bar>` is WF
 /// if `Bar: Eq`.
 pub fn trait_obligations<'tcx>(
@@ -232,11 +232,11 @@ fn extend_cause_with_original_assoc_item_obligation<'tcx>(
             // The obligation comes not from the current `impl` nor the `trait` being implemented,
             // but rather from a "second order" obligation, where an associated type has a
             // projection coming from another associated type. See
-            // `src/test/ui/associated-types/point-at-type-on-obligation-failure.rs` and
+            // `tests/ui/associated-types/point-at-type-on-obligation-failure.rs` and
             // `traits-assoc-type-in-supertrait-bad.rs`.
-            if let Some(ty::Projection(projection_ty)) = proj.term.ty().map(|ty| ty.kind())
+            if let Some(ty::Alias(ty::Projection, projection_ty)) = proj.term.ty().map(|ty| ty.kind())
                 && let Some(&impl_item_id) =
-                    tcx.impl_item_implementor_ids(impl_def_id).get(&projection_ty.item_def_id)
+                    tcx.impl_item_implementor_ids(impl_def_id).get(&projection_ty.def_id)
                 && let Some(impl_item_span) = items
                     .iter()
                     .find(|item| item.id.owner_id.to_def_id() == impl_item_id)
@@ -249,9 +249,9 @@ fn extend_cause_with_original_assoc_item_obligation<'tcx>(
             // An associated item obligation born out of the `trait` failed to be met. An example
             // can be seen in `ui/associated-types/point-at-type-on-obligation-failure-2.rs`.
             debug!("extended_cause_with_original_assoc_item_obligation trait proj {:?}", pred);
-            if let ty::Projection(ty::ProjectionTy { item_def_id, .. }) = *pred.self_ty().kind()
+            if let ty::Alias(ty::Projection, ty::AliasTy { def_id, .. }) = *pred.self_ty().kind()
                 && let Some(&impl_item_id) =
-                    tcx.impl_item_implementor_ids(impl_def_id).get(&item_def_id)
+                    tcx.impl_item_implementor_ids(impl_def_id).get(&def_id)
                 && let Some(impl_item_span) = items
                     .iter()
                     .find(|item| item.id.owner_id.to_def_id() == impl_item_id)
@@ -369,7 +369,7 @@ impl<'tcx> WfPredicates<'tcx> {
 
     /// Pushes the obligations required for `trait_ref::Item` to be WF
     /// into `self.out`.
-    fn compute_projection(&mut self, data: ty::ProjectionTy<'tcx>) {
+    fn compute_projection(&mut self, data: ty::AliasTy<'tcx>) {
         // A projection is well-formed if
         //
         // (a) its predicates hold (*)
@@ -392,7 +392,7 @@ impl<'tcx> WfPredicates<'tcx> {
         //     `i32: Copy`
         // ]
         // Projection types do not require const predicates.
-        let obligations = self.nominal_obligations_without_const(data.item_def_id, data.substs);
+        let obligations = self.nominal_obligations_without_const(data.def_id, data.substs);
         self.out.extend(obligations);
 
         let tcx = self.tcx();
@@ -451,19 +451,21 @@ impl<'tcx> WfPredicates<'tcx> {
                 GenericArgKind::Const(ct) => {
                     match ct.kind() {
                         ty::ConstKind::Unevaluated(uv) => {
-                            let obligations = self.nominal_obligations(uv.def.did, uv.substs);
-                            self.out.extend(obligations);
+                            if !ct.has_escaping_bound_vars() {
+                                let obligations = self.nominal_obligations(uv.def.did, uv.substs);
+                                self.out.extend(obligations);
 
-                            let predicate =
-                                ty::Binder::dummy(ty::PredicateKind::ConstEvaluatable(ct));
-                            let cause = self.cause(traits::WellFormed(None));
-                            self.out.push(traits::Obligation::with_depth(
-                                self.tcx(),
-                                cause,
-                                self.recursion_depth,
-                                self.param_env,
-                                predicate,
-                            ));
+                                let predicate =
+                                    ty::Binder::dummy(ty::PredicateKind::ConstEvaluatable(ct));
+                                let cause = self.cause(traits::WellFormed(None));
+                                self.out.push(traits::Obligation::with_depth(
+                                    self.tcx(),
+                                    cause,
+                                    self.recursion_depth,
+                                    self.param_env,
+                                    predicate,
+                                ));
+                            }
                         }
                         ty::ConstKind::Infer(_) => {
                             let cause = self.cause(traits::WellFormed(None));
@@ -556,7 +558,7 @@ impl<'tcx> WfPredicates<'tcx> {
                     // Simple cases that are WF if their type args are WF.
                 }
 
-                ty::Projection(data) => {
+                ty::Alias(ty::Projection, data) => {
                     walker.skip_current_subtree(); // Subtree handled by compute_projection.
                     self.compute_projection(data);
                 }
@@ -638,7 +640,7 @@ impl<'tcx> WfPredicates<'tcx> {
                     // hidden type that is not actually well formed and
                     // can cause compiler crashes when the user abuses unsafe
                     // code to procure such a closure.
-                    // See src/test/ui/type-alias-impl-trait/wf_check_closures.rs
+                    // See tests/ui/type-alias-impl-trait/wf_check_closures.rs
                     let obligations = self.nominal_obligations(did, substs);
                     self.out.extend(obligations);
                 }
@@ -648,12 +650,12 @@ impl<'tcx> WfPredicates<'tcx> {
                     // types appearing in the fn signature
                 }
 
-                ty::Opaque(did, substs) => {
+                ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) => {
                     // All of the requirements on type parameters
                     // have already been checked for `impl Trait` in
                     // return position. We do need to check type-alias-impl-trait though.
-                    if self.tcx.is_type_alias_impl_trait(did) {
-                        let obligations = self.nominal_obligations(did, substs);
+                    if self.tcx.is_type_alias_impl_trait(def_id) {
+                        let obligations = self.nominal_obligations(def_id, substs);
                         self.out.extend(obligations);
                     }
                 }
@@ -734,7 +736,7 @@ impl<'tcx> WfPredicates<'tcx> {
         trace!("{:#?}", predicates);
         debug_assert_eq!(predicates.predicates.len(), origins.len());
 
-        iter::zip(iter::zip(predicates.predicates, predicates.spans), origins.into_iter().rev())
+        iter::zip(predicates, origins.into_iter().rev())
             .map(|((mut pred, span), origin_def_id)| {
                 let code = if span.is_dummy() {
                     traits::ItemObligation(origin_def_id)

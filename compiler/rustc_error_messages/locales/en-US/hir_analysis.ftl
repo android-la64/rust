@@ -20,6 +20,10 @@ hir_analysis_lifetimes_or_bounds_mismatch_on_trait =
     .where_label = this `where` clause might not match the one in the trait
     .bounds_label = this bound might be missing in the impl
 
+hir_analysis_async_trait_impl_should_be_async =
+    method `{$method_name}` should be async because the method from the trait is async
+    .trait_item_label = required because the trait method is async
+
 hir_analysis_drop_impl_on_wrong_item =
     the `Drop` trait may only be implemented for local structs, enums, and unions
     .label = must be a struct, enum, or union in the current crate
@@ -101,8 +105,6 @@ hir_analysis_extern_crate_not_idiomatic =
     `extern crate` is not idiomatic in the new edition
     .suggestion = convert it to a `{$msg_code}`
 
-hir_analysis_expected_used_symbol = expected `used`, `used(compiler)` or `used(linker)`
-
 hir_analysis_const_impl_for_non_const_trait =
     const `impl` for trait `{$trait_name}` which is not marked with `#[const_trait]`
     .suggestion = mark `{$trait_name}` as const
@@ -118,3 +120,7 @@ hir_analysis_self_in_impl_self =
 
 hir_analysis_linkage_type =
     invalid type for variable with `#[linkage]` attribute
+
+hir_analysis_auto_deref_reached_recursion_limit = reached the recursion limit while auto-dereferencing `{$ty}`
+    .label = deref recursion limit reached
+    .help = consider increasing the recursion limit by adding a `#![recursion_limit = "{$suggested_limit}"]` attribute to your crate (`{$crate_name}`)

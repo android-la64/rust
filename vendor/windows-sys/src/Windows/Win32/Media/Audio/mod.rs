@@ -2,370 +2,207 @@
 pub mod Apo;
 #[cfg(feature = "Win32_Media_Audio_DirectMusic")]
 pub mod DirectMusic;
-#[cfg(feature = "Win32_Media_Audio_DirectSound")]
-pub mod DirectSound;
 #[cfg(feature = "Win32_Media_Audio_Endpoints")]
 pub mod Endpoints;
 #[cfg(feature = "Win32_Media_Audio_XAudio2")]
 pub mod XAudio2;
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage"))]
-    pub fn ActivateAudioInterfaceAsync(deviceinterfacepath: ::windows_sys::core::PCWSTR, riid: *const ::windows_sys::core::GUID, activationparams: *const super::super::System::Com::StructuredStorage::PROPVARIANT, completionhandler: IActivateAudioInterfaceCompletionHandler, activationoperation: *mut IActivateAudioInterfaceAsyncOperation) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CoRegisterMessageFilter(lpmessagefilter: IMessageFilter, lplpmessagefilter: *mut IMessageFilter) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateCaptureAudioStateMonitor(audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateCaptureAudioStateMonitorForCategory(category: AUDIO_STREAM_CATEGORY, audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateCaptureAudioStateMonitorForCategoryAndDeviceId(category: AUDIO_STREAM_CATEGORY, deviceid: ::windows_sys::core::PCWSTR, audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateCaptureAudioStateMonitorForCategoryAndDeviceRole(category: AUDIO_STREAM_CATEGORY, role: ERole, audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateRenderAudioStateMonitor(audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateRenderAudioStateMonitorForCategory(category: AUDIO_STREAM_CATEGORY, audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateRenderAudioStateMonitorForCategoryAndDeviceId(category: AUDIO_STREAM_CATEGORY, deviceid: ::windows_sys::core::PCWSTR, audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn CreateRenderAudioStateMonitorForCategoryAndDeviceRole(category: AUDIO_STREAM_CATEGORY, role: ERole, audiostatemonitor: *mut IAudioStateMonitor) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PlaySoundA(pszsound: ::windows_sys::core::PCSTR, hmod: super::super::Foundation::HINSTANCE, fdwsound: SND_FLAGS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PlaySoundW(pszsound: ::windows_sys::core::PCWSTR, hmod: super::super::Foundation::HINSTANCE, fdwsound: SND_FLAGS) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmDriverAddA(phadid: *mut isize, hinstmodule: super::super::Foundation::HINSTANCE, lparam: super::super::Foundation::LPARAM, dwpriority: u32, fdwadd: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmDriverAddW(phadid: *mut isize, hinstmodule: super::super::Foundation::HINSTANCE, lparam: super::super::Foundation::LPARAM, dwpriority: u32, fdwadd: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmDriverClose(had: HACMDRIVER, fdwclose: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
-    pub fn acmDriverDetailsA(hadid: HACMDRIVERID, padd: *mut ACMDRIVERDETAILSA, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
-    #[cfg(feature = "Win32_UI_WindowsAndMessaging")]
-    pub fn acmDriverDetailsW(hadid: HACMDRIVERID, padd: *mut ACMDRIVERDETAILSW, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmDriverEnum(fncallback: ACMDRIVERENUMCB, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmDriverID(hao: HACMOBJ, phadid: *mut isize, fdwdriverid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmDriverMessage(had: HACMDRIVER, umsg: u32, lparam1: super::super::Foundation::LPARAM, lparam2: super::super::Foundation::LPARAM) -> super::super::Foundation::LRESULT;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmDriverOpen(phad: *mut isize, hadid: HACMDRIVERID, fdwopen: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmDriverPriority(hadid: HACMDRIVERID, dwpriority: u32, fdwpriority: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmDriverRemove(hadid: HACMDRIVERID, fdwremove: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterChooseA(pafltrc: *mut ACMFILTERCHOOSEA) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterChooseW(pafltrc: *mut ACMFILTERCHOOSEW) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterDetailsA(had: HACMDRIVER, pafd: *mut ACMFILTERDETAILSA, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmFilterDetailsW(had: HACMDRIVER, pafd: *mut ACMFILTERDETAILSW, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterEnumA(had: HACMDRIVER, pafd: *mut ACMFILTERDETAILSA, fncallback: ACMFILTERENUMCBA, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterEnumW(had: HACMDRIVER, pafd: *mut ACMFILTERDETAILSW, fncallback: ACMFILTERENUMCBW, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterTagDetailsA(had: HACMDRIVER, paftd: *mut ACMFILTERTAGDETAILSA, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmFilterTagDetailsW(had: HACMDRIVER, paftd: *mut ACMFILTERTAGDETAILSW, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterTagEnumA(had: HACMDRIVER, paftd: *mut ACMFILTERTAGDETAILSA, fncallback: ACMFILTERTAGENUMCBA, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFilterTagEnumW(had: HACMDRIVER, paftd: *mut ACMFILTERTAGDETAILSW, fncallback: ACMFILTERTAGENUMCBW, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatChooseA(pafmtc: *mut ACMFORMATCHOOSEA) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatChooseW(pafmtc: *mut ACMFORMATCHOOSEW) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatDetailsA(had: HACMDRIVER, pafd: *mut ACMFORMATDETAILSA, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmFormatDetailsW(had: HACMDRIVER, pafd: *mut tACMFORMATDETAILSW, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatEnumA(had: HACMDRIVER, pafd: *mut ACMFORMATDETAILSA, fncallback: ACMFORMATENUMCBA, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatEnumW(had: HACMDRIVER, pafd: *mut tACMFORMATDETAILSW, fncallback: ACMFORMATENUMCBW, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmFormatSuggest(had: HACMDRIVER, pwfxsrc: *mut WAVEFORMATEX, pwfxdst: *mut WAVEFORMATEX, cbwfxdst: u32, fdwsuggest: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatTagDetailsA(had: HACMDRIVER, paftd: *mut ACMFORMATTAGDETAILSA, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmFormatTagDetailsW(had: HACMDRIVER, paftd: *mut ACMFORMATTAGDETAILSW, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatTagEnumA(had: HACMDRIVER, paftd: *mut ACMFORMATTAGDETAILSA, fncallback: ACMFORMATTAGENUMCBA, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmFormatTagEnumW(had: HACMDRIVER, paftd: *mut ACMFORMATTAGDETAILSW, fncallback: ACMFORMATTAGENUMCBW, dwinstance: usize, fdwenum: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmGetVersion() -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmMetrics(hao: HACMOBJ, umetric: u32, pmetric: *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmStreamClose(has: HACMSTREAM, fdwclose: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmStreamConvert(has: HACMSTREAM, pash: *mut ACMSTREAMHEADER, fdwconvert: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn acmStreamMessage(has: HACMSTREAM, umsg: u32, lparam1: super::super::Foundation::LPARAM, lparam2: super::super::Foundation::LPARAM) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmStreamOpen(phas: *mut isize, had: HACMDRIVER, pwfxsrc: *mut WAVEFORMATEX, pwfxdst: *mut WAVEFORMATEX, pwfltr: *mut WAVEFILTER, dwcallback: usize, dwinstance: usize, fdwopen: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmStreamPrepareHeader(has: HACMSTREAM, pash: *mut ACMSTREAMHEADER, fdwprepare: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmStreamReset(has: HACMSTREAM, fdwreset: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmStreamSize(has: HACMSTREAM, cbinput: u32, pdwoutputbytes: *mut u32, fdwsize: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn acmStreamUnprepareHeader(has: HACMSTREAM, pash: *mut ACMSTREAMHEADER, fdwunprepare: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn auxGetDevCapsA(udeviceid: usize, pac: *mut AUXCAPSA, cbac: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn auxGetDevCapsW(udeviceid: usize, pac: *mut AUXCAPSW, cbac: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn auxGetNumDevs() -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn auxGetVolume(udeviceid: u32, pdwvolume: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn auxOutMessage(udeviceid: u32, umsg: u32, dw1: usize, dw2: usize) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn auxSetVolume(udeviceid: u32, dwvolume: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiConnect(hmi: HMIDI, hmo: HMIDIOUT, preserved: *const ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiDisconnect(hmi: HMIDI, hmo: HMIDIOUT, preserved: *const ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInAddBuffer(hmi: HMIDIIN, pmh: *mut MIDIHDR, cbmh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInClose(hmi: HMIDIIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn midiInGetDevCapsA(udeviceid: usize, pmic: *mut MIDIINCAPSA, cbmic: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInGetDevCapsW(udeviceid: usize, pmic: *mut MIDIINCAPSW, cbmic: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInGetErrorTextA(mmrerror: u32, psztext: ::windows_sys::core::PSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInGetErrorTextW(mmrerror: u32, psztext: ::windows_sys::core::PWSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInGetID(hmi: HMIDIIN, pudeviceid: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInGetNumDevs() -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInMessage(hmi: HMIDIIN, umsg: u32, dw1: usize, dw2: usize) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInOpen(phmi: *mut HMIDIIN, udeviceid: u32, dwcallback: usize, dwinstance: usize, fdwopen: MIDI_WAVE_OPEN_TYPE) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInPrepareHeader(hmi: HMIDIIN, pmh: *mut MIDIHDR, cbmh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInReset(hmi: HMIDIIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInStart(hmi: HMIDIIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInStop(hmi: HMIDIIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiInUnprepareHeader(hmi: HMIDIIN, pmh: *mut MIDIHDR, cbmh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutCacheDrumPatches(hmo: HMIDIOUT, upatch: u32, pwkya: *const u16, fucache: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutCachePatches(hmo: HMIDIOUT, ubank: u32, pwpa: *const u16, fucache: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutClose(hmo: HMIDIOUT) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn midiOutGetDevCapsA(udeviceid: usize, pmoc: *mut MIDIOUTCAPSA, cbmoc: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutGetDevCapsW(udeviceid: usize, pmoc: *mut MIDIOUTCAPSW, cbmoc: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutGetErrorTextA(mmrerror: u32, psztext: ::windows_sys::core::PSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutGetErrorTextW(mmrerror: u32, psztext: ::windows_sys::core::PWSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutGetID(hmo: HMIDIOUT, pudeviceid: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutGetNumDevs() -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutGetVolume(hmo: HMIDIOUT, pdwvolume: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutLongMsg(hmo: HMIDIOUT, pmh: *const MIDIHDR, cbmh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutMessage(hmo: HMIDIOUT, umsg: u32, dw1: usize, dw2: usize) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutOpen(phmo: *mut HMIDIOUT, udeviceid: u32, dwcallback: usize, dwinstance: usize, fdwopen: MIDI_WAVE_OPEN_TYPE) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutPrepareHeader(hmo: HMIDIOUT, pmh: *mut MIDIHDR, cbmh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutReset(hmo: HMIDIOUT) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutSetVolume(hmo: HMIDIOUT, dwvolume: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutShortMsg(hmo: HMIDIOUT, dwmsg: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiOutUnprepareHeader(hmo: HMIDIOUT, pmh: *mut MIDIHDR, cbmh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamClose(hms: HMIDISTRM) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamOpen(phms: *mut HMIDISTRM, pudeviceid: *mut u32, cmidi: u32, dwcallback: usize, dwinstance: usize, fdwopen: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamOut(hms: HMIDISTRM, pmh: *mut MIDIHDR, cbmh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamPause(hms: HMIDISTRM) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamPosition(hms: HMIDISTRM, lpmmt: *mut super::MMTIME, cbmmt: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamProperty(hms: HMIDISTRM, lppropdata: *mut u8, dwproperty: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamRestart(hms: HMIDISTRM) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn midiStreamStop(hms: HMIDISTRM) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerClose(hmx: HMIXER) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn mixerGetControlDetailsA(hmxobj: HMIXEROBJ, pmxcd: *mut MIXERCONTROLDETAILS, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn mixerGetControlDetailsW(hmxobj: HMIXEROBJ, pmxcd: *mut MIXERCONTROLDETAILS, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn mixerGetDevCapsA(umxid: usize, pmxcaps: *mut MIXERCAPSA, cbmxcaps: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerGetDevCapsW(umxid: usize, pmxcaps: *mut MIXERCAPSW, cbmxcaps: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerGetID(hmxobj: HMIXEROBJ, pumxid: *mut u32, fdwid: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn mixerGetLineControlsA(hmxobj: HMIXEROBJ, pmxlc: *mut MIXERLINECONTROLSA, fdwcontrols: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerGetLineControlsW(hmxobj: HMIXEROBJ, pmxlc: *mut MIXERLINECONTROLSW, fdwcontrols: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn mixerGetLineInfoA(hmxobj: HMIXEROBJ, pmxl: *mut MIXERLINEA, fdwinfo: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerGetLineInfoW(hmxobj: HMIXEROBJ, pmxl: *mut MIXERLINEW, fdwinfo: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerGetNumDevs() -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerMessage(hmx: HMIXER, umsg: u32, dwparam1: usize, dwparam2: usize) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn mixerOpen(phmx: *mut isize, umxid: u32, dwcallback: usize, dwinstance: usize, fdwopen: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn mixerSetControlDetails(hmxobj: HMIXEROBJ, pmxcd: *const MIXERCONTROLDETAILS, fdwdetails: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn sndPlaySoundA(pszsound: ::windows_sys::core::PCSTR, fusound: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn sndPlaySoundW(pszsound: ::windows_sys::core::PCWSTR, fusound: u32) -> super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInAddBuffer(hwi: HWAVEIN, pwh: *mut WAVEHDR, cbwh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInClose(hwi: HWAVEIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn waveInGetDevCapsA(udeviceid: usize, pwic: *mut WAVEINCAPSA, cbwic: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInGetDevCapsW(udeviceid: usize, pwic: *mut WAVEINCAPSW, cbwic: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInGetErrorTextA(mmrerror: u32, psztext: ::windows_sys::core::PSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInGetErrorTextW(mmrerror: u32, psztext: ::windows_sys::core::PWSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInGetID(hwi: HWAVEIN, pudeviceid: *const u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInGetNumDevs() -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInGetPosition(hwi: HWAVEIN, pmmt: *mut super::MMTIME, cbmmt: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInMessage(hwi: HWAVEIN, umsg: u32, dw1: usize, dw2: usize) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInOpen(phwi: *mut HWAVEIN, udeviceid: u32, pwfx: *const WAVEFORMATEX, dwcallback: usize, dwinstance: usize, fdwopen: MIDI_WAVE_OPEN_TYPE) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInPrepareHeader(hwi: HWAVEIN, pwh: *mut WAVEHDR, cbwh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInReset(hwi: HWAVEIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInStart(hwi: HWAVEIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInStop(hwi: HWAVEIN) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveInUnprepareHeader(hwi: HWAVEIN, pwh: *mut WAVEHDR, cbwh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutBreakLoop(hwo: HWAVEOUT) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutClose(hwo: HWAVEOUT) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn waveOutGetDevCapsA(udeviceid: usize, pwoc: *mut WAVEOUTCAPSA, cbwoc: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetDevCapsW(udeviceid: usize, pwoc: *mut WAVEOUTCAPSW, cbwoc: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetErrorTextA(mmrerror: u32, psztext: ::windows_sys::core::PSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetErrorTextW(mmrerror: u32, psztext: ::windows_sys::core::PWSTR, cchtext: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetID(hwo: HWAVEOUT, pudeviceid: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetNumDevs() -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetPitch(hwo: HWAVEOUT, pdwpitch: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetPlaybackRate(hwo: HWAVEOUT, pdwrate: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetPosition(hwo: HWAVEOUT, pmmt: *mut super::MMTIME, cbmmt: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutGetVolume(hwo: HWAVEOUT, pdwvolume: *mut u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutMessage(hwo: HWAVEOUT, umsg: u32, dw1: usize, dw2: usize) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutOpen(phwo: *mut HWAVEOUT, udeviceid: u32, pwfx: *const WAVEFORMATEX, dwcallback: usize, dwinstance: usize, fdwopen: MIDI_WAVE_OPEN_TYPE) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutPause(hwo: HWAVEOUT) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutPrepareHeader(hwo: HWAVEOUT, pwh: *mut WAVEHDR, cbwh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutReset(hwo: HWAVEOUT) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutRestart(hwo: HWAVEOUT) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutSetPitch(hwo: HWAVEOUT, dwpitch: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutSetPlaybackRate(hwo: HWAVEOUT, dwrate: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutSetVolume(hwo: HWAVEOUT, dwvolume: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutUnprepareHeader(hwo: HWAVEOUT, pwh: *mut WAVEHDR, cbwh: u32) -> u32;
-    #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-    pub fn waveOutWrite(hwo: HWAVEOUT, pwh: *mut WAVEHDR, cbwh: u32) -> u32;
-}
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage"))]
+::windows_sys::core::link ! ( "mmdevapi.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`*"] fn ActivateAudioInterfaceAsync ( deviceinterfacepath : :: windows_sys::core::PCWSTR , riid : *const :: windows_sys::core::GUID , activationparams : *const super::super::System::Com::StructuredStorage:: PROPVARIANT , completionhandler : IActivateAudioInterfaceCompletionHandler , activationoperation : *mut IActivateAudioInterfaceAsyncOperation ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "ole32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CoRegisterMessageFilter ( lpmessagefilter : IMessageFilter , lplpmessagefilter : *mut IMessageFilter ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateCaptureAudioStateMonitor ( audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateCaptureAudioStateMonitorForCategory ( category : AUDIO_STREAM_CATEGORY , audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateCaptureAudioStateMonitorForCategoryAndDeviceId ( category : AUDIO_STREAM_CATEGORY , deviceid : :: windows_sys::core::PCWSTR , audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateCaptureAudioStateMonitorForCategoryAndDeviceRole ( category : AUDIO_STREAM_CATEGORY , role : ERole , audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateRenderAudioStateMonitor ( audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateRenderAudioStateMonitorForCategory ( category : AUDIO_STREAM_CATEGORY , audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateRenderAudioStateMonitorForCategoryAndDeviceId ( category : AUDIO_STREAM_CATEGORY , deviceid : :: windows_sys::core::PCWSTR , audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "windows.media.mediacontrol.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn CreateRenderAudioStateMonitorForCategoryAndDeviceRole ( category : AUDIO_STREAM_CATEGORY , role : ERole , audiostatemonitor : *mut IAudioStateMonitor ) -> :: windows_sys::core::HRESULT );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn PlaySoundA ( pszsound : :: windows_sys::core::PCSTR , hmod : super::super::Foundation:: HINSTANCE , fdwsound : SND_FLAGS ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn PlaySoundW ( pszsound : :: windows_sys::core::PCWSTR , hmod : super::super::Foundation:: HINSTANCE , fdwsound : SND_FLAGS ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmDriverAddA ( phadid : *mut isize , hinstmodule : super::super::Foundation:: HINSTANCE , lparam : super::super::Foundation:: LPARAM , dwpriority : u32 , fdwadd : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmDriverAddW ( phadid : *mut isize , hinstmodule : super::super::Foundation:: HINSTANCE , lparam : super::super::Foundation:: LPARAM , dwpriority : u32 , fdwadd : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmDriverClose ( had : HACMDRIVER , fdwclose : u32 ) -> u32 );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn acmDriverDetailsA ( hadid : HACMDRIVERID , padd : *mut ACMDRIVERDETAILSA , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_UI_WindowsAndMessaging")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_WindowsAndMessaging\"`*"] fn acmDriverDetailsW ( hadid : HACMDRIVERID , padd : *mut ACMDRIVERDETAILSW , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmDriverEnum ( fncallback : ACMDRIVERENUMCB , dwinstance : usize , fdwenum : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmDriverID ( hao : HACMOBJ , phadid : *mut isize , fdwdriverid : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmDriverMessage ( had : HACMDRIVER , umsg : u32 , lparam1 : super::super::Foundation:: LPARAM , lparam2 : super::super::Foundation:: LPARAM ) -> super::super::Foundation:: LRESULT );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmDriverOpen ( phad : *mut isize , hadid : HACMDRIVERID , fdwopen : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmDriverPriority ( hadid : HACMDRIVERID , dwpriority : u32 , fdwpriority : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmDriverRemove ( hadid : HACMDRIVERID , fdwremove : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterChooseA ( pafltrc : *mut ACMFILTERCHOOSEA ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterChooseW ( pafltrc : *mut ACMFILTERCHOOSEW ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterDetailsA ( had : HACMDRIVER , pafd : *mut ACMFILTERDETAILSA , fdwdetails : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmFilterDetailsW ( had : HACMDRIVER , pafd : *mut ACMFILTERDETAILSW , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterEnumA ( had : HACMDRIVER , pafd : *mut ACMFILTERDETAILSA , fncallback : ACMFILTERENUMCBA , dwinstance : usize , fdwenum : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterEnumW ( had : HACMDRIVER , pafd : *mut ACMFILTERDETAILSW , fncallback : ACMFILTERENUMCBW , dwinstance : usize , fdwenum : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterTagDetailsA ( had : HACMDRIVER , paftd : *mut ACMFILTERTAGDETAILSA , fdwdetails : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmFilterTagDetailsW ( had : HACMDRIVER , paftd : *mut ACMFILTERTAGDETAILSW , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterTagEnumA ( had : HACMDRIVER , paftd : *mut ACMFILTERTAGDETAILSA , fncallback : ACMFILTERTAGENUMCBA , dwinstance : usize , fdwenum : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFilterTagEnumW ( had : HACMDRIVER , paftd : *mut ACMFILTERTAGDETAILSW , fncallback : ACMFILTERTAGENUMCBW , dwinstance : usize , fdwenum : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatChooseA ( pafmtc : *mut ACMFORMATCHOOSEA ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatChooseW ( pafmtc : *mut ACMFORMATCHOOSEW ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatDetailsA ( had : HACMDRIVER , pafd : *mut ACMFORMATDETAILSA , fdwdetails : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmFormatDetailsW ( had : HACMDRIVER , pafd : *mut tACMFORMATDETAILSW , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatEnumA ( had : HACMDRIVER , pafd : *mut ACMFORMATDETAILSA , fncallback : ACMFORMATENUMCBA , dwinstance : usize , fdwenum : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatEnumW ( had : HACMDRIVER , pafd : *mut tACMFORMATDETAILSW , fncallback : ACMFORMATENUMCBW , dwinstance : usize , fdwenum : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmFormatSuggest ( had : HACMDRIVER , pwfxsrc : *mut WAVEFORMATEX , pwfxdst : *mut WAVEFORMATEX , cbwfxdst : u32 , fdwsuggest : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatTagDetailsA ( had : HACMDRIVER , paftd : *mut ACMFORMATTAGDETAILSA , fdwdetails : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmFormatTagDetailsW ( had : HACMDRIVER , paftd : *mut ACMFORMATTAGDETAILSW , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatTagEnumA ( had : HACMDRIVER , paftd : *mut ACMFORMATTAGDETAILSA , fncallback : ACMFORMATTAGENUMCBA , dwinstance : usize , fdwenum : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmFormatTagEnumW ( had : HACMDRIVER , paftd : *mut ACMFORMATTAGDETAILSW , fncallback : ACMFORMATTAGENUMCBW , dwinstance : usize , fdwenum : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmGetVersion ( ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmMetrics ( hao : HACMOBJ , umetric : u32 , pmetric : *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmStreamClose ( has : HACMSTREAM , fdwclose : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmStreamConvert ( has : HACMSTREAM , pash : *mut ACMSTREAMHEADER , fdwconvert : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn acmStreamMessage ( has : HACMSTREAM , umsg : u32 , lparam1 : super::super::Foundation:: LPARAM , lparam2 : super::super::Foundation:: LPARAM ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmStreamOpen ( phas : *mut isize , had : HACMDRIVER , pwfxsrc : *mut WAVEFORMATEX , pwfxdst : *mut WAVEFORMATEX , pwfltr : *mut WAVEFILTER , dwcallback : usize , dwinstance : usize , fdwopen : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmStreamPrepareHeader ( has : HACMSTREAM , pash : *mut ACMSTREAMHEADER , fdwprepare : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmStreamReset ( has : HACMSTREAM , fdwreset : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmStreamSize ( has : HACMSTREAM , cbinput : u32 , pdwoutputbytes : *mut u32 , fdwsize : u32 ) -> u32 );
+::windows_sys::core::link ! ( "msacm32.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn acmStreamUnprepareHeader ( has : HACMSTREAM , pash : *mut ACMSTREAMHEADER , fdwunprepare : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn auxGetDevCapsA ( udeviceid : usize , pac : *mut AUXCAPSA , cbac : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn auxGetDevCapsW ( udeviceid : usize , pac : *mut AUXCAPSW , cbac : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn auxGetNumDevs ( ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn auxGetVolume ( udeviceid : u32 , pdwvolume : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn auxOutMessage ( udeviceid : u32 , umsg : u32 , dw1 : usize , dw2 : usize ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn auxSetVolume ( udeviceid : u32 , dwvolume : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiConnect ( hmi : HMIDI , hmo : HMIDIOUT , preserved : *const ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiDisconnect ( hmi : HMIDI , hmo : HMIDIOUT , preserved : *const ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInAddBuffer ( hmi : HMIDIIN , pmh : *mut MIDIHDR , cbmh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInClose ( hmi : HMIDIIN ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn midiInGetDevCapsA ( udeviceid : usize , pmic : *mut MIDIINCAPSA , cbmic : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInGetDevCapsW ( udeviceid : usize , pmic : *mut MIDIINCAPSW , cbmic : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInGetErrorTextA ( mmrerror : u32 , psztext : :: windows_sys::core::PSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInGetErrorTextW ( mmrerror : u32 , psztext : :: windows_sys::core::PWSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInGetID ( hmi : HMIDIIN , pudeviceid : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInGetNumDevs ( ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInMessage ( hmi : HMIDIIN , umsg : u32 , dw1 : usize , dw2 : usize ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInOpen ( phmi : *mut HMIDIIN , udeviceid : u32 , dwcallback : usize , dwinstance : usize , fdwopen : MIDI_WAVE_OPEN_TYPE ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInPrepareHeader ( hmi : HMIDIIN , pmh : *mut MIDIHDR , cbmh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInReset ( hmi : HMIDIIN ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInStart ( hmi : HMIDIIN ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInStop ( hmi : HMIDIIN ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiInUnprepareHeader ( hmi : HMIDIIN , pmh : *mut MIDIHDR , cbmh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutCacheDrumPatches ( hmo : HMIDIOUT , upatch : u32 , pwkya : *const u16 , fucache : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutCachePatches ( hmo : HMIDIOUT , ubank : u32 , pwpa : *const u16 , fucache : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutClose ( hmo : HMIDIOUT ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn midiOutGetDevCapsA ( udeviceid : usize , pmoc : *mut MIDIOUTCAPSA , cbmoc : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutGetDevCapsW ( udeviceid : usize , pmoc : *mut MIDIOUTCAPSW , cbmoc : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutGetErrorTextA ( mmrerror : u32 , psztext : :: windows_sys::core::PSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutGetErrorTextW ( mmrerror : u32 , psztext : :: windows_sys::core::PWSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutGetID ( hmo : HMIDIOUT , pudeviceid : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutGetNumDevs ( ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutGetVolume ( hmo : HMIDIOUT , pdwvolume : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutLongMsg ( hmo : HMIDIOUT , pmh : *const MIDIHDR , cbmh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutMessage ( hmo : HMIDIOUT , umsg : u32 , dw1 : usize , dw2 : usize ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutOpen ( phmo : *mut HMIDIOUT , udeviceid : u32 , dwcallback : usize , dwinstance : usize , fdwopen : MIDI_WAVE_OPEN_TYPE ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutPrepareHeader ( hmo : HMIDIOUT , pmh : *mut MIDIHDR , cbmh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutReset ( hmo : HMIDIOUT ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutSetVolume ( hmo : HMIDIOUT , dwvolume : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutShortMsg ( hmo : HMIDIOUT , dwmsg : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiOutUnprepareHeader ( hmo : HMIDIOUT , pmh : *mut MIDIHDR , cbmh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamClose ( hms : HMIDISTRM ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamOpen ( phms : *mut HMIDISTRM , pudeviceid : *mut u32 , cmidi : u32 , dwcallback : usize , dwinstance : usize , fdwopen : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamOut ( hms : HMIDISTRM , pmh : *mut MIDIHDR , cbmh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamPause ( hms : HMIDISTRM ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamPosition ( hms : HMIDISTRM , lpmmt : *mut super:: MMTIME , cbmmt : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamProperty ( hms : HMIDISTRM , lppropdata : *mut u8 , dwproperty : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamRestart ( hms : HMIDISTRM ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn midiStreamStop ( hms : HMIDISTRM ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerClose ( hmx : HMIXER ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn mixerGetControlDetailsA ( hmxobj : HMIXEROBJ , pmxcd : *mut MIXERCONTROLDETAILS , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn mixerGetControlDetailsW ( hmxobj : HMIXEROBJ , pmxcd : *mut MIXERCONTROLDETAILS , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn mixerGetDevCapsA ( umxid : usize , pmxcaps : *mut MIXERCAPSA , cbmxcaps : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerGetDevCapsW ( umxid : usize , pmxcaps : *mut MIXERCAPSW , cbmxcaps : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerGetID ( hmxobj : HMIXEROBJ , pumxid : *mut u32 , fdwid : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn mixerGetLineControlsA ( hmxobj : HMIXEROBJ , pmxlc : *mut MIXERLINECONTROLSA , fdwcontrols : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerGetLineControlsW ( hmxobj : HMIXEROBJ , pmxlc : *mut MIXERLINECONTROLSW , fdwcontrols : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn mixerGetLineInfoA ( hmxobj : HMIXEROBJ , pmxl : *mut MIXERLINEA , fdwinfo : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerGetLineInfoW ( hmxobj : HMIXEROBJ , pmxl : *mut MIXERLINEW , fdwinfo : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerGetNumDevs ( ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerMessage ( hmx : HMIXER , umsg : u32 , dwparam1 : usize , dwparam2 : usize ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn mixerOpen ( phmx : *mut isize , umxid : u32 , dwcallback : usize , dwinstance : usize , fdwopen : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn mixerSetControlDetails ( hmxobj : HMIXEROBJ , pmxcd : *const MIXERCONTROLDETAILS , fdwdetails : u32 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn sndPlaySoundA ( pszsound : :: windows_sys::core::PCSTR , fusound : u32 ) -> super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn sndPlaySoundW ( pszsound : :: windows_sys::core::PCWSTR , fusound : u32 ) -> super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInAddBuffer ( hwi : HWAVEIN , pwh : *mut WAVEHDR , cbwh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInClose ( hwi : HWAVEIN ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn waveInGetDevCapsA ( udeviceid : usize , pwic : *mut WAVEINCAPSA , cbwic : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInGetDevCapsW ( udeviceid : usize , pwic : *mut WAVEINCAPSW , cbwic : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInGetErrorTextA ( mmrerror : u32 , psztext : :: windows_sys::core::PSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInGetErrorTextW ( mmrerror : u32 , psztext : :: windows_sys::core::PWSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInGetID ( hwi : HWAVEIN , pudeviceid : *const u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInGetNumDevs ( ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInGetPosition ( hwi : HWAVEIN , pmmt : *mut super:: MMTIME , cbmmt : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInMessage ( hwi : HWAVEIN , umsg : u32 , dw1 : usize , dw2 : usize ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInOpen ( phwi : *mut HWAVEIN , udeviceid : u32 , pwfx : *const WAVEFORMATEX , dwcallback : usize , dwinstance : usize , fdwopen : MIDI_WAVE_OPEN_TYPE ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInPrepareHeader ( hwi : HWAVEIN , pwh : *mut WAVEHDR , cbwh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInReset ( hwi : HWAVEIN ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInStart ( hwi : HWAVEIN ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInStop ( hwi : HWAVEIN ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveInUnprepareHeader ( hwi : HWAVEIN , pwh : *mut WAVEHDR , cbwh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutBreakLoop ( hwo : HWAVEOUT ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutClose ( hwo : HWAVEOUT ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Foundation\"`*"] fn waveOutGetDevCapsA ( udeviceid : usize , pwoc : *mut WAVEOUTCAPSA , cbwoc : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetDevCapsW ( udeviceid : usize , pwoc : *mut WAVEOUTCAPSW , cbwoc : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetErrorTextA ( mmrerror : u32 , psztext : :: windows_sys::core::PSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetErrorTextW ( mmrerror : u32 , psztext : :: windows_sys::core::PWSTR , cchtext : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetID ( hwo : HWAVEOUT , pudeviceid : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetNumDevs ( ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetPitch ( hwo : HWAVEOUT , pdwpitch : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetPlaybackRate ( hwo : HWAVEOUT , pdwrate : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetPosition ( hwo : HWAVEOUT , pmmt : *mut super:: MMTIME , cbmmt : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutGetVolume ( hwo : HWAVEOUT , pdwvolume : *mut u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutMessage ( hwo : HWAVEOUT , umsg : u32 , dw1 : usize , dw2 : usize ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutOpen ( phwo : *mut HWAVEOUT , udeviceid : u32 , pwfx : *const WAVEFORMATEX , dwcallback : usize , dwinstance : usize , fdwopen : MIDI_WAVE_OPEN_TYPE ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutPause ( hwo : HWAVEOUT ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutPrepareHeader ( hwo : HWAVEOUT , pwh : *mut WAVEHDR , cbwh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutReset ( hwo : HWAVEOUT ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutRestart ( hwo : HWAVEOUT ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutSetPitch ( hwo : HWAVEOUT , dwpitch : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutSetPlaybackRate ( hwo : HWAVEOUT , dwrate : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutSetVolume ( hwo : HWAVEOUT , dwvolume : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutUnprepareHeader ( hwo : HWAVEOUT , pwh : *mut WAVEHDR , cbwh : u32 ) -> u32 );
+::windows_sys::core::link ! ( "winmm.dll""system" #[doc = "*Required features: `\"Win32_Media_Audio\"`*"] fn waveOutWrite ( hwo : HWAVEOUT , pwh : *mut WAVEHDR , cbwh : u32 ) -> u32 );
 pub type IActivateAudioInterfaceAsyncOperation = *mut ::core::ffi::c_void;
 pub type IActivateAudioInterfaceCompletionHandler = *mut ::core::ffi::c_void;
 pub type IAudioAmbisonicsControl = *mut ::core::ffi::c_void;
@@ -549,23 +386,23 @@ pub const ACMFORMATDETAILS_FORMAT_CHARS: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const ACMFORMATTAGDETAILS_FORMATTAG_CHARS: u32 = 48u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGCONTEXTHELP: &str = "acmchoose_contexthelp";
+pub const ACMHELPMSGCONTEXTHELP: ::windows_sys::core::PCWSTR = ::windows_sys::w!("acmchoose_contexthelp");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGCONTEXTHELPA: &str = "acmchoose_contexthelp";
+pub const ACMHELPMSGCONTEXTHELPA: ::windows_sys::core::PCSTR = ::windows_sys::s!("acmchoose_contexthelp");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGCONTEXTHELPW: &str = "acmchoose_contexthelp";
+pub const ACMHELPMSGCONTEXTHELPW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("acmchoose_contexthelp");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGCONTEXTMENU: &str = "acmchoose_contextmenu";
+pub const ACMHELPMSGCONTEXTMENU: ::windows_sys::core::PCWSTR = ::windows_sys::w!("acmchoose_contextmenu");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGCONTEXTMENUA: &str = "acmchoose_contextmenu";
+pub const ACMHELPMSGCONTEXTMENUA: ::windows_sys::core::PCSTR = ::windows_sys::s!("acmchoose_contextmenu");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGCONTEXTMENUW: &str = "acmchoose_contextmenu";
+pub const ACMHELPMSGCONTEXTMENUW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("acmchoose_contextmenu");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGSTRING: &str = "acmchoose_help";
+pub const ACMHELPMSGSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("acmchoose_help");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGSTRINGA: &str = "acmchoose_help";
+pub const ACMHELPMSGSTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("acmchoose_help");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const ACMHELPMSGSTRINGW: &str = "acmchoose_help";
+pub const ACMHELPMSGSTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("acmchoose_help");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const ACMSTREAMHEADER_STATUSF_DONE: i32 = 65536i32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
@@ -834,10 +671,14 @@ pub const DEVICE_STATE_DISABLED: u32 = 2u32;
 pub const DEVICE_STATE_NOTPRESENT: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const DEVICE_STATE_UNPLUGGED: u32 = 8u32;
-pub const DEVINTERFACE_AUDIO_CAPTURE: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 787448254, data2: 13306, data3: 18432, data4: [150, 112, 28, 212, 116, 151, 44, 63] };
-pub const DEVINTERFACE_AUDIO_RENDER: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3862068397, data2: 56556, data3: 18761, data4: [174, 138, 153, 30, 151, 106, 121, 210] };
-pub const DEVINTERFACE_MIDI_INPUT: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1347150636, data2: 52470, data3: 19756, data4: [183, 63, 111, 139, 55, 71, 226, 43] };
-pub const DEVINTERFACE_MIDI_OUTPUT: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1841443616, data2: 43827, data3: 19684, data4: [128, 212, 187, 179, 235, 191, 40, 20] };
+#[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
+pub const DEVINTERFACE_AUDIO_CAPTURE: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x2eef81be_33fa_4800_9670_1cd474972c3f);
+#[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
+pub const DEVINTERFACE_AUDIO_RENDER: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe6327cad_dcec_4949_ae8a_991e976a79d2);
+#[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
+pub const DEVINTERFACE_MIDI_INPUT: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x504be32c_ccf6_4d2c_b73f_6f8b3747e22b);
+#[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
+pub const DEVINTERFACE_MIDI_OUTPUT: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6dc23320_ab33_4ce4_80d4_bbb3ebbf2814);
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const DRVM_MAPPER: u32 = 8192u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
@@ -846,7 +687,8 @@ pub const DRVM_MAPPER_STATUS: u32 = 8192u32;
 pub const DRV_MAPPER_PREFERRED_INPUT_GET: u32 = 16384u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const DRV_MAPPER_PREFERRED_OUTPUT_GET: u32 = 16386u32;
-pub const DeviceTopology: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 502675920, data2: 24257, data3: 18346, data4: [147, 121, 130, 141, 193, 170, 140, 89] };
+#[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
+pub const DeviceTopology: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x1df639d0_5ec1_47aa_9379_828dc1aa8c59);
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const ENDPOINT_FORMAT_RESET_MIX_ONLY: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
@@ -859,7 +701,8 @@ pub const ENDPOINT_HARDWARE_SUPPORT_VOLUME: u32 = 1u32;
 pub const ENDPOINT_SYSFX_DISABLED: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const ENDPOINT_SYSFX_ENABLED: u32 = 0u32;
-pub const EVENTCONTEXT_VOLUMESLIDER: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3804424670, data2: 2481, data3: 19204, data4: [132, 229, 7, 147, 18, 37, 238, 4] };
+#[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
+pub const EVENTCONTEXT_VOLUMESLIDER: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe2c2e9de_09b1_4b04_84e5_07931225ee04);
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const FILTERCHOOSE_CUSTOM_VERIFY: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
@@ -1136,7 +979,8 @@ pub const MIXER_SETCONTROLDETAILSF_QUERYMASK: i32 = 15i32;
 pub const MIXER_SETCONTROLDETAILSF_VALUE: i32 = 0i32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const MIXER_SHORT_NAME_CHARS: u32 = 16u32;
-pub const MMDeviceEnumerator: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3168666517, data2: 58671, data3: 18044, data4: [142, 61, 196, 87, 146, 145, 105, 46] };
+#[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
+pub const MMDeviceEnumerator: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbcde0395_e52f_467c_8e3d_c4579291692e);
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const MM_ACM_FILTERCHOOSE: u32 = 32768u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
@@ -1157,52 +1001,52 @@ pub const MOD_SYNTH: u32 = 2u32;
 pub const MOD_WAVETABLE: u32 = 6u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpointLogo_IconEffects: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 4054546445, data2: 8208, data3: 20179, data4: [163, 166, 139, 135, 240, 240, 196, 118] }, pid: 0u32 };
+pub const PKEY_AudioEndpointLogo_IconEffects: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0xf1ab780d_2010_4ed3_a3a6_8b87f0f0c476), pid: 0u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpointLogo_IconPath: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 4054546445, data2: 8208, data3: 20179, data4: [163, 166, 139, 135, 240, 240, 196, 118] }, pid: 1u32 };
+pub const PKEY_AudioEndpointLogo_IconPath: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0xf1ab780d_2010_4ed3_a3a6_8b87f0f0c476), pid: 1u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpointSettings_LaunchContract: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 337911810, data2: 800, data3: 19940, data4: [149, 85, 167, 216, 43, 115, 194, 134] }, pid: 1u32 };
+pub const PKEY_AudioEndpointSettings_LaunchContract: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x14242002_0320_4de4_9555_a7d82b73c286), pid: 1u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpointSettings_MenuText: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 337911810, data2: 800, data3: 19940, data4: [149, 85, 167, 216, 43, 115, 194, 134] }, pid: 0u32 };
+pub const PKEY_AudioEndpointSettings_MenuText: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x14242002_0320_4de4_9555_a7d82b73c286), pid: 0u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_Association: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 2u32 };
+pub const PKEY_AudioEndpoint_Association: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 2u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_ControlPanelPageProvider: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 1u32 };
+pub const PKEY_AudioEndpoint_ControlPanelPageProvider: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 1u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_Default_VolumeInDb: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 9u32 };
+pub const PKEY_AudioEndpoint_Default_VolumeInDb: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 9u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_Disable_SysFx: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 5u32 };
+pub const PKEY_AudioEndpoint_Disable_SysFx: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 5u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_FormFactor: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 0u32 };
+pub const PKEY_AudioEndpoint_FormFactor: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 0u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_FullRangeSpeakers: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 6u32 };
+pub const PKEY_AudioEndpoint_FullRangeSpeakers: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 6u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_GUID: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 4u32 };
+pub const PKEY_AudioEndpoint_GUID: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 4u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_JackSubType: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 8u32 };
+pub const PKEY_AudioEndpoint_JackSubType: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 8u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_PhysicalSpeakers: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 3u32 };
+pub const PKEY_AudioEndpoint_PhysicalSpeakers: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 3u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEndpoint_Supports_EventDriven_Mode: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 497408003, data2: 54418, data3: 20189, data4: [140, 35, 224, 192, 255, 238, 127, 14] }, pid: 7u32 };
+pub const PKEY_AudioEndpoint_Supports_EventDriven_Mode: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0x1da5d803_d492_4edd_8c23_e0c0ffee7f0e), pid: 7u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEngine_DeviceFormat: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 4053730893, data2: 2092, data3: 20007, data4: [188, 115, 104, 130, 161, 187, 142, 76] }, pid: 0u32 };
+pub const PKEY_AudioEngine_DeviceFormat: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0xf19f064d_082c_4e27_bc73_6882a1bb8e4c), pid: 0u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
 #[cfg(feature = "Win32_UI_Shell_PropertiesSystem")]
-pub const PKEY_AudioEngine_OEMFormat: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID { data1: 3834056230, data2: 15557, data3: 19666, data4: [186, 70, 202, 10, 154, 112, 237, 4] }, pid: 3u32 };
+pub const PKEY_AudioEngine_OEMFormat: super::super::UI::Shell::PropertiesSystem::PROPERTYKEY = super::super::UI::Shell::PropertiesSystem::PROPERTYKEY { fmtid: ::windows_sys::core::GUID::from_u128(0xe4870e26_3cc5_4cd2_ba46_ca0a9a70ed04), pid: 3u32 };
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const SND_ALIAS_START: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
@@ -1290,7 +1134,7 @@ pub const SPTLAUD_MD_CLNT_E_OBJECT_NOT_INITIALIZED: ::windows_sys::core::HRESULT
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const SPTLAUD_MD_CLNT_E_VALUE_BUFFER_INCORRECT_SIZE: ::windows_sys::core::HRESULT = -2004286972i32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub const VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK: &str = "VAD\\Process_Loopback";
+pub const VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK: ::windows_sys::core::PCWSTR = ::windows_sys::w!("VAD\\Process_Loopback");
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
 pub const WAVECAPS_LRVOLUME: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
@@ -3792,9 +3636,9 @@ pub type ACMFORMATTAGENUMCBW = ::core::option::Option<unsafe extern "system" fn(
 pub type LPACMDRIVERPROC = ::core::option::Option<unsafe extern "system" fn(param0: usize, param1: HACMDRIVERID, param2: u32, param3: super::super::Foundation::LPARAM, param4: super::super::Foundation::LPARAM) -> super::super::Foundation::LRESULT>;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Media_Multimedia\"`*"]
 #[cfg(feature = "Win32_Media_Multimedia")]
-pub type LPMIDICALLBACK = ::core::option::Option<unsafe extern "system" fn(hdrvr: super::Multimedia::HDRVR, umsg: u32, dwuser: usize, dw1: usize, dw2: usize)>;
+pub type LPMIDICALLBACK = ::core::option::Option<unsafe extern "system" fn(hdrvr: super::Multimedia::HDRVR, umsg: u32, dwuser: usize, dw1: usize, dw2: usize) -> ()>;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`, `\"Win32_Media_Multimedia\"`*"]
 #[cfg(feature = "Win32_Media_Multimedia")]
-pub type LPWAVECALLBACK = ::core::option::Option<unsafe extern "system" fn(hdrvr: super::Multimedia::HDRVR, umsg: u32, dwuser: usize, dw1: usize, dw2: usize)>;
+pub type LPWAVECALLBACK = ::core::option::Option<unsafe extern "system" fn(hdrvr: super::Multimedia::HDRVR, umsg: u32, dwuser: usize, dw1: usize, dw2: usize) -> ()>;
 #[doc = "*Required features: `\"Win32_Media_Audio\"`*"]
-pub type PAudioStateMonitorCallback = ::core::option::Option<unsafe extern "system" fn(audiostatemonitor: IAudioStateMonitor, context: *const ::core::ffi::c_void)>;
+pub type PAudioStateMonitorCallback = ::core::option::Option<unsafe extern "system" fn(audiostatemonitor: IAudioStateMonitor, context: *const ::core::ffi::c_void) -> ()>;

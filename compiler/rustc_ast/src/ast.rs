@@ -33,7 +33,6 @@ use rustc_serialize::{Decodable, Decoder, Encodable, Encoder};
 use rustc_span::source_map::{respan, Spanned};
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
 use rustc_span::{Span, DUMMY_SP};
-use std::convert::TryFrom;
 use std::fmt;
 use std::mem;
 use thin_vec::{thin_vec, ThinVec};
@@ -573,7 +572,7 @@ impl Pat {
             PatKind::MacCall(mac) => TyKind::MacCall(mac.clone()),
             // `&mut? P` can be reinterpreted as `&mut? T` where `T` is `P` reparsed as a type.
             PatKind::Ref(pat, mutbl) => {
-                pat.to_ty().map(|ty| TyKind::Rptr(None, MutTy { ty, mutbl: *mutbl }))?
+                pat.to_ty().map(|ty| TyKind::Ref(None, MutTy { ty, mutbl: *mutbl }))?
             }
             // A slice/array pattern `[P]` can be reparsed as `[T]`, an unsized array,
             // when `P` can be reparsed as a type `T`.
@@ -1194,7 +1193,7 @@ impl Expr {
             ExprKind::Paren(expr) => expr.to_ty().map(TyKind::Paren)?,
 
             ExprKind::AddrOf(BorrowKind::Ref, mutbl, expr) => {
-                expr.to_ty().map(|ty| TyKind::Rptr(None, MutTy { ty, mutbl: *mutbl }))?
+                expr.to_ty().map(|ty| TyKind::Ref(None, MutTy { ty, mutbl: *mutbl }))?
             }
 
             ExprKind::Repeat(expr, expr_len) => {
@@ -1308,6 +1307,7 @@ impl Expr {
 pub struct Closure {
     pub binder: ClosureBinder,
     pub capture_clause: CaptureBy,
+    pub constness: Const,
     pub asyncness: Async,
     pub movability: Movability,
     pub fn_decl: P<FnDecl>,
@@ -1735,8 +1735,10 @@ pub enum StrStyle {
 /// A literal in a meta item.
 #[derive(Clone, Encodable, Decodable, Debug, HashStable_Generic)]
 pub struct MetaItemLit {
-    /// The original literal token as written in source code.
-    pub token_lit: token::Lit,
+    /// The original literal as written in the source code.
+    pub symbol: Symbol,
+    /// The original suffix as written in the source code.
+    pub suffix: Option<Symbol>,
     /// The "semantic" representation of the literal lowered from the original tokens.
     /// Strings are unescaped, hexadecimal forms are eliminated, etc.
     pub kind: LitKind,
@@ -1746,13 +1748,14 @@ pub struct MetaItemLit {
 /// Similar to `MetaItemLit`, but restricted to string literals.
 #[derive(Clone, Copy, Encodable, Decodable, Debug)]
 pub struct StrLit {
-    /// The original literal token as written in source code.
-    pub style: StrStyle,
+    /// The original literal as written in source code.
     pub symbol: Symbol,
+    /// The original suffix as written in source code.
     pub suffix: Option<Symbol>,
-    pub span: Span,
-    /// The unescaped "semantic" representation of the literal lowered from the original token.
+    /// The semantic (unescaped) representation of the literal.
     pub symbol_unescaped: Symbol,
+    pub style: StrStyle,
+    pub span: Span,
 }
 
 impl StrLit {
@@ -1798,8 +1801,9 @@ pub enum LitKind {
     /// A string literal (`"foo"`). The symbol is unescaped, and so may differ
     /// from the original token's symbol.
     Str(Symbol, StrStyle),
-    /// A byte string (`b"foo"`).
-    ByteStr(Lrc<[u8]>),
+    /// A byte string (`b"foo"`). Not stored as a symbol because it might be
+    /// non-utf8, and symbols only allow utf8 strings.
+    ByteStr(Lrc<[u8]>, StrStyle),
     /// A byte char (`b'f'`).
     Byte(u8),
     /// A character literal (`'a'`).
@@ -1824,7 +1828,7 @@ impl LitKind {
 
     /// Returns `true` if this literal is byte literal string.
     pub fn is_bytestr(&self) -> bool {
-        matches!(self, LitKind::ByteStr(_))
+        matches!(self, LitKind::ByteStr(..))
     }
 
     /// Returns `true` if this is a numeric literal.
@@ -2028,7 +2032,8 @@ impl Clone for Ty {
 impl Ty {
     pub fn peel_refs(&self) -> &Self {
         let mut final_ty = self;
-        while let TyKind::Rptr(_, MutTy { ty, .. }) = &final_ty.kind {
+        while let TyKind::Ref(_, MutTy { ty, .. }) | TyKind::Ptr(MutTy { ty, .. }) = &final_ty.kind
+        {
             final_ty = ty;
         }
         final_ty
@@ -2055,7 +2060,7 @@ pub enum TyKind {
     /// A raw pointer (`*const T` or `*mut T`).
     Ptr(MutTy),
     /// A reference (`&'a T` or `&'a mut T`).
-    Rptr(Option<Lifetime>, MutTy),
+    Ref(Option<Lifetime>, MutTy),
     /// A bare function (e.g., `fn(usize) -> bool`).
     BareFn(P<BareFnTy>),
     /// The never type (`!`).
@@ -2167,10 +2172,10 @@ impl fmt::Display for InlineAsmTemplatePiece {
                 Ok(())
             }
             Self::Placeholder { operand_idx, modifier: Some(modifier), .. } => {
-                write!(f, "{{{}:{}}}", operand_idx, modifier)
+                write!(f, "{{{operand_idx}:{modifier}}}")
             }
             Self::Placeholder { operand_idx, modifier: None, .. } => {
-                write!(f, "{{{}}}", operand_idx)
+                write!(f, "{{{operand_idx}}}")
             }
         }
     }
@@ -2182,7 +2187,7 @@ impl InlineAsmTemplatePiece {
         use fmt::Write;
         let mut out = String::new();
         for p in s.iter() {
-            let _ = write!(out, "{}", p);
+            let _ = write!(out, "{p}");
         }
         out
     }
@@ -2283,7 +2288,7 @@ impl Param {
             if ident.name == kw::SelfLower {
                 return match self.ty.kind {
                     TyKind::ImplicitSelf => Some(respan(self.pat.span, SelfKind::Value(mutbl))),
-                    TyKind::Rptr(lt, MutTy { ref ty, mutbl }) if ty.kind.is_implicit_self() => {
+                    TyKind::Ref(lt, MutTy { ref ty, mutbl }) if ty.kind.is_implicit_self() => {
                         Some(respan(self.pat.span, SelfKind::Region(lt, mutbl)))
                     }
                     _ => Some(respan(
@@ -2316,7 +2321,7 @@ impl Param {
                 Mutability::Not,
                 P(Ty {
                     id: DUMMY_NODE_ID,
-                    kind: TyKind::Rptr(lt, MutTy { ty: infer_ty, mutbl }),
+                    kind: TyKind::Ref(lt, MutTy { ty: infer_ty, mutbl }),
                     span,
                     tokens: None,
                 }),
@@ -2463,18 +2468,12 @@ pub enum ModKind {
     Unloaded,
 }
 
-#[derive(Copy, Clone, Encodable, Decodable, Debug)]
+#[derive(Copy, Clone, Encodable, Decodable, Debug, Default)]
 pub struct ModSpans {
     /// `inner_span` covers the body of the module; for a file module, its the whole file.
     /// For an inline module, its the span inside the `{ ... }`, not including the curly braces.
     pub inner_span: Span,
     pub inject_use_span: Span,
-}
-
-impl Default for ModSpans {
-    fn default() -> ModSpans {
-        ModSpans { inner_span: Default::default(), inject_use_span: Default::default() }
-    }
 }
 
 /// Foreign module declaration.
@@ -2557,10 +2556,9 @@ pub enum AttrStyle {
 }
 
 rustc_index::newtype_index! {
-    pub struct AttrId {
-        ENCODABLE = custom
-        DEBUG_FORMAT = "AttrId({})"
-    }
+    #[custom_encodable]
+    #[debug_format = "AttrId({})]"]
+    pub struct AttrId {}
 }
 
 impl<S: Encoder> Encodable<S> for AttrId {
@@ -2747,8 +2745,19 @@ impl Item {
 /// `extern` qualifier on a function item or function type.
 #[derive(Clone, Copy, Encodable, Decodable, Debug)]
 pub enum Extern {
+    /// No explicit extern keyword was used
+    ///
+    /// E.g. `fn foo() {}`
     None,
+    /// An explicit extern keyword was used, but with implicit ABI
+    ///
+    /// E.g. `extern fn foo() {}`
+    ///
+    /// This is just `extern "C"` (see `rustc_target::spec::abi::Abi::FALLBACK`)
     Implicit(Span),
+    /// An explicit extern keyword was used with an explicit ABI
+    ///
+    /// E.g. `extern "C" fn foo() {}`
     Explicit(StrLit, Span),
 }
 
@@ -2767,9 +2776,13 @@ impl Extern {
 /// included in this struct (e.g., `async unsafe fn` or `const extern "C" fn`).
 #[derive(Clone, Copy, Encodable, Decodable, Debug)]
 pub struct FnHeader {
+    /// The `unsafe` keyword, if any
     pub unsafety: Unsafe,
+    /// The `async` keyword, if any
     pub asyncness: Async,
+    /// The `const` keyword, if any
     pub constness: Const,
+    /// The `extern` keyword and corresponding ABI string, if any
     pub ext: Extern,
 }
 
@@ -3101,7 +3114,7 @@ mod size_asserts {
     static_assert_size!(ItemKind, 112);
     static_assert_size!(LitKind, 24);
     static_assert_size!(Local, 72);
-    static_assert_size!(MetaItemLit, 48);
+    static_assert_size!(MetaItemLit, 40);
     static_assert_size!(Param, 40);
     static_assert_size!(Pat, 88);
     static_assert_size!(Path, 24);

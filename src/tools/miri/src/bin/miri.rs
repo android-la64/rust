@@ -56,12 +56,12 @@ impl rustc_driver::Callbacks for MiriCompilerCalls {
 
     fn after_analysis<'tcx>(
         &mut self,
-        compiler: &rustc_interface::interface::Compiler,
+        _: &rustc_interface::interface::Compiler,
         queries: &'tcx rustc_interface::Queries<'tcx>,
     ) -> Compilation {
-        compiler.session().abort_if_errors();
+        queries.global_ctxt().unwrap().enter(|tcx| {
+            tcx.sess.abort_if_errors();
 
-        queries.global_ctxt().unwrap().peek_mut().enter(|tcx| {
             init_late_loggers(tcx);
             if !tcx.sess.crate_types().contains(&CrateType::Executable) {
                 tcx.sess.fatal("miri only makes sense on bin crates");
@@ -75,7 +75,7 @@ impl rustc_driver::Callbacks for MiriCompilerCalls {
             let mut config = self.miri_config.clone();
 
             // Add filename to `miri` arguments.
-            config.args.insert(0, compiler.input().filestem().to_string());
+            config.args.insert(0, tcx.sess.io.input.filestem().to_string());
 
             // Adjust working directory for interpretation.
             if let Some(cwd) = env::var_os("MIRI_CWD") {
@@ -87,9 +87,8 @@ impl rustc_driver::Callbacks for MiriCompilerCalls {
                     i32::try_from(return_code).expect("Return value was too large!"),
                 );
             }
+            tcx.sess.abort_if_errors();
         });
-
-        compiler.session().abort_if_errors();
 
         Compilation::Stop
     }
@@ -512,6 +511,18 @@ fn main() {
             };
 
             miri_config.num_cpus = num_cpus;
+        } else if let Some(param) = arg.strip_prefix("-Zmiri-force-page-size=") {
+            let page_size = match param.parse::<u64>() {
+                Ok(i) =>
+                    if i.is_power_of_two() {
+                        i * 1024
+                    } else {
+                        show_error!("-Zmiri-force-page-size requires a power of 2: {}", i)
+                    },
+                Err(err) => show_error!("-Zmiri-force-page-size requires a `u64`: {}", err),
+            };
+
+            miri_config.page_size = Some(page_size);
         } else {
             // Forward to rustc.
             rustc_args.push(arg);

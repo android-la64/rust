@@ -138,7 +138,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         // Before we go into the whole placeholder thing, just
         // quickly check if the self-type is a projection at all.
         match obligation.predicate.skip_binder().trait_ref.self_ty().kind() {
-            ty::Projection(_) | ty::Opaque(..) => {}
+            ty::Alias(..) => {}
             ty::Infer(ty::TyVar(_)) => {
                 span_bug!(
                     obligation.cause.span,
@@ -174,7 +174,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             .param_env
             .caller_bounds()
             .iter()
-            .filter_map(|o| o.to_opt_poly_trait_pred());
+            .filter_map(|p| p.to_opt_poly_trait_pred())
+            .filter(|p| !p.references_error());
 
         // Micro-optimization: filter out predicates relating to different traits.
         let matching_bounds =
@@ -254,18 +255,19 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         // touch bound regions, they just capture the in-scope
         // type/region parameters
         match *obligation.self_ty().skip_binder().kind() {
-            ty::Closure(_, closure_substs) => {
+            ty::Closure(def_id, closure_substs) => {
+                let is_const = self.tcx().is_const_fn_raw(def_id);
                 debug!(?kind, ?obligation, "assemble_unboxed_candidates");
                 match self.infcx.closure_kind(closure_substs) {
                     Some(closure_kind) => {
                         debug!(?closure_kind, "assemble_unboxed_candidates");
                         if closure_kind.extends(kind) {
-                            candidates.vec.push(ClosureCandidate);
+                            candidates.vec.push(ClosureCandidate { is_const });
                         }
                     }
                     None => {
                         debug!("assemble_unboxed_candidates: closure_kind not yet known");
-                        candidates.vec.push(ClosureCandidate);
+                        candidates.vec.push(ClosureCandidate { is_const });
                     }
                 }
             }
@@ -355,7 +357,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 // Before we create the substitutions and everything, first
                 // consider a "quick reject". This avoids creating more types
                 // and so forth that we need to.
-                let impl_trait_ref = self.tcx().bound_impl_trait_ref(impl_def_id).unwrap();
+                let impl_trait_ref = self.tcx().impl_trait_ref(impl_def_id).unwrap();
                 if self.fast_reject_trait_refs(obligation, &impl_trait_ref.0) {
                     return;
                 }
@@ -394,9 +396,9 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                     // still be provided by a manual implementation for
                     // this trait and type.
                 }
-                ty::Param(..) | ty::Projection(..) => {
+                ty::Param(..) | ty::Alias(ty::Projection, ..) => {
                     // In these cases, we don't know what the actual
-                    // type is.  Therefore, we cannot break it down
+                    // type is. Therefore, we cannot break it down
                     // into its constituent types. So we don't
                     // consider the `..` impl but instead just add no
                     // candidates: this means that typeck will only
@@ -536,10 +538,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             let ty = traits::normalize_projection_type(
                 self,
                 param_env,
-                ty::ProjectionTy {
-                    item_def_id: tcx.lang_items().deref_target()?,
-                    substs: trait_ref.substs,
-                },
+                tcx.mk_alias_ty(tcx.lang_items().deref_target()?, trait_ref.substs),
                 cause.clone(),
                 0,
                 // We're *intentionally* throwing these away,
@@ -737,13 +736,12 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
         let self_ty = self.infcx.shallow_resolve(obligation.self_ty());
         match self_ty.skip_binder().kind() {
-            ty::Opaque(..)
+            ty::Alias(..)
             | ty::Dynamic(..)
             | ty::Error(_)
             | ty::Bound(..)
             | ty::Param(_)
-            | ty::Placeholder(_)
-            | ty::Projection(_) => {
+            | ty::Placeholder(_) => {
                 // We don't know if these are `~const Destruct`, at least
                 // not structurally... so don't push a candidate.
             }
@@ -829,8 +827,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             | ty::Generator(_, _, _)
             | ty::GeneratorWitness(_)
             | ty::Never
-            | ty::Projection(_)
-            | ty::Opaque(_, _)
+            | ty::Alias(..)
             | ty::Param(_)
             | ty::Bound(_, _)
             | ty::Error(_)

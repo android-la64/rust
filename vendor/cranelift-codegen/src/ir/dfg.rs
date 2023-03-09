@@ -120,6 +120,23 @@ impl DataFlowGraph {
         self.immediates.clear();
     }
 
+    /// Clear all instructions, but keep blocks and other metadata
+    /// (signatures, constants, immediates). Everything to do with
+    /// `Value`s is cleared, including block params and debug info.
+    ///
+    /// Used during egraph-based optimization to clear out the pre-opt
+    /// body so that we can regenerate it from the egraph.
+    pub(crate) fn clear_insts(&mut self) {
+        self.insts.clear();
+        self.results.clear();
+        self.value_lists.clear();
+        self.values.clear();
+        self.values_labels = None;
+        for block in self.blocks.values_mut() {
+            block.params = ValueList::new();
+        }
+    }
+
     /// Get the total number of instructions created in this function, whether they are currently
     /// inserted in the layout or not.
     ///
@@ -255,6 +272,12 @@ impl DataFlowGraph {
     /// Get the type of a value.
     pub fn value_type(&self, v: Value) -> Type {
         self.values[v].ty()
+    }
+
+    /// Fill in the type of a value, only if currently invalid (as a placeholder).
+    pub(crate) fn fill_in_value_type(&mut self, v: Value, ty: Type) {
+        debug_assert!(self.values[v].ty().is_invalid() || self.values[v].ty() == ty);
+        self.values[v].set_type(ty);
     }
 
     /// Get the definition of a value.
@@ -500,7 +523,7 @@ impl ValueDataPacked {
 
     #[inline(always)]
     fn set_type(&mut self, ty: Type) {
-        self.0 &= !((1 << Self::TYPE_BITS) - 1) << Self::TYPE_SHIFT;
+        self.0 &= !(((1 << Self::TYPE_BITS) - 1) << Self::TYPE_SHIFT);
         self.0 |= (ty.repr() as u64) << Self::TYPE_SHIFT;
     }
 }
@@ -864,7 +887,12 @@ impl DataFlowGraph {
             self.value_type(
                 self[inst]
                     .typevar_operand(&self.value_lists)
-                    .expect("Instruction format doesn't have a designated operand, bad opcode."),
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Instruction format for {:?} doesn't have a designated operand",
+                            self[inst]
+                        )
+                    }),
             )
         } else {
             self.value_type(self.first_result(inst))
@@ -1439,10 +1467,5 @@ mod tests {
 
         assert_eq!(pos.func.dfg.resolve_aliases(c2), c2);
         assert_eq!(pos.func.dfg.resolve_aliases(c), c2);
-
-        // Make a copy of the alias.
-        let c3 = pos.ins().copy(c);
-        // This does not see through copies.
-        assert_eq!(pos.func.dfg.resolve_aliases(c3), c3);
     }
 }

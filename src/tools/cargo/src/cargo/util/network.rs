@@ -55,7 +55,7 @@ fn maybe_spurious(err: &Error) -> bool {
             git2::ErrorClass::Net
             | git2::ErrorClass::Os
             | git2::ErrorClass::Zlib
-            | git2::ErrorClass::Http => return true,
+            | git2::ErrorClass::Http => return git_err.code() != git2::ErrorCode::Certificate,
             _ => (),
         }
     }
@@ -108,6 +108,24 @@ where
             return Ok(ret);
         }
     }
+}
+
+// When dynamically linked against libcurl, we want to ignore some failures
+// when using old versions that don't support certain features.
+#[macro_export]
+macro_rules! try_old_curl {
+    ($e:expr, $msg:expr) => {
+        let result = $e;
+        if cfg!(target_os = "macos") {
+            if let Err(e) = result {
+                warn!("ignoring libcurl {} error: {}", $msg, e);
+            }
+        } else {
+            result.with_context(|| {
+                anyhow::format_err!("failed to enable {}, is curl not built right?", $msg)
+            })?;
+        }
+    };
 }
 
 #[test]

@@ -102,7 +102,7 @@ pub enum TraitQueryMode {
     /// spans etc. passed in and hence can do reasonable
     /// error reporting on their own.
     Standard,
-    /// Canonicalized queries get dummy spans and hence
+    /// Canonical queries get dummy spans and hence
     /// must generally propagate errors to
     /// pre-canonicalization callsites.
     Canonical,
@@ -115,14 +115,12 @@ pub fn predicates_for_generics<'tcx>(
     param_env: ty::ParamEnv<'tcx>,
     generic_bounds: ty::InstantiatedPredicates<'tcx>,
 ) -> impl Iterator<Item = PredicateObligation<'tcx>> {
-    std::iter::zip(generic_bounds.predicates, generic_bounds.spans).enumerate().map(
-        move |(idx, (predicate, span))| Obligation {
-            cause: cause(idx, span),
-            recursion_depth: 0,
-            param_env,
-            predicate,
-        },
-    )
+    generic_bounds.into_iter().enumerate().map(move |(idx, (predicate, span))| Obligation {
+        cause: cause(idx, span),
+        recursion_depth: 0,
+        param_env,
+        predicate,
+    })
 }
 
 /// Determines whether the type `ty` is known to meet `bound` and
@@ -308,7 +306,7 @@ pub fn normalize_param_env_or_error<'tcx>(
     // the `TypeOutlives` predicates first inside the unnormalized parameter environment, and
     // then we normalize the `TypeOutlives` bounds inside the normalized parameter environment.
     //
-    // This works fairly well because trait matching  does not actually care about param-env
+    // This works fairly well because trait matching does not actually care about param-env
     // TypeOutlives predicates - these are normally used by regionck.
     let outlives_predicates: Vec<_> = predicates
         .drain_filter(|predicate| {
@@ -425,13 +423,8 @@ pub fn fully_solve_bound<'tcx>(
     bound: DefId,
 ) -> Vec<FulfillmentError<'tcx>> {
     let tcx = infcx.tcx;
-    let trait_ref = ty::TraitRef { def_id: bound, substs: tcx.mk_substs_trait(ty, []) };
-    let obligation = Obligation {
-        cause,
-        recursion_depth: 0,
-        param_env,
-        predicate: ty::Binder::dummy(trait_ref).without_const().to_predicate(tcx),
-    };
+    let trait_ref = tcx.mk_trait_ref(bound, [ty]);
+    let obligation = Obligation::new(tcx, cause, param_env, ty::Binder::dummy(trait_ref));
 
     fully_solve_obligation(infcx, obligation)
 }
@@ -454,9 +447,6 @@ pub fn impossible_predicates<'tcx>(
         ocx.register_obligation(obligation);
     }
     let errors = ocx.select_all_or_error();
-
-    // Clean up after ourselves
-    let _ = infcx.inner.borrow_mut().opaque_type_storage.take_opaque_types();
 
     let result = !errors.is_empty();
     debug!("impossible_predicates = {:?}", result);
@@ -489,10 +479,7 @@ fn subst_and_check_impossible_predicates<'tcx>(
 ///
 /// This only considers predicates that reference the impl's generics, and not
 /// those that reference the method's generics.
-fn is_impossible_method<'tcx>(
-    tcx: TyCtxt<'tcx>,
-    (impl_def_id, trait_item_def_id): (DefId, DefId),
-) -> bool {
+fn is_impossible_method(tcx: TyCtxt<'_>, (impl_def_id, trait_item_def_id): (DefId, DefId)) -> bool {
     struct ReferencesOnlyParentGenerics<'tcx> {
         tcx: TyCtxt<'tcx>,
         generics: &'tcx ty::Generics,
@@ -506,7 +493,7 @@ fn is_impossible_method<'tcx>(
                 && let param_def_id = self.generics.type_param(param, self.tcx).def_id
                 && self.tcx.parent(param_def_id) == self.trait_item_def_id
             {
-                return ControlFlow::BREAK;
+                return ControlFlow::Break(());
             }
             t.super_visit_with(self)
         }
@@ -515,7 +502,7 @@ fn is_impossible_method<'tcx>(
                 && let param_def_id = self.generics.region_param(&param, self.tcx).def_id
                 && self.tcx.parent(param_def_id) == self.trait_item_def_id
             {
-                return ControlFlow::BREAK;
+                return ControlFlow::Break(());
             }
             r.super_visit_with(self)
         }
@@ -524,7 +511,7 @@ fn is_impossible_method<'tcx>(
                 && let param_def_id = self.generics.const_param(&param, self.tcx).def_id
                 && self.tcx.parent(param_def_id) == self.trait_item_def_id
             {
-                return ControlFlow::BREAK;
+                return ControlFlow::Break(());
             }
             ct.super_visit_with(self)
         }
@@ -532,8 +519,10 @@ fn is_impossible_method<'tcx>(
 
     let generics = tcx.generics_of(trait_item_def_id);
     let predicates = tcx.predicates_of(trait_item_def_id);
-    let impl_trait_ref =
-        tcx.impl_trait_ref(impl_def_id).expect("expected impl to correspond to trait");
+    let impl_trait_ref = tcx
+        .impl_trait_ref(impl_def_id)
+        .expect("expected impl to correspond to trait")
+        .subst_identity();
     let param_env = tcx.param_env(impl_def_id);
 
     let mut visitor = ReferencesOnlyParentGenerics { tcx, generics, trait_item_def_id };

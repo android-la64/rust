@@ -1,14 +1,7 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "cdecl" {
-    #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]
-    pub fn DtcGetTransactionManager(i_pszhost: ::windows_sys::core::PCSTR, i_psztmname: ::windows_sys::core::PCSTR, i_riid: *const ::windows_sys::core::GUID, i_dwreserved1: u32, i_wcbreserved2: u16, i_pvreserved2: *const ::core::ffi::c_void, o_ppvobject: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]
-    pub fn DtcGetTransactionManagerC(i_pszhost: ::windows_sys::core::PCSTR, i_psztmname: ::windows_sys::core::PCSTR, i_riid: *const ::windows_sys::core::GUID, i_dwreserved1: u32, i_wcbreserved2: u16, i_pvreserved2: *const ::core::ffi::c_void, o_ppvobject: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]
-    pub fn DtcGetTransactionManagerExA(i_pszhost: ::windows_sys::core::PCSTR, i_psztmname: ::windows_sys::core::PCSTR, i_riid: *const ::windows_sys::core::GUID, i_grfoptions: u32, i_pvconfigparams: *mut ::core::ffi::c_void, o_ppvobject: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]
-    pub fn DtcGetTransactionManagerExW(i_pwszhost: ::windows_sys::core::PCWSTR, i_pwsztmname: ::windows_sys::core::PCWSTR, i_riid: *const ::windows_sys::core::GUID, i_grfoptions: u32, i_pvconfigparams: *mut ::core::ffi::c_void, o_ppvobject: *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT;
-}
+::windows_sys::core::link ! ( "xolehlp.dll""cdecl" #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"] fn DtcGetTransactionManager ( i_pszhost : :: windows_sys::core::PCSTR , i_psztmname : :: windows_sys::core::PCSTR , i_riid : *const :: windows_sys::core::GUID , i_dwreserved1 : u32 , i_wcbreserved2 : u16 , i_pvreserved2 : *const ::core::ffi::c_void , o_ppvobject : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "xolehlp.dll""cdecl" #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"] fn DtcGetTransactionManagerC ( i_pszhost : :: windows_sys::core::PCSTR , i_psztmname : :: windows_sys::core::PCSTR , i_riid : *const :: windows_sys::core::GUID , i_dwreserved1 : u32 , i_wcbreserved2 : u16 , i_pvreserved2 : *const ::core::ffi::c_void , o_ppvobject : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "xolehlp.dll""cdecl" #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"] fn DtcGetTransactionManagerExA ( i_pszhost : :: windows_sys::core::PCSTR , i_psztmname : :: windows_sys::core::PCSTR , i_riid : *const :: windows_sys::core::GUID , i_grfoptions : u32 , i_pvconfigparams : *mut ::core::ffi::c_void , o_ppvobject : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
+::windows_sys::core::link ! ( "xolehlp.dll""cdecl" #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"] fn DtcGetTransactionManagerExW ( i_pwszhost : :: windows_sys::core::PCWSTR , i_pwsztmname : :: windows_sys::core::PCWSTR , i_riid : *const :: windows_sys::core::GUID , i_grfoptions : u32 , i_pvconfigparams : *mut ::core::ffi::c_void , o_ppvobject : *mut *mut ::core::ffi::c_void ) -> :: windows_sys::core::HRESULT );
 pub type IDtcLuConfigure = *mut ::core::ffi::c_void;
 pub type IDtcLuRecovery = *mut ::core::ffi::c_void;
 pub type IDtcLuRecoveryFactory = *mut ::core::ffi::c_void;
@@ -75,8 +68,10 @@ pub type IXAConfig = *mut ::core::ffi::c_void;
 pub type IXAObtainRMInfo = *mut ::core::ffi::c_void;
 pub type IXATransLookup = *mut ::core::ffi::c_void;
 pub type IXATransLookup2 = *mut ::core::ffi::c_void;
-pub const CLSID_MSDtcTransaction: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 972609387, data2: 2344, data3: 4561, data4: [151, 223, 0, 192, 79, 185, 97, 138] };
-pub const CLSID_MSDtcTransactionManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 1528343393, data2: 2333, data3: 4561, data4: [151, 223, 0, 192, 79, 185, 97, 138] };
+#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]
+pub const CLSID_MSDtcTransaction: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x39f8d76b_0928_11d1_97df_00c04fb9618a);
+#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]
+pub const CLSID_MSDtcTransactionManager: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x5b18ab61_091d_11d1_97df_00c04fb9618a);
 #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]
 pub const DTCINSTALL_E_CLIENT_ALREADY_INSTALLED: i32 = 384i32;
 #[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`*"]

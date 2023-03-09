@@ -21,7 +21,7 @@ pub(crate) fn orphan_check_impl(
     tcx: TyCtxt<'_>,
     impl_def_id: LocalDefId,
 ) -> Result<(), ErrorGuaranteed> {
-    let trait_ref = tcx.impl_trait_ref(impl_def_id).unwrap();
+    let trait_ref = tcx.impl_trait_ref(impl_def_id).unwrap().subst_identity();
     trait_ref.error_reported()?;
 
     let ret = do_orphan_check_impl(tcx, trait_ref, impl_def_id);
@@ -40,7 +40,7 @@ fn do_orphan_check_impl<'tcx>(
     let trait_def_id = trait_ref.def_id;
 
     let item = tcx.hir().expect_item(def_id);
-    let hir::ItemKind::Impl(ref impl_) = item.kind else {
+    let hir::ItemKind::Impl(impl_) = item.kind else {
         bug!("{:?} is not an impl: {:?}", def_id, item);
     };
     let sp = tcx.def_span(def_id);
@@ -53,7 +53,7 @@ fn do_orphan_check_impl<'tcx>(
             sp,
             item.span,
             tr.path.span,
-            trait_ref.self_ty(),
+            trait_ref,
             impl_.self_ty.span,
             &impl_.generics,
             err,
@@ -154,11 +154,12 @@ fn emit_orphan_check_error<'tcx>(
     sp: Span,
     full_impl_span: Span,
     trait_span: Span,
-    self_ty: Ty<'tcx>,
+    trait_ref: ty::TraitRef<'tcx>,
     self_ty_span: Span,
     generics: &hir::Generics<'tcx>,
     err: traits::OrphanCheckErr<'tcx>,
 ) -> Result<!, ErrorGuaranteed> {
+    let self_ty = trait_ref.self_ty();
     Err(match err {
         traits::OrphanCheckErr::NonLocalInputType(tys) => {
             let msg = match self_ty.kind() {
@@ -184,11 +185,26 @@ fn emit_orphan_check_error<'tcx>(
                     ty::Adt(def, _) => tcx.mk_adt(*def, ty::List::empty()),
                     _ => ty,
                 };
-                let this = "this".to_string();
-                let (ty, postfix) = match &ty.kind() {
-                    ty::Slice(_) => (this, " because slices are always foreign"),
-                    ty::Array(..) => (this, " because arrays are always foreign"),
-                    ty::Tuple(..) => (this, " because tuples are always foreign"),
+                let msg = |ty: &str, postfix: &str| {
+                    format!("{ty} is not defined in the current crate{postfix}")
+                };
+
+                let this = |name: &str| {
+                    if !trait_ref.def_id.is_local() && !is_target_ty {
+                        msg("this", &format!(" because this is a foreign trait"))
+                    } else {
+                        msg("this", &format!(" because {name} are always foreign"))
+                    }
+                };
+                let msg = match &ty.kind() {
+                    ty::Slice(_) => this("slices"),
+                    ty::Array(..) => this("arrays"),
+                    ty::Tuple(..) => this("tuples"),
+                    ty::Alias(ty::Opaque, ..) => {
+                        "type alias impl trait is treated as if it were foreign, \
+                        because its hidden type could be from a foreign crate"
+                            .to_string()
+                    }
                     ty::RawPtr(ptr_ty) => {
                         emit_newtype_suggestion_for_raw_ptr(
                             full_impl_span,
@@ -198,12 +214,11 @@ fn emit_orphan_check_error<'tcx>(
                             &mut err,
                         );
 
-                        (format!("`{}`", ty), " because raw pointers are always foreign")
+                        msg(&format!("`{ty}`"), " because raw pointers are always foreign")
                     }
-                    _ => (format!("`{}`", ty), ""),
+                    _ => msg(&format!("`{ty}`"), ""),
                 };
 
-                let msg = format!("{} is not defined in the current crate{}", ty, postfix);
                 if is_target_ty {
                     // Point at `D<A>` in `impl<A, B> for C<B> in D<A>`
                     err.span_label(self_ty_span, &msg);
@@ -401,13 +416,13 @@ fn fast_reject_auto_impl<'tcx>(tcx: TyCtxt<'tcx>, trait_def_id: DefId, self_ty: 
             if t != self.self_ty_root {
                 for impl_def_id in tcx.non_blanket_impls_for_ty(self.trait_def_id, t) {
                     match tcx.impl_polarity(impl_def_id) {
-                        ImplPolarity::Negative => return ControlFlow::BREAK,
+                        ImplPolarity::Negative => return ControlFlow::Break(()),
                         ImplPolarity::Reservation => {}
                         // FIXME(@lcnr): That's probably not good enough, idk
                         //
                         // We might just want to take the rustdoc code and somehow avoid
                         // explicit impls for `Self`.
-                        ImplPolarity::Positive => return ControlFlow::CONTINUE,
+                        ImplPolarity::Positive => return ControlFlow::Continue(()),
                     }
                 }
             }
@@ -425,7 +440,7 @@ fn fast_reject_auto_impl<'tcx>(tcx: TyCtxt<'tcx>, trait_def_id: DefId, self_ty: 
                         }
                     }
 
-                    ControlFlow::CONTINUE
+                    ControlFlow::Continue(())
                 }
                 _ => t.super_visit_with(self),
             }

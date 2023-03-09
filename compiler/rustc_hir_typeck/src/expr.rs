@@ -104,16 +104,14 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
 
         if let Some(mut err) = self.demand_suptype_diag(expr.span, expected_ty, ty) {
-            // FIXME(compiler-errors): We probably should fold some of the
-            // `suggest_` functions from  `emit_coerce_suggestions` into here,
-            // since some of those aren't necessarily just coerce suggestions.
-            let _ = self.suggest_deref_ref_or_into(
+            let _ = self.emit_type_mismatch_suggestions(
                 &mut err,
                 expr.peel_drop_temps(),
-                expected_ty,
                 ty,
+                expected_ty,
                 None,
-            ) || self.suggest_option_to_bool(&mut err, expr, ty, expected_ty);
+                None,
+            );
             extend_err(&mut err);
             err.emit();
         }
@@ -236,6 +234,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             ) => self.check_expr_path(qpath, expr, args),
             _ => self.check_expr_kind(expr, expected),
         });
+        let ty = self.resolve_vars_if_possible(ty);
 
         // Warn for non-block expressions with diverging children.
         match expr.kind {
@@ -352,7 +351,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             ExprKind::Struct(qpath, fields, ref base_expr) => {
                 self.check_expr_struct(expr, expected, qpath, fields, base_expr)
             }
-            ExprKind::Field(base, field) => self.check_field(expr, &base, field),
+            ExprKind::Field(base, field) => self.check_field(expr, &base, field, expected),
             ExprKind::Index(base, idx) => self.check_expr_index(base, idx, expr),
             ExprKind::Yield(value, ref src) => self.check_expr_yield(value, expr, src),
             hir::ExprKind::Err => tcx.ty_error(),
@@ -397,7 +396,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                             E0614,
                             "type `{oprnd_t}` cannot be dereferenced",
                         );
-                        let sp = tcx.sess.source_map().start_point(expr.span);
+                        let sp = tcx.sess.source_map().start_point(expr.span).with_parent(None);
                         if let Some(sp) =
                             tcx.sess.parse_sess.ambiguous_block_expr_parse.borrow().get(&sp)
                         {
@@ -460,9 +459,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             }
             hir::BorrowKind::Ref => {
                 // Note: at this point, we cannot say what the best lifetime
-                // is to use for resulting pointer.  We want to use the
+                // is to use for resulting pointer. We want to use the
                 // shortest lifetime possible so as to avoid spurious borrowck
-                // errors.  Moreover, the longest lifetime will depend on the
+                // errors. Moreover, the longest lifetime will depend on the
                 // precise details of the value whose address is being taken
                 // (and how long it is valid), which we don't know yet until
                 // type inference is complete.
@@ -688,7 +687,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 }
             } else {
                 // If `ctxt.coerce` is `None`, we can just ignore
-                // the type of the expression.  This is because
+                // the type of the expression. This is because
                 // either this was a break *without* a value, in
                 // which case it is always a legal type (`()`), or
                 // else an error would have been flagged by the
@@ -922,7 +921,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         original_expr_id: HirId,
         then: impl FnOnce(&hir::Expr<'_>),
     ) {
-        let mut parent = self.tcx.hir().get_parent_node(original_expr_id);
+        let mut parent = self.tcx.hir().parent_id(original_expr_id);
         while let Some(node) = self.tcx.hir().find(parent) {
             match node {
                 hir::Node::Expr(hir::Expr {
@@ -945,7 +944,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 }) => {
                     // Check if our original expression is a child of the condition of a while loop
                     let expr_is_ancestor = std::iter::successors(Some(original_expr_id), |id| {
-                        self.tcx.hir().find_parent_node(*id)
+                        self.tcx.hir().opt_parent_id(*id)
                     })
                     .take_while(|id| *id != parent)
                     .any(|id| id == expr.hir_id);
@@ -961,7 +960,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 | hir::Node::TraitItem(_)
                 | hir::Node::Crate(_) => break,
                 _ => {
-                    parent = self.tcx.hir().get_parent_node(parent);
+                    parent = self.tcx.hir().parent_id(parent);
                 }
             }
         }
@@ -1085,7 +1084,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // Do not suggest `if let x = y` as `==` is way more likely to be the intention.
                 let hir = self.tcx.hir();
                 if let hir::Node::Expr(hir::Expr { kind: ExprKind::If { .. }, .. }) =
-                    hir.get(hir.get_parent_node(hir.get_parent_node(expr.hir_id)))
+                    hir.get_parent(hir.parent_id(expr.hir_id))
                 {
                     err.span_suggestion_verbose(
                         expr.span.shrink_to_lo(),
@@ -1245,6 +1244,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         SelfSource::MethodCall(rcvr),
                         error,
                         Some((rcvr, args)),
+                        expected,
                     ) {
                         err.emit();
                     }
@@ -1874,7 +1874,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // I don't use 'is_range_literal' because only double-sided, half-open ranges count.
         if let ExprKind::Struct(
                 QPath::LangItem(LangItem::Range, ..),
-                &[ref range_start, ref range_end],
+                [range_start, range_end],
                 _,
             ) = last_expr_field.expr.kind
             && let variant_field =
@@ -2187,6 +2187,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         expr: &'tcx hir::Expr<'tcx>,
         base: &'tcx hir::Expr<'tcx>,
         field: Ident,
+        expected: Expectation<'tcx>,
     ) -> Ty<'tcx> {
         debug!("check_field(expr: {:?}, base: {:?}, field: {:?})", expr, base, field);
         let base_ty = self.check_expr(base);
@@ -2218,7 +2219,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                             self.tcx.check_stability(field.did, Some(expr.hir_id), expr.span, None);
                             return field_ty;
                         }
-                        private_candidate = Some((adjustments, base_def.did(), field_ty));
+                        private_candidate = Some((adjustments, base_def.did()));
                     }
                 }
                 ty::Tuple(tys) => {
@@ -2241,16 +2242,22 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
         self.structurally_resolved_type(autoderef.span(), autoderef.final_ty(false));
 
-        if let Some((adjustments, did, field_ty)) = private_candidate {
+        if let Some((adjustments, did)) = private_candidate {
             // (#90483) apply adjustments to avoid ExprUseVisitor from
             // creating erroneous projection.
             self.apply_adjustments(base, adjustments);
-            self.ban_private_field_access(expr, base_ty, field, did);
-            return field_ty;
+            self.ban_private_field_access(expr, base_ty, field, did, expected.only_has_type(self));
+            return self.tcx().ty_error();
         }
 
         if field.name == kw::Empty {
-        } else if self.method_exists(field, base_ty, expr.hir_id, true) {
+        } else if self.method_exists(
+            field,
+            base_ty,
+            expr.hir_id,
+            true,
+            expected.only_has_type(self),
+        ) {
             self.ban_take_value_of_method(expr, base_ty, field);
         } else if !base_ty.is_primitive_ty() {
             self.ban_nonexisting_field(field, base, expr, base_ty);
@@ -2391,7 +2398,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             ty::Param(param_ty) => {
                 self.point_at_param_definition(&mut err, param_ty);
             }
-            ty::Opaque(_, _) => {
+            ty::Alias(ty::Opaque, _) => {
                 self.suggest_await_on_field_access(&mut err, ident, base, base_ty.peel_refs());
             }
             _ => {}
@@ -2424,10 +2431,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     fn ban_private_field_access(
         &self,
-        expr: &hir::Expr<'_>,
+        expr: &hir::Expr<'tcx>,
         expr_t: Ty<'tcx>,
         field: Ident,
         base_did: DefId,
+        return_ty: Option<Ty<'tcx>>,
     ) {
         let struct_path = self.tcx().def_path_str(base_did);
         let kind_name = self.tcx().def_kind(base_did).descr(base_did);
@@ -2439,7 +2447,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         );
         err.span_label(field.span, "private field");
         // Also check if an accessible method exists, which is often what is meant.
-        if self.method_exists(field, expr_t, expr.hir_id, false) && !self.expr_in_place(expr.hir_id)
+        if self.method_exists(field, expr_t, expr.hir_id, false, return_ty)
+            && !self.expr_in_place(expr.hir_id)
         {
             self.suggest_method_call(
                 &mut err,
@@ -2453,7 +2462,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err.emit();
     }
 
-    fn ban_take_value_of_method(&self, expr: &hir::Expr<'_>, expr_t: Ty<'tcx>, field: Ident) {
+    fn ban_take_value_of_method(&self, expr: &hir::Expr<'tcx>, expr_t: Ty<'tcx>, field: Ident) {
         let mut err = type_error_struct!(
             self.tcx().sess,
             field.span,
@@ -2464,7 +2473,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err.span_label(field.span, "method, not a field");
         let expr_is_call =
             if let hir::Node::Expr(hir::Expr { kind: ExprKind::Call(callee, _args), .. }) =
-                self.tcx.hir().get(self.tcx.hir().get_parent_node(expr.hir_id))
+                self.tcx.hir().get_parent(expr.hir_id)
             {
                 expr.hir_id == callee.hir_id
             } else {

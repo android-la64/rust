@@ -2,13 +2,16 @@
 
 use std::fs::{self, OpenOptions};
 use std::io::prelude::*;
+use std::path::Path;
 
+use cargo_test_support::compare;
 use cargo_test_support::cross_compile;
 use cargo_test_support::git;
 use cargo_test_support::registry::{self, registry_path, Package};
 use cargo_test_support::{
     basic_manifest, cargo_process, no_such_file_err_msg, project, project_in, symlink_supported, t,
 };
+use cargo_util::ProcessError;
 
 use cargo_test_support::install::{
     assert_has_installed_exe, assert_has_not_installed_exe, cargo_home,
@@ -1293,6 +1296,46 @@ fn use_path_workspace() {
 }
 
 #[cargo_test]
+fn path_install_workspace_root_despite_default_members() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "ws-root"
+                version = "0.1.0"
+                authors = []
+
+                [workspace]
+                members = ["ws-member"]
+                default-members = ["ws-member"]
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file(
+            "ws-member/Cargo.toml",
+            r#"
+                [package]
+                name = "ws-member"
+                version = "0.1.0"
+                authors = []
+            "#,
+        )
+        .file("ws-member/src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("install --path")
+        .arg(p.root())
+        .arg("ws-root")
+        .with_stderr_contains(
+            "[INSTALLED] package `ws-root v0.1.0 ([..])` (executable `ws-root[EXE]`)",
+        )
+        // Particularly avoid "Installed package `ws-root v0.1.0 ([..]])` (executable `ws-member`)":
+        .with_stderr_does_not_contain("ws-member")
+        .run();
+}
+
+#[cargo_test]
 fn dev_dependencies_no_check() {
     Package::new("foo", "1.0.0").publish();
     let p = project()
@@ -1446,7 +1489,7 @@ fn not_both_vers_and_version() {
         .with_status(1)
         .with_stderr_contains(
             "\
-error: The argument '--version <VERSION>' was provided more than once, but cannot be used multiple times
+[ERROR] the argument '--version <VERSION>' cannot be used multiple times
 ",
         )
         .run();
@@ -1648,9 +1691,7 @@ fn install_empty_argument() {
     cargo_process("install")
         .arg("")
         .with_status(1)
-        .with_stderr_contains(
-            "[ERROR] The argument '[crate]...' requires a value but none was supplied",
-        )
+        .with_stderr_contains("[ERROR] a value is required for '[crate]...' but none was supplied")
         .run();
 }
 
@@ -2066,4 +2107,104 @@ fn no_auto_fix_note() {
         .with_stderr("[REMOVING] [CWD]/home/.cargo/bin/auto_fix[EXE]")
         .run();
     assert_has_not_installed_exe(cargo_home(), "auto_fix");
+}
+
+#[cargo_test]
+fn failed_install_retains_temp_directory() {
+    // Verifies that the temporary directory persists after a build failure.
+    Package::new("foo", "0.0.1")
+        .file("src/main.rs", "x")
+        .publish();
+    let err = cargo_process("install foo").exec_with_output().unwrap_err();
+    let err = err.downcast::<ProcessError>().unwrap();
+    let stderr = String::from_utf8(err.stderr.unwrap()).unwrap();
+    compare::match_contains(
+        "\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+[DOWNLOADED] foo v0.0.1 (registry `dummy-registry`)
+[INSTALLING] foo v0.0.1
+[COMPILING] foo v0.0.1
+",
+        &stderr,
+        None,
+    )
+    .unwrap();
+    compare::match_contains(
+        "error: failed to compile `foo v0.0.1`, intermediate artifacts can be found at `[..]`",
+        &stderr,
+        None,
+    )
+    .unwrap();
+
+    // Find the path in the output.
+    let start = stderr.find("found at `").unwrap() + 10;
+    let end = stderr[start..].find('\n').unwrap() - 1;
+    let path = Path::new(&stderr[start..(end + start)]);
+    assert!(path.exists());
+    assert!(path.join("release/deps").exists());
+}
+
+#[cargo_test]
+fn sparse_install() {
+    // Checks for an issue where uninstalling something corrupted
+    // the SourceIds of sparse registries.
+    // See https://github.com/rust-lang/cargo/issues/11751
+    let _registry = registry::RegistryBuilder::new().http_index().build();
+
+    pkg("foo", "0.0.1");
+    pkg("bar", "0.0.1");
+
+    cargo_process("install foo --registry dummy-registry")
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+[DOWNLOADED] foo v0.0.1 (registry `dummy-registry`)
+[INSTALLING] foo v0.0.1 (registry `dummy-registry`)
+[UPDATING] `dummy-registry` index
+[COMPILING] foo v0.0.1 (registry `dummy-registry`)
+[FINISHED] release [optimized] target(s) in [..]
+[INSTALLING] [ROOT]/home/.cargo/bin/foo[EXE]
+[INSTALLED] package `foo v0.0.1 (registry `dummy-registry`)` (executable `foo[EXE]`)
+[WARNING] be sure to add `[..]` to your PATH to be able to run the installed binaries
+",
+        )
+        .run();
+    assert_has_installed_exe(cargo_home(), "foo");
+    let assert_v1 = |expected| {
+        let v1 = fs::read_to_string(paths::home().join(".cargo/.crates.toml")).unwrap();
+        compare::assert_match_exact(expected, &v1);
+    };
+    assert_v1(
+        r#"[v1]
+"foo 0.0.1 (sparse+http://127.0.0.1:[..]/index/)" = ["foo[EXE]"]
+"#,
+    );
+    cargo_process("install bar").run();
+    assert_has_installed_exe(cargo_home(), "bar");
+    assert_v1(
+        r#"[v1]
+"bar 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = ["bar[EXE]"]
+"foo 0.0.1 (sparse+http://127.0.0.1:[..]/index/)" = ["foo[EXE]"]
+"#,
+    );
+
+    cargo_process("uninstall bar")
+        .with_stderr("[REMOVING] [CWD]/home/.cargo/bin/bar[EXE]")
+        .run();
+    assert_has_not_installed_exe(cargo_home(), "bar");
+    assert_v1(
+        r#"[v1]
+"foo 0.0.1 (sparse+http://127.0.0.1:[..]/index/)" = ["foo[EXE]"]
+"#,
+    );
+    cargo_process("uninstall foo")
+        .with_stderr("[REMOVING] [CWD]/home/.cargo/bin/foo[EXE]")
+        .run();
+    assert_has_not_installed_exe(cargo_home(), "foo");
+    assert_v1(
+        r#"[v1]
+"#,
+    );
 }

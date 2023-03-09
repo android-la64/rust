@@ -1,83 +1,48 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerBeginSession(dwflags: u32, eaptype: EAP_METHOD_TYPE, pattributearray: *const EAP_ATTRIBUTES, htokenimpersonateuser: super::super::Foundation::HANDLE, dwsizeofconnectiondata: u32, pconnectiondata: *const u8, dwsizeofuserdata: u32, puserdata: *const u8, dwmaxsendpacketsize: u32, pconnectionid: *const ::windows_sys::core::GUID, func: NotificationHandler, pcontextdata: *mut ::core::ffi::c_void, psessionid: *mut u32, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerClearConnection(pconnectionid: *mut ::windows_sys::core::GUID, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
-    pub fn EapHostPeerConfigBlob2Xml(dwflags: u32, eapmethodtype: EAP_METHOD_TYPE, dwsizeofconfigin: u32, pconfigin: *const u8, ppconfigdoc: *mut super::super::Data::Xml::MsXml::IXMLDOMDocument2, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
-    pub fn EapHostPeerConfigXml2Blob(dwflags: u32, pconfigdoc: super::super::Data::Xml::MsXml::IXMLDOMNode, pdwsizeofconfigout: *mut u32, ppconfigout: *mut *mut u8, peapmethodtype: *mut EAP_METHOD_TYPE, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
-    #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
-    pub fn EapHostPeerCredentialsXml2Blob(dwflags: u32, pcredentialsdoc: super::super::Data::Xml::MsXml::IXMLDOMNode, dwsizeofconfigin: u32, pconfigin: *const u8, pdwsizeofcredentialsout: *mut u32, ppcredentialsout: *mut *mut u8, peapmethodtype: *mut EAP_METHOD_TYPE, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerEndSession(sessionhandle: u32, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerFreeEapError(peaperror: *mut EAP_ERROR);
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerFreeErrorMemory(peaperror: *mut EAP_ERROR);
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerFreeMemory(pdata: *mut u8);
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerFreeRuntimeMemory(pdata: *mut u8);
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerGetAuthStatus(sessionhandle: u32, authparam: EapHostPeerAuthParams, pcbauthdata: *mut u32, ppauthdata: *mut *mut u8, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerGetDataToUnplumbCredentials(pconnectionidthatlastsavedcreds: *mut ::windows_sys::core::GUID, phcredentialimpersonationtoken: *mut isize, sessionhandle: u32, ppeaperror: *mut *mut EAP_ERROR, fsavetocredman: *mut super::super::Foundation::BOOL) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerGetEncryptedPassword(dwsizeofpassword: u32, szpassword: ::windows_sys::core::PCWSTR, ppszencpassword: *mut ::windows_sys::core::PWSTR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerGetIdentity(dwversion: u32, dwflags: u32, eapmethodtype: EAP_METHOD_TYPE, dwsizeofconnectiondata: u32, pconnectiondata: *const u8, dwsizeofuserdata: u32, puserdata: *const u8, htokenimpersonateuser: super::super::Foundation::HANDLE, pfinvokeui: *mut super::super::Foundation::BOOL, pdwsizeofuserdataout: *mut u32, ppuserdataout: *mut *mut u8, ppwszidentity: *mut ::windows_sys::core::PWSTR, ppeaperror: *mut *mut EAP_ERROR, ppvreserved: *mut *mut u8) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerGetMethodProperties(dwversion: u32, dwflags: u32, eapmethodtype: EAP_METHOD_TYPE, huserimpersonationtoken: super::super::Foundation::HANDLE, dweapconndatasize: u32, pbeapconndata: *const u8, dwuserdatasize: u32, pbuserdata: *const u8, pmethodpropertyarray: *mut EAP_METHOD_PROPERTY_ARRAY, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerGetMethods(peapmethodinfoarray: *mut EAP_METHOD_INFO_ARRAY, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerGetResponseAttributes(sessionhandle: u32, pattribs: *mut EAP_ATTRIBUTES, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerGetResult(sessionhandle: u32, reason: EapHostPeerMethodResultReason, ppresult: *mut EapHostPeerMethodResult, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerGetSendPacket(sessionhandle: u32, pcbsendpacket: *mut u32, ppsendpacket: *mut *mut u8, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerGetUIContext(sessionhandle: u32, pdwsizeofuicontextdata: *mut u32, ppuicontextdata: *mut *mut u8, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerInitialize() -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerInvokeConfigUI(hwndparent: super::super::Foundation::HWND, dwflags: u32, eapmethodtype: EAP_METHOD_TYPE, dwsizeofconfigin: u32, pconfigin: *const u8, pdwsizeofconfigout: *mut u32, ppconfigout: *mut *mut u8, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerInvokeIdentityUI(dwversion: u32, eapmethodtype: EAP_METHOD_TYPE, dwflags: u32, hwndparent: super::super::Foundation::HWND, dwsizeofconnectiondata: u32, pconnectiondata: *const u8, dwsizeofuserdata: u32, puserdata: *const u8, pdwsizeofuserdataout: *mut u32, ppuserdataout: *mut *mut u8, ppwszidentity: *mut ::windows_sys::core::PWSTR, ppeaperror: *mut *mut EAP_ERROR, ppvreserved: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerInvokeInteractiveUI(hwndparent: super::super::Foundation::HWND, dwsizeofuicontextdata: u32, puicontextdata: *const u8, pdwsizeofdatafrominteractiveui: *mut u32, ppdatafrominteractiveui: *mut *mut u8, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerProcessReceivedPacket(sessionhandle: u32, cbreceivepacket: u32, preceivepacket: *const u8, peapoutput: *mut EapHostPeerResponseAction, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerQueryCredentialInputFields(huserimpersonationtoken: super::super::Foundation::HANDLE, eapmethodtype: EAP_METHOD_TYPE, dwflags: u32, dweapconndatasize: u32, pbeapconndata: *const u8, peapconfiginputfieldarray: *mut EAP_CONFIG_INPUT_FIELD_ARRAY, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerQueryInteractiveUIInputFields(dwversion: u32, dwflags: u32, dwsizeofuicontextdata: u32, puicontextdata: *const u8, peapinteractiveuidata: *mut EAP_INTERACTIVE_UI_DATA, ppeaperror: *mut *mut EAP_ERROR, ppvreserved: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerQueryUIBlobFromInteractiveUIInputFields(dwversion: u32, dwflags: u32, dwsizeofuicontextdata: u32, puicontextdata: *const u8, peapinteractiveuidata: *const EAP_INTERACTIVE_UI_DATA, pdwsizeofdatafrominteractiveui: *mut u32, ppdatafrominteractiveui: *mut *mut u8, ppeaperror: *mut *mut EAP_ERROR, ppvreserved: *mut *mut ::core::ffi::c_void) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn EapHostPeerQueryUserBlobFromCredentialInputFields(huserimpersonationtoken: super::super::Foundation::HANDLE, eapmethodtype: EAP_METHOD_TYPE, dwflags: u32, dweapconndatasize: u32, pbeapconndata: *const u8, peapconfiginputfieldarray: *const EAP_CONFIG_INPUT_FIELD_ARRAY, pdwuserblobsize: *mut u32, ppbuserblob: *mut *mut u8, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerSetResponseAttributes(sessionhandle: u32, pattribs: *const EAP_ATTRIBUTES, peapoutput: *mut EapHostPeerResponseAction, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerSetUIContext(sessionhandle: u32, dwsizeofuicontextdata: u32, puicontextdata: *const u8, peapoutput: *mut EapHostPeerResponseAction, ppeaperror: *mut *mut EAP_ERROR) -> u32;
-    #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-    pub fn EapHostPeerUninitialize();
-}
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerBeginSession ( dwflags : u32 , eaptype : EAP_METHOD_TYPE , pattributearray : *const EAP_ATTRIBUTES , htokenimpersonateuser : super::super::Foundation:: HANDLE , dwsizeofconnectiondata : u32 , pconnectiondata : *const u8 , dwsizeofuserdata : u32 , puserdata : *const u8 , dwmaxsendpacketsize : u32 , pconnectionid : *const :: windows_sys::core::GUID , func : NotificationHandler , pcontextdata : *mut ::core::ffi::c_void , psessionid : *mut u32 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerClearConnection ( pconnectionid : *mut :: windows_sys::core::GUID , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+#[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"] fn EapHostPeerConfigBlob2Xml ( dwflags : u32 , eapmethodtype : EAP_METHOD_TYPE , dwsizeofconfigin : u32 , pconfigin : *const u8 , ppconfigdoc : *mut super::super::Data::Xml::MsXml:: IXMLDOMDocument2 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+#[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"] fn EapHostPeerConfigXml2Blob ( dwflags : u32 , pconfigdoc : super::super::Data::Xml::MsXml:: IXMLDOMNode , pdwsizeofconfigout : *mut u32 , ppconfigout : *mut *mut u8 , peapmethodtype : *mut EAP_METHOD_TYPE , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+#[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"] fn EapHostPeerCredentialsXml2Blob ( dwflags : u32 , pcredentialsdoc : super::super::Data::Xml::MsXml:: IXMLDOMNode , dwsizeofconfigin : u32 , pconfigin : *const u8 , pdwsizeofcredentialsout : *mut u32 , ppcredentialsout : *mut *mut u8 , peapmethodtype : *mut EAP_METHOD_TYPE , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerEndSession ( sessionhandle : u32 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerFreeEapError ( peaperror : *mut EAP_ERROR ) -> ( ) );
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerFreeErrorMemory ( peaperror : *mut EAP_ERROR ) -> ( ) );
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerFreeMemory ( pdata : *mut u8 ) -> ( ) );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerFreeRuntimeMemory ( pdata : *mut u8 ) -> ( ) );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerGetAuthStatus ( sessionhandle : u32 , authparam : EapHostPeerAuthParams , pcbauthdata : *mut u32 , ppauthdata : *mut *mut u8 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerGetDataToUnplumbCredentials ( pconnectionidthatlastsavedcreds : *mut :: windows_sys::core::GUID , phcredentialimpersonationtoken : *mut isize , sessionhandle : u32 , ppeaperror : *mut *mut EAP_ERROR , fsavetocredman : *mut super::super::Foundation:: BOOL ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerGetEncryptedPassword ( dwsizeofpassword : u32 , szpassword : :: windows_sys::core::PCWSTR , ppszencpassword : *mut :: windows_sys::core::PWSTR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerGetIdentity ( dwversion : u32 , dwflags : u32 , eapmethodtype : EAP_METHOD_TYPE , dwsizeofconnectiondata : u32 , pconnectiondata : *const u8 , dwsizeofuserdata : u32 , puserdata : *const u8 , htokenimpersonateuser : super::super::Foundation:: HANDLE , pfinvokeui : *mut super::super::Foundation:: BOOL , pdwsizeofuserdataout : *mut u32 , ppuserdataout : *mut *mut u8 , ppwszidentity : *mut :: windows_sys::core::PWSTR , ppeaperror : *mut *mut EAP_ERROR , ppvreserved : *mut *mut u8 ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerGetMethodProperties ( dwversion : u32 , dwflags : u32 , eapmethodtype : EAP_METHOD_TYPE , huserimpersonationtoken : super::super::Foundation:: HANDLE , dweapconndatasize : u32 , pbeapconndata : *const u8 , dwuserdatasize : u32 , pbuserdata : *const u8 , pmethodpropertyarray : *mut EAP_METHOD_PROPERTY_ARRAY , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerGetMethods ( peapmethodinfoarray : *mut EAP_METHOD_INFO_ARRAY , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerGetResponseAttributes ( sessionhandle : u32 , pattribs : *mut EAP_ATTRIBUTES , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerGetResult ( sessionhandle : u32 , reason : EapHostPeerMethodResultReason , ppresult : *mut EapHostPeerMethodResult , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerGetSendPacket ( sessionhandle : u32 , pcbsendpacket : *mut u32 , ppsendpacket : *mut *mut u8 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerGetUIContext ( sessionhandle : u32 , pdwsizeofuicontextdata : *mut u32 , ppuicontextdata : *mut *mut u8 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerInitialize ( ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerInvokeConfigUI ( hwndparent : super::super::Foundation:: HWND , dwflags : u32 , eapmethodtype : EAP_METHOD_TYPE , dwsizeofconfigin : u32 , pconfigin : *const u8 , pdwsizeofconfigout : *mut u32 , ppconfigout : *mut *mut u8 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerInvokeIdentityUI ( dwversion : u32 , eapmethodtype : EAP_METHOD_TYPE , dwflags : u32 , hwndparent : super::super::Foundation:: HWND , dwsizeofconnectiondata : u32 , pconnectiondata : *const u8 , dwsizeofuserdata : u32 , puserdata : *const u8 , pdwsizeofuserdataout : *mut u32 , ppuserdataout : *mut *mut u8 , ppwszidentity : *mut :: windows_sys::core::PWSTR , ppeaperror : *mut *mut EAP_ERROR , ppvreserved : *mut *mut ::core::ffi::c_void ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerInvokeInteractiveUI ( hwndparent : super::super::Foundation:: HWND , dwsizeofuicontextdata : u32 , puicontextdata : *const u8 , pdwsizeofdatafrominteractiveui : *mut u32 , ppdatafrominteractiveui : *mut *mut u8 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerProcessReceivedPacket ( sessionhandle : u32 , cbreceivepacket : u32 , preceivepacket : *const u8 , peapoutput : *mut EapHostPeerResponseAction , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerQueryCredentialInputFields ( huserimpersonationtoken : super::super::Foundation:: HANDLE , eapmethodtype : EAP_METHOD_TYPE , dwflags : u32 , dweapconndatasize : u32 , pbeapconndata : *const u8 , peapconfiginputfieldarray : *mut EAP_CONFIG_INPUT_FIELD_ARRAY , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerQueryInteractiveUIInputFields ( dwversion : u32 , dwflags : u32 , dwsizeofuicontextdata : u32 , puicontextdata : *const u8 , peapinteractiveuidata : *mut EAP_INTERACTIVE_UI_DATA , ppeaperror : *mut *mut EAP_ERROR , ppvreserved : *mut *mut ::core::ffi::c_void ) -> u32 );
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerQueryUIBlobFromInteractiveUIInputFields ( dwversion : u32 , dwflags : u32 , dwsizeofuicontextdata : u32 , puicontextdata : *const u8 , peapinteractiveuidata : *const EAP_INTERACTIVE_UI_DATA , pdwsizeofdatafrominteractiveui : *mut u32 , ppdatafrominteractiveui : *mut *mut u8 , ppeaperror : *mut *mut EAP_ERROR , ppvreserved : *mut *mut ::core::ffi::c_void ) -> u32 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "eappcfg.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`, `\"Win32_Foundation\"`*"] fn EapHostPeerQueryUserBlobFromCredentialInputFields ( huserimpersonationtoken : super::super::Foundation:: HANDLE , eapmethodtype : EAP_METHOD_TYPE , dwflags : u32 , dweapconndatasize : u32 , pbeapconndata : *const u8 , peapconfiginputfieldarray : *const EAP_CONFIG_INPUT_FIELD_ARRAY , pdwuserblobsize : *mut u32 , ppbuserblob : *mut *mut u8 , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerSetResponseAttributes ( sessionhandle : u32 , pattribs : *const EAP_ATTRIBUTES , peapoutput : *mut EapHostPeerResponseAction , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerSetUIContext ( sessionhandle : u32 , dwsizeofuicontextdata : u32 , puicontextdata : *const u8 , peapoutput : *mut EapHostPeerResponseAction , ppeaperror : *mut *mut EAP_ERROR ) -> u32 );
+::windows_sys::core::link ! ( "eappprxy.dll""system" #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"] fn EapHostPeerUninitialize ( ) -> ( ) );
 pub type IAccountingProviderConfig = *mut ::core::ffi::c_void;
 pub type IAuthenticationProviderConfig = *mut ::core::ffi::c_void;
 pub type IEAPProviderConfig = *mut ::core::ffi::c_void;
@@ -99,13 +64,13 @@ pub const EAPHOST_METHOD_API_VERSION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const EAPHOST_PEER_API_VERSION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_AUTHENTICATOR_VALUENAME_CONFIGUI: &str = "AuthenticatorConfigUIPath";
+pub const EAP_AUTHENTICATOR_VALUENAME_CONFIGUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AuthenticatorConfigUIPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_AUTHENTICATOR_VALUENAME_DLL_PATH: &str = "AuthenticatorDllPath";
+pub const EAP_AUTHENTICATOR_VALUENAME_DLL_PATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AuthenticatorDllPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_AUTHENTICATOR_VALUENAME_FRIENDLY_NAME: &str = "AuthenticatorFriendlyName";
+pub const EAP_AUTHENTICATOR_VALUENAME_FRIENDLY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("AuthenticatorFriendlyName");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_AUTHENTICATOR_VALUENAME_PROPERTIES: &str = "Properties";
+pub const EAP_AUTHENTICATOR_VALUENAME_PROPERTIES: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Properties");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const EAP_CONFIG_INPUT_FIELD_PROPS_DEFAULT: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
@@ -273,25 +238,25 @@ pub const EAP_PEER_FLAG_GUEST_ACCESS: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const EAP_PEER_FLAG_HEALTH_STATE_CHANGE: u32 = 32768u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_CONFIGUI: &str = "PeerConfigUIPath";
+pub const EAP_PEER_VALUENAME_CONFIGUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerConfigUIPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_DLL_PATH: &str = "PeerDllPath";
+pub const EAP_PEER_VALUENAME_DLL_PATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerDllPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_FRIENDLY_NAME: &str = "PeerFriendlyName";
+pub const EAP_PEER_VALUENAME_FRIENDLY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerFriendlyName");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_IDENTITY: &str = "PeerIdentityPath";
+pub const EAP_PEER_VALUENAME_IDENTITY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerIdentityPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_INTERACTIVEUI: &str = "PeerInteractiveUIPath";
+pub const EAP_PEER_VALUENAME_INTERACTIVEUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerInteractiveUIPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_INVOKE_NAMEDLG: &str = "PeerInvokeUsernameDialog";
+pub const EAP_PEER_VALUENAME_INVOKE_NAMEDLG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerInvokeUsernameDialog");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_INVOKE_PWDDLG: &str = "PeerInvokePasswordDialog";
+pub const EAP_PEER_VALUENAME_INVOKE_PWDDLG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerInvokePasswordDialog");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_PROPERTIES: &str = "Properties";
+pub const EAP_PEER_VALUENAME_PROPERTIES: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Properties");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_PEER_VALUENAME_REQUIRE_CONFIGUI: &str = "PeerRequireConfigUI";
+pub const EAP_PEER_VALUENAME_REQUIRE_CONFIGUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PeerRequireConfigUI");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_REGISTRY_LOCATION: &str = "System\\CurrentControlSet\\Services\\EapHost\\Methods";
+pub const EAP_REGISTRY_LOCATION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("System\\CurrentControlSet\\Services\\EapHost\\Methods");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const EAP_UI_INPUT_FIELD_PROPS_DEFAULT: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
@@ -301,63 +266,117 @@ pub const EAP_UI_INPUT_FIELD_PROPS_NON_PERSIST: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const EAP_UI_INPUT_FIELD_PROPS_READ_ONLY: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const EAP_VALUENAME_PROPERTIES: &str = "Properties";
+pub const EAP_VALUENAME_PROPERTIES: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Properties");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const FACILITY_EAP_MESSAGE: u32 = 2114u32;
-pub const GUID_EapHost_Cause_CertStoreInaccessible: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 4] };
-pub const GUID_EapHost_Cause_EapNegotiationFailed: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 28] };
-pub const GUID_EapHost_Cause_EapQecInaccessible: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 3, 18] };
-pub const GUID_EapHost_Cause_Generic_AuthFailure: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 1, 4] };
-pub const GUID_EapHost_Cause_IdentityUnknown: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 2, 4] };
-pub const GUID_EapHost_Cause_MethodDLLNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 1] };
-pub const GUID_EapHost_Cause_MethodDoesNotSupportOperation: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 30] };
-pub const GUID_EapHost_Cause_Method_Config_Does_Not_Support_Sso: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 3659054386, data2: 79, data3: 16890, data4: [174, 8, 11, 200, 94, 88, 69, 172] };
-pub const GUID_EapHost_Cause_No_SmartCardReader_Found: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 43] };
-pub const GUID_EapHost_Cause_Server_CertExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 5] };
-pub const GUID_EapHost_Cause_Server_CertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 6] };
-pub const GUID_EapHost_Cause_Server_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 7] };
-pub const GUID_EapHost_Cause_Server_CertOtherError: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 1, 8] };
-pub const GUID_EapHost_Cause_Server_CertRevoked: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 8] };
-pub const GUID_EapHost_Cause_Server_Root_CertNameRequired: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 18] };
-pub const GUID_EapHost_Cause_Server_Root_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 1, 18] };
-pub const GUID_EapHost_Cause_SimNotValid: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 3, 4] };
-pub const GUID_EapHost_Cause_ThirdPartyMethod_Host_Reset: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 2, 18] };
-pub const GUID_EapHost_Cause_User_Account_OtherProblem: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 1, 14] };
-pub const GUID_EapHost_Cause_User_CertExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 9] };
-pub const GUID_EapHost_Cause_User_CertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 10] };
-pub const GUID_EapHost_Cause_User_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 11] };
-pub const GUID_EapHost_Cause_User_CertOtherError: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 12] };
-pub const GUID_EapHost_Cause_User_CertRejected: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 13] };
-pub const GUID_EapHost_Cause_User_CertRevoked: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 14] };
-pub const GUID_EapHost_Cause_User_CredsRejected: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 2, 14] };
-pub const GUID_EapHost_Cause_User_Root_CertExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 15] };
-pub const GUID_EapHost_Cause_User_Root_CertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 16] };
-pub const GUID_EapHost_Cause_User_Root_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 17] };
-pub const GUID_EapHost_Cause_XmlMalformed: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 29] };
-pub const GUID_EapHost_Default: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 0, data2: 0, data3: 0, data4: [0, 0, 0, 0, 0, 0, 0, 0] };
-pub const GUID_EapHost_Help_ObtainingCerts: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 4113952419, data2: 7133, data3: 18122, data4: [162, 252, 166, 101, 89, 57, 183, 232] };
-pub const GUID_EapHost_Help_Troubleshooting: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 858815183, data2: 1688, data3: 16826, data4: [176, 20, 234, 10, 46, 184, 208, 168] };
-pub const GUID_EapHost_Repair_ContactAdmin_AuthFailure: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 31] };
-pub const GUID_EapHost_Repair_ContactAdmin_CertNameAbsent: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 41] };
-pub const GUID_EapHost_Repair_ContactAdmin_CertStoreInaccessible: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 36] };
-pub const GUID_EapHost_Repair_ContactAdmin_IdentityUnknown: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 32] };
-pub const GUID_EapHost_Repair_ContactAdmin_InvalidUserAccount: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 37] };
-pub const GUID_EapHost_Repair_ContactAdmin_InvalidUserCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 44] };
-pub const GUID_EapHost_Repair_ContactAdmin_MethodNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 34] };
-pub const GUID_EapHost_Repair_ContactAdmin_NegotiationFailed: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 33] };
-pub const GUID_EapHost_Repair_ContactAdmin_NoSmartCardReader: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 42] };
-pub const GUID_EapHost_Repair_ContactAdmin_RootCertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 38] };
-pub const GUID_EapHost_Repair_ContactAdmin_RootCertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 39] };
-pub const GUID_EapHost_Repair_ContactAdmin_RootExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 40] };
-pub const GUID_EapHost_Repair_ContactSysadmin: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 2] };
-pub const GUID_EapHost_Repair_Method_Not_Support_Sso: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 45] };
-pub const GUID_EapHost_Repair_No_ValidSim_Found: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 46] };
-pub const GUID_EapHost_Repair_RestartNap: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 35] };
-pub const GUID_EapHost_Repair_Retry_Authentication: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 1, 27] };
-pub const GUID_EapHost_Repair_Server_ClientSelectServerCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 24] };
-pub const GUID_EapHost_Repair_User_AuthFailure: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 25] };
-pub const GUID_EapHost_Repair_User_GetNewCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 26] };
-pub const GUID_EapHost_Repair_User_SelectValidCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID { data1: 2517826663, data2: 24912, data3: 16905, data4: [168, 94, 168, 216, 0, 0, 0, 27] };
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_CertStoreInaccessible: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000004);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_EapNegotiationFailed: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000001c);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_EapQecInaccessible: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000312);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Generic_AuthFailure: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000104);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_IdentityUnknown: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000204);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_MethodDLLNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000001);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_MethodDoesNotSupportOperation: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000001e);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Method_Config_Does_Not_Support_Sso: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xda18bd32_004f_41fa_ae08_0bc85e5845ac);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_No_SmartCardReader_Found: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000002b);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Server_CertExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000005);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Server_CertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000006);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Server_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000007);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Server_CertOtherError: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000108);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Server_CertRevoked: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000008);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Server_Root_CertNameRequired: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000012);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_Server_Root_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000112);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_SimNotValid: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000304);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_ThirdPartyMethod_Host_Reset: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000212);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_Account_OtherProblem: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000010e);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_CertExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000009);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_CertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000000a);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000000b);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_CertOtherError: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000000c);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_CertRejected: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000000d);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_CertRevoked: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000000e);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_CredsRejected: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000020e);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_Root_CertExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000000f);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_Root_CertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000010);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_User_Root_CertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000011);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Cause_XmlMalformed: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000001d);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Default: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x00000000_0000_0000_0000_000000000000);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Help_ObtainingCerts: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf535eea3_1bdd_46ca_a2fc_a6655939b7e8);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Help_Troubleshooting: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x33307acf_0698_41ba_b014_ea0a2eb8d0a8);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_AuthFailure: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000001f);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_CertNameAbsent: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000029);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_CertStoreInaccessible: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000024);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_IdentityUnknown: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000020);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_InvalidUserAccount: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000025);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_InvalidUserCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000002c);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_MethodNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000022);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_NegotiationFailed: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000021);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_NoSmartCardReader: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000002a);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_RootCertInvalid: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000026);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_RootCertNotFound: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000027);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactAdmin_RootExpired: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000028);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_ContactSysadmin: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000002);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_Method_Not_Support_Sso: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000002d);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_No_ValidSim_Found: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000002e);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_RestartNap: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000023);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_Retry_Authentication: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000011b);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_Server_ClientSelectServerCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000018);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_User_AuthFailure: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d800000019);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_User_GetNewCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000001a);
+#[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
+pub const GUID_EapHost_Repair_User_SelectValidCert: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9612fc67_6150_4209_a85e_a8d80000001b);
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const MAXEAPCODE: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
@@ -403,7 +422,7 @@ pub const RAS_EAP_FLAG_SAVE_CREDMAN: u32 = 2097152u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const RAS_EAP_FLAG_SERVER_VALIDATION_REQUIRED: u32 = 33554432u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_REGISTRY_LOCATION: &str = "System\\CurrentControlSet\\Services\\Rasman\\PPP\\EAP";
+pub const RAS_EAP_REGISTRY_LOCATION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("System\\CurrentControlSet\\Services\\Rasman\\PPP\\EAP");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const RAS_EAP_ROLE_AUTHENTICATEE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
@@ -415,37 +434,37 @@ pub const RAS_EAP_ROLE_EXCLUDE_IN_PEAP: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const RAS_EAP_ROLE_EXCLUDE_IN_VPN: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_CONFIGUI: &str = "ConfigUIPath";
+pub const RAS_EAP_VALUENAME_CONFIGUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ConfigUIPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_CONFIG_CLSID: &str = "ConfigCLSID";
+pub const RAS_EAP_VALUENAME_CONFIG_CLSID: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ConfigCLSID");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_DEFAULT_DATA: &str = "ConfigData";
+pub const RAS_EAP_VALUENAME_DEFAULT_DATA: ::windows_sys::core::PCWSTR = ::windows_sys::w!("ConfigData");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_ENCRYPTION: &str = "MPPEEncryptionSupported";
+pub const RAS_EAP_VALUENAME_ENCRYPTION: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MPPEEncryptionSupported");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_FILTER_INNERMETHODS: &str = "FilterInnerMethods";
+pub const RAS_EAP_VALUENAME_FILTER_INNERMETHODS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("FilterInnerMethods");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_FRIENDLY_NAME: &str = "FriendlyName";
+pub const RAS_EAP_VALUENAME_FRIENDLY_NAME: ::windows_sys::core::PCWSTR = ::windows_sys::w!("FriendlyName");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_IDENTITY: &str = "IdentityPath";
+pub const RAS_EAP_VALUENAME_IDENTITY: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IdentityPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_INTERACTIVEUI: &str = "InteractiveUIPath";
+pub const RAS_EAP_VALUENAME_INTERACTIVEUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("InteractiveUIPath");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_INVOKE_NAMEDLG: &str = "InvokeUsernameDialog";
+pub const RAS_EAP_VALUENAME_INVOKE_NAMEDLG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("InvokeUsernameDialog");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_INVOKE_PWDDLG: &str = "InvokePasswordDialog";
+pub const RAS_EAP_VALUENAME_INVOKE_PWDDLG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("InvokePasswordDialog");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_ISTUNNEL_METHOD: &str = "IsTunnelMethod";
+pub const RAS_EAP_VALUENAME_ISTUNNEL_METHOD: ::windows_sys::core::PCWSTR = ::windows_sys::w!("IsTunnelMethod");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_PATH: &str = "Path";
+pub const RAS_EAP_VALUENAME_PATH: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Path");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_PER_POLICY_CONFIG: &str = "PerPolicyConfig";
+pub const RAS_EAP_VALUENAME_PER_POLICY_CONFIG: ::windows_sys::core::PCWSTR = ::windows_sys::w!("PerPolicyConfig");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_REQUIRE_CONFIGUI: &str = "RequireConfigUI";
+pub const RAS_EAP_VALUENAME_REQUIRE_CONFIGUI: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RequireConfigUI");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_ROLES_SUPPORTED: &str = "RolesSupported";
+pub const RAS_EAP_VALUENAME_ROLES_SUPPORTED: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RolesSupported");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub const RAS_EAP_VALUENAME_STANDALONE_SUPPORTED: &str = "StandaloneSupported";
+pub const RAS_EAP_VALUENAME_STANDALONE_SUPPORTED: ::windows_sys::core::PCWSTR = ::windows_sys::w!("StandaloneSupported");
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
 pub const eapPropCertifiedMethod: u32 = 4194304u32;
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
@@ -1850,4 +1869,4 @@ impl ::core::clone::Clone for RAS_AUTH_ATTRIBUTE {
     }
 }
 #[doc = "*Required features: `\"Win32_Security_ExtensibleAuthenticationProtocol\"`*"]
-pub type NotificationHandler = ::core::option::Option<unsafe extern "system" fn(connectionid: ::windows_sys::core::GUID, pcontextdata: *mut ::core::ffi::c_void)>;
+pub type NotificationHandler = ::core::option::Option<unsafe extern "system" fn(connectionid: ::windows_sys::core::GUID, pcontextdata: *mut ::core::ffi::c_void) -> ()>;

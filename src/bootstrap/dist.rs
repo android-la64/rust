@@ -24,6 +24,7 @@ use crate::channel;
 use crate::compile;
 use crate::config::TargetSelection;
 use crate::doc::DocumentationFormat;
+use crate::native;
 use crate::tarball::{GeneratedTarball, OverlayKind, Tarball};
 use crate::tool::{self, Tool};
 use crate::util::{exe, is_dylib, output, t, timeit};
@@ -951,7 +952,7 @@ impl Step for PlainSourceTarball {
             "Cargo.toml",
             "Cargo.lock",
         ];
-        let src_dirs = ["src", "compiler", "library"];
+        let src_dirs = ["src", "compiler", "library", "tests"];
 
         copy_src_dirs(builder, &builder.src, &src_dirs, &[], &plain_dst_src);
 
@@ -1128,12 +1129,6 @@ impl Step for RustAnalyzer {
     fn run(self, builder: &Builder<'_>) -> Option<GeneratedTarball> {
         let compiler = self.compiler;
         let target = self.target;
-
-        if target.contains("riscv64") {
-            // riscv64 currently has an LLVM bug that makes rust-analyzer unable
-            // to build. See #74813 for details.
-            return None;
-        }
 
         let rust_analyzer = builder
             .ensure(tool::RustAnalyzer { compiler, target })
@@ -1927,7 +1922,9 @@ fn maybe_install_llvm(builder: &Builder<'_>, target: TargetSelection, dst_libdir
             builder.install(&llvm_dylib_path, dst_libdir, 0o644);
         }
         !builder.config.dry_run()
-    } else if let Ok(llvm_config) = crate::native::prebuilt_llvm_config(builder, target) {
+    } else if let Ok(native::LlvmResult { llvm_config, .. }) =
+        native::prebuilt_llvm_config(builder, target)
+    {
         let mut cmd = Command::new(llvm_config);
         cmd.arg("--libfiles");
         builder.verbose(&format!("running {:?}", cmd));
@@ -2064,6 +2061,9 @@ impl Step for RustDev {
 
         builder.ensure(crate::native::Llvm { target });
 
+        // We want to package `lld` to use it with `download-ci-llvm`.
+        builder.ensure(crate::native::Lld { target });
+
         let src_bindir = builder.llvm_out(target).join("bin");
         // If updating this list, you likely want to change
         // src/bootstrap/download-ci-llvm-stamp as well, otherwise local users
@@ -2137,7 +2137,7 @@ impl Step for Bootstrap {
         let tarball = Tarball::new(builder, "bootstrap", &target.triple);
 
         let bootstrap_outdir = &builder.bootstrap_out;
-        for file in &["bootstrap", "llvm-config-wrapper", "rustc", "rustdoc", "sccache-plus-cl"] {
+        for file in &["bootstrap", "rustc", "rustdoc", "sccache-plus-cl"] {
             tarball.add_file(bootstrap_outdir.join(exe(file, target)), "bootstrap/bin", 0o755);
         }
 

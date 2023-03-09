@@ -37,7 +37,7 @@ fn basic() {
 
     let doc_html = p.read_file("target/doc/foo/fn.foo.html");
     assert!(doc_html.contains("Examples found in repository"));
-    assert!(doc_html.contains("More examples"));
+    assert!(!doc_html.contains("More examples"));
 
     // Ensure that the reverse-dependency has its sources generated
     assert!(p.build_dir().join("doc/src/ex/ex.rs.html").exists());
@@ -178,18 +178,25 @@ fn configure_target() {
                 authors = []
 
                 [lib]
-                doc-scrape-examples = false
+                doc-scrape-examples = true
 
                 [[bin]]
                 name = "a_bin"
                 doc-scrape-examples = true
+
+                [[example]]
+                name = "a"
+                doc-scrape-examples = false
             "#,
         )
         .file(
             "src/lib.rs",
-            "pub fn foo() {} fn lib_must_not_appear() { foo(); }",
+            "pub fn foo() {} fn lib_must_appear() { foo(); }",
         )
-        .file("examples/a.rs", "fn example_must_appear() { foo::foo(); }")
+        .file(
+            "examples/a.rs",
+            "fn example_must_not_appear() { foo::foo(); }",
+        )
         .file(
             "src/bin/a_bin.rs",
             "fn bin_must_appear() { foo::foo(); } fn main(){}",
@@ -201,9 +208,9 @@ fn configure_target() {
         .run();
 
     let doc_html = p.read_file("target/doc/foo/fn.foo.html");
-    assert!(!doc_html.contains("lib_must_not_appear"));
-    assert!(doc_html.contains("example_must_appear"));
+    assert!(doc_html.contains("lib_must_appear"));
     assert!(doc_html.contains("bin_must_appear"));
+    assert!(!doc_html.contains("example_must_not_appear"));
 }
 
 #[cargo_test(nightly, reason = "rustdoc scrape examples flags are unstable")]
@@ -231,7 +238,6 @@ fn configure_profile_issue_10500() {
 
     let doc_html = p.read_file("target/doc/foo/fn.foo.html");
     assert!(doc_html.contains("Examples found in repository"));
-    assert!(doc_html.contains("More examples"));
 }
 
 #[cargo_test(nightly, reason = "rustdoc scrape examples flags are unstable")]
@@ -332,17 +338,28 @@ fn no_fail_bad_lib() {
             "#,
         )
         .file("src/lib.rs", "pub fn foo() { CRASH_THE_BUILD() }")
+        .file("examples/ex.rs", "fn main() { foo::foo(); }")
+        .file("examples/ex2.rs", "fn main() { foo::foo(); }")
         .build();
 
     p.cargo("doc -Zunstable-options -Z rustdoc-scrape-examples")
         .masquerade_as_nightly_cargo(&["rustdoc-scrape-examples"])
-        .with_stderr(
+        .with_stderr_unordered(
         "\
+[CHECKING] foo v0.0.1 ([CWD])
 [SCRAPING] foo v0.0.1 ([CWD])
-warning: failed to scan lib in package `foo` for example code usage
+warning: failed to check lib in package `foo` as a prerequisite for scraping examples from: example \"ex\", example \"ex2\"
     Try running with `--verbose` to see the error message.
-    If this example should not be scanned, consider adding `doc-scrape-examples = false` to the `[[example]]` definition in Cargo.toml
+    If an example should not be scanned, then consider adding `doc-scrape-examples = false` to its `[[example]]` definition in Cargo.toml
 warning: `foo` (lib) generated 1 warning
+warning: failed to scan example \"ex\" in package `foo` for example code usage
+    Try running with `--verbose` to see the error message.
+    If an example should not be scanned, then consider adding `doc-scrape-examples = false` to its `[[example]]` definition in Cargo.toml
+warning: `foo` (example \"ex\") generated 1 warning
+warning: failed to scan example \"ex2\" in package `foo` for example code usage
+    Try running with `--verbose` to see the error message.
+    If an example should not be scanned, then consider adding `doc-scrape-examples = false` to its `[[example]]` definition in Cargo.toml
+warning: `foo` (example \"ex2\") generated 1 warning
 [DOCUMENTING] foo v0.0.1 ([CWD])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
     )
@@ -374,7 +391,7 @@ fn no_fail_bad_example() {
 [SCRAPING] foo v0.0.1 ([CWD])
 warning: failed to scan example \"ex1\" in package `foo` for example code usage
     Try running with `--verbose` to see the error message.
-    If this example should not be scanned, consider adding `doc-scrape-examples = false` to the `[[example]]` definition in Cargo.toml
+    If an example should not be scanned, then consider adding `doc-scrape-examples = false` to its `[[example]]` definition in Cargo.toml
 warning: `foo` (example \"ex1\") generated 1 warning
 [DOCUMENTING] foo v0.0.1 ([CWD])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
@@ -400,7 +417,6 @@ error: expected one of `!` or `::`, found `NOT`
   |      ^^^ expected one of `!` or `::`
 
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[RUNNING] `rustdoc[..] --crate-name foo[..]
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
@@ -413,7 +429,7 @@ error: expected one of `!` or `::`, found `NOT`
 fn no_scrape_with_dev_deps() {
     // Tests that a crate with dev-dependencies does not have its examples
     // scraped unless explicitly prompted to check them. See
-    // `CompileFilter::refine_for_docscrape` for details on why.
+    // `UnitGenerator::create_docscrape_proposals` for details on why.
 
     let p = project()
         .file(
@@ -423,9 +439,6 @@ fn no_scrape_with_dev_deps() {
             name = "foo"
             version = "0.0.1"
             authors = []
-
-            [lib]
-            doc-scrape-examples = false
 
             [dev-dependencies]
             a = {path = "a"}
@@ -445,17 +458,21 @@ fn no_scrape_with_dev_deps() {
         .file("a/src/lib.rs", "pub fn f() {}")
         .build();
 
-    // If --examples is not provided, then the example is never scanned.
+    // If --examples is not provided, then the example is not scanned, and a warning
+    // should be raised.
     p.cargo("doc -Zunstable-options -Z rustdoc-scrape-examples")
         .masquerade_as_nightly_cargo(&["rustdoc-scrape-examples"])
         .with_stderr(
             "\
+warning: Rustdoc did not scrape the following examples because they require dev-dependencies: ex
+    If you want Rustdoc to scrape these examples, then add `doc-scrape-examples = true`
+    to the [[example]] target configuration of at least one example.
 [DOCUMENTING] foo v0.0.1 ([CWD])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 
-    // If --examples is provided, then the bad example is scanned and ignored.
+    // If --examples is provided, then the example is scanned.
     p.cargo("doc --examples -Zunstable-options -Z rustdoc-scrape-examples")
         .masquerade_as_nightly_cargo(&["rustdoc-scrape-examples"])
         .with_stderr_unordered(
@@ -480,9 +497,6 @@ fn use_dev_deps_if_explicitly_enabled() {
             name = "foo"
             version = "0.0.1"
             authors = []
-
-            [lib]
-            doc-scrape-examples = false
 
             [[example]]
             name = "ex"
@@ -523,19 +537,18 @@ fn use_dev_deps_if_explicitly_enabled() {
 #[cargo_test(nightly, reason = "rustdoc scrape examples flags are unstable")]
 fn only_scrape_documented_targets() {
     // package bar has doc = false and should not be eligible for documtation.
-    let run_with_config = |config: &str, should_scrape: bool| {
-        let p = project()
-            .file(
-                "Cargo.toml",
-                &format!(
-                    r#"
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
             [package]
             name = "bar"
             version = "0.0.1"
             authors = []            
 
             [lib]
-            {config}
+            doc = false
 
             [workspace]
             members = ["foo"]
@@ -543,40 +556,51 @@ fn only_scrape_documented_targets() {
             [dependencies]
             foo = {{ path = "foo" }}
         "#
-                ),
-            )
-            .file("src/lib.rs", "pub fn bar() { foo::foo(); }")
-            .file(
-                "foo/Cargo.toml",
-                r#"
+            ),
+        )
+        .file("src/lib.rs", "")
+        .file("examples/ex.rs", "pub fn main() { foo::foo(); }")
+        .file(
+            "foo/Cargo.toml",
+            r#"
             [package]
             name = "foo"
             version = "0.0.1"
             authors = []      
         "#,
-            )
-            .file("foo/src/lib.rs", "pub fn foo() {}")
-            .build();
+        )
+        .file("foo/src/lib.rs", "pub fn foo() {}")
+        .build();
 
-        p.cargo("doc --workspace -Zunstable-options -Zrustdoc-scrape-examples")
-            .masquerade_as_nightly_cargo(&["rustdoc-scrape-examples"])
-            .run();
+    p.cargo("doc --workspace -Zunstable-options -Zrustdoc-scrape-examples")
+        .masquerade_as_nightly_cargo(&["rustdoc-scrape-examples"])
+        .run();
 
-        let doc_html = p.read_file("target/doc/foo/fn.foo.html");
-        let example_found = doc_html.contains("Examples found in repository");
-        if should_scrape {
-            assert!(example_found);
-        } else {
-            assert!(!example_found);
-        }
-    };
+    let doc_html = p.read_file("target/doc/foo/fn.foo.html");
+    let example_found = doc_html.contains("Examples found in repository");
+    assert!(!example_found);
+}
 
-    // By default, bar should be scraped.
-    run_with_config("", true);
-    // If bar isn't supposed to be documented, then it is not eligible
-    // for scraping.
-    run_with_config("doc = false", false);
-    // But if the user explicitly says bar should be scraped, then it should
-    // be scraped.
-    run_with_config("doc = false\ndoc-scrape-examples = true", true);
+#[cargo_test(nightly, reason = "rustdoc scrape examples flags are unstable")]
+fn issue_11496() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "repro"
+                version = "0.1.0"
+                edition = "2021"
+                
+                [lib]
+                proc-macro = true
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file("examples/ex.rs", "fn main(){}")
+        .build();
+
+    p.cargo("doc -Zunstable-options -Zrustdoc-scrape-examples")
+        .masquerade_as_nightly_cargo(&["rustdoc-scrape-examples"])
+        .run();
 }

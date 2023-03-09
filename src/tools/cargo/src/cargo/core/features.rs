@@ -667,6 +667,7 @@ unstable_cli_options!(
     #[serde(deserialize_with = "deserialize_build_std")]
     build_std: Option<Vec<String>>  = ("Enable Cargo to compile the standard library itself as part of a crate graph compilation"),
     build_std_features: Option<Vec<String>>  = ("Configure features enabled for the standard library itself when building the standard library"),
+    codegen_backend: bool = ("Enable the `codegen-backend` option in profiles in .cargo/config.toml file"),
     config_include: bool = ("Enable the `include` key in config files"),
     credential_process: bool = ("Add a config setting to fetch registry authentication tokens by calling an external process"),
     #[serde(deserialize_with = "deserialize_check_cfg")]
@@ -680,13 +681,13 @@ unstable_cli_options!(
     mtime_on_use: bool = ("Configure Cargo to update the mtime of used files"),
     no_index_update: bool = ("Do not update the registry index even if the cache is outdated"),
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
+    profile_rustflags: bool = ("Enable the `rustflags` option in profiles in .cargo/config.toml file"),
     host_config: bool = ("Enable the [host] section in the .cargo/config.toml file"),
-    sparse_registry: bool = ("Support plain-HTTP-based crate registries"),
-    registry_auth: bool = ("Authentication for alternative registries"),
+    sparse_registry: bool = ("Use the sparse protocol when accessing crates.io"),
+    registry_auth: bool = ("Authentication for alternative registries, and generate registry authentication tokens using asymmetric cryptography"),
     target_applies_to_host: bool = ("Enable the `target-applies-to-host` key in the .cargo/config.toml file"),
     rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
     separate_nightlies: bool = (HIDDEN),
-    terminal_width: Option<Option<usize>>  = ("Provide a terminal width to rustc for error truncation"),
     publish_timeout: bool = ("Enable the `publish.timeout` key in .cargo/config.toml file"),
     unstable_options: bool = ("Allow the usage of unstable options"),
     skip_rustdoc_fingerprint: bool = (HIDDEN),
@@ -748,6 +749,14 @@ const STABILISED_NAMESPACED_FEATURES: &str = "Namespaced features are now always
 const STABILIZED_TIMINGS: &str = "The -Ztimings option has been stabilized as --timings.";
 
 const STABILISED_MULTITARGET: &str = "Multiple `--target` options are now always available.";
+
+const STABILIZED_TERMINAL_WIDTH: &str =
+    "The -Zterminal-width option is now always enabled for terminal output.";
+
+const STABILISED_SPARSE_REGISTRY: &str = "This flag currently still sets the default protocol\
+    to `sparse` when accessing crates.io. However, this will be removed in the future. \n\
+    The stable equivalent is to set the config value `registries.crates-io.protocol = 'sparse'`\n\
+    or environment variable `CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse`";
 
 fn deserialize_build_std<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
 where
@@ -862,16 +871,6 @@ impl CliUnstable {
             Ok(true)
         }
 
-        fn parse_usize_opt(value: Option<&str>) -> CargoResult<Option<usize>> {
-            Ok(match value {
-                Some(value) => match value.parse::<usize>() {
-                    Ok(value) => Some(value),
-                    Err(e) => bail!("expected a number, found: {}", e),
-                },
-                None => None,
-            })
-        }
-
         let mut stabilized_warn = |key: &str, version: &str, message: &str| {
             warnings.push(format!(
                 "flag `-Z {}` has been stabilized in the {} release, \
@@ -955,8 +954,13 @@ impl CliUnstable {
             "separate-nightlies" => self.separate_nightlies = parse_empty(k, v)?,
             "multitarget" => stabilized_warn(k, "1.64", STABILISED_MULTITARGET),
             "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,
-            "terminal-width" => self.terminal_width = Some(parse_usize_opt(v)?),
-            "sparse-registry" => self.sparse_registry = parse_empty(k, v)?,
+            "terminal-width" => stabilized_warn(k, "1.68", STABILIZED_TERMINAL_WIDTH),
+            "sparse-registry" => {
+                // Once sparse-registry becomes the default for crates.io, `sparse_registry` should
+                // be removed entirely from `CliUnstable`.
+                stabilized_warn(k, "1.68", STABILISED_SPARSE_REGISTRY);
+                self.sparse_registry = parse_empty(k, v)?;
+            }
             "registry-auth" => self.registry_auth = parse_empty(k, v)?,
             "namespaced-features" => stabilized_warn(k, "1.60", STABILISED_NAMESPACED_FEATURES),
             "weak-dep-features" => stabilized_warn(k, "1.60", STABILIZED_WEAK_DEP_FEATURES),
@@ -977,6 +981,8 @@ impl CliUnstable {
                 stabilized_warn(k, "1.59.0", STABILIZED_FUTURE_INCOMPAT_REPORT)
             }
             "timings" => stabilized_warn(k, "1.60", STABILIZED_TIMINGS),
+            "codegen-backend" => self.codegen_backend = parse_empty(k, v)?,
+            "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
             _ => bail!("unknown `-Z` flag specified: {}", k),
         }
 
@@ -988,29 +994,22 @@ impl CliUnstable {
     pub fn fail_if_stable_opt(&self, flag: &str, issue: u32) -> CargoResult<()> {
         if !self.unstable_options {
             let see = format!(
-                "See https://github.com/rust-lang/cargo/issues/{} for more \
-                 information about the `{}` flag.",
-                issue, flag
+                "See https://github.com/rust-lang/cargo/issues/{issue} for more \
+                 information about the `{flag}` flag."
             );
             // NOTE: a `config` isn't available here, check the channel directly
             let channel = channel();
             if channel == "nightly" || channel == "dev" {
                 bail!(
-                    "the `{}` flag is unstable, pass `-Z unstable-options` to enable it\n\
-                     {}",
-                    flag,
-                    see
+                    "the `{flag}` flag is unstable, pass `-Z unstable-options` to enable it\n\
+                     {see}"
                 );
             } else {
                 bail!(
-                    "the `{}` flag is unstable, and only available on the nightly channel \
-                     of Cargo, but this is the `{}` channel\n\
-                     {}\n\
-                     {}",
-                    flag,
-                    channel,
-                    SEE_CHANNELS,
-                    see
+                    "the `{flag}` flag is unstable, and only available on the nightly channel \
+                     of Cargo, but this is the `{channel}` channel\n\
+                     {SEE_CHANNELS}\n\
+                     {see}"
                 );
             }
         }

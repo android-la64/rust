@@ -551,7 +551,7 @@ fn fail_with_multiple_packages() {
         .with_status(1)
         .with_stderr_contains(
             "\
-error: The argument '--package [<SPEC>]' was provided more than once, but cannot be used multiple times
+error: the argument '--package [<SPEC>]' cannot be used multiple times
 ",
         )
         .run();
@@ -639,6 +639,7 @@ fn rustc_fingerprint() {
         .with_stderr_does_not_contain("-C debug-assertions")
         .with_stderr(
             "\
+[DIRTY] foo [..]: the profile configuration changed
 [COMPILING] foo [..]
 [RUNNING] `rustc [..]
 [FINISHED] [..]

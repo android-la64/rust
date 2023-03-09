@@ -11,8 +11,9 @@
 
 [package]
 edition = "2018"
+rust-version = "1.51"
 name = "owo-colors"
-version = "3.4.0"
+version = "3.5.0"
 authors = ["jam1garner <8260240+jam1garner@users.noreply.github.com>"]
 description = "Zero-allocation terminal colors that'll make people go owo"
 documentation = "https://docs.rs/owo-colors"

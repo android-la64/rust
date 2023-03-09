@@ -7,15 +7,18 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
+//! Helpers for validating pest grammars that could help with debugging
+//! and provide a more user-friendly error message.
+
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 
 use pest::error::{Error, ErrorVariant, InputLocation};
 use pest::iterators::Pairs;
+use pest::unicode::unicode_property_names;
 use pest::Span;
 
 use crate::parser::{ParserExpr, ParserNode, ParserRule, Rule};
-use crate::UNICODE_PROPERTY_NAMES;
 
 static RUST_KEYWORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     [
@@ -63,16 +66,24 @@ static BUILTINS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ]
     .iter()
     .cloned()
-    .chain(UNICODE_PROPERTY_NAMES.iter().cloned())
+    .chain(unicode_property_names())
     .collect::<HashSet<&str>>()
 });
 
-pub fn validate_pairs(pairs: Pairs<Rule>) -> Result<Vec<&str>, Vec<Error<Rule>>> {
+/// It checks the parsed grammar for common mistakes:
+/// - using Pest keywords
+/// - duplicate rules
+/// - undefined rules
+///
+/// It returns a `Result` with a `Vec` of `Error`s if any of the above is found.
+/// If no errors are found, it returns the vector of names of used builtin rules.
+pub fn validate_pairs(pairs: Pairs<'_, Rule>) -> Result<Vec<&str>, Vec<Error<Rule>>> {
     let definitions: Vec<_> = pairs
         .clone()
         .filter(|pair| pair.as_rule() == Rule::grammar_rule)
         .map(|pair| pair.into_inner().next().unwrap().as_span())
         .collect();
+
     let called_rules: Vec<_> = pairs
         .clone()
         .filter(|pair| pair.as_rule() == Rule::grammar_rule)
@@ -87,7 +98,6 @@ pub fn validate_pairs(pairs: Pairs<Rule>) -> Result<Vec<&str>, Vec<Error<Rule>>>
 
     let mut errors = vec![];
 
-    errors.extend(validate_rust_keywords(&definitions));
     errors.extend(validate_pest_keywords(&definitions));
     errors.extend(validate_already_defined(&definitions));
     errors.extend(validate_undefined(&definitions, &called_rules));
@@ -104,8 +114,10 @@ pub fn validate_pairs(pairs: Pairs<Rule>) -> Result<Vec<&str>, Vec<Error<Rule>>>
     Ok(defaults.cloned().collect())
 }
 
+/// Validates that the given `definitions` do not contain any Rust keywords.
 #[allow(clippy::ptr_arg)]
-pub fn validate_rust_keywords(definitions: &Vec<Span>) -> Vec<Error<Rule>> {
+#[deprecated = "Rust keywords are no longer restricted from the pest grammar"]
+pub fn validate_rust_keywords(definitions: &Vec<Span<'_>>) -> Vec<Error<Rule>> {
     let mut errors = vec![];
 
     for definition in definitions {
@@ -124,8 +136,9 @@ pub fn validate_rust_keywords(definitions: &Vec<Span>) -> Vec<Error<Rule>> {
     errors
 }
 
+/// Validates that the given `definitions` do not contain any Pest keywords.
 #[allow(clippy::ptr_arg)]
-pub fn validate_pest_keywords(definitions: &Vec<Span>) -> Vec<Error<Rule>> {
+pub fn validate_pest_keywords(definitions: &Vec<Span<'_>>) -> Vec<Error<Rule>> {
     let mut errors = vec![];
 
     for definition in definitions {
@@ -144,8 +157,9 @@ pub fn validate_pest_keywords(definitions: &Vec<Span>) -> Vec<Error<Rule>> {
     errors
 }
 
+/// Validates that the given `definitions` do not contain any duplicate rules.
 #[allow(clippy::ptr_arg)]
-pub fn validate_already_defined(definitions: &Vec<Span>) -> Vec<Error<Rule>> {
+pub fn validate_already_defined(definitions: &Vec<Span<'_>>) -> Vec<Error<Rule>> {
     let mut errors = vec![];
     let mut defined = HashSet::new();
 
@@ -167,6 +181,7 @@ pub fn validate_already_defined(definitions: &Vec<Span>) -> Vec<Error<Rule>> {
     errors
 }
 
+/// Validates that the given `definitions` do not contain any undefined rules.
 #[allow(clippy::ptr_arg)]
 pub fn validate_undefined<'i>(
     definitions: &Vec<Span<'i>>,
@@ -191,6 +206,10 @@ pub fn validate_undefined<'i>(
     errors
 }
 
+/// Validates the abstract syntax tree for common mistakes:
+/// - infinite repetitions
+/// - choices that cannot be reached
+/// - left recursion
 #[allow(clippy::ptr_arg)]
 pub fn validate_ast<'a, 'i: 'a>(rules: &'a Vec<ParserRule<'i>>) -> Vec<Error<Rule>> {
     let mut errors = vec![];
@@ -423,7 +442,7 @@ fn left_recursion<'a, 'i: 'a>(rules: HashMap<String, &'a ParserNode<'i>>) -> Vec
                     return Some(Error::new_from_span(
                         ErrorVariant::CustomError {
                             message: format!(
-                                "rule {} is left-recursive ({}); pest::prec_climber might be useful \
+                                "rule {} is left-recursive ({}); pest::pratt_parser might be useful \
                                  in this case",
                                 node.span.as_str(),
                                 chain
@@ -484,22 +503,6 @@ mod tests {
     use super::super::unwrap_or_report;
     use super::*;
     use pest::Parser;
-
-    #[test]
-    #[should_panic(expected = "grammar error
-
- --> 1:1
-  |
-1 | let = { \"a\" }
-  | ^-^
-  |
-  = let is a rust keyword")]
-    fn rust_keyword() {
-        let input = "let = { \"a\" }";
-        unwrap_or_report(validate_pairs(
-            PestParser::parse(Rule::grammar_rules, input).unwrap(),
-        ));
-    }
 
     #[test]
     #[should_panic(expected = "grammar error
@@ -677,7 +680,7 @@ mod tests {
 1 | a = { a }
   |       ^
   |
-  = rule a is left-recursive (a -> a); pest::prec_climber might be useful in this case")]
+  = rule a is left-recursive (a -> a); pest::pratt_parser might be useful in this case")]
     fn simple_left_recursion() {
         let input = "a = { a }";
         unwrap_or_report(consume_rules(
@@ -693,14 +696,14 @@ mod tests {
 1 | a = { b } b = { a }
   |       ^
   |
-  = rule b is left-recursive (b -> a -> b); pest::prec_climber might be useful in this case
+  = rule b is left-recursive (b -> a -> b); pest::pratt_parser might be useful in this case
 
  --> 1:17
   |
 1 | a = { b } b = { a }
   |                 ^
   |
-  = rule a is left-recursive (a -> b -> a); pest::prec_climber might be useful in this case")]
+  = rule a is left-recursive (a -> b -> a); pest::pratt_parser might be useful in this case")]
     fn indirect_left_recursion() {
         let input = "a = { b } b = { a }";
         unwrap_or_report(consume_rules(
@@ -716,7 +719,7 @@ mod tests {
 1 | a = { \"\" ~ \"a\"? ~ \"a\"* ~ (\"a\" | \"\") ~ a }
   |                                       ^
   |
-  = rule a is left-recursive (a -> a); pest::prec_climber might be useful in this case")]
+  = rule a is left-recursive (a -> a); pest::pratt_parser might be useful in this case")]
     fn non_failing_left_recursion() {
         let input = "a = { \"\" ~ \"a\"? ~ \"a\"* ~ (\"a\" | \"\") ~ a }";
         unwrap_or_report(consume_rules(
@@ -732,7 +735,7 @@ mod tests {
 1 | a = { \"a\" | a }
   |             ^
   |
-  = rule a is left-recursive (a -> a); pest::prec_climber might be useful in this case")]
+  = rule a is left-recursive (a -> a); pest::pratt_parser might be useful in this case")]
     fn non_primary_choice_left_recursion() {
         let input = "a = { \"a\" | a }";
         unwrap_or_report(consume_rules(

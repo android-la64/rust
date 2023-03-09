@@ -28,6 +28,7 @@ use rustc_error_messages::{FluentArgs, SpanLabel};
 use rustc_span::hygiene::{ExpnKind, MacroKind};
 use std::borrow::Cow;
 use std::cmp::{max, min, Reverse};
+use std::error::Report;
 use std::io::prelude::*;
 use std::io::{self, IsTerminal};
 use std::iter;
@@ -250,7 +251,7 @@ pub trait Emitter: Translate {
         let mut primary_span = diag.span.clone();
         let suggestions = diag.suggestions.as_deref().unwrap_or(&[]);
         if let Some((sugg, rest)) = suggestions.split_first() {
-            let msg = self.translate_message(&sugg.msg, fluent_args);
+            let msg = self.translate_message(&sugg.msg, fluent_args).map_err(Report::new).unwrap();
             if rest.is_empty() &&
                // ^ if there is only one suggestion
                // don't display multi-suggestions as labels
@@ -845,7 +846,10 @@ impl EmitterWriter {
         // 3 | |
         // 4 | | }
         //   | |_^ test
-        if let [ann] = &line.annotations[..] {
+        let mut buffer_ops = vec![];
+        let mut annotations = vec![];
+        let mut short_start = true;
+        for ann in &line.annotations {
             if let AnnotationType::MultilineStart(depth) = ann.annotation_type {
                 if source_string.chars().take(ann.start_col).all(|c| c.is_whitespace()) {
                     let style = if ann.is_primary {
@@ -853,10 +857,23 @@ impl EmitterWriter {
                     } else {
                         Style::UnderlineSecondary
                     };
-                    buffer.putc(line_offset, width_offset + depth - 1, '/', style);
-                    return vec![(depth, style)];
+                    annotations.push((depth, style));
+                    buffer_ops.push((line_offset, width_offset + depth - 1, '/', style));
+                } else {
+                    short_start = false;
+                    break;
                 }
+            } else if let AnnotationType::MultilineLine(_) = ann.annotation_type {
+            } else {
+                short_start = false;
+                break;
             }
+        }
+        if short_start {
+            for (y, x, c, s) in buffer_ops {
+                buffer.putc(y, x, c, s);
+            }
+            return annotations;
         }
 
         // We want to display like this:
@@ -1308,8 +1325,8 @@ impl EmitterWriter {
         //                see how it *looks* with
         //                very *weird* formats
         //                see?
-        for &(ref text, ref style) in msg.iter() {
-            let text = self.translate_message(text, args);
+        for (text, style) in msg.iter() {
+            let text = self.translate_message(text, args).map_err(Report::new).unwrap();
             let lines = text.split('\n').collect::<Vec<_>>();
             if lines.len() > 1 {
                 for (i, line) in lines.iter().enumerate() {
@@ -1370,8 +1387,8 @@ impl EmitterWriter {
                 buffer.append(0, ": ", header_style);
                 label_width += 2;
             }
-            for &(ref text, _) in msg.iter() {
-                let text = self.translate_message(text, args);
+            for (text, _) in msg.iter() {
+                let text = self.translate_message(text, args).map_err(Report::new).unwrap();
                 // Account for newlines to align output to its label.
                 for (line, text) in normalize_whitespace(&text).lines().enumerate() {
                     buffer.append(
@@ -1408,49 +1425,58 @@ impl EmitterWriter {
             if !sm.ensure_source_file_source_present(annotated_file.file.clone()) {
                 if !self.short_message {
                     // We'll just print an unannotated message.
-                    for (annotation_id, line) in annotated_file.lines.into_iter().enumerate() {
+                    for (annotation_id, line) in annotated_file.lines.iter().enumerate() {
                         let mut annotations = line.annotations.clone();
                         annotations.sort_by_key(|a| Reverse(a.start_col));
                         let mut line_idx = buffer.num_lines();
-                        buffer.append(
-                            line_idx,
-                            &format!(
-                                "{}:{}:{}",
-                                sm.filename_for_diagnostics(&annotated_file.file.name),
-                                sm.doctest_offset_line(&annotated_file.file.name, line.line_index),
-                                annotations[0].start_col + 1,
-                            ),
-                            Style::LineAndColumn,
-                        );
-                        if annotation_id == 0 {
-                            buffer.prepend(line_idx, "--> ", Style::LineNumber);
+
+                        let labels: Vec<_> = annotations
+                            .iter()
+                            .filter_map(|a| Some((a.label.as_ref()?, a.is_primary)))
+                            .filter(|(l, _)| !l.is_empty())
+                            .collect();
+
+                        if annotation_id == 0 || !labels.is_empty() {
+                            buffer.append(
+                                line_idx,
+                                &format!(
+                                    "{}:{}:{}",
+                                    sm.filename_for_diagnostics(&annotated_file.file.name),
+                                    sm.doctest_offset_line(
+                                        &annotated_file.file.name,
+                                        line.line_index
+                                    ),
+                                    annotations[0].start_col + 1,
+                                ),
+                                Style::LineAndColumn,
+                            );
+                            if annotation_id == 0 {
+                                buffer.prepend(line_idx, "--> ", Style::LineNumber);
+                            } else {
+                                buffer.prepend(line_idx, "::: ", Style::LineNumber);
+                            }
                             for _ in 0..max_line_num_len {
                                 buffer.prepend(line_idx, " ", Style::NoStyle);
                             }
                             line_idx += 1;
-                        };
-                        for (i, annotation) in annotations.into_iter().enumerate() {
-                            if let Some(label) = &annotation.label {
-                                let style = if annotation.is_primary {
-                                    Style::LabelPrimary
-                                } else {
-                                    Style::LabelSecondary
-                                };
-                                if annotation_id == 0 {
-                                    buffer.prepend(line_idx, " |", Style::LineNumber);
-                                    for _ in 0..max_line_num_len {
-                                        buffer.prepend(line_idx, " ", Style::NoStyle);
-                                    }
-                                    line_idx += 1;
-                                    buffer.append(line_idx + i, " = note: ", style);
-                                    for _ in 0..max_line_num_len {
-                                        buffer.prepend(line_idx, " ", Style::NoStyle);
-                                    }
-                                } else {
-                                    buffer.append(line_idx + i, ": ", style);
-                                }
-                                buffer.append(line_idx + i, label, style);
+                        }
+                        for (label, is_primary) in labels.into_iter() {
+                            let style = if is_primary {
+                                Style::LabelPrimary
+                            } else {
+                                Style::LabelSecondary
+                            };
+                            buffer.prepend(line_idx, " |", Style::LineNumber);
+                            for _ in 0..max_line_num_len {
+                                buffer.prepend(line_idx, " ", Style::NoStyle);
                             }
+                            line_idx += 1;
+                            buffer.append(line_idx, " = note: ", style);
+                            for _ in 0..max_line_num_len {
+                                buffer.prepend(line_idx, " ", Style::NoStyle);
+                            }
+                            buffer.append(line_idx, label, style);
+                            line_idx += 1;
                         }
                     }
                 }
@@ -1765,7 +1791,7 @@ impl EmitterWriter {
 
             if let Some(span) = span.primary_span() {
                 // Compare the primary span of the diagnostic with the span of the suggestion
-                // being emitted.  If they belong to the same file, we don't *need* to show the
+                // being emitted. If they belong to the same file, we don't *need* to show the
                 // file name, saving in verbosity, but if it *isn't* we do need it, otherwise we're
                 // telling users to make a change but not clarifying *where*.
                 let loc = sm.lookup_char_pos(parts[0].span.lo());
@@ -2276,7 +2302,9 @@ impl FileWithAnnotatedLines {
                     hi.col_display += 1;
                 }
 
-                let label = label.as_ref().map(|m| emitter.translate_message(m, args).to_string());
+                let label = label.as_ref().map(|m| {
+                    emitter.translate_message(m, args).map_err(Report::new).unwrap().to_string()
+                });
 
                 if lo.line != hi.line {
                     let ml = MultilineAnnotation {
@@ -2304,7 +2332,7 @@ impl FileWithAnnotatedLines {
         }
 
         // Find overlapping multiline annotations, put them at different depths
-        multiline_annotations.sort_by_key(|&(_, ref ml)| (ml.line_start, usize::MAX - ml.line_end));
+        multiline_annotations.sort_by_key(|(_, ml)| (ml.line_start, usize::MAX - ml.line_end));
         for (_, ann) in multiline_annotations.clone() {
             for (_, a) in multiline_annotations.iter_mut() {
                 // Move all other multiline annotations overlapping with this one
@@ -2501,11 +2529,11 @@ fn emit_to_destination(
     //
     // On Unix systems, we write into a buffered terminal rather than directly to a terminal. When
     // the .flush() is called we take the buffer created from the buffered writes and write it at
-    // one shot.  Because the Unix systems use ANSI for the colors, which is a text-based styling
+    // one shot. Because the Unix systems use ANSI for the colors, which is a text-based styling
     // scheme, this buffered approach works and maintains the styling.
     //
     // On Windows, styling happens through calls to a terminal API. This prevents us from using the
-    // same buffering approach.  Instead, we use a global Windows mutex, which we acquire long
+    // same buffering approach. Instead, we use a global Windows mutex, which we acquire long
     // enough to output the full error message, then we release.
     let _buffer_lock = lock::acquire_global_lock("rustc_errors");
     for (pos, line) in rendered_buffer.iter().enumerate() {

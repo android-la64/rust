@@ -526,7 +526,7 @@ fn collect_items_rec<'tcx>(
         let formatted_item = with_no_trimmed_paths!(starting_point.node.to_string());
         tcx.sess.span_note_without_error(
             starting_point.span,
-            &format!("the above error was encountered while instantiating `{}`", formatted_item),
+            &format!("the above error was encountered while instantiating `{formatted_item}`"),
         );
     }
     inlining_map.lock_mut().record_accesses(starting_point.node, &neighbors.items);
@@ -595,8 +595,8 @@ fn check_recursion_limit<'tcx>(
         let def_path_str = tcx.def_path_str(def_id);
         let (shrunk, written_to_path) = shrunk_instance_name(tcx, &instance);
         let mut path = PathBuf::new();
-        let was_written = if written_to_path.is_some() {
-            path = written_to_path.unwrap();
+        let was_written = if let Some(written_to_path) = written_to_path {
+            path = written_to_path;
             Some(())
         } else {
             None
@@ -843,7 +843,7 @@ impl<'a, 'tcx> MirVisitor<'tcx> for MirNeighborCollector<'a, 'tcx> {
             mir::TerminatorKind::Abort { .. } => {
                 let instance = Instance::mono(
                     tcx,
-                    tcx.require_lang_item(LangItem::PanicNoUnwind, Some(source)),
+                    tcx.require_lang_item(LangItem::PanicCannotUnwind, Some(source)),
                 );
                 if should_codegen_locally(tcx, &instance) {
                     self.output.push(create_fn_mono_item(tcx, instance, source));
@@ -931,10 +931,13 @@ fn visit_fn_use<'tcx>(
 ) {
     if let ty::FnDef(def_id, substs) = *ty.kind() {
         let instance = if is_direct_call {
-            ty::Instance::resolve(tcx, ty::ParamEnv::reveal_all(), def_id, substs).unwrap().unwrap()
+            ty::Instance::expect_resolve(tcx, ty::ParamEnv::reveal_all(), def_id, substs)
         } else {
-            ty::Instance::resolve_for_fn_ptr(tcx, ty::ParamEnv::reveal_all(), def_id, substs)
-                .unwrap()
+            match ty::Instance::resolve_for_fn_ptr(tcx, ty::ParamEnv::reveal_all(), def_id, substs)
+            {
+                Some(instance) => instance,
+                _ => bug!("failed to resolve instance for {ty}"),
+            }
         };
         visit_instance_use(tcx, instance, is_direct_call, source, output);
     }
@@ -1349,6 +1352,8 @@ fn create_mono_items_for_default_impls<'tcx>(
             );
 
             if let Some(trait_ref) = tcx.impl_trait_ref(item.owner_id) {
+                let trait_ref = trait_ref.subst_identity();
+
                 let param_env = ty::ParamEnv::reveal_all();
                 let trait_ref = tcx.normalize_erasing_regions(param_env, trait_ref);
                 let overridden_methods = tcx.impl_item_implementor_ids(item.owner_id);
@@ -1369,9 +1374,8 @@ fn create_mono_items_for_default_impls<'tcx>(
                                 trait_ref.substs[param.index as usize]
                             }
                         });
-                    let instance = ty::Instance::resolve(tcx, param_env, method.def_id, substs)
-                        .unwrap()
-                        .unwrap();
+                    let instance =
+                        ty::Instance::expect_resolve(tcx, param_env, method.def_id, substs);
 
                     let mono_item = create_fn_mono_item(tcx, instance, DUMMY_SP);
                     if mono_item.node.is_instantiable(tcx) && should_codegen_locally(tcx, &instance)

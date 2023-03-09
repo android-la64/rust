@@ -1,66 +1,42 @@
-#[cfg_attr(windows, link(name = "windows"))]
-extern "system" {
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ChooseColorA(param0: *mut CHOOSECOLORA) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ChooseColorW(param0: *mut CHOOSECOLORW) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ChooseFontA(param0: *mut CHOOSEFONTA) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn ChooseFontW(param0: *mut CHOOSEFONTW) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-    pub fn CommDlgExtendedError() -> COMMON_DLG_ERRORS;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FindTextA(param0: *mut FINDREPLACEA) -> super::super::super::Foundation::HWND;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn FindTextW(param0: *mut FINDREPLACEW) -> super::super::super::Foundation::HWND;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-    pub fn GetFileTitleA(param0: ::windows_sys::core::PCSTR, buf: ::windows_sys::core::PSTR, cchsize: u16) -> i16;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-    pub fn GetFileTitleW(param0: ::windows_sys::core::PCWSTR, buf: ::windows_sys::core::PWSTR, cchsize: u16) -> i16;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetOpenFileNameA(param0: *mut OPENFILENAMEA) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetOpenFileNameW(param0: *mut OPENFILENAMEW) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetSaveFileNameA(param0: *mut OPENFILENAMEA) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn GetSaveFileNameW(param0: *mut OPENFILENAMEW) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PageSetupDlgA(param0: *mut PAGESETUPDLGA) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn PageSetupDlgW(param0: *mut PAGESETUPDLGW) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn PrintDlgA(ppd: *mut PRINTDLGA) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn PrintDlgExA(ppd: *mut PRINTDLGEXA) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn PrintDlgExW(ppd: *mut PRINTDLGEXW) -> ::windows_sys::core::HRESULT;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
-    #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
-    pub fn PrintDlgW(ppd: *mut PRINTDLGW) -> super::super::super::Foundation::BOOL;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ReplaceTextA(param0: *mut FINDREPLACEA) -> super::super::super::Foundation::HWND;
-    #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"]
-    #[cfg(feature = "Win32_Foundation")]
-    pub fn ReplaceTextW(param0: *mut FINDREPLACEW) -> super::super::super::Foundation::HWND;
-}
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn ChooseColorA ( param0 : *mut CHOOSECOLORA ) -> super::super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn ChooseColorW ( param0 : *mut CHOOSECOLORW ) -> super::super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ChooseFontA ( param0 : *mut CHOOSEFONTA ) -> super::super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn ChooseFontW ( param0 : *mut CHOOSEFONTW ) -> super::super::super::Foundation:: BOOL );
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"] fn CommDlgExtendedError ( ) -> COMMON_DLG_ERRORS );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn FindTextA ( param0 : *mut FINDREPLACEA ) -> super::super::super::Foundation:: HWND );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn FindTextW ( param0 : *mut FINDREPLACEW ) -> super::super::super::Foundation:: HWND );
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"] fn GetFileTitleA ( param0 : :: windows_sys::core::PCSTR , buf : :: windows_sys::core::PSTR , cchsize : u16 ) -> i16 );
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"] fn GetFileTitleW ( param0 : :: windows_sys::core::PCWSTR , buf : :: windows_sys::core::PWSTR , cchsize : u16 ) -> i16 );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn GetOpenFileNameA ( param0 : *mut OPENFILENAMEA ) -> super::super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn GetOpenFileNameW ( param0 : *mut OPENFILENAMEW ) -> super::super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn GetSaveFileNameA ( param0 : *mut OPENFILENAMEA ) -> super::super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn GetSaveFileNameW ( param0 : *mut OPENFILENAMEW ) -> super::super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn PageSetupDlgA ( param0 : *mut PAGESETUPDLGA ) -> super::super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn PageSetupDlgW ( param0 : *mut PAGESETUPDLGW ) -> super::super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn PrintDlgA ( ppd : *mut PRINTDLGA ) -> super::super::super::Foundation:: BOOL );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn PrintDlgExA ( ppd : *mut PRINTDLGEXA ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn PrintDlgExW ( ppd : *mut PRINTDLGEXW ) -> :: windows_sys::core::HRESULT );
+#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"] fn PrintDlgW ( ppd : *mut PRINTDLGW ) -> super::super::super::Foundation:: BOOL );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn ReplaceTextA ( param0 : *mut FINDREPLACEA ) -> super::super::super::Foundation:: HWND );
+#[cfg(feature = "Win32_Foundation")]
+::windows_sys::core::link ! ( "comdlg32.dll""system" #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`, `\"Win32_Foundation\"`*"] fn ReplaceTextW ( param0 : *mut FINDREPLACEW ) -> super::super::super::Foundation:: HWND );
 pub type IPrintDialogCallback = *mut ::core::ffi::c_void;
 pub type IPrintDialogServices = *mut ::core::ffi::c_void;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
@@ -90,11 +66,11 @@ pub const CD_LBSELNOITEMS: i32 = -1i32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const CD_LBSELSUB: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const COLOROKSTRING: &str = "commdlg_ColorOK";
+pub const COLOROKSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_ColorOK");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const COLOROKSTRINGA: &str = "commdlg_ColorOK";
+pub const COLOROKSTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("commdlg_ColorOK");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const COLOROKSTRINGW: &str = "commdlg_ColorOK";
+pub const COLOROKSTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_ColorOK");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const COLOR_ADD: u32 = 712u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
@@ -160,17 +136,17 @@ pub const DLG_COLOR: u32 = 10u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const DN_DEFAULTPRN: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const FILEOKSTRING: &str = "commdlg_FileNameOK";
+pub const FILEOKSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_FileNameOK");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const FILEOKSTRINGA: &str = "commdlg_FileNameOK";
+pub const FILEOKSTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("commdlg_FileNameOK");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const FILEOKSTRINGW: &str = "commdlg_FileNameOK";
+pub const FILEOKSTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_FileNameOK");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const FINDMSGSTRING: &str = "commdlg_FindReplace";
+pub const FINDMSGSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_FindReplace");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const FINDMSGSTRINGA: &str = "commdlg_FindReplace";
+pub const FINDMSGSTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("commdlg_FindReplace");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const FINDMSGSTRINGW: &str = "commdlg_FindReplace";
+pub const FINDMSGSTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_FindReplace");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const FRM_FIRST: u32 = 1124u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
@@ -188,17 +164,17 @@ pub const FR_SHOWWRAPAROUND: u32 = 262144u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const FR_WRAPAROUND: u32 = 1048576u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const HELPMSGSTRING: &str = "commdlg_help";
+pub const HELPMSGSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_help");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const HELPMSGSTRINGA: &str = "commdlg_help";
+pub const HELPMSGSTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("commdlg_help");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const HELPMSGSTRINGW: &str = "commdlg_help";
+pub const HELPMSGSTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_help");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const LBSELCHSTRING: &str = "commdlg_LBSelChangedNotify";
+pub const LBSELCHSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_LBSelChangedNotify");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const LBSELCHSTRINGA: &str = "commdlg_LBSelChangedNotify";
+pub const LBSELCHSTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("commdlg_LBSelChangedNotify");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const LBSELCHSTRINGW: &str = "commdlg_LBSelChangedNotify";
+pub const LBSELCHSTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_LBSelChangedNotify");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const NUM_BASIC_COLORS: u32 = 48u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
@@ -218,17 +194,17 @@ pub const PD_RESULT_PRINT: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const PS_OPENTYPE_FONTTYPE: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const SETRGBSTRING: &str = "commdlg_SetRGBColor";
+pub const SETRGBSTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_SetRGBColor");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const SETRGBSTRINGA: &str = "commdlg_SetRGBColor";
+pub const SETRGBSTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("commdlg_SetRGBColor");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const SETRGBSTRINGW: &str = "commdlg_SetRGBColor";
+pub const SETRGBSTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_SetRGBColor");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const SHAREVISTRING: &str = "commdlg_ShareViolation";
+pub const SHAREVISTRING: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_ShareViolation");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const SHAREVISTRINGA: &str = "commdlg_ShareViolation";
+pub const SHAREVISTRINGA: ::windows_sys::core::PCSTR = ::windows_sys::s!("commdlg_ShareViolation");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
-pub const SHAREVISTRINGW: &str = "commdlg_ShareViolation";
+pub const SHAREVISTRINGW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("commdlg_ShareViolation");
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const START_PAGE_GENERAL: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
@@ -349,6 +325,28 @@ pub const REGULAR_FONTTYPE: CHOOSEFONT_FONT_TYPE = 1024u16;
 pub const SCREEN_FONTTYPE: CHOOSEFONT_FONT_TYPE = 8192u16;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub const SIMULATED_FONTTYPE: CHOOSEFONT_FONT_TYPE = 32768u16;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub type COMMON_DIALOG_NOTIFICATION = i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_FIRST: COMMON_DIALOG_NOTIFICATION = -601i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_LAST: COMMON_DIALOG_NOTIFICATION = -699i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_INITDONE: COMMON_DIALOG_NOTIFICATION = -601i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_SELCHANGE: COMMON_DIALOG_NOTIFICATION = -602i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_FOLDERCHANGE: COMMON_DIALOG_NOTIFICATION = -603i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_SHAREVIOLATION: COMMON_DIALOG_NOTIFICATION = -604i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_HELP: COMMON_DIALOG_NOTIFICATION = -605i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_FILEOK: COMMON_DIALOG_NOTIFICATION = -606i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_TYPECHANGE: COMMON_DIALOG_NOTIFICATION = -607i32;
+#[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
+pub const CDN_INCLUDEITEM: COMMON_DIALOG_NOTIFICATION = -608i32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]
 pub type COMMON_DLG_ERRORS = u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_Dialogs\"`*"]

@@ -127,7 +127,7 @@ declare_clippy_lint! {
     /// `Vec` or a `VecDeque` (formerly called `RingBuf`).
     ///
     /// ### Why is this bad?
-    /// Gankro says:
+    /// Gankra says:
     ///
     /// > The TL;DR of `LinkedList` is that it's built on a massive amount of
     /// pointers and indirection.
@@ -539,7 +539,7 @@ impl Types {
                     QPath::LangItem(..) => {},
                 }
             },
-            TyKind::Rptr(lt, ref mut_ty) => {
+            TyKind::Ref(lt, ref mut_ty) => {
                 context.is_nested_call = true;
                 if !borrowed_box::check(cx, hir_ty, lt, mut_ty) {
                     self.check_ty(cx, mut_ty.ty, context);

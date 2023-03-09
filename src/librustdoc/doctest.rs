@@ -95,7 +95,6 @@ pub(crate) fn run(options: RustdocOptions) -> Result<(), ErrorGuaranteed> {
         crate_cfg: interface::parse_cfgspecs(cfgs),
         crate_check_cfg: interface::parse_check_cfg(options.check_cfgs.clone()),
         input,
-        input_path: None,
         output_file: None,
         output_dir: None,
         file_loader: None,
@@ -115,9 +114,7 @@ pub(crate) fn run(options: RustdocOptions) -> Result<(), ErrorGuaranteed> {
     let (tests, unused_extern_reports, compiling_test_count) =
         interface::run_compiler(config, |compiler| {
             compiler.enter(|queries| {
-                let mut global_ctxt = queries.global_ctxt()?.take();
-
-                let collector = global_ctxt.enter(|tcx| {
+                let collector = queries.global_ctxt()?.enter(|tcx| {
                     let crate_attrs = tcx.hir().attrs(CRATE_HIR_ID);
 
                     let opts = scrape_test_config(crate_attrs);
@@ -156,9 +153,7 @@ pub(crate) fn run(options: RustdocOptions) -> Result<(), ErrorGuaranteed> {
 
                 let unused_extern_reports = collector.unused_extern_reports.clone();
                 let compiling_test_count = collector.compiling_test_count.load(Ordering::SeqCst);
-                let ret: Result<_, ErrorGuaranteed> =
-                    Ok((collector.tests, unused_extern_reports, compiling_test_count));
-                ret
+                Ok((collector.tests, unused_extern_reports, compiling_test_count))
             })
         })?;
 
@@ -1225,7 +1220,7 @@ impl<'a, 'hir, 'tcx> HirCollector<'a, 'hir, 'tcx> {
     ) {
         let ast_attrs = self.tcx.hir().attrs(hir_id);
         if let Some(ref cfg) = ast_attrs.cfg(self.tcx, &FxHashSet::default()) {
-            if !cfg.matches(&self.sess.parse_sess, Some(self.sess.features_untracked())) {
+            if !cfg.matches(&self.sess.parse_sess, Some(self.tcx.features())) {
                 return;
             }
         }

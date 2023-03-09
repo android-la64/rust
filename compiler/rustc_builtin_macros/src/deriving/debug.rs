@@ -2,6 +2,7 @@ use crate::deriving::generic::ty::*;
 use crate::deriving::generic::*;
 use crate::deriving::path_std;
 
+use ast::EnumDef;
 use rustc_ast::{self as ast, MetaItem};
 use rustc_expand::base::{Annotatable, ExtCtxt};
 use rustc_span::symbol::{sym, Ident, Symbol};
@@ -31,7 +32,8 @@ pub fn expand_deriving_debug(
             nonself_args: vec![(fmtr, sym::f)],
             ret_ty: Path(path_std!(fmt::Result)),
             attributes: ast::AttrVec::new(),
-            unify_fieldless_variants: false,
+            fieldless_variants_strategy:
+                FieldlessVariantsStrategy::SpecializeIfAllVariantsFieldless,
             combine_substructure: combine_substructure(Box::new(|a, b, c| {
                 show_substructure(a, b, c)
             })),
@@ -43,16 +45,18 @@ pub fn expand_deriving_debug(
 }
 
 fn show_substructure(cx: &mut ExtCtxt<'_>, span: Span, substr: &Substructure<'_>) -> BlockOrExpr {
+    // We want to make sure we have the ctxt set so that we can use unstable methods
+    let span = cx.with_def_site_ctxt(span);
+
     let (ident, vdata, fields) = match substr.fields {
         Struct(vdata, fields) => (substr.type_ident, *vdata, fields),
         EnumMatching(_, _, v, fields) => (v.ident, &v.data, fields),
+        AllFieldlessEnum(enum_def) => return show_fieldless_enum(cx, span, enum_def, substr),
         EnumTag(..) | StaticStruct(..) | StaticEnum(..) => {
             cx.span_bug(span, "nonsensical .fields in `#[derive(Debug)]`")
         }
     };
 
-    // We want to make sure we have the ctxt set so that we can use unstable methods
-    let span = cx.with_def_site_ctxt(span);
     let name = cx.expr_str(span, ident.name);
     let fmt = substr.nonselflike_args[0].clone();
 
@@ -117,8 +121,7 @@ fn show_substructure(cx: &mut ExtCtxt<'_>, span: Span, substr: &Substructure<'_>
         // `let names: &'static _ = &["field1", "field2"];`
         let names_let = if is_struct {
             let lt_static = Some(cx.lifetime_static(span));
-            let ty_static_ref =
-                cx.ty_rptr(span, cx.ty_infer(span), lt_static, ast::Mutability::Not);
+            let ty_static_ref = cx.ty_ref(span, cx.ty_infer(span), lt_static, ast::Mutability::Not);
             Some(cx.stmt_let_ty(
                 span,
                 false,
@@ -138,13 +141,13 @@ fn show_substructure(cx: &mut ExtCtxt<'_>, span: Span, substr: &Substructure<'_>
         );
         let ty_slice = cx.ty(
             span,
-            ast::TyKind::Slice(cx.ty_rptr(span, ty_dyn_debug, None, ast::Mutability::Not)),
+            ast::TyKind::Slice(cx.ty_ref(span, ty_dyn_debug, None, ast::Mutability::Not)),
         );
         let values_let = cx.stmt_let_ty(
             span,
             false,
             Ident::new(sym::values, span),
-            Some(cx.ty_rptr(span, ty_slice, None, ast::Mutability::Not)),
+            Some(cx.ty_ref(span, ty_slice, None, ast::Mutability::Not)),
             cx.expr_array_ref(span, value_exprs),
         );
 
@@ -173,4 +176,48 @@ fn show_substructure(cx: &mut ExtCtxt<'_>, span: Span, substr: &Substructure<'_>
         stmts.push(values_let);
         BlockOrExpr::new_mixed(stmts, Some(expr))
     }
+}
+
+/// Special case for enums with no fields. Builds:
+/// ```text
+/// impl ::core::fmt::Debug for A {
+///     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+///          ::core::fmt::Formatter::write_str(f,
+///             match self {
+///                 A::A => "A",
+///                 A::B() => "B",
+///                 A::C {} => "C",
+///             })
+///     }
+/// }
+/// ```
+fn show_fieldless_enum(
+    cx: &mut ExtCtxt<'_>,
+    span: Span,
+    def: &EnumDef,
+    substr: &Substructure<'_>,
+) -> BlockOrExpr {
+    let fmt = substr.nonselflike_args[0].clone();
+    let arms = def
+        .variants
+        .iter()
+        .map(|v| {
+            let variant_path = cx.path(span, vec![substr.type_ident, v.ident]);
+            let pat = match &v.data {
+                ast::VariantData::Tuple(fields, _) => {
+                    debug_assert!(fields.is_empty());
+                    cx.pat_tuple_struct(span, variant_path, vec![])
+                }
+                ast::VariantData::Struct(fields, _) => {
+                    debug_assert!(fields.is_empty());
+                    cx.pat_struct(span, variant_path, vec![])
+                }
+                ast::VariantData::Unit(_) => cx.pat_path(span, variant_path),
+            };
+            cx.arm(span, pat, cx.expr_str(span, v.ident.name))
+        })
+        .collect::<Vec<_>>();
+    let name = cx.expr_match(span, cx.expr_self(span), arms);
+    let fn_path_write_str = cx.std_path(&[sym::fmt, sym::Formatter, sym::write_str]);
+    BlockOrExpr::new_expr(cx.expr_call_global(span, fn_path_write_str, vec![fmt, name]))
 }

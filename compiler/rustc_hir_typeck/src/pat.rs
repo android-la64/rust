@@ -1,4 +1,4 @@
-use crate::FnCtxt;
+use crate::{FnCtxt, RawTy};
 use rustc_ast as ast;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_errors::{
@@ -386,7 +386,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // Byte string patterns behave the same way as array patterns
         // They can denote both statically and dynamically-sized byte arrays.
         let mut pat_ty = ty;
-        if let hir::ExprKind::Lit(Spanned { node: ast::LitKind::ByteStr(_), .. }) = lt.kind {
+        if let hir::ExprKind::Lit(Spanned { node: ast::LitKind::ByteStr(..), .. }) = lt.kind {
             let expected = self.structurally_resolved_type(span, expected);
             if let ty::Ref(_, inner_ty, _) = expected.kind()
                 && matches!(inner_ty.kind(), ty::Slice(_))
@@ -553,6 +553,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             (lhs, Some((true, rhs_ty, rhs_sp))) => one_side_err(rhs_sp, rhs_ty, lhs),
             _ => span_bug!(span, "Impossible, verified above."),
         }
+        if (lhs, rhs).references_error() {
+            err.downgrade_to_delayed_bug();
+        }
         if self.tcx.sess.teach(&err.get_code().unwrap()) {
             err.note(
                 "In a match expression, only numbers and characters can be matched \
@@ -692,7 +695,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let tcx = self.tcx;
         if let PatKind::Ref(inner, mutbl) = pat.kind
         && let PatKind::Binding(_, _, binding, ..) = inner.kind {
-            let binding_parent_id = tcx.hir().get_parent_node(pat.hir_id);
+            let binding_parent_id = tcx.hir().parent_id(pat.hir_id);
             let binding_parent = tcx.hir().get(binding_parent_id);
             debug!(?inner, ?pat, ?binding_parent);
 
@@ -754,6 +757,23 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         Applicability::MachineApplicable
                     );
 
+                    if let Some((sp, msg, sugg)) = mut_var_suggestion {
+                        err.span_note(sp, format!("{msg}: `{sugg}`"));
+                    }
+                }
+                hir::Node::Pat(pt) if let PatKind::TupleStruct(_, pat_arr, _) = pt.kind => {
+                    for i in pat_arr.iter() {
+                        if let PatKind::Ref(the_ref, _) = i.kind
+                        && let PatKind::Binding(mt, _, ident, _) = the_ref.kind {
+                            let hir::BindingAnnotation(_, mtblty) = mt;
+                            err.span_suggestion_verbose(
+                                i.span,
+                                format!("consider removing `&{mutability}` from the pattern"),
+                                mtblty.prefix_str().to_string() + &ident.name.to_string(),
+                                Applicability::MaybeIncorrect,
+                            );
+                        }
+                    }
                     if let Some((sp, msg, sugg)) = mut_var_suggestion {
                         err.span_note(sp, format!("{msg}: `{sugg}`"));
                     }
@@ -839,7 +859,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         &self,
         pat: &Pat<'tcx>,
         qpath: &hir::QPath<'_>,
-        path_resolution: (Res, Option<Ty<'tcx>>, &'tcx [hir::PathSegment<'tcx>]),
+        path_resolution: (Res, Option<RawTy<'tcx>>, &'tcx [hir::PathSegment<'tcx>]),
         expected: Ty<'tcx>,
         ti: TopInfo<'tcx>,
     ) -> Ty<'tcx> {
@@ -936,7 +956,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         res.descr(),
                     ),
                 );
-                match self.tcx.hir().get(self.tcx.hir().get_parent_node(pat.hir_id)) {
+                match self.tcx.hir().get_parent(pat.hir_id) {
                     hir::Node::PatField(..) => {
                         e.span_suggestion_verbose(
                             ident.span.shrink_to_hi(),
@@ -1013,7 +1033,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let (res, opt_ty, segments) =
             self.resolve_ty_and_res_fully_qualified_call(qpath, pat.hir_id, pat.span);
         if res == Res::Err {
-            let e = tcx.sess.delay_span_bug(pat.span, "`Res:Err` but no error emitted");
+            let e = tcx.sess.delay_span_bug(pat.span, "`Res::Err` but no error emitted");
             self.set_tainted_by_errors(e);
             on_error(e);
             return tcx.ty_error_with_guaranteed(e);
@@ -1921,7 +1941,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     ) -> Ty<'tcx> {
         let tcx = self.tcx;
         let expected = self.shallow_resolve(expected);
-        let (rptr_ty, inner_ty) = if self.check_dereferenceable(pat.span, expected, inner) {
+        let (ref_ty, inner_ty) = if self.check_dereferenceable(pat.span, expected, inner) {
             // `demand::subtype` would be good enough, but using `eqtype` turns
             // out to be equally general. See (note_1) for details.
 
@@ -1936,9 +1956,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         kind: TypeVariableOriginKind::TypeInference,
                         span: inner.span,
                     });
-                    let rptr_ty = self.new_ref_ty(pat.span, mutbl, inner_ty);
-                    debug!("check_pat_ref: demanding {:?} = {:?}", expected, rptr_ty);
-                    let err = self.demand_eqtype_pat_diag(pat.span, expected, rptr_ty, ti);
+                    let ref_ty = self.new_ref_ty(pat.span, mutbl, inner_ty);
+                    debug!("check_pat_ref: demanding {:?} = {:?}", expected, ref_ty);
+                    let err = self.demand_eqtype_pat_diag(pat.span, expected, ref_ty, ti);
 
                     // Look for a case like `fn foo(&foo: u32)` and suggest
                     // `fn foo(foo: &u32)`
@@ -1946,7 +1966,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         self.borrow_pat_suggestion(&mut err, pat);
                         err.emit();
                     }
-                    (rptr_ty, inner_ty)
+                    (ref_ty, inner_ty)
                 }
             }
         } else {
@@ -1954,7 +1974,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             (err, err)
         };
         self.check_pat(inner, inner_ty, def_bm, ti);
-        rptr_ty
+        ref_ty
     }
 
     /// Create a reference type with a fresh region variable.
@@ -2130,7 +2150,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             && let Ok(snippet) = self.tcx.sess.source_map().span_to_snippet(span)
         {
             let ty = self.resolve_vars_if_possible(ti.expected);
-            let is_slice_or_array_or_vector = self.is_slice_or_array_or_vector(&mut err, snippet.clone(), ty);
+            let is_slice_or_array_or_vector = self.is_slice_or_array_or_vector(ty);
             match is_slice_or_array_or_vector.1.kind() {
                 ty::Adt(adt_def, _)
                     if self.tcx.is_diagnostic_item(sym::Option, adt_def.did())
@@ -2159,17 +2179,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err.emit();
     }
 
-    fn is_slice_or_array_or_vector(
-        &self,
-        err: &mut Diagnostic,
-        snippet: String,
-        ty: Ty<'tcx>,
-    ) -> (bool, Ty<'tcx>) {
+    fn is_slice_or_array_or_vector(&self, ty: Ty<'tcx>) -> (bool, Ty<'tcx>) {
         match ty.kind() {
             ty::Adt(adt_def, _) if self.tcx.is_diagnostic_item(sym::Vec, adt_def.did()) => {
                 (true, ty)
             }
-            ty::Ref(_, ty, _) => self.is_slice_or_array_or_vector(err, snippet, *ty),
+            ty::Ref(_, ty, _) => self.is_slice_or_array_or_vector(*ty),
             ty::Slice(..) | ty::Array(..) => (true, ty),
             _ => (false, ty),
         }

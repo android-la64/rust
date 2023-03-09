@@ -12,6 +12,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::builder::crate_description;
 use crate::builder::{Builder, Compiler, Kind, RunConfig, ShouldRun, Step};
 use crate::cache::{Interned, INTERNER};
 use crate::compile;
@@ -506,7 +507,11 @@ impl Step for Std {
         // Look for library/std, library/core etc in the `x.py doc` arguments and
         // open the corresponding rendered docs.
         for requested_crate in requested_crates {
-            if STD_PUBLIC_CRATES.iter().any(|k| *k == requested_crate.as_str()) {
+            if requested_crate == "library" {
+                // For `x.py doc library --open`, open `std` by default.
+                let index = out.join("std").join("index.html");
+                builder.open_in_browser(index);
+            } else if STD_PUBLIC_CRATES.iter().any(|&k| k == requested_crate) {
                 let index = out.join(requested_crate).join("index.html");
                 builder.open_in_browser(index);
             }
@@ -554,7 +559,8 @@ fn doc_std(
     requested_crates: &[String],
 ) {
     builder.info(&format!(
-        "Documenting stage{} std ({}) in {} format",
+        "Documenting{} stage{} library ({}) in {} format",
+        crate_description(requested_crates),
         stage,
         target,
         format.as_str()
@@ -729,7 +735,7 @@ impl Step for Rustc {
 }
 
 macro_rules! tool_doc {
-    ($tool: ident, $should_run: literal, $path: literal, [$($krate: literal),+ $(,)?] $(,)?) => {
+    ($tool: ident, $should_run: literal, $path: literal, $(rustc_tool = $rustc_tool:literal, )? $(in_tree = $in_tree:literal, )? [$($krate: literal),+ $(,)?] $(,)?) => {
         #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
         pub struct $tool {
             target: TargetSelection,
@@ -763,13 +769,24 @@ macro_rules! tool_doc {
                 let out = builder.compiler_doc_out(target);
                 t!(fs::create_dir_all(&out));
 
-                // Build rustc docs so that we generate relative links.
-                builder.ensure(Rustc { stage, target });
-                // Rustdoc needs the rustc sysroot available to build.
-                // FIXME: is there a way to only ensure `check::Rustc` here? Last time I tried it failed
-                // with strange errors, but only on a full bors test ...
                 let compiler = builder.compiler(stage, builder.config.build);
-                builder.ensure(compile::Rustc::new(compiler, target));
+                builder.ensure(compile::Std::new(compiler, target));
+
+                if true $(&& $rustc_tool)? {
+                    // Build rustc docs so that we generate relative links.
+                    builder.ensure(Rustc { stage, target });
+
+                    // Rustdoc needs the rustc sysroot available to build.
+                    // FIXME: is there a way to only ensure `check::Rustc` here? Last time I tried it failed
+                    // with strange errors, but only on a full bors test ...
+                    builder.ensure(compile::Rustc::new(compiler, target));
+                }
+
+                let source_type = if true $(&& $in_tree)? {
+                    SourceType::InTree
+                } else {
+                    SourceType::Submodule
+                };
 
                 builder.info(
                     &format!(
@@ -781,9 +798,15 @@ macro_rules! tool_doc {
                 );
 
                 // Symlink compiler docs to the output directory of rustdoc documentation.
-                let out_dir = builder.stage_out(compiler, Mode::ToolRustc).join(target.triple).join("doc");
-                t!(fs::create_dir_all(&out_dir));
-                t!(symlink_dir_force(&builder.config, &out, &out_dir));
+                let out_dirs = [
+                    builder.stage_out(compiler, Mode::ToolRustc).join(target.triple).join("doc"),
+                    // Cargo uses a different directory for proc macros.
+                    builder.stage_out(compiler, Mode::ToolRustc).join("doc"),
+                ];
+                for out_dir in out_dirs {
+                    t!(fs::create_dir_all(&out_dir));
+                    t!(symlink_dir_force(&builder.config, &out, &out_dir));
+                }
 
                 // Build cargo command.
                 let mut cargo = prepare_tool_cargo(
@@ -793,7 +816,7 @@ macro_rules! tool_doc {
                     target,
                     "doc",
                     $path,
-                    SourceType::InTree,
+                    source_type,
                     &[],
                 );
 
@@ -824,6 +847,30 @@ tool_doc!(
 );
 tool_doc!(Clippy, "clippy", "src/tools/clippy", ["clippy_utils"]);
 tool_doc!(Miri, "miri", "src/tools/miri", ["miri"]);
+tool_doc!(
+    Cargo,
+    "cargo",
+    "src/tools/cargo",
+    rustc_tool = false,
+    in_tree = false,
+    [
+        "cargo",
+        "cargo-platform",
+        "cargo-util",
+        "crates-io",
+        "cargo-test-macro",
+        "cargo-test-support",
+        "cargo-credential",
+        "cargo-credential-1password",
+        "mdman",
+        // FIXME: this trips a license check in tidy.
+        // "resolver-tests",
+        // FIXME: we should probably document these, but they're different per-platform so we can't use `tool_doc`.
+        // "cargo-credential-gnome-secret",
+        // "cargo-credential-macos-keychain",
+        // "cargo-credential-wincred",
+    ]
+);
 
 #[derive(Ord, PartialOrd, Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ErrorIndex {
