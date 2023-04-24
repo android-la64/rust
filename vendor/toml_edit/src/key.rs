@@ -1,11 +1,9 @@
 use std::borrow::Cow;
 use std::str::FromStr;
 
-use combine::stream::position::Stream;
-
 use crate::encode::{to_string_repr, StringStyle};
 use crate::parser;
-use crate::parser::is_unquoted_char;
+use crate::parser::key::is_unquoted_char;
 use crate::repr::{Decor, Repr};
 use crate::InternalString;
 
@@ -31,7 +29,7 @@ use crate::InternalString;
 /// For details see [toml spec](https://github.com/toml-lang/toml/#keyvalue-pair).
 ///
 /// To parse a key use `FromStr` trait implementation: `"string".parse::<Key>()`.
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct Key {
     key: InternalString,
     pub(crate) repr: Option<Repr>,
@@ -51,7 +49,7 @@ impl Key {
     /// Parse a TOML key expression
     ///
     /// Unlike `"".parse<Key>()`, this supports dotted keys.
-    pub fn parse(repr: &str) -> Result<Vec<Self>, parser::TomlError> {
+    pub fn parse(repr: &str) -> Result<Vec<Self>, crate::TomlError> {
         Self::try_parse_path(repr)
     }
 
@@ -80,12 +78,24 @@ impl Key {
         &self.key
     }
 
-    /// Returns the key raw representation.
-    pub fn to_repr(&self) -> Cow<Repr> {
-        self.repr
-            .as_ref()
+    /// Returns key raw representation, if available.
+    pub fn as_repr(&self) -> Option<&Repr> {
+        self.repr.as_ref()
+    }
+
+    /// Returns the default raw representation.
+    pub fn default_repr(&self) -> Repr {
+        to_key_repr(&self.key)
+    }
+
+    /// Returns a raw representation.
+    pub fn display_repr(&self) -> Cow<'_, str> {
+        self.as_repr()
+            .and_then(|r| r.as_raw().as_str())
             .map(Cow::Borrowed)
-            .unwrap_or_else(|| Cow::Owned(to_key_repr(&self.key)))
+            .unwrap_or_else(|| {
+                Cow::Owned(self.default_repr().as_raw().as_str().unwrap().to_owned())
+            })
     }
 
     /// Returns the surrounding whitespace
@@ -98,46 +108,31 @@ impl Key {
         &self.decor
     }
 
+    /// Returns the location within the original document
+    #[cfg(feature = "serde")]
+    pub(crate) fn span(&self) -> Option<std::ops::Range<usize>> {
+        self.repr.as_ref().and_then(|r| r.span())
+    }
+
+    pub(crate) fn despan(&mut self, input: &str) {
+        self.decor.despan(input);
+        if let Some(repr) = &mut self.repr {
+            repr.despan(input)
+        }
+    }
+
     /// Auto formats the key.
     pub fn fmt(&mut self) {
         self.repr = Some(to_key_repr(&self.key));
         self.decor.clear();
     }
 
-    fn try_parse_simple(s: &str) -> Result<Key, parser::TomlError> {
-        use combine::stream::position::{IndexPositioner, Positioner};
-        use combine::EasyParser;
-
-        let b = s.as_bytes();
-        let result = parser::simple_key().easy_parse(Stream::new(b));
-        match result {
-            Ok((_, ref rest)) if !rest.input.is_empty() => Err(parser::TomlError::from_unparsed(
-                (&rest.positioner
-                    as &dyn Positioner<usize, Position = usize, Checkpoint = IndexPositioner>)
-                    .position(),
-                b,
-            )),
-            Ok(((raw, key), _)) => Ok(Key::new(key).with_repr_unchecked(Repr::new_unchecked(raw))),
-            Err(e) => Err(parser::TomlError::new(e, b)),
-        }
+    fn try_parse_simple(s: &str) -> Result<Key, crate::TomlError> {
+        parser::parse_key(s)
     }
 
-    fn try_parse_path(s: &str) -> Result<Vec<Key>, parser::TomlError> {
-        use combine::stream::position::{IndexPositioner, Positioner};
-        use combine::EasyParser;
-
-        let b = s.as_bytes();
-        let result = parser::key_path().easy_parse(Stream::new(b));
-        match result {
-            Ok((_, ref rest)) if !rest.input.is_empty() => Err(parser::TomlError::from_unparsed(
-                (&rest.positioner
-                    as &dyn Positioner<usize, Position = usize, Checkpoint = IndexPositioner>)
-                    .position(),
-                b,
-            )),
-            Ok((keys, _)) => Ok(keys),
-            Err(e) => Err(parser::TomlError::new(e, b)),
-        }
+    fn try_parse_path(s: &str) -> Result<Vec<Key>, crate::TomlError> {
+        parser::parse_key_path(s)
     }
 }
 
@@ -146,6 +141,33 @@ impl std::ops::Deref for Key {
 
     fn deref(&self) -> &Self::Target {
         self.get()
+    }
+}
+
+impl std::hash::Hash for Key {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.get().hash(state);
+    }
+}
+
+impl Ord for Key {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.get().cmp(other.get())
+    }
+}
+
+impl PartialOrd for Key {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Key {}
+
+impl PartialEq for Key {
+    #[inline]
+    fn eq(&self, other: &Key) -> bool {
+        PartialEq::eq(self.get(), other.get())
     }
 }
 
@@ -172,12 +194,12 @@ impl PartialEq<String> for Key {
 
 impl std::fmt::Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encode::Encode::encode(self, f, ("", ""))
+        crate::encode::Encode::encode(self, f, None, ("", ""))
     }
 }
 
 impl FromStr for Key {
-    type Err = parser::TomlError;
+    type Err = crate::TomlError;
 
     /// Tries to parse a key from a &str,
     /// if fails, tries as basic quoted key (surrounds with "")
@@ -238,9 +260,19 @@ impl<'k> KeyMut<'k> {
         self.key.get()
     }
 
-    /// Returns the key raw representation.
-    pub fn to_repr(&self) -> Cow<Repr> {
-        self.key.to_repr()
+    /// Returns the raw representation, if available.
+    pub fn as_repr(&self) -> Option<&Repr> {
+        self.key.as_repr()
+    }
+
+    /// Returns the default raw representation.
+    pub fn default_repr(&self) -> Repr {
+        self.key.default_repr()
+    }
+
+    /// Returns a raw representation.
+    pub fn display_repr(&self) -> Cow<str> {
+        self.key.display_repr()
     }
 
     /// Returns the surrounding whitespace

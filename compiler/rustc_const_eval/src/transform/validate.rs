@@ -8,12 +8,12 @@ use rustc_middle::mir::interpret::Scalar;
 use rustc_middle::mir::visit::NonUseContext::VarDebugInfo;
 use rustc_middle::mir::visit::{PlaceContext, Visitor};
 use rustc_middle::mir::{
-    traversal, AggregateKind, BasicBlock, BinOp, Body, BorrowKind, CastKind, CopyNonOverlapping,
-    Local, Location, MirPass, MirPhase, NonDivergingIntrinsic, Operand, Place, PlaceElem, PlaceRef,
-    ProjectionElem, RetagKind, RuntimePhase, Rvalue, SourceScope, Statement, StatementKind,
-    Terminator, TerminatorKind, UnOp, START_BLOCK,
+    traversal, BasicBlock, BinOp, Body, BorrowKind, CastKind, CopyNonOverlapping, Local, Location,
+    MirPass, MirPhase, NonDivergingIntrinsic, Operand, Place, PlaceElem, PlaceRef, ProjectionElem,
+    RetagKind, RuntimePhase, Rvalue, SourceScope, Statement, StatementKind, Terminator,
+    TerminatorKind, UnOp, START_BLOCK,
 };
-use rustc_middle::ty::{self, InstanceDef, ParamEnv, Ty, TyCtxt, TypeVisitable};
+use rustc_middle::ty::{self, InstanceDef, ParamEnv, Ty, TyCtxt, TypeVisitableExt};
 use rustc_mir_dataflow::impls::MaybeStorageLive;
 use rustc_mir_dataflow::storage::always_storage_live_locals;
 use rustc_mir_dataflow::{Analysis, ResultsCursor};
@@ -230,8 +230,12 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             // Equal types, all is good.
             return true;
         }
-        // Normalization reveals opaque types, but we may be validating MIR while computing
-        // said opaque types, causing cycles.
+
+        // We sometimes have to use `defining_opaque_types` for subtyping
+        // to succeed here and figuring out how exactly that should work
+        // is annoying. It is harmless enough to just not validate anything
+        // in that case. We still check this after analysis as all opque
+        // types have been revealed at this point.
         if (src, dest).has_opaque_types() {
             return true;
         }
@@ -311,7 +315,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                 }
             }
             ProjectionElem::Field(f, ty) => {
-                let parent = Place { local, projection: self.tcx.intern_place_elems(proj_base) };
+                let parent = Place { local, projection: self.tcx.mk_place_elems(proj_base) };
                 let parent_ty = parent.ty(&self.body.local_decls, self.tcx);
                 let fail_out_of_bounds = |this: &Self, location| {
                     this.fail(location, format!("Out of bounds field {:?} for {:?}", f, parent_ty));
@@ -330,7 +334,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
 
                 let kind = match parent_ty.ty.kind() {
                     &ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) => {
-                        self.tcx.bound_type_of(def_id).subst(self.tcx, substs).kind()
+                        self.tcx.type_of(def_id).subst(self.tcx, substs).kind()
                     }
                     kind => kind,
                 };
@@ -377,12 +381,12 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                                 return;
                             };
 
-                            let Some(&f_ty) = layout.field_tys.get(local) else {
+                            let Some(f_ty) = layout.field_tys.get(local) else {
                                 self.fail(location, format!("Out of bounds local {:?} for {:?}", local, parent_ty));
                                 return;
                             };
 
-                            f_ty
+                            f_ty.ty
                         } else {
                             let Some(f_ty) = substs.as_generator().prefix_tys().nth(f.index()) else {
                                 fail_out_of_bounds(self, location);
@@ -428,19 +432,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
             };
         }
         match rvalue {
-            Rvalue::Use(_) | Rvalue::CopyForDeref(_) => {}
-            Rvalue::Aggregate(agg_kind, _) => {
-                let disallowed = match **agg_kind {
-                    AggregateKind::Array(..) => false,
-                    _ => self.mir_phase >= MirPhase::Runtime(RuntimePhase::PostCleanup),
-                };
-                if disallowed {
-                    self.fail(
-                        location,
-                        format!("{:?} have been lowered to field assignments", rvalue),
-                    )
-                }
-            }
+            Rvalue::Use(_) | Rvalue::CopyForDeref(_) | Rvalue::Aggregate(..) => {}
             Rvalue::Ref(_, BorrowKind::Shallow, _) => {
                 if self.mir_phase >= MirPhase::Runtime(RuntimePhase::Initial) {
                     self.fail(
@@ -759,13 +751,32 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                 // FIXME(JakobDegen) The validator should check that `self.mir_phase <
                 // DropsLowered`. However, this causes ICEs with generation of drop shims, which
                 // seem to fail to set their `MirPhase` correctly.
-                if *kind == RetagKind::Raw || *kind == RetagKind::TwoPhase {
+                if matches!(kind, RetagKind::Raw | RetagKind::TwoPhase) {
                     self.fail(location, format!("explicit `{:?}` is forbidden", kind));
                 }
             }
-            StatementKind::StorageLive(..)
-            | StatementKind::StorageDead(..)
+            StatementKind::StorageLive(local) => {
+                // We check that the local is not live when entering a `StorageLive` for it.
+                // Technically, violating this restriction is only UB and not actually indicative
+                // of not well-formed MIR. This means that an optimization which turns MIR that
+                // already has UB into MIR that fails this check is not necessarily wrong. However,
+                // we have no such optimizations at the moment, and so we include this check anyway
+                // to help us catch bugs. If you happen to write an optimization that might cause
+                // this to incorrectly fire, feel free to remove this check.
+                if self.reachable_blocks.contains(location.block) {
+                    self.storage_liveness.seek_before_primary_effect(location);
+                    let locals_with_storage = self.storage_liveness.get();
+                    if locals_with_storage.contains(*local) {
+                        self.fail(
+                            location,
+                            format!("StorageLive({local:?}) which already has storage here"),
+                        );
+                    }
+                }
+            }
+            StatementKind::StorageDead(_)
             | StatementKind::Coverage(_)
+            | StatementKind::ConstEvalCounter
             | StatementKind::Nop => {}
         }
 

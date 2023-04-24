@@ -4,7 +4,7 @@
 
 use rustc_data_structures::sso::SsoHashSet;
 use rustc_middle::ty::subst::{GenericArg, GenericArgKind};
-use rustc_middle::ty::{self, Ty, TyCtxt, TypeVisitable};
+use rustc_middle::ty::{self, Ty, TyCtxt, TypeVisitableExt};
 use smallvec::{smallvec, SmallVec};
 
 #[derive(Debug)]
@@ -112,7 +112,7 @@ fn compute_components<'tcx>(
             }
 
             // All regions are bound inside a witness
-            ty::GeneratorWitness(..) => (),
+            ty::GeneratorWitness(..) | ty::GeneratorWitnessMIR(..) => (),
 
             // OutlivesTypeParameterEnv -- the actual checking that `X:'a`
             // is implied by the environment is done in regionck.

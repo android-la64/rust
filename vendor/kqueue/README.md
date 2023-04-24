@@ -1,8 +1,9 @@
 # kqueue
 
-[![Gitlab Pipelines](https://gitlab.com/worr/rust-kqueue/badges/master/pipeline.svg)](https://gitlab.com/worr/rust-kqueue/-/commits/master)
+[![Gitlab
+Pipelines](https://gitlab.com/rust-kqueue/rust-kqueue/badges/main/pipeline.svg)](https://gitlab.com/rust-kqueue/rust-kqueue/-/commits/main)
 [![Travis Build
-Status](https://travis-ci.com/worr/rust-kqueue.svg?branch=master)](https://travis-ci.com/gitlab/worr/rust-kqueue)
+Status](https://travis-ci.com/rust-kqueue/rust-kqueue.svg?branch=main)](https://travis-ci.com/gitlab/rust-kqueue/rust-kqueue)
 
 `kqueue(2)` library for rust
 

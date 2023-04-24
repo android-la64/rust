@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.90.1"
+version = "0.92.0"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -42,16 +42,13 @@ optional = true
 version = "3"
 
 [dependencies.cranelift-bforest]
-version = "0.90.1"
+version = "0.92.0"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.90.1"
-
-[dependencies.cranelift-egraph]
-version = "0.90.1"
+version = "0.92.0"
 
 [dependencies.cranelift-entity]
-version = "0.90.1"
+version = "0.92.0"
 
 [dependencies.gimli]
 version = "0.26.0"
@@ -65,14 +62,13 @@ default-features = false
 
 [dependencies.hashbrown]
 version = "0.12"
-optional = true
 
 [dependencies.log]
 version = "0.4.8"
 default-features = false
 
 [dependencies.regalloc2]
-version = "0.4.2"
+version = "0.5.1"
 features = ["checker"]
 
 [dependencies.serde]
@@ -94,21 +90,20 @@ optional = true
 
 [dependencies.target-lexicon]
 version = "0.12.3"
+features = ["std"]
 default-features = false
 
 [dev-dependencies.criterion]
 version = "0.3"
 
+[dev-dependencies.similar]
+version = "2.1.0"
+
 [build-dependencies.cranelift-codegen-meta]
-version = "0.90.1"
+version = "0.92.0"
 
 [build-dependencies.cranelift-isle]
-version = "=0.90.1"
-
-[build-dependencies.miette]
-version = "5.1.0"
-features = ["fancy"]
-optional = true
+version = "=0.92.0"
 
 [features]
 all-arch = [
@@ -118,10 +113,11 @@ all-arch = [
     "riscv64",
 ]
 arm64 = []
-core = ["hashbrown"]
+core = []
 default = [
     "std",
     "unwind",
+    "trace-log",
 ]
 enable-serde = [
     "serde",
@@ -135,10 +131,7 @@ incremental-cache = [
     "bincode",
     "sha2",
 ]
-isle-errors = [
-    "miette",
-    "cranelift-isle/miette-errors",
-]
+isle-errors = ["cranelift-isle/fancy-errors"]
 isle-in-source-tree = []
 riscv64 = []
 s390x = []

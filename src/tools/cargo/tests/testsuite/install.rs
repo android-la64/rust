@@ -731,7 +731,7 @@ fn no_binaries() {
             "\
 [ERROR] there is nothing to install in `foo v0.0.1 ([..])`, because it has no binaries[..]
 [..]
-[..]",
+To use a library crate, add it as a dependency to a Cargo project with `cargo add`.",
         )
         .run();
 }
@@ -992,8 +992,7 @@ Caused by:
     |
   1 | [..]
     | ^
-  Unexpected `[..]`
-  Expected key or end of input
+  invalid key
 ",
         )
         .run();
@@ -2086,7 +2085,6 @@ fn no_auto_fix_note() {
     // This is checked by matching the full output as `with_stderr_does_not_contain`
     // can be brittle
     cargo_process("install auto_fix")
-        .masquerade_as_nightly_cargo(&["auto-fix note"])
         .with_stderr(
             "\
 [UPDATING] `[..]` index

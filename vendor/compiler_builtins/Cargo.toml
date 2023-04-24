@@ -11,7 +11,7 @@
 
 [package]
 name = "compiler_builtins"
-version = "0.1.85"
+version = "0.1.87"
 authors = ["Jorge Aparicio <japaricious@gmail.com>"]
 links = "compiler-rt"
 include = [

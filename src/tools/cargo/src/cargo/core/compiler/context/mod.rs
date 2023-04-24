@@ -1,3 +1,5 @@
+//! [`Context`] is the mutable state used during the build process.
+
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -27,6 +29,11 @@ use self::compilation_files::CompilationFiles;
 pub use self::compilation_files::{Metadata, OutputFile};
 
 /// Collection of all the stuff that is needed to perform a build.
+///
+/// Different from the [`BuildContext`], `Context` is a _mutable_ state used
+/// throughout the entire build process. Everything is coordinated through this.
+///
+/// [`BuildContext`]: crate::core::compiler::BuildContext
 pub struct Context<'a, 'cfg> {
     /// Mostly static information about the build task.
     pub bcx: &'a BuildContext<'a, 'cfg>,
@@ -126,6 +133,10 @@ impl<'a, 'cfg> Context<'a, 'cfg> {
 
     /// Starts compilation, waits for it to finish, and returns information
     /// about the result of compilation.
+    ///
+    /// See [`ops::cargo_compile`] for a higher-level view of the compile process.
+    ///
+    /// [`ops::cargo_compile`]: ../../../ops/cargo_compile/index.html
     pub fn compile(mut self, exec: &Arc<dyn Executor>) -> CargoResult<Compilation<'cfg>> {
         let mut queue = JobQueue::new(self.bcx);
         let mut plan = BuildPlan::new();
@@ -150,11 +161,6 @@ impl<'a, 'cfg> Context<'a, 'cfg> {
         }
 
         for unit in &self.bcx.roots {
-            // Build up a list of pending jobs, each of which represent
-            // compiling a particular package. No actual work is executed as
-            // part of this, that's all done next as part of the `execute`
-            // function which will run everything in order with proper
-            // parallelism.
             let force_rebuild = self.bcx.build_config.force_rebuild;
             super::compile(&mut self, &mut queue, &mut plan, unit, exec, force_rebuild)?;
         }
@@ -337,7 +343,9 @@ impl<'a, 'cfg> Context<'a, 'cfg> {
     pub fn prepare(&mut self) -> CargoResult<()> {
         let _p = profile::start("preparing layout");
 
-        self.files_mut()
+        self.files
+            .as_mut()
+            .unwrap()
             .host
             .prepare()
             .with_context(|| "couldn't prepare build directories")?;
@@ -362,10 +370,6 @@ impl<'a, 'cfg> Context<'a, 'cfg> {
 
     pub fn files(&self) -> &CompilationFiles<'a, 'cfg> {
         self.files.as_ref().unwrap()
-    }
-
-    fn files_mut(&mut self) -> &mut CompilationFiles<'a, 'cfg> {
-        self.files.as_mut().unwrap()
     }
 
     /// Returns the filenames that the given unit will generate.
@@ -413,7 +417,7 @@ impl<'a, 'cfg> Context<'a, 'cfg> {
         self.primary_packages.contains(&unit.pkg.package_id())
     }
 
-    /// Returns the list of filenames read by cargo to generate the `BuildContext`
+    /// Returns the list of filenames read by cargo to generate the [`BuildContext`]
     /// (all `Cargo.toml`, etc.).
     pub fn build_plan_inputs(&self) -> CargoResult<Vec<PathBuf>> {
         // Keep sorted for consistency.
@@ -436,6 +440,8 @@ impl<'a, 'cfg> Context<'a, 'cfg> {
         }
     }
 
+    /// Check if any output file name collision happens.
+    /// See <https://github.com/rust-lang/cargo/issues/6313> for more.
     fn check_collisions(&self) -> CargoResult<()> {
         let mut output_collisions = HashMap::new();
         let describe_collision = |unit: &Unit, other_unit: &Unit, path: &PathBuf| -> String {
@@ -608,6 +614,7 @@ impl<'a, 'cfg> Context<'a, 'cfg> {
         self.rmeta_required.contains(unit)
     }
 
+    /// Used by `-Zjobserver-per-rustc`.
     pub fn new_jobserver(&mut self) -> CargoResult<Client> {
         let tokens = self.bcx.jobs() as usize;
         let client = Client::new(tokens).with_context(|| "failed to create jobserver")?;

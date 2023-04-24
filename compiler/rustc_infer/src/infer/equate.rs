@@ -1,10 +1,12 @@
-use super::combine::{CombineFields, ConstEquateRelation, RelationDir};
+use crate::traits::PredicateObligations;
+
+use super::combine::{CombineFields, ObligationEmittingRelation, RelationDir};
 use super::Subtype;
 
 use rustc_middle::ty::relate::{self, Relate, RelateResult, TypeRelation};
 use rustc_middle::ty::subst::SubstsRef;
 use rustc_middle::ty::TyVar;
-use rustc_middle::ty::{self, Ty, TyCtxt};
+use rustc_middle::ty::{self, Ty, TyCtxt, TypeVisitableExt};
 
 use rustc_hir::def_id::DefId;
 
@@ -129,7 +131,7 @@ impl<'tcx> TypeRelation<'tcx> for Equate<'_, '_, 'tcx> {
                 let a_types = infcx.tcx.anonymize_bound_vars(a_types);
                 let b_types = infcx.tcx.anonymize_bound_vars(b_types);
                 if a_types.bound_vars() == b_types.bound_vars() {
-                    let (a_types, b_types) = infcx.replace_bound_vars_with_placeholders(
+                    let (a_types, b_types) = infcx.instantiate_binder_with_placeholders(
                         a_types.map_bound(|a_types| (a_types, b_types.skip_binder())),
                     );
                     for (a, b) in std::iter::zip(a_types, b_types) {
@@ -198,8 +200,12 @@ impl<'tcx> TypeRelation<'tcx> for Equate<'_, '_, 'tcx> {
     }
 }
 
-impl<'tcx> ConstEquateRelation<'tcx> for Equate<'_, '_, 'tcx> {
-    fn const_equate_obligation(&mut self, a: ty::Const<'tcx>, b: ty::Const<'tcx>) {
-        self.fields.add_const_equate_obligation(self.a_is_expected, a, b);
+impl<'tcx> ObligationEmittingRelation<'tcx> for Equate<'_, '_, 'tcx> {
+    fn register_predicates(&mut self, obligations: impl IntoIterator<Item: ty::ToPredicate<'tcx>>) {
+        self.fields.register_predicates(obligations);
+    }
+
+    fn register_obligations(&mut self, obligations: PredicateObligations<'tcx>) {
+        self.fields.register_obligations(obligations);
     }
 }

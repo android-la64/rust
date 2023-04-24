@@ -3,16 +3,17 @@ use std::iter::FromIterator;
 use crate::key::Key;
 use crate::repr::Decor;
 use crate::table::{Iter, IterMut, KeyValuePairs, TableKeyValue, TableLike};
-use crate::{InternalString, Item, KeyMut, Table, Value};
+use crate::{InternalString, Item, KeyMut, RawString, Table, Value};
 
 /// Type representing a TOML inline table,
 /// payload of the `Value::InlineTable` variant
 #[derive(Debug, Default, Clone)]
 pub struct InlineTable {
     // `preamble` represents whitespaces in an empty table
-    pub(crate) preamble: InternalString,
+    preamble: RawString,
     // prefix before `{` and suffix after `}`
     decor: Decor,
+    pub(crate) span: Option<std::ops::Range<usize>>,
     // whether this is a proxy for dotted keys
     dotted: bool,
     pub(crate) items: KeyValuePairs,
@@ -161,6 +162,31 @@ impl InlineTable {
     pub fn key_decor(&self, key: &str) -> Option<&Decor> {
         self.items.get(key).map(|kv| &kv.key.decor)
     }
+
+    /// Set whitespace after before element
+    pub fn set_preamble(&mut self, preamble: impl Into<RawString>) {
+        self.preamble = preamble.into();
+    }
+
+    /// Whitespace after before element
+    pub fn preamble(&self) -> &RawString {
+        &self.preamble
+    }
+
+    /// Returns the location within the original document
+    pub(crate) fn span(&self) -> Option<std::ops::Range<usize>> {
+        self.span.clone()
+    }
+
+    pub(crate) fn despan(&mut self, input: &str) {
+        self.span = None;
+        self.decor.despan(input);
+        self.preamble.despan(input);
+        for kv in self.items.values_mut() {
+            kv.key.despan(input);
+            kv.value.despan(input);
+        }
+    }
 }
 
 impl InlineTable {
@@ -200,8 +226,7 @@ impl InlineTable {
     }
 
     /// Gets the given key's corresponding entry in the Table for in-place manipulation.
-    pub fn entry<'a>(&'a mut self, key: &str) -> InlineEntry<'a> {
-        // Accept a `&str` rather than an owned type to keep `InternalString`, well, internal
+    pub fn entry(&'_ mut self, key: impl Into<InternalString>) -> InlineEntry<'_> {
         match self.items.entry(key.into()) {
             indexmap::map::Entry::Occupied(mut entry) => {
                 // Ensure it is a `Value` to simplify `InlineOccupiedEntry`'s code.
@@ -292,21 +317,26 @@ impl InlineTable {
 
     /// Inserts a key/value pair if the table does not contain the key.
     /// Returns a mutable reference to the corresponding value.
-    pub fn get_or_insert<V: Into<Value>>(&mut self, key: &str, value: V) -> &mut Value {
-        let key = Key::new(key);
+    pub fn get_or_insert<V: Into<Value>>(
+        &mut self,
+        key: impl Into<InternalString>,
+        value: V,
+    ) -> &mut Value {
+        let key = key.into();
         self.items
-            .entry(InternalString::from(key.get()))
-            .or_insert(TableKeyValue::new(key, Item::Value(value.into())))
+            .entry(key.clone())
+            .or_insert(TableKeyValue::new(Key::new(key), Item::Value(value.into())))
             .value
             .as_value_mut()
             .expect("non-value type in inline table")
     }
 
     /// Inserts a key-value pair into the map.
-    pub fn insert(&mut self, key: &str, value: Value) -> Option<Value> {
-        let kv = TableKeyValue::new(Key::new(key), Item::Value(value));
+    pub fn insert(&mut self, key: impl Into<InternalString>, value: Value) -> Option<Value> {
+        let key = key.into();
+        let kv = TableKeyValue::new(Key::new(key.clone()), Item::Value(value));
         self.items
-            .insert(InternalString::from(key), kv)
+            .insert(key, kv)
             .and_then(|kv| kv.value.into_value().ok())
     }
 
@@ -337,7 +367,7 @@ impl InlineTable {
 
 impl std::fmt::Display for InlineTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encode::Encode::encode(self, f, ("", ""))
+        crate::encode::Encode::encode(self, f, None, ("", ""))
     }
 }
 

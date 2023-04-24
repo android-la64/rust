@@ -1,11 +1,13 @@
+use crate::fluent_generated as fluent;
 use crate::middle::codegen_fn_attrs::CodegenFnAttrFlags;
 use crate::ty::normalize_erasing_regions::NormalizationError;
-use crate::ty::{self, ReprOptions, Ty, TyCtxt, TypeVisitable};
+use crate::ty::{self, ReprOptions, Ty, TyCtxt, TypeVisitableExt};
 use rustc_errors::{DiagnosticBuilder, Handler, IntoDiagnostic};
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_index::vec::Idx;
 use rustc_session::config::OptLevel;
+use rustc_span::symbol::{sym, Symbol};
 use rustc_span::{Span, DUMMY_SP};
 use rustc_target::abi::call::FnAbi;
 use rustc_target::abi::*;
@@ -91,7 +93,7 @@ impl IntegerExt for Integer {
             if discr < fit {
                 bug!(
                     "Integer::repr_discr: `#[repr]` hint too small for \
-                      discriminant range of enum `{}",
+                      discriminant range of enum `{}`",
                     ty
                 )
             }
@@ -128,7 +130,8 @@ impl PrimitiveExt for Primitive {
             Int(i, signed) => i.to_ty(tcx, signed),
             F32 => tcx.types.f32,
             F64 => tcx.types.f64,
-            Pointer => tcx.mk_mut_ptr(tcx.mk_unit()),
+            // FIXME(erikdesjardins): handle non-default addrspace ptr sizes
+            Pointer(_) => tcx.mk_mut_ptr(tcx.mk_unit()),
         }
     }
 
@@ -138,7 +141,11 @@ impl PrimitiveExt for Primitive {
     fn to_int_ty<'tcx>(&self, tcx: TyCtxt<'tcx>) -> Ty<'tcx> {
         match *self {
             Int(i, signed) => i.to_ty(tcx, signed),
-            Pointer => tcx.types.usize,
+            // FIXME(erikdesjardins): handle non-default addrspace ptr sizes
+            Pointer(_) => {
+                let signed = false;
+                tcx.data_layout().ptr_sized_integer().to_ty(tcx, signed)
+            }
             F32 | F64 => bug!("floats do not have an int type"),
         }
     }
@@ -163,6 +170,41 @@ pub const FAT_PTR_EXTRA: usize = 1;
 /// * Cranelift stores the base-2 log of the lane count in a 4 bit integer.
 pub const MAX_SIMD_LANES: u64 = 1 << 0xF;
 
+/// Used in `check_validity_requirement` to indicate the kind of initialization
+/// that is checked to be valid
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, HashStable)]
+pub enum ValidityRequirement {
+    Inhabited,
+    Zero,
+    /// The return value of mem::uninitialized, 0x01
+    /// (unless -Zstrict-init-checks is on, in which case it's the same as Uninit).
+    UninitMitigated0x01Fill,
+    /// True uninitialized memory.
+    Uninit,
+}
+
+impl ValidityRequirement {
+    pub fn from_intrinsic(intrinsic: Symbol) -> Option<Self> {
+        match intrinsic {
+            sym::assert_inhabited => Some(Self::Inhabited),
+            sym::assert_zero_valid => Some(Self::Zero),
+            sym::assert_mem_uninitialized_valid => Some(Self::UninitMitigated0x01Fill),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for ValidityRequirement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Inhabited => f.write_str("is inhabited"),
+            Self::Zero => f.write_str("allows being left zeroed"),
+            Self::UninitMitigated0x01Fill => f.write_str("allows being filled with 0x01"),
+            Self::Uninit => f.write_str("allows being left uninitialized"),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, HashStable, TyEncodable, TyDecodable)]
 pub enum LayoutError<'tcx> {
     Unknown(Ty<'tcx>),
@@ -177,16 +219,16 @@ impl IntoDiagnostic<'_, !> for LayoutError<'_> {
         match self {
             LayoutError::Unknown(ty) => {
                 diag.set_arg("ty", ty);
-                diag.set_primary_message(rustc_errors::fluent::middle_unknown_layout);
+                diag.set_primary_message(fluent::middle_unknown_layout);
             }
             LayoutError::SizeOverflow(ty) => {
                 diag.set_arg("ty", ty);
-                diag.set_primary_message(rustc_errors::fluent::middle_values_too_big);
+                diag.set_primary_message(fluent::middle_values_too_big);
             }
             LayoutError::NormalizationFailure(ty, e) => {
                 diag.set_arg("ty", ty);
                 diag.set_arg("failure_ty", e.get_type_for_failure());
-                diag.set_primary_message(rustc_errors::fluent::middle_cannot_be_normalized);
+                diag.set_primary_message(fluent::middle_cannot_be_normalized);
             }
         }
         diag
@@ -590,7 +632,7 @@ where
                     ty::Adt(def, _) => def.variant(variant_index).fields.len(),
                     _ => bug!(),
                 };
-                tcx.intern_layout(LayoutS {
+                tcx.mk_layout(LayoutS {
                     variants: Variants::Single { index: variant_index },
                     fields: match NonZeroUsize::new(fields) {
                         Some(fields) => FieldsShape::Union(fields),
@@ -603,7 +645,7 @@ where
                 })
             }
 
-            Variants::Multiple { ref variants, .. } => cx.tcx().intern_layout(variants[variant_index].clone()),
+            Variants::Multiple { ref variants, .. } => cx.tcx().mk_layout(variants[variant_index].clone()),
         };
 
         assert_eq!(*layout.variants(), Variants::Single { index: variant_index });
@@ -625,7 +667,7 @@ where
             let tcx = cx.tcx();
             let tag_layout = |tag: Scalar| -> TyAndLayout<'tcx> {
                 TyAndLayout {
-                    layout: tcx.intern_layout(LayoutS::scalar(cx, tag)),
+                    layout: tcx.mk_layout(LayoutS::scalar(cx, tag)),
                     ty: tag.primitive().to_ty(tcx),
                 }
             };
@@ -640,6 +682,7 @@ where
                 | ty::Never
                 | ty::FnDef(..)
                 | ty::GeneratorWitness(..)
+                | ty::GeneratorWitnessMIR(..)
                 | ty::Foreign(..)
                 | ty::Dynamic(_, _, ty::Dyn) => {
                     bug!("TyAndLayout::field({:?}): not applicable", this)
@@ -764,7 +807,7 @@ where
 
                 ty::Dynamic(_, _, ty::DynStar) => {
                     if i == 0 {
-                        TyMaybeWithLayout::Ty(tcx.types.usize)
+                        TyMaybeWithLayout::Ty(tcx.mk_mut_ptr(tcx.types.unit))
                     } else if i == 1 {
                         // FIXME(dyn-star) same FIXME as above applies here too
                         TyMaybeWithLayout::Ty(
@@ -812,17 +855,12 @@ where
         let tcx = cx.tcx();
         let param_env = cx.param_env();
 
-        let addr_space_of_ty = |ty: Ty<'tcx>| {
-            if ty.is_fn() { cx.data_layout().instruction_address_space } else { AddressSpace::DATA }
-        };
-
         let pointee_info = match *this.ty.kind() {
             ty::RawPtr(mt) if offset.bytes() == 0 => {
                 tcx.layout_of(param_env.and(mt.ty)).ok().map(|layout| PointeeInfo {
                     size: layout.size,
                     align: layout.align.abi,
                     safe: None,
-                    address_space: addr_space_of_ty(mt.ty),
                 })
             }
             ty::FnPtr(fn_sig) if offset.bytes() == 0 => {
@@ -830,44 +868,26 @@ where
                     size: layout.size,
                     align: layout.align.abi,
                     safe: None,
-                    address_space: cx.data_layout().instruction_address_space,
                 })
             }
             ty::Ref(_, ty, mt) if offset.bytes() == 0 => {
-                let address_space = addr_space_of_ty(ty);
-                let kind = if tcx.sess.opts.optimize == OptLevel::No {
-                    // Use conservative pointer kind if not optimizing. This saves us the
-                    // Freeze/Unpin queries, and can save time in the codegen backend (noalias
-                    // attributes in LLVM have compile-time cost even in unoptimized builds).
-                    PointerKind::SharedMutable
-                } else {
-                    match mt {
-                        hir::Mutability::Not => {
-                            if ty.is_freeze(tcx, cx.param_env()) {
-                                PointerKind::Frozen
-                            } else {
-                                PointerKind::SharedMutable
-                            }
-                        }
-                        hir::Mutability::Mut => {
-                            // References to self-referential structures should not be considered
-                            // noalias, as another pointer to the structure can be obtained, that
-                            // is not based-on the original reference. We consider all !Unpin
-                            // types to be potentially self-referential here.
-                            if ty.is_unpin(tcx, cx.param_env()) {
-                                PointerKind::UniqueBorrowed
-                            } else {
-                                PointerKind::UniqueBorrowedPinned
-                            }
-                        }
-                    }
+                // Use conservative pointer kind if not optimizing. This saves us the
+                // Freeze/Unpin queries, and can save time in the codegen backend (noalias
+                // attributes in LLVM have compile-time cost even in unoptimized builds).
+                let optimize = tcx.sess.opts.optimize != OptLevel::No;
+                let kind = match mt {
+                    hir::Mutability::Not => PointerKind::SharedRef {
+                        frozen: optimize && ty.is_freeze(tcx, cx.param_env()),
+                    },
+                    hir::Mutability::Mut => PointerKind::MutableRef {
+                        unpin: optimize && ty.is_unpin(tcx, cx.param_env()),
+                    },
                 };
 
                 tcx.layout_of(param_env.and(ty)).ok().map(|layout| PointeeInfo {
                     size: layout.size,
                     align: layout.align.abi,
                     safe: Some(kind),
-                    address_space,
                 })
             }
 
@@ -904,7 +924,9 @@ where
                 let mut result = None;
 
                 if let Some(variant) = data_variant {
-                    let ptr_end = offset + Pointer.size(cx);
+                    // FIXME(erikdesjardins): handle non-default addrspace ptr sizes
+                    // (requires passing in the expected address space from the caller)
+                    let ptr_end = offset + Pointer(AddressSpace::DATA).size(cx);
                     for i in 0..variant.fields.count() {
                         let field_start = variant.fields.offset(i);
                         if field_start <= offset {
@@ -930,7 +952,10 @@ where
                 if let Some(ref mut pointee) = result {
                     if let ty::Adt(def, _) = this.ty.kind() {
                         if def.is_box() && offset.bytes() == 0 {
-                            pointee.safe = Some(PointerKind::UniqueOwned);
+                            let optimize = tcx.sess.opts.optimize != OptLevel::No;
+                            pointee.safe = Some(PointerKind::Box {
+                                unpin: optimize && this.ty.boxed_ty().is_unpin(tcx, cx.param_env()),
+                            });
                         }
                     }
                 }

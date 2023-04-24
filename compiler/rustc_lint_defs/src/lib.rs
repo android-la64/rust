@@ -521,6 +521,14 @@ pub enum BuiltinLintDiagnostics {
         /// Indicates if the named argument is used as a width/precision for formatting
         is_formatting_arg: bool,
     },
+    ByteSliceInPackedStructWithDerive,
+    UnusedExternCrate {
+        removal_span: Span,
+    },
+    ExternCrateNotIdiomatic {
+        vis_span: Span,
+        ident_span: Span,
+    },
 }
 
 /// Lints that are buffered up early on in the `Session` before the

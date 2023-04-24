@@ -1,7 +1,7 @@
 [book]
-title = "Guide to Rustc Development"
-author = "Rustc developers"
-description = "A guide to developing rustc"
+title = "Rust Compiler Development Guide"
+author = "The Rust Project Developers"
+description = "A guide to developing the Rust compiler (rustc)"
 
 [build]
 create-missing = false
@@ -17,6 +17,9 @@ command = "mdbook-mermaid"
 git-repository-url = "https://github.com/rust-lang/rustc-dev-guide"
 edit-url-template = "https://github.com/rust-lang/rustc-dev-guide/edit/master/{path}"
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[output.html.search]
+use-boolean-and = true
 
 [output.html.fold]
 enable = true
@@ -39,6 +42,9 @@ exclude = [
 ]
 cache-timeout = 86400
 warning-policy = "error"
+
+[output.linkcheck.http-headers]
+'github\.com' = ["Authorization: Bearer $GITHUB_TOKEN"]
 
 [output.html.redirect]
 "/compiletest.html" = "tests/compiletest.html"

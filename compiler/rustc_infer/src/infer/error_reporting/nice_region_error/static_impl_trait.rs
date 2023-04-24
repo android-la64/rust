@@ -98,6 +98,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
         let sp = var_origin.span();
         let return_sp = sub_origin.span();
         let param = self.find_param_with_region(*sup_r, *sub_r)?;
+        let simple_ident = param.param.pat.simple_ident();
         let lifetime_name = if sup_r.has_name() { sup_r.to_string() } else { "'_".to_owned() };
 
         let (mention_influencer, influencer_point) =
@@ -187,7 +188,9 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             req_introduces_loc: subdiag,
 
             has_lifetime: sup_r.has_name(),
-            lifetime: sup_r.to_string(),
+            lifetime: lifetime_name.clone(),
+            has_param_name: simple_ident.is_some(),
+            param_name: simple_ident.map(|x| x.to_string()).unwrap_or_default(),
             spans_empty,
             bound,
         };
@@ -536,7 +539,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
 /// Collect all the trait objects in a type that could have received an implicit `'static` lifetime.
 pub struct TraitObjectVisitor(pub FxIndexSet<DefId>);
 
-impl<'tcx> TypeVisitor<'tcx> for TraitObjectVisitor {
+impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for TraitObjectVisitor {
     fn visit_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
         match t.kind() {
             ty::Dynamic(preds, re, _) if re.is_static() => {

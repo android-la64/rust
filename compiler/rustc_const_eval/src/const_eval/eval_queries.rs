@@ -54,7 +54,7 @@ fn eval_body_using_ecx<'mir, 'tcx>(
 
     trace!(
         "eval_body_using_ecx: pushing stack frame for global: {}{}",
-        with_no_trimmed_paths!(ty::tls::with(|tcx| tcx.def_path_str(cid.instance.def_id()))),
+        with_no_trimmed_paths!(ecx.tcx.def_path_str(cid.instance.def_id())),
         cid.promoted.map_or_else(String::new, |p| format!("::promoted[{:?}]", p))
     );
 
@@ -180,13 +180,13 @@ pub(super) fn op_to_const<'tcx>(
                         (ecx.tcx.global_alloc(alloc_id).unwrap_memory(), offset.bytes())
                     }
                     (None, _offset) => (
-                        ecx.tcx.intern_const_alloc(Allocation::from_bytes_byte_aligned_immutable(
+                        ecx.tcx.mk_const_alloc(Allocation::from_bytes_byte_aligned_immutable(
                             b"" as &[u8],
                         )),
                         0,
                     ),
                 };
-                let len = b.to_machine_usize(ecx).unwrap();
+                let len = b.to_target_usize(ecx).unwrap();
                 let start = start.try_into().unwrap();
                 let len: usize = len.try_into().unwrap();
                 ConstValue::Slice { data, start, end: start + len }

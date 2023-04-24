@@ -26,11 +26,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         if !self.tcx().is_closure(mir_def_id.to_def_id()) {
             return;
         }
-        let Some(user_provided_poly_sig) =
-            self.tcx().typeck(mir_def_id).user_provided_sigs.get(&mir_def_id)
-        else {
-            return;
-        };
+        let user_provided_poly_sig = self.tcx().closure_user_provided_sig(mir_def_id);
 
         // Instantiate the canonicalized variables from user-provided signature
         // (e.g., the `_` in the code above) with fresh variables.
@@ -38,7 +34,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         // so that they represent the view from "inside" the closure.
         let user_provided_sig = self
             .instantiate_canonical_with_fresh_inference_vars(body.span, &user_provided_poly_sig);
-        let user_provided_sig = self.infcx.replace_bound_vars_with_fresh_vars(
+        let user_provided_sig = self.infcx.instantiate_binder_with_fresh_vars(
             body.span,
             LateBoundRegionConversionTime::FnCall,
             user_provided_sig,

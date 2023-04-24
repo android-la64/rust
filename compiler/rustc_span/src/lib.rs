@@ -19,6 +19,7 @@
 #![feature(negative_impls)]
 #![feature(min_specialization)]
 #![feature(rustc_attrs)]
+#![feature(let_chains)]
 #![deny(rustc::untranslatable_diagnostic)]
 #![deny(rustc::diagnostic_outside_of_impl)]
 
@@ -46,7 +47,7 @@ pub use hygiene::{ExpnData, ExpnHash, ExpnId, LocalExpnId, SyntaxContext};
 use rustc_data_structures::stable_hasher::HashingControls;
 pub mod def_id;
 use def_id::{CrateNum, DefId, DefPathHash, LocalDefId, LOCAL_CRATE};
-pub mod lev_distance;
+pub mod edit_distance;
 mod span_encoding;
 pub use span_encoding::{Span, DUMMY_SP};
 
@@ -705,23 +706,23 @@ impl Span {
     }
 
     #[inline]
-    pub fn rust_2015(self) -> bool {
-        self.edition() == edition::Edition::Edition2015
+    pub fn is_rust_2015(self) -> bool {
+        self.edition().is_rust_2015()
     }
 
     #[inline]
     pub fn rust_2018(self) -> bool {
-        self.edition() >= edition::Edition::Edition2018
+        self.edition().rust_2018()
     }
 
     #[inline]
     pub fn rust_2021(self) -> bool {
-        self.edition() >= edition::Edition::Edition2021
+        self.edition().rust_2021()
     }
 
     #[inline]
     pub fn rust_2024(self) -> bool {
-        self.edition() >= edition::Edition::Edition2024
+        self.edition().rust_2024()
     }
 
     /// Returns the source callee.
@@ -2146,5 +2147,19 @@ where
         let len = (span.hi - span.lo).0;
         Hash::hash(&col_line, hasher);
         Hash::hash(&len, hasher);
+    }
+}
+
+/// Useful type to use with `Result<>` indicate that an error has already
+/// been reported to the user, so no need to continue checking.
+#[derive(Clone, Copy, Debug, Encodable, Decodable, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(HashStable_Generic)]
+pub struct ErrorGuaranteed(());
+
+impl ErrorGuaranteed {
+    /// To be used only if you really know what you are doing... ideally, we would find a way to
+    /// eliminate all calls to this method.
+    pub fn unchecked_claim_error_was_emitted() -> Self {
+        ErrorGuaranteed(())
     }
 }

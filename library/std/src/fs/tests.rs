@@ -12,6 +12,8 @@ use crate::time::{Duration, Instant};
 
 use rand::RngCore;
 
+#[cfg(target_os = "macos")]
+use crate::ffi::{c_char, c_int};
 #[cfg(unix)]
 use crate::os::unix::fs::symlink as symlink_dir;
 #[cfg(unix)]
@@ -24,8 +26,6 @@ use crate::os::windows::fs::{symlink_dir, symlink_file};
 use crate::sys::fs::symlink_junction;
 #[cfg(target_os = "macos")]
 use crate::sys::weak::weak;
-#[cfg(target_os = "macos")]
-use libc::{c_char, c_int};
 
 macro_rules! check {
     ($e:expr) => {
@@ -1594,4 +1594,20 @@ fn test_read_dir_infinite_loop() {
 
     // Check for duplicate errors
     assert!(dir.filter(|e| e.is_err()).take(2).count() < 2);
+}
+
+#[test]
+fn rename_directory() {
+    let tmpdir = tmpdir();
+    let old_path = tmpdir.join("foo/bar/baz");
+    fs::create_dir_all(&old_path).unwrap();
+    let test_file = &old_path.join("temp.txt");
+
+    File::create(test_file).unwrap();
+
+    let new_path = tmpdir.join("quux/blat");
+    fs::create_dir_all(&new_path).unwrap();
+    fs::rename(&old_path, &new_path.join("newdir")).unwrap();
+    assert!(new_path.join("newdir").is_dir());
+    assert!(new_path.join("newdir/temp.txt").exists());
 }

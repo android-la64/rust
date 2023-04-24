@@ -8,7 +8,7 @@
 use rustc_errors::{error_code, struct_span_err};
 use rustc_hir::def_id::{DefId, LocalDefId};
 use rustc_middle::ty::query::Providers;
-use rustc_middle::ty::{self, TyCtxt, TypeVisitable};
+use rustc_middle::ty::{self, TyCtxt, TypeVisitableExt};
 use rustc_span::sym;
 use rustc_trait_selection::traits;
 
@@ -169,7 +169,7 @@ fn check_object_overlap<'tcx>(
         });
 
         for component_def_id in component_def_ids {
-            if !tcx.is_object_safe(component_def_id) {
+            if !tcx.check_is_object_safe(component_def_id) {
                 // Without the 'object_safe_for_dispatch' feature this is an error
                 // which will be reported by wfcheck. Ignore it here.
                 // This is tested by `coherence-impl-trait-for-trait-object-safe.rs`.

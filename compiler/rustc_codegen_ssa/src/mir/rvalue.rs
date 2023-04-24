@@ -13,6 +13,7 @@ use rustc_middle::ty::cast::{CastTy, IntTy};
 use rustc_middle::ty::layout::{HasTyCtxt, LayoutOf};
 use rustc_middle::ty::{self, adjustment::PointerCast, Instance, Ty, TyCtxt};
 use rustc_span::source_map::{Span, DUMMY_SP};
+use rustc_target::abi::VariantIdx;
 
 impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
     #[instrument(level = "trace", skip(self, bx))]
@@ -99,24 +100,24 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     }
                 }
 
-                let count =
-                    self.monomorphize(count).eval_usize(bx.cx().tcx(), ty::ParamEnv::reveal_all());
+                let count = self
+                    .monomorphize(count)
+                    .eval_target_usize(bx.cx().tcx(), ty::ParamEnv::reveal_all());
 
                 bx.write_operand_repeatedly(cg_elem, count, dest);
             }
 
             mir::Rvalue::Aggregate(ref kind, ref operands) => {
-                let (dest, active_field_index) = match **kind {
-                    mir::AggregateKind::Adt(adt_did, variant_index, _, _, active_field_index) => {
-                        dest.codegen_set_discr(bx, variant_index);
-                        if bx.tcx().adt_def(adt_did).is_enum() {
-                            (dest.project_downcast(bx, variant_index), active_field_index)
-                        } else {
-                            (dest, active_field_index)
-                        }
+                let (variant_index, variant_dest, active_field_index) = match **kind {
+                    mir::AggregateKind::Adt(_, variant_index, _, _, active_field_index) => {
+                        let variant_dest = dest.project_downcast(bx, variant_index);
+                        (variant_index, variant_dest, active_field_index)
                     }
-                    _ => (dest, None),
+                    _ => (VariantIdx::from_u32(0), dest, None),
                 };
+                if active_field_index.is_some() {
+                    assert_eq!(operands.len(), 1);
+                }
                 for (i, operand) in operands.iter().enumerate() {
                     let op = self.codegen_operand(bx, operand);
                     // Do not generate stores and GEPis for zero-sized fields.
@@ -124,13 +125,14 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         let field_index = active_field_index.unwrap_or(i);
                         let field = if let mir::AggregateKind::Array(_) = **kind {
                             let llindex = bx.cx().const_usize(field_index as u64);
-                            dest.project_index(bx, llindex)
+                            variant_dest.project_index(bx, llindex)
                         } else {
-                            dest.project_field(bx, field_index)
+                            variant_dest.project_field(bx, field_index)
                         };
                         op.val.store(bx, field);
                     }
                 }
+                dest.codegen_set_discr(bx, variant_index);
             }
 
             _ => {
@@ -411,7 +413,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     lhs.layout.ty,
                 );
                 let val_ty = op.ty(bx.tcx(), lhs.layout.ty, rhs.layout.ty);
-                let operand_ty = bx.tcx().intern_tup(&[val_ty, bx.tcx().types.bool]);
+                let operand_ty = bx.tcx().mk_tup(&[val_ty, bx.tcx().types.bool]);
                 OperandRef { val: result, layout: bx.cx().layout_of(operand_ty) }
             }
 
@@ -491,7 +493,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         if let Some(index) = place.as_local() {
             if let LocalRef::Operand(Some(op)) = self.locals[index] {
                 if let ty::Array(_, n) = op.layout.ty.kind() {
-                    let n = n.eval_usize(bx.cx().tcx(), ty::ParamEnv::reveal_all());
+                    let n = n.eval_target_usize(bx.cx().tcx(), ty::ParamEnv::reveal_all());
                     return bx.cx().const_usize(n);
                 }
             }
@@ -650,15 +652,6 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         rhs: Bx::Value,
         input_ty: Ty<'tcx>,
     ) -> OperandValue<Bx::Value> {
-        // This case can currently arise only from functions marked
-        // with #[rustc_inherit_overflow_checks] and inlined from
-        // another crate (mostly core::num generic/#[inline] fns),
-        // while the current crate doesn't use overflow checks.
-        if !bx.cx().check_overflow() {
-            let val = self.codegen_scalar_binop(bx, op, lhs, rhs, input_ty);
-            return OperandValue::Pair(val, bx.cx().const_bool(false));
-        }
-
         let (val, of) = match op {
             // These are checked using intrinsics
             mir::BinOp::Add | mir::BinOp::Sub | mir::BinOp::Mul => {

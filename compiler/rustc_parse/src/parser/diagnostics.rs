@@ -18,7 +18,8 @@ use crate::errors::{
     UseEqInstead,
 };
 
-use crate::lexer::UnmatchedBrace;
+use crate::fluent_generated as fluent;
+use crate::lexer::UnmatchedDelim;
 use crate::parser;
 use rustc_ast as ast;
 use rustc_ast::ptr::P;
@@ -32,10 +33,9 @@ use rustc_ast::{
 use rustc_ast_pretty::pprust;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_errors::{
-    fluent, Applicability, DiagnosticBuilder, DiagnosticMessage, FatalError, Handler, MultiSpan,
-    PResult,
+    pluralize, Applicability, Diagnostic, DiagnosticBuilder, DiagnosticMessage, ErrorGuaranteed,
+    FatalError, Handler, IntoDiagnostic, MultiSpan, PResult,
 };
-use rustc_errors::{pluralize, Diagnostic, ErrorGuaranteed, IntoDiagnostic};
 use rustc_session::errors::ExprParenthesesNeeded;
 use rustc_span::source_map::Spanned;
 use rustc_span::symbol::{kw, sym, Ident};
@@ -165,8 +165,6 @@ enum IsStandalone {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum IncOrDec {
     Inc,
-    // FIXME: `i--` recovery isn't implemented yet
-    #[allow(dead_code)]
     Dec,
 }
 
@@ -222,7 +220,7 @@ impl MultiSugg {
 /// is dropped.
 pub struct SnapshotParser<'a> {
     parser: Parser<'a>,
-    unclosed_delims: Vec<UnmatchedBrace>,
+    unclosed_delims: Vec<UnmatchedDelim>,
 }
 
 impl<'a> Deref for SnapshotParser<'a> {
@@ -264,7 +262,7 @@ impl<'a> Parser<'a> {
         self.unclosed_delims.extend(snapshot.unclosed_delims);
     }
 
-    pub fn unclosed_delims(&self) -> &[UnmatchedBrace] {
+    pub fn unclosed_delims(&self) -> &[UnmatchedDelim] {
         &self.unclosed_delims
     }
 
@@ -284,7 +282,7 @@ impl<'a> Parser<'a> {
         self.sess.source_map().span_to_snippet(span)
     }
 
-    pub(super) fn expected_ident_found(&self) -> DiagnosticBuilder<'a, ErrorGuaranteed> {
+    pub(super) fn expected_ident_found(&mut self) -> DiagnosticBuilder<'a, ErrorGuaranteed> {
         let valid_follow = &[
             TokenKind::Eq,
             TokenKind::Colon,
@@ -324,7 +322,61 @@ impl<'a> Parser<'a> {
             suggest_raw,
             suggest_remove_comma,
         };
-        err.into_diagnostic(&self.sess.span_diagnostic)
+        let mut err = err.into_diagnostic(&self.sess.span_diagnostic);
+
+        // if the token we have is a `<`
+        // it *might* be a misplaced generic
+        if self.token == token::Lt {
+            // all keywords that could have generic applied
+            let valid_prev_keywords =
+                [kw::Fn, kw::Type, kw::Struct, kw::Enum, kw::Union, kw::Trait];
+
+            // If we've expected an identifier,
+            // and the current token is a '<'
+            // if the previous token is a valid keyword
+            // that might use a generic, then suggest a correct
+            // generic placement (later on)
+            let maybe_keyword = self.prev_token.clone();
+            if valid_prev_keywords.into_iter().any(|x| maybe_keyword.is_keyword(x)) {
+                // if we have a valid keyword, attempt to parse generics
+                // also obtain the keywords symbol
+                match self.parse_generics() {
+                    Ok(generic) => {
+                        if let TokenKind::Ident(symbol, _) = maybe_keyword.kind {
+                            let ident_name = symbol;
+                            // at this point, we've found something like
+                            // `fn <T>id`
+                            // and current token should be Ident with the item name (i.e. the function name)
+                            // if there is a `<` after the fn name, then don't show a suggestion, show help
+
+                            if !self.look_ahead(1, |t| *t == token::Lt) &&
+                                let Ok(snippet) = self.sess.source_map().span_to_snippet(generic.span) {
+                                    err.multipart_suggestion_verbose(
+                                        format!("place the generic parameter name after the {ident_name} name"),
+                                        vec![
+                                            (self.token.span.shrink_to_hi(), snippet),
+                                            (generic.span, String::new())
+                                        ],
+                                        Applicability::MaybeIncorrect,
+                                    );
+                                } else {
+                                    err.help(format!(
+                                        "place the generic parameter name after the {ident_name} name"
+                                    ));
+                                }
+                        }
+                    }
+                    Err(err) => {
+                        // if there's an error parsing the generics,
+                        // then don't do a misplaced generics suggestion
+                        // and emit the expected ident error instead;
+                        err.cancel();
+                    }
+                }
+            }
+        }
+
+        err
     }
 
     pub(super) fn expected_one_of_not_found(
@@ -639,7 +691,7 @@ impl<'a> Parser<'a> {
                 span: self.prev_token.span.shrink_to_lo(),
                 tokens: None,
             };
-            let struct_expr = snapshot.parse_struct_expr(None, path, false);
+            let struct_expr = snapshot.parse_expr_struct(None, path, false);
             let block_tail = self.parse_block_tail(lo, s, AttemptLocalParseRecovery::No);
             return Some(match (struct_expr, block_tail) {
                 (Ok(expr), Err(mut err)) => {
@@ -654,7 +706,7 @@ impl<'a> Parser<'a> {
                     err.delay_as_bug();
                     self.restore_snapshot(snapshot);
                     let mut tail = self.mk_block(
-                        vec![self.mk_stmt_err(expr.span)],
+                        thin_vec![self.mk_stmt_err(expr.span)],
                         s,
                         lo.to(self.prev_token.span),
                     );
@@ -1303,6 +1355,20 @@ impl<'a> Parser<'a> {
         self.recover_from_inc_dec(operand_expr, kind, op_span)
     }
 
+    pub(super) fn recover_from_postfix_decrement(
+        &mut self,
+        operand_expr: P<Expr>,
+        op_span: Span,
+        start_stmt: bool,
+    ) -> PResult<'a, P<Expr>> {
+        let kind = IncDecRecovery {
+            standalone: if start_stmt { IsStandalone::Standalone } else { IsStandalone::Subexpr },
+            op: IncOrDec::Dec,
+            fixity: UnaryFixity::Post,
+        };
+        self.recover_from_inc_dec(operand_expr, kind, op_span)
+    }
+
     fn recover_from_inc_dec(
         &mut self,
         base: P<Expr>,
@@ -1570,7 +1636,7 @@ impl<'a> Parser<'a> {
             // Handle `await { <expr> }`.
             // This needs to be handled separately from the next arm to avoid
             // interpreting `await { <expr> }?` as `<expr>?.await`.
-            self.parse_block_expr(None, self.token.span, BlockCheckMode::Default)
+            self.parse_expr_block(None, self.token.span, BlockCheckMode::Default)
         } else {
             self.parse_expr()
         }
@@ -2030,7 +2096,7 @@ impl<'a> Parser<'a> {
     }
 
     pub(super) fn recover_arg_parse(&mut self) -> PResult<'a, (P<ast::Pat>, P<ast::Ty>)> {
-        let pat = self.parse_pat_no_top_alt(Some("argument name"))?;
+        let pat = self.parse_pat_no_top_alt(Some(Expected::ArgumentName))?;
         self.expect(&token::Colon)?;
         let ty = self.parse_ty()?;
 
@@ -2121,7 +2187,7 @@ impl<'a> Parser<'a> {
     /// the parameters are *names* (so we don't emit errors about not being able to find `b` in
     /// the local scope), but if we find the same name multiple times, like in `fn foo(i8, i8)`,
     /// we deduplicate them to not complain about duplicated parameter names.
-    pub(super) fn deduplicate_recovered_params_names(&self, fn_inputs: &mut Vec<Param>) {
+    pub(super) fn deduplicate_recovered_params_names(&self, fn_inputs: &mut ThinVec<Param>) {
         let mut seen_inputs = FxHashSet::default();
         for input in fn_inputs.iter_mut() {
             let opt_ident = if let (PatKind::Ident(_, ident, _), TyKind::Err) =
@@ -2145,7 +2211,7 @@ impl<'a> Parser<'a> {
     /// like the user has forgotten them.
     pub fn handle_ambiguous_unbraced_const_arg(
         &mut self,
-        args: &mut Vec<AngleBracketedArg>,
+        args: &mut ThinVec<AngleBracketedArg>,
     ) -> PResult<'a, bool> {
         // If we haven't encountered a closing `>`, then the argument is malformed.
         // It's likely that the user has written a const expression without enclosing it
@@ -2353,6 +2419,28 @@ impl<'a> Parser<'a> {
         Err(err)
     }
 
+    /// Try to recover from an unbraced const argument whose first token [could begin a type][ty].
+    ///
+    /// [ty]: token::Token::can_begin_type
+    pub(crate) fn recover_unbraced_const_arg_that_can_begin_ty(
+        &mut self,
+        mut snapshot: SnapshotParser<'a>,
+    ) -> Option<P<ast::Expr>> {
+        match snapshot.parse_expr_res(Restrictions::CONST_EXPR, None) {
+            // Since we don't know the exact reason why we failed to parse the type or the
+            // expression, employ a simple heuristic to weed out some pathological cases.
+            Ok(expr) if let token::Comma | token::Gt = snapshot.token.kind => {
+                self.restore_snapshot(snapshot);
+                Some(expr)
+            }
+            Ok(_) => None,
+            Err(err) => {
+                err.cancel();
+                None
+            }
+        }
+    }
+
     /// Creates a dummy const argument, and reports that the expression must be enclosed in braces
     pub fn dummy_const_arg_needs_braces(
         &self,
@@ -2375,7 +2463,7 @@ impl<'a> Parser<'a> {
     pub(crate) fn maybe_recover_colon_colon_in_pat_typo(
         &mut self,
         mut first_pat: P<Pat>,
-        expected: Expected,
+        expected: Option<Expected>,
     ) -> P<Pat> {
         if token::Colon != self.token.kind {
             return first_pat;
@@ -2383,26 +2471,42 @@ impl<'a> Parser<'a> {
         if !matches!(first_pat.kind, PatKind::Ident(_, _, None) | PatKind::Path(..))
             || !self.look_ahead(1, |token| token.is_ident() && !token.is_reserved_ident())
         {
+            let mut snapshot_type = self.create_snapshot_for_diagnostic();
+            snapshot_type.bump(); // `:`
+            match snapshot_type.parse_ty() {
+                Err(inner_err) => {
+                    inner_err.cancel();
+                }
+                Ok(ty) => {
+                    let Err(mut err) = self.expected_one_of_not_found(&[], &[]) else {
+                        return first_pat;
+                    };
+                    err.span_label(ty.span, "specifying the type of a pattern isn't supported");
+                    self.restore_snapshot(snapshot_type);
+                    let span = first_pat.span.to(ty.span);
+                    first_pat = self.mk_pat(span, PatKind::Wild);
+                    err.emit();
+                }
+            }
             return first_pat;
         }
         // The pattern looks like it might be a path with a `::` -> `:` typo:
         // `match foo { bar:baz => {} }`
-        let span = self.token.span;
+        let colon_span = self.token.span;
         // We only emit "unexpected `:`" error here if we can successfully parse the
         // whole pattern correctly in that case.
-        let snapshot = self.create_snapshot_for_diagnostic();
+        let mut snapshot_pat = self.create_snapshot_for_diagnostic();
+        let mut snapshot_type = self.create_snapshot_for_diagnostic();
 
         // Create error for "unexpected `:`".
         match self.expected_one_of_not_found(&[], &[]) {
             Err(mut err) => {
-                self.bump(); // Skip the `:`.
-                match self.parse_pat_no_top_alt(expected) {
+                // Skip the `:`.
+                snapshot_pat.bump();
+                snapshot_type.bump();
+                match snapshot_pat.parse_pat_no_top_alt(expected) {
                     Err(inner_err) => {
-                        // Carry on as if we had not done anything, callers will emit a
-                        // reasonable error.
                         inner_err.cancel();
-                        err.cancel();
-                        self.restore_snapshot(snapshot);
                     }
                     Ok(mut pat) => {
                         // We've parsed the rest of the pattern.
@@ -2466,8 +2570,8 @@ impl<'a> Parser<'a> {
                             _ => {}
                         }
                         if show_sugg {
-                            err.span_suggestion(
-                                span,
+                            err.span_suggestion_verbose(
+                                colon_span.until(self.look_ahead(1, |t| t.span)),
                                 "maybe write a path separator here",
                                 "::",
                                 Applicability::MaybeIncorrect,
@@ -2475,13 +2579,24 @@ impl<'a> Parser<'a> {
                         } else {
                             first_pat = self.mk_pat(new_span, PatKind::Wild);
                         }
-                        err.emit();
+                        self.restore_snapshot(snapshot_pat);
                     }
                 }
+                match snapshot_type.parse_ty() {
+                    Err(inner_err) => {
+                        inner_err.cancel();
+                    }
+                    Ok(ty) => {
+                        err.span_label(ty.span, "specifying the type of a pattern isn't supported");
+                        self.restore_snapshot(snapshot_type);
+                        let new_span = first_pat.span.to(ty.span);
+                        first_pat = self.mk_pat(new_span, PatKind::Wild);
+                    }
+                }
+                err.emit();
             }
             _ => {
                 // Carry on as if we had not done anything. This should be unreachable.
-                self.restore_snapshot(snapshot);
             }
         };
         first_pat

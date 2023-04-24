@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::parser::{get_subtag_iterator, ParserError};
+use crate::parser::{ParserError, SubtagIterator};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::RangeInclusive;
@@ -16,20 +16,18 @@ use tinystr::TinyAsciiStr;
 /// Each part of the sequence has to be no shorter than three characters and no
 /// longer than 8.
 ///
-///
 /// # Examples
 ///
 /// ```
 /// use icu::locid::extensions::transform::Value;
 ///
-/// let value1: Value = "hybrid".parse().expect("Failed to parse a Value.");
-/// let value2: Value =
-///     "hybrid-foobar".parse().expect("Failed to parse a Value.");
+/// "hybrid".parse::<Value>().expect("Valid Value.");
 ///
-/// assert_eq!(&value1.to_string(), "hybrid");
-/// assert_eq!(&value2.to_string(), "hybrid-foobar");
+/// "hybrid-foobar".parse::<Value>().expect("Valid Value.");
+///
+/// "no".parse::<Value>().expect_err("Invalid Value.");
 /// ```
-#[derive(Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord, Default)]
 pub struct Value(Vec<TinyAsciiStr<{ *TYPE_LENGTH.end() }>>);
 
 const TYPE_LENGTH: RangeInclusive<usize> = 3..=8;
@@ -45,14 +43,12 @@ impl Value {
     /// use icu::locid::extensions::transform::Value;
     ///
     /// let value = Value::try_from_bytes(b"hybrid").expect("Parsing failed.");
-    ///
-    /// assert_eq!(&value.to_string(), "hybrid");
     /// ```
     pub fn try_from_bytes(input: &[u8]) -> Result<Self, ParserError> {
         let mut v = vec![];
         let mut has_value = false;
 
-        for subtag in get_subtag_iterator(input) {
+        for subtag in SubtagIterator::new(input) {
             if !Self::is_type_subtag(subtag) {
                 return Err(ParserError::InvalidExtension);
             }
@@ -116,4 +112,19 @@ impl FromStr for Value {
     }
 }
 
-impl_writeable_for_tinystr_list!(Value, "true", "hybrid", "foobar");
+impl_writeable_for_each_subtag_str_no_test!(Value, selff, selff.0.is_empty() => alloc::borrow::Cow::Borrowed("true"));
+
+#[test]
+fn test_writeable() {
+    use writeable::assert_writeable_eq;
+
+    let hybrid = "hybrid".parse().unwrap();
+    let foobar = "foobar".parse().unwrap();
+
+    assert_writeable_eq!(Value::default(), "true");
+    assert_writeable_eq!(Value::from_vec_unchecked(vec![hybrid]), "hybrid");
+    assert_writeable_eq!(
+        Value::from_vec_unchecked(vec![hybrid, foobar]),
+        "hybrid-foobar"
+    );
+}

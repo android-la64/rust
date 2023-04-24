@@ -14,6 +14,7 @@ use generated_code::{Context, MInst, RegisterClass};
 use super::{is_int_or_ref_ty, is_mergeable_load, lower_to_amode};
 use crate::ir::LibCall;
 use crate::isa::x64::lower::emit_vm_call;
+use crate::isa::x64::X64Backend;
 use crate::{
     ir::{
         condcodes::{CondCode, FloatCC, IntCC},
@@ -22,16 +23,14 @@ use crate::{
         Inst, InstructionData, MemFlags, Opcode, TrapCode, Value, ValueList,
     },
     isa::{
-        settings::Flags,
         unwind::UnwindInst,
         x64::{
             abi::X64Caller,
             inst::{args::*, regs, CallInfo},
-            settings::Flags as IsaFlags,
         },
     },
     machinst::{
-        isle::*, valueregs, ArgPair, InsnInput, InsnOutput, Lower, MachAtomicRmwOp, MachInst,
+        isle::*, valueregs, ArgPair, InsnInput, InstOutput, Lower, MachAtomicRmwOp, MachInst,
         VCodeConstant, VCodeConstantData,
     },
 };
@@ -40,7 +39,6 @@ use regalloc2::PReg;
 use smallvec::SmallVec;
 use std::boxed::Box;
 use std::convert::TryFrom;
-use target_lexicon::Triple;
 
 type BoxCallInfo = Box<CallInfo>;
 type BoxVecMachLabel = Box<SmallVec<[MachLabel; 4]>>;
@@ -56,43 +54,28 @@ pub struct SinkableLoad {
 /// The main entry point for lowering with ISLE.
 pub(crate) fn lower(
     lower_ctx: &mut Lower<MInst>,
-    triple: &Triple,
-    flags: &Flags,
-    isa_flags: &IsaFlags,
-    outputs: &[InsnOutput],
+    backend: &X64Backend,
     inst: Inst,
-) -> Result<(), ()> {
-    lower_common(
-        lower_ctx,
-        triple,
-        flags,
-        isa_flags,
-        outputs,
-        inst,
-        |cx, insn| generated_code::constructor_lower(cx, insn),
-    )
+) -> Option<InstOutput> {
+    // TODO: reuse the ISLE context across lowerings so we can reuse its
+    // internal heap allocations.
+    let mut isle_ctx = IsleContext { lower_ctx, backend };
+    generated_code::constructor_lower(&mut isle_ctx, inst)
 }
 
 pub(crate) fn lower_branch(
     lower_ctx: &mut Lower<MInst>,
-    triple: &Triple,
-    flags: &Flags,
-    isa_flags: &IsaFlags,
+    backend: &X64Backend,
     branch: Inst,
     targets: &[MachLabel],
-) -> Result<(), ()> {
-    lower_common(
-        lower_ctx,
-        triple,
-        flags,
-        isa_flags,
-        &[],
-        branch,
-        |cx, insn| generated_code::constructor_lower_branch(cx, insn, targets),
-    )
+) -> Option<()> {
+    // TODO: reuse the ISLE context across lowerings so we can reuse its
+    // internal heap allocations.
+    let mut isle_ctx = IsleContext { lower_ctx, backend };
+    generated_code::constructor_lower_branch(&mut isle_ctx, branch, &targets.to_vec())
 }
 
-impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
+impl Context for IsleContext<'_, '_, MInst, X64Backend> {
     isle_lower_prelude_methods!();
     isle_prelude_caller_methods!(X64ABIMachineSpec, X64Caller);
 
@@ -204,52 +187,52 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
 
     #[inline]
     fn avx512vl_enabled(&mut self, _: Type) -> bool {
-        self.isa_flags.use_avx512vl_simd()
+        self.backend.x64_flags.use_avx512vl_simd()
     }
 
     #[inline]
     fn avx512dq_enabled(&mut self, _: Type) -> bool {
-        self.isa_flags.use_avx512dq_simd()
+        self.backend.x64_flags.use_avx512dq_simd()
     }
 
     #[inline]
     fn avx512f_enabled(&mut self, _: Type) -> bool {
-        self.isa_flags.use_avx512f_simd()
+        self.backend.x64_flags.use_avx512f_simd()
     }
 
     #[inline]
     fn avx512bitalg_enabled(&mut self, _: Type) -> bool {
-        self.isa_flags.use_avx512bitalg_simd()
+        self.backend.x64_flags.use_avx512bitalg_simd()
     }
 
     #[inline]
     fn avx512vbmi_enabled(&mut self, _: Type) -> bool {
-        self.isa_flags.use_avx512vbmi_simd()
+        self.backend.x64_flags.use_avx512vbmi_simd()
     }
 
     #[inline]
     fn use_lzcnt(&mut self, _: Type) -> bool {
-        self.isa_flags.use_lzcnt()
+        self.backend.x64_flags.use_lzcnt()
     }
 
     #[inline]
     fn use_bmi1(&mut self, _: Type) -> bool {
-        self.isa_flags.use_bmi1()
+        self.backend.x64_flags.use_bmi1()
     }
 
     #[inline]
     fn use_popcnt(&mut self, _: Type) -> bool {
-        self.isa_flags.use_popcnt()
+        self.backend.x64_flags.use_popcnt()
     }
 
     #[inline]
     fn use_fma(&mut self, _: Type) -> bool {
-        self.isa_flags.use_fma()
+        self.backend.x64_flags.use_fma()
     }
 
     #[inline]
     fn use_sse41(&mut self, _: Type) -> bool {
-        self.isa_flags.use_sse41()
+        self.backend.x64_flags.use_sse41()
     }
 
     #[inline]
@@ -334,11 +317,6 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         // Insert 32-bits from replacement (at index 00, bits 7:8) to vector (lane
         // shifted into bits 5:6).
         0b00_00_00_00 | lane << 4
-    }
-
-    #[inline]
-    fn xmm0(&mut self) -> WritableXmm {
-        WritableXmm::from_reg(Xmm::new(regs::xmm0()).unwrap())
     }
 
     #[inline]
@@ -640,6 +618,11 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         regs::rsp().to_real_reg().unwrap().into()
     }
 
+    #[inline]
+    fn preg_pinned(&mut self) -> PReg {
+        regs::pinned_reg().to_real_reg().unwrap().into()
+    }
+
     fn libcall_1(&mut self, libcall: &LibCall, a: Reg) -> Reg {
         let call_conv = self.lower_ctx.abi().call_conv(self.lower_ctx.sigs());
         let ret_ty = libcall.signature(call_conv).returns[0].value_type;
@@ -647,8 +630,8 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
 
         emit_vm_call(
             self.lower_ctx,
-            self.flags,
-            self.triple,
+            &self.backend.flags,
+            &self.backend.triple,
             libcall.clone(),
             &[a],
             &[output_reg],
@@ -665,8 +648,8 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
 
         emit_vm_call(
             self.lower_ctx,
-            self.flags,
-            self.triple,
+            &self.backend.flags,
+            &self.backend.triple,
             libcall.clone(),
             &[a, b, c],
             &[output_reg],
@@ -767,11 +750,6 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         ];
         self.lower_ctx
             .use_constant(VCodeConstantData::WellKnown(&UMAX_MASK))
-    }
-
-    #[inline]
-    fn pinned_writable_gpr(&mut self) -> WritableGpr {
-        Writable::from_reg(Gpr::new(regs::pinned_reg()).unwrap())
     }
 
     #[inline]
@@ -889,7 +867,7 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
         let dst_remainder = self.lower_ctx.alloc_tmp(types::I64).only_reg().unwrap();
 
         // Always do explicit checks for `srem`: otherwise, INT_MIN % -1 is not handled properly.
-        if self.flags.avoid_div_traps() || *kind == DivOrRemKind::SignedRem {
+        if self.backend.flags.avoid_div_traps() || *kind == DivOrRemKind::SignedRem {
             // A vcode meta-instruction is used to lower the inline checks, since they embed
             // pc-relative offsets that must not change, thus requiring regalloc to not
             // interfere by introducing spills and reloads.
@@ -985,18 +963,17 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
             ));
         } else {
             if size == OperandSize::Size8 {
+                let tmp = self.temp_writable_reg(ty);
                 // The remainder is in AH. Right-shift by 8 bits then move from rax.
                 self.lower_ctx.emit(MInst::shift_r(
                     OperandSize::Size64,
                     ShiftKind::ShiftRightLogical,
                     Imm8Gpr::new(Imm8Reg::Imm8 { imm: 8 }).unwrap(),
-                    dst_quotient,
-                ));
-                self.lower_ctx.emit(MInst::gen_move(
-                    dst.to_writable_reg(),
                     dst_quotient.to_reg(),
-                    ty,
+                    tmp,
                 ));
+                self.lower_ctx
+                    .emit(MInst::gen_move(dst.to_writable_reg(), tmp.to_reg(), ty));
             } else {
                 // The remainder is in rdx.
                 self.lower_ctx.emit(MInst::gen_move(
@@ -1009,7 +986,7 @@ impl Context for IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
     }
 }
 
-impl IsleContext<'_, '_, MInst, Flags, IsaFlags, 6> {
+impl IsleContext<'_, '_, MInst, X64Backend> {
     isle_prelude_method_helpers!(X64Caller);
 }
 

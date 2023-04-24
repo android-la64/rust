@@ -1092,7 +1092,7 @@ impl<T: ?Sized> Rc<T> {
     /// # Safety
     ///
     /// If any other `Rc` or [`Weak`] pointers to the same allocation exist, then
-    /// they must be must not be dereferenced or have active borrows for the duration
+    /// they must not be dereferenced or have active borrows for the duration
     /// of the returned borrow, and their inner type must be exactly the same as the
     /// inner type of this Rc (including lifetimes). This is trivially the case if no
     /// such pointers exist, for example immediately after `Rc::new`.
@@ -2145,7 +2145,7 @@ impl<T, I: iter::TrustedLen<Item = T>> ToRcSlice<T> for I {
                 Rc::from_iter_exact(self, low)
             }
         } else {
-            // TrustedLen contract guarantees that `upper_bound == `None` implies an iterator
+            // TrustedLen contract guarantees that `upper_bound == None` implies an iterator
             // length exceeding `usize::MAX`.
             // The default implementation would collect into a vec which would panic.
             // Thus we panic here immediately without invoking `Vec` code.

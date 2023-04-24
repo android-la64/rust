@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "libmimalloc-sys"
-version = "0.1.26"
+version = "0.1.30"
 authors = ["Octavian Oncescu <octavonce@gmail.com>"]
 links = "mimalloc"
 description = "Sys crate wrapping the mimalloc allocator"
@@ -34,6 +34,9 @@ features = ["extended"]
 [dependencies.cty]
 version = "0.2"
 optional = true
+
+[dependencies.libc]
+version = "0.2"
 
 [build-dependencies.cc]
 version = "1.0"

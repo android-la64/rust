@@ -73,8 +73,8 @@ pub(crate) struct InstructionContent {
     pub can_trap: bool,
     /// Does this instruction have other side effects besides can_* flags?
     pub other_side_effects: bool,
-    /// Does this instruction write to CPU flags?
-    pub writes_cpu_flags: bool,
+    /// Despite having other side effects, is this instruction okay to GVN?
+    pub side_effects_okay_for_gvn: bool,
 }
 
 impl InstructionContent {
@@ -135,6 +135,7 @@ pub(crate) struct InstructionBuilder {
     can_store: bool,
     can_trap: bool,
     other_side_effects: bool,
+    side_effects_okay_for_gvn: bool,
 }
 
 impl InstructionBuilder {
@@ -154,6 +155,7 @@ impl InstructionBuilder {
             can_store: false,
             can_trap: false,
             other_side_effects: false,
+            side_effects_okay_for_gvn: false,
         }
     }
 
@@ -213,6 +215,11 @@ impl InstructionBuilder {
         self
     }
 
+    pub fn side_effects_okay_for_gvn(mut self, val: bool) -> Self {
+        self.side_effects_okay_for_gvn = val;
+        self
+    }
+
     fn build(self) -> Instruction {
         let operands_in = self.operands_in.unwrap_or_else(Vec::new);
         let operands_out = self.operands_out.unwrap_or_else(Vec::new);
@@ -240,9 +247,6 @@ impl InstructionBuilder {
         let polymorphic_info =
             verify_polymorphic(&operands_in, &operands_out, &self.format, &value_opnums);
 
-        // Infer from output operands whether an instruction clobbers CPU flags or not.
-        let writes_cpu_flags = operands_out.iter().any(|op| op.is_cpu_flags());
-
         let camel_name = camel_case(&self.name);
 
         Rc::new(InstructionContent {
@@ -264,7 +268,7 @@ impl InstructionBuilder {
             can_store: self.can_store,
             can_trap: self.can_trap,
             other_side_effects: self.other_side_effects,
-            writes_cpu_flags,
+            side_effects_okay_for_gvn: self.side_effects_okay_for_gvn,
         })
     }
 }

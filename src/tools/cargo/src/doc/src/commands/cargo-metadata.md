@@ -2,7 +2,7 @@
 
 ## NAME
 
-cargo-metadata - Machine-readable metadata about the current package
+cargo-metadata --- Machine-readable metadata about the current package
 
 ## SYNOPSIS
 
@@ -300,7 +300,7 @@ The output has the following format:
 <dl>
 
 <dt class="option-term" id="option-cargo-metadata---no-deps"><a class="option-anchor" href="#option-cargo-metadata---no-deps"></a><code>--no-deps</code></dt>
-<dd class="option-desc">Output information only about the workspace members and don't fetch
+<dd class="option-desc">Output information only about the workspace members and don’t fetch
 dependencies.</dd>
 
 
@@ -311,8 +311,9 @@ possible value.</dd>
 
 <dt class="option-term" id="option-cargo-metadata---filter-platform"><a class="option-anchor" href="#option-cargo-metadata---filter-platform"></a><code>--filter-platform</code> <em>triple</em></dt>
 <dd class="option-desc">This filters the <code>resolve</code> output to only include dependencies for the
-given target triple. Without this flag, the resolve includes all targets.</p>
-<p>Note that the dependencies listed in the &quot;packages&quot; array still includes all
+given <a href="../appendix/glossary.html#target">target triple</a>. 
+Without this flag, the resolve includes all targets.</p>
+<p>Note that the dependencies listed in the “packages” array still includes all
 dependencies. Each package definition is intended to be an unaltered
 reproduction of the information within <code>Cargo.toml</code>.</dd>
 
@@ -353,7 +354,7 @@ be specified multiple times, which enables all specified features.</dd>
 <dl>
 <dt class="option-term" id="option-cargo-metadata--v"><a class="option-anchor" href="#option-cargo-metadata--v"></a><code>-v</code></dt>
 <dt class="option-term" id="option-cargo-metadata---verbose"><a class="option-anchor" href="#option-cargo-metadata---verbose"></a><code>--verbose</code></dt>
-<dd class="option-desc">Use verbose output. May be specified twice for &quot;very verbose&quot; output which
+<dd class="option-desc">Use verbose output. May be specified twice for “very verbose” output which
 includes extra output such as dependency warnings and build script output.
 May also be specified with the <code>term.verbose</code>
 <a href="../reference/config.html">config value</a>.</dd>
@@ -431,6 +432,16 @@ for more information about how toolchain overrides work.</dd>
 <dd class="option-desc">Overrides a Cargo configuration value. The argument should be in TOML syntax of <code>KEY=VALUE</code>,
 or provided as a path to an extra configuration file. This flag may be specified multiple times.
 See the <a href="../reference/config.html#command-line-overrides">command-line overrides section</a> for more information.</dd>
+
+
+<dt class="option-term" id="option-cargo-metadata--C"><a class="option-anchor" href="#option-cargo-metadata--C"></a><code>-C</code> <em>PATH</em></dt>
+<dd class="option-desc">Changes the current working directory before executing any specified operations. This affects
+things like where cargo looks by default for the project manifest (<code>Cargo.toml</code>), as well as
+the directories searched for discovering <code>.cargo/config.toml</code>, for example.</p>
+<p>This option is only available on the <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">nightly
+channel</a> and
+requires the <code>-Z unstable-options</code> flag to enable (see
+<a href="https://github.com/rust-lang/cargo/issues/10098">#10098</a>).</dd>
 
 
 <dt class="option-term" id="option-cargo-metadata--h"><a class="option-anchor" href="#option-cargo-metadata--h"></a><code>-h</code></dt>

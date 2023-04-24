@@ -61,18 +61,6 @@ impl Layout {
         self.last_block = None;
     }
 
-    /// Clear instructions from every block, but keep the blocks.
-    ///
-    /// Used by the egraph-based optimization to clear out the
-    /// function body but keep the CFG skeleton.
-    pub(crate) fn clear_insts(&mut self) {
-        self.insts.clear();
-        for block in self.blocks.values_mut() {
-            block.first_inst = None.into();
-            block.last_inst = None.into();
-        }
-    }
-
     /// Returns the capacity of the `BlockData` map.
     pub fn block_capacity(&self) -> usize {
         self.blocks.capacity()
@@ -612,7 +600,7 @@ impl Layout {
         // If two, the former is conditional and the latter is unconditional.
         let last = self.last_inst(block)?;
         if let Some(prev) = self.prev_inst(last) {
-            if dfg[prev].opcode().is_branch() {
+            if dfg.insts[prev].opcode().is_branch() {
                 return Some(prev);
             }
         }

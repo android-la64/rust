@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.59"
 name = "xshell-macros"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 description = "Private implementation detail of xshell crate"
 license = "MIT OR Apache-2.0"

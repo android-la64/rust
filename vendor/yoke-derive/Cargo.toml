@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "yoke-derive"
-version = "0.6.1"
+version = "0.7.0"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Custom derive for the yoke crate"
 keywords = [
@@ -31,6 +31,9 @@ categories = [
 license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
 resolver = "2"
+
+[package.metadata.workspaces]
+independent = true
 
 [lib]
 path = "src/lib.rs"
@@ -52,10 +55,4 @@ features = [
 [dependencies.synstructure]
 version = "0.12.4"
 
-[dev-dependencies.yoke]
-version = "0.6.0"
-features = ["derive"]
-
-[dev-dependencies.zerovec]
-version = "0.9"
-features = ["yoke"]
+[dev-dependencies]

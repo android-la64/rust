@@ -623,7 +623,7 @@ where
         initialized: 0,
     };
     unsafe {
-        for (idx, value_ptr) in (&mut *array.as_mut_ptr()).iter_mut().enumerate() {
+        for (idx, value_ptr) in (*array.as_mut_ptr()).iter_mut().enumerate() {
             core::ptr::write(value_ptr, cb(idx)?);
             guard.initialized += 1;
         }
@@ -837,7 +837,7 @@ where
 impl<'a> Arbitrary<'a> for &'a str {
     fn arbitrary(u: &mut Unstructured<'a>) -> Result<Self> {
         let size = u.arbitrary_len::<u8>()?;
-        match str::from_utf8(&u.peek_bytes(size).unwrap()) {
+        match str::from_utf8(u.peek_bytes(size).unwrap()) {
             Ok(s) => {
                 u.bytes(size).unwrap();
                 Ok(s)
@@ -856,9 +856,7 @@ impl<'a> Arbitrary<'a> for &'a str {
 
     fn arbitrary_take_rest(u: Unstructured<'a>) -> Result<Self> {
         let bytes = u.take_rest();
-        str::from_utf8(bytes)
-            .map_err(|_| Error::IncorrectFormat)
-            .map(Into::into)
+        str::from_utf8(bytes).map_err(|_| Error::IncorrectFormat)
     }
 
     #[inline]
@@ -1294,3 +1292,51 @@ mod test {
         assert_eq!((1, None), <(u8, Vec<u8>) as Arbitrary>::size_hint(0));
     }
 }
+
+/// Multiple conflicting arbitrary attributes are used on the same field:
+/// ```compile_fail
+/// #[derive(::arbitrary::Arbitrary)]
+/// struct Point {
+///     #[arbitrary(value = 2)]
+///     #[arbitrary(value = 2)]
+///     x: i32,
+/// }
+/// ```
+///
+/// An unknown attribute:
+/// ```compile_fail
+/// #[derive(::arbitrary::Arbitrary)]
+/// struct Point {
+///     #[arbitrary(unknown_attr)]
+///     x: i32,
+/// }
+/// ```
+///
+/// An unknown attribute with a value:
+/// ```compile_fail
+/// #[derive(::arbitrary::Arbitrary)]
+/// struct Point {
+///     #[arbitrary(unknown_attr = 13)]
+///     x: i32,
+/// }
+/// ```
+///
+/// `value` without RHS:
+/// ```compile_fail
+/// #[derive(::arbitrary::Arbitrary)]
+/// struct Point {
+///     #[arbitrary(value)]
+///     x: i32,
+/// }
+/// ```
+///
+/// `with` without RHS:
+/// ```compile_fail
+/// #[derive(::arbitrary::Arbitrary)]
+/// struct Point {
+///     #[arbitrary(with)]
+///     x: i32,
+/// }
+/// ```
+#[cfg(all(doctest, feature = "derive"))]
+pub struct CompileFailTests;

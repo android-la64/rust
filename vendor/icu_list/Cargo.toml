@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "icu_list"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["The ICU4X Project Developers"]
 include = [
     "src/**/*",
@@ -30,30 +30,30 @@ license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
 resolver = "2"
 
-[lib]
-path = "src/lib.rs"
+[package.metadata.docs.rs]
+all-features = true
+
+[package.metadata.cargo-all-features]
+denylist = ["bench"]
 
 [[example]]
 name = "and_list"
 
 [dependencies.databake]
-version = "0.1.0"
+version = "0.1.3"
 features = ["derive"]
 optional = true
 
 [dependencies.deduplicating_array]
-version = "0.1"
+version = "0.1.3"
 optional = true
 
 [dependencies.displaydoc]
 version = "0.2.3"
 default-features = false
 
-[dependencies.icu_locid]
-version = "1.0.0"
-
 [dependencies.icu_provider]
-version = "1.0.0"
+version = "1.1.0"
 features = ["macros"]
 
 [dependencies.regex-automata]
@@ -70,17 +70,7 @@ optional = true
 default-features = false
 
 [dependencies.writeable]
-version = "0.5"
-
-[dependencies.zerovec]
-version = "0.9"
-features = ["yoke"]
-
-[dev-dependencies.criterion]
-version = "0.3.3"
-
-[dev-dependencies.icu_benchmark_macros]
-version = "0.7"
+version = "0.5.1"
 
 [dev-dependencies.postcard]
 version = "1.0.0"
@@ -94,21 +84,16 @@ bench = []
 datagen = [
     "serde",
     "std",
-    "databake",
+    "dep:databake",
+    "regex-automata/alloc",
 ]
 serde = [
+    "dep:deduplicating_array",
     "dep:serde",
     "icu_provider/serde",
-    "zerovec/serde",
-    "deduplicating_array",
 ]
 serde_human = [
     "serde",
     "regex-automata/alloc",
 ]
-std = [
-    "icu_provider/std",
-    "icu_locid/std",
-    "regex-automata/std",
-    "regex-automata/alloc",
-]
+std = ["icu_provider/std"]

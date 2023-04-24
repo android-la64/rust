@@ -104,7 +104,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
         });
     }
 
-    pub fn normalize<T: TypeFoldable<'tcx>>(
+    pub fn normalize<T: TypeFoldable<TyCtxt<'tcx>>>(
         &self,
         cause: &ObligationCause<'tcx>,
         param_env: ty::ParamEnv<'tcx>,
@@ -128,6 +128,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
     {
         self.infcx
             .at(cause, param_env)
+            .define_opaque_types(true)
             .eq_exp(a_is_expected, a, b)
             .map(|infer_ok| self.register_infer_ok_obligations(infer_ok))
     }
@@ -141,6 +142,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
     ) -> Result<(), TypeError<'tcx>> {
         self.infcx
             .at(cause, param_env)
+            .define_opaque_types(true)
             .eq(expected, actual)
             .map(|infer_ok| self.register_infer_ok_obligations(infer_ok))
     }
@@ -155,6 +157,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
     ) -> Result<(), TypeError<'tcx>> {
         self.infcx
             .at(cause, param_env)
+            .define_opaque_types(true)
             .sup(expected, actual)
             .map(|infer_ok| self.register_infer_ok_obligations(infer_ok))
     }
@@ -169,6 +172,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
     ) -> Result<(), TypeError<'tcx>> {
         self.infcx
             .at(cause, param_env)
+            .define_opaque_types(true)
             .sup(expected, actual)
             .map(|infer_ok| self.register_infer_ok_obligations(infer_ok))
     }
@@ -190,8 +194,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
         let tcx = self.infcx.tcx;
         let assumed_wf_types = tcx.assumed_wf_types(def_id);
         let mut implied_bounds = FxIndexSet::default();
-        let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
-        let cause = ObligationCause::misc(span, hir_id);
+        let cause = ObligationCause::misc(span, def_id);
         for ty in assumed_wf_types {
             // FIXME(@lcnr): rustc currently does not check wf for types
             // pre-normalization, meaning that implied bounds are sometimes
@@ -217,7 +220,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
         answer: T,
     ) -> Fallible<CanonicalQueryResponse<'tcx, T>>
     where
-        T: Debug + TypeFoldable<'tcx>,
+        T: Debug + TypeFoldable<TyCtxt<'tcx>>,
         Canonical<'tcx, QueryResponse<'tcx, T>>: ArenaAllocatable<'tcx>,
     {
         self.infcx.make_canonicalized_query_response(

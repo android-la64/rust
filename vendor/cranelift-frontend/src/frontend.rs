@@ -8,10 +8,10 @@ use cranelift_codegen::ir;
 use cranelift_codegen::ir::condcodes::IntCC;
 use cranelift_codegen::ir::{
     types, AbiParam, Block, DataFlowGraph, DynamicStackSlot, DynamicStackSlotData, ExtFuncData,
-    ExternalName, FuncRef, Function, GlobalValue, GlobalValueData, Heap, HeapData, Inst,
-    InstBuilder, InstBuilderBase, InstructionData, JumpTable, JumpTableData, LibCall, MemFlags,
-    RelSourceLoc, SigRef, Signature, StackSlot, StackSlotData, Type, Value, ValueLabel,
-    ValueLabelAssignments, ValueLabelStart,
+    ExternalName, FuncRef, Function, GlobalValue, GlobalValueData, Inst, InstBuilder,
+    InstBuilderBase, InstructionData, JumpTable, JumpTableData, LibCall, MemFlags, RelSourceLoc,
+    SigRef, Signature, StackSlot, StackSlotData, Type, Value, ValueLabel, ValueLabelAssignments,
+    ValueLabelStart,
 };
 use cranelift_codegen::isa::TargetFrontendConfig;
 use cranelift_codegen::packed_option::PackedOption;
@@ -512,11 +512,6 @@ impl<'a> FunctionBuilder<'a> {
         self.func.create_global_value(data)
     }
 
-    /// Declares a heap accessible to the function.
-    pub fn create_heap(&mut self, data: HeapData) -> Heap {
-        self.func.create_heap(data)
-    }
-
     /// Returns an object with the [`InstBuilder`](cranelift_codegen::ir::InstBuilder)
     /// trait that allows to conveniently append an instruction to the current `Block` being built.
     pub fn ins<'short>(&'short mut self) -> FuncInstBuilder<'short, 'a> {
@@ -596,10 +591,11 @@ impl<'a> FunctionBuilder<'a> {
         }
     }
 
-    /// Declare that translation of the current function is complete. This
-    /// resets the state of the `FunctionBuilder` in preparation to be used
-    /// for another function.
-    pub fn finalize(&mut self) {
+    /// Declare that translation of the current function is complete.
+    ///
+    /// This resets the state of the `FunctionBuilderContext` in preparation to
+    /// be used for another function.
+    pub fn finalize(self) {
         // Check that all the `Block`s are filled and sealed.
         #[cfg(debug_assertions)]
         {
@@ -637,10 +633,6 @@ impl<'a> FunctionBuilder<'a> {
         // Clear the state (but preserve the allocated buffers) in preparation
         // for translation another function.
         self.func_ctx.clear();
-
-        // Reset srcloc and position to initial states.
-        self.srcloc = Default::default();
-        self.position = Default::default();
     }
 }
 
@@ -684,7 +676,7 @@ impl<'a> FunctionBuilder<'a> {
     /// **Note:** You are responsible for maintaining the coherence with the arguments of
     /// other jump instructions.
     pub fn change_jump_destination(&mut self, inst: Inst, new_dest: Block) {
-        let old_dest = self.func.dfg[inst]
+        let old_dest = self.func.dfg.insts[inst]
             .branch_destination_mut()
             .expect("you want to change the jump destination of a non-jump instruction");
         self.func_ctx.ssa.remove_block_predecessor(*old_dest, inst);

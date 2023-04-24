@@ -140,11 +140,6 @@ impl DataKeyPath {
     /// Gets the path as a static string slice.
     #[inline]
     pub const fn get(self) -> &'static str {
-        /// core::slice::from_raw_parts(a, b) = core::mem::transmute((a, b)) hack
-        /// ```compile_fail
-        /// const unsafe fn canary() { core::slice::from_raw_parts(0 as *const u8, 0); }
-        /// ```
-        const _: () = ();
         unsafe {
             // Safe due to invariant that self.path is tagged correctly
             core::str::from_utf8_unchecked(core::mem::transmute((
@@ -624,7 +619,6 @@ fn test_key_to_string() {
             expected: "core/cardinal@65535",
         },
     ] {
-        assert_eq!(cas.expected, cas.key.to_string());
         writeable::assert_writeable_eq!(&cas.key, cas.expected);
     }
 }

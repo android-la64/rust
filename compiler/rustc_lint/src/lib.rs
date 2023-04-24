@@ -63,7 +63,9 @@ mod late;
 mod let_underscore;
 mod levels;
 mod lints;
+mod map_unit_fn;
 mod methods;
+mod multiple_supertrait_upcastable;
 mod non_ascii_idents;
 mod non_fmt_panic;
 mod nonstandard_style;
@@ -79,8 +81,10 @@ mod unused;
 pub use array_into_iter::ARRAY_INTO_ITER;
 
 use rustc_ast as ast;
+use rustc_errors::{DiagnosticMessage, SubdiagnosticMessage};
 use rustc_hir as hir;
 use rustc_hir::def_id::LocalDefId;
+use rustc_macros::fluent_messages;
 use rustc_middle::ty::query::Providers;
 use rustc_middle::ty::TyCtxt;
 use rustc_session::lint::builtin::{
@@ -97,7 +101,9 @@ use for_loops_over_fallibles::*;
 use hidden_unicode_codepoints::*;
 use internal::*;
 use let_underscore::*;
+use map_unit_fn::*;
 use methods::*;
+use multiple_supertrait_upcastable::*;
 use non_ascii_idents::*;
 use non_fmt_panic::NonPanicFmt;
 use nonstandard_style::*;
@@ -119,6 +125,8 @@ pub use passes::{EarlyLintPass, LateLintPass};
 pub use rustc_session::lint::Level::{self, *};
 pub use rustc_session::lint::{BufferedEarlyLint, FutureIncompatibleInfo, Lint, LintId};
 pub use rustc_session::lint::{LintArray, LintPass};
+
+fluent_messages! { "../locales/en-US.ftl" }
 
 pub fn provide(providers: &mut Providers) {
     levels::provide(providers);
@@ -232,6 +240,8 @@ late_lint_methods!(
             InvalidAtomicOrdering: InvalidAtomicOrdering,
             NamedAsmLabels: NamedAsmLabels,
             OpaqueHiddenInferredBound: OpaqueHiddenInferredBound,
+            MultipleSupertraitUpcastable: MultipleSupertraitUpcastable,
+            MapUnitFn: MapUnitFn,
         ]
     ]
 );
@@ -291,7 +301,8 @@ fn register_builtins(store: &mut LintStore) {
         UNUSED_LABELS,
         UNUSED_PARENS,
         UNUSED_BRACES,
-        REDUNDANT_SEMICOLONS
+        REDUNDANT_SEMICOLONS,
+        MAP_UNIT_FN
     );
 
     add_lint_group!("let_underscore", LET_UNDERSCORE_DROP, LET_UNDERSCORE_LOCK);
@@ -321,7 +332,6 @@ fn register_builtins(store: &mut LintStore) {
     store.register_renamed("exceeding_bitshifts", "arithmetic_overflow");
     store.register_renamed("redundant_semicolon", "redundant_semicolons");
     store.register_renamed("overlapping_patterns", "overlapping_range_endpoints");
-    store.register_renamed("safe_packed_borrows", "unaligned_references");
     store.register_renamed("disjoint_capture_migration", "rust_2021_incompatible_closure_captures");
     store.register_renamed("or_patterns_back_compat", "rust_2021_incompatible_or_patterns");
     store.register_renamed("non_fmt_panic", "non_fmt_panics");
@@ -483,6 +493,16 @@ fn register_builtins(store: &mut LintStore) {
         "const_err",
         "converted into hard error, see issue #71800 \
          <https://github.com/rust-lang/rust/issues/71800> for more information",
+    );
+    store.register_removed(
+        "safe_packed_borrows",
+        "converted into hard error, see issue #82523 \
+         <https://github.com/rust-lang/rust/issues/82523> for more information",
+    );
+    store.register_removed(
+        "unaligned_references",
+        "converted into hard error, see issue #82523 \
+         <https://github.com/rust-lang/rust/issues/82523> for more information",
     );
 }
 

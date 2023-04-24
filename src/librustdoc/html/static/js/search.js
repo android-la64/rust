@@ -112,7 +112,6 @@ function levenshtein(s1, s2) {
 }
 
 function initSearch(rawSearchIndex) {
-    const MAX_LEV_DISTANCE = 3;
     const MAX_RESULTS = 200;
     const NO_TYPE_FILTER = -1;
     /**
@@ -143,13 +142,11 @@ function initSearch(rawSearchIndex) {
     }
 
     function itemTypeFromName(typename) {
-        for (let i = 0, len = itemTypes.length; i < len; ++i) {
-            if (itemTypes[i] === typename) {
-                return i;
-            }
+        const index = itemTypes.findIndex(i => i === typename);
+        if (index < 0) {
+            throw ["Unknown type filter ", typename];
         }
-
-        throw new Error("Unknown type filter `" + typename + "`");
+        return index;
     }
 
     /**
@@ -167,21 +164,21 @@ function initSearch(rawSearchIndex) {
      */
     function getStringElem(query, parserState, isInGenerics) {
         if (isInGenerics) {
-            throw new Error("`\"` cannot be used in generics");
+            throw ["Unexpected ", "\"", " in generics"];
         } else if (query.literalSearch) {
-            throw new Error("Cannot have more than one literal search element");
+            throw ["Cannot have more than one literal search element"];
         } else if (parserState.totalElems - parserState.genericsElems > 0) {
-            throw new Error("Cannot use literal search when there is more than one element");
+            throw ["Cannot use literal search when there is more than one element"];
         }
         parserState.pos += 1;
         const start = parserState.pos;
         const end = getIdentEndPosition(parserState);
         if (parserState.pos >= parserState.length) {
-            throw new Error("Unclosed `\"`");
+            throw ["Unclosed ", "\""];
         } else if (parserState.userQuery[end] !== "\"") {
-            throw new Error(`Unexpected \`${parserState.userQuery[end]}\` in a string element`);
+            throw ["Unexpected ", parserState.userQuery[end], " in a string element"];
         } else if (start === end) {
-            throw new Error("Cannot have empty string element");
+            throw ["Cannot have empty string element"];
         }
         // To skip the quote at the end.
         parserState.pos += 1;
@@ -260,7 +257,7 @@ function initSearch(rawSearchIndex) {
             return;
         }
         if (query.literalSearch && parserState.totalElems - parserState.genericsElems > 0) {
-            throw new Error("You cannot have more than one element if you use quotes");
+            throw ["You cannot have more than one element if you use quotes"];
         }
         const pathSegments = name.split("::");
         if (pathSegments.length > 1) {
@@ -269,17 +266,17 @@ function initSearch(rawSearchIndex) {
 
                 if (pathSegment.length === 0) {
                     if (i === 0) {
-                        throw new Error("Paths cannot start with `::`");
+                        throw ["Paths cannot start with ", "::"];
                     } else if (i + 1 === len) {
-                        throw new Error("Paths cannot end with `::`");
+                        throw ["Paths cannot end with ", "::"];
                     }
-                    throw new Error("Unexpected `::::`");
+                    throw ["Unexpected ", "::::"];
                 }
             }
         }
         // In case we only have something like `<p>`, there is no name.
         if (pathSegments.length === 0 || (pathSegments.length === 1 && pathSegments[0] === "")) {
-            throw new Error("Found generics without a path");
+            throw ["Found generics without a path"];
         }
         parserState.totalElems += 1;
         if (isInGenerics) {
@@ -303,22 +300,23 @@ function initSearch(rawSearchIndex) {
      * @return {integer}
      */
     function getIdentEndPosition(parserState) {
+        const start = parserState.pos;
         let end = parserState.pos;
-        let foundExclamation = false;
+        let foundExclamation = -1;
         while (parserState.pos < parserState.length) {
             const c = parserState.userQuery[parserState.pos];
             if (!isIdentCharacter(c)) {
                 if (c === "!") {
-                    if (foundExclamation) {
-                        throw new Error("Cannot have more than one `!` in an ident");
+                    if (foundExclamation !== -1) {
+                        throw ["Cannot have more than one ", "!", " in an ident"];
                     } else if (parserState.pos + 1 < parserState.length &&
                         isIdentCharacter(parserState.userQuery[parserState.pos + 1])
                     ) {
-                        throw new Error("`!` can only be at the end of an ident");
+                        throw ["Unexpected ", "!", ": it can only be at the end of an ident"];
                     }
-                    foundExclamation = true;
+                    foundExclamation = parserState.pos;
                 } else if (isErrorCharacter(c)) {
-                    throw new Error(`Unexpected \`${c}\``);
+                    throw ["Unexpected ", c];
                 } else if (
                     isStopCharacter(c) ||
                     isSpecialStartCharacter(c) ||
@@ -329,15 +327,39 @@ function initSearch(rawSearchIndex) {
                     if (!isPathStart(parserState)) {
                         break;
                     }
+                    if (foundExclamation !== -1) {
+                        if (start <= (end - 2)) {
+                            throw ["Cannot have associated items in macros"];
+                        } else {
+                            // if start == end - 1, we got the never type
+                            // while the never type has no associated macros, we still
+                            // can parse a path like that
+                            foundExclamation = -1;
+                        }
+                    }
                     // Skip current ":".
                     parserState.pos += 1;
-                    foundExclamation = false;
                 } else {
-                    throw new Error(`Unexpected \`${c}\``);
+                    throw ["Unexpected ", c];
                 }
             }
             parserState.pos += 1;
             end = parserState.pos;
+        }
+        // if start == end - 1, we got the never type
+        if (foundExclamation !== -1 && start <= (end - 2)) {
+            if (parserState.typeFilter === null) {
+                parserState.typeFilter = "macro";
+            } else if (parserState.typeFilter !== "macro") {
+                throw [
+                    "Invalid search type: macro ",
+                    "!",
+                    " and ",
+                    parserState.typeFilter,
+                    " both specified",
+                ];
+            }
+            end = foundExclamation;
         }
         return end;
     }
@@ -365,9 +387,9 @@ function initSearch(rawSearchIndex) {
             parserState.userQuery[parserState.pos] === "<"
         ) {
             if (isInGenerics) {
-                throw new Error("Unexpected `<` after `<`");
+                throw ["Unexpected ", "<", " after ", "<"];
             } else if (start >= end) {
-                throw new Error("Found generics without a path");
+                throw ["Found generics without a path"];
             }
             parserState.pos += 1;
             getItemsBefore(query, parserState, generics, ">");
@@ -411,24 +433,51 @@ function initSearch(rawSearchIndex) {
                 foundStopChar = true;
                 continue;
             } else if (c === ":" && isPathStart(parserState)) {
-                throw new Error("Unexpected `::`: paths cannot start with `::`");
+                throw ["Unexpected ", "::", ": paths cannot start with ", "::"];
             } else if (c === ":" || isEndCharacter(c)) {
                 let extra = "";
                 if (endChar === ">") {
-                    extra = "`<`";
+                    extra = "<";
                 } else if (endChar === "") {
-                    extra = "`->`";
+                    extra = "->";
+                } else {
+                    extra = endChar;
                 }
-                throw new Error("Unexpected `" + c + "` after " + extra);
+                throw ["Unexpected ", c, " after ", extra];
             }
             if (!foundStopChar) {
                 if (endChar !== "") {
-                    throw new Error(`Expected \`,\`, \` \` or \`${endChar}\`, found \`${c}\``);
+                    throw [
+                        "Expected ",
+                        ",", // comma
+                        ", ",
+                        "&nbsp;", // whitespace
+                        " or ",
+                        endChar,
+                        ", found ",
+                        c,
+                    ];
                 }
-                throw new Error(`Expected \`,\` or \` \`, found \`${c}\``);
+                throw [
+                    "Expected ",
+                    ",", // comma
+                    " or ",
+                    "&nbsp;", // whitespace
+                    ", found ",
+                    c,
+                ];
             }
             const posBefore = parserState.pos;
             getNextElem(query, parserState, elems, endChar === ">");
+            if (endChar !== "") {
+                if (parserState.pos >= parserState.length) {
+                    throw ["Unclosed ", "<"];
+                }
+                const c2 = parserState.userQuery[parserState.pos];
+                if (!isSeparatorCharacter(c2) && c2 !== endChar) {
+                    throw ["Expected ", endChar, ", found ", c2];
+                }
+            }
             // This case can be encountered if `getNextElem` encountered a "stop character" right
             // from the start. For example if you have `,,` or `<>`. In this case, we simply move up
             // the current position to continue the parsing.
@@ -437,7 +486,10 @@ function initSearch(rawSearchIndex) {
             }
             foundStopChar = false;
         }
-        // We are either at the end of the string or on the `endChar`` character, let's move forward
+        if (parserState.pos >= parserState.length && endChar !== "") {
+            throw ["Unclosed ", "<"];
+        }
+        // We are either at the end of the string or on the `endChar` character, let's move forward
         // in any case.
         parserState.pos += 1;
     }
@@ -453,7 +505,7 @@ function initSearch(rawSearchIndex) {
 
         for (let pos = 0; pos < parserState.pos; ++pos) {
             if (!isIdentCharacter(query[pos]) && !isWhitespaceCharacter(query[pos])) {
-                throw new Error(`Unexpected \`${query[pos]}\` in type filter`);
+                throw ["Unexpected ", query[pos], " in type filter"];
             }
         }
     }
@@ -466,11 +518,10 @@ function initSearch(rawSearchIndex) {
      * @param {ParserState} parserState
      */
     function parseInput(query, parserState) {
-        let c, before;
         let foundStopChar = true;
 
         while (parserState.pos < parserState.length) {
-            c = parserState.userQuery[parserState.pos];
+            const c = parserState.userQuery[parserState.pos];
             if (isStopCharacter(c)) {
                 foundStopChar = true;
                 if (isSeparatorCharacter(c)) {
@@ -480,19 +531,19 @@ function initSearch(rawSearchIndex) {
                     if (isReturnArrow(parserState)) {
                         break;
                     }
-                    throw new Error(`Unexpected \`${c}\` (did you mean \`->\`?)`);
+                    throw ["Unexpected ", c, " (did you mean ", "->", "?)"];
                 }
-                throw new Error(`Unexpected \`${c}\``);
+                throw ["Unexpected ", c];
             } else if (c === ":" && !isPathStart(parserState)) {
                 if (parserState.typeFilter !== null) {
-                    throw new Error("Unexpected `:`");
+                    throw ["Unexpected ", ":"];
                 }
                 if (query.elems.length === 0) {
-                    throw new Error("Expected type filter before `:`");
+                    throw ["Expected type filter before ", ":"];
                 } else if (query.elems.length !== 1 || parserState.totalElems !== 1) {
-                    throw new Error("Unexpected `:`");
+                    throw ["Unexpected ", ":"];
                 } else if (query.literalSearch) {
-                    throw new Error("You cannot use quotes on type filter");
+                    throw ["You cannot use quotes on type filter"];
                 }
                 checkExtraTypeFilterCharacters(parserState);
                 // The type filter doesn't count as an element since it's a modifier.
@@ -505,11 +556,31 @@ function initSearch(rawSearchIndex) {
             }
             if (!foundStopChar) {
                 if (parserState.typeFilter !== null) {
-                    throw new Error(`Expected \`,\`, \` \` or \`->\`, found \`${c}\``);
+                    throw [
+                        "Expected ",
+                        ",", // comma
+                        ", ",
+                        "&nbsp;", // whitespace
+                        " or ",
+                        "->", // arrow
+                        ", found ",
+                        c,
+                    ];
                 }
-                throw new Error(`Expected \`,\`, \` \`, \`:\` or \`->\`, found \`${c}\``);
+                throw [
+                    "Expected ",
+                    ",", // comma
+                    ", ",
+                    "&nbsp;", // whitespace
+                    ", ",
+                    ":", // colon
+                    " or ",
+                    "->", // arrow
+                    ", found ",
+                    c,
+                ];
             }
-            before = query.elems.length;
+            const before = query.elems.length;
             getNextElem(query, parserState, query.elems, false);
             if (query.elems.length === before) {
                 // Nothing was added, weird... Let's increase the position to not remain stuck.
@@ -518,14 +589,13 @@ function initSearch(rawSearchIndex) {
             foundStopChar = false;
         }
         while (parserState.pos < parserState.length) {
-            c = parserState.userQuery[parserState.pos];
             if (isReturnArrow(parserState)) {
                 parserState.pos += 2;
                 // Get returned elements.
                 getItemsBefore(query, parserState, query.returned, "");
                 // Nothing can come afterward!
                 if (query.returned.length === 0) {
-                    throw new Error("Expected at least one item after `->`");
+                    throw ["Expected at least one item after ", "->"];
                 }
                 break;
             } else {
@@ -594,8 +664,8 @@ function initSearch(rawSearchIndex) {
      *
      * The supported syntax by this parser is as follow:
      *
-     * ident = *(ALPHA / DIGIT / "_") [!]
-     * path = ident *(DOUBLE-COLON ident)
+     * ident = *(ALPHA / DIGIT / "_")
+     * path = ident *(DOUBLE-COLON ident) [!]
      * arg = path [generics]
      * arg-without-generic = path
      * type-sep = COMMA/WS *(COMMA/WS)
@@ -679,7 +749,7 @@ function initSearch(rawSearchIndex) {
             }
         } catch (err) {
             query = newParsedQuery(userQuery);
-            query.error = err.message;
+            query.error = err;
             query.typeFilter = -1;
             return query;
         }
@@ -897,13 +967,13 @@ function initSearch(rawSearchIndex) {
          * @param {QueryElement} elem  - The element from the parsed query.
          * @param {integer} defaultLev - This is the value to return in case there are no generics.
          *
-         * @return {integer}           - Returns the best match (if any) or `MAX_LEV_DISTANCE + 1`.
+         * @return {integer}           - Returns the best match (if any) or `maxLevDistance + 1`.
          */
-        function checkGenerics(row, elem, defaultLev) {
+        function checkGenerics(row, elem, defaultLev, maxLevDistance) {
             if (row.generics.length === 0) {
-                return elem.generics.length === 0 ? defaultLev : MAX_LEV_DISTANCE + 1;
+                return elem.generics.length === 0 ? defaultLev : maxLevDistance + 1;
             } else if (row.generics.length > 0 && row.generics[0].name === null) {
-                return checkGenerics(row.generics[0], elem, defaultLev);
+                return checkGenerics(row.generics[0], elem, defaultLev, maxLevDistance);
             }
             // The names match, but we need to be sure that all generics kinda
             // match as well.
@@ -914,8 +984,8 @@ function initSearch(rawSearchIndex) {
                     elem_name = entry.name;
                     if (elem_name === "") {
                         // Pure generic, needs to check into it.
-                        if (checkGenerics(entry, elem, MAX_LEV_DISTANCE + 1) !== 0) {
-                            return MAX_LEV_DISTANCE + 1;
+                        if (checkGenerics(entry, elem, maxLevDistance + 1, maxLevDistance) !== 0) {
+                            return maxLevDistance + 1;
                         }
                         continue;
                     }
@@ -942,7 +1012,7 @@ function initSearch(rawSearchIndex) {
                         }
                     }
                     if (match === null) {
-                        return MAX_LEV_DISTANCE + 1;
+                        return maxLevDistance + 1;
                     }
                     elems[match] -= 1;
                     if (elems[match] === 0) {
@@ -951,7 +1021,7 @@ function initSearch(rawSearchIndex) {
                 }
                 return 0;
             }
-            return MAX_LEV_DISTANCE + 1;
+            return maxLevDistance + 1;
         }
 
         /**
@@ -963,10 +1033,10 @@ function initSearch(rawSearchIndex) {
           *
           * @return {integer} - Returns a Levenshtein distance to the best match.
           */
-        function checkIfInGenerics(row, elem) {
-            let lev = MAX_LEV_DISTANCE + 1;
+        function checkIfInGenerics(row, elem, maxLevDistance) {
+            let lev = maxLevDistance + 1;
             for (const entry of row.generics) {
-                lev = Math.min(checkType(entry, elem, true), lev);
+                lev = Math.min(checkType(entry, elem, true, maxLevDistance), lev);
                 if (lev === 0) {
                     break;
                 }
@@ -983,15 +1053,15 @@ function initSearch(rawSearchIndex) {
           * @param {boolean} literalSearch
           *
           * @return {integer} - Returns a Levenshtein distance to the best match. If there is
-          *                     no match, returns `MAX_LEV_DISTANCE + 1`.
+          *                     no match, returns `maxLevDistance + 1`.
           */
-        function checkType(row, elem, literalSearch) {
+        function checkType(row, elem, literalSearch, maxLevDistance) {
             if (row.name === null) {
                 // This is a pure "generic" search, no need to run other checks.
                 if (row.generics.length > 0) {
-                    return checkIfInGenerics(row, elem);
+                    return checkIfInGenerics(row, elem, maxLevDistance);
                 }
-                return MAX_LEV_DISTANCE + 1;
+                return maxLevDistance + 1;
             }
 
             let lev = levenshtein(row.name, elem.name);
@@ -1005,9 +1075,9 @@ function initSearch(rawSearchIndex) {
                             return 0;
                         }
                     }
-                    return MAX_LEV_DISTANCE + 1;
+                    return maxLevDistance + 1;
                 } else if (elem.generics.length > 0) {
-                    return checkGenerics(row, elem, MAX_LEV_DISTANCE + 1);
+                    return checkGenerics(row, elem, maxLevDistance + 1, maxLevDistance);
                 }
                 return 0;
             } else if (row.generics.length > 0) {
@@ -1017,22 +1087,20 @@ function initSearch(rawSearchIndex) {
                     }
                     // The name didn't match so we now check if the type we're looking for is inside
                     // the generics!
-                    lev = checkIfInGenerics(row, elem);
-                    // Now whatever happens, the returned distance is "less good" so we should mark
-                    // it as such, and so we add 0.5 to the distance to make it "less good".
-                    return lev + 0.5;
-                } else if (lev > MAX_LEV_DISTANCE) {
+                    lev = Math.min(lev, checkIfInGenerics(row, elem, maxLevDistance));
+                    return lev;
+                } else if (lev > maxLevDistance) {
                     // So our item's name doesn't match at all and has generics.
                     //
                     // Maybe it's present in a sub generic? For example "f<A<B<C>>>()", if we're
                     // looking for "B<C>", we'll need to go down.
-                    return checkIfInGenerics(row, elem);
+                    return checkIfInGenerics(row, elem, maxLevDistance);
                 } else {
                     // At this point, the name kinda match and we have generics to check, so
                     // let's go!
-                    const tmp_lev = checkGenerics(row, elem, lev);
-                    if (tmp_lev > MAX_LEV_DISTANCE) {
-                        return MAX_LEV_DISTANCE + 1;
+                    const tmp_lev = checkGenerics(row, elem, lev, maxLevDistance);
+                    if (tmp_lev > maxLevDistance) {
+                        return maxLevDistance + 1;
                     }
                     // We compute the median value of both checks and return it.
                     return (tmp_lev + lev) / 2;
@@ -1040,7 +1108,7 @@ function initSearch(rawSearchIndex) {
             } else if (elem.generics.length > 0) {
                 // In this case, we were expecting generics but there isn't so we simply reject this
                 // one.
-                return MAX_LEV_DISTANCE + 1;
+                return maxLevDistance + 1;
             }
             // No generics on our query or on the target type so we can return without doing
             // anything else.
@@ -1055,23 +1123,26 @@ function initSearch(rawSearchIndex) {
          * @param {integer} typeFilter
          *
          * @return {integer} - Returns a Levenshtein distance to the best match. If there is no
-         *                      match, returns `MAX_LEV_DISTANCE + 1`.
+         *                      match, returns `maxLevDistance + 1`.
          */
-        function findArg(row, elem, typeFilter) {
-            let lev = MAX_LEV_DISTANCE + 1;
+        function findArg(row, elem, typeFilter, maxLevDistance) {
+            let lev = maxLevDistance + 1;
 
             if (row && row.type && row.type.inputs && row.type.inputs.length > 0) {
                 for (const input of row.type.inputs) {
                     if (!typePassesFilter(typeFilter, input.ty)) {
                         continue;
                     }
-                    lev = Math.min(lev, checkType(input, elem, parsedQuery.literalSearch));
+                    lev = Math.min(
+                        lev,
+                        checkType(input, elem, parsedQuery.literalSearch, maxLevDistance)
+                    );
                     if (lev === 0) {
                         return 0;
                     }
                 }
             }
-            return parsedQuery.literalSearch ? MAX_LEV_DISTANCE + 1 : lev;
+            return parsedQuery.literalSearch ? maxLevDistance + 1 : lev;
         }
 
         /**
@@ -1082,10 +1153,10 @@ function initSearch(rawSearchIndex) {
          * @param {integer} typeFilter
          *
          * @return {integer} - Returns a Levenshtein distance to the best match. If there is no
-         *                      match, returns `MAX_LEV_DISTANCE + 1`.
+         *                      match, returns `maxLevDistance + 1`.
          */
-        function checkReturned(row, elem, typeFilter) {
-            let lev = MAX_LEV_DISTANCE + 1;
+        function checkReturned(row, elem, typeFilter, maxLevDistance) {
+            let lev = maxLevDistance + 1;
 
             if (row && row.type && row.type.output.length > 0) {
                 const ret = row.type.output;
@@ -1093,20 +1164,23 @@ function initSearch(rawSearchIndex) {
                     if (!typePassesFilter(typeFilter, ret_ty.ty)) {
                         continue;
                     }
-                    lev = Math.min(lev, checkType(ret_ty, elem, parsedQuery.literalSearch));
+                    lev = Math.min(
+                        lev,
+                        checkType(ret_ty, elem, parsedQuery.literalSearch, maxLevDistance)
+                    );
                     if (lev === 0) {
                         return 0;
                     }
                 }
             }
-            return parsedQuery.literalSearch ? MAX_LEV_DISTANCE + 1 : lev;
+            return parsedQuery.literalSearch ? maxLevDistance + 1 : lev;
         }
 
-        function checkPath(contains, ty) {
+        function checkPath(contains, ty, maxLevDistance) {
             if (contains.length === 0) {
                 return 0;
             }
-            let ret_lev = MAX_LEV_DISTANCE + 1;
+            let ret_lev = maxLevDistance + 1;
             const path = ty.path.split("::");
 
             if (ty.parent && ty.parent.name) {
@@ -1116,7 +1190,7 @@ function initSearch(rawSearchIndex) {
             const length = path.length;
             const clength = contains.length;
             if (clength > length) {
-                return MAX_LEV_DISTANCE + 1;
+                return maxLevDistance + 1;
             }
             for (let i = 0; i < length; ++i) {
                 if (i + clength > length) {
@@ -1126,7 +1200,7 @@ function initSearch(rawSearchIndex) {
                 let aborted = false;
                 for (let x = 0; x < clength; ++x) {
                     const lev = levenshtein(path[i + x], contains[x]);
-                    if (lev > MAX_LEV_DISTANCE) {
+                    if (lev > maxLevDistance) {
                         aborted = true;
                         break;
                     }
@@ -1231,7 +1305,7 @@ function initSearch(rawSearchIndex) {
          * following condition:
          *
          * * If it is a "literal search" (`parsedQuery.literalSearch`), then `lev` must be 0.
-         * * If it is not a "literal search", `lev` must be <= `MAX_LEV_DISTANCE`.
+         * * If it is not a "literal search", `lev` must be <= `maxLevDistance`.
          *
          * The `results` map contains information which will be used to sort the search results:
          *
@@ -1249,8 +1323,8 @@ function initSearch(rawSearchIndex) {
          * @param {integer} lev
          * @param {integer} path_lev
          */
-        function addIntoResults(results, fullId, id, index, lev, path_lev) {
-            const inBounds = lev <= MAX_LEV_DISTANCE || index !== -1;
+        function addIntoResults(results, fullId, id, index, lev, path_lev, maxLevDistance) {
+            const inBounds = lev <= maxLevDistance || index !== -1;
             if (lev === 0 || (!parsedQuery.literalSearch && inBounds)) {
                 if (results[fullId] !== undefined) {
                     const result = results[fullId];
@@ -1289,7 +1363,8 @@ function initSearch(rawSearchIndex) {
             elem,
             results_others,
             results_in_args,
-            results_returned
+            results_returned,
+            maxLevDistance
         ) {
             if (!row || (filterCrates !== null && row.crate !== filterCrates)) {
                 return;
@@ -1298,13 +1373,13 @@ function initSearch(rawSearchIndex) {
             const fullId = row.id;
             const searchWord = searchWords[pos];
 
-            const in_args = findArg(row, elem, parsedQuery.typeFilter);
-            const returned = checkReturned(row, elem, parsedQuery.typeFilter);
+            const in_args = findArg(row, elem, parsedQuery.typeFilter, maxLevDistance);
+            const returned = checkReturned(row, elem, parsedQuery.typeFilter, maxLevDistance);
 
             // path_lev is 0 because no parent path information is currently stored
             // in the search index
-            addIntoResults(results_in_args, fullId, pos, -1, in_args, 0);
-            addIntoResults(results_returned, fullId, pos, -1, returned, 0);
+            addIntoResults(results_in_args, fullId, pos, -1, in_args, 0, maxLevDistance);
+            addIntoResults(results_returned, fullId, pos, -1, returned, 0, maxLevDistance);
 
             if (!typePassesFilter(parsedQuery.typeFilter, row.ty)) {
                 return;
@@ -1328,16 +1403,16 @@ function initSearch(rawSearchIndex) {
             // No need to check anything else if it's a "pure" generics search.
             if (elem.name.length === 0) {
                 if (row.type !== null) {
-                    lev = checkGenerics(row.type, elem, MAX_LEV_DISTANCE + 1);
+                    lev = checkGenerics(row.type, elem, maxLevDistance + 1, maxLevDistance);
                     // path_lev is 0 because we know it's empty
-                    addIntoResults(results_others, fullId, pos, index, lev, 0);
+                    addIntoResults(results_others, fullId, pos, index, lev, 0, maxLevDistance);
                 }
                 return;
             }
 
             if (elem.fullPath.length > 1) {
-                path_lev = checkPath(elem.pathWithoutLast, row);
-                if (path_lev > MAX_LEV_DISTANCE) {
+                path_lev = checkPath(elem.pathWithoutLast, row, maxLevDistance);
+                if (path_lev > maxLevDistance) {
                     return;
                 }
             }
@@ -1351,11 +1426,11 @@ function initSearch(rawSearchIndex) {
 
             lev = levenshtein(searchWord, elem.pathLast);
 
-            if (index === -1 && lev + path_lev > MAX_LEV_DISTANCE) {
+            if (index === -1 && lev + path_lev > maxLevDistance) {
                 return;
             }
 
-            addIntoResults(results_others, fullId, pos, index, lev, path_lev);
+            addIntoResults(results_others, fullId, pos, index, lev, path_lev, maxLevDistance);
         }
 
         /**
@@ -1367,7 +1442,7 @@ function initSearch(rawSearchIndex) {
          * @param {integer} pos      - Position in the `searchIndex`.
          * @param {Object} results
          */
-        function handleArgs(row, pos, results) {
+        function handleArgs(row, pos, results, maxLevDistance) {
             if (!row || (filterCrates !== null && row.crate !== filterCrates)) {
                 return;
             }
@@ -1379,7 +1454,7 @@ function initSearch(rawSearchIndex) {
             function checkArgs(elems, callback) {
                 for (const elem of elems) {
                     // There is more than one parameter to the query so all checks should be "exact"
-                    const lev = callback(row, elem, NO_TYPE_FILTER);
+                    const lev = callback(row, elem, NO_TYPE_FILTER, maxLevDistance);
                     if (lev <= 1) {
                         nbLev += 1;
                         totalLev += lev;
@@ -1400,11 +1475,20 @@ function initSearch(rawSearchIndex) {
                 return;
             }
             const lev = Math.round(totalLev / nbLev);
-            addIntoResults(results, row.id, pos, 0, lev, 0);
+            addIntoResults(results, row.id, pos, 0, lev, 0, maxLevDistance);
         }
 
         function innerRunQuery() {
             let elem, i, nSearchWords, in_returned, row;
+
+            let queryLen = 0;
+            for (const elem of parsedQuery.elems) {
+                queryLen += elem.name.length;
+            }
+            for (const elem of parsedQuery.returned) {
+                queryLen += elem.name.length;
+            }
+            const maxLevDistance = Math.floor(queryLen / 3);
 
             if (parsedQuery.foundElems === 1) {
                 if (parsedQuery.elems.length === 1) {
@@ -1418,7 +1502,8 @@ function initSearch(rawSearchIndex) {
                             elem,
                             results_others,
                             results_in_args,
-                            results_returned
+                            results_returned,
+                            maxLevDistance
                         );
                     }
                 } else if (parsedQuery.returned.length === 1) {
@@ -1426,13 +1511,18 @@ function initSearch(rawSearchIndex) {
                     elem = parsedQuery.returned[0];
                     for (i = 0, nSearchWords = searchWords.length; i < nSearchWords; ++i) {
                         row = searchIndex[i];
-                        in_returned = checkReturned(row, elem, parsedQuery.typeFilter);
-                        addIntoResults(results_others, row.id, i, -1, in_returned);
+                        in_returned = checkReturned(
+                            row,
+                            elem,
+                            parsedQuery.typeFilter,
+                            maxLevDistance
+                        );
+                        addIntoResults(results_others, row.id, i, -1, in_returned, maxLevDistance);
                     }
                 }
             } else if (parsedQuery.foundElems > 0) {
                 for (i = 0, nSearchWords = searchWords.length; i < nSearchWords; ++i) {
-                    handleArgs(searchIndex[i], i, results_others);
+                    handleArgs(searchIndex[i], i, results_others, maxLevDistance);
                 }
             }
         }
@@ -1470,7 +1560,7 @@ function initSearch(rawSearchIndex) {
      *
      * @return {boolean}       - Whether the result is valid or not
      */
-    function validateResult(name, path, keys, parent) {
+    function validateResult(name, path, keys, parent, maxLevDistance) {
         if (!keys || !keys.length) {
             return true;
         }
@@ -1485,7 +1575,7 @@ function initSearch(rawSearchIndex) {
                 (parent !== undefined && parent.name !== undefined &&
                     parent.name.toLowerCase().indexOf(key) > -1) ||
                 // lastly check to see if the name was a levenshtein match
-                levenshtein(name, key) <= MAX_LEV_DISTANCE)) {
+                levenshtein(name, key) <= maxLevDistance)) {
                 return false;
             }
         }
@@ -1725,7 +1815,16 @@ function initSearch(rawSearchIndex) {
 
         let output = `<h1 class="search-results-title">Results${crates}</h1>`;
         if (results.query.error !== null) {
-            output += `<h3>Query parser error: "${results.query.error}".</h3>`;
+            const error = results.query.error;
+            error.forEach((value, index) => {
+                value = value.split("<").join("&lt;").split(">").join("&gt;");
+                if (index % 2 !== 0) {
+                    error[index] = `<code>${value}</code>`;
+                } else {
+                    error[index] = value;
+                }
+            });
+            output += `<h3 class="error">Query parser error: "${error.join("")}".</h3>`;
             output += "<div id=\"search-tabs\">" +
                 makeTabHeader(0, "In Names", ret_others[1]) +
                 "</div>";
@@ -1922,7 +2021,7 @@ function initSearch(rawSearchIndex) {
          * @type {Array<string>}
          */
         const searchWords = [];
-        let i, word;
+        const charA = "A".charCodeAt(0);
         let currentIndex = 0;
         let id = 0;
 
@@ -1936,7 +2035,7 @@ function initSearch(rawSearchIndex) {
             /**
              * The raw search data for a given crate. `n`, `t`, `d`, and `q`, `i`, and `f`
              * are arrays with the same length. n[i] contains the name of an item.
-             * t[i] contains the type of that item (as a small integer that represents an
+             * t[i] contains the type of that item (as a string of characters that represent an
              * offset in `itemTypes`). d[i] contains the description of that item.
              *
              * q[i] contains the full path of the item, or an empty string indicating
@@ -1963,7 +2062,7 @@ function initSearch(rawSearchIndex) {
              *   doc: string,
              *   a: Object,
              *   n: Array<string>,
-             *   t: Array<Number>,
+             *   t: String,
              *   d: Array<string>,
              *   q: Array<string>,
              *   i: Array<Number>,
@@ -1992,7 +2091,7 @@ function initSearch(rawSearchIndex) {
             searchIndex.push(crateRow);
             currentIndex += 1;
 
-            // an array of (Number) item types
+            // a String of one character item type codes
             const itemTypes = crateCorpus.t;
             // an array of (String) item names
             const itemNames = crateCorpus.n;
@@ -2017,7 +2116,7 @@ function initSearch(rawSearchIndex) {
             // convert `rawPaths` entries into object form
             // generate normalizedPaths for function search mode
             let len = paths.length;
-            for (i = 0; i < len; ++i) {
+            for (let i = 0; i < len; ++i) {
                 lowercasePaths.push({ty: paths[i][0], name: paths[i][1].toLowerCase()});
                 paths[i] = {ty: paths[i][0], name: paths[i][1]};
             }
@@ -2031,19 +2130,17 @@ function initSearch(rawSearchIndex) {
             // faster analysis operations
             len = itemTypes.length;
             let lastPath = "";
-            for (i = 0; i < len; ++i) {
+            for (let i = 0; i < len; ++i) {
+                let word = "";
                 // This object should have exactly the same set of fields as the "crateRow"
                 // object defined above.
                 if (typeof itemNames[i] === "string") {
                     word = itemNames[i].toLowerCase();
-                    searchWords.push(word);
-                } else {
-                    word = "";
-                    searchWords.push("");
                 }
+                searchWords.push(word);
                 const row = {
                     crate: crate,
-                    ty: itemTypes[i],
+                    ty: itemTypes.charCodeAt(i) - charA,
                     name: itemNames[i],
                     path: itemPaths[i] ? itemPaths[i] : lastPath,
                     desc: itemDescs[i],

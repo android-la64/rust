@@ -1,4 +1,4 @@
-use rustc_errors::{IntoDiagnosticArg, MultiSpan};
+use rustc_errors::MultiSpan;
 use rustc_macros::{Diagnostic, LintDiagnostic, Subdiagnostic};
 use rustc_middle::ty::{GenericArg, Ty};
 use rustc_span::Span;
@@ -55,7 +55,7 @@ pub(crate) struct VarNeedNotMut {
 #[derive(Diagnostic)]
 #[diag(borrowck_var_cannot_escape_closure)]
 #[note]
-#[note(cannot_escape)]
+#[note(borrowck_cannot_escape)]
 pub(crate) struct FnMutError {
     #[primary_span]
     pub span: Span,
@@ -126,18 +126,6 @@ pub(crate) enum LifetimeReturnCategoryErr<'a> {
         free_region_name: &'a RegionName,
         outlived_fr_name: RegionName,
     },
-}
-
-impl IntoDiagnosticArg for &RegionName {
-    fn into_diagnostic_arg(self) -> rustc_errors::DiagnosticArgValue<'static> {
-        format!("{}", self).into_diagnostic_arg()
-    }
-}
-
-impl IntoDiagnosticArg for RegionName {
-    fn into_diagnostic_arg(self) -> rustc_errors::DiagnosticArgValue<'static> {
-        format!("{}", self).into_diagnostic_arg()
-    }
 }
 
 #[derive(Subdiagnostic)]
@@ -235,7 +223,7 @@ pub(crate) struct MoveBorrow<'a> {
     pub borrow_place: &'a str,
     pub value_place: &'a str,
     #[primary_span]
-    #[label(move_label)]
+    #[label(borrowck_move_label)]
     pub span: Span,
     #[label]
     pub borrow_span: Span,

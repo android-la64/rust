@@ -6,9 +6,8 @@
 type X<'a> = impl Into<&'static str> + From<&'a str>;
 
 fn f<'a: 'static>(t: &'a str) -> X<'a> {
-    //~^ WARNING unnecessary lifetime parameter
     t
-    //~^ ERROR non-defining opaque type use
+    //~^ ERROR expected generic lifetime parameter, found `'static`
 }
 
 fn extend_lt<'a>(o: &'a str) -> &'static str {

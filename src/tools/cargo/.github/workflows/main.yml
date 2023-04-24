@@ -28,6 +28,16 @@ jobs:
           cargo fmt --all --manifest-path $manifest --check
         done
 
+  # Ensure there are no clippy warnings
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable
+      - run: rustup component add clippy
+      # Only check cargo lib for now
+      - run: cargo clippy -p cargo --lib -- -D warnings
+
   test:
     runs-on: ${{ matrix.os }}
     env:
@@ -35,6 +45,8 @@ jobs:
       CARGO_PROFILE_TEST_DEBUG: 1
       CARGO_INCREMENTAL: 0
       CARGO_PUBLIC_NETWORK_TESTS: 1
+      # Deny warnings on CI to avoid warnings getting into the codebase.
+      RUSTFLAGS: -D warnings
     strategy:
       matrix:
         include:
@@ -53,6 +65,10 @@ jobs:
         - name: macOS x86_64 stable
           os: macos-latest
           rust: stable
+          other: x86_64-apple-ios
+        - name: macOS x86_64 nightly
+          os: macos-latest
+          rust: nightly
           other: x86_64-apple-ios
         - name: Windows x86_64 MSVC stable
           os: windows-latest
@@ -81,9 +97,11 @@ jobs:
     - name: Configure extra test environment
       run: echo CARGO_CONTAINER_TESTS=1 >> $GITHUB_ENV
       if: matrix.os == 'ubuntu-latest'
+    - name: Enable sparse
+      run: echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV
+      if: "!contains(matrix.rust, 'stable')"
 
-    # Deny warnings on CI to avoid warnings getting into the codebase.
-    - run: cargo test --features 'deny-warnings'
+    - run: cargo test
     # The testsuite generates a huge amount of data, and fetch-smoke-test was
     # running out of disk space.
     - name: Clear test output
@@ -97,8 +115,8 @@ jobs:
       run: |
         # This only tests `cargo fix` because fix-proxy-mode is one of the most
         # complicated subprocess management in Cargo.
-        cargo test --test testsuite --features 'deny-warnings' -- fix::
-    - run: cargo test --features 'deny-warnings' --manifest-path crates/cargo-test-support/Cargo.toml
+        cargo test --test testsuite -- fix::
+    - run: cargo test --manifest-path crates/cargo-test-support/Cargo.toml
       env:
         CARGO_TARGET_DIR: target
     - run: cargo test -p cargo-platform
@@ -140,6 +158,8 @@ jobs:
 
   build_std:
     runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
     - uses: actions/checkout@v3
     - run: rustup update nightly && rustup default nightly
@@ -160,7 +180,7 @@ jobs:
     - run: cd src/doc/semver-check && cargo +stable run
     - run: |
         mkdir mdbook
-        curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.5/mdbook-v0.4.5-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
+        curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.27/mdbook-v0.4.27-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
         echo `pwd`/mdbook >> $GITHUB_PATH
     - run: cargo doc --document-private-items --no-deps
       env:

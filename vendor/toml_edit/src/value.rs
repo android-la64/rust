@@ -1,13 +1,12 @@
 use std::iter::FromIterator;
 use std::str::FromStr;
 
-use combine::stream::position::Stream;
 use toml_datetime::*;
 
 use crate::key::Key;
 use crate::parser;
 use crate::repr::{Decor, Formatted};
-use crate::{Array, InlineTable, InternalString};
+use crate::{Array, InlineTable, InternalString, RawString};
 
 /// Representation of a TOML Value (as part of a Key/Value Pair).
 #[derive(Debug, Clone)]
@@ -196,41 +195,48 @@ impl Value {
     /// let d = v.decorated(" ", " ");
     /// assert_eq!(&d.to_string(), " 42 ");
     /// ```
-    pub fn decorated(mut self, prefix: &str, suffix: &str) -> Self {
+    pub fn decorated(mut self, prefix: impl Into<RawString>, suffix: impl Into<RawString>) -> Self {
         self.decorate(prefix, suffix);
         self
     }
 
-    pub(crate) fn decorate(&mut self, prefix: &str, suffix: &str) {
+    pub(crate) fn decorate(&mut self, prefix: impl Into<RawString>, suffix: impl Into<RawString>) {
         let decor = self.decor_mut();
         *decor = Decor::new(prefix, suffix);
+    }
+
+    /// Returns the location within the original document
+    pub(crate) fn span(&self) -> Option<std::ops::Range<usize>> {
+        match self {
+            Value::String(f) => f.span(),
+            Value::Integer(f) => f.span(),
+            Value::Float(f) => f.span(),
+            Value::Boolean(f) => f.span(),
+            Value::Datetime(f) => f.span(),
+            Value::Array(a) => a.span(),
+            Value::InlineTable(t) => t.span(),
+        }
+    }
+
+    pub(crate) fn despan(&mut self, input: &str) {
+        match self {
+            Value::String(f) => f.despan(input),
+            Value::Integer(f) => f.despan(input),
+            Value::Float(f) => f.despan(input),
+            Value::Boolean(f) => f.despan(input),
+            Value::Datetime(f) => f.despan(input),
+            Value::Array(a) => a.despan(input),
+            Value::InlineTable(t) => t.despan(input),
+        }
     }
 }
 
 impl FromStr for Value {
-    type Err = parser::TomlError;
+    type Err = crate::TomlError;
 
     /// Parses a value from a &str
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use combine::stream::position::{IndexPositioner, Positioner};
-        use combine::EasyParser;
-
-        let b = s.as_bytes();
-        let parsed = parser::value_parser().easy_parse(Stream::new(b));
-        match parsed {
-            Ok((_, ref rest)) if !rest.input.is_empty() => Err(Self::Err::from_unparsed(
-                (&rest.positioner
-                    as &dyn Positioner<usize, Position = usize, Checkpoint = IndexPositioner>)
-                    .position(),
-                b,
-            )),
-            Ok((mut value, _)) => {
-                // Only take the repr and not decor, as its probably not intended
-                value.decor_mut().clear();
-                Ok(value)
-            }
-            Err(e) => Err(Self::Err::new(e, b)),
-        }
+        parser::parse_value(s)
     }
 }
 
@@ -342,7 +348,7 @@ impl<K: Into<Key>, V: Into<Value>> FromIterator<(K, V)> for Value {
 
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encode::Encode::encode(self, f, ("", ""))
+        crate::encode::Encode::encode(self, f, None, ("", ""))
     }
 }
 

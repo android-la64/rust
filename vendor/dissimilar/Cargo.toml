@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.31"
+rust-version = "1.36"
 name = "dissimilar"
-version = "1.0.4"
+version = "1.0.6"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 description = "Diff library with semantic cleanup, based on Google's diff-match-patch"
 documentation = "https://docs.rs/dissimilar"
@@ -28,3 +28,9 @@ repository = "https://github.com/dtolnay/dissimilar"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[lib]
+doc-scrape-examples = false
+
+[dev-dependencies.once_cell]
+version = "1"

@@ -3,6 +3,7 @@
 //! This module contains the code for creating and emitting diagnostics.
 
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
+#![feature(array_windows)]
 #![feature(drain_filter)]
 #![feature(if_let_guard)]
 #![feature(is_terminal)]
@@ -35,13 +36,13 @@ use rustc_data_structures::stable_hasher::StableHasher;
 use rustc_data_structures::sync::{self, Lock, Lrc};
 use rustc_data_structures::AtomicRef;
 pub use rustc_error_messages::{
-    fallback_fluent_bundle, fluent, fluent_bundle, DelayDm, DiagnosticMessage, FluentBundle,
+    fallback_fluent_bundle, fluent_bundle, DelayDm, DiagnosticMessage, FluentBundle,
     LanguageIdentifier, LazyFallbackBundle, MultiSpan, SpanLabel, SubdiagnosticMessage,
-    DEFAULT_LOCALE_RESOURCES,
 };
 pub use rustc_lint_defs::{pluralize, Applicability};
+use rustc_macros::fluent_messages;
 use rustc_span::source_map::SourceMap;
-use rustc_span::HashStableContext;
+pub use rustc_span::ErrorGuaranteed;
 use rustc_span::{Loc, Span};
 
 use std::borrow::Cow;
@@ -74,6 +75,8 @@ pub use snippet::Style;
 
 pub type PErr<'a> = DiagnosticBuilder<'a, ErrorGuaranteed>;
 pub type PResult<'a, T> = Result<T, PErr<'a>>;
+
+fluent_messages! { "../locales/en-US.ftl" }
 
 // `PResult` is used a lot. Make sure it doesn't unintentionally get bigger.
 // (See also the comment on `DiagnosticBuilderInner`'s `diagnostic` field.)
@@ -572,6 +575,7 @@ impl Handler {
             None,
             flags.macro_backtrace,
             flags.track_diagnostics,
+            TerminalUrl::No,
         ));
         Self::with_emitter_and_flags(emitter, flags)
     }
@@ -616,22 +620,24 @@ impl Handler {
         }
     }
 
-    /// Translate `message` eagerly with `args`.
+    /// Translate `message` eagerly with `args` to `SubdiagnosticMessage::Eager`.
     pub fn eagerly_translate<'a>(
         &self,
         message: DiagnosticMessage,
         args: impl Iterator<Item = DiagnosticArg<'a, 'static>>,
     ) -> SubdiagnosticMessage {
+        SubdiagnosticMessage::Eager(self.eagerly_translate_to_string(message, args))
+    }
+
+    /// Translate `message` eagerly with `args` to `String`.
+    pub fn eagerly_translate_to_string<'a>(
+        &self,
+        message: DiagnosticMessage,
+        args: impl Iterator<Item = DiagnosticArg<'a, 'static>>,
+    ) -> String {
         let inner = self.inner.borrow();
         let args = crate::translation::to_fluent_args(args);
-        SubdiagnosticMessage::Eager(
-            inner
-                .emitter
-                .translate_message(&message, &args)
-                .map_err(Report::new)
-                .unwrap()
-                .to_string(),
-        )
+        inner.emitter.translate_message(&message, &args).map_err(Report::new).unwrap().to_string()
     }
 
     // This is here to not allow mutation of flags;
@@ -1009,6 +1015,7 @@ impl Handler {
     }
 
     #[track_caller]
+    #[rustc_lint_diagnostics]
     pub fn span_note_without_error(
         &self,
         span: impl Into<MultiSpan>,
@@ -1018,6 +1025,7 @@ impl Handler {
     }
 
     #[track_caller]
+    #[rustc_lint_diagnostics]
     pub fn span_note_diag(
         &self,
         span: Span,
@@ -1029,19 +1037,23 @@ impl Handler {
     }
 
     // NOTE: intentionally doesn't raise an error so rustc_codegen_ssa only reports fatal errors in the main thread
+    #[rustc_lint_diagnostics]
     pub fn fatal(&self, msg: impl Into<DiagnosticMessage>) -> FatalError {
         self.inner.borrow_mut().fatal(msg)
     }
 
+    #[rustc_lint_diagnostics]
     pub fn err(&self, msg: impl Into<DiagnosticMessage>) -> ErrorGuaranteed {
         self.inner.borrow_mut().err(msg)
     }
 
+    #[rustc_lint_diagnostics]
     pub fn warn(&self, msg: impl Into<DiagnosticMessage>) {
         let mut db = DiagnosticBuilder::new(self, Warning(None), msg);
         db.emit();
     }
 
+    #[rustc_lint_diagnostics]
     pub fn note_without_error(&self, msg: impl Into<DiagnosticMessage>) {
         DiagnosticBuilder::new(self, Note, msg).emit();
     }
@@ -1056,28 +1068,26 @@ impl Handler {
     }
 
     pub fn has_errors(&self) -> Option<ErrorGuaranteed> {
-        if self.inner.borrow().has_errors() { Some(ErrorGuaranteed(())) } else { None }
+        self.inner.borrow().has_errors().then(ErrorGuaranteed::unchecked_claim_error_was_emitted)
     }
+
     pub fn has_errors_or_lint_errors(&self) -> Option<ErrorGuaranteed> {
-        if self.inner.borrow().has_errors_or_lint_errors() {
-            Some(ErrorGuaranteed::unchecked_claim_error_was_emitted())
-        } else {
-            None
-        }
+        self.inner
+            .borrow()
+            .has_errors_or_lint_errors()
+            .then(ErrorGuaranteed::unchecked_claim_error_was_emitted)
     }
     pub fn has_errors_or_delayed_span_bugs(&self) -> Option<ErrorGuaranteed> {
-        if self.inner.borrow().has_errors_or_delayed_span_bugs() {
-            Some(ErrorGuaranteed::unchecked_claim_error_was_emitted())
-        } else {
-            None
-        }
+        self.inner
+            .borrow()
+            .has_errors_or_delayed_span_bugs()
+            .then(ErrorGuaranteed::unchecked_claim_error_was_emitted)
     }
     pub fn is_compilation_going_to_fail(&self) -> Option<ErrorGuaranteed> {
-        if self.inner.borrow().is_compilation_going_to_fail() {
-            Some(ErrorGuaranteed::unchecked_claim_error_was_emitted())
-        } else {
-            None
-        }
+        self.inner
+            .borrow()
+            .is_compilation_going_to_fail()
+            .then(ErrorGuaranteed::unchecked_claim_error_was_emitted)
     }
 
     pub fn print_error_count(&self, registry: &Registry) {
@@ -1131,6 +1141,20 @@ impl Handler {
         self.create_warning(warning).emit()
     }
 
+    pub fn create_almost_fatal<'a>(
+        &'a self,
+        fatal: impl IntoDiagnostic<'a, FatalError>,
+    ) -> DiagnosticBuilder<'a, FatalError> {
+        fatal.into_diagnostic(self)
+    }
+
+    pub fn emit_almost_fatal<'a>(
+        &'a self,
+        fatal: impl IntoDiagnostic<'a, FatalError>,
+    ) -> FatalError {
+        self.create_almost_fatal(fatal).emit()
+    }
+
     pub fn create_fatal<'a>(
         &'a self,
         fatal: impl IntoDiagnostic<'a, !>,
@@ -1154,6 +1178,17 @@ impl Handler {
         bug: impl IntoDiagnostic<'a, diagnostic_builder::Bug>,
     ) -> diagnostic_builder::Bug {
         self.create_bug(bug).emit()
+    }
+
+    pub fn emit_note<'a>(&'a self, note: impl IntoDiagnostic<'a, Noted>) -> Noted {
+        self.create_note(note).emit()
+    }
+
+    pub fn create_note<'a>(
+        &'a self,
+        note: impl IntoDiagnostic<'a, Noted>,
+    ) -> DiagnosticBuilder<'a, Noted> {
+        note.into_diagnostic(self)
     }
 
     fn emit_diag_at_span(
@@ -1440,9 +1475,7 @@ impl HandlerInner {
                 .emitted_diagnostic_codes
                 .iter()
                 .filter_map(|x| match &x {
-                    DiagnosticId::Error(s)
-                        if registry.try_find_description(s).map_or(false, |o| o.is_some()) =>
-                    {
+                    DiagnosticId::Error(s) if registry.try_find_description(s).is_ok() => {
                         Some(s.clone())
                     }
                     _ => None,
@@ -1803,16 +1836,9 @@ pub fn add_elided_lifetime_in_path_suggestion(
     );
 }
 
-/// Useful type to use with `Result<>` indicate that an error has already
-/// been reported to the user, so no need to continue checking.
-#[derive(Clone, Copy, Debug, Encodable, Decodable, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[derive(HashStable_Generic)]
-pub struct ErrorGuaranteed(());
-
-impl ErrorGuaranteed {
-    /// To be used only if you really know what you are doing... ideally, we would find a way to
-    /// eliminate all calls to this method.
-    pub fn unchecked_claim_error_was_emitted() -> Self {
-        ErrorGuaranteed(())
-    }
+#[derive(Clone, Copy, PartialEq, Hash, Debug)]
+pub enum TerminalUrl {
+    No,
+    Yes,
+    Auto,
 }

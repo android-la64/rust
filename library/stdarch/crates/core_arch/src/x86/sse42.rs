@@ -614,7 +614,7 @@ mod tests {
     use crate::core_arch::x86::*;
     use std::ptr;
 
-    // Currently one cannot `load` a &[u8] that is is less than 16
+    // Currently one cannot `load` a &[u8] that is less than 16
     // in length. This makes loading strings less than 16 in length
     // a bit difficult. Rather than `load` and mutate the __m128i,
     // it is easier to memcpy the given string to a local slice with
@@ -623,11 +623,7 @@ mod tests {
     unsafe fn str_to_m128i(s: &[u8]) -> __m128i {
         assert!(s.len() <= 16);
         let slice = &mut [0u8; 16];
-        ptr::copy_nonoverlapping(
-            s.get_unchecked(0) as *const u8 as *const u8,
-            slice.get_unchecked_mut(0) as *mut u8 as *mut u8,
-            s.len(),
-        );
+        ptr::copy_nonoverlapping(s.as_ptr(), slice.as_mut_ptr(), s.len());
         _mm_loadu_si128(slice.as_ptr() as *const _)
     }
 

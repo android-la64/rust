@@ -10,9 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "litemap"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["The ICU4X Project Developers"]
 include = [
     "src/**/*",
@@ -37,8 +37,14 @@ license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
 resolver = "2"
 
+[package.metadata.workspaces]
+independent = true
+
 [package.metadata.docs.rs]
 all-features = true
+
+[package.metadata.cargo-all-features]
+denylist = ["bench"]
 
 [[example]]
 name = "litemap_bincode"
@@ -70,7 +76,7 @@ optional = true
 default-features = false
 
 [dependencies.yoke]
-version = "0.6.0"
+version = "0.7.0"
 features = ["derive"]
 optional = true
 
@@ -82,12 +88,6 @@ version = "0.6"
 
 [dev-dependencies.criterion]
 version = "0.3.4"
-
-[dev-dependencies.icu_benchmark_macros]
-version = "0.7"
-
-[dev-dependencies.icu_locid]
-version = "1.0.0-beta1"
 
 [dev-dependencies.postcard]
 version = "1.0.0"

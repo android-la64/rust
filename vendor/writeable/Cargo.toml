@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "writeable"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["The ICU4X Project Developers"]
 include = [
     "src/**/*",
@@ -29,8 +29,14 @@ license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
 resolver = "2"
 
+[package.metadata.workspaces]
+independent = true
+
 [package.metadata.docs.rs]
 all-features = true
+
+[package.metadata.cargo-all-features]
+denylist = ["bench"]
 
 [lib]
 path = "src/lib.rs"
@@ -43,13 +49,9 @@ harness = false
 [dev-dependencies.criterion]
 version = "0.3"
 
-[dev-dependencies.icu_benchmark_macros]
-version = "0.7"
-
 [dev-dependencies.rand]
 version = "0.8"
 features = ["small_rng"]
 
 [features]
 bench = []
-default = []

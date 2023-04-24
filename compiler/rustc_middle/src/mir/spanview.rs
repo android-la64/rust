@@ -11,7 +11,7 @@ use std::io::{self, Write};
 pub const TOOLTIP_INDENT: &str = "    ";
 
 const CARET: char = '\u{2038}'; // Unicode `CARET`
-const ANNOTATION_LEFT_BRACKET: char = '\u{298a}'; // Unicode `Z NOTATION RIGHT BINDING BRACKET
+const ANNOTATION_LEFT_BRACKET: char = '\u{298a}'; // Unicode `Z NOTATION RIGHT BINDING BRACKET`
 const ANNOTATION_RIGHT_BRACKET: char = '\u{2989}'; // Unicode `Z NOTATION LEFT BINDING BRACKET`
 const NEW_LINE_SPAN: &str = "</span>\n<span class=\"line\">";
 const HEADER: &str = r#"<!DOCTYPE html>
@@ -250,6 +250,7 @@ pub fn statement_kind_name(statement: &Statement<'_>) -> &'static str {
         AscribeUserType(..) => "AscribeUserType",
         Coverage(..) => "Coverage",
         Intrinsic(..) => "Intrinsic",
+        ConstEvalCounter => "ConstEvalCounter",
         Nop => "Nop",
     }
 }
@@ -670,7 +671,7 @@ fn fn_span(tcx: TyCtxt<'_>, def_id: DefId) -> Span {
 
 fn hir_body(tcx: TyCtxt<'_>, def_id: DefId) -> Option<&rustc_hir::Body<'_>> {
     let hir_node = tcx.hir().get_if_local(def_id).expect("expected DefId is local");
-    hir::map::associated_body(hir_node).map(|fn_body_id| tcx.hir().body(fn_body_id))
+    hir::map::associated_body(hir_node).map(|(_, fn_body_id)| tcx.hir().body(fn_body_id))
 }
 
 fn escape_html(s: &str) -> String {

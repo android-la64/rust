@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "kqueue"
-version = "1.0.6"
+version = "1.0.7"
 authors = ["William Orr <will@worrbase.com>"]
 description = "kqueue interface for BSDs"
 documentation = "https://docs.worrbase.com/rust/kqueue/"
@@ -27,7 +27,7 @@ categories = [
     "filesystem",
 ]
 license = "MIT"
-repository = "https://gitlab.com/worr/rust-kqueue"
+repository = "https://gitlab.com/rust-kqueue/rust-kqueue"
 
 [package.metadata.docs.rs]
 targets = [

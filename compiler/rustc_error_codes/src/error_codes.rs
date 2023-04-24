@@ -5,7 +5,7 @@
 // /!\ IMPORTANT /!\
 //
 // Error messages' format must follow the RFC 1567 available here:
-// https://github.com/rust-lang/rfcs/pull/1567
+// https://rust-lang.github.io/rfcs/1567-long-error-codes-explanation-normalization.html
 
 register_diagnostics! {
 E0001: include_str!("./error_codes/E0001.md"),
@@ -253,6 +253,7 @@ E0466: include_str!("./error_codes/E0466.md"),
 E0468: include_str!("./error_codes/E0468.md"),
 E0469: include_str!("./error_codes/E0469.md"),
 E0472: include_str!("./error_codes/E0472.md"),
+E0476: include_str!("./error_codes/E0476.md"),
 E0477: include_str!("./error_codes/E0477.md"),
 E0478: include_str!("./error_codes/E0478.md"),
 E0482: include_str!("./error_codes/E0482.md"),
@@ -286,6 +287,7 @@ E0519: include_str!("./error_codes/E0519.md"),
 E0520: include_str!("./error_codes/E0520.md"),
 E0521: include_str!("./error_codes/E0521.md"),
 E0522: include_str!("./error_codes/E0522.md"),
+E0523: include_str!("./error_codes/E0523.md"),
 E0524: include_str!("./error_codes/E0524.md"),
 E0525: include_str!("./error_codes/E0525.md"),
 E0527: include_str!("./error_codes/E0527.md"),
@@ -506,10 +508,14 @@ E0785: include_str!("./error_codes/E0785.md"),
 E0786: include_str!("./error_codes/E0786.md"),
 E0787: include_str!("./error_codes/E0787.md"),
 E0788: include_str!("./error_codes/E0788.md"),
+E0789: include_str!("./error_codes/E0789.md"),
 E0790: include_str!("./error_codes/E0790.md"),
 E0791: include_str!("./error_codes/E0791.md"),
 E0792: include_str!("./error_codes/E0792.md"),
-;
+E0793: include_str!("./error_codes/E0793.md"),
+}
+
+// Undocumented removed error codes. Note that many removed error codes are documented.
 //  E0006, // merged with E0005
 //  E0008, // cannot bind by-move into a pattern guard
 //  E0019, // merged into E0015
@@ -566,7 +572,7 @@ E0792: include_str!("./error_codes/E0792.md"),
 //  E0246, // invalid recursive type
 //  E0247,
 //  E0248, // value used as a type, now reported earlier during resolution
-           // as E0412
+//         // as E0412
 //  E0249,
 //  E0257,
 //  E0258,
@@ -608,7 +614,6 @@ E0792: include_str!("./error_codes/E0792.md"),
 //  E0473, // dereference of reference outside its lifetime
 //  E0474, // captured variable `..` does not outlive the enclosing closure
 //  E0475, // index of slice outside its lifetime
-    E0476, // lifetime of the source pointer does not outlive lifetime bound...
 //  E0479, // the type `..` (provided as the value of a type parameter) is...
 //  E0480, // lifetime of method receiver does not outlive the method call
 //  E0481, // lifetime of function argument does not outlive the function call
@@ -620,7 +625,6 @@ E0792: include_str!("./error_codes/E0792.md"),
 //  E0488, // lifetime of variable does not enclose its declaration
 //  E0489, // type/lifetime parameter not in scope here
 //  E0490, // removed: unreachable
-    E0523, // two dependencies have same (crate-name, disambiguator) but different SVH
 //  E0526, // shuffle indices are not constant
 //  E0540, // multiple rustc_deprecated attributes
 //  E0548, // replaced with a generic attribute input check
@@ -629,14 +633,14 @@ E0792: include_str!("./error_codes/E0792.md"),
 //  E0558, // replaced with a generic attribute input check
 //  E0563, // cannot determine a type for this `impl Trait` removed in 6383de15
 //  E0564, // only named lifetimes are allowed in `impl Trait`,
-           // but `{}` was found in the type `{}`
+//         // but `{}` was found in the type `{}`
 //  E0598, // lifetime of {} is too short to guarantee its contents can be...
 //  E0611, // merged into E0616
 //  E0612, // merged into E0609
 //  E0613, // Removed (merged with E0609)
 //  E0629, // missing 'feature' (rustc_const_unstable)
 //  E0630, // rustc_const_unstable attribute must be paired with stable/unstable
-           // attribute
+//         // attribute
 //  E0645, // trait aliases not finished
 //  E0694, // an unknown tool name found in scoped attributes
 //  E0702, // replaced with a generic attribute input check
@@ -645,5 +649,3 @@ E0792: include_str!("./error_codes/E0792.md"),
 //  E0721, // `await` keyword
 //  E0723, // unstable feature in `const` context
 //  E0738, // Removed; errored on `#[track_caller] fn`s in `extern "Rust" { ... }`.
-    E0789, // rustc_allowed_through_unstable_modules without stability attribute
-}

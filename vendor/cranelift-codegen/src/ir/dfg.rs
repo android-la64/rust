@@ -23,6 +23,27 @@ use alloc::collections::BTreeMap;
 #[cfg(feature = "enable-serde")]
 use serde::{Deserialize, Serialize};
 
+/// Storage for instructions within the DFG.
+#[derive(Clone, PartialEq, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
+pub struct Insts(PrimaryMap<Inst, InstructionData>);
+
+/// Allow immutable access to instructions via indexing.
+impl Index<Inst> for Insts {
+    type Output = InstructionData;
+
+    fn index(&self, inst: Inst) -> &InstructionData {
+        self.0.index(inst)
+    }
+}
+
+/// Allow mutable access to instructions via indexing.
+impl IndexMut<Inst> for Insts {
+    fn index_mut(&mut self, inst: Inst) -> &mut InstructionData {
+        self.0.index_mut(inst)
+    }
+}
+
 /// A data flow graph defines all instructions and basic blocks in a function as well as
 /// the data flow dependencies between them. The DFG also tracks values which can be either
 /// instruction results or block parameters.
@@ -36,7 +57,7 @@ pub struct DataFlowGraph {
     /// Data about all of the instructions in the function, including opcodes and operands.
     /// The instructions in this map are not in program order. That is tracked by `Layout`, along
     /// with the block containing each instruction.
-    insts: PrimaryMap<Inst, InstructionData>,
+    pub insts: Insts,
 
     /// List of result values for each instruction.
     ///
@@ -89,7 +110,7 @@ impl DataFlowGraph {
     /// Create a new empty `DataFlowGraph`.
     pub fn new() -> Self {
         Self {
-            insts: PrimaryMap::new(),
+            insts: Insts(PrimaryMap::new()),
             results: SecondaryMap::new(),
             blocks: PrimaryMap::new(),
             dynamic_types: DynamicTypes::new(),
@@ -106,7 +127,7 @@ impl DataFlowGraph {
 
     /// Clear everything.
     pub fn clear(&mut self) {
-        self.insts.clear();
+        self.insts.0.clear();
         self.results.clear();
         self.blocks.clear();
         self.dynamic_types.clear();
@@ -120,34 +141,17 @@ impl DataFlowGraph {
         self.immediates.clear();
     }
 
-    /// Clear all instructions, but keep blocks and other metadata
-    /// (signatures, constants, immediates). Everything to do with
-    /// `Value`s is cleared, including block params and debug info.
-    ///
-    /// Used during egraph-based optimization to clear out the pre-opt
-    /// body so that we can regenerate it from the egraph.
-    pub(crate) fn clear_insts(&mut self) {
-        self.insts.clear();
-        self.results.clear();
-        self.value_lists.clear();
-        self.values.clear();
-        self.values_labels = None;
-        for block in self.blocks.values_mut() {
-            block.params = ValueList::new();
-        }
-    }
-
     /// Get the total number of instructions created in this function, whether they are currently
     /// inserted in the layout or not.
     ///
     /// This is intended for use with `SecondaryMap::with_capacity`.
     pub fn num_insts(&self) -> usize {
-        self.insts.len()
+        self.insts.0.len()
     }
 
     /// Returns `true` if the given instruction reference is valid.
     pub fn inst_is_valid(&self, inst: Inst) -> bool {
-        self.insts.is_valid(inst)
+        self.insts.0.is_valid(inst)
     }
 
     /// Get the total number of basic blocks created in this function, whether they are
@@ -166,6 +170,11 @@ impl DataFlowGraph {
     /// Get the total number of values.
     pub fn num_values(&self) -> usize {
         self.values.len()
+    }
+
+    /// Get an iterator over all values and their definitions.
+    pub fn values_and_defs(&self) -> impl Iterator<Item = (Value, ValueDef)> + '_ {
+        self.values().map(|value| (value, self.value_def(value)))
     }
 
     /// Starts collection of debug information.
@@ -274,12 +283,6 @@ impl DataFlowGraph {
         self.values[v].ty()
     }
 
-    /// Fill in the type of a value, only if currently invalid (as a placeholder).
-    pub(crate) fn fill_in_value_type(&mut self, v: Value, ty: Type) {
-        debug_assert!(self.values[v].ty().is_invalid() || self.values[v].ty() == ty);
-        self.values[v].set_type(ty);
-    }
-
     /// Get the definition of a value.
     ///
     /// This is either the instruction that defined it or the Block that has the value as an
@@ -293,6 +296,7 @@ impl DataFlowGraph {
                 // detect alias loops without overrunning the stack.
                 self.value_def(self.resolve_aliases(original))
             }
+            ValueData::Union { x, y, .. } => ValueDef::Union(x, y),
         }
     }
 
@@ -308,6 +312,7 @@ impl DataFlowGraph {
             Inst { inst, num, .. } => Some(&v) == self.inst_results(inst).get(num as usize),
             Param { block, num, .. } => Some(&v) == self.block_params(block).get(num as usize),
             Alias { .. } => false,
+            Union { .. } => false,
         }
     }
 
@@ -417,6 +422,8 @@ pub enum ValueDef {
     Result(Inst, usize),
     /// Value is the n'th parameter to a block.
     Param(Block, usize),
+    /// Value is a union of two other values.
+    Union(Value, Value),
 }
 
 impl ValueDef {
@@ -453,6 +460,7 @@ impl ValueDef {
     pub fn num(self) -> usize {
         match self {
             Self::Result(_, n) | Self::Param(_, n) => n,
+            Self::Union(_, _) => 0,
         }
     }
 }
@@ -471,6 +479,11 @@ enum ValueData {
     /// An alias value can't be linked as an instruction result or block parameter. It is used as a
     /// placeholder when the original instruction or block has been rewritten or modified.
     Alias { ty: Type, original: Value },
+
+    /// Union is a "fork" in representation: the value can be
+    /// represented as either of the values named here. This is used
+    /// for aegraph (acyclic egraph) representation in the DFG.
+    Union { ty: Type, x: Value, y: Value },
 }
 
 /// Bit-packed version of ValueData, for efficiency.
@@ -478,40 +491,71 @@ enum ValueData {
 /// Layout:
 ///
 /// ```plain
-///        | tag:2 |  type:14        |    num:16       | index:32          |
+///        | tag:2 |  type:14        |    x:24       | y:24          |
+///
+/// Inst       00     ty               inst output     inst index
+/// Param      01     ty               blockparam num  block index
+/// Alias      10     ty               0               value index
+/// Union      11     ty               first value     second value
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Hash)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 struct ValueDataPacked(u64);
 
+/// Encodes a value in 0..2^32 into 0..2^n, where n is less than 32
+/// (and is implied by `mask`), by translating 2^32-1 (0xffffffff)
+/// into 2^n-1 and panic'ing on 2^n..2^32-1.
+fn encode_narrow_field(x: u32, bits: u8) -> u32 {
+    if x == 0xffff_ffff {
+        (1 << bits) - 1
+    } else {
+        debug_assert!(x < (1 << bits));
+        x
+    }
+}
+
+/// The inverse of the above `encode_narrow_field`: unpacks 2^n-1 into
+/// 2^32-1.
+fn decode_narrow_field(x: u32, bits: u8) -> u32 {
+    if x == (1 << bits) - 1 {
+        0xffff_ffff
+    } else {
+        x
+    }
+}
+
 impl ValueDataPacked {
-    const INDEX_SHIFT: u64 = 0;
-    const INDEX_BITS: u64 = 32;
-    const NUM_SHIFT: u64 = Self::INDEX_SHIFT + Self::INDEX_BITS;
-    const NUM_BITS: u64 = 16;
-    const TYPE_SHIFT: u64 = Self::NUM_SHIFT + Self::NUM_BITS;
-    const TYPE_BITS: u64 = 14;
-    const TAG_SHIFT: u64 = Self::TYPE_SHIFT + Self::TYPE_BITS;
-    const TAG_BITS: u64 = 2;
+    const Y_SHIFT: u8 = 0;
+    const Y_BITS: u8 = 24;
+    const X_SHIFT: u8 = Self::Y_SHIFT + Self::Y_BITS;
+    const X_BITS: u8 = 24;
+    const TYPE_SHIFT: u8 = Self::X_SHIFT + Self::X_BITS;
+    const TYPE_BITS: u8 = 14;
+    const TAG_SHIFT: u8 = Self::TYPE_SHIFT + Self::TYPE_BITS;
+    const TAG_BITS: u8 = 2;
 
-    const TAG_INST: u64 = 1;
-    const TAG_PARAM: u64 = 2;
-    const TAG_ALIAS: u64 = 3;
+    const TAG_INST: u64 = 0;
+    const TAG_PARAM: u64 = 1;
+    const TAG_ALIAS: u64 = 2;
+    const TAG_UNION: u64 = 3;
 
-    fn make(tag: u64, ty: Type, num: u16, index: u32) -> ValueDataPacked {
+    fn make(tag: u64, ty: Type, x: u32, y: u32) -> ValueDataPacked {
         debug_assert!(tag < (1 << Self::TAG_BITS));
         debug_assert!(ty.repr() < (1 << Self::TYPE_BITS));
+
+        let x = encode_narrow_field(x, Self::X_BITS);
+        let y = encode_narrow_field(y, Self::Y_BITS);
 
         ValueDataPacked(
             (tag << Self::TAG_SHIFT)
                 | ((ty.repr() as u64) << Self::TYPE_SHIFT)
-                | ((num as u64) << Self::NUM_SHIFT)
-                | ((index as u64) << Self::INDEX_SHIFT),
+                | ((x as u64) << Self::X_SHIFT)
+                | ((y as u64) << Self::Y_SHIFT),
         )
     }
 
     #[inline(always)]
-    fn field(self, shift: u64, bits: u64) -> u64 {
+    fn field(self, shift: u8, bits: u8) -> u64 {
         (self.0 >> shift) & ((1 << bits) - 1)
     }
 
@@ -532,13 +576,16 @@ impl From<ValueData> for ValueDataPacked {
     fn from(data: ValueData) -> Self {
         match data {
             ValueData::Inst { ty, num, inst } => {
-                Self::make(Self::TAG_INST, ty, num, inst.as_bits())
+                Self::make(Self::TAG_INST, ty, num.into(), inst.as_bits())
             }
             ValueData::Param { ty, num, block } => {
-                Self::make(Self::TAG_PARAM, ty, num, block.as_bits())
+                Self::make(Self::TAG_PARAM, ty, num.into(), block.as_bits())
             }
             ValueData::Alias { ty, original } => {
                 Self::make(Self::TAG_ALIAS, ty, 0, original.as_bits())
+            }
+            ValueData::Union { ty, x, y } => {
+                Self::make(Self::TAG_ALIAS, ty, x.as_bits(), y.as_bits())
             }
         }
     }
@@ -547,25 +594,33 @@ impl From<ValueData> for ValueDataPacked {
 impl From<ValueDataPacked> for ValueData {
     fn from(data: ValueDataPacked) -> Self {
         let tag = data.field(ValueDataPacked::TAG_SHIFT, ValueDataPacked::TAG_BITS);
-        let ty = data.field(ValueDataPacked::TYPE_SHIFT, ValueDataPacked::TYPE_BITS) as u16;
-        let num = data.field(ValueDataPacked::NUM_SHIFT, ValueDataPacked::NUM_BITS) as u16;
-        let index = data.field(ValueDataPacked::INDEX_SHIFT, ValueDataPacked::INDEX_BITS) as u32;
+        let ty = u16::try_from(data.field(ValueDataPacked::TYPE_SHIFT, ValueDataPacked::TYPE_BITS))
+            .expect("Mask should ensure result fits in a u16");
+        let x = u32::try_from(data.field(ValueDataPacked::X_SHIFT, ValueDataPacked::X_BITS))
+            .expect("Mask should ensure result fits in a u32");
+        let y = u32::try_from(data.field(ValueDataPacked::Y_SHIFT, ValueDataPacked::Y_BITS))
+            .expect("Mask should ensure result fits in a u32");
 
         let ty = Type::from_repr(ty);
         match tag {
             ValueDataPacked::TAG_INST => ValueData::Inst {
                 ty,
-                num,
-                inst: Inst::from_bits(index),
+                num: u16::try_from(x).expect("Inst result num should fit in u16"),
+                inst: Inst::from_bits(decode_narrow_field(y, ValueDataPacked::Y_BITS)),
             },
             ValueDataPacked::TAG_PARAM => ValueData::Param {
                 ty,
-                num,
-                block: Block::from_bits(index),
+                num: u16::try_from(x).expect("Blockparam index should fit in u16"),
+                block: Block::from_bits(decode_narrow_field(y, ValueDataPacked::Y_BITS)),
             },
             ValueDataPacked::TAG_ALIAS => ValueData::Alias {
                 ty,
-                original: Value::from_bits(index),
+                original: Value::from_bits(decode_narrow_field(y, ValueDataPacked::Y_BITS)),
+            },
+            ValueDataPacked::TAG_UNION => ValueData::Union {
+                ty,
+                x: Value::from_bits(decode_narrow_field(x, ValueDataPacked::X_BITS)),
+                y: Value::from_bits(decode_narrow_field(y, ValueDataPacked::Y_BITS)),
             },
             _ => panic!("Invalid tag {} in ValueDataPacked 0x{:x}", tag, data.0),
         }
@@ -577,12 +632,15 @@ impl From<ValueDataPacked> for ValueData {
 impl DataFlowGraph {
     /// Create a new instruction.
     ///
-    /// The type of the first result is indicated by `data.ty`. If the instruction produces
-    /// multiple results, also call `make_inst_results` to allocate value table entries.
+    /// The type of the first result is indicated by `data.ty`. If the
+    /// instruction produces multiple results, also call
+    /// `make_inst_results` to allocate value table entries. (It is
+    /// always safe to call `make_inst_results`, regardless of how
+    /// many results the instruction has.)
     pub fn make_inst(&mut self, data: InstructionData) -> Inst {
         let n = self.num_insts() + 1;
         self.results.resize(n);
-        self.insts.push(data)
+        self.insts.0.push(data)
     }
 
     /// Declares a dynamic vector type
@@ -593,6 +651,18 @@ impl DataFlowGraph {
     /// Returns an object that displays `inst`.
     pub fn display_inst<'a>(&'a self, inst: Inst) -> DisplayInst<'a> {
         DisplayInst(self, inst)
+    }
+
+    /// Returns an object that displays the given `value`'s defining instruction.
+    ///
+    /// Panics if the value is not defined by an instruction (i.e. it is a basic
+    /// block argument).
+    pub fn display_value_inst(&self, value: Value) -> DisplayInst<'_> {
+        match self.value_def(value) {
+            ir::ValueDef::Result(inst, _) => self.display_inst(inst),
+            ir::ValueDef::Param(_, _) => panic!("value is not defined by an instruction"),
+            ir::ValueDef::Union(_, _) => panic!("value is a union of two other values"),
+        }
     }
 
     /// Get all value arguments on `inst` as a slice.
@@ -607,7 +677,7 @@ impl DataFlowGraph {
 
     /// Get the fixed value arguments on `inst` as a slice.
     pub fn inst_fixed_args(&self, inst: Inst) -> &[Value] {
-        let num_fixed_args = self[inst]
+        let num_fixed_args = self.insts[inst]
             .opcode()
             .constraints()
             .num_fixed_value_arguments();
@@ -616,7 +686,7 @@ impl DataFlowGraph {
 
     /// Get the fixed value arguments on `inst` as a mutable slice.
     pub fn inst_fixed_args_mut(&mut self, inst: Inst) -> &mut [Value] {
-        let num_fixed_args = self[inst]
+        let num_fixed_args = self.insts[inst]
             .opcode()
             .constraints()
             .num_fixed_value_arguments();
@@ -625,7 +695,7 @@ impl DataFlowGraph {
 
     /// Get the variable value arguments on `inst` as a slice.
     pub fn inst_variable_args(&self, inst: Inst) -> &[Value] {
-        let num_fixed_args = self[inst]
+        let num_fixed_args = self.insts[inst]
             .opcode()
             .constraints()
             .num_fixed_value_arguments();
@@ -634,7 +704,7 @@ impl DataFlowGraph {
 
     /// Get the variable value arguments on `inst` as a mutable slice.
     pub fn inst_variable_args_mut(&mut self, inst: Inst) -> &mut [Value] {
-        let num_fixed_args = self[inst]
+        let num_fixed_args = self.insts[inst]
             .opcode()
             .constraints()
             .num_fixed_value_arguments();
@@ -800,11 +870,23 @@ impl DataFlowGraph {
     ///
     /// Panics if the instruction doesn't support arguments.
     pub fn append_inst_arg(&mut self, inst: Inst, new_arg: Value) {
-        let mut branch_values = self.insts[inst]
-            .take_value_list()
-            .expect("the instruction doesn't have value arguments");
-        branch_values.push(new_arg, &mut self.value_lists);
-        self.insts[inst].put_value_list(branch_values)
+        self.insts[inst]
+            .value_list_mut()
+            .expect("the instruction doesn't have value arguments")
+            .push(new_arg, &mut self.value_lists);
+    }
+
+    /// Clone an instruction, attaching new result `Value`s and
+    /// returning them.
+    pub fn clone_inst(&mut self, inst: Inst) -> Inst {
+        // First, add a clone of the InstructionData.
+        let inst_data = self.insts[inst].clone();
+        let new_inst = self.make_inst(inst_data);
+        // Get the controlling type variable.
+        let ctrl_typevar = self.ctrl_typevar(inst);
+        // Create new result values.
+        self.make_inst_results(new_inst, ctrl_typevar);
+        new_inst
     }
 
     /// Get the first result of an instruction.
@@ -829,6 +911,14 @@ impl DataFlowGraph {
     /// Return all the results of an instruction as ValueList.
     pub fn inst_results_list(&self, inst: Inst) -> ValueList {
         self.results[inst]
+    }
+
+    /// Create a union of two values.
+    pub fn union(&mut self, x: Value, y: Value) -> Value {
+        // Get the type.
+        let ty = self.value_type(x);
+        debug_assert_eq!(ty, self.value_type(y));
+        self.make_value(ValueData::Union { ty, x, y })
     }
 
     /// Get the call signature of a direct or indirect call instruction.
@@ -877,7 +967,7 @@ impl DataFlowGraph {
 
     /// Get the controlling type variable, or `INVALID` if `inst` isn't polymorphic.
     pub fn ctrl_typevar(&self, inst: Inst) -> Type {
-        let constraints = self[inst].opcode().constraints();
+        let constraints = self.insts[inst].opcode().constraints();
 
         if !constraints.is_polymorphic() {
             types::INVALID
@@ -885,34 +975,18 @@ impl DataFlowGraph {
             // Not all instruction formats have a designated operand, but in that case
             // `requires_typevar_operand()` should never be true.
             self.value_type(
-                self[inst]
+                self.insts[inst]
                     .typevar_operand(&self.value_lists)
                     .unwrap_or_else(|| {
                         panic!(
                             "Instruction format for {:?} doesn't have a designated operand",
-                            self[inst]
+                            self.insts[inst]
                         )
                     }),
             )
         } else {
             self.value_type(self.first_result(inst))
         }
-    }
-}
-
-/// Allow immutable access to instructions via indexing.
-impl Index<Inst> for DataFlowGraph {
-    type Output = InstructionData;
-
-    fn index(&self, inst: Inst) -> &InstructionData {
-        &self.insts[inst]
-    }
-}
-
-/// Allow mutable access to instructions via indexing.
-impl IndexMut<Inst> for DataFlowGraph {
-    fn index_mut(&mut self, inst: Inst) -> &mut InstructionData {
-        &mut self.insts[inst]
     }
 }
 
@@ -1117,9 +1191,9 @@ impl<'a> fmt::Display for DisplayInst<'a> {
 
         let typevar = dfg.ctrl_typevar(inst);
         if typevar.is_invalid() {
-            write!(f, "{}", dfg[inst].opcode())?;
+            write!(f, "{}", dfg.insts[inst].opcode())?;
         } else {
-            write!(f, "{}.{}", dfg[inst].opcode(), typevar)?;
+            write!(f, "{}.{}", dfg.insts[inst].opcode(), typevar)?;
         }
         write_operands(f, dfg, inst)
     }
@@ -1306,7 +1380,7 @@ mod tests {
         // Immutable reference resolution.
         {
             let immdfg = &dfg;
-            let ins = &immdfg[inst];
+            let ins = &immdfg.insts[inst];
             assert_eq!(ins.opcode(), Opcode::Iconst);
         }
 
@@ -1436,6 +1510,7 @@ mod tests {
 
     #[test]
     fn aliases() {
+        use crate::ir::condcodes::IntCC;
         use crate::ir::InstBuilder;
 
         let mut func = Function::new();
@@ -1450,7 +1525,7 @@ mod tests {
         assert_eq!(pos.func.dfg.resolve_aliases(v1), v1);
 
         let arg0 = pos.func.dfg.append_block_param(block0, types::I32);
-        let (s, c) = pos.ins().iadd_ifcout(v1, arg0);
+        let (s, c) = pos.ins().iadd_cout(v1, arg0);
         let iadd = match pos.func.dfg.value_def(s) {
             ValueDef::Result(i, 0) => i,
             _ => panic!(),
@@ -1460,9 +1535,9 @@ mod tests {
         pos.func.dfg.clear_results(iadd);
         pos.func.dfg.attach_result(iadd, s);
 
-        // Replace `iadd_ifcout` with a normal `iadd` and an `ifcmp`.
+        // Replace `iadd_cout` with a normal `iadd` and an `icmp`.
         pos.func.dfg.replace(iadd).iadd(v1, arg0);
-        let c2 = pos.ins().ifcmp(s, v1);
+        let c2 = pos.ins().icmp(IntCC::Equal, s, v1);
         pos.func.dfg.change_to_alias(c, c2);
 
         assert_eq!(pos.func.dfg.resolve_aliases(c2), c2);

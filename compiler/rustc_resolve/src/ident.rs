@@ -7,7 +7,6 @@ use rustc_middle::ty;
 use rustc_session::lint::builtin::PROC_MACRO_DERIVE_RESOLUTION_FALLBACK;
 use rustc_session::lint::BuiltinLintDiagnostics;
 use rustc_span::def_id::LocalDefId;
-use rustc_span::edition::Edition;
 use rustc_span::hygiene::{ExpnId, ExpnKind, LocalExpnId, MacroKind, SyntaxContext};
 use rustc_span::symbol::{kw, Ident};
 use rustc_span::{Span, DUMMY_SP};
@@ -29,7 +28,7 @@ use RibKind::*;
 
 type Visibility = ty::Visibility<LocalDefId>;
 
-impl<'a> Resolver<'a> {
+impl<'a, 'tcx> Resolver<'a, 'tcx> {
     /// A generic scope visitor.
     /// Visits scopes in order to resolve some identifier in them or perform other actions.
     /// If the callback returns `Some` result, we stop visiting scopes and return it.
@@ -86,7 +85,7 @@ impl<'a> Resolver<'a> {
         // 4c. Standard library prelude (de-facto closed, controlled).
         // 6. Language prelude: builtin attributes (closed, controlled).
 
-        let rust_2015 = ctxt.edition() == Edition::Edition2015;
+        let rust_2015 = ctxt.edition().is_rust_2015();
         let (ns, macro_kind, is_absolute_path) = match scope_set {
             ScopeSet::All(ns, _) => (ns, None, false),
             ScopeSet::AbsolutePath(ns) => (ns, None, true),
@@ -369,7 +368,7 @@ impl<'a> Resolver<'a> {
     /// This is a variation of `fn resolve_ident_in_lexical_scope` that can be run during
     /// expansion and import resolution (perhaps they can be merged in the future).
     /// The function is used for resolving initial segments of macro paths (e.g., `foo` in
-    /// `foo::bar!(); or `foo!();`) and also for import paths on 2018 edition.
+    /// `foo::bar!();` or `foo!();`) and also for import paths on 2018 edition.
     #[instrument(level = "debug", skip(self, scope_set))]
     pub(crate) fn early_resolve_ident_in_lexical_scope(
         &mut self,
@@ -1180,7 +1179,7 @@ impl<'a> Resolver<'a> {
                         }
 
                         ConstantItemRibKind(trivial, _) => {
-                            let features = self.session.features_untracked();
+                            let features = self.tcx.sess.features_untracked();
                             // HACK(min_const_generics): We currently only allow `N` or `{ N }`.
                             if !(trivial == ConstantHasGenerics::Yes
                                 || features.generic_const_exprs)
@@ -1209,7 +1208,7 @@ impl<'a> Resolver<'a> {
                                                 is_type: true,
                                             },
                                         );
-                                        self.session.delay_span_bug(span, CG_BUG_STR);
+                                        self.tcx.sess.delay_span_bug(span, CG_BUG_STR);
                                     }
 
                                     return Res::Err;
@@ -1256,7 +1255,7 @@ impl<'a> Resolver<'a> {
                         | ForwardGenericParamBanRibKind => continue,
 
                         ConstantItemRibKind(trivial, _) => {
-                            let features = self.session.features_untracked();
+                            let features = self.tcx.sess.features_untracked();
                             // HACK(min_const_generics): We currently only allow `N` or `{ N }`.
                             if !(trivial == ConstantHasGenerics::Yes
                                 || features.generic_const_exprs)
@@ -1269,7 +1268,7 @@ impl<'a> Resolver<'a> {
                                             is_type: false,
                                         },
                                     );
-                                    self.session.delay_span_bug(span, CG_BUG_STR);
+                                    self.tcx.sess.delay_span_bug(span, CG_BUG_STR);
                                 }
 
                                 return Res::Err;
@@ -1398,7 +1397,10 @@ impl<'a> Resolver<'a> {
                         module = Some(ModuleOrUniformRoot::ExternPrelude);
                         continue;
                     }
-                    if name == kw::PathRoot && ident.span.rust_2015() && self.session.rust_2018() {
+                    if name == kw::PathRoot
+                        && ident.span.is_rust_2015()
+                        && self.tcx.sess.rust_2018()
+                    {
                         // `::a::b` from 2015 macro on 2018 global edition
                         module = Some(ModuleOrUniformRoot::CrateRootAndExternPrelude);
                         continue;
@@ -1494,7 +1496,8 @@ impl<'a> Resolver<'a> {
                         record_segment_res(self, res);
                     } else if res == Res::ToolMod && i + 1 != path.len() {
                         if binding.is_import() {
-                            self.session
+                            self.tcx
+                                .sess
                                 .struct_span_err(
                                     ident.span,
                                     "cannot use a tool module through an import",

@@ -15,7 +15,6 @@ pub(crate) struct Formats {
     pub(crate) cond_trap: Rc<InstructionFormat>,
     pub(crate) float_compare: Rc<InstructionFormat>,
     pub(crate) func_addr: Rc<InstructionFormat>,
-    pub(crate) heap_addr: Rc<InstructionFormat>,
     pub(crate) int_compare: Rc<InstructionFormat>,
     pub(crate) int_compare_imm: Rc<InstructionFormat>,
     pub(crate) int_add_trap: Rc<InstructionFormat>,
@@ -196,13 +195,6 @@ impl Formats {
             dynamic_stack_store: Builder::new("DynamicStackStore")
                 .value()
                 .imm(&entities.dynamic_stack_slot)
-                .build(),
-
-            // Accessing a WebAssembly heap.
-            heap_addr: Builder::new("HeapAddr")
-                .imm(&entities.heap)
-                .value()
-                .imm(&imm.uimm32)
                 .build(),
 
             // Accessing a WebAssembly table.

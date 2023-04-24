@@ -115,11 +115,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     debug!("add_moved_or_invoked_closure_note: closure={:?}", closure);
                     if let ty::Closure(did, _) = self.body.local_decls[closure].ty.kind() {
                         let did = did.expect_local();
-                        let hir_id = self.infcx.tcx.hir().local_def_id_to_hir_id(did);
-
-                        if let Some((span, hir_place)) =
-                            self.infcx.tcx.typeck(did).closure_kind_origins().get(hir_id)
-                        {
+                        if let Some((span, hir_place)) = self.infcx.tcx.closure_kind_origin(did) {
                             diag.span_note(
                                 *span,
                                 &format!(
@@ -139,11 +135,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         if let Some(target) = target {
             if let ty::Closure(did, _) = self.body.local_decls[target].ty.kind() {
                 let did = did.expect_local();
-                let hir_id = self.infcx.tcx.hir().local_def_id_to_hir_id(did);
-
-                if let Some((span, hir_place)) =
-                    self.infcx.tcx.typeck(did).closure_kind_origins().get(hir_id)
-                {
+                if let Some((span, hir_place)) = self.infcx.tcx.closure_kind_origin(did) {
                     diag.span_note(
                         *span,
                         &format!(
@@ -373,14 +365,8 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     //
                     // We know the field exists so it's safe to call operator[] and `unwrap` here.
                     let def_id = def_id.expect_local();
-                    let var_id = self
-                        .infcx
-                        .tcx
-                        .typeck(def_id)
-                        .closure_min_captures_flattened(def_id)
-                        .nth(field.index())
-                        .unwrap()
-                        .get_root_variable();
+                    let var_id =
+                        self.infcx.tcx.closure_captures(def_id)[field.index()].get_root_variable();
 
                     Some(self.infcx.tcx.hir().name(var_id).to_string())
                 }
@@ -817,6 +803,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             && let AggregateKind::Closure(def_id, _) | AggregateKind::Generator(def_id, _, _) = **kind
         {
             debug!("move_spans: def_id={:?} places={:?}", def_id, places);
+            let def_id = def_id.expect_local();
             if let Some((args_span, generator_kind, capture_kind_span, path_span)) =
                 self.closure_span(def_id, moved_place, places)
             {
@@ -945,6 +932,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     box AggregateKind::Generator(def_id, _, _) => (def_id, true),
                     _ => continue,
                 };
+                let def_id = def_id.expect_local();
 
                 debug!(
                     "borrow_spans: def_id={:?} is_generator={:?} places={:?}",
@@ -985,7 +973,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         debug!("closure_span: hir_id={:?} expr={:?}", hir_id, expr);
         if let hir::ExprKind::Closure(&hir::Closure { body, fn_decl_span, .. }) = expr {
             for (captured_place, place) in
-                self.infcx.tcx.typeck(def_id).closure_min_captures_flattened(def_id).zip(places)
+                self.infcx.tcx.closure_captures(def_id).iter().zip(places)
             {
                 match place {
                     Operand::Copy(place) | Operand::Move(place)
@@ -1064,7 +1052,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                         );
                     }
                 }
-                CallKind::Normal { self_arg, desugaring, method_did } => {
+                CallKind::Normal { self_arg, desugaring, method_did, method_substs } => {
                     let self_arg = self_arg.unwrap();
                     let tcx = self.infcx.tcx;
                     if let Some((CallDesugaringKind::ForLoopIntoIter, _)) = desugaring {
@@ -1128,17 +1116,21 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                                 "{place_name} {partially_str}moved due to this method call{loop_message}",
                             ),
                         );
+
                         let infcx = tcx.infer_ctxt().build();
+                        // Erase and shadow everything that could be passed to the new infcx.
                         let ty = tcx.erase_regions(moved_place.ty(self.body, tcx).ty);
+                        let method_substs = tcx.erase_regions(method_substs);
+
                         if let ty::Adt(def, substs) = ty.kind()
                             && Some(def.did()) == tcx.lang_items().pin_type()
                             && let ty::Ref(_, _, hir::Mutability::Mut) = substs.type_at(0).kind()
-                            && let self_ty = infcx.replace_bound_vars_with_fresh_vars(
+                            && let self_ty = infcx.instantiate_binder_with_fresh_vars(
                                 fn_call_span,
                                 LateBoundRegionConversionTime::FnCall,
-                                tcx.fn_sig(method_did).input(0),
+                                tcx.fn_sig(method_did).subst(tcx, method_substs).input(0),
                             )
-                            && infcx.can_eq(self.param_env, ty, self_ty).is_ok()
+                            && infcx.can_eq(self.param_env, ty, self_ty)
                         {
                             err.span_suggestion_verbose(
                                 fn_call_span.shrink_to_lo(),
@@ -1176,13 +1168,13 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                         );
                     }
                     let parent_did = tcx.parent(method_did);
-                    let parent_self_ty = (tcx.def_kind(parent_did)
-                        == rustc_hir::def::DefKind::Impl)
-                        .then_some(parent_did)
-                        .and_then(|did| match tcx.type_of(did).kind() {
-                            ty::Adt(def, ..) => Some(def.did()),
-                            _ => None,
-                        });
+                    let parent_self_ty =
+                        matches!(tcx.def_kind(parent_did), rustc_hir::def::DefKind::Impl { .. })
+                            .then_some(parent_did)
+                            .and_then(|did| match tcx.type_of(did).subst_identity().kind() {
+                                ty::Adt(def, ..) => Some(def.did()),
+                                _ => None,
+                            });
                     let is_option_or_result = parent_self_ty.map_or(false, |def_id| {
                         matches!(tcx.get_diagnostic_name(def_id), Some(sym::Option | sym::Result))
                     });

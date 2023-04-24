@@ -344,7 +344,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                     } else {
                         err.span_help(source_info.span, "try removing `&mut` here");
                     }
-                } else if decl.mutability == Mutability::Not {
+                } else if decl.mutability.is_not() {
                     if matches!(
                         decl.local_info,
                         Some(box LocalInfo::User(ClearCrossCrate::Set(BindingForm::ImplicitSelf(
@@ -385,7 +385,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                     err.span_suggestion_verbose(
                         local_decl.source_info.span.shrink_to_lo(),
                         "consider changing this to be mutable",
-                        "mut ".to_string(),
+                        "mut ",
                         Applicability::MachineApplicable,
                     );
                     let tcx = self.infcx.tcx;
@@ -606,12 +606,63 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                                 }
                             }
                             Some((false, err_label_span, message)) => {
-                                err.span_label(
-                                    err_label_span,
-                                    &format!(
-                                        "consider changing this binding's type to be: `{message}`"
-                                    ),
-                                );
+                                struct BindingFinder {
+                                    span: Span,
+                                    hir_id: Option<hir::HirId>,
+                                }
+
+                                impl<'tcx> Visitor<'tcx> for BindingFinder {
+                                    fn visit_stmt(&mut self, s: &'tcx hir::Stmt<'tcx>) {
+                                        if let hir::StmtKind::Local(local) = s.kind {
+                                            if local.pat.span == self.span {
+                                                self.hir_id = Some(local.hir_id);
+                                            }
+                                        }
+                                        hir::intravisit::walk_stmt(self, s);
+                                    }
+                                }
+                                let hir_map = self.infcx.tcx.hir();
+                                let def_id = self.body.source.def_id();
+                                let hir_id = hir_map.local_def_id_to_hir_id(def_id.expect_local());
+                                let node = hir_map.find(hir_id);
+                                let hir_id = if let Some(hir::Node::Item(item)) = node
+                                    && let hir::ItemKind::Fn(.., body_id) = item.kind
+                                {
+                                    let body = hir_map.body(body_id);
+                                    let mut v = BindingFinder {
+                                        span: err_label_span,
+                                        hir_id: None,
+                                    };
+                                    v.visit_body(body);
+                                    v.hir_id
+                                } else {
+                                    None
+                                };
+                                if let Some(hir_id) = hir_id
+                                    && let Some(hir::Node::Local(local)) = hir_map.find(hir_id)
+                                {
+                                    let (changing, span, sugg) = match local.ty {
+                                        Some(ty) => ("changing", ty.span, message),
+                                        None => (
+                                            "specifying",
+                                            local.pat.span.shrink_to_hi(),
+                                            format!(": {message}"),
+                                        ),
+                                    };
+                                    err.span_suggestion_verbose(
+                                        span,
+                                        &format!("consider {changing} this binding's type"),
+                                        sugg,
+                                        Applicability::HasPlaceholders,
+                                    );
+                                } else {
+                                    err.span_label(
+                                        err_label_span,
+                                        &format!(
+                                            "consider changing this binding's type to be: `{message}`"
+                                        ),
+                                    );
+                                }
                             }
                             None => {}
                         }
@@ -850,10 +901,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
         err: &mut Diagnostic,
     ) {
         let tables = tcx.typeck(closure_local_def_id);
-        let closure_hir_id = tcx.hir().local_def_id_to_hir_id(closure_local_def_id);
-        if let Some((span, closure_kind_origin)) =
-            &tables.closure_kind_origins().get(closure_hir_id)
-        {
+        if let Some((span, closure_kind_origin)) = tcx.closure_kind_origin(closure_local_def_id) {
             let reason = if let PlaceBase::Upvar(upvar_id) = closure_kind_origin.base {
                 let upvar = ty::place_to_string_for_capture(tcx, closure_kind_origin);
                 let root_hir_id = upvar_id.var_path.hir_id;

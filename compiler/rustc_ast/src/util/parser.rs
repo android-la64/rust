@@ -225,7 +225,7 @@ impl AssocOp {
             AssignOp(_) | // `{ 42 } +=`
             As | // `{ 42 } as usize`
             // Equal | // `{ 42 } == { 42 }`    Accepting these here would regress incorrect
-            // NotEqual | // `{ 42 } != { 42 }  struct literals parser recovery.
+            // NotEqual | // `{ 42 } != { 42 }` struct literals parser recovery.
             Colon, // `{ 42 }: usize`
         )
     }
@@ -271,6 +271,7 @@ pub enum ExprPrecedence {
     Try,
     InlineAsm,
     Mac,
+    FormatArgs,
 
     Array,
     Repeat,
@@ -335,7 +336,8 @@ impl ExprPrecedence {
             | ExprPrecedence::Index
             | ExprPrecedence::Try
             | ExprPrecedence::InlineAsm
-            | ExprPrecedence::Mac => PREC_POSTFIX,
+            | ExprPrecedence::Mac
+            | ExprPrecedence::FormatArgs => PREC_POSTFIX,
 
             // Never need parens
             ExprPrecedence::Array

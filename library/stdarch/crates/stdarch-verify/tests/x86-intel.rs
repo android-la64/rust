@@ -367,7 +367,7 @@ fn verify_all_signatures() {
         }
         println!("failed to verify `{}`", rust.name);
         for error in errors {
-            println!("  * {}", error);
+            println!("  * {error}");
         }
         all_valid = false;
     }
@@ -403,18 +403,18 @@ fn verify_all_signatures() {
     if PRINT_MISSING_LISTS || PRINT_MISSING_LISTS_MARKDOWN {
         for (k, v) in missing {
             if PRINT_MISSING_LISTS_MARKDOWN {
-                println!("\n<details><summary>{:?}</summary><p>\n", k);
+                println!("\n<details><summary>{k:?}</summary><p>\n");
                 for intel in v {
                     let url = format!(
                         "https://software.intel.com/sites/landingpage\
                          /IntrinsicsGuide/#text={}&expand=5236",
                         intel.name
                     );
-                    println!("  * [ ] [`{}`]({})", intel.name, url);
+                    println!("  * [ ] [`{}`]({url})", intel.name);
                 }
                 println!("</p></details>\n");
             } else {
-                println!("\n{:?}\n", k);
+                println!("\n{k:?}\n");
                 for intel in v {
                     println!("\t{}", intel.name);
                 }
@@ -468,6 +468,18 @@ fn matches(rust: &Function, intel: &Intrinsic) -> Result<(), String> {
         //
         // For more info see #308
         if *cpuid == "TSC" || *cpuid == "RDTSCP" {
+            continue;
+        }
+
+        // Some CPUs support VAES/GFNI/VPCLMULQDQ without AVX512, even though
+        // the Intel documentation states that those instructions require
+        // AVX512VL.
+        if *cpuid == "AVX512VL"
+            && intel
+                .cpuid
+                .iter()
+                .any(|x| matches!(&**x, "VAES" | "GFNI" | "VPCLMULQDQ"))
+        {
             continue;
         }
 

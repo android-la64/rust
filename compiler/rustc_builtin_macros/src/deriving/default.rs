@@ -8,7 +8,7 @@ use rustc_span::symbol::Ident;
 use rustc_span::symbol::{kw, sym};
 use rustc_span::Span;
 use smallvec::SmallVec;
-use thin_vec::thin_vec;
+use thin_vec::{thin_vec, ThinVec};
 
 pub fn expand_deriving_default(
     cx: &mut ExtCtxt<'_>,
@@ -25,6 +25,7 @@ pub fn expand_deriving_default(
         span,
         path: Path::new(vec![kw::Default, sym::Default]),
         skip_path_as_bound: has_a_default_variant(item),
+        needs_copy_as_bound_if_packed: false,
         additional_bounds: Vec::new(),
         supports_unions: false,
         methods: vec![MethodDef {
@@ -59,7 +60,7 @@ fn default_struct_substructure(
 ) -> BlockOrExpr {
     // Note that `kw::Default` is "default" and `sym::Default` is "Default"!
     let default_ident = cx.std_path(&[kw::Default, sym::Default, kw::Default]);
-    let default_call = |span| cx.expr_call_global(span, default_ident.clone(), Vec::new());
+    let default_call = |span| cx.expr_call_global(span, default_ident.clone(), ThinVec::new());
 
     let expr = match summary {
         Unnamed(_, false) => cx.expr_ident(trait_span, substr.type_ident),

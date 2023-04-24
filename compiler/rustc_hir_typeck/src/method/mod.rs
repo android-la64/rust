@@ -20,7 +20,7 @@ use rustc_hir::def_id::DefId;
 use rustc_infer::infer::{self, InferOk};
 use rustc_middle::traits::ObligationCause;
 use rustc_middle::ty::subst::{InternalSubsts, SubstsRef};
-use rustc_middle::ty::{self, GenericParamDefKind, Ty, TypeVisitable};
+use rustc_middle::ty::{self, GenericParamDefKind, Ty, TypeVisitableExt};
 use rustc_span::symbol::Ident;
 use rustc_span::Span;
 use rustc_trait_selection::traits::query::evaluate_obligation::InferCtxtExt;
@@ -76,7 +76,7 @@ pub struct NoMatchData<'tcx> {
     pub unsatisfied_predicates:
         Vec<(ty::Predicate<'tcx>, Option<ty::Predicate<'tcx>>, Option<ObligationCause<'tcx>>)>,
     pub out_of_scope_traits: Vec<DefId>,
-    pub lev_candidate: Option<ty::AssocItem>,
+    pub similar_candidate: Option<ty::AssocItem>,
     pub mode: probe::Mode,
 }
 
@@ -145,7 +145,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             )
             .map(|pick| {
                 let sig = self.tcx.fn_sig(pick.item.def_id);
-                sig.inputs().skip_binder().len().saturating_sub(1)
+                sig.skip_binder().inputs().skip_binder().len().saturating_sub(1)
             })
             .unwrap_or(0);
 
@@ -380,6 +380,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             );
             return None;
         };
+
+        if method_item.kind != ty::AssocKind::Fn {
+            self.tcx.sess.delay_span_bug(tcx.def_span(method_item.def_id), "not a method");
+            return None;
+        }
+
         let def_id = method_item.def_id;
         let generics = tcx.generics_of(def_id);
 
@@ -399,10 +405,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // N.B., instantiate late-bound regions before normalizing the
         // function signature so that normalization does not need to deal
         // with bound regions.
-        let fn_sig = tcx.bound_fn_sig(def_id);
-        let fn_sig = fn_sig.subst(self.tcx, substs);
+        let fn_sig = tcx.fn_sig(def_id).subst(self.tcx, substs);
         let fn_sig =
-            self.replace_bound_vars_with_fresh_vars(obligation.cause.span, infer::FnCall, fn_sig);
+            self.instantiate_binder_with_fresh_vars(obligation.cause.span, infer::FnCall, fn_sig);
 
         let InferOk { value, obligations: o } =
             self.at(&obligation.cause, self.param_env).normalize(fn_sig);

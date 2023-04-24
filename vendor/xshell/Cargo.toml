@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.59"
 name = "xshell"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 exclude = [".github/", "bors.toml", "rustfmt.toml", "cbench", "mock_bin/"]
 description = "Utilities for quick shell scripting in Rust"
@@ -22,6 +22,6 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/matklad/xshell"
 resolver = "2"
 [dependencies.xshell-macros]
-version = "=0.2.2"
+version = "=0.2.3"
 [dev-dependencies.anyhow]
 version = "1.0.56"

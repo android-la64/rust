@@ -9,6 +9,7 @@ https://doc.rust-lang.org/stable/rustc/platform-support/fuchsia.html#aarch64-unk
 
 import argparse
 from dataclasses import dataclass
+import fcntl
 import glob
 import hashlib
 import json
@@ -19,18 +20,18 @@ import shutil
 import signal
 import subprocess
 import sys
-from typing import ClassVar, List
+from typing import ClassVar, List, Optional
 
 
 @dataclass
 class TestEnvironment:
     rust_dir: str
     sdk_dir: str
-    target_arch: str
-    package_server_pid: int = None
-    emu_addr: str = None
-    libstd_name: str = None
-    libtest_name: str = None
+    target: str
+    package_server_pid: Optional[int] = None
+    emu_addr: Optional[str] = None
+    libstd_name: Optional[str] = None
+    libtest_name: Optional[str] = None
     verbose: bool = False
 
     @staticmethod
@@ -39,6 +40,15 @@ class TestEnvironment:
         if tmp_dir is not None:
             return os.path.abspath(tmp_dir)
         return os.path.join(os.path.dirname(__file__), "tmp~")
+
+    @staticmethod
+    def triple_to_arch(triple):
+        if "x86_64" in triple:
+            return "x64"
+        elif "aarch64" in triple:
+            return "arm64"
+        else:
+            raise Exception(f"Unrecognized target triple {triple}")
 
     @classmethod
     def env_file_path(cls):
@@ -49,7 +59,7 @@ class TestEnvironment:
         return cls(
             os.path.abspath(args.rust),
             os.path.abspath(args.sdk),
-            args.target_arch,
+            args.target,
             verbose=args.verbose,
         )
 
@@ -60,20 +70,13 @@ class TestEnvironment:
             return cls(
                 test_env["rust_dir"],
                 test_env["sdk_dir"],
-                test_env["target_arch"],
+                test_env["target"],
                 libstd_name=test_env["libstd_name"],
                 libtest_name=test_env["libtest_name"],
                 emu_addr=test_env["emu_addr"],
                 package_server_pid=test_env["package_server_pid"],
                 verbose=test_env["verbose"],
             )
-
-    def image_name(self):
-        if self.target_arch == "x64":
-            return "qemu-x64"
-        if self.target_arch == "arm64":
-            return "qemu-arm64"
-        raise Exception(f"Unrecognized target architecture {self.target_arch}")
 
     def write_to_file(self):
         with open(self.env_file_path(), "w", encoding="utf-8") as f:
@@ -108,13 +111,6 @@ class TestEnvironment:
     def repo_dir(self):
         return os.path.join(self.tmp_dir(), self.TEST_REPO_NAME)
 
-    def rustlib_dir(self):
-        if self.target_arch == "x64":
-            return "x86_64-unknown-fuchsia"
-        if self.target_arch == "arm64":
-            return "aarch64-unknown-fuchsia"
-        raise Exception(f"Unrecognized target architecture {self.target_arch}")
-
     def libs_dir(self):
         return os.path.join(
             self.rust_dir,
@@ -125,7 +121,7 @@ class TestEnvironment:
         return os.path.join(
             self.libs_dir(),
             "rustlib",
-            self.rustlib_dir(),
+            self.target,
             "lib",
         )
 
@@ -150,6 +146,9 @@ class TestEnvironment:
 
     def zxdb_script_path(self):
         return os.path.join(self.tmp_dir(), "zxdb_script")
+
+    def pm_lockfile_path(self):
+        return os.path.join(self.tmp_dir(), "pm.lock")
 
     def log_info(self, msg):
         print(msg)
@@ -384,7 +383,7 @@ class TestEnvironment:
                 "--emulator-log",
                 self.emulator_log_path(),
                 "--image-name",
-                self.image_name(),
+                "qemu-" + self.triple_to_arch(self.target),
             ],
             stdout=self.subprocess_output(),
             stderr=self.subprocess_output(),
@@ -465,6 +464,9 @@ class TestEnvironment:
             stderr=self.subprocess_output(),
         )
 
+        # Create lockfiles
+        open(self.pm_lockfile_path(), 'a').close()
+
         # Write to file
         self.write_to_file()
 
@@ -512,9 +514,8 @@ class TestEnvironment:
     bin/{exe_name}={bin_path}
     lib/{libstd_name}={rust_dir}/lib/rustlib/{rustlib_dir}/lib/{libstd_name}
     lib/{libtest_name}={rust_dir}/lib/rustlib/{rustlib_dir}/lib/{libtest_name}
-    lib/ld.so.1={sdk_dir}/arch/{target_arch}/sysroot/lib/libc.so
-    lib/libzircon.so={sdk_dir}/arch/{target_arch}/sysroot/lib/libzircon.so
-    lib/libfdio.so={sdk_dir}/arch/{target_arch}/lib/libfdio.so
+    lib/ld.so.1={sdk_dir}/arch/{target_arch}/sysroot/dist/lib/ld.so.1
+    lib/libfdio.so={sdk_dir}/arch/{target_arch}/dist/libfdio.so
     """
 
     TEST_ENV_VARS: ClassVar[List[str]] = [
@@ -642,11 +643,11 @@ class TestEnvironment:
                         package_dir=package_dir,
                         package_name=package_name,
                         rust_dir=self.rust_dir,
-                        rustlib_dir=self.rustlib_dir(),
+                        rustlib_dir=self.target,
                         sdk_dir=self.sdk_dir,
                         libstd_name=self.libstd_name,
                         libtest_name=self.libtest_name,
-                        target_arch=self.target_arch,
+                        target_arch=self.triple_to_arch(self.target),
                     )
                 )
                 for shared_lib in shared_libs:
@@ -682,19 +683,25 @@ class TestEnvironment:
             log("Publishing package to repo...")
 
             # Publish package to repo
-            subprocess.check_call(
-                [
-                    self.tool_path("pm"),
-                    "publish",
-                    "-a",
-                    "-repo",
-                    self.repo_dir(),
-                    "-f",
-                    far_path,
-                ],
-                stdout=log_file,
-                stderr=log_file,
-            )
+            with open(self.pm_lockfile_path(), 'w') as pm_lockfile:
+                fcntl.lockf(pm_lockfile.fileno(), fcntl.LOCK_EX)
+                subprocess.check_call(
+                    [
+                        self.tool_path("pm"),
+                        "publish",
+                        "-a",
+                        "-repo",
+                        self.repo_dir(),
+                        "-f",
+                        far_path,
+                    ],
+                    stdout=log_file,
+                    stderr=log_file,
+                )
+                # This lock should be released automatically when the pm
+                # lockfile is closed, but we'll be polite and unlock it now
+                # since the spec leaves some wiggle room.
+                fcntl.lockf(pm_lockfile.fileno(), fcntl.LOCK_UN)
 
             log("Running ffx test...")
 
@@ -849,23 +856,34 @@ class TestEnvironment:
             "--",
             "--build-id-dir",
             os.path.join(self.sdk_dir, ".build-id"),
-            "--build-id-dir",
-            os.path.join(self.libs_dir(), ".build-id"),
         ]
 
-        # Add rust source if it's available
-        if args.rust_src is not None:
+        libs_build_id_path = os.path.join(self.libs_dir(), ".build-id")
+        if os.path.exists(libs_build_id_path):
+            # Add .build-id symbols if installed libs have been stripped into a
+            # .build-id directory
             command += [
-                "--build-dir",
-                args.rust_src,
+                "--build-id-dir",
+                libs_build_id_path,
+            ]
+        else:
+            # If no .build-id directory is detected, then assume that the shared
+            # libs contain their debug symbols
+            command += [
+                f"--symbol-path={self.rust_dir}/lib/rustlib/{self.target}/lib",
             ]
 
+        # Add rust source if it's available
+        rust_src_map = None
+        if args.rust_src is not None:
+            # This matches the remapped prefix used by compiletest. There's no
+            # clear way that we can determine this, so it's hard coded.
+            rust_src_map = f"/rustc/FAKE_PREFIX={args.rust_src}"
+
         # Add fuchsia source if it's available
+        fuchsia_src_map = None
         if args.fuchsia_src is not None:
-            command += [
-                "--build-dir",
-                os.path.join(args.fuchsia_src, "out", "default"),
-            ]
+            fuchsia_src_map = f"./../..={args.fuchsia_src}"
 
         # Load debug symbols for the test binary and automatically attach
         if args.test is not None:
@@ -888,7 +906,28 @@ class TestEnvironment:
                 test_name,
             )
 
+            # The fake-test-src-base directory maps to the suite directory
+            # e.g. tests/ui/foo.rs has a path of rust/fake-test-src-base/foo.rs
+            fake_test_src_base = os.path.join(
+                args.rust_src,
+                "fake-test-src-base",
+            )
+            real_test_src_base = os.path.join(
+                args.rust_src,
+                "tests",
+                args.test.split(os.path.sep)[0],
+            )
+            test_src_map = f"{fake_test_src_base}={real_test_src_base}"
+
             with open(self.zxdb_script_path(), mode="w", encoding="utf-8") as f:
+                print(f"set source-map += {test_src_map}", file=f)
+
+                if rust_src_map is not None:
+                    print(f"set source-map += {rust_src_map}", file=f)
+
+                if fuchsia_src_map is not None:
+                    print(f"set source-map += {fuchsia_src_map}", file=f)
+
                 print(f"attach {test_name[:31]}", file=f)
 
             command += [
@@ -904,6 +943,20 @@ class TestEnvironment:
 
         # Connect to the running emulator with zxdb
         subprocess.run(command, env=self.ffx_cmd_env(), check=False)
+
+    def syslog(self, args):
+        subprocess.run(
+            [
+                self.tool_path("ffx"),
+                "--config",
+                self.ffx_user_config_path(),
+                "log",
+                "--since",
+                "now",
+            ],
+            env=self.ffx_cmd_env(),
+            check=False,
+        )
 
 
 def start(args):
@@ -938,6 +991,12 @@ def debug(args):
     return 0
 
 
+def syslog(args):
+    test_env = TestEnvironment.read_from_file()
+    test_env.syslog(args)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -969,8 +1028,8 @@ def main():
         action="store_true",
     )
     start_parser.add_argument(
-        "--target-arch",
-        help="the architecture of the image to test",
+        "--target",
+        help="the target platform to test",
         required=True,
     )
     start_parser.set_defaults(func=start)
@@ -1032,6 +1091,11 @@ def main():
         help="any additional arguments to pass to zxdb",
     )
     debug_parser.set_defaults(func=debug)
+
+    syslog_parser = subparsers.add_parser(
+        "syslog", help="prints the device syslog"
+    )
+    syslog_parser.set_defaults(func=syslog)
 
     args = parser.parse_args()
     return args.func(args)

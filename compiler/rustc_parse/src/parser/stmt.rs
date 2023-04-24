@@ -1,18 +1,13 @@
 use super::attr::InnerAttrForbiddenReason;
 use super::diagnostics::AttemptLocalParseRecovery;
 use super::expr::LhsExpr;
-use super::pat::RecoverComma;
+use super::pat::{PatternLocation, RecoverComma};
 use super::path::PathStyle;
 use super::TrailingToken;
 use super::{
     AttrWrapper, BlockMode, FnParseMode, ForceCollect, Parser, Restrictions, SemiColonMode,
 };
-use crate::errors::{
-    AssignmentElseNotAllowed, CompoundAssignmentExpressionInLet, ConstLetMutuallyExclusive,
-    DocCommentDoesNotDocumentAnything, ExpectedStatementAfterOuterAttr, InvalidCurlyInLetElse,
-    InvalidExpressionInLetElse, InvalidIdentiferStartsWithNumber, InvalidVariableDeclaration,
-    InvalidVariableDeclarationSub, WrapExpressionInParentheses,
-};
+use crate::errors;
 use crate::maybe_whole;
 
 use rustc_ast as ast;
@@ -25,8 +20,8 @@ use rustc_ast::{StmtKind, DUMMY_NODE_ID};
 use rustc_errors::{Applicability, DiagnosticBuilder, ErrorGuaranteed, PResult};
 use rustc_span::source_map::{BytePos, Span};
 use rustc_span::symbol::{kw, sym};
-
 use std::mem;
+use thin_vec::{thin_vec, ThinVec};
 
 impl<'a> Parser<'a> {
     /// Parses a statement. This stops just before trailing semicolons on everything but items.
@@ -64,40 +59,45 @@ impl<'a> Parser<'a> {
         if self.token.is_keyword(kw::Mut) && self.is_keyword_ahead(1, &[kw::Let]) {
             self.bump();
             let mut_let_span = lo.to(self.token.span);
-            self.sess.emit_err(InvalidVariableDeclaration {
+            self.sess.emit_err(errors::InvalidVariableDeclaration {
                 span: mut_let_span,
-                sub: InvalidVariableDeclarationSub::SwitchMutLetOrder(mut_let_span),
+                sub: errors::InvalidVariableDeclarationSub::SwitchMutLetOrder(mut_let_span),
             });
         }
 
         Ok(Some(if self.token.is_keyword(kw::Let) {
             self.parse_local_mk(lo, attrs, capture_semi, force_collect)?
         } else if self.is_kw_followed_by_ident(kw::Mut) && self.may_recover() {
-            self.recover_stmt_local_after_let(lo, attrs, InvalidVariableDeclarationSub::MissingLet)?
+            self.recover_stmt_local_after_let(
+                lo,
+                attrs,
+                errors::InvalidVariableDeclarationSub::MissingLet,
+            )?
         } else if self.is_kw_followed_by_ident(kw::Auto) && self.may_recover() {
             self.bump(); // `auto`
             self.recover_stmt_local_after_let(
                 lo,
                 attrs,
-                InvalidVariableDeclarationSub::UseLetNotAuto,
+                errors::InvalidVariableDeclarationSub::UseLetNotAuto,
             )?
         } else if self.is_kw_followed_by_ident(sym::var) && self.may_recover() {
             self.bump(); // `var`
             self.recover_stmt_local_after_let(
                 lo,
                 attrs,
-                InvalidVariableDeclarationSub::UseLetNotVar,
+                errors::InvalidVariableDeclarationSub::UseLetNotVar,
             )?
         } else if self.check_path() && !self.token.is_qpath_start() && !self.is_path_start_item() {
             // We have avoided contextual keywords like `union`, items with `crate` visibility,
             // or `auto trait` items. We aim to parse an arbitrary path `a::b` but not something
             // that starts like a path (1 token), but it fact not a path.
             // Also, we avoid stealing syntax from `parse_item_`.
-            if force_collect == ForceCollect::Yes {
-                self.collect_tokens_no_attrs(|this| this.parse_stmt_path_start(lo, attrs))
-            } else {
-                self.parse_stmt_path_start(lo, attrs)
-            }?
+            match force_collect {
+                ForceCollect::Yes => {
+                    self.collect_tokens_no_attrs(|this| this.parse_stmt_path_start(lo, attrs))?
+                }
+                ForceCollect::No => self.parse_stmt_path_start(lo, attrs)?,
+            }
         } else if let Some(item) = self.parse_item_common(
             attrs.clone(),
             false,
@@ -113,18 +113,17 @@ impl<'a> Parser<'a> {
             self.mk_stmt(lo, StmtKind::Empty)
         } else if self.token != token::CloseDelim(Delimiter::Brace) {
             // Remainder are line-expr stmts.
-            let e = if force_collect == ForceCollect::Yes {
-                self.collect_tokens_no_attrs(|this| {
+            let e = match force_collect {
+                ForceCollect::Yes => self.collect_tokens_no_attrs(|this| {
                     this.parse_expr_res(Restrictions::STMT_EXPR, Some(attrs))
-                })
-            } else {
-                self.parse_expr_res(Restrictions::STMT_EXPR, Some(attrs))
-            }?;
+                })?,
+                ForceCollect::No => self.parse_expr_res(Restrictions::STMT_EXPR, Some(attrs))?,
+            };
             if matches!(e.kind, ExprKind::Assign(..)) && self.eat_keyword(kw::Else) {
                 let bl = self.parse_block()?;
                 // Destructuring assignment ... else.
                 // This is not allowed, but point it out in a nice way.
-                self.sess.emit_err(AssignmentElseNotAllowed { span: e.span.to(bl.span) });
+                self.sess.emit_err(errors::AssignmentElseNotAllowed { span: e.span.to(bl.span) });
             }
             self.mk_stmt(lo.to(e.span), StmtKind::Expr(e))
         } else {
@@ -147,14 +146,14 @@ impl<'a> Parser<'a> {
             }
 
             let expr = if this.eat(&token::OpenDelim(Delimiter::Brace)) {
-                this.parse_struct_expr(None, path, true)?
+                this.parse_expr_struct(None, path, true)?
             } else {
                 let hi = this.prev_token.span;
                 this.mk_expr(lo.to(hi), ExprKind::Path(None, path))
             };
 
             let expr = this.with_res(Restrictions::STMT_EXPR, |this| {
-                this.parse_dot_or_call_expr_with(expr, lo, attrs)
+                this.parse_expr_dot_or_call_with(expr, lo, attrs)
             })?;
             // `DUMMY_SP` will get overwritten later in this function
             Ok((this.mk_stmt(rustc_span::DUMMY_SP, StmtKind::Expr(expr)), TrailingToken::None))
@@ -164,7 +163,7 @@ impl<'a> Parser<'a> {
             // Perform this outside of the `collect_tokens_trailing_token` closure,
             // since our outer attributes do not apply to this part of the expression
             let expr = self.with_res(Restrictions::STMT_EXPR, |this| {
-                this.parse_assoc_expr_with(
+                this.parse_expr_assoc_with(
                     0,
                     LhsExpr::AlreadyParsed { expr, starts_statement: true },
                 )
@@ -200,8 +199,8 @@ impl<'a> Parser<'a> {
             // Since none of the above applied, this is an expression statement macro.
             let e = self.mk_expr(lo.to(hi), ExprKind::MacCall(mac));
             let e = self.maybe_recover_from_bad_qpath(e)?;
-            let e = self.parse_dot_or_call_expr_with(e, lo, attrs)?;
-            let e = self.parse_assoc_expr_with(
+            let e = self.parse_expr_dot_or_call_with(e, lo, attrs)?;
+            let e = self.parse_expr_assoc_with(
                 0,
                 LhsExpr::AlreadyParsed { expr: e, starts_statement: false },
             )?;
@@ -217,12 +216,12 @@ impl<'a> Parser<'a> {
         && let attrs = attrs.take_for_recovery(self.sess)
         && let attrs @ [.., last] = &*attrs {
             if last.is_doc_comment() {
-                self.sess.emit_err(DocCommentDoesNotDocumentAnything {
+                self.sess.emit_err(errors::DocCommentDoesNotDocumentAnything {
                     span: last.span,
                     missing_comma: None,
                 });
             } else if attrs.iter().any(|a| a.style == AttrStyle::Outer) {
-                self.sess.emit_err(ExpectedStatementAfterOuterAttr { span: last.span });
+                self.sess.emit_err(errors::ExpectedStatementAfterOuterAttr { span: last.span });
             }
         }
     }
@@ -231,7 +230,7 @@ impl<'a> Parser<'a> {
         &mut self,
         lo: Span,
         attrs: AttrWrapper,
-        subdiagnostic: fn(Span) -> InvalidVariableDeclarationSub,
+        subdiagnostic: fn(Span) -> errors::InvalidVariableDeclarationSub,
     ) -> PResult<'a, Stmt> {
         let stmt =
             self.collect_tokens_trailing_token(attrs, ForceCollect::Yes, |this, attrs| {
@@ -242,7 +241,7 @@ impl<'a> Parser<'a> {
                     TrailingToken::None,
                 ))
             })?;
-        self.sess.emit_err(InvalidVariableDeclaration { span: lo, sub: subdiagnostic(lo) });
+        self.sess.emit_err(errors::InvalidVariableDeclaration { span: lo, sub: subdiagnostic(lo) });
         Ok(stmt)
     }
 
@@ -270,12 +269,13 @@ impl<'a> Parser<'a> {
         let lo = self.prev_token.span;
 
         if self.token.is_keyword(kw::Const) && self.look_ahead(1, |t| t.is_ident()) {
-            self.sess.emit_err(ConstLetMutuallyExclusive { span: lo.to(self.token.span) });
+            self.sess.emit_err(errors::ConstLetMutuallyExclusive { span: lo.to(self.token.span) });
             self.bump();
         }
 
         self.report_invalid_identifier_error()?;
-        let (pat, colon) = self.parse_pat_before_ty(None, RecoverComma::Yes, "`let` bindings")?;
+        let (pat, colon) =
+            self.parse_pat_before_ty(None, RecoverComma::Yes, PatternLocation::LetBinding)?;
 
         let (err, ty) = if colon {
             // Save the state of the parser before parsing type normally, in case there is a `:`
@@ -372,7 +372,7 @@ impl<'a> Parser<'a> {
             rustc_ast::MetaItemLit::from_token(&self.token).is_none() &&
             (lit.kind == token::LitKind::Integer || lit.kind == token::LitKind::Float) &&
             self.look_ahead(1, |t| matches!(t.kind, token::Eq) || matches!(t.kind, token::Colon ) ) {
-                return Err(self.sess.create_err(InvalidIdentiferStartsWithNumber { span: self.token.span }));
+                return Err(self.sess.create_err(errors::InvalidIdentiferStartsWithNumber { span: self.token.span }));
         }
         Ok(())
     }
@@ -380,10 +380,10 @@ impl<'a> Parser<'a> {
     fn check_let_else_init_bool_expr(&self, init: &ast::Expr) {
         if let ast::ExprKind::Binary(op, ..) = init.kind {
             if op.node.lazy() {
-                self.sess.emit_err(InvalidExpressionInLetElse {
+                self.sess.emit_err(errors::InvalidExpressionInLetElse {
                     span: init.span,
                     operator: op.node.to_string(),
-                    sugg: WrapExpressionInParentheses {
+                    sugg: errors::WrapExpressionInParentheses {
                         left: init.span.shrink_to_lo(),
                         right: init.span.shrink_to_hi(),
                     },
@@ -394,9 +394,9 @@ impl<'a> Parser<'a> {
 
     fn check_let_else_init_trailing_brace(&self, init: &ast::Expr) {
         if let Some(trailing) = classify::expr_trailing_brace(init) {
-            self.sess.emit_err(InvalidCurlyInLetElse {
+            self.sess.emit_err(errors::InvalidCurlyInLetElse {
                 span: trailing.span.with_lo(trailing.span.hi() - BytePos(1)),
-                sugg: WrapExpressionInParentheses {
+                sugg: errors::WrapExpressionInParentheses {
                     left: trailing.span.shrink_to_lo(),
                     right: trailing.span.shrink_to_hi(),
                 },
@@ -409,7 +409,8 @@ impl<'a> Parser<'a> {
         let eq_consumed = match self.token.kind {
             token::BinOpEq(..) => {
                 // Recover `let x <op>= 1` as `let x = 1`
-                self.sess.emit_err(CompoundAssignmentExpressionInLet { span: self.token.span });
+                self.sess
+                    .emit_err(errors::CompoundAssignmentExpressionInLet { span: self.token.span });
                 self.bump();
                 true
             }
@@ -543,7 +544,7 @@ impl<'a> Parser<'a> {
         s: BlockCheckMode,
         recover: AttemptLocalParseRecovery,
     ) -> PResult<'a, P<Block>> {
-        let mut stmts = vec![];
+        let mut stmts = ThinVec::new();
         let mut snapshot = None;
         while !self.eat(&token::CloseDelim(Delimiter::Brace)) {
             if self.token == token::Eof {
@@ -661,7 +662,12 @@ impl<'a> Parser<'a> {
         Ok(Some(stmt))
     }
 
-    pub(super) fn mk_block(&self, stmts: Vec<Stmt>, rules: BlockCheckMode, span: Span) -> P<Block> {
+    pub(super) fn mk_block(
+        &self,
+        stmts: ThinVec<Stmt>,
+        rules: BlockCheckMode,
+        span: Span,
+    ) -> P<Block> {
         P(Block {
             stmts,
             id: DUMMY_NODE_ID,
@@ -681,6 +687,6 @@ impl<'a> Parser<'a> {
     }
 
     pub(super) fn mk_block_err(&self, span: Span) -> P<Block> {
-        self.mk_block(vec![self.mk_stmt_err(span)], BlockCheckMode::Default, span)
+        self.mk_block(thin_vec![self.mk_stmt_err(span)], BlockCheckMode::Default, span)
     }
 }

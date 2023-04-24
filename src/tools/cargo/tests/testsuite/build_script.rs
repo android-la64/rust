@@ -1,6 +1,7 @@
 //! Tests for build.rs scripts.
 
 use cargo_test_support::compare::assert_match_exact;
+use cargo_test_support::install::cargo_home;
 use cargo_test_support::paths::CargoPathExt;
 use cargo_test_support::registry::Package;
 use cargo_test_support::tools;
@@ -32,6 +33,98 @@ fn custom_build_script_failed() {
         .file("build.rs", "fn main() { std::process::exit(101); }")
         .build();
     p.cargo("build -v")
+        .with_status(101)
+        .with_stderr(
+            "\
+[COMPILING] foo v0.5.0 ([CWD])
+[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]`
+[RUNNING] `[..]/build-script-build`
+[ERROR] failed to run custom build command for `foo v0.5.0 ([CWD])`
+
+Caused by:
+  process didn't exit successfully: `[..]/build-script-build` (exit [..]: 101)",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn custom_build_script_failed_backtraces_message() {
+    // In this situation (no dependency sharing), debuginfo is turned off in
+    // `dev.build-override`. However, if an error occurs running e.g. a build
+    // script, and backtraces are opted into: a message explaining how to
+    // improve backtraces is also displayed.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+
+                name = "foo"
+                version = "0.5.0"
+                authors = ["wycats@example.com"]
+                build = "build.rs"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file("build.rs", "fn main() { std::process::exit(101); }")
+        .build();
+    p.cargo("build -v")
+        .env("RUST_BACKTRACE", "1")
+        .with_status(101)
+        .with_stderr(
+            "\
+[COMPILING] foo v0.5.0 ([CWD])
+[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]`
+[RUNNING] `[..]/build-script-build`
+[ERROR] failed to run custom build command for `foo v0.5.0 ([CWD])`
+note: To improve backtraces for build dependencies, set the \
+CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG=true environment variable [..]
+
+Caused by:
+  process didn't exit successfully: `[..]/build-script-build` (exit [..]: 101)",
+        )
+        .run();
+
+    p.cargo("check -v")
+        .env("RUST_BACKTRACE", "1")
+        .with_status(101)
+        .with_stderr(
+            "\
+[COMPILING] foo v0.5.0 ([CWD])
+[RUNNING] `[..]/build-script-build`
+[ERROR] failed to run custom build command for `foo v0.5.0 ([CWD])`
+note: To improve backtraces for build dependencies, set the \
+CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG=true environment variable [..]
+
+Caused by:
+  process didn't exit successfully: `[..]/build-script-build` (exit [..]: 101)",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn custom_build_script_failed_backtraces_message_with_debuginfo() {
+    // This is the same test as `custom_build_script_failed_backtraces_message` above, this time
+    // ensuring that the message dedicated to improving backtraces by requesting debuginfo is not
+    // shown when debuginfo is already turned on.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+
+                name = "foo"
+                version = "0.5.0"
+                authors = ["wycats@example.com"]
+                build = "build.rs"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file("build.rs", "fn main() { std::process::exit(101); }")
+        .build();
+    p.cargo("build -v")
+        .env("RUST_BACKTRACE", "1")
+        .env("CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG", "true")
         .with_status(101)
         .with_stderr(
             "\
@@ -1650,14 +1743,14 @@ fn build_cmd_with_a_build_cmd() {
 [RUNNING] `rustc [..] a/build.rs [..] --extern b=[..]`
 [RUNNING] `[..]/a-[..]/build-script-build`
 [RUNNING] `rustc --crate-name a [..]lib.rs [..]--crate-type lib \
-    --emit=[..]link[..]-C debuginfo=2 \
+    --emit=[..]link[..] \
     -C metadata=[..] \
     --out-dir [..]target/debug/deps \
     -L [..]target/debug/deps`
 [COMPILING] foo v0.5.0 ([CWD])
 [RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin \
     --emit=[..]link[..]\
-    -C debuginfo=2 -C metadata=[..] --out-dir [..] \
+    -C metadata=[..] --out-dir [..] \
     -L [..]target/debug/deps \
     --extern a=[..]liba[..].rlib`
 [RUNNING] `[..]/foo-[..]/build-script-build`
@@ -3614,7 +3707,7 @@ fn panic_abort_with_build_scripts() {
     p.root().join("target").rm_rf();
 
     p.cargo("test --release -v")
-        .with_stderr_does_not_contain("[..]panic[..]")
+        .with_stderr_does_not_contain("[..]panic=abort[..]")
         .run();
 }
 
@@ -4527,6 +4620,7 @@ fn optional_build_dep_and_required_normal_dep() {
         .with_stdout("1")
         .with_stderr(
             "\
+[COMPILING] bar v0.5.0 ([..])
 [COMPILING] foo v0.1.0 ([..])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]foo[EXE]`",
@@ -4801,6 +4895,84 @@ fn rerun_if_directory() {
         false,
     );
     fresh();
+}
+
+#[cargo_test]
+fn rerun_if_published_directory() {
+    // build script of a dependency contains a `rerun-if-changed` pointing to a directory
+    Package::new("mylib-sys", "1.0.0")
+        .file("mylib/balrog.c", "")
+        .file("src/lib.rs", "")
+        .file(
+            "build.rs",
+            r#"
+                fn main() {
+                    // Changing to mylib/balrog.c will not trigger a rebuild
+                    println!("cargo:rerun-if-changed=mylib");
+                }
+            "#,
+        )
+        .publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+
+                [dependencies]
+                mylib-sys = "1.0.0"
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("check").run();
+
+    // Delete regitry src to make directories being recreated with the latest timestamp.
+    cargo_home().join("registry/src").rm_rf();
+
+    p.cargo("check --verbose")
+        .with_stderr(
+            "\
+[FRESH] mylib-sys v1.0.0
+[FRESH] foo v0.0.1 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+",
+        )
+        .run();
+
+    // Upgrade of a package should still trigger a rebuild
+    Package::new("mylib-sys", "1.0.1")
+        .file("mylib/balrog.c", "")
+        .file("mylib/balrog.h", "")
+        .file("src/lib.rs", "")
+        .file(
+            "build.rs",
+            r#"
+                    fn main() {
+                        println!("cargo:rerun-if-changed=mylib");
+                    }
+                "#,
+        )
+        .publish();
+    p.cargo("update").run();
+    p.cargo("fetch").run();
+
+    p.cargo("check -v")
+        .with_stderr(format!(
+            "\
+[COMPILING] mylib-sys [..]
+[RUNNING] `rustc --crate-name build_script_build [..]
+[RUNNING] `[..]build-script-build[..]`
+[RUNNING] `rustc --crate-name mylib_sys [..]
+[CHECKING] foo [..]
+[RUNNING] `rustc --crate-name foo [..]
+[FINISHED] [..]",
+        ))
+        .run();
 }
 
 #[cargo_test]

@@ -6,8 +6,8 @@ use rustc_infer::infer::region_constraints::{GenericKind, VerifyBound};
 use rustc_infer::infer::{self, InferCtxt, SubregionOrigin};
 use rustc_middle::mir::{ClosureOutlivesSubject, ClosureRegionRequirements, ConstraintCategory};
 use rustc_middle::ty::subst::GenericArgKind;
-use rustc_middle::ty::TypeFoldable;
 use rustc_middle::ty::{self, TyCtxt};
+use rustc_middle::ty::{TypeFoldable, TypeVisitableExt};
 use rustc_span::{Span, DUMMY_SP};
 
 use crate::{
@@ -83,16 +83,8 @@ impl<'a, 'tcx> ConstraintConversion<'a, 'tcx> {
         }
         self.constraints.member_constraints = tmp;
 
-        for (predicate, constraint_category) in outlives {
-            // At the moment, we never generate any "higher-ranked"
-            // region constraints like `for<'a> 'a: 'b`. At some point
-            // when we move to universes, we will, and this assertion
-            // will start to fail.
-            let predicate = predicate.no_bound_vars().unwrap_or_else(|| {
-                bug!("query_constraint {:?} contained bound vars", predicate,);
-            });
-
-            self.convert(predicate, *constraint_category);
+        for &(predicate, constraint_category) in outlives {
+            self.convert(predicate, constraint_category);
         }
     }
 
@@ -124,7 +116,9 @@ impl<'a, 'tcx> ConstraintConversion<'a, 'tcx> {
             let outlived_region = closure_mapping[outlives_requirement.outlived_free_region];
             let subject = match outlives_requirement.subject {
                 ClosureOutlivesSubject::Region(re) => closure_mapping[re].into(),
-                ClosureOutlivesSubject::Ty(ty) => ty.into(),
+                ClosureOutlivesSubject::Ty(subject_ty) => {
+                    subject_ty.instantiate(self.tcx, |vid| closure_mapping[vid]).into()
+                }
             };
 
             self.category = outlives_requirement.category;
@@ -179,7 +173,7 @@ impl<'a, 'tcx> ConstraintConversion<'a, 'tcx> {
     ///
     /// FIXME: This should get removed once higher ranked region obligations
     /// are dealt with during trait solving.
-    fn replace_placeholders_with_nll<T: TypeFoldable<'tcx>>(&mut self, value: T) -> T {
+    fn replace_placeholders_with_nll<T: TypeFoldable<TyCtxt<'tcx>>>(&mut self, value: T) -> T {
         if value.has_placeholders() {
             self.tcx.fold_regions(value, |r, _| match *r {
                 ty::RePlaceholder(placeholder) => {

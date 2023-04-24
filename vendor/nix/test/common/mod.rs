@@ -1,6 +1,7 @@
 use cfg_if::cfg_if;
 
-#[macro_export] macro_rules! skip {
+#[macro_export]
+macro_rules! skip {
     ($($reason: expr),+) => {
         use ::std::io::{self, Write};
 
@@ -14,61 +15,68 @@ use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(any(target_os = "android", target_os = "linux"))] {
         #[macro_export] macro_rules! require_capability {
-            ($capname:ident) => {
+            ($name:expr, $capname:ident) => {
                 use ::caps::{Capability, CapSet, has_cap};
 
                 if !has_cap(None, CapSet::Effective, Capability::$capname)
                     .unwrap()
                 {
-                    skip!("Insufficient capabilities. Skipping test.");
+                    skip!("{} requires capability {}. Skipping test.", $name, Capability::$capname);
                 }
             }
         }
     } else if #[cfg(not(target_os = "redox"))] {
         #[macro_export] macro_rules! require_capability {
-            ($capname:ident) => {}
+            ($name:expr, $capname:ident) => {}
         }
     }
 }
 
 /// Skip the test if we don't have the ability to mount file systems.
 #[cfg(target_os = "freebsd")]
-#[macro_export] macro_rules! require_mount {
+#[macro_export]
+macro_rules! require_mount {
     ($name:expr) => {
-        use ::sysctl::CtlValue;
+        use ::sysctl::{CtlValue, Sysctl};
         use nix::unistd::Uid;
 
-        if !Uid::current().is_root() && CtlValue::Int(0) == ::sysctl::value("vfs.usermount").unwrap()
+        let ctl = ::sysctl::Ctl::new("vfs.usermount").unwrap();
+        if !Uid::current().is_root() && CtlValue::Int(0) == ctl.value().unwrap()
         {
-            skip!("{} requires the ability to mount file systems. Skipping test.", $name);
+            skip!(
+                "{} requires the ability to mount file systems. Skipping test.",
+                $name
+            );
         }
-    }
+    };
 }
 
-#[cfg(any(target_os = "linux", target_os= "android"))]
-#[macro_export] macro_rules! skip_if_cirrus {
+#[cfg(any(target_os = "linux", target_os = "android"))]
+#[macro_export]
+macro_rules! skip_if_cirrus {
     ($reason:expr) => {
         if std::env::var_os("CIRRUS_CI").is_some() {
             skip!("{}", $reason);
         }
-    }
+    };
 }
 
 #[cfg(target_os = "freebsd")]
-#[macro_export] macro_rules! skip_if_jailed {
+#[macro_export]
+macro_rules! skip_if_jailed {
     ($name:expr) => {
-        use ::sysctl::CtlValue;
+        use ::sysctl::{CtlValue, Sysctl};
 
-        if let CtlValue::Int(1) = ::sysctl::value("security.jail.jailed")
-            .unwrap()
-        {
+        let ctl = ::sysctl::Ctl::new("security.jail.jailed").unwrap();
+        if let CtlValue::Int(1) = ctl.value().unwrap() {
             skip!("{} cannot run in a jail. Skipping test.", $name);
         }
-    }
+    };
 }
 
 #[cfg(not(any(target_os = "redox", target_os = "fuchsia")))]
-#[macro_export] macro_rules! skip_if_not_root {
+#[macro_export]
+macro_rules! skip_if_not_root {
     ($name:expr) => {
         use nix::unistd::Uid;
 
@@ -111,15 +119,15 @@ cfg_if! {
                 let version_requirement = VersionReq::parse($version_requirement)
                         .expect("Bad match_version provided");
 
-                let uname = nix::sys::utsname::uname();
-                println!("{}", uname.sysname());
-                println!("{}", uname.nodename());
-                println!("{}", uname.release());
-                println!("{}", uname.version());
-                println!("{}", uname.machine());
+                let uname = nix::sys::utsname::uname().unwrap();
+                println!("{}", uname.sysname().to_str().unwrap());
+                println!("{}", uname.nodename().to_str().unwrap());
+                println!("{}", uname.release().to_str().unwrap());
+                println!("{}", uname.version().to_str().unwrap());
+                println!("{}", uname.machine().to_str().unwrap());
 
                 // Fix stuff that the semver parser can't handle
-                let fixed_release = &uname.release().to_string()
+                let fixed_release = &uname.release().to_str().unwrap().to_string()
                     // Fedora 33 reports version as 4.18.el8_2.x86_64 or
                     // 5.18.200-fc33.x86_64.  Remove the underscore.
                     .replace("_", "-")

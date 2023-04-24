@@ -14,9 +14,9 @@ use rustc_ast::{InlineAsmOptions, InlineAsmTemplatePiece};
 use rustc_hir::lang_items::LangItem;
 use rustc_index::vec::Idx;
 use rustc_middle::mir::{self, AssertKind, SwitchTargets};
-use rustc_middle::ty::layout::{HasTyCtxt, LayoutOf};
+use rustc_middle::ty::layout::{HasTyCtxt, LayoutOf, ValidityRequirement};
 use rustc_middle::ty::print::{with_no_trimmed_paths, with_no_visible_paths};
-use rustc_middle::ty::{self, Instance, Ty, TypeVisitable};
+use rustc_middle::ty::{self, Instance, Ty, TypeVisitableExt};
 use rustc_session::config::OptLevel;
 use rustc_span::source_map::Span;
 use rustc_span::{sym, Symbol};
@@ -39,7 +39,6 @@ enum MergingSucc {
 struct TerminatorCodegenHelper<'tcx> {
     bb: mir::BasicBlock,
     terminator: &'tcx mir::Terminator<'tcx>,
-    funclet_bb: Option<mir::BasicBlock>,
 }
 
 impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
@@ -49,28 +48,24 @@ impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
         &self,
         fx: &'b mut FunctionCx<'a, 'tcx, Bx>,
     ) -> Option<&'b Bx::Funclet> {
-        let funclet_bb = self.funclet_bb?;
-        if base::wants_msvc_seh(fx.cx.tcx().sess) {
-            // If `landing_pad_for` hasn't been called yet to create the `Funclet`,
-            // it has to be now. This may not seem necessary, as RPO should lead
-            // to all the unwind edges being visited (and so to `landing_pad_for`
-            // getting called for them), before building any of the blocks inside
-            // the funclet itself - however, if MIR contains edges that end up not
-            // being needed in the LLVM IR after monomorphization, the funclet may
-            // be unreachable, and we don't have yet a way to skip building it in
-            // such an eventuality (which may be a better solution than this).
-            if fx.funclets[funclet_bb].is_none() {
-                fx.landing_pad_for(funclet_bb);
-            }
-
-            Some(
-                fx.funclets[funclet_bb]
-                    .as_ref()
-                    .expect("landing_pad_for didn't also create funclets entry"),
-            )
-        } else {
-            None
+        let cleanup_kinds = (&fx.cleanup_kinds).as_ref()?;
+        let funclet_bb = cleanup_kinds[self.bb].funclet_bb(self.bb)?;
+        // If `landing_pad_for` hasn't been called yet to create the `Funclet`,
+        // it has to be now. This may not seem necessary, as RPO should lead
+        // to all the unwind edges being visited (and so to `landing_pad_for`
+        // getting called for them), before building any of the blocks inside
+        // the funclet itself - however, if MIR contains edges that end up not
+        // being needed in the LLVM IR after monomorphization, the funclet may
+        // be unreachable, and we don't have yet a way to skip building it in
+        // such an eventuality (which may be a better solution than this).
+        if fx.funclets[funclet_bb].is_none() {
+            fx.landing_pad_for(funclet_bb);
         }
+        Some(
+            fx.funclets[funclet_bb]
+                .as_ref()
+                .expect("landing_pad_for didn't also create funclets entry"),
+        )
     }
 
     /// Get a basic block (creating it if necessary), possibly with cleanup
@@ -104,23 +99,24 @@ impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
         fx: &mut FunctionCx<'a, 'tcx, Bx>,
         target: mir::BasicBlock,
     ) -> (bool, bool) {
-        let target_funclet = fx.cleanup_kinds[target].funclet_bb(target);
-        let (needs_landing_pad, is_cleanupret) = match (self.funclet_bb, target_funclet) {
-            (None, None) => (false, false),
-            (None, Some(_)) => (true, false),
-            (Some(_), None) => {
-                let span = self.terminator.source_info.span;
-                span_bug!(span, "{:?} - jump out of cleanup?", self.terminator);
-            }
-            (Some(f), Some(t_f)) => {
-                if f == t_f || !base::wants_msvc_seh(fx.cx.tcx().sess) {
-                    (false, false)
-                } else {
-                    (true, true)
+        if let Some(ref cleanup_kinds) = fx.cleanup_kinds {
+            let funclet_bb = cleanup_kinds[self.bb].funclet_bb(self.bb);
+            let target_funclet = cleanup_kinds[target].funclet_bb(target);
+            let (needs_landing_pad, is_cleanupret) = match (funclet_bb, target_funclet) {
+                (None, None) => (false, false),
+                (None, Some(_)) => (true, false),
+                (Some(f), Some(t_f)) => (f != t_f, f != t_f),
+                (Some(_), None) => {
+                    let span = self.terminator.source_info.span;
+                    span_bug!(span, "{:?} - jump out of cleanup?", self.terminator);
                 }
-            }
-        };
-        (needs_landing_pad, is_cleanupret)
+            };
+            (needs_landing_pad, is_cleanupret)
+        } else {
+            let needs_landing_pad = !fx.mir[self.bb].is_cleanup && fx.mir[target].is_cleanup;
+            let is_cleanupret = false;
+            (needs_landing_pad, is_cleanupret)
+        }
     }
 
     fn funclet_br<Bx: BuilderMethods<'a, 'tcx>>(
@@ -456,86 +452,84 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             args1 = [place.llval];
             &args1[..]
         };
-        let (drop_fn, fn_abi) = match ty.kind() {
-            // FIXME(eddyb) perhaps move some of this logic into
-            // `Instance::resolve_drop_in_place`?
-            ty::Dynamic(_, _, ty::Dyn) => {
-                // IN THIS ARM, WE HAVE:
-                // ty = *mut (dyn Trait)
-                // which is: exists<T> ( *mut T,    Vtable<T: Trait> )
-                //                       args[0]    args[1]
-                //
-                // args = ( Data, Vtable )
-                //                  |
-                //                  v
-                //                /-------\
-                //                | ...   |
-                //                \-------/
-                //
-                let virtual_drop = Instance {
-                    def: ty::InstanceDef::Virtual(drop_fn.def_id(), 0),
-                    substs: drop_fn.substs,
-                };
-                debug!("ty = {:?}", ty);
-                debug!("drop_fn = {:?}", drop_fn);
-                debug!("args = {:?}", args);
-                let fn_abi = bx.fn_abi_of_instance(virtual_drop, ty::List::empty());
-                let vtable = args[1];
-                // Truncate vtable off of args list
-                args = &args[..1];
-                (
-                    meth::VirtualIndex::from_index(ty::COMMON_VTABLE_ENTRIES_DROPINPLACE)
-                        .get_fn(bx, vtable, ty, &fn_abi),
-                    fn_abi,
-                )
-            }
-            ty::Dynamic(_, _, ty::DynStar) => {
-                // IN THIS ARM, WE HAVE:
-                // ty = *mut (dyn* Trait)
-                // which is: *mut exists<T: sizeof(T) == sizeof(usize)> (T, Vtable<T: Trait>)
-                //
-                // args = [ * ]
-                //          |
-                //          v
-                //      ( Data, Vtable )
-                //                |
-                //                v
-                //              /-------\
-                //              | ...   |
-                //              \-------/
-                //
-                //
-                // WE CAN CONVERT THIS INTO THE ABOVE LOGIC BY DOING
-                //
-                // data = &(*args[0]).0    // gives a pointer to Data above (really the same pointer)
-                // vtable = (*args[0]).1   // loads the vtable out
-                // (data, vtable)          // an equivalent Rust `*mut dyn Trait`
-                //
-                // SO THEN WE CAN USE THE ABOVE CODE.
-                let virtual_drop = Instance {
-                    def: ty::InstanceDef::Virtual(drop_fn.def_id(), 0),
-                    substs: drop_fn.substs,
-                };
-                debug!("ty = {:?}", ty);
-                debug!("drop_fn = {:?}", drop_fn);
-                debug!("args = {:?}", args);
-                let fn_abi = bx.fn_abi_of_instance(virtual_drop, ty::List::empty());
-                let data = args[0];
-                let data_ty = bx.cx().backend_type(place.layout);
-                let vtable_ptr =
-                    bx.gep(data_ty, data, &[bx.cx().const_i32(0), bx.cx().const_i32(1)]);
-                let vtable = bx.load(bx.type_i8p(), vtable_ptr, abi::Align::ONE);
-                // Truncate vtable off of args list
-                args = &args[..1];
-                debug!("args' = {:?}", args);
-                (
-                    meth::VirtualIndex::from_index(ty::COMMON_VTABLE_ENTRIES_DROPINPLACE)
-                        .get_fn(bx, vtable, ty, &fn_abi),
-                    fn_abi,
-                )
-            }
-            _ => (bx.get_fn_addr(drop_fn), bx.fn_abi_of_instance(drop_fn, ty::List::empty())),
-        };
+        let (drop_fn, fn_abi) =
+            match ty.kind() {
+                // FIXME(eddyb) perhaps move some of this logic into
+                // `Instance::resolve_drop_in_place`?
+                ty::Dynamic(_, _, ty::Dyn) => {
+                    // IN THIS ARM, WE HAVE:
+                    // ty = *mut (dyn Trait)
+                    // which is: exists<T> ( *mut T,    Vtable<T: Trait> )
+                    //                       args[0]    args[1]
+                    //
+                    // args = ( Data, Vtable )
+                    //                  |
+                    //                  v
+                    //                /-------\
+                    //                | ...   |
+                    //                \-------/
+                    //
+                    let virtual_drop = Instance {
+                        def: ty::InstanceDef::Virtual(drop_fn.def_id(), 0),
+                        substs: drop_fn.substs,
+                    };
+                    debug!("ty = {:?}", ty);
+                    debug!("drop_fn = {:?}", drop_fn);
+                    debug!("args = {:?}", args);
+                    let fn_abi = bx.fn_abi_of_instance(virtual_drop, ty::List::empty());
+                    let vtable = args[1];
+                    // Truncate vtable off of args list
+                    args = &args[..1];
+                    (
+                        meth::VirtualIndex::from_index(ty::COMMON_VTABLE_ENTRIES_DROPINPLACE)
+                            .get_fn(bx, vtable, ty, &fn_abi),
+                        fn_abi,
+                    )
+                }
+                ty::Dynamic(_, _, ty::DynStar) => {
+                    // IN THIS ARM, WE HAVE:
+                    // ty = *mut (dyn* Trait)
+                    // which is: *mut exists<T: sizeof(T) == sizeof(usize)> (T, Vtable<T: Trait>)
+                    //
+                    // args = [ * ]
+                    //          |
+                    //          v
+                    //      ( Data, Vtable )
+                    //                |
+                    //                v
+                    //              /-------\
+                    //              | ...   |
+                    //              \-------/
+                    //
+                    //
+                    // WE CAN CONVERT THIS INTO THE ABOVE LOGIC BY DOING
+                    //
+                    // data = &(*args[0]).0    // gives a pointer to Data above (really the same pointer)
+                    // vtable = (*args[0]).1   // loads the vtable out
+                    // (data, vtable)          // an equivalent Rust `*mut dyn Trait`
+                    //
+                    // SO THEN WE CAN USE THE ABOVE CODE.
+                    let virtual_drop = Instance {
+                        def: ty::InstanceDef::Virtual(drop_fn.def_id(), 0),
+                        substs: drop_fn.substs,
+                    };
+                    debug!("ty = {:?}", ty);
+                    debug!("drop_fn = {:?}", drop_fn);
+                    debug!("args = {:?}", args);
+                    let fn_abi = bx.fn_abi_of_instance(virtual_drop, ty::List::empty());
+                    let meta_ptr = place.project_field(bx, 1);
+                    let meta = bx.load_operand(meta_ptr);
+                    // Truncate vtable off of args list
+                    args = &args[..1];
+                    debug!("args' = {:?}", args);
+                    (
+                        meth::VirtualIndex::from_index(ty::COMMON_VTABLE_ENTRIES_DROPINPLACE)
+                            .get_fn(bx, meta.immediate(), ty, &fn_abi),
+                        fn_abi,
+                    )
+                }
+                _ => (bx.get_fn_addr(drop_fn), bx.fn_abi_of_instance(drop_fn, ty::List::empty())),
+            };
         helper.do_call(
             self,
             bx,
@@ -569,11 +563,13 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         // with #[rustc_inherit_overflow_checks] and inlined from
         // another crate (mostly core::num generic/#[inline] fns),
         // while the current crate doesn't use overflow checks.
-        // NOTE: Unlike binops, negation doesn't have its own
-        // checked operation, just a comparison with the minimum
-        // value, so we have to check for the assert message.
-        if !bx.check_overflow() {
-            if let AssertKind::OverflowNeg(_) = *msg {
+        if !bx.cx().check_overflow() {
+            let overflow_not_to_check = match msg {
+                AssertKind::OverflowNeg(..) => true,
+                AssertKind::Overflow(op, ..) => op.is_checkable(),
+                _ => false,
+            };
+            if overflow_not_to_check {
                 const_cond = Some(expected);
             }
         }
@@ -659,35 +655,24 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         // Emit a panic or a no-op for `assert_*` intrinsics.
         // These are intrinsics that compile to panics so that we can get a message
         // which mentions the offending type, even from a const context.
-        #[derive(Debug, PartialEq)]
-        enum AssertIntrinsic {
-            Inhabited,
-            ZeroValid,
-            MemUninitializedValid,
-        }
-        let panic_intrinsic = intrinsic.and_then(|i| match i {
-            sym::assert_inhabited => Some(AssertIntrinsic::Inhabited),
-            sym::assert_zero_valid => Some(AssertIntrinsic::ZeroValid),
-            sym::assert_mem_uninitialized_valid => Some(AssertIntrinsic::MemUninitializedValid),
-            _ => None,
-        });
-        if let Some(intrinsic) = panic_intrinsic {
-            use AssertIntrinsic::*;
-
+        let panic_intrinsic = intrinsic.and_then(|s| ValidityRequirement::from_intrinsic(s));
+        if let Some(requirement) = panic_intrinsic {
             let ty = instance.unwrap().substs.type_at(0);
+
+            let do_panic = !bx
+                .tcx()
+                .check_validity_requirement((requirement, bx.param_env().and(ty)))
+                .expect("expect to have layout during codegen");
+
             let layout = bx.layout_of(ty);
-            let do_panic = match intrinsic {
-                Inhabited => layout.abi.is_uninhabited(),
-                ZeroValid => !bx.tcx().permits_zero_init(layout),
-                MemUninitializedValid => !bx.tcx().permits_uninit_init(layout),
-            };
+
             Some(if do_panic {
                 let msg_str = with_no_visible_paths!({
                     with_no_trimmed_paths!({
                         if layout.abi.is_uninhabited() {
                             // Use this error even for the other intrinsics as it is more precise.
                             format!("attempted to instantiate uninhabited type `{}`", ty)
-                        } else if intrinsic == ZeroValid {
+                        } else if requirement == ValidityRequirement::Zero {
                             format!("attempted to zero-initialize type `{}`, which is invalid", ty)
                         } else {
                             format!(
@@ -781,7 +766,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         };
 
         let extra_args = &args[sig.inputs().skip_binder().len()..];
-        let extra_args = bx.tcx().mk_type_list(extra_args.iter().map(|op_arg| {
+        let extra_args = bx.tcx().mk_type_list_from_iter(extra_args.iter().map(|op_arg| {
             let op_ty = op_arg.ty(self.mir, bx.tcx());
             self.monomorphize(op_ty)
         }));
@@ -1253,9 +1238,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
     ) -> MergingSucc {
         debug!("codegen_terminator: {:?}", terminator);
 
-        // Create the cleanup bundle, if needed.
-        let funclet_bb = self.cleanup_kinds[bb].funclet_bb(bb);
-        let helper = TerminatorCodegenHelper { bb, terminator, funclet_bb };
+        let helper = TerminatorCodegenHelper { bb, terminator };
 
         let mergeable_succ = || {
             // Note: any call to `switch_to_block` will invalidate a `true` value
@@ -1547,7 +1530,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             slot
         } else {
             let layout = cx.layout_of(
-                cx.tcx().intern_tup(&[cx.tcx().mk_mut_ptr(cx.tcx().types.u8), cx.tcx().types.i32]),
+                cx.tcx().mk_tup(&[cx.tcx().mk_mut_ptr(cx.tcx().types.u8), cx.tcx().types.i32]),
             );
             let slot = PlaceRef::alloca(bx, layout);
             self.personality_slot = Some(slot);
@@ -1801,8 +1784,8 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         match (src.layout.abi, dst.layout.abi) {
             (abi::Abi::Scalar(src_scalar), abi::Abi::Scalar(dst_scalar)) => {
                 // HACK(eddyb) LLVM doesn't like `bitcast`s between pointers and non-pointers.
-                let src_is_ptr = src_scalar.primitive() == abi::Pointer;
-                let dst_is_ptr = dst_scalar.primitive() == abi::Pointer;
+                let src_is_ptr = matches!(src_scalar.primitive(), abi::Pointer(_));
+                let dst_is_ptr = matches!(dst_scalar.primitive(), abi::Pointer(_));
                 if src_is_ptr == dst_is_ptr {
                     assert_eq!(src.layout.size, dst.layout.size);
 

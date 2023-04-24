@@ -57,7 +57,6 @@
 //! - Swizzle and shuffle instructions take a variable number of lane arguments. The number
 //!   of arguments must match the destination type, and the lane indexes must be in range.
 
-use self::flags::verify_flags;
 use crate::dbg::DisplayList;
 use crate::dominator_tree::DominatorTree;
 use crate::entity::SparseSet;
@@ -67,7 +66,7 @@ use crate::ir::entities::AnyEntity;
 use crate::ir::instructions::{BranchInfo, CallInfo, InstructionFormat, ResolvedConstraint};
 use crate::ir::{
     types, ArgumentPurpose, Block, Constant, DynamicStackSlot, FuncRef, Function, GlobalValue,
-    Inst, JumpTable, Opcode, SigRef, StackSlot, Type, Value, ValueDef, ValueList,
+    Inst, JumpTable, MemFlags, Opcode, SigRef, StackSlot, Type, Value, ValueDef, ValueList,
 };
 use crate::isa::TargetIsa;
 use crate::iterators::IteratorExtras;
@@ -79,8 +78,6 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt::{self, Display, Formatter};
-
-mod flags;
 
 /// A verifier error.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -406,49 +403,6 @@ impl<'a> Verifier<'a> {
         Ok(())
     }
 
-    fn verify_heaps(&self, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
-        if let Some(isa) = self.isa {
-            for (heap, heap_data) in &self.func.heaps {
-                let base = heap_data.base;
-                if !self.func.global_values.is_valid(base) {
-                    return errors.nonfatal((heap, format!("invalid base global value {}", base)));
-                }
-
-                let pointer_type = isa.pointer_type();
-                let base_type = self.func.global_values[base].global_type(isa);
-                if base_type != pointer_type {
-                    errors.report((
-                        heap,
-                        format!(
-                            "heap base has type {}, which is not the pointer type {}",
-                            base_type, pointer_type
-                        ),
-                    ));
-                }
-
-                if let ir::HeapStyle::Dynamic { bound_gv, .. } = heap_data.style {
-                    if !self.func.global_values.is_valid(bound_gv) {
-                        return errors
-                            .nonfatal((heap, format!("invalid bound global value {}", bound_gv)));
-                    }
-
-                    let bound_type = self.func.global_values[bound_gv].global_type(isa);
-                    if pointer_type != bound_type {
-                        errors.report((
-                            heap,
-                            format!(
-                                "heap pointer type {} differs from the type of its bound, {}",
-                                pointer_type, bound_type
-                            ),
-                        ));
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     fn verify_tables(&self, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
         if let Some(isa) = self.isa {
             for (table, table_data) in &self.func.tables {
@@ -516,7 +470,7 @@ impl<'a> Verifier<'a> {
         inst: Inst,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        let is_terminator = self.func.dfg[inst].opcode().is_terminator();
+        let is_terminator = self.func.dfg.insts[inst].opcode().is_terminator();
         let is_last_inst = self.func.layout.last_inst(block) == Some(inst);
 
         if is_terminator && !is_last_inst {
@@ -566,7 +520,7 @@ impl<'a> Verifier<'a> {
         inst: Inst,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        let inst_data = &self.func.dfg[inst];
+        let inst_data = &self.func.dfg.insts[inst];
         let dfg = &self.func.dfg;
 
         // The instruction format matches the opcode
@@ -626,7 +580,7 @@ impl<'a> Verifier<'a> {
             self.verify_inst_result(inst, res, errors)?;
         }
 
-        match self.func.dfg[inst] {
+        match self.func.dfg.insts[inst] {
             MultiAry { ref args, .. } => {
                 self.verify_value_list(inst, args, errors)?;
             }
@@ -678,9 +632,6 @@ impl<'a> Verifier<'a> {
             UnaryGlobalValue { global_value, .. } => {
                 self.verify_global_value(inst, global_value, errors)?;
             }
-            HeapAddr { heap, .. } => {
-                self.verify_heap(inst, heap, errors)?;
-            }
             TableAddr { table, .. } => {
                 self.verify_table(inst, table, errors)?;
             }
@@ -729,11 +680,12 @@ impl<'a> Verifier<'a> {
                     ));
                 }
             }
-            Unary {
+            LoadNoOffset {
                 opcode: Opcode::Bitcast,
+                flags,
                 arg,
             } => {
-                self.verify_bitcast(inst, arg, errors)?;
+                self.verify_bitcast(inst, flags, arg, errors)?;
             }
             UnaryConst {
                 opcode: Opcode::Vconst,
@@ -870,19 +822,6 @@ impl<'a> Verifier<'a> {
                 self.context(inst),
                 format!("invalid global value {}", gv),
             ))
-        } else {
-            Ok(())
-        }
-    }
-
-    fn verify_heap(
-        &self,
-        inst: Inst,
-        heap: ir::Heap,
-        errors: &mut VerifierErrors,
-    ) -> VerifierStepResult<()> {
-        if !self.func.heaps.is_valid(heap) {
-            errors.nonfatal((inst, self.context(inst), format!("invalid heap {}", heap)))
         } else {
             Ok(())
         }
@@ -1035,6 +974,10 @@ impl<'a> Verifier<'a> {
                     ));
                 }
             }
+            ValueDef::Union(_, _) => {
+                // Nothing: union nodes themselves have no location,
+                // so we cannot check any dominance properties.
+            }
         }
         Ok(())
     }
@@ -1064,12 +1007,18 @@ impl<'a> Verifier<'a> {
                 self.context(loc_inst),
                 format!("instruction result {} is not defined by the instruction", v),
             )),
+            ValueDef::Union(_, _) => errors.fatal((
+                loc_inst,
+                self.context(loc_inst),
+                format!("instruction result {} is a union node", v),
+            )),
         }
     }
 
     fn verify_bitcast(
         &self,
         inst: Inst,
+        flags: MemFlags,
         arg: Value,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
@@ -1085,6 +1034,19 @@ impl<'a> Verifier<'a> {
                     value_type.bits(),
                     typ.bits()
                 ),
+            ))
+        } else if flags != MemFlags::new()
+            && flags != MemFlags::new().with_endianness(ir::Endianness::Little)
+            && flags != MemFlags::new().with_endianness(ir::Endianness::Big)
+        {
+            errors.fatal((
+                inst,
+                "The bitcast instruction only accepts the `big` or `little` memory flags",
+            ))
+        } else if flags == MemFlags::new() && typ.lane_count() != value_type.lane_count() {
+            errors.fatal((
+                inst,
+                "Byte order specifier required for bitcast instruction changing lane count",
             ))
         } else {
             Ok(())
@@ -1219,7 +1181,7 @@ impl<'a> Verifier<'a> {
     }
 
     fn typecheck(&self, inst: Inst, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
-        let inst_data = &self.func.dfg[inst];
+        let inst_data = &self.func.dfg.insts[inst];
         let constraints = inst_data.opcode().constraints();
 
         let ctrl_type = if let Some(value_typeset) = constraints.ctrl_typeset() {
@@ -1299,7 +1261,7 @@ impl<'a> Verifier<'a> {
         ctrl_type: Type,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        let constraints = self.func.dfg[inst].opcode().constraints();
+        let constraints = self.func.dfg.insts[inst].opcode().constraints();
 
         for (i, &arg) in self.func.dfg.inst_fixed_args(inst).iter().enumerate() {
             let arg_type = self.func.dfg.value_type(arg);
@@ -1379,7 +1341,7 @@ impl<'a> Verifier<'a> {
             BranchInfo::NotABranch => {}
         }
 
-        match self.func.dfg[inst].analyze_call(&self.func.dfg.value_lists) {
+        match self.func.dfg.insts[inst].analyze_call(&self.func.dfg.value_lists) {
             CallInfo::Direct(func_ref, _) => {
                 let sig_ref = self.func.dfg.ext_funcs[func_ref].signature;
                 let arg_types = self.func.dfg.signatures[sig_ref]
@@ -1445,7 +1407,7 @@ impl<'a> Verifier<'a> {
     }
 
     fn typecheck_return(&self, inst: Inst, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
-        if self.func.dfg[inst].opcode().is_return() {
+        if self.func.dfg.insts[inst].opcode().is_return() {
             let args = self.func.dfg.inst_variable_args(inst);
             let expected_types = &self.func.signature.returns;
             if args.len() != expected_types.len() {
@@ -1480,7 +1442,7 @@ impl<'a> Verifier<'a> {
         ctrl_type: Type,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        match self.func.dfg[inst] {
+        match self.func.dfg.insts[inst] {
             ir::InstructionData::Unary { opcode, arg } => {
                 let arg_type = self.func.dfg.value_type(arg);
                 match opcode {
@@ -1529,20 +1491,6 @@ impl<'a> Verifier<'a> {
                         }
                     }
                     _ => {}
-                }
-            }
-            ir::InstructionData::HeapAddr { heap, arg, .. } => {
-                let index_type = self.func.dfg.value_type(arg);
-                let heap_index_type = self.func.heaps[heap].index_type;
-                if index_type != heap_index_type {
-                    return errors.nonfatal((
-                        inst,
-                        self.context(inst),
-                        format!(
-                            "index type {} differs from heap index type {}",
-                            index_type, heap_index_type,
-                        ),
-                    ));
                 }
             }
             ir::InstructionData::TableAddr { table, arg, .. } => {
@@ -1656,7 +1604,7 @@ impl<'a> Verifier<'a> {
         inst: Inst,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        let inst_data = &self.func.dfg[inst];
+        let inst_data = &self.func.dfg.insts[inst];
 
         match *inst_data {
             ir::InstructionData::Store { flags, .. } => {
@@ -1749,7 +1697,6 @@ impl<'a> Verifier<'a> {
 
     pub fn run(&self, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
         self.verify_global_values(errors)?;
-        self.verify_heaps(errors)?;
         self.verify_tables(errors)?;
         self.verify_jump_tables(errors)?;
         self.typecheck_entry_block_params(errors)?;
@@ -1769,8 +1716,6 @@ impl<'a> Verifier<'a> {
 
             self.encodable_as_bb(block, errors)?;
         }
-
-        verify_flags(self.func, &self.expected_cfg, errors)?;
 
         if !errors.is_empty() {
             log::warn!(

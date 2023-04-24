@@ -103,7 +103,10 @@ fn test_alloc_uninitialized() {
         for i in 0..LIMIT {
             let slice = arena.alloc_uninitialized(i);
             for (j, elem) in slice.iter_mut().enumerate() {
-                ptr::write(elem.as_mut_ptr(), Node(None, j as u32, DropTracker(&drop_counter)));
+                ptr::write(
+                    elem.as_mut_ptr(),
+                    Node(None, j as u32, DropTracker(&drop_counter)),
+                );
             }
             assert_eq!(drop_counter.get(), 0);
         }
@@ -170,7 +173,8 @@ fn alloc_uninitialized_with_panic() {
         panic!("To drop the arena");
         // If it didn't panic, we would continue by initializing the second one and confirming by
         // .alloc_uninitialized();
-    })).unwrap_err();
+    }))
+    .unwrap_err();
     assert!(reached_first_init);
 }
 
@@ -317,13 +321,23 @@ fn size_hint() {
     }
 }
 
+// Ensure that `alloc_extend` doesn't violate provenance of
+// existing references. (Note: This test is pointless except
+// under miri).
 #[test]
-#[cfg_attr(miri, ignore)]
+fn check_extend_provenance() {
+    let arena = Arena::new();
+    let a = arena.alloc(0);
+    arena.alloc_extend([0]);
+    *a = 1;
+}
+
+#[test]
 fn size_hint_low_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
 
-    const MAX: usize = 25_000;
+    const MAX: usize = if cfg!(miri) { 100 } else { 25_000 };
     const CAP: usize = 0;
 
     for cap in CAP..(CAP + 128/* check some non-power-of-two capacities */) {
@@ -337,12 +351,11 @@ fn size_hint_low_initial_capacities() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)]
 fn size_hint_high_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
 
-    const MAX: usize = 25_000;
+    const MAX: usize = if cfg!(miri) { 100 } else { 25_000 };
     const CAP: usize = 8164;
 
     for cap in CAP..(CAP + 128/* check some non-power-of-two capacities */) {
@@ -356,12 +369,11 @@ fn size_hint_high_initial_capacities() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)]
 fn size_hint_many_items() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
 
-    const MAX: usize = 5_000_000;
+    const MAX: usize = if cfg!(miri) { 500 } else { 5_000_000 };
     const CAP: usize = 16;
 
     let mut arena = Arena::with_capacity(CAP);

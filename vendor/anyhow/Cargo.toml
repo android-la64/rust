@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.38"
+rust-version = "1.39"
 name = "anyhow"
-version = "1.0.66"
+version = "1.0.68"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 description = "Flexible concrete Error type built on std::error::Error"
 documentation = "https://docs.rs/anyhow"
@@ -35,6 +35,9 @@ rustdoc-args = [
     "--cfg",
     "doc_cfg",
 ]
+
+[lib]
+doc-scrape-examples = false
 
 [dependencies.backtrace]
 version = "0.3.51"

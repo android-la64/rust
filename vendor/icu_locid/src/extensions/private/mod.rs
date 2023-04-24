@@ -13,16 +13,18 @@
 //! # Examples
 //!
 //! ```
-//! use icu::locid::extensions::private::{Private, Subtag};
-//! use icu::locid::Locale;
+//! use icu::locid::extensions_private_subtag as subtag;
+//! use icu::locid::{locale, Locale};
 //!
 //! let mut loc: Locale = "en-US-x-foo-faa".parse().expect("Parsing failed.");
 //!
-//! let subtag: Subtag = "foo".parse().expect("Parsing subtag failed.");
-//! assert!(loc.extensions.private.contains(&subtag));
-//! assert_eq!(loc.extensions.private.iter().next(), Some(&subtag));
+//! assert!(loc.extensions.private.contains(&subtag!("foo")));
+//! assert_eq!(loc.extensions.private.iter().next(), Some(&subtag!("foo")));
+//!
 //! loc.extensions.private.clear();
-//! assert_eq!(loc.to_string(), "en-US");
+//!
+//! assert!(loc.extensions.private.is_empty());
+//! assert_eq!(loc, locale!("en-US"));
 //! ```
 
 mod other;
@@ -50,7 +52,7 @@ use crate::parser::SubtagIterator;
 /// let subtag2: Subtag = "bar".parse().expect("Failed to parse a Subtag.");
 ///
 /// let private = Private::from_vec_unchecked(vec![subtag1, subtag2]);
-/// assert_eq!(&private.to_string(), "-x-foo-bar");
+/// assert_eq!(&private.to_string(), "x-foo-bar");
 /// ```
 ///
 /// [`Private Use Extensions`]: https://unicode.org/reports/tr35/#pu_extensions
@@ -84,7 +86,7 @@ impl Private {
     /// let subtag2: Subtag = "bar".parse().expect("Failed to parse a Subtag.");
     ///
     /// let private = Private::from_vec_unchecked(vec![subtag1, subtag2]);
-    /// assert_eq!(&private.to_string(), "-x-foo-bar");
+    /// assert_eq!(&private.to_string(), "x-foo-bar");
     /// ```
     pub fn from_vec_unchecked(input: Vec<Subtag>) -> Self {
         Self(input)
@@ -101,11 +103,11 @@ impl Private {
     /// let subtag2: Subtag = "bar".parse().expect("Failed to parse a Subtag.");
     /// let mut private = Private::from_vec_unchecked(vec![subtag1, subtag2]);
     ///
-    /// assert_eq!(&private.to_string(), "-x-foo-bar");
+    /// assert_eq!(&private.to_string(), "x-foo-bar");
     ///
     /// private.clear();
     ///
-    /// assert_eq!(&private.to_string(), "");
+    /// assert_eq!(private, Private::new());
     /// ```
     pub fn clear(&mut self) {
         self.0.clear();
@@ -138,7 +140,7 @@ impl writeable::Writeable for Private {
         if self.is_empty() {
             return Ok(());
         }
-        sink.write_str("-x")?;
+        sink.write_str("x")?;
         for key in self.iter() {
             sink.write_char('-')?;
             writeable::Writeable::write_to(key, sink)?;
@@ -150,7 +152,7 @@ impl writeable::Writeable for Private {
         if self.is_empty() {
             return writeable::LengthHint::exact(0);
         }
-        let mut result = writeable::LengthHint::exact(2);
+        let mut result = writeable::LengthHint::exact(1);
         for key in self.iter() {
             result += writeable::Writeable::writeable_length_hint(key) + 1;
         }

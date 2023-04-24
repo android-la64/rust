@@ -1,573 +1,190 @@
-#![allow(clippy::unneeded_field_pattern)]
-#![allow(clippy::toplevel_ref_arg)]
+#![allow(clippy::type_complexity)]
 
 #[macro_use]
-mod macros;
-mod array;
+pub(crate) mod macros;
+
+pub(crate) mod array;
 pub(crate) mod datetime;
-mod document;
-mod errors;
-mod inline_table;
-mod key;
+pub(crate) mod document;
+pub(crate) mod errors;
+pub(crate) mod inline_table;
+pub(crate) mod key;
 pub(crate) mod numbers;
+pub(crate) mod state;
 pub(crate) mod strings;
-mod table;
-mod trivia;
-mod value;
+pub(crate) mod table;
+pub(crate) mod trivia;
+pub(crate) mod value;
 
-pub use self::errors::TomlError;
-pub(crate) use self::key::is_unquoted_char;
-pub(crate) use self::key::key as key_path;
-pub(crate) use self::key::simple_key;
-pub(crate) use self::value::value as value_parser;
+pub use errors::TomlError;
 
-use self::table::duplicate_key;
-use crate::key::Key;
-use crate::parser::errors::CustomError;
-use crate::repr::Decor;
-use crate::{ArrayOfTables, Document, Entry, Item, Table};
+pub(crate) fn parse_document(raw: &str) -> Result<crate::Document, TomlError> {
+    use prelude::*;
 
-pub(crate) struct TomlParser {
-    document: Document,
-    trailing: String,
-    current_table_position: usize,
-    current_table: Table,
-    current_is_array: bool,
-    current_table_path: Vec<Key>,
+    let b = new_input(raw);
+    let mut doc = document::document
+        .parse(b)
+        .finish()
+        .map_err(|e| TomlError::new(e, b))?;
+    doc.span = Some(0..(raw.len()));
+    doc.original = Some(raw.to_owned());
+    Ok(doc)
 }
 
-impl TomlParser {
-    pub(crate) fn start_aray_table(
-        &mut self,
-        path: Vec<Key>,
-        decor: Decor,
-    ) -> Result<(), CustomError> {
-        debug_assert!(!path.is_empty());
-        debug_assert!(self.current_table.is_empty());
-        debug_assert!(self.current_table_path.is_empty());
+pub(crate) fn parse_key(raw: &str) -> Result<crate::Key, TomlError> {
+    use prelude::*;
 
-        // Look up the table on start to ensure the duplicate_key error points to the right line
-        let root = self.document.as_table_mut();
-        let parent_table = Self::descend_path(root, &path[..path.len() - 1], false)?;
-        let key = &path[path.len() - 1];
-        let entry = parent_table
-            .entry_format(key)
-            .or_insert(Item::ArrayOfTables(ArrayOfTables::new()));
-        entry
-            .as_array_of_tables()
-            .ok_or_else(|| duplicate_key(&path, path.len() - 1))?;
-
-        self.current_table_position += 1;
-        self.current_table.decor = decor;
-        self.current_table.set_position(self.current_table_position);
-        self.current_is_array = true;
-        self.current_table_path = path;
-
-        Ok(())
-    }
-
-    pub(crate) fn start_table(&mut self, path: Vec<Key>, decor: Decor) -> Result<(), CustomError> {
-        debug_assert!(!path.is_empty());
-        debug_assert!(self.current_table.is_empty());
-        debug_assert!(self.current_table_path.is_empty());
-
-        // 1. Look up the table on start to ensure the duplicate_key error points to the right line
-        // 2. Ensure any child tables from an implicit table are preserved
-        let root = self.document.as_table_mut();
-        let parent_table = Self::descend_path(root, &path[..path.len() - 1], false)?;
-        let key = &path[path.len() - 1];
-        if let Some(entry) = parent_table.remove(key.get()) {
-            match entry {
-                Item::Table(t) if t.implicit => {
-                    self.current_table = t;
-                }
-                _ => return Err(duplicate_key(&path, path.len() - 1)),
-            }
+    let b = new_input(raw);
+    let result = key::simple_key.parse(b).finish();
+    match result {
+        Ok((raw, key)) => {
+            Ok(crate::Key::new(key).with_repr_unchecked(crate::Repr::new_unchecked(raw)))
         }
-
-        self.current_table_position += 1;
-        self.current_table.decor = decor;
-        self.current_table.set_position(self.current_table_position);
-        self.current_is_array = false;
-        self.current_table_path = path;
-
-        Ok(())
-    }
-
-    pub(crate) fn finalize_table(&mut self) -> Result<(), CustomError> {
-        let mut table = std::mem::take(&mut self.current_table);
-        let path = std::mem::take(&mut self.current_table_path);
-
-        let root = self.document.as_table_mut();
-        if path.is_empty() {
-            assert!(root.is_empty());
-            std::mem::swap(&mut table, root);
-        } else if self.current_is_array {
-            let parent_table = Self::descend_path(root, &path[..path.len() - 1], false)?;
-            let key = &path[path.len() - 1];
-
-            let entry = parent_table
-                .entry_format(key)
-                .or_insert(Item::ArrayOfTables(ArrayOfTables::new()));
-            let array = entry
-                .as_array_of_tables_mut()
-                .ok_or_else(|| duplicate_key(&path, path.len() - 1))?;
-            array.push(table);
-        } else {
-            let parent_table = Self::descend_path(root, &path[..path.len() - 1], false)?;
-            let key = &path[path.len() - 1];
-
-            let entry = parent_table.entry_format(key);
-            match entry {
-                Entry::Occupied(entry) => {
-                    match entry.into_mut() {
-                        // if [a.b.c] header preceded [a.b]
-                        Item::Table(ref mut t) if t.implicit => {
-                            std::mem::swap(t, &mut table);
-                        }
-                        _ => return Err(duplicate_key(&path, path.len() - 1)),
-                    }
-                }
-                Entry::Vacant(entry) => {
-                    let item = Item::Table(table);
-                    entry.insert(item);
-                }
-            }
-        }
-
-        Ok(())
+        Err(e) => Err(TomlError::new(e, b)),
     }
 }
 
-impl Default for TomlParser {
-    fn default() -> Self {
-        Self {
-            document: Document::new(),
-            trailing: String::new(),
-            current_table_position: 0,
-            current_table: Table::new(),
-            current_is_array: false,
-            current_table_path: Vec::new(),
+pub(crate) fn parse_key_path(raw: &str) -> Result<Vec<crate::Key>, TomlError> {
+    use prelude::*;
+
+    let b = new_input(raw);
+    let result = key::key.parse(b).finish();
+    match result {
+        Ok(mut keys) => {
+            for key in &mut keys {
+                key.despan(raw);
+            }
+            Ok(keys)
+        }
+        Err(e) => Err(TomlError::new(e, b)),
+    }
+}
+
+pub(crate) fn parse_value(raw: &str) -> Result<crate::Value, TomlError> {
+    use prelude::*;
+
+    let b = new_input(raw);
+    let parsed = value::value(RecursionCheck::default()).parse(b).finish();
+    match parsed {
+        Ok(mut value) => {
+            // Only take the repr and not decor, as its probably not intended
+            value.decor_mut().clear();
+            value.despan(raw);
+            Ok(value)
+        }
+        Err(e) => Err(TomlError::new(e, b)),
+    }
+}
+
+pub(crate) mod prelude {
+    pub(crate) use super::errors::Context;
+    pub(crate) use super::errors::ParserError;
+    pub(crate) use super::errors::ParserValue;
+    pub(crate) use nom8::IResult;
+    pub(crate) use nom8::Parser as _;
+
+    pub(crate) use nom8::FinishIResult as _;
+
+    pub(crate) type Input<'b> = nom8::input::Located<&'b [u8]>;
+
+    pub(crate) fn new_input(s: &str) -> Input<'_> {
+        nom8::input::Located::new(s.as_bytes())
+    }
+
+    pub(crate) fn ok_error<I, O, E>(res: IResult<I, O, E>) -> Result<Option<(I, O)>, nom8::Err<E>> {
+        match res {
+            Ok(ok) => Ok(Some(ok)),
+            Err(nom8::Err::Error(_)) => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn trace<I: std::fmt::Debug, O: std::fmt::Debug, E: std::fmt::Debug>(
+        context: impl std::fmt::Display,
+        mut parser: impl nom8::Parser<I, O, E>,
+    ) -> impl FnMut(I) -> IResult<I, O, E> {
+        static DEPTH: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        move |input: I| {
+            let depth = DEPTH.fetch_add(1, std::sync::atomic::Ordering::SeqCst) * 2;
+            eprintln!("{:depth$}--> {} {:?}", "", context, input);
+            match parser.parse(input) {
+                Ok((i, o)) => {
+                    DEPTH.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    eprintln!("{:depth$}<-- {} {:?}", "", context, i);
+                    Ok((i, o))
+                }
+                Err(err) => {
+                    DEPTH.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    eprintln!("{:depth$}<-- {} {:?}", "", context, err);
+                    Err(err)
+                }
+            }
+        }
+    }
+
+    #[cfg(not(feature = "unbounded"))]
+    #[derive(Copy, Clone, Debug, Default)]
+    pub(crate) struct RecursionCheck {
+        current: usize,
+    }
+
+    #[cfg(not(feature = "unbounded"))]
+    impl RecursionCheck {
+        pub(crate) fn check_depth(depth: usize) -> Result<(), super::errors::CustomError> {
+            if depth < 128 {
+                Ok(())
+            } else {
+                Err(super::errors::CustomError::RecursionLimitExceeded)
+            }
+        }
+
+        pub(crate) fn recursing(
+            mut self,
+            input: Input<'_>,
+        ) -> Result<Self, nom8::Err<ParserError<'_>>> {
+            self.current += 1;
+            if self.current < 128 {
+                Ok(self)
+            } else {
+                Err(nom8::Err::Error(
+                    nom8::error::FromExternalError::from_external_error(
+                        input,
+                        nom8::error::ErrorKind::Eof,
+                        super::errors::CustomError::RecursionLimitExceeded,
+                    ),
+                ))
+            }
+        }
+    }
+
+    #[cfg(feature = "unbounded")]
+    #[derive(Copy, Clone, Debug, Default)]
+    pub(crate) struct RecursionCheck {}
+
+    #[cfg(feature = "unbounded")]
+    impl RecursionCheck {
+        pub(crate) fn check_depth(_depth: usize) -> Result<(), super::errors::CustomError> {
+            Ok(())
+        }
+
+        pub(crate) fn recursing(
+            self,
+            _input: Input<'_>,
+        ) -> Result<Self, nom8::Err<ParserError<'_>>> {
+            Ok(self)
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::parser::*;
-    use combine::stream::position::Stream;
-    use combine::*;
-    use snapbox::assert_eq;
-    use std::fmt;
-    // Copied from https://github.com/colin-kiegel/rust-pretty-assertions/issues/24
-    /// Wrapper around string slice that makes debug output `{:?}` to print string same way as `{}`.
-    /// Used in different `assert*!` macros in combination with `pretty_assertions` crate to make
-    /// test failures to show nice diffs.
-    #[derive(PartialEq, Eq)]
-    struct PrettyString<'a>(pub(crate) &'a str);
-    /// Make diff to display string as multi-line string
-    impl<'a> fmt::Debug for PrettyString<'a> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.write_str(self.0)
-        }
-    }
-
-    macro_rules! parsed_eq {
-        ($parsed:ident, $expected:expr) => {{
-            assert!($parsed.is_ok(), "{:?}", $parsed.err().unwrap());
-            let (v, rest) = $parsed.unwrap();
-            assert_eq!(v, $expected);
-            assert!(rest.input.is_empty());
-        }};
-    }
-
-    macro_rules! parsed_float_eq {
-        ($input:ident, $expected:expr) => {{
-            let parsed = numbers::float().easy_parse(Stream::new($input.as_bytes()));
-            let (v, rest) = match parsed {
-                Ok(parsed) => parsed,
-                Err(err) => {
-                    panic!("Unexpected error for {:?}: {:?}", $input, err);
-                }
-            };
-            if $expected.is_nan() {
-                assert!(v.is_nan());
-            } else if $expected.is_infinite() {
-                assert!(v.is_infinite());
-                assert_eq!($expected.is_sign_positive(), v.is_sign_positive());
-            } else {
-                dbg!($expected);
-                dbg!(v);
-                assert!(($expected - v).abs() < std::f64::EPSILON);
-            }
-            assert!(rest.input.is_empty());
-        }};
-    }
-
-    macro_rules! parsed_value_eq {
-        ($input:expr) => {
-            let parsed = value::value().easy_parse(Stream::new($input.as_bytes()));
-            let (v, rest) = match parsed {
-                Ok(parsed) => parsed,
-                Err(err) => {
-                    panic!("Unexpected error for {:?}: {:?}", $input, err);
-                }
-            };
-            assert_eq(v.to_string(), $input);
-            assert!(rest.input.is_empty());
-        };
-    }
-
-    macro_rules! parsed_date_time_eq {
-        ($input:expr, $is:ident) => {{
-            let parsed = value::value().easy_parse(Stream::new($input.as_bytes()));
-            assert!(parsed.is_ok());
-            let (v, rest) = parsed.unwrap();
-            assert_eq(v.to_string(), $input);
-            assert!(rest.input.is_empty());
-            assert!(v.$is());
-        }};
-    }
-
-    #[test]
-    fn integers() {
-        let cases = [
-            ("+99", 99),
-            ("42", 42),
-            ("0", 0),
-            ("-17", -17),
-            ("1_000", 1_000),
-            ("5_349_221", 5_349_221),
-            ("1_2_3_4_5", 1_2_3_4_5),
-            ("0xF", 15),
-            ("0o0_755", 493),
-            ("0b1_0_1", 5),
-            (&std::i64::MIN.to_string()[..], std::i64::MIN),
-            (&std::i64::MAX.to_string()[..], std::i64::MAX),
-        ];
-        for &(input, expected) in &cases {
-            let parsed = numbers::integer().easy_parse(Stream::new(input.as_bytes()));
-            parsed_eq!(parsed, expected);
-        }
-
-        let overflow = "1000000000000000000000000000000000";
-        let parsed = numbers::integer().easy_parse(Stream::new(overflow.as_bytes()));
-        assert!(parsed.is_err());
-    }
-
-    #[test]
-    fn floats() {
-        let cases = [
-            ("+1.0", 1.0),
-            ("3.1419", 3.1419),
-            ("-0.01", -0.01),
-            ("5e+22", 5e+22),
-            ("1e6", 1e6),
-            ("-2E-2", -2E-2),
-            ("6.626e-34", 6.626e-34),
-            ("9_224_617.445_991_228_313", 9_224_617.445_991_227),
-            ("-1.7976931348623157e+308", std::f64::MIN),
-            ("1.7976931348623157e+308", std::f64::MAX),
-            ("nan", f64::NAN),
-            ("+nan", f64::NAN),
-            ("-nan", f64::NAN),
-            ("inf", f64::INFINITY),
-            ("+inf", f64::INFINITY),
-            ("-inf", f64::NEG_INFINITY),
-            // ("1e+400", std::f64::INFINITY),
-        ];
-        for &(input, expected) in &cases {
-            parsed_float_eq!(input, expected);
-        }
-    }
-
-    #[test]
-    fn basic_string() {
-        let input =
-            r#""I'm a string. \"You can quote me\". Name\tJos\u00E9\nLocation\tSF. \U0002070E""#;
-        let parsed = strings::string().easy_parse(Stream::new(input.as_bytes()));
-        parsed_eq!(
-            parsed,
-            "I\'m a string. \"You can quote me\". Name\tJosé\nLocation\tSF. \u{2070E}"
-        );
-    }
-
-    #[test]
-    fn ml_basic_string() {
-        let cases = [
-            (
-                r#""""
-Roses are red
-Violets are blue""""#,
-                r#"Roses are red
-Violets are blue"#,
-            ),
-            (r#"""" \""" """"#, " \"\"\" "),
-            (r#"""" \\""""#, " \\"),
-        ];
-
-        for &(input, expected) in &cases {
-            dbg!(input);
-            let parsed = strings::string().easy_parse(Stream::new(input.as_bytes()));
-            parsed_eq!(parsed, expected);
-        }
-
-        let invalid_cases = [r#""""  """#, r#""""  \""""#];
-
-        for input in &invalid_cases {
-            let parsed = strings::ml_basic_string().easy_parse(Stream::new(input.as_bytes()));
-            assert!(parsed.is_err());
-        }
-    }
-
-    #[test]
-    fn ml_basic_string_escape_ws() {
-        let inputs = [
-            r#""""
-The quick brown \
-
-
-  fox jumps over \
-    the lazy dog.""""#,
-            r#""""\
-       The quick brown \
-       fox jumps over \
-       the lazy dog.\
-       """"#,
-        ];
-        for input in &inputs {
-            dbg!(input);
-            let parsed = strings::string().easy_parse(Stream::new(input.as_bytes()));
-            parsed_eq!(parsed, "The quick brown fox jumps over the lazy dog.");
-        }
-        let empties = [
-            r#""""\
-       """"#,
-            r#""""
-\
-  \
-""""#,
-        ];
-        for empty in &empties {
-            let parsed = strings::string().easy_parse(Stream::new(empty.as_bytes()));
-            parsed_eq!(parsed, "");
-        }
-    }
-
-    #[test]
-    fn literal_string() {
-        let inputs = [
-            r#"'C:\Users\nodejs\templates'"#,
-            r#"'\\ServerX\admin$\system32\'"#,
-            r#"'Tom "Dubs" Preston-Werner'"#,
-            r#"'<\i\c*\s*>'"#,
-        ];
-
-        for input in &inputs {
-            let parsed = strings::string().easy_parse(Stream::new(input.as_bytes()));
-            parsed_eq!(parsed, &input[1..input.len() - 1]);
-        }
-    }
-
-    #[test]
-    fn ml_literal_string() {
-        let input = r#"'''I [dw]on't need \d{2} apples'''"#;
-        let parsed = strings::string().easy_parse(Stream::new(input.as_bytes()));
-        parsed_eq!(parsed, &input[3..input.len() - 3]);
-        let input = r#"'''
-The first newline is
-trimmed in raw strings.
-   All other whitespace
-   is preserved.
-'''"#;
-        let parsed = strings::string().easy_parse(Stream::new(input.as_bytes()));
-        parsed_eq!(parsed, &input[4..input.len() - 3]);
-    }
-
-    #[test]
-    fn offset_date_time() {
-        let inputs = [
-            "1979-05-27T07:32:00Z",
-            "1979-05-27T00:32:00-07:00",
-            "1979-05-27T00:32:00.999999-07:00",
-        ];
-        for input in inputs {
-            parsed_date_time_eq!(input, is_datetime);
-        }
-    }
-
-    #[test]
-    fn local_date_time() {
-        let inputs = ["1979-05-27T07:32:00", "1979-05-27T00:32:00.999999"];
-        for input in inputs {
-            parsed_date_time_eq!(input, is_datetime);
-        }
-    }
-
-    #[test]
-    fn local_date() {
-        let inputs = ["1979-05-27", "2017-07-20"];
-        for input in inputs {
-            parsed_date_time_eq!(input, is_datetime);
-        }
-    }
-
-    #[test]
-    fn local_time() {
-        let inputs = ["07:32:00", "00:32:00.999999"];
-        for input in inputs {
-            parsed_date_time_eq!(input, is_datetime);
-        }
-    }
-
-    #[test]
-    fn time_fraction_truncated() {
-        let input = "1987-07-05T17:45:00.123456789012345Z";
-        parsed_date_time_eq!(input, is_datetime);
-    }
-
-    #[test]
-    fn trivia() {
-        let inputs = [
-            "",
-            r#" "#,
-            r#"
-"#,
-            r#"
-# comment
-
-# comment2
-
-
-"#,
-            r#"
-        "#,
-            r#"# comment
-# comment2
-
-
-   "#,
-        ];
-        for input in inputs {
-            let parsed = trivia::ws_comment_newline().easy_parse(Stream::new(input.as_bytes()));
-            assert!(parsed.is_ok());
-            let (t, rest) = parsed.unwrap();
-            assert!(rest.input.is_empty());
-            assert_eq(t, input.as_bytes());
-        }
-    }
-
-    #[test]
-    fn arrays() {
-        let inputs = [
-            r#"[]"#,
-            r#"[   ]"#,
-            r#"[
-  1, 2, 3
-]"#,
-            r#"[
-  1,
-  2, # this is ok
-]"#,
-            r#"[# comment
-# comment2
-
-
-   ]"#,
-            r#"[# comment
-# comment2
-      1
-
-#sd
-,
-# comment3
-
-   ]"#,
-            r#"[1]"#,
-            r#"[1,]"#,
-            r#"[ "all", 'strings', """are the same""", '''type''']"#,
-            r#"[ 100, -2,]"#,
-            r#"[1, 2, 3]"#,
-            r#"[1.1, 2.1, 3.1]"#,
-            r#"["a", "b", "c"]"#,
-            r#"[ [ 1, 2 ], [3, 4, 5] ]"#,
-            r#"[ [ 1, 2 ], ["a", "b", "c"] ]"#,
-            r#"[ { x = 1, a = "2" }, {a = "a",b = "b",     c =    "c"} ]"#,
-        ];
-        for input in inputs {
-            parsed_value_eq!(input);
-        }
-
-        let invalid_inputs = [r#"["#, r#"[,]"#, r#"[,2]"#, r#"[1e165,,]"#];
-        for input in invalid_inputs {
-            let parsed = array::array().easy_parse(Stream::new(input.as_bytes()));
-            assert!(parsed.is_err());
-        }
-    }
-
-    #[test]
-    fn inline_tables() {
-        let inputs = [
-            r#"{}"#,
-            r#"{   }"#,
-            r#"{a = 1e165}"#,
-            r#"{ hello = "world", a = 1}"#,
-            r#"{ hello.world = "a" }"#,
-        ];
-        for input in inputs {
-            parsed_value_eq!(input);
-        }
-        let invalid_inputs = [r#"{a = 1e165"#, r#"{ hello = "world", a = 2, hello = 1}"#];
-        for input in invalid_inputs {
-            let parsed = inline_table::inline_table().easy_parse(Stream::new(input.as_bytes()));
-            assert!(parsed.is_err());
-        }
-    }
-
-    #[test]
-    fn keys() {
-        let cases = [
-            ("a", "a"),
-            (r#""hello\n ""#, "hello\n "),
-            (r#"'hello\n '"#, "hello\\n "),
-        ];
-
-        for (input, expected) in cases {
-            let parsed = key::simple_key().easy_parse(Stream::new(input.as_bytes()));
-            assert!(parsed.is_ok());
-            let ((.., k), rest) = parsed.unwrap();
-            assert_eq(k.as_str(), expected);
-            assert_eq!(rest.input.len(), 0);
-        }
-    }
-
-    #[test]
-    fn values() {
-        let inputs = [
-            "1979-05-27T00:32:00.999999",
-            "-239",
-            "1e200",
-            "9_224_617.445_991_228_313",
-            r#"'''I [dw]on't need \d{2} apples'''"#,
-            r#"'''
-The first newline is
-trimmed in raw strings.
-   All other whitespace
-   is preserved.
-'''"#,
-            r#""Jos\u00E9\n""#,
-            r#""\\\"\b/\f\n\r\t\u00E9\U000A0000""#,
-            r#"{ hello = "world", a = 1}"#,
-            r#"[ { x = 1, a = "2" }, {a = "a",b = "b",     c =    "c"} ]"#,
-        ];
-        for input in inputs {
-            parsed_value_eq!(input);
-        }
-    }
+mod test {
+    use super::*;
 
     #[test]
     fn documents() {
         let documents = [
+            "",
             r#"
 # This is a TOML document.
 
@@ -624,48 +241,63 @@ key = "value"
             r#"foo = 1979-05-27 # Comment
 "#,
         ];
-        for document in documents {
-            let doc = TomlParser::parse(document.as_bytes());
-            let doc = match doc {
+        for input in documents {
+            dbg!(input);
+            let mut parsed = parse_document(input);
+            if let Ok(parsed) = &mut parsed {
+                parsed.despan();
+            }
+            let doc = match parsed {
                 Ok(doc) => doc,
                 Err(err) => {
                     panic!(
-                        "Parse error: {}\nFailed to parse:\n```\n{}\n```",
-                        err, document
+                        "Parse error: {:?}\nFailed to parse:\n```\n{}\n```",
+                        err, input
                     )
                 }
             };
 
-            dbg!(doc.to_string());
-            dbg!(document);
-            assert_eq(document, doc.to_string());
+            snapbox::assert_eq(input, doc.to_string());
         }
+    }
 
+    #[test]
+    fn documents_parse_only() {
         let parse_only = ["\u{FEFF}
 [package]
 name = \"foo\"
 version = \"0.0.1\"
 authors = []
 "];
-        for document in parse_only {
-            let doc = TomlParser::parse(document.as_bytes());
-            match doc {
+        for input in parse_only {
+            dbg!(input);
+            let mut parsed = parse_document(input);
+            if let Ok(parsed) = &mut parsed {
+                parsed.despan();
+            }
+            match parsed {
                 Ok(_) => (),
                 Err(err) => {
                     panic!(
-                        "Parse error: {}\nFailed to parse:\n```\n{}\n```",
-                        err, document
+                        "Parse error: {:?}\nFailed to parse:\n```\n{}\n```",
+                        err, input
                     )
                 }
             }
         }
+    }
 
+    #[test]
+    fn invalid_documents() {
         let invalid_inputs = [r#" hello = 'darkness' # my old friend
 $"#];
-        for document in invalid_inputs {
-            let doc = TomlParser::parse(document.as_bytes());
-
-            assert!(doc.is_err());
+        for input in invalid_inputs {
+            dbg!(input);
+            let mut parsed = parse_document(input);
+            if let Ok(parsed) = &mut parsed {
+                parsed.despan();
+            }
+            assert!(parsed.is_err(), "Input: {:?}", input);
         }
     }
 }

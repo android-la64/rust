@@ -95,10 +95,7 @@ pub trait ForestObligation: Clone + Debug {
 pub trait ObligationProcessor {
     type Obligation: ForestObligation;
     type Error: Debug;
-    type OUT: OutcomeTrait<
-        Obligation = Self::Obligation,
-        Error = Error<Self::Obligation, Self::Error>,
-    >;
+    type OUT: OutcomeTrait<Obligation = Self::Obligation, Error = Error<Self::Obligation, Self::Error>>;
 
     fn needs_process_obligation(&self, obligation: &Self::Obligation) -> bool;
 
@@ -139,8 +136,7 @@ pub enum ProcessResult<O, E> {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct ObligationTreeId(usize);
 
-type ObligationTreeIdGenerator =
-    std::iter::Map<std::ops::RangeFrom<usize>, fn(usize) -> ObligationTreeId>;
+type ObligationTreeIdGenerator = impl Iterator<Item = ObligationTreeId>;
 
 pub struct ObligationForest<O: ForestObligation> {
     /// The list of obligations. In between calls to [Self::process_obligations],
@@ -430,6 +426,7 @@ impl<O: ForestObligation> ObligationForest<O> {
             // nodes. Therefore we use a `while` loop.
             let mut index = 0;
             while let Some(node) = self.nodes.get_mut(index) {
+                // This test is extremely hot.
                 if node.state.get() != NodeState::Pending
                     || !processor.needs_process_obligation(&node.obligation)
                 {
@@ -443,6 +440,7 @@ impl<O: ForestObligation> ObligationForest<O> {
                 // out of sync with `nodes`. It's not very common, but it does
                 // happen, and code in `compress` has to allow for it.
 
+                // This code is much less hot.
                 match processor.process_obligation(&mut node.obligation) {
                     ProcessResult::Unchanged => {
                         // No change in state.

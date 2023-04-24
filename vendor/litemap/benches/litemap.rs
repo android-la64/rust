@@ -39,7 +39,8 @@ const POSTCARD: [u8; 176] = [
     105, 110, 101, 115, 101,
 ];
 
-/// Run this function to print new data to the console. Requires the optional `serde` feature.
+/// Run this function to print new data to the console.
+/// Requires the optional `serde` Cargo feature.
 #[allow(dead_code)]
 fn generate() {
     let map = build_litemap(false);
@@ -69,13 +70,13 @@ fn overview_bench(c: &mut Criterion) {
 
 fn build_litemap(large: bool) -> LiteMap<String, String> {
     let mut map: LiteMap<String, String> = LiteMap::new();
-    for (key, value) in DATA.iter() {
+    for (key, value) in DATA.into_iter() {
         if large {
             for n in 0..8192 {
-                map.insert(format!("{}{}", key, n), value.to_string());
+                map.insert(format!("{}{}", key, n), value.to_owned());
             }
         } else {
-            map.insert(key.to_string(), value.to_string());
+            map.insert(key.to_owned(), value.to_owned());
         }
     }
     map
@@ -85,7 +86,7 @@ fn bench_deserialize(c: &mut Criterion) {
     c.bench_function("litemap/deserialize/small", |b| {
         b.iter(|| {
             let map: LiteMap<String, String> = postcard::from_bytes(black_box(&POSTCARD)).unwrap();
-            assert_eq!(map.get("iu"), Some(&"Inuktitut".to_string()));
+            assert_eq!(map.get("iu"), Some(&"Inuktitut".to_owned()));
         })
     });
 }
@@ -95,7 +96,7 @@ fn bench_deserialize_large(c: &mut Criterion) {
     c.bench_function("litemap/deseralize/large", |b| {
         b.iter(|| {
             let map: LiteMap<String, String> = postcard::from_bytes(black_box(&buf)).unwrap();
-            assert_eq!(map.get("iu3333"), Some(&"Inuktitut".to_string()));
+            assert_eq!(map.get("iu3333"), Some(&"Inuktitut".to_owned()));
         });
     });
 }
@@ -104,7 +105,7 @@ fn bench_lookup(c: &mut Criterion) {
     let map: LiteMap<String, String> = postcard::from_bytes(&POSTCARD).unwrap();
     c.bench_function("litemap/lookup/small", |b| {
         b.iter(|| {
-            assert_eq!(map.get(black_box("iu")), Some(&"Inuktitut".to_string()));
+            assert_eq!(map.get(black_box("iu")), Some(&"Inuktitut".to_owned()));
             assert_eq!(map.get(black_box("zz")), None);
         });
     });
@@ -115,7 +116,7 @@ fn bench_lookup_large(c: &mut Criterion) {
     let map: LiteMap<String, String> = postcard::from_bytes(&buf).unwrap();
     c.bench_function("litemap/lookup/large", |b| {
         b.iter(|| {
-            assert_eq!(map.get(black_box("iu3333")), Some(&"Inuktitut".to_string()));
+            assert_eq!(map.get(black_box("iu3333")), Some(&"Inuktitut".to_owned()));
             assert_eq!(map.get(black_box("zz")), None);
         });
     });

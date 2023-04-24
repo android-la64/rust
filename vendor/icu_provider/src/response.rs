@@ -51,10 +51,10 @@ pub struct DataResponseMetadata {
 /// To transform a [`DataPayload`] to a different type backed by the same data store (cart), use
 /// [`DataPayload::map_project()`] or one of its sister methods.
 ///
-/// # `sync` feature
+/// # Cargo feature: `sync`
 ///
 /// By default, the payload uses non-concurrent reference counting internally, and hence is neither
-/// [`Sync`] nor [`Send`]; if these traits are required, the `sync` feature can be enabled.
+/// [`Sync`] nor [`Send`]; if these traits are required, the `sync` Cargo feature can be enabled.
 ///
 /// # Examples
 ///
@@ -183,7 +183,7 @@ where
     /// use std::borrow::Cow;
     ///
     /// let local_struct = HelloWorldV1 {
-    ///     message: Cow::Owned("example".to_string()),
+    ///     message: Cow::Owned("example".to_owned()),
     /// };
     ///
     /// let payload =
@@ -236,8 +236,8 @@ where
     /// let mut payload =
     ///     DataPayload::<HelloWorldV1Marker>::from_static_str("Hello");
     ///
-    /// let suffix = " World".to_string();
-    /// payload.with_mut(move |s| s.message.to_mut().push_str(&suffix));
+    /// let suffix = " World";
+    /// payload.with_mut(move |s| s.message.to_mut().push_str(suffix));
     ///
     /// assert_eq!("Hello World", payload.get().message);
     /// ```

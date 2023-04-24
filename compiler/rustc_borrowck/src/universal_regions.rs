@@ -18,17 +18,20 @@ use rustc_errors::Diagnostic;
 use rustc_hir as hir;
 use rustc_hir::def_id::{DefId, LocalDefId};
 use rustc_hir::lang_items::LangItem;
-use rustc_hir::{BodyOwnerKind, HirId};
+use rustc_hir::BodyOwnerKind;
 use rustc_index::vec::{Idx, IndexVec};
-use rustc_infer::infer::{InferCtxt, NllRegionVariableOrigin};
+use rustc_infer::infer::NllRegionVariableOrigin;
 use rustc_middle::ty::fold::TypeFoldable;
 use rustc_middle::ty::{
     self, DefIdTree, InlineConstSubsts, InlineConstSubstsParts, RegionVid, Ty, TyCtxt,
 };
 use rustc_middle::ty::{InternalSubsts, SubstsRef};
+use rustc_span::Symbol;
 use std::iter;
 
 use crate::nll::ToRegionVid;
+use crate::renumber::{BoundRegionInfo, RegionCtxt};
+use crate::BorrowckInferCtxt;
 
 #[derive(Debug)]
 pub struct UniversalRegions<'tcx> {
@@ -162,11 +165,14 @@ struct UniversalRegionIndices<'tcx> {
     /// `ty::Region` to the internal `RegionVid` we are using. This is
     /// used because trait matching and type-checking will feed us
     /// region constraints that reference those regions and we need to
-    /// be able to map them our internal `RegionVid`. This is
+    /// be able to map them to our internal `RegionVid`. This is
     /// basically equivalent to an `InternalSubsts`, except that it also
     /// contains an entry for `ReStatic` -- it might be nice to just
     /// use a substs, and then handle `ReStatic` another way.
     indices: FxHashMap<ty::Region<'tcx>, RegionVid>,
+
+    /// The vid assigned to `'static`. Used only for diagnostics.
+    pub fr_static: RegionVid,
 }
 
 #[derive(Debug, PartialEq)]
@@ -221,13 +227,11 @@ impl<'tcx> UniversalRegions<'tcx> {
     /// signature. This will also compute the relationships that are
     /// known between those regions.
     pub fn new(
-        infcx: &InferCtxt<'tcx>,
+        infcx: &BorrowckInferCtxt<'_, 'tcx>,
         mir_def: ty::WithOptConstParam<LocalDefId>,
         param_env: ty::ParamEnv<'tcx>,
     ) -> Self {
-        let tcx = infcx.tcx;
-        let mir_hir_id = tcx.hir().local_def_id_to_hir_id(mir_def.did);
-        UniversalRegionsBuilder { infcx, mir_def, mir_hir_id, param_env }.build()
+        UniversalRegionsBuilder { infcx, mir_def, param_env }.build()
     }
 
     /// Given a reference to a closure type, extracts all the values
@@ -382,9 +386,8 @@ impl<'tcx> UniversalRegions<'tcx> {
 }
 
 struct UniversalRegionsBuilder<'cx, 'tcx> {
-    infcx: &'cx InferCtxt<'tcx>,
+    infcx: &'cx BorrowckInferCtxt<'cx, 'tcx>,
     mir_def: ty::WithOptConstParam<LocalDefId>,
-    mir_hir_id: HirId,
     param_env: ty::ParamEnv<'tcx>,
 }
 
@@ -400,7 +403,10 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
         assert_eq!(FIRST_GLOBAL_INDEX, self.infcx.num_region_vars());
 
         // Create the "global" region that is always free in all contexts: 'static.
-        let fr_static = self.infcx.next_nll_region_var(FR).to_region_vid();
+        let fr_static = self
+            .infcx
+            .next_nll_region_var(FR, || RegionCtxt::Free(Symbol::intern("static")))
+            .to_region_vid();
 
         // We've now added all the global regions. The next ones we
         // add will be external.
@@ -432,7 +438,17 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
                 |r| {
                     debug!(?r);
                     if !indices.indices.contains_key(&r) {
-                        let region_vid = self.infcx.next_nll_region_var(FR);
+                        let region_vid = {
+                            let name = match r.get_name() {
+                                Some(name) => name,
+                                _ => Symbol::intern("anon"),
+                            };
+
+                            self.infcx.next_nll_region_var(FR, || {
+                                RegionCtxt::LateBound(BoundRegionInfo::Name(name))
+                            })
+                        };
+
                         debug!(?region_vid);
                         indices.insert_late_bound_region(r, region_vid.to_region_vid());
                     }
@@ -460,7 +476,17 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
         for_each_late_bound_region_in_item(self.infcx.tcx, self.mir_def.did, |r| {
             debug!(?r);
             if !indices.indices.contains_key(&r) {
-                let region_vid = self.infcx.next_nll_region_var(FR);
+                let region_vid = {
+                    let name = match r.get_name() {
+                        Some(name) => name,
+                        _ => Symbol::intern("anon"),
+                    };
+
+                    self.infcx.next_nll_region_var(FR, || {
+                        RegionCtxt::LateBound(BoundRegionInfo::Name(name))
+                    })
+                };
+
                 debug!(?region_vid);
                 indices.insert_late_bound_region(r, region_vid.to_region_vid());
             }
@@ -472,28 +498,32 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
         // C-variadic fns also have a `VaList` input that's not listed in the signature
         // (as it's created inside the body itself, not passed in from outside).
         if let DefiningTy::FnDef(def_id, _) = defining_ty {
-            if self.infcx.tcx.fn_sig(def_id).c_variadic() {
+            if self.infcx.tcx.fn_sig(def_id).skip_binder().c_variadic() {
                 let va_list_did = self.infcx.tcx.require_lang_item(
                     LangItem::VaList,
                     Some(self.infcx.tcx.def_span(self.mir_def.did)),
                 );
-                let region = self
-                    .infcx
-                    .tcx
-                    .mk_region(ty::ReVar(self.infcx.next_nll_region_var(FR).to_region_vid()));
-                let va_list_ty = self
-                    .infcx
-                    .tcx
-                    .bound_type_of(va_list_did)
-                    .subst(self.infcx.tcx, &[region.into()]);
 
-                unnormalized_input_tys = self.infcx.tcx.mk_type_list(
+                let reg_vid = self
+                    .infcx
+                    .next_nll_region_var(FR, || RegionCtxt::Free(Symbol::intern("c-variadic")))
+                    .to_region_vid();
+
+                let region = self.infcx.tcx.mk_re_var(reg_vid);
+                let va_list_ty =
+                    self.infcx.tcx.type_of(va_list_did).subst(self.infcx.tcx, &[region.into()]);
+
+                unnormalized_input_tys = self.infcx.tcx.mk_type_list_from_iter(
                     unnormalized_input_tys.iter().copied().chain(iter::once(va_list_ty)),
                 );
             }
         }
 
-        let fr_fn_body = self.infcx.next_nll_region_var(FR).to_region_vid();
+        let fr_fn_body = self
+            .infcx
+            .next_nll_region_var(FR, || RegionCtxt::Free(Symbol::intern("fn_body")))
+            .to_region_vid();
+
         let num_universals = self.infcx.num_region_vars();
 
         debug!("build: global regions = {}..{}", FIRST_GLOBAL_INDEX, first_extern_index);
@@ -527,12 +557,7 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
 
         match tcx.hir().body_owner_kind(self.mir_def.did) {
             BodyOwnerKind::Closure | BodyOwnerKind::Fn => {
-                let defining_ty = if self.mir_def.did.to_def_id() == typeck_root_def_id {
-                    tcx.type_of(typeck_root_def_id)
-                } else {
-                    let tables = tcx.typeck(self.mir_def.did);
-                    tables.node_type(self.mir_hir_id)
-                };
+                let defining_ty = tcx.type_of(self.mir_def.def_id_for_type_of()).subst_identity();
 
                 debug!("defining_ty (pre-replacement): {:?}", defining_ty);
 
@@ -561,7 +586,18 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
                         self.infcx.replace_free_regions_with_nll_infer_vars(FR, identity_substs);
                     DefiningTy::Const(self.mir_def.did.to_def_id(), substs)
                 } else {
-                    let ty = tcx.typeck(self.mir_def.did).node_type(self.mir_hir_id);
+                    // FIXME this line creates a dependency between borrowck and typeck.
+                    //
+                    // This is required for `AscribeUserType` canonical query, which will call
+                    // `type_of(inline_const_def_id)`. That `type_of` would inject erased lifetimes
+                    // into borrowck, which is ICE #78174.
+                    //
+                    // As a workaround, inline consts have an additional generic param (`ty`
+                    // below), so that `type_of(inline_const_def_id).substs(substs)` uses the
+                    // proper type with NLL infer vars.
+                    let ty = tcx
+                        .typeck(self.mir_def.did)
+                        .node_type(tcx.local_def_id_to_hir_id(self.mir_def.did));
                     let substs = InlineConstSubsts::new(
                         tcx,
                         InlineConstSubstsParts { parent_substs: identity_substs, ty },
@@ -609,7 +645,7 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
         let subst_mapping =
             iter::zip(identity_substs.regions(), fr_substs.regions().map(|r| r.to_region_vid()));
 
-        UniversalRegionIndices { indices: global_mapping.chain(subst_mapping).collect() }
+        UniversalRegionIndices { indices: global_mapping.chain(subst_mapping).collect(), fr_static }
     }
 
     fn compute_inputs_and_output(
@@ -623,7 +659,7 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
                 assert_eq!(self.mir_def.did.to_def_id(), def_id);
                 let closure_sig = substs.as_closure().sig();
                 let inputs_and_output = closure_sig.inputs_and_output();
-                let bound_vars = tcx.mk_bound_variable_kinds(
+                let bound_vars = tcx.mk_bound_variable_kinds_from_iter(
                     inputs_and_output
                         .bound_vars()
                         .iter()
@@ -633,7 +669,7 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
                     var: ty::BoundVar::from_usize(bound_vars.len() - 1),
                     kind: ty::BrEnv,
                 };
-                let env_region = ty::ReLateBound(ty::INNERMOST, br);
+                let env_region = tcx.mk_re_late_bound(ty::INNERMOST, br);
                 let closure_ty = tcx.closure_env_ty(def_id, substs, env_region).unwrap();
 
                 // The "inputs" of the closure in the
@@ -647,7 +683,7 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
                 };
 
                 ty::Binder::bind_with_vars(
-                    tcx.mk_type_list(
+                    tcx.mk_type_list_from_iter(
                         iter::once(closure_ty).chain(inputs).chain(iter::once(output)),
                     ),
                     bound_vars,
@@ -660,12 +696,12 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
                 let output = substs.as_generator().return_ty();
                 let generator_ty = tcx.mk_generator(def_id, substs, movability);
                 let inputs_and_output =
-                    self.infcx.tcx.intern_type_list(&[generator_ty, resume_ty, output]);
+                    self.infcx.tcx.mk_type_list(&[generator_ty, resume_ty, output]);
                 ty::Binder::dummy(inputs_and_output)
             }
 
             DefiningTy::FnDef(def_id, _) => {
-                let sig = tcx.fn_sig(def_id);
+                let sig = tcx.fn_sig(def_id).subst_identity();
                 let sig = indices.fold_to_region_vids(tcx, sig);
                 sig.inputs_and_output()
             }
@@ -674,15 +710,15 @@ impl<'cx, 'tcx> UniversalRegionsBuilder<'cx, 'tcx> {
                 // For a constant body, there are no inputs, and one
                 // "output" (the type of the constant).
                 assert_eq!(self.mir_def.did.to_def_id(), def_id);
-                let ty = tcx.type_of(self.mir_def.def_id_for_type_of());
+                let ty = tcx.type_of(self.mir_def.def_id_for_type_of()).subst_identity();
                 let ty = indices.fold_to_region_vids(tcx, ty);
-                ty::Binder::dummy(tcx.intern_type_list(&[ty]))
+                ty::Binder::dummy(tcx.mk_type_list(&[ty]))
             }
 
             DefiningTy::InlineConst(def_id, substs) => {
                 assert_eq!(self.mir_def.did.to_def_id(), def_id);
                 let ty = substs.as_inline_const().ty();
-                ty::Binder::dummy(tcx.intern_type_list(&[ty]))
+                ty::Binder::dummy(tcx.mk_type_list(&[ty]))
             }
         }
     }
@@ -695,7 +731,7 @@ trait InferCtxtExt<'tcx> {
         value: T,
     ) -> T
     where
-        T: TypeFoldable<'tcx>;
+        T: TypeFoldable<TyCtxt<'tcx>>;
 
     fn replace_bound_regions_with_nll_infer_vars<T>(
         &self,
@@ -705,7 +741,7 @@ trait InferCtxtExt<'tcx> {
         indices: &mut UniversalRegionIndices<'tcx>,
     ) -> T
     where
-        T: TypeFoldable<'tcx>;
+        T: TypeFoldable<TyCtxt<'tcx>>;
 
     fn replace_late_bound_regions_with_nll_infer_vars_in_recursive_scope(
         &self,
@@ -720,16 +756,27 @@ trait InferCtxtExt<'tcx> {
     );
 }
 
-impl<'tcx> InferCtxtExt<'tcx> for InferCtxt<'tcx> {
+impl<'cx, 'tcx> InferCtxtExt<'tcx> for BorrowckInferCtxt<'cx, 'tcx> {
+    #[instrument(skip(self), level = "debug")]
     fn replace_free_regions_with_nll_infer_vars<T>(
         &self,
         origin: NllRegionVariableOrigin,
         value: T,
     ) -> T
     where
-        T: TypeFoldable<'tcx>,
+        T: TypeFoldable<TyCtxt<'tcx>>,
     {
-        self.tcx.fold_regions(value, |_region, _depth| self.next_nll_region_var(origin))
+        self.infcx.tcx.fold_regions(value, |region, _depth| {
+            let name = match region.get_name() {
+                Some(name) => name,
+                _ => Symbol::intern("anon"),
+            };
+            debug!(?region, ?name);
+
+            let reg_var = self.next_nll_region_var(origin, || RegionCtxt::Free(name));
+
+            reg_var
+        })
     }
 
     #[instrument(level = "debug", skip(self, indices))]
@@ -741,15 +788,20 @@ impl<'tcx> InferCtxtExt<'tcx> for InferCtxt<'tcx> {
         indices: &mut UniversalRegionIndices<'tcx>,
     ) -> T
     where
-        T: TypeFoldable<'tcx>,
+        T: TypeFoldable<TyCtxt<'tcx>>,
     {
         let (value, _map) = self.tcx.replace_late_bound_regions(value, |br| {
             debug!(?br);
-            let liberated_region = self.tcx.mk_region(ty::ReFree(ty::FreeRegion {
-                scope: all_outlive_scope.to_def_id(),
-                bound_region: br.kind,
-            }));
-            let region_vid = self.next_nll_region_var(origin);
+            let liberated_region = self.tcx.mk_re_free(all_outlive_scope.to_def_id(), br.kind);
+            let region_vid = {
+                let name = match br.kind.get_name() {
+                    Some(name) => name,
+                    _ => Symbol::intern("anon"),
+                };
+
+                self.next_nll_region_var(origin, || RegionCtxt::Bound(BoundRegionInfo::Name(name)))
+            };
+
             indices.insert_late_bound_region(liberated_region, region_vid.to_region_vid());
             debug!(?liberated_region, ?region_vid);
             region_vid
@@ -775,7 +827,17 @@ impl<'tcx> InferCtxtExt<'tcx> for InferCtxt<'tcx> {
         for_each_late_bound_region_in_recursive_scope(self.tcx, mir_def_id, |r| {
             debug!(?r);
             if !indices.indices.contains_key(&r) {
-                let region_vid = self.next_nll_region_var(FR);
+                let region_vid = {
+                    let name = match r.get_name() {
+                        Some(name) => name,
+                        _ => Symbol::intern("anon"),
+                    };
+
+                    self.next_nll_region_var(FR, || {
+                        RegionCtxt::LateBound(BoundRegionInfo::Name(name))
+                    })
+                };
+
                 debug!(?region_vid);
                 indices.insert_late_bound_region(r, region_vid.to_region_vid());
             }
@@ -791,8 +853,17 @@ impl<'tcx> InferCtxtExt<'tcx> for InferCtxt<'tcx> {
         for_each_late_bound_region_in_item(self.tcx, mir_def_id, |r| {
             debug!(?r);
             if !indices.indices.contains_key(&r) {
-                let region_vid = self.next_nll_region_var(FR);
-                debug!(?region_vid);
+                let region_vid = {
+                    let name = match r.get_name() {
+                        Some(name) => name,
+                        _ => Symbol::intern("anon"),
+                    };
+
+                    self.next_nll_region_var(FR, || {
+                        RegionCtxt::LateBound(BoundRegionInfo::Name(name))
+                    })
+                };
+
                 indices.insert_late_bound_region(r, region_vid.to_region_vid());
             }
         });
@@ -821,6 +892,11 @@ impl<'tcx> UniversalRegionIndices<'tcx> {
     pub fn to_region_vid(&self, r: ty::Region<'tcx>) -> RegionVid {
         if let ty::ReVar(..) = *r {
             r.to_region_vid()
+        } else if r.is_error() {
+            // We use the `'static` `RegionVid` because `ReError` doesn't actually exist in the
+            // `UniversalRegionIndices`. This is fine because 1) it is a fallback only used if
+            // errors are being emitted and 2) it leaves the happy path unaffected.
+            self.fr_static
         } else {
             *self
                 .indices
@@ -833,9 +909,9 @@ impl<'tcx> UniversalRegionIndices<'tcx> {
     /// returned by `to_region_vid`.
     pub fn fold_to_region_vids<T>(&self, tcx: TyCtxt<'tcx>, value: T) -> T
     where
-        T: TypeFoldable<'tcx>,
+        T: TypeFoldable<TyCtxt<'tcx>>,
     {
-        tcx.fold_regions(value, |region, _| tcx.mk_region(ty::ReVar(self.to_region_vid(region))))
+        tcx.fold_regions(value, |region, _| tcx.mk_re_var(self.to_region_vid(region)))
     }
 }
 
@@ -875,8 +951,7 @@ fn for_each_late_bound_region_in_item<'tcx>(
 
     for bound_var in tcx.late_bound_vars(tcx.hir().local_def_id_to_hir_id(mir_def_id)) {
         let ty::BoundVariableKind::Region(bound_region) = bound_var else { continue; };
-        let liberated_region = tcx
-            .mk_region(ty::ReFree(ty::FreeRegion { scope: mir_def_id.to_def_id(), bound_region }));
+        let liberated_region = tcx.mk_re_free(mir_def_id.to_def_id(), bound_region);
         f(liberated_region);
     }
 }

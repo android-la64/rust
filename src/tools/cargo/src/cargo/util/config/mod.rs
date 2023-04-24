@@ -54,7 +54,7 @@ use std::cell::{RefCell, RefMut};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::env;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::fs::{self, File};
 use std::io::prelude::*;
@@ -80,8 +80,9 @@ use anyhow::{anyhow, bail, format_err, Context as _};
 use cargo_util::paths;
 use curl::easy::Easy;
 use lazycell::LazyCell;
+use serde::de::IntoDeserializer as _;
 use serde::Deserialize;
-use toml_edit::{easy as toml, Item};
+use toml_edit::Item;
 use url::Url;
 
 mod de;
@@ -99,13 +100,16 @@ pub use path::{ConfigRelativePath, PathAndArgs};
 mod target;
 pub use target::{TargetCfgConfig, TargetConfig};
 
+mod environment;
+use environment::Env;
+
 // Helper macro for creating typed access methods.
 macro_rules! get_value_typed {
     ($name:ident, $ty:ty, $variant:ident, $expected:expr) => {
         /// Low-level private method for getting a config value as an OptValue.
         fn $name(&self, key: &ConfigKey) -> Result<OptValue<$ty>, ConfigError> {
             let cv = self.get_cv(key)?;
-            let env = self.get_env::<$ty>(key)?;
+            let env = self.get_config_env::<$ty>(key)?;
             match (cv, env) {
                 (Some(CV::$variant(val, definition)), Some(env)) => {
                     if definition.is_higher_priority(&env.definition) {
@@ -198,10 +202,8 @@ pub struct Config {
     creation_time: Instant,
     /// Target Directory via resolved Cli parameter
     target_dir: Option<Filesystem>,
-    /// Environment variables, separated to assist testing.
-    env: HashMap<String, String>,
-    /// Environment variables, converted to uppercase to check for case mismatch
-    upper_case_env: HashMap<String, String>,
+    /// Environment variable snapshot.
+    env: Env,
     /// Tracks which sources have been updated to avoid multiple updates.
     updated_sources: LazyCell<RefCell<HashSet<SourceId>>>,
     /// Cache of credentials from configuration or credential providers.
@@ -259,23 +261,10 @@ impl Config {
             }
         });
 
-        let env: HashMap<_, _> = env::vars_os()
-            .filter_map(|(k, v)| {
-                // Ignore any key/values that are not valid Unicode.
-                match (k.into_string(), v.into_string()) {
-                    (Ok(k), Ok(v)) => Some((k, v)),
-                    _ => None,
-                }
-            })
-            .collect();
+        let env = Env::new();
 
-        let upper_case_env = env
-            .clone()
-            .into_iter()
-            .map(|(k, _)| (k.to_uppercase().replace("-", "_"), k))
-            .collect();
-
-        let cache_rustc_info = match env.get("CARGO_CACHE_RUSTC_INFO") {
+        let cache_key = "CARGO_CACHE_RUSTC_INFO";
+        let cache_rustc_info = match env.get_env_os(cache_key) {
             Some(cache) => cache != "0",
             _ => true,
         };
@@ -309,7 +298,6 @@ impl Config {
             creation_time: Instant::now(),
             target_dir: None,
             env,
-            upper_case_env,
             updated_sources: LazyCell::new(),
             credential_cache: LazyCell::new(),
             package_cache_lock: RefCell::new(None),
@@ -432,6 +420,7 @@ impl Config {
             } else {
                 None
             },
+            self,
         )
     }
 
@@ -439,17 +428,18 @@ impl Config {
     pub fn cargo_exe(&self) -> CargoResult<&Path> {
         self.cargo_exe
             .try_borrow_with(|| {
-                fn from_env() -> CargoResult<PathBuf> {
+                let from_env = || -> CargoResult<PathBuf> {
                     // Try re-using the `cargo` set in the environment already. This allows
                     // commands that use Cargo as a library to inherit (via `cargo <subcommand>`)
                     // or set (by setting `$CARGO`) a correct path to `cargo` when the current exe
                     // is not actually cargo (e.g., `cargo-*` binaries, Valgrind, `ld.so`, etc.).
-                    let exe = env::var_os(crate::CARGO_ENV)
+                    let exe = self
+                        .get_env_os(crate::CARGO_ENV)
                         .map(PathBuf::from)
                         .ok_or_else(|| anyhow!("$CARGO not set"))?
                         .canonicalize()?;
                     Ok(exe)
-                }
+                };
 
                 fn from_current_exe() -> CargoResult<PathBuf> {
                     // Try fetching the path to `cargo` using `env::current_exe()`.
@@ -564,7 +554,7 @@ impl Config {
     pub fn target_dir(&self) -> CargoResult<Option<Filesystem>> {
         if let Some(dir) = &self.target_dir {
             Ok(Some(dir.clone()))
-        } else if let Some(dir) = self.env.get("CARGO_TARGET_DIR") {
+        } else if let Some(dir) = self.get_env_os("CARGO_TARGET_DIR") {
             // Check if the CARGO_TARGET_DIR environment variable is set to an empty string.
             if dir.is_empty() {
                 bail!(
@@ -662,7 +652,7 @@ impl Config {
             // Root table can't have env value.
             return Ok(cv);
         }
-        let env = self.env.get(key.as_env_key());
+        let env = self.env.get_str(key.as_env_key());
         let env_def = Definition::Environment(key.as_env_key().to_string());
         let use_env = match (&cv, env) {
             // Lists are always merged.
@@ -733,20 +723,26 @@ impl Config {
 
     /// Helper primarily for testing.
     pub fn set_env(&mut self, env: HashMap<String, String>) {
-        self.env = env;
+        self.env = Env::from_map(env);
     }
 
-    /// Returns all environment variables.
-    pub(crate) fn env(&self) -> &HashMap<String, String> {
-        &self.env
+    /// Returns all environment variables as an iterator,
+    /// keeping only entries where both the key and value are valid UTF-8.
+    pub(crate) fn env(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.env.iter_str()
     }
 
-    fn get_env<T>(&self, key: &ConfigKey) -> Result<OptValue<T>, ConfigError>
+    /// Returns all environment variable keys, filtering out keys that are not valid UTF-8.
+    fn env_keys(&self) -> impl Iterator<Item = &str> {
+        self.env.keys_str()
+    }
+
+    fn get_config_env<T>(&self, key: &ConfigKey) -> Result<OptValue<T>, ConfigError>
     where
         T: FromStr,
         <T as FromStr>::Err: fmt::Display,
     {
-        match self.env.get(key.as_env_key()) {
+        match self.env.get_str(key.as_env_key()) {
             Some(value) => {
                 let definition = Definition::Environment(key.as_env_key().to_string());
                 Ok(Some(Value {
@@ -763,6 +759,20 @@ impl Config {
         }
     }
 
+    /// Get the value of environment variable `key` through the `Config` snapshot.
+    ///
+    /// This can be used similarly to `std::env::var`.
+    pub fn get_env(&self, key: impl AsRef<OsStr>) -> CargoResult<String> {
+        self.env.get_env(key)
+    }
+
+    /// Get the value of environment variable `key` through the `Config` snapshot.
+    ///
+    /// This can be used similarly to `std::env::var_os`.
+    pub fn get_env_os(&self, key: impl AsRef<OsStr>) -> Option<OsString> {
+        self.env.get_env_os(key)
+    }
+
     /// Check if the [`Config`] contains a given [`ConfigKey`].
     ///
     /// See `ConfigMapAccess` for a description of `env_prefix_ok`.
@@ -772,7 +782,7 @@ impl Config {
         }
         if env_prefix_ok {
             let env_prefix = format!("{}_", key.as_env_key());
-            if self.env.keys().any(|k| k.starts_with(&env_prefix)) {
+            if self.env_keys().any(|k| k.starts_with(&env_prefix)) {
                 return Ok(true);
             }
         }
@@ -785,7 +795,7 @@ impl Config {
     }
 
     fn check_environment_key_case_mismatch(&self, key: &ConfigKey) {
-        if let Some(env_key) = self.upper_case_env.get(key.as_env_key()) {
+        if let Some(env_key) = self.env.get_normalized(key.as_env_key()) {
             let _ = self.shell().warn(format!(
                 "Environment variables are expected to use uppercase letters and underscores, \
                 the variable `{}` will be ignored and have no effect",
@@ -884,7 +894,7 @@ impl Config {
         key: &ConfigKey,
         output: &mut Vec<(String, Definition)>,
     ) -> CargoResult<()> {
-        let env_val = match self.env.get(key.as_env_key()) {
+        let env_val = match self.env.get_str(key.as_env_key()) {
             Some(v) => v,
             None => {
                 self.check_environment_key_case_mismatch(key);
@@ -895,17 +905,11 @@ impl Config {
         let def = Definition::Environment(key.as_env_key().to_string());
         if self.cli_unstable().advanced_env && env_val.starts_with('[') && env_val.ends_with(']') {
             // Parse an environment string as a TOML array.
-            let toml_s = format!("value={}", env_val);
-            let toml_v: toml::Value = toml::de::from_str(&toml_s).map_err(|e| {
-                ConfigError::new(format!("could not parse TOML list: {}", e), def.clone())
-            })?;
-            let values = toml_v
-                .as_table()
-                .unwrap()
-                .get("value")
-                .unwrap()
-                .as_array()
-                .expect("env var was not array");
+            let toml_v = toml::Value::deserialize(toml::de::ValueDeserializer::new(&env_val))
+                .map_err(|e| {
+                    ConfigError::new(format!("could not parse TOML list: {}", e), def.clone())
+                })?;
+            let values = toml_v.as_array().expect("env var was not array");
             for value in values {
                 // TODO: support other types.
                 let s = value.as_str().ok_or_else(|| {
@@ -1180,14 +1184,14 @@ impl Config {
         }
         let contents = fs::read_to_string(path)
             .with_context(|| format!("failed to read configuration file `{}`", path.display()))?;
-        let toml = cargo_toml::parse(&contents, path, self).with_context(|| {
+        let toml = cargo_toml::parse_document(&contents, path, self).with_context(|| {
             format!("could not parse TOML configuration in `{}`", path.display())
         })?;
         let def = match why_load {
             WhyLoad::Cli => Definition::Cli(Some(path.into())),
             WhyLoad::FileDiscovery => Definition::Path(path.into()),
         };
-        let value = CV::from_toml(def, toml).with_context(|| {
+        let value = CV::from_toml(def, toml::Value::Table(toml)).with_context(|| {
             format!(
                 "failed to load TOML configuration from `{}`",
                 path.display()
@@ -1302,8 +1306,10 @@ impl Config {
                     format!("failed to parse value from --config argument `{arg}` as a dotted key expression")
                 })?;
                 fn non_empty_decor(d: &toml_edit::Decor) -> bool {
-                    d.prefix().map_or(false, |p| !p.trim().is_empty())
-                        || d.suffix().map_or(false, |s| !s.trim().is_empty())
+                    d.prefix()
+                        .map_or(false, |p| !p.as_str().unwrap_or_default().trim().is_empty())
+                        || d.suffix()
+                            .map_or(false, |s| !s.as_str().unwrap_or_default().trim().is_empty())
                 }
                 let ok = {
                     let mut got_to_value = false;
@@ -1363,9 +1369,10 @@ impl Config {
                     );
                 }
 
-                let toml_v: toml::Value = toml::from_document(doc).with_context(|| {
-                    format!("failed to parse value from --config argument `{arg}`")
-                })?;
+                let toml_v: toml::Value = toml::Value::deserialize(doc.into_deserializer())
+                    .with_context(|| {
+                        format!("failed to parse value from --config argument `{arg}`")
+                    })?;
 
                 if toml_v
                     .get("registry")
@@ -1618,12 +1625,9 @@ impl Config {
     ) -> Option<PathBuf> {
         let var = tool.to_uppercase();
 
-        match env::var_os(&var) {
+        match self.get_env_os(&var).as_ref().and_then(|s| s.to_str()) {
             Some(tool_path) => {
-                let maybe_relative = match tool_path.to_str() {
-                    Some(s) => s.contains('/') || s.contains('\\'),
-                    None => false,
-                };
+                let maybe_relative = tool_path.contains('/') || tool_path.contains('\\');
                 let path = if maybe_relative {
                     self.cwd.join(tool_path)
                 } else {
@@ -1685,8 +1689,15 @@ impl Config {
     }
 
     pub fn env_config(&self) -> CargoResult<&EnvConfig> {
-        self.env_config
-            .try_borrow_with(|| self.get::<EnvConfig>("env"))
+        let env_config = self
+            .env_config
+            .try_borrow_with(|| self.get::<EnvConfig>("env"))?;
+
+        if env_config.get("CARGO_HOME").is_some() {
+            bail!("setting the `CARGO_HOME` environment variable is not supported in the `[env]` configuration table")
+        }
+
+        Ok(env_config)
     }
 
     /// This is used to validate the `term` table has valid syntax.
@@ -2164,14 +2175,12 @@ pub fn save_credentials(
         )
     })?;
 
-    let mut toml = cargo_toml::parse(&contents, file.path(), cfg)?;
+    let mut toml = cargo_toml::parse_document(&contents, file.path(), cfg)?;
 
     // Move the old token location to the new one.
-    if let Some(token) = toml.as_table_mut().unwrap().remove("token") {
+    if let Some(token) = toml.remove("token") {
         let map = HashMap::from([("token".to_string(), token)]);
-        toml.as_table_mut()
-            .unwrap()
-            .insert("registry".into(), map.into());
+        toml.insert("registry".into(), map.into());
     }
 
     if let Some(token) = token {
@@ -2218,17 +2227,16 @@ pub fn save_credentials(
         };
 
         if registry.is_some() {
-            if let Some(table) = toml.as_table_mut().unwrap().remove("registries") {
+            if let Some(table) = toml.remove("registries") {
                 let v = CV::from_toml(path_def, table)?;
                 value.merge(v, false)?;
             }
         }
-        toml.as_table_mut().unwrap().insert(key, value.into_toml());
+        toml.insert(key, value.into_toml());
     } else {
         // logout
-        let table = toml.as_table_mut().unwrap();
         if let Some(registry) = registry {
-            if let Some(registries) = table.get_mut("registries") {
+            if let Some(registries) = toml.get_mut("registries") {
                 if let Some(reg) = registries.get_mut(registry) {
                     let rtable = reg.as_table_mut().ok_or_else(|| {
                         format_err!("expected `[registries.{}]` to be a table", registry)
@@ -2238,7 +2246,7 @@ pub fn save_credentials(
                     rtable.remove("secret-key-subject");
                 }
             }
-        } else if let Some(registry) = table.get_mut("registry") {
+        } else if let Some(registry) = toml.get_mut("registry") {
             let reg_table = registry
                 .as_table_mut()
                 .ok_or_else(|| format_err!("expected `[registry]` to be a table"))?;

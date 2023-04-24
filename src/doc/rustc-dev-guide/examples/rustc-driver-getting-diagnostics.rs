@@ -1,10 +1,6 @@
 #![feature(rustc_private)]
 
-// NOTE: For the example to compile, you will need to first run the following:
-//   rustup component add rustc-dev llvm-tools-preview
-
-// version: rustc 1.68.0-nightly (935dc0721 2022-12-19)
-
+extern crate rustc_driver;
 extern crate rustc_error_codes;
 extern crate rustc_errors;
 extern crate rustc_hash;
@@ -67,7 +63,6 @@ fn main() {
         },
         crate_cfg: rustc_hash::FxHashSet::default(),
         crate_check_cfg: CheckCfg::default(),
-        input_path: None,
         output_dir: None,
         output_file: None,
         file_loader: None,
@@ -80,7 +75,7 @@ fn main() {
     };
     rustc_interface::run_compiler(config, |compiler| {
         compiler.enter(|queries| {
-            queries.global_ctxt().unwrap().take().enter(|tcx| {
+            queries.global_ctxt().unwrap().enter(|tcx| {
                 // Run the analysis phase on the local crate to trigger the type error.
                 let _ = tcx.analysis(());
             });

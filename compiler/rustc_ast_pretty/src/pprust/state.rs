@@ -4,7 +4,7 @@ mod item;
 
 use crate::pp::Breaks::{Consistent, Inconsistent};
 use crate::pp::{self, Breaks};
-
+use rustc_ast::attr::AttrIdGenerator;
 use rustc_ast::ptr::P;
 use rustc_ast::token::{self, BinOpToken, CommentKind, Delimiter, Nonterminal, Token, TokenKind};
 use rustc_ast::tokenstream::{TokenStream, TokenTree};
@@ -20,9 +20,8 @@ use rustc_span::edition::Edition;
 use rustc_span::source_map::{SourceMap, Spanned};
 use rustc_span::symbol::{kw, sym, Ident, IdentPrinter, Symbol};
 use rustc_span::{BytePos, FileName, Span, DUMMY_SP};
-
-use rustc_ast::attr::AttrIdGenerator;
 use std::borrow::Cow;
+use thin_vec::ThinVec;
 
 pub use self::delimited::IterDelimited;
 
@@ -131,7 +130,7 @@ pub fn print_crate<'a>(
 
         // Currently, in Rust 2018 we don't have `extern crate std;` at the crate
         // root, so this is not needed, and actually breaks things.
-        if edition == Edition::Edition2015 {
+        if edition.is_rust_2015() {
             // `#![no_std]`
             let fake_attr = attr::mk_attr_word(g, ast::AttrStyle::Inner, sym::no_std, DUMMY_SP);
             s.print_attribute(&fake_attr);
@@ -1567,8 +1566,18 @@ impl<'a> State<'a> {
 
             match bound {
                 GenericBound::Trait(tref, modifier) => {
-                    if modifier == &TraitBoundModifier::Maybe {
-                        self.word("?");
+                    match modifier {
+                        TraitBoundModifier::None => {}
+                        TraitBoundModifier::Maybe => {
+                            self.word("?");
+                        }
+                        TraitBoundModifier::MaybeConst => {
+                            self.word_space("~const");
+                        }
+                        TraitBoundModifier::MaybeConstMaybe => {
+                            self.word_space("~const");
+                            self.word("?");
+                        }
                     }
                     self.print_poly_trait_ref(tref);
                 }
@@ -1712,10 +1721,10 @@ impl<'a> State<'a> {
         self.ibox(INDENT_UNIT);
         self.print_formal_generic_params(generic_params);
         let generics = ast::Generics {
-            params: Vec::new(),
+            params: ThinVec::new(),
             where_clause: ast::WhereClause {
                 has_where_token: false,
-                predicates: Vec::new(),
+                predicates: ThinVec::new(),
                 span: DUMMY_SP,
             },
             span: DUMMY_SP,

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "yoke"
-version = "0.6.2"
+version = "0.7.0"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 include = [
     "src/**/*",
@@ -40,6 +40,9 @@ license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
 resolver = "2"
 
+[package.metadata.workspaces]
+independent = true
+
 [package.metadata.docs.rs]
 all-features = true
 
@@ -53,11 +56,11 @@ version = "1.2.0"
 default-features = false
 
 [dependencies.yoke-derive]
-version = "0.6.0"
+version = "0.7.0"
 optional = true
 
 [dependencies.zerofrom]
-version = "0.1.0"
+version = "0.1.1"
 optional = true
 default-features = false
 
@@ -70,7 +73,7 @@ version = "1.0.125"
 [features]
 alloc = [
     "stable_deref_trait/alloc",
-    "serde/alloc",
+    "serde?/alloc",
     "zerofrom/alloc",
 ]
 default = [
@@ -78,6 +81,6 @@ default = [
     "zerofrom",
 ]
 derive = [
-    "yoke-derive",
+    "dep:yoke-derive",
     "zerofrom/derive",
 ]

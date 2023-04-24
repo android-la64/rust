@@ -17,7 +17,7 @@ use rustc_index::vec::{Idx, IndexVec};
 use rustc_middle::ty::fold::TypeFoldable;
 use rustc_middle::ty::PlaceholderRegion;
 use rustc_middle::ty::{self, Ty, TyCtxt};
-use rustc_middle::ty::{ReEarlyBound, ReErased, ReFree, ReStatic};
+use rustc_middle::ty::{ReEarlyBound, ReErased, ReError, ReFree, ReStatic};
 use rustc_middle::ty::{ReLateBound, RePlaceholder, ReVar};
 use rustc_middle::ty::{Region, RegionVid};
 use rustc_span::Span;
@@ -70,7 +70,7 @@ pub enum RegionResolutionError<'tcx> {
     /// `o` requires that `a <= b`, but this does not hold
     ConcreteFailure(SubregionOrigin<'tcx>, Region<'tcx>, Region<'tcx>),
 
-    /// `GenericBoundFailure(p, s, a)
+    /// `GenericBoundFailure(p, s, a)`:
     ///
     /// The parameter/associated-type `p` must be known to outlive the lifetime
     /// `a` (but none of the known bounds are sufficient).
@@ -215,6 +215,8 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
                 // nothing lives longer than `'static`
                 Ok(self.tcx().lifetimes.re_static)
             }
+
+            ReError(_) => Ok(a_region),
 
             ReEarlyBound(_) | ReFree(_) => {
                 // All empty regions are less than early-bound, free,
@@ -380,7 +382,7 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
                     // name the placeholder, then the placeholder is
                     // larger; otherwise, the only ancestor is `'static`.
                     Err(placeholder) if empty_ui.can_name(placeholder.universe) => {
-                        self.tcx().mk_region(RePlaceholder(placeholder))
+                        self.tcx().mk_re_placeholder(placeholder)
                     }
                     Err(_) => self.tcx().lifetimes.re_static,
                 };
@@ -436,6 +438,10 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
             }
             (VarValue::Value(a), VarValue::Empty(_)) => {
                 match *a {
+                    // this is always on an error path,
+                    // so it doesn't really matter if it's shorter or longer than an empty region
+                    ReError(_) => false,
+
                     ReLateBound(..) | ReErased => {
                         bug!("cannot relate region: {:?}", a);
                     }
@@ -465,6 +471,10 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
             }
             (VarValue::Empty(a_ui), VarValue::Value(b)) => {
                 match *b {
+                    // this is always on an error path,
+                    // so it doesn't really matter if it's shorter or longer than an empty region
+                    ReError(_) => false,
+
                     ReLateBound(..) | ReErased => {
                         bug!("cannot relate region: {:?}", b);
                     }
@@ -545,6 +555,10 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
                     b
                 );
             }
+
+            (ReError(_), _) => a,
+
+            (_, ReError(_)) => b,
 
             (ReStatic, _) | (_, ReStatic) => {
                 // nothing lives longer than `'static`
@@ -1018,7 +1032,7 @@ impl<'tcx> fmt::Debug for RegionAndOrigin<'tcx> {
 impl<'tcx> LexicalRegionResolutions<'tcx> {
     fn normalize<T>(&self, tcx: TyCtxt<'tcx>, value: T) -> T
     where
-        T: TypeFoldable<'tcx>,
+        T: TypeFoldable<TyCtxt<'tcx>>,
     {
         tcx.fold_regions(value, |r, _db| self.resolve_region(tcx, r))
     }

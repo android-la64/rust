@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "icu_provider_macros"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["The ICU4X Project Developers"]
 include = [
     "src/**/*",

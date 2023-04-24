@@ -34,6 +34,7 @@ pub mod indexset;
 pub(crate) mod ion;
 pub(crate) mod moves;
 pub(crate) mod postorder;
+pub mod ssa;
 
 #[macro_use]
 mod index;
@@ -239,6 +240,26 @@ impl Iterator for PRegSetIter {
             self.bits &= !(1u128 << index);
             Some(PReg::from_index(index as usize))
         }
+    }
+}
+
+impl From<&MachineEnv> for PRegSet {
+    fn from(env: &MachineEnv) -> Self {
+        let mut res = Self::default();
+
+        for class in env.preferred_regs_by_class.iter() {
+            for preg in class {
+                res.add(*preg)
+            }
+        }
+
+        for class in env.non_preferred_regs_by_class.iter() {
+            for preg in class {
+                res.add(*preg)
+            }
+        }
+
+        res
     }
 }
 
@@ -1457,7 +1478,7 @@ pub fn run<F: Function>(
     env: &MachineEnv,
     options: &RegallocOptions,
 ) -> Result<Output, RegAllocError> {
-    ion::run(func, env, options.verbose_log)
+    ion::run(func, env, options.verbose_log, options.validate_ssa)
 }
 
 /// Options for allocation.
@@ -1465,4 +1486,7 @@ pub fn run<F: Function>(
 pub struct RegallocOptions {
     /// Add extra verbosity to debug logs.
     pub verbose_log: bool,
+
+    /// Run the SSA validator before allocating registers.
+    pub validate_ssa: bool,
 }

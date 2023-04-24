@@ -18,90 +18,90 @@ pub(crate) type p128 = u128;
 
 types! {
     /// ARM-specific 64-bit wide vector of eight packed `i8`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int8x8_t(pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8);
     /// ARM-specific 64-bit wide vector of eight packed `u8`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint8x8_t(pub(crate) u8, pub(crate) u8, pub(crate) u8, pub(crate) u8, pub(crate) u8, pub(crate) u8, pub(crate) u8, pub(crate) u8);
     /// ARM-specific 64-bit wide polynomial vector of eight packed `p8`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct poly8x8_t(pub(crate) p8, pub(crate) p8, pub(crate) p8, pub(crate) p8, pub(crate) p8, pub(crate) p8, pub(crate) p8, pub(crate) p8);
     /// ARM-specific 64-bit wide vector of four packed `i16`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int16x4_t(pub(crate) i16, pub(crate) i16, pub(crate) i16, pub(crate) i16);
     /// ARM-specific 64-bit wide vector of four packed `u16`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint16x4_t(pub(crate) u16, pub(crate) u16, pub(crate) u16, pub(crate) u16);
     // FIXME: ARM-specific 64-bit wide vector of four packed `f16`.
     // pub struct float16x4_t(f16, f16, f16, f16);
     /// ARM-specific 64-bit wide vector of four packed `p16`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct poly16x4_t(pub(crate) p16, pub(crate) p16, pub(crate) p16, pub(crate) p16);
     /// ARM-specific 64-bit wide vector of two packed `i32`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int32x2_t(pub(crate) i32, pub(crate) i32);
     /// ARM-specific 64-bit wide vector of two packed `u32`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint32x2_t(pub(crate) u32, pub(crate) u32);
     /// ARM-specific 64-bit wide vector of two packed `f32`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct float32x2_t(pub(crate) f32, pub(crate) f32);
     /// ARM-specific 64-bit wide vector of one packed `i64`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int64x1_t(pub(crate) i64);
     /// ARM-specific 64-bit wide vector of one packed `u64`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint64x1_t(pub(crate) u64);
     /// ARM-specific 64-bit wide vector of one packed `p64`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct poly64x1_t(pub(crate) p64);
 
     /// ARM-specific 128-bit wide vector of sixteen packed `i8`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int8x16_t(
         pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8 , pub(crate) i8, pub(crate) i8,
         pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8, pub(crate) i8 , pub(crate) i8, pub(crate) i8,
     );
     /// ARM-specific 128-bit wide vector of sixteen packed `u8`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint8x16_t(
         pub(crate) u8, pub(crate) u8 , pub(crate) u8, pub(crate) u8, pub(crate) u8, pub(crate) u8 , pub(crate) u8, pub(crate) u8,
         pub(crate) u8, pub(crate) u8 , pub(crate) u8,  pub(crate) u8,  pub(crate) u8,  pub(crate) u8 , pub(crate) u8,  pub(crate) u8,
     );
     /// ARM-specific 128-bit wide vector of sixteen packed `p8`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct poly8x16_t(
          pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,
          pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,  pub(crate) p8,
     );
     /// ARM-specific 128-bit wide vector of eight packed `i16`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int16x8_t(pub(crate) i16, pub(crate) i16, pub(crate) i16, pub(crate) i16, pub(crate) i16, pub(crate) i16, pub(crate) i16, pub(crate) i16);
     /// ARM-specific 128-bit wide vector of eight packed `u16`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint16x8_t(pub(crate) u16, pub(crate) u16, pub(crate) u16, pub(crate) u16, pub(crate) u16, pub(crate) u16, pub(crate) u16, pub(crate) u16);
     // FIXME: ARM-specific 128-bit wide vector of eight packed `f16`.
     // pub struct float16x8_t(f16, f16, f16, f16, f16, f16, f16);
     /// ARM-specific 128-bit wide vector of eight packed `p16`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct poly16x8_t(pub(crate) p16, pub(crate) p16, pub(crate) p16, pub(crate) p16, pub(crate) p16, pub(crate) p16, pub(crate) p16, pub(crate) p16);
     /// ARM-specific 128-bit wide vector of four packed `i32`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int32x4_t(pub(crate) i32, pub(crate) i32, pub(crate) i32, pub(crate) i32);
     /// ARM-specific 128-bit wide vector of four packed `u32`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint32x4_t(pub(crate) u32, pub(crate) u32, pub(crate) u32, pub(crate) u32);
     /// ARM-specific 128-bit wide vector of four packed `f32`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct float32x4_t(pub(crate) f32, pub(crate) f32, pub(crate) f32, pub(crate) f32);
     /// ARM-specific 128-bit wide vector of two packed `i64`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct int64x2_t(pub(crate) i64, pub(crate) i64);
     /// ARM-specific 128-bit wide vector of two packed `u64`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct uint64x2_t(pub(crate) u64, pub(crate) u64);
     /// ARM-specific 128-bit wide vector of two packed `p64`.
-    #[cfg_attr(target_arch = "aarch64", stable(feature = "neon_intrinsics", since = "1.59.0"))]
+    #[cfg_attr(not(target_arch = "arm"), stable(feature = "neon_intrinsics", since = "1.59.0"))]
     pub struct poly64x2_t(pub(crate) p64, pub(crate) p64);
 }
 
@@ -6915,6 +6915,177 @@ pub unsafe fn vusmmlaq_s32(a: int32x4_t, b: uint8x16_t, c: int8x16_t) -> int32x4
     vusmmlaq_s32_(a, b, c)
 }
 
+/* FIXME: 16-bit float
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+pub unsafe fn vcombine_f16 ( low: float16x4_t,  high: float16x4_t) -> float16x8_t {
+    simd_shuffle8!(low, high, [0, 1, 2, 3, 4, 5, 6, 7])
+}
+*/
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[stable(feature = "neon_intrinsics", since = "1.59.0")]
+pub unsafe fn vcombine_f32(low: float32x2_t, high: float32x2_t) -> float32x4_t {
+    simd_shuffle4!(low, high, [0, 1, 2, 3])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[stable(feature = "neon_intrinsics", since = "1.59.0")]
+pub unsafe fn vcombine_p8(low: poly8x8_t, high: poly8x8_t) -> poly8x16_t {
+    simd_shuffle16!(
+        low,
+        high,
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    )
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[stable(feature = "neon_intrinsics", since = "1.59.0")]
+pub unsafe fn vcombine_p16(low: poly16x4_t, high: poly16x4_t) -> poly16x8_t {
+    simd_shuffle8!(low, high, [0, 1, 2, 3, 4, 5, 6, 7])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_s8(low: int8x8_t, high: int8x8_t) -> int8x16_t {
+    simd_shuffle16!(
+        low,
+        high,
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    )
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_s16(low: int16x4_t, high: int16x4_t) -> int16x8_t {
+    simd_shuffle8!(low, high, [0, 1, 2, 3, 4, 5, 6, 7])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_s32(low: int32x2_t, high: int32x2_t) -> int32x4_t {
+    simd_shuffle4!(low, high, [0, 1, 2, 3])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_s64(low: int64x1_t, high: int64x1_t) -> int64x2_t {
+    simd_shuffle2!(low, high, [0, 1])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_u8(low: uint8x8_t, high: uint8x8_t) -> uint8x16_t {
+    simd_shuffle16!(
+        low,
+        high,
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    )
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_u16(low: uint16x4_t, high: uint16x4_t) -> uint16x8_t {
+    simd_shuffle8!(low, high, [0, 1, 2, 3, 4, 5, 6, 7])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(all(test, target_arch = "arm"), assert_instr(nop))]
+#[cfg_attr(all(test, target_arch = "aarch64"), assert_instr(mov))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_u32(low: uint32x2_t, high: uint32x2_t) -> uint32x4_t {
+    simd_shuffle4!(low, high, [0, 1, 2, 3])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_u64(low: uint64x1_t, high: uint64x1_t) -> uint64x2_t {
+    simd_shuffle2!(low, high, [0, 1])
+}
+
+/// Vector combine
+#[inline]
+#[target_feature(enable = "neon")]
+#[cfg_attr(target_arch = "arm", target_feature(enable = "v7"))]
+#[cfg_attr(test, assert_instr(nop))]
+#[cfg_attr(
+    target_arch = "aarch64",
+    stable(feature = "neon_intrinsics", since = "1.59.0")
+)]
+pub unsafe fn vcombine_p64(low: poly64x1_t, high: poly64x1_t) -> poly64x2_t {
+    simd_shuffle2!(low, high, [0, 1])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -12488,6 +12659,44 @@ mod tests {
         let r: i32x4 = transmute(vusmmlaq_s32(transmute(a), transmute(b), transmute(c)));
         assert_eq!(r, e);
     }
+
+    macro_rules! test_vcombine {
+        ($test_id:ident => $fn_id:ident ([$($a:expr),*], [$($b:expr),*])) => {
+            #[allow(unused_assignments)]
+            #[simd_test(enable = "neon")]
+            unsafe fn $test_id() {
+                let a = [$($a),*];
+                let b = [$($b),*];
+                let e = [$($a),* $(, $b)*];
+                let c = $fn_id(transmute(a), transmute(b));
+                let mut d = e;
+                d = transmute(c);
+                assert_eq!(d, e);
+            }
+        }
+    }
+
+    test_vcombine!(test_vcombine_s8 => vcombine_s8([3_i8, -4, 5, -6, 7, 8, 9, 10], [13_i8, -14, 15, -16, 17, 18, 19, 110]));
+    test_vcombine!(test_vcombine_u8 => vcombine_u8([3_u8, 4, 5, 6, 7, 8, 9, 10], [13_u8, 14, 15, 16, 17, 18, 19, 110]));
+    test_vcombine!(test_vcombine_p8 => vcombine_p8([3_u8, 4, 5, 6, 7, 8, 9, 10], [13_u8, 14, 15, 16, 17, 18, 19, 110]));
+
+    test_vcombine!(test_vcombine_s16 => vcombine_s16([3_i16, -4, 5, -6], [13_i16, -14, 15, -16]));
+    test_vcombine!(test_vcombine_u16 => vcombine_u16([3_u16, 4, 5, 6], [13_u16, 14, 15, 16]));
+    test_vcombine!(test_vcombine_p16 => vcombine_p16([3_u16, 4, 5, 6], [13_u16, 14, 15, 16]));
+    // FIXME: 16-bit floats
+    // test_vcombine!(test_vcombine_f16 => vcombine_f16([3_f16, 4., 5., 6.],
+    // [13_f16, 14., 15., 16.]));
+
+    test_vcombine!(test_vcombine_s32 => vcombine_s32([3_i32, -4], [13_i32, -14]));
+    test_vcombine!(test_vcombine_u32 => vcombine_u32([3_u32, 4], [13_u32, 14]));
+    // note: poly32x4 does not exist, and neither does vcombine_p32
+    test_vcombine!(test_vcombine_f32 => vcombine_f32([3_f32, -4.], [13_f32, -14.]));
+
+    test_vcombine!(test_vcombine_s64 => vcombine_s64([-3_i64], [13_i64]));
+    test_vcombine!(test_vcombine_u64 => vcombine_u64([3_u64], [13_u64]));
+    test_vcombine!(test_vcombine_p64 => vcombine_p64([3_u64], [13_u64]));
+    #[cfg(target_arch = "aarch64")]
+    test_vcombine!(test_vcombine_f64 => vcombine_f64([-3_f64], [13_f64]));
 }
 
 #[cfg(all(test, target_arch = "arm", target_endian = "little"))]

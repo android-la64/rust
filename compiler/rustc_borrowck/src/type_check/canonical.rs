@@ -2,7 +2,7 @@ use std::fmt;
 
 use rustc_infer::infer::{canonical::Canonical, InferOk};
 use rustc_middle::mir::ConstraintCategory;
-use rustc_middle::ty::{self, ToPredicate, Ty, TypeFoldable};
+use rustc_middle::ty::{self, ToPredicate, Ty, TyCtxt, TypeFoldable};
 use rustc_span::def_id::DefId;
 use rustc_span::Span;
 use rustc_trait_selection::traits::query::type_op::{self, TypeOpOutput};
@@ -66,7 +66,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         canonical: &Canonical<'tcx, T>,
     ) -> T
     where
-        T: TypeFoldable<'tcx>,
+        T: TypeFoldable<TyCtxt<'tcx>>,
     {
         let old_universe = self.infcx.universe();
 
@@ -117,7 +117,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
 
     pub(super) fn prove_predicates(
         &mut self,
-        predicates: impl IntoIterator<Item = impl ToPredicate<'tcx> + std::fmt::Debug>,
+        predicates: impl IntoIterator<Item: ToPredicate<'tcx> + std::fmt::Debug>,
         locations: Locations,
         category: ConstraintCategory<'tcx>,
     ) {
@@ -181,9 +181,6 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         user_ty: ty::UserType<'tcx>,
         span: Span,
     ) {
-        // FIXME: Ideally MIR types are normalized, but this is not always true.
-        let mir_ty = self.normalize(mir_ty, Locations::All(span));
-
         self.fully_perform_op(
             Locations::All(span),
             ConstraintCategory::Boring,
@@ -217,7 +214,9 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             return;
         }
 
+        // FIXME: Ideally MIR types are normalized, but this is not always true.
         let mir_ty = self.normalize(mir_ty, Locations::All(span));
+
         let cause = ObligationCause::dummy_with_span(span);
         let param_env = self.param_env;
         let op = |infcx: &'_ _| {

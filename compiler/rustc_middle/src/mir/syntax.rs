@@ -355,6 +355,12 @@ pub enum StatementKind<'tcx> {
     /// This avoids adding a new block and a terminator for simple intrinsics.
     Intrinsic(Box<NonDivergingIntrinsic<'tcx>>),
 
+    /// Instructs the const eval interpreter to increment a counter; this counter is used to track
+    /// how many steps the interpreter has taken. It is used to prevent the user from writing const
+    /// code that runs for too long or infinitely. Other than in the const eval interpreter, this
+    /// is a no-op.
+    ConstEvalCounter,
+
     /// No-op. Useful for deleting instructions without affecting statement indices.
     Nop,
 }
@@ -665,6 +671,12 @@ pub enum TerminatorKind<'tcx> {
     /// as parameters, and `None` for the destination. Keep in mind that the `cleanup` path is not
     /// necessarily executed even in the case of a panic, for example in `-C panic=abort`. If the
     /// assertion does not fail, execution continues at the specified basic block.
+    ///
+    /// When overflow checking is disabled and this is run-time MIR (as opposed to compile-time MIR
+    /// that is used for CTFE), the following variants of this terminator behave as `goto target`:
+    /// - `OverflowNeg(..)`,
+    /// - `Overflow(op, ..)` if op is a "checkable" operation (add, sub, mul, shl, shr, but NOT
+    /// div or rem).
     Assert {
         cond: Operand<'tcx>,
         expected: bool,
@@ -1097,10 +1109,6 @@ pub enum Rvalue<'tcx> {
 
     /// Same as `BinaryOp`, but yields `(T, bool)` with a `bool` indicating an error condition.
     ///
-    /// When overflow checking is disabled and we are generating run-time code, the error condition
-    /// is false. Otherwise, and always during CTFE, the error condition is determined as described
-    /// below.
-    ///
     /// For addition, subtraction, and multiplication on integers the error condition is set when
     /// the infinite precision result would be unequal to the actual result.
     ///
@@ -1197,10 +1205,8 @@ pub enum AggregateKind<'tcx> {
     /// active field index would identity the field `c`
     Adt(DefId, VariantIdx, SubstsRef<'tcx>, Option<UserTypeAnnotationIndex>, Option<usize>),
 
-    // Note: We can use LocalDefId since closures and generators a deaggregated
-    // before codegen.
-    Closure(LocalDefId, SubstsRef<'tcx>),
-    Generator(LocalDefId, SubstsRef<'tcx>, hir::Movability),
+    Closure(DefId, SubstsRef<'tcx>),
+    Generator(DefId, SubstsRef<'tcx>, hir::Movability),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, TyEncodable, TyDecodable, Hash, HashStable)]

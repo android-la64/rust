@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7
+
+Fixes:
+
+* Fixes broken 32bit builds by matching `timespec` defs to libc
+
 ## 1.0.6
 
 Fixes:

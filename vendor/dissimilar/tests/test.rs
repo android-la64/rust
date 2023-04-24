@@ -21,7 +21,7 @@ fn test_unicode() {
 }
 
 #[test]
-fn test_unicode2() {
+fn test_issue9() {
     let a = "[乀丁abcd一]";
     let b = "[一abcd丁]";
     let d = diff(a, b);
@@ -35,6 +35,18 @@ fn test_unicode2() {
             Chunk::Delete("一"),
             Chunk::Insert("丁"),
             Chunk::Equal("]"),
-        ]
+        ],
+    );
+}
+
+#[test]
+fn test_issue15() {
+    let a = "A のダ";
+    let b = "A ダ";
+    let d = diff(a, b);
+
+    assert_eq!(
+        d,
+        vec![Chunk::Equal("A "), Chunk::Delete("の"), Chunk::Equal("ダ")],
     );
 }

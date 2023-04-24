@@ -1,6 +1,7 @@
 #![deny(missing_docs)]
 // https://github.com/Marwes/combine/issues/172
 #![recursion_limit = "256"]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 //! # `toml_edit`
 //!
@@ -8,9 +9,7 @@
 //! documents, while preserving comments, spaces *and
 //! relative order* or items.
 //!
-//! It is primarily tailored to the needs of [cargo-edit](https://github.com/killercup/cargo-edit/).
-//!
-//! If you also need the ease of a more traditional API, see the [`easy`] module.
+//! If you also need the ease of a more traditional API, see the [`toml`] crate.
 //!
 //! # Example
 //!
@@ -62,6 +61,7 @@
 //! * Scattered array of tables (tables are reordered by default, see [test]).
 //! * Order of dotted keys, see [issue](https://github.com/ordian/toml_edit/issues/163).
 //!
+//! [`toml`]: https://docs.rs/toml/latest/toml/
 //! [test]: https://github.com/ordian/toml_edit/blob/f09bd5d075fdb7d2ef8d9bb3270a34506c276753/tests/test_valid.rs#L84
 
 mod array;
@@ -74,12 +74,10 @@ mod internal_string;
 mod item;
 mod key;
 mod parser;
+mod raw_string;
 mod repr;
 mod table;
 mod value;
-
-#[cfg(feature = "easy")]
-pub mod easy;
 
 #[cfg(feature = "serde")]
 pub mod de;
@@ -102,6 +100,7 @@ pub use crate::internal_string::InternalString;
 pub use crate::item::{array, table, value, Item};
 pub use crate::key::{Key, KeyMut};
 pub use crate::parser::TomlError;
+pub use crate::raw_string::RawString;
 pub use crate::repr::{Decor, Formatted, Repr};
 pub use crate::table::{
     Entry, IntoIter, Iter, IterMut, OccupiedEntry, Table, TableLike, VacantEntry,

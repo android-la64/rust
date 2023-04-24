@@ -9,7 +9,7 @@ use crate::infer::InferCtxt;
 use crate::traits::project::ProjectAndUnifyResult;
 use rustc_middle::mir::interpret::ErrorHandled;
 use rustc_middle::ty::fold::{TypeFolder, TypeSuperFoldable};
-use rustc_middle::ty::visit::TypeVisitable;
+use rustc_middle::ty::visit::TypeVisitableExt;
 use rustc_middle::ty::{ImplPolarity, Region, RegionVid};
 
 use rustc_data_structures::fx::{FxHashMap, FxHashSet, FxIndexSet};
@@ -350,14 +350,14 @@ impl<'tcx> AutoTraitFinder<'tcx> {
             )
             .map(|o| o.predicate);
             new_env = ty::ParamEnv::new(
-                tcx.mk_predicates(normalized_preds),
+                tcx.mk_predicates_from_iter(normalized_preds),
                 param_env.reveal(),
                 param_env.constness(),
             );
         }
 
         let final_user_env = ty::ParamEnv::new(
-            tcx.mk_predicates(user_computed_preds.into_iter()),
+            tcx.mk_predicates_from_iter(user_computed_preds.into_iter()),
             user_env.reveal(),
             user_env.constness(),
         );
@@ -823,14 +823,18 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                         _ => return false,
                     }
                 }
+
                 // There's not really much we can do with these predicates -
                 // we start out with a `ParamEnv` with no inference variables,
                 // and these don't correspond to adding any new bounds to
                 // the `ParamEnv`.
                 ty::PredicateKind::WellFormed(..)
+                | ty::PredicateKind::Clause(ty::Clause::ConstArgHasType(..))
+                | ty::PredicateKind::AliasEq(..)
                 | ty::PredicateKind::ObjectSafe(..)
                 | ty::PredicateKind::ClosureKind(..)
                 | ty::PredicateKind::Subtype(..)
+                // FIXME(generic_const_exprs): you can absolutely add this as a where clauses
                 | ty::PredicateKind::ConstEvaluatable(..)
                 | ty::PredicateKind::Coerce(..)
                 | ty::PredicateKind::TypeWellFormedFromEnv(..) => {}
@@ -855,8 +859,8 @@ pub struct RegionReplacer<'a, 'tcx> {
     tcx: TyCtxt<'tcx>,
 }
 
-impl<'a, 'tcx> TypeFolder<'tcx> for RegionReplacer<'a, 'tcx> {
-    fn tcx<'b>(&'b self) -> TyCtxt<'tcx> {
+impl<'a, 'tcx> TypeFolder<TyCtxt<'tcx>> for RegionReplacer<'a, 'tcx> {
+    fn interner(&self) -> TyCtxt<'tcx> {
         self.tcx
     }
 

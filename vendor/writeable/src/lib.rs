@@ -136,6 +136,28 @@ impl LengthHint {
     }
 }
 
+/// [`Part`]s are used as annotations for formatted strings. For example, a string like
+/// `Alice, Bob` could assign a `NAME` part to the substrings `Alice` and `Bob`, and a
+/// `PUNCTUATION` part to `, `. This allows for example to apply styling only to names.
+///
+/// `Part` contains two fields, whose usage is left up to the producer of the [`Writeable`].
+/// Conventionally, the `category` field will identify the formatting logic that produces
+/// the string/parts, whereas the `value` field will have semantic meaning. `NAME` and
+/// `PUNCTUATION` could thus be defined as
+/// ```
+/// # use writeable::Part;
+/// const NAME: Part = Part {
+///     category: "userlist",
+///     value: "name",
+/// };
+/// const PUNCTUATION: Part = Part {
+///     category: "userlist",
+///     value: "punctuation",
+/// };
+/// ```
+///
+/// That said, consumers should not usually have to inspect `Part` internals. Instead,
+/// formatters should expose the `Part`s they produces as constants.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(clippy::exhaustive_structs)] // stable
 pub struct Part {
@@ -240,7 +262,11 @@ pub trait Writeable {
     /// }
     /// ```
     fn write_to_string(&self) -> Cow<str> {
-        let mut output = String::with_capacity(self.writeable_length_hint().capacity());
+        let hint = self.writeable_length_hint();
+        if hint.is_zero() {
+            return Cow::Borrowed("");
+        }
+        let mut output = String::with_capacity(hint.capacity());
         let _ = self.write_to(&mut output);
         Cow::Owned(output)
     }
@@ -289,7 +315,10 @@ macro_rules! impl_display_with_writeable {
 ///
 /// struct Demo;
 /// impl Writeable for Demo {
-///     fn write_to_parts<S: writeable::PartsWrite + ?Sized>(&self, sink: &mut S) -> fmt::Result {
+///     fn write_to_parts<S: writeable::PartsWrite + ?Sized>(
+///         &self,
+///         sink: &mut S,
+///     ) -> fmt::Result {
 ///         sink.with_part(WORD, |w| w.write_str("foo"))
 ///     }
 ///     fn writeable_length_hint(&self) -> LengthHint {
@@ -303,7 +332,13 @@ macro_rules! impl_display_with_writeable {
 /// assert_writeable_eq!(&Demo, "foo", "Message: {}", "Hello World");
 ///
 /// assert_writeable_parts_eq!(&Demo, "foo", [(0, 3, WORD)]);
-/// assert_writeable_parts_eq!(&Demo, "foo", [(0, 3, WORD)], "Message: {}", "Hello World");
+/// assert_writeable_parts_eq!(
+///     &Demo,
+///     "foo",
+///     [(0, 3, WORD)],
+///     "Message: {}",
+///     "Hello World"
+/// );
 /// ```
 #[macro_export]
 macro_rules! assert_writeable_eq {
@@ -316,10 +351,19 @@ macro_rules! assert_writeable_eq {
         assert_eq!(actual_str, $expected_str, $($arg)*);
         assert_eq!(actual_str, $crate::Writeable::write_to_string(actual_writeable), $($arg)+);
         let length_hint = $crate::Writeable::writeable_length_hint(actual_writeable);
-        assert!(length_hint.0 <= actual_str.len(), $($arg)*);
+        assert!(
+            length_hint.0 <= actual_str.len(),
+            "hint lower bound {} larger than actual length {}: {}",
+            length_hint.0, actual_str.len(), format!($($arg)*),
+        );
         if let Some(upper) = length_hint.1 {
-            assert!(actual_str.len() <= upper, $($arg)*);
+            assert!(
+                actual_str.len() <= upper,
+                "hint upper bound {} smaller than actual length {}: {}",
+                length_hint.0, actual_str.len(), format!($($arg)*),
+            );
         }
+        assert_eq!(actual_writeable.to_string(), $expected_str);
     }};
 }
 
@@ -340,6 +384,7 @@ macro_rules! assert_writeable_parts_eq {
         if let Some(upper) = length_hint.1 {
             assert!(actual_str.len() <= upper, $($arg)+);
         }
+        assert_eq!(actual_writeable.to_string(), $expected_str);
     }};
 }
 
@@ -371,7 +416,10 @@ pub fn writeable_to_parts_for_test<W: Writeable>(
         ) -> fmt::Result {
             let start = self.string.len();
             f(self)?;
-            self.parts.push((start, self.string.len(), part));
+            let end = self.string.len();
+            if start < end {
+                self.parts.push((start, end, part));
+            }
             Ok(())
         }
     }

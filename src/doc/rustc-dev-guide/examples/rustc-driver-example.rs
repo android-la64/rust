@@ -1,10 +1,6 @@
 #![feature(rustc_private)]
 
-// NOTE: For the example to compile, you will need to first run the following:
-//   rustup component add rustc-dev llvm-tools-preview
-
-// version: rustc 1.68.0-nightly (935dc0721 2022-12-19)
-
+extern crate rustc_driver;
 extern crate rustc_error_codes;
 extern crate rustc_errors;
 extern crate rustc_hash;
@@ -46,10 +42,9 @@ fn main() {
 "#
             .into(),
         },
-        input_path: None,  // Option<PathBuf>
-        output_dir: None,  // Option<PathBuf>
-        output_file: None, // Option<PathBuf>
-        file_loader: None, // Option<Box<dyn FileLoader + Send + Sync>>
+        output_dir: None,                // Option<PathBuf>
+        output_file: None,               // Option<PathBuf>
+        file_loader: None,               // Option<Box<dyn FileLoader + Send + Sync>>
         lint_caps: FxHashMap::default(), // FxHashMap<lint::LintId, lint::Level>
         // This is a callback from the driver that is called when [`ParseSess`] is created.
         parse_sess_created: None, //Option<Box<dyn FnOnce(&mut ParseSess) + Send>>
@@ -71,17 +66,17 @@ fn main() {
     rustc_interface::run_compiler(config, |compiler| {
         compiler.enter(|queries| {
             // Parse the program and print the syntax tree.
-            let parse = queries.parse().unwrap().take();
+            let parse = queries.parse().unwrap().get_mut().clone();
             println!("{parse:?}");
             // Analyze the program and inspect the types of definitions.
-            queries.global_ctxt().unwrap().take().enter(|tcx| {
+            queries.global_ctxt().unwrap().enter(|tcx| {
                 for id in tcx.hir().items() {
                     let hir = tcx.hir();
                     let item = hir.item(id);
                     match item.kind {
                         rustc_hir::ItemKind::Static(_, _, _) | rustc_hir::ItemKind::Fn(_, _, _) => {
                             let name = item.ident;
-                            let ty = tcx.type_of(hir.local_def_id(item.hir_id()));
+                            let ty = tcx.type_of(item.hir_id().owner.def_id);
                             println!("{name:?}:\t{ty:?}")
                         }
                         _ => (),

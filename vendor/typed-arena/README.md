@@ -3,7 +3,7 @@
 [![](https://docs.rs/typed-arena/badge.svg)](https://docs.rs/typed-arena/)
 [![](https://img.shields.io/crates/v/typed-arena.svg)](https://crates.io/crates/typed-arena)
 [![](https://img.shields.io/crates/d/typed-arena.svg)](https://crates.io/crates/typed-arena)
-[![Travis CI Build Status](https://travis-ci.org/SimonSapin/rust-typed-arena.svg?branch=master)](https://travis-ci.org/SimonSapin/typed-arena)
+[![Github Actions Build Status](https://github.com/SimonSapin/rust-typed-arena/workflows/CI/badge.svg)](https://github.com/SimonSapin/rust-typed-arena/actions)
 
 **A fast (but limited) allocation arena for values of a single type.**
 
@@ -25,8 +25,8 @@ struct Monster {
 
 let monsters = Arena::new();
 
-let vegeta = monsters.alloc(Monster { level: 9001 });
-assert!(vegeta.level > 9000);
+let goku = monsters.alloc(Monster { level: 9001 });
+assert!(goku.level > 9000);
 ```
 
 ## Safe Cycles

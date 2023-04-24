@@ -26,13 +26,17 @@ use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 pub use std::sync::atomic::Ordering;
 pub use std::sync::atomic::Ordering::SeqCst;
 
+pub use vec::AppendOnlyVec;
+
+mod vec;
+
 cfg_if! {
     if #[cfg(not(parallel_compiler))] {
         pub auto trait Send {}
         pub auto trait Sync {}
 
-        impl<T: ?Sized> Send for T {}
-        impl<T: ?Sized> Sync for T {}
+        impl<T> Send for T {}
+        impl<T> Sync for T {}
 
         #[macro_export]
         macro_rules! rustc_erase_owner {

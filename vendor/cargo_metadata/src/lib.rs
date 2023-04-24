@@ -83,9 +83,11 @@ use camino::Utf8PathBuf;
 use derive_builder::Builder;
 use std::collections::HashMap;
 use std::env;
+use std::ffi::OsString;
 use std::fmt;
+use std::hash::Hash;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::str::from_utf8;
 
 pub use camino;
@@ -154,10 +156,22 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    /// Get the root package of this metadata instance.
+    /// Get the workspace's root package of this metadata instance.
     pub fn root_package(&self) -> Option<&Package> {
-        let root = self.resolve.as_ref()?.root.as_ref()?;
-        self.packages.iter().find(|pkg| &pkg.id == root)
+        match &self.resolve {
+            Some(resolve) => {
+                // if dependencies are resolved, use Cargo's answer
+                let root = resolve.root.as_ref()?;
+                self.packages.iter().find(|pkg| &pkg.id == root)
+            }
+            None => {
+                // if dependencies aren't resolved, check for a root package manually
+                let root_manifest_path = self.workspace_root.join("Cargo.toml");
+                self.packages
+                    .iter()
+                    .find(|pkg| pkg.manifest_path == root_manifest_path)
+            }
+        }
     }
 
     /// Get the workspace packages.
@@ -374,9 +388,12 @@ impl Package {
 
     /// Full path to the readme file if one is present in the manifest
     pub fn readme(&self) -> Option<Utf8PathBuf> {
-        self.readme
-            .as_ref()
-            .map(|file| self.manifest_path.join(file))
+        self.readme.as_ref().map(|file| {
+            self.manifest_path
+                .parent()
+                .unwrap_or(&self.manifest_path)
+                .join(file)
+        })
     }
 }
 
@@ -409,7 +426,7 @@ impl std::fmt::Display for Source {
 pub struct Target {
     /// Name as given in the `Cargo.toml` or generated from the file name
     pub name: String,
-    /// Kind of target ("bin", "example", "test", "bench", "lib")
+    /// Kind of target ("bin", "example", "test", "bench", "lib", "custom-build")
     pub kind: Vec<String>,
     /// Almost the same as `kind`, except when an example is a library instead of an executable.
     /// In that case `crate_types` contains things like `rlib` and `dylib` while `kind` is `example`
@@ -450,9 +467,47 @@ pub struct Target {
     pub doc: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+impl Target {
+    fn is_kind(&self, name: &str) -> bool {
+        self.kind.iter().any(|kind| kind == name)
+    }
+
+    /// Return true if this target is of kind "lib".
+    pub fn is_lib(&self) -> bool {
+        self.is_kind("lib")
+    }
+
+    /// Return true if this target is of kind "bin".
+    pub fn is_bin(&self) -> bool {
+        self.is_kind("bin")
+    }
+
+    /// Return true if this target is of kind "example".
+    pub fn is_example(&self) -> bool {
+        self.is_kind("example")
+    }
+
+    /// Return true if this target is of kind "test".
+    pub fn is_test(&self) -> bool {
+        self.is_kind("test")
+    }
+
+    /// Return true if this target is of kind "bench".
+    pub fn is_bench(&self) -> bool {
+        self.is_kind("bench")
+    }
+
+    /// Return true if this target is of kind "custom-build".
+    pub fn is_custom_build(&self) -> bool {
+        self.is_kind("custom-build")
+    }
+}
+
+/// The Rust edition
+///
+/// As of writing this comment rust editions 2024, 2027 and 2030 are not actually a thing yet but are parsed nonetheless for future proofing.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
-/// The rust edition
 pub enum Edition {
     /// Edition 2015
     #[serde(rename = "2015")]
@@ -463,6 +518,36 @@ pub enum Edition {
     /// Edition 2021
     #[serde(rename = "2021")]
     E2021,
+    #[doc(hidden)]
+    #[serde(rename = "2024")]
+    _E2024,
+    #[doc(hidden)]
+    #[serde(rename = "2027")]
+    _E2027,
+    #[doc(hidden)]
+    #[serde(rename = "2030")]
+    _E2030,
+}
+
+impl Edition {
+    /// Return the string representation of the edition
+    pub fn as_str(&self) -> &'static str {
+        use Edition::*;
+        match self {
+            E2015 => "2015",
+            E2018 => "2018",
+            E2021 => "2021",
+            _E2024 => "2024",
+            _E2027 => "2027",
+            _E2030 => "2030",
+        }
+    }
+}
+
+impl fmt::Display for Edition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 impl Default for Edition {
@@ -497,7 +582,7 @@ pub struct MetadataCommand {
     manifest_path: Option<PathBuf>,
     /// Current directory of the `cargo metadata` process.
     current_dir: Option<PathBuf>,
-    /// Output information only about the root package and don't fetch dependencies.
+    /// Output information only about workspace members and don't fetch dependencies.
     no_deps: bool,
     /// Collections of `CargoOpt::SomeFeatures(..)`
     features: Vec<String>,
@@ -508,6 +593,11 @@ pub struct MetadataCommand {
     /// Arbitrary command line flags to pass to `cargo`.  These will be added
     /// to the end of the command line invocation.
     other_options: Vec<String>,
+    /// Arbitrary environment variables to set when running `cargo`.  These will be merged into
+    /// the calling environment, overriding any which clash.
+    env: HashMap<OsString, OsString>,
+    /// Show stderr
+    verbose: bool,
 }
 
 impl MetadataCommand {
@@ -533,7 +623,7 @@ impl MetadataCommand {
         self.current_dir = Some(path.into());
         self
     }
-    /// Output information only about the root package and don't fetch dependencies.
+    /// Output information only about workspace members and don't fetch dependencies.
     pub fn no_deps(&mut self) -> &mut MetadataCommand {
         self.no_deps = true;
         self
@@ -603,6 +693,38 @@ impl MetadataCommand {
         self
     }
 
+    /// Arbitrary environment variables to set when running `cargo`.  These will be merged into
+    /// the calling environment, overriding any which clash.
+    ///
+    /// Some examples of when you may want to use this:
+    /// 1. Setting cargo config values without needing a .cargo/config.toml file, e.g. to set
+    ///    `CARGO_NET_GIT_FETCH_WITH_CLI=true`
+    /// 2. To specify a custom path to RUSTC if your rust toolchain components aren't laid out in
+    ///    the way cargo expects by default.
+    ///
+    /// ```no_run
+    /// # use cargo_metadata::{CargoOpt, MetadataCommand};
+    /// MetadataCommand::new()
+    ///     .env("CARGO_NET_GIT_FETCH_WITH_CLI", "true")
+    ///     .env("RUSTC", "/path/to/rustc")
+    ///     // ...
+    ///     # ;
+    /// ```
+    pub fn env<K: Into<OsString>, V: Into<OsString>>(
+        &mut self,
+        key: K,
+        val: V,
+    ) -> &mut MetadataCommand {
+        self.env.insert(key.into(), val.into());
+        self
+    }
+
+    /// Set whether to show stderr
+    pub fn verbose(&mut self, verbose: bool) -> &mut MetadataCommand {
+        self.verbose = verbose;
+        self
+    }
+
     /// Builds a command for `cargo metadata`.  This is the first
     /// part of the work of `exec`.
     pub fn cargo_command(&self) -> Command {
@@ -637,6 +759,8 @@ impl MetadataCommand {
         }
         cmd.args(&self.other_options);
 
+        cmd.envs(&self.env);
+
         cmd
     }
 
@@ -649,7 +773,11 @@ impl MetadataCommand {
 
     /// Runs configured `cargo metadata` and returns parsed `Metadata`.
     pub fn exec(&self) -> Result<Metadata> {
-        let output = self.cargo_command().output()?;
+        let mut command = self.cargo_command();
+        if self.verbose {
+            command.stderr(Stdio::inherit());
+        }
+        let output = command.output()?;
         if !output.status.success() {
             return Err(Error::CargoMetadata {
                 stderr: String::from_utf8(output.stderr)?,

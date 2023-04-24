@@ -2,6 +2,16 @@
 
 ## Next (YYYY-MM-DD)
 
+## v2.0.1 (2022-12-28)
+
+- Fix bug on Windows where the wrong pointer was being null checked, leading to timeout errors. ([#13](https://github.com/watchexec/command-group/pull/13))
+
+## v2.0.0 (2022-12-04)
+
+- Increase MSRV to 1.60.0 and change policy for increasing it (no longer a breaking change).
+- Wait for all processes in the process group, avoiding zombies. ([#7](https://github.com/watchexec/command-group/pull/7))
+- Update `nix` to 0.26 and limit features. ([#8](https://github.com/watchexec/command-group/pull/8))
+
 ## v1.0.8 (2021-10-16)
 
 - Bugfix: compiling would fail when Tokio was missing the `io-util` feature (not `io-std`).

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::fluent_generated as fluent;
 use rustc_errors::ErrorGuaranteed;
 use rustc_errors::IntoDiagnostic;
 use rustc_macros::{Diagnostic, LintDiagnostic};
@@ -44,7 +45,7 @@ impl IntoDiagnostic<'_> for UnusedGenericParamsHint {
         self,
         handler: &'_ rustc_errors::Handler,
     ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = handler.struct_err(rustc_errors::fluent::monomorphize_unused_generic_params);
+        let mut diag = handler.struct_err(fluent::monomorphize_unused_generic_params);
         diag.set_span(self.span);
         for (span, name) in self.param_spans.into_iter().zip(self.param_names) {
             // FIXME: I can figure out how to do a label with a fluent string with a fixed message,
@@ -82,4 +83,18 @@ pub struct SymbolAlreadyDefined {
 #[diag(monomorphize_couldnt_dump_mono_stats)]
 pub struct CouldntDumpMonoStats {
     pub error: String,
+}
+
+#[derive(Diagnostic)]
+#[diag(monomorphize_encountered_error_while_instantiating)]
+pub struct EncounteredErrorWhileInstantiating {
+    #[primary_span]
+    pub span: Span,
+    pub formatted_item: String,
+}
+
+#[derive(Diagnostic)]
+#[diag(monomorphize_unknown_cgu_collection_mode)]
+pub struct UnknownCguCollectionMode<'a> {
+    pub mode: &'a str,
 }

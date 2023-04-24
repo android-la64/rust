@@ -56,13 +56,6 @@ pub trait FuncWriter {
             self.write_entity_definition(w, func, gv.into(), gv_data)?;
         }
 
-        for (heap, heap_data) in &func.heaps {
-            if !heap_data.index_type.is_invalid() {
-                any = true;
-                self.write_entity_definition(w, func, heap.into(), heap_data)?;
-            }
-        }
-
         for (table, table_data) in &func.tables {
             if !table_data.index_type.is_invalid() {
                 any = true;
@@ -283,7 +276,7 @@ fn decorate_block<FW: FuncWriter>(
 // if it can't be trivially inferred.
 //
 fn type_suffix(func: &Function, inst: Inst) -> Option<Type> {
-    let inst_data = &func.dfg[inst];
+    let inst_data = &func.dfg.insts[inst];
     let constraints = inst_data.opcode().constraints();
 
     if !constraints.is_polymorphic() {
@@ -297,6 +290,7 @@ fn type_suffix(func: &Function, inst: Inst) -> Option<Type> {
         let def_block = match func.dfg.value_def(ctrl_var) {
             ValueDef::Result(instr, _) => func.layout.inst_block(instr),
             ValueDef::Param(block, _) => Some(block),
+            ValueDef::Union(..) => None,
         };
         if def_block.is_some() && def_block == func.layout.inst_block(inst) {
             return None;
@@ -363,7 +357,7 @@ fn write_instruction(
     }
 
     // Then the opcode, possibly with a '.type' suffix.
-    let opcode = func.dfg[inst].opcode();
+    let opcode = func.dfg.insts[inst].opcode();
 
     match type_suffix(func, inst) {
         Some(suf) => write!(w, "{}.{}", opcode, suf)?,
@@ -384,7 +378,7 @@ fn write_instruction(
 pub fn write_operands(w: &mut dyn Write, dfg: &DataFlowGraph, inst: Inst) -> fmt::Result {
     let pool = &dfg.value_lists;
     use crate::ir::instructions::InstructionData::*;
-    match dfg[inst] {
+    match dfg.insts[inst] {
         AtomicRmw { op, args, .. } => write!(w, " {} {}, {}", op, args[0], args[1]),
         AtomicCas { args, .. } => write!(w, " {}, {}, {}", args[0], args[1], args[2]),
         LoadNoOffset { flags, arg, .. } => write!(w, "{} {}", flags, arg),
@@ -476,7 +470,6 @@ pub fn write_operands(w: &mut dyn Write, dfg: &DataFlowGraph, inst: Inst) -> fmt
             dynamic_stack_slot,
             ..
         } => write!(w, " {}, {}", arg, dynamic_stack_slot),
-        HeapAddr { heap, arg, imm, .. } => write!(w, " {}, {}, {}", heap, arg, imm),
         TableAddr { table, arg, .. } => write!(w, " {}, {}", table, arg),
         Load {
             flags, arg, offset, ..
@@ -494,7 +487,7 @@ pub fn write_operands(w: &mut dyn Write, dfg: &DataFlowGraph, inst: Inst) -> fmt
     let mut sep = "  ; ";
     for &arg in dfg.inst_args(inst) {
         if let ValueDef::Result(src, _) = dfg.value_def(arg) {
-            let imm = match dfg[src] {
+            let imm = match dfg.insts[src] {
                 UnaryImm { imm, .. } => imm.to_string(),
                 UnaryIeee32 { imm, .. } => imm.to_string(),
                 UnaryIeee64 { imm, .. } => imm.to_string(),

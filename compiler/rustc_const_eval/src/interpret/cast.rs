@@ -126,7 +126,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     let vtable = self.get_vtable_ptr(src.layout.ty, data.principal())?;
                     let vtable = Scalar::from_maybe_pointer(vtable, self);
                     let data = self.read_immediate(src)?.to_scalar();
-                    let _assert_pointer_sized = data.to_pointer(self)?;
+                    let _assert_pointer_like = data.to_pointer(self)?;
                     let val = Immediate::ScalarPair(data, vtable);
                     self.write_immediate(val, dest)?;
                 } else {
@@ -231,7 +231,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         // First cast to usize.
         let scalar = src.to_scalar();
         let addr = self.cast_from_int_like(scalar, src.layout, self.tcx.types.usize)?;
-        let addr = addr.to_machine_usize(self)?;
+        let addr = addr.to_target_usize(self)?;
 
         // Then turn address into pointer.
         let ptr = M::ptr_from_addr_cast(&self, addr)?;
@@ -312,6 +312,8 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         }
     }
 
+    /// `src` is a *pointer to* a `source_ty`, and in `dest` we should store a pointer to th same
+    /// data at type `cast_ty`.
     fn unsize_into_ptr(
         &mut self,
         src: &OpTy<'tcx, M::Provenance>,
@@ -328,11 +330,14 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             (&ty::Array(_, length), &ty::Slice(_)) => {
                 let ptr = self.read_scalar(src)?;
                 // u64 cast is from usize to u64, which is always good
-                let val =
-                    Immediate::new_slice(ptr, length.eval_usize(*self.tcx, self.param_env), self);
+                let val = Immediate::new_slice(
+                    ptr,
+                    length.eval_target_usize(*self.tcx, self.param_env),
+                    self,
+                );
                 self.write_immediate(val, dest)
             }
-            (ty::Dynamic(data_a, ..), ty::Dynamic(data_b, ..)) => {
+            (ty::Dynamic(data_a, _, ty::Dyn), ty::Dynamic(data_b, _, ty::Dyn)) => {
                 let val = self.read_immediate(src)?;
                 if data_a.principal() == data_b.principal() {
                     // A NOP cast that doesn't actually change anything, should be allowed even with mismatching vtables.
@@ -356,7 +361,12 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             }
 
             _ => {
-                span_bug!(self.cur_span(), "invalid unsizing {:?} -> {:?}", src.layout.ty, cast_ty)
+                span_bug!(
+                    self.cur_span(),
+                    "invalid pointer unsizing {:?} -> {:?}",
+                    src.layout.ty,
+                    cast_ty
+                )
             }
         }
     }

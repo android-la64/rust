@@ -2,7 +2,7 @@
 //!
 //! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
 //! [crates-io]: https://img.shields.io/badge/crates.io-fc8d62?style=for-the-badge&labelColor=555555&logo=rust
-//! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logoColor=white&logo=data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDUxMiA1MTIiPjxwYXRoIGZpbGw9IiNmNWY1ZjUiIGQ9Ik00ODguNiAyNTAuMkwzOTIgMjE0VjEwNS41YzAtMTUtOS4zLTI4LjQtMjMuNC0zMy43bC0xMDAtMzcuNWMtOC4xLTMuMS0xNy4xLTMuMS0yNS4zIDBsLTEwMCAzNy41Yy0xNC4xIDUuMy0yMy40IDE4LjctMjMuNCAzMy43VjIxNGwtOTYuNiAzNi4yQzkuMyAyNTUuNSAwIDI2OC45IDAgMjgzLjlWMzk0YzAgMTMuNiA3LjcgMjYuMSAxOS45IDMyLjJsMTAwIDUwYzEwLjEgNS4xIDIyLjEgNS4xIDMyLjIgMGwxMDMuOS01MiAxMDMuOSA1MmMxMC4xIDUuMSAyMi4xIDUuMSAzMi4yIDBsMTAwLTUwYzEyLjItNi4xIDE5LjktMTguNiAxOS45LTMyLjJWMjgzLjljMC0xNS05LjMtMjguNC0yMy40LTMzLjd6TTM1OCAyMTQuOGwtODUgMzEuOXYtNjguMmw4NS0zN3Y3My4zek0xNTQgMTA0LjFsMTAyLTM4LjIgMTAyIDM4LjJ2LjZsLTEwMiA0MS40LTEwMi00MS40di0uNnptODQgMjkxLjFsLTg1IDQyLjV2LTc5LjFsODUtMzguOHY3NS40em0wLTExMmwtMTAyIDQxLjQtMTAyLTQxLjR2LS42bDEwMi0zOC4yIDEwMiAzOC4ydi42em0yNDAgMTEybC04NSA0Mi41di03OS4xbDg1LTM4Ljh2NzUuNHptMC0xMTJsLTEwMiA0MS40LTEwMi00MS40di0uNmwxMDItMzguMiAxMDIgMzguMnYuNnoiPjwvcGF0aD48L3N2Zz4K
+//! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs
 //!
 //! <br>
 //!
@@ -37,9 +37,10 @@
 //! [Myers' diff algorithm]: https://neil.fraser.name/writing/diff/myers.pdf
 //! [semantic cleanups]: https://neil.fraser.name/writing/diff/
 
-#![doc(html_root_url = "https://docs.rs/dissimilar/1.0.4")]
+#![doc(html_root_url = "https://docs.rs/dissimilar/1.0.6")]
 #![allow(
     clippy::blocks_in_if_conditions,
+    clippy::bool_to_int_with_if,
     clippy::cast_possible_wrap,
     clippy::cast_sign_loss,
     clippy::cloned_instead_of_copied, // https://github.com/rust-lang/rust-clippy/issues/7127
@@ -63,10 +64,10 @@ mod range;
 #[cfg(test)]
 mod tests;
 
-use crate::range::{bytes, str, Range};
+use crate::range::{slice, Range};
 use std::cmp;
 use std::collections::VecDeque;
-use std::fmt::{self, Debug};
+use std::fmt::{self, Debug, Display, Write};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Chunk<'a> {
@@ -121,20 +122,49 @@ impl<'tmp, 'a: 'tmp, 'b: 'tmp> Diff<'a, 'b> {
 }
 
 pub fn diff<'a>(text1: &'a str, text2: &'a str) -> Vec<Chunk<'a>> {
-    let text1 = Range::new(text1, ..);
-    let text2 = Range::new(text2, ..);
-    let mut solution = main(text1, text2);
+    let chars1: Vec<char> = text1.chars().collect();
+    let chars2: Vec<char> = text2.chars().collect();
+    let range1 = Range::new(&chars1, ..);
+    let range2 = Range::new(&chars2, ..);
+
+    let mut solution = main(range1, range2);
     cleanup_char_boundary(&mut solution);
     cleanup_semantic(&mut solution);
     cleanup_merge(&mut solution);
-    solution.diffs.into_iter().map(Chunk::from).collect()
+
+    let mut chunks = Vec::new();
+    let mut pos1 = 0;
+    let mut pos2 = 0;
+    for diff in solution.diffs {
+        chunks.push(match diff {
+            Diff::Equal(range, _) => {
+                let len = range.len_bytes();
+                let chunk = Chunk::Equal(&text1[pos1..pos1 + len]);
+                pos1 += len;
+                pos2 += len;
+                chunk
+            }
+            Diff::Delete(range) => {
+                let len = range.len_bytes();
+                let chunk = Chunk::Delete(&text1[pos1..pos1 + len]);
+                pos1 += len;
+                chunk
+            }
+            Diff::Insert(range) => {
+                let len = range.len_bytes();
+                let chunk = Chunk::Insert(&text2[pos2..pos2 + len]);
+                pos2 += len;
+                chunk
+            }
+        });
+    }
+    chunks
 }
 
 struct Solution<'a, 'b> {
     text1: Range<'a>,
     text2: Range<'b>,
     diffs: Vec<Diff<'a, 'b>>,
-    utf8: bool,
 }
 
 fn main<'a, 'b>(mut text1: Range<'a>, mut text2: Range<'b>) -> Solution<'a, 'b> {
@@ -142,7 +172,7 @@ fn main<'a, 'b>(mut text1: Range<'a>, mut text2: Range<'b>) -> Solution<'a, 'b> 
     let whole2 = text2;
 
     // Trim off common prefix.
-    let common_prefix_len = common_prefix_bytes(text1, text2);
+    let common_prefix_len = common_prefix(text1, text2);
     let common_prefix = Diff::Equal(
         text1.substring(..common_prefix_len),
         text2.substring(..common_prefix_len),
@@ -151,7 +181,7 @@ fn main<'a, 'b>(mut text1: Range<'a>, mut text2: Range<'b>) -> Solution<'a, 'b> 
     text2 = text2.substring(common_prefix_len..);
 
     // Trim off common suffix.
-    let common_suffix_len = common_suffix_bytes(text1, text2);
+    let common_suffix_len = common_suffix(text1, text2);
     let common_suffix = Diff::Equal(
         text1.substring(text1.len - common_suffix_len..),
         text2.substring(text2.len - common_suffix_len..),
@@ -164,7 +194,6 @@ fn main<'a, 'b>(mut text1: Range<'a>, mut text2: Range<'b>) -> Solution<'a, 'b> 
         text1: whole1,
         text2: whole2,
         diffs: compute(text1, text2),
-        utf8: false,
     };
 
     // Restore the prefix and suffix.
@@ -252,7 +281,7 @@ fn bisect<'a, 'b>(text1: Range<'a>, text2: Range<'b>) -> Vec<Diff<'a, 'b>> {
             } as usize;
             let mut y1 = (x1 as isize - k1) as usize;
             if let (Some(s1), Some(s2)) = (text1.get(x1..), text2.get(y1..)) {
-                let advance = common_prefix_bytes(s1, s2);
+                let advance = common_prefix(s1, s2);
                 x1 += advance;
                 y1 += advance;
             }
@@ -288,7 +317,7 @@ fn bisect<'a, 'b>(text1: Range<'a>, text2: Range<'b>) -> Vec<Diff<'a, 'b>> {
             } as usize;
             let mut y2 = (x2 as isize - k2) as usize;
             if x2 < text1.len && y2 < text2.len {
-                let advance = common_suffix_bytes(
+                let advance = common_suffix(
                     text1.substring(..text1.len - x2),
                     text2.substring(..text2.len - y2),
                 );
@@ -342,8 +371,8 @@ fn bisect_split<'a, 'b>(
 
 // Determine the length of the common prefix of two strings.
 fn common_prefix(text1: Range, text2: Range) -> usize {
-    for ((i, ch1), ch2) in text1.char_indices().zip(text2.chars()) {
-        if ch1 != ch2 {
+    for (i, (b1, b2)) in text1.chars().zip(text2.chars()).enumerate() {
+        if b1 != b2 {
             return i;
         }
     }
@@ -352,25 +381,7 @@ fn common_prefix(text1: Range, text2: Range) -> usize {
 
 // Determine the length of the common suffix of two strings.
 fn common_suffix(text1: Range, text2: Range) -> usize {
-    for ((i, ch1), ch2) in text1.char_indices().rev().zip(text2.chars().rev()) {
-        if ch1 != ch2 {
-            return text1.len - i - ch1.len_utf8();
-        }
-    }
-    cmp::min(text1.len, text2.len)
-}
-
-fn common_prefix_bytes(text1: Range, text2: Range) -> usize {
-    for (i, (b1, b2)) in text1.bytes().zip(text2.bytes()).enumerate() {
-        if b1 != b2 {
-            return i;
-        }
-    }
-    cmp::min(text1.len, text2.len)
-}
-
-fn common_suffix_bytes(text1: Range, text2: Range) -> usize {
-    for (i, (b1, b2)) in text1.bytes().rev().zip(text2.bytes().rev()).enumerate() {
+    for (i, (b1, b2)) in text1.chars().rev().zip(text2.chars().rev()).enumerate() {
         if b1 != b2 {
             return i;
         }
@@ -394,7 +405,7 @@ fn common_overlap(mut text1: Range, mut text2: Range) -> usize {
         text2 = text2.substring(..text1.len);
     }
     // Quick check for the worst case.
-    if bytes(text1) == bytes(text2) {
+    if slice(text1) == slice(text2) {
         return text1.len;
     }
 
@@ -411,7 +422,7 @@ fn common_overlap(mut text1: Range, mut text2: Range) -> usize {
         };
         length += found;
         if found == 0
-            || bytes(text1.substring(text1.len - length..)) == bytes(text2.substring(..length))
+            || slice(text1.substring(text1.len - length..)) == slice(text2.substring(..length))
         {
             best = length;
             length += 1;
@@ -420,17 +431,24 @@ fn common_overlap(mut text1: Range, mut text2: Range) -> usize {
 }
 
 fn cleanup_char_boundary(solution: &mut Solution) {
-    fn boundary_down(doc: &str, pos: usize) -> usize {
+    fn is_segmentation_boundary(doc: &[char], pos: usize) -> bool {
+        // FIXME: use unicode-segmentation crate?
+        let _ = doc;
+        let _ = pos;
+        true
+    }
+
+    fn boundary_down(doc: &[char], pos: usize) -> usize {
         let mut adjust = 0;
-        while !doc.is_char_boundary(pos - adjust) {
+        while !is_segmentation_boundary(doc, pos - adjust) {
             adjust += 1;
         }
         adjust
     }
 
-    fn boundary_up(doc: &str, pos: usize) -> usize {
+    fn boundary_up(doc: &[char], pos: usize) -> usize {
         let mut adjust = 0;
-        while !doc.is_char_boundary(pos + adjust) {
+        while !is_segmentation_boundary(doc, pos + adjust) {
             adjust += 1;
         }
         adjust
@@ -498,7 +516,6 @@ fn cleanup_char_boundary(solution: &mut Solution) {
     }
 
     solution.diffs.truncate(retain);
-    solution.utf8 = true;
 }
 
 // Reduce the number of edits by eliminating semantically trivial equalities.
@@ -658,14 +675,13 @@ fn cleanup_semantic_lossless(solution: &mut Solution) {
                 && !next_equal1.is_empty()
                 && edit.text().chars().next().unwrap() == next_equal1.chars().next().unwrap()
             {
-                let increment = edit.text().chars().next().unwrap().len_utf8();
-                prev_equal1.len += increment;
-                prev_equal2.len += increment;
-                edit.shift_right(increment);
-                next_equal1.offset += increment;
-                next_equal1.len -= increment;
-                next_equal2.offset += increment;
-                next_equal2.len -= increment;
+                prev_equal1.len += 1;
+                prev_equal2.len += 1;
+                edit.shift_right(1);
+                next_equal1.offset += 1;
+                next_equal1.len -= 1;
+                next_equal2.offset += 1;
+                next_equal2.len -= 1;
                 let score = cleanup_semantic_score(prev_equal1, edit.text())
                     + cleanup_semantic_score(edit.text(), next_equal1);
                 // The >= encourages trailing rather than leading whitespace on edits.
@@ -720,8 +736,10 @@ fn cleanup_semantic_score(one: Range, two: Range) -> usize {
     let whitespace2 = non_alphanumeric2 && char2.is_ascii_whitespace();
     let line_break1 = whitespace1 && char1.is_control();
     let line_break2 = whitespace2 && char2.is_control();
-    let blank_line1 = line_break1 && (one.ends_with("\n\n") || one.ends_with("\n\r\n"));
-    let blank_line2 = line_break2 && (two.starts_with("\n\n") || two.starts_with("\r\n\r\n"));
+    let blank_line1 =
+        line_break1 && (one.ends_with(['\n', '\n']) || one.ends_with(['\n', '\r', '\n']));
+    let blank_line2 =
+        line_break2 && (two.starts_with(['\n', '\n']) || two.starts_with(['\r', '\n', '\r', '\n']));
 
     if blank_line1 || blank_line2 {
         // Five points for blank lines.
@@ -747,22 +765,7 @@ fn cleanup_semantic_score(one: Range, two: Range) -> usize {
 // move as long as it doesn't cross an equality.
 fn cleanup_merge(solution: &mut Solution) {
     let diffs = &mut solution.diffs;
-    let common_prefix = if solution.utf8 {
-        common_prefix
-    } else {
-        common_prefix_bytes
-    };
-    let common_suffix = if solution.utf8 {
-        common_suffix
-    } else {
-        common_suffix_bytes
-    };
-
-    loop {
-        if diffs.is_empty() {
-            return;
-        }
-
+    while !diffs.is_empty() {
         diffs.push(Diff::Equal(
             solution.text1.substring(solution.text1.len..),
             solution.text2.substring(solution.text2.len..),
@@ -911,22 +914,22 @@ impl Debug for Chunk<'_> {
 
 impl Debug for Diff<'_, '_> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let (name, bytes) = match *self {
-            Diff::Equal(range, _) => ("Equal", bytes(range)),
-            Diff::Delete(range) => ("Delete", bytes(range)),
-            Diff::Insert(range) => ("Insert", bytes(range)),
+        let (name, range) = match *self {
+            Diff::Equal(range, _) => ("Equal", range),
+            Diff::Delete(range) => ("Delete", range),
+            Diff::Insert(range) => ("Insert", range),
         };
-        let text = String::from_utf8_lossy(bytes);
-        write!(formatter, "{}({:?})", name, text)
-    }
-}
-
-impl<'a> From<Diff<'a, 'a>> for Chunk<'a> {
-    fn from(diff: Diff<'a, 'a>) -> Self {
-        match diff {
-            Diff::Equal(range, _) => Chunk::Equal(str(range)),
-            Diff::Delete(range) => Chunk::Delete(str(range)),
-            Diff::Insert(range) => Chunk::Insert(str(range)),
+        formatter.write_str(name)?;
+        formatter.write_str("(\"")?;
+        for ch in range.chars() {
+            if ch == '\'' {
+                // escape_debug turns this into "\'" which is unnecessary.
+                formatter.write_char(ch)?;
+            } else {
+                Display::fmt(&ch.escape_debug(), formatter)?;
+            }
         }
+        formatter.write_str("\")")?;
+        Ok(())
     }
 }

@@ -22,8 +22,8 @@
 //!
 //! let monsters = Arena::new();
 //!
-//! let vegeta = monsters.alloc(Monster { level: 9001 });
-//! assert!(vegeta.level > 9000);
+//! let goku = monsters.alloc(Monster { level: 9001 });
+//! assert!(goku.level > 9000);
 //! ```
 //!
 //! ## Safe Cycles
@@ -70,6 +70,7 @@ use core::cell::RefCell;
 use core::cmp;
 use core::iter;
 use core::mem;
+use core::ptr;
 use core::slice;
 use core::str;
 
@@ -263,14 +264,16 @@ impl<T> Arena<T> {
                 i += 1;
             }
         }
-        let new_slice_ref = &mut chunks.current[next_item_index..];
 
         // Extend the lifetime from that of `chunks_borrow` to that of `self`.
         // This is OK because we’re careful to never move items
         // by never pushing to inner `Vec`s beyond their initial capacity.
         // The returned reference is unique (`&mut`):
         // the `Arena` never gives away references to existing items.
-        unsafe { mem::transmute::<&mut [T], &mut [T]>(new_slice_ref) }
+        unsafe {
+            let new_len = chunks.current.len() - next_item_index;
+            slice::from_raw_parts_mut(chunks.current.as_mut_ptr().add(next_item_index), new_len)
+        }
     }
 
     /// Allocates space for a given number of values, but doesn't initialize it.
@@ -400,10 +403,10 @@ impl<T> Arena<T> {
         let next_item_index = chunks.current.len();
 
         unsafe {
-        // Go through pointers, to make sure we never create a reference to uninitialized T.
+            // Go through pointers, to make sure we never create a reference to uninitialized T.
             let start = chunks.current.as_mut_ptr().offset(next_item_index as isize);
             let start_uninit = start as *mut MaybeUninit<T>;
-            slice::from_raw_parts_mut(start_uninit, len) as *mut _
+            ptr::slice_from_raw_parts_mut(start_uninit, len)
         }
     }
 

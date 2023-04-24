@@ -95,9 +95,9 @@ impl UnvalidatedStr {
     /// ```
     /// use zerovec::ule::UnvalidatedStr;
     ///
-    /// static a: &UnvalidatedStr = UnvalidatedStr::from_bytes(b"abc");
+    /// static A: &UnvalidatedStr = UnvalidatedStr::from_bytes(b"abc");
     ///
-    /// let b = a.try_as_str().unwrap();
+    /// let b = A.try_as_str().unwrap();
     /// assert_eq!(b, "abc");
     /// ```
     // Note: this is const starting in 1.63
@@ -154,7 +154,7 @@ unsafe impl VarULE for UnvalidatedStr {
     }
 }
 
-/// This impl can be made available by enabling the optional `serde` feature of the `zerovec` crate
+/// This impl requires enabling the optional `serde` Cargo feature of the `zerovec` crate
 #[cfg(feature = "serde")]
 impl serde::Serialize for UnvalidatedStr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -173,7 +173,7 @@ impl serde::Serialize for UnvalidatedStr {
     }
 }
 
-/// This impl can be made available by enabling the optional `serde` feature of the `zerovec` crate
+/// This impl requires enabling the optional `serde` Cargo feature of the `zerovec` crate
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Box<UnvalidatedStr> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -190,7 +190,7 @@ impl<'de> serde::Deserialize<'de> for Box<UnvalidatedStr> {
     }
 }
 
-/// This impl can be made available by enabling the optional `serde` feature of the `zerovec` crate
+/// This impl requires enabling the optional `serde` Cargo feature of the `zerovec` crate
 #[cfg(feature = "serde")]
 impl<'de, 'a> serde::Deserialize<'de> for &'a UnvalidatedStr
 where

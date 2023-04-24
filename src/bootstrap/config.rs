@@ -25,6 +25,7 @@ use crate::flags::{Color, Flags};
 use crate::util::{exe, output, t};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Deserializer};
+use serde_derive::Deserialize;
 
 macro_rules! check_ci_llvm {
     ($name:expr) => {
@@ -65,6 +66,7 @@ pub struct Config {
     pub verbose: usize,
     pub submodules: Option<bool>,
     pub compiler_docs: bool,
+    pub library_docs_private_items: bool,
     pub docs_minification: bool,
     pub docs: bool,
     pub locked_deps: bool,
@@ -96,6 +98,10 @@ pub struct Config {
     pub cmd: Subcommand,
     pub incremental: bool,
     pub dry_run: DryRun,
+    /// Arguments appearing after `--` to be forwarded to tools,
+    /// e.g. `--fix-broken` or test arguments.
+    pub free_args: Vec<String>,
+
     /// `None` if we shouldn't download CI compiler artifacts, or the commit to download if we should.
     #[cfg(not(test))]
     download_rustc_commit: Option<String>,
@@ -168,6 +174,7 @@ pub struct Config {
     pub rust_profile_use: Option<String>,
     pub rust_profile_generate: Option<String>,
     pub rust_lto: RustcLto,
+    pub rust_validate_mir_opts: Option<u32>,
     pub llvm_profile_use: Option<String>,
     pub llvm_profile_generate: bool,
     pub llvm_libunwind_default: Option<LlvmLibunwind>,
@@ -332,8 +339,9 @@ impl SplitDebuginfo {
 }
 
 /// LTO mode used for compiling rustc itself.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq)]
 pub enum RustcLto {
+    Off,
     #[default]
     ThinLocal,
     Thin,
@@ -348,6 +356,7 @@ impl std::str::FromStr for RustcLto {
             "thin-local" => Ok(RustcLto::ThinLocal),
             "thin" => Ok(RustcLto::Thin),
             "fat" => Ok(RustcLto::Fat),
+            "off" => Ok(RustcLto::Off),
             _ => Err(format!("Invalid value for rustc LTO: {}", s)),
         }
     }
@@ -606,6 +615,7 @@ define_config! {
         rustfmt: Option<PathBuf> = "rustfmt",
         docs: Option<bool> = "docs",
         compiler_docs: Option<bool> = "compiler-docs",
+        library_docs_private_items: Option<bool> = "library-docs-private-items",
         docs_minification: Option<bool> = "docs-minification",
         submodules: Option<bool> = "submodules",
         gdb: Option<String> = "gdb",
@@ -762,6 +772,7 @@ define_config! {
         // ignored; this is set from an env var set by bootstrap.py
         download_rustc: Option<StringOrBool> = "download-rustc",
         lto: Option<String> = "lto",
+        validate_mir_opts: Option<u32> = "validate-mir-opts",
     }
 }
 
@@ -862,6 +873,7 @@ impl Config {
         config.keep_stage = flags.keep_stage;
         config.keep_stage_std = flags.keep_stage_std;
         config.color = flags.color;
+        config.free_args = flags.free_args.clone().unwrap_or_default();
         if let Some(value) = flags.deny_warnings {
             config.deny_warnings = value;
         }
@@ -965,6 +977,9 @@ impl Config {
         config.changelog_seen = toml.changelog_seen;
 
         let build = toml.build.unwrap_or_default();
+        if let Some(file_build) = build.build {
+            config.build = TargetSelection::from_user(&file_build);
+        };
 
         set(&mut config.out, flags.build_dir.or_else(|| build.build_dir.map(PathBuf::from)));
         // NOTE: Bootstrap spawns various commands with different working directories.
@@ -1015,6 +1030,7 @@ impl Config {
         config.submodules = build.submodules;
         set(&mut config.low_priority, build.low_priority);
         set(&mut config.compiler_docs, build.compiler_docs);
+        set(&mut config.library_docs_private_items, build.library_docs_private_items);
         set(&mut config.docs_minification, build.docs_minification);
         set(&mut config.docs, build.docs);
         set(&mut config.locked_deps, build.locked_deps);
@@ -1136,6 +1152,7 @@ impl Config {
                 .as_deref()
                 .map(|value| RustcLto::from_str(value).unwrap())
                 .unwrap_or_default();
+            config.rust_validate_mir_opts = rust.validate_mir_opts;
         } else {
             config.rust_profile_use = flags.rust_profile_use;
             config.rust_profile_generate = flags.rust_profile_generate;
@@ -1302,15 +1319,6 @@ impl Config {
             } else {
                 RustfmtState::Unavailable
             };
-        } else {
-            // If using a system toolchain for bootstrapping, see if that has rustfmt available.
-            let host = config.build;
-            let rustfmt_path = config.initial_rustc.with_file_name(exe("rustfmt", host));
-            let bin_root = config.out.join(host.triple).join("stage0");
-            if !rustfmt_path.starts_with(&bin_root) {
-                // Using a system-provided toolchain; we shouldn't download rustfmt.
-                *config.initial_rustfmt.borrow_mut() = RustfmtState::SystemToolchain(rustfmt_path);
-            }
         }
 
         // Now that we've reached the end of our configuration, infer the

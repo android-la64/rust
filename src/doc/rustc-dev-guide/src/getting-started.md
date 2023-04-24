@@ -81,7 +81,7 @@ normally used for: building, testing, creating releases, formatting, etc.
 
 [bootstrapping]: ./building/bootstrapping.md
 
-### Configuring the Compiler
+### Configuring the compiler
 
 In the top level of the repo:
 
@@ -113,6 +113,10 @@ additional options and arguments for each of them that are worth learning for
 serious development work. In particular, `./x.py build` and `./x.py test`
 provide many ways to compile or test a subset of the code, which can save a lot
 of time.
+
+Also, note that `x.py` supports all kinds of path suffixes for `compiler`, `library`,
+and `src/tools` directories. So, you can simply run `x.py test tidy` instead of
+`x.py test src/tools/tidy`. Or, `x.py build std` instead of `x.py build library/std`.
 
 [rust-analyzer]: ./building/suggested.html#configuring-rust-analyzer-for-rustc
 

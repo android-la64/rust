@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context as _};
 use cargo::core::shell::Shell;
 use cargo::core::{features, CliUnstable};
 use cargo::{self, drop_print, drop_println, CliResult, Config};
@@ -26,6 +26,30 @@ lazy_static::lazy_static! {
 
 pub fn main(config: &mut LazyConfig) -> CliResult {
     let args = cli().try_get_matches()?;
+
+    // Update the process-level notion of cwd
+    // This must be completed before config is initialized
+    assert_eq!(config.is_init(), false);
+    if let Some(new_cwd) = args.get_one::<std::path::PathBuf>("directory") {
+        // This is a temporary hack. This cannot access `Config`, so this is a bit messy.
+        // This does not properly parse `-Z` flags that appear after the subcommand.
+        // The error message is not as helpful as the standard one.
+        let nightly_features_allowed = matches!(&*features::channel(), "nightly" | "dev");
+        if !nightly_features_allowed
+            || (nightly_features_allowed
+                && !args
+                    .get_many("unstable-features")
+                    .map(|mut z| z.any(|value: &String| value == "unstable-options"))
+                    .unwrap_or(false))
+        {
+            return Err(anyhow::format_err!(
+                "the `-C` flag is unstable, \
+                 pass `-Z unstable-options` on the nightly channel to enable it"
+            )
+            .into());
+        }
+        std::env::set_current_dir(&new_cwd).context("could not change to requested directory")?;
+    }
 
     // CAUTION: Be careful with using `config` until it is configured below.
     // In general, try to avoid loading config values unless necessary (like
@@ -467,6 +491,14 @@ See 'cargo help <command>' for more information on a specific command.\n",
                 .value_name("WHEN")
                 .global(true),
         )
+        .arg(
+            Arg::new("directory")
+                .help("Change to DIRECTORY before doing anything (nightly-only)")
+                .short('C')
+                .value_name("DIRECTORY")
+                .value_hint(clap::ValueHint::DirPath)
+                .value_parser(clap::builder::ValueParser::path_buf()),
+        )
         .arg(flag("frozen", "Require Cargo.lock and cache are up to date").global(true))
         .arg(flag("locked", "Require Cargo.lock is up to date").global(true))
         .arg(flag("offline", "Run without accessing the network").global(true))
@@ -495,6 +527,13 @@ pub struct LazyConfig {
 impl LazyConfig {
     pub fn new() -> Self {
         Self { config: None }
+    }
+
+    /// Check whether the config is loaded
+    ///
+    /// This is useful for asserts in case the environment needs to be setup before loading
+    pub fn is_init(&self) -> bool {
+        self.config.is_some()
     }
 
     /// Get the config, loading it if needed

@@ -8,9 +8,8 @@ use crate::machinst::*;
 use crate::{settings, CodegenError, CodegenResult};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use core::convert::TryFrom;
 use regalloc2::{PRegSet, VReg};
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 use std::string::{String, ToString};
 pub mod regs;
 pub use self::regs::*;
@@ -334,97 +333,6 @@ impl Inst {
         }
     }
 
-    /// Create an instruction that loads a 64-bit integer constant.
-    pub fn load_constant64(rd: Writable<Reg>, value: u64) -> SmallVec<[Inst; 4]> {
-        if let Ok(imm) = i16::try_from(value as i64) {
-            // 16-bit signed immediate
-            smallvec![Inst::Mov64SImm16 { rd, imm }]
-        } else if let Ok(imm) = i32::try_from(value as i64) {
-            // 32-bit signed immediate
-            smallvec![Inst::Mov64SImm32 { rd, imm }]
-        } else if let Some(imm) = UImm16Shifted::maybe_from_u64(value) {
-            // 16-bit shifted immediate
-            smallvec![Inst::Mov64UImm16Shifted { rd, imm }]
-        } else if let Some(imm) = UImm32Shifted::maybe_from_u64(value) {
-            // 32-bit shifted immediate
-            smallvec![Inst::Mov64UImm32Shifted { rd, imm }]
-        } else {
-            let mut insts = smallvec![];
-            let hi = value & 0xffff_ffff_0000_0000u64;
-            let lo = value & 0x0000_0000_ffff_ffffu64;
-
-            if let Some(imm) = UImm16Shifted::maybe_from_u64(hi) {
-                // 16-bit shifted immediate
-                insts.push(Inst::Mov64UImm16Shifted { rd, imm });
-            } else if let Some(imm) = UImm32Shifted::maybe_from_u64(hi) {
-                // 32-bit shifted immediate
-                insts.push(Inst::Mov64UImm32Shifted { rd, imm });
-            } else {
-                unreachable!();
-            }
-
-            if let Some(imm) = UImm16Shifted::maybe_from_u64(lo) {
-                // 16-bit shifted immediate
-                insts.push(Inst::Insert64UImm16Shifted {
-                    rd,
-                    ri: rd.to_reg(),
-                    imm,
-                });
-            } else if let Some(imm) = UImm32Shifted::maybe_from_u64(lo) {
-                // 32-bit shifted immediate
-                insts.push(Inst::Insert64UImm32Shifted {
-                    rd,
-                    ri: rd.to_reg(),
-                    imm,
-                });
-            } else {
-                unreachable!();
-            }
-
-            insts
-        }
-    }
-
-    /// Create an instruction that loads a 32-bit integer constant.
-    pub fn load_constant32(rd: Writable<Reg>, value: u32) -> SmallVec<[Inst; 4]> {
-        if let Ok(imm) = i16::try_from(value as i32) {
-            // 16-bit signed immediate
-            smallvec![Inst::Mov32SImm16 { rd, imm }]
-        } else {
-            // 32-bit full immediate
-            smallvec![Inst::Mov32Imm { rd, imm: value }]
-        }
-    }
-
-    /// Create an instruction that loads a 32-bit floating-point constant.
-    pub fn load_fp_constant32(rd: Writable<Reg>, value: f32) -> Inst {
-        // TODO: use LZER to load 0.0
-        Inst::LoadFpuConst32 {
-            rd,
-            const_data: value.to_bits(),
-        }
-    }
-
-    /// Create an instruction that loads a 64-bit floating-point constant.
-    pub fn load_fp_constant64(rd: Writable<Reg>, value: f64) -> Inst {
-        // TODO: use LZDR to load 0.0
-        Inst::LoadFpuConst64 {
-            rd,
-            const_data: value.to_bits(),
-        }
-    }
-
-    /// Create an instruction that loads a 128-bit floating-point constant.
-    pub fn load_vec_constant(rd: Writable<Reg>, value: u128) -> Inst {
-        // FIXME: This doesn't special-case constants that can be loaded
-        // without a constant pool, like the ISLE lowering does.  Ideally,
-        // we should not have to duplicate the logic here.
-        Inst::VecLoadConst {
-            rd,
-            const_data: value,
-        }
-    }
-
     /// Generic constructor for a load (zero-extending where appropriate).
     pub fn gen_load(into_reg: Writable<Reg>, mem: MemArg, ty: Type) -> Inst {
         match ty {
@@ -712,7 +620,7 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
             collector.reg_use(rm);
         }
         &Inst::MovPReg { rd, rm } => {
-            debug_assert!([regs::gpr(14), regs::gpr(15)].contains(&rm.into()));
+            debug_assert!([regs::gpr(0), regs::gpr(14), regs::gpr(15)].contains(&rm.into()));
             debug_assert!(rd.to_reg().is_virtual());
             collector.reg_def(rd);
         }
@@ -1009,17 +917,17 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
             collector.reg_use(rn);
         }
         &Inst::Call { link, ref info } => {
-            collector.reg_def(link);
             for u in &info.uses {
                 collector.reg_fixed_use(u.vreg, u.preg);
             }
             for d in &info.defs {
                 collector.reg_fixed_def(d.vreg, d.preg);
             }
-            collector.reg_clobbers(info.clobbers);
+            let mut clobbers = info.clobbers.clone();
+            clobbers.add(link.to_reg().to_real_reg().unwrap().into());
+            collector.reg_clobbers(clobbers);
         }
         &Inst::CallInd { link, ref info } => {
-            collector.reg_def(link);
             collector.reg_use(info.rn);
             for u in &info.uses {
                 collector.reg_fixed_use(u.vreg, u.preg);
@@ -1027,16 +935,21 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
             for d in &info.defs {
                 collector.reg_fixed_def(d.vreg, d.preg);
             }
-            collector.reg_clobbers(info.clobbers);
+            let mut clobbers = info.clobbers.clone();
+            clobbers.add(link.to_reg().to_real_reg().unwrap().into());
+            collector.reg_clobbers(clobbers);
         }
         &Inst::Args { ref args } => {
             for arg in args {
                 collector.reg_fixed_def(arg.vreg, arg.preg);
             }
         }
-        &Inst::Ret { link, ref rets } => {
-            collector.reg_use(link);
-            collector.reg_uses(&rets[..]);
+        &Inst::Ret { ref rets, .. } => {
+            // NOTE: we explicitly don't mark the link register as used here, as the use is only in
+            // the epilog where callee-save registers are restored.
+            for ret in rets {
+                collector.reg_fixed_use(ret.vreg, ret.preg);
+            }
         }
         &Inst::Jump { .. } => {}
         &Inst::IndirectBr { rn, .. } => {
@@ -1063,6 +976,12 @@ fn s390x_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandC
             for inst in body.iter() {
                 s390x_get_operands(inst, collector);
             }
+
+            // `reuse_def` constraints can't be permitted in a Loop instruction because the operand
+            // index will always be relative to the Loop instruction, not the individual
+            // instruction in the loop body. However, fixed-nonallocatable registers used with
+            // instructions that would have emitted `reuse_def` constraints are fine.
+            debug_assert!(collector.no_reuse_def());
         }
         &Inst::CondBreak { .. } => {}
         &Inst::VirtualSPOffsetAdj { .. } => {}
@@ -1104,9 +1023,17 @@ impl MachInst for Inst {
         // half-caller-save, half-callee-save SysV ABI for some vector
         // registers.
         match self {
+            &Inst::Args { .. } => false,
             &Inst::Call { ref info, .. } => info.caller_callconv != info.callee_callconv,
             &Inst::CallInd { ref info, .. } => info.caller_callconv != info.callee_callconv,
             _ => true,
+        }
+    }
+
+    fn is_trap(&self) -> bool {
+        match self {
+            Self::Trap { .. } => true,
+            _ => false,
         }
     }
 
@@ -1156,48 +1083,6 @@ impl MachInst for Inst {
         }
     }
 
-    fn gen_constant<F: FnMut(Type) -> Writable<Reg>>(
-        to_regs: ValueRegs<Writable<Reg>>,
-        value: u128,
-        ty: Type,
-        _alloc_tmp: F,
-    ) -> SmallVec<[Inst; 4]> {
-        let to_reg = to_regs
-            .only_reg()
-            .expect("multi-reg values not supported yet");
-        match ty {
-            types::I128 => {
-                let mut ret = SmallVec::new();
-                ret.push(Inst::load_vec_constant(to_reg, value));
-                ret
-            }
-            _ if ty.is_vector() && ty.bits() == 128 => {
-                let mut ret = SmallVec::new();
-                ret.push(Inst::load_vec_constant(to_reg, value));
-                ret
-            }
-            types::F64 => {
-                let mut ret = SmallVec::new();
-                ret.push(Inst::load_fp_constant64(
-                    to_reg,
-                    f64::from_bits(value as u64),
-                ));
-                ret
-            }
-            types::F32 => {
-                let mut ret = SmallVec::new();
-                ret.push(Inst::load_fp_constant32(
-                    to_reg,
-                    f32::from_bits(value as u32),
-                ));
-                ret
-            }
-            types::I64 | types::R64 => Inst::load_constant64(to_reg, value as u64),
-            types::I8 | types::I16 | types::I32 => Inst::load_constant32(to_reg, value as u32),
-            _ => unreachable!(),
-        }
-    }
-
     fn gen_nop(preferred_size: usize) -> Inst {
         if preferred_size == 0 {
             Inst::Nop0
@@ -1220,9 +1105,6 @@ impl MachInst for Inst {
             types::F64 => Ok((&[RegClass::Float], &[types::F64])),
             types::I128 => Ok((&[RegClass::Float], &[types::I128])),
             _ if ty.is_vector() && ty.bits() == 128 => Ok((&[RegClass::Float], &[types::I8X16])),
-            // FIXME: We don't really have IFLAGS, but need to allow it here
-            // for now to support the SelectifSpectreGuard instruction.
-            types::IFLAGS => Ok((&[RegClass::Int], &[types::I64])),
             _ => Err(CodegenError::Unsupported(format!(
                 "Unexpected SSA-value type: {}",
                 ty
@@ -3231,7 +3113,7 @@ impl Inst {
                 format!("{} {}, {}", op, rd, rn)
             }
             &Inst::Call { link, ref info, .. } => {
-                let link = pretty_print_reg(link.to_reg(), allocs);
+                let link = link.to_reg();
                 let tls_symbol = match &info.tls_symbol {
                     None => "".to_string(),
                     Some(SymbolReloc::TlsGd { name }) => {
@@ -3239,12 +3121,19 @@ impl Inst {
                     }
                     _ => unreachable!(),
                 };
-                format!("brasl {}, {}{}", link, info.dest.display(None), tls_symbol)
+                debug_assert_eq!(link, gpr(14));
+                format!(
+                    "brasl {}, {}{}",
+                    show_reg(link),
+                    info.dest.display(None),
+                    tls_symbol
+                )
             }
             &Inst::CallInd { link, ref info, .. } => {
-                let link = pretty_print_reg(link.to_reg(), allocs);
+                let link = link.to_reg();
                 let rn = pretty_print_reg(info.rn, allocs);
-                format!("basr {}, {}", link, rn)
+                debug_assert_eq!(link, gpr(14));
+                format!("basr {}, {}", show_reg(link), rn)
             }
             &Inst::Args { ref args } => {
                 let mut s = "args".to_string();
@@ -3256,9 +3145,16 @@ impl Inst {
                 }
                 s
             }
-            &Inst::Ret { link, .. } => {
-                let link = pretty_print_reg(link, allocs);
-                format!("br {}", link)
+            &Inst::Ret { link, ref rets } => {
+                debug_assert_eq!(link, gpr(14));
+                let mut s = format!("br {}", show_reg(link));
+                for ret in rets {
+                    use std::fmt::Write;
+                    let preg = pretty_print_reg(ret.preg, &mut empty_allocs);
+                    let vreg = pretty_print_reg(ret.vreg, allocs);
+                    write!(&mut s, " {}={}", vreg, preg).unwrap();
+                }
+                s
             }
             &Inst::Jump { dest } => {
                 let dest = dest.to_string();

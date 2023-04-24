@@ -571,9 +571,6 @@ pub(crate) fn define(
     define_simd_arithmetic(&mut ig, formats, imm, entities);
 
     // Operand kind shorthands.
-    let iflags: &TypeVar = &ValueType::Special(types::Flag::IFlags.into()).into();
-    let fflags: &TypeVar = &ValueType::Special(types::Flag::FFlags.into()).into();
-
     let i8: &TypeVar = &ValueType::from(LaneType::from(types::Int::I8)).into();
     let f32_: &TypeVar = &ValueType::from(LaneType::from(types::Float::F32)).into();
     let f64_: &TypeVar = &ValueType::from(LaneType::from(types::Float::F64)).into();
@@ -1121,36 +1118,6 @@ pub(crate) fn define(
         .operands_out(vec![a]),
     );
 
-    let HeapOffset = &TypeVar::new(
-        "HeapOffset",
-        "An unsigned heap offset",
-        TypeSetBuilder::new().ints(32..64).build(),
-    );
-
-    let H = &Operand::new("H", &entities.heap);
-    let p = &Operand::new("p", HeapOffset);
-    let Size = &Operand::new("Size", &imm.uimm32).with_doc("Size in bytes");
-
-    ig.push(
-        Inst::new(
-            "heap_addr",
-            r#"
-        Bounds check and compute absolute address of heap memory.
-
-        Verify that the offset range ``p .. p + Size - 1`` is in bounds for the
-        heap H, and generate an absolute address that is safe to dereference.
-
-        1. If ``p + Size`` is not greater than the heap bound, return an
-           absolute address corresponding to a byte offset of ``p`` from the
-           heap's base address.
-        2. If ``p + Size`` is greater than the heap bound, generate a trap.
-        "#,
-            &formats.heap_addr,
-        )
-        .operands_in(vec![H, p, Size])
-        .operands_out(vec![addr]),
-    );
-
     // Note this instruction is marked as having other side-effects, so GVN won't try to hoist it,
     // which would result in it being subject to spilling. While not hoisting would generally hurt
     // performance, since a computed value used many times may need to be regenerated before each
@@ -1422,7 +1389,10 @@ pub(crate) fn define(
         )
         .operands_in(vec![c, x, y])
         .operands_out(vec![a])
-        .other_side_effects(true),
+        .other_side_effects(true)
+        // We can de-duplicate spectre selects since the side effect is
+        // idempotent.
+        .side_effects_okay_for_gvn(true),
     );
 
     let c = &Operand::new("c", Any).with_doc("Controlling value to test");
@@ -1439,60 +1409,6 @@ pub(crate) fn define(
             &formats.ternary,
         )
         .operands_in(vec![c, x, y])
-        .operands_out(vec![a]),
-    );
-
-    let x = &Operand::new("x", TxN).with_doc("Vector to split");
-    let lo = &Operand::new("lo", &TxN.half_vector()).with_doc("Low-numbered lanes of `x`");
-    let hi = &Operand::new("hi", &TxN.half_vector()).with_doc("High-numbered lanes of `x`");
-
-    ig.push(
-        Inst::new(
-            "vsplit",
-            r#"
-        Split a vector into two halves.
-
-        Split the vector `x` into two separate values, each containing half of
-        the lanes from ``x``. The result may be two scalars if ``x`` only had
-        two lanes.
-        "#,
-            &formats.unary,
-        )
-        .operands_in(vec![x])
-        .operands_out(vec![lo, hi]),
-    );
-
-    let Any128 = &TypeVar::new(
-        "Any128",
-        "Any scalar or vector type with as most 128 lanes",
-        TypeSetBuilder::new()
-            .ints(Interval::All)
-            .floats(Interval::All)
-            .simd_lanes(1..128)
-            .includes_scalars(true)
-            .build(),
-    );
-
-    let x = &Operand::new("x", Any128).with_doc("Low-numbered lanes");
-    let y = &Operand::new("y", Any128).with_doc("High-numbered lanes");
-    let a = &Operand::new("a", &Any128.double_vector()).with_doc("Concatenation of `x` and `y`");
-
-    ig.push(
-        Inst::new(
-            "vconcat",
-            r#"
-        Vector concatenation.
-
-        Return a vector formed by concatenating ``x`` and ``y``. The resulting
-        vector type has twice as many lanes as each of the inputs. The lanes of
-        ``x`` appear as the low-numbered lanes, and the lanes of ``y`` become
-        the high-numbered lanes of ``a``.
-
-        It is possible to form a vector by concatenating two scalars.
-        "#,
-            &formats.binary,
-        )
-        .operands_in(vec![x, y])
         .operands_out(vec![a]),
     );
 
@@ -1616,40 +1532,6 @@ pub(crate) fn define(
         )
         .operands_in(vec![Cond, x, Y])
         .operands_out(vec![a]),
-    );
-
-    let f = &Operand::new("f", iflags);
-    let x = &Operand::new("x", iB);
-    let y = &Operand::new("y", iB);
-
-    ig.push(
-        Inst::new(
-            "ifcmp",
-            r#"
-        Compare scalar integers and return flags.
-
-        Compare two scalar integer values and return integer CPU flags
-        representing the result.
-        "#,
-            &formats.binary,
-        )
-        .operands_in(vec![x, y])
-        .operands_out(vec![f]),
-    );
-
-    ig.push(
-        Inst::new(
-            "ifcmp_imm",
-            r#"
-        Compare scalar integer to a constant and return flags.
-
-        Like `icmp_imm`, but returns integer CPU flags instead of testing
-        a specific condition code.
-        "#,
-            &formats.binary_imm64,
-        )
-        .operands_in(vec![x, Y])
-        .operands_out(vec![f]),
     );
 
     let a = &Operand::new("a", Int);
@@ -1990,11 +1872,6 @@ pub(crate) fn define(
     let b_in = &Operand::new("b_in", i8).with_doc("Input borrow flag");
     let b_out = &Operand::new("b_out", i8).with_doc("Output borrow flag");
 
-    let c_if_in = &Operand::new("c_in", iflags);
-    let c_if_out = &Operand::new("c_out", iflags);
-    let b_if_in = &Operand::new("b_in", iflags);
-    let b_if_out = &Operand::new("b_out", iflags);
-
     ig.push(
         Inst::new(
             "iadd_cin",
@@ -2013,27 +1890,6 @@ pub(crate) fn define(
             &formats.ternary,
         )
         .operands_in(vec![x, y, c_in])
-        .operands_out(vec![a]),
-    );
-
-    ig.push(
-        Inst::new(
-            "iadd_ifcin",
-            r#"
-        Add integers with carry in.
-
-        Same as `iadd` with an additional carry flag input. Computes:
-
-        ```text
-            a = x + y + c_{in} \pmod 2^B
-        ```
-
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
-        "#,
-            &formats.ternary,
-        )
-        .operands_in(vec![x, y, c_if_in])
         .operands_out(vec![a]),
     );
 
@@ -2061,28 +1917,6 @@ pub(crate) fn define(
 
     ig.push(
         Inst::new(
-            "iadd_ifcout",
-            r#"
-        Add integers with carry out.
-
-        Same as `iadd` with an additional carry flag output.
-
-        ```text
-            a &= x + y \pmod 2^B \\
-            c_{out} &= x+y >= 2^B
-        ```
-
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
-        "#,
-            &formats.binary,
-        )
-        .operands_in(vec![x, y])
-        .operands_out(vec![a, c_if_out]),
-    );
-
-    ig.push(
-        Inst::new(
             "iadd_carry",
             r#"
         Add integers with carry in and out.
@@ -2101,28 +1935,6 @@ pub(crate) fn define(
         )
         .operands_in(vec![x, y, c_in])
         .operands_out(vec![a, c_out]),
-    );
-
-    ig.push(
-        Inst::new(
-            "iadd_ifcarry",
-            r#"
-        Add integers with carry in and out.
-
-        Same as `iadd` with an additional carry flag input and output.
-
-        ```text
-            a &= x + y + c_{in} \pmod 2^B \\
-            c_{out} &= x + y + c_{in} >= 2^B
-        ```
-
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
-        "#,
-            &formats.ternary,
-        )
-        .operands_in(vec![x, y, c_if_in])
-        .operands_out(vec![a, c_if_out]),
     );
 
     {
@@ -2176,27 +1988,6 @@ pub(crate) fn define(
 
     ig.push(
         Inst::new(
-            "isub_ifbin",
-            r#"
-        Subtract integers with borrow in.
-
-        Same as `isub` with an additional borrow flag input. Computes:
-
-        ```text
-            a = x - (y + b_{in}) \pmod 2^B
-        ```
-
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
-        "#,
-            &formats.ternary,
-        )
-        .operands_in(vec![x, y, b_if_in])
-        .operands_out(vec![a]),
-    );
-
-    ig.push(
-        Inst::new(
             "isub_bout",
             r#"
         Subtract integers with borrow out.
@@ -2219,28 +2010,6 @@ pub(crate) fn define(
 
     ig.push(
         Inst::new(
-            "isub_ifbout",
-            r#"
-        Subtract integers with borrow out.
-
-        Same as `isub` with an additional borrow flag output.
-
-        ```text
-            a &= x - y \pmod 2^B \\
-            b_{out} &= x < y
-        ```
-
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
-        "#,
-            &formats.binary,
-        )
-        .operands_in(vec![x, y])
-        .operands_out(vec![a, b_if_out]),
-    );
-
-    ig.push(
-        Inst::new(
             "isub_borrow",
             r#"
         Subtract integers with borrow in and out.
@@ -2259,28 +2028,6 @@ pub(crate) fn define(
         )
         .operands_in(vec![x, y, b_in])
         .operands_out(vec![a, b_out]),
-    );
-
-    ig.push(
-        Inst::new(
-            "isub_ifborrow",
-            r#"
-        Subtract integers with borrow in and out.
-
-        Same as `isub` with an additional borrow flag input and output.
-
-        ```text
-            a &= x - (y + b_{in}) \pmod 2^B \\
-            b_{out} &= x < y + b_{in}
-        ```
-
-        Polymorphic over all scalar integer types, but does not support vector
-        types.
-        "#,
-            &formats.ternary,
-        )
-        .operands_in(vec![x, y, b_if_in])
-        .operands_out(vec![a, b_if_out]),
     );
 
     let bits = &TypeVar::new(
@@ -2795,23 +2542,6 @@ pub(crate) fn define(
         .operands_out(vec![a]),
     );
 
-    let f = &Operand::new("f", fflags);
-
-    ig.push(
-        Inst::new(
-            "ffcmp",
-            r#"
-        Floating point comparison returning flags.
-
-        Compares two numbers like `fcmp`, but returns floating point CPU
-        flags instead of testing a specific condition.
-        "#,
-            &formats.binary,
-        )
-        .operands_in(vec![x, y])
-        .operands_out(vec![f]),
-    );
-
     let x = &Operand::new("x", Float);
     let y = &Operand::new("y", Float);
     let z = &Operand::new("z", Float);
@@ -3104,6 +2834,7 @@ pub(crate) fn define(
 
     let x = &Operand::new("x", Mem);
     let a = &Operand::new("a", MemTo).with_doc("Bits of `x` reinterpreted");
+    let MemFlags = &Operand::new("MemFlags", &imm.memflags);
 
     ig.push(
         Inst::new(
@@ -3113,11 +2844,16 @@ pub(crate) fn define(
 
         The input and output types must be storable to memory and of the same
         size. A bitcast is equivalent to storing one type and loading the other
-        type from the same address.
+        type from the same address, both using the specified MemFlags.
+
+        Note that this operation only supports the `big` or `little` MemFlags.
+        The specified byte order only affects the result in the case where
+        input and output types differ in lane count/size.  In this case, the
+        operation is only valid if a byte order specifier is provided.
         "#,
-            &formats.unary,
+            &formats.load_no_offset,
         )
-        .operands_in(vec![x])
+        .operands_in(vec![MemFlags, x])
         .operands_out(vec![a]),
     );
 
@@ -3472,8 +3208,7 @@ pub(crate) fn define(
         - `f32` and `f64`. This may change in the future.
 
         The result type must have the same number of vector lanes as the input,
-        and the result lanes must not have fewer bits than the input lanes. If
-        the input and output types are the same, this is a no-op.
+        and the result lanes must not have fewer bits than the input lanes.
         "#,
             &formats.unary,
         )
@@ -3494,8 +3229,7 @@ pub(crate) fn define(
         - `f32` and `f64`. This may change in the future.
 
         The result type must have the same number of vector lanes as the input,
-        and the result lanes must not have more bits than the input lanes. If
-        the input and output types are the same, this is a no-op.
+        and the result lanes must not have more bits than the input lanes.
         "#,
             &formats.unary,
         )

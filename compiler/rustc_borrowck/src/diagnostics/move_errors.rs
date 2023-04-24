@@ -448,7 +448,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                 };
                 self.note_type_does_not_implement_copy(err, &place_desc, place_ty, Some(span), "");
 
-                use_spans.args_span_label(err, format!("move out of {place_desc} occurs here"));
+                use_spans.args_span_label(err, format!("{place_desc} is moved here"));
             }
         }
     }
@@ -467,7 +467,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                 err.span_suggestion_verbose(
                     span.shrink_to_lo(),
                     "consider borrowing here",
-                    "&".to_string(),
+                    '&',
                     Applicability::MaybeIncorrect,
                 );
             }

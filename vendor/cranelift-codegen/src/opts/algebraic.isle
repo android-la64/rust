@@ -145,30 +145,14 @@
       (iadd ty x x))
 
 ;; x<<32>>32: uextend/sextend 32->64.
-(rule (simplify (ushr $I64 (ishl $I64 (uextend $I64 x @ (eclass_type $I32)) (iconst _ (simm32 32))) (iconst _ (simm32 32))))
+(rule (simplify (ushr $I64 (ishl $I64 (uextend $I64 x @ (value_type $I32)) (iconst _ (simm32 32))) (iconst _ (simm32 32))))
       (uextend $I64 x))
 
-(rule (simplify (sshr $I64 (ishl $I64 (uextend $I64 x @ (eclass_type $I32)) (iconst _ (simm32 32))) (iconst _ (simm32 32))))
+(rule (simplify (sshr $I64 (ishl $I64 (uextend $I64 x @ (value_type $I32)) (iconst _ (simm32 32))) (iconst _ (simm32 32))))
       (sextend $I64 x))
 
 ;; TODO: strength reduction: mul/div to shifts
 ;; TODO: div/rem by constants -> magic multiplications
-
-;; Reassociate when it benefits LICM.
-(rule (simplify (iadd ty (iadd ty x y) z))
-      (if-let (at_loop_level lx _) x)
-      (if-let (at_loop_level ly _) y)
-      (if-let (at_loop_level lz _) z)
-      (if (u8_lt lx ly))
-      (if (u8_lt lz ly))
-      (iadd ty (iadd ty x z) y))
-(rule (simplify (iadd ty (iadd ty x y) z))
-      (if-let (at_loop_level lx _) x)
-      (if-let (at_loop_level ly _) y)
-      (if-let (at_loop_level lz _) z)
-      (if (u8_lt ly lx))
-      (if (u8_lt lz lx))
-      (iadd ty (iadd ty y z) x))
 
 ;; Rematerialize ALU-op-with-imm and iconsts in each block where they're
 ;; used. This is neutral (add-with-imm) or positive (iconst) for
@@ -201,3 +185,58 @@
       (remat x))
 (rule (simplify x @ (f64const _ _))
       (remat x))
+
+;; Optimize icmp-of-icmp.
+(rule (simplify (icmp ty
+                      (IntCC.NotEqual)
+                      (uextend _ inner @ (icmp ty _ _ _))
+                      (iconst _ (u64_from_imm64 0))))
+      (subsume inner))
+
+(rule (simplify (icmp ty
+                      (IntCC.Equal)
+                      (uextend _ (icmp ty cc x y))
+                      (iconst _ (u64_from_imm64 0))))
+      (subsume (icmp ty (intcc_inverse cc) x y)))
+
+;; Optimize select-of-uextend-of-icmp to select-of-icmp, because
+;; select can take an I8 condition too.
+(rule (simplify
+       (select ty (uextend _ c @ (icmp _ _ _ _)) x y))
+      (select ty c x y))
+(rule (simplify
+       (select ty (uextend _ c @ (icmp _ _ _ _)) x y))
+      (select ty c x y))
+
+;; `x == x` is always true for integers; `x != x` is false. Strict
+;; inequalities are false, and loose inequalities are true.
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.Equal) x x))
+      (iconst ty (imm64 1)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.NotEqual) x x))
+      (iconst ty (imm64 0)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.UnsignedGreaterThan) x x))
+      (iconst ty (imm64 0)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.UnsignedGreaterThanOrEqual) x x))
+      (iconst ty (imm64 1)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.SignedGreaterThan) x x))
+      (iconst ty (imm64 0)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.SignedGreaterThanOrEqual) x x))
+      (iconst ty (imm64 1)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.UnsignedLessThan) x x))
+      (iconst ty (imm64 0)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.UnsignedLessThanOrEqual) x x))
+      (iconst ty (imm64 1)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.SignedLessThan) x x))
+      (iconst ty (imm64 0)))
+(rule (simplify
+       (icmp (ty_int ty) (IntCC.SignedLessThanOrEqual) x x))
+      (iconst ty (imm64 1)))

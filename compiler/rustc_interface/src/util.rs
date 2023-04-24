@@ -1,3 +1,4 @@
+use crate::errors;
 use info;
 use libloading::Library;
 use rustc_ast as ast;
@@ -13,8 +14,8 @@ use rustc_session::filesearch::sysroot_candidates;
 use rustc_session::lint::{self, BuiltinLintDiagnostics, LintBuffer};
 use rustc_session::parse::CrateConfig;
 use rustc_session::{early_error, filesearch, output, Session};
+use rustc_span::edit_distance::find_best_match_for_name;
 use rustc_span::edition::Edition;
-use rustc_span::lev_distance::find_best_match_for_name;
 use rustc_span::source_map::FileLoader;
 use rustc_span::symbol::{sym, Symbol};
 use session::CompilerIO;
@@ -58,6 +59,7 @@ pub fn create_session(
     sopts: config::Options,
     cfg: FxHashSet<(String, Option<String>)>,
     check_cfg: CheckCfg,
+    locale_resources: &'static [&'static str],
     file_loader: Option<Box<dyn FileLoader + Send + Sync + 'static>>,
     io: CompilerIO,
     lint_caps: FxHashMap<lint::LintId, lint::Level>,
@@ -88,11 +90,15 @@ pub fn create_session(
         }
     };
 
+    let mut locale_resources = Vec::from(locale_resources);
+    locale_resources.push(codegen_backend.locale_resource());
+
     let mut sess = session::build_session(
         sopts,
         io,
         bundle,
         descriptions,
+        locale_resources,
         lint_caps,
         file_loader,
         target_override,
@@ -472,16 +478,15 @@ pub fn collect_crate_types(session: &Session, attrs: &[ast::Attribute]) -> Vec<C
     }
 
     base.retain(|crate_type| {
-        let res = !output::invalid_output_for_target(session, *crate_type);
-
-        if !res {
-            session.warn(&format!(
-                "dropping unsupported crate type `{}` for target `{}`",
-                *crate_type, session.opts.target_triple
-            ));
+        if output::invalid_output_for_target(session, *crate_type) {
+            session.emit_warning(errors::UnsupportedCrateTypeForTarget {
+                crate_type: *crate_type,
+                target_triple: &session.opts.target_triple,
+            });
+            false
+        } else {
+            true
         }
-
-        res
     });
 
     base
@@ -517,19 +522,16 @@ pub fn build_output_filenames(attrs: &[ast::Attribute], sess: &Session) -> Outpu
             let unnamed_output_types =
                 sess.opts.output_types.values().filter(|a| a.is_none()).count();
             let ofile = if unnamed_output_types > 1 {
-                sess.warn(
-                    "due to multiple output types requested, the explicitly specified \
-                     output file name will be adapted for each output type",
-                );
+                sess.emit_warning(errors::MultipleOutputTypesAdaption);
                 None
             } else {
                 if !sess.opts.cg.extra_filename.is_empty() {
-                    sess.warn("ignoring -C extra-filename flag due to -o flag");
+                    sess.emit_warning(errors::IgnoringExtraFilename);
                 }
                 Some(out_file.clone())
             };
             if sess.io.output_dir != None {
-                sess.warn("ignoring --out-dir flag due to -o flag");
+                sess.emit_warning(errors::IgnoringOutDir);
             }
 
             OutputFilenames::new(

@@ -10,7 +10,7 @@ use rustc_middle::mir::visit::{MutatingUseContext, NonMutatingUseContext, PlaceC
 use rustc_middle::mir::*;
 use rustc_middle::ty::subst::{GenericArgKind, InternalSubsts};
 use rustc_middle::ty::{self, adjustment::PointerCast, Instance, InstanceDef, Ty, TyCtxt};
-use rustc_middle::ty::{Binder, TraitRef, TypeVisitable};
+use rustc_middle::ty::{Binder, TraitRef, TypeVisitableExt};
 use rustc_mir_dataflow::{self, Analysis};
 use rustc_span::{sym, Span, Symbol};
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt as _;
@@ -332,7 +332,7 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
 
     fn check_static(&mut self, def_id: DefId, span: Span) {
         if self.tcx.is_thread_local_static(def_id) {
-            self.tcx.sess.delay_span_bug(span, "tls access is checked in `Rvalue::ThreadLocalRef");
+            self.tcx.sess.delay_span_bug(span, "tls access is checked in `Rvalue::ThreadLocalRef`");
         }
         self.check_op_spanned(ops::StaticAccess, span)
     }
@@ -453,7 +453,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
 
             Rvalue::Aggregate(kind, ..) => {
                 if let AggregateKind::Generator(def_id, ..) = kind.as_ref()
-                    && let Some(generator_kind @ hir::GeneratorKind::Async(..)) = self.tcx.generator_kind(def_id.to_def_id())
+                    && let Some(generator_kind @ hir::GeneratorKind::Async(..)) = self.tcx.generator_kind(def_id)
                 {
                     self.check_op(ops::Generator(generator_kind));
                 }
@@ -473,7 +473,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                     // that this is merely a ZST and it is already eligible for promotion.
                     // This may require an RFC?
                     /*
-                    ty::Array(_, len) if len.try_eval_usize(cx.tcx, cx.param_env) == Some(0)
+                    ty::Array(_, len) if len.try_eval_target_usize(cx.tcx, cx.param_env) == Some(0)
                         => true,
                     */
                     _ => false,
@@ -693,6 +693,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
             | StatementKind::AscribeUserType(..)
             | StatementKind::Coverage(..)
             | StatementKind::Intrinsic(..)
+            | StatementKind::ConstEvalCounter
             | StatementKind::Nop => {}
         }
     }
@@ -754,12 +755,9 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                         let ocx = ObligationCtxt::new(&infcx);
 
                         let predicates = tcx.predicates_of(callee).instantiate(tcx, substs);
-                        let hir_id = tcx
-                            .hir()
-                            .local_def_id_to_hir_id(self.body.source.def_id().expect_local());
                         let cause = ObligationCause::new(
                             terminator.source_info.span,
-                            hir_id,
+                            self.body.source.def_id().expect_local(),
                             ObligationCauseCode::ItemObligation(callee),
                         );
                         let normalized_predicates = ocx.normalize(&cause, param_env, predicates);

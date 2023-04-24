@@ -4,8 +4,8 @@ goto: "file://" + |DOC_PATH| + "/test_docs/index.html"
 show-text: true
 
 compare-elements-property: (
-    "//a[@title='test_docs::safe_fn fn']/..",
-    "//a[@title='test_docs::unsafe_fn fn']/..",
+    "//a[@title='fn test_docs::safe_fn']/..",
+    "//a[@title='fn test_docs::unsafe_fn']/..",
     ["clientHeight"]
 )
 
@@ -19,7 +19,7 @@ define-function: (
         local-storage: {"rustdoc-theme": |theme|, "rustdoc-use-system-theme": "false"}
         // We reload the page so the local storage settings are being used.
         reload:
-        assert-css: (".item-left sup", {"color": |color|})
+        assert-css: (".item-name sup", {"color": |color|})
     },
 )
 

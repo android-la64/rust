@@ -20,7 +20,6 @@ use cargo_util::{paths, ProcessBuilder};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::hash_map::{Entry, HashMap};
-use std::env;
 use std::path::{Path, PathBuf};
 use std::str::{self, FromStr};
 
@@ -473,6 +472,25 @@ impl TargetInfo {
                     // preserved.
                     should_replace_hyphens: true,
                 })
+            } else {
+                // Because DWARF Package (dwp) files are produced after the
+                // fact by another tool, there is nothing in the binary that
+                // provides a means to locate them. By convention, debuggers
+                // take the binary filename and append ".dwp" (including to
+                // binaries that already have an extension such as shared libs)
+                // to find the dwp.
+                ret.push(FileType {
+                    // It is important to preserve the existing suffix for
+                    // e.g. shared libraries, where the dwp for libfoo.so is
+                    // expected to be at libfoo.so.dwp.
+                    suffix: format!("{suffix}.dwp"),
+                    prefix: prefix.clone(),
+                    flavor: FileFlavor::DebugInfo,
+                    crate_type: Some(crate_type.clone()),
+                    // Likewise, the dwp needs to match the primary artifact's
+                    // hyphenation exactly.
+                    should_replace_hyphens: crate_type != CrateType::Bin,
+                })
             }
         }
 
@@ -712,7 +730,7 @@ fn extra_args(
     // NOTE: It is impossible to have a [host] section and reach this logic with kind.is_host(),
     // since [host] implies `target-applies-to-host = false`, which always early-returns above.
 
-    if let Some(rustflags) = rustflags_from_env(flags) {
+    if let Some(rustflags) = rustflags_from_env(config, flags) {
         Ok(rustflags)
     } else if let Some(rustflags) =
         rustflags_from_target(config, host_triple, target_cfg, kind, flags)?
@@ -727,10 +745,10 @@ fn extra_args(
 
 /// Gets compiler flags from environment variables.
 /// See [`extra_args`] for more.
-fn rustflags_from_env(flags: Flags) -> Option<Vec<String>> {
+fn rustflags_from_env(config: &Config, flags: Flags) -> Option<Vec<String>> {
     // First try CARGO_ENCODED_RUSTFLAGS from the environment.
     // Prefer this over RUSTFLAGS since it's less prone to encoding errors.
-    if let Ok(a) = env::var(format!("CARGO_ENCODED_{}", flags.as_env())) {
+    if let Ok(a) = config.get_env(format!("CARGO_ENCODED_{}", flags.as_env())) {
         if a.is_empty() {
             return Some(Vec::new());
         }
@@ -738,7 +756,7 @@ fn rustflags_from_env(flags: Flags) -> Option<Vec<String>> {
     }
 
     // Then try RUSTFLAGS from the environment
-    if let Ok(a) = env::var(flags.as_env()) {
+    if let Ok(a) = config.get_env(flags.as_env()) {
         let args = a
             .split(' ')
             .map(str::trim)
@@ -836,7 +854,7 @@ pub struct RustcTargetData<'cfg> {
     pub rustc: Rustc,
 
     /// Config
-    config: &'cfg Config,
+    pub config: &'cfg Config,
     requested_kinds: Vec<CompileKind>,
 
     /// Build information for the "host", which is information about when
@@ -966,10 +984,22 @@ impl<'cfg> RustcTargetData<'cfg> {
     }
 
     /// Information about the given target platform, learned by querying rustc.
+    ///
+    /// # Panics
+    ///
+    /// Panics, if the target platform described by `kind` can't be found.
+    /// See [`get_info`](Self::get_info) for a non-panicking alternative.
     pub fn info(&self, kind: CompileKind) -> &TargetInfo {
+        self.get_info(kind).unwrap()
+    }
+
+    /// Information about the given target platform, learned by querying rustc.
+    ///
+    /// Returns `None` if the target platform described by `kind` can't be found.
+    pub fn get_info(&self, kind: CompileKind) -> Option<&TargetInfo> {
         match kind {
-            CompileKind::Host => &self.host_info,
-            CompileKind::Target(s) => &self.target_info[&s],
+            CompileKind::Host => Some(&self.host_info),
+            CompileKind::Target(s) => self.target_info.get(&s),
         }
     }
 

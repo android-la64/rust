@@ -34,7 +34,7 @@
 //!
 //! # Cargo features
 //!
-//! This crate has five optional features:
+//! This crate has several optional Cargo features:
 //!  -  `serde`: Allows serializing and deserializing `zerovec`'s abstractions via [`serde`](https://docs.rs/serde)
 //!  -   `yoke`: Enables implementations of `Yokeable` from the [`yoke`](https://docs.rs/yoke/) crate, which is also useful
 //!              in situations involving a lot of zero-copy deserialization.
@@ -270,6 +270,8 @@ pub mod maps {
     pub use crate::map2d::ZeroMap2dBorrowed;
 
     pub use crate::map::{MutableZeroVecLike, ZeroMapKV, ZeroVecLike};
+
+    pub use crate::map2d::ZeroMap2dCursor;
 }
 
 pub mod vecs {
@@ -395,8 +397,9 @@ pub use zerovec_derive::make_ule;
 /// Generate a corresponding [`VarULE`] type and the relevant [`EncodeAsVarULE`]/[`zerofrom::ZeroFrom`]
 /// implementations for this type
 ///
-/// This can be attached to structs containing only [`AsULE`] types with the last field being [`Cow<'a, str>`](alloc::borrow::Cow),
-/// [`Cow<'a, str>`](alloc::borrow::Cow), [`ZeroSlice`], or [`VarZeroSlice`].
+/// This can be attached to structs containing only [`AsULE`] types with the last fields being
+/// [`Cow<'a, str>`](alloc::borrow::Cow), [`ZeroSlice`], or [`VarZeroSlice`]. If there is more than one such field, it will be represented
+/// using [`MultiFieldsULE`](crate::ule::MultiFieldsULE) and getters will be generated.
 ///
 /// The type must be [`PartialEq`] and [`Eq`].
 ///

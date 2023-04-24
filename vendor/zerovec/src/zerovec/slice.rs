@@ -65,12 +65,10 @@ where
     /// `bytes` need to be an output from [`ZeroSlice::as_bytes()`].
     pub const unsafe fn from_bytes_unchecked(bytes: &[u8]) -> &Self {
         // &[u8] and &[T::ULE] are the same slice with different length metadata.
-        /// core::slice::from_raw_parts(a, b) = core::mem::transmute((a, b)) hack
-        /// ```compile_fail
-        /// const unsafe fn canary() { core::slice::from_raw_parts(0 as *const u8, 0); }
-        /// ```
-        const _: () = ();
-        core::mem::transmute((bytes.as_ptr(), bytes.len() / core::mem::size_of::<T::ULE>()))
+        Self::from_ule_slice(core::mem::transmute((
+            bytes.as_ptr(),
+            bytes.len() / core::mem::size_of::<T::ULE>(),
+        )))
     }
 
     /// Construct a `&ZeroSlice<T>` from a slice of ULEs.
@@ -235,17 +233,17 @@ where
     /// ```
     /// use zerovec::ZeroSlice;
     ///
-    /// const bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
-    /// const zs_u16: &ZeroSlice<u16> = {
-    ///     match ZeroSlice::<u16>::try_from_bytes(bytes) {
+    /// const BYTES: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
+    /// const ZS_U16: &ZeroSlice<u16> = {
+    ///     match ZeroSlice::<u16>::try_from_bytes(BYTES) {
     ///         Ok(s) => s,
     ///         Err(_) => unreachable!(),
     ///     }
     /// };
     ///
-    /// let zs_i16: &ZeroSlice<i16> = zs_u16.cast();
+    /// let zs_i16: &ZeroSlice<i16> = ZS_U16.cast();
     ///
-    /// assert_eq!(zs_u16.get(3), Some(32973));
+    /// assert_eq!(ZS_U16.get(3), Some(32973));
     /// assert_eq!(zs_i16.get(3), Some(-32563));
     /// ```
     #[inline]
@@ -268,18 +266,18 @@ where
     /// ```
     /// use zerovec::ZeroSlice;
     ///
-    /// const bytes: &[u8] = &[0x7F, 0xF3, 0x01, 0x00, 0x49, 0xF6, 0x01, 0x00];
-    /// const zs_u32: &ZeroSlice<u32> = {
-    ///     match ZeroSlice::<u32>::try_from_bytes(bytes) {
+    /// const BYTES: &[u8] = &[0x7F, 0xF3, 0x01, 0x00, 0x49, 0xF6, 0x01, 0x00];
+    /// const ZS_U32: &ZeroSlice<u32> = {
+    ///     match ZeroSlice::<u32>::try_from_bytes(BYTES) {
     ///         Ok(s) => s,
     ///         Err(_) => unreachable!(),
     ///     }
     /// };
     ///
     /// let zs_u8_4: &ZeroSlice<[u8; 4]> =
-    ///     zs_u32.try_as_converted().expect("valid code points");
+    ///     ZS_U32.try_as_converted().expect("valid code points");
     ///
-    /// assert_eq!(zs_u32.get(0), Some(127871));
+    /// assert_eq!(ZS_U32.get(0), Some(127871));
     /// assert_eq!(zs_u8_4.get(0), Some([0x7F, 0xF3, 0x01, 0x00]));
     /// ```
     #[inline]

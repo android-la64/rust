@@ -1,30 +1,43 @@
+use nom8::bytes::one_of;
+use nom8::combinator::cut;
+use nom8::multi::separated_list0;
+use nom8::sequence::delimited;
+
 use crate::key::Key;
 use crate::parser::errors::CustomError;
 use crate::parser::key::key;
-use crate::parser::table::extend_wrong_type;
+use crate::parser::prelude::*;
 use crate::parser::trivia::ws;
 use crate::parser::value::value;
 use crate::table::TableKeyValue;
-use crate::{InlineTable, InternalString, Item, Value};
-use combine::parser::byte::byte;
-use combine::stream::RangeStream;
-use combine::*;
+use crate::{InlineTable, InternalString, Item, RawString, Value};
+
 use indexmap::map::Entry;
 
 // ;; Inline Table
 
 // inline-table = inline-table-open inline-table-keyvals inline-table-close
-parse!(inline_table() -> InlineTable, {
-    between(byte(INLINE_TABLE_OPEN), byte(INLINE_TABLE_CLOSE),
-            inline_table_keyvals().and_then(|(kv, p)| table_from_pairs(kv, p)))
-});
+pub(crate) fn inline_table(
+    check: RecursionCheck,
+) -> impl FnMut(Input<'_>) -> IResult<Input<'_>, InlineTable, ParserError<'_>> {
+    move |input| {
+        delimited(
+            INLINE_TABLE_OPEN,
+            cut(inline_table_keyvals(check).map_res(|(kv, p)| table_from_pairs(kv, p))),
+            cut(INLINE_TABLE_CLOSE)
+                .context(Context::Expression("inline table"))
+                .context(Context::Expected(ParserValue::CharLiteral('}'))),
+        )
+        .parse(input)
+    }
+}
 
 fn table_from_pairs(
     v: Vec<(Vec<Key>, TableKeyValue)>,
-    preamble: &str,
+    preamble: RawString,
 ) -> Result<InlineTable, CustomError> {
     let mut root = InlineTable::new();
-    root.preamble = InternalString::from(preamble);
+    root.set_preamble(preamble);
     // Assuming almost all pairs will be directly in `root`
     root.items.reserve(v.len());
 
@@ -62,7 +75,7 @@ fn descend_path<'a>(
                 table = sweet_child_of_mine;
             }
             ref v => {
-                return Err(extend_wrong_type(path, i, v.type_name()));
+                return Err(CustomError::extend_wrong_type(path, i, v.type_name()));
             }
         }
     }
@@ -83,30 +96,91 @@ pub(crate) const KEYVAL_SEP: u8 = b'=';
 // ( key keyval-sep val inline-table-sep inline-table-keyvals-non-empty ) /
 // ( key keyval-sep val )
 
-parse!(inline_table_keyvals() -> (Vec<(Vec<Key>, TableKeyValue)>, &'a str), {
-    (
-        sep_by(keyval(), byte(INLINE_TABLE_SEP)),
-        ws(),
-    )
-});
-
-parse!(keyval() -> (Vec<Key>, TableKeyValue), {
-    (
-        key(),
-        byte(KEYVAL_SEP),
-        (ws(), value(), ws()),
-    ).map(|(key, _, v)| {
-        let mut path = key;
-        let key = path.pop().expect("grammar ensures at least 1");
-
-        let (pre, v, suf) = v;
-        let v = v.decorated(pre, suf);
+fn inline_table_keyvals(
+    check: RecursionCheck,
+) -> impl FnMut(
+    Input<'_>,
+) -> IResult<Input<'_>, (Vec<(Vec<Key>, TableKeyValue)>, RawString), ParserError<'_>> {
+    move |input| {
+        let check = check.recursing(input)?;
         (
-            path,
-            TableKeyValue {
-                key,
-                value: Item::Value(v),
-            }
+            separated_list0(INLINE_TABLE_SEP, keyval(check)),
+            ws.span().map(RawString::with_span),
         )
-    })
-});
+            .parse(input)
+    }
+}
+
+fn keyval(
+    check: RecursionCheck,
+) -> impl FnMut(Input<'_>) -> IResult<Input<'_>, (Vec<Key>, TableKeyValue), ParserError<'_>> {
+    move |input| {
+        (
+            key,
+            cut((
+                one_of(KEYVAL_SEP)
+                    .context(Context::Expected(ParserValue::CharLiteral('.')))
+                    .context(Context::Expected(ParserValue::CharLiteral('='))),
+                (ws.span(), value(check), ws.span()),
+            )),
+        )
+            .map(|(key, (_, v))| {
+                let mut path = key;
+                let key = path.pop().expect("grammar ensures at least 1");
+
+                let (pre, v, suf) = v;
+                let pre = RawString::with_span(pre);
+                let suf = RawString::with_span(suf);
+                let v = v.decorated(pre, suf);
+                (
+                    path,
+                    TableKeyValue {
+                        key,
+                        value: Item::Value(v),
+                    },
+                )
+            })
+            .parse(input)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn inline_tables() {
+        let inputs = [
+            r#"{}"#,
+            r#"{   }"#,
+            r#"{a = 1e165}"#,
+            r#"{ hello = "world", a = 1}"#,
+            r#"{ hello.world = "a" }"#,
+        ];
+        for input in inputs {
+            dbg!(input);
+            let mut parsed = inline_table(Default::default())
+                .parse(new_input(input))
+                .finish();
+            if let Ok(parsed) = &mut parsed {
+                parsed.despan(input);
+            }
+            assert_eq!(parsed.map(|a| a.to_string()), Ok(input.to_owned()));
+        }
+    }
+
+    #[test]
+    fn invalid_inline_tables() {
+        let invalid_inputs = [r#"{a = 1e165"#, r#"{ hello = "world", a = 2, hello = 1}"#];
+        for input in invalid_inputs {
+            dbg!(input);
+            let mut parsed = inline_table(Default::default())
+                .parse(new_input(input))
+                .finish();
+            if let Ok(parsed) = &mut parsed {
+                parsed.despan(input);
+            }
+            assert!(parsed.is_err());
+        }
+    }
+}
