@@ -138,19 +138,19 @@ static int commit_graph_parse_oid_lookup(
 		struct git_commit_graph_chunk *chunk_oid_lookup)
 {
 	uint32_t i;
-	unsigned char *oid, *prev_oid, zero_oid[GIT_OID_RAWSZ] = {0};
+	unsigned char *oid, *prev_oid, zero_oid[GIT_OID_SHA1_SIZE] = {0};
 
 	if (chunk_oid_lookup->offset == 0)
 		return commit_graph_error("missing OID Lookup chunk");
 	if (chunk_oid_lookup->length == 0)
 		return commit_graph_error("empty OID Lookup chunk");
-	if (chunk_oid_lookup->length != file->num_commits * GIT_OID_RAWSZ)
+	if (chunk_oid_lookup->length != file->num_commits * GIT_OID_SHA1_SIZE)
 		return commit_graph_error("OID Lookup chunk has wrong length");
 
 	file->oid_lookup = oid = (unsigned char *)(data + chunk_oid_lookup->offset);
 	prev_oid = zero_oid;
-	for (i = 0; i < file->num_commits; ++i, oid += GIT_OID_RAWSZ) {
-		if (git_oid_raw_cmp(prev_oid, oid) >= 0)
+	for (i = 0; i < file->num_commits; ++i, oid += GIT_OID_SHA1_SIZE) {
+		if (git_oid_raw_cmp(prev_oid, oid, GIT_OID_SHA1_SIZE) >= 0)
 			return commit_graph_error("OID Lookup index is non-monotonic");
 		prev_oid = oid;
 	}
@@ -167,7 +167,7 @@ static int commit_graph_parse_commit_data(
 		return commit_graph_error("missing Commit Data chunk");
 	if (chunk_commit_data->length == 0)
 		return commit_graph_error("empty Commit Data chunk");
-	if (chunk_commit_data->length != file->num_commits * (GIT_OID_RAWSZ + 16))
+	if (chunk_commit_data->length != file->num_commits * (GIT_OID_SHA1_SIZE + 16))
 		return commit_graph_error("Commit Data chunk has wrong length");
 
 	file->commit_data = data + chunk_commit_data->offset;
@@ -200,8 +200,7 @@ int git_commit_graph_file_parse(
 	const unsigned char *chunk_hdr;
 	struct git_commit_graph_chunk *last_chunk;
 	uint32_t i;
-	off64_t last_chunk_offset, chunk_offset, trailer_offset;
-	unsigned char checksum[GIT_HASH_SHA1_SIZE];
+	uint64_t last_chunk_offset, chunk_offset, trailer_offset;
 	size_t checksum_size;
 	int error;
 	struct git_commit_graph_chunk chunk_oid_fanout = {0}, chunk_oid_lookup = {0},
@@ -210,7 +209,7 @@ int git_commit_graph_file_parse(
 
 	GIT_ASSERT_ARG(file);
 
-	if (size < sizeof(struct git_commit_graph_header) + GIT_OID_RAWSZ)
+	if (size < sizeof(struct git_commit_graph_header) + GIT_OID_SHA1_SIZE)
 		return commit_graph_error("commit-graph is too short");
 
 	hdr = ((struct git_commit_graph_header *)data);
@@ -227,23 +226,18 @@ int git_commit_graph_file_parse(
 	 * headers, and a special zero chunk.
 	 */
 	last_chunk_offset = sizeof(struct git_commit_graph_header) + (1 + hdr->chunks) * 12;
-	trailer_offset = size - GIT_OID_RAWSZ;
+	trailer_offset = size - GIT_OID_SHA1_SIZE;
 	checksum_size = GIT_HASH_SHA1_SIZE;
 
 	if (trailer_offset < last_chunk_offset)
 		return commit_graph_error("wrong commit-graph size");
 	memcpy(file->checksum, (data + trailer_offset), checksum_size);
 
-	if (git_hash_buf(checksum, data, (size_t)trailer_offset, GIT_HASH_ALGORITHM_SHA1) < 0)
-		return commit_graph_error("could not calculate signature");
-	if (memcmp(checksum, file->checksum, checksum_size) != 0)
-		return commit_graph_error("index signature mismatch");
-
 	chunk_hdr = data + sizeof(struct git_commit_graph_header);
 	last_chunk = NULL;
 	for (i = 0; i < hdr->chunks; ++i, chunk_hdr += 12) {
-		chunk_offset = ((off64_t)ntohl(*((uint32_t *)(chunk_hdr + 4)))) << 32
-				| ((off64_t)ntohl(*((uint32_t *)(chunk_hdr + 8))));
+		chunk_offset = ((uint64_t)ntohl(*((uint32_t *)(chunk_hdr + 4)))) << 32
+				| ((uint64_t)ntohl(*((uint32_t *)(chunk_hdr + 8))));
 		if (chunk_offset < last_chunk_offset)
 			return commit_graph_error("chunks are non-monotonic");
 		if (chunk_offset >= trailer_offset)
@@ -331,9 +325,29 @@ error:
 	return error;
 }
 
+int git_commit_graph_validate(git_commit_graph *cgraph) {
+	unsigned char checksum[GIT_HASH_SHA1_SIZE];
+	size_t checksum_size = GIT_HASH_SHA1_SIZE;
+	size_t trailer_offset = cgraph->file->graph_map.len - checksum_size;
+
+	if (cgraph->file->graph_map.len < checksum_size)
+		return commit_graph_error("map length too small");
+
+	if (git_hash_buf(checksum, cgraph->file->graph_map.data, trailer_offset, GIT_HASH_ALGORITHM_SHA1) < 0)
+		return commit_graph_error("could not calculate signature");
+	if (memcmp(checksum, cgraph->file->checksum, checksum_size) != 0)
+		return commit_graph_error("index signature mismatch");
+
+	return 0;
+}
+
 int git_commit_graph_open(git_commit_graph **cgraph_out, const char *objects_dir)
 {
-	return git_commit_graph_new(cgraph_out, objects_dir, true);
+	int error = git_commit_graph_new(cgraph_out, objects_dir, true);
+	if (!error) {
+		return git_commit_graph_validate(*cgraph_out);
+	}
+	return error;
 }
 
 int git_commit_graph_file_open(git_commit_graph_file **file_out, const char *path)
@@ -436,15 +450,15 @@ static int git_commit_graph_entry_get_byindex(
 		return GIT_ENOTFOUND;
 	}
 
-	commit_data = file->commit_data + pos * (GIT_OID_RAWSZ + 4 * sizeof(uint32_t));
-	git_oid_fromraw(&e->tree_oid, commit_data);
-	e->parent_indices[0] = ntohl(*((uint32_t *)(commit_data + GIT_OID_RAWSZ)));
+	commit_data = file->commit_data + pos * (GIT_OID_SHA1_SIZE + 4 * sizeof(uint32_t));
+	git_oid__fromraw(&e->tree_oid, commit_data, GIT_OID_SHA1);
+	e->parent_indices[0] = ntohl(*((uint32_t *)(commit_data + GIT_OID_SHA1_SIZE)));
 	e->parent_indices[1] = ntohl(
-			*((uint32_t *)(commit_data + GIT_OID_RAWSZ + sizeof(uint32_t))));
+			*((uint32_t *)(commit_data + GIT_OID_SHA1_SIZE + sizeof(uint32_t))));
 	e->parent_count = (e->parent_indices[0] != GIT_COMMIT_GRAPH_MISSING_PARENT)
 			+ (e->parent_indices[1] != GIT_COMMIT_GRAPH_MISSING_PARENT);
-	e->generation = ntohl(*((uint32_t *)(commit_data + GIT_OID_RAWSZ + 2 * sizeof(uint32_t))));
-	e->commit_time = ntohl(*((uint32_t *)(commit_data + GIT_OID_RAWSZ + 3 * sizeof(uint32_t))));
+	e->generation = ntohl(*((uint32_t *)(commit_data + GIT_OID_SHA1_SIZE + 2 * sizeof(uint32_t))));
+	e->commit_time = ntohl(*((uint32_t *)(commit_data + GIT_OID_SHA1_SIZE + 3 * sizeof(uint32_t))));
 
 	e->commit_time |= (e->generation & UINT64_C(0x3)) << UINT64_C(32);
 	e->generation >>= 2u;
@@ -471,7 +485,7 @@ static int git_commit_graph_entry_get_byindex(
 		}
 	}
 
-	git_oid_fromraw(&e->sha1, &file->oid_lookup[pos * GIT_OID_RAWSZ]);
+	git_oid__fromraw(&e->sha1, &file->oid_lookup[pos * GIT_OID_SHA1_SIZE], GIT_OID_SHA1);
 	return 0;
 }
 
@@ -524,27 +538,27 @@ int git_commit_graph_entry_find(
 	hi = ntohl(file->oid_fanout[(int)short_oid->id[0]]);
 	lo = ((short_oid->id[0] == 0x0) ? 0 : ntohl(file->oid_fanout[(int)short_oid->id[0] - 1]));
 
-	pos = git_pack__lookup_sha1(file->oid_lookup, GIT_OID_RAWSZ, lo, hi, short_oid->id);
+	pos = git_pack__lookup_id(file->oid_lookup, GIT_OID_SHA1_SIZE, lo, hi, short_oid->id, GIT_OID_SHA1);
 
 	if (pos >= 0) {
 		/* An object matching exactly the oid was found */
 		found = 1;
-		current = file->oid_lookup + (pos * GIT_OID_RAWSZ);
+		current = file->oid_lookup + (pos * GIT_OID_SHA1_SIZE);
 	} else {
 		/* No object was found */
 		/* pos refers to the object with the "closest" oid to short_oid */
 		pos = -1 - pos;
 		if (pos < (int)file->num_commits) {
-			current = file->oid_lookup + (pos * GIT_OID_RAWSZ);
+			current = file->oid_lookup + (pos * GIT_OID_SHA1_SIZE);
 
 			if (!git_oid_raw_ncmp(short_oid->id, current, len))
 				found = 1;
 		}
 	}
 
-	if (found && len != GIT_OID_HEXSZ && pos + 1 < (int)file->num_commits) {
+	if (found && len != GIT_OID_SHA1_HEXSIZE && pos + 1 < (int)file->num_commits) {
 		/* Check for ambiguousity */
-		const unsigned char *next = current + GIT_OID_RAWSZ;
+		const unsigned char *next = current + GIT_OID_SHA1_SIZE;
 
 		if (!git_oid_raw_ncmp(short_oid->id, next, len))
 			found = 2;
@@ -712,7 +726,8 @@ int git_commit_graph_writer_add_index_file(
 	if (error < 0)
 		goto cleanup;
 
-	error = git_mwindow_get_pack(&p, idx_path);
+	/* TODO: SHA256 */
+	error = git_mwindow_get_pack(&p, idx_path, 0);
 	if (error < 0)
 		goto cleanup;
 
@@ -1020,7 +1035,7 @@ static int commit_graph_write(
 	git_vector_foreach (&w->commits, i, packed_commit) {
 		error = git_str_put(&oid_lookup,
 			(const char *)&packed_commit->sha1.id,
-			GIT_OID_RAWSZ);
+			GIT_OID_SHA1_SIZE);
 
 		if (error < 0)
 			goto cleanup;
@@ -1037,7 +1052,7 @@ static int commit_graph_write(
 
 		error = git_str_put(&commit_data,
 			(const char *)&packed_commit->tree_oid.id,
-			GIT_OID_RAWSZ);
+			GIT_OID_SHA1_SIZE);
 
 		if (error < 0)
 			goto cleanup;

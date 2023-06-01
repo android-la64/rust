@@ -3,6 +3,8 @@
 The full bootstrapping process takes quite a while. Here are some suggestions
 to make your life easier.
 
+<!-- toc -->
+
 ## Installing a pre-push hook
 
 CI will automatically fail your build if it doesn't pass `tidy`, our
@@ -24,20 +26,20 @@ You can also install the hook as a step of running `./x.py setup`!
 `rust-analyzer` can help you check and format your code whenever you save
 a file. By default, `rust-analyzer` runs the `cargo check` and `rustfmt`
 commands, but you can override these commands to use more adapted versions
-of these tools when hacking on `rustc`. For example, `x.py setup` will prompt
+of these tools when hacking on `rustc`. For example, `x.py setup vscode` will prompt
 you to create a `.vscode/settings.json` file which will configure Visual Studio code.
 This will ask `rust-analyzer` to use `./x.py check` to check the sources, and the
 stage 0 rustfmt to format them.
-The recommended `rust-analyzer` settings live at [`src/etc/vscode_settings.json`].
+The recommended `rust-analyzer` settings live at [`src/etc/rust_analyzer_settings.json`].
 
 If you have enough free disk space and you would like to be able to run `x.py` commands while
 rust-analyzer runs in the background, you can also add `--build-dir build-rust-analyzer` to the
 `overrideCommand` to avoid x.py locking.
 
 If you're running `coc.nvim`, you can use `:CocLocalConfig` to create a
-`.vim/coc-settings.json` and copy the settings from [`src/etc/vscode_settings.json`].
+`.vim/coc-settings.json` and copy the settings from [`src/etc/rust_analyzer_settings.json`].
 
-[`src/etc/vscode_settings.json`]: https://github.com/rust-lang/rust/blob/master/src/etc/vscode_settings.json
+[`src/etc/rust_analyzer_settings.json`]: https://github.com/rust-lang/rust/blob/master/src/etc/rust_analyzer_settings.json
 
 If running `./x.py check` on save is inconvenient, in VS Code you can use a [Build
 Task] instead:
@@ -259,8 +261,8 @@ If you're using nix, you can use the following nix-shell to work on Rust:
 
 # This file contains a development shell for working on rustc.
 let
-  # Build configuration for rust-lang/rust. Based on `config.toml.example` from
-  # `1bd30ce2aac40c7698aa4a1b9520aa649ff2d1c5`.
+  # Build configuration for rust-lang/rust. Based on `config.example.toml` (then called
+  # `config.toml.example`) from `1bd30ce2aac40c7698aa4a1b9520aa649ff2d1c5`
   config = pkgs.writeText "rustc-config" ''
     profile = "compiler" # you may want to choose a different profile, like `library` or `tools`
     changelog-seen = 2
@@ -289,7 +291,7 @@ let
       # Files that are ignored by ripgrep when searching.
       ignoreFile = pkgs.writeText "rustc-rgignore" ''
         configure
-        config.toml.example
+        config.example.toml
         x.py
         LICENSE-MIT
         LICENSE-APACHE

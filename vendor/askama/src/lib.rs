@@ -59,23 +59,27 @@
 //!   in the configuration file. The default syntax , "default",  is the one
 //!   provided by Askama.
 
-#![allow(unused_imports)]
+#![forbid(unsafe_code)]
 #![deny(elided_lifetimes_in_paths)]
+#![deny(unreachable_pub)]
 
-#[macro_use]
-extern crate askama_derive;
-pub use askama_shared as shared;
+mod error;
+pub mod filters;
+pub mod helpers;
 
-use std::fs::{self, DirEntry};
-use std::io;
-use std::path::Path;
+use std::fmt;
 
-pub use askama_escape::{Html, Text};
+pub use askama_derive::Template;
+pub use askama_escape::{Html, MarkupDisplay, Text};
+
+#[doc(hidden)]
+pub use crate as shared;
+pub use crate::error::{Error, Result};
 
 /// Main `Template` trait; implementations are generally derived
 ///
 /// If you need an object-safe template, use [`DynTemplate`].
-pub trait Template {
+pub trait Template: fmt::Display {
     /// Helper method which allocates a new `String` and renders into it
     fn render(&self) -> Result<String> {
         let mut buf = String::with_capacity(Self::SIZE_HINT);
@@ -83,14 +87,23 @@ pub trait Template {
         Ok(buf)
     }
 
-    /// Renders the template to the given `writer` buffer
+    /// Renders the template to the given `writer` fmt buffer
     fn render_into(&self, writer: &mut (impl std::fmt::Write + ?Sized)) -> Result<()>;
+
+    /// Renders the template to the given `writer` io buffer
+    #[inline]
+    fn write_into(&self, writer: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
+        writer.write_fmt(format_args!("{self}"))
+    }
 
     /// The template's extension, if provided
     const EXTENSION: Option<&'static str>;
 
     /// Provides a conservative estimate of the expanded length of the rendered template
     const SIZE_HINT: usize;
+
+    /// The MIME type (Content-Type) of the data that gets rendered by this Template
+    const MIME_TYPE: &'static str;
 }
 
 /// Object-safe wrapper trait around [`Template`] implementers
@@ -100,14 +113,20 @@ pub trait DynTemplate {
     /// Helper method which allocates a new `String` and renders into it
     fn dyn_render(&self) -> Result<String>;
 
-    /// Renders the template to the given `writer` buffer
+    /// Renders the template to the given `writer` fmt buffer
     fn dyn_render_into(&self, writer: &mut dyn std::fmt::Write) -> Result<()>;
+
+    /// Renders the template to the given `writer` io buffer
+    fn dyn_write_into(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()>;
 
     /// Helper function to inspect the template's extension
     fn extension(&self) -> Option<&'static str>;
 
     /// Provides a conservative estimate of the expanded length of the rendered template
     fn size_hint(&self) -> usize;
+
+    /// The MIME type (Content-Type) of the data that gets rendered by this Template
+    fn mime_type(&self) -> &'static str;
 }
 
 impl<T: Template> DynTemplate for T {
@@ -119,6 +138,11 @@ impl<T: Template> DynTemplate for T {
         <Self as Template>::render_into(self, writer)
     }
 
+    #[inline]
+    fn dyn_write_into(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writer.write_fmt(format_args!("{self}"))
+    }
+
     fn extension(&self) -> Option<&'static str> {
         Self::EXTENSION
     }
@@ -126,40 +150,63 @@ impl<T: Template> DynTemplate for T {
     fn size_hint(&self) -> usize {
         Self::SIZE_HINT
     }
+
+    fn mime_type(&self) -> &'static str {
+        Self::MIME_TYPE
+    }
 }
 
-pub use crate::shared::filters;
-pub use crate::shared::helpers;
-pub use crate::shared::{read_config_file, Error, MarkupDisplay, Result};
-pub use askama_derive::*;
+impl fmt::Display for dyn DynTemplate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.dyn_render_into(f).map_err(|_| ::std::fmt::Error {})
+    }
+}
 
-pub mod mime {
-    #[cfg(all(feature = "mime_guess", feature = "mime"))]
-    pub fn extension_to_mime_type(ext: &str) -> mime_guess::Mime {
-        let basic_type = mime_guess::from_ext(ext).first_or_octet_stream();
-        for (simple, utf_8) in &TEXT_TYPES {
-            if &basic_type == simple {
-                return utf_8.clone();
+#[cfg(test)]
+mod tests {
+    use std::fmt;
+
+    use super::*;
+    use crate::{DynTemplate, Template};
+
+    #[test]
+    fn dyn_template() {
+        struct Test;
+        impl Template for Test {
+            fn render_into(&self, writer: &mut (impl std::fmt::Write + ?Sized)) -> Result<()> {
+                Ok(writer.write_str("test")?)
+            }
+
+            const EXTENSION: Option<&'static str> = Some("txt");
+
+            const SIZE_HINT: usize = 4;
+
+            const MIME_TYPE: &'static str = "text/plain; charset=utf-8";
+        }
+
+        impl fmt::Display for Test {
+            #[inline]
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                self.render_into(f).map_err(|_| fmt::Error {})
             }
         }
-        basic_type
-    }
 
-    #[cfg(all(feature = "mime_guess", feature = "mime"))]
-    const TEXT_TYPES: [(mime_guess::Mime, mime_guess::Mime); 6] = [
-        (mime::TEXT_PLAIN, mime::TEXT_PLAIN_UTF_8),
-        (mime::TEXT_HTML, mime::TEXT_HTML_UTF_8),
-        (mime::TEXT_CSS, mime::TEXT_CSS_UTF_8),
-        (mime::TEXT_CSV, mime::TEXT_CSV_UTF_8),
-        (
-            mime::TEXT_TAB_SEPARATED_VALUES,
-            mime::TEXT_TAB_SEPARATED_VALUES_UTF_8,
-        ),
-        (
-            mime::APPLICATION_JAVASCRIPT,
-            mime::APPLICATION_JAVASCRIPT_UTF_8,
-        ),
-    ];
+        fn render(t: &dyn DynTemplate) -> String {
+            t.dyn_render().unwrap()
+        }
+
+        let test = &Test as &dyn DynTemplate;
+
+        assert_eq!(render(test), "test");
+
+        assert_eq!(test.to_string(), "test");
+
+        assert_eq!(format!("{test}"), "test");
+
+        let mut vec = Vec::new();
+        test.dyn_write_into(&mut vec).unwrap();
+        assert_eq!(vec, vec![b't', b'e', b's', b't']);
+    }
 }
 
 /// Old build script helper to rebuild crates if contained templates have changed
@@ -170,31 +217,3 @@ pub mod mime {
     note = "file-level dependency tracking is handled automatically without build script"
 )]
 pub fn rerun_if_templates_changed() {}
-
-#[cfg(test)]
-mod tests {
-    use super::{DynTemplate, Template};
-
-    #[test]
-    fn dyn_template() {
-        struct Test;
-        impl Template for Test {
-            fn render_into(
-                &self,
-                writer: &mut (impl std::fmt::Write + ?Sized),
-            ) -> askama_shared::Result<()> {
-                Ok(writer.write_str("test")?)
-            }
-
-            const EXTENSION: Option<&'static str> = Some("txt");
-
-            const SIZE_HINT: usize = 4;
-        }
-
-        fn render(t: &dyn DynTemplate) -> String {
-            t.dyn_render().unwrap()
-        }
-
-        assert_eq!(render(&Test), "test");
-    }
-}

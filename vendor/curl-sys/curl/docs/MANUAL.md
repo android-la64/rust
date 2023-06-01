@@ -177,6 +177,16 @@ to a remote FTP server using a Blue Coat FTP proxy with the options:
 See the manual for your FTP proxy to determine the form it expects to set up
 transfers, and curl's `-v` option to see exactly what curl is sending.
 
+## Piping
+
+Get a key file and add it with `apt-key` (when on a system that uses `apt` for
+package management):
+
+    curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+
+The '|' pipes the output to STDIN. `-` tells `apt-key` that the key file
+should be read from STDIN.
+
 ## Ranges
 
 HTTP 1.1 introduced byte-ranges. Using this, a client can request to get only
@@ -287,6 +297,10 @@ The post data must be urlencoded.
 Post a simple `name` and `phone` guestbook.
 
     curl -d "name=Rafael%20Sagula&phone=3320780" http://www.where.com/guest.cgi
+
+Or automatically [URL encode the data](https://everything.curl.dev/http/post/url-encode).
+
+    curl --data-urlencode "name=Rafael Sagula&phone=3320780" http://www.where.com/guest.cgi
 
 How to post a form with curl, lesson #1:
 
@@ -649,7 +663,7 @@ which of them to use. Default address can also be used:
     curl -P - ftp.download.com
 
 Download with `PORT` but use the IP address of our `le0` interface (this does
-not work on windows):
+not work on Windows):
 
     curl -P le0 ftp.download.com
 
@@ -829,7 +843,7 @@ The usage of the `-x`/`--proxy` flag overrides the environment variables.
 Unix introduced the `.netrc` concept a long time ago. It is a way for a user
 to specify name and password for commonly visited FTP sites in a file so that
 you do not have to type them in each time you visit those sites. You realize
-this is a big security risk if someone else gets hold of your passwords, so
+this is a big security risk if someone else gets hold of your passwords,
 therefore most Unix programs will not read this file unless it is only readable
 by yourself (curl does not care though).
 

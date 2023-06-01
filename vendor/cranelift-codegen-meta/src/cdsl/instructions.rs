@@ -74,7 +74,7 @@ pub(crate) struct InstructionContent {
     /// Does this instruction have other side effects besides can_* flags?
     pub other_side_effects: bool,
     /// Despite having other side effects, is this instruction okay to GVN?
-    pub side_effects_okay_for_gvn: bool,
+    pub side_effects_idempotent: bool,
 }
 
 impl InstructionContent {
@@ -135,7 +135,7 @@ pub(crate) struct InstructionBuilder {
     can_store: bool,
     can_trap: bool,
     other_side_effects: bool,
-    side_effects_okay_for_gvn: bool,
+    side_effects_idempotent: bool,
 }
 
 impl InstructionBuilder {
@@ -155,7 +155,7 @@ impl InstructionBuilder {
             can_store: false,
             can_trap: false,
             other_side_effects: false,
-            side_effects_okay_for_gvn: false,
+            side_effects_idempotent: false,
         }
     }
 
@@ -171,52 +171,59 @@ impl InstructionBuilder {
         self
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub fn is_terminator(mut self, val: bool) -> Self {
-        self.is_terminator = val;
+    /// Mark this instruction as a block terminator.
+    pub fn terminates_block(mut self) -> Self {
+        self.is_terminator = true;
         self
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub fn is_branch(mut self, val: bool) -> Self {
-        self.is_branch = val;
+    /// Mark this instruction as a branch instruction. This also implies that the instruction is a
+    /// block terminator.
+    pub fn branches(mut self) -> Self {
+        self.is_branch = true;
+        self.terminates_block()
+    }
+
+    /// Mark this instruction as a call instruction.
+    pub fn call(mut self) -> Self {
+        self.is_call = true;
         self
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub fn is_call(mut self, val: bool) -> Self {
-        self.is_call = val;
+    /// Mark this instruction as a return instruction. This also implies that the instruction is a
+    /// block terminator.
+    pub fn returns(mut self) -> Self {
+        self.is_return = true;
+        self.terminates_block()
+    }
+
+    /// Mark this instruction as one that can load from memory.
+    pub fn can_load(mut self) -> Self {
+        self.can_load = true;
         self
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub fn is_return(mut self, val: bool) -> Self {
-        self.is_return = val;
+    /// Mark this instruction as one that can store to memory.
+    pub fn can_store(mut self) -> Self {
+        self.can_store = true;
         self
     }
 
-    pub fn can_load(mut self, val: bool) -> Self {
-        self.can_load = val;
+    /// Mark this instruction as possibly trapping.
+    pub fn can_trap(mut self) -> Self {
+        self.can_trap = true;
         self
     }
 
-    pub fn can_store(mut self, val: bool) -> Self {
-        self.can_store = val;
+    /// Mark this instruction as one that has side-effects.
+    pub fn other_side_effects(mut self) -> Self {
+        self.other_side_effects = true;
         self
     }
 
-    pub fn can_trap(mut self, val: bool) -> Self {
-        self.can_trap = val;
-        self
-    }
-
-    pub fn other_side_effects(mut self, val: bool) -> Self {
-        self.other_side_effects = val;
-        self
-    }
-
-    pub fn side_effects_okay_for_gvn(mut self, val: bool) -> Self {
-        self.side_effects_okay_for_gvn = val;
+    /// Mark this instruction as one whose side-effects may be de-duplicated.
+    pub fn side_effects_idempotent(mut self) -> Self {
+        self.side_effects_idempotent = true;
         self
     }
 
@@ -268,7 +275,7 @@ impl InstructionBuilder {
             can_store: self.can_store,
             can_trap: self.can_trap,
             other_side_effects: self.other_side_effects,
-            side_effects_okay_for_gvn: self.side_effects_okay_for_gvn,
+            side_effects_idempotent: self.side_effects_idempotent,
         })
     }
 }

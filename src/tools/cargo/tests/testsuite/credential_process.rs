@@ -130,7 +130,10 @@ Only one of these values may be set, remove one or the other to proceed.
 [PACKAGING] foo v0.1.0 [..]
 [PACKAGED] [..]
 [UPLOADING] foo v0.1.0 [..]
-[UPDATING] [..]
+[UPLOADED] foo v0.1.0 [..]
+note: Waiting [..]
+You may press ctrl-c [..]
+[PUBLISHED] foo v0.1.0 [..]
 ",
         )
         .run();
@@ -222,7 +225,10 @@ fn publish() {
 [PACKAGING] foo v0.1.0 [..]
 [PACKAGED] [..]
 [UPLOADING] foo v0.1.0 [..]
-[UPDATING] [..]
+[UPLOADED] foo v0.1.0 [..]
+note: Waiting [..]
+You may press ctrl-c [..]
+[PUBLISHED] foo v0.1.0 [..]
 ",
         )
         .run();
@@ -262,7 +268,7 @@ the credential-process configuration value must pass the \
 
     cargo_process("logout -Z credential-process")
         .replace_crates_io(registry.index_url())
-        .masquerade_as_nightly_cargo(&["credential-process", "cargo-logout"])
+        .masquerade_as_nightly_cargo(&["credential-process"])
         .with_status(101)
         .with_stderr(
             "\
@@ -371,12 +377,15 @@ fn logout() {
     .unwrap();
 
     cargo_process("logout -Z credential-process")
-        .masquerade_as_nightly_cargo(&["credential-process", "cargo-logout"])
+        .masquerade_as_nightly_cargo(&["credential-process"])
         .replace_crates_io(server.index_url())
         .with_stderr(
             "\
 token for `crates-io` has been erased!
 [LOGOUT] token for `crates-io` has been removed from local storage
+[NOTE] This does not revoke the token on the registry server.
+    If you need to revoke the token, visit <https://crates.io/me> \
+    and follow the instructions there.
 ",
         )
         .run();

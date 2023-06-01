@@ -36,6 +36,7 @@ use crate::util::config::{Config, SslVersionConfig, SslVersionConfigRange};
 use crate::util::errors::CargoResult;
 use crate::util::important_paths::find_root_manifest_for_wd;
 use crate::util::{truncate_with_ellipsis, IntoUrl};
+use crate::util::{Progress, ProgressStyle};
 use crate::{drop_print, drop_println, version};
 
 /// Registry settings loaded from config files.
@@ -442,13 +443,29 @@ fn wait_for_publish(
 ) -> CargoResult<()> {
     let version_req = format!("={}", pkg.version());
     let mut source = SourceConfigMap::empty(config)?.load(registry_src, &HashSet::new())?;
-    let source_description = source.describe();
+    // Disable the source's built-in progress bars. Repeatedly showing a bunch
+    // of independent progress bars can be a little confusing. There is an
+    // overall progress bar managed here.
+    source.set_quiet(true);
+    let source_description = source.source_id().to_string();
     let query = Dependency::parse(pkg.name(), Some(&version_req), registry_src)?;
 
     let now = std::time::Instant::now();
     let sleep_time = std::time::Duration::from_secs(1);
-    let mut logged = false;
-    loop {
+    let max = timeout.as_secs() as usize;
+    // Short does not include the registry name.
+    let short_pkg_description = format!("{} v{}", pkg.name(), pkg.version());
+    config.shell().status(
+        "Uploaded",
+        format!("{short_pkg_description} to {source_description}"),
+    )?;
+    config.shell().note(format!(
+        "Waiting for `{short_pkg_description}` to be available at {source_description}.\n\
+        You may press ctrl-c to skip waiting; the crate should be available shortly."
+    ))?;
+    let mut progress = Progress::with_style("Waiting", ProgressStyle::Ratio, config);
+    progress.tick_now(0, max, "")?;
+    let is_available = loop {
         {
             let _lock = config.acquire_package_cache_lock()?;
             // Force re-fetching the source
@@ -470,31 +487,30 @@ fn wait_for_publish(
                 }
             };
             if !summaries.is_empty() {
-                break;
+                break true;
             }
         }
 
-        if timeout < now.elapsed() {
+        let elapsed = now.elapsed();
+        if timeout < elapsed {
             config.shell().warn(format!(
-                "timed out waiting for `{}` to be in {}",
-                pkg.name(),
-                source_description
+                "timed out waiting for `{short_pkg_description}` to be available in {source_description}",
             ))?;
-            break;
+            config.shell().note(
+                "The registry may have a backlog that is delaying making the \
+                crate available. The crate should be available soon.",
+            )?;
+            break false;
         }
 
-        if !logged {
-            config.shell().status(
-                "Waiting",
-                format!(
-                    "on `{}` to propagate to {} (ctrl-c to wait asynchronously)",
-                    pkg.name(),
-                    source_description
-                ),
-            )?;
-            logged = true;
-        }
+        progress.tick_now(elapsed.as_secs() as usize, max, "")?;
         std::thread::sleep(sleep_time);
+    };
+    if is_available {
+        config.shell().status(
+            "Published",
+            format!("{short_pkg_description} at {source_description}"),
+        )?;
     }
 
     Ok(())
@@ -619,9 +635,6 @@ pub fn configure_http_handle(config: &Config, handle: &mut Easy) -> CargoResult<
         handle.useragent(&format!("cargo {}", version()))?;
     }
 
-    // Empty string accept encoding expands to the encodings supported by the current libcurl.
-    handle.accept_encoding("")?;
-
     fn to_ssl_version(s: &str) -> CargoResult<SslVersion> {
         let version = match s {
             "default" => SslVersion::Default,
@@ -631,13 +644,15 @@ pub fn configure_http_handle(config: &Config, handle: &mut Easy) -> CargoResult<
             "tlsv1.2" => SslVersion::Tlsv12,
             "tlsv1.3" => SslVersion::Tlsv13,
             _ => bail!(
-                "Invalid ssl version `{}`,\
-                 choose from 'default', 'tlsv1', 'tlsv1.0', 'tlsv1.1', 'tlsv1.2', 'tlsv1.3'.",
-                s
+                "Invalid ssl version `{s}`,\
+                 choose from 'default', 'tlsv1', 'tlsv1.0', 'tlsv1.1', 'tlsv1.2', 'tlsv1.3'."
             ),
         };
         Ok(version)
     }
+
+    // Empty string accept encoding expands to the encodings supported by the current libcurl.
+    handle.accept_encoding("")?;
     if let Some(ssl_version) = &http.ssl_version {
         match ssl_version {
             SslVersionConfig::Single(s) => {
@@ -939,6 +954,20 @@ pub fn registry_logout(config: &Config, reg: Option<&str>) -> CargoResult<()> {
             reg_name
         ),
     )?;
+    let location = if source_ids.original.is_crates_io() {
+        "<https://crates.io/me>".to_string()
+    } else {
+        // The URL for the source requires network access to load the config.
+        // That could be a fairly heavy operation to perform just to provide a
+        // help message, so for now this just provides some generic text.
+        // Perhaps in the future this could have an API to fetch the config if
+        // it is cached, but avoid network access otherwise?
+        format!("the `{reg_name}` website")
+    };
+    config.shell().note(format!(
+        "This does not revoke the token on the registry server.\n    \
+        If you need to revoke the token, visit {location} and follow the instructions there."
+    ))?;
     Ok(())
 }
 

@@ -637,6 +637,10 @@ pub const CURL_IPRESOLVE_V6: c_int = 2;
 
 pub const CURLSSLOPT_ALLOW_BEAST: c_long = 1 << 0;
 pub const CURLSSLOPT_NO_REVOKE: c_long = 1 << 1;
+pub const CURLSSLOPT_NO_PARTIALCHAIN: c_long = 1 << 2;
+pub const CURLSSLOPT_REVOKE_BEST_EFFORT: c_long = 1 << 3;
+pub const CURLSSLOPT_NATIVE_CA: c_long = 1 << 4;
+pub const CURLSSLOPT_AUTO_CLIENT_CERT: c_long = 1 << 5;
 
 /// These enums are for use with the CURLOPT_HTTP_VERSION option.
 ///
@@ -710,6 +714,12 @@ pub const CURL_FORMADD_UNKNOWN_OPTION: CURLFORMcode = 4;
 pub const CURL_FORMADD_INCOMPLETE: CURLFORMcode = 5;
 pub const CURL_FORMADD_ILLEGAL_ARRAY: CURLFORMcode = 6;
 pub const CURL_FORMADD_DISABLED: CURLFORMcode = 7;
+
+pub const CURL_REDIR_POST_301: c_ulong = 1;
+pub const CURL_REDIR_POST_302: c_ulong = 2;
+pub const CURL_REDIR_POST_303: c_ulong = 4;
+pub const CURL_REDIR_POST_ALL: c_ulong =
+    CURL_REDIR_POST_301 | CURL_REDIR_POST_302 | CURL_REDIR_POST_303;
 
 #[repr(C)]
 pub struct curl_forms {
@@ -860,7 +870,8 @@ pub const CURLVERSION_SEVENTH: CURLversion = 6;
 pub const CURLVERSION_EIGHTH: CURLversion = 7;
 pub const CURLVERSION_NINTH: CURLversion = 8;
 pub const CURLVERSION_TENTH: CURLversion = 9;
-pub const CURLVERSION_NOW: CURLversion = CURLVERSION_TENTH;
+pub const CURLVERSION_ELEVENTH: CURLversion = 10;
+pub const CURLVERSION_NOW: CURLversion = CURLVERSION_ELEVENTH;
 
 #[repr(C)]
 pub struct curl_version_info_data {
@@ -889,6 +900,7 @@ pub struct curl_version_info_data {
     pub zstd_version: *const c_char,
     pub hyper_version: *const c_char,
     pub gsasl_version: *const c_char,
+    pub feature_names: *const *const c_char,
 }
 
 pub const CURL_VERSION_IPV6: c_int = 1 << 0;

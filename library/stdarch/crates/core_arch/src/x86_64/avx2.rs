@@ -22,14 +22,14 @@ use crate::core_arch::{simd_llvm::*, x86::*};
 
 /// Extracts a 64-bit integer from `a`, selected with `INDEX`.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm256_extract_epi64)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_extract_epi64)
 #[inline]
 #[target_feature(enable = "avx2")]
 #[rustc_legacy_const_generics(1)]
 // This intrinsic has no corresponding instruction.
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_extract_epi64<const INDEX: i32>(a: __m256i) -> i64 {
-    static_assert_imm2!(INDEX);
+    static_assert_uimm_bits!(INDEX, 2);
     simd_extract(a.as_i64x4(), INDEX as u32)
 }
 

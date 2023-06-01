@@ -110,7 +110,7 @@ user-agent = "…"            # the user-agent header
 root = "/some/path"         # `cargo install` destination directory
 
 [net]
-retry = 2                   # network retries
+retry = 3                   # network retries
 git-fetch-with-cli = true   # use the `git` executable for git operations
 offline = true              # do not access the network
 
@@ -196,7 +196,7 @@ Environment variables will take precedence over TOML configuration files.
 Currently only integer, boolean, string and some array values are supported to
 be defined by environment variables. [Descriptions below](#configuration-keys)
 indicate which keys support environment variables and otherwise they are not
-supported due to [technicial issues](https://github.com/rust-lang/cargo/issues/5416).
+supported due to [technical issues](https://github.com/rust-lang/cargo/issues/5416).
 
 In addition to the system above, Cargo recognizes a few other specific
 [environment variables][env].
@@ -296,7 +296,7 @@ Cargo will search `PATH` for its executable.
 
 Configuration values with sensitive information are stored in the
 `$CARGO_HOME/credentials.toml` file. This file is automatically created and updated
-by [`cargo login`]. It follows the same format as Cargo config files.
+by [`cargo login`] and [`cargo logout`]. It follows the same format as Cargo config files.
 
 ```toml
 [registry]
@@ -724,7 +724,7 @@ The `[net]` table controls networking configuration.
 
 ##### `net.retry`
 * Type: integer
-* Default: 2
+* Default: 3
 * Environment: `CARGO_NET_RETRY`
 
 Number of times to retry possibly spurious network errors.
@@ -918,7 +918,7 @@ consists of a sub-table for each named registry.
 * Default: none
 * Environment: `CARGO_REGISTRIES_<name>_INDEX`
 
-Specifies the URL of the git index for the registry.
+Specifies the URL of the index for the registry.
 
 ##### `registries.<name>.token`
 * Type: string
@@ -933,7 +933,7 @@ Can be overridden with the `--token` command-line option.
 
 ##### `registries.crates-io.protocol`
 * Type: string
-* Default: `git`
+* Default: `sparse`
 * Environment: `CARGO_REGISTRIES_CRATES_IO_PROTOCOL`
 
 Specifies the protocol used to access crates.io. Allowed values are `git` or `sparse`.
@@ -1193,6 +1193,7 @@ Sets the width for progress bar.
 
 [`cargo bench`]: ../commands/cargo-bench.md
 [`cargo login`]: ../commands/cargo-login.md
+[`cargo logout`]: ../commands/cargo-logout.md
 [`cargo doc`]: ../commands/cargo-doc.md
 [`cargo new`]: ../commands/cargo-new.md
 [`cargo publish`]: ../commands/cargo-publish.md

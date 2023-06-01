@@ -11,7 +11,6 @@ pub use backend::io::io_slice::{IoSlice, IoSliceMut};
 #[cfg(feature = "std")]
 pub use std::io::{IoSlice, IoSliceMut};
 
-/// `RWF_*` constants for use with [`preadv2`] and [`pwritev2`].
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub use backend::io::types::ReadWriteFlags;
 
@@ -61,6 +60,10 @@ pub fn pread<Fd: AsFd>(fd: Fd, buf: &mut [u8], offset: u64) -> io::Result<usize>
 }
 
 /// `pwrite(fd, bufs)`—Writes to a file at a given position.
+///
+/// Contrary to POSIX, on many popular platforms including Linux and FreeBSD,
+/// if the file is opened in append mode, this ignores the offset appends the
+/// data to the end of the file.
 ///
 /// # References
 ///  - [POSIX]
@@ -120,6 +123,10 @@ pub fn preadv<Fd: AsFd>(fd: Fd, bufs: &mut [IoSliceMut<'_>], offset: u64) -> io:
 
 /// `pwritev(fd, bufs, offset)`—Writes to a file at a given position from
 /// multiple buffers.
+///
+/// Contrary to POSIX, on many popular platforms including Linux and FreeBSD,
+/// if the file is opened in append mode, this ignores the offset appends the
+/// data to the end of the file.
 ///
 /// # References
 ///  - [Linux]

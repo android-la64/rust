@@ -162,12 +162,13 @@ impl MmapInner {
     }
 
     /// Open an anonymous memory map.
-    pub fn map_anon(len: usize, stack: bool) -> io::Result<MmapInner> {
+    pub fn map_anon(len: usize, stack: bool, populate: bool) -> io::Result<MmapInner> {
         let stack = if stack { MAP_STACK } else { 0 };
+        let populate = if populate { MAP_POPULATE } else { 0 };
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_PRIVATE | libc::MAP_ANON | stack,
+            libc::MAP_PRIVATE | libc::MAP_ANON | stack | populate,
             -1,
             0,
         )
@@ -240,9 +241,12 @@ impl MmapInner {
         self.len
     }
 
-    pub fn advise(&self, advice: Advice) -> io::Result<()> {
+    pub fn advise(&self, advice: Advice, offset: usize, len: usize) -> io::Result<()> {
+        let alignment = (self.ptr as usize + offset) % page_size();
+        let offset = offset as isize - alignment as isize;
+        let len = len + alignment;
         unsafe {
-            if libc::madvise(self.ptr, self.len, advice as i32) != 0 {
+            if libc::madvise(self.ptr.offset(offset), len, advice as i32) != 0 {
                 Err(io::Error::last_os_error())
             } else {
                 Ok(())

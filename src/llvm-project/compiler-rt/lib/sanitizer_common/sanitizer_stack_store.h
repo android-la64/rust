@@ -61,7 +61,7 @@ class StackStore {
     return frame_idx % kBlockSizeFrames;
   }
 
-  static uptr IdToOffset(Id id) {
+  static constexpr uptr IdToOffset(Id id) {
     CHECK_NE(id, 0);
     return id - 1;  // Avoid zero as id.
   }

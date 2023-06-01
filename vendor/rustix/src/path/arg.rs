@@ -41,7 +41,7 @@ use std::path::{Component, Components, Iter, Path, PathBuf};
 ///
 /// # Example
 ///
-/// ```rust
+/// ```
 /// # #[cfg(any(feature = "fs", feature = "net"))]
 /// use rustix::ffi::CStr;
 /// use rustix::io;
@@ -950,13 +950,15 @@ where
     }
 
     // Taken from
-    // https://github.com/rust-lang/rust/blob/a00f8ba7fcac1b27341679c51bf5a3271fa82df3/library/std/src/sys/common/small_c_string.rs
+    // <https://github.com/rust-lang/rust/blob/a00f8ba7fcac1b27341679c51bf5a3271fa82df3/library/std/src/sys/common/small_c_string.rs>
     let mut buf = MaybeUninit::<[u8; SMALL_PATH_BUFFER_SIZE]>::uninit();
     let buf_ptr = buf.as_mut_ptr() as *mut u8;
 
+    // This helps test our safety condition below.
+    debug_assert!(bytes.len() + 1 <= SMALL_PATH_BUFFER_SIZE);
+
     // SAFETY: bytes.len() < SMALL_PATH_BUFFER_SIZE which means we have space for
     // bytes.len() + 1 u8s:
-    debug_assert!(bytes.len() + 1 <= SMALL_PATH_BUFFER_SIZE);
     unsafe {
         ptr::copy_nonoverlapping(bytes.as_ptr(), buf_ptr, bytes.len());
         buf_ptr.add(bytes.len()).write(0);

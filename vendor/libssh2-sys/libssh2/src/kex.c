@@ -78,7 +78,7 @@
     }                                                                       \
     if(value)                                                               \
         while(len < (unsigned long)reqlen) {                                \
-            libssh2_sha##digest_type##_init(&hash);                         \
+            (void)libssh2_sha##digest_type##_init(&hash);                   \
             libssh2_sha##digest_type##_update(hash,                         \
                                               exchange_state->k_value,      \
                                               exchange_state->k_value_len); \
@@ -108,16 +108,16 @@
 static void _libssh2_sha_algo_ctx_init(int sha_algo, void *ctx)
 {
     if(sha_algo == 512) {
-        libssh2_sha512_init((libssh2_sha512_ctx*)ctx);
+        (void)libssh2_sha512_init((libssh2_sha512_ctx*)ctx);
     }
     else if(sha_algo == 384) {
-        libssh2_sha384_init((libssh2_sha384_ctx*)ctx);
+        (void)libssh2_sha384_init((libssh2_sha384_ctx*)ctx);
     }
     else if(sha_algo == 256) {
-        libssh2_sha256_init((libssh2_sha256_ctx*)ctx);
+        (void)libssh2_sha256_init((libssh2_sha256_ctx*)ctx);
     }
     else if(sha_algo == 1) {
-        libssh2_sha1_init((libssh2_sha1_ctx*)ctx);
+        (void)libssh2_sha1_init((libssh2_sha1_ctx*)ctx);
     }
     else {
         assert(0);
@@ -1600,7 +1600,7 @@ kex_method_diffie_hellman_group_exchange_sha256_key_exchange
 {                                                                       \
     libssh2_sha##digest_type##_ctx ctx;                                 \
     exchange_state->exchange_hash = (void *)&ctx;                       \
-    libssh2_sha##digest_type##_init(&ctx);                              \
+    (void)libssh2_sha##digest_type##_init(&ctx);                        \
     if(session->local.banner) {                                         \
         _libssh2_htonu32(exchange_state->h_sig_comp,                    \
                          strlen((char *) session->local.banner) - 2);   \
@@ -2603,7 +2603,7 @@ curve25519_sha256(LIBSSH2_SESSION *session, unsigned char *data,
             session->session_id = LIBSSH2_ALLOC(session, digest_length);
             if(!session->session_id) {
                 ret = _libssh2_error(session, LIBSSH2_ERROR_ALLOC,
-                                     "Unable to allxcocate buffer for "
+                                     "Unable to allocate buffer for "
                                      "SHA digest");
                 goto clean_exit;
             }
@@ -3026,6 +3026,17 @@ kex_method_ssh_curve25519_sha256 = {
 };
 #endif
 
+/* this kex method signals that client can receive extensions
+ * as described in https://datatracker.ietf.org/doc/html/rfc8308
+*/
+
+static const LIBSSH2_KEX_METHOD
+kex_method_extension_negotiation = {
+    "ext-info-c",
+    NULL,
+    0,
+};
+
 static const LIBSSH2_KEX_METHOD *libssh2_kex_methods[] = {
 #if LIBSSH2_ED25519
     &kex_method_ssh_curve25519_sha256,
@@ -3043,6 +3054,7 @@ static const LIBSSH2_KEX_METHOD *libssh2_kex_methods[] = {
     &kex_method_diffie_helman_group14_sha1,
     &kex_method_diffie_helman_group1_sha1,
     &kex_method_diffie_helman_group_exchange_sha1,
+    &kex_method_extension_negotiation,
   NULL
 };
 
@@ -3978,6 +3990,11 @@ libssh2_session_method_pref(LIBSSH2_SESSION * session, int method_type,
         mlist = NULL;
         break;
 
+    case LIBSSH2_METHOD_SIGN_ALGO:
+        prefvar = &session->sign_algo_prefs;
+        mlist = NULL;
+        break;
+
     default:
         return _libssh2_error(session, LIBSSH2_ERROR_INVAL,
                               "Invalid parameter specified for method_type");
@@ -4071,6 +4088,11 @@ LIBSSH2_API int libssh2_session_supported_algs(LIBSSH2_SESSION* session,
     case LIBSSH2_METHOD_COMP_SC:
         mlist = (const LIBSSH2_COMMON_METHOD **)
             _libssh2_comp_methods(session);
+        break;
+
+    case LIBSSH2_METHOD_SIGN_ALGO:
+        /* no built-in supported list due to backend support */
+        mlist = NULL;
         break;
 
     default:

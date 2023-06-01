@@ -17,6 +17,10 @@ All the arguments following the two dashes (`--`) are passed to the binary to
 run. If you're passing arguments to both Cargo and the binary, the ones after
 `--` go to the binary, the ones before go to Cargo.
 
+Unlike [cargo-test(1)](cargo-test.html) and [cargo-bench(1)](cargo-bench.html), `cargo run` sets the 
+working directory of the binary executed to the current working directory, same 
+as if it was executed in the shell directly.
+
 ## OPTIONS
 
 ### Package Selection
@@ -267,7 +271,8 @@ See the <a href="../reference/config.html#command-line-overrides">command-line o
 <dt class="option-term" id="option-cargo-run--C"><a class="option-anchor" href="#option-cargo-run--C"></a><code>-C</code> <em>PATH</em></dt>
 <dd class="option-desc">Changes the current working directory before executing any specified operations. This affects
 things like where cargo looks by default for the project manifest (<code>Cargo.toml</code>), as well as
-the directories searched for discovering <code>.cargo/config.toml</code>, for example.</p>
+the directories searched for discovering <code>.cargo/config.toml</code>, for example. This option must
+appear before the command name, for example <code>cargo -C path/to/my-project build</code>.</p>
 <p>This option is only available on the <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">nightly
 channel</a> and
 requires the <code>-Z unstable-options</code> flag to enable (see

@@ -9,6 +9,7 @@ use crate::cert::Cert;
 use crate::util::Binding;
 use crate::{
     panic, raw, Cred, CredentialType, Error, IndexerProgress, Oid, PackBuilderStage, Progress,
+    PushUpdate,
 };
 
 /// A structure to contain the callbacks which are invoked when a repository is
@@ -25,14 +26,15 @@ pub struct RemoteCallbacks<'a> {
     update_tips: Option<Box<UpdateTips<'a>>>,
     certificate_check: Option<Box<CertificateCheck<'a>>>,
     push_update_reference: Option<Box<PushUpdateReference<'a>>>,
+    push_negotiation: Option<Box<PushNegotiation<'a>>>,
 }
 
 /// Callback used to acquire credentials for when a remote is fetched.
 ///
 /// * `url` - the resource for which the credentials are required.
-/// * `username_from_url` - the username that was embedded in the url, or `None`
+/// * `username_from_url` - the username that was embedded in the URL, or `None`
 ///                         if it was not included.
-/// * `allowed_types` - a bitmask stating which cred types are ok to return.
+/// * `allowed_types` - a bitmask stating which cred types are OK to return.
 pub type Credentials<'a> =
     dyn FnMut(&str, Option<&str>, CredentialType) -> Result<Cred, Error> + 'a;
 
@@ -46,7 +48,7 @@ pub type UpdateTips<'a> = dyn FnMut(&str, Oid, Oid) -> bool + 'a;
 
 /// Callback for a custom certificate check.
 ///
-/// The first argument is the certificate receved on the connection.
+/// The first argument is the certificate received on the connection.
 /// Certificates are typically either an SSH or X509 certificate.
 ///
 /// The second argument is the hostname for the connection is passed as the last
@@ -54,7 +56,7 @@ pub type UpdateTips<'a> = dyn FnMut(&str, Oid, Oid) -> bool + 'a;
 pub type CertificateCheck<'a> =
     dyn FnMut(&Cert<'_>, &str) -> Result<CertificateCheckStatus, Error> + 'a;
 
-/// The return value for the [`CertificateCheck`] callback.
+/// The return value for the [`RemoteCallbacks::certificate_check`] callback.
 pub enum CertificateCheckStatus {
     /// Indicates that the certificate should be accepted.
     CertificateOk,
@@ -87,6 +89,14 @@ pub type PushTransferProgress<'a> = dyn FnMut(usize, usize, usize) + 'a;
 ///     * total
 pub type PackProgress<'a> = dyn FnMut(PackBuilderStage, usize, usize) + 'a;
 
+/// Callback used to inform of upcoming updates.
+///
+/// The argument is a slice containing the updates which will be sent as
+/// commands to the destination.
+///
+/// The push is cancelled if an error is returned.
+pub type PushNegotiation<'a> = dyn FnMut(&[PushUpdate<'_>]) -> Result<(), Error> + 'a;
+
 impl<'a> Default for RemoteCallbacks<'a> {
     fn default() -> Self {
         Self::new()
@@ -105,6 +115,7 @@ impl<'a> RemoteCallbacks<'a> {
             certificate_check: None,
             push_update_reference: None,
             push_progress: None,
+            push_negotiation: None,
         }
     }
 
@@ -211,6 +222,16 @@ impl<'a> RemoteCallbacks<'a> {
         self.pack_progress = Some(Box::new(cb) as Box<PackProgress<'a>>);
         self
     }
+
+    /// The callback is called once between the negotiation step and the upload.
+    /// It provides information about what updates will be performed.
+    pub fn push_negotiation<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    where
+        F: FnMut(&[PushUpdate<'_>]) -> Result<(), Error> + 'a,
+    {
+        self.push_negotiation = Some(Box::new(cb) as Box<PushNegotiation<'a>>);
+        self
+    }
 }
 
 impl<'a> Binding for RemoteCallbacks<'a> {
@@ -256,6 +277,9 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                 ) -> c_int = update_tips_cb;
                 callbacks.update_tips = Some(f);
             }
+            if self.push_negotiation.is_some() {
+                callbacks.push_negotiation = Some(push_negotiation_cb);
+            }
             callbacks.payload = self as *const _ as *mut _;
             callbacks
         }
@@ -290,7 +314,7 @@ extern "C" fn credentials_cb(
 
             callback(url, username_from_url, cred_type).map_err(|e| {
                 let s = CString::new(e.to_string()).unwrap();
-                raw::git_error_set_str(e.raw_code() as c_int, s.as_ptr());
+                raw::git_error_set_str(e.class() as c_int, s.as_ptr());
                 e.raw_code() as c_int
             })
         });
@@ -468,6 +492,27 @@ extern "C" fn pack_progress_cb(
         callback(stage, current as usize, total as usize);
 
         0
+    })
+    .unwrap_or(-1)
+}
+
+extern "C" fn push_negotiation_cb(
+    updates: *mut *const raw::git_push_update,
+    len: size_t,
+    payload: *mut c_void,
+) -> c_int {
+    panic::wrap(|| unsafe {
+        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+        let callback = match payload.push_negotiation {
+            Some(ref mut c) => c,
+            None => return 0,
+        };
+
+        let updates = slice::from_raw_parts(updates as *mut PushUpdate<'_>, len);
+        match callback(updates) {
+            Ok(()) => 0,
+            Err(e) => e.raw_code(),
+        }
     })
     .unwrap_or(-1)
 }

@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog] and this project adheres to
 [Keep a Changelog]: http://keepachangelog.com/en/1.0.0/
 [Semantic Versioning]: http://semver.org/spec/v2.0.0.html
 
+## [3.2.0] - 2023-03-28
+
+- Handle return type promotion in the high layer: https://github.com/tov/libffi-rs/pull/69
+- Fix return type in call example code: https://github.com/tov/libffi-rs/pull/68
+
+## [3.1.0] - 2023-01-02
+
+- Bump version requirement of libffi-sys to 2.1.0
+- Copy size and alignment of structures on clone: https://github.com/tov/libffi-rs/pull/62
+
 ## [3.0.1] - 2022-09-02
 
 - Removed dependency on abort_on_panic: https://github.com/tov/libffi-rs/pull/58

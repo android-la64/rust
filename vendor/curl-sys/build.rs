@@ -108,7 +108,7 @@ fn main() {
             .replace("@LIBCURL_LIBS@", "")
             .replace("@SUPPORT_FEATURES@", "")
             .replace("@SUPPORT_PROTOCOLS@", "")
-            .replace("@CURLVERSION@", "7.61.1"),
+            .replace("@CURLVERSION@", "8.0.1"),
     )
     .unwrap();
 
@@ -141,12 +141,16 @@ fn main() {
         .file("curl/lib/altsvc.c")
         .file("curl/lib/base64.c")
         .file("curl/lib/bufref.c")
+        .file("curl/lib/cfilters.c")
+        .file("curl/lib/cf-https-connect.c")
+        .file("curl/lib/cf-socket.c")
         .file("curl/lib/conncache.c")
         .file("curl/lib/connect.c")
         .file("curl/lib/content_encoding.c")
         .file("curl/lib/cookie.c")
         .file("curl/lib/curl_addrinfo.c")
         .file("curl/lib/curl_get_line.c")
+        .file("curl/lib/curl_log.c")
         .file("curl/lib/curl_memrchr.c")
         .file("curl/lib/curl_range.c")
         .file("curl/lib/curl_threads.c")
@@ -172,6 +176,7 @@ fn main() {
         .file("curl/lib/http_chunks.c")
         .file("curl/lib/http_digest.c")
         .file("curl/lib/http_proxy.c")
+        .file("curl/lib/idn.c")
         .file("curl/lib/if2ip.c")
         .file("curl/lib/inet_ntop.c")
         .file("curl/lib/inet_pton.c")
@@ -210,11 +215,14 @@ fn main() {
         .file("curl/lib/version.c")
         .file("curl/lib/vauth/digest.c")
         .file("curl/lib/vauth/vauth.c")
+        .file("curl/lib/vquic/curl_msh3.c")
+        .file("curl/lib/vquic/curl_ngtcp2.c")
+        .file("curl/lib/vquic/curl_quiche.c")
+        .file("curl/lib/vquic/vquic.c")
         .file("curl/lib/vtls/hostcheck.c")
         .file("curl/lib/vtls/keylog.c")
         .file("curl/lib/vtls/vtls.c")
         .file("curl/lib/warnless.c")
-        .file("curl/lib/wildcard.c")
         .file("curl/lib/timediff.c")
         .define("HAVE_GETADDRINFO", None)
         .define("HAVE_GETPEERNAME", None)
@@ -386,7 +394,6 @@ fn main() {
 
         if target.contains("-apple-") {
             cfg.define("__APPLE__", None)
-                .define("macintosh", None)
                 .define("HAVE_MACH_ABSOLUTE_TIME", None);
         } else {
             cfg.define("HAVE_CLOCK_GETTIME_MONOTONIC", None)

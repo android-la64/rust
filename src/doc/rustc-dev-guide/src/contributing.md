@@ -1,31 +1,6 @@
-# Contributing to Rust
-
-Thank you for your interest in contributing to Rust! There are many ways to
-contribute, and we appreciate all of them.
+# Contribution Procedures
 
 <!-- toc -->
-
-If you have questions, please make a post on [internals.rust-lang.org][internals] or
-hop on the [Rust Discord server][rust-discord] or [Rust Zulip server][rust-zulip].
-
-As a reminder, all contributors are expected to follow our [Code of Conduct][coc].
-
-If this is your first time contributing, the [Getting Started] and
-[walkthrough] chapters can give you a good example of how a typical
-contribution would go.
-
-[internals]: https://internals.rust-lang.org
-[rust-discord]: http://discord.gg/rust-lang
-[rust-zulip]: https://rust-lang.zulipchat.com
-[coc]: https://www.rust-lang.org/conduct.html
-[walkthrough]: ./walkthrough.md
-[Getting Started]: ./getting-started.md
-
-## Feature Requests
-
-Feature requests need to go through a process to be approved by the relevant
-teams. Usually this requires a Final Comment Period (FCP) or even a Request for
-Comments (RFC). See [Getting Started] for more information about these processes.
 
 ## Bug Reports
 
@@ -57,6 +32,80 @@ Trait in return position**.
 Opening an issue is as easy as following [this
 link](https://github.com/rust-lang/rust/issues/new/choose) and filling out the fields
 in the appropriate provided template.
+
+## Bug Fixes or "Normal" code changes
+
+For most PRs, no special procedures are needed. You can just [open a PR][prs], and it
+will be reviewed, approved, and merged. This includes most bug fixes,
+refactorings, and other user-invisible changes. The next few sections talk
+about exceptions to this rule.
+
+Also, note that it is perfectly acceptable to open WIP PRs or GitHub [Draft
+PRs][draft]. Some people prefer to do this so they can get feedback along the
+way or share their code with a collaborator. Others do this so they can utilize
+the CI to build and test their PR (e.g. if you are developing on a laptop).
+
+[prs]: #pull-requests
+[draft]: https://github.blog/2019-02-14-introducing-draft-pull-requests/
+
+## New Features
+
+Rust has strong backwards-compatibility guarantees. Thus, new features can't
+just be implemented directly in stable Rust. Instead, we have 3 release
+channels: stable, beta, and nightly.
+
+- **Stable**: this is the latest stable release for general usage.
+- **Beta**: this is the next release (will be stable within 6 weeks).
+- **Nightly**: follows the `master` branch of the repo. This is the only
+  channel where unstable, incomplete, or experimental features are usable with
+  feature gates.
+
+See [this chapter on implementing new features](./implementing_new_features.md) for more
+information.
+
+### Breaking Changes
+
+Breaking changes have a [dedicated section][breaking-changes] in the dev-guide.
+
+[breaking-changes]: ./bug-fix-procedure.md
+
+### Major Changes
+
+The compiler team has a special process for large changes, whether or not they
+cause breakage. This process is called a Major Change Proposal (MCP). MCP is a
+relatively lightweight mechanism for getting feedback on large changes to the
+compiler (as opposed to a full RFC or a design meeting with the team).
+
+Example of things that might require MCPs include major refactorings, changes
+to important types, or important changes to how the compiler does something, or
+smaller user-facing changes.
+
+**When in doubt, ask on [zulip][z]. It would be a shame to put a lot of work
+into a PR that ends up not getting merged!** [See this document][mcpinfo] for
+more info on MCPs.
+
+[mcpinfo]: https://forge.rust-lang.org/compiler/mcp.html
+[z]: https://rust-lang.zulipchat.com/#narrow/stream/131828-t-compiler
+
+### Performance
+
+Compiler performance is important. We have put a lot of effort over the last
+few years into [gradually improving it][perfdash].
+
+[perfdash]: https://perf.rust-lang.org/dashboard.html
+
+If you suspect that your change may cause a performance regression (or
+improvement), you can request a "perf run" (your reviewer may also request one
+before approving). This is yet another bot that will compile a collection of
+benchmarks on a compiler with your changes. The numbers are reported
+[here][perf], and you can see a comparison of your changes against the latest
+master.
+
+For an introduction to the performance of Rust code in general
+which would also be useful in rustc development, see [The Rust Performance Book].
+
+[perf]: https://perf.rust-lang.org
+[The Rust Performance Book]: https://nnethercote.github.io/perf-book/
 
 ## Pull Requests
 
@@ -96,6 +145,42 @@ For a full list of possible `groupname` check the `adhoc_groups` section at the
 or the list of teams in the [rust-lang teams
 database](https://github.com/rust-lang/team/tree/master/teams).
 
+### Waiting for reviews
+
+> NOTE
+>
+> Pull request reviewers are often working at capacity,
+> and many of them are contributing on a volunteer basis.
+> In order to minimize review delays,
+> pull request authors and assigned reviewers should ensure that the review label
+> (`S-waiting-on-review` and `S-waiting-on-author`) stays updated,
+> invoking these commands when appropriate:
+>
+> - `@rustbot author`:
+>   the review is finished,
+>   and PR author should check the comments and take action accordingly.
+>
+> - `@rustbot review`:
+>   the author is ready for a review,
+>   and this PR will be queued again in the reviewer's queue.
+
+Please note that the reviewers are humans, who for the most part work on `rustc`
+in their free time. This means that they can take some time to respond and review
+your PR. It also means that reviewers can miss some PRs that are assigned to them.
+
+To try to move PRs forward, the Triage WG regularly goes through all PRs that
+are waiting for review and haven't been discussed for at least 2 weeks. If you
+don't get a review within 2 weeks, feel free to ask the Triage WG on
+Zulip ([#t-release/triage]). They have knowledge of when to ping, who might be
+on vacation, etc.
+
+The reviewer may request some changes using the GitHub code review interface.
+They may also request special procedures (such as a [crater] run; [see
+below][break]) for some PRs.
+
+[r?]: https://github.com/rust-lang/rust/pull/78133#issuecomment-712692371
+[#t-release/triage]: https://rust-lang.zulipchat.com/#narrow/stream/242269-t-release.2Ftriage
+[break]: #breaking-changes
 ### CI
 
 In addition to being reviewed by a human, pull requests are automatically tested
@@ -103,6 +188,8 @@ thanks to continuous integration (CI). Basically, every time you open and update
 a pull request, CI builds the compiler and tests it against the
 [compiler test suite][rctd], and also performs other tests such as checking that
 your pull request is in compliance with Rust's style guidelines.
+
+[rctd]: tests/intro.md
 
 Running continuous integration tests allows PR authors to catch mistakes early
 without going through a first review cycle, and also helps reviewers stay aware
@@ -134,6 +221,8 @@ The additional `rollup` tells [@bors] that this change should always be "rolled 
 Changes that are rolled up are tested and merged alongside other PRs, to
 speed the process up. Typically only small changes that are expected not to conflict
 with one another are marked as "always roll up".
+
+Be patient; this can take a while and the queue can sometimes be long. PRs are never merged by hand.
 
 [@rustbot]: https://github.com/rustbot
 [@bors]: https://github.com/bors
@@ -179,161 +268,19 @@ the issue in question.
 [labeling]: ./rustbot.md#issue-relabeling
 [closing-keywords]: https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue
 
-### External Dependencies (subtree)
+## External Dependencies
 
-As a developer to this repository, you don't have to treat the following external projects
-differently from other crates that are directly in this repo:
-
-* [Clippy](https://github.com/rust-lang/rust-clippy)
-* [Miri]
-* [rustfmt](https://github.com/rust-lang/rustfmt)
-* [rust-analyzer](https://github.com/rust-lang/rust-analyzer)
-
-In contrast to `submodule` dependencies
-(see below for those), the `subtree` dependencies are just regular files and directories which can
-be updated in tree. However, if possible, enhancements, bug fixes, etc. specific
-to these tools should be filed against the tools directly in their respective
-upstream repositories. The exception is that when rustc changes are required to
-implement a new tool feature or test, that should happen in one collective rustc PR.
-
-#### Synchronizing a subtree
-
-Periodically the changes made to subtree based dependencies need to be synchronized between this
-repository and the upstream tool repositories.
-
-Subtree synchronizations are typically handled by the respective tool maintainers. Other users
-are welcome to submit synchronization PRs, however, in order to do so you will need to modify
-your local git installation and follow a very precise set of instructions.
-These instructions are documented, along with several useful tips and tricks, in the
-[syncing subtree changes][clippy-sync-docs] section in Clippy's Contributing guide.
-The instructions are applicable for use with any subtree based tool, just be sure to
-use the correct corresponding subtree directory and remote repository.
-
-The synchronization process goes in two directions: `subtree push` and `subtree pull`.
-
-A `subtree push` takes all the changes that happened to the copy in this repo and creates commits
-on the remote repo that match the local changes. Every local
-commit that touched the subtree causes a commit on the remote repo, but
-is modified to move the files from the specified directory to the tool repo root.
-
-A `subtree pull` takes all changes since the last `subtree pull`
-from the tool repo and adds these commits to the rustc repo along with a merge commit that moves
-the tool changes into the specified directory in the Rust repository.
-
-It is recommended that you always do a push first and get that merged to the tool master branch.
-Then, when you do a pull, the merge works without conflicts.
-While it's definitely possible to resolve conflicts during a pull, you may have to redo the conflict
-resolution if your PR doesn't get merged fast enough and there are new conflicts. Do not try to
-rebase the result of a `git subtree pull`, rebasing merge commits is a bad idea in general.
-
-You always need to specify the `-P` prefix to the subtree directory and the corresponding remote
-repository. If you specify the wrong directory or repository
-you'll get very fun merges that try to push the wrong directory to the wrong remote repository.
-Luckily you can just abort this without any consequences by throwing away either the pulled commits
-in rustc or the pushed branch on the remote and try again. It is usually fairly obvious
-that this is happening because you suddenly get thousands of commits that want to be synchronized.
-
-[clippy-sync-docs]: https://doc.rust-lang.org/nightly/clippy/development/infrastructure/sync.html
-
-#### Creating a new subtree dependency
-
-If you want to create a new subtree dependency from an existing repository, call (from this
-repository's root directory!)
-
-```
-git subtree add -P src/tools/clippy https://github.com/rust-lang/rust-clippy.git master
-```
-
-This will create a new commit, which you may not rebase under any circumstances! Delete the commit
-and redo the operation if you need to rebase.
-
-Now you're done, the `src/tools/clippy` directory behaves as if Clippy were
-part of the rustc monorepo, so no one but you (or others that synchronize
-subtrees) actually needs to use `git subtree`.
-
-
-### External Dependencies (submodules)
-
-Building Rust will also use external git repositories tracked using [git
-submodules]. The complete list may be found in the [`.gitmodules`] file. Some
-of these projects are required (like `stdarch` for the standard library) and
-some of them are optional (like [Miri]).
-
-Usage of submodules is discussed more in the [Using Git
-chapter](git.md#git-submodules).
-
-Some of the submodules are allowed to be in a "broken" state where they
-either don't build or their tests don't pass, e.g. the documentation books
-like [The Rust Reference]. Maintainers of these projects will be notified
-when the project is in a broken state, and they should fix them as soon
-as possible. The current status is tracked on the [toolstate website].
-More information may be found on the Forge [Toolstate chapter].
-
-Breakage is not allowed in the beta and stable channels, and must be addressed
-before the PR is merged. They are also not allowed to be broken on master in
-the week leading up to the beta cut.
-
-[git submodules]: https://git-scm.com/book/en/v2/Git-Tools-Submodules
-[`.gitmodules`]: https://github.com/rust-lang/rust/blob/master/.gitmodules
-[The Rust Reference]: https://github.com/rust-lang/reference/
-[toolstate website]: https://rust-lang-nursery.github.io/rust-toolstate/
-[Toolstate chapter]: https://forge.rust-lang.org/infra/toolstate.html
-
-#### Breaking Tools Built With The Compiler
-
-Rust's build system builds a number of tools that make use of the internals of
-the compiler and that are hosted in a separate repository, and included in Rust
-via git submodules (such as [Miri]). If these tools break because of your
-changes, you may run into a sort of "chicken and egg" problem. These tools rely
-on the latest compiler to be built so you can't update them (in their own
-repositories) to reflect your changes to the compiler until those changes are
-merged into the compiler. At the same time, you can't get your changes merged
-into the compiler because the rust-lang/rust build won't pass until those tools
-build and pass their tests.
-
-Luckily, a feature was
-[added to Rust's build](https://github.com/rust-lang/rust/issues/45861) to make
-all of this easy to handle. The idea is that we allow these tools to be
-"broken", so that the rust-lang/rust build passes without trying to build them,
-then land the change in the compiler, and go update the tools that you
-broke. Some tools will require waiting for a nightly release before this can
-happen, while others use the builds uploaded after each bors merge and thus can
-be updated immediately (check the tool's documentation for details). Once you're
-done and the tools are working again, you go back in the compiler and update the
-tools so they can be distributed again.
-
-This should avoid a bunch of synchronization dances and is also much easier on contributors as
-there's no need to block on tools changes going upstream.
-
-Here are those same steps in detail:
-
-1. (optional) First, if it doesn't exist already, create a `config.toml` by copying
-   `config.toml.example` in the root directory of the Rust repository.
-   Set `submodules = false` in the `[build]` section. This will prevent `x.py`
-   from resetting to the original branch after you make your changes. If you
-   need to [update any submodules to their latest versions](#updating-submodules),
-   see the section of this file about that for more information.
-2. (optional) Run `./x.py test src/tools/cargo` (substituting the submodule
-   that broke for `cargo`). Fix any errors in the submodule (and possibly others).
-3. (optional) Make commits for your changes and send them to upstream repositories as a PR.
-4. (optional) Maintainers of these submodules will **not** merge the PR. The PR can't be
-   merged because CI will be broken. You'll want to write a message on the PR referencing
-   your change, and how the PR should be merged once your change makes it into a nightly.
-5. Wait for your PR to merge.
-6. Wait for a nightly.
-7. (optional) Help land your PR on the upstream repository now that your changes are in nightly.
-8. (optional) Send a PR to rust-lang/rust updating the submodule.
-
+This section has moved to ["Using External Repositories"](./external-repos.md).
 
 ## Writing Documentation
 
 Documentation improvements are very welcome. The source of `doc.rust-lang.org`
 is located in [`src/doc`] in the tree, and standard API documentation is generated
-from the source code itself (e.g. [`lib.rs`]). Documentation pull requests function
-in the same way as other pull requests.
+from the source code itself (e.g. [`library/std/src/lib.rs`][std-root]). Documentation pull requests
+function in the same way as other pull requests.
 
 [`src/doc`]: https://github.com/rust-lang/rust/tree/master/src/doc
-[`lib.rs`]: https://github.com/rust-lang/rust/blob/master/library/std/src/lib.rs#L1
+[std-root]: https://github.com/rust-lang/rust/blob/master/library/std/src/lib.rs#L1
 
 To find documentation-related issues, sort by the [A-docs label][adocs].
 
@@ -343,14 +290,11 @@ You can find documentation style guidelines in [RFC 1574][rfc1574].
 
 [rfc1574]: https://github.com/rust-lang/rfcs/blob/master/text/1574-more-api-documentation-conventions.md#appendix-a-full-conventions-text
 
-In many cases, you don't need a full `./x.py doc --stage 2`, which will build
-the entire stage 2 compiler and compile the various books published on
-[doc.rust-lang.org][docs]. When updating documentation for the standard library,
-first try `./x.py doc library`. If that fails, or if you need to
-see the output from the latest version of `rustdoc`, add `--stage 1`.
-Results should appear in `build/host/doc`.
-
-[docs]: https://doc.rust-lang.org
+To build the standard library documentation, use `x doc --stage 0 library --open`.
+To build the documentation for a book (e.g. the unstable book), use `x doc src/doc/unstable-book.`
+Results should appear in `build/host/doc`, as well as automatically open in your default browser.
+See [Building Documentation](./building/compiler-documenting.md#building-documentation) for more
+information.
 
 You can also use `rustdoc` directly to check small fixes. For example,
 `rustdoc src/doc/reference.md` will render reference to `doc/reference.html`.
@@ -366,7 +310,7 @@ There are issues for beginners and advanced compiler devs alike!
 Just a few things to keep in mind:
 
 - Please limit line length to 100 characters. This is enforced by CI, and you can run the checks
-  locally with `ci/check_line_lengths.sh`.
+  locally with `ci/lengthcheck.sh`.
 
 - When contributing text to the guide, please contextualize the information with some time period
   and/or a reason so that the reader knows how much to trust or mistrust the information.
@@ -431,122 +375,99 @@ updated sort][lru] is good for finding issues like this.
 [Thanks to `@rustbot`][rustbot], anyone can help triage issues by adding
 appropriate labels to issues that haven't been triaged yet:
 
-* Yellow, **A**-prefixed labels state which **area** of the project an issue
-  relates to.
-
-* Magenta, **B**-prefixed labels identify bugs which are **blockers**.
-
-* Dark blue, **beta-** labels track changes which need to be backported into
-  the beta branches.
-
-* Light purple, **C**-prefixed labels represent the **category** of an issue.
-
-* Green, **E**-prefixed labels explain the level of **experience** necessary
-  to fix the issue.
-
-* The dark blue **final-comment-period** label marks bugs that are using the
-  RFC signoff functionality of [rfcbot] and are currently in the final
-  comment period.
-
-* Red, **I**-prefixed labels indicate the **importance** of the issue. The
-  [I-nominated][inom] label indicates that an issue has been nominated for
-  discussion at the next meeting of the team tagged using a
-  **T**-prefixed label. Similarly, the [I-prioritize][ipri] indicates
-  that an issue has been requested to be prioritized by the appropriate
-  team.
-
-* The purple **metabug** label marks lists of bugs collected by other
-  categories.
-
-* Purple gray, **O**-prefixed labels are the **operating system** or platform
-  that this issue is specific to.
-
-* Orange, **P**-prefixed labels indicate a bug's **priority**. These labels
-  can be assigned by anyone that understand the issue and is able to
-  prioritize it, and replace the [I-prioritize][ipri] label.
-
-* The gray **proposed-final-comment-period** label marks bugs that are using
-  the RFC signoff functionality of [rfcbot] and are currently awaiting
-  signoff of all team members in order to enter the final comment period.
-
-* Pink, **regression**-prefixed labels track regressions from stable to the
-  release channels.
-
-* The light orange **relnotes** label marks issues that should be documented in
-  the release notes of the next release.
-
-* Gray, **S**-prefixed labels are used for tracking the **status** of pull
-  requests.
-
-* Blue, **T**-prefixed bugs denote which **team** the issue belongs to.
-
-If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
-
-[rustbot]: ./rustbot.md
-[inom]: https://github.com/rust-lang/rust/issues?q=is%3Aopen+is%3Aissue+label%3AI-nominated
-[ipri]: https://github.com/rust-lang/rust/issues?q=is%3Aopen+is%3Aissue+label%3AI-prioritize
-[eeasy]: https://github.com/rust-lang/rust/issues?q=is%3Aopen+is%3Aissue+label%3AE-easy
 [lru]: https://github.com/rust-lang/rust/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-asc
+[rustbot]: ./rustbot.md
+
+<style>
+.label-color {
+    border-radius:0.5em;
+}
+table td:nth-child(2) {
+    white-space: nowrap;
+}
+
+</style>
+
+| Labels | Color | Description |
+|--------|-------|-------------|
+| [A-]   | <span class="label-color" style="background-color:#f7e101;">&#x2003;</span>&nbsp;Yellow | The **area** of the project an issue relates to. |
+| [B-]   | <span class="label-color" style="background-color:#d304cb;">&#x2003;</span>&nbsp;Magenta | Issues which are **blockers**. |
+| [beta-] | <span class="label-color" style="background-color:#1e76d9;">&#x2003;</span>&nbsp;Dark Blue | Tracks changes which need to be [backported to beta][beta-backport] |
+| [C-] | <span class="label-color" style="background-color:#f5f1fd;">&#x2003;</span>&nbsp;Light Purple | The **category** of an issue. |
+| [D-] | <span class="label-color" style="background-color:#c9f7a3;">&#x2003;</span>&nbsp;Mossy Green | Issues for **diagnostics**. |
+| [E-] | <span class="label-color" style="background-color:#02e10c;">&#x2003;</span>&nbsp;Green | The **experience** level necessary to fix an issue. |
+| [F-] | <span class="label-color" style="background-color:#f9c0cc;">&#x2003;</span>&nbsp;Peach | Issues for **nightly features**. |
+| [I-] | <span class="label-color" style="background-color:#e10c02;">&#x2003;</span>&nbsp;Red | The **importance** of the issue. |
+| [I-\*-nominated] | <span class="label-color" style="background-color:#e10c02;">&#x2003;</span>&nbsp;Red | The issue has been nominated for discussion at the next meeting of the corresponding team. |
+| [I-prioritize] | <span class="label-color" style="background-color:#e10c02;">&#x2003;</span>&nbsp;Red | The issue has been nominated for prioritization by the team tagged with a **T**-prefixed label. |
+| [metabug] | <span class="label-color" style="background-color:#5319e7;">&#x2003;</span>&nbsp;Purple | Bugs that collect other bugs. |
+| [O-] | <span class="label-color" style="background-color:#6e6ec0;">&#x2003;</span>&nbsp;Purple Grey | The **operating system** or platform that the issue is specific to. |
+| [P-] | <span class="label-color" style="background-color:#eb6420;">&#x2003;</span>&nbsp;Orange | The issue **priority**.  These labels can be assigned by anyone that understand the issue and is able to  prioritize it, and remove the [I-prioritize] label. |
+| [regression-] | <span class="label-color" style="background-color:#e4008a;">&#x2003;</span>&nbsp;Pink | Tracks regressions from a stable release. |
+| [relnotes] | <span class="label-color" style="background-color:#fad8c7;">&#x2003;</span>&nbsp;Light Orange | Changes that should be documented in the release notes of the next release. |
+| [S-] | <span class="label-color" style="background-color:#d3dddd;">&#x2003;</span>&nbsp;Gray | Tracks the **status** of pull requests. |
+| [S-tracking-] | <span class="label-color" style="background-color:#4682b4;">&#x2003;</span>&nbsp;Steel Blue | Tracks the **status** of [tracking issues]. |
+| [stable-] | <span class="label-color" style="background-color:#00229c;">&#x2003;</span>&nbsp;Dark Blue | Tracks changes which need to be [backported to stable][stable-backport] in anticipation of a point release. |
+| [T-] | <span class="label-color" style="background-color:#bfd4f2;">&#x2003;</span>&nbsp;Blue | Denotes which **team** the issue belongs to. |
+| [WG-] | <span class="label-color" style="background-color:#c2e0c6;">&#x2003;</span>&nbsp;Green | Denotes which **working group** the issue belongs to. |
+
+
+[A-]: https://github.com/rust-lang/rust/labels?q=A
+[B-]: https://github.com/rust-lang/rust/labels?q=B
+[C-]: https://github.com/rust-lang/rust/labels?q=C
+[D-]: https://github.com/rust-lang/rust/labels?q=D
+[E-]: https://github.com/rust-lang/rust/labels?q=E
+[F-]: https://github.com/rust-lang/rust/labels?q=F
+[I-]: https://github.com/rust-lang/rust/labels?q=I
+[O-]: https://github.com/rust-lang/rust/labels?q=O
+[P-]: https://github.com/rust-lang/rust/labels?q=P
+[S-]: https://github.com/rust-lang/rust/labels?q=S
+[T-]: https://github.com/rust-lang/rust/labels?q=T
+[WG-]: https://github.com/rust-lang/rust/labels?q=WG
+[stable-]: https://github.com/rust-lang/rust/labels?q=stable
+[beta-]: https://github.com/rust-lang/rust/labels?q=beta
+[I-\*-nominated]: https://github.com/rust-lang/rust/labels?q=nominated
+[I-prioritize]: https://github.com/rust-lang/rust/labels/I-prioritize
+[tracking issues]: https://github.com/rust-lang/rust/labels/C-tracking-issue
+[beta-backport]: https://forge.rust-lang.org/release/backporting.html#beta-backporting-in-rust-langrust
+[stable-backport]: https://forge.rust-lang.org/release/backporting.html#stable-backporting-in-rust-langrust
+[metabug]: https://github.com/rust-lang/rust/labels/metabug
+[regression-]: https://github.com/rust-lang/rust/labels?q=regression
+[relnotes]: https://github.com/rust-lang/rust/labels/relnotes
+[S-tracking-]: https://github.com/rust-lang/rust/labels?q=s-tracking
+
+### Rfcbot labels
+
+[rfcbot] uses its own labels for tracking the process of coordinating
+asynchronous decisions, such as approving or rejecting a change.
+This is used for [RFCs], issues, and pull requests.
+
+| Labels | Color | Description |
+|--------|-------|-------------|
+| [proposed-final-comment-period] | <span class="label-color" style="background-color:#ededed;">&#x2003;</span>&nbsp;Gray | Currently awaiting signoff of all team members in order to enter the final comment period. |
+| [disposition-merge] | <span class="label-color" style="background-color:#008800;">&#x2003;</span>&nbsp;Green | Indicates the intent is to merge the change. |
+| [disposition-close] | <span class="label-color" style="background-color:#dd0000;">&#x2003;</span>&nbsp;Red | Indicates the intent is to not accept the change and close it. |
+| [disposition-postpone] | <span class="label-color" style="background-color:#ededed;">&#x2003;</span>&nbsp;Gray | Indicates the intent is to not accept the change at this time and postpone it to a later date. |
+| [final-comment-period] | <span class="label-color" style="background-color:#1e76d9;">&#x2003;</span>&nbsp;Blue | Currently soliciting final comments before merging or closing. |
+| [finished-final-comment-period] | <span class="label-color" style="background-color:#f9e189;">&#x2003;</span>&nbsp;Light Yellow | The final comment period has concluded, and the issue will be merged or closed. |
+| [postponed] | <span class="label-color" style="background-color:#fbca04;">&#x2003;</span>&nbsp;Yellow | The issue has been postponed. |
+| [closed] | <span class="label-color" style="background-color:#dd0000;">&#x2003;</span>&nbsp;Red | The issue has been rejected. |
+| [to-announce] | <span class="label-color" style="background-color:#ededed;">&#x2003;</span>&nbsp;Gray | Issues that have finished their final-comment-period and should be publicly announced. Note: the rust-lang/rust repository uses this label differently, to announce issues at the triage meetings. |
+
+[disposition-merge]: https://github.com/rust-lang/rust/labels/disposition-merge
+[disposition-close]: https://github.com/rust-lang/rust/labels/disposition-close
+[disposition-postpone]: https://github.com/rust-lang/rust/labels/disposition-postpone
+[proposed-final-comment-period]: https://github.com/rust-lang/rust/labels/proposed-final-comment-period
+[final-comment-period]: https://github.com/rust-lang/rust/labels/final-comment-period
+[finished-final-comment-period]: https://github.com/rust-lang/rust/labels/finished-final-comment-period
+[postponed]: https://github.com/rust-lang/rfcs/labels/postponed
+[closed]: https://github.com/rust-lang/rfcs/labels/closed
+[to-announce]: https://github.com/rust-lang/rfcs/labels/to-announce
 [rfcbot]: https://github.com/anp/rfcbot-rs/
-
-## Out-of-tree Contributions
-
-There are a number of other ways to contribute to Rust that don't deal with
-rust-lang/rust:
-
-* Answer questions in the _Get Help!_ channels on the [Rust Discord
-  server][rust-discord], on [users.rust-lang.org][users], or on
-  [StackOverflow][so].
-* Participate in the [RFC process](https://github.com/rust-lang/rfcs).
-* Find a [requested community library][community-library], build it, and publish
-  it to [Crates.io](http://crates.io). Easier said than done, but very, very
-  valuable!
-
-[rust-discord]: https://discord.gg/rust-lang
-[users]: https://users.rust-lang.org/
-[so]: http://stackoverflow.com/questions/tagged/rust
-[community-library]: https://github.com/rust-lang/rfcs/labels/A-community-library
+[RFCs]: https://github.com/rust-lang/rfcs
 
 ## Helpful Links and Information
 
-For people new to Rust, and just starting to contribute, or even for
-more seasoned developers, some useful places to look for information
-are:
+This section has moved to the ["About this guide"][more-links] chapter.
 
-* This guide contains information about how various parts of the
-  compiler work and how to contribute to the compiler
-* [Rust Forge][rustforge] contains additional documentation, including
-  write-ups of how to achieve common tasks
-* The [Rust Internals forum][rif], a place to ask questions and
-  discuss Rust's internals
-* The [generated documentation for Rust's compiler][gdfrustc]
-* The [Rust reference][rr], even though it doesn't specifically talk about
-  Rust's internals, is a great resource nonetheless
-* Although out of date, [Tom Lee's great blog article][tlgba] is very helpful
-* [rustaceans.org][ro] is helpful, but mostly dedicated to IRC
-* The [Rust Compiler Testing Docs][rctd]
-* For [@bors], [this cheat sheet][cheatsheet] is helpful
-* Google is always helpful when programming.
-  You can [search all Rust documentation][gsearchdocs] (the standard library,
-  the compiler, the books, the references, and the guides) to quickly find
-  information about the language and compiler.
-* You can also use Rustdoc's built-in search feature to find documentation on
-  types and functions within the crates you're looking at. You can also search
-  by type signature! For example, searching for `* -> vec` should find all
-  functions that return a `Vec<T>`.
-  _Hint:_ Find more tips and keyboard shortcuts by typing `?` on any Rustdoc
-  page!
-* Don't be afraid to ask! The Rust community is friendly and helpful.
-
-[rustc dev guide]: about-this-guide.md
-[gdfrustc]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/
-[gsearchdocs]: https://www.google.com/search?q=site:doc.rust-lang.org+your+query+here
-[stddocs]: https://doc.rust-lang.org/std
-[rif]: http://internals.rust-lang.org
-[rr]: https://doc.rust-lang.org/book/README.html
-[rustforge]: https://forge.rust-lang.org/
-[tlgba]: https://tomlee.co/2014/04/a-more-detailed-tour-of-the-rust-compiler/
-[ro]: https://www.rustaceans.org/
-[rctd]: tests/intro.md
-[cheatsheet]: https://bors.rust-lang.org/
-[Miri]: https://github.com/rust-lang/miri
+[more-links]: ./about-this-guide.md#other-places-to-find-information

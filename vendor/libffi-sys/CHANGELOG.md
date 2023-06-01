@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog] and this project adheres to
 [Keep a Changelog]: http://keepachangelog.com/en/1.0.0/
 [Semantic Versioning]: http://semver.org/spec/v2.0.0.html
 
+## [2.2.1] - 2023-04-02
+
+- Fix building with clang 16 and newer: https://github.com/tov/libffi-rs/pull/74
+
+## [2.2.0] - 2023-03-28
+
+- Add support for aarch64-apple-ios-sim: https://github.com/tov/libffi-rs/pull/64
+- Support aarch64 MSVC target: https://github.com/tov/libffi-rs/pull/65
+- Add support for the s390x architecture: https://github.com/tov/libffi-rs/pull/70
+
+## [2.1.0] - 2023-01-02
+
+- Update libffi to 3.4.4: https://github.com/tov/libffi-rs/pull/63
+
+## [2.0.1] - 2022-10-20
+
+- Fix cross-compiling to Illumos: https://github.com/tov/libffi-rs/pull/59
+
 ## [2.0.0] - 2022-03-07
 
 - Improve cross-compilation support: https://github.com/tov/libffi-rs/pull/53

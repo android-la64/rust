@@ -5,16 +5,34 @@
 //! `rayon_core::join`.
 
 use std::cmp;
+use std::marker::PhantomData;
 use std::mem::{self, MaybeUninit};
 use std::ptr;
 
 /// When dropped, copies from `src` into `dest`.
-struct CopyOnDrop<T> {
+#[must_use]
+struct CopyOnDrop<'a, T> {
     src: *const T,
     dest: *mut T,
+    /// `src` is often a local pointer here, make sure we have appropriate
+    /// PhantomData so that dropck can protect us.
+    marker: PhantomData<&'a mut T>,
 }
 
-impl<T> Drop for CopyOnDrop<T> {
+impl<'a, T> CopyOnDrop<'a, T> {
+    /// Construct from a source pointer and a destination
+    /// Assumes dest lives longer than src, since there is no easy way to
+    /// copy down lifetime information from another pointer
+    unsafe fn new(src: &'a T, dest: *mut T) -> Self {
+        CopyOnDrop {
+            src,
+            dest,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<T> Drop for CopyOnDrop<'_, T> {
     fn drop(&mut self) {
         // SAFETY:  This is a helper class.
         //          Please refer to its usage for correctness.
@@ -54,10 +72,7 @@ where
             // into the slice.
             let tmp = mem::ManuallyDrop::new(ptr::read(v.get_unchecked(0)));
             let v = v.as_mut_ptr();
-            let mut hole = CopyOnDrop {
-                src: &*tmp,
-                dest: v.add(1),
-            };
+            let mut hole = CopyOnDrop::new(&*tmp, v.add(1));
             ptr::copy_nonoverlapping(v.add(1), v.add(0), 1);
 
             for i in 2..len {
@@ -103,10 +118,7 @@ where
             // into the slice.
             let tmp = mem::ManuallyDrop::new(ptr::read(v.get_unchecked(len - 1)));
             let v = v.as_mut_ptr();
-            let mut hole = CopyOnDrop {
-                src: &*tmp,
-                dest: v.add(len - 2),
-            };
+            let mut hole = CopyOnDrop::new(&*tmp, v.add(len - 2));
             ptr::copy_nonoverlapping(v.add(len - 2), v.add(len - 1), 1);
 
             for i in (0..len - 2).rev() {
@@ -191,25 +203,25 @@ where
     // This binary heap respects the invariant `parent >= child`.
     let sift_down = |v: &mut [T], mut node| {
         loop {
-            // Children of `node`:
-            let left = 2 * node + 1;
-            let right = 2 * node + 2;
+            // Children of `node`.
+            let mut child = 2 * node + 1;
+            if child >= v.len() {
+                break;
+            }
 
             // Choose the greater child.
-            let greater = if right < v.len() && is_less(&v[left], &v[right]) {
-                right
-            } else {
-                left
-            };
+            if child + 1 < v.len() && is_less(&v[child], &v[child + 1]) {
+                child += 1;
+            }
 
             // Stop if the invariant holds at `node`.
-            if greater >= v.len() || !is_less(&v[node], &v[greater]) {
+            if !is_less(&v[node], &v[child]) {
                 break;
             }
 
             // Swap `node` with the greater child, move one step down, and continue sifting.
-            v.swap(node, greater);
-            node = greater;
+            v.swap(node, child);
+            node = child;
         }
     };
 
@@ -426,7 +438,7 @@ where
             // safe. Otherwise, the debug assertions in the `is_done` case guarantee that
             // `width(l, r) == block_l + block_r`, namely, that the block sizes have been adjusted to account
             // for the smaller number of remaining elements.
-            l = unsafe { l.offset(block_l as isize) };
+            l = unsafe { l.add(block_l) };
         }
 
         if start_r == end_r {
@@ -510,10 +522,7 @@ where
 
         // SAFETY: `pivot` is a reference to the first element of `v`, so `ptr::read` is safe.
         let tmp = mem::ManuallyDrop::new(unsafe { ptr::read(pivot) });
-        let _pivot_guard = CopyOnDrop {
-            src: &*tmp,
-            dest: pivot,
-        };
+        let _pivot_guard = unsafe { CopyOnDrop::new(&*tmp, pivot) };
         let pivot = &*tmp;
 
         // Find the first pair of out-of-order elements.
@@ -569,10 +578,7 @@ where
     // operation panics, the pivot will be automatically written back into the slice.
     // SAFETY: The pointer here is valid because it is obtained from a reference to a slice.
     let tmp = mem::ManuallyDrop::new(unsafe { ptr::read(pivot) });
-    let _pivot_guard = CopyOnDrop {
-        src: &*tmp,
-        dest: pivot,
-    };
+    let _pivot_guard = unsafe { CopyOnDrop::new(&*tmp, pivot) };
     let pivot = &*tmp;
 
     // Now partition the slice.
@@ -629,8 +635,7 @@ fn break_patterns<T>(v: &mut [T]) {
             random
         };
         let mut gen_usize = || {
-            // TODO 1.53: if usize::BITS <= 32 {
-            if mem::size_of::<usize>() <= 4 {
+            if usize::BITS <= 32 {
                 gen_u32() as usize
             } else {
                 (((gen_u32() as u64) << 32) | (gen_u32() as u64)) as usize
@@ -676,6 +681,7 @@ where
     let len = v.len();
 
     // Three indices near which we are going to choose a pivot.
+    #[allow(clippy::identity_op)]
     let mut a = len / 4 * 1;
     let mut b = len / 4 * 2;
     let mut c = len / 4 * 3;
@@ -850,8 +856,7 @@ where
     }
 
     // Limit the number of imbalanced partitions to `floor(log2(len)) + 1`.
-    // TODO 1.53: let limit = usize::BITS - v.len().leading_zeros();
-    let limit = mem::size_of::<usize>() as u32 * 8 - v.len().leading_zeros();
+    let limit = usize::BITS - v.len().leading_zeros();
 
     recurse(v, &is_less, None, limit);
 }
@@ -864,7 +869,7 @@ mod tests {
 
     #[test]
     fn test_heapsort() {
-        let ref mut rng = thread_rng();
+        let rng = &mut thread_rng();
 
         for len in (0..25).chain(500..501) {
             for &modulus in &[5, 10, 100] {
@@ -891,8 +896,8 @@ mod tests {
         heapsort(&mut v, &|_, _| thread_rng().gen());
         heapsort(&mut v, &|a, b| a < b);
 
-        for i in 0..v.len() {
-            assert_eq!(v[i], i);
+        for (i, &entry) in v.iter().enumerate() {
+            assert_eq!(entry, i);
         }
     }
 }

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "wasmtime-jit-icache-coherence"
-version = "5.0.0"
+version = "6.0.0"
 authors = ["The Wasmtime Project Developers"]
 description = "Utilities for JIT icache maintenance"
 documentation = "https://docs.rs/jit-icache-coherence"
@@ -21,6 +21,9 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 
 [dependencies.cfg-if]
 version = "1.0"
+
+[features]
+one-core = []
 
 [target."cfg(any(target_os = \"linux\", target_os = \"macos\", target_os = \"freebsd\", target_os = \"android\"))".dependencies.libc]
 version = "0.2.42"

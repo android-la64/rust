@@ -165,7 +165,12 @@ impl Build {
             .arg("no-zlib")
             .arg("no-zlib-dynamic");
 
-        if cfg!(not(feature = "weak-crypto")) {
+        if cfg!(feature = "weak-crypto") {
+            configure
+                .arg("enable-md2")
+                .arg("enable-rc5")
+                .arg("enable-weak-ssl-ciphers");
+        } else {
             configure
                 .arg("no-md2")
                 .arg("no-rc5")
@@ -185,10 +190,13 @@ impl Build {
         }
 
         if target.contains("musl") || target.contains("windows") {
-            // This actually fails to compile on musl (it needs linux/version.h
+            // Engine module fails to compile on musl (it needs linux/version.h
             // right now) but we don't actually need this most of the time.
             // API of engine.c ld fail in Windows.
-            configure.arg("no-engine");
+            // Disable engine module unless force-engine feature specified
+            if !cfg!(feature = "force-engine") {
+                configure.arg("no-engine");
+            }
         }
 
         if target.contains("musl") {
@@ -291,6 +299,7 @@ impl Build {
             "wasm32-wasi" => "gcc",
             "aarch64-apple-ios" => "ios64-cross",
             "x86_64-apple-ios" => "iossimulator-xcrun",
+            "aarch64-apple-ios-sim" => "iossimulator-xcrun",
             _ => panic!("don't know how to configure OpenSSL for {}", target),
         };
 

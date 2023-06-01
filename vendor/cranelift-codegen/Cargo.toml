@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.92.0"
+version = "0.93.1"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -42,13 +42,13 @@ optional = true
 version = "3"
 
 [dependencies.cranelift-bforest]
-version = "0.92.0"
+version = "0.93.1"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.92.0"
+version = "0.93.1"
 
 [dependencies.cranelift-entity]
-version = "0.92.0"
+version = "0.93.1"
 
 [dependencies.gimli]
 version = "0.26.0"
@@ -100,10 +100,10 @@ version = "0.3"
 version = "2.1.0"
 
 [build-dependencies.cranelift-codegen-meta]
-version = "0.92.0"
+version = "0.93.1"
 
 [build-dependencies.cranelift-isle]
-version = "=0.92.0"
+version = "=0.93.1"
 
 [features]
 all-arch = [

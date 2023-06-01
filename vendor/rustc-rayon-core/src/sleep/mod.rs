@@ -4,7 +4,7 @@
 use crate::latch::CoreLatch;
 use crate::log::Event::*;
 use crate::log::Logger;
-use crate::registry::Registry;
+use crate::registry::WorkerThread;
 use crate::DeadlockHandler;
 use crossbeam_utils::CachePadded;
 use std::sync::atomic::Ordering;
@@ -161,7 +161,7 @@ impl Sleep {
         &self,
         idle_state: &mut IdleState,
         latch: &CoreLatch,
-        registry: &Registry,
+        thread: &WorkerThread,
     ) {
         if idle_state.rounds < ROUNDS_UNTIL_SLEEPY {
             thread::yield_now();
@@ -175,7 +175,7 @@ impl Sleep {
             thread::yield_now();
         } else {
             debug_assert_eq!(idle_state.rounds, ROUNDS_UNTIL_SLEEPING);
-            self.sleep(idle_state, latch, registry);
+            self.sleep(idle_state, latch, thread);
         }
     }
 
@@ -193,7 +193,7 @@ impl Sleep {
     }
 
     #[cold]
-    fn sleep(&self, idle_state: &mut IdleState, latch: &CoreLatch, registry: &Registry) {
+    fn sleep(&self, idle_state: &mut IdleState, latch: &CoreLatch, thread: &WorkerThread) {
         let worker_index = idle_state.worker_index;
 
         if !latch.get_sleepy() {
@@ -210,7 +210,7 @@ impl Sleep {
         debug_assert!(!*is_blocked);
 
         // Our latch was signalled. We should wake back up fully as we
-        // wil have some stuff to do.
+        // will have some stuff to do.
         if !latch.fall_asleep() {
             self.logger.log(|| ThreadSleepInterruptedByLatch {
                 worker: worker_index,
@@ -260,7 +260,7 @@ impl Sleep {
         // - that job triggers the rollover over the JEC such that we don't see it
         // - we are the last active worker thread
         std::sync::atomic::fence(Ordering::SeqCst);
-        if registry.has_injected_job() {
+        if thread.has_injected_job() {
             // If we see an externally injected job, then we have to 'wake
             // ourselves up'. (Ordinarily, `sub_sleeping_thread` is invoked by
             // the one that wakes us.)
@@ -270,7 +270,7 @@ impl Sleep {
                 // Decrement the number of active threads and check for a deadlock
                 let mut data = self.data.lock().unwrap();
                 data.active_threads -= 1;
-                data.deadlock_check(&registry.deadlock_handler);
+                data.deadlock_check(&thread.registry.deadlock_handler);
             }
 
             // If we don't see an injected job (the normal case), then flag
@@ -281,12 +281,16 @@ impl Sleep {
             // that whomever is coming to wake us will have to wait until we
             // release the mutex in the call to `wait`, so they will see this
             // boolean as true.)
-            registry.release_thread();
+            thread.registry.release_thread();
             *is_blocked = true;
             while *is_blocked {
                 is_blocked = sleep_state.condvar.wait(is_blocked).unwrap();
             }
-            registry.acquire_thread();
+
+            // Drop `is_blocked` now in case `acquire_thread` blocks
+            drop(is_blocked);
+
+            thread.registry.acquire_thread();
         }
 
         // Update other state:

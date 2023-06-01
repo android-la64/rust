@@ -10,14 +10,14 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.59"
 name = "rustc-rayon-core"
-version = "0.4.1"
+version = "0.5.0"
 authors = [
     "Niko Matsakis <niko@alum.mit.edu>",
     "Josh Stone <cuviper@gmail.com>",
 ]
-build = "build.rs"
 description = "Core APIs for Rayon - fork for rustc"
 documentation = "https://docs.rs/rustc-rayon-core/"
 readme = "README.md"
@@ -32,10 +32,12 @@ categories = ["concurrency"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/rustc-rayon"
 
+[lib]
+name = "rayon_core"
+
 [[test]]
 name = "stack_overflow_crash"
 path = "tests/stack_overflow_crash.rs"
-harness = false
 
 [[test]]
 name = "double_init_fail"

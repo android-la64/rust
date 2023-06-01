@@ -86,10 +86,8 @@ which is defined by the <code>registry.default</code> config key which defaults 
 
 
 <dt class="option-term" id="option-cargo-add---target"><a class="option-anchor" href="#option-cargo-add---target"></a><code>--target</code> <em>target</em></dt>
-<dd class="option-desc">Add as a dependency to the <a href="../reference/specifying-dependencies.html#platform-specific-dependencies">given target platform</a>.</dd>
-
-
-</dl>
+<dd class="option-desc">Add as a dependency to the <a href="../reference/specifying-dependencies.html#platform-specific-dependencies">given target platform</a>.</p>
+<p>To avoid unexpected shell expansions, you may use quotes around each target, e.g., <code>--target 'cfg(unix)'</code>.</dd>
 
 
 </dl>
@@ -227,7 +225,8 @@ See the <a href="../reference/config.html#command-line-overrides">command-line o
 <dt class="option-term" id="option-cargo-add--C"><a class="option-anchor" href="#option-cargo-add--C"></a><code>-C</code> <em>PATH</em></dt>
 <dd class="option-desc">Changes the current working directory before executing any specified operations. This affects
 things like where cargo looks by default for the project manifest (<code>Cargo.toml</code>), as well as
-the directories searched for discovering <code>.cargo/config.toml</code>, for example.</p>
+the directories searched for discovering <code>.cargo/config.toml</code>, for example. This option must
+appear before the command name, for example <code>cargo -C path/to/my-project build</code>.</p>
 <p>This option is only available on the <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">nightly
 channel</a> and
 requires the <code>-Z unstable-options</code> flag to enable (see
@@ -275,6 +274,10 @@ details on environment variables that Cargo reads.
 4. Add support for serializing data structures to json with `derive`s
 
        cargo add serde serde_json -F serde/derive
+
+5. Add `windows` as a platform specific dependency on `cfg(windows)`
+
+       cargo add windows --target 'cfg(windows)'
 
 ## SEE ALSO
 [cargo(1)](cargo.html), [cargo-remove(1)](cargo-remove.html)

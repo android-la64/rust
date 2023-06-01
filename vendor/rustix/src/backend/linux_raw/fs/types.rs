@@ -122,6 +122,32 @@ impl Mode {
     }
 }
 
+impl From<RawMode> for Mode {
+    /// Support conversions from raw mode values to `Mode`.
+    ///
+    /// ```
+    /// use rustix::fs::{Mode, RawMode};
+    /// assert_eq!(Mode::from(0o700), Mode::RWXU);
+    /// ```
+    #[inline]
+    fn from(st_mode: RawMode) -> Self {
+        Self::from_raw_mode(st_mode)
+    }
+}
+
+impl From<Mode> for RawMode {
+    /// Support conversions from `Mode to raw mode values.
+    ///
+    /// ```
+    /// use rustix::fs::{Mode, RawMode};
+    /// assert_eq!(RawMode::from(Mode::RWXU), 0o700);
+    /// ```
+    #[inline]
+    fn from(mode: Mode) -> Self {
+        mode.as_raw_mode()
+    }
+}
+
 bitflags! {
     /// `O_*` constants for use with [`openat`].
     ///
@@ -198,6 +224,9 @@ bitflags! {
 
         /// `O_NOATIME`
         const NOATIME = linux_raw_sys::general::O_NOATIME;
+
+        /// `O_DIRECT`
+        const DIRECT = linux_raw_sys::general::O_DIRECT;
     }
 }
 
@@ -515,9 +544,10 @@ bitflags! {
     }
 }
 
-/// `LOCK_*` constants for use with [`flock`]
+/// `LOCK_*` constants for use with [`flock`] and [`fcntl_lock`].
 ///
 /// [`flock`]: crate::fs::flock
+/// [`fcntl_lock`]: crate::fs::fcntl_lock
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum FlockOperation {
@@ -637,10 +667,106 @@ pub type FsWord = linux_raw_sys::general::__fsword_t;
 #[cfg(target_arch = "mips64")]
 pub type FsWord = i64;
 
-pub use linux_raw_sys::general::{UTIME_NOW, UTIME_OMIT};
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    /// `MS_*` constants for use with [`mount`].
+    ///
+    /// [`mount`]: crate::fs::mount
+    pub struct MountFlags: c::c_uint {
+        /// `MS_BIND`
+        const BIND = linux_raw_sys::general::MS_BIND;
 
-/// `PROC_SUPER_MAGIC`—The magic number for the procfs filesystem.
-pub const PROC_SUPER_MAGIC: FsWord = linux_raw_sys::general::PROC_SUPER_MAGIC as FsWord;
+        /// `MS_DIRSYNC`
+        const DIRSYNC = linux_raw_sys::general::MS_DIRSYNC;
 
-/// `NFS_SUPER_MAGIC`—The magic number for the NFS filesystem.
-pub const NFS_SUPER_MAGIC: FsWord = linux_raw_sys::general::NFS_SUPER_MAGIC as FsWord;
+        /// `MS_LAZYTIME`
+        const LAZYTIME = linux_raw_sys::general::MS_LAZYTIME;
+
+        /// `MS_MANDLOCK`
+        #[doc(alias = "MANDLOCK")]
+        const PERMIT_MANDATORY_FILE_LOCKING = linux_raw_sys::general::MS_MANDLOCK;
+
+        /// `MS_NOATIME`
+        const NOATIME = linux_raw_sys::general::MS_NOATIME;
+
+        /// `MS_NODEV`
+        const NODEV = linux_raw_sys::general::MS_NODEV;
+
+        /// `MS_NODIRATIME`
+        const NODIRATIME = linux_raw_sys::general::MS_NODIRATIME;
+
+        /// `MS_NOEXEC`
+        const NOEXEC = linux_raw_sys::general::MS_NOEXEC;
+
+        /// `MS_NOSUID`
+        const NOSUID = linux_raw_sys::general::MS_NOSUID;
+
+        /// `MS_RDONLY`
+        const RDONLY = linux_raw_sys::general::MS_RDONLY;
+
+        /// `MS_REC`
+        const REC = linux_raw_sys::general::MS_REC;
+
+        /// `MS_RELATIME`
+        const RELATIME = linux_raw_sys::general::MS_RELATIME;
+
+        /// `MS_SILENT`
+        const SILENT = linux_raw_sys::general::MS_SILENT;
+
+        /// `MS_STRICTATIME`
+        const STRICTATIME = linux_raw_sys::general::MS_STRICTATIME;
+
+        /// `MS_SYNCHRONOUS`
+        const SYNCHRONOUS = linux_raw_sys::general::MS_SYNCHRONOUS;
+
+        /// `MS_NOSYMFOLLOW`
+        const NOSYMFOLLOW = linux_raw_sys::general::MS_NOSYMFOLLOW;
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    /// `MS_*` constants for use with [`change_mount`].
+    ///
+    /// [`change_mount`]: crate::fs::mount::change_mount
+    pub struct MountPropagationFlags: c::c_uint {
+        /// `MS_SHARED`
+        const SHARED = linux_raw_sys::general::MS_SHARED;
+        /// `MS_PRIVATE`
+        const PRIVATE = linux_raw_sys::general::MS_PRIVATE;
+        /// `MS_SLAVE`
+        const SLAVE = linux_raw_sys::general::MS_SLAVE;
+        /// `MS_UNBINDABLE`
+        const UNBINDABLE = linux_raw_sys::general::MS_UNBINDABLE;
+        /// `MS_REC`
+        const REC = linux_raw_sys::general::MS_REC;
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    pub(crate) struct InternalMountFlags: c::c_uint {
+        const REMOUNT = linux_raw_sys::general::MS_REMOUNT;
+        const MOVE = linux_raw_sys::general::MS_MOVE;
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+pub(crate) struct MountFlagsArg(pub(crate) c::c_uint);
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    /// `MNT_*` constants for use with [`unmount`].
+    ///
+    /// [`unmount`]: crate::fs::mount::unmount
+    pub struct UnmountFlags: c::c_uint {
+        /// `MNT_FORCE`
+        const FORCE = linux_raw_sys::general::MNT_FORCE;
+        /// `MNT_DETACH`
+        const DETACH = linux_raw_sys::general::MNT_DETACH;
+        /// `MNT_EXPIRE`
+        const EXPIRE = linux_raw_sys::general::MNT_EXPIRE;
+        /// `UMOUNT_NOFOLLOW`
+        const NOFOLLOW = linux_raw_sys::general::UMOUNT_NOFOLLOW;
+    }
+}

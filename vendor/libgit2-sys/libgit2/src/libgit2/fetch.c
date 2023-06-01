@@ -13,6 +13,7 @@
 #include "git2/transport.h"
 #include "git2/sys/remote.h"
 
+#include "oid.h"
 #include "remote.h"
 #include "refspec.h"
 #include "pack.h"
@@ -75,7 +76,7 @@ static int maybe_want_oid(git_remote *remote, git_refspec *spec)
 	oid_head = git__calloc(1, sizeof(git_remote_head));
 	GIT_ERROR_CHECK_ALLOC(oid_head);
 
-	git_oid_fromstr(&oid_head->oid, spec->src);
+	git_oid__fromstr(&oid_head->oid, spec->src, GIT_OID_SHA1);
 
 	if (spec->dst) {
 		oid_head->name = git__strdup(spec->dst);
@@ -94,7 +95,6 @@ static int filter_wants(git_remote *remote, const git_fetch_options *opts)
 	git_remote_head **heads;
 	git_refspec tagspec, head, *spec;
 	int error = 0;
-	git_odb *odb;
 	size_t i, heads_len;
 	unsigned int remote_caps;
 	unsigned int oid_mask = GIT_REMOTE_CAPABILITY_TIP_OID |
@@ -125,9 +125,6 @@ static int filter_wants(git_remote *remote, const git_fetch_options *opts)
 			goto cleanup;
 	}
 
-	if ((error = git_repository_odb__weakptr(&odb, remote->repo)) < 0)
-		goto cleanup;
-
 	if ((error = git_remote_ls((const git_remote_head ***)&heads, &heads_len, remote)) < 0 ||
 	    (error = git_remote_capabilities(&remote_caps, remote)) < 0)
 		goto cleanup;
@@ -140,7 +137,7 @@ static int filter_wants(git_remote *remote, const git_fetch_options *opts)
 
 	/* Handle explicitly specified OID specs */
 	git_vector_foreach(&remote->active_refspecs, i, spec) {
-		if (!git_oid__is_hexstr(spec->src))
+		if (!git_oid__is_hexstr(spec->src, GIT_OID_SHA1))
 			continue;
 
 		if (!(remote_caps & oid_mask)) {

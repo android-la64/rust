@@ -49,6 +49,13 @@ DESCRIPTION
        switch to the dev profile. You can then run the debug-enabled benchmark
        within a debugger.
 
+   Working directory of benchmarks
+       The working directory of every benchmark is set to the root directory of
+       the package the benchmark belongs to. Setting the working directory of
+       benchmarks to the package’s root directory makes it possible for
+       benchmarks to reliably access the package’s files using relative
+       paths, regardless from where cargo bench was executed from.
+
 OPTIONS
    Benchmark Options
        --no-run
@@ -369,7 +376,9 @@ OPTIONS
            Changes the current working directory before executing any specified
            operations. This affects things like where cargo looks by default
            for the project manifest (Cargo.toml), as well as the directories
-           searched for discovering .cargo/config.toml, for example.
+           searched for discovering .cargo/config.toml, for example. This
+           option must appear before the command name, for example cargo -C
+           path/to/my-project build.
 
            This option is only available on the nightly channel
            <https://doc.rust-lang.org/book/appendix-07-nightly-rust.html> and

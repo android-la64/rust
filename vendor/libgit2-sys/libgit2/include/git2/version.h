@@ -11,16 +11,16 @@
  * The version string for libgit2.  This string follows semantic
  * versioning (v2) guidelines.
  */
-#define LIBGIT2_VERSION        "1.5.0"
+#define LIBGIT2_VERSION        "1.6.3"
 
 /** The major version number for this version of libgit2. */
 #define LIBGIT2_VER_MAJOR      1
 
 /** The minor version number for this version of libgit2. */
-#define LIBGIT2_VER_MINOR      5
+#define LIBGIT2_VER_MINOR      6
 
 /** The revision ("teeny") version number for this version of libgit2. */
-#define LIBGIT2_VER_REVISION   0
+#define LIBGIT2_VER_REVISION   3
 
 /** The Windows DLL patch number for this version of libgit2. */
 #define LIBGIT2_VER_PATCH      0
@@ -34,6 +34,6 @@
 #define LIBGIT2_VER_PRERELEASE NULL
 
 /** The library ABI soversion for this version of libgit2. */
-#define LIBGIT2_SOVERSION      "1.5"
+#define LIBGIT2_SOVERSION      "1.6"
 
 #endif

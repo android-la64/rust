@@ -1140,6 +1140,8 @@ libssh2_channel_request_auth_agent(LIBSSH2_CHANNEL *channel)
     if(!channel)
         return LIBSSH2_ERROR_BAD_USE;
 
+    rc = LIBSSH2_ERROR_CHANNEL_UNKNOWN;
+
     /* The current RFC draft for agent forwarding says you're supposed to
      * send "auth-agent-req," but most SSH servers out there right now
      * actually expect "auth-agent-req@openssh.com", so we try that
@@ -1152,7 +1154,8 @@ libssh2_channel_request_auth_agent(LIBSSH2_CHANNEL *channel)
 
         /* If we failed (but not with EAGAIN), then we move onto
          * the next step to try another request type. */
-        if(rc != 0 && rc != LIBSSH2_ERROR_EAGAIN)
+        if(rc != LIBSSH2_ERROR_NONE &&
+           rc != LIBSSH2_ERROR_EAGAIN)
             channel->req_auth_agent_try_state = libssh2_NB_state_sent;
     }
 
@@ -1163,12 +1166,13 @@ libssh2_channel_request_auth_agent(LIBSSH2_CHANNEL *channel)
 
         /* If we failed without an EAGAIN, then move on with this
          * state machine. */
-        if(rc != 0 && rc != LIBSSH2_ERROR_EAGAIN)
+        if(rc != LIBSSH2_ERROR_NONE &&
+           rc != LIBSSH2_ERROR_EAGAIN)
             channel->req_auth_agent_try_state = libssh2_NB_state_sent1;
     }
 
     /* If things are good, reset the try state. */
-    if(rc == 0)
+    if(rc == LIBSSH2_ERROR_NONE)
         channel->req_auth_agent_try_state = libssh2_NB_state_idle;
 
     return rc;
@@ -2041,8 +2045,13 @@ ssize_t _libssh2_channel_read(LIBSSH2_CHANNEL *channel, int stream_id,
 
         if(readpkt->data_len < 5) {
             read_packet = read_next;
-            _libssh2_debug(channel->session, LIBSSH2_TRACE_ERROR,
-                           "Unexpected packet length");
+
+            if(readpkt->data_len != 1 ||
+                readpkt->data[0] != SSH_MSG_REQUEST_FAILURE) {
+                _libssh2_debug(channel->session, LIBSSH2_TRACE_ERROR,
+                               "Unexpected packet length");
+            }
+
             continue;
         }
 

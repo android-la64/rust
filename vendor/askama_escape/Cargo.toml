@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "askama_escape"
-version = "0.10.2"
+version = "0.10.3"
 description = "Optimized HTML escaping code, extracted from Askama"
 homepage = "https://github.com/djc/askama"
 documentation = "https://docs.rs/askama_escape"
@@ -26,5 +26,8 @@ name = "all"
 harness = false
 [dev-dependencies.criterion]
 version = "0.3"
+
+[features]
+json = []
 [badges.maintenance]
 status = "actively-developed"

@@ -43,15 +43,14 @@ format_string := STRING_LITERAL / RAW_STRING_LITERAL
 dir_spec := "in" / "out" / "lateout" / "inout" / "inlateout"
 reg_spec := <register class> / "\"" <explicit register> "\""
 operand_expr := expr / "_" / expr "=>" expr / expr "=>" "_"
-reg_operand := dir_spec "(" reg_spec ")" operand_expr
-operand := reg_operand
+reg_operand := [ident "="] dir_spec "(" reg_spec ")" operand_expr
 clobber_abi := "clobber_abi(" <abi> *("," <abi>) [","] ")"
 option := "pure" / "nomem" / "readonly" / "preserves_flags" / "noreturn" / "nostack" / "att_syntax" / "raw"
 options := "options(" option *("," option) [","] ")"
-asm := "asm!(" format_string *("," format_string) *("," [ident "="] operand) *("," clobber_abi) *("," options) [","] ")"
-global_asm := "global_asm!(" format_string *("," format_string) *("," [ident "="] operand) *("," options) [","] ")"
+operand := reg_operand / clobber_abi / options
+asm := "asm!(" format_string *("," format_string) *("," operand) [","] ")"
+global_asm := "global_asm!(" format_string *("," format_string) *("," operand) [","] ")"
 ```
-
 
 ## Scope
 
@@ -74,8 +73,7 @@ An `asm!` invocation may have one or more template string arguments; an `asm!` w
 The expected usage is for each template string argument to correspond to a line of assembly code.
 All template string arguments must appear before any other arguments.
 
-As with format strings, named arguments must appear after positional arguments.
-Explicit [register operands](#register-operands) must appear at the end of the operand list, after named arguments if any.
+As with format strings, positional arguments must appear before named arguments and explicit [register operands](#register-operands).
 
 Explicit register operands cannot be used by placeholders in the template string.
 All other named and positional operands must appear at least once in the template string, otherwise a compiler error is generated.
@@ -486,6 +484,29 @@ To avoid undefined behavior, these rules must be followed when using function-sc
 
 > **Note**: As a general rule, the flags covered by `preserves_flags` are those which are *not* preserved when performing a function call.
 
+### Correctness and Validity
+
+In addition to all of the previous rules, the string argument to `asm!` must ultimately become—
+after all other arguments are evaluated, formatting is performed, and operands are translated—
+assembly that is both syntactically correct and semantically valid for the target architecture.
+The formatting rules allow the compiler to generate assembly with correct syntax.
+Rules concerning operands permit valid translation of Rust operands into and out of `asm!`.
+Adherence to these rules is necessary, but not sufficient, for the final expanded assembly to be
+both correct and valid. For instance:
+
+- arguments may be placed in positions which are syntactically incorrect after formatting
+- an instruction may be correctly written, but given architecturally invalid operands
+- an architecturally unspecified instruction may be assembled into unspecified code
+- a set of instructions, each correct and valid, may cause undefined behavior if placed in immediate succession
+
+As a result, these rules are _non-exhaustive_. The compiler is not required to check the
+correctness and validity of the initial string nor the final assembly that is generated.
+The assembler may check for correctness and validity but is not required to do so.
+When using `asm!`, a typographical error may be sufficient to make a program unsound,
+and the rules for assembly may include thousands of pages of architectural reference manuals.
+Programmers should exercise appropriate care, as invoking this `unsafe` capability comes with
+assuming the responsibility of not violating rules of both the compiler or the architecture.
+
 ### Directives Support
 
 Inline assembly supports a subset of the directives supported by both GNU AS and LLVM's internal assembler, given as follows.
@@ -499,12 +520,9 @@ The following directives are guaranteed to be supported by the assembler:
 - `.4byte`
 - `.8byte`
 - `.align`
+- `.alt_entry`
 - `.ascii`
 - `.asciz`
-- `.alt_entry`
-- `.balign`
-- `.balignl`
-- `.balignw`
 - `.balign`
 - `.balignl`
 - `.balignw`
@@ -520,17 +538,17 @@ The following directives are guaranteed to be supported by the assembler:
 - `.eqv`
 - `.fill`
 - `.float`
-- `.globl`
 - `.global`
-- `.lcomm`
+- `.globl`
 - `.inst`
+- `.lcomm`
 - `.long`
 - `.octa`
 - `.option`
-- `.private_extern`
 - `.p2align`
-- `.pushsection`
 - `.popsection`
+- `.private_extern`
+- `.pushsection`
 - `.quad`
 - `.scl`
 - `.section`

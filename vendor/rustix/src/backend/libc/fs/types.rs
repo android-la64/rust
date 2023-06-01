@@ -40,10 +40,15 @@ bitflags! {
         /// `AT_EMPTY_PATH`
         #[cfg(any(
             target_os = "android",
+            target_os = "freebsd",
             target_os = "fuchsia",
             target_os = "linux",
         ))]
         const EMPTY_PATH = c::AT_EMPTY_PATH;
+
+        /// `AT_RESOLVE_BENEATH`
+        #[cfg(target_os = "freebsd")]
+        const RESOLVE_BENEATH = c::AT_RESOLVE_BENEATH;
 
         /// `AT_EACCESS`
         #[cfg(not(any(target_os = "emscripten", target_os = "android")))]
@@ -147,6 +152,32 @@ impl Mode {
     }
 }
 
+impl From<RawMode> for Mode {
+    /// Support conversions from raw mode values to `Mode`.
+    ///
+    /// ```
+    /// use rustix::fs::{Mode, RawMode};
+    /// assert_eq!(Mode::from(0o700), Mode::RWXU);
+    /// ```
+    #[inline]
+    fn from(st_mode: RawMode) -> Self {
+        Self::from_raw_mode(st_mode)
+    }
+}
+
+impl From<Mode> for RawMode {
+    /// Support conversions from `Mode to raw mode values.
+    ///
+    /// ```
+    /// use rustix::fs::{Mode, RawMode};
+    /// assert_eq!(RawMode::from(Mode::RWXU), 0o700);
+    /// ```
+    #[inline]
+    fn from(mode: Mode) -> Self {
+        mode.as_raw_mode()
+    }
+}
+
 bitflags! {
     /// `O_*` constants for use with [`openat`].
     ///
@@ -175,7 +206,7 @@ bitflags! {
         const DIRECTORY = c::O_DIRECTORY;
 
         /// `O_DSYNC`
-        #[cfg(not(any(target_os = "dragonfly", target_os = "freebsd", target_os = "redox")))]
+        #[cfg(not(any(target_os = "dragonfly", target_os = "redox")))]
         const DSYNC = c::O_DSYNC;
 
         /// `O_EXCL`
@@ -183,13 +214,8 @@ bitflags! {
 
         /// `O_FSYNC`
         #[cfg(any(
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "ios",
+            bsd,
             all(target_os = "linux", not(target_env = "musl")),
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
         ))]
         const FSYNC = c::O_FSYNC;
 
@@ -214,11 +240,10 @@ bitflags! {
 
         /// `O_RSYNC`
         #[cfg(any(
+            netbsdlike,
             target_os = "android",
             target_os = "emscripten",
             target_os = "linux",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "wasi",
         ))]
         const RSYNC = c::O_RSYNC;
@@ -234,6 +259,7 @@ bitflags! {
         #[cfg(any(
             target_os = "android",
             target_os = "emscripten",
+            target_os = "freebsd",
             target_os = "fuchsia",
             target_os = "linux",
             target_os = "redox",
@@ -259,10 +285,29 @@ bitflags! {
             target_os = "linux",
         ))]
         const NOATIME = c::O_NOATIME;
+
+        /// `O_DIRECT`
+        #[cfg(any(
+            target_os = "android",
+            target_os = "emscripten",
+            target_os = "freebsd",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "netbsd",
+        ))]
+        const DIRECT = c::O_DIRECT;
+
+        /// `O_RESOLVE_BENEATH`
+        #[cfg(target_os = "freebsd")]
+        const RESOLVE_BENEATH = c::O_RESOLVE_BENEATH;
+
+        /// `O_EMPTY_PATH`
+        #[cfg(target_os = "freebsd")]
+        const EMPTY_PATH = c::O_EMPTY_PATH;
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(apple)]
 bitflags! {
     /// `CLONE_*` constants for use with [`fclonefileat`].
     ///
@@ -276,7 +321,7 @@ bitflags! {
     }
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(apple)]
 mod copyfile {
     pub(super) const ACL: u32 = 1 << 0;
     pub(super) const STAT: u32 = 1 << 1;
@@ -287,7 +332,7 @@ mod copyfile {
     pub(super) const ALL: u32 = METADATA | DATA;
 }
 
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(apple)]
 bitflags! {
     /// `COPYFILE_*` constants.
     pub struct CopyfileFlags: c::c_uint {
@@ -427,12 +472,7 @@ impl FileType {
     }
 
     /// Construct a `FileType` from the `d_type` field of a `c::dirent`.
-    #[cfg(not(any(
-        target_os = "haiku",
-        target_os = "illumos",
-        target_os = "redox",
-        target_os = "solaris"
-    )))]
+    #[cfg(not(any(solarish, target_os = "haiku", target_os = "redox")))]
     pub(crate) const fn from_dirent_d_type(d_type: u8) -> Self {
         match d_type {
             c::DT_REG => Self::RegularFile,
@@ -454,15 +494,12 @@ impl FileType {
 ///
 /// [`fadvise`]: crate::fs::fadvise
 #[cfg(not(any(
+    apple,
+    netbsdlike,
+    solarish,
     target_os = "dragonfly",
     target_os = "haiku",
-    target_os = "illumos",
-    target_os = "ios",
-    target_os = "macos",
-    target_os = "netbsd",
-    target_os = "openbsd",
     target_os = "redox",
-    target_os = "solaris",
 )))]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -502,40 +539,28 @@ bitflags! {
         const HUGETLB = c::MFD_HUGETLB;
 
         /// `MFD_HUGE_64KB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_64KB = c::MFD_HUGE_64KB;
         /// `MFD_HUGE_512JB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_512KB = c::MFD_HUGE_512KB;
         /// `MFD_HUGE_1MB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_1MB = c::MFD_HUGE_1MB;
         /// `MFD_HUGE_2MB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_2MB = c::MFD_HUGE_2MB;
         /// `MFD_HUGE_8MB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_8MB = c::MFD_HUGE_8MB;
         /// `MFD_HUGE_16MB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_16MB = c::MFD_HUGE_16MB;
         /// `MFD_HUGE_32MB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_32MB = c::MFD_HUGE_32MB;
         /// `MFD_HUGE_256MB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_256MB = c::MFD_HUGE_256MB;
         /// `MFD_HUGE_512MB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_512MB = c::MFD_HUGE_512MB;
         /// `MFD_HUGE_1GB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_1GB = c::MFD_HUGE_1GB;
         /// `MFD_HUGE_2GB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_2GB = c::MFD_HUGE_2GB;
         /// `MFD_HUGE_16GB`
-        #[cfg(any(target_os = "android", target_os = "linux"))]
         const HUGE_16GB = c::MFD_HUGE_16GB;
     }
 }
@@ -676,14 +701,7 @@ bitflags! {
     }
 }
 
-#[cfg(not(any(
-    target_os = "aix",
-    target_os = "illumos",
-    target_os = "netbsd",
-    target_os = "openbsd",
-    target_os = "redox",
-    target_os = "solaris",
-)))]
+#[cfg(not(any(netbsdlike, solarish, target_os = "aix", target_os = "redox")))]
 bitflags! {
     /// `FALLOC_FL_*` constants for use with [`fallocate`].
     ///
@@ -691,41 +709,26 @@ bitflags! {
     pub struct FallocateFlags: i32 {
         /// `FALLOC_FL_KEEP_SIZE`
         #[cfg(not(any(
+            bsd,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "wasi",
         )))]
         const KEEP_SIZE = c::FALLOC_FL_KEEP_SIZE;
         /// `FALLOC_FL_PUNCH_HOLE`
         #[cfg(not(any(
+            bsd,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "wasi",
         )))]
         const PUNCH_HOLE = c::FALLOC_FL_PUNCH_HOLE;
         /// `FALLOC_FL_NO_HIDE_STALE`
         #[cfg(not(any(
+            bsd,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "ios",
             target_os = "linux",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "emscripten",
             target_os = "fuchsia",
             target_os = "wasi",
@@ -733,56 +736,36 @@ bitflags! {
         const NO_HIDE_STALE = c::FALLOC_FL_NO_HIDE_STALE;
         /// `FALLOC_FL_COLLAPSE_RANGE`
         #[cfg(not(any(
+            bsd,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "emscripten",
             target_os = "wasi",
         )))]
         const COLLAPSE_RANGE = c::FALLOC_FL_COLLAPSE_RANGE;
         /// `FALLOC_FL_ZERO_RANGE`
         #[cfg(not(any(
+            bsd,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "emscripten",
             target_os = "wasi",
         )))]
         const ZERO_RANGE = c::FALLOC_FL_ZERO_RANGE;
         /// `FALLOC_FL_INSERT_RANGE`
         #[cfg(not(any(
+            bsd,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "emscripten",
             target_os = "wasi",
         )))]
         const INSERT_RANGE = c::FALLOC_FL_INSERT_RANGE;
         /// `FALLOC_FL_UNSHARE_RANGE`
         #[cfg(not(any(
+            bsd,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "emscripten",
             target_os = "wasi",
         )))]
@@ -790,13 +773,7 @@ bitflags! {
     }
 }
 
-#[cfg(not(any(
-    target_os = "haiku",
-    target_os = "illumos",
-    target_os = "redox",
-    target_os = "solaris",
-    target_os = "wasi",
-)))]
+#[cfg(not(any(solarish, target_os = "haiku", target_os = "redox", target_os = "wasi")))]
 bitflags! {
     /// `ST_*` constants for use with [`StatVfs`].
     pub struct StatVfsMountFlags: u64 {
@@ -836,10 +813,11 @@ bitflags! {
     }
 }
 
-/// `LOCK_*` constants for use with [`flock`]
+/// `LOCK_*` constants for use with [`flock`] and [`fcntl_lock`].
 ///
 /// [`flock`]: crate::fs::flock
-#[cfg(not(any(target_os = "solaris", target_os = "wasi")))]
+/// [`fcntl_lock`]: crate::fs::fcntl_lock
+#[cfg(not(target_os = "wasi"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(i32)]
 pub enum FlockOperation {
@@ -861,12 +839,7 @@ pub enum FlockOperation {
 ///
 /// [`statat`]: crate::fs::statat
 /// [`fstat`]: crate::fs::fstat
-#[cfg(not(any(
-    target_os = "android",
-    target_os = "linux",
-    target_os = "emscripten",
-    target_os = "l4re",
-)))]
+#[cfg(not(linux_like))]
 pub type Stat = c::stat;
 
 /// `struct stat` for use with [`statat`] and [`fstat`].
@@ -921,15 +894,11 @@ pub struct Stat {
 /// [`statfs`]: crate::fs::statfs
 /// [`fstatfs`]: crate::fs::fstatfs
 #[cfg(not(any(
-    target_os = "android",
-    target_os = "emscripten",
+    linux_like,
+    solarish,
     target_os = "haiku",
-    target_os = "illumos",
-    target_os = "linux",
-    target_os = "l4re",
     target_os = "netbsd",
     target_os = "redox",
-    target_os = "solaris",
     target_os = "wasi",
 )))]
 #[allow(clippy::module_name_repetitions)]
@@ -939,25 +908,14 @@ pub type StatFs = c::statfs;
 ///
 /// [`statfs`]: crate::fs::statfs
 /// [`fstatfs`]: crate::fs::fstatfs
-#[cfg(any(
-    target_os = "android",
-    target_os = "linux",
-    target_os = "emscripten",
-    target_os = "l4re",
-))]
+#[cfg(linux_like)]
 pub type StatFs = c::statfs64;
 
 /// `struct statvfs` for use with [`statvfs`] and [`fstatvfs`].
 ///
 /// [`statvfs`]: crate::fs::statvfs
 /// [`fstatvfs`]: crate::fs::fstatvfs
-#[cfg(not(any(
-    target_os = "haiku",
-    target_os = "illumos",
-    target_os = "redox",
-    target_os = "solaris",
-    target_os = "wasi",
-)))]
+#[cfg(not(any(solarish, target_os = "haiku", target_os = "redox", target_os = "wasi")))]
 #[allow(missing_docs)]
 pub struct StatVfs {
     pub f_bsize: u64,
@@ -1081,36 +1039,112 @@ pub type FsWord = u64;
 #[cfg(all(target_os = "linux", target_arch = "s390x"))]
 pub type FsWord = u32;
 
-#[cfg(not(target_os = "redox"))]
-pub use c::{UTIME_NOW, UTIME_OMIT};
-
-/// `PROC_SUPER_MAGIC`—The magic number for the procfs filesystem.
-#[cfg(all(
-    any(target_os = "android", target_os = "linux"),
-    not(target_env = "musl"),
-))]
-pub const PROC_SUPER_MAGIC: FsWord = c::PROC_SUPER_MAGIC as FsWord;
-
-/// `NFS_SUPER_MAGIC`—The magic number for the NFS filesystem.
-#[cfg(all(
-    any(target_os = "android", target_os = "linux"),
-    not(target_env = "musl"),
-))]
-pub const NFS_SUPER_MAGIC: FsWord = c::NFS_SUPER_MAGIC as FsWord;
-
-/// `PROC_SUPER_MAGIC`—The magic number for the procfs filesystem.
-#[cfg(all(any(target_os = "android", target_os = "linux"), target_env = "musl"))]
-pub const PROC_SUPER_MAGIC: FsWord = 0x0000_9fa0;
-
-/// `NFS_SUPER_MAGIC`—The magic number for the NFS filesystem.
-#[cfg(all(any(target_os = "android", target_os = "linux"), target_env = "musl"))]
-pub const NFS_SUPER_MAGIC: FsWord = 0x0000_6969;
-
 /// `copyfile_state_t`—State for use with [`fcopyfile`].
 ///
 /// [`fcopyfile`]: crate::fs::fcopyfile
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(apple)]
 #[allow(non_camel_case_types)]
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct copyfile_state_t(pub(crate) *mut c::c_void);
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    /// `MS_*` constants for use with [`mount`].
+    ///
+    /// [`mount`]: crate::fs::mount
+    pub struct MountFlags: c::c_ulong {
+        /// `MS_BIND`
+        const BIND = c::MS_BIND;
+
+        /// `MS_DIRSYNC`
+        const DIRSYNC = c::MS_DIRSYNC;
+
+        /// `MS_LAZYTIME`
+        const LAZYTIME = c::MS_LAZYTIME;
+
+        /// `MS_MANDLOCK`
+        #[doc(alias = "MANDLOCK")]
+        const PERMIT_MANDATORY_FILE_LOCKING = c::MS_MANDLOCK;
+
+        /// `MS_NOATIME`
+        const NOATIME = c::MS_NOATIME;
+
+        /// `MS_NODEV`
+        const NODEV = c::MS_NODEV;
+
+        /// `MS_NODIRATIME`
+        const NODIRATIME = c::MS_NODIRATIME;
+
+        /// `MS_NOEXEC`
+        const NOEXEC = c::MS_NOEXEC;
+
+        /// `MS_NOSUID`
+        const NOSUID = c::MS_NOSUID;
+
+        /// `MS_RDONLY`
+        const RDONLY = c::MS_RDONLY;
+
+        /// `MS_REC`
+        const REC = c::MS_REC;
+
+        /// `MS_RELATIME`
+        const RELATIME = c::MS_RELATIME;
+
+        /// `MS_SILENT`
+        const SILENT = c::MS_SILENT;
+
+        /// `MS_STRICTATIME`
+        const STRICTATIME = c::MS_STRICTATIME;
+
+        /// `MS_SYNCHRONOUS`
+        const SYNCHRONOUS = c::MS_SYNCHRONOUS;
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    /// `MS_*` constants for use with [`change_mount`].
+    ///
+    /// [`change_mount`]: crate::fs::mount::change_mount.
+    pub struct MountPropagationFlags: c::c_ulong {
+        /// `MS_SHARED`
+        const SHARED = c::MS_SHARED;
+        /// `MS_PRIVATE`
+        const PRIVATE = c::MS_PRIVATE;
+        /// `MS_SLAVE`
+        const SLAVE = c::MS_SLAVE;
+        /// `MS_UNBINDABLE`
+        const UNBINDABLE = c::MS_UNBINDABLE;
+        /// `MS_REC`
+        const REC = c::MS_REC;
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    pub(crate) struct InternalMountFlags: c::c_ulong {
+        const REMOUNT = c::MS_REMOUNT;
+        const MOVE = c::MS_MOVE;
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+pub(crate) struct MountFlagsArg(pub(crate) c::c_ulong);
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+bitflags! {
+    /// `MNT_*` constants for use with [`unmount`].
+    ///
+    /// [`unmount`]: crate::fs::mount::unmount
+    pub struct UnmountFlags: c::c_int {
+        /// `MNT_FORCE`
+        const FORCE = c::MNT_FORCE;
+        /// `MNT_DETACH`
+        const DETACH = c::MNT_DETACH;
+        /// `MNT_EXPIRE`
+        const EXPIRE = c::MNT_EXPIRE;
+        /// `UMOUNT_NOFOLLOW`
+        const NOFOLLOW = c::UMOUNT_NOFOLLOW;
+    }
+}

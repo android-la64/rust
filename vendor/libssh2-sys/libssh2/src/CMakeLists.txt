@@ -207,17 +207,20 @@ set(SOURCES
   sftp.h
   transport.c
   transport.h
+  userauth_kbd_packet.c
+  userauth_kbd_packet.h
   userauth.c
   userauth.h
   version.c)
 
-if(WIN32)
+if(WIN32 AND BUILD_SHARED_LIBS)
   list(APPEND SOURCES ${PROJECT_SOURCE_DIR}/win32/libssh2.rc)
 endif()
 
 add_library(libssh2 ${SOURCES})
 # we want it to be called libssh2 on all platforms
 set_target_properties(libssh2 PROPERTIES PREFIX "")
+set_target_properties(libssh2 PROPERTIES IMPORT_PREFIX "")
 
 target_compile_definitions(libssh2 PRIVATE ${PRIVATE_COMPILE_DEFINITIONS})
 target_include_directories(libssh2

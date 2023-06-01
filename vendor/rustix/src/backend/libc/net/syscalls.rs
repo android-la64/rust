@@ -251,10 +251,9 @@ pub(crate) fn accept(sockfd: BorrowedFd<'_>) -> io::Result<OwnedFd> {
 }
 
 #[cfg(not(any(
+    apple,
     windows,
     target_os = "haiku",
-    target_os = "ios",
-    target_os = "macos",
     target_os = "redox",
     target_os = "wasi",
 )))]
@@ -288,10 +287,9 @@ pub(crate) fn acceptfrom(sockfd: BorrowedFd<'_>) -> io::Result<(OwnedFd, Option<
 }
 
 #[cfg(not(any(
+    apple,
     windows,
     target_os = "haiku",
-    target_os = "ios",
-    target_os = "macos",
     target_os = "redox",
     target_os = "wasi",
 )))]
@@ -317,14 +315,14 @@ pub(crate) fn acceptfrom_with(
 
 /// Darwin lacks `accept4`, but does have `accept`. We define
 /// `AcceptFlags` to have no flags, so we can discard it here.
-#[cfg(any(windows, target_os = "haiku", target_os = "ios", target_os = "macos"))]
+#[cfg(any(apple, windows, target_os = "haiku"))]
 pub(crate) fn accept_with(sockfd: BorrowedFd<'_>, _flags: AcceptFlags) -> io::Result<OwnedFd> {
     accept(sockfd)
 }
 
 /// Darwin lacks `accept4`, but does have `accept`. We define
 /// `AcceptFlags` to have no flags, so we can discard it here.
-#[cfg(any(windows, target_os = "haiku", target_os = "ios", target_os = "macos"))]
+#[cfg(any(apple, windows, target_os = "haiku"))]
 pub(crate) fn acceptfrom_with(
     sockfd: BorrowedFd<'_>,
     _flags: AcceptFlags,
@@ -555,11 +553,12 @@ pub(crate) mod sockopt {
                     return Err(io::Errno::INVAL);
                 }
 
-                let tv_sec = timeout.as_secs().try_into();
-                #[cfg(not(all(target_arch = "x86_64", target_pointer_width = "32")))]
-                let tv_sec = tv_sec.unwrap_or(c::c_long::MAX);
-                #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-                let tv_sec = tv_sec.unwrap_or(i64::MAX);
+                // Rust's musl libc bindings deprecated `time_t` while they
+                // transition to 64-bit `time_t`. What we want here is just
+                // "whatever type `timeval`'s `tv_sec` is", so we're ok using
+                // the deprecated type.
+                #[allow(deprecated)]
+                let tv_sec = timeout.as_secs().try_into().unwrap_or(c::time_t::MAX);
 
                 // `subsec_micros` rounds down, so we use `subsec_nanos` and
                 // manually round up.
@@ -633,6 +632,28 @@ pub(crate) mod sockopt {
                 Ok(Some(Duration::from_millis(timeout as u64)))
             }
         }
+    }
+
+    #[cfg(any(apple, target_os = "freebsd"))]
+    #[inline]
+    pub(crate) fn getsockopt_nosigpipe(fd: BorrowedFd<'_>) -> io::Result<bool> {
+        getsockopt(fd, c::SOL_SOCKET, c::SO_NOSIGPIPE).map(to_bool)
+    }
+
+    #[cfg(any(apple, target_os = "freebsd"))]
+    #[inline]
+    pub(crate) fn setsockopt_nosigpipe(fd: BorrowedFd<'_>, val: bool) -> io::Result<()> {
+        setsockopt(fd, c::SOL_SOCKET, c::SO_NOSIGPIPE, from_bool(val))
+    }
+
+    #[inline]
+    pub(crate) fn get_socket_error(fd: BorrowedFd<'_>) -> io::Result<Result<(), crate::io::Errno>> {
+        let err: c::c_int = getsockopt(fd, c::SOL_SOCKET as _, c::SO_ERROR)?;
+        Ok(if err == 0 {
+            Ok(())
+        } else {
+            Err(crate::io::Errno::from_raw_os_error(err))
+        })
     }
 
     #[inline]
@@ -735,31 +756,9 @@ pub(crate) mod sockopt {
         multiaddr: &Ipv6Addr,
         interface: u32,
     ) -> io::Result<()> {
-        #[cfg(not(any(
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "haiku",
-            target_os = "illumos",
-            target_os = "ios",
-            target_os = "l4re",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            target_os = "solaris",
-        )))]
+        #[cfg(not(any(bsd, solarish, target_os = "haiku", target_os = "l4re")))]
         use c::IPV6_ADD_MEMBERSHIP;
-        #[cfg(any(
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "haiku",
-            target_os = "illumos",
-            target_os = "ios",
-            target_os = "l4re",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            target_os = "solaris",
-        ))]
+        #[cfg(any(bsd, solarish, target_os = "haiku", target_os = "l4re"))]
         use c::IPV6_JOIN_GROUP as IPV6_ADD_MEMBERSHIP;
 
         let mreq = to_ipv6mr(multiaddr, interface);
@@ -782,31 +781,9 @@ pub(crate) mod sockopt {
         multiaddr: &Ipv6Addr,
         interface: u32,
     ) -> io::Result<()> {
-        #[cfg(not(any(
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "haiku",
-            target_os = "illumos",
-            target_os = "ios",
-            target_os = "l4re",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            target_os = "solaris",
-        )))]
+        #[cfg(not(any(bsd, solarish, target_os = "haiku", target_os = "l4re")))]
         use c::IPV6_DROP_MEMBERSHIP;
-        #[cfg(any(
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "haiku",
-            target_os = "illumos",
-            target_os = "ios",
-            target_os = "l4re",
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os = "openbsd",
-            target_os = "solaris",
-        ))]
+        #[cfg(any(bsd, solarish, target_os = "haiku", target_os = "l4re"))]
         use c::IPV6_LEAVE_GROUP as IPV6_DROP_MEMBERSHIP;
 
         let mreq = to_ipv6mr(multiaddr, interface);

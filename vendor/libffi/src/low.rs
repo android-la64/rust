@@ -120,7 +120,9 @@ impl CodePtr {
     }
 }
 
-pub use raw::{ffi_abi, ffi_abi_FFI_DEFAULT_ABI, ffi_cif, ffi_closure, ffi_status, ffi_type};
+pub use raw::{
+    ffi_abi, ffi_abi_FFI_DEFAULT_ABI, ffi_arg, ffi_cif, ffi_closure, ffi_sarg, ffi_status, ffi_type,
+};
 
 /// Re-exports the [`ffi_type`] objects used to describe the types of
 /// arguments and results.
@@ -330,7 +332,7 @@ pub unsafe fn prep_cif_var(
 ///     prep_cif(&mut cif, ffi_abi_FFI_DEFAULT_ABI, 2,
 ///              &mut types::uint64, args.as_mut_ptr()).unwrap();
 ///
-///     call(&mut cif, CodePtr(c_function as *mut _),
+///     call::<u64>(&mut cif, CodePtr(c_function as *mut _),
 ///          vec![ &mut 4u64 as *mut _ as *mut c_void,
 ///                &mut 5u64 as *mut _ as *mut c_void ].as_mut_ptr())
 /// };

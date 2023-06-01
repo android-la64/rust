@@ -22,20 +22,15 @@ bitflags! {
     /// [`pwritev2`]: crate::io::pwritev
     pub struct ReadWriteFlags: c::c_int {
         /// `RWF_DSYNC` (since Linux 4.7)
-        #[cfg(all(target_os = "linux", target_env = "gnu"))]
-        const DSYNC = c::RWF_DSYNC;
+        const DSYNC = linux_raw_sys::general::RWF_DSYNC as c::c_int;
         /// `RWF_HIPRI` (since Linux 4.6)
-        #[cfg(all(target_os = "linux", target_env = "gnu"))]
-        const HIPRI = c::RWF_HIPRI;
+        const HIPRI = linux_raw_sys::general::RWF_HIPRI as c::c_int;
         /// `RWF_SYNC` (since Linux 4.7)
-        #[cfg(all(target_os = "linux", target_env = "gnu"))]
-        const SYNC = c::RWF_SYNC;
+        const SYNC = linux_raw_sys::general::RWF_SYNC as c::c_int;
         /// `RWF_NOWAIT` (since Linux 4.14)
-        #[cfg(all(target_os = "linux", target_env = "gnu"))]
-        const NOWAIT = c::RWF_NOWAIT;
+        const NOWAIT = linux_raw_sys::general::RWF_NOWAIT as c::c_int;
         /// `RWF_APPEND` (since Linux 4.16)
-        #[cfg(all(target_os = "linux", target_env = "gnu"))]
-        const APPEND = c::RWF_APPEND;
+        const APPEND = linux_raw_sys::general::RWF_APPEND as c::c_int;
     }
 }
 
@@ -62,16 +57,16 @@ bitflags! {
     pub struct DupFlags: c::c_int {
         /// `O_CLOEXEC`
         #[cfg(not(any(
+            apple,
+            target_os = "aix",
             target_os = "android",
-            target_os = "ios",
-            target_os = "macos",
             target_os = "redox",
         )))] // Android 5.0 has dup3, but libc doesn't have bindings
         const CLOEXEC = c::O_CLOEXEC;
     }
 }
 
-#[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "wasi")))]
+#[cfg(not(any(apple, target_os = "wasi")))]
 bitflags! {
     /// `O_*` constants for use with [`pipe_with`].
     ///
@@ -81,11 +76,10 @@ bitflags! {
         const CLOEXEC = c::O_CLOEXEC;
         /// `O_DIRECT`
         #[cfg(not(any(
+            solarish,
             target_os = "haiku",
-            target_os = "illumos",
             target_os = "openbsd",
             target_os = "redox",
-            target_os = "solaris",
         )))]
         const DIRECT = c::O_DIRECT;
         /// `O_NONBLOCK`
@@ -109,13 +103,7 @@ bitflags! {
 }
 
 /// `PIPE_BUF`—The maximum size of a write to a pipe guaranteed to be atomic.
-#[cfg(not(any(
-    target_os = "haiku",
-    target_os = "illumos",
-    target_os = "redox",
-    target_os = "solaris",
-    target_os = "wasi",
-)))]
+#[cfg(not(any(solarish, target_os = "haiku", target_os = "redox", target_os = "wasi")))]
 pub const PIPE_BUF: usize = c::PIPE_BUF;
 
 #[cfg(not(any(windows, target_os = "redox")))]
@@ -128,9 +116,10 @@ pub(crate) const STDOUT_FILENO: c::c_int = c::STDOUT_FILENO;
 pub(crate) const STDERR_FILENO: c::c_int = c::STDERR_FILENO;
 
 /// A buffer type used with `vmsplice`.
-/// It is guaranteed to be ABI compatible with the iovec type on Unix platforms and WSABUF on Windows.
-/// Unlike `IoSlice` and `IoSliceMut` it is semantically like a raw pointer,
-/// and therefore can be shared or mutated as needed.
+/// It is guaranteed to be ABI compatible with the iovec type on Unix platforms
+/// and `WSABUF` on Windows. Unlike `IoSlice` and `IoSliceMut` it is
+/// semantically like a raw pointer, and therefore can be shared or mutated as
+/// needed.
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[repr(transparent)]
 pub struct IoSliceRaw<'a> {

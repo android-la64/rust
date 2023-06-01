@@ -4,13 +4,15 @@ use cargo::core::SourceId;
 use cargo_test_support::cargo_process;
 use cargo_test_support::paths::{self, CargoPathExt};
 use cargo_test_support::registry::{
-    self, registry_path, Dependency, Package, RegistryBuilder, TestRegistry,
+    self, registry_path, Dependency, Package, RegistryBuilder, Response, TestRegistry,
 };
 use cargo_test_support::{basic_manifest, project};
 use cargo_test_support::{git, install::cargo_home, t};
 use cargo_util::paths::remove_dir_all;
+use std::fmt::Write;
 use std::fs::{self, File};
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 fn setup_http() -> TestRegistry {
@@ -1926,6 +1928,7 @@ Caused by:
 
 #[cargo_test]
 fn disallow_network_git() {
+    let _server = RegistryBuilder::new().build();
     let p = project()
         .file(
             "Cargo.toml",
@@ -1952,7 +1955,10 @@ Caused by:
   failed to load source for dependency `foo`
 
 Caused by:
-  Unable to update registry [..]
+  Unable to update registry `crates-io`
+
+Caused by:
+  failed to update replaced source registry `crates-io`
 
 Caused by:
   attempting to make an HTTP request, but --frozen was specified
@@ -2700,7 +2706,7 @@ Caused by:
 }
 
 #[cargo_test]
-fn sparse_retry() {
+fn sparse_retry_single() {
     let fail_count = Mutex::new(0);
     let _registry = RegistryBuilder::new()
         .http_index()
@@ -2737,10 +2743,10 @@ fn sparse_retry() {
         .with_stderr(
             "\
 [UPDATING] `dummy-registry` index
-warning: spurious network error (2 tries remaining): failed to get successful HTTP response from `[..]`, got 500
+warning: spurious network error (3 tries remaining): failed to get successful HTTP response from `[..]` (127.0.0.1), got 500
 body:
 internal server error
-warning: spurious network error (1 tries remaining): failed to get successful HTTP response from `[..]`, got 500
+warning: spurious network error (2 tries remaining): failed to get successful HTTP response from `[..]` (127.0.0.1), got 500
 body:
 internal server error
 [DOWNLOADING] crates ...
@@ -2751,6 +2757,226 @@ internal server error
 ",
         )
         .run();
+}
+
+#[cargo_test]
+fn sparse_retry_multiple() {
+    // Tests retry behavior of downloading lots of packages with various
+    // failure rates accessing the sparse index.
+
+    // The index is the number of retries, the value is the number of packages
+    // that retry that number of times. Thus 50 packages succeed on first try,
+    // 25 on second, etc.
+    const RETRIES: &[u32] = &[50, 25, 12, 6];
+
+    let pkgs: Vec<_> = RETRIES
+        .iter()
+        .enumerate()
+        .flat_map(|(retries, num)| {
+            (0..*num)
+                .into_iter()
+                .map(move |n| (retries as u32, format!("{}-{n}-{retries}", rand_prefix())))
+        })
+        .collect();
+
+    let mut builder = RegistryBuilder::new().http_index();
+    let fail_counts: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(vec![0; pkgs.len()]));
+    let mut cargo_toml = r#"
+        [package]
+        name = "foo"
+        version = "0.1.0"
+
+        [dependencies]
+        "#
+    .to_string();
+    // The expected stderr output.
+    let mut expected = "\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+"
+    .to_string();
+    for (n, (retries, name)) in pkgs.iter().enumerate() {
+        let count_clone = fail_counts.clone();
+        let retries = *retries;
+        let ab = &name[..2];
+        let cd = &name[2..4];
+        builder = builder.add_responder(format!("/index/{ab}/{cd}/{name}"), move |req, server| {
+            let mut fail_counts = count_clone.lock().unwrap();
+            if fail_counts[n] < retries {
+                fail_counts[n] += 1;
+                server.internal_server_error(req)
+            } else {
+                server.index(req)
+            }
+        });
+        write!(&mut cargo_toml, "{name} = \"1.0.0\"\n").unwrap();
+        for retry in 0..retries {
+            let remain = 3 - retry;
+            write!(
+                &mut expected,
+                "warning: spurious network error ({remain} tries remaining): \
+                failed to get successful HTTP response from \
+                `http://127.0.0.1:[..]/{ab}/{cd}/{name}` (127.0.0.1), got 500\n\
+                body:\n\
+                internal server error\n"
+            )
+            .unwrap();
+        }
+        write!(
+            &mut expected,
+            "[DOWNLOADED] {name} v1.0.0 (registry `dummy-registry`)\n"
+        )
+        .unwrap();
+    }
+    let _server = builder.build();
+    for (_, name) in &pkgs {
+        Package::new(name, "1.0.0").publish();
+    }
+    let p = project()
+        .file("Cargo.toml", &cargo_toml)
+        .file("src/lib.rs", "")
+        .build();
+    p.cargo("fetch").with_stderr_unordered(expected).run();
+}
+
+#[cargo_test]
+fn dl_retry_single() {
+    // Tests retry behavior of downloading a package.
+    // This tests a single package which exercises the code path that causes
+    // it to block.
+    let fail_count = Mutex::new(0);
+    let _server = RegistryBuilder::new()
+        .http_index()
+        .add_responder("/dl/bar/1.0.0/download", move |req, server| {
+            let mut fail_count = fail_count.lock().unwrap();
+            if *fail_count < 2 {
+                *fail_count += 1;
+                server.internal_server_error(req)
+            } else {
+                server.dl(req)
+            }
+        })
+        .build();
+    Package::new("bar", "1.0.0").publish();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                bar = "1.0"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+    p.cargo("fetch")
+        .with_stderr("\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+warning: spurious network error (3 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/dl/bar/1.0.0/download` (127.0.0.1), got 500
+body:
+internal server error
+warning: spurious network error (2 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/dl/bar/1.0.0/download` (127.0.0.1), got 500
+body:
+internal server error
+[DOWNLOADED] bar v1.0.0 (registry `dummy-registry`)
+").run();
+}
+
+/// Creates a random prefix to randomly spread out the package names
+/// to somewhat evenly distribute the different failures at different
+/// points.
+fn rand_prefix() -> String {
+    use rand::Rng;
+    const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
+    let mut rng = rand::thread_rng();
+    (0..5)
+        .map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char)
+        .collect()
+}
+
+#[cargo_test]
+fn dl_retry_multiple() {
+    // Tests retry behavior of downloading lots of packages with various
+    // failure rates.
+
+    // The index is the number of retries, the value is the number of packages
+    // that retry that number of times. Thus 50 packages succeed on first try,
+    // 25 on second, etc.
+    const RETRIES: &[u32] = &[50, 25, 12, 6];
+
+    let pkgs: Vec<_> = RETRIES
+        .iter()
+        .enumerate()
+        .flat_map(|(retries, num)| {
+            (0..*num)
+                .into_iter()
+                .map(move |n| (retries as u32, format!("{}-{n}-{retries}", rand_prefix())))
+        })
+        .collect();
+
+    let mut builder = RegistryBuilder::new().http_index();
+    let fail_counts: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(vec![0; pkgs.len()]));
+    let mut cargo_toml = r#"
+        [package]
+        name = "foo"
+        version = "0.1.0"
+
+        [dependencies]
+        "#
+    .to_string();
+    // The expected stderr output.
+    let mut expected = "\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+"
+    .to_string();
+    for (n, (retries, name)) in pkgs.iter().enumerate() {
+        let count_clone = fail_counts.clone();
+        let retries = *retries;
+        builder =
+            builder.add_responder(format!("/dl/{name}/1.0.0/download"), move |req, server| {
+                let mut fail_counts = count_clone.lock().unwrap();
+                if fail_counts[n] < retries {
+                    fail_counts[n] += 1;
+                    server.internal_server_error(req)
+                } else {
+                    server.dl(req)
+                }
+            });
+        write!(&mut cargo_toml, "{name} = \"1.0.0\"\n").unwrap();
+        for retry in 0..retries {
+            let remain = 3 - retry;
+            write!(
+                &mut expected,
+                "warning: spurious network error ({remain} tries remaining): \
+                failed to get successful HTTP response from \
+                `http://127.0.0.1:[..]/dl/{name}/1.0.0/download` (127.0.0.1), got 500\n\
+                body:\n\
+                internal server error\n"
+            )
+            .unwrap();
+        }
+        write!(
+            &mut expected,
+            "[DOWNLOADED] {name} v1.0.0 (registry `dummy-registry`)\n"
+        )
+        .unwrap();
+    }
+    let _server = builder.build();
+    for (_, name) in &pkgs {
+        Package::new(name, "1.0.0").publish();
+    }
+    let p = project()
+        .file("Cargo.toml", &cargo_toml)
+        .file("src/lib.rs", "")
+        .build();
+    p.cargo("fetch").with_stderr_unordered(expected).run();
 }
 
 #[cargo_test]
@@ -2910,4 +3136,271 @@ fn corrupted_ok_overwritten() {
     assert_eq!(fs::read_to_string(&ok).unwrap(), "");
     p.cargo("fetch").with_stderr("").run();
     assert_eq!(fs::read_to_string(&ok).unwrap(), "ok");
+}
+
+#[cargo_test]
+fn not_found_permutations() {
+    // Test for querying permutations for a missing dependency.
+    let misses = Arc::new(Mutex::new(Vec::new()));
+    let misses2 = misses.clone();
+    let _registry = RegistryBuilder::new()
+        .http_index()
+        .not_found_handler(move |req, _server| {
+            let mut misses = misses2.lock().unwrap();
+            misses.push(req.url.path().to_string());
+            Response {
+                code: 404,
+                headers: vec![],
+                body: b"not found".to_vec(),
+            }
+        })
+        .build();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+
+                [dependencies]
+                a-b-c = "1.0"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("check")
+        .with_status(101)
+        .with_stderr(
+            "\
+[UPDATING] `dummy-registry` index
+error: no matching package named `a-b-c` found
+location searched: registry `crates-io`
+required by package `foo v0.0.1 ([ROOT]/foo)`
+",
+        )
+        .run();
+    let mut misses = misses.lock().unwrap();
+    misses.sort();
+    assert_eq!(
+        &*misses,
+        &[
+            "/index/a-/b-/a-b-c",
+            "/index/a-/b_/a-b_c",
+            "/index/a_/b-/a_b-c",
+            "/index/a_/b_/a_b_c"
+        ]
+    );
+}
+
+#[cargo_test]
+fn default_auth_error() {
+    // Check for the error message for an authentication error when default is set.
+    let crates_io = RegistryBuilder::new().http_api().build();
+    let _alternative = RegistryBuilder::new().http_api().alternative().build();
+
+    paths::home().join(".cargo/credentials.toml").rm_rf();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                license = "MIT"
+                description = "foo"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    // Test output before setting the default.
+    p.cargo("publish --no-verify")
+        .replace_crates_io(crates_io.index_url())
+        .with_stderr(
+            "\
+[UPDATING] crates.io index
+error: no token found, please run `cargo login`
+or use environment variable CARGO_REGISTRY_TOKEN
+",
+        )
+        .with_status(101)
+        .run();
+
+    p.cargo("publish --no-verify --registry alternative")
+        .replace_crates_io(crates_io.index_url())
+        .with_stderr(
+            "\
+[UPDATING] `alternative` index
+error: no token found for `alternative`, please run `cargo login --registry alternative`
+or use environment variable CARGO_REGISTRIES_ALTERNATIVE_TOKEN
+",
+        )
+        .with_status(101)
+        .run();
+
+    // Test the output with the default.
+    cargo_util::paths::append(
+        &cargo_home().join("config"),
+        br#"
+            [registry]
+            default = "alternative"
+        "#,
+    )
+    .unwrap();
+
+    p.cargo("publish --no-verify")
+        .replace_crates_io(crates_io.index_url())
+        .with_stderr(
+            "\
+[UPDATING] `alternative` index
+error: no token found for `alternative`, please run `cargo login --registry alternative`
+or use environment variable CARGO_REGISTRIES_ALTERNATIVE_TOKEN
+",
+        )
+        .with_status(101)
+        .run();
+
+    p.cargo("publish --no-verify --registry crates-io")
+        .replace_crates_io(crates_io.index_url())
+        .with_stderr(
+            "\
+[UPDATING] crates.io index
+error: no token found, please run `cargo login --registry crates-io`
+or use environment variable CARGO_REGISTRY_TOKEN
+",
+        )
+        .with_status(101)
+        .run();
+}
+
+const SAMPLE_HEADERS: &[&str] = &[
+    "x-amz-cf-pop: SFO53-P2",
+    "x-amz-cf-id: vEc3osJrCAXVaciNnF4Vev-hZFgnYwmNZtxMKRJ5bF6h9FTOtbTMnA==",
+    "x-cache: Hit from cloudfront",
+    "server: AmazonS3",
+    "x-amz-version-id: pvsJYY_JGsWiSETZvLJKb7DeEW5wWq1W",
+    "x-amz-server-side-encryption: AES256",
+    "content-type: text/plain",
+    "via: 1.1 bcbc5b46216015493e082cfbcf77ef10.cloudfront.net (CloudFront)",
+];
+
+#[cargo_test]
+fn debug_header_message_index() {
+    // The error message should include some headers for debugging purposes.
+    let _server = RegistryBuilder::new()
+        .http_index()
+        .add_responder("/index/3/b/bar", |_, _| Response {
+            code: 503,
+            headers: SAMPLE_HEADERS.iter().map(|s| s.to_string()).collect(),
+            body: b"Please slow down".to_vec(),
+        })
+        .build();
+    Package::new("bar", "1.0.0").publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                bar = "1.0"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+    p.cargo("fetch").with_status(101).with_stderr("\
+[UPDATING] `dummy-registry` index
+warning: spurious network error (3 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/index/3/b/bar` (127.0.0.1), got 503
+body:
+Please slow down
+warning: spurious network error (2 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/index/3/b/bar` (127.0.0.1), got 503
+body:
+Please slow down
+warning: spurious network error (1 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/index/3/b/bar` (127.0.0.1), got 503
+body:
+Please slow down
+error: failed to get `bar` as a dependency of package `foo v0.1.0 ([ROOT]/foo)`
+
+Caused by:
+  failed to query replaced source registry `crates-io`
+
+Caused by:
+  download of 3/b/bar failed
+
+Caused by:
+  failed to get successful HTTP response from `http://127.0.0.1:[..]/index/3/b/bar` (127.0.0.1), got 503
+  debug headers:
+  x-amz-cf-pop: SFO53-P2
+  x-amz-cf-id: vEc3osJrCAXVaciNnF4Vev-hZFgnYwmNZtxMKRJ5bF6h9FTOtbTMnA==
+  x-cache: Hit from cloudfront
+  body:
+  Please slow down
+").run();
+}
+
+#[cargo_test]
+fn debug_header_message_dl() {
+    // Same as debug_header_message_index, but for the dl endpoint which goes
+    // through a completely different code path.
+    let _server = RegistryBuilder::new()
+        .http_index()
+        .add_responder("/dl/bar/1.0.0/download", |_, _| Response {
+            code: 503,
+            headers: SAMPLE_HEADERS.iter().map(|s| s.to_string()).collect(),
+            body: b"Please slow down".to_vec(),
+        })
+        .build();
+    Package::new("bar", "1.0.0").publish();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+
+                [dependencies]
+                bar = "1.0"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("fetch").with_status(101).with_stderr("\
+[UPDATING] `dummy-registry` index
+[DOWNLOADING] crates ...
+warning: spurious network error (3 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/dl/bar/1.0.0/download` (127.0.0.1), got 503
+body:
+Please slow down
+warning: spurious network error (2 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/dl/bar/1.0.0/download` (127.0.0.1), got 503
+body:
+Please slow down
+warning: spurious network error (1 tries remaining): \
+    failed to get successful HTTP response from `http://127.0.0.1:[..]/dl/bar/1.0.0/download` (127.0.0.1), got 503
+body:
+Please slow down
+error: failed to download from `http://127.0.0.1:[..]/dl/bar/1.0.0/download`
+
+Caused by:
+  failed to get successful HTTP response from `http://127.0.0.1:[..]/dl/bar/1.0.0/download` (127.0.0.1), got 503
+  debug headers:
+  x-amz-cf-pop: SFO53-P2
+  x-amz-cf-id: vEc3osJrCAXVaciNnF4Vev-hZFgnYwmNZtxMKRJ5bF6h9FTOtbTMnA==
+  x-cache: Hit from cloudfront
+  body:
+  Please slow down
+").run();
 }

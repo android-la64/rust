@@ -86,7 +86,36 @@ no_mangle! {
     fn tanf(n: f32) -> f32;
 }
 
-#[cfg(any(target_os = "xous", target_os = "uefi"))]
+#[cfg(any(
+    all(
+        target_family = "wasm",
+        target_os = "unknown",
+        not(target_env = "wasi")
+    ),
+    target_os = "xous",
+    all(target_arch = "x86_64", target_os = "uefi"),
+    all(target_arch = "xtensa", target_os = "none"),
+    all(target_vendor = "fortanix", target_env = "sgx")
+))]
+intrinsics! {
+    pub extern "C" fn lgamma_r(x: f64, s: &mut i32) -> f64 {
+        let r = self::libm::lgamma_r(x);
+        *s = r.1;
+        r.0
+    }
+
+    pub extern "C" fn lgammaf_r(x: f32, s: &mut i32) -> f32 {
+        let r = self::libm::lgammaf_r(x);
+        *s = r.1;
+        r.0
+    }
+}
+
+#[cfg(any(
+    target_os = "xous",
+    target_os = "uefi",
+    all(target_arch = "xtensa", target_os = "none"),
+))]
 no_mangle! {
     fn sqrtf(x: f32) -> f32;
     fn sqrt(x: f64) -> f64;
@@ -94,6 +123,7 @@ no_mangle! {
 
 #[cfg(any(
     all(target_vendor = "fortanix", target_env = "sgx"),
+    all(target_arch = "xtensa", target_os = "none"),
     target_os = "xous",
     target_os = "uefi"
 ))]

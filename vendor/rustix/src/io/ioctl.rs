@@ -42,7 +42,7 @@ pub fn ioctl_tiocnxcl<Fd: AsFd>(fd: Fd) -> io::Result<()> {
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/ioctl.2.html
 /// [Winsock2]: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-ioctlsocket
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(apple)]
 #[inline]
 #[doc(alias = "FIOCLEX")]
 #[doc(alias = "FD_CLOEXEC")]
@@ -96,4 +96,17 @@ pub fn ioctl_blksszget<Fd: AsFd>(fd: Fd) -> io::Result<u32> {
 #[doc(alias = "BLKPBSZGET")]
 pub fn ioctl_blkpbszget<Fd: AsFd>(fd: Fd) -> io::Result<u32> {
     backend::io::syscalls::ioctl_blkpbszget(fd.as_fd())
+}
+
+/// `ioctl(fd, FICLONE, src_fd)`—Share data between open files.
+///
+/// # References
+///  - [Linux]
+///
+/// [Linux]: https://man7.org/linux/man-pages/man2/ioctl_ficlone.2.html
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[inline]
+#[doc(alias = "FICLONE")]
+pub fn ioctl_ficlone<Fd: AsFd, SrcFd: AsFd>(fd: Fd, src_fd: SrcFd) -> io::Result<()> {
+    backend::io::syscalls::ioctl_ficlone(fd.as_fd(), src_fd.as_fd())
 }

@@ -57,6 +57,12 @@ optimizations and disables debugging information. If you need to debug a
 benchmark, you can use the \fB\-\-profile=dev\fR command\-line option to switch to
 the dev profile. You can then run the debug\-enabled benchmark within a
 debugger.
+.SS "Working directory of benchmarks"
+The working directory of every benchmark is set to the root directory of the 
+package the benchmark belongs to.
+Setting the working directory of benchmarks to the package\[cq]s root directory 
+makes it possible for benchmarks to reliably access the package\[cq]s files using 
+relative paths, regardless from where \fBcargo bench\fR was executed from.
 .SH "OPTIONS"
 .SS "Benchmark Options"
 .sp
@@ -455,7 +461,8 @@ See the \fIcommand\-line overrides section\fR <https://doc.rust\-lang.org/cargo/
 .RS 4
 Changes the current working directory before executing any specified operations. This affects
 things like where cargo looks by default for the project manifest (\fBCargo.toml\fR), as well as
-the directories searched for discovering \fB\&.cargo/config.toml\fR, for example.
+the directories searched for discovering \fB\&.cargo/config.toml\fR, for example. This option must
+appear before the command name, for example \fBcargo \-C path/to/my\-project build\fR\&.
 .sp
 This option is only available on the \fInightly
 channel\fR <https://doc.rust\-lang.org/book/appendix\-07\-nightly\-rust.html> and

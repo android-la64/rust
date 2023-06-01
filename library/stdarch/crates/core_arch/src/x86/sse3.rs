@@ -11,7 +11,7 @@ use stdarch_test::assert_instr;
 /// Alternatively add and subtract packed single-precision (32-bit)
 /// floating-point elements in `a` to/from packed elements in `b`.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_addsub_ps)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_addsub_ps)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(addsubps))]
@@ -23,7 +23,7 @@ pub unsafe fn _mm_addsub_ps(a: __m128, b: __m128) -> __m128 {
 /// Alternatively add and subtract packed double-precision (64-bit)
 /// floating-point elements in `a` to/from packed elements in `b`.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_addsub_pd)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_addsub_pd)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(addsubpd))]
@@ -35,7 +35,7 @@ pub unsafe fn _mm_addsub_pd(a: __m128d, b: __m128d) -> __m128d {
 /// Horizontally adds adjacent pairs of double-precision (64-bit)
 /// floating-point elements in `a` and `b`, and pack the results.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_hadd_pd)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_hadd_pd)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(haddpd))]
@@ -47,7 +47,7 @@ pub unsafe fn _mm_hadd_pd(a: __m128d, b: __m128d) -> __m128d {
 /// Horizontally adds adjacent pairs of single-precision (32-bit)
 /// floating-point elements in `a` and `b`, and pack the results.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_hadd_ps)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_hadd_ps)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(haddps))]
@@ -59,7 +59,7 @@ pub unsafe fn _mm_hadd_ps(a: __m128, b: __m128) -> __m128 {
 /// Horizontally subtract adjacent pairs of double-precision (64-bit)
 /// floating-point elements in `a` and `b`, and pack the results.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_hsub_pd)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_hsub_pd)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(hsubpd))]
@@ -71,7 +71,7 @@ pub unsafe fn _mm_hsub_pd(a: __m128d, b: __m128d) -> __m128d {
 /// Horizontally adds adjacent pairs of single-precision (32-bit)
 /// floating-point elements in `a` and `b`, and pack the results.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_hsub_ps)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_hsub_ps)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(hsubps))]
@@ -84,7 +84,7 @@ pub unsafe fn _mm_hsub_ps(a: __m128, b: __m128) -> __m128 {
 /// This intrinsic may perform better than `_mm_loadu_si128`
 /// when the data crosses a cache line boundary.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_lddqu_si128)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_lddqu_si128)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(lddqu))]
@@ -96,19 +96,19 @@ pub unsafe fn _mm_lddqu_si128(mem_addr: *const __m128i) -> __m128i {
 /// Duplicate the low double-precision (64-bit) floating-point element
 /// from `a`.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_movedup_pd)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_movedup_pd)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(movddup))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_movedup_pd(a: __m128d) -> __m128d {
-    simd_shuffle2!(a, a, [0, 0])
+    simd_shuffle!(a, a, [0, 0])
 }
 
 /// Loads a double-precision (64-bit) floating-point element from memory
 /// into both elements of return vector.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_loaddup_pd)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_loaddup_pd)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(movddup))]
@@ -120,25 +120,25 @@ pub unsafe fn _mm_loaddup_pd(mem_addr: *const f64) -> __m128d {
 /// Duplicate odd-indexed single-precision (32-bit) floating-point elements
 /// from `a`.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_movehdup_ps)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_movehdup_ps)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(movshdup))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_movehdup_ps(a: __m128) -> __m128 {
-    simd_shuffle4!(a, a, [1, 1, 3, 3])
+    simd_shuffle!(a, a, [1, 1, 3, 3])
 }
 
 /// Duplicate even-indexed single-precision (32-bit) floating-point elements
 /// from `a`.
 ///
-/// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_moveldup_ps)
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_moveldup_ps)
 #[inline]
 #[target_feature(enable = "sse3")]
 #[cfg_attr(test, assert_instr(movsldup))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_moveldup_ps(a: __m128) -> __m128 {
-    simd_shuffle4!(a, a, [0, 0, 2, 2])
+    simd_shuffle!(a, a, [0, 0, 2, 2])
 }
 
 #[allow(improper_ctypes)]

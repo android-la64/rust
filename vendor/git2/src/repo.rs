@@ -3,7 +3,7 @@ use std::env;
 use std::ffi::{CStr, CString, OsStr};
 use std::iter::IntoIterator;
 use std::mem;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::ptr;
 use std::str;
 
@@ -155,7 +155,7 @@ impl Repository {
 
     /// Find and open an existing repository, respecting git environment
     /// variables.  This acts like `open_ext` with the
-    /// `REPOSITORY_OPEN_FROM_ENV` flag, but additionally respects `$GIT_DIR`.
+    /// [FROM_ENV](RepositoryOpenFlags::FROM_ENV) flag, but additionally respects `$GIT_DIR`.
     /// With `$GIT_DIR` unset, this will search for a repository starting in
     /// the current directory.
     pub fn open_from_env() -> Result<Repository, Error> {
@@ -175,30 +175,32 @@ impl Repository {
 
     /// Find and open an existing repository, with additional options.
     ///
-    /// If flags contains REPOSITORY_OPEN_NO_SEARCH, the path must point
+    /// If flags contains [NO_SEARCH](RepositoryOpenFlags::NO_SEARCH), the path must point
     /// directly to a repository; otherwise, this may point to a subdirectory
     /// of a repository, and `open_ext` will search up through parent
     /// directories.
     ///
-    /// If flags contains REPOSITORY_OPEN_CROSS_FS, the search through parent
+    /// If flags contains [CROSS_FS](RepositoryOpenFlags::CROSS_FS), the search through parent
     /// directories will not cross a filesystem boundary (detected when the
     /// stat st_dev field changes).
     ///
-    /// If flags contains REPOSITORY_OPEN_BARE, force opening the repository as
+    /// If flags contains [BARE](RepositoryOpenFlags::BARE), force opening the repository as
     /// bare even if it isn't, ignoring any working directory, and defer
     /// loading the repository configuration for performance.
     ///
-    /// If flags contains REPOSITORY_OPEN_NO_DOTGIT, don't try appending
+    /// If flags contains [NO_DOTGIT](RepositoryOpenFlags::NO_DOTGIT), don't try appending
     /// `/.git` to `path`.
     ///
-    /// If flags contains REPOSITORY_OPEN_FROM_ENV, `open_ext` will ignore
+    /// If flags contains [FROM_ENV](RepositoryOpenFlags::FROM_ENV), `open_ext` will ignore
     /// other flags and `ceiling_dirs`, and respect the same environment
     /// variables git does. Note, however, that `path` overrides `$GIT_DIR`; to
     /// respect `$GIT_DIR` as well, use `open_from_env`.
     ///
     /// ceiling_dirs specifies a list of paths that the search through parent
     /// directories will stop before entering.  Use the functions in std::env
-    /// to construct or manipulate such a path list.
+    /// to construct or manipulate such a path list. (You can use `&[] as
+    /// &[&std::ffi::OsStr]` as an argument if there are no ceiling
+    /// directories.)
     pub fn open_ext<P, O, I>(
         path: P,
         flags: RepositoryOpenFlags,
@@ -257,6 +259,33 @@ impl Repository {
             ));
         }
         Repository::open(util::bytes2path(&*buf))
+    }
+
+    /// Attempt to find the path to a git repo for a given path
+    ///
+    /// This starts at `path` and looks up the filesystem hierarchy
+    /// until it finds a repository, stopping if it finds a member of ceiling_dirs
+    pub fn discover_path<P: AsRef<Path>, I, O>(path: P, ceiling_dirs: I) -> Result<PathBuf, Error>
+    where
+        O: AsRef<OsStr>,
+        I: IntoIterator<Item = O>,
+    {
+        crate::init();
+        let buf = Buf::new();
+        // Normal file path OK (does not need Windows conversion).
+        let path = path.as_ref().into_c_string()?;
+        let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
+        let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
+        unsafe {
+            try_call!(raw::git_repository_discover(
+                buf.raw(),
+                path,
+                1,
+                ceiling_dirs
+            ));
+        }
+
+        Ok(util::bytes2path(&*buf).to_path_buf())
     }
 
     /// Creates a new repository in the specified folder.
@@ -599,7 +628,7 @@ impl Repository {
 
     /// Create an anonymous remote
     ///
-    /// Create a remote with the given url and refspec in memory. You can use
+    /// Create a remote with the given URL and refspec in memory. You can use
     /// this when you have a URL instead of a remote's name. Note that anonymous
     /// remotes cannot be converted to persisted remotes.
     pub fn remote_anonymous(&self, url: &str) -> Result<Remote<'_>, Error> {
@@ -680,7 +709,7 @@ impl Repository {
         Ok(())
     }
 
-    /// Set the remote's url in the configuration
+    /// Set the remote's URL in the configuration
     ///
     /// Remote objects already in memory will not be affected. This assumes
     /// the common case of a single-url remote and will otherwise return an
@@ -694,7 +723,7 @@ impl Repository {
         Ok(())
     }
 
-    /// Set the remote's url for pushing in the configuration.
+    /// Set the remote's URL for pushing in the configuration.
     ///
     /// Remote objects already in memory will not be affected. This assumes
     /// the common case of a single-url remote and will otherwise return an
@@ -790,6 +819,22 @@ impl Repository {
     /// Otherwise, the HEAD will be detached and will directly point to the
     /// commit.
     pub fn set_head(&self, refname: &str) -> Result<(), Error> {
+        self.set_head_bytes(refname.as_bytes())
+    }
+
+    /// Make the repository HEAD point to the specified reference as a byte array.
+    ///
+    /// If the provided reference points to a tree or a blob, the HEAD is
+    /// unaltered and an error is returned.
+    ///
+    /// If the provided reference points to a branch, the HEAD will point to
+    /// that branch, staying attached, or become attached if it isn't yet. If
+    /// the branch doesn't exist yet, no error will be returned. The HEAD will
+    /// then be attached to an unborn branch.
+    ///
+    /// Otherwise, the HEAD will be detached and will directly point to the
+    /// commit.
+    pub fn set_head_bytes(&self, refname: &[u8]) -> Result<(), Error> {
         let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_repository_set_head(self.raw, refname));
@@ -985,6 +1030,11 @@ impl Repository {
     ///
     /// If a custom index has not been set, the default index for the repository
     /// will be returned (the one located in .git/index).
+    ///
+    /// **Caution**: If the [`Repository`] of this index is dropped, then this
+    /// [`Index`] will become detached, and most methods on it will fail. See
+    /// [`Index::open`]. Be sure the repository has a binding such as a local
+    /// variable to keep it alive at least as long as the index.
     pub fn index(&self) -> Result<Index, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
@@ -1184,7 +1234,7 @@ impl Repository {
     ///
     /// This behaves like `Repository::branch()` but takes
     /// an annotated commit, which lets you specify which
-    /// extended sha syntax string was specified by a user,
+    /// extended SHA syntax string was specified by a user,
     /// allowing for more exact reflog messages.
     ///
     /// See the documentation for `Repository::branch()`
@@ -1479,6 +1529,19 @@ impl Repository {
     }
 
     /// Create a new symbolic reference.
+    ///
+    /// A symbolic reference is a reference name that refers to another
+    /// reference name.  If the other name moves, the symbolic name will move,
+    /// too.  As a simple example, the "HEAD" reference might refer to
+    /// "refs/heads/master" while on the "master" branch of a repository.
+    ///
+    /// Valid reference names must follow one of two patterns:
+    ///
+    /// 1. Top-level names must contain only capital letters and underscores,
+    ///    and must begin and end with a letter. (e.g. "HEAD", "ORIG_HEAD").
+    /// 2. Names prefixed with "refs/" can be almost anything.  You must avoid
+    ///    the characters '~', '^', ':', '\\', '?', '[', and '*', and the
+    ///    sequences ".." and "@{" which have special meaning to revparse.
     ///
     /// This function will return an error if a reference already exists with
     /// the given name unless force is true, in which case it will be
@@ -2418,6 +2481,9 @@ impl Repository {
     }
 
     /// Determine if a commit is the descendant of another commit
+    ///
+    /// Note that a commit is not considered a descendant of itself, in contrast
+    /// to `git merge-base --is-ancestor`.
     pub fn graph_descendant_of(&self, commit: Oid, ancestor: Oid) -> Result<bool, Error> {
         unsafe {
             let rv = try_call!(raw::git_graph_descendant_of(
@@ -3111,7 +3177,7 @@ impl Repository {
     /// `callback` will be called with with following arguments:
     ///
     /// - `&str`: the reference name
-    /// - `&[u8]`: the remote url
+    /// - `&[u8]`: the remote URL
     /// - `&Oid`: the reference target OID
     /// - `bool`: was the reference the result of a merge
     pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
@@ -3240,7 +3306,7 @@ impl RepositoryInitOptions {
 
     /// The path to the working directory.
     ///
-    /// If this is a relative path it will be evaulated relative to the repo
+    /// If this is a relative path it will be evaluated relative to the repo
     /// path. If this is not the "natural" working directory, a .git gitlink
     /// file will be created here linking to the repo path.
     pub fn workdir_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
@@ -3413,6 +3479,34 @@ mod tests {
     }
 
     #[test]
+    fn smoke_discover_path() {
+        let td = TempDir::new().unwrap();
+        let subdir = td.path().join("subdi");
+        fs::create_dir(&subdir).unwrap();
+        Repository::init_bare(td.path()).unwrap();
+        let path = Repository::discover_path(&subdir, &[] as &[&OsStr]).unwrap();
+        assert_eq!(
+            crate::test::realpath(&path).unwrap(),
+            crate::test::realpath(&td.path().join("")).unwrap()
+        );
+    }
+
+    #[test]
+    fn smoke_discover_path_ceiling_dir() {
+        let td = TempDir::new().unwrap();
+        let subdir = td.path().join("subdi");
+        fs::create_dir(&subdir).unwrap();
+        let ceilingdir = subdir.join("ceiling");
+        fs::create_dir(&ceilingdir).unwrap();
+        let testdir = ceilingdir.join("testdi");
+        fs::create_dir(&testdir).unwrap();
+        Repository::init_bare(td.path()).unwrap();
+        let path = Repository::discover_path(&testdir, &[ceilingdir.as_os_str()]);
+
+        assert!(path.is_err());
+    }
+
+    #[test]
     fn smoke_open_ext() {
         let td = TempDir::new().unwrap();
         let subdir = td.path().join("subdir");
@@ -3524,6 +3618,19 @@ mod tests {
         assert!(repo.head().is_ok());
 
         assert!(repo.set_head("*").is_err());
+    }
+
+    #[test]
+    fn smoke_set_head_bytes() {
+        let (_td, repo) = crate::test::repo_init();
+
+        assert!(repo.set_head_bytes(b"refs/heads/does-not-exist").is_ok());
+        assert!(repo.head().is_err());
+
+        assert!(repo.set_head_bytes(b"refs/heads/main").is_ok());
+        assert!(repo.head().is_ok());
+
+        assert!(repo.set_head_bytes(b"*").is_err());
     }
 
     #[test]

@@ -12,7 +12,7 @@ trait Ashl: DInt {
         } else {
             Self::from_lo_hi(
                 self.lo().wrapping_shl(shl),
-                self.lo().logical_shr(n_h - shl) | self.hi().wrapping_shl(shl),
+                self.lo().logical_shr(n_h.wrapping_sub(shl)) | self.hi().wrapping_shl(shl),
             )
         }
     }
@@ -36,7 +36,7 @@ trait Ashr: DInt {
             self
         } else {
             Self::from_lo_hi(
-                self.lo().logical_shr(shr) | self.hi().wrapping_shl(n_h - shr),
+                self.lo().logical_shr(shr) | self.hi().wrapping_shl(n_h.wrapping_sub(shr)),
                 self.hi().wrapping_shr(shr),
             )
         }
@@ -57,7 +57,7 @@ trait Lshr: DInt {
             self
         } else {
             Self::from_lo_hi(
-                self.lo().logical_shr(shr) | self.hi().wrapping_shl(n_h - shr),
+                self.lo().logical_shr(shr) | self.hi().wrapping_shl(n_h.wrapping_sub(shr)),
                 self.hi().logical_shr(shr),
             )
         }
@@ -78,8 +78,8 @@ intrinsics! {
     #[avr_skip]
     #[maybe_use_optimized_c_shim]
     #[arm_aeabi_alias = __aeabi_llsl]
-    pub extern "C" fn __ashldi3(a: u64, b: u32) -> u64 {
-        a.ashl(b)
+    pub extern "C" fn __ashldi3(a: u64, b: core::ffi::c_uint) -> u64 {
+        a.ashl(b as u32)
     }
 
     #[avr_skip]
@@ -96,8 +96,8 @@ intrinsics! {
     #[avr_skip]
     #[maybe_use_optimized_c_shim]
     #[arm_aeabi_alias = __aeabi_lasr]
-    pub extern "C" fn __ashrdi3(a: i64, b: u32) -> i64 {
-        a.ashr(b)
+    pub extern "C" fn __ashrdi3(a: i64, b: core::ffi::c_uint) -> i64 {
+        a.ashr(b as u32)
     }
 
     #[avr_skip]
@@ -114,8 +114,8 @@ intrinsics! {
     #[avr_skip]
     #[maybe_use_optimized_c_shim]
     #[arm_aeabi_alias = __aeabi_llsr]
-    pub extern "C" fn __lshrdi3(a: u64, b: u32) -> u64 {
-        a.lshr(b)
+    pub extern "C" fn __lshrdi3(a: u64, b: core::ffi::c_uint) -> u64 {
+        a.lshr(b as u32)
     }
 
     #[avr_skip]

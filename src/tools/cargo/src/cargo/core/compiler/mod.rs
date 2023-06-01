@@ -33,17 +33,17 @@
 
 pub mod artifact;
 mod build_config;
-mod build_context;
+pub(crate) mod build_context;
 mod build_plan;
 mod compilation;
 mod compile_kind;
-mod context;
+pub(crate) mod context;
 mod crate_type;
 mod custom_build;
-mod fingerprint;
+pub(crate) mod fingerprint;
 pub mod future_incompat;
-mod job_queue;
-mod layout;
+pub(crate) mod job_queue;
+pub(crate) mod layout;
 mod links;
 mod lto;
 mod output_depinfo;
@@ -467,7 +467,8 @@ fn rustc(cx: &mut Context<'_, '_>, unit: &Unit, exec: &Arc<dyn Executor>) -> Car
                         1 => " due to previous error".to_string(),
                         count => format!(" due to {} previous errors", count),
                     };
-                    format!("could not compile `{}`{}{}", name, errors, warnings)
+                    let name = descriptive_pkg_name(&name, &target, &mode);
+                    format!("could not compile {name}{errors}{warnings}")
                 });
 
             if let Err(e) = result {
@@ -715,14 +716,7 @@ fn prepare_rustc(
         base.env("CARGO_TARGET_TMPDIR", tmp.display().to_string());
     }
 
-    if cx.bcx.config.cli_unstable().jobserver_per_rustc {
-        let client = cx.new_jobserver()?;
-        base.inherit_jobserver(&client);
-        base.arg("-Z").arg("jobserver-token-requests");
-        assert!(cx.rustc_clients.insert(unit.clone(), client).is_none());
-    } else {
-        base.inherit_jobserver(&cx.jobserver);
-    }
+    base.inherit_jobserver(&cx.jobserver);
     build_base_args(cx, &mut base, unit, crate_types)?;
     build_deps_args(&mut base, cx, unit)?;
     Ok(base)
@@ -1701,31 +1695,6 @@ fn on_stderr_line_inner(
         return Ok(false);
     }
 
-    #[derive(serde::Deserialize)]
-    struct JobserverNotification {
-        jobserver_event: Event,
-    }
-
-    #[derive(Debug, serde::Deserialize)]
-    enum Event {
-        WillAcquire,
-        Release,
-    }
-
-    if let Ok(JobserverNotification { jobserver_event }) =
-        serde_json::from_str::<JobserverNotification>(compiler_message.get())
-    {
-        trace!(
-            "found jobserver directive from rustc: `{:?}`",
-            jobserver_event
-        );
-        match jobserver_event {
-            Event::WillAcquire => state.will_acquire(),
-            Event::Release => state.release_token(),
-        }
-        return Ok(false);
-    }
-
     // And failing all that above we should have a legitimate JSON diagnostic
     // from the compiler, so wrap it in an external Cargo JSON message
     // indicating which package it came from and then emit it.
@@ -1807,4 +1776,20 @@ fn replay_output_cache(
         }
         Ok(())
     })
+}
+
+/// Provides a package name with descriptive target information,
+/// e.g., '`foo` (bin "bar" test)', '`foo` (lib doctest)'.
+fn descriptive_pkg_name(name: &str, target: &Target, mode: &CompileMode) -> String {
+    let desc_name = target.description_named();
+    let mode = if mode.is_rustc_test() && !(target.is_test() || target.is_bench()) {
+        " test"
+    } else if mode.is_doc_test() {
+        " doctest"
+    } else if mode.is_doc() {
+        " doc"
+    } else {
+        ""
+    };
+    format!("`{name}` ({desc_name}{mode})")
 }

@@ -4,7 +4,7 @@
 //!
 //! With rustix, you can write code like this:
 //!
-//! ```rust
+//! ```
 //! # #[cfg(feature = "net")]
 //! # fn read(sock: std::net::TcpStream, buf: &mut [u8]) -> std::io::Result<()> {
 //! # use rustix::net::RecvFlags;
@@ -16,7 +16,7 @@
 //!
 //! instead of like this:
 //!
-//! ```rust
+//! ```
 //! # #[cfg(feature = "net")]
 //! # fn read(sock: std::net::TcpStream, buf: &mut [u8]) -> std::io::Result<()> {
 //! # use std::convert::TryInto;
@@ -60,8 +60,8 @@
 //!  - Multiplexed functions (eg. `fcntl`, `ioctl`, etc.) are de-multiplexed.
 //!  - Variadic functions (eg. `openat`, etc.) are presented as non-variadic.
 //!  - Functions and types which need `l` prefixes or `64` suffixes to enable
-//!    large-file support are used automatically, and file sizes and offsets
-//!    are presented as `u64` and `i64`.
+//!    large-file support (LFS) are used automatically. File sizes and offsets
+//!    are always presented as `u64` and `i64`.
 //!  - Behaviors that depend on the sizes of C types like `long` are hidden.
 //!  - In some places, more human-friendly and less historical-accident names
 //!    are used (and documentation aliases are used so that the original names
@@ -86,12 +86,11 @@
 //! [`io-streams`]: https://crates.io/crates/io-streams
 //! [`getrandom`]: https://crates.io/crates/getrandom
 //! [`bitflags`]: https://crates.io/crates/bitflags
-//! [`AsFd`]: https://doc.rust-lang.org/stable/std/os/unix/io/trait.AsFd.html
-//! [`OwnedFd`]: https://docs.rs/io-lifetimes/latest/io_lifetimes/struct.OwnedFd.html
-//! [io-lifetimes crate]: https://crates.io/crates/io-lifetimes
+//! [`AsFd`]: https://doc.rust-lang.org/stable/std/os/fd/trait.AsFd.html
+//! [`OwnedFd`]: https://doc.rust-lang.org/stable/std/os/fd/struct.OwnedFd.html
 //! [I/O-safe]: https://github.com/rust-lang/rfcs/blob/master/text/3128-io-safety.md
-//! [`Result`]: https://docs.rs/rustix/latest/rustix/io/type.Result.html
-//! [`Arg`]: https://docs.rs/rustix/latest/rustix/path/trait.Arg.html
+//! [`Result`]: https://doc.rust-lang.org/stable/std/result/enum.Result.html
+//! [`Arg`]: https://docs.rs/rustix/*/rustix/path/trait.Arg.html
 
 #![deny(missing_docs)]
 #![allow(stable_features)]

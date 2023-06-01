@@ -67,6 +67,7 @@ Each new feature described below should explain how to use it.
     * [no-index-update](#no-index-update) --- Prevents cargo from updating the index cache.
     * [avoid-dev-deps](#avoid-dev-deps) --- Prevents the resolver from including dev-dependencies during resolution.
     * [minimal-versions](#minimal-versions) --- Forces the resolver to use the lowest compatible version instead of the highest.
+    * [direct-minimal-versions](#direct-minimal-versions) — Forces the resolver to use the lowest compatible version instead of the highest.
     * [public-dependency](#public-dependency) --- Allows dependencies to be classified as either public or private.
 * Output behavior
     * [out-dir](#out-dir) --- Adds a directory where artifacts are copied to.
@@ -79,9 +80,13 @@ Each new feature described below should explain how to use it.
     * [binary-dep-depinfo](#binary-dep-depinfo) --- Causes the dep-info file to track binary dependencies.
     * [panic-abort-tests](#panic-abort-tests) --- Allows running tests with the "abort" panic strategy.
     * [keep-going](#keep-going) --- Build as much as possible rather than aborting on the first error.
+    * [check-cfg](#check-cfg) --- Compile-time validation of `cfg` expressions.
+    * [host-config](#host-config) --- Allows setting `[target]`-like configuration settings for host build targets.
+    * [target-applies-to-host](#target-applies-to-host) --- Alters whether certain flags will be passed to host build targets.
 * rustdoc
     * [`doctest-in-workspace`](#doctest-in-workspace) --- Fixes workspace-relative paths when running doctests.
     * [rustdoc-map](#rustdoc-map) --- Provides mappings for documentation to link to external sites like [docs.rs](https://docs.rs/).
+    * [scrape-examples](#scrape-examples) --- Shows examples within documentation.
 * `Cargo.toml` extensions
     * [Profile `rustflags` option](#profile-rustflags-option) --- Passed directly to rustc.
     * [codegen-backend](#codegen-backend) --- Select the codegen backend used by rustc.
@@ -96,9 +101,10 @@ Each new feature described below should explain how to use it.
     * [`cargo config`](#cargo-config) --- Adds a new subcommand for viewing config files.
 * Registries
     * [credential-process](#credential-process) --- Adds support for fetching registry tokens from an external authentication program.
-    * [`cargo logout`](#cargo-logout) --- Adds the `logout` command to remove the currently saved registry token.
     * [publish-timeout](#publish-timeout) --- Controls the timeout between uploading the crate and being available in the index
     * [registry-auth](#registry-auth) --- Adds support for authenticated registries, and generate registry authentication tokens using asymmetric cryptography.
+* Other
+    * [gitoxide](#gitoxide) --- Use `gitoxide` instead of `git2` for a set of operations.
 
 ### allow-features
 
@@ -176,6 +182,23 @@ minimum versions that you are actually using. That is, if Cargo.toml says
 `foo = "1.0.0"` that you don't accidentally depend on features added only in
 `foo 1.5.0`.
 
+### direct-minimal-versions
+* Original Issue: [#4100](https://github.com/rust-lang/cargo/issues/4100)
+* Tracking Issue: [#5657](https://github.com/rust-lang/cargo/issues/5657)
+
+When a `Cargo.lock` file is generated, the `-Z direct-minimal-versions` flag will
+resolve the dependencies to the minimum SemVer version that will satisfy the
+requirements (instead of the greatest version) for direct dependencies only.
+
+The intended use-case of this flag is to check, during continuous integration,
+that the versions specified in Cargo.toml are a correct reflection of the
+minimum versions that you are actually using. That is, if Cargo.toml says
+`foo = "1.0.0"` that you don't accidentally depend on features added only in
+`foo 1.5.0`.
+
+Indirect dependencies are resolved as normal so as not to be blocked on their
+minimal version validation.
+
 ### out-dir
 * Original Issue: [#4875](https://github.com/rust-lang/cargo/issues/4875)
 * Tracking Issue: [#6790](https://github.com/rust-lang/cargo/issues/6790)
@@ -213,20 +236,6 @@ information from `.cargo/config.toml`. See the rustc issue for more information.
 
 ```sh
 cargo test --target foo -Zdoctest-xcompile
-```
-
-#### New `dir-name` attribute
-
-Some of the paths generated under `target/` have resulted in a de-facto "build
-protocol", where `cargo` is invoked as a part of a larger project build. So, to
-preserve the existing behavior, there is also a new attribute `dir-name`, which
-when left unspecified, defaults to the name of the profile. For example:
-
-```toml
-[profile.release-lto]
-inherits = "release"
-dir-name = "lto"  # Emits to target/lto instead of target/release-lto
-lto = true
 ```
 
 ### Build-plan
@@ -895,12 +904,11 @@ The `credential-process` feature adds a config setting to fetch registry
 authentication tokens by calling an external process.
 
 Token authentication is used by the [`cargo login`], [`cargo publish`],
-[`cargo owner`], and [`cargo yank`] commands. Additionally, this feature adds
-a new `cargo logout` command.
+[`cargo owner`], [`cargo yank`], and [`cargo logout`] commands.
 
 To use this feature, you must pass the `-Z credential-process` flag on the
 command-line. Additionally, you must remove any current tokens currently saved
-in the [`credentials.toml` file] (which can be done with the new `logout` command).
+in the [`credentials.toml` file] (which can be done with the [`cargo logout`] command).
 
 #### `credential-process` Configuration
 
@@ -989,7 +997,7 @@ A basic authenticator is a process that returns a token on stdout. Newlines
 will be trimmed. The process inherits the user's stdin and stderr. It should
 exit 0 on success, and nonzero on error.
 
-With this form, [`cargo login`] and `cargo logout` are not supported and
+With this form, [`cargo login`] and [`cargo logout`] are not supported and
 return an error if used.
 
 ##### Cargo authenticator
@@ -1034,28 +1042,8 @@ The following environment variables will be provided to the executed command:
 * `CARGO_REGISTRY_INDEX_URL` --- The URL of the registry index.
 * `CARGO_REGISTRY_NAME_OPT` --- Optional name of the registry. Should not be used as a storage key. Not always available.
 
-#### `cargo logout`
-
-A new `cargo logout` command has been added to make it easier to remove a
-token from storage. This supports both [`credentials.toml` file] tokens and
-`credential-process` tokens.
-
-When used with `credentials.toml` file tokens, it needs the `-Z unstable-options`
-command-line option:
-
-```console
-cargo logout -Z unstable-options
-```
-
-When used with the `credential-process` config, use the `-Z
-credential-process` command-line option:
-
-
-```console
-cargo logout -Z credential-process
-```
-
 [`cargo login`]: ../commands/cargo-login.md
+[`cargo logout`]: ../commands/cargo-logout.md
 [`cargo publish`]: ../commands/cargo-publish.md
 [`cargo owner`]: ../commands/cargo-owner.md
 [`cargo yank`]: ../commands/cargo-yank.md
@@ -1218,7 +1206,7 @@ println!("cargo:rustc-check-cfg=names(foo, bar)");
 cargo check -Z unstable-options -Z check-cfg=output
 ```
 
-### `cargo:rustc-check-cfg=CHECK_CFG`
+#### `cargo:rustc-check-cfg=CHECK_CFG`
 
 The `rustc-check-cfg` instruction tells Cargo to pass the given value to the
 `--check-cfg` flag to the compiler. This may be used for compile-time
@@ -1258,6 +1246,23 @@ codegen-backend = true
 [profile.dev.package.foo]
 codegen-backend = "cranelift"
 ```
+
+### gitoxide
+
+* Tracking Issue: [#11813](https://github.com/rust-lang/cargo/issues/11813)
+
+With the 'gitoxide' unstable feature, all or the the specified git operations will be performed by 
+the `gitoxide` crate instead of `git2`.
+
+While `-Zgitoxide` enables all currently implemented features, one can individually select git operations
+to run with `gitoxide` with the `-Zgitoxide=operation[,operationN]` syntax.
+
+Valid operations are the following:
+
+* `fetch` - All fetches are done with `gitoxide`, which includes git dependencies as well as the crates index.
+* `shallow-index` *(planned)* - perform a shallow clone of the index.
+* `shallow-deps` *(planned)* - perform a shallow clone of git dependencies.
+* `checkout` *(planned)* - checkout the worktree, with support for filters and submodules.
 
 ## Stabilized and removed features
 
@@ -1460,5 +1465,9 @@ terminal where Cargo can automatically detect the width.
 
 Sparse registry support has been stabilized in the 1.68 release.
 See [Registry Protocols](registries.md#registry-protocols) for more information.
+
+#### `cargo logout`
+
+The [`cargo logout`] command has been stabilized in the 1.70 release.
 
 [target triple]: ../appendix/glossary.md#target '"target" (glossary)'

@@ -328,7 +328,10 @@ fn publish_with_registry_dependency() {
 [FINISHED] [..]
 [PACKAGED] [..]
 [UPLOADING] foo v0.0.1 [..]
-[UPDATING] `alternative` index
+[UPLOADED] foo v0.0.1 to registry `alternative`
+note: Waiting for `foo v0.0.1` to be available at registry `alternative`.
+You may press ctrl-c to skip waiting; the crate should be available shortly.
+[PUBLISHED] foo v0.0.1 at registry `alternative`
 ",
         )
         .run();
@@ -435,6 +438,33 @@ or use environment variable CARGO_REGISTRIES_ALTERNATIVE_TOKEN",
 }
 
 #[cargo_test]
+fn cargo_registries_crates_io_protocol() {
+    let _ = RegistryBuilder::new()
+        .no_configure_token()
+        .alternative()
+        .build();
+    // Should not produce a warning due to the registries.crates-io.protocol = 'sparse' configuration
+    let p = project()
+        .file("src/lib.rs", "")
+        .file(
+            ".cargo/config.toml",
+            "[registries.crates-io]
+            protocol = 'sparse'",
+        )
+        .build();
+
+    p.cargo("publish --registry alternative")
+        .with_status(101)
+        .with_stderr(
+            "\
+[UPDATING] `alternative` index
+error: no token found for `alternative`, please run `cargo login --registry alternative`
+or use environment variable CARGO_REGISTRIES_ALTERNATIVE_TOKEN",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn publish_to_alt_registry() {
     let _reg = RegistryBuilder::new()
         .http_api()
@@ -457,10 +487,39 @@ fn publish_to_alt_registry() {
 [FINISHED] [..]
 [PACKAGED] [..]
 [UPLOADING] foo v0.0.1 [..]
-[UPDATING] `alternative` index
+[UPLOADED] foo v0.0.1 to registry `alternative`
+note: Waiting for `foo v0.0.1` to be available at registry `alternative`.
+You may press ctrl-c to skip waiting; the crate should be available shortly.
+[PUBLISHED] foo v0.0.1 at registry `alternative`
 ",
         )
         .run();
+
+    validate_alt_upload(
+        r#"{
+            "authors": [],
+            "badges": {},
+            "categories": [],
+            "deps": [],
+            "description": null,
+            "documentation": null,
+            "features": {},
+            "homepage": null,
+            "keywords": [],
+            "license": null,
+            "license_file": null,
+            "links": null,
+            "name": "foo",
+            "readme": null,
+            "readme_file": null,
+            "repository": null,
+            "homepage": null,
+            "documentation": null,
+            "vers": "0.0.1"
+        }"#,
+        "foo-0.0.1.crate",
+        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+    );
 }
 
 #[cargo_test]
@@ -509,7 +568,10 @@ fn publish_with_crates_io_dep() {
 [FINISHED] [..]
 [PACKAGED] [..]
 [UPLOADING] foo v0.0.1 [..]
-[UPDATING] `alternative` index
+[UPLOADED] foo v0.0.1 to registry `alternative`
+note: Waiting for `foo v0.0.1` to be available at registry `alternative`.
+You may press ctrl-c to skip waiting; the crate should be available shortly.
+[PUBLISHED] foo v0.0.1 at registry `alternative`
 ",
         )
         .run();

@@ -13,7 +13,7 @@ use std::fmt;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::thread::{self, JoinHandle};
 use tar::{Builder, Header};
 use time::format_description::well_known::Rfc3339;
@@ -78,6 +78,8 @@ impl Token {
     }
 }
 
+type RequestCallback = Box<dyn Send + Fn(&Request, &HttpServer) -> Response>;
+
 /// A builder for initializing registries.
 pub struct RegistryBuilder {
     /// If set, configures an alternate registry with the given name.
@@ -97,7 +99,11 @@ pub struct RegistryBuilder {
     /// Write the registry in configuration.
     configure_registry: bool,
     /// API responders.
-    custom_responders: HashMap<&'static str, Box<dyn Send + Fn(&Request, &HttpServer) -> Response>>,
+    custom_responders: HashMap<String, RequestCallback>,
+    /// Handler for 404 responses.
+    not_found_handler: RequestCallback,
+    /// If nonzero, the git index update to be delayed by the given number of seconds.
+    delayed_index_update: usize,
 }
 
 pub struct TestRegistry {
@@ -147,6 +153,13 @@ impl TestRegistry {
 impl RegistryBuilder {
     #[must_use]
     pub fn new() -> RegistryBuilder {
+        let not_found = |_req: &Request, _server: &HttpServer| -> Response {
+            Response {
+                code: 404,
+                headers: vec![],
+                body: b"not found".to_vec(),
+            }
+        };
         RegistryBuilder {
             alternative: None,
             token: None,
@@ -157,6 +170,8 @@ impl RegistryBuilder {
             configure_registry: true,
             configure_token: true,
             custom_responders: HashMap::new(),
+            not_found_handler: Box::new(not_found),
+            delayed_index_update: 0,
         }
     }
 
@@ -164,10 +179,27 @@ impl RegistryBuilder {
     #[must_use]
     pub fn add_responder<R: 'static + Send + Fn(&Request, &HttpServer) -> Response>(
         mut self,
-        url: &'static str,
+        url: impl Into<String>,
         responder: R,
     ) -> Self {
-        self.custom_responders.insert(url, Box::new(responder));
+        self.custom_responders
+            .insert(url.into(), Box::new(responder));
+        self
+    }
+
+    #[must_use]
+    pub fn not_found_handler<R: 'static + Send + Fn(&Request, &HttpServer) -> Response>(
+        mut self,
+        responder: R,
+    ) -> Self {
+        self.not_found_handler = Box::new(responder);
+        self
+    }
+
+    /// Configures the git index update to be delayed by the given number of seconds.
+    #[must_use]
+    pub fn delayed_index_update(mut self, delay: usize) -> Self {
+        self.delayed_index_update = delay;
         self
     }
 
@@ -265,6 +297,8 @@ impl RegistryBuilder {
                 token.clone(),
                 self.auth_required,
                 self.custom_responders,
+                self.not_found_handler,
+                self.delayed_index_update,
             );
             let index_url = if self.http_index {
                 server.index_url()
@@ -590,16 +624,18 @@ pub struct HttpServer {
     addr: SocketAddr,
     token: Token,
     auth_required: bool,
-    custom_responders: HashMap<&'static str, Box<dyn Send + Fn(&Request, &HttpServer) -> Response>>,
+    custom_responders: HashMap<String, RequestCallback>,
+    not_found_handler: RequestCallback,
+    delayed_index_update: usize,
 }
 
-/// A helper struct that collects the arguments for [HttpServer::check_authorized].
+/// A helper struct that collects the arguments for [`HttpServer::check_authorized`].
 /// Based on looking at the request, these are the fields that the authentication header should attest to.
-pub struct Mutation<'a> {
-    pub mutation: &'a str,
-    pub name: Option<&'a str>,
-    pub vers: Option<&'a str>,
-    pub cksum: Option<&'a str>,
+struct Mutation<'a> {
+    mutation: &'a str,
+    name: Option<&'a str>,
+    vers: Option<&'a str>,
+    cksum: Option<&'a str>,
 }
 
 impl HttpServer {
@@ -609,10 +645,9 @@ impl HttpServer {
         api_path: PathBuf,
         token: Token,
         auth_required: bool,
-        api_responders: HashMap<
-            &'static str,
-            Box<dyn Send + Fn(&Request, &HttpServer) -> Response>,
-        >,
+        custom_responders: HashMap<String, RequestCallback>,
+        not_found_handler: RequestCallback,
+        delayed_index_update: usize,
     ) -> HttpServerHandle {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
@@ -624,7 +659,9 @@ impl HttpServer {
             addr,
             token,
             auth_required,
-            custom_responders: api_responders,
+            custom_responders,
+            not_found_handler,
+            delayed_index_update,
         };
         let handle = Some(thread::spawn(move || server.start()));
         HttpServerHandle { addr, handle }
@@ -916,12 +953,8 @@ impl HttpServer {
     }
 
     /// Not found response
-    pub fn not_found(&self, _req: &Request) -> Response {
-        Response {
-            code: 404,
-            headers: vec![],
-            body: b"not found".to_vec(),
-        }
+    pub fn not_found(&self, req: &Request) -> Response {
+        (self.not_found_handler)(req, self)
     }
 
     /// Respond OK without doing anything
@@ -1040,49 +1073,23 @@ impl HttpServer {
                 return self.unauthorized(req);
             }
 
-            // Write the `.crate`
             let dst = self
                 .dl_path
                 .join(&new_crate.name)
                 .join(&new_crate.vers)
                 .join("download");
-            t!(fs::create_dir_all(dst.parent().unwrap()));
-            t!(fs::write(&dst, file));
 
-            let deps = new_crate
-                .deps
-                .iter()
-                .map(|dep| {
-                    let (name, package) = match &dep.explicit_name_in_toml {
-                        Some(explicit) => (explicit.to_string(), Some(dep.name.to_string())),
-                        None => (dep.name.to_string(), None),
-                    };
-                    serde_json::json!({
-                        "name": name,
-                        "req": dep.version_req,
-                        "features": dep.features,
-                        "default_features": true,
-                        "target": dep.target,
-                        "optional": dep.optional,
-                        "kind": dep.kind,
-                        "registry": dep.registry,
-                        "package": package,
-                    })
-                })
-                .collect::<Vec<_>>();
-
-            let line = create_index_line(
-                serde_json::json!(new_crate.name),
-                &new_crate.vers,
-                deps,
-                &file_cksum,
-                new_crate.features,
-                false,
-                new_crate.links,
-                None,
-            );
-
-            write_to_index(&self.registry_path, &new_crate.name, line, false);
+            if self.delayed_index_update == 0 {
+                save_new_crate(dst, new_crate, file, file_cksum, &self.registry_path);
+            } else {
+                let delayed_index_update = self.delayed_index_update;
+                let registry_path = self.registry_path.clone();
+                let file = Vec::from(file);
+                thread::spawn(move || {
+                    thread::sleep(std::time::Duration::new(delayed_index_update as u64, 0));
+                    save_new_crate(dst, new_crate, &file, file_cksum, &registry_path);
+                });
+            }
 
             self.ok(&req)
         } else {
@@ -1093,6 +1100,53 @@ impl HttpServer {
             }
         }
     }
+}
+
+fn save_new_crate(
+    dst: PathBuf,
+    new_crate: crates_io::NewCrate,
+    file: &[u8],
+    file_cksum: String,
+    registry_path: &Path,
+) {
+    // Write the `.crate`
+    t!(fs::create_dir_all(dst.parent().unwrap()));
+    t!(fs::write(&dst, file));
+
+    let deps = new_crate
+        .deps
+        .iter()
+        .map(|dep| {
+            let (name, package) = match &dep.explicit_name_in_toml {
+                Some(explicit) => (explicit.to_string(), Some(dep.name.to_string())),
+                None => (dep.name.to_string(), None),
+            };
+            serde_json::json!({
+                "name": name,
+                "req": dep.version_req,
+                "features": dep.features,
+                "default_features": true,
+                "target": dep.target,
+                "optional": dep.optional,
+                "kind": dep.kind,
+                "registry": dep.registry,
+                "package": package,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let line = create_index_line(
+        serde_json::json!(new_crate.name),
+        &new_crate.vers,
+        deps,
+        &file_cksum,
+        new_crate.features,
+        false,
+        new_crate.links,
+        None,
+    );
+
+    write_to_index(registry_path, &new_crate.name, line, false);
 }
 
 impl Package {
@@ -1204,7 +1258,7 @@ impl Package {
     }
 
     /// Adds a platform-specific dependency. Example:
-    /// ```
+    /// ```toml
     /// [target.'cfg(windows)'.dependencies]
     /// foo = {version = "1.0"}
     /// ```

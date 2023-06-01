@@ -1,6 +1,6 @@
 //! [F16C intrinsics].
 //!
-//! [F16C intrinsics]: https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=fp16&expand=1769
+//! [F16C intrinsics]: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=fp16&expand=1769
 
 use crate::{
     core_arch::{simd::*, x86::*},
@@ -29,6 +29,7 @@ extern "unadjusted" {
 #[inline]
 #[target_feature(enable = "f16c")]
 #[cfg_attr(test, assert_instr("vcvtph2ps"))]
+#[stable(feature = "x86_f16c_intrinsics", since = "1.68.0")]
 pub unsafe fn _mm_cvtph_ps(a: __m128i) -> __m128 {
     transmute(llvm_vcvtph2ps_128(transmute(a)))
 }
@@ -38,6 +39,7 @@ pub unsafe fn _mm_cvtph_ps(a: __m128i) -> __m128 {
 #[inline]
 #[target_feature(enable = "f16c")]
 #[cfg_attr(test, assert_instr("vcvtph2ps"))]
+#[stable(feature = "x86_f16c_intrinsics", since = "1.68.0")]
 pub unsafe fn _mm256_cvtph_ps(a: __m128i) -> __m256 {
     transmute(llvm_vcvtph2ps_256(transmute(a)))
 }
@@ -57,8 +59,9 @@ pub unsafe fn _mm256_cvtph_ps(a: __m128i) -> __m256 {
 #[target_feature(enable = "f16c")]
 #[cfg_attr(test, assert_instr("vcvtps2ph", IMM_ROUNDING = 0))]
 #[rustc_legacy_const_generics(1)]
+#[stable(feature = "x86_f16c_intrinsics", since = "1.68.0")]
 pub unsafe fn _mm_cvtps_ph<const IMM_ROUNDING: i32>(a: __m128) -> __m128i {
-    static_assert_imm3!(IMM_ROUNDING);
+    static_assert_uimm_bits!(IMM_ROUNDING, 3);
     let a = a.as_f32x4();
     let r = llvm_vcvtps2ph_128(a, IMM_ROUNDING);
     transmute(r)
@@ -78,8 +81,9 @@ pub unsafe fn _mm_cvtps_ph<const IMM_ROUNDING: i32>(a: __m128) -> __m128i {
 #[target_feature(enable = "f16c")]
 #[cfg_attr(test, assert_instr("vcvtps2ph", IMM_ROUNDING = 0))]
 #[rustc_legacy_const_generics(1)]
+#[stable(feature = "x86_f16c_intrinsics", since = "1.68.0")]
 pub unsafe fn _mm256_cvtps_ph<const IMM_ROUNDING: i32>(a: __m256) -> __m128i {
-    static_assert_imm3!(IMM_ROUNDING);
+    static_assert_uimm_bits!(IMM_ROUNDING, 3);
     let a = a.as_f32x8();
     let r = llvm_vcvtps2ph_256(a, IMM_ROUNDING);
     transmute(r)

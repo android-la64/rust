@@ -294,3 +294,65 @@ pub(crate) fn setns(fd: BorrowedFd, nstype: c::c_int) -> io::Result<c::c_int> {
 pub(crate) fn unshare(flags: crate::thread::UnshareFlags) -> io::Result<()> {
     unsafe { ret(syscall_readonly!(__NR_unshare, c_uint(flags.bits()))) }
 }
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[inline]
+pub(crate) fn capget(
+    header: &mut linux_raw_sys::general::__user_cap_header_struct,
+    data: &mut [MaybeUninit<linux_raw_sys::general::__user_cap_data_struct>],
+) -> io::Result<()> {
+    let header: *mut _ = header;
+    unsafe { ret(syscall!(__NR_capget, header, data.as_mut_ptr())) }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[inline]
+pub(crate) fn capset(
+    header: &mut linux_raw_sys::general::__user_cap_header_struct,
+    data: &[linux_raw_sys::general::__user_cap_data_struct],
+) -> io::Result<()> {
+    let header: *mut _ = header;
+    unsafe { ret(syscall!(__NR_capset, header, data.as_ptr())) }
+}
+
+#[inline]
+pub(crate) fn setuid_thread(uid: crate::process::Uid) -> io::Result<()> {
+    unsafe { ret(syscall_readonly!(__NR_setuid, uid)) }
+}
+
+#[inline]
+pub(crate) fn setresuid_thread(
+    ruid: crate::process::Uid,
+    euid: crate::process::Uid,
+    suid: crate::process::Uid,
+) -> io::Result<()> {
+    #[cfg(any(target_arch = "x86", target_arch = "arm", target_arch = "sparc"))]
+    unsafe {
+        ret(syscall_readonly!(__NR_setresuid32, ruid, euid, suid))
+    }
+    #[cfg(not(any(target_arch = "x86", target_arch = "arm", target_arch = "sparc")))]
+    unsafe {
+        ret(syscall_readonly!(__NR_setresuid, ruid, euid, suid))
+    }
+}
+
+#[inline]
+pub(crate) fn setgid_thread(gid: crate::process::Gid) -> io::Result<()> {
+    unsafe { ret(syscall_readonly!(__NR_setgid, gid)) }
+}
+
+#[inline]
+pub(crate) fn setresgid_thread(
+    rgid: crate::process::Gid,
+    egid: crate::process::Gid,
+    sgid: crate::process::Gid,
+) -> io::Result<()> {
+    #[cfg(any(target_arch = "x86", target_arch = "arm", target_arch = "sparc"))]
+    unsafe {
+        ret(syscall_readonly!(__NR_setresgid32, rgid, egid, sgid))
+    }
+    #[cfg(not(any(target_arch = "x86", target_arch = "arm", target_arch = "sparc")))]
+    unsafe {
+        ret(syscall_readonly!(__NR_setresgid, rgid, egid, sgid))
+    }
+}

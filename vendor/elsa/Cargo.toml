@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "elsa"
-version = "1.8.0"
+version = "1.7.1"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Append-only collections for Rust where borrows to entries can outlive insertions"
 documentation = "https://docs.rs/elsa/"

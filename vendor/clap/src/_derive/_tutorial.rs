@@ -75,7 +75,7 @@
 #![doc = include_str!("../../examples/tutorial_derive/03_03_positional.md")]
 //!
 //! Note that the default [`ArgAction`][crate::ArgAction] is [`Set`][crate::ArgAction::Set].  To
-//! accept multiple values, use [`Append`][crate::ArgAction::Append]:
+//! accept multiple values, use [`Append`][crate::ArgAction::Append] via `Vec`:
 //! ```rust
 #![doc = include_str!("../../examples/tutorial_derive/03_03_positional_mult.rs")]
 //! ```
@@ -98,7 +98,7 @@
 #![doc = include_str!("../../examples/tutorial_derive/03_02_option.md")]
 //!
 //! Note that the default [`ArgAction`][crate::ArgAction] is [`Set`][crate::ArgAction::Set].  To
-//! accept multiple occurrences, use [`Append`][crate::ArgAction::Append]:
+//! accept multiple occurrences, use [`Append`][crate::ArgAction::Append] via `Vec`:
 //! ```rust
 #![doc = include_str!("../../examples/tutorial_derive/03_02_option_mult.rs")]
 //! ```
@@ -201,6 +201,9 @@
 //! argument to be present out of a given set. Imagine that you had multiple arguments, and you
 //! want one of them to be required, but making all of them required isn't feasible because perhaps
 //! they conflict with each other.
+//!
+//! [`ArgGroup`][crate::ArgGroup]s are automatically created for a `struct` with its
+//! [`ArgGroup::id`][crate::ArgGroup::id] being the struct's name.
 //!
 //! ```rust
 #![doc = include_str!("../../examples/tutorial_derive/04_03_relations.rs")]

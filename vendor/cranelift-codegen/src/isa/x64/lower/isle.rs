@@ -20,7 +20,7 @@ use crate::{
         condcodes::{CondCode, FloatCC, IntCC},
         immediates::*,
         types::*,
-        Inst, InstructionData, MemFlags, Opcode, TrapCode, Value, ValueList,
+        BlockCall, Inst, InstructionData, MemFlags, Opcode, TrapCode, Value, ValueList,
     },
     isa::{
         unwind::UnwindInst,
@@ -756,7 +756,7 @@ impl Context for IsleContext<'_, '_, MInst, X64Backend> {
     fn shuffle_0_31_mask(&mut self, mask: &VecMask) -> VCodeConstant {
         let mask = mask
             .iter()
-            .map(|&b| if b > 15 { b.wrapping_sub(15) } else { b })
+            .map(|&b| if b > 15 { b.wrapping_sub(16) } else { b })
             .map(|b| if b > 15 { 0b10000000 } else { b })
             .collect();
         self.lower_ctx

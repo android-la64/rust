@@ -1,8 +1,7 @@
 # Summary
 
-[About this guide](./about-this-guide.md)
-
 [Getting Started](./getting-started.md)
+[About this guide](./about-this-guide.md)
 
 ---
 
@@ -35,17 +34,19 @@
 
 # Contributing to Rust
 
-- [Introduction](./contributing.md)
+- [Contribution Procedures](./contributing.md)
 - [About the compiler team](./compiler-team.md)
 - [Using Git](./git.md)
 - [Mastering @rustbot](./rustbot.md)
 - [Walkthrough: a typical contribution](./walkthrough.md)
-- [Bug Fix Procedure](./bug-fix-procedure.md)
+- [Procedures for Breaking Changes](./bug-fix-procedure.md)
 - [Implementing new features](./implementing_new_features.md)
 - [Stability attributes](./stability.md)
 - [Stabilizing Features](./stabilization_guide.md)
 - [Feature Gates](./feature-gates.md)
 - [Coding conventions](./conventions.md)
+- [Using external repositories](./external-repos.md)
+- [Fuzzing](./fuzzing.md)
 - [Notification groups](notification-groups/about.md)
     - [ARM](notification-groups/arm.md)
     - [Cleanup Crew](notification-groups/cleanup-crew.md)
@@ -146,7 +147,7 @@
     - [Diagnostic and subdiagnostic structs](./diagnostics/diagnostic-structs.md)
     - [Translation](./diagnostics/translation.md)
     - [`LintStore`](./diagnostics/lintstore.md)
-    - [Diagnostic codes](./diagnostics/diagnostic-codes.md)
+    - [Error codes](./diagnostics/error-codes.md)
     - [Diagnostic items](./diagnostics/diagnostic-items.md)
     - [`ErrorGuaranteed`](./diagnostics/error-guaranteed.md)
 

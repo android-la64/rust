@@ -230,7 +230,7 @@ information about timing information.</li>
 <dt class="option-term" id="option-cargo-rustc---crate-type"><a class="option-anchor" href="#option-cargo-rustc---crate-type"></a><code>--crate-type</code> <em>crate-type</em></dt>
 <dd class="option-desc">Build for the given crate type. This flag accepts a comma-separated list of
 1 or more crate types, of which the allowed values are the same as <code>crate-type</code>
-field in the manifest for configurating a Cargo target. See
+field in the manifest for configuring a Cargo target. See
 <a href="../reference/cargo-targets.html#the-crate-type-field"><code>crate-type</code> field</a>
 for possible values.</p>
 <p>If the manifest contains a list, and <code>--crate-type</code> is provided,
@@ -368,7 +368,8 @@ See the <a href="../reference/config.html#command-line-overrides">command-line o
 <dt class="option-term" id="option-cargo-rustc--C"><a class="option-anchor" href="#option-cargo-rustc--C"></a><code>-C</code> <em>PATH</em></dt>
 <dd class="option-desc">Changes the current working directory before executing any specified operations. This affects
 things like where cargo looks by default for the project manifest (<code>Cargo.toml</code>), as well as
-the directories searched for discovering <code>.cargo/config.toml</code>, for example.</p>
+the directories searched for discovering <code>.cargo/config.toml</code>, for example. This option must
+appear before the command name, for example <code>cargo -C path/to/my-project build</code>.</p>
 <p>This option is only available on the <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">nightly
 channel</a> and
 requires the <code>-Z unstable-options</code> flag to enable (see

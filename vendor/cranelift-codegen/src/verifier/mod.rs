@@ -61,9 +61,9 @@ use crate::dbg::DisplayList;
 use crate::dominator_tree::DominatorTree;
 use crate::entity::SparseSet;
 use crate::flowgraph::{BlockPredecessor, ControlFlowGraph};
-use crate::ir;
 use crate::ir::entities::AnyEntity;
 use crate::ir::instructions::{BranchInfo, CallInfo, InstructionFormat, ResolvedConstraint};
+use crate::ir::{self, ArgumentExtension};
 use crate::ir::{
     types, ArgumentPurpose, Block, Constant, DynamicStackSlot, FuncRef, Function, GlobalValue,
     Inst, JumpTable, MemFlags, Opcode, SigRef, StackSlot, Type, Value, ValueDef, ValueList,
@@ -532,23 +532,15 @@ impl<'a> Verifier<'a> {
             ));
         }
 
-        let num_fixed_results = inst_data.opcode().constraints().num_fixed_results();
-        // var_results is 0 if we aren't a call instruction
-        let var_results = dfg
-            .call_signature(inst)
-            .map_or(0, |sig| dfg.signatures[sig].returns.len());
-        let total_results = num_fixed_results + var_results;
+        let expected_num_results = dfg.num_expected_results_for_verifier(inst);
 
         // All result values for multi-valued instructions are created
         let got_results = dfg.inst_results(inst).len();
-        if got_results != total_results {
+        if got_results != expected_num_results {
             return errors.fatal((
                 inst,
                 self.context(inst),
-                format!(
-                    "expected {} result values, found {}",
-                    total_results, got_results,
-                ),
+                format!("expected {expected_num_results} result values, found {got_results}"),
             ));
         }
 
@@ -562,7 +554,7 @@ impl<'a> Verifier<'a> {
     ) -> VerifierStepResult<()> {
         use crate::ir::instructions::InstructionData::*;
 
-        for &arg in self.func.dfg.inst_args(inst) {
+        for arg in self.func.dfg.inst_values(inst) {
             self.verify_inst_arg(inst, arg, errors)?;
 
             // All used values must be attached to something.
@@ -584,18 +576,17 @@ impl<'a> Verifier<'a> {
             MultiAry { ref args, .. } => {
                 self.verify_value_list(inst, args, errors)?;
             }
-            Jump {
-                destination,
-                ref args,
-                ..
+            Jump { destination, .. } => {
+                self.verify_block(inst, destination.block(&self.func.dfg.value_lists), errors)?;
             }
-            | Branch {
-                destination,
-                ref args,
+            Brif {
+                arg,
+                blocks: [block_then, block_else],
                 ..
             } => {
-                self.verify_block(inst, destination, errors)?;
-                self.verify_value_list(inst, args, errors)?;
+                self.verify_value(inst, arg, errors)?;
+                self.verify_block(inst, block_then.block(&self.func.dfg.value_lists), errors)?;
+                self.verify_block(inst, block_else.block(&self.func.dfg.value_lists), errors)?;
             }
             BranchTable {
                 table, destination, ..
@@ -1295,34 +1286,54 @@ impl<'a> Verifier<'a> {
         Ok(())
     }
 
+    /// Typecheck both instructions that contain variable arguments like calls, and those that
+    /// include references to basic blocks with their arguments.
     fn typecheck_variable_args(
         &self,
         inst: Inst,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
         match self.func.dfg.analyze_branch(inst) {
-            BranchInfo::SingleDest(block, _) => {
+            BranchInfo::SingleDest(block) => {
                 let iter = self
                     .func
                     .dfg
-                    .block_params(block)
+                    .block_params(block.block(&self.func.dfg.value_lists))
                     .iter()
                     .map(|&v| self.func.dfg.value_type(v));
-                self.typecheck_variable_args_iterator(inst, iter, errors)?;
+                let args = block.args_slice(&self.func.dfg.value_lists);
+                self.typecheck_variable_args_iterator(inst, iter, args, errors)?;
+            }
+            BranchInfo::Conditional(block_then, block_else) => {
+                let iter = self
+                    .func
+                    .dfg
+                    .block_params(block_then.block(&self.func.dfg.value_lists))
+                    .iter()
+                    .map(|&v| self.func.dfg.value_type(v));
+                let args_then = block_then.args_slice(&self.func.dfg.value_lists);
+                self.typecheck_variable_args_iterator(inst, iter, args_then, errors)?;
+
+                let iter = self
+                    .func
+                    .dfg
+                    .block_params(block_else.block(&self.func.dfg.value_lists))
+                    .iter()
+                    .map(|&v| self.func.dfg.value_type(v));
+                let args_else = block_else.args_slice(&self.func.dfg.value_lists);
+                self.typecheck_variable_args_iterator(inst, iter, args_else, errors)?;
             }
             BranchInfo::Table(table, block) => {
-                if let Some(block) = block {
-                    let arg_count = self.func.dfg.num_block_params(block);
-                    if arg_count != 0 {
-                        return errors.nonfatal((
-                            inst,
-                            self.context(inst),
-                            format!(
-                                "takes no arguments, but had target {} with {} arguments",
-                                block, arg_count,
-                            ),
-                        ));
-                    }
+                let arg_count = self.func.dfg.num_block_params(block);
+                if arg_count != 0 {
+                    return errors.nonfatal((
+                        inst,
+                        self.context(inst),
+                        format!(
+                            "takes no arguments, but had target {} with {} arguments",
+                            block, arg_count,
+                        ),
+                    ));
                 }
                 for block in self.func.jump_tables[table].iter() {
                     let arg_count = self.func.dfg.num_block_params(*block);
@@ -1342,20 +1353,20 @@ impl<'a> Verifier<'a> {
         }
 
         match self.func.dfg.insts[inst].analyze_call(&self.func.dfg.value_lists) {
-            CallInfo::Direct(func_ref, _) => {
+            CallInfo::Direct(func_ref, args) => {
                 let sig_ref = self.func.dfg.ext_funcs[func_ref].signature;
                 let arg_types = self.func.dfg.signatures[sig_ref]
                     .params
                     .iter()
                     .map(|a| a.value_type);
-                self.typecheck_variable_args_iterator(inst, arg_types, errors)?;
+                self.typecheck_variable_args_iterator(inst, arg_types, args, errors)?;
             }
-            CallInfo::Indirect(sig_ref, _) => {
+            CallInfo::Indirect(sig_ref, args) => {
                 let arg_types = self.func.dfg.signatures[sig_ref]
                     .params
                     .iter()
                     .map(|a| a.value_type);
-                self.typecheck_variable_args_iterator(inst, arg_types, errors)?;
+                self.typecheck_variable_args_iterator(inst, arg_types, args, errors)?;
             }
             CallInfo::NotACall => {}
         }
@@ -1366,9 +1377,9 @@ impl<'a> Verifier<'a> {
         &self,
         inst: Inst,
         iter: I,
+        variable_args: &[Value],
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        let variable_args = self.func.dfg.inst_variable_args(inst);
         let mut i = 0;
 
         for expected_type in iter {
@@ -1407,28 +1418,90 @@ impl<'a> Verifier<'a> {
     }
 
     fn typecheck_return(&self, inst: Inst, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
-        if self.func.dfg.insts[inst].opcode().is_return() {
-            let args = self.func.dfg.inst_variable_args(inst);
-            let expected_types = &self.func.signature.returns;
-            if args.len() != expected_types.len() {
-                return errors.nonfatal((
+        match self.func.dfg.insts[inst] {
+            ir::InstructionData::MultiAry {
+                opcode: Opcode::Return,
+                args,
+            } => {
+                let types = args
+                    .as_slice(&self.func.dfg.value_lists)
+                    .iter()
+                    .map(|v| self.func.dfg.value_type(*v));
+                self.typecheck_return_types(
+                    inst,
+                    types,
+                    errors,
+                    "arguments of return must match function signature",
+                )?;
+            }
+            ir::InstructionData::Call {
+                opcode: Opcode::ReturnCall,
+                func_ref,
+                ..
+            } => {
+                let sig_ref = self.func.dfg.ext_funcs[func_ref].signature;
+                self.typecheck_tail_call(inst, sig_ref, errors)?;
+            }
+            ir::InstructionData::CallIndirect {
+                opcode: Opcode::ReturnCallIndirect,
+                sig_ref,
+                ..
+            } => {
+                self.typecheck_tail_call(inst, sig_ref, errors)?;
+            }
+            inst => debug_assert!(!inst.opcode().is_return()),
+        }
+        Ok(())
+    }
+
+    fn typecheck_tail_call(
+        &self,
+        inst: Inst,
+        sig_ref: SigRef,
+        errors: &mut VerifierErrors,
+    ) -> VerifierStepResult<()> {
+        let signature = &self.func.dfg.signatures[sig_ref];
+        let cc = signature.call_conv;
+        if !cc.supports_tail_calls() {
+            errors.report((
+                inst,
+                self.context(inst),
+                format!("calling convention `{cc}` does not support tail calls"),
+            ));
+        }
+        if cc != self.func.signature.call_conv {
+            errors.report((
+                inst,
+                self.context(inst),
+                "callee's calling convention must match caller",
+            ));
+        }
+        let types = signature.returns.iter().map(|param| param.value_type);
+        self.typecheck_return_types(inst, types, errors, "results of callee must match caller")?;
+        Ok(())
+    }
+
+    fn typecheck_return_types(
+        &self,
+        inst: Inst,
+        actual_types: impl ExactSizeIterator<Item = Type>,
+        errors: &mut VerifierErrors,
+        message: &str,
+    ) -> VerifierStepResult<()> {
+        let expected_types = &self.func.signature.returns;
+        if actual_types.len() != expected_types.len() {
+            return errors.nonfatal((inst, self.context(inst), message));
+        }
+        for (i, (actual_type, &expected_type)) in actual_types.zip(expected_types).enumerate() {
+            if actual_type != expected_type.value_type {
+                errors.report((
                     inst,
                     self.context(inst),
-                    "arguments of return must match function signature",
+                    format!(
+                        "result {i} has type {actual_type}, must match function signature of \
+                         {expected_type}"
+                    ),
                 ));
-            }
-            for (i, (&arg, &expected_type)) in args.iter().zip(expected_types).enumerate() {
-                let arg_type = self.func.dfg.value_type(arg);
-                if arg_type != expected_type.value_type {
-                    errors.report((
-                        inst,
-                        self.context(inst),
-                        format!(
-                            "arg {} ({}) has type {}, must match function signature of {}",
-                            i, arg, arg_type, expected_type
-                        ),
-                    ));
-                }
             }
         }
         Ok(())
@@ -1648,45 +1721,57 @@ impl<'a> Verifier<'a> {
     }
 
     fn typecheck_function_signature(&self, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
-        self.func
+        let params = self
+            .func
             .signature
             .params
             .iter()
             .enumerate()
-            .filter(|(_, &param)| param.value_type == types::INVALID)
-            .for_each(|(i, _)| {
+            .map(|p| (true, p));
+        let returns = self
+            .func
+            .signature
+            .returns
+            .iter()
+            .enumerate()
+            .map(|p| (false, p));
+
+        for (is_argument, (i, param)) in params.chain(returns) {
+            let is_return = !is_argument;
+            let item = if is_argument {
+                "Parameter"
+            } else {
+                "Return value"
+            };
+
+            if param.value_type == types::INVALID {
                 errors.report((
                     AnyEntity::Function,
-                    format!("Parameter at position {} has an invalid type", i),
+                    format!("{item} at position {i} has an invalid type"),
                 ));
-            });
+            }
 
-        self.func
-            .signature
-            .returns
-            .iter()
-            .enumerate()
-            .filter(|(_, &ret)| ret.value_type == types::INVALID)
-            .for_each(|(i, _)| {
-                errors.report((
-                    AnyEntity::Function,
-                    format!("Return value at position {} has an invalid type", i),
-                ))
-            });
-
-        self.func
-            .signature
-            .returns
-            .iter()
-            .enumerate()
-            .for_each(|(i, ret)| {
-                if let ArgumentPurpose::StructArgument(_) = ret.purpose {
+            if let ArgumentPurpose::StructArgument(_) = param.purpose {
+                if is_return {
                     errors.report((
                         AnyEntity::Function,
-                        format!("Return value at position {} can't be an struct argument", i),
+                        format!("{item} at position {i} can't be an struct argument"),
                     ))
                 }
-            });
+            }
+
+            let ty_allows_extension = param.value_type.is_int();
+            let has_extension = param.extension != ArgumentExtension::None;
+            if !ty_allows_extension && has_extension {
+                errors.report((
+                    AnyEntity::Function,
+                    format!(
+                        "{} at position {} has invalid extension {:?}",
+                        item, i, param.extension
+                    ),
+                ));
+            }
+        }
 
         if errors.has_error() {
             Err(())
@@ -1731,7 +1816,6 @@ impl<'a> Verifier<'a> {
 #[cfg(test)]
 mod tests {
     use super::{Verifier, VerifierError, VerifierErrors};
-    use crate::entity::EntityList;
     use crate::ir::instructions::{InstructionData, Opcode};
     use crate::ir::{types, AbiParam, Function};
     use crate::settings;
@@ -1773,11 +1857,11 @@ mod tests {
             imm: 0.into(),
         });
         func.layout.append_inst(nullary_with_bad_opcode, block0);
+        let destination = func.dfg.block_call(block0, &[]);
         func.stencil.layout.append_inst(
             func.stencil.dfg.make_inst(InstructionData::Jump {
                 opcode: Opcode::Jump,
-                destination: block0,
-                args: EntityList::default(),
+                destination,
             }),
             block0,
         );

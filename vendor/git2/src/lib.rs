@@ -65,7 +65,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![doc(html_root_url = "https://docs.rs/git2/0.16")]
+#![doc(html_root_url = "https://docs.rs/git2/0.17")]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -98,7 +98,7 @@ pub use crate::error::Error;
 pub use crate::index::{
     Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
 };
-pub use crate::indexer::{IndexerProgress, Progress};
+pub use crate::indexer::{Indexer, IndexerProgress, Progress};
 pub use crate::mailmap::Mailmap;
 pub use crate::mempack::Mempack;
 pub use crate::merge::{AnnotatedCommit, MergeOptions};
@@ -116,6 +116,7 @@ pub use crate::patch::Patch;
 pub use crate::pathspec::{Pathspec, PathspecFailedEntries, PathspecMatchList};
 pub use crate::pathspec::{PathspecDiffEntries, PathspecEntries};
 pub use crate::proxy_options::ProxyOptions;
+pub use crate::push_update::PushUpdate;
 pub use crate::rebase::{Rebase, RebaseOperation, RebaseOperationType, RebaseOptions};
 pub use crate::reference::{Reference, ReferenceNames, References};
 pub use crate::reflog::{Reflog, ReflogEntry, ReflogIter};
@@ -249,7 +250,7 @@ pub enum ErrorClass {
     Object,
     /// Network error
     Net,
-    /// Error manpulating a tag
+    /// Error manipulating a tag
     Tag,
     /// Invalid value in tree
     Tree,
@@ -257,7 +258,7 @@ pub enum ErrorClass {
     Indexer,
     /// Error from SSL
     Ssl,
-    /// Error involing submodules
+    /// Error involving submodules
     Submodule,
     /// Threading error
     Thread,
@@ -349,7 +350,7 @@ pub enum ObjectType {
     Tag,
 }
 
-/// An enumeration of all possile kinds of references.
+/// An enumeration of all possible kinds of references.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum ReferenceType {
     /// A reference which points at an object id.
@@ -694,6 +695,7 @@ mod packbuilder;
 mod patch;
 mod pathspec;
 mod proxy_options;
+mod push_update;
 mod rebase;
 mod reference;
 mod reflog;
@@ -1098,6 +1100,8 @@ pub enum FileMode {
     Tree,
     /// Blob
     Blob,
+    /// Group writable blob. Obsolete mode kept for compatibility reasons
+    BlobGroupWritable,
     /// Blob executable
     BlobExecutable,
     /// Link
@@ -1112,6 +1116,7 @@ impl From<FileMode> for i32 {
             FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as i32,
             FileMode::Tree => raw::GIT_FILEMODE_TREE as i32,
             FileMode::Blob => raw::GIT_FILEMODE_BLOB as i32,
+            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as i32,
             FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as i32,
             FileMode::Link => raw::GIT_FILEMODE_LINK as i32,
             FileMode::Commit => raw::GIT_FILEMODE_COMMIT as i32,
@@ -1125,6 +1130,7 @@ impl From<FileMode> for u32 {
             FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as u32,
             FileMode::Tree => raw::GIT_FILEMODE_TREE as u32,
             FileMode::Blob => raw::GIT_FILEMODE_BLOB as u32,
+            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as u32,
             FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as u32,
             FileMode::Link => raw::GIT_FILEMODE_LINK as u32,
             FileMode::Commit => raw::GIT_FILEMODE_COMMIT as u32,
@@ -1172,7 +1178,7 @@ bitflags! {
     ///
     /// Lastly, the following will only be returned for ignore "NONE".
     ///
-    /// * WD_UNTRACKED      - wd contains untracked files
+    /// * WD_UNTRACKED      - workdir contains untracked files
     pub struct SubmoduleStatus: u32 {
         #[allow(missing_docs)]
         const IN_HEAD = raw::GIT_SUBMODULE_STATUS_IN_HEAD as u32;
@@ -1273,7 +1279,7 @@ bitflags! {
         /// Use the default pathspec matching configuration.
         const DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32;
         /// Force matching to ignore case, otherwise matching will use native
-        /// case sensitivity fo the platform filesystem.
+        /// case sensitivity of the platform filesystem.
         const IGNORE_CASE = raw::GIT_PATHSPEC_IGNORE_CASE as u32;
         /// Force case sensitive matches, otherwise match will use the native
         /// case sensitivity of the platform filesystem.
@@ -1379,6 +1385,7 @@ impl DiffStatsFormat {
 }
 
 /// Automatic tag following options.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AutotagOption {
     /// Use the setting from the remote's configuration
     Unspecified,
@@ -1391,6 +1398,7 @@ pub enum AutotagOption {
 }
 
 /// Configuration for how pruning is done on a fetch
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FetchPrune {
     /// Use the setting from the configuration
     Unspecified,
@@ -1519,7 +1527,7 @@ bitflags! {
     pub struct ReferenceFormat: u32 {
         /// No particular normalization.
         const NORMAL = raw::GIT_REFERENCE_FORMAT_NORMAL as u32;
-        /// Constrol whether one-level refname are accepted (i.e., refnames that
+        /// Control whether one-level refname are accepted (i.e., refnames that
         /// do not contain multiple `/`-separated components). Those are
         /// expected to be written only using uppercase letters and underscore
         /// (e.g. `HEAD`, `FETCH_HEAD`).
@@ -1562,8 +1570,10 @@ mod tests {
     #[test]
     fn convert_filemode() {
         assert_eq!(i32::from(FileMode::Blob), 0o100644);
+        assert_eq!(i32::from(FileMode::BlobGroupWritable), 0o100664);
         assert_eq!(i32::from(FileMode::BlobExecutable), 0o100755);
         assert_eq!(u32::from(FileMode::Blob), 0o100644);
+        assert_eq!(u32::from(FileMode::BlobGroupWritable), 0o100664);
         assert_eq!(u32::from(FileMode::BlobExecutable), 0o100755);
     }
 }

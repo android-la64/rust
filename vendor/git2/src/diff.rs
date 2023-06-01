@@ -286,7 +286,7 @@ impl<'repo> Diff<'repo> {
         Ok(buf)
     }
 
-    /// Create an patchid from a diff.
+    /// Create an patch ID from a diff.
     pub fn patchid(&self, opts: Option<&mut DiffPatchidOptions>) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
@@ -310,7 +310,7 @@ impl Diff<'static> {
     /// produced if you actually produced it computationally by comparing
     /// two trees, however there may be subtle differences. For example,
     /// a patch file likely contains abbreviated object IDs, so the
-    /// object IDs parsed by this function will also be abreviated.
+    /// object IDs parsed by this function will also be abbreviated.
     pub fn from_buffer(buffer: &[u8]) -> Result<Diff<'static>, Error> {
         crate::init();
         let mut diff: *mut raw::git_diff = std::ptr::null_mut();
@@ -621,6 +621,7 @@ impl<'a> DiffFile<'a> {
             raw::GIT_FILEMODE_UNREADABLE => FileMode::Unreadable,
             raw::GIT_FILEMODE_TREE => FileMode::Tree,
             raw::GIT_FILEMODE_BLOB => FileMode::Blob,
+            raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE => FileMode::BlobGroupWritable,
             raw::GIT_FILEMODE_BLOB_EXECUTABLE => FileMode::BlobExecutable,
             raw::GIT_FILEMODE_LINK => FileMode::Link,
             raw::GIT_FILEMODE_COMMIT => FileMode::Commit,
@@ -679,7 +680,7 @@ impl DiffOptions {
         opts
     }
 
-    fn flag(&mut self, opt: i32, val: bool) -> &mut DiffOptions {
+    fn flag(&mut self, opt: raw::git_diff_option_t, val: bool) -> &mut DiffOptions {
         let opt = opt as u32;
         if val {
             self.raw.flags |= opt;

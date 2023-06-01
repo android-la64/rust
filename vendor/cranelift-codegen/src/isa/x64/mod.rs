@@ -2,7 +2,7 @@
 
 pub use self::inst::{args, EmitInfo, EmitState, Inst};
 
-use super::TargetIsa;
+use super::{OwnedTargetIsa, TargetIsa};
 use crate::ir::{condcodes::IntCC, Function, Type};
 #[cfg(feature = "unwind")]
 use crate::isa::unwind::systemv;
@@ -23,7 +23,7 @@ mod abi;
 pub mod encoding;
 mod inst;
 mod lower;
-mod settings;
+pub mod settings;
 
 /// An X64 backend.
 pub(crate) struct X64Backend {
@@ -196,7 +196,7 @@ fn isa_constructor(
     triple: Triple,
     shared_flags: Flags,
     builder: shared_settings::Builder,
-) -> CodegenResult<Box<dyn TargetIsa>> {
+) -> CodegenResult<OwnedTargetIsa> {
     let isa_flags = x64_settings::Flags::new(&shared_flags, builder);
 
     // Check for compatibility between flags and ISA level
@@ -214,7 +214,7 @@ fn isa_constructor(
     }
 
     let backend = X64Backend::new_with_flags(triple, shared_flags, isa_flags);
-    Ok(Box::new(backend))
+    Ok(backend.wrapped())
 }
 
 #[cfg(test)]
@@ -261,23 +261,20 @@ mod test {
         let v0 = pos.ins().iconst(I32, 0x1234);
         pos.set_srcloc(SourceLoc::new(2));
         let v1 = pos.ins().iadd(arg0, v0);
-        pos.ins().brnz(v1, bb1, &[v1]);
-        pos.ins().jump(bb2, &[]);
+        pos.ins().brif(v1, bb1, &[v1], bb2, &[]);
 
         pos.insert_block(bb1);
         pos.set_srcloc(SourceLoc::new(3));
         let v2 = pos.ins().isub(v1, v0);
         pos.set_srcloc(SourceLoc::new(4));
         let v3 = pos.ins().iadd(v2, bb1_param);
-        pos.ins().brnz(v1, bb2, &[]);
-        pos.ins().jump(bb3, &[v3]);
+        pos.ins().brif(v1, bb2, &[], bb3, &[v3]);
 
         pos.func.layout.set_cold(bb2);
         pos.insert_block(bb2);
         pos.set_srcloc(SourceLoc::new(5));
         let v4 = pos.ins().iadd(v1, v0);
-        pos.ins().brnz(v4, bb2, &[]);
-        pos.ins().jump(bb1, &[v4]);
+        pos.ins().brif(v4, bb2, &[], bb1, &[v4]);
 
         pos.insert_block(bb3);
         pos.set_srcloc(SourceLoc::new(6));

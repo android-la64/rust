@@ -16,7 +16,7 @@ pub type Timespec = c::timespec;
     any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
     target_env = "gnu",
 ))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct Timespec {
     /// Seconds.
@@ -114,7 +114,7 @@ impl From<Timespec> for LibcTimespec {
 /// all of them are always supported.
 ///
 /// [`clock_gettime`]: crate::time::clock_gettime
-#[cfg(not(any(target_os = "ios", target_os = "macos", target_os = "wasi")))]
+#[cfg(not(any(apple, target_os = "wasi")))]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[cfg_attr(not(target_os = "dragonfly"), repr(i32))]
 #[cfg_attr(target_os = "dragonfly", repr(u64))]
@@ -126,32 +126,24 @@ pub enum ClockId {
     /// `CLOCK_MONOTONIC`
     Monotonic = c::CLOCK_MONOTONIC,
 
+    /// `CLOCK_UPTIME`
+    #[cfg(any(freebsdlike))]
+    Uptime = c::CLOCK_UPTIME,
+
     /// `CLOCK_PROCESS_CPUTIME_ID`
-    #[cfg(not(any(
-        target_os = "illumos",
-        target_os = "netbsd",
-        target_os = "openbsd",
-        target_os = "redox",
-        target_os = "solaris",
-    )))]
+    #[cfg(not(any(netbsdlike, solarish, target_os = "redox")))]
     ProcessCPUTime = c::CLOCK_PROCESS_CPUTIME_ID,
 
     /// `CLOCK_THREAD_CPUTIME_ID`
-    #[cfg(not(any(
-        target_os = "illumos",
-        target_os = "netbsd",
-        target_os = "openbsd",
-        target_os = "redox",
-        target_os = "solaris",
-    )))]
+    #[cfg(not(any(netbsdlike, solarish, target_os = "redox")))]
     ThreadCPUTime = c::CLOCK_THREAD_CPUTIME_ID,
 
     /// `CLOCK_REALTIME_COARSE`
-    #[cfg(any(target_os = "android", target_os = "linux"))]
+    #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
     RealtimeCoarse = c::CLOCK_REALTIME_COARSE,
 
     /// `CLOCK_MONOTONIC_COARSE`
-    #[cfg(any(target_os = "android", target_os = "linux"))]
+    #[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
     MonotonicCoarse = c::CLOCK_MONOTONIC_COARSE,
 
     /// `CLOCK_MONOTONIC_RAW`
@@ -165,7 +157,7 @@ pub enum ClockId {
 /// has to fail with `INVAL` due to an unsupported clock. See
 /// [`DynamicClockId`] for a greater set of clocks, with the caveat that not
 /// all of them are always supported.
-#[cfg(any(target_os = "ios", target_os = "macos"))]
+#[cfg(apple)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[repr(u32)]
 #[non_exhaustive]
@@ -312,7 +304,7 @@ bitflags! {
 
         /// `TFD_TIMER_CANCEL_ON_SET`
         #[cfg(any(target_os = "android", target_os = "linux"))]
-        const CANCEL_ON_SET = 2; // TODO: upstream TFD_TIMER_CANCEL_ON_SET
+        const CANCEL_ON_SET = c::TFD_TIMER_CANCEL_ON_SET;
     }
 }
 

@@ -57,6 +57,14 @@ and may change in the future; beware of depending on it.
 See the [rustdoc book](https://doc.rust-lang.org/rustdoc/) for more information
 on writing doc tests.
 
+### Working directory of tests
+
+The working directory of every test is set to the root directory of the package 
+the test belongs to.
+Setting the working directory of tests to the package's root directory makes it 
+possible for tests to reliably access the package's files using relative paths,
+regardless from where `cargo test` was executed from.
+
 ## OPTIONS
 
 ### Test Options
@@ -453,7 +461,8 @@ See the <a href="../reference/config.html#command-line-overrides">command-line o
 <dt class="option-term" id="option-cargo-test--C"><a class="option-anchor" href="#option-cargo-test--C"></a><code>-C</code> <em>PATH</em></dt>
 <dd class="option-desc">Changes the current working directory before executing any specified operations. This affects
 things like where cargo looks by default for the project manifest (<code>Cargo.toml</code>), as well as
-the directories searched for discovering <code>.cargo/config.toml</code>, for example.</p>
+the directories searched for discovering <code>.cargo/config.toml</code>, for example. This option must
+appear before the command name, for example <code>cargo -C path/to/my-project build</code>.</p>
 <p>This option is only available on the <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">nightly
 channel</a> and
 requires the <code>-Z unstable-options</code> flag to enable (see

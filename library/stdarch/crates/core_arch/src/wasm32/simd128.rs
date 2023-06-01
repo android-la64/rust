@@ -46,7 +46,7 @@ macro_rules! conversions {
         impl v128 {
             $(
                 #[inline(always)]
-                fn $name(self) -> $ty {
+                pub(crate) fn $name(self) -> $ty {
                     unsafe { mem::transmute(self) }
                 }
             )*
@@ -55,7 +55,7 @@ macro_rules! conversions {
             impl $ty {
                 #[inline(always)]
                 #[rustc_const_stable(feature = "wasm_simd_const", since = "1.56.0")]
-                const fn v128(self) -> v128 {
+                pub(crate) const fn v128(self) -> v128 {
                     unsafe { mem::transmute(self) }
                 }
             }
@@ -937,47 +937,30 @@ pub fn i8x16_shuffle<
     a: v128,
     b: v128,
 ) -> v128 {
-    static_assert!(I0: usize where I0 < 32);
-    static_assert!(I1: usize where I1 < 32);
-    static_assert!(I2: usize where I2 < 32);
-    static_assert!(I3: usize where I3 < 32);
-    static_assert!(I4: usize where I4 < 32);
-    static_assert!(I5: usize where I5 < 32);
-    static_assert!(I6: usize where I6 < 32);
-    static_assert!(I7: usize where I7 < 32);
-    static_assert!(I8: usize where I8 < 32);
-    static_assert!(I9: usize where I9 < 32);
-    static_assert!(I10: usize where I10 < 32);
-    static_assert!(I11: usize where I11 < 32);
-    static_assert!(I12: usize where I12 < 32);
-    static_assert!(I13: usize where I13 < 32);
-    static_assert!(I14: usize where I14 < 32);
-    static_assert!(I15: usize where I15 < 32);
+    static_assert!(I0 < 32);
+    static_assert!(I1 < 32);
+    static_assert!(I2 < 32);
+    static_assert!(I3 < 32);
+    static_assert!(I4 < 32);
+    static_assert!(I5 < 32);
+    static_assert!(I6 < 32);
+    static_assert!(I7 < 32);
+    static_assert!(I8 < 32);
+    static_assert!(I9 < 32);
+    static_assert!(I10 < 32);
+    static_assert!(I11 < 32);
+    static_assert!(I12 < 32);
+    static_assert!(I13 < 32);
+    static_assert!(I14 < 32);
+    static_assert!(I15 < 32);
     let shuf: simd::u8x16 = unsafe {
-        simd_shuffle16!(
+        simd_shuffle!(
             a.as_u8x16(),
             b.as_u8x16(),
-            <
-                const I0: usize,
-                const I1: usize,
-                const I2: usize,
-                const I3: usize,
-                const I4: usize,
-                const I5: usize,
-                const I6: usize,
-                const I7: usize,
-                const I8: usize,
-                const I9: usize,
-                const I10: usize,
-                const I11: usize,
-                const I12: usize,
-                const I13: usize,
-                const I14: usize,
-                const I15: usize,
-            > [
-                I0 as u32, I1 as u32, I2 as u32, I3 as u32, I4 as u32, I5 as u32, I6 as u32, I7 as u32,
-                I8 as u32, I9 as u32, I10 as u32, I11 as u32, I12 as u32, I13 as u32, I14 as u32,
-                I15 as u32,
+            [
+                I0 as u32, I1 as u32, I2 as u32, I3 as u32, I4 as u32, I5 as u32, I6 as u32,
+                I7 as u32, I8 as u32, I9 as u32, I10 as u32, I11 as u32, I12 as u32, I13 as u32,
+                I14 as u32, I15 as u32,
             ],
         )
     };
@@ -1024,29 +1007,21 @@ pub fn i16x8_shuffle<
     a: v128,
     b: v128,
 ) -> v128 {
-    static_assert!(I0: usize where I0 < 16);
-    static_assert!(I1: usize where I1 < 16);
-    static_assert!(I2: usize where I2 < 16);
-    static_assert!(I3: usize where I3 < 16);
-    static_assert!(I4: usize where I4 < 16);
-    static_assert!(I5: usize where I5 < 16);
-    static_assert!(I6: usize where I6 < 16);
-    static_assert!(I7: usize where I7 < 16);
+    static_assert!(I0 < 16);
+    static_assert!(I1 < 16);
+    static_assert!(I2 < 16);
+    static_assert!(I3 < 16);
+    static_assert!(I4 < 16);
+    static_assert!(I5 < 16);
+    static_assert!(I6 < 16);
+    static_assert!(I7 < 16);
     let shuf: simd::u16x8 = unsafe {
-        simd_shuffle8!(
+        simd_shuffle!(
             a.as_u16x8(),
             b.as_u16x8(),
-            <
-                const I0: usize,
-                const I1: usize,
-                const I2: usize,
-                const I3: usize,
-                const I4: usize,
-                const I5: usize,
-                const I6: usize,
-                const I7: usize,
-            > [
-                I0 as u32, I1 as u32, I2 as u32, I3 as u32, I4 as u32, I5 as u32, I6 as u32, I7 as u32,
+            [
+                I0 as u32, I1 as u32, I2 as u32, I3 as u32, I4 as u32, I5 as u32, I6 as u32,
+                I7 as u32,
             ],
         )
     };
@@ -1072,15 +1047,15 @@ pub fn i32x4_shuffle<const I0: usize, const I1: usize, const I2: usize, const I3
     a: v128,
     b: v128,
 ) -> v128 {
-    static_assert!(I0: usize where I0 < 8);
-    static_assert!(I1: usize where I1 < 8);
-    static_assert!(I2: usize where I2 < 8);
-    static_assert!(I3: usize where I3 < 8);
+    static_assert!(I0 < 8);
+    static_assert!(I1 < 8);
+    static_assert!(I2 < 8);
+    static_assert!(I3 < 8);
     let shuf: simd::u32x4 = unsafe {
-        simd_shuffle4!(
+        simd_shuffle!(
             a.as_u32x4(),
             b.as_u32x4(),
-            <const I0: usize, const I1: usize, const I2: usize, const I3: usize> [I0 as u32, I1 as u32, I2 as u32, I3 as u32],
+            [I0 as u32, I1 as u32, I2 as u32, I3 as u32],
         )
     };
     shuf.v128()
@@ -1102,15 +1077,10 @@ pub use i32x4_shuffle as u32x4_shuffle;
 #[doc(alias("i8x16.shuffle"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_shuffle<const I0: usize, const I1: usize>(a: v128, b: v128) -> v128 {
-    static_assert!(I0: usize where I0 < 4);
-    static_assert!(I1: usize where I1 < 4);
-    let shuf: simd::u64x2 = unsafe {
-        simd_shuffle2!(
-            a.as_u64x2(),
-            b.as_u64x2(),
-            <const I0: usize, const I1: usize> [I0 as u32, I1 as u32],
-        )
-    };
+    static_assert!(I0 < 4);
+    static_assert!(I1 < 4);
+    let shuf: simd::u64x2 =
+        unsafe { simd_shuffle!(a.as_u64x2(), b.as_u64x2(), [I0 as u32, I1 as u32]) };
     shuf.v128()
 }
 
@@ -1127,7 +1097,7 @@ pub use i64x2_shuffle as u64x2_shuffle;
 #[doc(alias("i8x16.extract_lane_s"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i8x16_extract_lane<const N: usize>(a: v128) -> i8 {
-    static_assert!(N: usize where N < 16);
+    static_assert!(N < 16);
     unsafe { simd_extract(a.as_i8x16(), N as u32) }
 }
 
@@ -1141,7 +1111,7 @@ pub fn i8x16_extract_lane<const N: usize>(a: v128) -> i8 {
 #[doc(alias("i8x16.extract_lane_u"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn u8x16_extract_lane<const N: usize>(a: v128) -> u8 {
-    static_assert!(N: usize where N < 16);
+    static_assert!(N < 16);
     unsafe { simd_extract(a.as_u8x16(), N as u32) }
 }
 
@@ -1155,7 +1125,7 @@ pub fn u8x16_extract_lane<const N: usize>(a: v128) -> u8 {
 #[doc(alias("i8x16.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i8x16_replace_lane<const N: usize>(a: v128, val: i8) -> v128 {
-    static_assert!(N: usize where N < 16);
+    static_assert!(N < 16);
     unsafe { simd_insert(a.as_i8x16(), N as u32, val).v128() }
 }
 
@@ -1169,7 +1139,7 @@ pub fn i8x16_replace_lane<const N: usize>(a: v128, val: i8) -> v128 {
 #[doc(alias("i8x16.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn u8x16_replace_lane<const N: usize>(a: v128, val: u8) -> v128 {
-    static_assert!(N: usize where N < 16);
+    static_assert!(N < 16);
     unsafe { simd_insert(a.as_u8x16(), N as u32, val).v128() }
 }
 
@@ -1183,7 +1153,7 @@ pub fn u8x16_replace_lane<const N: usize>(a: v128, val: u8) -> v128 {
 #[doc(alias("i16x8.extract_lane_s"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extract_lane<const N: usize>(a: v128) -> i16 {
-    static_assert!(N: usize where N < 8);
+    static_assert!(N < 8);
     unsafe { simd_extract(a.as_i16x8(), N as u32) }
 }
 
@@ -1197,7 +1167,7 @@ pub fn i16x8_extract_lane<const N: usize>(a: v128) -> i16 {
 #[doc(alias("i16x8.extract_lane_u"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn u16x8_extract_lane<const N: usize>(a: v128) -> u16 {
-    static_assert!(N: usize where N < 8);
+    static_assert!(N < 8);
     unsafe { simd_extract(a.as_u16x8(), N as u32) }
 }
 
@@ -1211,7 +1181,7 @@ pub fn u16x8_extract_lane<const N: usize>(a: v128) -> u16 {
 #[doc(alias("i16x8.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_replace_lane<const N: usize>(a: v128, val: i16) -> v128 {
-    static_assert!(N: usize where N < 8);
+    static_assert!(N < 8);
     unsafe { simd_insert(a.as_i16x8(), N as u32, val).v128() }
 }
 
@@ -1225,7 +1195,7 @@ pub fn i16x8_replace_lane<const N: usize>(a: v128, val: i16) -> v128 {
 #[doc(alias("i16x8.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn u16x8_replace_lane<const N: usize>(a: v128, val: u16) -> v128 {
-    static_assert!(N: usize where N < 8);
+    static_assert!(N < 8);
     unsafe { simd_insert(a.as_u16x8(), N as u32, val).v128() }
 }
 
@@ -1239,7 +1209,7 @@ pub fn u16x8_replace_lane<const N: usize>(a: v128, val: u16) -> v128 {
 #[doc(alias("i32x4.extract_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extract_lane<const N: usize>(a: v128) -> i32 {
-    static_assert!(N: usize where N < 4);
+    static_assert!(N < 4);
     unsafe { simd_extract(a.as_i32x4(), N as u32) }
 }
 
@@ -1265,7 +1235,7 @@ pub fn u32x4_extract_lane<const N: usize>(a: v128) -> u32 {
 #[doc(alias("i32x4.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_replace_lane<const N: usize>(a: v128, val: i32) -> v128 {
-    static_assert!(N: usize where N < 4);
+    static_assert!(N < 4);
     unsafe { simd_insert(a.as_i32x4(), N as u32, val).v128() }
 }
 
@@ -1291,7 +1261,7 @@ pub fn u32x4_replace_lane<const N: usize>(a: v128, val: u32) -> v128 {
 #[doc(alias("i64x2.extract_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extract_lane<const N: usize>(a: v128) -> i64 {
-    static_assert!(N: usize where N < 2);
+    static_assert!(N < 2);
     unsafe { simd_extract(a.as_i64x2(), N as u32) }
 }
 
@@ -1317,7 +1287,7 @@ pub fn u64x2_extract_lane<const N: usize>(a: v128) -> u64 {
 #[doc(alias("i64x2.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_replace_lane<const N: usize>(a: v128, val: i64) -> v128 {
-    static_assert!(N: usize where N < 2);
+    static_assert!(N < 2);
     unsafe { simd_insert(a.as_i64x2(), N as u32, val).v128() }
 }
 
@@ -1343,7 +1313,7 @@ pub fn u64x2_replace_lane<const N: usize>(a: v128, val: u64) -> v128 {
 #[doc(alias("f32x4.extract_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f32x4_extract_lane<const N: usize>(a: v128) -> f32 {
-    static_assert!(N: usize where N < 4);
+    static_assert!(N < 4);
     unsafe { simd_extract(a.as_f32x4(), N as u32) }
 }
 
@@ -1357,7 +1327,7 @@ pub fn f32x4_extract_lane<const N: usize>(a: v128) -> f32 {
 #[doc(alias("f32x4.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f32x4_replace_lane<const N: usize>(a: v128, val: f32) -> v128 {
-    static_assert!(N: usize where N < 4);
+    static_assert!(N < 4);
     unsafe { simd_insert(a.as_f32x4(), N as u32, val).v128() }
 }
 
@@ -1371,7 +1341,7 @@ pub fn f32x4_replace_lane<const N: usize>(a: v128, val: f32) -> v128 {
 #[doc(alias("f64x2.extract_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f64x2_extract_lane<const N: usize>(a: v128) -> f64 {
-    static_assert!(N: usize where N < 2);
+    static_assert!(N < 2);
     unsafe { simd_extract(a.as_f64x2(), N as u32) }
 }
 
@@ -1385,7 +1355,7 @@ pub fn f64x2_extract_lane<const N: usize>(a: v128) -> f64 {
 #[doc(alias("f64x2.replace_lane"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f64x2_replace_lane<const N: usize>(a: v128, val: f64) -> v128 {
-    static_assert!(N: usize where N < 2);
+    static_assert!(N < 2);
     unsafe { simd_insert(a.as_f64x2(), N as u32, val).v128() }
 }
 
@@ -2349,10 +2319,6 @@ pub use i8x16_all_true as u8x16_all_true;
 #[doc(alias("i8x16.bitmask"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i8x16_bitmask(a: v128) -> u16 {
-    // FIXME(https://bugs.llvm.org/show_bug.cgi?id=50507) - this produces an
-    // extraneous `i32.and` instruction against a mask of 65535 when converting
-    // from the native intrinsic's i32 return value to our desired u16. This
-    // shouldn't be necessary, though, but requires upstream LLVM changes.
     unsafe { llvm_bitmask_i8x16(a.as_i8x16()) as u16 }
 }
 
@@ -2686,7 +2652,7 @@ pub fn u16x8_narrow_i32x4(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extend_low_i8x16(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle8!(
+        simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle!(
             a.as_i8x16(),
             a.as_i8x16(),
             [0, 1, 2, 3, 4, 5, 6, 7],
@@ -2704,7 +2670,7 @@ pub fn i16x8_extend_low_i8x16(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extend_high_i8x16(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle8!(
+        simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle!(
             a.as_i8x16(),
             a.as_i8x16(),
             [8, 9, 10, 11, 12, 13, 14, 15],
@@ -2722,7 +2688,7 @@ pub fn i16x8_extend_high_i8x16(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extend_low_u8x16(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle8!(
+        simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle!(
             a.as_u8x16(),
             a.as_u8x16(),
             [0, 1, 2, 3, 4, 5, 6, 7],
@@ -2743,7 +2709,7 @@ pub use i16x8_extend_low_u8x16 as u16x8_extend_low_u8x16;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extend_high_u8x16(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle8!(
+        simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle!(
             a.as_u8x16(),
             a.as_u8x16(),
             [8, 9, 10, 11, 12, 13, 14, 15],
@@ -2956,12 +2922,12 @@ pub fn u16x8_avgr(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extmul_low_i8x16(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle8!(
+        let lhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle!(
             a.as_i8x16(),
             a.as_i8x16(),
             [0, 1, 2, 3, 4, 5, 6, 7],
         ));
-        let rhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle8!(
+        let rhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle!(
             b.as_i8x16(),
             b.as_i8x16(),
             [0, 1, 2, 3, 4, 5, 6, 7],
@@ -2981,12 +2947,12 @@ pub fn i16x8_extmul_low_i8x16(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extmul_high_i8x16(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle8!(
+        let lhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle!(
             a.as_i8x16(),
             a.as_i8x16(),
             [8, 9, 10, 11, 12, 13, 14, 15],
         ));
-        let rhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle8!(
+        let rhs = simd_cast::<simd::i8x8, simd::i16x8>(simd_shuffle!(
             b.as_i8x16(),
             b.as_i8x16(),
             [8, 9, 10, 11, 12, 13, 14, 15],
@@ -3006,12 +2972,12 @@ pub fn i16x8_extmul_high_i8x16(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extmul_low_u8x16(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle8!(
+        let lhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle!(
             a.as_u8x16(),
             a.as_u8x16(),
             [0, 1, 2, 3, 4, 5, 6, 7],
         ));
-        let rhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle8!(
+        let rhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle!(
             b.as_u8x16(),
             b.as_u8x16(),
             [0, 1, 2, 3, 4, 5, 6, 7],
@@ -3034,12 +3000,12 @@ pub use i16x8_extmul_low_u8x16 as u16x8_extmul_low_u8x16;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i16x8_extmul_high_u8x16(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle8!(
+        let lhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle!(
             a.as_u8x16(),
             a.as_u8x16(),
             [8, 9, 10, 11, 12, 13, 14, 15],
         ));
-        let rhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle8!(
+        let rhs = simd_cast::<simd::u8x8, simd::u16x8>(simd_shuffle!(
             b.as_u8x16(),
             b.as_u8x16(),
             [8, 9, 10, 11, 12, 13, 14, 15],
@@ -3136,7 +3102,7 @@ pub use i32x4_bitmask as u32x4_bitmask;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extend_low_i16x8(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle4!(
+        simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle!(
             a.as_i16x8(),
             a.as_i16x8(),
             [0, 1, 2, 3]
@@ -3154,7 +3120,7 @@ pub fn i32x4_extend_low_i16x8(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extend_high_i16x8(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle4!(
+        simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle!(
             a.as_i16x8(),
             a.as_i16x8(),
             [4, 5, 6, 7]
@@ -3172,7 +3138,7 @@ pub fn i32x4_extend_high_i16x8(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extend_low_u16x8(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle4!(
+        simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle!(
             a.as_u16x8(),
             a.as_u16x8(),
             [0, 1, 2, 3]
@@ -3193,7 +3159,7 @@ pub use i32x4_extend_low_u16x8 as u32x4_extend_low_u16x8;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extend_high_u16x8(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle4!(
+        simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle!(
             a.as_u16x8(),
             a.as_u16x8(),
             [4, 5, 6, 7]
@@ -3363,12 +3329,12 @@ pub fn i32x4_dot_i16x8(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extmul_low_i16x8(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle4!(
+        let lhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle!(
             a.as_i16x8(),
             a.as_i16x8(),
             [0, 1, 2, 3]
         ));
-        let rhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle4!(
+        let rhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle!(
             b.as_i16x8(),
             b.as_i16x8(),
             [0, 1, 2, 3]
@@ -3388,12 +3354,12 @@ pub fn i32x4_extmul_low_i16x8(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extmul_high_i16x8(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle4!(
+        let lhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle!(
             a.as_i16x8(),
             a.as_i16x8(),
             [4, 5, 6, 7]
         ));
-        let rhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle4!(
+        let rhs = simd_cast::<simd::i16x4, simd::i32x4>(simd_shuffle!(
             b.as_i16x8(),
             b.as_i16x8(),
             [4, 5, 6, 7]
@@ -3413,12 +3379,12 @@ pub fn i32x4_extmul_high_i16x8(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extmul_low_u16x8(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle4!(
+        let lhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle!(
             a.as_u16x8(),
             a.as_u16x8(),
             [0, 1, 2, 3]
         ));
-        let rhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle4!(
+        let rhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle!(
             b.as_u16x8(),
             b.as_u16x8(),
             [0, 1, 2, 3]
@@ -3441,12 +3407,12 @@ pub use i32x4_extmul_low_u16x8 as u32x4_extmul_low_u16x8;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_extmul_high_u16x8(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle4!(
+        let lhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle!(
             a.as_u16x8(),
             a.as_u16x8(),
             [4, 5, 6, 7]
         ));
-        let rhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle4!(
+        let rhs = simd_cast::<simd::u16x4, simd::u32x4>(simd_shuffle!(
             b.as_u16x8(),
             b.as_u16x8(),
             [4, 5, 6, 7]
@@ -3460,7 +3426,7 @@ pub use i32x4_extmul_high_u16x8 as u32x4_extmul_high_u16x8;
 
 /// Lane-wise wrapping absolute value.
 #[inline]
-// #[cfg_attr(test, assert_instr(i64x2.abs))] // FIXME llvm
+#[cfg_attr(test, assert_instr(i64x2.abs))]
 #[target_feature(enable = "simd128")]
 #[doc(alias("i64x2.abs"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
@@ -3518,7 +3484,7 @@ pub use i64x2_bitmask as u64x2_bitmask;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extend_low_i32x4(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle2!(a.as_i32x4(), a.as_i32x4(), [0, 1]))
+        simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle!(a.as_i32x4(), a.as_i32x4(), [0, 1]))
             .v128()
     }
 }
@@ -3532,7 +3498,7 @@ pub fn i64x2_extend_low_i32x4(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extend_high_i32x4(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle2!(a.as_i32x4(), a.as_i32x4(), [2, 3]))
+        simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle!(a.as_i32x4(), a.as_i32x4(), [2, 3]))
             .v128()
     }
 }
@@ -3546,7 +3512,7 @@ pub fn i64x2_extend_high_i32x4(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extend_low_u32x4(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::u32x2, simd::i64x2>(simd_shuffle2!(a.as_u32x4(), a.as_u32x4(), [0, 1]))
+        simd_cast::<simd::u32x2, simd::i64x2>(simd_shuffle!(a.as_u32x4(), a.as_u32x4(), [0, 1]))
             .v128()
     }
 }
@@ -3563,7 +3529,7 @@ pub use i64x2_extend_low_u32x4 as u64x2_extend_low_u32x4;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extend_high_u32x4(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::u32x2, simd::i64x2>(simd_shuffle2!(a.as_u32x4(), a.as_u32x4(), [2, 3]))
+        simd_cast::<simd::u32x2, simd::i64x2>(simd_shuffle!(a.as_u32x4(), a.as_u32x4(), [2, 3]))
             .v128()
     }
 }
@@ -3665,12 +3631,12 @@ pub use i64x2_mul as u64x2_mul;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extmul_low_i32x4(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle2!(
+        let lhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle!(
             a.as_i32x4(),
             a.as_i32x4(),
             [0, 1]
         ));
-        let rhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle2!(
+        let rhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle!(
             b.as_i32x4(),
             b.as_i32x4(),
             [0, 1]
@@ -3690,12 +3656,12 @@ pub fn i64x2_extmul_low_i32x4(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extmul_high_i32x4(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle2!(
+        let lhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle!(
             a.as_i32x4(),
             a.as_i32x4(),
             [2, 3]
         ));
-        let rhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle2!(
+        let rhs = simd_cast::<simd::i32x2, simd::i64x2>(simd_shuffle!(
             b.as_i32x4(),
             b.as_i32x4(),
             [2, 3]
@@ -3715,12 +3681,12 @@ pub fn i64x2_extmul_high_i32x4(a: v128, b: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extmul_low_u32x4(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle2!(
+        let lhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle!(
             a.as_u32x4(),
             a.as_u32x4(),
             [0, 1]
         ));
-        let rhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle2!(
+        let rhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle!(
             b.as_u32x4(),
             b.as_u32x4(),
             [0, 1]
@@ -3743,12 +3709,12 @@ pub use i64x2_extmul_low_u32x4 as u64x2_extmul_low_u32x4;
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i64x2_extmul_high_u32x4(a: v128, b: v128) -> v128 {
     unsafe {
-        let lhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle2!(
+        let lhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle!(
             a.as_u32x4(),
             a.as_u32x4(),
             [2, 3]
         ));
-        let rhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle2!(
+        let rhs = simd_cast::<simd::u32x2, simd::u64x2>(simd_shuffle!(
             b.as_u32x4(),
             b.as_u32x4(),
             [2, 3]
@@ -4175,7 +4141,7 @@ pub fn f32x4_convert_u32x4(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn i32x4_trunc_sat_f64x2_zero(a: v128) -> v128 {
     let ret: simd::i32x4 = unsafe {
-        simd_shuffle4!(
+        simd_shuffle!(
             llvm_i32x2_trunc_sat_f64x2_s(a.as_f64x2()),
             simd::i32x2::splat(0),
             [0, 1, 2, 3],
@@ -4199,7 +4165,7 @@ pub fn i32x4_trunc_sat_f64x2_zero(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn u32x4_trunc_sat_f64x2_zero(a: v128) -> v128 {
     let ret: simd::i32x4 = unsafe {
-        simd_shuffle4!(
+        simd_shuffle!(
             llvm_i32x2_trunc_sat_f64x2_u(a.as_f64x2()),
             simd::i32x2::splat(0),
             [0, 1, 2, 3],
@@ -4216,7 +4182,7 @@ pub fn u32x4_trunc_sat_f64x2_zero(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f64x2_convert_low_i32x4(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::i32x2, simd::f64x2>(simd_shuffle2!(a.as_i32x4(), a.as_i32x4(), [0, 1],))
+        simd_cast::<simd::i32x2, simd::f64x2>(simd_shuffle!(a.as_i32x4(), a.as_i32x4(), [0, 1],))
             .v128()
     }
 }
@@ -4229,7 +4195,7 @@ pub fn f64x2_convert_low_i32x4(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f64x2_convert_low_u32x4(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::u32x2, simd::f64x2>(simd_shuffle2!(a.as_u32x4(), a.as_u32x4(), [0, 1],))
+        simd_cast::<simd::u32x2, simd::f64x2>(simd_shuffle!(a.as_u32x4(), a.as_u32x4(), [0, 1],))
             .v128()
     }
 }
@@ -4246,7 +4212,7 @@ pub fn f64x2_convert_low_u32x4(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f32x4_demote_f64x2_zero(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::f64x4, simd::f32x4>(simd_shuffle4!(
+        simd_cast::<simd::f64x4, simd::f32x4>(simd_shuffle!(
             a.as_f64x2(),
             simd::f64x2::splat(0.0),
             [0, 1, 2, 3]
@@ -4264,7 +4230,7 @@ pub fn f32x4_demote_f64x2_zero(a: v128) -> v128 {
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn f64x2_promote_low_f32x4(a: v128) -> v128 {
     unsafe {
-        simd_cast::<simd::f32x2, simd::f64x2>(simd_shuffle2!(a.as_f32x4(), a.as_f32x4(), [0, 1]))
+        simd_cast::<simd::f32x2, simd::f64x2>(simd_shuffle!(a.as_f32x4(), a.as_f32x4(), [0, 1]))
             .v128()
     }
 }

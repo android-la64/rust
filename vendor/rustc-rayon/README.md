@@ -6,5 +6,5 @@ rustc-rayon is a fork of [the Rayon crate](https://github.com/rayon-rs/rayon/). 
 
 rustc-rayon is a fork of rayon. rayon is distributed under the terms of both the MIT license and the
 Apache License (Version 2.0). See [LICENSE-APACHE](LICENSE-APACHE) and
-[LICENSE-MIT](LICENSE-MIT) for details. Opening a pull requests is
+[LICENSE-MIT](LICENSE-MIT) for details. Opening a pull request is
 assumed to signal agreement with these licensing terms.

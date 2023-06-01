@@ -20,6 +20,7 @@ fn dump() {
     println!("sse4.2: {:?}", is_x86_feature_detected!("sse4.2"));
     println!("sse4a: {:?}", is_x86_feature_detected!("sse4a"));
     println!("sha: {:?}", is_x86_feature_detected!("sha"));
+    println!("f16c: {:?}", is_x86_feature_detected!("f16c"));
     println!("avx: {:?}", is_x86_feature_detected!("avx"));
     println!("avx2: {:?}", is_x86_feature_detected!("avx2"));
     println!("avx512f {:?}", is_x86_feature_detected!("avx512f"));
@@ -64,6 +65,7 @@ fn dump() {
     println!("cmpxchg16b: {:?}", is_x86_feature_detected!("cmpxchg16b"));
     println!("adx: {:?}", is_x86_feature_detected!("adx"));
     println!("rtm: {:?}", is_x86_feature_detected!("rtm"));
+    println!("movbe: {:?}", is_x86_feature_detected!("movbe"));
 }
 
 #[cfg(feature = "std_detect_env_override")]
@@ -108,6 +110,7 @@ fn compare_with_cupid() {
     assert_eq!(is_x86_feature_detected!("sse4.2"), information.sse4_2());
     assert_eq!(is_x86_feature_detected!("sse4a"), information.sse4a());
     assert_eq!(is_x86_feature_detected!("sha"), information.sha());
+    assert_eq!(is_x86_feature_detected!("f16c"), information.f16c());
     assert_eq!(is_x86_feature_detected!("avx"), information.avx());
     assert_eq!(is_x86_feature_detected!("avx2"), information.avx2());
     assert_eq!(is_x86_feature_detected!("avx512f"), information.avx512f());
@@ -152,4 +155,5 @@ fn compare_with_cupid() {
     );
     assert_eq!(is_x86_feature_detected!("adx"), information.adx(),);
     assert_eq!(is_x86_feature_detected!("rtm"), information.rtm(),);
+    assert_eq!(is_x86_feature_detected!("movbe"), information.movbe(),);
 }

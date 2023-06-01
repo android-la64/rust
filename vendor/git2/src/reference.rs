@@ -8,8 +8,8 @@ use std::str;
 use crate::object::CastOrPanic;
 use crate::util::{c_cmp_to_ordering, Binding};
 use crate::{
-    raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceFormat, ReferenceType, Repository,
-    Tag, Tree,
+    call, raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceFormat, ReferenceType,
+    Repository, Tag, Tree,
 };
 
 // Not in the public header files (yet?), but a hard limit used by libgit2
@@ -62,7 +62,15 @@ impl<'repo> Reference<'repo> {
     pub fn is_valid_name(refname: &str) -> bool {
         crate::init();
         let refname = CString::new(refname).unwrap();
-        unsafe { raw::git_reference_is_valid_name(refname.as_ptr()) == 1 }
+        let mut valid: libc::c_int = 0;
+        unsafe {
+            call::c_try(raw::git_reference_name_is_valid(
+                &mut valid,
+                refname.as_ptr(),
+            ))
+            .unwrap();
+        }
+        valid == 1
     }
 
     /// Normalize reference name and check validity.
@@ -361,6 +369,35 @@ impl<'repo> Reference<'repo> {
             Ok(Binding::from_raw(raw))
         }
     }
+
+    /// Create a new reference with the same name as the given reference but a
+    /// different symbolic target. The reference must be a symbolic reference,
+    /// otherwise this will fail.
+    ///
+    /// The new reference will be written to disk, overwriting the given
+    /// reference.
+    ///
+    /// The target name will be checked for validity. See
+    /// [`Repository::reference_symbolic`] for rules about valid names.
+    ///
+    /// The message for the reflog will be ignored if the reference does not
+    /// belong in the standard set (HEAD, branches and remote-tracking
+    /// branches) and it does not have a reflog.
+    pub fn symbolic_set_target(
+        &mut self,
+        target: &str,
+        reflog_msg: &str,
+    ) -> Result<Reference<'repo>, Error> {
+        let mut raw = ptr::null_mut();
+        let target = CString::new(target)?;
+        let msg = CString::new(reflog_msg)?;
+        unsafe {
+            try_call!(raw::git_reference_symbolic_set_target(
+                &mut raw, self.raw, target, msg
+            ));
+            Ok(Binding::from_raw(raw))
+        }
+    }
 }
 
 impl<'repo> PartialOrd for Reference<'repo> {
@@ -463,13 +500,23 @@ mod tests {
     use crate::{ObjectType, Reference, ReferenceType};
 
     #[test]
-    fn smoke() {
+    fn is_valid_name() {
         assert!(Reference::is_valid_name("refs/foo"));
         assert!(!Reference::is_valid_name("foo"));
+        assert!(Reference::is_valid_name("FOO_BAR"));
+
+        assert!(!Reference::is_valid_name("foo"));
+        assert!(!Reference::is_valid_name("_FOO_BAR"));
     }
 
     #[test]
-    fn smoke2() {
+    #[should_panic]
+    fn is_valid_name_for_invalid_ref() {
+        Reference::is_valid_name("ab\012");
+    }
+
+    #[test]
+    fn smoke() {
         let (_td, repo) = crate::test::repo_init();
         let mut head = repo.head().unwrap();
         assert!(head.is_branch());
@@ -512,6 +559,14 @@ mod tests {
             .reference_symbolic("refs/tags/tag1", "refs/heads/main", false, "test")
             .unwrap();
         assert_eq!(sym1.kind().unwrap(), ReferenceType::Symbolic);
+        let mut sym2 = repo
+            .reference_symbolic("refs/tags/tag2", "refs/heads/main", false, "test")
+            .unwrap()
+            .symbolic_set_target("refs/tags/tag1", "test")
+            .unwrap();
+        assert_eq!(sym2.kind().unwrap(), ReferenceType::Symbolic);
+        assert_eq!(sym2.symbolic_target().unwrap(), "refs/tags/tag1");
+        sym2.delete().unwrap();
         sym1.delete().unwrap();
 
         {

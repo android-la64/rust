@@ -1,5 +1,5 @@
 <!--
-Copyright (C) 1998 - 2022 Daniel Stenberg, <daniel@haxx.se>, et al.
+Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 
 SPDX-License-Identifier: curl
 -->
@@ -54,9 +54,9 @@ below.
 Here are the different CI environments that are currently in use, and how they
 are configured:
 
-### Github Actions
+### GitHub Actions
 
-Github Actions runs the following tests:
+GitHub Actions runs the following tests:
 
 - Mac OS tests with a variety of different compilation options
 - Fuzz tests ([see tests/fuzz/README for
@@ -92,23 +92,7 @@ The tests are configured in `appveyor.yml`.
 
 ### Zuul
 
-[Zuul](https://zuul-ci.org/) is an open source CI tool. A number of Curl tests
-are run at [curl.zuul.vexxhost.dev](https://curl.zuul.vexxhost.dev/builds):
-
-- Source code is formatted according to expectations (`make checksrc`).
-- Curl compiled with a number of different TLS configurations (WolfSSL, rustls,
-BoringSSL, etc).
-- Curl compiled with different C compilers.
-
-As of November 2021, the tests run (sometimes) but do not run consistently and
-do not report results to the Github checks runner - you need to manually check
-for failures. See [#7522](https://github.com/curl/curl/issues/7522) for more
-information.
-
-As of November 2021 Daniel Stenberg is the only person with administrator
-access to the Zuul CI environment.
-
-These are configured in `zuul.d` and have test runners in `scripts/zuul`.
+Not used anymore.
 
 ### Circle CI
 

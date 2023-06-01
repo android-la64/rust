@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "libgit2-sys"
-version = "0.14.1+1.5.0"
+version = "0.15.0+1.6.3"
 authors = [
     "Josh Triplett <josh@joshtriplett.org>",
     "Alex Crichton <alex@alexcrichton.com>",
@@ -38,7 +38,7 @@ path = "lib.rs"
 version = "0.2"
 
 [dependencies.libssh2-sys]
-version = "0.2.19"
+version = "0.3.0"
 optional = true
 
 [dependencies.libz-sys]

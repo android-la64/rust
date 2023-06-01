@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.60"
 name = "mdbook"
-version = "0.4.25"
+version = "0.4.28"
 authors = [
     "Mathieu David <mathieudavid@mathieudavid.org>",
     "Michael-F-Bryan <michaelfbryan@gmail.com>",
@@ -49,6 +49,8 @@ version = "1.0.28"
 
 [dependencies.chrono]
 version = "0.4"
+features = ["clock"]
+default-features = false
 
 [dependencies.clap]
 version = "4.0.29"

@@ -47,10 +47,10 @@ mod sealed {
     #[cfg_attr(all(test, target_endian = "big"), assert_instr(xxspltd, dm = 0x0))]
     unsafe fn xxpermdi(a: i64x2, b: i64x2, dm: u8) -> i64x2 {
         match dm & 0b11 {
-            0 => simd_shuffle2!(a, b, [0b00, 0b10]),
-            1 => simd_shuffle2!(a, b, [0b01, 0b10]),
-            2 => simd_shuffle2!(a, b, [0b00, 0b11]),
-            _ => simd_shuffle2!(a, b, [0b01, 0b11]),
+            0 => simd_shuffle!(a, b, [0b00, 0b10]),
+            1 => simd_shuffle!(a, b, [0b01, 0b10]),
+            2 => simd_shuffle!(a, b, [0b00, 0b11]),
+            _ => simd_shuffle!(a, b, [0b01, 0b11]),
         }
     }
 
@@ -80,7 +80,7 @@ pub unsafe fn vec_xxpermdi<T, const DM: i32>(a: T, b: T) -> T
 where
     T: sealed::VectorPermDI,
 {
-    static_assert_imm2!(DM);
+    static_assert_uimm_bits!(DM, 2);
     a.vec_xxpermdi(b, DM as u8)
 }
 

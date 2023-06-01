@@ -231,14 +231,11 @@ fn build_work(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Job> {
     for cfg in bcx.target_data.cfg(unit.kind) {
         match *cfg {
             Cfg::Name(ref n) => {
-                cfg_map.insert(n.clone(), None);
+                cfg_map.insert(n.clone(), Vec::new());
             }
             Cfg::KeyPair(ref k, ref v) => {
-                if let Some(ref mut values) =
-                    *cfg_map.entry(k.clone()).or_insert_with(|| Some(Vec::new()))
-                {
-                    values.push(v.clone())
-                }
+                let values = cfg_map.entry(k.clone()).or_default();
+                values.push(v.clone());
             }
         }
     }
@@ -249,14 +246,7 @@ fn build_work(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Job> {
             continue;
         }
         let k = format!("CARGO_CFG_{}", super::envify(&k));
-        match v {
-            Some(list) => {
-                cmd.env(&k, list.join(","));
-            }
-            None => {
-                cmd.env(&k, "");
-            }
-        }
+        cmd.env(&k, v.join(","));
     }
 
     // Also inform the build script of the rustc compiler context.
@@ -420,6 +410,10 @@ fn build_work(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Job> {
                 // If we're opting into backtraces, mention that build dependencies' backtraces can
                 // be improved by requesting debuginfo to be built, if we're not building with
                 // debuginfo already.
+                //
+                // ALLOWED: Other tools like `rustc` might read it directly
+                // through `std::env`. We should make their behavior consistent.
+                #[allow(clippy::disallowed_methods)]
                 if let Ok(show_backtraces) = std::env::var("RUST_BACKTRACE") {
                     if !built_with_debuginfo && show_backtraces != "0" {
                         build_error_context.push_str(&format!(
@@ -737,6 +731,10 @@ impl BuildOutput {
                                 None => return false,
                                 Some(n) => n,
                             };
+                            // ALLOWED: the process of rustc boostrapping reads this through
+                            // `std::env`. We should make the behavior consistent. Also, we
+                            // don't advertise this for bypassing nightly.
+                            #[allow(clippy::disallowed_methods)]
                             std::env::var("RUSTC_BOOTSTRAP")
                                 .map_or(false, |var| var.split(',').any(|s| s == name))
                         };

@@ -26,7 +26,7 @@ fn main() {
     let arch = var("CARGO_CFG_TARGET_ARCH").unwrap();
     let asm_name = format!("{}/{}.s", OUTLINE_PATH, arch);
     let asm_name_present = std::fs::metadata(&asm_name).is_ok();
-    let os_name = var("CARGO_CFG_TARGET_OS").unwrap();
+    let target_os = var("CARGO_CFG_TARGET_OS").unwrap();
     let pointer_width = var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap();
     let endian = var("CARGO_CFG_TARGET_ENDIAN").unwrap();
 
@@ -69,7 +69,7 @@ fn main() {
     // install the toolchain for it.
     if feature_use_libc
         || cfg_use_libc
-        || os_name != "linux"
+        || target_os != "linux"
         || !asm_name_present
         || is_unsupported_abi
         || miri
@@ -106,7 +106,47 @@ fn main() {
         use_feature("thumb_mode");
     }
 
+    // Rust's libc crate groups some OS's together which have similar APIs;
+    // create similarly-named features to make `cfg` tests more concise.
+    if target_os == "freebsd" || target_os == "dragonfly" {
+        use_feature("freebsdlike");
+    }
+    if target_os == "openbsd" || target_os == "netbsd" {
+        use_feature("netbsdlike");
+    }
+    if target_os == "macos" || target_os == "ios" || target_os == "tvos" || target_os == "watchos" {
+        use_feature("apple");
+    }
+    if target_os == "linux"
+        || target_os == "l4re"
+        || target_os == "android"
+        || target_os == "emscripten"
+    {
+        use_feature("linux_like");
+    }
+    if target_os == "solaris" || target_os == "illumos" {
+        use_feature("solarish");
+    }
+    if target_os == "macos"
+        || target_os == "ios"
+        || target_os == "tvos"
+        || target_os == "watchos"
+        || target_os == "freebsd"
+        || target_os == "dragonfly"
+        || target_os == "openbsd"
+        || target_os == "netbsd"
+    {
+        use_feature("bsd");
+    }
+
     println!("cargo:rerun-if-env-changed=CARGO_CFG_RUSTIX_USE_EXPERIMENTAL_ASM");
+    println!("cargo:rerun-if-env-changed=CARGO_CFG_RUSTIX_USE_LIBC");
+
+    // Rerun this script if any of our features or configuration flags change,
+    // or if the toolchain we used for feature detection changes.
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_USE_LIBC");
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_RUSTC_DEP_OF_STD");
+    println!("cargo:rerun-if-env-changed=CARGO_CFG_MIRI");
 }
 
 /// Link in the desired version of librustix_outline_{arch}.a, containing the
@@ -130,7 +170,15 @@ fn link_in_librustix_outline(arch: &str, asm_name: &str) {
     #[cfg(feature = "cc")]
     {
         let out_dir = var("OUT_DIR").unwrap();
-        Build::new().file(&asm_name).compile(&name);
+        // Add `-gdwarf-3` so that we always get the same output, regardless of
+        // the Rust version we're using. DWARF3 is the version used in
+        // Rust 1.48 and is entirely adequate for our simple needs here.
+        let mut build = Build::new();
+        if profile == "debug" {
+            build.flag("-gdwarf-3");
+        }
+        build.file(&asm_name);
+        build.compile(&name);
         println!("cargo:rerun-if-changed={}", asm_name);
         if std::fs::metadata(".git").is_ok() {
             let from = format!("{}/lib{}.a", out_dir, name);
@@ -173,33 +221,60 @@ fn use_feature(feature: &str) {
 
 /// Test whether the rustc at `var("RUSTC")` supports the given feature.
 fn has_feature(feature: &str) -> bool {
-    can_compile(&format!(
+    can_compile(format!(
         "#![allow(stable_features)]\n#![feature({})]",
         feature
     ))
 }
 
 /// Test whether the rustc at `var("RUSTC")` can compile the given code.
-fn can_compile(code: &str) -> bool {
+fn can_compile<T: AsRef<str>>(test: T) -> bool {
     use std::process::Stdio;
+
     let out_dir = var("OUT_DIR").unwrap();
     let rustc = var("RUSTC").unwrap();
     let target = var("TARGET").unwrap();
 
-    let mut child = std::process::Command::new(rustc)
-        .arg("--crate-type=rlib") // Don't require `main`.
+    // Use `RUSTC_WRAPPER` if it's set, unless it's set to an empty string,
+    // as documented [here].
+    // [here]: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads
+    let wrapper = var("RUSTC_WRAPPER")
+        .ok()
+        .and_then(|w| if w.is_empty() { None } else { Some(w) });
+
+    let mut cmd = if let Some(wrapper) = wrapper {
+        let mut cmd = std::process::Command::new(wrapper);
+        // The wrapper's first argument is supposed to be the path to rustc.
+        cmd.arg(rustc);
+        cmd
+    } else {
+        std::process::Command::new(rustc)
+    };
+
+    cmd.arg("--crate-type=rlib") // Don't require `main`.
         .arg("--emit=metadata") // Do as little as possible but still parse.
         .arg("--target")
         .arg(target)
         .arg("--out-dir")
-        .arg(out_dir) // Put the output somewhere inconsequential.
+        .arg(out_dir); // Put the output somewhere inconsequential.
+
+    // If Cargo wants to set RUSTFLAGS, use that.
+    if let Ok(rustflags) = var("CARGO_ENCODED_RUSTFLAGS") {
+        if !rustflags.is_empty() {
+            for arg in rustflags.split('\x1f') {
+                cmd.arg(arg);
+            }
+        }
+    }
+
+    let mut child = cmd
         .arg("-") // Read from stdin.
         .stdin(Stdio::piped()) // Stdin is a pipe.
-        .stderr(Stdio::null())
+        .stderr(Stdio::null()) // Errors from feature detection aren't interesting and can be confusing.
         .spawn()
         .unwrap();
 
-    writeln!(child.stdin.take().unwrap(), "{}", code).unwrap();
+    writeln!(child.stdin.take().unwrap(), "{}", test.as_ref()).unwrap();
 
     child.wait().unwrap().success()
 }
