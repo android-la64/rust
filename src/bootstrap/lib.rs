@@ -19,13 +19,14 @@
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::fmt::Display;
 use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str;
 
-use build_helper::ci::CiEnv;
+use build_helper::ci::{gha, CiEnv};
 use channel::GitInfo;
 use config::{DryRun, Target};
 use filetime::FileTime;
@@ -130,8 +131,7 @@ const EXTRA_CHECK_CFGS: &[(Option<Mode>, &'static str, Option<&[&'static str]>)]
     /* Extra values not defined in the built-in targets yet, but used in std */
     (Some(Mode::Std), "target_env", Some(&["libnx"])),
     // (Some(Mode::Std), "target_os", Some(&[])),
-    // #[cfg(bootstrap)] loongarch64
-    (Some(Mode::Std), "target_arch", Some(&["asmjs", "spirv", "nvptx", "xtensa", "loongarch64"])),
+    (Some(Mode::Std), "target_arch", Some(&["asmjs", "spirv", "nvptx", "xtensa"])),
     /* Extra names used by dependencies */
     // FIXME: Used by serde_json, but we should not be triggering on external dependencies.
     (Some(Mode::Rustc), "no_btreemap_remove_entry", None),
@@ -151,8 +151,6 @@ const EXTRA_CHECK_CFGS: &[(Option<Mode>, &'static str, Option<&[&'static str]>)]
     // Needed to avoid the need to copy windows.lib into the sysroot.
     (Some(Mode::Rustc), "windows_raw_dylib", None),
     (Some(Mode::ToolRustc), "windows_raw_dylib", None),
-    // #[cfg(bootstrap)] ohos
-    (Some(Mode::Std), "target_env", Some(&["ohos"])),
 ];
 
 /// A structure representing a Rust compiler.
@@ -238,8 +236,6 @@ pub struct Build {
     ci_env: CiEnv,
     delayed_failures: RefCell<Vec<String>>,
     prerelease_version: Cell<Option<u32>>,
-    tool_artifacts:
-        RefCell<HashMap<TargetSelection, HashMap<String, (&'static str, PathBuf, Vec<String>)>>>,
 
     #[cfg(feature = "build-metrics")]
     metrics: metrics::BuildMetrics,
@@ -250,6 +246,7 @@ struct Crate {
     name: Interned<String>,
     deps: HashSet<Interned<String>>,
     path: PathBuf,
+    has_lib: bool,
 }
 
 impl Crate {
@@ -417,6 +414,7 @@ impl Build {
                 bootstrap_out.display()
             )
         }
+        config.check_build_rustc_version();
 
         if rust_info.is_from_tarball() && config.description.is_none() {
             config.description = Some("built from a source tarball".to_owned());
@@ -458,7 +456,6 @@ impl Build {
             ci_env: CiEnv::current(),
             delayed_failures: RefCell::new(Vec::new()),
             prerelease_version: Cell::new(None),
-            tool_artifacts: Default::default(),
 
             #[cfg(feature = "build-metrics")]
             metrics: metrics::BuildMetrics::init(),
@@ -664,8 +661,8 @@ impl Build {
 
         // hardcoded subcommands
         match &self.config.cmd {
-            Subcommand::Format { check, paths } => {
-                return format::format(&builder::Builder::new(&self), *check, &paths);
+            Subcommand::Format { check } => {
+                return format::format(&builder::Builder::new(&self), *check, &self.config.paths);
             }
             Subcommand::Suggest { run } => {
                 return suggest::suggest(&builder::Builder::new(&self), *run);
@@ -996,6 +993,89 @@ impl Build {
         }
     }
 
+    fn msg_check(
+        &self,
+        what: impl Display,
+        target: impl Into<Option<TargetSelection>>,
+    ) -> Option<gha::Group> {
+        self.msg(Kind::Check, self.config.stage, what, self.config.build, target)
+    }
+
+    fn msg_build(
+        &self,
+        compiler: Compiler,
+        what: impl Display,
+        target: impl Into<Option<TargetSelection>>,
+    ) -> Option<gha::Group> {
+        self.msg(Kind::Build, compiler.stage, what, compiler.host, target)
+    }
+
+    /// Return a `Group` guard for a [`Step`] that is built for each `--stage`.
+    ///
+    /// [`Step`]: crate::builder::Step
+    fn msg(
+        &self,
+        action: impl Into<Kind>,
+        stage: u32,
+        what: impl Display,
+        host: impl Into<Option<TargetSelection>>,
+        target: impl Into<Option<TargetSelection>>,
+    ) -> Option<gha::Group> {
+        let action = action.into();
+        let msg = |fmt| format!("{action:?}ing stage{stage} {what}{fmt}");
+        let msg = if let Some(target) = target.into() {
+            let host = host.into().unwrap();
+            if host == target {
+                msg(format_args!(" ({target})"))
+            } else {
+                msg(format_args!(" ({host} -> {target})"))
+            }
+        } else {
+            msg(format_args!(""))
+        };
+        self.group(&msg)
+    }
+
+    /// Return a `Group` guard for a [`Step`] that is only built once and isn't affected by `--stage`.
+    ///
+    /// [`Step`]: crate::builder::Step
+    fn msg_unstaged(
+        &self,
+        action: impl Into<Kind>,
+        what: impl Display,
+        target: TargetSelection,
+    ) -> Option<gha::Group> {
+        let action = action.into();
+        let msg = format!("{action:?}ing {what} for {target}");
+        self.group(&msg)
+    }
+
+    fn msg_sysroot_tool(
+        &self,
+        action: impl Into<Kind>,
+        stage: u32,
+        what: impl Display,
+        host: TargetSelection,
+        target: TargetSelection,
+    ) -> Option<gha::Group> {
+        let action = action.into();
+        let msg = |fmt| format!("{action:?}ing {what} {fmt}");
+        let msg = if host == target {
+            msg(format_args!("(stage{stage} -> stage{}, {target})", stage + 1))
+        } else {
+            msg(format_args!("(stage{stage}:{host} -> stage{}:{target})", stage + 1))
+        };
+        self.group(&msg)
+    }
+
+    fn group(&self, msg: &str) -> Option<gha::Group> {
+        self.info(&msg);
+        match self.config.dry_run {
+            DryRun::SelfCheck => None,
+            DryRun::Disabled | DryRun::UserSelected => Some(gha::group(&msg)),
+        }
+    }
+
     /// Returns the number of parallel jobs that have been configured for this
     /// build.
     fn jobs(&self) -> u32 {
@@ -1248,7 +1328,7 @@ impl Build {
         match &self.config.channel[..] {
             "stable" => num.to_string(),
             "beta" => {
-                if self.rust_info().is_managed_git_subrepository() && !self.config.omit_git_hash {
+                if !self.config.omit_git_hash {
                     format!("{}-beta.{}", num, self.beta_prerelease_version())
                 } else {
                     format!("{}-beta", num)
@@ -1260,18 +1340,28 @@ impl Build {
     }
 
     fn beta_prerelease_version(&self) -> u32 {
+        fn extract_beta_rev_from_file<P: AsRef<Path>>(version_file: P) -> Option<String> {
+            let version = fs::read_to_string(version_file).ok()?;
+
+            extract_beta_rev(&version)
+        }
+
         if let Some(s) = self.prerelease_version.get() {
             return s;
         }
 
-        // Figure out how many merge commits happened since we branched off master.
-        // That's our beta number!
-        // (Note that we use a `..` range, not the `...` symmetric difference.)
-        let count =
+        // First check if there is a version file available.
+        // If available, we read the beta revision from that file.
+        // This only happens when building from a source tarball when Git should not be used.
+        let count = extract_beta_rev_from_file(self.src.join("version")).unwrap_or_else(|| {
+            // Figure out how many merge commits happened since we branched off master.
+            // That's our beta number!
+            // (Note that we use a `..` range, not the `...` symmetric difference.)
             output(self.config.git().arg("rev-list").arg("--count").arg("--merges").arg(format!(
                 "refs/remotes/origin/{}..HEAD",
                 self.config.stage0_metadata.config.nightly_branch
-            )));
+            )))
+        });
         let n = count.trim().parse().unwrap();
         self.prerelease_version.set(Some(n));
         n
@@ -1629,6 +1719,17 @@ to download LLVM rather than building it.
         stream.reset().unwrap();
         result
     }
+}
+
+/// Extract the beta revision from the full version string.
+///
+/// The full version string looks like "a.b.c-beta.y". And we need to extract
+/// the "y" part from the string.
+pub fn extract_beta_rev(version: &str) -> Option<String> {
+    let parts = version.splitn(2, "-beta.").collect::<Vec<_>>();
+    let count = parts.get(1).and_then(|s| s.find(' ').map(|p| (&s[..p]).to_string()));
+
+    count
 }
 
 #[cfg(unix)]

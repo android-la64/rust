@@ -2,8 +2,8 @@ use crate::coercion::CoerceMany;
 use crate::fn_ctxt::arg_matrix::{ArgMatrix, Compatibility, Error, ExpectedIdx, ProvidedIdx};
 use crate::gather_locals::Declaration;
 use crate::method::MethodCallee;
-use crate::Expectation::*;
 use crate::TupleArgumentsFlag::*;
+use crate::{errors, Expectation::*};
 use crate::{
     struct_span_err, BreakableCtxt, Diverges, Expectation, FnCtxt, LocalTy, Needs, RawTy,
     TupleArgumentsFlag,
@@ -21,7 +21,7 @@ use rustc_hir_analysis::astconv::AstConv;
 use rustc_hir_analysis::check::intrinsicck::InlineAsmCtxt;
 use rustc_hir_analysis::check::potentially_plural_count;
 use rustc_hir_analysis::structured_errors::StructuredDiagnostic;
-use rustc_index::vec::IndexVec;
+use rustc_index::IndexVec;
 use rustc_infer::infer::error_reporting::{FailureCode, ObligationCauseExt};
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
 use rustc_infer::infer::TypeTrace;
@@ -283,19 +283,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     if idx == 1 && !self.tcx.is_const_fn_raw(*def_id) {
                         self.tcx
                             .sess
-                            .struct_span_err(provided_arg.span, "this argument must be a `const fn`")
-                            .help("consult the documentation on `const_eval_select` for more information")
-                            .emit();
+                            .emit_err(errors::ConstSelectMustBeConst { span: provided_arg.span });
                     }
                 } else {
-                    self.tcx
-                        .sess
-                        .struct_span_err(provided_arg.span, "this argument must be a function item")
-                        .note(format!("expected a function item, found {checked_ty}"))
-                        .help(
-                            "consult the documentation on `const_eval_select` for more information",
-                        )
-                        .emit();
+                    self.tcx.sess.emit_err(errors::ConstSelectMustBeFn {
+                        span: provided_arg.span,
+                        ty: checked_ty,
+                    });
                 }
             }
 
@@ -368,7 +362,16 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     continue;
                 }
 
-                let is_closure = matches!(arg.kind, ExprKind::Closure { .. });
+                // For this check, we do *not* want to treat async generator closures (async blocks)
+                // as proper closures. Doing so would regress type inference when feeding
+                // the return value of an argument-position async block to an argument-position
+                // closure wrapped in a block.
+                // See <https://github.com/rust-lang/rust/issues/112225>.
+                let is_closure = if let ExprKind::Closure(closure) = arg.kind {
+                    !tcx.generator_is_async(closure.def_id.to_def_id())
+                } else {
+                    false
+                };
                 if is_closure != check_closures {
                     continue;
                 }
@@ -691,7 +694,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     } else {
                         err = tcx.sess.struct_span_err_with_code(
                             full_call_span,
-                            &format!(
+                            format!(
                                 "{call_name} takes {}{} but {} {} supplied",
                                 if c_variadic { "at least " } else { "" },
                                 potentially_plural_count(
@@ -744,17 +747,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             if cfg!(debug_assertions) {
                 span_bug!(error_span, "expected errors from argument matrix");
             } else {
-                tcx.sess
-                    .struct_span_err(
-                        error_span,
-                        "argument type mismatch was detected, \
-                        but rustc had trouble determining where",
-                    )
-                    .note(
-                        "we would appreciate a bug report: \
-                        https://github.com/rust-lang/rust/issues/new",
-                    )
-                    .emit();
+                tcx.sess.emit_err(errors::ArgMismatchIndeterminate { span: error_span });
             }
             return;
         }
@@ -844,7 +837,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         } else {
             tcx.sess.struct_span_err_with_code(
                 full_call_span,
-                &format!(
+                format!(
                     "this {} takes {}{} but {} {} supplied",
                     call_name,
                     if c_variadic { "at least " } else { "" },
@@ -892,7 +885,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let mut errors = errors.into_iter().peekable();
         let mut only_extras_so_far = errors
             .peek()
-            .map_or(false, |first| matches!(first, Error::Extra(arg_idx) if arg_idx.index() == 0));
+            .is_some_and(|first| matches!(first, Error::Extra(arg_idx) if arg_idx.index() == 0));
         let mut suggestions = vec![];
         while let Some(error) = errors.next() {
             only_extras_so_far &= matches!(error, Error::Extra(_));
@@ -1219,7 +1212,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             }
             SuggestionText::Remove(plural) => {
                 err.multipart_suggestion(
-                    &format!("remove the extra argument{}", if plural { "s" } else { "" }),
+                    format!("remove the extra argument{}", if plural { "s" } else { "" }),
                     suggestions,
                     Applicability::HasPlaceholders,
                 );
@@ -1269,7 +1262,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             suggestion += ")";
             err.span_suggestion_verbose(
                 suggestion_span,
-                &suggestion_text,
+                suggestion_text,
                 suggestion,
                 Applicability::HasPlaceholders,
             );
@@ -1316,6 +1309,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 opt_ty.unwrap_or_else(|| self.next_float_var())
             }
             ast::LitKind::Bool(_) => tcx.types.bool,
+            ast::LitKind::CStr(_, _) => tcx.mk_imm_ref(
+                tcx.lifetimes.re_static,
+                tcx.type_of(tcx.require_lang_item(hir::LangItem::CStr, Some(lit.span)))
+                    .skip_binder(),
+            ),
             ast::LitKind::Err => tcx.ty_error_misc(),
         }
     }
@@ -1530,7 +1528,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // case we can ignore the tail expression (e.g., `'a: {
         // break 'a 22; }` would not force the type of the block
         // to be `()`).
-        let tail_expr = blk.expr.as_ref();
         let coerce_to_ty = expected.coercion_target_type(self, blk.span);
         let coerce = if blk.targeted_by_break {
             CoerceMany::new(coerce_to_ty)
@@ -1548,13 +1545,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
             // check the tail expression **without** holding the
             // `enclosing_breakables` lock below.
-            let tail_expr_ty = tail_expr.map(|t| self.check_expr_with_expectation(t, expected));
+            let tail_expr_ty =
+                blk.expr.map(|expr| (expr, self.check_expr_with_expectation(expr, expected)));
 
             let mut enclosing_breakables = self.enclosing_breakables.borrow_mut();
             let ctxt = enclosing_breakables.find_breakable(blk.hir_id);
             let coerce = ctxt.coerce.as_mut().unwrap();
-            if let Some(tail_expr_ty) = tail_expr_ty {
-                let tail_expr = tail_expr.unwrap();
+            if let Some((tail_expr, tail_expr_ty)) = tail_expr_ty {
                 let span = self.get_expr_coercion_span(tail_expr);
                 let cause = self.cause(span, ObligationCauseCode::BlockTailExpression(blk.hir_id));
                 let ty_for_diagnostic = coerce.merged_ty();
@@ -1607,6 +1604,15 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         &self.misc(sp),
                         &mut |err| {
                             if let Some(expected_ty) = expected.only_has_type(self) {
+                                if blk.stmts.is_empty() && blk.expr.is_none() {
+                                    self.suggest_boxing_when_appropriate(
+                                        err,
+                                        blk.span,
+                                        blk.hir_id,
+                                        expected_ty,
+                                        self.tcx.mk_unit(),
+                                    );
+                                }
                                 if !self.consider_removing_semicolon(blk, expected_ty, err) {
                                     self.err_ctxt().consider_returning_binding(
                                         blk,
@@ -1619,7 +1625,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                                     // silence this redundant error, as we already emit E0070.
 
                                     // Our block must be a `assign desugar local; assignment`
-                                    if let Some(hir::Node::Block(hir::Block {
+                                    if let hir::Block {
                                         stmts:
                                             [
                                                 hir::Stmt {
@@ -1641,7 +1647,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                                                 },
                                             ],
                                         ..
-                                    })) = self.tcx.hir().find(blk.hir_id)
+                                    } = blk
                                     {
                                         self.comes_from_while_condition(blk.hir_id, |_| {
                                             err.downgrade_to_delayed_bug();
@@ -1911,7 +1917,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 _ => {
                     // Look for a user-provided impl of a `Fn` trait, and point to it.
                     let new_def_id = self.probe(|_| {
-                        let trait_ref = self.tcx.mk_trait_ref(
+                        let trait_ref = ty::TraitRef::new(self.tcx,
                             call_kind.to_def_id(self.tcx),
                             [
                                 callee_ty,
@@ -1963,7 +1969,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 spans.push_span_label(param.span, "");
             }
 
-            err.span_note(spans, &format!("{} defined here", self.tcx.def_descr(def_id)));
+            err.span_note(spans, format!("{} defined here", self.tcx.def_descr(def_id)));
         } else if let Some(hir::Node::Expr(e)) = self.tcx.hir().get_if_local(def_id)
             && let hir::ExprKind::Closure(hir::Closure { body, .. }) = &e.kind
         {
@@ -1974,11 +1980,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             } else {
                 ("closure", self.tcx.def_span(def_id))
             };
-            err.span_note(span, &format!("{} defined here", kind));
+            err.span_note(span, format!("{} defined here", kind));
         } else {
             err.span_note(
                 self.tcx.def_span(def_id),
-                &format!("{} defined here", self.tcx.def_descr(def_id)),
+                format!("{} defined here", self.tcx.def_descr(def_id)),
             );
         }
     }

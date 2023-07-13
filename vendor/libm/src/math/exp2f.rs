@@ -73,7 +73,6 @@ static EXP2FT: [u64; TBLSIZE] = [
 /// Exponential, base 2 (f32)
 ///
 /// Calculate `2^x`, that is, 2 raised to the power `x`.
-#[inline]
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn exp2f(mut x: f32) -> f32 {
     let redux = f32::from_bits(0x4b400000) / TBLSIZE as f32;
@@ -127,7 +126,7 @@ pub fn exp2f(mut x: f32) -> f32 {
     uf -= redux;
     let z: f64 = (x - uf) as f64;
     /* Compute r = exp2(y) = exp2ft[i0] * p(z). */
-    let r: f64 = f64::from_bits(EXP2FT[i0 as usize]);
+    let r: f64 = f64::from_bits(i!(EXP2FT, i0 as usize));
     let t: f64 = r as f64 * z;
     let r: f64 = r + t * (p1 as f64 + z * p2 as f64) + t * (z * z) * (p3 as f64 + z * p4 as f64);
 

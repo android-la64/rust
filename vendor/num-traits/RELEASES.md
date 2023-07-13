@@ -1,3 +1,58 @@
+# Release 0.2.15 (2022-05-02)
+
+- [The new `Euclid` trait calculates Euclidean division][195], where the
+  remainder is always positive or zero.
+- [The new `LowerBounded` and `UpperBounded` traits][210] separately describe
+  types with lower and upper bounds. These traits are automatically implemented
+  for all fully-`Bounded` types.
+- [The new `Float::copysign` method copies the sign of the argument][207] to
+  to the magnitude of `self`.
+- [The new `PrimInt::leading_ones` and `trailing_ones` methods][205] are the
+  complement of the existing methods that count zero bits.
+- [The new `PrimInt::reverse_bits` method reverses the order of all bits][202]
+  of a primitive integer.
+- [Improved `Num::from_str_radix` for floats][201], also [ignoring case][214].
+- [`Float` and `FloatCore` use more from `libm`][196] when that is enabled.
+
+**Contributors**: @alion02, @clarfonthey, @cuviper, @ElectronicRU,
+@ibraheemdev, @SparrowLii, @sshilovsky, @tspiteri, @XAMPPRocky, @Xiretza
+
+[195]: https://github.com/rust-num/num-traits/pull/195
+[196]: https://github.com/rust-num/num-traits/pull/196
+[201]: https://github.com/rust-num/num-traits/pull/201
+[202]: https://github.com/rust-num/num-traits/pull/202
+[205]: https://github.com/rust-num/num-traits/pull/205
+[207]: https://github.com/rust-num/num-traits/pull/207
+[210]: https://github.com/rust-num/num-traits/pull/210
+[214]: https://github.com/rust-num/num-traits/pull/214
+
+# Release 0.2.14 (2020-10-29)
+
+- Clarify the license specification as "MIT OR Apache-2.0".
+
+**Contributors**: @cuviper
+
+# Release 0.2.13 (2020-10-29)
+
+- [The new `OverflowingAdd`, `OverflowingSub`, and `OverflowingMul` traits][180]
+  return a tuple with the operation result and a `bool` indicating overflow.
+- [The "i128" feature now overrides compiler probes for that support][185].
+  This may fix scenarios where `autocfg` probing doesn't work properly.
+- [Casts from large `f64` values to `f32` now saturate to infinity][186]. They
+  previously returned `None` because that was once thought to be undefined
+  behavior, but [rust#15536] resolved that such casts are fine.
+- [`Num::from_str_radix` documents requirements for radix support][192], which
+  are now more relaxed than previously implied. It is suggested to accept at
+  least `2..=36` without panicking, but `Err` may be returned otherwise.
+
+**Contributors**: @cuviper, @Enet4, @KaczuH, @martin-t, @newpavlov
+
+[180]: https://github.com/rust-num/num-traits/pull/180
+[185]: https://github.com/rust-num/num-traits/pull/185
+[186]: https://github.com/rust-num/num-traits/pull/186
+[192]: https://github.com/rust-num/num-traits/issues/192
+[rust#15536]: https://github.com/rust-lang/rust/issues/15536
+
 # Release 0.2.12 (2020-06-11)
 
 - [The new `WrappingNeg` trait][153] will wrap the result if it exceeds the

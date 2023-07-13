@@ -83,7 +83,7 @@ impl<'a> PostExpansionVisitor<'a> {
                     &self,
                     const_extern_fn,
                     span,
-                    &format!("`{}` as a `const fn` ABI is unstable", abi)
+                    format!("`{}` as a `const fn` ABI is unstable", abi)
                 ),
             }
         }
@@ -104,7 +104,7 @@ impl<'a> PostExpansionVisitor<'a> {
                 if self.sess.opts.pretty.map_or(true, |ppm| ppm.needs_hir()) {
                     self.sess.parse_sess.span_diagnostic.delay_span_bug(
                         span,
-                        &format!(
+                        format!(
                             "unrecognized ABI not caught in lowering: {}",
                             symbol_unescaped.as_str()
                         ),
@@ -317,8 +317,7 @@ impl<'a> Visitor<'a> for PostExpansionVisitor<'a> {
         match i.kind {
             ast::ForeignItemKind::Fn(..) | ast::ForeignItemKind::Static(..) => {
                 let link_name = attr::first_attr_value_str_by_name(&i.attrs, sym::link_name);
-                let links_to_llvm =
-                    link_name.map_or(false, |val| val.as_str().starts_with("llvm."));
+                let links_to_llvm = link_name.is_some_and(|val| val.as_str().starts_with("llvm."));
                 if links_to_llvm {
                     gate_feature_post!(
                         &self,
@@ -572,6 +571,7 @@ pub fn check_crate(krate: &ast::Crate, sess: &Session) {
             }
         };
     }
+    gate_all!(c_str_literals, "`c\"..\"` literals are experimental");
     gate_all!(
         if_let_guard,
         "`if let` guards are experimental",
@@ -602,6 +602,13 @@ pub fn check_crate(krate: &ast::Crate, sess: &Session) {
     gate_all!(yeet_expr, "`do yeet` expression is experimental");
     gate_all!(dyn_star, "`dyn*` trait objects are experimental");
     gate_all!(const_closures, "const closures are experimental");
+    gate_all!(builtin_syntax, "`builtin #` syntax is unstable");
+
+    if !visitor.features.negative_bounds {
+        for &span in spans.get(&sym::negative_bounds).iter().copied().flatten() {
+            sess.emit_err(errors::NegativeBoundUnsupported { span });
+        }
+    }
 
     // All uses of `gate_all!` below this point were added in #65742,
     // and subsequently disabled (with the non-early gating readded).

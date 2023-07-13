@@ -10,7 +10,7 @@ pub use iter_from_counts::function::iter_from_counts;
 
 /// The kind of pack entry to be written
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Kind {
     /// A complete base object, including its kind
     Base(gix_object::Kind),
@@ -126,7 +126,7 @@ impl output::Entry {
         })
     }
 
-    /// Create a new instance from the given `oid` and its corresponding git `obj`ect data.
+    /// Create a new instance from the given `oid` and its corresponding git object data `obj`.
     pub fn from_data(count: &output::Count, obj: &gix_object::Data<'_>) -> Result<Self, Error> {
         Ok(output::Entry {
             id: count.id.to_owned(),

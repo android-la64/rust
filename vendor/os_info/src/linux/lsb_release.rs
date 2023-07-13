@@ -16,8 +16,10 @@ pub fn get() -> Option<Info> {
     };
 
     let os_type = match release.distribution.as_ref().map(String::as_ref) {
+        Some("Alpaquita") => Type::Alpaquita,
         Some("Amazon") | Some("AmazonAMI") => Type::Amazon,
         Some("Arch") => Type::Arch,
+        Some("Artix") => Type::Artix,
         Some("CentOS") => Type::CentOS,
         Some("Debian") => Type::Debian,
         Some("EndeavourOS") => Type::EndeavourOS,
@@ -25,9 +27,12 @@ pub fn get() -> Option<Info> {
         Some("Garuda") => Type::Garuda,
         Some("Gentoo") => Type::Gentoo,
         Some("Linuxmint") => Type::Mint,
+        Some("MaboxLinux") => Type::Mabox,
         Some("ManjaroLinux") => Type::Manjaro,
         Some("Mariner") => Type::Mariner,
         Some("NixOS") => Type::NixOS,
+        Some("OpenCloudOS") => Type::OpenCloudOS,
+        Some("openEuler") => Type::openEuler,
         Some("openSUSE") => Type::openSUSE,
         Some("OracleServer") => Type::OracleLinux,
         Some("Pop") => Type::Pop,
@@ -109,9 +114,25 @@ mod tests {
     }
 
     #[test]
+    fn alpaquita() {
+        let parse_results = parse(alpaquita_file());
+        assert_eq!(parse_results.distribution, Some("Alpaquita".to_string()));
+        assert_eq!(parse_results.version, Some("23".to_string()));
+        assert_eq!(parse_results.codename, None);
+    }
+
+    #[test]
     fn arch() {
         let parse_results = parse(arch_file());
         assert_eq!(parse_results.distribution, Some("Arch".to_string()));
+        assert_eq!(parse_results.version, Some("rolling".to_string()));
+        assert_eq!(parse_results.codename, None);
+    }
+
+    #[test]
+    fn artix() {
+        let parse_results = parse(artix_file());
+        assert_eq!(parse_results.distribution, Some("Artix".to_string()));
         assert_eq!(parse_results.version, Some("rolling".to_string()));
         assert_eq!(parse_results.codename, None);
     }
@@ -296,10 +317,25 @@ mod tests {
          "
     }
 
+    fn alpaquita_file() -> &'static str {
+        "\nDistributor ID: Alpaquita\n\
+        Description:    BellSoft Alpaquita Linux Stream 23 (musl)\n\
+        Release:        23\n\
+        Codename:       n/a"
+    }
+
     fn arch_file() -> &'static str {
         "\nLSB Version:	1.4\n\
          Distributor ID:	Arch\n\
          Description:	Arch Linux\n\
+         Release:	rolling\n\
+         Codename:	n/a"
+    }
+
+    fn artix_file() -> &'static str {
+        "\nLSB Version:	n/a\n\
+         Distributor ID:	Artix\n\
+         Description:	Artix Linux\n\
          Release:	rolling\n\
          Codename:	n/a"
     }

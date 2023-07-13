@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/opener/0.5.0")]
+#![doc(html_root_url = "https://docs.rs/opener/0.5.2")]
 
 //! This crate provides the [`open`] function, which opens a file or link with the default program
 //! configured on the system:
@@ -140,15 +140,11 @@ impl Display for OpenError {
                 status,
                 stderr,
             } => {
-                write!(
-                    f,
-                    "command '{}' did not execute successfully; {}",
-                    cmd, status
-                )?;
+                write!(f, "command '{cmd}' did not execute successfully; {status}")?;
 
                 let stderr = stderr.trim();
                 if !stderr.is_empty() {
-                    write!(f, "\ncommand stderr:\n{}", stderr)?;
+                    write!(f, "\ncommand stderr:\n{stderr}")?;
                 }
             }
         }

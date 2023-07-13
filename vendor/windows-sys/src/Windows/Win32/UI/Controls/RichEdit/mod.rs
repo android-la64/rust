@@ -75,15 +75,15 @@ pub const BOM_PLAINTEXT: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
 pub const BOM_UNICODEBIDI: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const CERICHEDIT_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("RichEditCEA");
+pub const CERICHEDIT_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("RichEditCEA");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const CERICHEDIT_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RichEditCEW");
+pub const CERICHEDIT_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("RichEditCEW");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const CF_RETEXTOBJ: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RichEdit Text and Objects");
+pub const CF_RETEXTOBJ: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("RichEdit Text and Objects");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const CF_RTF: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Rich Text Format");
+pub const CF_RTF: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("Rich Text Format");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const CF_RTFNOOBJS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("Rich Text Format Without Objects");
+pub const CF_RTFNOOBJS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("Rich Text Format Without Objects");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
 pub const CTFMODEBIAS_CONVERSATION: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
@@ -583,7 +583,7 @@ pub const MAX_TABLE_CELLS: u32 = 63u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
 pub const MAX_TAB_STOPS: u32 = 32u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const MSFTEDIT_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RICHEDIT50W");
+pub const MSFTEDIT_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("RICHEDIT50W");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
 pub const OLEOP_DOVERB: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
@@ -657,15 +657,15 @@ pub const REO_NULL: i32 = 0i32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
 pub const REO_READWRITEMASK: i32 = 2047i32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const RICHEDIT60_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RICHEDIT60W");
+pub const RICHEDIT60_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("RICHEDIT60W");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const RICHEDIT_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RichEdit20W");
+pub const RICHEDIT_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("RichEdit20W");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const RICHEDIT_CLASS10A: ::windows_sys::core::PCSTR = ::windows_sys::s!("RICHEDIT");
+pub const RICHEDIT_CLASS10A: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("RICHEDIT");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const RICHEDIT_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::s!("RichEdit20A");
+pub const RICHEDIT_CLASSA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("RichEdit20A");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
-pub const RICHEDIT_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::w!("RichEdit20W");
+pub const RICHEDIT_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("RichEdit20W");
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
 pub const RTO_DISABLEHANDLES: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
@@ -2770,9 +2770,9 @@ pub struct CHARFORMATA {
     pub yHeight: i32,
     pub yOffset: i32,
     pub crTextColor: super::super::super::Foundation::COLORREF,
-    pub bCharSet: super::super::super::Graphics::Gdi::EMBED_FONT_CHARSET,
+    pub bCharSet: super::super::super::Graphics::Gdi::FONT_CHARSET,
     pub bPitchAndFamily: u8,
-    pub szFaceName: [super::super::super::Foundation::CHAR; 32],
+    pub szFaceName: [u8; 32],
 }
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 impl ::core::marker::Copy for CHARFORMATA {}
@@ -2792,7 +2792,7 @@ pub struct CHARFORMATW {
     pub yHeight: i32,
     pub yOffset: i32,
     pub crTextColor: super::super::super::Foundation::COLORREF,
-    pub bCharSet: super::super::super::Graphics::Gdi::EMBED_FONT_CHARSET,
+    pub bCharSet: super::super::super::Graphics::Gdi::FONT_CHARSET,
     pub bPitchAndFamily: u8,
     pub szFaceName: [u16; 32],
 }
@@ -3121,12 +3121,31 @@ impl ::core::clone::Clone for GROUPTYPINGCHANGE {
 }
 #[repr(C, packed(4))]
 #[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 pub struct HYPHENATEINFO {
     pub cbSize: i16,
     pub dxHyphenateZone: i16,
     pub pfnHyphenate: isize,
 }
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 impl ::core::marker::Copy for HYPHENATEINFO {}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::core::clone::Clone for HYPHENATEINFO {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+#[repr(C)]
+#[doc = "*Required features: `\"Win32_UI_Controls_RichEdit\"`*"]
+#[cfg(target_arch = "x86")]
+pub struct HYPHENATEINFO {
+    pub cbSize: i16,
+    pub dxHyphenateZone: i16,
+    pub pfnHyphenate: isize,
+}
+#[cfg(target_arch = "x86")]
+impl ::core::marker::Copy for HYPHENATEINFO {}
+#[cfg(target_arch = "x86")]
 impl ::core::clone::Clone for HYPHENATEINFO {
     fn clone(&self) -> Self {
         *self

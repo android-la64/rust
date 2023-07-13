@@ -1,5 +1,6 @@
 #![feature(array_chunks)]
 #![feature(box_patterns)]
+#![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(lint_reasons)]
 #![feature(never_type)]
@@ -76,6 +77,7 @@ use std::sync::OnceLock;
 use std::sync::{Mutex, MutexGuard};
 
 use if_chain::if_chain;
+use itertools::Itertools;
 use rustc_ast::ast::{self, LitKind, RangeLimits};
 use rustc_ast::Attribute;
 use rustc_data_structures::fx::FxHashMap;
@@ -86,10 +88,10 @@ use rustc_hir::hir_id::{HirIdMap, HirIdSet};
 use rustc_hir::intravisit::{walk_expr, FnKind, Visitor};
 use rustc_hir::LangItem::{OptionNone, ResultErr, ResultOk};
 use rustc_hir::{
-    self as hir, def, Arm, ArrayLen, BindingAnnotation, Block, BlockCheckMode, Body, Closure, Constness, Destination,
-    Expr, ExprKind, FnDecl, HirId, Impl, ImplItem, ImplItemKind, ImplItemRef, IsAsync, Item, ItemKind, LangItem, Local,
+    self as hir, def, Arm, ArrayLen, BindingAnnotation, Block, BlockCheckMode, Body, Closure, Destination, Expr,
+    ExprKind, FnDecl, HirId, Impl, ImplItem, ImplItemKind, ImplItemRef, IsAsync, Item, ItemKind, LangItem, Local,
     MatchSource, Mutability, Node, OwnerId, Param, Pat, PatKind, Path, PathSegment, PrimTy, QPath, Stmt, StmtKind,
-    TraitItem, TraitItemKind, TraitItemRef, TraitRef, TyKind, UnOp,
+    TraitItem, TraitItemRef, TraitRef, TyKind, UnOp,
 };
 use rustc_lexer::{tokenize, TokenKind};
 use rustc_lint::{LateContext, Level, Lint, LintContext};
@@ -197,31 +199,7 @@ pub fn find_binding_init<'tcx>(cx: &LateContext<'tcx>, hir_id: HirId) -> Option<
 /// }
 /// ```
 pub fn in_constant(cx: &LateContext<'_>, id: HirId) -> bool {
-    let parent_id = cx.tcx.hir().get_parent_item(id).def_id;
-    match cx.tcx.hir().get_by_def_id(parent_id) {
-        Node::Item(&Item {
-            kind: ItemKind::Const(..) | ItemKind::Static(..) | ItemKind::Enum(..),
-            ..
-        })
-        | Node::TraitItem(&TraitItem {
-            kind: TraitItemKind::Const(..),
-            ..
-        })
-        | Node::ImplItem(&ImplItem {
-            kind: ImplItemKind::Const(..),
-            ..
-        })
-        | Node::AnonConst(_) => true,
-        Node::Item(&Item {
-            kind: ItemKind::Fn(ref sig, ..),
-            ..
-        })
-        | Node::ImplItem(&ImplItem {
-            kind: ImplItemKind::Fn(ref sig, _),
-            ..
-        }) => sig.header.constness == Constness::Const,
-        _ => false,
-    }
+    cx.tcx.hir().is_inside_const_context(id)
 }
 
 /// Checks if a `Res` refers to a constructor of a `LangItem`
@@ -304,6 +282,15 @@ pub fn is_unit_expr(expr: &Expr<'_>) -> bool {
 /// Checks if given pattern is a wildcard (`_`)
 pub fn is_wild(pat: &Pat<'_>) -> bool {
     matches!(pat.kind, PatKind::Wild)
+}
+
+/// Checks if the given `QPath` belongs to a type alias.
+pub fn is_ty_alias(qpath: &QPath<'_>) -> bool {
+    match *qpath {
+        QPath::Resolved(_, path) => matches!(path.res, Res::Def(DefKind::TyAlias | DefKind::AssocTy, ..)),
+        QPath::TypeRelative(ty, _) if let TyKind::Path(qpath) = ty.kind => { is_ty_alias(&qpath) },
+        _ => false,
+    }
 }
 
 /// Checks if the method call given in `expr` belongs to the given trait.
@@ -846,7 +833,7 @@ pub fn is_default_equivalent(cx: &LateContext<'_>, e: &Expr<'_>) -> bool {
         },
         ExprKind::Tup(items) | ExprKind::Array(items) => items.iter().all(|x| is_default_equivalent(cx, x)),
         ExprKind::Repeat(x, ArrayLen::Body(len)) => if_chain! {
-            if let ExprKind::Lit(ref const_lit) = cx.tcx.hir().body(len.body).value.kind;
+            if let ExprKind::Lit(const_lit) = cx.tcx.hir().body(len.body).value.kind;
             if let LitKind::Int(v, _) = const_lit.node;
             if v <= 32 && is_default_equivalent(cx, x);
             then {
@@ -875,7 +862,7 @@ fn is_default_equivalent_from(cx: &LateContext<'_>, from_func: &Expr<'_>, arg: &
             }) => return sym.is_empty() && is_path_lang_item(cx, ty, LangItem::String),
             ExprKind::Array([]) => return is_path_diagnostic_item(cx, ty, sym::Vec),
             ExprKind::Repeat(_, ArrayLen::Body(len)) => {
-                if let ExprKind::Lit(ref const_lit) = cx.tcx.hir().body(len.body).value.kind &&
+                if let ExprKind::Lit(const_lit) = cx.tcx.hir().body(len.body).value.kind &&
                     let LitKind::Int(v, _) = const_lit.node
                 {
                         return v == 0 && is_path_diagnostic_item(cx, ty, sym::Vec);
@@ -1512,7 +1499,7 @@ pub fn is_range_full(cx: &LateContext<'_>, expr: &Expr<'_>, container_path: Opti
                 && let const_val = cx.tcx.valtree_to_const_val((bnd_ty, min_val.to_valtree()))
                 && let min_const_kind = ConstantKind::from_value(const_val, bnd_ty)
                 && let Some(min_const) = miri_to_const(cx.tcx, min_const_kind)
-                && let Some((start_const, _)) = constant(cx, cx.typeck_results(), start)
+                && let Some(start_const) = constant(cx, cx.typeck_results(), start)
             {
                 start_const == min_const
             } else {
@@ -1528,7 +1515,7 @@ pub fn is_range_full(cx: &LateContext<'_>, expr: &Expr<'_>, container_path: Opti
                         && let const_val = cx.tcx.valtree_to_const_val((bnd_ty, max_val.to_valtree()))
                         && let max_const_kind = ConstantKind::from_value(const_val, bnd_ty)
                         && let Some(max_const) = miri_to_const(cx.tcx, max_const_kind)
-                        && let Some((end_const, _)) = constant(cx, cx.typeck_results(), end)
+                        && let Some(end_const) = constant(cx, cx.typeck_results(), end)
                     {
                         end_const == max_const
                     } else {
@@ -1560,7 +1547,7 @@ pub fn is_integer_const(cx: &LateContext<'_>, e: &Expr<'_>, value: u128) -> bool
         return true;
     }
     let enclosing_body = cx.tcx.hir().enclosing_body_owner(e.hir_id);
-    if let Some((Constant::Int(v), _)) = constant(cx, cx.tcx.typeck(enclosing_body), e) {
+    if let Some(Constant::Int(v)) = constant(cx, cx.tcx.typeck(enclosing_body), e) {
         return value == v;
     }
     false
@@ -1569,7 +1556,7 @@ pub fn is_integer_const(cx: &LateContext<'_>, e: &Expr<'_>, value: u128) -> bool
 /// Checks whether the given expression is a constant literal of the given value.
 pub fn is_integer_literal(expr: &Expr<'_>, value: u128) -> bool {
     // FIXME: use constant folding
-    if let ExprKind::Lit(ref spanned) = expr.kind {
+    if let ExprKind::Lit(spanned) = expr.kind {
         if let LitKind::Int(v, _) = spanned.node {
             return v == value;
         }
@@ -2165,10 +2152,7 @@ pub fn fn_has_unsatisfiable_preds(cx: &LateContext<'_>, did: DefId) -> bool {
         .predicates
         .iter()
         .filter_map(|(p, _)| if p.is_global() { Some(*p) } else { None });
-    traits::impossible_predicates(
-        cx.tcx,
-        traits::elaborate(cx.tcx, predicates).collect::<Vec<_>>(),
-    )
+    traits::impossible_predicates(cx.tcx, traits::elaborate(cx.tcx, predicates).collect::<Vec<_>>())
 }
 
 /// Returns the `DefId` of the callee if the given expression is a function or method call.
@@ -2233,8 +2217,12 @@ pub fn is_slice_of_primitives(cx: &LateContext<'_>, expr: &Expr<'_>) -> Option<S
     None
 }
 
-/// returns list of all pairs (a, b) from `exprs` such that `eq(a, b)`
-/// `hash` must be comformed with `eq`
+/// Returns list of all pairs `(a, b)` where `eq(a, b) == true`
+/// and `a` is before `b` in `exprs` for all `a` and `b` in
+/// `exprs`
+///
+/// Given functions `eq` and `hash` such that `eq(a, b) == true`
+/// implies `hash(a) == hash(b)`
 pub fn search_same<T, Hash, Eq>(exprs: &[T], hash: Hash, eq: Eq) -> Vec<(&T, &T)>
 where
     Hash: Fn(&T) -> u64,
@@ -2503,6 +2491,17 @@ pub fn walk_to_expr_usage<'tcx, T>(
     None
 }
 
+/// Tokenizes the input while keeping the text associated with each token.
+pub fn tokenize_with_text(s: &str) -> impl Iterator<Item = (TokenKind, &str)> {
+    let mut pos = 0;
+    tokenize(s).map(move |t| {
+        let end = pos + t.len;
+        let range = pos as usize..end as usize;
+        pos = end;
+        (t.kind, s.get(range).unwrap_or_default())
+    })
+}
+
 /// Checks whether a given span has any comment token
 /// This checks for all types of comment: line "//", block "/**", doc "///" "//!"
 pub fn span_contains_comment(sm: &SourceMap, span: Span) -> bool {
@@ -2519,23 +2518,11 @@ pub fn span_contains_comment(sm: &SourceMap, span: Span) -> bool {
 /// Comments are returned wrapped with their relevant delimiters
 pub fn span_extract_comment(sm: &SourceMap, span: Span) -> String {
     let snippet = sm.span_to_snippet(span).unwrap_or_default();
-    let mut comments_buf: Vec<String> = Vec::new();
-    let mut index: usize = 0;
-
-    for token in tokenize(&snippet) {
-        let token_range = index..(index + token.len as usize);
-        index += token.len as usize;
-        match token.kind {
-            TokenKind::BlockComment { .. } | TokenKind::LineComment { .. } => {
-                if let Some(comment) = snippet.get(token_range) {
-                    comments_buf.push(comment.to_string());
-                }
-            },
-            _ => (),
-        }
-    }
-
-    comments_buf.join("\n")
+    let res = tokenize_with_text(&snippet)
+        .filter(|(t, _)| matches!(t, TokenKind::BlockComment { .. } | TokenKind::LineComment { .. }))
+        .map(|(_, s)| s)
+        .join("\n");
+    res
 }
 
 pub fn span_find_starting_semi(sm: &SourceMap, span: Span) -> Span {

@@ -60,6 +60,20 @@ impl<'tcx> LowerInto<'tcx, chalk_ir::Substitution<RustInterner<'tcx>>> for Subst
     }
 }
 
+impl<'tcx> LowerInto<'tcx, chalk_ir::Substitution<RustInterner<'tcx>>>
+    for &'tcx ty::List<Ty<'tcx>>
+{
+    fn lower_into(
+        self,
+        interner: RustInterner<'tcx>,
+    ) -> chalk_ir::Substitution<RustInterner<'tcx>> {
+        chalk_ir::Substitution::from_iter(
+            interner,
+            self.iter().map(|ty| GenericArg::from(ty).lower_into(interner)),
+        )
+    }
+}
+
 impl<'tcx> LowerInto<'tcx, SubstsRef<'tcx>> for &chalk_ir::Substitution<RustInterner<'tcx>> {
     fn lower_into(self, interner: RustInterner<'tcx>) -> SubstsRef<'tcx> {
         interner
@@ -351,15 +365,14 @@ impl<'tcx> LowerInto<'tcx, chalk_ir::Ty<RustInterner<'tcx>>> for Ty<'tcx> {
             ty::GeneratorWitness(_) => unimplemented!(),
             ty::GeneratorWitnessMIR(..) => unimplemented!(),
             ty::Never => chalk_ir::TyKind::Never,
-            ty::Tuple(types) => {
-                chalk_ir::TyKind::Tuple(types.len(), types.as_substs().lower_into(interner))
-            }
+            ty::Tuple(types) => chalk_ir::TyKind::Tuple(types.len(), types.lower_into(interner)),
             ty::Alias(ty::Projection, ty::AliasTy { def_id, substs, .. }) => {
                 chalk_ir::TyKind::Alias(chalk_ir::AliasTy::Projection(chalk_ir::ProjectionTy {
                     associated_ty_id: chalk_ir::AssocTypeId(def_id),
                     substitution: substs.lower_into(interner),
                 }))
             }
+            ty::Alias(ty::Inherent, _) => unimplemented!(),
             ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) => {
                 chalk_ir::TyKind::Alias(chalk_ir::AliasTy::Opaque(chalk_ir::OpaqueTy {
                     opaque_ty_id: chalk_ir::OpaqueTyId(def_id),
@@ -435,7 +448,7 @@ impl<'tcx> LowerInto<'tcx, Ty<'tcx>> for &chalk_ir::Ty<RustInterner<'tcx>> {
             TyKind::GeneratorWitness(..) => unimplemented!(),
             TyKind::Never => ty::Never,
             TyKind::Tuple(_len, substitution) => {
-                ty::Tuple(substitution.lower_into(interner).try_as_type_list().unwrap())
+                ty::Tuple(substitution.lower_into(interner).into_type_list(interner.tcx))
             }
             TyKind::Slice(ty) => ty::Slice(ty.lower_into(interner)),
             TyKind::Raw(mutbl, ty) => ty::RawPtr(ty::TypeAndMut {
@@ -666,7 +679,7 @@ impl<'tcx> LowerInto<'tcx, Option<chalk_ir::QuantifiedWhereClause<RustInterner<'
             | ty::PredicateKind::ConstEquate(..)
             | ty::PredicateKind::Ambiguous
             | ty::PredicateKind::TypeWellFormedFromEnv(..) => {
-                bug!("unexpected predicate {}", &self)
+                bug!("unexpected predicate {self}")
             }
         };
         value.map(|value| chalk_ir::Binders::new(binders, value))
@@ -998,7 +1011,7 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for BoundVarsCollector<'tcx> {
             _ => (),
         };
 
-        r.super_visit_with(self)
+        ControlFlow::Continue(())
     }
 }
 
@@ -1048,7 +1061,7 @@ impl<'a, 'tcx> TypeFolder<TyCtxt<'tcx>> for NamedBoundVarSubstitutor<'a, 'tcx> {
             _ => (),
         };
 
-        r.super_fold_with(self)
+        r
     }
 }
 
@@ -1142,7 +1155,7 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for ParamsSubstitutor<'tcx> {
                 }
             },
 
-            _ => r.super_fold_with(self),
+            _ => r,
         }
     }
 }
@@ -1223,6 +1236,6 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for PlaceholdersCollector {
             _ => (),
         };
 
-        r.super_visit_with(self)
+        ControlFlow::Continue(())
     }
 }

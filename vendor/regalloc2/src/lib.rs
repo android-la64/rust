@@ -426,14 +426,13 @@ impl std::fmt::Display for OperandConstraint {
     }
 }
 
-/// The "kind" of the operand: whether it reads a vreg (Use), writes a
-/// vreg (Def), or reads and then writes (Mod, for "modify").
+/// The "kind" of the operand: whether it reads a vreg (Use) or writes
+/// a vreg (Def).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub enum OperandKind {
     Def = 0,
-    Mod = 1,
-    Use = 2,
+    Use = 1,
 }
 
 /// The "position" of the operand: where it has its read/write
@@ -488,7 +487,7 @@ pub enum OperandPos {
 pub struct Operand {
     /// Bit-pack into 32 bits.
     ///
-    /// constraint:7 kind:2 pos:1 class:1 vreg:21
+    /// constraint:7 kind:1 pos:1 class:2 vreg:21
     ///
     /// where `constraint` is an `OperandConstraint`, `kind` is an
     /// `OperandKind`, `pos` is an `OperandPos`, `class` is a
@@ -532,8 +531,8 @@ impl Operand {
         Operand {
             bits: vreg.vreg() as u32
                 | (class_field << 21)
-                | (pos_field << 22)
-                | (kind_field << 23)
+                | (pos_field << 23)
+                | (kind_field << 24)
                 | (constraint_field << 25),
         }
     }
@@ -719,7 +718,7 @@ impl Operand {
     /// Get the register class used by this operand.
     #[inline(always)]
     pub fn class(self) -> RegClass {
-        let class_field = (self.bits >> 21) & 1;
+        let class_field = (self.bits >> 21) & 3;
         match class_field {
             0 => RegClass::Int,
             1 => RegClass::Float,
@@ -727,15 +726,14 @@ impl Operand {
         }
     }
 
-    /// Get the "kind" of this operand: a definition (write), a use
-    /// (read), or a "mod" / modify (a read followed by a write).
+    /// Get the "kind" of this operand: a definition (write) or a use
+    /// (read).
     #[inline(always)]
     pub fn kind(self) -> OperandKind {
-        let kind_field = (self.bits >> 23) & 3;
+        let kind_field = (self.bits >> 24) & 1;
         match kind_field {
             0 => OperandKind::Def,
-            1 => OperandKind::Mod,
-            2 => OperandKind::Use,
+            1 => OperandKind::Use,
             _ => unreachable!(),
         }
     }
@@ -746,7 +744,7 @@ impl Operand {
     /// at "after", though there are cases where this is not true.
     #[inline(always)]
     pub fn pos(self) -> OperandPos {
-        let pos_field = (self.bits >> 22) & 1;
+        let pos_field = (self.bits >> 23) & 1;
         match pos_field {
             0 => OperandPos::Early,
             1 => OperandPos::Late,
@@ -808,8 +806,7 @@ impl std::fmt::Debug for Operand {
 impl std::fmt::Display for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match (self.kind(), self.pos()) {
-            (OperandKind::Def, OperandPos::Late)
-            | (OperandKind::Mod | OperandKind::Use, OperandPos::Early) => {
+            (OperandKind::Def, OperandPos::Late) | (OperandKind::Use, OperandPos::Early) => {
                 write!(f, "{:?}", self.kind())?;
             }
             _ => {
@@ -1058,8 +1055,8 @@ pub trait Function {
     /// it in a given PReg chosen by the client prior to regalloc.
     ///
     /// Every register written by an instruction must either
-    /// correspond to (be assigned to) an Operand of kind `Def` or
-    /// `Mod`, or else must be a "clobber".
+    /// correspond to (be assigned to) an Operand of kind `Def`, or
+    /// else must be a "clobber".
     ///
     /// This can be used to, for example, describe ABI-specified
     /// registers that are not preserved by a call instruction, or
@@ -1115,23 +1112,6 @@ pub trait Function {
     /// Precondition: we require this slice to be sorted by vreg.
     fn debug_value_labels(&self) -> &[(VReg, Inst, Inst, u32)] {
         &[]
-    }
-
-    /// Is the given vreg pinned to a preg? If so, every use of the
-    /// vreg is automatically assigned to the preg, and live-ranges of
-    /// the vreg allocate the preg exclusively (are not spilled
-    /// elsewhere). The user must take care not to have too many live
-    /// pinned vregs such that allocation is no longer possible;
-    /// liverange computation will check that this is the case (that
-    /// there are enough remaining allocatable pregs of every class to
-    /// hold all Reg-constrained operands).
-    ///
-    /// Pinned vregs are implicitly live-in to the function: that is,
-    /// one can use a pinned vreg without having first defined it, and
-    /// this will take the value that that physical register (to which
-    /// the vreg is pinned) had at function entry.
-    fn is_pinned_vreg(&self, _: VReg) -> Option<PReg> {
-        None
     }
 
     // --------------

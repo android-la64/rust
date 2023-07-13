@@ -1,35 +1,35 @@
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn CreateToolhelp32Snapshot ( dwflags : CREATE_TOOLHELP_SNAPSHOT_FLAGS , th32processid : u32 ) -> super::super::super::Foundation:: HANDLE );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn CreateToolhelp32Snapshot ( dwflags : CREATE_TOOLHELP_SNAPSHOT_FLAGS , th32processid : u32 ) -> super::super::super::Foundation:: HANDLE );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32First ( lphe : *mut HEAPENTRY32 , th32processid : u32 , th32heapid : usize ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32First ( lphe : *mut HEAPENTRY32 , th32processid : u32 , th32heapid : usize ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32ListFirst ( hsnapshot : super::super::super::Foundation:: HANDLE , lphl : *mut HEAPLIST32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32ListFirst ( hsnapshot : super::super::super::Foundation:: HANDLE , lphl : *mut HEAPLIST32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32ListNext ( hsnapshot : super::super::super::Foundation:: HANDLE , lphl : *mut HEAPLIST32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32ListNext ( hsnapshot : super::super::super::Foundation:: HANDLE , lphl : *mut HEAPLIST32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32Next ( lphe : *mut HEAPENTRY32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Heap32Next ( lphe : *mut HEAPENTRY32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32First ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32First ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32FirstW ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32W ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32FirstW ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32W ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32Next ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32Next ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32NextW ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32W ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Module32NextW ( hsnapshot : super::super::super::Foundation:: HANDLE , lpme : *mut MODULEENTRY32W ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32First ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32First ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32FirstW ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32W ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32FirstW ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32W ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32Next ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32Next ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32NextW ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32W ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Process32NextW ( hsnapshot : super::super::super::Foundation:: HANDLE , lppe : *mut PROCESSENTRY32W ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Thread32First ( hsnapshot : super::super::super::Foundation:: HANDLE , lpte : *mut THREADENTRY32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Thread32First ( hsnapshot : super::super::super::Foundation:: HANDLE , lpte : *mut THREADENTRY32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Thread32Next ( hsnapshot : super::super::super::Foundation:: HANDLE , lpte : *mut THREADENTRY32 ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Thread32Next ( hsnapshot : super::super::super::Foundation:: HANDLE , lpte : *mut THREADENTRY32 ) -> super::super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Toolhelp32ReadProcessMemory ( th32processid : u32 , lpbaseaddress : *const ::core::ffi::c_void , lpbuffer : *mut ::core::ffi::c_void , cbread : usize , lpnumberofbytesread : *mut usize ) -> super::super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "kernel32.dll""system" #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"] fn Toolhelp32ReadProcessMemory ( th32processid : u32 , lpbaseaddress : *const ::core::ffi::c_void , lpbuffer : *mut ::core::ffi::c_void , cbread : usize , lpnumberofbytesread : *mut usize ) -> super::super::super::Foundation:: BOOL );
 #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`*"]
 pub const HF32_DEFAULT: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`*"]
@@ -107,9 +107,9 @@ pub struct MODULEENTRY32 {
     pub ProccntUsage: u32,
     pub modBaseAddr: *mut u8,
     pub modBaseSize: u32,
-    pub hModule: super::super::super::Foundation::HINSTANCE,
-    pub szModule: [super::super::super::Foundation::CHAR; 256],
-    pub szExePath: [super::super::super::Foundation::CHAR; 260],
+    pub hModule: super::super::super::Foundation::HMODULE,
+    pub szModule: [u8; 256],
+    pub szExePath: [u8; 260],
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for MODULEENTRY32 {}
@@ -130,7 +130,7 @@ pub struct MODULEENTRY32W {
     pub ProccntUsage: u32,
     pub modBaseAddr: *mut u8,
     pub modBaseSize: u32,
-    pub hModule: super::super::super::Foundation::HINSTANCE,
+    pub hModule: super::super::super::Foundation::HMODULE,
     pub szModule: [u16; 256],
     pub szExePath: [u16; 260],
 }
@@ -143,8 +143,7 @@ impl ::core::clone::Clone for MODULEENTRY32W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`, `\"Win32_Foundation\"`*"]
-#[cfg(feature = "Win32_Foundation")]
+#[doc = "*Required features: `\"Win32_System_Diagnostics_ToolHelp\"`*"]
 pub struct PROCESSENTRY32 {
     pub dwSize: u32,
     pub cntUsage: u32,
@@ -155,11 +154,9 @@ pub struct PROCESSENTRY32 {
     pub th32ParentProcessID: u32,
     pub pcPriClassBase: i32,
     pub dwFlags: u32,
-    pub szExeFile: [super::super::super::Foundation::CHAR; 260],
+    pub szExeFile: [u8; 260],
 }
-#[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for PROCESSENTRY32 {}
-#[cfg(feature = "Win32_Foundation")]
 impl ::core::clone::Clone for PROCESSENTRY32 {
     fn clone(&self) -> Self {
         *self

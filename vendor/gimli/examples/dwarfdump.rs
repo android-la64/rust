@@ -585,6 +585,8 @@ fn load_file_section<'input, 'arena, Endian: gimli::Endianity>(
     let mut relocations = RelocationMap::default();
     let name = if is_dwo {
         id.dwo_name()
+    } else if file.format() == object::BinaryFormat::Xcoff {
+        id.xcoff_name()
     } else {
         Some(id.name())
     };
@@ -677,12 +679,10 @@ where
 
     let mut dwarf = gimli::Dwarf::load(&mut load_section)?;
     if flags.dwo {
-        dwarf.file_type = gimli::DwarfFileType::Dwo;
         if let Some(dwo_parent) = dwo_parent {
-            dwarf.debug_addr = dwo_parent.debug_addr.clone();
-            dwarf
-                .ranges
-                .set_debug_ranges(dwo_parent.ranges.debug_ranges().clone());
+            dwarf.make_dwo(&dwo_parent);
+        } else {
+            dwarf.file_type = gimli::DwarfFileType::Dwo;
         }
     }
 

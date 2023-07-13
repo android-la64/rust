@@ -10,7 +10,7 @@ use rustc_span::sym;
 
 declare_clippy_lint! {
     /// ### What it does
-    /// Detect uses of `lines.filter_map(Result::ok)` or `lines.flat_map(Result::ok)`
+    /// Checks for usage of `lines.filter_map(Result::ok)` or `lines.flat_map(Result::ok)`
     /// when `lines` has type `std::io::Lines`.
     ///
     /// ### Why is this bad?
@@ -25,7 +25,7 @@ declare_clippy_lint! {
     ///
     /// ### Known problems
     /// This lint suggests replacing `filter_map()` or `flat_map()` applied to a `Lines`
-    /// instance in all cases. There two cases where the suggestion might not be
+    /// instance in all cases. There are two cases where the suggestion might not be
     /// appropriate or necessary:
     ///
     /// - If the `Lines` instance can never produce any error, or if an error is produced

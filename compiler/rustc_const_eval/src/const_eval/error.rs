@@ -3,7 +3,8 @@ use std::fmt;
 
 use rustc_errors::Diagnostic;
 use rustc_middle::mir::AssertKind;
-use rustc_middle::ty::{layout::LayoutError, query::TyCtxtAt, ConstInt};
+use rustc_middle::query::TyCtxtAt;
+use rustc_middle::ty::{layout::LayoutError, ConstInt};
 use rustc_span::{Span, Symbol};
 
 use super::InterpCx;
@@ -104,13 +105,13 @@ impl<'tcx> ConstEvalErr<'tcx> {
         // Add spans for the stacktrace. Don't print a single-line backtrace though.
         if self.stacktrace.len() > 1 {
             // Helper closure to print duplicated lines.
-            let mut flush_last_line = |last_frame, times| {
+            let mut flush_last_line = |last_frame: Option<(String, _)>, times| {
                 if let Some((line, span)) = last_frame {
-                    err.span_note(span, &line);
+                    err.span_note(span, line.clone());
                     // Don't print [... additional calls ...] if the number of lines is small
                     if times < 3 {
                         for _ in 0..times {
-                            err.span_note(span, &line);
+                            err.span_note(span, line.clone());
                         }
                     } else {
                         err.span_note(
@@ -169,14 +170,14 @@ impl<'tcx> ConstEvalErr<'tcx> {
                 // See <https://github.com/rust-lang/rust/pull/63152>.
                 let mut err = struct_error(tcx, &self.error.to_string());
                 self.decorate(&mut err, decorate);
-                ErrorHandled::Reported(err.emit())
+                ErrorHandled::Reported(err.emit().into())
             }
             _ => {
                 // Report as hard error.
                 let mut err = struct_error(tcx, message);
                 err.span_label(self.span, self.error.to_string());
                 self.decorate(&mut err, decorate);
-                ErrorHandled::Reported(err.emit())
+                ErrorHandled::Reported(err.emit().into())
             }
         }
     }

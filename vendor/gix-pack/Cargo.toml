@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.64"
 name = "gix-pack"
-version = "0.32.0"
+version = "0.35.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -31,7 +31,7 @@ features = [
     "document-features",
     "pack-cache-lru-dynamic",
     "object-cache-dynamic",
-    "serde1",
+    "serde",
 ]
 rustdoc-args = [
     "--cfg",
@@ -53,10 +53,10 @@ optional = true
 version = "^0.4.1"
 
 [dependencies.gix-diff]
-version = "^0.28.0"
+version = "^0.29.0"
 
 [dependencies.gix-features]
-version = "^0.28.0"
+version = "^0.29.0"
 features = [
     "crc32",
     "rustsha1",
@@ -65,19 +65,19 @@ features = [
 ]
 
 [dependencies.gix-hash]
-version = "^0.10.3"
+version = "^0.11.1"
 
 [dependencies.gix-hashtable]
-version = "^0.1.2"
+version = "^0.2.0"
 
 [dependencies.gix-object]
-version = "^0.28.0"
+version = "^0.29.1"
 
 [dependencies.gix-path]
-version = "^0.7.2"
+version = "^0.8.0"
 
 [dependencies.gix-traverse]
-version = "^0.24.0"
+version = "^0.25.0"
 
 [dependencies.memmap2]
 version = "0.5.0"
@@ -108,12 +108,12 @@ optional = true
 object-cache-dynamic = ["dep:clru"]
 pack-cache-lru-dynamic = ["dep:clru"]
 pack-cache-lru-static = ["dep:uluru"]
-serde1 = [
+serde = [
     "dep:serde",
-    "gix-object/serde1",
+    "gix-object/serde",
 ]
 wasm = ["gix-diff/wasm"]
 
 [target."cfg(not(target_arch = \"wasm32\"))".dependencies.gix-tempfile]
-version = "^4.0.0"
+version = "^5.0.0"
 default-features = false

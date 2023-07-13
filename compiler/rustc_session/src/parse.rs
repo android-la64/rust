@@ -214,8 +214,6 @@ pub struct ParseSess {
     pub env_depinfo: Lock<FxHashSet<(Symbol, Option<Symbol>)>>,
     /// File paths accessed during the build.
     pub file_depinfo: Lock<FxHashSet<Symbol>>,
-    /// All the type ascriptions expressions that have had a suggestion for likely path typo.
-    pub type_ascription_path_suggestions: Lock<FxHashSet<Span>>,
     /// Whether cfg(version) should treat the current release as incomplete
     pub assume_incomplete_release: bool,
     /// Spans passed to `proc_macro::quote_span`. Each span has a numerical
@@ -258,7 +256,6 @@ impl ParseSess {
             reached_eof: AtomicBool::new(false),
             env_depinfo: Default::default(),
             file_depinfo: Default::default(),
-            type_ascription_path_suggestions: Default::default(),
             assume_incomplete_release: false,
             proc_macro_quoted_spans: Default::default(),
             attr_id_generator: AttrIdGenerator::new(),
@@ -292,7 +289,7 @@ impl ParseSess {
         lint: &'static Lint,
         span: impl Into<MultiSpan>,
         node_id: NodeId,
-        msg: &str,
+        msg: impl Into<DiagnosticMessage>,
     ) {
         self.buffered_lints.with_lock(|buffered_lints| {
             buffered_lints.push(BufferedEarlyLint {
@@ -310,7 +307,7 @@ impl ParseSess {
         lint: &'static Lint,
         span: impl Into<MultiSpan>,
         node_id: NodeId,
-        msg: &str,
+        msg: impl Into<DiagnosticMessage>,
         diagnostic: BuiltinLintDiagnostics,
     ) {
         self.buffered_lints.with_lock(|buffered_lints| {

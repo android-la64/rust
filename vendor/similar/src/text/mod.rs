@@ -37,21 +37,11 @@ impl Deadline {
 /// A builder type config for more complex uses of [`TextDiff`].
 ///
 /// Requires the `text` feature.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TextDiffConfig {
     algorithm: Algorithm,
     newline_terminated: Option<bool>,
     deadline: Option<Deadline>,
-}
-
-impl Default for TextDiffConfig {
-    fn default() -> TextDiffConfig {
-        TextDiffConfig {
-            algorithm: Algorithm::default(),
-            newline_terminated: None,
-            deadline: None,
-        }
-    }
 }
 
 impl TextDiffConfig {
@@ -66,7 +56,7 @@ impl TextDiffConfig {
     /// Sets a deadline for the diff operation.
     ///
     /// By default a diff will take as long as it takes.  For certain diff
-    /// algorthms like Myer's and Patience a maximum running time can be
+    /// algorithms like Myer's and Patience a maximum running time can be
     /// defined after which the algorithm gives up and approximates.
     pub fn deadline(&mut self, deadline: Instant) -> &mut Self {
         self.deadline = Some(Deadline::Absolute(deadline));
@@ -767,4 +757,15 @@ fn test_serde_ops() {
     let changes = diff.ops();
     let json = serde_json::to_string_pretty(&changes).unwrap();
     insta::assert_snapshot!(&json);
+}
+
+#[test]
+fn test_regression_issue_37() {
+    let config = TextDiffConfig::default();
+    let diff = config.diff_lines("\u{18}\n\n", "\n\n\r");
+    let mut output = diff.unified_diff();
+    assert_eq!(
+        output.context_radius(0).to_string(),
+        "@@ -1 +1,0 @@\n-\u{18}\n@@ -2,0 +2,2 @@\n+\n+\r"
+    );
 }

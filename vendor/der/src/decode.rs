@@ -8,6 +8,9 @@ use crate::{pem::PemLabel, PemReader};
 #[cfg(doc)]
 use crate::{Length, Tag};
 
+#[cfg(feature = "alloc")]
+use alloc::boxed::Box;
+
 /// Decoding trait.
 ///
 /// This trait provides the core abstraction upon which all decoding operations
@@ -52,14 +55,12 @@ impl<T> DecodeOwned for T where T: for<'a> Decode<'a> {}
 /// This trait is automatically impl'd for any type which impls both
 /// [`DecodeOwned`] and [`PemLabel`].
 #[cfg(feature = "pem")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pem")))]
 pub trait DecodePem: DecodeOwned + PemLabel {
     /// Try to decode this type from PEM.
     fn from_pem(pem: impl AsRef<[u8]>) -> Result<Self>;
 }
 
 #[cfg(feature = "pem")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pem")))]
 impl<T: DecodeOwned + PemLabel> DecodePem for T {
     fn from_pem(pem: impl AsRef<[u8]>) -> Result<Self> {
         let mut reader = PemReader::new(pem.as_ref())?;
@@ -73,4 +74,14 @@ impl<T: DecodeOwned + PemLabel> DecodePem for T {
 pub trait DecodeValue<'a>: Sized {
     /// Attempt to decode this message using the provided [`Reader`].
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self>;
+}
+
+#[cfg(feature = "alloc")]
+impl<'a, T> DecodeValue<'a> for Box<T>
+where
+    T: DecodeValue<'a>,
+{
+    fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
+        Ok(Box::new(T::decode_value(reader, header)?))
+    }
 }

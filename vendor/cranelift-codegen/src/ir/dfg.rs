@@ -4,13 +4,12 @@ use crate::entity::{self, PrimaryMap, SecondaryMap};
 use crate::ir;
 use crate::ir::builder::ReplaceBuilder;
 use crate::ir::dynamic_type::{DynamicTypeData, DynamicTypes};
-use crate::ir::instructions::{BranchInfo, CallInfo, InstructionData};
-use crate::ir::{types, ConstantData, ConstantPool, Immediate};
+use crate::ir::instructions::{CallInfo, InstructionData};
 use crate::ir::{
-    Block, BlockCall, DynamicType, FuncRef, Inst, SigRef, Signature, Type, Value,
+    types, Block, BlockCall, ConstantData, ConstantPool, DynamicType, ExtFuncData, FuncRef,
+    Immediate, Inst, JumpTables, RelSourceLoc, SigRef, Signature, Type, Value,
     ValueLabelAssignments, ValueList, ValueListPool,
 };
-use crate::ir::{ExtFuncData, RelSourceLoc};
 use crate::packed_option::ReservedValue;
 use crate::write::write_operands;
 use core::fmt;
@@ -45,6 +44,45 @@ impl IndexMut<Inst> for Insts {
     }
 }
 
+/// Storage for basic blocks within the DFG.
+#[derive(Clone, PartialEq, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
+pub struct Blocks(PrimaryMap<Block, BlockData>);
+
+impl Blocks {
+    /// Create a new basic block.
+    pub fn add(&mut self) -> Block {
+        self.0.push(BlockData::new())
+    }
+
+    /// Get the total number of basic blocks created in this function, whether they are
+    /// currently inserted in the layout or not.
+    ///
+    /// This is intended for use with `SecondaryMap::with_capacity`.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns `true` if the given block reference is valid.
+    pub fn is_valid(&self, block: Block) -> bool {
+        self.0.is_valid(block)
+    }
+}
+
+impl Index<Block> for Blocks {
+    type Output = BlockData;
+
+    fn index(&self, block: Block) -> &BlockData {
+        &self.0[block]
+    }
+}
+
+impl IndexMut<Block> for Blocks {
+    fn index_mut(&mut self, block: Block) -> &mut BlockData {
+        &mut self.0[block]
+    }
+}
+
 /// A data flow graph defines all instructions and basic blocks in a function as well as
 /// the data flow dependencies between them. The DFG also tracks values which can be either
 /// instruction results or block parameters.
@@ -70,7 +108,7 @@ pub struct DataFlowGraph {
     ///
     /// This map is not in program order. That is handled by `Layout`, and so is the sequence of
     /// instructions contained in each block.
-    blocks: PrimaryMap<Block, BlockData>,
+    pub blocks: Blocks,
 
     /// Dynamic types created.
     pub dynamic_types: DynamicTypes,
@@ -105,6 +143,9 @@ pub struct DataFlowGraph {
 
     /// Stores large immediates that otherwise will not fit on InstructionData
     pub immediates: PrimaryMap<Immediate, ConstantData>,
+
+    /// Jump tables used in this function.
+    pub jump_tables: JumpTables,
 }
 
 impl DataFlowGraph {
@@ -113,7 +154,7 @@ impl DataFlowGraph {
         Self {
             insts: Insts(PrimaryMap::new()),
             results: SecondaryMap::new(),
-            blocks: PrimaryMap::new(),
+            blocks: Blocks(PrimaryMap::new()),
             dynamic_types: DynamicTypes::new(),
             value_lists: ValueListPool::new(),
             values: PrimaryMap::new(),
@@ -123,6 +164,7 @@ impl DataFlowGraph {
             values_labels: None,
             constants: ConstantPool::new(),
             immediates: PrimaryMap::new(),
+            jump_tables: JumpTables::new(),
         }
     }
 
@@ -130,7 +172,7 @@ impl DataFlowGraph {
     pub fn clear(&mut self) {
         self.insts.0.clear();
         self.results.clear();
-        self.blocks.clear();
+        self.blocks.0.clear();
         self.dynamic_types.clear();
         self.value_lists.clear();
         self.values.clear();
@@ -140,6 +182,7 @@ impl DataFlowGraph {
         self.values_labels = None;
         self.constants.clear();
         self.immediates.clear();
+        self.jump_tables.clear();
     }
 
     /// Get the total number of instructions created in this function, whether they are currently
@@ -449,11 +492,6 @@ impl ValueDef {
         }
     }
 
-    /// Get the program point where the value was defined.
-    pub fn pp(self) -> ir::ExpandedProgramPoint {
-        self.into()
-    }
-
     /// Get the number component of this definition.
     ///
     /// When multiple values are defined at the same program point, this indicates the index of
@@ -675,7 +713,7 @@ impl DataFlowGraph {
             .iter()
             .chain(
                 self.insts[inst]
-                    .branch_destination()
+                    .branch_destination(&self.jump_tables)
                     .into_iter()
                     .flat_map(|branch| branch.args_slice(&self.value_lists).iter()),
             )
@@ -692,10 +730,10 @@ impl DataFlowGraph {
             self.inst_args_mut(inst)[i] = body(self, arg);
         }
 
-        for block_ix in 0..self.insts[inst].branch_destination().len() {
+        for block_ix in 0..self.insts[inst].branch_destination(&self.jump_tables).len() {
             // We aren't changing the size of the args list, so we won't need to write the branch
             // back to the instruction.
-            let mut block = self.insts[inst].branch_destination()[block_ix];
+            let mut block = self.insts[inst].branch_destination(&self.jump_tables)[block_ix];
             for i in 0..block.args_slice(&self.value_lists).len() {
                 let arg = block.args_slice(&self.value_lists)[i];
                 block.args_slice_mut(&mut self.value_lists)[i] = body(self, arg);
@@ -714,8 +752,8 @@ impl DataFlowGraph {
             *arg = values.next().unwrap();
         }
 
-        for block_ix in 0..self.insts[inst].branch_destination().len() {
-            let mut block = self.insts[inst].branch_destination()[block_ix];
+        for block_ix in 0..self.insts[inst].branch_destination(&self.jump_tables).len() {
+            let mut block = self.insts[inst].branch_destination(&self.jump_tables)[block_ix];
             for arg in block.args_slice_mut(&mut self.value_lists) {
                 *arg = values.next().unwrap();
             }
@@ -907,6 +945,10 @@ impl DataFlowGraph {
     pub fn clone_inst(&mut self, inst: Inst) -> Inst {
         // First, add a clone of the InstructionData.
         let inst_data = self.insts[inst].clone();
+        // If the `inst_data` has a reference to a ValueList, clone it
+        // as well, because we can't share these (otherwise mutating
+        // one would affect the other).
+        let inst_data = inst_data.deep_clone(&mut self.value_lists);
         let new_inst = self.make_inst(inst_data);
         // Get the controlling type variable.
         let ctrl_typevar = self.ctrl_typevar(inst);
@@ -1035,11 +1077,6 @@ impl DataFlowGraph {
         impl ExactSizeIterator for InstResultTypes<'_> {}
     }
 
-    /// Check if `inst` is a branch.
-    pub fn analyze_branch(&self, inst: Inst) -> BranchInfo {
-        self.insts[inst].analyze_branch()
-    }
-
     /// Compute the type of an instruction result from opcode constraints and call signatures.
     ///
     /// This computes the same sequence of result types that `make_inst_results()` above would
@@ -1085,17 +1122,17 @@ impl DataFlowGraph {
 impl DataFlowGraph {
     /// Create a new basic block.
     pub fn make_block(&mut self) -> Block {
-        self.blocks.push(BlockData::new())
+        self.blocks.add()
     }
 
     /// Get the number of parameters on `block`.
     pub fn num_block_params(&self, block: Block) -> usize {
-        self.blocks[block].params.len(&self.value_lists)
+        self.blocks[block].params(&self.value_lists).len()
     }
 
     /// Get the parameters on `block`.
     pub fn block_params(&self, block: Block) -> &[Value] {
-        self.blocks[block].params.as_slice(&self.value_lists)
+        self.blocks[block].params(&self.value_lists)
     }
 
     /// Get the types of the parameters on `block`.
@@ -1251,7 +1288,7 @@ impl DataFlowGraph {
 /// match the function arguments.
 #[derive(Clone, PartialEq, Hash)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
-struct BlockData {
+pub struct BlockData {
     /// List of parameters to this block.
     params: ValueList,
 }
@@ -1261,6 +1298,11 @@ impl BlockData {
         Self {
             params: ValueList::new(),
         }
+    }
+
+    /// Get the parameters on `block`.
+    pub fn params<'a>(&self, pool: &'a ValueListPool) -> &'a [Value] {
+        self.params.as_slice(pool)
     }
 }
 
@@ -1619,5 +1661,26 @@ mod tests {
 
         assert_eq!(pos.func.dfg.resolve_aliases(c2), c2);
         assert_eq!(pos.func.dfg.resolve_aliases(c), c2);
+    }
+
+    #[test]
+    fn cloning() {
+        use crate::ir::InstBuilder;
+
+        let mut func = Function::new();
+        let mut sig = Signature::new(crate::isa::CallConv::SystemV);
+        sig.params.push(ir::AbiParam::new(types::I32));
+        let sig = func.import_signature(sig);
+        let block0 = func.dfg.make_block();
+        let mut pos = FuncCursor::new(&mut func);
+        pos.insert_block(block0);
+        let v1 = pos.ins().iconst(types::I32, 0);
+        let v2 = pos.ins().iconst(types::I32, 1);
+        let call_inst = pos.ins().call_indirect(sig, v1, &[v1]);
+        let func = pos.func;
+
+        let call_inst_dup = func.dfg.clone_inst(call_inst);
+        func.dfg.inst_args_mut(call_inst)[0] = v2;
+        assert_eq!(v1, func.dfg.inst_args(call_inst_dup)[0]);
     }
 }

@@ -1775,6 +1775,142 @@ fn exclude_dot_files_and_directories_by_default() {
 }
 
 #[cargo_test]
+fn empty_readme_path() {
+    // Warn but don't fail if `readme` is empty.
+    // Issue #11522.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "1.0.0"
+            readme = ""
+            license = "MIT"
+            description = "foo"
+            homepage = "foo"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("package --no-verify")
+        .with_stderr(
+            "\
+[WARNING] readme `` does not appear to exist (relative to `[..]/foo`).
+Please update the readme setting in the manifest at `[..]/foo/Cargo.toml`
+This may become a hard error in the future.
+[PACKAGING] foo v1.0.0 ([..]/foo)
+[PACKAGED] [..] files, [..] ([..] compressed)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn invalid_readme_path() {
+    // Warn but don't fail if `readme` path is invalid.
+    // Issue #11522.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "1.0.0"
+            readme = "DOES-NOT-EXIST"
+            license = "MIT"
+            description = "foo"
+            homepage = "foo"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("package --no-verify")
+        .with_stderr(
+            "\
+[WARNING] readme `DOES-NOT-EXIST` does not appear to exist (relative to `[..]/foo`).
+Please update the readme setting in the manifest at `[..]/foo/Cargo.toml`
+This may become a hard error in the future.
+[PACKAGING] foo v1.0.0 ([..]/foo)
+[PACKAGED] [..] files, [..] ([..] compressed)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn readme_or_license_file_is_dir() {
+    // Test warning when `readme` or `license-file` is a directory, not a file.
+    // Issue #11522.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "1.0.0"
+            readme = "./src"
+            license-file = "./src"
+            description = "foo"
+            homepage = "foo"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("package --no-verify")
+        .with_stderr(
+            "\
+[WARNING] license-file `./src` does not appear to exist (relative to `[..]/foo`).
+Please update the license-file setting in the manifest at `[..]/foo/Cargo.toml`
+This may become a hard error in the future.
+[WARNING] readme `./src` does not appear to exist (relative to `[..]/foo`).
+Please update the readme setting in the manifest at `[..]/foo/Cargo.toml`
+This may become a hard error in the future.
+[PACKAGING] foo v1.0.0 ([..]/foo)
+[PACKAGED] [..] files, [..] ([..] compressed)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn empty_license_file_path() {
+    // Warn but don't fail if license-file is empty.
+    // Issue #11522.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "1.0.0"
+            license-file = ""
+            description = "foo"
+            homepage = "foo"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("package --no-verify")
+        .with_stderr(
+            "\
+[WARNING] manifest has no license or license-file.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+[WARNING] license-file `` does not appear to exist (relative to `[..]/foo`).
+Please update the license-file setting in the manifest at `[..]/foo/Cargo.toml`
+This may become a hard error in the future.
+[PACKAGING] foo v1.0.0 ([..]/foo)
+[PACKAGED] [..] files, [..] ([..] compressed)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn invalid_license_file_path() {
     // Test warning when license-file points to a non-existent file.
     let p = project()
@@ -2397,6 +2533,91 @@ See [..]
 
     assert!(p.root().join("target/package/foo-0.0.1.crate").is_file());
     assert!(p.root().join("target/package/bar-0.0.1.crate").is_file());
+}
+
+#[cargo_test]
+fn workspace_noconflict_readme() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [workspace]
+                members = ["bar"]
+            "#,
+        )
+        .file("README.md", "workspace readme")
+        .file(
+            "bar/Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.0.1"
+                repository = "https://github.com/bar/bar"
+                authors = []
+                license = "MIT"
+                description = "bar"
+                readme = "../README.md"
+                workspace = ".."
+            "#,
+        )
+        .file("bar/src/main.rs", "fn main() {}")
+        .file("bar/example/README.md", "# example readmdBar")
+        .build();
+
+    p.cargo("package")
+        .with_stderr(
+            "\
+[PACKAGING] bar v0.0.1 ([CWD]/bar)
+[VERIFYING] bar v0.0.1 ([CWD]/bar)
+[COMPILING] bar v0.0.1 ([CWD]/[..])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn workspace_conflict_readme() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [workspace]
+                members = ["bar"]
+            "#,
+        )
+        .file("README.md", "workspace readme")
+        .file(
+            "bar/Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.0.1"
+                repository = "https://github.com/bar/bar"
+                authors = []
+                license = "MIT"
+                description = "bar"
+                readme = "../README.md"
+                workspace = ".."
+            "#,
+        )
+        .file("bar/src/main.rs", "fn main() {}")
+        .file("bar/README.md", "# workspace member: Bar")
+        .build();
+
+    p.cargo("package")
+        .with_stderr(
+            "\
+warning: readme `../README.md` appears to be a path outside of the package, but there is already a file named `README.md` in the root of the package. The archived crate will contain the copy in the root of the package. Update the readme to point to the path relative to the root of the package to remove this warning.
+[PACKAGING] bar v0.0.1 ([CWD]/bar)
+[VERIFYING] bar v0.0.1 ([CWD]/bar)
+[COMPILING] bar v0.0.1 ([CWD]/[..])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
+",
+        )
+        .run();
 }
 
 #[cargo_test]

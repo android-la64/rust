@@ -1,50 +1,50 @@
 #![allow(non_camel_case_types)]
 
-use core::ops::*;
 use crate::soft::{x2, x4};
 use crate::types::*;
+use core::ops::*;
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub union vec128_storage {
     d: [u32; 4],
     q: [u64; 2],
-    o: [u128; 1],
 }
 impl From<[u32; 4]> for vec128_storage {
-    #[inline]
+    #[inline(always)]
     fn from(d: [u32; 4]) -> Self {
         Self { d }
     }
 }
 impl From<vec128_storage> for [u32; 4] {
-    #[inline]
+    #[inline(always)]
     fn from(d: vec128_storage) -> Self {
         unsafe { d.d }
     }
 }
 impl From<[u64; 2]> for vec128_storage {
-    #[inline]
+    #[inline(always)]
     fn from(q: [u64; 2]) -> Self {
         Self { q }
     }
 }
 impl From<vec128_storage> for [u64; 2] {
-    #[inline]
+    #[inline(always)]
     fn from(q: vec128_storage) -> Self {
         unsafe { q.q }
     }
 }
 impl Default for vec128_storage {
-    #[inline]
+    #[inline(always)]
     fn default() -> Self {
-        Self { o: [0] }
+        Self { q: [0, 0] }
     }
 }
 impl Eq for vec128_storage {}
 impl PartialEq<vec128_storage> for vec128_storage {
-    #[inline]
+    #[inline(always)]
     fn eq(&self, rhs: &Self) -> bool {
-        unsafe { self.o == rhs.o }
+        unsafe { self.q == rhs.q }
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -61,18 +61,20 @@ impl vec256_storage {
         self.v128
     }
 }
-impl From<[u64; 4]> for vec256_storage {
-    #[inline]
-    fn from(q: [u64; 4]) -> Self {
-        Self { v128: [[0, 1].into(), [2, 3].into()] }
-    }
-}
 impl From<vec256_storage> for [u64; 4] {
-    #[inline]
+    #[inline(always)]
     fn from(q: vec256_storage) -> Self {
         let [a, b]: [u64; 2] = q.v128[0].into();
         let [c, d]: [u64; 2] = q.v128[1].into();
         [a, b, c, d]
+    }
+}
+impl From<[u64; 4]> for vec256_storage {
+    #[inline(always)]
+    fn from([a, b, c, d]: [u64; 4]) -> Self {
+        Self {
+            v128: [[a, b].into(), [c, d].into()],
+        }
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -90,6 +92,7 @@ impl vec512_storage {
     }
 }
 
+#[inline(always)]
 fn dmap<T, F>(t: T, f: F) -> T
 where
     T: Store<vec128_storage> + Into<vec128_storage>,
@@ -123,6 +126,7 @@ where
     unsafe { T::unpack(d) }
 }
 
+#[inline(always)]
 fn qmap<T, F>(t: T, f: F) -> T
 where
     T: Store<vec128_storage> + Into<vec128_storage>,
@@ -136,6 +140,7 @@ where
     unsafe { T::unpack(q) }
 }
 
+#[inline(always)]
 fn qmap2<T, F>(a: T, b: T, f: F) -> T
 where
     T: Store<vec128_storage> + Into<vec128_storage>,
@@ -151,17 +156,29 @@ where
     unsafe { T::unpack(q) }
 }
 
+#[inline(always)]
+fn o_of_q(q: [u64; 2]) -> u128 {
+    u128::from(q[0]) | (u128::from(q[1]) << 64)
+}
+
+#[inline(always)]
+fn q_of_o(o: u128) -> [u64; 2] {
+    [o as u64, (o >> 64) as u64]
+}
+
+#[inline(always)]
 fn omap<T, F>(a: T, f: F) -> T
 where
     T: Store<vec128_storage> + Into<vec128_storage>,
     F: Fn(u128) -> u128,
 {
     let a: vec128_storage = a.into();
-    let ao = unsafe { a.o };
-    let o = vec128_storage { o: [f(ao[0])] };
+    let ao = o_of_q(unsafe { a.q });
+    let o = vec128_storage { q: q_of_o(f(ao)) };
     unsafe { T::unpack(o) }
 }
 
+#[inline(always)]
 fn omap2<T, F>(a: T, b: T, f: F) -> T
 where
     T: Store<vec128_storage> + Into<vec128_storage>,
@@ -169,10 +186,10 @@ where
 {
     let a: vec128_storage = a.into();
     let b: vec128_storage = b.into();
-    let ao = unsafe { a.o };
-    let bo = unsafe { b.o };
+    let ao = o_of_q(unsafe { a.q });
+    let bo = o_of_q(unsafe { b.q });
     let o = vec128_storage {
-        o: [f(ao[0], bo[0])],
+        q: q_of_o(f(ao, bo)),
     };
     unsafe { T::unpack(o) }
 }
@@ -245,39 +262,39 @@ macro_rules! impl_bitops {
         }
 
         impl Swap64 for $vec {
-            #[inline]
+            #[inline(always)]
             fn swap1(self) -> Self {
                 qmap(self, |x| {
                     ((x & 0x5555555555555555) << 1) | ((x & 0xaaaaaaaaaaaaaaaa) >> 1)
                 })
             }
-            #[inline]
+            #[inline(always)]
             fn swap2(self) -> Self {
                 qmap(self, |x| {
                     ((x & 0x3333333333333333) << 2) | ((x & 0xcccccccccccccccc) >> 2)
                 })
             }
-            #[inline]
+            #[inline(always)]
             fn swap4(self) -> Self {
                 qmap(self, |x| {
                     ((x & 0x0f0f0f0f0f0f0f0f) << 4) | ((x & 0xf0f0f0f0f0f0f0f0) >> 4)
                 })
             }
-            #[inline]
+            #[inline(always)]
             fn swap8(self) -> Self {
                 qmap(self, |x| {
                     ((x & 0x00ff00ff00ff00ff) << 8) | ((x & 0xff00ff00ff00ff00) >> 8)
                 })
             }
-            #[inline]
+            #[inline(always)]
             fn swap16(self) -> Self {
                 dmap(self, |x| x.rotate_left(16))
             }
-            #[inline]
+            #[inline(always)]
             fn swap32(self) -> Self {
                 qmap(self, |x| x.rotate_left(32))
             }
-            #[inline]
+            #[inline(always)]
             fn swap64(self) -> Self {
                 omap(self, |x| (x << 64) | (x >> 64))
             }
@@ -289,82 +306,83 @@ impl_bitops!(u64x2_generic);
 impl_bitops!(u128x1_generic);
 
 impl RotateEachWord32 for u32x4_generic {
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right7(self) -> Self {
         dmap(self, |x| x.rotate_right(7))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right8(self) -> Self {
         dmap(self, |x| x.rotate_right(8))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right11(self) -> Self {
         dmap(self, |x| x.rotate_right(11))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right12(self) -> Self {
         dmap(self, |x| x.rotate_right(12))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right16(self) -> Self {
         dmap(self, |x| x.rotate_right(16))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right20(self) -> Self {
         dmap(self, |x| x.rotate_right(20))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right24(self) -> Self {
         dmap(self, |x| x.rotate_right(24))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right25(self) -> Self {
         dmap(self, |x| x.rotate_right(25))
     }
 }
 
 impl RotateEachWord32 for u64x2_generic {
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right7(self) -> Self {
         qmap(self, |x| x.rotate_right(7))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right8(self) -> Self {
         qmap(self, |x| x.rotate_right(8))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right11(self) -> Self {
         qmap(self, |x| x.rotate_right(11))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right12(self) -> Self {
         qmap(self, |x| x.rotate_right(12))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right16(self) -> Self {
         qmap(self, |x| x.rotate_right(16))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right20(self) -> Self {
         qmap(self, |x| x.rotate_right(20))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right24(self) -> Self {
         qmap(self, |x| x.rotate_right(24))
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right25(self) -> Self {
         qmap(self, |x| x.rotate_right(25))
     }
 }
 impl RotateEachWord64 for u64x2_generic {
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right32(self) -> Self {
         qmap(self, |x| x.rotate_right(32))
     }
 }
 
 // workaround for koute/cargo-web#52 (u128::rotate_* broken with cargo web)
+#[inline(always)]
 fn rotate_u128_right(x: u128, i: u32) -> u128 {
     (x >> i) | (x << (128 - i))
 }
@@ -375,41 +393,41 @@ fn test_rotate_u128() {
 }
 
 impl RotateEachWord32 for u128x1_generic {
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right7(self) -> Self {
         Self([rotate_u128_right(self.0[0], 7)])
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right8(self) -> Self {
         Self([rotate_u128_right(self.0[0], 8)])
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right11(self) -> Self {
         Self([rotate_u128_right(self.0[0], 11)])
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right12(self) -> Self {
         Self([rotate_u128_right(self.0[0], 12)])
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right16(self) -> Self {
         Self([rotate_u128_right(self.0[0], 16)])
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right20(self) -> Self {
         Self([rotate_u128_right(self.0[0], 20)])
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right24(self) -> Self {
         Self([rotate_u128_right(self.0[0], 24)])
     }
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right25(self) -> Self {
         Self([rotate_u128_right(self.0[0], 25)])
     }
 }
 impl RotateEachWord64 for u128x1_generic {
-    #[inline]
+    #[inline(always)]
     fn rotate_each_word_right32(self) -> Self {
         Self([rotate_u128_right(self.0[0], 32)])
     }
@@ -428,7 +446,7 @@ impl Machine for GenericMachine {
     type u32x4x4 = u32x4x4_generic;
     type u64x2x4 = u64x2x4_generic;
     type u128x4 = u128x4_generic;
-    #[inline]
+    #[inline(always)]
     unsafe fn instance() -> Self {
         Self
     }
@@ -456,7 +474,7 @@ impl From<u64x2_generic> for vec128_storage {
 impl From<u128x1_generic> for vec128_storage {
     #[inline(always)]
     fn from(o: u128x1_generic) -> Self {
-        Self { o: o.0 }
+        Self { q: q_of_o(o.0[0]) }
     }
 }
 
@@ -475,7 +493,7 @@ impl Store<vec128_storage> for u64x2_generic {
 impl Store<vec128_storage> for u128x1_generic {
     #[inline(always)]
     unsafe fn unpack(s: vec128_storage) -> Self {
-        Self(s.o)
+        Self([o_of_q(s.q); 1])
     }
 }
 
@@ -604,6 +622,22 @@ pub type u128x2_generic = x2<u128x1_generic, G0>;
 pub type u32x4x4_generic = x4<u32x4_generic>;
 pub type u64x2x4_generic = x4<u64x2_generic>;
 pub type u128x4_generic = x4<u128x1_generic>;
+
+impl Vector<[u32; 16]> for u32x4x4_generic {
+    fn to_scalars(self) -> [u32; 16] {
+        let [a, b, c, d] = self.0;
+        let a = a.0;
+        let b = b.0;
+        let c = c.0;
+        let d = d.0;
+        [
+            a[0], a[1], a[2], a[3], //
+            b[0], b[1], b[2], b[3], //
+            c[0], c[1], c[2], c[3], //
+            d[0], d[1], d[2], d[3], //
+        ]
+    }
+}
 
 impl MultiLane<[u32; 4]> for u32x4_generic {
     #[inline(always)]
@@ -745,7 +779,7 @@ impl u128x4<GenericMachine> for u128x4_generic {}
 #[macro_export]
 macro_rules! dispatch {
     ($mach:ident, $MTy:ident, { $([$pub:tt$(($krate:tt))*])* fn $name:ident($($arg:ident: $argty:ty),* $(,)*) -> $ret:ty $body:block }) => {
-        #[inline]
+        #[inline(always)]
         $($pub$(($krate))*)* fn $name($($arg: $argty),*) -> $ret {
             let $mach = unsafe { $crate::generic::GenericMachine::instance() };
             #[inline(always)]
@@ -762,7 +796,7 @@ macro_rules! dispatch {
 #[macro_export]
 macro_rules! dispatch_light128 {
     ($mach:ident, $MTy:ident, { $([$pub:tt$(($krate:tt))*])* fn $name:ident($($arg:ident: $argty:ty),* $(,)*) -> $ret:ty $body:block }) => {
-        #[inline]
+        #[inline(always)]
         $($pub$(($krate))*)* fn $name($($arg: $argty),*) -> $ret {
             let $mach = unsafe { $crate::generic::GenericMachine::instance() };
             #[inline(always)]
@@ -779,7 +813,7 @@ macro_rules! dispatch_light128 {
 #[macro_export]
 macro_rules! dispatch_light256 {
     ($mach:ident, $MTy:ident, { $([$pub:tt$(($krate:tt))*])* fn $name:ident($($arg:ident: $argty:ty),* $(,)*) -> $ret:ty $body:block }) => {
-        #[inline]
+        #[inline(always)]
         $($pub$(($krate))*)* fn $name($($arg: $argty),*) -> $ret {
             let $mach = unsafe { $crate::generic::GenericMachine::instance() };
             #[inline(always)]
@@ -796,7 +830,7 @@ macro_rules! dispatch_light256 {
 #[macro_export]
 macro_rules! dispatch_light512 {
     ($mach:ident, $MTy:ident, { $([$pub:tt$(($krate:tt))*])* fn $name:ident($($arg:ident: $argty:ty),* $(,)*) -> $ret:ty $body:block }) => {
-        #[inline]
+        #[inline(always)]
         $($pub$(($krate))*)* fn $name($($arg: $argty),*) -> $ret {
             let $mach = unsafe { $crate::generic::GenericMachine::instance() };
             #[inline(always)]

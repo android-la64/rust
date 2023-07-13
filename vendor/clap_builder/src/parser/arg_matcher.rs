@@ -5,10 +5,10 @@ use std::ops::Deref;
 
 // Internal
 use crate::builder::{Arg, ArgPredicate, Command};
-use crate::parser::AnyValue;
 use crate::parser::Identifier;
 use crate::parser::PendingArg;
 use crate::parser::{ArgMatches, MatchedArg, SubCommand, ValueSource};
+use crate::util::AnyValue;
 use crate::util::FlatMap;
 use crate::util::Id;
 use crate::INTERNAL_ERROR_MSG;
@@ -130,7 +130,9 @@ impl ArgMatcher {
     }
 
     pub(crate) fn check_explicit(&self, arg: &Id, predicate: &ArgPredicate) -> bool {
-        self.get(arg).map_or(false, |a| a.check_explicit(predicate))
+        self.get(arg)
+            .map(|a| a.check_explicit(predicate))
+            .unwrap_or_default()
     }
 
     pub(crate) fn start_custom_arg(&mut self, arg: &Arg, source: ValueSource) {

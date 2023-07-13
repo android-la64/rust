@@ -24,7 +24,7 @@ use rustc_middle::infer::unify_key::{ConstVarValue, ConstVariableValue};
 use rustc_middle::infer::unify_key::{ConstVariableOrigin, ConstVariableOriginKind, ToType};
 use rustc_middle::mir::interpret::{ErrorHandled, EvalToValTreeResult};
 use rustc_middle::mir::ConstraintCategory;
-use rustc_middle::traits::select;
+use rustc_middle::traits::{select, DefiningAnchor};
 use rustc_middle::ty::error::{ExpectedFound, TypeError};
 use rustc_middle::ty::fold::BoundVarReplacerDelegate;
 use rustc_middle::ty::fold::{TypeFoldable, TypeFolder, TypeSuperFoldable};
@@ -39,7 +39,6 @@ use rustc_span::Span;
 
 use std::cell::{Cell, RefCell};
 use std::fmt;
-use std::ops::Drop;
 
 use self::combine::CombineFields;
 use self::error_reporting::TypeErrCtxt;
@@ -59,6 +58,7 @@ pub mod error_reporting;
 pub mod free_regions;
 mod freshen;
 mod fudge;
+mod generalize;
 mod glb;
 mod higher_ranked;
 pub mod lattice;
@@ -231,17 +231,6 @@ impl<'tcx> InferCtxtInner<'tcx> {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DefiningAnchor {
-    /// `DefId` of the item.
-    Bind(LocalDefId),
-    /// When opaque types are not resolved, we `Bubble` up, meaning
-    /// return the opaque/hidden type pair from query, for caller of query to handle it.
-    Bubble,
-    /// Used to catch type mismatch errors when handling opaque types.
-    Error,
-}
-
 pub struct InferCtxt<'tcx> {
     pub tcx: TyCtxt<'tcx>,
 
@@ -342,11 +331,6 @@ pub struct InferCtxt<'tcx> {
     /// there is no type that the user could *actually name* that
     /// would satisfy it. This avoids crippling inference, basically.
     pub intercrate: bool,
-
-    /// Flag that is set when we enter canonicalization. Used for debugging to ensure
-    /// that we only collect region information for `BorrowckInferCtxt::reg_var_to_origin`
-    /// inside non-canonicalization contexts.
-    inside_canonicalization_ctxt: Cell<bool>,
 }
 
 /// See the `error_reporting` module for more details.
@@ -638,7 +622,6 @@ impl<'tcx> InferCtxtBuilder<'tcx> {
             skip_leak_check: Cell::new(false),
             universe: Cell::new(ty::UniverseIndex::ROOT),
             intercrate,
-            inside_canonicalization_ctxt: Cell::new(false),
         }
     }
 }
@@ -1228,11 +1211,11 @@ impl<'tcx> InferCtxt<'tcx> {
     /// hence that `resolve_regions_and_report_errors` can never be
     /// called. This is used only during NLL processing to "hand off" ownership
     /// of the set of region variables into the NLL region context.
-    pub fn take_region_var_origins(&self) -> VarInfos {
+    pub fn get_region_var_origins(&self) -> VarInfos {
         let mut inner = self.inner.borrow_mut();
         let (var_infos, data) = inner
             .region_constraint_storage
-            .take()
+            .clone()
             .expect("regions already resolved")
             .with_log(&mut inner.undo_log)
             .into_infos_and_data();
@@ -1327,7 +1310,7 @@ impl<'tcx> InferCtxt<'tcx> {
     where
         T: TypeFoldable<TyCtxt<'tcx>>,
     {
-        if !value.needs_infer() {
+        if !value.has_infer() {
             return value; // Avoid duplicated subst-folding.
         }
         let mut r = InferenceLiteralEraser { tcx: self.tcx };
@@ -1365,7 +1348,7 @@ impl<'tcx> InferCtxt<'tcx> {
     pub fn fully_resolve<T: TypeFoldable<TyCtxt<'tcx>>>(&self, value: T) -> FixupResult<'tcx, T> {
         let value = resolve::fully_resolve(self, value);
         assert!(
-            value.as_ref().map_or(true, |value| !value.needs_infer()),
+            value.as_ref().map_or(true, |value| !value.has_infer()),
             "`{value:?}` is not fully resolved"
         );
         value
@@ -1500,7 +1483,7 @@ impl<'tcx> InferCtxt<'tcx> {
             Ok(Some(val)) => Ok(self.tcx.mk_const(val, ty)),
             Ok(None) => {
                 let tcx = self.tcx;
-                let def_id = unevaluated.def.did;
+                let def_id = unevaluated.def;
                 span_bug!(
                     tcx.def_span(def_id),
                     "unable to construct a constant value for the unevaluated constant {:?}",
@@ -1537,18 +1520,18 @@ impl<'tcx> InferCtxt<'tcx> {
         // variables
         let tcx = self.tcx;
         if substs.has_non_region_infer() {
-            if let Some(ct) = tcx.bound_abstract_const(unevaluated.def)? {
+            if let Some(ct) = tcx.thir_abstract_const(unevaluated.def)? {
                 let ct = tcx.expand_abstract_consts(ct.subst(tcx, substs));
                 if let Err(e) = ct.error_reported() {
-                    return Err(ErrorHandled::Reported(e));
+                    return Err(ErrorHandled::Reported(e.into()));
                 } else if ct.has_non_region_infer() || ct.has_non_region_param() {
                     return Err(ErrorHandled::TooGeneric);
                 } else {
                     substs = replace_param_and_infer_substs_with_placeholder(tcx, substs);
                 }
             } else {
-                substs = InternalSubsts::identity_for_item(tcx, unevaluated.def.did);
-                param_env = tcx.param_env(unevaluated.def.did);
+                substs = InternalSubsts::identity_for_item(tcx, unevaluated.def);
+                param_env = tcx.param_env(unevaluated.def);
             }
         }
 
@@ -1577,10 +1560,10 @@ impl<'tcx> InferCtxt<'tcx> {
             (TyOrConstInferVar::Ty(ty_var), Ok(inner)) => {
                 use self::type_variable::TypeVariableValue;
 
-                match inner.try_type_variables_probe_ref(ty_var) {
-                    Some(TypeVariableValue::Unknown { .. }) => true,
-                    _ => false,
-                }
+                matches!(
+                    inner.try_type_variables_probe_ref(ty_var),
+                    Some(TypeVariableValue::Unknown { .. })
+                )
             }
             _ => false,
         };
@@ -1635,31 +1618,6 @@ impl<'tcx> InferCtxt<'tcx> {
                 }
             }
         }
-    }
-
-    pub fn inside_canonicalization_ctxt(&self) -> bool {
-        self.inside_canonicalization_ctxt.get()
-    }
-
-    pub fn set_canonicalization_ctxt(&self) -> CanonicalizationCtxtGuard<'_, 'tcx> {
-        let prev_ctxt = self.inside_canonicalization_ctxt();
-        self.inside_canonicalization_ctxt.set(true);
-        CanonicalizationCtxtGuard { prev_ctxt, infcx: self }
-    }
-
-    fn set_canonicalization_ctxt_to(&self, ctxt: bool) {
-        self.inside_canonicalization_ctxt.set(ctxt);
-    }
-}
-
-pub struct CanonicalizationCtxtGuard<'cx, 'tcx> {
-    prev_ctxt: bool,
-    infcx: &'cx InferCtxt<'tcx>,
-}
-
-impl<'cx, 'tcx> Drop for CanonicalizationCtxtGuard<'cx, 'tcx> {
-    fn drop(&mut self) {
-        self.infcx.set_canonicalization_ctxt_to(self.prev_ctxt)
     }
 }
 

@@ -11,6 +11,7 @@ use crate::{
 };
 
 /// A way to indicate how to treat the connection underlying the transport, potentially allowing to reuse it.
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum FetchConnection {
     /// Use this variant if server should be informed that the operation is completed and no further commands will be issued
     /// at the end of the fetch operation or after deciding that no fetch operation should happen after references were listed.
@@ -19,6 +20,7 @@ pub enum FetchConnection {
     /// Generally it only applies when using persistent transports.
     ///
     /// In most explicit client side failure modes the end-of-operation' notification will be sent to the server automatically.
+    #[default]
     TerminateOnSuccessfulCompletion,
 
     /// Indicate that persistent transport connections can be reused by _not_ sending an 'end-of-operation' notification to the server.
@@ -29,12 +31,6 @@ pub enum FetchConnection {
     /// As an optimization, callers can use `AllowReuse` here as the server will also know the client is done
     /// if the connection is closed.
     AllowReuse,
-}
-
-impl Default for FetchConnection {
-    fn default() -> Self {
-        FetchConnection::TerminateOnSuccessfulCompletion
-    }
 }
 
 /// Perform a 'fetch' operation with the server using `transport`, with `delegate` handling all server interactions.
@@ -49,6 +45,8 @@ impl Default for FetchConnection {
 /// _Note_ that depending on the `delegate`, the actual action performed can be `ls-refs`, `clone` or `fetch`.
 #[allow(clippy::result_large_err)]
 #[maybe_async]
+// TODO: remove this without losing test coverage - we have the same but better in `gix` and it's
+//       not really worth it to maintain the delegates here.
 pub async fn fetch<F, D, T, P>(
     mut transport: T,
     mut delegate: D,
@@ -162,7 +160,8 @@ where
     reader.set_progress_handler(Some(Box::new({
         let mut remote_progress = progress.add_child("remote");
         move |is_err: bool, data: &[u8]| {
-            crate::RemoteProgress::translate_to_progress(is_err, data, &mut remote_progress)
+            crate::RemoteProgress::translate_to_progress(is_err, data, &mut remote_progress);
+            gix_transport::packetline::read::ProgressAction::Continue
         }
     }) as gix_transport::client::HandleProgress));
 }

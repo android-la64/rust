@@ -28,8 +28,9 @@ their command specifies, or the test will fail without even being run.
     * `C` can also be one of `64bit`, `32bit` or `16bit`.
     * `C` can also be `on-host`, which will only run the test during cross compilation testing.
 * `//@only-C` **only** runs the test when condition `C` is met. The conditions are the same as with `ignore`.
+* `//@needs-asm-support` **only** runs the test when the target supports `asm!`.
 * `//@stderr-per-bitwidth` produces one stderr file per bitwidth, as they may differ significantly sometimes
-* `//@error-pattern: XXX` make sure the stderr output contains `XXX`
+* `//@error-in-other-file: XXX` can be used to check for errors that can't have `//~` patterns due to being reported in other files.
 * `//@revisions: XXX YYY` runs the test once for each space separated name in the list
     * emits one stderr file per revision
     * `//~` comments can be restricted to specific revisions by adding the revision name after the `~` in square brackets: `//~[XXX]`
@@ -44,10 +45,18 @@ their command specifies, or the test will fail without even being run.
     * you can specify multiple such commands, there is no need to create a single regex that handles multiple replacements that you want to perform.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
+* `//@check-pass` overrides the `Config::mode` and will make the test behave as if the test suite were in `Mode::Pass`.
+* `//@edition: EDITION` overwrites the default edition (2021) to the given edition.
+* `//@run-rustfix` runs rustfix on the output and recompiles the result. The result must suceed to compile.
+* `//@aux-build: filename` looks for a file in the `auxiliary` directory (within the directory of the test), compiles it as a library and links the current crate against it. This allows you import the crate with `extern crate` or just via `use` statements.
+    * you can optionally specify a crate type via `//@aux-build: filename.rs:proc-macro`. This is necessary for some crates (like proc macros), but can also be used to change the linkage against the aux build.
+* `//@run` compiles the test and runs the resulting binary. The resulting binary must exit successfully. Stdout and stderr are taken from the resulting binary. Any warnings during compilation are ignored.
+    * You can also specify a different exit code/status that is expected via e.g. `//@run: 1` or `//@run: 101` (the latter is the standard Rust exit code for panics).
 
 ## Significant differences to compiletest-rs
 
-* `ignore-target-*` and `only-target-*` opereate solely on the triple, instead of supporting things like `macos`
-* only `//~` comments can be individualized per revision
+* `ignore-target-*` and `only-target-*` operate solely on the triple, instead of supporting things like `macos`
 * only supports `ui` tests
 * tests are run in named order, so you can prefix slow tests with `0` in order to make them get run first
+* `aux-build`s for proc macros require an additional `:proc-macro` after the file name, but then the aux file itself needs no `#![proc_macro]` or other flags.
+* `aux-build`s require specifying nested aux builds explicitly and will not allow you to reference sibling `aux-build`s' artifacts.

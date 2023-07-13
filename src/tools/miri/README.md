@@ -301,6 +301,15 @@ environment variable. We first document the most relevant and most commonly used
 * `-Zmiri-disable-isolation` disables host isolation.  As a consequence,
   the program has access to host resources such as environment variables, file
   systems, and randomness.
+* `-Zmiri-disable-leak-backtraces` disables backtraces reports for memory leaks. By default, a
+  backtrace is captured for every allocation when it is created, just in case it leaks. This incurs
+  some memory overhead to store data that is almost never used. This flag is implied by
+  `-Zmiri-ignore-leaks`.
+* `-Zmiri-env-forward=<var>` forwards the `var` environment variable to the interpreted program. Can
+  be used multiple times to forward several variables. Execution will still be deterministic if the
+  value of forwarded variables stays the same. Has no effect if `-Zmiri-disable-isolation` is set.
+* `-Zmiri-ignore-leaks` disables the memory leak checker, and also allows some
+  remaining threads to exist when the main thread exits.
 * `-Zmiri-isolation-error=<action>` configures Miri's response to operations
   requiring host access while isolation is enabled. `abort`, `hide`, `warn`,
   and `warn-nobacktrace` are the supported actions. The default is to `abort`,
@@ -308,11 +317,6 @@ environment variable. We first document the most relevant and most commonly used
   execution with a "permission denied" error being returned to the program.
   `warn` prints a full backtrace when that happens; `warn-nobacktrace` is less
   verbose. `hide` hides the warning entirely.
-* `-Zmiri-env-forward=<var>` forwards the `var` environment variable to the interpreted program. Can
-  be used multiple times to forward several variables. Execution will still be deterministic if the
-  value of forwarded variables stays the same. Has no effect if `-Zmiri-disable-isolation` is set.
-* `-Zmiri-ignore-leaks` disables the memory leak checker, and also allows some
-  remaining threads to exist when the main thread exits.
 * `-Zmiri-num-cpus` states the number of available CPUs to be reported by miri. By default, the
   number of available CPUs is `1`. Note that this flag does not affect how miri handles threads in
   any way.
@@ -385,7 +389,7 @@ to Miri failing to detect cases of undefined behavior in a program.
   Follow [the discussion on supporting other types](https://github.com/rust-lang/miri/issues/2365).
 * `-Zmiri-measureme=<name>` enables `measureme` profiling for the interpreted program.
    This can be used to find which parts of your program are executing slowly under Miri.
-   The profile is written out to a file with the prefix `<name>`, and can be processed
+   The profile is written out to a file inside a directory called `<name>`, and can be processed
    using the tools in the repository https://github.com/rust-lang/measureme.
 * `-Zmiri-mute-stdout-stderr` silently ignores all writes to stdout and stderr,
   but reports to the program that it did actually write. This is useful when you
@@ -403,7 +407,7 @@ to Miri failing to detect cases of undefined behavior in a program.
 * `-Zmiri-retag-fields=<all|none|scalar>` controls when Stacked Borrows retagging recurses into
   fields. `all` means it always recurses (like `-Zmiri-retag-fields`), `none` means it never
   recurses, `scalar` (the default) means it only recurses for types where we would also emit
-  `noalias` annotations in the generated LLVM IR (types passed as indivudal scalars or pairs of
+  `noalias` annotations in the generated LLVM IR (types passed as individual scalars or pairs of
   scalars). Setting this to `none` is **unsound**.
 * `-Zmiri-tag-gc=<blocks>` configures how often the pointer tag garbage collector runs. The default
   is to search for and remove unreachable tags once every `10000` basic blocks. Setting this to

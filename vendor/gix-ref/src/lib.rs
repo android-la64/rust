@@ -57,20 +57,15 @@ pub mod peel;
 ///
 pub mod store {
     /// The way a file store handles the reflog
-    #[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy)]
+    #[derive(Default, Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy)]
     pub enum WriteReflog {
         /// Always write the reflog for all references for ref edits, unconditionally.
         Always,
         /// Write a ref log for ref edits according to the standard rules.
+        #[default]
         Normal,
         /// Never write a ref log.
         Disable,
-    }
-
-    impl Default for WriteReflog {
-        fn default() -> Self {
-            WriteReflog::Normal
-        }
     }
 
     /// A thread-local handle for interacting with a [`Store`][crate::Store] to find and iterate references.
@@ -104,28 +99,27 @@ pub(crate) struct Store {
     inner: store::State,
 }
 
-/// Indicate that the given BString is a validate reference name or path that can be used as path on disk or written as target
-/// of a symbolic reference
+/// A validated complete and fully qualified referenced reference name, safe to use for all operations.
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FullName(pub(crate) BString);
 
-/// A validated and potentially partial reference name - it can safely be used for common operations.
+/// A validated complete and fully qualified referenced reference name, safe to use for all operations.
 #[derive(Hash, Debug, PartialEq, Eq, Ord, PartialOrd)]
 #[repr(transparent)]
 pub struct FullNameRef(BStr);
 
-/// A validated complete and fully qualified reference name, safe to use for all operations.
+/// A validated and potentially partial reference name, safe to use for common operations.
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
 pub struct PartialNameCow<'a>(Cow<'a, BStr>);
 
-/// A validated complete and fully qualified referenced reference name, safe to use for all operations.
+/// A validated and potentially partial reference name, safe to use for common operations.
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd)]
 #[repr(transparent)]
 pub struct PartialNameRef(BStr);
 
-/// A validated complete and fully qualified owned reference name, safe to use for all operations.
-#[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd)]
+/// A validated and potentially partial reference name, safe to use for common operations.
+#[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
 pub struct PartialName(BString);
 
 /// A _validated_ prefix for references to act as a namespace.
@@ -134,7 +128,7 @@ pub struct Namespace(BString);
 
 /// Denotes the kind of reference.
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Kind {
     /// A ref that points to an object id
     Peeled,
@@ -185,7 +179,7 @@ pub enum Category<'a> {
 
 /// Denotes a ref target, equivalent to [`Kind`], but with mutable data.
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Target {
     /// A ref that points to an object id
     Peeled(ObjectId),

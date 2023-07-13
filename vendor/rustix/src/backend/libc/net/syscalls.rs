@@ -12,7 +12,7 @@ use super::read_sockaddr::{maybe_read_sockaddr_os, read_sockaddr_os};
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 use super::send_recv::{RecvFlags, SendFlags};
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
-use super::types::{AcceptFlags, AddressFamily, Protocol, Shutdown, SocketFlags, SocketType};
+use super::types::{AddressFamily, Protocol, Shutdown, SocketFlags, SocketType};
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 use super::write_sockaddr::{encode_sockaddr_v4, encode_sockaddr_v6};
 use crate::fd::{BorrowedFd, OwnedFd};
@@ -26,28 +26,26 @@ use core::ptr::null_mut;
 
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 pub(crate) fn recv(fd: BorrowedFd<'_>, buf: &mut [u8], flags: RecvFlags) -> io::Result<usize> {
-    let nrecv = unsafe {
+    unsafe {
         ret_send_recv(c::recv(
             borrowed_fd(fd),
             buf.as_mut_ptr().cast(),
             send_recv_len(buf.len()),
             flags.bits(),
-        ))?
-    };
-    Ok(nrecv as usize)
+        ))
+    }
 }
 
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 pub(crate) fn send(fd: BorrowedFd<'_>, buf: &[u8], flags: SendFlags) -> io::Result<usize> {
-    let nwritten = unsafe {
+    unsafe {
         ret_send_recv(c::send(
             borrowed_fd(fd),
             buf.as_ptr().cast(),
             send_recv_len(buf.len()),
             flags.bits(),
-        ))?
-    };
-    Ok(nwritten as usize)
+        ))
+    }
 }
 
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
@@ -65,18 +63,20 @@ pub(crate) fn recvfrom(
         // `AF_UNSPEC` so that we can detect this case.
         initialize_family_to_unspec(storage.as_mut_ptr());
 
-        let nread = ret_send_recv(c::recvfrom(
+        ret_send_recv(c::recvfrom(
             borrowed_fd(fd),
             buf.as_mut_ptr().cast(),
             send_recv_len(buf.len()),
             flags.bits(),
             storage.as_mut_ptr().cast(),
             &mut len,
-        ))?;
-        Ok((
-            nread as usize,
-            maybe_read_sockaddr_os(storage.as_ptr(), len.try_into().unwrap()),
         ))
+        .map(|nread| {
+            (
+                nread,
+                maybe_read_sockaddr_os(storage.as_ptr(), len.try_into().unwrap()),
+            )
+        })
     }
 }
 
@@ -87,7 +87,7 @@ pub(crate) fn sendto_v4(
     flags: SendFlags,
     addr: &SocketAddrV4,
 ) -> io::Result<usize> {
-    let nwritten = unsafe {
+    unsafe {
         ret_send_recv(c::sendto(
             borrowed_fd(fd),
             buf.as_ptr().cast(),
@@ -95,9 +95,8 @@ pub(crate) fn sendto_v4(
             flags.bits(),
             as_ptr(&encode_sockaddr_v4(addr)).cast::<c::sockaddr>(),
             size_of::<SocketAddrV4>() as _,
-        ))?
-    };
-    Ok(nwritten as usize)
+        ))
+    }
 }
 
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
@@ -107,7 +106,7 @@ pub(crate) fn sendto_v6(
     flags: SendFlags,
     addr: &SocketAddrV6,
 ) -> io::Result<usize> {
-    let nwritten = unsafe {
+    unsafe {
         ret_send_recv(c::sendto(
             borrowed_fd(fd),
             buf.as_ptr().cast(),
@@ -115,9 +114,8 @@ pub(crate) fn sendto_v6(
             flags.bits(),
             as_ptr(&encode_sockaddr_v6(addr)).cast::<c::sockaddr>(),
             size_of::<SocketAddrV6>() as _,
-        ))?
-    };
-    Ok(nwritten as usize)
+        ))
+    }
 }
 
 #[cfg(not(any(windows, target_os = "redox", target_os = "wasi")))]
@@ -127,7 +125,7 @@ pub(crate) fn sendto_unix(
     flags: SendFlags,
     addr: &SocketAddrUnix,
 ) -> io::Result<usize> {
-    let nwritten = unsafe {
+    unsafe {
         ret_send_recv(c::sendto(
             borrowed_fd(fd),
             buf.as_ptr().cast(),
@@ -135,9 +133,8 @@ pub(crate) fn sendto_unix(
             flags.bits(),
             as_ptr(&addr.unix).cast(),
             addr.addr_len(),
-        ))?
-    };
-    Ok(nwritten as usize)
+        ))
+    }
 }
 
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
@@ -257,7 +254,7 @@ pub(crate) fn accept(sockfd: BorrowedFd<'_>) -> io::Result<OwnedFd> {
     target_os = "redox",
     target_os = "wasi",
 )))]
-pub(crate) fn accept_with(sockfd: BorrowedFd<'_>, flags: AcceptFlags) -> io::Result<OwnedFd> {
+pub(crate) fn accept_with(sockfd: BorrowedFd<'_>, flags: SocketFlags) -> io::Result<OwnedFd> {
     unsafe {
         let owned_fd = ret_owned_fd(c::accept4(
             borrowed_fd(sockfd),
@@ -295,7 +292,7 @@ pub(crate) fn acceptfrom(sockfd: BorrowedFd<'_>) -> io::Result<(OwnedFd, Option<
 )))]
 pub(crate) fn acceptfrom_with(
     sockfd: BorrowedFd<'_>,
-    flags: AcceptFlags,
+    flags: SocketFlags,
 ) -> io::Result<(OwnedFd, Option<SocketAddrAny>)> {
     unsafe {
         let mut storage = MaybeUninit::<c::sockaddr_storage>::uninit();
@@ -314,18 +311,18 @@ pub(crate) fn acceptfrom_with(
 }
 
 /// Darwin lacks `accept4`, but does have `accept`. We define
-/// `AcceptFlags` to have no flags, so we can discard it here.
+/// `SocketFlags` to have no flags, so we can discard it here.
 #[cfg(any(apple, windows, target_os = "haiku"))]
-pub(crate) fn accept_with(sockfd: BorrowedFd<'_>, _flags: AcceptFlags) -> io::Result<OwnedFd> {
+pub(crate) fn accept_with(sockfd: BorrowedFd<'_>, _flags: SocketFlags) -> io::Result<OwnedFd> {
     accept(sockfd)
 }
 
 /// Darwin lacks `accept4`, but does have `accept`. We define
-/// `AcceptFlags` to have no flags, so we can discard it here.
+/// `SocketFlags` to have no flags, so we can discard it here.
 #[cfg(any(apple, windows, target_os = "haiku"))]
 pub(crate) fn acceptfrom_with(
     sockfd: BorrowedFd<'_>,
-    _flags: AcceptFlags,
+    _flags: SocketFlags,
 ) -> io::Result<(OwnedFd, Option<SocketAddrAny>)> {
     acceptfrom(sockfd)
 }
@@ -555,7 +552,7 @@ pub(crate) mod sockopt {
 
                 // Rust's musl libc bindings deprecated `time_t` while they
                 // transition to 64-bit `time_t`. What we want here is just
-                // "whatever type `timeval`'s `tv_sec` is", so we're ok using
+                // “whatever type `timeval`'s `tv_sec` is”, so we're ok using
                 // the deprecated type.
                 #[allow(deprecated)]
                 let tv_sec = timeout.as_secs().try_into().unwrap_or(c::time_t::MAX);
@@ -647,13 +644,50 @@ pub(crate) mod sockopt {
     }
 
     #[inline]
-    pub(crate) fn get_socket_error(fd: BorrowedFd<'_>) -> io::Result<Result<(), crate::io::Errno>> {
+    pub(crate) fn get_socket_error(fd: BorrowedFd<'_>) -> io::Result<Result<(), io::Errno>> {
         let err: c::c_int = getsockopt(fd, c::SOL_SOCKET as _, c::SO_ERROR)?;
         Ok(if err == 0 {
             Ok(())
         } else {
-            Err(crate::io::Errno::from_raw_os_error(err))
+            Err(io::Errno::from_raw_os_error(err))
         })
+    }
+
+    #[inline]
+    pub(crate) fn set_socket_keepalive(fd: BorrowedFd<'_>, keepalive: bool) -> io::Result<()> {
+        setsockopt(
+            fd,
+            c::SOL_SOCKET as _,
+            c::SO_KEEPALIVE,
+            from_bool(keepalive),
+        )
+    }
+
+    #[inline]
+    pub(crate) fn get_socket_keepalive(fd: BorrowedFd<'_>) -> io::Result<bool> {
+        getsockopt(fd, c::SOL_SOCKET as _, c::SO_KEEPALIVE).map(to_bool)
+    }
+
+    #[inline]
+    pub(crate) fn set_socket_recv_buffer_size(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
+        let size: c::c_int = size.try_into().map_err(|_| io::Errno::INVAL)?;
+        setsockopt(fd, c::SOL_SOCKET as _, c::SO_RCVBUF, size)
+    }
+
+    #[inline]
+    pub(crate) fn get_socket_recv_buffer_size(fd: BorrowedFd<'_>) -> io::Result<usize> {
+        getsockopt(fd, c::SOL_SOCKET as _, c::SO_RCVBUF).map(|size: u32| size as usize)
+    }
+
+    #[inline]
+    pub(crate) fn set_socket_send_buffer_size(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
+        let size: c::c_int = size.try_into().map_err(|_| io::Errno::INVAL)?;
+        setsockopt(fd, c::SOL_SOCKET as _, c::SO_SNDBUF, size)
+    }
+
+    #[inline]
+    pub(crate) fn get_socket_send_buffer_size(fd: BorrowedFd<'_>) -> io::Result<usize> {
+        getsockopt(fd, c::SOL_SOCKET as _, c::SO_SNDBUF).map(|size: u32| size as usize)
     }
 
     #[inline]
@@ -788,6 +822,20 @@ pub(crate) mod sockopt {
 
         let mreq = to_ipv6mr(multiaddr, interface);
         setsockopt(fd, c::IPPROTO_IPV6 as _, IPV6_DROP_MEMBERSHIP, mreq)
+    }
+
+    #[inline]
+    pub(crate) fn get_ipv6_unicast_hops(fd: BorrowedFd<'_>) -> io::Result<u8> {
+        getsockopt(fd, c::IPPROTO_IPV6 as _, c::IPV6_UNICAST_HOPS).map(|hops: c::c_int| hops as u8)
+    }
+
+    #[inline]
+    pub(crate) fn set_ipv6_unicast_hops(fd: BorrowedFd<'_>, hops: Option<u8>) -> io::Result<()> {
+        let hops = match hops {
+            Some(hops) => hops as c::c_int,
+            None => -1,
+        };
+        setsockopt(fd, c::IPPROTO_IPV6 as _, c::IPV6_UNICAST_HOPS, hops)
     }
 
     #[inline]

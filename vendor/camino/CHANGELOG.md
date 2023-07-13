@@ -3,6 +3,18 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2023-03-09
+
+### Added
+
+- Implement `DerefMut` for `Utf8PathBuf` on Rust 1.68 and above.
+
+## [1.1.3] - 2023-02-21
+
+### Added
+
+- New method `Utf8DirEntry::into_path` to return an owned `Utf8PathBuf`.
+
 ## [1.1.2] - 2022-08-12
 
 ### Added
@@ -108,6 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial release.
 
+[1.1.4]: https://github.com/camino-rs/camino/releases/tag/camino-1.1.4
+[1.1.3]: https://github.com/camino-rs/camino/releases/tag/camino-1.1.3
 [1.1.2]: https://github.com/camino-rs/camino/releases/tag/camino-1.1.2
 [1.1.1]: https://github.com/camino-rs/camino/releases/tag/camino-1.1.1
 [1.1.0]: https://github.com/camino-rs/camino/releases/tag/camino-1.1.0

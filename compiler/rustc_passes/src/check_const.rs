@@ -12,7 +12,7 @@ use rustc_hir as hir;
 use rustc_hir::def_id::LocalDefId;
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_middle::hir::nested_filter;
-use rustc_middle::ty::query::Providers;
+use rustc_middle::query::Providers;
 use rustc_middle::ty::TyCtxt;
 use rustc_session::parse::feature_err;
 use rustc_span::{sym, Span, Symbol};
@@ -148,7 +148,7 @@ impl<'tcx> CheckConstVisitor<'tcx> {
             [missing_primary, ref missing_secondary @ ..] => {
                 let msg =
                     format!("{} is not allowed in a `{}`", expr.name(), const_kind.keyword_name());
-                let mut err = feature_err(&tcx.sess.parse_sess, *missing_primary, span, &msg);
+                let mut err = feature_err(&tcx.sess.parse_sess, *missing_primary, span, msg);
 
                 // If multiple feature gates would be required to enable this expression, include
                 // them as help messages. Don't emit a separate error for each missing feature gate.
@@ -161,7 +161,7 @@ impl<'tcx> CheckConstVisitor<'tcx> {
                             "add `#![feature({})]` to the crate attributes to enable",
                             gate,
                         );
-                        err.help(&note);
+                        err.help(note);
                     }
                 }
 

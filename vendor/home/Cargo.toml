@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "home"
-version = "0.5.4"
+version = "0.5.5"
 authors = ["Brian Anderson <andersrb@gmail.com>"]
 include = [
     "/src",
@@ -21,16 +21,16 @@ include = [
     "/LICENSE-*",
     "/README.md",
 ]
-description = "Shared definitions of home directories"
+description = "Shared definitions of home directories."
 documentation = "https://docs.rs/home"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/brson/home"
+repository = "https://github.com/rust-lang/cargo"
+resolver = "2"
 
-[target."cfg(windows)".dependencies.winapi]
-version = "0.3"
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.48.0"
 features = [
-    "shlobj",
-    "std",
-    "winerror",
+    "Win32_Foundation",
+    "Win32_UI_Shell",
 ]

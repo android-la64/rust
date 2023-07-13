@@ -1,8 +1,8 @@
 // Copyright 2015 The Rust Project Developers.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
@@ -34,9 +34,9 @@
 //! // Create a TCP listener bound to two addresses.
 //! let socket = Socket::new(Domain::IPV6, Type::STREAM, None)?;
 //!
+//! socket.set_only_v6(false)?;
 //! let address: SocketAddr = "[::1]:12345".parse().unwrap();
 //! socket.bind(&address.into())?;
-//! socket.set_only_v6(false)?;
 //! socket.listen(128)?;
 //!
 //! let listener: TcpListener = socket.into();
@@ -50,7 +50,7 @@
 //! This crate has a single feature `all`, which enables all functions even ones
 //! that are not available on all OSs.
 
-#![doc(html_root_url = "https://docs.rs/socket2/0.3")]
+#![doc(html_root_url = "https://docs.rs/socket2/0.4")]
 #![deny(missing_docs, missing_debug_implementations, rust_2018_idioms)]
 // Show required OS/features on docs.rs.
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -119,18 +119,27 @@ mod sockaddr;
 mod socket;
 mod sockref;
 
-#[cfg(unix)]
-#[path = "sys/unix.rs"]
+#[cfg_attr(unix, path = "sys/unix.rs")]
+#[cfg_attr(windows, path = "sys/windows.rs")]
 mod sys;
-#[cfg(windows)]
-#[path = "sys/windows.rs"]
-mod sys;
+
+#[cfg(not(any(windows, unix)))]
+compile_error!("Socket2 doesn't support the compile target");
 
 use sys::c_int;
 
 pub use sockaddr::SockAddr;
 pub use socket::Socket;
 pub use sockref::SockRef;
+
+#[cfg(not(any(
+    target_os = "haiku",
+    target_os = "illumos",
+    target_os = "netbsd",
+    target_os = "redox",
+    target_os = "solaris",
+)))]
+pub use socket::InterfaceIndexOrAddress;
 
 /// Specification of the communication domain for a socket.
 ///
@@ -282,10 +291,6 @@ impl RecvFlags {
 #[repr(transparent)]
 pub struct MaybeUninitSlice<'a>(sys::MaybeUninitSlice<'a>);
 
-unsafe impl<'a> Send for MaybeUninitSlice<'a> {}
-
-unsafe impl<'a> Sync for MaybeUninitSlice<'a> {}
-
 impl<'a> fmt::Debug for MaybeUninitSlice<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(self.0.as_slice(), fmt)
@@ -322,8 +327,22 @@ impl<'a> DerefMut for MaybeUninitSlice<'a> {
 /// See [`Socket::set_tcp_keepalive`].
 #[derive(Debug, Clone)]
 pub struct TcpKeepalive {
+    #[cfg_attr(target_os = "openbsd", allow(dead_code))]
     time: Option<Duration>,
+    #[cfg(not(any(
+        target_os = "openbsd",
+        target_os = "redox",
+        target_os = "solaris",
+        target_os = "nto",
+    )))]
     interval: Option<Duration>,
+    #[cfg(not(any(
+        target_os = "openbsd",
+        target_os = "redox",
+        target_os = "solaris",
+        target_os = "windows",
+        target_os = "nto",
+    )))]
     retries: Option<u32>,
 }
 
@@ -332,7 +351,20 @@ impl TcpKeepalive {
     pub const fn new() -> TcpKeepalive {
         TcpKeepalive {
             time: None,
+            #[cfg(not(any(
+                target_os = "openbsd",
+                target_os = "redox",
+                target_os = "solaris",
+                target_os = "nto",
+            )))]
             interval: None,
+            #[cfg(not(any(
+                target_os = "openbsd",
+                target_os = "redox",
+                target_os = "solaris",
+                target_os = "windows",
+                target_os = "nto",
+            )))]
             retries: None,
         }
     }
@@ -365,9 +397,11 @@ impl TcpKeepalive {
     #[cfg(all(
         feature = "all",
         any(
+            target_os = "android",
             target_os = "dragonfly",
             target_os = "freebsd",
             target_os = "fuchsia",
+            target_os = "illumos",
             target_os = "linux",
             target_os = "netbsd",
             target_vendor = "apple",
@@ -379,8 +413,11 @@ impl TcpKeepalive {
         doc(cfg(all(
             feature = "all",
             any(
+                target_os = "android",
+                target_os = "dragonfly",
                 target_os = "freebsd",
                 target_os = "fuchsia",
+                target_os = "illumos",
                 target_os = "linux",
                 target_os = "netbsd",
                 target_vendor = "apple",
@@ -403,9 +440,11 @@ impl TcpKeepalive {
         feature = "all",
         any(
             doc,
+            target_os = "android",
             target_os = "dragonfly",
             target_os = "freebsd",
             target_os = "fuchsia",
+            target_os = "illumos",
             target_os = "linux",
             target_os = "netbsd",
             target_vendor = "apple",
@@ -416,8 +455,11 @@ impl TcpKeepalive {
         doc(cfg(all(
             feature = "all",
             any(
+                target_os = "android",
+                target_os = "dragonfly",
                 target_os = "freebsd",
                 target_os = "fuchsia",
+                target_os = "illumos",
                 target_os = "linux",
                 target_os = "netbsd",
                 target_vendor = "apple",

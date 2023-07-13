@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "globset"
-version = "0.4.9"
+version = "0.4.10"
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 Cross platform single glob and glob set matching. Glob set matching is the
@@ -40,7 +40,7 @@ bench = false
 version = "0.7.3"
 
 [dependencies.bstr]
-version = "0.2.0"
+version = "1.1.0"
 features = ["std"]
 default-features = false
 

@@ -62,8 +62,11 @@ pub enum Error {
     UnsupportedObjectFormat { name: BString },
     #[error(transparent)]
     CoreAbbrev(#[from] abbrev::Error),
-    #[error("Could not read configuration file")]
-    Io(#[from] std::io::Error),
+    #[error("Could not read configuration file at \"{}\"", path.display())]
+    Io {
+        source: std::io::Error,
+        path: std::path::PathBuf,
+    },
     #[error(transparent)]
     Init(#[from] gix_config::file::init::Error),
     #[error(transparent)]
@@ -110,6 +113,36 @@ pub mod checkout_options {
         ConfigBoolean(#[from] super::boolean::Error),
         #[error(transparent)]
         CheckoutWorkers(#[from] super::checkout::workers::Error),
+        #[error(transparent)]
+        Attributes(#[from] super::attribute_stack::Error),
+    }
+}
+
+///
+pub mod exclude_stack {
+    use std::path::PathBuf;
+
+    /// The error produced when setting up a stack to query `gitignore` information.
+    #[derive(Debug, thiserror::Error)]
+    #[allow(missing_docs)]
+    pub enum Error {
+        #[error("Could not read repository exclude")]
+        Io(#[from] std::io::Error),
+        #[error(transparent)]
+        EnvironmentPermission(#[from] gix_sec::permission::Error<PathBuf>),
+        #[error("The value for `core.excludesFile` could not be read from configuration")]
+        ExcludesFilePathInterpolation(#[from] gix_config::path::interpolate::Error),
+    }
+}
+
+///
+pub mod attribute_stack {
+    /// The error produced when setting up the attribute stack to query `gitattributes`.
+    #[derive(Debug, thiserror::Error)]
+    #[allow(missing_docs)]
+    pub enum Error {
+        #[error("An attribute file could not be read")]
+        Io(#[from] std::io::Error),
         #[error("Failed to interpolate the attribute file configured at `core.attributesFile`")]
         AttributesFileInterpolation(#[from] gix_config::path::interpolate::Error),
     }
@@ -247,7 +280,7 @@ pub mod checkout {
     pub mod workers {
         use crate::config;
 
-        /// The error produced when failing to parse the the `checkout.workers` key.
+        /// The error produced when failing to parse the `checkout.workers` key.
         pub type Error = config::key::Error<gix_config::value::Error, 'n', 'd'>;
     }
 }
@@ -446,9 +479,7 @@ pub(crate) struct Cache {
     /// If true, we should default what's possible if something is misconfigured, on case by case basis, to be more resilient.
     /// Also available in options! Keep in sync!
     pub lenient_config: bool,
-    /// Define how we can use values obtained with `xdg_config(…)` and its `XDG_CONFIG_HOME` variable.
-    xdg_config_home_env: gix_sec::Permission,
-    /// Define how we can use values obtained with `xdg_config(…)`. and its `HOME` variable.
-    home_env: gix_sec::Permission,
+    attributes: crate::open::permissions::Attributes,
+    environment: crate::open::permissions::Environment,
     // TODO: make core.precomposeUnicode available as well.
 }

@@ -2,27 +2,27 @@
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpAddRequestHeaders(hrequest: *mut ::core::ffi::c_void, lpszheaders: &[u16], dwmodifiers: u32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpAddRequestHeaders ( hrequest : *mut ::core::ffi::c_void , lpszheaders : :: windows::core::PCWSTR , dwheaderslength : u32 , dwmodifiers : u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpAddRequestHeaders ( hrequest : *mut ::core::ffi::c_void , lpszheaders : ::windows::core::PCWSTR , dwheaderslength : u32 , dwmodifiers : u32 ) -> super::super::Foundation:: BOOL );
     WinHttpAddRequestHeaders(hrequest, ::core::mem::transmute(lpszheaders.as_ptr()), lpszheaders.len() as _, dwmodifiers)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpAddRequestHeadersEx(hrequest: *mut ::core::ffi::c_void, dwmodifiers: u32, ullflags: u64, ullextra: u64, pheaders: &[WINHTTP_EXTENDED_HEADER]) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpAddRequestHeadersEx ( hrequest : *mut ::core::ffi::c_void , dwmodifiers : u32 , ullflags : u64 , ullextra : u64 , cheaders : u32 , pheaders : *const WINHTTP_EXTENDED_HEADER ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpAddRequestHeadersEx ( hrequest : *mut ::core::ffi::c_void , dwmodifiers : u32 , ullflags : u64 , ullextra : u64 , cheaders : u32 , pheaders : *const WINHTTP_EXTENDED_HEADER ) -> u32 );
     WinHttpAddRequestHeadersEx(hrequest, dwmodifiers, ullflags, ullextra, pheaders.len() as _, ::core::mem::transmute(pheaders.as_ptr()))
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpCheckPlatform() -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpCheckPlatform ( ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpCheckPlatform ( ) -> super::super::Foundation:: BOOL );
     WinHttpCheckPlatform()
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpCloseHandle(hinternet: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpCloseHandle ( hinternet : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpCloseHandle ( hinternet : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
     WinHttpCloseHandle(hinternet)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -31,75 +31,75 @@ pub unsafe fn WinHttpConnect<P0>(hsession: *mut ::core::ffi::c_void, pswzservern
 where
     P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpConnect ( hsession : *mut ::core::ffi::c_void , pswzservername : :: windows::core::PCWSTR , nserverport : u16 , dwreserved : u32 ) -> *mut ::core::ffi::c_void );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpConnect ( hsession : *mut ::core::ffi::c_void , pswzservername : ::windows::core::PCWSTR , nserverport : u16 , dwreserved : u32 ) -> *mut ::core::ffi::c_void );
     WinHttpConnect(hsession, pswzservername.into_param().abi(), nserverport, dwreserved)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpCrackUrl(pwszurl: &[u16], dwflags: u32, lpurlcomponents: *mut URL_COMPONENTS) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpCrackUrl ( pwszurl : :: windows::core::PCWSTR , dwurllength : u32 , dwflags : u32 , lpurlcomponents : *mut URL_COMPONENTS ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpCrackUrl ( pwszurl : ::windows::core::PCWSTR , dwurllength : u32 , dwflags : u32 , lpurlcomponents : *mut URL_COMPONENTS ) -> super::super::Foundation:: BOOL );
     WinHttpCrackUrl(::core::mem::transmute(pwszurl.as_ptr()), pwszurl.len() as _, dwflags, lpurlcomponents)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpCreateProxyResolver(hsession: *const ::core::ffi::c_void, phresolver: *mut *mut ::core::ffi::c_void) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpCreateProxyResolver ( hsession : *const ::core::ffi::c_void , phresolver : *mut *mut ::core::ffi::c_void ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpCreateProxyResolver ( hsession : *const ::core::ffi::c_void , phresolver : *mut *mut ::core::ffi::c_void ) -> u32 );
     WinHttpCreateProxyResolver(hsession, phresolver)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpCreateUrl(lpurlcomponents: *const URL_COMPONENTS, dwflags: WIN_HTTP_CREATE_URL_FLAGS, pwszurl: ::windows::core::PWSTR, pdwurllength: *mut u32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpCreateUrl ( lpurlcomponents : *const URL_COMPONENTS , dwflags : WIN_HTTP_CREATE_URL_FLAGS , pwszurl : :: windows::core::PWSTR , pdwurllength : *mut u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpCreateUrl ( lpurlcomponents : *const URL_COMPONENTS , dwflags : WIN_HTTP_CREATE_URL_FLAGS , pwszurl : ::windows::core::PWSTR , pdwurllength : *mut u32 ) -> super::super::Foundation:: BOOL );
     WinHttpCreateUrl(lpurlcomponents, dwflags, ::core::mem::transmute(pwszurl), pdwurllength)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpDetectAutoProxyConfigUrl(dwautodetectflags: u32, ppwstrautoconfigurl: *mut ::windows::core::PWSTR) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpDetectAutoProxyConfigUrl ( dwautodetectflags : u32 , ppwstrautoconfigurl : *mut :: windows::core::PWSTR ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpDetectAutoProxyConfigUrl ( dwautodetectflags : u32 , ppwstrautoconfigurl : *mut ::windows::core::PWSTR ) -> super::super::Foundation:: BOOL );
     WinHttpDetectAutoProxyConfigUrl(dwautodetectflags, ppwstrautoconfigurl)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpFreeProxyResult(pproxyresult: *mut WINHTTP_PROXY_RESULT) {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpFreeProxyResult ( pproxyresult : *mut WINHTTP_PROXY_RESULT ) -> ( ) );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpFreeProxyResult ( pproxyresult : *mut WINHTTP_PROXY_RESULT ) -> ( ) );
     WinHttpFreeProxyResult(pproxyresult)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpFreeProxyResultEx(pproxyresultex: *mut WINHTTP_PROXY_RESULT_EX) {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpFreeProxyResultEx ( pproxyresultex : *mut WINHTTP_PROXY_RESULT_EX ) -> ( ) );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpFreeProxyResultEx ( pproxyresultex : *mut WINHTTP_PROXY_RESULT_EX ) -> ( ) );
     WinHttpFreeProxyResultEx(pproxyresultex)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpFreeProxySettings(pwinhttpproxysettings: *const WINHTTP_PROXY_SETTINGS) {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpFreeProxySettings ( pwinhttpproxysettings : *const WINHTTP_PROXY_SETTINGS ) -> ( ) );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpFreeProxySettings ( pwinhttpproxysettings : *const WINHTTP_PROXY_SETTINGS ) -> ( ) );
     WinHttpFreeProxySettings(pwinhttpproxysettings)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpFreeQueryConnectionGroupResult(presult: *mut WINHTTP_QUERY_CONNECTION_GROUP_RESULT) {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpFreeQueryConnectionGroupResult ( presult : *mut WINHTTP_QUERY_CONNECTION_GROUP_RESULT ) -> ( ) );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpFreeQueryConnectionGroupResult ( presult : *mut WINHTTP_QUERY_CONNECTION_GROUP_RESULT ) -> ( ) );
     WinHttpFreeQueryConnectionGroupResult(presult)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpGetDefaultProxyConfiguration(pproxyinfo: *mut WINHTTP_PROXY_INFO) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetDefaultProxyConfiguration ( pproxyinfo : *mut WINHTTP_PROXY_INFO ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetDefaultProxyConfiguration ( pproxyinfo : *mut WINHTTP_PROXY_INFO ) -> super::super::Foundation:: BOOL );
     WinHttpGetDefaultProxyConfiguration(pproxyinfo)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpGetIEProxyConfigForCurrentUser(pproxyconfig: *mut WINHTTP_CURRENT_USER_IE_PROXY_CONFIG) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetIEProxyConfigForCurrentUser ( pproxyconfig : *mut WINHTTP_CURRENT_USER_IE_PROXY_CONFIG ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetIEProxyConfigForCurrentUser ( pproxyconfig : *mut WINHTTP_CURRENT_USER_IE_PROXY_CONFIG ) -> super::super::Foundation:: BOOL );
     WinHttpGetIEProxyConfigForCurrentUser(pproxyconfig)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -109,7 +109,7 @@ pub unsafe fn WinHttpGetProxyForUrl<P0>(hsession: *mut ::core::ffi::c_void, lpcw
 where
     P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetProxyForUrl ( hsession : *mut ::core::ffi::c_void , lpcwszurl : :: windows::core::PCWSTR , pautoproxyoptions : *mut WINHTTP_AUTOPROXY_OPTIONS , pproxyinfo : *mut WINHTTP_PROXY_INFO ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetProxyForUrl ( hsession : *mut ::core::ffi::c_void , lpcwszurl : ::windows::core::PCWSTR , pautoproxyoptions : *mut WINHTTP_AUTOPROXY_OPTIONS , pproxyinfo : *mut WINHTTP_PROXY_INFO ) -> super::super::Foundation:: BOOL );
     WinHttpGetProxyForUrl(hsession, lpcwszurl.into_param().abi(), pautoproxyoptions, pproxyinfo)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -119,7 +119,7 @@ pub unsafe fn WinHttpGetProxyForUrlEx<P0>(hresolver: *const ::core::ffi::c_void,
 where
     P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetProxyForUrlEx ( hresolver : *const ::core::ffi::c_void , pcwszurl : :: windows::core::PCWSTR , pautoproxyoptions : *const WINHTTP_AUTOPROXY_OPTIONS , pcontext : usize ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetProxyForUrlEx ( hresolver : *const ::core::ffi::c_void , pcwszurl : ::windows::core::PCWSTR , pautoproxyoptions : *const WINHTTP_AUTOPROXY_OPTIONS , pcontext : usize ) -> u32 );
     WinHttpGetProxyForUrlEx(hresolver, pcwszurl.into_param().abi(), pautoproxyoptions, pcontext)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -129,27 +129,27 @@ pub unsafe fn WinHttpGetProxyForUrlEx2<P0>(hresolver: *const ::core::ffi::c_void
 where
     P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetProxyForUrlEx2 ( hresolver : *const ::core::ffi::c_void , pcwszurl : :: windows::core::PCWSTR , pautoproxyoptions : *const WINHTTP_AUTOPROXY_OPTIONS , cbinterfaceselectioncontext : u32 , pinterfaceselectioncontext : *const u8 , pcontext : usize ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetProxyForUrlEx2 ( hresolver : *const ::core::ffi::c_void , pcwszurl : ::windows::core::PCWSTR , pautoproxyoptions : *const WINHTTP_AUTOPROXY_OPTIONS , cbinterfaceselectioncontext : u32 , pinterfaceselectioncontext : *const u8 , pcontext : usize ) -> u32 );
     WinHttpGetProxyForUrlEx2(hresolver, pcwszurl.into_param().abi(), pautoproxyoptions, pinterfaceselectioncontext.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(pinterfaceselectioncontext.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pcontext)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpGetProxyResult(hresolver: *const ::core::ffi::c_void, pproxyresult: *mut WINHTTP_PROXY_RESULT) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetProxyResult ( hresolver : *const ::core::ffi::c_void , pproxyresult : *mut WINHTTP_PROXY_RESULT ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetProxyResult ( hresolver : *const ::core::ffi::c_void , pproxyresult : *mut WINHTTP_PROXY_RESULT ) -> u32 );
     WinHttpGetProxyResult(hresolver, pproxyresult)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpGetProxyResultEx(hresolver: *const ::core::ffi::c_void, pproxyresultex: *mut WINHTTP_PROXY_RESULT_EX) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetProxyResultEx ( hresolver : *const ::core::ffi::c_void , pproxyresultex : *mut WINHTTP_PROXY_RESULT_EX ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetProxyResultEx ( hresolver : *const ::core::ffi::c_void , pproxyresultex : *mut WINHTTP_PROXY_RESULT_EX ) -> u32 );
     WinHttpGetProxyResultEx(hresolver, pproxyresultex)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpGetProxySettingsVersion(hsession: *const ::core::ffi::c_void, pdwproxysettingsversion: *mut u32) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpGetProxySettingsVersion ( hsession : *const ::core::ffi::c_void , pdwproxysettingsversion : *mut u32 ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpGetProxySettingsVersion ( hsession : *const ::core::ffi::c_void , pdwproxysettingsversion : *mut u32 ) -> u32 );
     WinHttpGetProxySettingsVersion(hsession, pdwproxysettingsversion)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -160,7 +160,7 @@ where
     P1: ::windows::core::IntoParam<::windows::core::PCWSTR>,
     P2: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpOpen ( pszagentw : :: windows::core::PCWSTR , dwaccesstype : WINHTTP_ACCESS_TYPE , pszproxyw : :: windows::core::PCWSTR , pszproxybypassw : :: windows::core::PCWSTR , dwflags : u32 ) -> *mut ::core::ffi::c_void );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpOpen ( pszagentw : ::windows::core::PCWSTR , dwaccesstype : WINHTTP_ACCESS_TYPE , pszproxyw : ::windows::core::PCWSTR , pszproxybypassw : ::windows::core::PCWSTR , dwflags : u32 ) -> *mut ::core::ffi::c_void );
     WinHttpOpen(pszagentw.into_param().abi(), dwaccesstype, pszproxyw.into_param().abi(), pszproxybypassw.into_param().abi(), dwflags)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -172,27 +172,27 @@ where
     P2: ::windows::core::IntoParam<::windows::core::PCWSTR>,
     P3: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpOpenRequest ( hconnect : *mut ::core::ffi::c_void , pwszverb : :: windows::core::PCWSTR , pwszobjectname : :: windows::core::PCWSTR , pwszversion : :: windows::core::PCWSTR , pwszreferrer : :: windows::core::PCWSTR , ppwszaccepttypes : *const :: windows::core::PCWSTR , dwflags : WINHTTP_OPEN_REQUEST_FLAGS ) -> *mut ::core::ffi::c_void );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpOpenRequest ( hconnect : *mut ::core::ffi::c_void , pwszverb : ::windows::core::PCWSTR , pwszobjectname : ::windows::core::PCWSTR , pwszversion : ::windows::core::PCWSTR , pwszreferrer : ::windows::core::PCWSTR , ppwszaccepttypes : *const ::windows::core::PCWSTR , dwflags : WINHTTP_OPEN_REQUEST_FLAGS ) -> *mut ::core::ffi::c_void );
     WinHttpOpenRequest(hconnect, pwszverb.into_param().abi(), pwszobjectname.into_param().abi(), pwszversion.into_param().abi(), pwszreferrer.into_param().abi(), ppwszaccepttypes, dwflags)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpQueryAuthSchemes(hrequest: *mut ::core::ffi::c_void, lpdwsupportedschemes: *mut u32, lpdwfirstscheme: *mut u32, pdwauthtarget: *mut u32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpQueryAuthSchemes ( hrequest : *mut ::core::ffi::c_void , lpdwsupportedschemes : *mut u32 , lpdwfirstscheme : *mut u32 , pdwauthtarget : *mut u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpQueryAuthSchemes ( hrequest : *mut ::core::ffi::c_void , lpdwsupportedschemes : *mut u32 , lpdwfirstscheme : *mut u32 , pdwauthtarget : *mut u32 ) -> super::super::Foundation:: BOOL );
     WinHttpQueryAuthSchemes(hrequest, lpdwsupportedschemes, lpdwfirstscheme, pdwauthtarget)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpQueryConnectionGroup(hinternet: *const ::core::ffi::c_void, pguidconnection: ::core::option::Option<*const ::windows::core::GUID>, ullflags: u64, ppresult: *mut *mut WINHTTP_QUERY_CONNECTION_GROUP_RESULT) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpQueryConnectionGroup ( hinternet : *const ::core::ffi::c_void , pguidconnection : *const :: windows::core::GUID , ullflags : u64 , ppresult : *mut *mut WINHTTP_QUERY_CONNECTION_GROUP_RESULT ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpQueryConnectionGroup ( hinternet : *const ::core::ffi::c_void , pguidconnection : *const ::windows::core::GUID , ullflags : u64 , ppresult : *mut *mut WINHTTP_QUERY_CONNECTION_GROUP_RESULT ) -> u32 );
     WinHttpQueryConnectionGroup(hinternet, ::core::mem::transmute(pguidconnection.unwrap_or(::std::ptr::null())), ullflags, ppresult)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpQueryDataAvailable(hrequest: *mut ::core::ffi::c_void, lpdwnumberofbytesavailable: *mut u32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpQueryDataAvailable ( hrequest : *mut ::core::ffi::c_void , lpdwnumberofbytesavailable : *mut u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpQueryDataAvailable ( hrequest : *mut ::core::ffi::c_void , lpdwnumberofbytesavailable : *mut u32 ) -> super::super::Foundation:: BOOL );
     WinHttpQueryDataAvailable(hrequest, lpdwnumberofbytesavailable)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -202,33 +202,33 @@ pub unsafe fn WinHttpQueryHeaders<P0>(hrequest: *mut ::core::ffi::c_void, dwinfo
 where
     P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpQueryHeaders ( hrequest : *mut ::core::ffi::c_void , dwinfolevel : u32 , pwszname : :: windows::core::PCWSTR , lpbuffer : *mut ::core::ffi::c_void , lpdwbufferlength : *mut u32 , lpdwindex : *mut u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpQueryHeaders ( hrequest : *mut ::core::ffi::c_void , dwinfolevel : u32 , pwszname : ::windows::core::PCWSTR , lpbuffer : *mut ::core::ffi::c_void , lpdwbufferlength : *mut u32 , lpdwindex : *mut u32 ) -> super::super::Foundation:: BOOL );
     WinHttpQueryHeaders(hrequest, dwinfolevel, pwszname.into_param().abi(), ::core::mem::transmute(lpbuffer.unwrap_or(::std::ptr::null_mut())), lpdwbufferlength, lpdwindex)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpQueryHeadersEx(hrequest: *const ::core::ffi::c_void, dwinfolevel: u32, ullflags: u64, uicodepage: u32, pdwindex: ::core::option::Option<*mut u32>, pheadername: ::core::option::Option<*const WINHTTP_HEADER_NAME>, pbuffer: ::core::option::Option<*mut ::core::ffi::c_void>, pdwbufferlength: *mut u32, ppheaders: ::core::option::Option<*mut *mut WINHTTP_EXTENDED_HEADER>, pdwheaderscount: *mut u32) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpQueryHeadersEx ( hrequest : *const ::core::ffi::c_void , dwinfolevel : u32 , ullflags : u64 , uicodepage : u32 , pdwindex : *mut u32 , pheadername : *const WINHTTP_HEADER_NAME , pbuffer : *mut ::core::ffi::c_void , pdwbufferlength : *mut u32 , ppheaders : *mut *mut WINHTTP_EXTENDED_HEADER , pdwheaderscount : *mut u32 ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpQueryHeadersEx ( hrequest : *const ::core::ffi::c_void , dwinfolevel : u32 , ullflags : u64 , uicodepage : u32 , pdwindex : *mut u32 , pheadername : *const WINHTTP_HEADER_NAME , pbuffer : *mut ::core::ffi::c_void , pdwbufferlength : *mut u32 , ppheaders : *mut *mut WINHTTP_EXTENDED_HEADER , pdwheaderscount : *mut u32 ) -> u32 );
     WinHttpQueryHeadersEx(hrequest, dwinfolevel, ullflags, uicodepage, ::core::mem::transmute(pdwindex.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pheadername.unwrap_or(::std::ptr::null())), ::core::mem::transmute(pbuffer.unwrap_or(::std::ptr::null_mut())), pdwbufferlength, ::core::mem::transmute(ppheaders.unwrap_or(::std::ptr::null_mut())), pdwheaderscount)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpQueryOption(hinternet: *mut ::core::ffi::c_void, dwoption: u32, lpbuffer: ::core::option::Option<*mut ::core::ffi::c_void>, lpdwbufferlength: *mut u32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpQueryOption ( hinternet : *mut ::core::ffi::c_void , dwoption : u32 , lpbuffer : *mut ::core::ffi::c_void , lpdwbufferlength : *mut u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpQueryOption ( hinternet : *mut ::core::ffi::c_void , dwoption : u32 , lpbuffer : *mut ::core::ffi::c_void , lpdwbufferlength : *mut u32 ) -> super::super::Foundation:: BOOL );
     WinHttpQueryOption(hinternet, dwoption, ::core::mem::transmute(lpbuffer.unwrap_or(::std::ptr::null_mut())), lpdwbufferlength)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpReadData(hrequest: *mut ::core::ffi::c_void, lpbuffer: *mut ::core::ffi::c_void, dwnumberofbytestoread: u32, lpdwnumberofbytesread: *mut u32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpReadData ( hrequest : *mut ::core::ffi::c_void , lpbuffer : *mut ::core::ffi::c_void , dwnumberofbytestoread : u32 , lpdwnumberofbytesread : *mut u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpReadData ( hrequest : *mut ::core::ffi::c_void , lpbuffer : *mut ::core::ffi::c_void , dwnumberofbytestoread : u32 , lpdwnumberofbytesread : *mut u32 ) -> super::super::Foundation:: BOOL );
     WinHttpReadData(hrequest, lpbuffer, dwnumberofbytestoread, lpdwnumberofbytesread)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpReadDataEx(hrequest: *mut ::core::ffi::c_void, lpbuffer: *mut ::core::ffi::c_void, dwnumberofbytestoread: u32, lpdwnumberofbytesread: *mut u32, ullflags: u64, cbproperty: u32, pvproperty: ::core::option::Option<*const ::core::ffi::c_void>) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpReadDataEx ( hrequest : *mut ::core::ffi::c_void , lpbuffer : *mut ::core::ffi::c_void , dwnumberofbytestoread : u32 , lpdwnumberofbytesread : *mut u32 , ullflags : u64 , cbproperty : u32 , pvproperty : *const ::core::ffi::c_void ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpReadDataEx ( hrequest : *mut ::core::ffi::c_void , lpbuffer : *mut ::core::ffi::c_void , dwnumberofbytestoread : u32 , lpdwnumberofbytesread : *mut u32 , ullflags : u64 , cbproperty : u32 , pvproperty : *const ::core::ffi::c_void ) -> u32 );
     WinHttpReadDataEx(hrequest, lpbuffer, dwnumberofbytestoread, lpdwnumberofbytesread, ullflags, cbproperty, ::core::mem::transmute(pvproperty.unwrap_or(::std::ptr::null())))
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -240,27 +240,27 @@ where
     P1: ::windows::core::IntoParam<super::super::Foundation::BOOL>,
     P2: ::windows::core::IntoParam<super::super::Foundation::BOOL>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpReadProxySettings ( hsession : *const ::core::ffi::c_void , pcwszconnectionname : :: windows::core::PCWSTR , ffallbacktodefaultsettings : super::super::Foundation:: BOOL , fsetautodiscoverfordefaultsettings : super::super::Foundation:: BOOL , pdwsettingsversion : *mut u32 , pfdefaultsettingsarereturned : *mut super::super::Foundation:: BOOL , pwinhttpproxysettings : *mut WINHTTP_PROXY_SETTINGS ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpReadProxySettings ( hsession : *const ::core::ffi::c_void , pcwszconnectionname : ::windows::core::PCWSTR , ffallbacktodefaultsettings : super::super::Foundation:: BOOL , fsetautodiscoverfordefaultsettings : super::super::Foundation:: BOOL , pdwsettingsversion : *mut u32 , pfdefaultsettingsarereturned : *mut super::super::Foundation:: BOOL , pwinhttpproxysettings : *mut WINHTTP_PROXY_SETTINGS ) -> u32 );
     WinHttpReadProxySettings(hsession, pcwszconnectionname.into_param().abi(), ffallbacktodefaultsettings.into_param().abi(), fsetautodiscoverfordefaultsettings.into_param().abi(), pdwsettingsversion, pfdefaultsettingsarereturned, pwinhttpproxysettings)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpReceiveResponse(hrequest: *mut ::core::ffi::c_void, lpreserved: *mut ::core::ffi::c_void) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpReceiveResponse ( hrequest : *mut ::core::ffi::c_void , lpreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpReceiveResponse ( hrequest : *mut ::core::ffi::c_void , lpreserved : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
     WinHttpReceiveResponse(hrequest, lpreserved)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpResetAutoProxy(hsession: *const ::core::ffi::c_void, dwflags: u32) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpResetAutoProxy ( hsession : *const ::core::ffi::c_void , dwflags : u32 ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpResetAutoProxy ( hsession : *const ::core::ffi::c_void , dwflags : u32 ) -> u32 );
     WinHttpResetAutoProxy(hsession, dwflags)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpSendRequest(hrequest: *mut ::core::ffi::c_void, lpszheaders: ::core::option::Option<&[u16]>, lpoptional: ::core::option::Option<*const ::core::ffi::c_void>, dwoptionallength: u32, dwtotallength: u32, dwcontext: usize) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpSendRequest ( hrequest : *mut ::core::ffi::c_void , lpszheaders : :: windows::core::PCWSTR , dwheaderslength : u32 , lpoptional : *const ::core::ffi::c_void , dwoptionallength : u32 , dwtotallength : u32 , dwcontext : usize ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpSendRequest ( hrequest : *mut ::core::ffi::c_void , lpszheaders : ::windows::core::PCWSTR , dwheaderslength : u32 , lpoptional : *const ::core::ffi::c_void , dwoptionallength : u32 , dwtotallength : u32 , dwcontext : usize ) -> super::super::Foundation:: BOOL );
     WinHttpSendRequest(hrequest, ::core::mem::transmute(lpszheaders.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), lpszheaders.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(lpoptional.unwrap_or(::std::ptr::null())), dwoptionallength, dwtotallength, dwcontext)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -271,21 +271,21 @@ where
     P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
     P1: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpSetCredentials ( hrequest : *mut ::core::ffi::c_void , authtargets : u32 , authscheme : u32 , pwszusername : :: windows::core::PCWSTR , pwszpassword : :: windows::core::PCWSTR , pauthparams : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpSetCredentials ( hrequest : *mut ::core::ffi::c_void , authtargets : u32 , authscheme : u32 , pwszusername : ::windows::core::PCWSTR , pwszpassword : ::windows::core::PCWSTR , pauthparams : *mut ::core::ffi::c_void ) -> super::super::Foundation:: BOOL );
     WinHttpSetCredentials(hrequest, authtargets, authscheme, pwszusername.into_param().abi(), pwszpassword.into_param().abi(), pauthparams)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpSetDefaultProxyConfiguration(pproxyinfo: *mut WINHTTP_PROXY_INFO) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpSetDefaultProxyConfiguration ( pproxyinfo : *mut WINHTTP_PROXY_INFO ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpSetDefaultProxyConfiguration ( pproxyinfo : *mut WINHTTP_PROXY_INFO ) -> super::super::Foundation:: BOOL );
     WinHttpSetDefaultProxyConfiguration(pproxyinfo)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpSetOption(hinternet: ::core::option::Option<*const ::core::ffi::c_void>, dwoption: u32, lpbuffer: ::core::option::Option<&[u8]>) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpSetOption ( hinternet : *const ::core::ffi::c_void , dwoption : u32 , lpbuffer : *const ::core::ffi::c_void , dwbufferlength : u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpSetOption ( hinternet : *const ::core::ffi::c_void , dwoption : u32 , lpbuffer : *const ::core::ffi::c_void , dwbufferlength : u32 ) -> super::super::Foundation:: BOOL );
     WinHttpSetOption(::core::mem::transmute(hinternet.unwrap_or(::std::ptr::null())), dwoption, ::core::mem::transmute(lpbuffer.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), lpbuffer.as_deref().map_or(0, |slice| slice.len() as _))
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -295,27 +295,27 @@ pub unsafe fn WinHttpSetProxySettingsPerUser<P0>(fproxysettingsperuser: P0) -> u
 where
     P0: ::windows::core::IntoParam<super::super::Foundation::BOOL>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpSetProxySettingsPerUser ( fproxysettingsperuser : super::super::Foundation:: BOOL ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpSetProxySettingsPerUser ( fproxysettingsperuser : super::super::Foundation:: BOOL ) -> u32 );
     WinHttpSetProxySettingsPerUser(fproxysettingsperuser.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpSetStatusCallback(hinternet: *mut ::core::ffi::c_void, lpfninternetcallback: WINHTTP_STATUS_CALLBACK, dwnotificationflags: u32, dwreserved: usize) -> WINHTTP_STATUS_CALLBACK {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpSetStatusCallback ( hinternet : *mut ::core::ffi::c_void , lpfninternetcallback : WINHTTP_STATUS_CALLBACK , dwnotificationflags : u32 , dwreserved : usize ) -> WINHTTP_STATUS_CALLBACK );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpSetStatusCallback ( hinternet : *mut ::core::ffi::c_void , lpfninternetcallback : WINHTTP_STATUS_CALLBACK , dwnotificationflags : u32 , dwreserved : usize ) -> WINHTTP_STATUS_CALLBACK );
     WinHttpSetStatusCallback(hinternet, lpfninternetcallback, dwnotificationflags, dwreserved)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpSetTimeouts(hinternet: *mut ::core::ffi::c_void, nresolvetimeout: i32, nconnecttimeout: i32, nsendtimeout: i32, nreceivetimeout: i32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpSetTimeouts ( hinternet : *mut ::core::ffi::c_void , nresolvetimeout : i32 , nconnecttimeout : i32 , nsendtimeout : i32 , nreceivetimeout : i32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpSetTimeouts ( hinternet : *mut ::core::ffi::c_void , nresolvetimeout : i32 , nconnecttimeout : i32 , nsendtimeout : i32 , nreceivetimeout : i32 ) -> super::super::Foundation:: BOOL );
     WinHttpSetTimeouts(hinternet, nresolvetimeout, nconnecttimeout, nsendtimeout, nreceivetimeout)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpTimeFromSystemTime(pst: *const super::super::Foundation::SYSTEMTIME, pwsztime: &mut [u16; 62]) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpTimeFromSystemTime ( pst : *const super::super::Foundation:: SYSTEMTIME , pwsztime : :: windows::core::PWSTR ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpTimeFromSystemTime ( pst : *const super::super::Foundation:: SYSTEMTIME , pwsztime : ::windows::core::PWSTR ) -> super::super::Foundation:: BOOL );
     WinHttpTimeFromSystemTime(pst, ::core::mem::transmute(pwsztime.as_ptr()))
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -325,50 +325,50 @@ pub unsafe fn WinHttpTimeToSystemTime<P0>(pwsztime: P0, pst: *mut super::super::
 where
     P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpTimeToSystemTime ( pwsztime : :: windows::core::PCWSTR , pst : *mut super::super::Foundation:: SYSTEMTIME ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpTimeToSystemTime ( pwsztime : ::windows::core::PCWSTR , pst : *mut super::super::Foundation:: SYSTEMTIME ) -> super::super::Foundation:: BOOL );
     WinHttpTimeToSystemTime(pwsztime.into_param().abi(), pst)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpWebSocketClose(hwebsocket: *const ::core::ffi::c_void, usstatus: u16, pvreason: ::core::option::Option<*const ::core::ffi::c_void>, dwreasonlength: u32) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWebSocketClose ( hwebsocket : *const ::core::ffi::c_void , usstatus : u16 , pvreason : *const ::core::ffi::c_void , dwreasonlength : u32 ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWebSocketClose ( hwebsocket : *const ::core::ffi::c_void , usstatus : u16 , pvreason : *const ::core::ffi::c_void , dwreasonlength : u32 ) -> u32 );
     WinHttpWebSocketClose(hwebsocket, usstatus, ::core::mem::transmute(pvreason.unwrap_or(::std::ptr::null())), dwreasonlength)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpWebSocketCompleteUpgrade(hrequest: *const ::core::ffi::c_void, pcontext: usize) -> *mut ::core::ffi::c_void {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWebSocketCompleteUpgrade ( hrequest : *const ::core::ffi::c_void , pcontext : usize ) -> *mut ::core::ffi::c_void );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWebSocketCompleteUpgrade ( hrequest : *const ::core::ffi::c_void , pcontext : usize ) -> *mut ::core::ffi::c_void );
     WinHttpWebSocketCompleteUpgrade(hrequest, pcontext)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpWebSocketQueryCloseStatus(hwebsocket: *const ::core::ffi::c_void, pusstatus: *mut u16, pvreason: ::core::option::Option<*mut ::core::ffi::c_void>, dwreasonlength: u32, pdwreasonlengthconsumed: *mut u32) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWebSocketQueryCloseStatus ( hwebsocket : *const ::core::ffi::c_void , pusstatus : *mut u16 , pvreason : *mut ::core::ffi::c_void , dwreasonlength : u32 , pdwreasonlengthconsumed : *mut u32 ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWebSocketQueryCloseStatus ( hwebsocket : *const ::core::ffi::c_void , pusstatus : *mut u16 , pvreason : *mut ::core::ffi::c_void , dwreasonlength : u32 , pdwreasonlengthconsumed : *mut u32 ) -> u32 );
     WinHttpWebSocketQueryCloseStatus(hwebsocket, pusstatus, ::core::mem::transmute(pvreason.unwrap_or(::std::ptr::null_mut())), dwreasonlength, pdwreasonlengthconsumed)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpWebSocketReceive(hwebsocket: *const ::core::ffi::c_void, pvbuffer: *mut ::core::ffi::c_void, dwbufferlength: u32, pdwbytesread: *mut u32, pebuffertype: *mut WINHTTP_WEB_SOCKET_BUFFER_TYPE) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWebSocketReceive ( hwebsocket : *const ::core::ffi::c_void , pvbuffer : *mut ::core::ffi::c_void , dwbufferlength : u32 , pdwbytesread : *mut u32 , pebuffertype : *mut WINHTTP_WEB_SOCKET_BUFFER_TYPE ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWebSocketReceive ( hwebsocket : *const ::core::ffi::c_void , pvbuffer : *mut ::core::ffi::c_void , dwbufferlength : u32 , pdwbytesread : *mut u32 , pebuffertype : *mut WINHTTP_WEB_SOCKET_BUFFER_TYPE ) -> u32 );
     WinHttpWebSocketReceive(hwebsocket, pvbuffer, dwbufferlength, pdwbytesread, pebuffertype)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpWebSocketSend(hwebsocket: *const ::core::ffi::c_void, ebuffertype: WINHTTP_WEB_SOCKET_BUFFER_TYPE, pvbuffer: ::core::option::Option<&[u8]>) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWebSocketSend ( hwebsocket : *const ::core::ffi::c_void , ebuffertype : WINHTTP_WEB_SOCKET_BUFFER_TYPE , pvbuffer : *const ::core::ffi::c_void , dwbufferlength : u32 ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWebSocketSend ( hwebsocket : *const ::core::ffi::c_void , ebuffertype : WINHTTP_WEB_SOCKET_BUFFER_TYPE , pvbuffer : *const ::core::ffi::c_void , dwbufferlength : u32 ) -> u32 );
     WinHttpWebSocketSend(hwebsocket, ebuffertype, ::core::mem::transmute(pvbuffer.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pvbuffer.as_deref().map_or(0, |slice| slice.len() as _))
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 #[inline]
 pub unsafe fn WinHttpWebSocketShutdown(hwebsocket: *const ::core::ffi::c_void, usstatus: u16, pvreason: ::core::option::Option<*const ::core::ffi::c_void>, dwreasonlength: u32) -> u32 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWebSocketShutdown ( hwebsocket : *const ::core::ffi::c_void , usstatus : u16 , pvreason : *const ::core::ffi::c_void , dwreasonlength : u32 ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWebSocketShutdown ( hwebsocket : *const ::core::ffi::c_void , usstatus : u16 , pvreason : *const ::core::ffi::c_void , dwreasonlength : u32 ) -> u32 );
     WinHttpWebSocketShutdown(hwebsocket, usstatus, ::core::mem::transmute(pvreason.unwrap_or(::std::ptr::null())), dwreasonlength)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WinHttpWriteData(hrequest: *mut ::core::ffi::c_void, lpbuffer: ::core::option::Option<*const ::core::ffi::c_void>, dwnumberofbytestowrite: u32, lpdwnumberofbyteswritten: *mut u32) -> super::super::Foundation::BOOL {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWriteData ( hrequest : *mut ::core::ffi::c_void , lpbuffer : *const ::core::ffi::c_void , dwnumberofbytestowrite : u32 , lpdwnumberofbyteswritten : *mut u32 ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWriteData ( hrequest : *mut ::core::ffi::c_void , lpbuffer : *const ::core::ffi::c_void , dwnumberofbytestowrite : u32 , lpdwnumberofbyteswritten : *mut u32 ) -> super::super::Foundation:: BOOL );
     WinHttpWriteData(hrequest, ::core::mem::transmute(lpbuffer.unwrap_or(::std::ptr::null())), dwnumberofbytestowrite, lpdwnumberofbyteswritten)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`, `\"Win32_Foundation\"`*"]
@@ -378,11 +378,13 @@ pub unsafe fn WinHttpWriteProxySettings<P0>(hsession: *const ::core::ffi::c_void
 where
     P0: ::windows::core::IntoParam<super::super::Foundation::BOOL>,
 {
-    ::windows::imp::link ! ( "winhttp.dll""system" fn WinHttpWriteProxySettings ( hsession : *const ::core::ffi::c_void , fforceupdate : super::super::Foundation:: BOOL , pwinhttpproxysettings : *const WINHTTP_PROXY_SETTINGS ) -> u32 );
+    ::windows_targets::link ! ( "winhttp.dll""system" fn WinHttpWriteProxySettings ( hsession : *const ::core::ffi::c_void , fforceupdate : super::super::Foundation:: BOOL , pwinhttpproxysettings : *const WINHTTP_PROXY_SETTINGS ) -> u32 );
     WinHttpWriteProxySettings(hsession, fforceupdate.into_param().abi(), pwinhttpproxysettings)
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const API_GET_PROXY_FOR_URL: u32 = 6u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const API_GET_PROXY_SETTINGS: u32 = 7u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const API_QUERY_DATA_AVAILABLE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -656,7 +658,11 @@ pub const WINHTTP_AUTOLOGON_SECURITY_LEVEL_HIGH: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_AUTOLOGON_SECURITY_LEVEL_LOW: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_AUTOLOGON_SECURITY_LEVEL_MAX: u32 = 3u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_AUTOLOGON_SECURITY_LEVEL_MEDIUM: u32 = 0u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_AUTOLOGON_SECURITY_LEVEL_PROXY_ONLY: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_AUTOPROXY_ALLOW_AUTOCONFIG: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -684,6 +690,8 @@ pub const WINHTTP_AUTOPROXY_RUN_OUTPROCESS_ONLY: u32 = 131072u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_AUTOPROXY_SORT_RESULTS: u32 = 4194304u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_AUTOPROXY_USE_INTERFACE_CONFIG: u32 = 2048u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_AUTO_DETECT_TYPE_DHCP: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_AUTO_DETECT_TYPE_DNS_A: u32 = 2u32;
@@ -695,6 +703,8 @@ pub const WINHTTP_CALLBACK_FLAG_DATA_AVAILABLE: u32 = 262144u32;
 pub const WINHTTP_CALLBACK_FLAG_DETECTING_PROXY: u32 = 4096u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_CALLBACK_FLAG_GETPROXYFORURL_COMPLETE: u32 = 16777216u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_CALLBACK_FLAG_GETPROXYSETTINGS_COMPLETE: u32 = 134217728u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_CALLBACK_FLAG_HEADERS_AVAILABLE: u32 = 131072u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -743,6 +753,8 @@ pub const WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CERT: u32 = 2u32;
 pub const WINHTTP_CALLBACK_STATUS_FLAG_SECURITY_CHANNEL_ERROR: u32 = 2147483648u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE: u32 = 16777216u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE: u32 = 134217728u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING: u32 = 2048u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -824,7 +836,135 @@ pub const WINHTTP_ERROR_LAST: u32 = 12192u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_EXTENDED_HEADER_FLAG_UNICODE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_ADD_REQUEST_HEADERS_EX: u32 = 46u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_BACKGROUND_CONNECTIONS: u32 = 34u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_CONNECTION_GUID: u32 = 38u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_CONNECTION_STATS_V0: u32 = 3u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_CONNECTION_STATS_V1: u32 = 12u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_DISABLE_CERT_CHAIN_BUILDING: u32 = 33u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_DISABLE_PROXY_AUTH_SCHEMES: u32 = 74u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_DISABLE_SECURE_PROTOCOL_FALLBACK: u32 = 6u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_DISABLE_STREAM_QUEUE: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_ENABLE_HTTP2_PLUS_CLIENT_CERT: u32 = 23u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_EXPIRE_CONNECTION: u32 = 5u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_EXTENDED_HEADER_FLAG_UNICODE: u32 = 54u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_FAILED_CONNECTION_RETRIES: u32 = 24u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_FIRST_AVAILABLE_CONNECTION: u32 = 35u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_FLAG_AUTOMATIC_CHUNKING: u32 = 59u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_FLAG_SECURE_DEFAULTS: u32 = 53u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_FREE_QUERY_CONNECTION_GROUP_RESULT: u32 = 51u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP2_KEEPALIVE: u32 = 26u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP2_PLUS_TRANSFER_ENCODING: u32 = 31u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP2_RECEIVE_WINDOW: u32 = 43u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP3_HANDSHAKE_TIMEOUT: u32 = 70u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP3_INITIAL_RTT: u32 = 71u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP3_KEEPALIVE: u32 = 69u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP3_STREAM_ERROR_CODE: u32 = 72u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_HTTP_PROTOCOL_REQUIRED: u32 = 7u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_IGNORE_CERT_REVOCATION_OFFLINE: u32 = 17u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_IPV6_FAST_FALLBACK: u32 = 2u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_IS_FEATURE_SUPPORTED: u32 = 44u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_MATCH_CONNECTION_GUID: u32 = 39u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_MATCH_CONNECTION_GUID_FLAG_REQUIRE_MARKED_CONNECTION: u32 = 61u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_QUERY_CONNECTION_GROUP: u32 = 50u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_QUERY_CONNECTION_GROUP_FLAG_INSECURE: u32 = 60u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_QUERY_EX_ALL_HEADERS: u32 = 62u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_QUERY_FLAG_TRAILERS: u32 = 55u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_QUERY_FLAG_WIRE_ENCODING: u32 = 56u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_QUERY_HEADERS_EX: u32 = 49u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_QUIC_STATS: u32 = 66u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_READ_DATA_EX: u32 = 48u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_READ_DATA_EX_FLAG_FILL_BUFFER: u32 = 63u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_REFERER_TOKEN_BINDING_HOSTNAME: u32 = 30u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_REQUEST_ANNOTATION: u32 = 73u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_REQUEST_STATS: u32 = 8u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_REQUEST_TIMES: u32 = 4u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_REQUIRE_STREAM_END: u32 = 22u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_RESOLUTION_HOSTNAME: u32 = 27u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG: u32 = 32u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_BYPASS_CACHE: u32 = 58u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_CONN_USE_TTL: u32 = 65u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_SOFT_LIMIT: u32 = 57u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_USE_DNS_TTL: u32 = 64u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_REVERT_IMPERSONATION_SERVER_CERT: u32 = 75u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_SECURITY_FLAG_IGNORE_ALL_CERT_ERRORS: u32 = 52u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_SECURITY_INFO: u32 = 13u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_SERVER_CERT_CHAIN_CONTEXT: u32 = 9u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_SET_PROXY_SETINGS_PER_USER: u32 = 47u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_SET_TOKEN_BINDING: u32 = 28u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_STREAM_ERROR_CODE: u32 = 21u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_TCP_FAST_OPEN: u32 = 15u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_TCP_KEEPALIVE: u32 = 14u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_TCP_PRIORITY_STATUS: u32 = 37u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_TLS_FALSE_START: u32 = 16u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_TLS_PROTOCOL_INSECURE_FALLBACK: u32 = 20u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FEATURE_TOKEN_BINDING_PUBLIC_KEY: u32 = 29u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_FLAG_ASYNC: u32 = 268435456u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_FLAG_AUTOMATIC_CHUNKING: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_FLAG_SECURE_DEFAULTS: u32 = 805306368u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -842,19 +982,21 @@ pub const WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3: u32 = 8192u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_HANDLE_TYPE_CONNECT: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_HANDLE_TYPE_PROXY_RESOLVER: u32 = 4u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_HANDLE_TYPE_REQUEST: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_HANDLE_TYPE_SESSION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_HANDLE_TYPE_WEBSOCKET: u32 = 5u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_LAST_OPTION: u32 = 183u32;
+pub const WINHTTP_LAST_OPTION: u32 = 196u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_MATCH_CONNECTION_GUID_FLAGS_MASK: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_MATCH_CONNECTION_GUID_FLAG_REQUIRE_MARKED_CONNECTION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_AGGREGATE_PROXY_CONFIG: u32 = 181u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_ASSURED_NON_BLOCKING_CALLBACKS: u32 = 111u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -894,7 +1036,9 @@ pub const WINHTTP_OPTION_DISABLE_CERT_CHAIN_BUILDING: u32 = 171u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_DISABLE_FEATURE: u32 = 63u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_DISABLE_PROXY_LINK_LOCAL_NAME_RESOLUTION: u32 = 176u32;
+pub const WINHTTP_OPTION_DISABLE_GLOBAL_POOLING: u32 = 195u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_DISABLE_PROXY_AUTH_SCHEMES: u32 = 193u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_DISABLE_SECURE_PROTOCOL_FALLBACK: u32 = 144u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -908,8 +1052,6 @@ pub const WINHTTP_OPTION_ENABLE_HTTP2_PLUS_CLIENT_CERT: u32 = 161u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL: u32 = 133u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_ENABLE_TEST_SIGNING: u32 = 174u32;
-#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_ENCODE_EXTRA: u32 = 138u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_EXPIRE_CONNECTION: u32 = 143u32;
@@ -917,6 +1059,8 @@ pub const WINHTTP_OPTION_EXPIRE_CONNECTION: u32 = 143u32;
 pub const WINHTTP_OPTION_EXTENDED_ERROR: u32 = 24u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_FAILED_CONNECTION_RETRIES: u32 = 162u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_FEATURE_SUPPORTED: u32 = 184u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_FIRST_AVAILABLE_CONNECTION: u32 = 173u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -926,13 +1070,19 @@ pub const WINHTTP_OPTION_GLOBAL_SERVER_CREDS: u32 = 98u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_HANDLE_TYPE: u32 = 9u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_HEAP_EXTENSION: u32 = 157u32;
-#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_HTTP2_KEEPALIVE: u32 = 164u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_HTTP2_PLUS_TRANSFER_ENCODING: u32 = 169u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_HTTP2_RECEIVE_WINDOW: u32 = 183u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_HTTP3_HANDSHAKE_TIMEOUT: u32 = 189u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_HTTP3_INITIAL_RTT: u32 = 190u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_HTTP3_KEEPALIVE: u32 = 188u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_HTTP3_STREAM_ERROR_CODE: u32 = 191u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_HTTP_PROTOCOL_REQUIRED: u32 = 145u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -962,7 +1112,7 @@ pub const WINHTTP_OPTION_MAX_RESPONSE_DRAIN_SIZE: u32 = 92u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_MAX_RESPONSE_HEADER_SIZE: u32 = 91u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_NTSERVICE_FLAG_TEST: u32 = 175u32;
+pub const WINHTTP_OPTION_NETWORK_INTERFACE_AFFINITY: u32 = 105u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_PARENT_HANDLE: u32 = 21u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -978,8 +1128,6 @@ pub const WINHTTP_OPTION_PASSWORD: u32 = 4097u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_PROXY: u32 = 38u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_PROXY_CONFIG_INFO: u32 = 180u32;
-#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_PROXY_DISABLE_SERVICE_CALLS: u32 = 137u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_PROXY_PASSWORD: u32 = 4099u32;
@@ -989,6 +1137,8 @@ pub const WINHTTP_OPTION_PROXY_RESULT_ENTRY: u32 = 39u32;
 pub const WINHTTP_OPTION_PROXY_SPN_USED: u32 = 107u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_PROXY_USERNAME: u32 = 4098u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_QUIC_STATS: u32 = 185u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_READ_BUFFER_SIZE: u32 = 12u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -1014,6 +1164,10 @@ pub const WINHTTP_OPTION_REFERER_TOKEN_BINDING_HOSTNAME: u32 = 168u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_REJECT_USERPWD_IN_URL: u32 = 100u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_REQUEST_ANNOTATION: u32 = 192u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_REQUEST_ANNOTATION_MAX_LENGTH: u32 = 64000u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_REQUEST_PRIORITY: u32 = 58u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_REQUEST_STATS: u32 = 146u32;
@@ -1028,6 +1182,8 @@ pub const WINHTTP_OPTION_RESOLVER_CACHE_CONFIG: u32 = 170u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_RESOLVE_TIMEOUT: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_REVERT_IMPERSONATION_SERVER_CERT: u32 = 194u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_SECURE_PROTOCOLS: u32 = 84u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_SECURITY_CERTIFICATE_STRUCT: u32 = 32u32;
@@ -1037,8 +1193,6 @@ pub const WINHTTP_OPTION_SECURITY_FLAGS: u32 = 31u32;
 pub const WINHTTP_OPTION_SECURITY_INFO: u32 = 151u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_SECURITY_KEY_BITNESS: u32 = 36u32;
-#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_SELECTED_PROXY_CONFIG_INFO: u32 = 182u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_SEND_TIMEOUT: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -1050,11 +1204,7 @@ pub const WINHTTP_OPTION_SERVER_CERT_CONTEXT: u32 = 78u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_SERVER_SPN_USED: u32 = 106u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_SET_GLOBAL_CALLBACK: u32 = 163u32;
-#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_SET_TOKEN_BINDING: u32 = 166u32;
-#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
-pub const WINHTTP_OPTION_SOURCE_ADDRESS: u32 = 156u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_SPN: u32 = 96u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -1090,6 +1240,8 @@ pub const WINHTTP_OPTION_USER_AGENT: u32 = 41u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_USE_GLOBAL_SERVER_CREDENTIALS: u32 = 101u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_OPTION_USE_SESSION_SCH_CRED: u32 = 196u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_WEB_SOCKET_CLOSE_TIMEOUT: u32 = 115u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_OPTION_WEB_SOCKET_KEEPALIVE_INTERVAL: u32 = 116u32;
@@ -1105,6 +1257,20 @@ pub const WINHTTP_OPTION_WRITE_BUFFER_SIZE: u32 = 13u32;
 pub const WINHTTP_PROTOCOL_FLAG_HTTP2: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_PROTOCOL_FLAG_HTTP3: u32 = 2u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_PROXY_DISABLE_AUTH_LOCAL_SERVICE: u32 = 256u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_PROXY_DISABLE_SCHEME_BASIC: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_PROXY_DISABLE_SCHEME_DIGEST: u32 = 2u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_PROXY_DISABLE_SCHEME_KERBEROS: u32 = 8u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_PROXY_DISABLE_SCHEME_NEGOTIATE: u32 = 16u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_PROXY_DISABLE_SCHEME_NTLM: u32 = 4u32;
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WINHTTP_PROXY_NOTIFY_CHANGE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub const WINHTTP_PROXY_TYPE_AUTO_DETECT: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -1482,6 +1648,35 @@ impl ::core::ops::Not for WINHTTP_OPEN_REQUEST_FLAGS {
     type Output = Self;
     fn not(self) -> Self {
         Self(self.0.not())
+    }
+}
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+#[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
+pub struct WINHTTP_PROXY_SETTINGS_TYPE(pub i32);
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WinHttpProxySettingsTypeUnknown: WINHTTP_PROXY_SETTINGS_TYPE = WINHTTP_PROXY_SETTINGS_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WinHttpProxySettingsTypeWsl: WINHTTP_PROXY_SETTINGS_TYPE = WINHTTP_PROXY_SETTINGS_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub const WinHttpProxySettingsTypeWsa: WINHTTP_PROXY_SETTINGS_TYPE = WINHTTP_PROXY_SETTINGS_TYPE(2i32);
+impl ::core::marker::Copy for WINHTTP_PROXY_SETTINGS_TYPE {}
+impl ::core::clone::Clone for WINHTTP_PROXY_SETTINGS_TYPE {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl ::core::default::Default for WINHTTP_PROXY_SETTINGS_TYPE {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+impl ::windows::core::TypeKind for WINHTTP_PROXY_SETTINGS_TYPE {
+    type TypeKind = ::windows::core::CopyType;
+}
+impl ::core::fmt::Debug for WINHTTP_PROXY_SETTINGS_TYPE {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_tuple("WINHTTP_PROXY_SETTINGS_TYPE").field(&self.0).finish()
     }
 }
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
@@ -2725,6 +2920,122 @@ impl ::core::default::Default for WINHTTP_PROXY_SETTINGS {
 }
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+pub struct WINHTTP_PROXY_SETTINGS_EX {
+    pub ullGenerationId: u64,
+    pub ullFlags: u64,
+    pub pcwszAutoconfigUrl: ::windows::core::PCWSTR,
+    pub pcwszProxy: ::windows::core::PCWSTR,
+    pub pcwszSecureProxy: ::windows::core::PCWSTR,
+    pub cProxyBypasses: u32,
+    pub rgpcwszProxyBypasses: *const ::windows::core::PCWSTR,
+    pub dwInterfaceIndex: u32,
+    pub pcwszConnectionName: ::windows::core::PCWSTR,
+}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::core::marker::Copy for WINHTTP_PROXY_SETTINGS_EX {}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::core::clone::Clone for WINHTTP_PROXY_SETTINGS_EX {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::windows::core::TypeKind for WINHTTP_PROXY_SETTINGS_EX {
+    type TypeKind = ::windows::core::CopyType;
+}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::core::default::Default for WINHTTP_PROXY_SETTINGS_EX {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
+#[repr(C, packed(4))]
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+#[cfg(target_arch = "x86")]
+pub struct WINHTTP_PROXY_SETTINGS_EX {
+    pub ullGenerationId: u64,
+    pub ullFlags: u64,
+    pub pcwszAutoconfigUrl: ::windows::core::PCWSTR,
+    pub pcwszProxy: ::windows::core::PCWSTR,
+    pub pcwszSecureProxy: ::windows::core::PCWSTR,
+    pub cProxyBypasses: u32,
+    pub rgpcwszProxyBypasses: *const ::windows::core::PCWSTR,
+    pub dwInterfaceIndex: u32,
+    pub pcwszConnectionName: ::windows::core::PCWSTR,
+}
+#[cfg(target_arch = "x86")]
+impl ::core::marker::Copy for WINHTTP_PROXY_SETTINGS_EX {}
+#[cfg(target_arch = "x86")]
+impl ::core::clone::Clone for WINHTTP_PROXY_SETTINGS_EX {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+#[cfg(target_arch = "x86")]
+impl ::windows::core::TypeKind for WINHTTP_PROXY_SETTINGS_EX {
+    type TypeKind = ::windows::core::CopyType;
+}
+#[cfg(target_arch = "x86")]
+impl ::core::default::Default for WINHTTP_PROXY_SETTINGS_EX {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
+#[repr(C)]
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+pub struct WINHTTP_PROXY_SETTINGS_PARAM {
+    pub ullFlags: u64,
+    pub pcwszConnectionName: ::windows::core::PCWSTR,
+    pub pcwszProbeHost: ::windows::core::PCWSTR,
+}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::core::marker::Copy for WINHTTP_PROXY_SETTINGS_PARAM {}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::core::clone::Clone for WINHTTP_PROXY_SETTINGS_PARAM {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::windows::core::TypeKind for WINHTTP_PROXY_SETTINGS_PARAM {
+    type TypeKind = ::windows::core::CopyType;
+}
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+impl ::core::default::Default for WINHTTP_PROXY_SETTINGS_PARAM {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
+#[repr(C, packed(4))]
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+#[cfg(target_arch = "x86")]
+pub struct WINHTTP_PROXY_SETTINGS_PARAM {
+    pub ullFlags: u64,
+    pub pcwszConnectionName: ::windows::core::PCWSTR,
+    pub pcwszProbeHost: ::windows::core::PCWSTR,
+}
+#[cfg(target_arch = "x86")]
+impl ::core::marker::Copy for WINHTTP_PROXY_SETTINGS_PARAM {}
+#[cfg(target_arch = "x86")]
+impl ::core::clone::Clone for WINHTTP_PROXY_SETTINGS_PARAM {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+#[cfg(target_arch = "x86")]
+impl ::windows::core::TypeKind for WINHTTP_PROXY_SETTINGS_PARAM {
+    type TypeKind = ::windows::core::CopyType;
+}
+#[cfg(target_arch = "x86")]
+impl ::core::default::Default for WINHTTP_PROXY_SETTINGS_PARAM {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
+#[repr(C)]
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub struct WINHTTP_QUERY_CONNECTION_GROUP_RESULT {
     pub cHosts: u32,
     pub pHostConnectionGroups: *mut WINHTTP_HOST_CONNECTION_GROUP,
@@ -2978,6 +3289,8 @@ impl ::core::default::Default for WINHTTP_WEB_SOCKET_STATUS {
         unsafe { ::core::mem::zeroed() }
     }
 }
+#[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
+pub type WINHTTP_PROXY_CHANGE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(ullflags: u64, pvcontext: *const ::core::ffi::c_void) -> ()>;
 #[doc = "*Required features: `\"Win32_Networking_WinHttp\"`*"]
 pub type WINHTTP_STATUS_CALLBACK = ::core::option::Option<unsafe extern "system" fn(hinternet: *mut ::core::ffi::c_void, dwcontext: usize, dwinternetstatus: u32, lpvstatusinformation: *mut ::core::ffi::c_void, dwstatusinformationlength: u32) -> ()>;
 #[cfg(feature = "implement")]

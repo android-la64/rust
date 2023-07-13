@@ -164,24 +164,20 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 {
                     for param in
                         [param_to_point_at, fallback_param_to_point_at, self_param_to_point_at]
+                            .into_iter()
+                            .flatten()
                     {
-                        if let Some(param) = param {
-                            let refined_expr = self.point_at_field_if_possible(
-                                def_id,
-                                param,
-                                variant_def_id,
-                                fields,
-                            );
+                        let refined_expr =
+                            self.point_at_field_if_possible(def_id, param, variant_def_id, fields);
 
-                            match refined_expr {
-                                None => {}
-                                Some((refined_expr, _)) => {
-                                    error.obligation.cause.span = refined_expr
-                                        .span
-                                        .find_ancestor_in_same_ctxt(error.obligation.cause.span)
-                                        .unwrap_or(refined_expr.span);
-                                    return true;
-                                }
+                        match refined_expr {
+                            None => {}
+                            Some((refined_expr, _)) => {
+                                error.obligation.cause.span = refined_expr
+                                    .span
+                                    .find_ancestor_in_same_ctxt(error.obligation.cause.span)
+                                    .unwrap_or(refined_expr.span);
+                                return true;
                             }
                         }
                     }
@@ -282,9 +278,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         span: Span,
     ) -> bool {
         if let traits::FulfillmentErrorCode::CodeSelectionError(
-            traits::SelectionError::OutputTypeParameterMismatch(_, expected, _),
+            traits::SelectionError::OutputTypeParameterMismatch(box traits::SelectionOutputTypeParameterMismatch{
+                expected_trait_ref, ..
+            }),
         ) = error.code
-            && let ty::Closure(def_id, _) | ty::Generator(def_id, ..) = expected.skip_binder().self_ty().kind()
+            && let ty::Closure(def_id, _) | ty::Generator(def_id, ..) = expected_trait_ref.skip_binder().self_ty().kind()
             && span.overlaps(self.tcx.def_span(*def_id))
         {
             true
@@ -334,7 +332,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// expression mentioned.
     ///
     /// `blame_specific_arg_if_possible` will find the most-specific expression anywhere inside
-    /// the provided function call expression, and mark it as responsible for the fullfillment
+    /// the provided function call expression, and mark it as responsible for the fulfillment
     /// error.
     fn blame_specific_arg_if_possible(
         &self,
@@ -485,7 +483,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // For the purposes of this function, we hope that it is a `struct` type, and that our current `expr` is a literal of
         // that struct type.
         let impl_trait_self_ref = if self.tcx.is_trait_alias(obligation.impl_or_alias_def_id) {
-            self.tcx.mk_trait_ref(
+            ty::TraitRef::new(
+                self.tcx,
                 obligation.impl_or_alias_def_id,
                 ty::InternalSubsts::identity_for_item(self.tcx, obligation.impl_or_alias_def_id),
             )
@@ -846,7 +845,7 @@ fn find_param_in_ty<'tcx>(
             return true;
         }
         if let ty::GenericArgKind::Type(ty) = arg.unpack()
-                && let ty::Alias(ty::Projection, ..) = ty.kind()
+                && let ty::Alias(ty::Projection | ty::Inherent, ..) = ty.kind()
             {
                 // This logic may seem a bit strange, but typically when
                 // we have a projection type in a function signature, the

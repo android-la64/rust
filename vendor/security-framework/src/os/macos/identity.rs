@@ -14,6 +14,10 @@ use crate::os::macos::keychain::SecKeychain;
 pub trait SecIdentityExt {
     /// Creates an identity corresponding to a certificate, looking in the
     /// provided keychains for the corresponding private key.
+    /// 
+    /// To search the default keychains, use an empty slice for `keychains`.
+    /// 
+    /// <https://developer.apple.com/documentation/security/1401160-secidentitycreatewithcertificate>
     fn with_certificate(
         keychains: &[SecKeychain],
         certificate: &SecCertificate,
@@ -29,7 +33,7 @@ impl SecIdentityExt for SecIdentity {
         unsafe {
             let mut identity = ptr::null_mut();
             cvt(SecIdentityCreateWithCertificate(
-                keychains.as_CFTypeRef(),
+                if keychains.len() > 0 {keychains.as_CFTypeRef()} else {ptr::null()},
                 certificate.as_concrete_TypeRef(),
                 &mut identity,
             ))?;
@@ -40,7 +44,7 @@ impl SecIdentityExt for SecIdentity {
 
 #[cfg(test)]
 mod test {
-    use tempdir::TempDir;
+    use tempfile::tempdir;
 
     use super::*;
     use crate::identity::SecIdentity;
@@ -52,7 +56,7 @@ mod test {
 
     #[test]
     fn certificate() {
-        let dir = p!(TempDir::new("certificate"));
+        let dir = p!(tempdir());
         let identity = identity(dir.path());
         let certificate = p!(identity.certificate());
         assert_eq!("foobar.com", p!(certificate.common_name()));
@@ -60,14 +64,14 @@ mod test {
 
     #[test]
     fn private_key() {
-        let dir = p!(TempDir::new("private_key"));
+        let dir = p!(tempdir());
         let identity = identity(dir.path());
         p!(identity.private_key());
     }
 
     #[test]
     fn with_certificate() {
-        let dir = p!(TempDir::new("with_certificate"));
+        let dir = p!(tempdir());
 
         let mut keychain = p!(CreateOptions::new()
             .password("foobar")

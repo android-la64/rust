@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.60.0"
 name = "toml_edit"
-version = "0.19.3"
+version = "0.19.8"
 authors = [
     "Andronik Ordian <write@reusable.software>",
     "Ed Page <eopage@gmail.com>",
@@ -106,14 +106,12 @@ harness = false
 
 [dependencies.indexmap]
 version = "1.9.1"
+features = ["std"]
 
 [dependencies.kstring]
 version = "2.0.0"
 features = ["max_inline"]
 optional = true
-
-[dependencies.nom8]
-version = "0.2.0"
 
 [dependencies.serde]
 version = "1.0.145"
@@ -127,14 +125,17 @@ optional = true
 [dependencies.toml_datetime]
 version = "0.6.1"
 
+[dependencies.winnow]
+version = "0.4.0"
+
 [dev-dependencies.libtest-mimic]
 version = "0.6.0"
 
 [dev-dependencies.serde_json]
-version = "1.0.91"
+version = "1.0.93"
 
 [dev-dependencies.snapbox]
-version = "0.4.4"
+version = "0.4.7"
 features = ["harness"]
 
 [dev-dependencies.toml-test-data]

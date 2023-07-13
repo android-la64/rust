@@ -10,7 +10,7 @@
 use super::super::c;
 use super::super::conv::{
     by_ref, c_int, c_uint, dev_t, oflags_for_open_how, opt_mut, pass_usize, raw_fd, ret, ret_c_int,
-    ret_c_uint, ret_infallible, ret_owned_fd, ret_usize, size_of, slice_mut, zero,
+    ret_c_uint, ret_infallible, ret_owned_fd, ret_usize, size_of, slice, slice_mut, zero,
 };
 #[cfg(target_pointer_width = "64")]
 use super::super::conv::{loff_t, loff_t_from_u64, ret_u64};
@@ -26,7 +26,7 @@ use crate::ffi::CStr;
 use crate::fs::{
     inotify, Access, Advice, AtFlags, FallocateFlags, FileType, FlockOperation, MemfdFlags, Mode,
     OFlags, RenameFlags, ResolveFlags, SealFlags, Stat, StatFs, StatVfs, StatVfsMountFlags,
-    StatxFlags, Timestamps,
+    StatxFlags, Timestamps, XattrFlags,
 };
 use crate::io::{self, SeekFrom};
 use crate::process::{Gid, Uid};
@@ -1392,6 +1392,30 @@ pub(crate) fn accessat(
     access: Access,
     flags: AtFlags,
 ) -> io::Result<()> {
+    if !flags
+        .difference(AtFlags::EACCESS | AtFlags::SYMLINK_NOFOLLOW)
+        .is_empty()
+    {
+        return Err(io::Errno::INVAL);
+    }
+
+    // Linux's `faccessat` syscall doesn't have a flags argument, so if we have
+    // any flags, use the newer `faccessat2` which does. Unless we're on
+    // Android where using newer system calls can cause seccomp to abort the
+    // process.
+    #[cfg(not(target_os = "android"))]
+    if !flags.is_empty() {
+        return unsafe {
+            ret(syscall_readonly!(
+                __NR_faccessat2,
+                dirfd,
+                path,
+                access,
+                flags
+            ))
+        };
+    }
+
     // Linux's `faccessat` doesn't have a flags parameter. If we have
     // `AT_EACCESS` and we're not setuid or setgid, we can emulate it.
     if flags.is_empty()
@@ -1402,11 +1426,6 @@ pub(crate) fn accessat(
         return unsafe { ret(syscall_readonly!(__NR_faccessat, dirfd, path, access)) };
     }
 
-    if flags.bits() != AT_EACCESS {
-        return Err(io::Errno::INVAL);
-    }
-
-    // TODO: Use faccessat2 in newer Linux versions.
     Err(io::Errno::NOSYS)
 }
 
@@ -1509,4 +1528,139 @@ pub(crate) fn inotify_add_watch(
 #[inline]
 pub(crate) fn inotify_rm_watch(infd: BorrowedFd<'_>, wfd: i32) -> io::Result<()> {
     unsafe { ret(syscall_readonly!(__NR_inotify_rm_watch, infd, c_int(wfd))) }
+}
+
+#[inline]
+pub(crate) fn getxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Result<usize> {
+    let (value_addr_mut, value_len) = slice_mut(value);
+    unsafe {
+        ret_usize(syscall!(
+            __NR_getxattr,
+            path,
+            name,
+            value_addr_mut,
+            value_len
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn lgetxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Result<usize> {
+    let (value_addr_mut, value_len) = slice_mut(value);
+    unsafe {
+        ret_usize(syscall!(
+            __NR_lgetxattr,
+            path,
+            name,
+            value_addr_mut,
+            value_len
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn fgetxattr(fd: BorrowedFd<'_>, name: &CStr, value: &mut [u8]) -> io::Result<usize> {
+    let (value_addr_mut, value_len) = slice_mut(value);
+    unsafe {
+        ret_usize(syscall!(
+            __NR_fgetxattr,
+            fd,
+            name,
+            value_addr_mut,
+            value_len
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn setxattr(
+    path: &CStr,
+    name: &CStr,
+    value: &[u8],
+    flags: XattrFlags,
+) -> io::Result<()> {
+    let (value_addr, value_len) = slice(value);
+    unsafe {
+        ret(syscall_readonly!(
+            __NR_setxattr,
+            path,
+            name,
+            value_addr,
+            value_len,
+            flags
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn lsetxattr(
+    path: &CStr,
+    name: &CStr,
+    value: &[u8],
+    flags: XattrFlags,
+) -> io::Result<()> {
+    let (value_addr, value_len) = slice(value);
+    unsafe {
+        ret(syscall_readonly!(
+            __NR_lsetxattr,
+            path,
+            name,
+            value_addr,
+            value_len,
+            flags
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn fsetxattr(
+    fd: BorrowedFd<'_>,
+    name: &CStr,
+    value: &[u8],
+    flags: XattrFlags,
+) -> io::Result<()> {
+    let (value_addr, value_len) = slice(value);
+    unsafe {
+        ret(syscall_readonly!(
+            __NR_fsetxattr,
+            fd,
+            name,
+            value_addr,
+            value_len,
+            flags
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn listxattr(path: &CStr, list: &mut [c::c_char]) -> io::Result<usize> {
+    let (list_addr_mut, list_len) = slice_mut(list);
+    unsafe { ret_usize(syscall!(__NR_listxattr, path, list_addr_mut, list_len)) }
+}
+
+#[inline]
+pub(crate) fn llistxattr(path: &CStr, list: &mut [c::c_char]) -> io::Result<usize> {
+    let (list_addr_mut, list_len) = slice_mut(list);
+    unsafe { ret_usize(syscall!(__NR_llistxattr, path, list_addr_mut, list_len)) }
+}
+
+#[inline]
+pub(crate) fn flistxattr(fd: BorrowedFd<'_>, list: &mut [c::c_char]) -> io::Result<usize> {
+    let (list_addr_mut, list_len) = slice_mut(list);
+    unsafe { ret_usize(syscall!(__NR_flistxattr, fd, list_addr_mut, list_len)) }
+}
+
+#[inline]
+pub(crate) fn removexattr(path: &CStr, name: &CStr) -> io::Result<()> {
+    unsafe { ret(syscall!(__NR_removexattr, path, name)) }
+}
+
+#[inline]
+pub(crate) fn lremovexattr(path: &CStr, name: &CStr) -> io::Result<()> {
+    unsafe { ret(syscall!(__NR_lremovexattr, path, name)) }
+}
+
+#[inline]
+pub(crate) fn fremovexattr(fd: BorrowedFd<'_>, name: &CStr) -> io::Result<()> {
+    unsafe { ret(syscall!(__NR_fremovexattr, fd, name)) }
 }

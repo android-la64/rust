@@ -73,8 +73,10 @@ pub use gix_date as date;
 pub use gix_features as features;
 use gix_features::threading::OwnShared;
 pub use gix_features::{parallel, progress::Progress, threading};
+pub use gix_fs as fs;
 pub use gix_glob as glob;
 pub use gix_hash as hash;
+pub use gix_ignore as ignore;
 #[doc(inline)]
 pub use gix_index as index;
 pub use gix_lock as lock;
@@ -92,18 +94,17 @@ pub use gix_traverse as traverse;
 pub use gix_url as url;
 #[doc(inline)]
 pub use gix_url::Url;
+pub use gix_utils as utils;
 pub use hash::{oid, ObjectId};
 
 pub mod interrupt;
 
+///
+pub mod attributes;
+
 mod ext;
 ///
-pub mod prelude {
-    pub use gix_features::parallel::reduce::Finalize;
-    pub use gix_odb::{Find, FindExt, Header, HeaderExt, Write};
-
-    pub use crate::ext::*;
-}
+pub mod prelude;
 
 ///
 pub mod path;
@@ -133,33 +134,21 @@ mod repository;
 pub mod tag;
 
 ///
-pub mod progress {
-    #[cfg(feature = "progress-tree")]
-    pub use gix_features::progress::prodash::tree;
-    pub use gix_features::progress::*;
-}
+pub mod progress;
 
 ///
-pub mod diff {
-    pub use gix_diff::*;
-    ///
-    pub mod rename {
-        /// Determine how to do rename tracking.
-        #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-        pub enum Tracking {
-            /// Do not track renames at all, the fastest option.
-            Disabled,
-            /// Track renames.
-            Renames,
-            /// Track renames and copies.
-            ///
-            /// This is the most expensive option.
-            RenamesAndCopies,
-        }
-    }
-}
+pub mod diff;
 
 /// See [ThreadSafeRepository::discover()], but returns a [`Repository`] instead.
+///
+/// # Note
+///
+/// **The discovered repository might not be suitable for any operation that requires authentication with remotes**
+/// as it doesn't see the relevant git configuration.
+///
+/// To achieve that, one has to [enable `git_binary` configuration](https://github.com/Byron/gitoxide/blob/9723e1addf52cc336d59322de039ea0537cdca36/src/plumbing/main.rs#L86)
+/// in the open-options and use [`ThreadSafeRepository::discover_opts()`] instead. Alternatively, it might be well-known
+/// that the tool is going to run in a neatly configured environment without relying on bundled configuration.
 #[allow(clippy::result_large_err)]
 pub fn discover(directory: impl AsRef<std::path::Path>) -> Result<Repository, discover::Error> {
     ThreadSafeRepository::discover(directory).map(Into::into)
@@ -238,23 +227,6 @@ pub fn open_opts(directory: impl Into<std::path::PathBuf>, options: open::Option
 }
 
 ///
-pub mod permission {
-    ///
-    pub mod env_var {
-        ///
-        pub mod resource {
-            ///
-            pub type Error = gix_sec::permission::Error<std::path::PathBuf>;
-        }
-    }
-}
-///
-pub mod permissions {
-    pub use crate::repository::permissions::{Config, Environment};
-}
-pub use repository::permissions::Permissions;
-
-///
 pub mod create;
 
 ///
@@ -278,33 +250,10 @@ pub mod remote;
 pub mod init;
 
 /// Not to be confused with 'status'.
-pub mod state {
-    /// Tell what operation is currently in progress.
-    #[derive(Debug, PartialEq, Eq)]
-    pub enum InProgress {
-        /// A mailbox is being applied.
-        ApplyMailbox,
-        /// A rebase is happening while a mailbox is being applied.
-        // TODO: test
-        ApplyMailboxRebase,
-        /// A git bisect operation has not yet been concluded.
-        Bisect,
-        /// A cherry pick operation.
-        CherryPick,
-        /// A cherry pick with multiple commits pending.
-        CherryPickSequence,
-        /// A merge operation.
-        Merge,
-        /// A rebase operation.
-        Rebase,
-        /// An interactive rebase operation.
-        RebaseInteractive,
-        /// A revert operation.
-        Revert,
-        /// A revert operation with multiple commits pending.
-        RevertSequence,
-    }
-}
+pub mod state;
+
+///
+pub mod shallow;
 
 ///
 pub mod discover;

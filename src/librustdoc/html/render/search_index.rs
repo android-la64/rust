@@ -28,9 +28,7 @@ pub(crate) fn build_index<'tcx>(
     // has since been learned.
     for &OrphanImplItem { parent, ref item, ref impl_generics } in &cache.orphan_impl_items {
         if let Some((fqp, _)) = cache.paths.get(&parent) {
-            let desc = item
-                .doc_value()
-                .map_or_else(String::new, |s| short_markdown_summary(&s, &item.link_names(cache)));
+            let desc = short_markdown_summary(&item.doc_value(), &item.link_names(cache));
             cache.search_index.push(IndexItem {
                 ty: item.type_(),
                 name: item.name.unwrap(),
@@ -45,10 +43,8 @@ pub(crate) fn build_index<'tcx>(
         }
     }
 
-    let crate_doc = krate
-        .module
-        .doc_value()
-        .map_or_else(String::new, |s| short_markdown_summary(&s, &krate.module.link_names(cache)));
+    let crate_doc =
+        short_markdown_summary(&krate.module.doc_value(), &krate.module.link_names(cache));
 
     // Aliases added through `#[doc(alias = "...")]`. Since a few items can have the same alias,
     // we need the alias element to have an array of items.
@@ -391,12 +387,14 @@ fn get_index_type_id(clean_type: &clean::Type) -> Option<RenderTypeId> {
         clean::BorrowedRef { ref type_, .. } | clean::RawPointer(_, ref type_) => {
             get_index_type_id(type_)
         }
+        // The type parameters are converted to generics in `add_generics_and_bounds_as_types`
+        clean::Slice(_) => Some(RenderTypeId::Primitive(clean::PrimitiveType::Slice)),
+        clean::Array(_, _) => Some(RenderTypeId::Primitive(clean::PrimitiveType::Array)),
+        // Not supported yet
         clean::BareFunction(_)
         | clean::Generic(_)
         | clean::ImplTrait(_)
         | clean::Tuple(_)
-        | clean::Slice(_)
-        | clean::Array(_, _)
         | clean::QPath { .. }
         | clean::Infer => None,
     }
@@ -562,6 +560,30 @@ fn add_generics_and_bounds_as_types<'tcx, 'a>(
                 );
             }
         }
+        insert_ty(res, arg.clone(), ty_generics);
+    } else if let Type::Slice(ref ty) = *arg {
+        let mut ty_generics = Vec::new();
+        add_generics_and_bounds_as_types(
+            self_,
+            generics,
+            &ty,
+            tcx,
+            recurse + 1,
+            &mut ty_generics,
+            cache,
+        );
+        insert_ty(res, arg.clone(), ty_generics);
+    } else if let Type::Array(ref ty, _) = *arg {
+        let mut ty_generics = Vec::new();
+        add_generics_and_bounds_as_types(
+            self_,
+            generics,
+            &ty,
+            tcx,
+            recurse + 1,
+            &mut ty_generics,
+            cache,
+        );
         insert_ty(res, arg.clone(), ty_generics);
     } else {
         // This is not a type parameter. So for example if we have `T, U: Option<T>`, and we're

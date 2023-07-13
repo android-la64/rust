@@ -11,6 +11,7 @@ use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::fmt;
 
+use super::line_index::LineIndex;
 use super::pair::{self, Pair};
 use super::queueable_token::QueueableToken;
 use super::tokens::{self, Tokens};
@@ -28,6 +29,7 @@ pub struct FlatPairs<'i, R> {
     input: &'i str,
     start: usize,
     end: usize,
+    line_index: Rc<LineIndex>,
 }
 
 /// # Safety
@@ -42,6 +44,7 @@ pub unsafe fn new<R: RuleType>(
     FlatPairs {
         queue,
         input,
+        line_index: Rc::new(LineIndex::new(input)),
         start,
         end,
     }
@@ -107,8 +110,14 @@ impl<'i, R: RuleType> Iterator for FlatPairs<'i, R> {
             return None;
         }
 
-        let pair = unsafe { pair::new(Rc::clone(&self.queue), self.input, self.start) };
-
+        let pair = unsafe {
+            pair::new(
+                Rc::clone(&self.queue),
+                self.input,
+                Rc::clone(&self.line_index),
+                self.start,
+            )
+        };
         self.next_start();
 
         Some(pair)
@@ -123,7 +132,14 @@ impl<'i, R: RuleType> DoubleEndedIterator for FlatPairs<'i, R> {
 
         self.next_start_from_end();
 
-        let pair = unsafe { pair::new(Rc::clone(&self.queue), self.input, self.end) };
+        let pair = unsafe {
+            pair::new(
+                Rc::clone(&self.queue),
+                self.input,
+                Rc::clone(&self.line_index),
+                self.end,
+            )
+        };
 
         Some(pair)
     }
@@ -142,6 +158,7 @@ impl<'i, R: Clone> Clone for FlatPairs<'i, R> {
         FlatPairs {
             queue: Rc::clone(&self.queue),
             input: self.input,
+            line_index: Rc::clone(&self.line_index),
             start: self.start,
             end: self.end,
         }
@@ -176,5 +193,25 @@ mod tests {
                 .collect::<Vec<Rule>>(),
             vec![Rule::c, Rule::b, Rule::a]
         );
+    }
+
+    #[test]
+    fn test_line_col() {
+        let mut pairs = AbcParser::parse(Rule::a, "abcNe\nabcde").unwrap().flatten();
+
+        let pair = pairs.next().unwrap();
+        assert_eq!(pair.as_str(), "abc");
+        assert_eq!(pair.line_col(), (1, 1));
+        assert_eq!(pair.line_col(), pair.as_span().start_pos().line_col());
+
+        let pair = pairs.next().unwrap();
+        assert_eq!(pair.as_str(), "b");
+        assert_eq!(pair.line_col(), (1, 2));
+        assert_eq!(pair.line_col(), pair.as_span().start_pos().line_col());
+
+        let pair = pairs.next().unwrap();
+        assert_eq!(pair.as_str(), "e");
+        assert_eq!(pair.line_col(), (1, 5));
+        assert_eq!(pair.line_col(), pair.as_span().start_pos().line_col());
     }
 }

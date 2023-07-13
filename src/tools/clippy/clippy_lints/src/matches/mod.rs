@@ -25,9 +25,9 @@ mod wild_in_or_pats;
 
 use clippy_utils::msrvs::{self, Msrv};
 use clippy_utils::source::{snippet_opt, walk_span_to_context};
-use clippy_utils::{higher, in_constant, is_span_match};
+use clippy_utils::{higher, in_constant, is_span_match, tokenize_with_text};
 use rustc_hir::{Arm, Expr, ExprKind, Local, MatchSource, Pat};
-use rustc_lexer::{tokenize, TokenKind};
+use rustc_lexer::TokenKind;
 use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::lint::in_external_macro;
 use rustc_session::{declare_tool_lint, impl_lint_pass};
@@ -843,7 +843,7 @@ declare_clippy_lint! {
 
 declare_clippy_lint! {
     /// ### What it does
-    /// Checks for usages of `Err(x)?`.
+    /// Checks for usage of `Err(x)?`.
     ///
     /// ### Why is this bad?
     /// The `?` operator is designed to allow calls that
@@ -878,7 +878,7 @@ declare_clippy_lint! {
 
 declare_clippy_lint! {
     /// ### What it does
-    /// Checks for usages of `match` which could be implemented using `map`
+    /// Checks for usage of `match` which could be implemented using `map`
     ///
     /// ### Why is this bad?
     /// Using the `map` method is clearer and more concise.
@@ -902,7 +902,7 @@ declare_clippy_lint! {
 
 declare_clippy_lint! {
     /// ### What it does
-    /// Checks for usages of `match` which could be implemented using `filter`
+    /// Checks for usage of `match` which could be implemented using `filter`
     ///
     /// ### Why is this bad?
     /// Using the `filter` method is clearer and more concise.
@@ -1147,12 +1147,7 @@ fn span_contains_cfg(cx: &LateContext<'_>, s: Span) -> bool {
         // Assume true. This would require either an invalid span, or one which crosses file boundaries.
         return true;
     };
-    let mut pos = 0usize;
-    let mut iter = tokenize(&snip).map(|t| {
-        let start = pos;
-        pos += t.len as usize;
-        (t.kind, start..pos)
-    });
+    let mut iter = tokenize_with_text(&snip);
 
     // Search for the token sequence [`#`, `[`, `cfg`]
     while iter.any(|(t, _)| matches!(t, TokenKind::Pound)) {
@@ -1163,7 +1158,7 @@ fn span_contains_cfg(cx: &LateContext<'_>, s: Span) -> bool {
             )
         });
         if matches!(iter.next(), Some((TokenKind::OpenBracket, _)))
-            && matches!(iter.next(), Some((TokenKind::Ident, range)) if &snip[range.clone()] == "cfg")
+            && matches!(iter.next(), Some((TokenKind::Ident, "cfg")))
         {
             return true;
         }

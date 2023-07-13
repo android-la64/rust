@@ -2,21 +2,31 @@
 
 /// # Potential improvements
 ///
-/// * When generic specialization stabilizes prevent copying from CString
+/// * When generic specialization stabilizes prevent copying from `CString`
 ///   arguments.
-/// * AuthorizationCopyRightsAsync
+/// * `AuthorizationCopyRightsAsync`
 /// * Provide constants for well known item names
 use crate::base::{Error, Result};
 use core_foundation::base::{CFTypeRef, TCFType};
 use core_foundation::bundle::CFBundleRef;
 use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
 use core_foundation::string::{CFString, CFStringRef};
+#[cfg(all(target_os = "macos", feature = "job-bless"))]
+use core_foundation::error::CFError;
+#[cfg(all(target_os = "macos", feature = "job-bless"))]
+use core_foundation::error::CFErrorRef;
+#[cfg(all(target_os = "macos", feature = "job-bless"))]
+use core_foundation::base::Boolean;
 use security_framework_sys::authorization as sys;
 use security_framework_sys::base::errSecConversionError;
+use std::convert::TryFrom;
 use std::ffi::{CStr, CString};
-use std::marker::PhantomData;
+use std::fs::File;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
+use std::ptr::addr_of;
+use std::{convert::TryInto, marker::PhantomData};
+use sys::AuthorizationExternalForm;
 
 macro_rules! optional_str_to_cfref {
     ($string:ident) => {{
@@ -60,6 +70,7 @@ bitflags::bitflags! {
 }
 
 impl Default for Flags {
+    #[inline(always)]
     fn default() -> Flags {
         Flags::DEFAULTS
     }
@@ -84,6 +95,7 @@ impl AuthorizationItem {
 
     /// The information pertaining to the name field. Do not rely on NULL
     /// termination of string data.
+    #[inline]
     pub fn value(&self) -> Option<&[u8]> {
         if self.0.value.is_null() {
             return None;
@@ -105,6 +117,7 @@ pub struct AuthorizationItemSet<'a> {
 }
 
 impl<'a> Drop for AuthorizationItemSet<'a> {
+    #[inline]
     fn drop(&mut self) {
         unsafe {
             sys::AuthorizationFreeItemSet(self.inner as *mut sys::AuthorizationItemSet);
@@ -131,6 +144,7 @@ pub struct AuthorizationItemSetStorage {
 }
 
 impl Default for AuthorizationItemSetStorage {
+    #[inline]
     fn default() -> Self {
         AuthorizationItemSetStorage {
             names: Vec::new(),
@@ -155,11 +169,12 @@ pub struct AuthorizationItemSetBuilder {
 impl AuthorizationItemSetBuilder {
     /// Creates a new `AuthorizationItemSetStore`, which simplifies creating
     /// owned vectors of `AuthorizationItem`s.
-    pub fn new() -> AuthorizationItemSetBuilder {
+    #[inline(always)]
+    #[must_use] pub fn new() -> AuthorizationItemSetBuilder {
         Default::default()
     }
 
-    /// Adds an AuthorizationItem with the name set to a right and an empty
+    /// Adds an `AuthorizationItem` with the name set to a right and an empty
     /// value.
     ///
     /// If `name` isn't convertable to a `CString` it will return
@@ -170,7 +185,7 @@ impl AuthorizationItemSetBuilder {
         Ok(self)
     }
 
-    /// Adds an AuthorizationItem with arbitrary data.
+    /// Adds an `AuthorizationItem` with arbitrary data.
     ///
     /// If `name` isn't convertable to a `CString` it will return
     /// Err(errSecConversionError).
@@ -184,7 +199,7 @@ impl AuthorizationItemSetBuilder {
         Ok(self)
     }
 
-    /// Adds an AuthorizationItem with NULL terminated string data.
+    /// Adds an `AuthorizationItem` with NULL terminated string data.
     ///
     /// If `name` or `value` isn't convertable to a `CString` it will return
     /// Err(errSecConversionError).
@@ -202,7 +217,7 @@ impl AuthorizationItemSetBuilder {
 
     /// Creates the `sys::AuthorizationItemSet`, and gives you ownership of the
     /// data it points to.
-    pub fn build(mut self) -> AuthorizationItemSetStorage {
+    #[must_use] pub fn build(mut self) -> AuthorizationItemSetStorage {
         self.storage.items = self
             .storage
             .names
@@ -228,6 +243,7 @@ impl AuthorizationItemSetBuilder {
 }
 
 /// Used by `Authorization::set_item` to define the rules of he right.
+#[derive(Copy, Clone)]
 pub enum RightDefinition<'a> {
     /// The dictionary will contain the keys and values that define the rules.
     FromDictionary(&'a CFDictionary<CFStringRef, CFTypeRef>),
@@ -236,17 +252,43 @@ pub enum RightDefinition<'a> {
     FromExistingRight(&'a str),
 }
 
-/// A wrapper around AuthorizationCreate and functions which operate on an
-/// AuthorizationRef.
+/// A wrapper around `AuthorizationCreate` and functions which operate on an
+/// `AuthorizationRef`.
 #[derive(Debug)]
 pub struct Authorization {
     handle: sys::AuthorizationRef,
     free_flags: Flags,
 }
 
-impl<'a> Authorization {
+impl TryFrom<AuthorizationExternalForm> for Authorization {
+    type Error = Error;
+
+    /// Internalizes the external representation of an authorization reference.
+    #[cold]
+    fn try_from(external_form: AuthorizationExternalForm) -> Result<Self> {
+        let mut handle = MaybeUninit::<sys::AuthorizationRef>::uninit();
+
+        let status = unsafe {
+            sys::AuthorizationCreateFromExternalForm(&external_form, handle.as_mut_ptr())
+        };
+
+        if status != sys::errAuthorizationSuccess {
+            return Err(Error::from_code(status));
+        }
+
+        let auth = Authorization {
+            handle: unsafe { handle.assume_init() },
+            free_flags: Default::default(),
+        };
+
+        Ok(auth)
+    }
+}
+
+impl Authorization {
     /// Creates an authorization object which has no environment or associated
     /// rights.
+    #[inline]
     pub fn default() -> Result<Self> {
         Self::new(None, None, Default::default())
     }
@@ -262,16 +304,17 @@ impl<'a> Authorization {
     /// macOS 10.4 and later, you can also pass a user name and password in
     /// order to authorize a user without user interaction.
     pub fn new(
+        // FIXME: this should have been by reference
         rights: Option<AuthorizationItemSetStorage>,
         environment: Option<AuthorizationItemSetStorage>,
         flags: Flags,
     ) -> Result<Self> {
         let rights_ptr = rights.as_ref().map_or(std::ptr::null(), |r| {
-            &r.set as *const sys::AuthorizationItemSet
+            addr_of!(r.set) as *const sys::AuthorizationItemSet
         });
 
         let env_ptr = environment.as_ref().map_or(std::ptr::null(), |e| {
-            &e.set as *const sys::AuthorizationItemSet
+            addr_of!(e.set) as *const sys::AuthorizationItemSet
         });
 
         let mut handle = MaybeUninit::<sys::AuthorizationRef>::uninit();
@@ -291,32 +334,15 @@ impl<'a> Authorization {
     }
 
     /// Internalizes the external representation of an authorization reference.
-    ///
-    /// TODO: TryFrom when security-framework stops supporting rust versions
-    /// which don't have it.
+    #[deprecated(since = "2.0.1", note = "Please use the TryFrom trait instead")]
     pub fn from_external_form(external_form: sys::AuthorizationExternalForm) -> Result<Self> {
-        let mut handle = MaybeUninit::<sys::AuthorizationRef>::uninit();
-
-        let status = unsafe {
-            sys::AuthorizationCreateFromExternalForm(&external_form, handle.as_mut_ptr())
-        };
-
-        if status != sys::errAuthorizationSuccess {
-            return Err(Error::from_code(status));
-        }
-
-        let auth = Authorization {
-            handle: unsafe { handle.assume_init() },
-            free_flags: Default::default(),
-        };
-
-        Ok(auth)
+        external_form.try_into()
     }
 
     /// By default the rights acquired will be retained by the Security Server.
     /// Use this to ensure they are destroyed and to prevent shared rights'
     /// continued used by other processes.
-    #[inline]
+    #[inline(always)]
     pub fn destroy_rights(mut self) {
         self.free_flags = Flags::DESTROY_RIGHTS;
     }
@@ -481,9 +507,128 @@ impl<'a> Authorization {
 
         Ok(unsafe { external_form.assume_init() })
     }
+
+    /// Runs an executable tool with root privileges.
+    /// Discards executable's output
+    #[cfg(target_os = "macos")]
+    #[inline(always)]
+    pub fn execute_with_privileges<P, S, I>(
+        &self,
+        command: P,
+        arguments: I,
+        flags: Flags,
+    ) -> Result<()>
+    where
+        P: AsRef<std::path::Path>,
+        I: IntoIterator<Item = S>,
+        S: AsRef<std::ffi::OsStr>,
+    {
+        use std::os::unix::ffi::OsStrExt;
+
+        let arguments = arguments
+            .into_iter().flat_map(|a| CString::new(a.as_ref().as_bytes()))
+            .collect::<Vec<_>>();
+        self.execute_with_privileges_internal(command.as_ref().as_os_str().as_bytes(), &arguments, flags, false)?;
+        Ok(())
+    }
+
+    /// Runs an executable tool with root privileges,
+    /// and returns a `File` handle to its communication pipe
+    #[cfg(target_os = "macos")]
+    #[inline(always)]
+    pub fn execute_with_privileges_piped<P, S, I>(
+        &self,
+        command: P,
+        arguments: I,
+        flags: Flags,
+    ) -> Result<File>
+    where
+        P: AsRef<std::path::Path>,
+        I: IntoIterator<Item = S>,
+        S: AsRef<std::ffi::OsStr>,
+    {
+        use std::os::unix::ffi::OsStrExt;
+
+        let arguments = arguments
+            .into_iter().flat_map(|a| CString::new(a.as_ref().as_bytes()))
+            .collect::<Vec<_>>();
+        Ok(self.execute_with_privileges_internal(command.as_ref().as_os_str().as_bytes(), &arguments, flags, true)?.unwrap())
+    }
+
+    /// Submits the executable for the given label as a `launchd` job.
+    #[cfg(all(target_os = "macos", feature = "job-bless"))]
+    pub fn job_bless(&self, label: &str) -> Result<(), CFError> {
+
+        #[link(name = "ServiceManagement", kind = "framework")]
+        extern "C" {
+            static kSMDomainSystemLaunchd: CFStringRef;
+
+            fn SMJobBless(
+                domain: CFStringRef,
+                executableLabel: CFStringRef,
+                auth: sys::AuthorizationRef,
+                error: *mut CFErrorRef,
+            ) -> Boolean;
+        }
+
+        unsafe {
+            let mut error = std::ptr::null_mut();
+            SMJobBless(
+                kSMDomainSystemLaunchd,
+                CFString::new(label).as_concrete_TypeRef(),
+                self.handle,
+                &mut error
+            );
+            if !error.is_null() {
+                return Err(CFError::wrap_under_create_rule(error));
+            }
+
+            Ok(())
+        }
+    }
+
+    // Runs an executable tool with root privileges.
+    #[cfg(target_os = "macos")]
+    fn execute_with_privileges_internal(
+        &self,
+        command: &[u8],
+        arguments: &[CString],
+        flags: Flags,
+        make_pipe: bool,
+    ) -> Result<Option<File>> {
+        use std::os::unix::io::{FromRawFd, RawFd};
+
+        let c_cmd = cstring_or_err!(command)?;
+
+        let mut c_args = arguments.iter().map(|a| a.as_ptr() as _).collect::<Vec<_>>();
+        c_args.push(std::ptr::null_mut());
+
+        let mut pipe: *mut libc::FILE = std::ptr::null_mut();
+
+        let status = unsafe {
+            sys::AuthorizationExecuteWithPrivileges(
+                self.handle,
+                c_cmd.as_ptr(),
+                flags.bits(),
+                c_args.as_ptr(),
+                if make_pipe { &mut pipe } else { std::ptr::null_mut() },
+            )
+        };
+
+        crate::cvt(status)?;
+        Ok(if make_pipe {
+            if pipe.is_null() {
+                return Err(Error::from_code(32)); // EPIPE?
+            }
+            Some(unsafe { File::from_raw_fd(libc::fileno(pipe) as RawFd) })
+        } else {
+            None
+        })
+    }
 }
 
 impl Drop for Authorization {
+    #[inline]
     fn drop(&mut self) {
         unsafe {
             sys::AuthorizationFree(self.handle, self.free_flags.bits());
@@ -574,8 +719,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_create_authorization_with_credentials() -> Result<()> {
+        if option_env!("PASSWORD").is_none() {
+            return Ok(());
+        }
+
         let rights = AuthorizationItemSetBuilder::new()
             .add_right("system.privilege.admin")?
             .build();
@@ -605,8 +753,11 @@ mod tests {
 
     /// This test will only pass if its process has a valid code signature.
     #[test]
-    #[ignore]
     fn test_modify_authorization_database() -> Result<()> {
+        if option_env!("PASSWORD").is_none() {
+            return Ok(());
+        }
+
         let rights = AuthorizationItemSetBuilder::new()
             .add_right("config.modify.")?
             .build();
@@ -631,6 +782,36 @@ mod tests {
         auth.remove_right("TEST_RIGHT").unwrap();
 
         assert!(!Authorization::right_exists("TEST_RIGHT")?);
+
+        Ok(())
+    }
+
+    /// This test will succeed if authorization popup is approved.
+    #[test]
+    fn test_execute_with_privileges() -> Result<()> {
+        if option_env!("PASSWORD").is_none() {
+            return Ok(());
+        }
+
+        let rights = AuthorizationItemSetBuilder::new()
+            .add_right("system.privilege.admin")?
+            .build();
+
+        let auth = Authorization::new(
+            Some(rights),
+            None,
+            Flags::DEFAULTS
+                | Flags::INTERACTION_ALLOWED
+                | Flags::PREAUTHORIZE
+                | Flags::EXTEND_RIGHTS,
+        )?;
+
+        let file = auth.execute_with_privileges_piped("/bin/ls", ["/"], Flags::DEFAULTS)?;
+
+        use std::io::{self, BufRead};
+        for line in io::BufReader::new(file).lines() {
+            let _ = line.unwrap();
+        }
 
         Ok(())
     }

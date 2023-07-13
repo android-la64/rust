@@ -5,51 +5,51 @@ pub unsafe fn XInputEnable<P0>(enable: P0)
 where
     P0: ::windows::core::IntoParam<super::super::super::Foundation::BOOL>,
 {
-    ::windows::imp::link ! ( "xinput1_4.dll""system" fn XInputEnable ( enable : super::super::super::Foundation:: BOOL ) -> ( ) );
+    ::windows_targets::link ! ( "xinput1_4.dll""system" fn XInputEnable ( enable : super::super::super::Foundation:: BOOL ) -> ( ) );
     XInputEnable(enable.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
 #[inline]
 pub unsafe fn XInputGetAudioDeviceIds(dwuserindex: u32, prenderdeviceid: ::windows::core::PWSTR, prendercount: ::core::option::Option<*mut u32>, pcapturedeviceid: ::windows::core::PWSTR, pcapturecount: ::core::option::Option<*mut u32>) -> u32 {
-    ::windows::imp::link ! ( "xinput1_4.dll""system" fn XInputGetAudioDeviceIds ( dwuserindex : u32 , prenderdeviceid : :: windows::core::PWSTR , prendercount : *mut u32 , pcapturedeviceid : :: windows::core::PWSTR , pcapturecount : *mut u32 ) -> u32 );
+    ::windows_targets::link ! ( "xinput1_4.dll""system" fn XInputGetAudioDeviceIds ( dwuserindex : u32 , prenderdeviceid : ::windows::core::PWSTR , prendercount : *mut u32 , pcapturedeviceid : ::windows::core::PWSTR , pcapturecount : *mut u32 ) -> u32 );
     XInputGetAudioDeviceIds(dwuserindex, ::core::mem::transmute(prenderdeviceid), ::core::mem::transmute(prendercount.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pcapturedeviceid), ::core::mem::transmute(pcapturecount.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
 #[inline]
 pub unsafe fn XInputGetBatteryInformation(dwuserindex: u32, devtype: BATTERY_DEVTYPE, pbatteryinformation: *mut XINPUT_BATTERY_INFORMATION) -> u32 {
-    ::windows::imp::link ! ( "xinput1_4.dll""system" fn XInputGetBatteryInformation ( dwuserindex : u32 , devtype : BATTERY_DEVTYPE , pbatteryinformation : *mut XINPUT_BATTERY_INFORMATION ) -> u32 );
+    ::windows_targets::link ! ( "xinput1_4.dll""system" fn XInputGetBatteryInformation ( dwuserindex : u32 , devtype : BATTERY_DEVTYPE , pbatteryinformation : *mut XINPUT_BATTERY_INFORMATION ) -> u32 );
     XInputGetBatteryInformation(dwuserindex, devtype, pbatteryinformation)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
 #[inline]
 pub unsafe fn XInputGetCapabilities(dwuserindex: u32, dwflags: XINPUT_FLAG, pcapabilities: *mut XINPUT_CAPABILITIES) -> u32 {
-    ::windows::imp::link ! ( "xinput1_4.dll""system" fn XInputGetCapabilities ( dwuserindex : u32 , dwflags : XINPUT_FLAG , pcapabilities : *mut XINPUT_CAPABILITIES ) -> u32 );
+    ::windows_targets::link ! ( "xinput1_4.dll""system" fn XInputGetCapabilities ( dwuserindex : u32 , dwflags : XINPUT_FLAG , pcapabilities : *mut XINPUT_CAPABILITIES ) -> u32 );
     XInputGetCapabilities(dwuserindex, dwflags, pcapabilities)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
 #[inline]
 pub unsafe fn XInputGetKeystroke(dwuserindex: u32, dwreserved: u32, pkeystroke: *mut XINPUT_KEYSTROKE) -> u32 {
-    ::windows::imp::link ! ( "xinput1_4.dll""system" fn XInputGetKeystroke ( dwuserindex : u32 , dwreserved : u32 , pkeystroke : *mut XINPUT_KEYSTROKE ) -> u32 );
+    ::windows_targets::link ! ( "xinput1_4.dll""system" fn XInputGetKeystroke ( dwuserindex : u32 , dwreserved : u32 , pkeystroke : *mut XINPUT_KEYSTROKE ) -> u32 );
     XInputGetKeystroke(dwuserindex, dwreserved, pkeystroke)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
 #[inline]
 pub unsafe fn XInputGetState(dwuserindex: u32, pstate: *mut XINPUT_STATE) -> u32 {
-    ::windows::imp::link ! ( "xinput1_4.dll""system" fn XInputGetState ( dwuserindex : u32 , pstate : *mut XINPUT_STATE ) -> u32 );
+    ::windows_targets::link ! ( "xinput1_4.dll""system" fn XInputGetState ( dwuserindex : u32 , pstate : *mut XINPUT_STATE ) -> u32 );
     XInputGetState(dwuserindex, pstate)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
 #[inline]
 pub unsafe fn XInputSetState(dwuserindex: u32, pvibration: *const XINPUT_VIBRATION) -> u32 {
-    ::windows::imp::link ! ( "xinput1_4.dll""system" fn XInputSetState ( dwuserindex : u32 , pvibration : *const XINPUT_VIBRATION ) -> u32 );
+    ::windows_targets::link ! ( "xinput1_4.dll""system" fn XInputSetState ( dwuserindex : u32 , pvibration : *const XINPUT_VIBRATION ) -> u32 );
     XInputSetState(dwuserindex, pvibration)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
-pub const XINPUT_DLL: ::windows::core::PCWSTR = ::windows::w!("xinput1_4.dll");
+pub const XINPUT_DLL: ::windows::core::PCWSTR = ::windows::core::w!("xinput1_4.dll");
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
-pub const XINPUT_DLL_A: ::windows::core::PCSTR = ::windows::s!("xinput1_4.dll");
+pub const XINPUT_DLL_A: ::windows::core::PCSTR = ::windows::core::s!("xinput1_4.dll");
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
-pub const XINPUT_DLL_W: ::windows::core::PCWSTR = ::windows::w!("xinput1_4.dll");
+pub const XINPUT_DLL_W: ::windows::core::PCWSTR = ::windows::core::w!("xinput1_4.dll");
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]
 pub const XUSER_INDEX_ANY: u32 = 255u32;
 #[doc = "*Required features: `\"Win32_UI_Input_XboxController\"`*"]

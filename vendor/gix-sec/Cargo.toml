@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-sec"
-version = "0.6.2"
+version = "0.8.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -35,7 +35,7 @@ rustdoc-args = [
 doctest = false
 
 [dependencies.bitflags]
-version = "1.3.2"
+version = "2"
 
 [dependencies.document-features]
 version = "0.2.1"
@@ -54,19 +54,19 @@ default-features = false
 version = "3.3.0"
 
 [features]
-serde1 = ["serde"]
+serde = [
+    "dep:serde",
+    "bitflags/serde",
+]
 
 [target."cfg(not(windows))".dependencies.libc]
 version = "0.2.123"
 
-[target."cfg(windows)".dependencies.dirs]
-version = "4"
-
 [target."cfg(windows)".dependencies.gix-path]
-version = "^0.7.1"
+version = "^0.8.0"
 
 [target."cfg(windows)".dependencies.windows]
-version = "0.43.0"
+version = "0.48"
 features = [
     "Win32_Foundation",
     "Win32_Security_Authorization",

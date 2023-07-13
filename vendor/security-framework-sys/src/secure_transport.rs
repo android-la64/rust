@@ -1,6 +1,8 @@
 use core_foundation_sys::array::CFArrayRef;
 use core_foundation_sys::base::CFAllocatorRef;
-use core_foundation_sys::base::{Boolean, CFTypeRef, OSStatus};
+#[cfg(target_os = "macos")]
+use core_foundation_sys::base::CFTypeRef;
+use core_foundation_sys::base::{Boolean, OSStatus};
 use std::os::raw::{c_char, c_int, c_void};
 
 use crate::cipher_suite::SSLCipherSuite;
@@ -46,9 +48,11 @@ pub const kSSLConnected: SSLSessionState = 2;
 pub const kSSLClosed: SSLSessionState = 3;
 pub const kSSLAborted: SSLSessionState = 4;
 
-pub type SSLReadFunc =
-    unsafe extern "C" fn(connection: SSLConnectionRef, data: *mut c_void, dataLength: *mut usize)
-        -> OSStatus;
+pub type SSLReadFunc = unsafe extern "C" fn(
+    connection: SSLConnectionRef,
+    data: *mut c_void,
+    dataLength: *mut usize,
+) -> OSStatus;
 
 pub type SSLWriteFunc = unsafe extern "C" fn(
     connection: SSLConnectionRef,

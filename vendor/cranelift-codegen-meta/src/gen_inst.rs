@@ -66,7 +66,7 @@ fn gen_formats(formats: &[&InstructionFormat], fmt: &mut Formatter) {
 /// 16 bytes on 64-bit architectures. If more space is needed to represent an instruction, use a
 /// `ValueList` to store the additional information out of line.
 fn gen_instruction_data(formats: &[&InstructionFormat], fmt: &mut Formatter) {
-    fmt.line("#[derive(Copy, Clone, Debug, PartialEq, Hash)]");
+    fmt.line("#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]");
     fmt.line(r#"#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]"#);
     fmt.line("#[allow(missing_docs)]");
     fmtln!(fmt, "pub enum InstructionData {");
@@ -384,6 +384,83 @@ fn gen_instruction_data_impl(formats: &[&InstructionFormat], fmt: &mut Formatter
             fmt.line("}");
         });
         fmt.line("}");
+
+                fmt.empty_line();
+
+        fmt.doc_comment(r#"
+            Deep-clone an `InstructionData`, including any referenced lists.
+
+            This operation requires a reference to a `ValueListPool` to
+            clone the `ValueLists`.
+        "#);
+        fmt.line("pub fn deep_clone(&self, pool: &mut ir::ValueListPool) -> Self {");
+        fmt.indent(|fmt| {
+            fmt.line("match *self {");
+            fmt.indent(|fmt| {
+                for format in formats {
+                    let name = format!("Self::{}", format.name);
+                    let mut members = vec!["opcode"];
+
+                    if format.has_value_list {
+                        members.push("ref args");
+                    } else if format.num_value_operands == 1 {
+                        members.push("arg");
+                    } else if format.num_value_operands > 0 {
+                        members.push("args");
+                    }
+
+                    match format.num_block_operands {
+                        0 => {}
+                        1 => {
+                            members.push("destination");
+                        }
+                        _ => {
+                            members.push("blocks");
+                        }
+                    };
+
+                    for field in &format.imm_fields {
+                        members.push(field.member);
+                    }
+                    let members = members.join(", ");
+
+                    fmtln!(fmt, "{}{{{}}} => {{", name, members ); // beware the moustaches
+                    fmt.indent(|fmt| {
+                        fmtln!(fmt, "Self::{} {{", format.name);
+                        fmt.indent(|fmt| {
+                            fmtln!(fmt, "opcode,");
+
+                            if format.has_value_list {
+                                fmtln!(fmt, "args: args.deep_clone(pool),");
+                            } else if format.num_value_operands == 1 {
+                                fmtln!(fmt, "arg,");
+                            } else if format.num_value_operands > 0 {
+                                fmtln!(fmt, "args,");
+                            }
+
+                            match format.num_block_operands {
+                                0 => {}
+                                1 => {
+                                    fmtln!(fmt, "destination: destination.deep_clone(pool),");
+                                }
+                                2 => {
+                                    fmtln!(fmt, "blocks: [blocks[0].deep_clone(pool), blocks[1].deep_clone(pool)],");
+                                }
+                                _ => panic!("Too many block targets in instruction"),
+                            }
+
+                            for field in &format.imm_fields {
+                                fmtln!(fmt, "{},", field.member);
+                            }
+                        });
+                        fmtln!(fmt, "}");
+                    });
+                    fmtln!(fmt, "}");
+                }
+            });
+            fmt.line("}");
+        });
+        fmt.line("}");
     });
     fmt.line("}");
 }
@@ -525,7 +602,22 @@ fn gen_opcodes(all_inst: &AllInstructions, fmt: &mut Formatter) {
             "side_effects_idempotent",
             "Despite having side effects, is this instruction okay to GVN?",
             fmt,
-        )
+        );
+
+        // Generate an opcode list, for iterating over all known opcodes.
+        fmt.doc_comment("All cranelift opcodes.");
+        fmt.line("pub fn all() -> &'static [Opcode] {");
+        fmt.indent(|fmt| {
+            fmt.line("return &[");
+            for inst in all_inst {
+                fmt.indent(|fmt| {
+                    fmtln!(fmt, "Opcode::{},", inst.camel_name);
+                });
+            }
+            fmt.line("];");
+        });
+        fmt.line("}");
+        fmt.empty_line();
     });
     fmt.line("}");
     fmt.empty_line();
@@ -592,7 +684,7 @@ fn gen_opcodes(all_inst: &AllInstructions, fmt: &mut Formatter) {
 /// Each operand constraint is represented as a string, one of:
 /// - `Concrete(vt)`, where `vt` is a value type name.
 /// - `Free(idx)` where `idx` is an index into `type_sets`.
-/// - `Same`, `Lane`, `AsBool` for controlling typevar-derived constraints.
+/// - `Same`, `Lane`, `AsTruthy` for controlling typevar-derived constraints.
 fn get_constraint<'entries, 'table>(
     operand: &'entries Operand,
     ctrl_typevar: Option<&TypeVar>,
@@ -701,7 +793,7 @@ fn gen_type_constraints(all_inst: &AllInstructions, fmt: &mut Formatter) {
     // constraint is represented as a string, one of:
     // - `Concrete(vt)`, where `vt` is a value type name.
     // - `Free(idx)` where `idx` is an index into `type_sets`.
-    // - `Same`, `Lane`, `AsBool` for controlling typevar-derived constraints.
+    // - `Same`, `Lane`, `AsTruthy` for controlling typevar-derived constraints.
     let mut operand_seqs = UniqueSeqTable::new();
 
     // Preload table with constraints for typical binops.
@@ -1328,7 +1420,9 @@ fn gen_common_isle(
         IsleTarget::Opt => "Value",
     };
     for inst in instructions {
-        if isle_target == IsleTarget::Opt && inst.format.has_value_list {
+        if isle_target == IsleTarget::Opt
+            && (inst.format.has_value_list || inst.value_results.len() != 1)
+        {
             continue;
         }
 

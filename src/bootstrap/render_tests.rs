@@ -1,7 +1,7 @@
 //! This module renders the JSON output of libtest into a human-readable form, trying to be as
 //! similar to libtest's native output as possible.
 //!
-//! This is needed because we need to use libtest in JSON mode to extract granluar information
+//! This is needed because we need to use libtest in JSON mode to extract granular information
 //! about the executed tests. Doing so suppresses the human-readable output, and (compared to Cargo
 //! and rustc) libtest doesn't include the rendered human-readable output as a JSON field. We had
 //! to reimplement all the rendering logic in this module because of that.
@@ -124,6 +124,7 @@ impl<'a> Renderer<'a> {
                     ignore_reason: reason.map(|s| s.to_string()),
                 },
             },
+            self.builder,
         );
 
         if self.builder.config.verbose_tests {
@@ -167,9 +168,14 @@ impl<'a> Renderer<'a> {
         if !self.failures.is_empty() {
             println!("\nfailures:\n");
             for failure in &self.failures {
-                if let Some(stdout) = &failure.stdout {
+                if failure.stdout.is_some() || failure.message.is_some() {
                     println!("---- {} stdout ----", failure.name);
-                    println!("{stdout}");
+                    if let Some(stdout) = &failure.stdout {
+                        println!("{stdout}");
+                    }
+                    if let Some(message) = &failure.message {
+                        println!("note: {message}");
+                    }
                 }
             }
 

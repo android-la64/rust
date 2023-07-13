@@ -45,9 +45,10 @@ pub mod options {
         dyn FnMut(gix_credentials::helper::Action) -> gix_credentials::protocol::Result + Send + Sync;
 
     /// Possible settings for the `http.followRedirects` configuration option.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
     pub enum FollowRedirects {
         /// Follow only the first redirect request, most suitable for typical git requests.
+        #[default]
         Initial,
         /// Follow all redirect requests from the server unconditionally
         All,
@@ -55,16 +56,11 @@ pub mod options {
         None,
     }
 
-    impl Default for FollowRedirects {
-        fn default() -> Self {
-            FollowRedirects::Initial
-        }
-    }
-
     /// The way to configure a proxy for authentication if a username is present in the configured proxy.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
     pub enum ProxyAuthMethod {
         /// Automatically pick a suitable authentication method.
+        #[default]
         AnyAuth,
         ///HTTP basic authentication.
         Basic,
@@ -74,12 +70,6 @@ pub mod options {
         Negotiate,
         /// NTLM authentication
         Ntlm,
-    }
-
-    impl Default for ProxyAuthMethod {
-        fn default() -> Self {
-            ProxyAuthMethod::AnyAuth
-        }
     }
 
     /// Available SSL version numbers.
@@ -133,7 +123,7 @@ pub mod options {
 #[derive(Default, Clone)]
 pub struct Options {
     /// Headers to be added to every request.
-    /// They are applied unconditionally and are expected to be valid as they occour in an HTTP request, like `header: value`, without newlines.
+    /// They are applied unconditionally and are expected to be valid as they occur in an HTTP request, like `header: value`, without newlines.
     ///
     /// Refers to `http.extraHeader` multi-var.
     pub extra_headers: Vec<String>,
@@ -217,17 +207,31 @@ pub struct Transport<H: Http> {
 impl<H: Http> Transport<H> {
     /// Create a new instance with `http` as implementation to communicate to `url` using the given `desired_version`.
     /// Note that we will always fallback to other versions as supported by the server.
-    pub fn new_http(http: H, url: &str, desired_version: Protocol) -> Self {
+    pub fn new_http(http: H, url: gix_url::Url, desired_version: Protocol) -> Self {
+        let identity = url
+            .user()
+            .zip(url.password())
+            .map(|(user, pass)| gix_sec::identity::Account {
+                username: user.to_string(),
+                password: pass.to_string(),
+            });
         Transport {
-            url: url.to_owned(),
+            url: url.to_bstring().to_string(),
             user_agent_header: concat!("User-Agent: git/oxide-", env!("CARGO_PKG_VERSION")),
             desired_version,
             actual_version: Default::default(),
             service: None,
             http,
             line_provider: None,
-            identity: None,
+            identity,
         }
+    }
+}
+
+impl<H: Http> Transport<H> {
+    /// Returns the identity that the transport uses when connecting to the remote.
+    pub fn identity(&self) -> Option<&gix_sec::identity::Account> {
+        self.identity.as_ref()
     }
 }
 
@@ -236,7 +240,7 @@ impl Transport<Impl> {
     /// Create a new instance to communicate to `url` using the given `desired_version` of the `git` protocol.
     ///
     /// Note that the actual implementation depends on feature toggles.
-    pub fn new(url: &str, desired_version: Protocol) -> Self {
+    pub fn new(url: gix_url::Url, desired_version: Protocol) -> Self {
         Self::new_http(Impl::default(), url, desired_version)
     }
 }
@@ -472,6 +476,11 @@ impl<H: Http, B: ReadlineBufRead + Unpin> ReadlineBufRead for HeadersThenBody<H,
         }
         self.body.readline()
     }
+
+    fn readline_str(&mut self, line: &mut String) -> std::io::Result<usize> {
+        self.handle_headers()?;
+        self.body.readline_str(line)
+    }
 }
 
 impl<H: Http, B: ExtendedBufRead + Unpin> ExtendedBufRead for HeadersThenBody<H, B> {
@@ -497,13 +506,13 @@ impl<H: Http, B: ExtendedBufRead + Unpin> ExtendedBufRead for HeadersThenBody<H,
 
 /// Connect to the given `url` via HTTP/S using the `desired_version` of the `git` protocol, with `http` as implementation.
 #[cfg(all(feature = "http-client", not(feature = "http-client-curl")))]
-pub fn connect_http<H: Http>(http: H, url: &str, desired_version: Protocol) -> Transport<H> {
+pub fn connect_http<H: Http>(http: H, url: gix_url::Url, desired_version: Protocol) -> Transport<H> {
     Transport::new_http(http, url, desired_version)
 }
 
 /// Connect to the given `url` via HTTP/S using the `desired_version` of the `git` protocol.
 #[cfg(any(feature = "http-client-curl", feature = "http-client-reqwest"))]
-pub fn connect(url: &str, desired_version: Protocol) -> Transport<Impl> {
+pub fn connect(url: gix_url::Url, desired_version: Protocol) -> Transport<Impl> {
     Transport::new(url, desired_version)
 }
 

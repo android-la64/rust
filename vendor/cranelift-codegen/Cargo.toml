@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.93.1"
+version = "0.95.1"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -31,8 +31,9 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 name = "x64-evex-encoding"
 harness = false
 
-[dependencies.arrayvec]
-version = "0.7"
+[dependencies.anyhow]
+version = "1.0.22"
+optional = true
 
 [dependencies.bincode]
 version = "1.2.1"
@@ -41,17 +42,21 @@ optional = true
 [dependencies.bumpalo]
 version = "3"
 
+[dependencies.capstone]
+version = "0.9.0"
+optional = true
+
 [dependencies.cranelift-bforest]
-version = "0.93.1"
+version = "0.95.1"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.93.1"
+version = "0.95.1"
 
 [dependencies.cranelift-entity]
-version = "0.93.1"
+version = "0.95.1"
 
 [dependencies.gimli]
-version = "0.26.0"
+version = "0.27.0"
 features = [
     "read",
     "std",
@@ -61,14 +66,15 @@ optional = true
 default-features = false
 
 [dependencies.hashbrown]
-version = "0.12"
+version = "0.13"
+features = ["raw"]
 
 [dependencies.log]
 version = "0.4.8"
 default-features = false
 
 [dependencies.regalloc2]
-version = "0.5.1"
+version = "0.6.1"
 features = ["checker"]
 
 [dependencies.serde]
@@ -94,16 +100,17 @@ features = ["std"]
 default-features = false
 
 [dev-dependencies.criterion]
-version = "0.3"
+version = "0.4.0"
+features = ["html_reports"]
 
 [dev-dependencies.similar]
 version = "2.1.0"
 
 [build-dependencies.cranelift-codegen-meta]
-version = "0.93.1"
+version = "0.95.1"
 
 [build-dependencies.cranelift-isle]
-version = "=0.93.1"
+version = "=0.95.1"
 
 [features]
 all-arch = [
@@ -118,6 +125,10 @@ default = [
     "std",
     "unwind",
     "trace-log",
+]
+disas = [
+    "anyhow",
+    "capstone",
 ]
 enable-serde = [
     "serde",

@@ -86,7 +86,7 @@
 //! a different thread.
 
 // Proc-macro2 types in rustdoc of other crates get linked to here.
-#![doc(html_root_url = "https://docs.rs/proc-macro2/1.0.53")]
+#![doc(html_root_url = "https://docs.rs/proc-macro2/1.0.56")]
 #![cfg_attr(
     any(proc_macro_span, super_unstable),
     feature(proc_macro_span, proc_macro_span_shrink)
@@ -142,6 +142,8 @@ use crate::fallback as imp;
 #[cfg(wrap_proc_macro)]
 mod imp;
 
+#[cfg(span_locations)]
+mod convert;
 #[cfg(span_locations)]
 mod location;
 

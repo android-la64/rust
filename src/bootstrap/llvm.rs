@@ -21,7 +21,7 @@ use crate::channel;
 use crate::config::{Config, TargetSelection};
 use crate::util::get_clang_cl_resource_dir;
 use crate::util::{self, exe, output, t, up_to_date};
-use crate::{CLang, GitRepo};
+use crate::{CLang, GitRepo, Kind};
 
 use build_helper::ci::CiEnv;
 
@@ -185,6 +185,7 @@ pub(crate) fn is_ci_llvm_available(config: &Config, asserts: bool) -> bool {
         ("arm-unknown-linux-gnueabi", false),
         ("arm-unknown-linux-gnueabihf", false),
         ("armv7-unknown-linux-gnueabihf", false),
+        ("loongarch64-unknown-linux-gnu", false),
         ("mips-unknown-linux-gnu", false),
         ("mips64-unknown-linux-gnuabi64", false),
         ("mips64el-unknown-linux-gnuabi64", false),
@@ -271,7 +272,7 @@ impl Step for Llvm {
             panic!("shared linking to LLVM is not currently supported on {}", target.triple);
         }
 
-        builder.info(&format!("Building LLVM for {}", target));
+        let _guard = builder.msg_unstaged(Kind::Build, "LLVM", target);
         t!(stamp.remove());
         let _time = util::timeit(&builder);
         t!(fs::create_dir_all(&out_dir));
@@ -813,7 +814,7 @@ impl Step for Lld {
             return out_dir;
         }
 
-        builder.info(&format!("Building LLD for {}", target));
+        let _guard = builder.msg_unstaged(Kind::Build, "LLD", target);
         let _time = util::timeit(&builder);
         t!(fs::create_dir_all(&out_dir));
 
@@ -911,7 +912,7 @@ impl Step for Sanitizers {
             return runtimes;
         }
 
-        builder.info(&format!("Building sanitizers for {}", self.target));
+        let _guard = builder.msg_unstaged(Kind::Build, "sanitizers", self.target);
         t!(stamp.remove());
         let _time = util::timeit(&builder);
 
@@ -1103,7 +1104,7 @@ impl Step for CrtBeginEnd {
             return out_dir;
         }
 
-        builder.info("Building crtbegin.o and crtend.o");
+        let _guard = builder.msg_unstaged(Kind::Build, "crtbegin.o and crtend.o", self.target);
         t!(fs::create_dir_all(&out_dir));
 
         let mut cfg = cc::Build::new();
@@ -1153,7 +1154,7 @@ impl Step for Libunwind {
         run.builder.ensure(Libunwind { target: run.target });
     }
 
-    /// Build linunwind.a
+    /// Build libunwind.a
     fn run(self, builder: &Builder<'_>) -> Self::Output {
         builder.update_submodule(&Path::new("src/llvm-project"));
 
@@ -1168,7 +1169,7 @@ impl Step for Libunwind {
             return out_dir;
         }
 
-        builder.info(&format!("Building libunwind.a for {}", self.target.triple));
+        let _guard = builder.msg_unstaged(Kind::Build, "libunwind.a", self.target);
         t!(fs::create_dir_all(&out_dir));
 
         let mut cc_cfg = cc::Build::new();

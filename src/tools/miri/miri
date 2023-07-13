@@ -121,10 +121,10 @@ rustc-pull)
     # Update rust-version file. As a separate commit, since making it part of
     # the merge has confused the heck out of josh in the past.
     echo "$FETCH_COMMIT" > rust-version
-    git commit rust-version -m "Preparing for merge from rustc"
+    git commit rust-version -m "Preparing for merge from rustc" || (echo "FAILED to commit rust-version file, something went wrong"; exit 1)
     # Fetch given rustc commit and note down which one that was
-    git fetch http://localhost:8000/rust-lang/rust.git@$FETCH_COMMIT$JOSH_FILTER.git
-    git merge FETCH_HEAD --no-ff -m "Merge from rustc"
+    git fetch http://localhost:8000/rust-lang/rust.git@$FETCH_COMMIT$JOSH_FILTER.git || (echo "FAILED to fetch new commits, something went wrong"; exit 1)
+    git merge FETCH_HEAD --no-ff -m "Merge from rustc" || (echo "FAILED to merge new commits, something went wrong"; exit 1)
     exit 0
     ;;
 rustc-push)
@@ -306,7 +306,7 @@ test|bless)
     # Only in root project as `cargo-miri` has no tests.
     $CARGO test $CARGO_EXTRA_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml "$@"
     ;;
-run)
+run|run-dep)
     # Scan for "--target" to overwrite the "MIRI_TEST_TARGET" env var so
     # that we set the MIRI_SYSROOT up the right way.
     FOUND_TARGET_OPT=0
@@ -323,11 +323,17 @@ run)
         # Make sure Miri actually uses this target.
         MIRIFLAGS="$MIRIFLAGS --target $MIRI_TEST_TARGET"
     fi
+
     # First build and get a sysroot.
     $CARGO build $CARGO_EXTRA_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml
     find_sysroot
     # Then run the actual command.
-    exec $CARGO run $CARGO_EXTRA_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml -- $MIRIFLAGS "$@"
+    
+    if [ "$COMMAND" = "run-dep" ]; then
+        exec $CARGO test --test compiletest $CARGO_EXTRA_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml -- --miri-run-dep-mode $MIRIFLAGS "$@"
+    else
+        exec $CARGO run $CARGO_EXTRA_FLAGS --manifest-path "$MIRIDIR"/Cargo.toml -- $MIRIFLAGS "$@"
+    fi
     ;;
 fmt)
     find "$MIRIDIR" -not \( -name target -prune \) -name '*.rs' \

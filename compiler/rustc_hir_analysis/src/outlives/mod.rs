@@ -1,7 +1,7 @@
 use hir::Node;
 use rustc_hir as hir;
 use rustc_hir::def_id::LocalDefId;
-use rustc_middle::ty::query::Providers;
+use rustc_middle::query::Providers;
 use rustc_middle::ty::subst::GenericArgKind;
 use rustc_middle::ty::{self, CratePredicatesMap, TyCtxt};
 use rustc_span::symbol::sym;
@@ -61,7 +61,7 @@ fn inferred_outlives_of(tcx: TyCtxt<'_>, item_def_id: LocalDefId) -> &[(ty::Clau
 
                     let span = tcx.def_span(item_def_id);
                     let mut err = tcx.sess.struct_span_err(span, "rustc_outlives");
-                    for p in &pred {
+                    for p in pred {
                         err.note(p);
                     }
                     err.emit();

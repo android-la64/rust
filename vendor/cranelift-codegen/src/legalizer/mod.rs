@@ -82,8 +82,10 @@ pub fn simple_legalize(func: &mut ir::Function, cfg: &mut ControlFlowGraph, isa:
 
                     let addr = pos.ins().stack_addr(addr_ty, stack_slot, offset);
 
-                    // Stack slots are required to be accessible and aligned.
-                    let mflags = MemFlags::trusted();
+                    // Stack slots are required to be accessible.
+                    // We can't currently ensure that they are aligned.
+                    let mut mflags = MemFlags::new();
+                    mflags.set_notrap();
                     pos.func.dfg.replace(inst).load(ty, mflags, addr, 0);
                 }
                 InstructionData::StackStore {
@@ -99,10 +101,10 @@ pub fn simple_legalize(func: &mut ir::Function, cfg: &mut ControlFlowGraph, isa:
 
                     let addr = pos.ins().stack_addr(addr_ty, stack_slot, offset);
 
+                    // Stack slots are required to be accessible.
+                    // We can't currently ensure that they are aligned.
                     let mut mflags = MemFlags::new();
-                    // Stack slots are required to be accessible and aligned.
                     mflags.set_notrap();
-                    mflags.set_aligned();
                     pos.func.dfg.replace(inst).store(mflags, arg, addr, 0);
                 }
                 InstructionData::DynamicStackLoad {
@@ -224,6 +226,28 @@ pub fn simple_legalize(func: &mut ir::Function, cfg: &mut ControlFlowGraph, isa:
                     pos.func.dfg.replace(inst).icmp(cond, arg, imm);
                 }
 
+                // Legalize the fused bitwise-plus-not instructions into simpler
+                // instructions to assist with optimizations. Lowering will
+                // pattern match this sequence regardless when architectures
+                // support the instruction natively.
+                InstructionData::Binary { opcode, args } => {
+                    match opcode {
+                        ir::Opcode::BandNot => {
+                            let neg = pos.ins().bnot(args[1]);
+                            pos.func.dfg.replace(inst).band(args[0], neg);
+                        }
+                        ir::Opcode::BorNot => {
+                            let neg = pos.ins().bnot(args[1]);
+                            pos.func.dfg.replace(inst).bor(args[0], neg);
+                        }
+                        ir::Opcode::BxorNot => {
+                            let neg = pos.ins().bnot(args[1]);
+                            pos.func.dfg.replace(inst).bxor(args[0], neg);
+                        }
+                        _ => prev_pos = pos.position(),
+                    };
+                }
+
                 _ => {
                     prev_pos = pos.position();
                     continue;
@@ -275,7 +299,10 @@ fn expand_cond_trap(
     //
     //   new_block_resume:
     //     ..
-    let old_block = func.layout.pp_block(inst);
+    let old_block = func
+        .layout
+        .inst_block(inst)
+        .expect("Instruction not in layout.");
     let new_block_trap = func.dfg.make_block();
     let new_block_resume = func.dfg.make_block();
 

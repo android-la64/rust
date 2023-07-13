@@ -34,6 +34,8 @@
 #ifdef HAVE_FCNTL_H
 #  include <fcntl.h>
 #endif // HAVE_FCNTL_H
+#include <sys/mman.h>
+#include <netinet/udp.h>
 
 #include <cstdio>
 #include <cassert>
@@ -48,10 +50,18 @@
 
 #include <openssl/err.h>
 
+#ifdef ENABLE_HTTP3
+#  include <ngtcp2/ngtcp2.h>
+#endif // ENABLE_HTTP3
+
 #include "url-parser/url_parser.h"
 
 #include "h2load_http1_session.h"
 #include "h2load_http2_session.h"
+#ifdef ENABLE_HTTP3
+#  include "h2load_http3_session.h"
+#  include "h2load_quic.h"
+#endif // ENABLE_HTTP3
 #include "tls.h"
 #include "http2.h"
 #include "util.h"
@@ -71,9 +81,22 @@ bool recorded(const std::chrono::steady_clock::time_point &t) {
 }
 } // namespace
 
+namespace {
+std::ofstream keylog_file;
+void keylog_callback(const SSL *ssl, const char *line) {
+  keylog_file.write(line, strlen(line));
+  keylog_file.put('\n');
+  keylog_file.flush();
+}
+} // namespace
+
 Config::Config()
     : ciphers(tls::DEFAULT_CIPHER_LIST),
+      tls13_ciphers("TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_"
+                    "CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256"),
+      groups("X25519:P-256:P-384:P-521"),
       data_length(-1),
+      data(nullptr),
       addrs(nullptr),
       nreqs(1),
       nclients(1),
@@ -92,13 +115,17 @@ Config::Config()
       encoder_header_table_size(4_k),
       data_fd(-1),
       log_fd(-1),
+      qlog_file_base(),
       port(0),
       default_port(0),
       connect_to_port(0),
       verbose(false),
       timing_script(false),
       base_uri_unix(false),
-      unix_addr{} {}
+      unix_addr{},
+      rps(0.),
+      no_udp_gso(false),
+      max_udp_payload_size(0) {}
 
 Config::~Config() {
   if (addrs) {
@@ -117,6 +144,15 @@ Config::~Config() {
 bool Config::is_rate_mode() const { return (this->rate != 0); }
 bool Config::is_timing_based_mode() const { return (this->duration > 0); }
 bool Config::has_base_uri() const { return (!this->base_uri.empty()); }
+bool Config::rps_enabled() const { return this->rps > 0.0; }
+bool Config::is_quic() const {
+#ifdef ENABLE_HTTP3
+  return !npn_list.empty() &&
+         (npn_list[0] == NGHTTP3_ALPN_H3 || npn_list[0] == "\x5h3-29");
+#else  // !ENABLE_HTTP3
+  return false;
+#endif // !ENABLE_HTTP3
+}
 Config config;
 
 namespace {
@@ -136,7 +172,9 @@ Stats::Stats(size_t req_todo, size_t nclients)
       bytes_head(0),
       bytes_head_decomp(0),
       bytes_body(0),
-      status() {}
+      status(),
+      udp_dgram_recv(0),
+      udp_dgram_sent(0) {}
 
 Stream::Stream() : req_stat{}, status_success(-1) {}
 
@@ -193,8 +231,7 @@ void readcb(struct ev_loop *loop, ev_io *w, int revents) {
     delete client;
     return;
   }
-  writecb(loop, &client->wev, revents);
-  // client->disconnect() and client->fail() may be called
+  client->signal_write();
 }
 } // namespace
 
@@ -287,6 +324,51 @@ void warmup_timeout_cb(struct ev_loop *loop, ev_timer *w, int revents) {
 } // namespace
 
 namespace {
+void rps_cb(struct ev_loop *loop, ev_timer *w, int revents) {
+  auto client = static_cast<Client *>(w->data);
+  auto &session = client->session;
+
+  assert(!config.timing_script);
+
+  if (client->req_left == 0) {
+    ev_timer_stop(loop, w);
+    return;
+  }
+
+  auto now = ev_now(loop);
+  auto d = now - client->rps_duration_started;
+  auto n = static_cast<size_t>(round(d * config.rps));
+  client->rps_req_pending += n;
+  client->rps_duration_started = now - d + static_cast<double>(n) / config.rps;
+
+  if (client->rps_req_pending == 0) {
+    return;
+  }
+
+  auto nreq = session->max_concurrent_streams() - client->rps_req_inflight;
+  if (nreq == 0) {
+    return;
+  }
+
+  nreq = config.is_timing_based_mode() ? std::max(nreq, client->req_left)
+                                       : std::min(nreq, client->req_left);
+  nreq = std::min(nreq, client->rps_req_pending);
+
+  client->rps_req_inflight += nreq;
+  client->rps_req_pending -= nreq;
+
+  for (; nreq > 0; --nreq) {
+    if (client->submit_request() != 0) {
+      client->process_request_failure();
+      break;
+    }
+  }
+
+  client->signal_write();
+}
+} // namespace
+
+namespace {
 // Called when an a connection has been inactive for a set period of time
 // or a fixed amount of time after all requests have been made on a
 // connection
@@ -362,6 +444,9 @@ Client::Client(uint32_t id, Worker *worker, size_t req_todo)
       cstat{},
       worker(worker),
       ssl(nullptr),
+#ifdef ENABLE_HTTP3
+      quic{},
+#endif // ENABLE_HTTP3
       next_addr(config.addrs),
       current_addr(nullptr),
       reqidx(0),
@@ -373,8 +458,12 @@ Client::Client(uint32_t id, Worker *worker, size_t req_todo)
       req_done(0),
       id(id),
       fd(-1),
+      local_addr{},
       new_connection_requested(false),
-      final(false) {
+      final(false),
+      rps_duration_started(0),
+      rps_req_pending(0),
+      rps_req_inflight(0) {
   if (req_todo == 0) { // this means infinite number of requests are to be made
     // This ensures that number of requests are unbounded
     // Just a positive number is fine, we chose the first positive number
@@ -396,10 +485,24 @@ Client::Client(uint32_t id, Worker *worker, size_t req_todo)
 
   ev_timer_init(&request_timeout_watcher, client_request_timeout_cb, 0., 0.);
   request_timeout_watcher.data = this;
+
+  ev_timer_init(&rps_watcher, rps_cb, 0., 0.);
+  rps_watcher.data = this;
+
+#ifdef ENABLE_HTTP3
+  ev_timer_init(&quic.pkt_timer, quic_pkt_timeout_cb, 0., 0.);
+  quic.pkt_timer.data = this;
+#endif // ENABLE_HTTP3
 }
 
 Client::~Client() {
   disconnect();
+
+#ifdef ENABLE_HTTP3
+  if (config.is_quic()) {
+    quic_free();
+  }
+#endif // ENABLE_HTTP3
 
   if (ssl) {
     SSL_free(ssl);
@@ -413,26 +516,59 @@ int Client::do_read() { return readfn(*this); }
 int Client::do_write() { return writefn(*this); }
 
 int Client::make_socket(addrinfo *addr) {
-  fd = util::create_nonblock_socket(addr->ai_family);
-  if (fd == -1) {
-    return -1;
-  }
-  if (config.scheme == "https") {
-    if (!ssl) {
-      ssl = SSL_new(worker->ssl_ctx);
+  int rv;
+
+  if (config.is_quic()) {
+#ifdef ENABLE_HTTP3
+    fd = util::create_nonblock_udp_socket(addr->ai_family);
+    if (fd == -1) {
+      return -1;
     }
 
-    auto config = worker->config;
-
-    if (!util::numeric_host(config->host.c_str())) {
-      SSL_set_tlsext_host_name(ssl, config->host.c_str());
+    rv = util::bind_any_addr_udp(fd, addr->ai_family);
+    if (rv != 0) {
+      close(fd);
+      fd = -1;
+      return -1;
     }
 
-    SSL_set_fd(ssl, fd);
-    SSL_set_connect_state(ssl);
+    socklen_t addrlen = sizeof(local_addr.su.storage);
+    rv = getsockname(fd, &local_addr.su.sa, &addrlen);
+    if (rv == -1) {
+      return -1;
+    }
+    local_addr.len = addrlen;
+
+    if (quic_init(&local_addr.su.sa, local_addr.len, addr->ai_addr,
+                  addr->ai_addrlen) != 0) {
+      std::cerr << "quic_init failed" << std::endl;
+      return -1;
+    }
+#endif // ENABLE_HTTP3
+  } else {
+    fd = util::create_nonblock_socket(addr->ai_family);
+    if (fd == -1) {
+      return -1;
+    }
+    if (config.scheme == "https") {
+      if (!ssl) {
+        ssl = SSL_new(worker->ssl_ctx);
+      }
+
+      SSL_set_fd(ssl, fd);
+      SSL_set_connect_state(ssl);
+    }
   }
 
-  auto rv = ::connect(fd, addr->ai_addr, addr->ai_addrlen);
+  if (ssl && !util::numeric_host(config.host.c_str())) {
+    SSL_set_tlsext_host_name(ssl, config.host.c_str());
+  }
+
+  if (config.is_quic()) {
+    return 0;
+  }
+
+  rv = ::connect(fd, addr->ai_addr, addr->ai_addrlen);
   if (rv != 0 && errno != EINPROGRESS) {
     if (ssl) {
       SSL_free(ssl);
@@ -489,12 +625,21 @@ int Client::connect() {
     current_addr = addr;
   }
 
-  writefn = &Client::connected;
-
   ev_io_set(&rev, fd, EV_READ);
   ev_io_set(&wev, fd, EV_WRITE);
 
   ev_io_start(worker->loop, &wev);
+
+  if (config.is_quic()) {
+#ifdef ENABLE_HTTP3
+    ev_io_start(worker->loop, &rev);
+
+    readfn = &Client::read_quic;
+    writefn = &Client::write_quic;
+#endif // ENABLE_HTTP3
+  } else {
+    writefn = &Client::connected;
+  }
 
   return 0;
 }
@@ -550,8 +695,18 @@ void Client::fail() {
 void Client::disconnect() {
   record_client_end_time();
 
+#ifdef ENABLE_HTTP3
+  if (config.is_quic()) {
+    quic_close_connection();
+  }
+#endif // ENABLE_HTTP3
+
+#ifdef ENABLE_HTTP3
+  ev_timer_stop(worker->loop, &quic.pkt_timer);
+#endif // ENABLE_HTTP3
   ev_timer_stop(worker->loop, &conn_inactivity_watcher);
   ev_timer_stop(worker->loop, &conn_active_watcher);
+  ev_timer_stop(worker->loop, &rps_watcher);
   ev_timer_stop(worker->loop, &request_timeout_watcher);
   streams.clear();
   session.reset();
@@ -672,6 +827,16 @@ void print_server_tmp_key(SSL *ssl) {
     std::cout << "DH " << EVP_PKEY_bits(key) << " bits" << std::endl;
     break;
   case EVP_PKEY_EC: {
+#  if OPENSSL_3_0_0_API
+    std::array<char, 64> curve_name;
+    const char *cname;
+    if (!EVP_PKEY_get_utf8_string_param(key, "group", curve_name.data(),
+                                        curve_name.size(), nullptr)) {
+      cname = "<unknown>";
+    } else {
+      cname = curve_name.data();
+    }
+#  else  // !OPENSSL_3_0_0_API
     auto ec = EVP_PKEY_get1_EC_KEY(key);
     auto ec_del = defer(EC_KEY_free, ec);
     auto nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(ec));
@@ -679,6 +844,7 @@ void print_server_tmp_key(SSL *ssl) {
     if (!cname) {
       cname = OBJ_nid2sn(nid);
     }
+#  endif // !OPENSSL_3_0_0_API
 
     std::cout << "ECDH " << cname << " " << EVP_PKEY_bits(key) << " bits"
               << std::endl;
@@ -711,7 +877,14 @@ void Client::report_app_info() {
 }
 
 void Client::terminate_session() {
-  session->terminate();
+#ifdef ENABLE_HTTP3
+  if (config.is_quic()) {
+    quic.close_requested = true;
+  }
+#endif // ENABLE_HTTP3
+  if (session) {
+    session->terminate();
+  }
   // http1 session needs writecb to tear down session.
   signal_write();
 }
@@ -866,8 +1039,18 @@ void Client::on_stream_close(int32_t stream_id, bool success, bool final) {
       if (!ev_is_active(&request_timeout_watcher)) {
         ev_feed_event(worker->loop, &request_timeout_watcher, EV_TIMER);
       }
-    } else if (submit_request() != 0) {
-      process_request_failure();
+    } else if (!config.rps_enabled()) {
+      if (submit_request() != 0) {
+        process_request_failure();
+      }
+    } else if (rps_req_pending) {
+      --rps_req_pending;
+      if (submit_request() != 0) {
+        process_request_failure();
+      }
+    } else {
+      assert(rps_req_inflight);
+      --rps_req_inflight;
     }
   }
 }
@@ -899,7 +1082,15 @@ int Client::connection_made() {
 
     if (next_proto) {
       auto proto = StringRef{next_proto, next_proto_len};
-      if (util::check_h2_is_selected(proto)) {
+      if (config.is_quic()) {
+#ifdef ENABLE_HTTP3
+        assert(session);
+        if (!util::streq(StringRef{&NGHTTP3_ALPN_H3[1]}, proto) &&
+            !util::streq_l("h3-29", proto)) {
+          return -1;
+        }
+#endif // ENABLE_HTTP3
+      } else if (util::check_h2_is_selected(proto)) {
         session = std::make_unique<Http2Session>(this);
       } else if (util::streq(NGHTTP2_H1_1, proto)) {
         session = std::make_unique<Http1Session>(this);
@@ -908,6 +1099,9 @@ int Client::connection_made() {
       // Just assign next_proto to selected_proto anyway to show the
       // negotiation result.
       selected_proto = proto.str();
+    } else if (config.is_quic()) {
+      std::cerr << "QUIC requires ALPN negotiation" << std::endl;
+      return -1;
     } else {
       std::cout << "No protocol negotiated. Fallback behaviour may be activated"
                 << std::endl;
@@ -962,10 +1156,25 @@ int Client::connection_made() {
 
   record_connect_time();
 
-  if (!config.timing_script) {
+  if (config.rps_enabled()) {
+    rps_watcher.repeat = std::max(0.01, 1. / config.rps);
+    ev_timer_again(worker->loop, &rps_watcher);
+    rps_duration_started = ev_now(worker->loop);
+  }
+
+  if (config.rps_enabled()) {
+    assert(req_left);
+
+    ++rps_req_inflight;
+
+    if (submit_request() != 0) {
+      process_request_failure();
+    }
+  } else if (!config.timing_script) {
     auto nreq = config.is_timing_based_mode()
                     ? std::max(req_left, session->max_concurrent_streams())
                     : std::min(req_left, session->max_concurrent_streams());
+
     for (; nreq > 0; --nreq) {
       if (submit_request() != 0) {
         process_request_failure();
@@ -1206,6 +1415,46 @@ int Client::write_tls() {
   return 0;
 }
 
+#ifdef ENABLE_HTTP3
+int Client::write_udp(const sockaddr *addr, socklen_t addrlen,
+                      const uint8_t *data, size_t datalen, size_t gso_size) {
+  iovec msg_iov;
+  msg_iov.iov_base = const_cast<uint8_t *>(data);
+  msg_iov.iov_len = datalen;
+
+  msghdr msg{};
+  msg.msg_name = const_cast<sockaddr *>(addr);
+  msg.msg_namelen = addrlen;
+  msg.msg_iov = &msg_iov;
+  msg.msg_iovlen = 1;
+
+#  ifdef UDP_SEGMENT
+  std::array<uint8_t, CMSG_SPACE(sizeof(uint16_t))> msg_ctrl{};
+  if (gso_size && datalen > gso_size) {
+    msg.msg_control = msg_ctrl.data();
+    msg.msg_controllen = msg_ctrl.size();
+
+    auto cm = CMSG_FIRSTHDR(&msg);
+    cm->cmsg_level = SOL_UDP;
+    cm->cmsg_type = UDP_SEGMENT;
+    cm->cmsg_len = CMSG_LEN(sizeof(uint16_t));
+    *(reinterpret_cast<uint16_t *>(CMSG_DATA(cm))) = gso_size;
+  }
+#  endif // UDP_SEGMENT
+
+  auto nwrite = sendmsg(fd, &msg, 0);
+  if (nwrite < 0) {
+    std::cerr << "sendto: errno=" << errno << std::endl;
+  } else {
+    ++worker->stats.udp_dgram_sent;
+  }
+
+  ev_io_stop(worker->loop, &wev);
+
+  return 0;
+}
+#endif // ENABLE_HTTP3
+
 void Client::record_request_time(RequestStat *req_stat) {
   req_stat->request_time = std::chrono::steady_clock::now();
   req_stat->request_wall_time = std::chrono::system_clock::now();
@@ -1324,7 +1573,7 @@ Worker::~Worker() {
 
 void Worker::stop_all_clients() {
   for (auto client : clients) {
-    if (client && client->session) {
+    if (client) {
       client->terminate_session();
     }
   }
@@ -1859,6 +2108,7 @@ Options:
               Default: 1
   -w, --window-bits=<N>
               Sets the stream level initial window size to (2**<N>)-1.
+              For QUIC, <N> is capped to 26 (roughly 64MiB).
               Default: )"
       << config.window_bits << R"(
   -W, --connection-window-bits=<N>
@@ -1869,10 +2119,15 @@ Options:
   -H, --header=<HEADER>
               Add/Override a header to the requests.
   --ciphers=<SUITE>
-              Set allowed  cipher list.  The  format of the  string is
-              described in OpenSSL ciphers(1).
+              Set  allowed cipher  list  for TLSv1.2  or ealier.   The
+              format of the string is described in OpenSSL ciphers(1).
               Default: )"
       << config.ciphers << R"(
+  --tls13-ciphers=<SUITE>
+              Set allowed cipher list for  TLSv1.3.  The format of the
+              string is described in OpenSSL ciphers(1).
+              Default: )"
+      << config.tls13_ciphers << R"(
   -p, --no-tls-proto=<PROTOID>
               Specify ALPN identifier of the  protocol to be used when
               accessing http URI without SSL/TLS.
@@ -1903,7 +2158,7 @@ Options:
               length of the period in time.  This option is ignored if
               the rate option is not used.  The default value for this
               option is 1s.
-  -D, --duration=<N>
+  -D, --duration=<DURATION>
               Specifies the main duration for the measurements in case
               of timing-based  benchmarking.  -D  and -r  are mutually
               exclusive.
@@ -1943,7 +2198,8 @@ Options:
               port defined in  the first URI are  used solely.  Values
               contained  in  other  URIs,  if  present,  are  ignored.
               Definition of a  base URI overrides all  scheme, host or
-              port values.
+              port   values.   --timing-script-file   and  --rps   are
+              mutually exclusive.
   -B, --base-uri=(<URI>|unix:<PATH>)
               Specify URI from which the scheme, host and port will be
               used  for  all requests.   The  base  URI overrides  all
@@ -1985,9 +2241,26 @@ Options:
               response  time when  using  one worker  thread, but  may
               appear slightly  out of order with  multiple threads due
               to buffering.  Status code is -1 for failed streams.
+  --qlog-file-base=<PATH>
+              Enable qlog output and specify base file name for qlogs.
+              Qlog  is emitted  for each connection.
+              For  a  given  base  name "base", each  output file name
+              becomes  "base.M.N.qlog"  where M is worker ID  and N is
+              client ID (e.g. "base.0.3.qlog").
+              Only effective in QUIC runs.
   --connect-to=<HOST>[:<PORT>]
               Host and port to connect  instead of using the authority
               in <URI>.
+  --rps=<N>   Specify request  per second for each  client.  --rps and
+              --timing-script-file are mutually exclusive.
+  --groups=<GROUPS>
+              Specify the supported groups.
+              Default: )"
+      << config.groups << R"(
+  --no-udp-gso
+              Disable UDP GSO.
+  --max-udp-payload-size=<SIZE>
+              Specify the maximum outgoing UDP datagram payload size.
   -v, --verbose
               Output debug information.
   --version   Display version information and exit.
@@ -2015,6 +2288,7 @@ int main(int argc, char **argv) {
 
   std::string datafile;
   std::string logfile;
+  std::string qlog_base;
   bool nreqs_set_manually = false;
   while (1) {
     static int flag = 0;
@@ -2047,6 +2321,12 @@ int main(int argc, char **argv) {
         {"warm-up-time", required_argument, &flag, 9},
         {"log-file", required_argument, &flag, 10},
         {"connect-to", required_argument, &flag, 11},
+        {"rps", required_argument, &flag, 12},
+        {"groups", required_argument, &flag, 13},
+        {"tls13-ciphers", required_argument, &flag, 14},
+        {"no-udp-gso", no_argument, &flag, 15},
+        {"qlog-file-base", required_argument, &flag, 16},
+        {"max-udp-payload-size", required_argument, &flag, 17},
         {nullptr, 0, nullptr, 0}};
     int option_index = 0;
     auto c = getopt_long(argc, argv,
@@ -2199,10 +2479,9 @@ int main(int argc, char **argv) {
       break;
     }
     case 'D':
-      config.duration = strtoul(optarg, nullptr, 10);
-      if (config.duration == 0) {
-        std::cerr << "-D: the main duration for timing-based benchmarking "
-                  << "must be positive." << std::endl;
+      config.duration = util::parse_duration_with_unit(optarg);
+      if (!std::isfinite(config.duration)) {
+        std::cerr << "-D: value error " << optarg << std::endl;
         exit(EXIT_FAILURE);
       }
       break;
@@ -2285,6 +2564,49 @@ int main(int argc, char **argv) {
         }
         config.connect_to_host = p.first.str();
         config.connect_to_port = port;
+        break;
+      }
+      case 12: {
+        char *end;
+        auto v = std::strtod(optarg, &end);
+        if (end == optarg || *end != '\0' || !std::isfinite(v) ||
+            1. / v < 1e-6) {
+          std::cerr << "--rps: Invalid value " << optarg << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        config.rps = v;
+        break;
+      }
+      case 13:
+        // --groups
+        config.groups = optarg;
+        break;
+      case 14:
+        // --tls13-ciphers
+        config.tls13_ciphers = optarg;
+        break;
+      case 15:
+        // --no-udp-gso
+        config.no_udp_gso = true;
+        break;
+      case 16:
+        // --qlog-file-base
+        qlog_base = optarg;
+        break;
+      case 17: {
+        // --max-udp-payload-size
+        auto n = util::parse_uint_with_unit(optarg);
+        if (n == -1) {
+          std::cerr << "--max-udp-payload-size: bad option value: " << optarg
+                    << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        if (static_cast<uint64_t>(n) > 64_k) {
+          std::cerr << "--max-udp-payload-size: must not exceed 65536"
+                    << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        config.max_udp_payload_size = n;
         break;
       }
       }
@@ -2377,6 +2699,12 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
+  if (config.timing_script && config.rps_enabled()) {
+    std::cerr << "--timing-script-file, --rps: they are mutually exclusive."
+              << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
   if (config.nreqs == 0 && !config.is_timing_based_mode()) {
     std::cerr << "-n: the number of requests must be strictly greater than 0 "
                  "if timing-based test is not being run."
@@ -2447,6 +2775,13 @@ int main(int argc, char **argv) {
       exit(EXIT_FAILURE);
     }
     config.data_length = data_stat.st_size;
+    auto addr = mmap(nullptr, config.data_length, PROT_READ, MAP_SHARED,
+                     config.data_fd, 0);
+    if (addr == MAP_FAILED) {
+      std::cerr << "-d: Could not mmap file " << datafile << std::endl;
+      exit(EXIT_FAILURE);
+    }
+    config.data = static_cast<uint8_t *>(addr);
   }
 
   if (!logfile.empty()) {
@@ -2455,6 +2790,18 @@ int main(int argc, char **argv) {
     if (config.log_fd == -1) {
       std::cerr << "--log-file: Could not open file " << logfile << std::endl;
       exit(EXIT_FAILURE);
+    }
+  }
+
+  if (!qlog_base.empty()) {
+    if (!config.is_quic()) {
+      std::cerr
+          << "Warning: --qlog-file-base: only effective in quic, ignoring."
+          << std::endl;
+    } else {
+#ifdef ENABLE_HTTP3
+      config.qlog_file_base = qlog_base;
+#endif // ENABLE_HTTP3
     }
   }
 
@@ -2477,9 +2824,14 @@ int main(int argc, char **argv) {
   SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
   SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
 
-  if (nghttp2::tls::ssl_ctx_set_proto_versions(
-          ssl_ctx, nghttp2::tls::NGHTTP2_TLS_MIN_VERSION,
-          nghttp2::tls::NGHTTP2_TLS_MAX_VERSION) != 0) {
+  if (config.is_quic()) {
+#ifdef ENABLE_HTTP3
+    SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_3_VERSION);
+    SSL_CTX_set_max_proto_version(ssl_ctx, TLS1_3_VERSION);
+#endif // ENABLE_HTTP3
+  } else if (nghttp2::tls::ssl_ctx_set_proto_versions(
+                 ssl_ctx, nghttp2::tls::NGHTTP2_TLS_MIN_VERSION,
+                 nghttp2::tls::NGHTTP2_TLS_MAX_VERSION) != 0) {
     std::cerr << "Could not set TLS versions" << std::endl;
     exit(EXIT_FAILURE);
   }
@@ -2488,6 +2840,20 @@ int main(int argc, char **argv) {
     std::cerr << "SSL_CTX_set_cipher_list with " << config.ciphers
               << " failed: " << ERR_error_string(ERR_get_error(), nullptr)
               << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+#if OPENSSL_1_1_1_API
+  if (SSL_CTX_set_ciphersuites(ssl_ctx, config.tls13_ciphers.c_str()) == 0) {
+    std::cerr << "SSL_CTX_set_ciphersuites with " << config.tls13_ciphers
+              << " failed: " << ERR_error_string(ERR_get_error(), nullptr)
+              << std::endl;
+    exit(EXIT_FAILURE);
+  }
+#endif // OPENSSL_1_1_1_API
+
+  if (SSL_CTX_set1_groups_list(ssl_ctx, config.groups.c_str()) != 1) {
+    std::cerr << "SSL_CTX_set1_groups_list failed" << std::endl;
     exit(EXIT_FAILURE);
   }
 
@@ -2504,6 +2870,16 @@ int main(int argc, char **argv) {
 
   SSL_CTX_set_alpn_protos(ssl_ctx, proto_list.data(), proto_list.size());
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
+
+#if OPENSSL_1_1_1_API
+  auto keylog_filename = getenv("SSLKEYLOGFILE");
+  if (keylog_filename) {
+    keylog_file.open(keylog_filename, std::ios_base::app);
+    if (keylog_file) {
+      SSL_CTX_set_keylog_callback(ssl_ctx, keylog_callback);
+    }
+  }
+#endif // OPENSSL_1_1_1_API
 
   std::string user_agent = "h2load nghttp2/" NGHTTP2_VERSION;
   Headers shared_nva;
@@ -2723,6 +3099,8 @@ int main(int argc, char **argv) {
     stats.bytes_head += s.bytes_head;
     stats.bytes_head_decomp += s.bytes_head_decomp;
     stats.bytes_body += s.bytes_body;
+    stats.udp_dgram_recv += s.udp_dgram_recv;
+    stats.udp_dgram_sent += s.udp_dgram_sent;
 
     for (size_t i = 0; i < stats.status.size(); ++i) {
       stats.status[i] += s.status[i];
@@ -2781,30 +3159,37 @@ traffic: )" << util::utos_funit(stats.bytes_total)
             << util::utos_funit(stats.bytes_head) << "B (" << stats.bytes_head
             << ") headers (space savings " << header_space_savings * 100
             << "%), " << util::utos_funit(stats.bytes_body) << "B ("
-            << stats.bytes_body << R"() data
-                     min         max         mean         sd        +/- sd
+            << stats.bytes_body << R"() data)" << std::endl;
+#ifdef ENABLE_HTTP3
+  if (config.is_quic()) {
+    std::cout << "UDP datagram: " << stats.udp_dgram_sent << " sent, "
+              << stats.udp_dgram_recv << " received" << std::endl;
+  }
+#endif // ENABLE_HTTP3
+  std::cout
+      << R"(                     min         max         mean         sd        +/- sd
 time for request: )"
-            << std::setw(10) << util::format_duration(ts.request.min) << "  "
-            << std::setw(10) << util::format_duration(ts.request.max) << "  "
-            << std::setw(10) << util::format_duration(ts.request.mean) << "  "
-            << std::setw(10) << util::format_duration(ts.request.sd)
-            << std::setw(9) << util::dtos(ts.request.within_sd) << "%"
-            << "\ntime for connect: " << std::setw(10)
-            << util::format_duration(ts.connect.min) << "  " << std::setw(10)
-            << util::format_duration(ts.connect.max) << "  " << std::setw(10)
-            << util::format_duration(ts.connect.mean) << "  " << std::setw(10)
-            << util::format_duration(ts.connect.sd) << std::setw(9)
-            << util::dtos(ts.connect.within_sd) << "%"
-            << "\ntime to 1st byte: " << std::setw(10)
-            << util::format_duration(ts.ttfb.min) << "  " << std::setw(10)
-            << util::format_duration(ts.ttfb.max) << "  " << std::setw(10)
-            << util::format_duration(ts.ttfb.mean) << "  " << std::setw(10)
-            << util::format_duration(ts.ttfb.sd) << std::setw(9)
-            << util::dtos(ts.ttfb.within_sd) << "%"
-            << "\nreq/s           : " << std::setw(10) << ts.rps.min << "  "
-            << std::setw(10) << ts.rps.max << "  " << std::setw(10)
-            << ts.rps.mean << "  " << std::setw(10) << ts.rps.sd << std::setw(9)
-            << util::dtos(ts.rps.within_sd) << "%" << std::endl;
+      << std::setw(10) << util::format_duration(ts.request.min) << "  "
+      << std::setw(10) << util::format_duration(ts.request.max) << "  "
+      << std::setw(10) << util::format_duration(ts.request.mean) << "  "
+      << std::setw(10) << util::format_duration(ts.request.sd) << std::setw(9)
+      << util::dtos(ts.request.within_sd) << "%"
+      << "\ntime for connect: " << std::setw(10)
+      << util::format_duration(ts.connect.min) << "  " << std::setw(10)
+      << util::format_duration(ts.connect.max) << "  " << std::setw(10)
+      << util::format_duration(ts.connect.mean) << "  " << std::setw(10)
+      << util::format_duration(ts.connect.sd) << std::setw(9)
+      << util::dtos(ts.connect.within_sd) << "%"
+      << "\ntime to 1st byte: " << std::setw(10)
+      << util::format_duration(ts.ttfb.min) << "  " << std::setw(10)
+      << util::format_duration(ts.ttfb.max) << "  " << std::setw(10)
+      << util::format_duration(ts.ttfb.mean) << "  " << std::setw(10)
+      << util::format_duration(ts.ttfb.sd) << std::setw(9)
+      << util::dtos(ts.ttfb.within_sd) << "%"
+      << "\nreq/s           : " << std::setw(10) << ts.rps.min << "  "
+      << std::setw(10) << ts.rps.max << "  " << std::setw(10) << ts.rps.mean
+      << "  " << std::setw(10) << ts.rps.sd << std::setw(9)
+      << util::dtos(ts.rps.within_sd) << "%" << std::endl;
 
   SSL_CTX_free(ssl_ctx);
 

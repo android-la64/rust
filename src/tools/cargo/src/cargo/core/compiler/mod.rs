@@ -92,6 +92,7 @@ use crate::core::{Feature, PackageId, Target, Verbosity};
 use crate::util::errors::{CargoResult, VerboseError};
 use crate::util::interning::InternedString;
 use crate::util::machine_message::{self, Message};
+use crate::util::toml::TomlDebugInfo;
 use crate::util::{add_path_args, internal, iter_join_onto, profile};
 use cargo_util::{paths, ProcessBuilder, ProcessError};
 use rustfix::diagnostics::Applicability;
@@ -603,9 +604,20 @@ fn link_targets(cx: &mut Context<'_, '_>, unit: &Unit, fresh: bool) -> CargoResu
         }
 
         if json_messages {
+            let debuginfo = profile.debuginfo.to_option().map(|d| match d {
+                TomlDebugInfo::None => machine_message::ArtifactDebuginfo::Int(0),
+                TomlDebugInfo::Limited => machine_message::ArtifactDebuginfo::Int(1),
+                TomlDebugInfo::Full => machine_message::ArtifactDebuginfo::Int(2),
+                TomlDebugInfo::LineDirectivesOnly => {
+                    machine_message::ArtifactDebuginfo::Named("line-directives-only")
+                }
+                TomlDebugInfo::LineTablesOnly => {
+                    machine_message::ArtifactDebuginfo::Named("line-tables-only")
+                }
+            });
             let art_profile = machine_message::ArtifactProfile {
                 opt_level: profile.opt_level.as_str(),
-                debuginfo: profile.debuginfo.to_option(),
+                debuginfo,
                 debug_assertions: profile.debug_assertions,
                 overflow_checks: profile.overflow_checks,
                 test: unit_mode.is_any_test(),
@@ -750,6 +762,7 @@ fn rustdoc(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Work> {
     add_error_format_and_color(cx, &mut rustdoc);
     add_allow_features(cx, &mut rustdoc);
 
+    rustdoc.args(unit.pkg.manifest().lint_rustflags());
     if let Some(args) = cx.bcx.extra_args_for(unit) {
         rustdoc.args(args);
     }
@@ -1028,10 +1041,6 @@ fn build_base_args(
         cmd.arg("-C").arg(&format!("opt-level={}", opt_level));
     }
 
-    if !rustflags.is_empty() {
-        cmd.args(&rustflags);
-    }
-
     if *panic != PanicStrategy::Unwind {
         cmd.arg("-C").arg(format!("panic={}", panic));
     }
@@ -1066,6 +1075,10 @@ fn build_base_args(
         cmd.arg("-C").arg(format!("debuginfo={}", debuginfo));
     }
 
+    cmd.args(unit.pkg.manifest().lint_rustflags());
+    if !rustflags.is_empty() {
+        cmd.args(&rustflags);
+    }
     if let Some(args) = cx.bcx.extra_args_for(unit) {
         cmd.args(args);
     }
@@ -1792,4 +1805,19 @@ fn descriptive_pkg_name(name: &str, target: &Target, mode: &CompileMode) -> Stri
         ""
     };
     format!("`{name}` ({desc_name}{mode})")
+}
+
+/// Applies environment variables from config `[env]` to [`ProcessBuilder`].
+fn apply_env_config(config: &crate::Config, cmd: &mut ProcessBuilder) -> CargoResult<()> {
+    for (key, value) in config.env_config()?.iter() {
+        // never override a value that has already been set by cargo
+        if cmd.get_envs().contains_key(key) {
+            continue;
+        }
+
+        if value.is_force() || config.get_env_os(key).is_none() {
+            cmd.env(key, value.resolve(config));
+        }
+    }
+    Ok(())
 }

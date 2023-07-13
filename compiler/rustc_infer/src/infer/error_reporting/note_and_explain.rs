@@ -2,6 +2,7 @@ use super::TypeErrCtxt;
 use rustc_errors::Applicability::{MachineApplicable, MaybeIncorrect};
 use rustc_errors::{pluralize, Diagnostic, MultiSpan};
 use rustc_hir as hir;
+use rustc_hir::def::DefKind;
 use rustc_middle::traits::ObligationCauseCode;
 use rustc_middle::ty::error::ExpectedFound;
 use rustc_middle::ty::print::Printer;
@@ -71,9 +72,10 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                              #traits-as-parameters",
                         );
                     }
-                    (ty::Alias(ty::Projection, _), ty::Alias(ty::Projection, _)) => {
+                    (ty::Alias(ty::Projection | ty::Inherent, _), ty::Alias(ty::Projection | ty::Inherent, _)) => {
                         diag.note("an associated type was expected, but a different one was found");
                     }
+                    // FIXME(inherent_associated_types): Extend this to support `ty::Inherent`, too.
                     (ty::Param(p), ty::Alias(ty::Projection, proj)) | (ty::Alias(ty::Projection, proj), ty::Param(p))
                         if !tcx.is_impl_trait_in_trait(proj.def_id) =>
                     {
@@ -209,7 +211,7 @@ impl<T> Trait<T> for X {
                         if !sp.contains(p_span) {
                             diag.span_label(p_span, "this type parameter");
                         }
-                        diag.help(&format!(
+                        diag.help(format!(
                             "every closure has a distinct type and so could not always match the \
                              caller-chosen type of parameter `{}`",
                             p
@@ -222,7 +224,7 @@ impl<T> Trait<T> for X {
                             diag.span_label(p_span, "this type parameter");
                         }
                     }
-                    (ty::Alias(ty::Projection, proj_ty), _) if !tcx.is_impl_trait_in_trait(proj_ty.def_id) => {
+                    (ty::Alias(ty::Projection | ty::Inherent, proj_ty), _) if !tcx.is_impl_trait_in_trait(proj_ty.def_id) => {
                         self.expected_projection(
                             diag,
                             proj_ty,
@@ -231,7 +233,7 @@ impl<T> Trait<T> for X {
                             cause.code(),
                         );
                     }
-                    (_, ty::Alias(ty::Projection, proj_ty)) if !tcx.is_impl_trait_in_trait(proj_ty.def_id) => {
+                    (_, ty::Alias(ty::Projection | ty::Inherent, proj_ty)) if !tcx.is_impl_trait_in_trait(proj_ty.def_id) => {
                         let msg = format!(
                             "consider constraining the associated type `{}` to `{}`",
                             values.found, values.expected,
@@ -248,11 +250,20 @@ impl<T> Trait<T> for X {
                             proj_ty,
                             values.expected,
                         )) {
-                            diag.help(&msg);
+                            diag.help(msg);
                             diag.note(
                                 "for more information, visit \
                                 https://doc.rust-lang.org/book/ch19-03-advanced-traits.html",
                             );
+                        }
+                    }
+                    (ty::Alias(ty::Opaque, alias), _) | (_, ty::Alias(ty::Opaque, alias)) if alias.def_id.is_local() && matches!(tcx.def_kind(body_owner_def_id), DefKind::AssocFn | DefKind::AssocConst) => {
+                        if tcx.is_type_alias_impl_trait(alias.def_id) {
+                            if !tcx.opaque_types_defined_by(body_owner_def_id.expect_local()).contains(&alias.def_id.expect_local()) {
+                                diag.span_note(tcx.def_span(body_owner_def_id), "\
+                                    this item must have the opaque type in its signature \
+                                    in order to be able to register hidden types");
+                            }
                         }
                     }
                     (ty::FnPtr(_), ty::FnDef(def, _))
@@ -415,12 +426,12 @@ impl<T> Trait<T> for X {
         if !impl_comparison {
             // Generic suggestion when we can't be more specific.
             if callable_scope {
-                diag.help(&format!(
+                diag.help(format!(
                     "{} or calling a method that returns `{}`",
                     msg, values.expected
                 ));
             } else {
-                diag.help(&msg);
+                diag.help(msg);
             }
             diag.note(
                 "for more information, visit \
@@ -462,10 +473,7 @@ fn foo(&self) -> Self::T { String::new() }
         if let ty::Alias(ty::Opaque, ty::AliasTy { def_id, .. }) = *proj_ty.self_ty().kind() {
             let opaque_local_def_id = def_id.as_local();
             let opaque_hir_ty = if let Some(opaque_local_def_id) = opaque_local_def_id {
-                match &tcx.hir().expect_item(opaque_local_def_id).kind {
-                    hir::ItemKind::OpaqueTy(opaque_hir_ty) => opaque_hir_ty,
-                    _ => bug!("The HirId comes from a `ty::Opaque`"),
-                }
+                tcx.hir().expect_item(opaque_local_def_id).expect_opaque_ty()
             } else {
                 return false;
             };
@@ -539,7 +547,7 @@ fn foo(&self) -> Self::T { String::new() }
             for (sp, label) in methods.into_iter() {
                 span.push_span_label(sp, label);
             }
-            diag.span_help(span, &msg);
+            diag.span_help(span, msg);
             return true;
         }
         false

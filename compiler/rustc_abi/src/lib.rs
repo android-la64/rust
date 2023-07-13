@@ -9,9 +9,10 @@ use std::str::FromStr;
 
 use bitflags::bitflags;
 use rustc_data_structures::intern::Interned;
+use rustc_data_structures::stable_hasher::Hash64;
 #[cfg(feature = "nightly")]
 use rustc_data_structures::stable_hasher::StableOrd;
-use rustc_index::vec::{Idx, IndexSlice, IndexVec};
+use rustc_index::{IndexSlice, IndexVec};
 #[cfg(feature = "nightly")]
 use rustc_macros::HashStable_Generic;
 #[cfg(feature = "nightly")]
@@ -77,12 +78,12 @@ pub struct ReprOptions {
     pub flags: ReprFlags,
     /// The seed to be used for randomizing a type's layout
     ///
-    /// Note: This could technically be a `[u8; 16]` (a `u128`) which would
+    /// Note: This could technically be a `Hash128` which would
     /// be the "most accurate" hash as it'd encompass the item and crate
     /// hash without loss, but it does pay the price of being larger.
-    /// Everything's a tradeoff, a `u64` seed should be sufficient for our
+    /// Everything's a tradeoff, a 64-bit seed should be sufficient for our
     /// purposes (primarily `-Z randomize-layout`)
-    pub field_shuffle_seed: u64,
+    pub field_shuffle_seed: Hash64,
 }
 
 impl ReprOptions {
@@ -665,15 +666,12 @@ impl Align {
             format!("`{}` is too large", align)
         }
 
-        let mut bytes = align;
-        let mut pow2: u8 = 0;
-        while (bytes & 1) == 0 {
-            pow2 += 1;
-            bytes >>= 1;
-        }
-        if bytes != 1 {
+        let tz = align.trailing_zeros();
+        if align != (1 << tz) {
             return Err(not_power_of_2(align));
         }
+
+        let pow2 = tz as u8;
         if pow2 > Self::MAX.pow2 {
             return Err(too_large(align));
         }
@@ -1273,6 +1271,50 @@ impl Abi {
     #[inline]
     pub fn is_scalar(&self) -> bool {
         matches!(*self, Abi::Scalar(_))
+    }
+
+    /// Returns the fixed alignment of this ABI, if any is mandated.
+    pub fn inherent_align<C: HasDataLayout>(&self, cx: &C) -> Option<AbiAndPrefAlign> {
+        Some(match *self {
+            Abi::Scalar(s) => s.align(cx),
+            Abi::ScalarPair(s1, s2) => s1.align(cx).max(s2.align(cx)),
+            Abi::Vector { element, count } => {
+                cx.data_layout().vector_align(element.size(cx) * count)
+            }
+            Abi::Uninhabited | Abi::Aggregate { .. } => return None,
+        })
+    }
+
+    /// Returns the fixed size of this ABI, if any is mandated.
+    pub fn inherent_size<C: HasDataLayout>(&self, cx: &C) -> Option<Size> {
+        Some(match *self {
+            Abi::Scalar(s) => {
+                // No padding in scalars.
+                s.size(cx)
+            }
+            Abi::ScalarPair(s1, s2) => {
+                // May have some padding between the pair.
+                let field2_offset = s1.size(cx).align_to(s2.align(cx).abi);
+                (field2_offset + s2.size(cx)).align_to(self.inherent_align(cx)?.abi)
+            }
+            Abi::Vector { element, count } => {
+                // No padding in vectors, except possibly for trailing padding
+                // to make the size a multiple of align (e.g. for vectors of size 3).
+                (element.size(cx) * count).align_to(self.inherent_align(cx)?.abi)
+            }
+            Abi::Uninhabited | Abi::Aggregate { .. } => return None,
+        })
+    }
+
+    /// Discard validity range information and allow undef.
+    pub fn to_union(&self) -> Self {
+        assert!(self.is_sized());
+        match *self {
+            Abi::Scalar(s) => Abi::Scalar(s.to_union()),
+            Abi::ScalarPair(s1, s2) => Abi::ScalarPair(s1.to_union(), s2.to_union()),
+            Abi::Vector { element, count } => Abi::Vector { element: element.to_union(), count },
+            Abi::Uninhabited | Abi::Aggregate { .. } => Abi::Aggregate { sized: true },
+        }
     }
 }
 

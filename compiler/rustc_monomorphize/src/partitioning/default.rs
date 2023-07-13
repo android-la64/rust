@@ -1,3 +1,4 @@
+use std::cmp;
 use std::collections::hash_map::Entry;
 
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
@@ -14,19 +15,19 @@ use rustc_span::symbol::Symbol;
 
 use super::PartitioningCx;
 use crate::collector::InliningMap;
-use crate::partitioning::merging;
-use crate::partitioning::{
-    MonoItemPlacement, Partitioner, PostInliningPartitioning, PreInliningPartitioning,
-};
+use crate::partitioning::{MonoItemPlacement, Partition, PlacedRootMonoItems};
 
 pub struct DefaultPartitioning;
 
-impl<'tcx> Partitioner<'tcx> for DefaultPartitioning {
-    fn place_root_mono_items(
+impl<'tcx> Partition<'tcx> for DefaultPartitioning {
+    fn place_root_mono_items<I>(
         &mut self,
         cx: &PartitioningCx<'_, 'tcx>,
-        mono_items: &mut dyn Iterator<Item = MonoItem<'tcx>>,
-    ) -> PreInliningPartitioning<'tcx> {
+        mono_items: &mut I,
+    ) -> PlacedRootMonoItems<'tcx>
+    where
+        I: Iterator<Item = MonoItem<'tcx>>,
+    {
         let mut roots = FxHashSet::default();
         let mut codegen_units = FxHashMap::default();
         let is_incremental_build = cx.tcx.sess.opts.incremental.is_some();
@@ -88,38 +89,120 @@ impl<'tcx> Partitioner<'tcx> for DefaultPartitioning {
             codegen_units.insert(codegen_unit_name, CodegenUnit::new(codegen_unit_name));
         }
 
-        PreInliningPartitioning {
-            codegen_units: codegen_units.into_values().map(|codegen_unit| codegen_unit).collect(),
-            roots,
-            internalization_candidates,
-        }
+        let codegen_units = codegen_units.into_values().collect();
+        PlacedRootMonoItems { codegen_units, roots, internalization_candidates }
     }
 
     fn merge_codegen_units(
         &mut self,
         cx: &PartitioningCx<'_, 'tcx>,
-        initial_partitioning: &mut PreInliningPartitioning<'tcx>,
+        codegen_units: &mut Vec<CodegenUnit<'tcx>>,
     ) {
-        merging::merge_codegen_units(cx, initial_partitioning);
+        assert!(cx.target_cgu_count >= 1);
+
+        // Note that at this point in time the `codegen_units` here may not be
+        // in a deterministic order (but we know they're deterministically the
+        // same set). We want this merging to produce a deterministic ordering
+        // of codegen units from the input.
+        //
+        // Due to basically how we've implemented the merging below (merge the
+        // two smallest into each other) we're sure to start off with a
+        // deterministic order (sorted by name). This'll mean that if two cgus
+        // have the same size the stable sort below will keep everything nice
+        // and deterministic.
+        codegen_units.sort_by(|a, b| a.name().as_str().cmp(b.name().as_str()));
+
+        // This map keeps track of what got merged into what.
+        let mut cgu_contents: FxHashMap<Symbol, Vec<Symbol>> =
+            codegen_units.iter().map(|cgu| (cgu.name(), vec![cgu.name()])).collect();
+
+        // Merge the two smallest codegen units until the target size is
+        // reached.
+        while codegen_units.len() > cx.target_cgu_count {
+            // Sort small cgus to the back
+            codegen_units.sort_by_cached_key(|cgu| cmp::Reverse(cgu.size_estimate()));
+            let mut smallest = codegen_units.pop().unwrap();
+            let second_smallest = codegen_units.last_mut().unwrap();
+
+            // Move the mono-items from `smallest` to `second_smallest`
+            second_smallest.modify_size_estimate(smallest.size_estimate());
+            for (k, v) in smallest.items_mut().drain() {
+                second_smallest.items_mut().insert(k, v);
+            }
+
+            // Record that `second_smallest` now contains all the stuff that was
+            // in `smallest` before.
+            let mut consumed_cgu_names = cgu_contents.remove(&smallest.name()).unwrap();
+            cgu_contents.get_mut(&second_smallest.name()).unwrap().append(&mut consumed_cgu_names);
+
+            debug!(
+                "CodegenUnit {} merged into CodegenUnit {}",
+                smallest.name(),
+                second_smallest.name()
+            );
+        }
+
+        let cgu_name_builder = &mut CodegenUnitNameBuilder::new(cx.tcx);
+
+        if cx.tcx.sess.opts.incremental.is_some() {
+            // If we are doing incremental compilation, we want CGU names to
+            // reflect the path of the source level module they correspond to.
+            // For CGUs that contain the code of multiple modules because of the
+            // merging done above, we use a concatenation of the names of all
+            // contained CGUs.
+            let new_cgu_names: FxHashMap<Symbol, String> = cgu_contents
+                .into_iter()
+                // This `filter` makes sure we only update the name of CGUs that
+                // were actually modified by merging.
+                .filter(|(_, cgu_contents)| cgu_contents.len() > 1)
+                .map(|(current_cgu_name, cgu_contents)| {
+                    let mut cgu_contents: Vec<&str> =
+                        cgu_contents.iter().map(|s| s.as_str()).collect();
+
+                    // Sort the names, so things are deterministic and easy to
+                    // predict. We are sorting primitive `&str`s here so we can
+                    // use unstable sort.
+                    cgu_contents.sort_unstable();
+
+                    (current_cgu_name, cgu_contents.join("--"))
+                })
+                .collect();
+
+            for cgu in codegen_units.iter_mut() {
+                if let Some(new_cgu_name) = new_cgu_names.get(&cgu.name()) {
+                    if cx.tcx.sess.opts.unstable_opts.human_readable_cgu_names {
+                        cgu.set_name(Symbol::intern(&new_cgu_name));
+                    } else {
+                        // If we don't require CGU names to be human-readable,
+                        // we use a fixed length hash of the composite CGU name
+                        // instead.
+                        let new_cgu_name = CodegenUnit::mangle_name(&new_cgu_name);
+                        cgu.set_name(Symbol::intern(&new_cgu_name));
+                    }
+                }
+            }
+        } else {
+            // If we are compiling non-incrementally we just generate simple CGU
+            // names containing an index.
+            for (index, cgu) in codegen_units.iter_mut().enumerate() {
+                let numbered_codegen_unit_name =
+                    cgu_name_builder.build_cgu_name_no_mangle(LOCAL_CRATE, &["cgu"], Some(index));
+                cgu.set_name(numbered_codegen_unit_name);
+            }
+        }
     }
 
     fn place_inlined_mono_items(
         &mut self,
         cx: &PartitioningCx<'_, 'tcx>,
-        initial_partitioning: PreInliningPartitioning<'tcx>,
-    ) -> PostInliningPartitioning<'tcx> {
-        let mut new_partitioning = Vec::new();
+        codegen_units: &mut [CodegenUnit<'tcx>],
+        roots: FxHashSet<MonoItem<'tcx>>,
+    ) -> FxHashMap<MonoItem<'tcx>, MonoItemPlacement> {
         let mut mono_item_placements = FxHashMap::default();
 
-        let PreInliningPartitioning {
-            codegen_units: initial_cgus,
-            roots,
-            internalization_candidates,
-        } = initial_partitioning;
+        let single_codegen_unit = codegen_units.len() == 1;
 
-        let single_codegen_unit = initial_cgus.len() == 1;
-
-        for old_codegen_unit in initial_cgus {
+        for old_codegen_unit in codegen_units.iter_mut() {
             // Collect all items that need to be available in this codegen unit.
             let mut reachable = FxHashSet::default();
             for root in old_codegen_unit.items().keys() {
@@ -171,14 +254,10 @@ impl<'tcx> Partitioner<'tcx> for DefaultPartitioning {
                 }
             }
 
-            new_partitioning.push(new_codegen_unit);
+            *old_codegen_unit = new_codegen_unit;
         }
 
-        return PostInliningPartitioning {
-            codegen_units: new_partitioning,
-            mono_item_placements,
-            internalization_candidates,
-        };
+        return mono_item_placements;
 
         fn follow_inlining<'tcx>(
             mono_item: MonoItem<'tcx>,
@@ -198,14 +277,16 @@ impl<'tcx> Partitioner<'tcx> for DefaultPartitioning {
     fn internalize_symbols(
         &mut self,
         cx: &PartitioningCx<'_, 'tcx>,
-        partitioning: &mut PostInliningPartitioning<'tcx>,
+        codegen_units: &mut [CodegenUnit<'tcx>],
+        mono_item_placements: FxHashMap<MonoItem<'tcx>, MonoItemPlacement>,
+        internalization_candidates: FxHashSet<MonoItem<'tcx>>,
     ) {
-        if partitioning.codegen_units.len() == 1 {
+        if codegen_units.len() == 1 {
             // Fast path for when there is only one codegen unit. In this case we
             // can internalize all candidates, since there is nowhere else they
             // could be accessed from.
-            for cgu in &mut partitioning.codegen_units {
-                for candidate in &partitioning.internalization_candidates {
+            for cgu in codegen_units {
+                for candidate in &internalization_candidates {
                     cgu.items_mut().insert(*candidate, (Linkage::Internal, Visibility::Default));
                 }
             }
@@ -222,15 +303,13 @@ impl<'tcx> Partitioner<'tcx> for DefaultPartitioning {
             }
         });
 
-        let mono_item_placements = &partitioning.mono_item_placements;
-
         // For each internalization candidates in each codegen unit, check if it is
         // accessed from outside its defining codegen unit.
-        for cgu in &mut partitioning.codegen_units {
+        for cgu in codegen_units {
             let home_cgu = MonoItemPlacement::SingleCgu { cgu_name: cgu.name() };
 
             for (accessee, linkage_and_visibility) in cgu.items_mut() {
-                if !partitioning.internalization_candidates.contains(accessee) {
+                if !internalization_candidates.contains(accessee) {
                     // This item is no candidate for internalizing, so skip it.
                     continue;
                 }
@@ -267,7 +346,7 @@ fn characteristic_def_id_of_mono_item<'tcx>(
     match mono_item {
         MonoItem::Fn(instance) => {
             let def_id = match instance.def {
-                ty::InstanceDef::Item(def) => def.did,
+                ty::InstanceDef::Item(def) => def,
                 ty::InstanceDef::VTableShim(..)
                 | ty::InstanceDef::ReifyShim(..)
                 | ty::InstanceDef::FnPtrShim(..)
@@ -302,12 +381,12 @@ fn characteristic_def_id_of_mono_item<'tcx>(
 
                 // When polymorphization is enabled, methods which do not depend on their generic
                 // parameters, but the self-type of their impl block do will fail to normalize.
-                if !tcx.sess.opts.unstable_opts.polymorphize || !instance.needs_subst() {
+                if !tcx.sess.opts.unstable_opts.polymorphize || !instance.has_param() {
                     // This is a method within an impl, find out what the self-type is:
                     let impl_self_ty = tcx.subst_and_normalize_erasing_regions(
                         instance.substs,
                         ty::ParamEnv::reveal_all(),
-                        tcx.type_of(impl_def_id).skip_binder(),
+                        tcx.type_of(impl_def_id),
                     );
                     if let Some(def_id) = characteristic_def_id_of_type(impl_self_ty) {
                         return Some(def_id);
@@ -421,10 +500,9 @@ fn mono_item_visibility<'tcx>(
     };
 
     let def_id = match instance.def {
-        InstanceDef::Item(def) => def.did,
-        InstanceDef::DropGlue(def_id, Some(_)) => def_id,
+        InstanceDef::Item(def_id) | InstanceDef::DropGlue(def_id, Some(_)) => def_id,
 
-        // We match the visiblity of statics here
+        // We match the visibility of statics here
         InstanceDef::ThreadLocalShim(def_id) => {
             return static_visibility(tcx, can_be_internalized, def_id);
         }

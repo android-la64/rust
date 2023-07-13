@@ -6,6 +6,8 @@ use std::fmt::{self, Display, Formatter};
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[non_exhaustive]
 pub enum Type {
+    /// Alpaquita Linux (<https://bell-sw.com/alpaquita-linux/>).
+    Alpaquita,
     /// Alpine Linux (<https://en.wikipedia.org/wiki/Alpine_Linux>).
     Alpine,
     /// Amazon Linux AMI (<https://en.wikipedia.org/wiki/Amazon_Machine_Image#Amazon_Linux_AMI>).
@@ -14,6 +16,8 @@ pub enum Type {
     Android,
     /// Arch Linux (<https://en.wikipedia.org/wiki/Arch_Linux>).
     Arch,
+    /// Artix Linux (<https://en.wikipedia.org/wiki/Artix_Linux>).
+    Artix,
     /// CentOS (<https://en.wikipedia.org/wiki/CentOS>).
     CentOS,
     /// Debian (<https://en.wikipedia.org/wiki/Debian>).
@@ -38,6 +42,8 @@ pub enum Type {
     Illumos,
     /// Linux based operating system (<https://en.wikipedia.org/wiki/Linux>).
     Linux,
+    /// Mabox (<https://maboxlinux.org/>).
+    Mabox,
     /// Mac OS X/OS X/macOS (<https://en.wikipedia.org/wiki/MacOS>).
     Macos,
     /// Manjaro (<https://en.wikipedia.org/wiki/Manjaro>).
@@ -54,6 +60,10 @@ pub enum Type {
     NixOS,
     /// OpenBSD (<https://en.wikipedia.org/wiki/OpenBSD>).
     OpenBSD,
+    /// OpenCloudOS (<https://www.opencloudos.org>).
+    OpenCloudOS,
+    /// openEuler (<https://en.wikipedia.org/wiki/EulerOS>).
+    openEuler,
     /// openSUSE (<https://en.wikipedia.org/wiki/OpenSUSE>).
     openSUSE,
     /// Oracle Linux (<https://en.wikipedia.org/wiki/Oracle_Linux>).
@@ -89,9 +99,11 @@ impl Default for Type {
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match *self {
+            Type::Alpaquita => write!(f, "Alpaquita Linux"),
             Type::Alpine => write!(f, "Alpine Linux"),
             Type::Amazon => write!(f, "Amazon Linux AMI"),
             Type::Arch => write!(f, "Arch Linux"),
+            Type::Artix => write!(f, "Artix Linux"),
             Type::DragonFly => write!(f, "DragonFly BSD"),
             Type::Garuda => write!(f, "Garuda Linux"),
             Type::Gentoo => write!(f, "Gentoo Linux"),
@@ -104,7 +116,7 @@ impl Display for Type {
             Type::Redhat => write!(f, "Red Hat Linux"),
             Type::RedHatEnterprise => write!(f, "Red Hat Enterprise Linux"),
             Type::SUSE => write!(f, "SUSE Linux Enterprise Server"),
-            _ => write!(f, "{:?}", self),
+            _ => write!(f, "{self:?}"),
         }
     }
 }
@@ -121,10 +133,12 @@ mod tests {
     #[test]
     fn display() {
         let data = [
+            (Type::Alpaquita, "Alpaquita Linux"),
             (Type::Alpine, "Alpine Linux"),
             (Type::Amazon, "Amazon Linux AMI"),
             (Type::Android, "Android"),
             (Type::Arch, "Arch Linux"),
+            (Type::Artix, "Artix Linux"),
             (Type::CentOS, "CentOS"),
             (Type::Debian, "Debian"),
             (Type::DragonFly, "DragonFly BSD"),

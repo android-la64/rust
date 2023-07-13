@@ -11,24 +11,39 @@
 
 [package]
 edition = "2018"
+rust-version = "1.57.0"
 name = "http-auth"
-version = "0.1.6"
+version = "0.1.8"
 description = "HTTP authentication: parse challenge lists, respond to Basic and Digest challenges. Likely to be extended with server support and additional auth schemes."
 readme = "README.md"
-keywords = ["http", "authentication", "digest", "basic"]
-categories = ["authentication", "parser-implementations", "web-programming::http-client"]
+keywords = [
+    "http",
+    "authentication",
+    "digest",
+    "basic",
+]
+categories = [
+    "authentication",
+    "parser-implementations",
+    "web-programming::http-client",
+]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/scottlamb/http-auth"
 resolver = "2"
+
 [package.metadata.docs.rs]
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
 
 [[example]]
 name = "reqwest"
 required-features = ["http"]
+
 [dependencies.base64]
-version = "0.13.0"
+version = "0.21.0"
 optional = true
 
 [dependencies.digest]
@@ -61,6 +76,7 @@ optional = true
 [dependencies.sha2]
 version = "0.10"
 optional = true
+
 [dev-dependencies.pretty_assertions]
 version = "1.0.0"
 
@@ -70,6 +86,15 @@ features = ["blocking"]
 
 [features]
 basic-scheme = ["base64"]
-default = ["basic-scheme", "digest-scheme"]
-digest-scheme = ["digest", "hex", "md-5", "rand", "sha2"]
+default = [
+    "basic-scheme",
+    "digest-scheme",
+]
+digest-scheme = [
+    "digest",
+    "hex",
+    "md-5",
+    "rand",
+    "sha2",
+]
 trace = ["log"]

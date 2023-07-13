@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-traverse"
-version = "0.24.0"
+version = "0.25.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = ["src/**/*"]
 autotests = false
@@ -25,13 +25,13 @@ repository = "https://github.com/Byron/gitoxide"
 doctest = false
 
 [dependencies.gix-hash]
-version = "^0.10.2"
+version = "^0.11.1"
 
 [dependencies.gix-hashtable]
-version = "^0.1.2"
+version = "^0.2.0"
 
 [dependencies.gix-object]
-version = "^0.28.0"
+version = "^0.29.1"
 
 [dependencies.thiserror]
 version = "1.0.32"

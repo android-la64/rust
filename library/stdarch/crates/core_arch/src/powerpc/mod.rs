@@ -1,8 +1,9 @@
 //! PowerPC intrinsics
 
-#[cfg(target_feature = "altivec")]
+#[macro_use]
+mod macros;
+
 mod altivec;
-#[cfg(target_feature = "altivec")]
 pub use self::altivec::*;
 
 mod vsx;

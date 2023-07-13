@@ -106,17 +106,20 @@ impl<'short, 'long> InstBuilderBase<'short> for FuncInstBuilder<'short, 'long> {
             self.builder.func.set_srcloc(inst, self.builder.srcloc);
         }
 
-        match self.builder.func.dfg.analyze_branch(inst) {
-            ir::instructions::BranchInfo::NotABranch => (),
-
-            ir::instructions::BranchInfo::SingleDest(dest) => {
+        match &self.builder.func.dfg.insts[inst] {
+            ir::InstructionData::Jump {
+                destination: dest, ..
+            } => {
                 // If the user has supplied jump arguments we must adapt the arguments of
                 // the destination block
                 let block = dest.block(&self.builder.func.dfg.value_lists);
                 self.builder.declare_successor(block, inst);
             }
 
-            ir::instructions::BranchInfo::Conditional(branch_then, branch_else) => {
+            ir::InstructionData::Brif {
+                blocks: [branch_then, branch_else],
+                ..
+            } => {
                 let block_then = branch_then.block(&self.builder.func.dfg.value_lists);
                 let block_else = branch_else.block(&self.builder.func.dfg.value_lists);
 
@@ -126,7 +129,9 @@ impl<'short, 'long> InstBuilderBase<'short> for FuncInstBuilder<'short, 'long> {
                 }
             }
 
-            ir::instructions::BranchInfo::Table(table, destination) => {
+            ir::InstructionData::BranchTable { table, .. } => {
+                let pool = &self.builder.func.dfg.value_lists;
+
                 // Unlike all other jumps/branches, jump tables are
                 // capable of having the same successor appear
                 // multiple times, so we must deduplicate.
@@ -134,21 +139,28 @@ impl<'short, 'long> InstBuilderBase<'short> for FuncInstBuilder<'short, 'long> {
                 for dest_block in self
                     .builder
                     .func
+                    .stencil
+                    .dfg
                     .jump_tables
-                    .get(table)
+                    .get(*table)
                     .expect("you are referencing an undeclared jump table")
-                    .iter()
-                    .filter(|&dest_block| unique.insert(*dest_block))
+                    .all_branches()
                 {
+                    let block = dest_block.block(pool);
+                    if !unique.insert(block) {
+                        continue;
+                    }
+
                     // Call `declare_block_predecessor` instead of `declare_successor` for
                     // avoiding the borrow checker.
                     self.builder
                         .func_ctx
                         .ssa
-                        .declare_block_predecessor(*dest_block, inst);
+                        .declare_block_predecessor(block, inst);
                 }
-                self.builder.declare_successor(destination, inst);
             }
+
+            inst => debug_assert!(!inst.opcode().is_branch()),
         }
 
         if data.opcode().is_terminator() {
@@ -682,7 +694,7 @@ impl<'a> FunctionBuilder<'a> {
     /// other jump instructions.
     pub fn change_jump_destination(&mut self, inst: Inst, old_block: Block, new_block: Block) {
         let dfg = &mut self.func.dfg;
-        for block in dfg.insts[inst].branch_destination_mut() {
+        for block in dfg.insts[inst].branch_destination_mut(&mut dfg.jump_tables) {
             if block.block(&dfg.value_lists) == old_block {
                 self.func_ctx.ssa.remove_block_predecessor(old_block, inst);
                 block.set_block(new_block, &mut dfg.value_lists);
@@ -1083,9 +1095,6 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     fn handle_ssa_side_effects(&mut self, side_effects: SideEffects) {
-        for split_block in side_effects.split_blocks_created {
-            self.func_ctx.status[split_block] = BlockStatus::Filled;
-        }
         for modified_block in side_effects.instructions_added_to_blocks {
             if self.is_pristine(modified_block) {
                 self.func_ctx.status[modified_block] = BlockStatus::Partial;

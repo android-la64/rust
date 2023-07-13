@@ -738,7 +738,7 @@ dependencies = [
 
 [[package]]
 name = "prodash"
-version = "23.1.1"
+version = "23.1.2"
 dependencies = [
  "argh",
  "async-executor",

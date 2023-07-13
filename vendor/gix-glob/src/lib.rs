@@ -14,7 +14,7 @@ use bstr::BString;
 ///
 /// For normal globbing, use [`wildmatch()`] instead.
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Pattern {
     /// the actual pattern bytes
     pub text: BString,
@@ -26,6 +26,8 @@ pub struct Pattern {
 
 ///
 pub mod pattern;
+
+pub mod search;
 
 ///
 pub mod wildmatch;

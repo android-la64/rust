@@ -1,3 +1,5 @@
+use crate::remote::fetch;
+
 /// The way the negotiation is performed
 #[derive(Copy, Clone)]
 pub(crate) enum Algorithm {
@@ -16,6 +18,7 @@ pub enum Error {
 /// Negotiate one round with `algo` by looking at `ref_map` and adjust `arguments` to contain the haves and wants.
 /// If this is not the first round, the `previous_response` is set with the last recorded server response.
 /// Returns `true` if the negotiation is done from our side so the server won't keep asking.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn one_round(
     algo: Algorithm,
     round: usize,
@@ -24,13 +27,20 @@ pub(crate) fn one_round(
     fetch_tags: crate::remote::fetch::Tags,
     arguments: &mut gix_protocol::fetch::Arguments,
     _previous_response: Option<&gix_protocol::fetch::Response>,
+    shallow: Option<&fetch::Shallow>,
 ) -> Result<bool, Error> {
     let tag_refspec_to_ignore = fetch_tags
         .to_refspec()
         .filter(|_| matches!(fetch_tags, crate::remote::fetch::Tags::Included));
+    if let Some(fetch::Shallow::Deepen(0)) = shallow {
+        // Avoid deepening (relative) with zero as it seems to upset the server. Git also doesn't actually
+        // perform the negotiation for some reason (couldn't find it in code).
+        return Ok(true);
+    }
+
     match algo {
         Algorithm::Naive => {
-            assert_eq!(round, 1, "Naive always finishes after the first round, and claims.");
+            assert_eq!(round, 1, "Naive always finishes after the first round, it claims.");
             let mut has_missing_tracking_branch = false;
             for mapping in &ref_map.mappings {
                 if tag_refspec_to_ignore.map_or(false, |tag_spec| {
@@ -65,10 +75,11 @@ pub(crate) fn one_round(
                 }
             }
 
-            if has_missing_tracking_branch {
+            if has_missing_tracking_branch || (shallow.is_some() && arguments.is_empty()) {
                 if let Ok(Some(r)) = repo.head_ref() {
                     if let Some(id) = r.target().try_id() {
                         arguments.have(id);
+                        arguments.want(id);
                     }
                 }
             }

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// An account based identity
 pub struct Account {
     /// The user's name
@@ -62,7 +62,7 @@ mod impl_ {
         use windows::{
             core::{Error, PCWSTR},
             Win32::{
-                Foundation::{CloseHandle, BOOL, HANDLE, PSID},
+                Foundation::{CloseHandle, BOOL, HANDLE, HLOCAL, PSID},
                 Security::{
                     Authorization::{GetNamedSecurityInfoW, SE_FILE_OBJECT},
                     CheckTokenMembership, EqualSid, GetTokenInformation, IsWellKnownSid, TokenOwner,
@@ -90,7 +90,7 @@ mod impl_ {
         // Home is not actually owned by the corresponding user
         // but it can be considered de-facto owned by the user
         // Ignore errors here and just do the regular checks below
-        if gix_path::realpath(path).ok() == dirs::home_dir() {
+        if gix_path::realpath(path).ok() == gix_path::env::home_dir() {
             return Ok(true);
         }
 
@@ -168,7 +168,7 @@ mod impl_ {
                 )
                 .into();
             }
-            LocalFree(pdescriptor.0 as isize);
+            LocalFree(HLOCAL(pdescriptor.0 as isize)).ok();
         }
 
         err_msg.map(|msg| Err(err(msg))).unwrap_or(Ok(is_owned))

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64.0"
 name = "clap"
-version = "4.2.1"
+version = "4.2.4"
 include = [
     "build.rs",
     "src/**/*",
@@ -366,7 +366,7 @@ path = "examples/derive_ref/flatten_hand_args.rs"
 required-features = ["derive"]
 
 [dependencies.clap_builder]
-version = "=4.2.1"
+version = "=4.2.4"
 default-features = false
 
 [dependencies.clap_derive]
@@ -441,6 +441,7 @@ unstable-doc = [
     "clap_builder/unstable-doc",
     "derive",
 ]
+unstable-styles = ["clap_builder/unstable-styles"]
 unstable-v5 = [
     "clap_builder/unstable-v5",
     "clap_derive?/unstable-v5",

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-actor"
-version = "0.19.0"
+version = "0.20.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = ["src/**/*"]
 description = "A way to identify git actors"
@@ -47,10 +47,10 @@ version = "0.2.0"
 optional = true
 
 [dependencies.gix-date]
-version = "^0.4.3"
+version = "^0.5.0"
 
 [dependencies.gix-features]
-version = "^0.28.0"
+version = "^0.29.0"
 optional = true
 
 [dependencies.itoa]
@@ -74,8 +74,8 @@ version = "1.0.38"
 version = "1.0.0"
 
 [features]
-serde1 = [
-    "serde",
+serde = [
+    "dep:serde",
     "bstr/serde",
-    "gix-date/serde1",
+    "gix-date/serde",
 ]

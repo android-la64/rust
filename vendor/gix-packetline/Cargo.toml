@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-packetline"
-version = "0.14.3"
+version = "0.16.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -27,7 +27,7 @@ repository = "https://github.com/Byron/gitoxide"
 features = [
     "document-features",
     "blocking-io",
-    "serde1",
+    "dep:serde",
 ]
 rustdoc-args = [
     "--cfg",
@@ -101,7 +101,7 @@ async-io = [
 ]
 blocking-io = []
 default = []
-serde1 = [
-    "serde",
+serde = [
+    "dep:serde",
     "bstr/serde",
 ]

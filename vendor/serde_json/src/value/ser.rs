@@ -1,10 +1,11 @@
 use crate::error::{Error, ErrorCode, Result};
 use crate::map::Map;
-use crate::number::Number;
 use crate::value::{to_value, Value};
 use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+#[cfg(not(feature = "arbitrary_precision"))]
+use core::convert::TryFrom;
 use core::fmt::Display;
 use core::result;
 use serde::ser::{Impossible, Serialize};
@@ -92,9 +93,22 @@ impl serde::Serializer for Serializer {
         Ok(Value::Number(value.into()))
     }
 
-    #[cfg(feature = "arbitrary_precision")]
     fn serialize_i128(self, value: i128) -> Result<Value> {
-        Ok(Value::Number(value.into()))
+        #[cfg(feature = "arbitrary_precision")]
+        {
+            Ok(Value::Number(value.into()))
+        }
+
+        #[cfg(not(feature = "arbitrary_precision"))]
+        {
+            if let Ok(value) = u64::try_from(value) {
+                Ok(Value::Number(value.into()))
+            } else if let Ok(value) = i64::try_from(value) {
+                Ok(Value::Number(value.into()))
+            } else {
+                Err(Error::syntax(ErrorCode::NumberOutOfRange, 0, 0))
+            }
+        }
     }
 
     #[inline]
@@ -117,19 +131,30 @@ impl serde::Serializer for Serializer {
         Ok(Value::Number(value.into()))
     }
 
-    #[cfg(feature = "arbitrary_precision")]
     fn serialize_u128(self, value: u128) -> Result<Value> {
-        Ok(Value::Number(value.into()))
+        #[cfg(feature = "arbitrary_precision")]
+        {
+            Ok(Value::Number(value.into()))
+        }
+
+        #[cfg(not(feature = "arbitrary_precision"))]
+        {
+            if let Ok(value) = u64::try_from(value) {
+                Ok(Value::Number(value.into()))
+            } else {
+                Err(Error::syntax(ErrorCode::NumberOutOfRange, 0, 0))
+            }
+        }
     }
 
     #[inline]
-    fn serialize_f32(self, value: f32) -> Result<Value> {
-        self.serialize_f64(value as f64)
+    fn serialize_f32(self, float: f32) -> Result<Value> {
+        Ok(Value::from(float))
     }
 
     #[inline]
-    fn serialize_f64(self, value: f64) -> Result<Value> {
-        Ok(Number::from_f64(value).map_or(Value::Null, Value::Number))
+    fn serialize_f64(self, float: f64) -> Result<Value> {
+        Ok(Value::from(float))
     }
 
     #[inline]

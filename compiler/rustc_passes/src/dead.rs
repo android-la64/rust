@@ -12,7 +12,7 @@ use rustc_hir::intravisit::{self, Visitor};
 use rustc_hir::{Node, PatKind, TyKind};
 use rustc_middle::middle::codegen_fn_attrs::CodegenFnAttrFlags;
 use rustc_middle::middle::privacy::Level;
-use rustc_middle::ty::query::Providers;
+use rustc_middle::query::Providers;
 use rustc_middle::ty::{self, TyCtxt};
 use rustc_session::lint;
 use rustc_span::symbol::{sym, Symbol};
@@ -237,6 +237,37 @@ impl<'tcx> MarkSymbolVisitor<'tcx> {
         }
     }
 
+    fn handle_offset_of(&mut self, expr: &'tcx hir::Expr<'tcx>) {
+        let data = self.typeck_results().offset_of_data();
+        let &(container, ref indices) =
+            data.get(expr.hir_id).expect("no offset_of_data for offset_of");
+
+        let body_did = self.typeck_results().hir_owner.to_def_id();
+        let param_env = self.tcx.param_env(body_did);
+
+        let mut current_ty = container;
+
+        for &index in indices {
+            match current_ty.kind() {
+                ty::Adt(def, subst) => {
+                    let field = &def.non_enum_variant().fields[index];
+
+                    self.insert_def_id(field.did);
+                    let field_ty = field.ty(self.tcx, subst);
+
+                    current_ty = self.tcx.normalize_erasing_regions(param_env, field_ty);
+                }
+                // we don't need to mark tuple fields as live,
+                // but we may need to mark subfields
+                ty::Tuple(tys) => {
+                    current_ty =
+                        self.tcx.normalize_erasing_regions(param_env, tys[index.as_usize()]);
+                }
+                _ => span_bug!(expr.span, "named field access on non-ADT"),
+            }
+        }
+    }
+
     fn mark_live_symbols(&mut self) {
         let mut scanned = LocalDefIdSet::default();
         while let Some(id) = self.worklist.pop() {
@@ -404,6 +435,9 @@ impl<'tcx> Visitor<'tcx> for MarkSymbolVisitor<'tcx> {
             }
             hir::ExprKind::Closure(cls) => {
                 self.insert_def_id(cls.def_id.to_def_id());
+            }
+            hir::ExprKind::OffsetOf(..) => {
+                self.handle_offset_of(expr);
             }
             _ => (),
         }

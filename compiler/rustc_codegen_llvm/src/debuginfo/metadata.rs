@@ -29,7 +29,6 @@ use rustc_hir::def::CtorKind;
 use rustc_hir::def_id::{DefId, LOCAL_CRATE};
 use rustc_middle::bug;
 use rustc_middle::ty::layout::{LayoutOf, TyAndLayout};
-use rustc_middle::ty::subst::GenericArgKind;
 use rustc_middle::ty::{
     self, AdtKind, Instance, ParamEnv, PolyExistentialTraitRef, Ty, TyCtxt, Visibility,
 };
@@ -807,8 +806,7 @@ pub fn build_compile_unit_di_node<'ll, 'tcx>(
     name_in_debuginfo.push(codegen_unit_name);
 
     debug!("build_compile_unit_di_node: {:?}", name_in_debuginfo);
-    let rustc_producer =
-        format!("rustc version {}", option_env!("CFG_VERSION").expect("CFG_VERSION"),);
+    let rustc_producer = format!("rustc version {}", tcx.sess.cfg_version);
     // FIXME(#41252) Remove "clang LLVM" if we can get GDB and LLVM to play nice.
     let producer = format!("clang LLVM ({})", rustc_producer);
 
@@ -1182,12 +1180,12 @@ fn build_generic_type_param_di_nodes<'ll, 'tcx>(
             let names = get_parameter_names(cx, generics);
             let template_params: SmallVec<_> = iter::zip(substs, names)
                 .filter_map(|(kind, name)| {
-                    if let GenericArgKind::Type(ty) = kind.unpack() {
+                    kind.as_type().map(|ty| {
                         let actual_type =
                             cx.tcx.normalize_erasing_regions(ParamEnv::reveal_all(), ty);
                         let actual_type_di_node = type_di_node(cx, actual_type);
                         let name = name.as_str();
-                        Some(unsafe {
+                        unsafe {
                             llvm::LLVMRustDIBuilderCreateTemplateTypeParameter(
                                 DIB(cx),
                                 None,
@@ -1195,10 +1193,8 @@ fn build_generic_type_param_di_nodes<'ll, 'tcx>(
                                 name.len(),
                                 actual_type_di_node,
                             )
-                        })
-                    } else {
-                        None
-                    }
+                        }
+                    })
                 })
                 .collect();
 

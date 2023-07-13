@@ -116,10 +116,9 @@ pub mod prepare {
     }
 }
 
-impl<'remote, 'repo, T, P> Connection<'remote, 'repo, T, P>
+impl<'remote, 'repo, T> Connection<'remote, 'repo, T>
 where
     T: Transport,
-    P: Progress,
 {
     /// Perform a handshake with the remote and obtain a ref-map with `options`, and from there one
     /// Note that at this point, the `transport` should already be configured using the [`transport_mut()`][Self::transport_mut()]
@@ -137,23 +136,25 @@ where
     #[gix_protocol::maybe_async::maybe_async]
     pub async fn prepare_fetch(
         mut self,
+        progress: impl Progress,
         options: ref_map::Options,
-    ) -> Result<Prepare<'remote, 'repo, T, P>, prepare::Error> {
+    ) -> Result<Prepare<'remote, 'repo, T>, prepare::Error> {
         if self.remote.refspecs(remote::Direction::Fetch).is_empty() {
             return Err(prepare::Error::MissingRefSpecs);
         }
-        let ref_map = self.ref_map_inner(options).await?;
+        let ref_map = self.ref_map_inner(progress, options).await?;
         Ok(Prepare {
             con: Some(self),
             ref_map,
             dry_run: DryRun::No,
             reflog_message: None,
             write_packed_refs: WritePackedRefs::Never,
+            shallow: Default::default(),
         })
     }
 }
 
-impl<'remote, 'repo, T, P> Prepare<'remote, 'repo, T, P>
+impl<'remote, 'repo, T> Prepare<'remote, 'repo, T>
 where
     T: Transport,
 {
@@ -170,19 +171,20 @@ mod receive_pack;
 pub mod refs;
 
 /// A structure to hold the result of the handshake with the remote and configure the upcoming fetch operation.
-pub struct Prepare<'remote, 'repo, T, P>
+pub struct Prepare<'remote, 'repo, T>
 where
     T: Transport,
 {
-    con: Option<Connection<'remote, 'repo, T, P>>,
+    con: Option<Connection<'remote, 'repo, T>>,
     ref_map: RefMap,
     dry_run: DryRun,
     reflog_message: Option<RefLogMessage>,
     write_packed_refs: WritePackedRefs,
+    shallow: remote::fetch::Shallow,
 }
 
 /// Builder
-impl<'remote, 'repo, T, P> Prepare<'remote, 'repo, T, P>
+impl<'remote, 'repo, T> Prepare<'remote, 'repo, T>
 where
     T: Transport,
 {
@@ -212,9 +214,17 @@ where
         self.reflog_message = reflog_message.into();
         self
     }
+
+    /// Define what to do when the current repository is a shallow clone.
+    ///
+    /// *Has no effect if the current repository is not as shallow clone.*
+    pub fn with_shallow(mut self, shallow: remote::fetch::Shallow) -> Self {
+        self.shallow = shallow;
+        self
+    }
 }
 
-impl<'remote, 'repo, T, P> Drop for Prepare<'remote, 'repo, T, P>
+impl<'remote, 'repo, T> Drop for Prepare<'remote, 'repo, T>
 where
     T: Transport,
 {

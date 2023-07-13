@@ -8,15 +8,19 @@
 /// section of the [rustc-dev-guide][c].
 ///
 /// [c]: https://rustc-dev-guide.rust-lang.org/solve/canonicalization.html
-use super::{CanonicalGoal, Certainty, EvalCtxt, Goal};
+use super::{CanonicalInput, Certainty, EvalCtxt, Goal};
 use crate::solve::canonicalize::{CanonicalizeMode, Canonicalizer};
 use crate::solve::{CanonicalResponse, QueryResult, Response};
+use rustc_index::IndexVec;
 use rustc_infer::infer::canonical::query_response::make_query_region_constraints;
 use rustc_infer::infer::canonical::CanonicalVarValues;
 use rustc_infer::infer::canonical::{CanonicalExt, QueryRegionConstraints};
+use rustc_infer::infer::InferOk;
 use rustc_middle::traits::query::NoSolution;
-use rustc_middle::traits::solve::{ExternalConstraints, ExternalConstraintsData};
-use rustc_middle::ty::{self, GenericArgKind};
+use rustc_middle::traits::solve::{
+    ExternalConstraints, ExternalConstraintsData, MaybeCause, PredefinedOpaquesData, QueryInput,
+};
+use rustc_middle::ty::{self, BoundVar, GenericArgKind, Ty};
 use rustc_span::DUMMY_SP;
 use std::iter;
 use std::ops::Deref;
@@ -27,13 +31,21 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
     pub(super) fn canonicalize_goal(
         &self,
         goal: Goal<'tcx, ty::Predicate<'tcx>>,
-    ) -> (Vec<ty::GenericArg<'tcx>>, CanonicalGoal<'tcx>) {
+    ) -> (Vec<ty::GenericArg<'tcx>>, CanonicalInput<'tcx>) {
         let mut orig_values = Default::default();
         let canonical_goal = Canonicalizer::canonicalize(
             self.infcx,
             CanonicalizeMode::Input,
             &mut orig_values,
-            goal,
+            QueryInput {
+                goal,
+                anchor: self.infcx.defining_use_anchor,
+                predefined_opaques_in_body: self.tcx().mk_predefined_opaques_in_body(
+                    PredefinedOpaquesData {
+                        opaque_types: self.infcx.clone_opaque_types_for_query_response(),
+                    },
+                ),
+            },
         );
         (orig_values, canonical_goal)
     }
@@ -50,11 +62,36 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
         certainty: Certainty,
     ) -> QueryResult<'tcx> {
         let goals_certainty = self.try_evaluate_added_goals()?;
+        assert_eq!(
+            self.tainted,
+            Ok(()),
+            "EvalCtxt is tainted -- nested goals may have been dropped in a \
+            previous call to `try_evaluate_added_goals!`"
+        );
+
         let certainty = certainty.unify_with(goals_certainty);
 
-        let external_constraints = self.compute_external_query_constraints()?;
+        let response = match certainty {
+            Certainty::Yes | Certainty::Maybe(MaybeCause::Ambiguity) => {
+                let external_constraints = self.compute_external_query_constraints()?;
+                Response { var_values: self.var_values, external_constraints, certainty }
+            }
+            Certainty::Maybe(MaybeCause::Overflow) => {
+                // If we have overflow, it's probable that we're substituting a type
+                // into itself infinitely and any partial substitutions in the query
+                // response are probably not useful anyways, so just return an empty
+                // query response.
+                //
+                // This may prevent us from potentially useful inference, e.g.
+                // 2 candidates, one ambiguous and one overflow, which both
+                // have the same inference constraints.
+                //
+                // Changing this to retain some constraints in the future
+                // won't be a breaking change, so this is good enough for now.
+                return Ok(self.make_ambiguous_response_no_constraints(MaybeCause::Overflow));
+            }
+        };
 
-        let response = Response { var_values: self.var_values, external_constraints, certainty };
         let canonical = Canonicalizer::canonicalize(
             self.infcx,
             CanonicalizeMode::Response { max_input_universe: self.max_input_universe },
@@ -62,6 +99,40 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
             response,
         );
         Ok(canonical)
+    }
+
+    /// Constructs a totally unconstrained, ambiguous response to a goal.
+    ///
+    /// Take care when using this, since often it's useful to respond with
+    /// ambiguity but return constrained variables to guide inference.
+    pub(in crate::solve) fn make_ambiguous_response_no_constraints(
+        &self,
+        maybe_cause: MaybeCause,
+    ) -> CanonicalResponse<'tcx> {
+        let unconstrained_response = Response {
+            var_values: CanonicalVarValues {
+                var_values: self.tcx().mk_substs_from_iter(self.var_values.var_values.iter().map(
+                    |arg| -> ty::GenericArg<'tcx> {
+                        match arg.unpack() {
+                            GenericArgKind::Lifetime(_) => self.next_region_infer().into(),
+                            GenericArgKind::Type(_) => self.next_ty_infer().into(),
+                            GenericArgKind::Const(ct) => self.next_const_infer(ct.ty()).into(),
+                        }
+                    },
+                )),
+            },
+            external_constraints: self
+                .tcx()
+                .mk_external_constraints(ExternalConstraintsData::default()),
+            certainty: Certainty::Maybe(maybe_cause),
+        };
+
+        Canonicalizer::canonicalize(
+            self.infcx,
+            CanonicalizeMode::Response { max_input_universe: self.max_input_universe },
+            &mut Default::default(),
+            unconstrained_response,
+        )
     }
 
     #[instrument(level = "debug", skip(self), ret)]
@@ -78,7 +149,13 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
                 region_constraints,
             )
         });
-        let opaque_types = self.infcx.clone_opaque_types_for_query_response();
+
+        let mut opaque_types = self.infcx.clone_opaque_types_for_query_response();
+        // Only return opaque type keys for newly-defined opaques
+        opaque_types.retain(|(a, _)| {
+            self.predefined_opaques_in_body.opaque_types.iter().all(|(pa, _)| pa != a)
+        });
+
         Ok(self
             .tcx()
             .mk_external_constraints(ExternalConstraintsData { region_constraints, opaque_types }))
@@ -104,10 +181,10 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
 
         let nested_goals = self.unify_query_var_values(param_env, &original_values, var_values)?;
 
-        // FIXME: implement external constraints.
-        let ExternalConstraintsData { region_constraints, opaque_types: _ } =
+        let ExternalConstraintsData { region_constraints, opaque_types } =
             external_constraints.deref();
         self.register_region_constraints(region_constraints);
+        self.register_opaque_types(param_env, opaque_types)?;
 
         Ok((certainty, nested_goals))
     }
@@ -139,25 +216,25 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
         //
         // We therefore instantiate the existential variable in the canonical response with the
         // inference variable of the input right away, which is more performant.
-        let mut opt_values = vec![None; response.variables.len()];
+        let mut opt_values = IndexVec::from_elem_n(None, response.variables.len());
         for (original_value, result_value) in iter::zip(original_values, var_values.var_values) {
             match result_value.unpack() {
                 GenericArgKind::Type(t) => {
                     if let &ty::Bound(debruijn, b) = t.kind() {
                         assert_eq!(debruijn, ty::INNERMOST);
-                        opt_values[b.var.index()] = Some(*original_value);
+                        opt_values[b.var] = Some(*original_value);
                     }
                 }
                 GenericArgKind::Lifetime(r) => {
                     if let ty::ReLateBound(debruijn, br) = *r {
                         assert_eq!(debruijn, ty::INNERMOST);
-                        opt_values[br.var.index()] = Some(*original_value);
+                        opt_values[br.var] = Some(*original_value);
                     }
                 }
                 GenericArgKind::Const(c) => {
-                    if let ty::ConstKind::Bound(debrujin, b) = c.kind() {
-                        assert_eq!(debrujin, ty::INNERMOST);
-                        opt_values[b.index()] = Some(*original_value);
+                    if let ty::ConstKind::Bound(debruijn, b) = c.kind() {
+                        assert_eq!(debruijn, ty::INNERMOST);
+                        opt_values[b] = Some(*original_value);
                     }
                 }
             }
@@ -176,11 +253,11 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
                     // As an optimization we sometimes avoid creating a new inference variable here.
                     //
                     // All new inference variables we create start out in the current universe of the caller.
-                    // This is conceptionally wrong as these inference variables would be able to name
+                    // This is conceptually wrong as these inference variables would be able to name
                     // more placeholders then they should be able to. However the inference variables have
                     // to "come from somewhere", so by equating them with the original values of the caller
                     // later on, we pull them down into their correct universe again.
-                    if let Some(v) = opt_values[index] {
+                    if let Some(v) = opt_values[BoundVar::from_usize(index)] {
                         v
                     } else {
                         self.infcx.instantiate_canonical_var(DUMMY_SP, info, |_| prev_universe)
@@ -226,5 +303,20 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
             // FIXME: Deal with member constraints :<
             let _ = member_constraint;
         }
+    }
+
+    fn register_opaque_types(
+        &mut self,
+        param_env: ty::ParamEnv<'tcx>,
+        opaque_types: &[(ty::OpaqueTypeKey<'tcx>, Ty<'tcx>)],
+    ) -> Result<(), NoSolution> {
+        for &(a, b) in opaque_types {
+            let InferOk { value: (), obligations } =
+                self.infcx.register_hidden_type_in_new_solver(a, param_env, b)?;
+            // It's sound to drop these obligations, since the normalizes-to goal
+            // is responsible for proving these obligations.
+            let _ = obligations;
+        }
+        Ok(())
     }
 }

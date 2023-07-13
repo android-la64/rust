@@ -15757,6 +15757,26 @@ pub unsafe fn _mm512_mask_i32scatter_epi64<const SCALE: i32>(
     vpscatterdq(slice, mask, offsets, src, SCALE);
 }
 
+/// Scatter 64-bit integers from a into memory using 32-bit indices. 64-bit elements are stored at addresses starting at base_addr and offset by each 32-bit element in vindex (each index is scaled by the factor in scale). scale should be 1, 2, 4 or 8.
+///
+/// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_i32scatter_epi64&expand=4099)
+#[inline]
+#[target_feature(enable = "avx512f,avx512vl")]
+#[cfg_attr(test, assert_instr(vpscatterdq, SCALE = 1))]
+#[rustc_legacy_const_generics(3)]
+pub unsafe fn _mm256_i32scatter_epi64<const SCALE: i32>(
+    slice: *mut u8,
+    offsets: __m128i,
+    src: __m256i,
+) {
+    static_assert_imm8_scale!(SCALE);
+    let src = src.as_i64x4();
+    let neg_one = -1;
+    let slice = slice as *mut i8;
+    let offsets = offsets.as_i32x4();
+    vpscatterdq256(slice, neg_one, offsets, src, SCALE);
+}
+
 /// Scatter 64-bit integers from a into memory using 64-bit indices. 64-bit elements are stored at addresses starting at base_addr and offset by each 64-bit element in vindex (each index is scaled by the factor in scale). scale should be 1, 2, 4 or 8.
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_i64scatter_epi64&expand=3116)
@@ -29616,7 +29636,9 @@ pub unsafe fn _mm512_mask_reduce_or_epi64(k: __mmask8, a: __m512i) -> i64 {
     ))
 }
 
-/// Returns vector of type `__m512d` with undefined elements.
+/// Returns vector of type `__m512d` with indeterminate elements.
+/// Despite being "undefined", this is some valid value and not equivalent to [`mem::MaybeUninit`].
+/// In practice, this is equivalent to [`mem::zeroed`].
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_undefined_pd)
 #[inline]
@@ -29626,7 +29648,9 @@ pub unsafe fn _mm512_undefined_pd() -> __m512d {
     _mm512_set1_pd(0.0)
 }
 
-/// Returns vector of type `__m512` with undefined elements.
+/// Returns vector of type `__m512` with indeterminate elements.
+/// Despite being "undefined", this is some valid value and not equivalent to [`mem::MaybeUninit`].
+/// In practice, this is equivalent to [`mem::zeroed`].
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_undefined_ps)
 #[inline]
@@ -29636,7 +29660,9 @@ pub unsafe fn _mm512_undefined_ps() -> __m512 {
     _mm512_set1_ps(0.0)
 }
 
-/// Return vector of type __m512i with undefined elements.
+/// Return vector of type __m512i with indeterminate elements.
+/// Despite being "undefined", this is some valid value and not equivalent to [`mem::MaybeUninit`].
+/// In practice, this is equivalent to [`mem::zeroed`].
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_undefined_epi32&expand=5995)
 #[inline]
@@ -29646,7 +29672,9 @@ pub unsafe fn _mm512_undefined_epi32() -> __m512i {
     _mm512_set1_epi32(0)
 }
 
-/// Return vector of type __m512 with undefined elements.
+/// Return vector of type __m512 with indeterminate elements.
+/// Despite being "undefined", this is some valid value and not equivalent to [`mem::MaybeUninit`].
+/// In practice, this is equivalent to [`mem::zeroed`].
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_undefined&expand=5994)
 #[inline]
@@ -38299,6 +38327,8 @@ extern "C" {
     fn vscatterqps(slice: *mut i8, mask: i8, offsets: i64x8, src: f32x8, scale: i32);
     #[link_name = "llvm.x86.avx512.scatter.dpq.512"]
     fn vpscatterdq(slice: *mut i8, mask: i8, offsets: i32x8, src: i64x8, scale: i32);
+    #[link_name = "llvm.x86.avx512.scattersiv4.di"]
+    fn vpscatterdq256(slice: *mut i8, mask: i8, offsets: i32x4, src: i64x4, scale: i32);
 
     #[link_name = "llvm.x86.avx512.scatter.dpi.512"]
     fn vpscatterdd(slice: *mut i8, mask: i16, offsets: i32x16, src: i32x16, scale: i32);

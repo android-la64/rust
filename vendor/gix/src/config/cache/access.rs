@@ -1,6 +1,7 @@
 #![allow(clippy::result_large_err)]
 use std::{borrow::Cow, path::PathBuf, time::Duration};
 
+use gix_attributes::Source;
 use gix_lock::acquire::Fail;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
     config::{
         cache::util::{ApplyLeniency, ApplyLeniencyDefault},
         checkout_options,
-        tree::{Checkout, Core, Key},
+        tree::{gitoxide, Checkout, Core, Key},
         Cache,
     },
     remote,
@@ -137,7 +138,7 @@ impl Cache {
     pub(crate) fn checkout_options(
         &self,
         git_dir: &std::path::Path,
-    ) -> Result<gix_worktree::index::checkout::Options, checkout_options::Error> {
+    ) -> Result<gix_worktree::checkout::Options, checkout_options::Error> {
         fn boolean(
             me: &Cache,
             full_key: &str,
@@ -154,63 +155,118 @@ impl Cache {
                 .unwrap_or(default))
         }
 
-        fn assemble_attribute_globals(
-            me: &Cache,
-            _git_dir: &std::path::Path,
-        ) -> Result<gix_attributes::MatchGroup, checkout_options::Error> {
-            let _attributes_file = match me
-                .trusted_file_path("core", None, Core::ATTRIBUTES_FILE.name)
-                .transpose()?
-            {
-                Some(attributes) => Some(attributes.into_owned()),
-                None => me.xdg_config_path("attributes").ok().flatten(),
-            };
-            // TODO: implement gix_attributes::MatchGroup::<gix_attributes::Attributes>::from_git_dir(), similar to what's done for `Ignore`.
-            Ok(Default::default())
-        }
-
         let thread_limit = self.apply_leniency(
             self.resolved
                 .integer_filter_by_key("checkout.workers", &mut self.filter_config_section.clone())
                 .map(|value| Checkout::WORKERS.try_from_workers(value)),
         )?;
-        Ok(gix_worktree::index::checkout::Options {
-            fs: gix_worktree::fs::Capabilities {
-                precompose_unicode: boolean(self, "core.precomposeUnicode", &Core::PRECOMPOSE_UNICODE, false)?,
-                ignore_case: boolean(self, "core.ignoreCase", &Core::IGNORE_CASE, false)?,
-                executable_bit: boolean(self, "core.fileMode", &Core::FILE_MODE, true)?,
-                symlink: boolean(self, "core.symlinks", &Core::SYMLINKS, true)?,
-            },
+        let capabilities = gix_fs::Capabilities {
+            precompose_unicode: boolean(self, "core.precomposeUnicode", &Core::PRECOMPOSE_UNICODE, false)?,
+            ignore_case: boolean(self, "core.ignoreCase", &Core::IGNORE_CASE, false)?,
+            executable_bit: boolean(self, "core.fileMode", &Core::FILE_MODE, true)?,
+            symlink: boolean(self, "core.symlinks", &Core::SYMLINKS, true)?,
+        };
+        Ok(gix_worktree::checkout::Options {
+            attributes: self
+                .assemble_attribute_globals(
+                    git_dir,
+                    gix_worktree::cache::state::attributes::Source::IdMappingThenWorktree,
+                    self.attributes,
+                )?
+                .0,
+            fs: capabilities,
             thread_limit,
             destination_is_initially_empty: false,
             overwrite_existing: false,
             keep_going: false,
-            trust_ctime: boolean(self, "core.trustCTime", &Core::TRUST_C_TIME, true)?,
-            check_stat: self
-                .apply_leniency(
-                    self.resolved
-                        .string("core", None, "checkStat")
-                        .map(|v| Core::CHECK_STAT.try_into_checkstat(v)),
-                )?
-                .unwrap_or(true),
-            attribute_globals: assemble_attribute_globals(self, git_dir)?,
+            stat_options: gix_index::entry::stat::Options {
+                trust_ctime: boolean(self, "core.trustCTime", &Core::TRUST_C_TIME, true)?,
+                use_nsec: boolean(self, "gitoxide.core.useNsec", &gitoxide::Core::USE_NSEC, false)?,
+                use_stdev: boolean(self, "gitoxide.core.useStdev", &gitoxide::Core::USE_STDEV, false)?,
+                check_stat: self
+                    .apply_leniency(
+                        self.resolved
+                            .string("core", None, "checkStat")
+                            .map(|v| Core::CHECK_STAT.try_into_checkstat(v)),
+                    )?
+                    .unwrap_or(true),
+            },
         })
     }
+
+    pub(crate) fn assemble_exclude_globals(
+        &self,
+        git_dir: &std::path::Path,
+        overrides: Option<gix_ignore::Search>,
+        source: gix_worktree::cache::state::ignore::Source,
+        buf: &mut Vec<u8>,
+    ) -> Result<gix_worktree::cache::state::Ignore, config::exclude_stack::Error> {
+        let excludes_file = match self.excludes_file().transpose()? {
+            Some(user_path) => Some(user_path),
+            None => self.xdg_config_path("ignore")?,
+        };
+        Ok(gix_worktree::cache::state::Ignore::new(
+            overrides.unwrap_or_default(),
+            gix_ignore::Search::from_git_dir(git_dir, excludes_file, buf)?,
+            None,
+            source,
+        ))
+    }
+    // TODO: at least one test, maybe related to core.attributesFile configuration.
+    pub(crate) fn assemble_attribute_globals(
+        &self,
+        git_dir: &std::path::Path,
+        source: gix_worktree::cache::state::attributes::Source,
+        attributes: crate::open::permissions::Attributes,
+    ) -> Result<(gix_worktree::cache::state::Attributes, Vec<u8>), config::attribute_stack::Error> {
+        let configured_or_user_attributes = match self
+            .trusted_file_path("core", None, Core::ATTRIBUTES_FILE.name)
+            .transpose()?
+        {
+            Some(attributes) => Some(attributes),
+            None => {
+                if attributes.git {
+                    self.xdg_config_path("attributes").ok().flatten().map(Cow::Owned)
+                } else {
+                    None
+                }
+            }
+        };
+        let attribute_files = [gix_attributes::Source::GitInstallation, gix_attributes::Source::System]
+            .into_iter()
+            .filter(|source| match source {
+                Source::GitInstallation => attributes.git_binary,
+                Source::System => attributes.system,
+                Source::Git | Source::Local => unreachable!("we don't offer turning this off right now"),
+            })
+            .filter_map(|source| source.storage_location(&mut Self::make_source_env(self.environment)))
+            .chain(configured_or_user_attributes);
+        let info_attributes_path = git_dir.join("info").join("attributes");
+        let mut buf = Vec::new();
+        let mut collection = gix_attributes::search::MetadataCollection::default();
+        let res = gix_worktree::cache::state::Attributes::new(
+            gix_attributes::Search::new_globals(attribute_files, &mut buf, &mut collection)?,
+            Some(info_attributes_path),
+            source,
+            collection,
+        );
+        Ok((res, buf))
+    }
+
     pub(crate) fn xdg_config_path(
         &self,
         resource_file_name: &str,
     ) -> Result<Option<PathBuf>, gix_sec::permission::Error<PathBuf>> {
         std::env::var_os("XDG_CONFIG_HOME")
-            .map(|path| (PathBuf::from(path), &self.xdg_config_home_env))
+            .map(|path| (PathBuf::from(path), &self.environment.xdg_config_home))
             .or_else(|| {
-                std::env::var_os("HOME").map(|path| {
+                gix_path::env::home_dir().map(|mut p| {
                     (
                         {
-                            let mut p = PathBuf::from(path);
                             p.push(".config");
                             p
                         },
-                        &self.home_env,
+                        &self.environment.home,
                     )
                 })
             })
@@ -226,8 +282,6 @@ impl Cache {
     /// We never fail for here even if the permission is set to deny as we `gix-config` will fail later
     /// if it actually wants to use the home directory - we don't want to fail prematurely.
     pub(crate) fn home_dir(&self) -> Option<PathBuf> {
-        std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .and_then(|path| self.home_env.check_opt(path))
+        gix_path::env::home_dir().and_then(|path| self.environment.home.check_opt(path))
     }
 }

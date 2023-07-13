@@ -10,9 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "yoke"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 include = [
     "src/**/*",
@@ -23,6 +23,7 @@ include = [
     "README.md",
 ]
 description = "Abstraction allowing borrowed data to be carried along with the backing data it borrows from"
+readme = "README.md"
 keywords = [
     "zerocopy",
     "serialization",
@@ -38,7 +39,6 @@ categories = [
 ]
 license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
-resolver = "2"
 
 [package.metadata.workspaces]
 independent = true

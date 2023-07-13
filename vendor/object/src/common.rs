@@ -27,6 +27,7 @@ pub enum Architecture {
     Sbf,
     Sparc64,
     Wasm32,
+    Wasm64,
     Xtensa,
 }
 
@@ -58,6 +59,7 @@ impl Architecture {
             Architecture::Sbf => Some(AddressSize::U64),
             Architecture::Sparc64 => Some(AddressSize::U64),
             Architecture::Wasm32 => Some(AddressSize::U32),
+            Architecture::Wasm64 => Some(AddressSize::U64),
             Architecture::Xtensa => Some(AddressSize::U32),
         }
     }
@@ -122,6 +124,11 @@ pub enum SectionKind {
     ///
     /// Example Mach-O sections: `__TEXT/__const`, `__DATA/__const`, `__TEXT/__literal4`
     ReadOnlyData,
+    /// A read only data section with relocations.
+    ///
+    /// This is the same as either `Data` or `ReadOnlyData`, depending on the file format.
+    /// This value is only used in the API for writing files. It is never returned when reading files.
+    ReadOnlyDataWithRel,
     /// A loadable string section.
     ///
     /// Example ELF sections: `.rodata.str`
@@ -450,7 +457,7 @@ pub enum SectionFlags {
 /// Symbol flags that are specific to each file format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-pub enum SymbolFlags<Section> {
+pub enum SymbolFlags<Section, Symbol> {
     /// No symbol flags.
     None,
     /// ELF symbol flags.
@@ -471,5 +478,22 @@ pub enum SymbolFlags<Section> {
         selection: u8,
         /// `Number` field in the auxiliary symbol for the section.
         associative_section: Option<Section>,
+    },
+    /// XCOFF symbol flags.
+    Xcoff {
+        /// `n_sclass` field in the XCOFF symbol.
+        n_sclass: u8,
+        /// `x_smtyp` field in the CSECT auxiliary symbol.
+        ///
+        /// Only valid if `n_sclass` is `C_EXT`, `C_WEAKEXT`, or `C_HIDEXT`.
+        x_smtyp: u8,
+        /// `x_smclas` field in the CSECT auxiliary symbol.
+        ///
+        /// Only valid if `n_sclass` is `C_EXT`, `C_WEAKEXT`, or `C_HIDEXT`.
+        x_smclas: u8,
+        /// The containing csect for the symbol.
+        ///
+        /// Only valid if `x_smtyp` is `XTY_LD`.
+        containing_csect: Option<Symbol>,
     },
 }

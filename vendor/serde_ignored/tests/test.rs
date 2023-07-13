@@ -1,3 +1,9 @@
+#![allow(
+    clippy::derive_partial_eq_without_eq,
+    clippy::from_iter_instead_of_collect,
+    clippy::zero_sized_map_values
+)]
+
 use serde::Deserialize;
 use serde_derive::Deserialize;
 use std::collections::{BTreeMap as Map, BTreeSet as Set};
@@ -16,7 +22,7 @@ where
     })
     .unwrap();
 
-    let expected = Set::from_iter(expected.into_iter().cloned().map(str::to_owned));
+    let expected = Set::from_iter(expected.iter().copied().map(str::to_owned));
     assert_eq!(unused, expected);
 
     value
@@ -24,6 +30,7 @@ where
 
 #[derive(Debug, Deserialize)]
 struct V {
+    #[allow(dead_code)]
     used: (),
 }
 
@@ -77,6 +84,7 @@ fn test_readme() {
 fn test_int_key() {
     #[derive(Debug, Deserialize)]
     struct Test {
+        #[allow(dead_code)]
         a: Map<usize, V>,
     }
 

@@ -433,7 +433,7 @@ impl<'tcx> Printer<'tcx> for &mut SymbolMangler<'tcx> {
             // Mangle all nominal types as paths.
             ty::Adt(ty::AdtDef(Interned(&ty::AdtDefData { did: def_id, .. }, _)), substs)
             | ty::FnDef(def_id, substs)
-            | ty::Alias(_, ty::AliasTy { def_id, substs, .. })
+            | ty::Alias(ty::Projection | ty::Opaque, ty::AliasTy { def_id, substs, .. })
             | ty::Closure(def_id, substs)
             | ty::Generator(def_id, substs, _) => {
                 self = self.print_def_path(def_id, substs)?;
@@ -482,6 +482,7 @@ impl<'tcx> Printer<'tcx> for &mut SymbolMangler<'tcx> {
                 self = r.print(self)?;
             }
 
+            ty::Alias(ty::Inherent, _) => bug!("symbol_names: unexpected inherent projection"),
             ty::GeneratorWitness(_) => bug!("symbol_names: unexpected `GeneratorWitness`"),
             ty::GeneratorWitnessMIR(..) => bug!("symbol_names: unexpected `GeneratorWitnessMIR`"),
         }
@@ -731,7 +732,7 @@ impl<'tcx> Printer<'tcx> for &mut SymbolMangler<'tcx> {
     fn path_crate(self, cnum: CrateNum) -> Result<Self::Path, Self::Error> {
         self.push("C");
         let stable_crate_id = self.tcx.def_path_hash(cnum.as_def_id()).stable_crate_id();
-        self.push_disambiguator(stable_crate_id.to_u64());
+        self.push_disambiguator(stable_crate_id.as_u64());
         let name = self.tcx.crate_name(cnum);
         self.push_ident(name.as_str());
         Ok(self)

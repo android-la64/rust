@@ -1,7 +1,7 @@
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "sfc.dll""system" #[doc = "*Required features: `\"Win32_System_Restore\"`, `\"Win32_Foundation\"`*"] fn SRSetRestorePointA ( prestoreptspec : *const RESTOREPOINTINFOA , psmgrstatus : *mut STATEMGRSTATUS ) -> super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "sfc.dll""system" #[doc = "*Required features: `\"Win32_System_Restore\"`, `\"Win32_Foundation\"`*"] fn SRSetRestorePointA ( prestoreptspec : *const RESTOREPOINTINFOA , psmgrstatus : *mut STATEMGRSTATUS ) -> super::super::Foundation:: BOOL );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "sfc.dll""system" #[doc = "*Required features: `\"Win32_System_Restore\"`, `\"Win32_Foundation\"`*"] fn SRSetRestorePointW ( prestoreptspec : *const RESTOREPOINTINFOW , psmgrstatus : *mut STATEMGRSTATUS ) -> super::super::Foundation:: BOOL );
+::windows_targets::link ! ( "sfc.dll""system" #[doc = "*Required features: `\"Win32_System_Restore\"`, `\"Win32_Foundation\"`*"] fn SRSetRestorePointW ( prestoreptspec : *const RESTOREPOINTINFOW , psmgrstatus : *mut STATEMGRSTATUS ) -> super::super::Foundation:: BOOL );
 #[doc = "*Required features: `\"Win32_System_Restore\"`*"]
 pub const ACCESSIBILITY_SETTING: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_Restore\"`*"]
@@ -67,17 +67,14 @@ pub const MODIFY_SETTINGS: RESTOREPOINTINFO_TYPE = 12u32;
 #[doc = "*Required features: `\"Win32_System_Restore\"`*"]
 pub const CANCELLED_OPERATION: RESTOREPOINTINFO_TYPE = 13u32;
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_System_Restore\"`, `\"Win32_Foundation\"`*"]
-#[cfg(feature = "Win32_Foundation")]
+#[doc = "*Required features: `\"Win32_System_Restore\"`*"]
 pub struct RESTOREPOINTINFOA {
     pub dwEventType: RESTOREPOINTINFO_EVENT_TYPE,
     pub dwRestorePtType: RESTOREPOINTINFO_TYPE,
     pub llSequenceNumber: i64,
-    pub szDescription: [super::super::Foundation::CHAR; 64],
+    pub szDescription: [u8; 64],
 }
-#[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for RESTOREPOINTINFOA {}
-#[cfg(feature = "Win32_Foundation")]
 impl ::core::clone::Clone for RESTOREPOINTINFOA {
     fn clone(&self) -> Self {
         *self

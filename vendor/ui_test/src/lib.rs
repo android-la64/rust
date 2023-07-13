@@ -4,19 +4,22 @@
     clippy::too_many_arguments,
     rustc::internal
 )]
+#![deny(missing_docs)]
+
+//! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::Result;
-use colored::*;
+use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::unbounded;
-use parser::{ErrorMatch, Pattern};
+use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
-use rustc_stderr::{Level, Message};
-use std::collections::VecDeque;
+use rustc_stderr::{Diagnostics, Level, Message};
+use status_emitter::StatusEmitter;
+use std::borrow::Cow;
+use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::fmt::Display;
-use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -27,17 +30,16 @@ use crate::parser::{Comments, Condition};
 
 mod dependencies;
 mod diff;
+pub mod github_actions;
 mod parser;
 mod rustc_stderr;
+pub mod status_emitter;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+/// Central datastructure containing all information to run the tests.
 pub struct Config {
-    /// Arguments passed to the binary that is executed.
-    /// Take care to only append unless you actually meant to overwrite the defaults.
-    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
-    pub args: Vec<OsString>,
     /// Arguments passed to the binary that is executed.
     /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
     pub trailing_args: Vec<OsString>,
@@ -45,14 +47,22 @@ pub struct Config {
     pub host: Option<String>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
-    /// Filters applied to stderr output before processing it
+    /// Filters applied to stderr output before processing it.
+    /// By default contains a filter for replacing backslashes with regular slashes.
+    /// On windows, contains a filter to replace `\n` with `\r\n`.
     pub stderr_filters: Filter,
-    /// Filters applied to stdout output before processing it
+    /// Filters applied to stdout output before processing it.
+    /// On windows, contains a filter to replace `\n` with `\r\n`.
     pub stdout_filters: Filter,
     /// The folder in which to start searching for .rs files
     pub root_dir: PathBuf,
+    /// The mode in which to run the tests.
     pub mode: Mode,
-    pub program: PathBuf,
+    /// The binary to actually execute.
+    pub program: CommandBuilder,
+    /// The command to run to obtain the cfgs that the output is supposed to
+    pub cfgs: CommandBuilder,
+    /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
     /// Only run tests with one of these strings in their path/name
     pub path_filter: Vec<String>,
@@ -60,105 +70,224 @@ pub struct Config {
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
     /// dependencies in `dependencies_crate_manifest_path`
-    pub dependency_builder: DependencyBuilder,
+    pub dependency_builder: CommandBuilder,
     /// Print one character per test instead of one line
     pub quiet: bool,
     /// How many threads to use for running tests. Defaults to number of cores
     pub num_test_threads: NonZeroUsize,
+    /// Where to dump files like the binaries compiled from tests.
+    pub out_dir: Option<PathBuf>,
+    /// The default edition to use on all tests
+    pub edition: Option<String>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            args: vec!["--error-format=json".into()],
             trailing_args: vec![],
             host: None,
             target: None,
-            stderr_filters: vec![],
-            stdout_filters: vec![],
+            stderr_filters: vec![
+                (Match::Exact(vec![b'\\']), b"/"),
+                #[cfg(windows)]
+                (Match::Exact(vec![b'\r']), b""),
+            ],
+            stdout_filters: vec![
+                #[cfg(windows)]
+                (Match::Exact(vec![b'\r']), b""),
+            ],
             root_dir: PathBuf::new(),
             mode: Mode::Fail {
                 require_patterns: true,
             },
-            program: PathBuf::from("rustc"),
+            program: CommandBuilder::rustc(),
+            cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Error,
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
-            dependency_builder: DependencyBuilder::default(),
-            quiet: true,
+            dependency_builder: CommandBuilder::cargo(),
+            quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
+            out_dir: None,
+            edition: Some("2021".into()),
         }
     }
 }
 
 impl Config {
+    /// Replace all occurrences of a path in stderr with a byte string.
+    pub fn path_stderr_filter(
+        &mut self,
+        path: &Path,
+        replacement: &'static (impl AsRef<[u8]> + ?Sized),
+    ) {
+        let pattern = path.canonicalize().unwrap();
+        self.stderr_filters
+            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+    }
+
+    /// Replace all occurrences of a regex pattern in stderr with a byte string.
     pub fn stderr_filter(
         &mut self,
         pattern: &str,
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         self.stderr_filters
-            .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
+            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
     }
 
+    /// Replace all occurrences of a regex pattern in stdout with a byte string.
     pub fn stdout_filter(
         &mut self,
         pattern: &str,
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         self.stdout_filters
-            .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
+            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
     }
 
     fn build_dependencies_and_link_them(&mut self) -> Result<()> {
         let dependencies = build_dependencies(self)?;
-        for (name, dependency) in dependencies.dependencies {
-            self.args.push("--extern".into());
-            let mut dep = OsString::from(name);
-            dep.push("=");
-            dep.push(dependency);
-            self.args.push(dep);
+        for (name, artifacts) in dependencies.dependencies {
+            for dependency in artifacts {
+                self.program.args.push("--extern".into());
+                let mut dep = OsString::from(&name);
+                dep.push("=");
+                dep.push(dependency);
+                self.program.args.push(dep);
+            }
         }
         for import_path in dependencies.import_paths {
-            self.args.push("-L".into());
-            self.args.push(import_path.into());
+            self.program.args.push("-L".into());
+            self.program.args.push(import_path.into());
         }
         Ok(())
     }
 
     /// Make sure we have the host and target triples.
-    pub fn fill_host_and_target(&mut self) {
+    pub fn fill_host_and_target(&mut self) -> Result<()> {
         if self.host.is_none() {
             self.host = Some(
-                rustc_version::VersionMeta::for_command(std::process::Command::new(&self.program))
-                    .expect("failed to parse rustc version info")
-                    .host,
+                rustc_version::VersionMeta::for_command(std::process::Command::new(
+                    &self.program.program,
+                ))
+                .map_err(|err| {
+                    color_eyre::eyre::Report::new(err).wrap_err(format!(
+                        "failed to parse rustc version info: {}",
+                        self.program.display()
+                    ))
+                })?
+                .host,
             );
         }
         if self.target.is_none() {
             self.target = Some(self.host.clone().unwrap());
         }
+        Ok(())
+    }
+
+    fn has_asm_support(&self) -> bool {
+        static ASM_SUPPORTED_ARCHS: &[&str] = &[
+            "x86", "x86_64", "arm", "aarch64", "riscv32",
+            "riscv64",
+            // These targets require an additional asm_experimental_arch feature.
+            // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
+        ];
+        ASM_SUPPORTED_ARCHS
+            .iter()
+            .any(|arch| self.target.as_ref().unwrap().contains(arch))
     }
 }
 
-#[derive(Debug)]
-pub struct DependencyBuilder {
+#[derive(Debug, Clone)]
+/// A command, its args and its environment. Used for
+/// the main command, the dependency builder and the cfg-reader.
+pub struct CommandBuilder {
+    /// Path to the binary.
     pub program: PathBuf,
-    pub args: Vec<String>,
-    pub envs: Vec<(String, OsString)>,
+    /// Arguments to the binary.
+    pub args: Vec<OsString>,
+    /// Environment variables passed to the binary that is executed.
+    /// The environment variable is removed if the second tuple field is `None`
+    pub envs: Vec<(OsString, Option<OsString>)>,
 }
 
-impl Default for DependencyBuilder {
-    fn default() -> Self {
+impl CommandBuilder {
+    /// Uses the `CARGO` env var or just a program named `cargo` and the argument `build`.
+    pub fn cargo() -> Self {
         Self {
             program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
             args: vec!["build".into()],
             envs: vec![],
         }
     }
+
+    /// Uses the `RUSTC` env var or just a program named `rustc` and the argument `--error-format=json`.
+    ///
+    /// Take care to only append unless you actually meant to overwrite the defaults.
+    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
+    pub fn rustc() -> Self {
+        Self {
+            program: PathBuf::from(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into())),
+            args: vec!["--error-format=json".into()],
+            envs: vec![],
+        }
+    }
+
+    /// Same as [`rustc`], but with arguments for obtaining the cfgs.
+    pub fn cfgs() -> Self {
+        Self {
+            args: vec!["--print".into(), "cfg".into()],
+            ..Self::rustc()
+        }
+    }
+
+    /// Build a `CommandBuilder` for a command without any argumemnts.
+    /// You can still add arguments later.
+    pub fn cmd(cmd: impl Into<PathBuf>) -> Self {
+        Self {
+            program: cmd.into(),
+            args: vec![],
+            envs: vec![],
+        }
+    }
+
+    /// Render the command like you'd use it on a command line.
+    pub fn display(&self) -> impl std::fmt::Display + '_ {
+        struct Display<'a>(&'a CommandBuilder);
+        impl std::fmt::Display for Display<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.program.display().fmt(f)?;
+                for arg in &self.0.args {
+                    write!(f, " {arg:?}")?;
+                }
+                Ok(())
+            }
+        }
+        Display(self)
+    }
+
+    /// Create a command with the given settings.
+    pub fn build(&self) -> Command {
+        let mut cmd = Command::new(&self.program);
+        cmd.args(self.args.iter());
+        self.apply_env(&mut cmd);
+        cmd
+    }
+
+    fn apply_env(&self, cmd: &mut Command) {
+        for (var, val) in self.envs.iter() {
+            if let Some(val) = val {
+                cmd.env(var, val);
+            } else {
+                cmd.env_remove(var);
+            }
+        }
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
+/// The different options for what to do when stdout/stderr files differ from the actual output.
 pub enum OutputConflictHandling {
     /// The default: emit a diff of the expected/actual output.
     Error,
@@ -169,34 +298,99 @@ pub enum OutputConflictHandling {
     Bless,
 }
 
-pub type Filter = Vec<(Regex, &'static [u8])>;
-
-pub fn run_tests(mut config: Config) -> Result<()> {
-    eprintln!("   Compiler flags: {:?}", config.args);
-
-    config.build_dependencies_and_link_them()?;
-
-    run_tests_generic(config, |path| {
-        path.extension().map(|ext| ext == "rs").unwrap_or(false)
-    })
+/// A filter's match rule.
+#[derive(Clone, Debug)]
+pub enum Match {
+    /// If the regex matches, the filter applies
+    Regex(Regex),
+    /// If the exact byte sequence is found, the filter applies
+    Exact(Vec<u8>),
+}
+impl Match {
+    fn replace_all<'a>(&self, text: &'a [u8], replacement: &[u8]) -> Cow<'a, [u8]> {
+        match self {
+            Match::Regex(regex) => regex.replace_all(text, replacement),
+            Match::Exact(needle) => text.replace(needle, replacement).into(),
+        }
+    }
 }
 
-pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitStatus> {
+impl From<&'_ Path> for Match {
+    fn from(v: &Path) -> Self {
+        let mut v = v.display().to_string();
+        // Normalize away windows canonicalized paths.
+        if v.starts_with(r#"\\?\"#) {
+            v.drain(0..4);
+        }
+        let mut v = v.into_bytes();
+        // Normalize paths on windows to use slashes instead of backslashes,
+        // So that paths are rendered the same on all systems.
+        for c in &mut v {
+            if *c == b'\\' {
+                *c = b'/';
+            }
+        }
+        Self::Exact(v)
+    }
+}
+
+impl From<Regex> for Match {
+    fn from(v: Regex) -> Self {
+        Self::Regex(v)
+    }
+}
+
+/// Replacements to apply to output files.
+pub type Filter = Vec<(Match, &'static [u8])>;
+
+/// Run all tests as described in the config argument.
+pub fn run_tests(config: Config) -> Result<()> {
+    eprintln!("   Compiler: {}", config.program.display());
+
+    run_tests_generic(
+        config,
+        |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
+        |_, _| None,
+        status_emitter::TextAndGha,
+    )
+}
+
+/// Create a command for running a single file, with the settings from the `config` argument.
+/// Ignores various settings from `Config` that relate to finding test files.
+pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.build_dependencies_and_link_them()?;
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    Ok(build_command(path, &config, "", &comments).status()?)
+    let mut errors = vec![];
+    let result = build_command(
+        path,
+        &config,
+        "",
+        &comments,
+        config.out_dir.as_deref(),
+        &mut errors,
+    );
+    assert!(errors.is_empty(), "{errors:#?}");
+    Ok(result)
 }
 
 #[allow(clippy::large_enum_variant)]
-enum TestResult {
+/// The possible results a single test can have.
+pub enum TestResult {
+    /// The test passed
     Ok,
+    /// The test was ignored due to a rule (`//@only-*` or `//@ignore-*`)
     Ignored,
+    /// The test was filtered with the `file_filter` argument.
     Filtered,
+    /// The test failed.
     Errored {
+        /// Command that failed
         command: Command,
+        /// The errors that were encountered.
         errors: Vec<Error>,
+        /// The full stderr of the test run.
         stderr: Vec<u8>,
     },
 }
@@ -207,11 +401,16 @@ struct TestRun {
     revision: String,
 }
 
+/// A version of `run_tests` that allows more fine-grained control over running tests.
 pub fn run_tests_generic(
     mut config: Config,
     file_filter: impl Fn(&Path) -> bool + Sync,
+    per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
+    status_emitter: impl StatusEmitter,
 ) -> Result<()> {
-    config.fill_host_and_target();
+    config.fill_host_and_target()?;
+
+    config.build_dependencies_and_link_them()?;
 
     // A channel for files to process
     let (submit, receive) = unbounded();
@@ -226,6 +425,9 @@ pub fn run_tests_generic(
             todo.push_back(config.root_dir.clone());
             while let Some(path) = todo.pop_front() {
                 if path.is_dir() {
+                    if path.file_name().unwrap() == "auxiliary" {
+                        continue;
+                    }
                     // Enqueue everything inside this directory.
                     // We want it sorted, to have some control over scheduling of slow tests.
                     let mut entries = std::fs::read_dir(path)
@@ -251,43 +453,11 @@ pub fn run_tests_generic(
         let (finished_files_sender, finished_files_recv) = unbounded::<TestRun>();
 
         s.spawn(|| {
-            if config.quiet {
-                for (i, run) in finished_files_recv.into_iter().enumerate() {
-                    // Humans start counting at 1
-                    let i = i + 1;
-                    match run.result {
-                        TestResult::Ok => eprint!("{}", ".".green()),
-                        TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
-                        TestResult::Ignored => eprint!("{}", "i".yellow()),
-                        TestResult::Filtered => {}
-                    }
-                    if i % 100 == 0 {
-                        eprintln!(" {i}");
-                    }
-                    results.push(run);
-                }
-            } else {
-                for run in finished_files_recv {
-                    let result = match run.result {
-                        TestResult::Ok => Some("ok".green()),
-                        TestResult::Errored { .. } => Some("FAILED".red().bold()),
-                        TestResult::Ignored => Some("ignored (in-test comment)".yellow()),
-                        TestResult::Filtered => None,
-                    };
-                    if let Some(result) = result {
-                        eprint!(
-                            "{}{} ... ",
-                            run.path.display(),
-                            if run.revision.is_empty() {
-                                "".into()
-                            } else {
-                                format!(" ({})", run.revision)
-                            }
-                        );
-                        eprintln!("{}", result);
-                    }
-                    results.push(run);
-                }
+            let mut status_emitter = status_emitter.run_tests(&config);
+            for run in finished_files_recv {
+                status_emitter.test_result(&run.path, &run.revision, &run.result);
+
+                results.push(run);
             }
         });
 
@@ -299,7 +469,36 @@ pub fn run_tests_generic(
             threads.push(s.spawn(|| -> Result<()> {
                 let finished_files_sender = finished_files_sender;
                 for path in &receive {
-                    for result in parse_and_test_file(path, &config) {
+                    let maybe_config;
+                    let config = match per_file_config(&config, &path) {
+                        None => &config,
+                        Some(config) => {
+                            maybe_config = config;
+                            &maybe_config
+                        }
+                    };
+                    let result =
+                        match std::panic::catch_unwind(|| parse_and_test_file(&path, config)) {
+                            Ok(res) => res,
+                            Err(err) => {
+                                finished_files_sender.send(TestRun {
+                                    result: TestResult::Errored {
+                                        command: Command::new("<unknown>"),
+                                        errors: vec![Error::Bug(
+                                            *Box::<dyn std::any::Any + Send + 'static>::downcast::<
+                                                String,
+                                            >(err)
+                                            .unwrap(),
+                                        )],
+                                        stderr: vec![],
+                                    },
+                                    path,
+                                    revision: String::new(),
+                                })?;
+                                continue;
+                            }
+                        };
+                    for result in result {
                         finished_files_sender.send(result)?;
                     }
                 }
@@ -331,124 +530,20 @@ pub fn run_tests_generic(
         }
     }
 
-    // Print all errors in a single thread to show reliable output
-    if !failures.is_empty() {
-        for (path, cmd, revision, errors, stderr) in &failures {
-            eprintln!();
-            eprint!("{}", path.display().to_string().underline().bold());
-            if !revision.is_empty() {
-                eprint!(" (revision `{}`)", revision);
-            }
-            eprint!(" {}", "FAILED:".red().bold());
-            eprintln!();
-            eprintln!("command: {:?}", cmd);
-            eprintln!();
-            for error in errors {
-                match error {
-                    Error::ExitStatus {
-                        mode,
-                        status,
-                        expected,
-                    } => {
-                        eprintln!("{mode} test got {status}, but expected {expected}")
-                    }
-                    Error::PatternNotFound {
-                        pattern,
-                        definition_line,
-                    } => {
-                        match pattern {
-                            Pattern::SubString(s) => {
-                                eprintln!("substring `{s}` {} in stderr output", "not found".red())
-                            }
-                            Pattern::Regex(r) => {
-                                eprintln!("`/{r}/` does {} stderr output", "not match".red())
-                            }
-                        }
-                        eprintln!(
-                            "expected because of pattern here: {}:{definition_line}",
-                            path.display().to_string().bold()
-                        );
-                    }
-                    Error::NoPatternsFound => {
-                        eprintln!("{}", "no error patterns found in fail test".red());
-                    }
-                    Error::PatternFoundInPassTest => {
-                        eprintln!("{}", "error pattern found in pass test".red())
-                    }
-                    Error::OutputDiffers {
-                        path,
-                        actual,
-                        expected,
-                    } => {
-                        eprintln!("{}", "actual output differed from expected".underline());
-                        eprintln!("{}", format!("--- {}", path.display()).red());
-                        eprintln!("{}", "+++ <stderr output>".green());
-                        diff::print_diff(expected, actual);
-                    }
-                    Error::ErrorsWithoutPattern { path: None, msgs } => {
-                        eprintln!(
-                            "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
-                            msgs.len(),
-                        );
-                        for Message { level, message } in msgs {
-                            eprintln!("    {level:?}: {message}")
-                        }
-                    }
-                    Error::ErrorsWithoutPattern {
-                        path: Some((path, line)),
-                        msgs,
-                    } => {
-                        eprintln!(
-                            "There were {} unmatched diagnostics at {}:{line}",
-                            msgs.len(),
-                            path.display()
-                        );
-                        for Message { level, message } in msgs {
-                            eprintln!("    {level:?}: {message}")
-                        }
-                    }
-                    Error::InvalidComment { msg, line } => {
-                        eprintln!(
-                            "Could not parse comment in {}:{line} because {msg}",
-                            path.display()
-                        )
-                    }
-                }
-                eprintln!();
-            }
-            eprintln!("full stderr:");
-            std::io::stderr().write_all(stderr).unwrap();
-            eprintln!();
-            eprintln!();
-        }
-        eprintln!("{}", "FAILURES:".red().underline().bold());
-        for (path, _cmd, _revision, _errors, _stderr) in &failures {
-            eprintln!("    {}", path.display());
-        }
-        eprintln!();
-        eprintln!(
-            "test result: {}. {} tests failed, {} tests passed, {} ignored, {} filtered out",
-            "FAIL".red(),
-            failures.len().to_string().red().bold(),
-            succeeded.to_string().green(),
-            ignored.to_string().yellow(),
-            filtered.to_string().yellow(),
-        );
-        std::process::exit(1);
+    let mut failure_emitter = status_emitter.finalize(failures.len(), succeeded, ignored, filtered);
+    for (path, command, revision, errors, stderr) in &failures {
+        let _guard = status_emitter.failed_test(revision, path, command, stderr);
+        failure_emitter.test_failure(path, revision, errors);
     }
-    eprintln!();
-    eprintln!(
-        "test result: {}. {} tests passed, {} ignored, {} filtered out",
-        "ok".green(),
-        succeeded.to_string().green(),
-        ignored.to_string().yellow(),
-        filtered.to_string().yellow(),
-    );
-    eprintln!();
-    Ok(())
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(eyre!("tests failed"))
+    }
 }
 
-fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
+fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
     if !config.path_filter.is_empty() {
         let path_display = path.display().to_string();
         if !config
@@ -458,32 +553,21 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
         {
             return vec![TestRun {
                 result: TestResult::Filtered,
-                path,
+                path: path.into(),
                 revision: "".into(),
             }];
         }
     }
-    let comments = match Comments::parse_file(&path) {
-        Ok(Ok(comments)) => comments,
-        Ok(Err(errors)) => {
+    let comments = match parse_comments_in_file(path) {
+        Ok(comments) => comments,
+        Err((stderr, errors)) => {
             return vec![TestRun {
                 result: TestResult::Errored {
                     command: Command::new("parse comments"),
                     errors,
-                    stderr: vec![],
+                    stderr,
                 },
-                path: path.clone(),
-                revision: "".into(),
-            }];
-        }
-        Err(err) => {
-            return vec![TestRun {
-                result: TestResult::Errored {
-                    command: Command::new("parse comments"),
-                    errors: vec![],
-                    stderr: format!("{err:?}").into(),
-                },
-                path,
+                path: path.into(),
                 revision: "".into(),
             }]
         }
@@ -499,11 +583,11 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
             if !test_file_conditions(&comments, config, &revision) {
                 return TestRun {
                     result: TestResult::Ignored,
-                    path: path.clone(),
+                    path: path.into(),
                     revision,
                 };
             }
-            let (command, errors, stderr) = run_test(&path, config, &revision, &comments);
+            let (command, errors, stderr) = run_test(path, config, &revision, &comments);
             let result = if errors.is_empty() {
                 TestResult::Ok
             } else {
@@ -516,22 +600,37 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
             TestRun {
                 result,
                 revision,
-                path: path.clone(),
+                path: path.into(),
             }
         })
         .collect()
 }
 
+fn parse_comments_in_file(path: &Path) -> Result<Comments, (Vec<u8>, Vec<Error>)> {
+    match Comments::parse_file(path) {
+        Ok(Ok(comments)) => Ok(comments),
+        Ok(Err(errors)) => Err((vec![], errors)),
+        Err(err) => Err((format!("{err:?}").into(), vec![])),
+    }
+}
+
+/// All the ways in which a test can fail.
 #[derive(Debug)]
-enum Error {
+pub enum Error {
     /// Got an invalid exit status for the given mode.
     ExitStatus {
+        /// The expected mode.
         mode: Mode,
+        /// The exit status of the command.
         status: ExitStatus,
+        /// The expected exit status as set in the file or derived from the mode.
         expected: i32,
     },
+    /// A pattern was declared but had no matching error.
     PatternNotFound {
+        /// The pattern that was missing an error
         pattern: Pattern,
+        /// The line in which the pattern was defined.
         definition_line: usize,
     },
     /// A ui test checking for failure does not have any failure patterns
@@ -540,25 +639,62 @@ enum Error {
     PatternFoundInPassTest,
     /// Stderr/Stdout differed from the `.stderr`/`.stdout` file present.
     OutputDiffers {
+        /// The file containing the expected output that differs from the actual output.
         path: PathBuf,
+        /// The output from the command.
         actual: Vec<u8>,
+        /// The contents of the file.
         expected: Vec<u8>,
     },
+    /// There were errors that don't have a pattern.
     ErrorsWithoutPattern {
+        /// The main message of the error.
         msgs: Vec<Message>,
+        /// File and line information of the error.
         path: Option<(PathBuf, usize)>,
     },
+    /// A comment failed to parse.
     InvalidComment {
+        /// The comment
         msg: String,
+        /// THe line in which it was defined.
+        line: usize,
+    },
+    /// A subcommand (e.g. rustfix) of a test failed.
+    Command {
+        /// The name of the subcommand (e.g. "rustfix").
+        kind: String,
+        /// The exit status of the command.
+        status: ExitStatus,
+    },
+    /// This catches crashes of ui tests and reports them along the failed test.
+    Bug(String),
+    /// An auxiliary build failed with its own set of errors.
+    Aux {
+        /// Path to the aux file.
+        path: PathBuf,
+        /// The errors that occurred during the build of the aux file.
+        errors: Vec<Error>,
+        /// The line in which the aux file was requested to be built.
         line: usize,
     },
 }
 
 type Errors = Vec<Error>;
 
-fn build_command(path: &Path, config: &Config, revision: &str, comments: &Comments) -> Command {
-    let mut cmd = Command::new(&config.program);
-    cmd.args(config.args.iter());
+fn build_command(
+    path: &Path,
+    config: &Config,
+    revision: &str,
+    comments: &Comments,
+    out_dir: Option<&Path>,
+    errors: &mut Vec<Error>,
+) -> Command {
+    let mut cmd = config.program.build();
+    if let Some(out_dir) = out_dir {
+        cmd.arg("--out-dir");
+        cmd.arg(out_dir);
+    }
     cmd.arg(path);
     if !revision.is_empty() {
         cmd.arg(format!("--cfg={revision}"));
@@ -568,6 +704,10 @@ fn build_command(path: &Path, config: &Config, revision: &str, comments: &Commen
         .flat_map(|r| r.compile_flags.iter())
     {
         cmd.arg(arg);
+    }
+    let edition = comments.edition(errors, revision, config);
+    if let Some((edition, _)) = edition {
+        cmd.arg("--edition").arg(edition);
     }
     cmd.args(config.trailing_args.iter());
     cmd.envs(
@@ -580,15 +720,153 @@ fn build_command(path: &Path, config: &Config, revision: &str, comments: &Commen
     cmd
 }
 
+fn build_aux(
+    aux_file: &Path,
+    path: &Path,
+    config: &Config,
+    revision: &str,
+    comments: &Comments,
+    kind: &str,
+    aux: &Path,
+    extra_args: &mut Vec<String>,
+) -> std::result::Result<(), (Command, Vec<Error>, Vec<u8>)> {
+    let comments = match parse_comments_in_file(aux_file) {
+        Ok(comments) => comments,
+        Err((msg, mut errors)) => {
+            return Err((
+                build_command(path, config, revision, comments, None, &mut errors),
+                errors,
+                msg,
+            ))
+        }
+    };
+    assert_eq!(comments.revisions, None);
+
+    // Put aux builds into a separate directory per test so that
+    // tests running in parallel but building the same aux build don't conflict.
+    // FIXME: put aux builds into the regular build queue.
+    let out_dir = config
+        .out_dir
+        .clone()
+        .unwrap_or_default()
+        .join(path.with_extension(""));
+
+    let mut errors = vec![];
+
+    let mut aux_cmd = build_command(
+        aux_file,
+        config,
+        revision,
+        &comments,
+        Some(&out_dir),
+        &mut errors,
+    );
+
+    if !errors.is_empty() {
+        return Err((aux_cmd, errors, vec![]));
+    }
+
+    let current_extra_args =
+        build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", config)?;
+    // Make sure we see our dependencies
+    aux_cmd.args(current_extra_args.iter());
+    // Make sure our dependents also see our dependencies.
+    extra_args.extend(current_extra_args);
+
+    aux_cmd.arg("--crate-type").arg(kind);
+    aux_cmd.arg("--emit=link");
+    let filename = aux.file_stem().unwrap().to_str().unwrap();
+    let output = aux_cmd.output().unwrap();
+    if !output.status.success() {
+        let error = Error::Command {
+            kind: "compilation of aux build failed".to_string(),
+            status: output.status,
+        };
+        return Err((
+            aux_cmd,
+            vec![error],
+            rustc_stderr::process(path, &output.stderr).rendered,
+        ));
+    }
+
+    // Now run the command again to fetch the output filenames
+    aux_cmd.arg("--print").arg("file-names");
+    let output = aux_cmd.output().unwrap();
+    assert!(output.status.success());
+
+    for file in output.stdout.lines() {
+        let file = std::str::from_utf8(file).unwrap();
+        let crate_name = filename.replace('-', "_");
+        let path = out_dir.join(file);
+        extra_args.push("--extern".into());
+        extra_args.push(format!("{crate_name}={}", path.display()));
+        // Help cargo find the crates added with `--extern`.
+        extra_args.push("-L".into());
+        extra_args.push(out_dir.display().to_string());
+    }
+    Ok(())
+}
+
 fn run_test(
     path: &Path,
     config: &Config,
     revision: &str,
     comments: &Comments,
 ) -> (Command, Errors, Vec<u8>) {
-    let mut cmd = build_command(path, config, revision, comments);
-    let output = cmd.output().expect("could not execute {cmd:?}");
-    let mut errors = config.mode.ok(output.status);
+    let extra_args = match build_aux_files(
+        path,
+        &path.parent().unwrap().join("auxiliary"),
+        comments,
+        revision,
+        config,
+    ) {
+        Ok(value) => value,
+        Err(value) => return value,
+    };
+
+    let mut errors = vec![];
+
+    let mut cmd = build_command(
+        path,
+        config,
+        revision,
+        comments,
+        config.out_dir.as_deref(),
+        &mut errors,
+    );
+    cmd.args(&extra_args);
+
+    let output = cmd
+        .output()
+        .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
+    let mode = config.mode.maybe_override(comments, revision, &mut errors);
+    let status_check = mode.ok(output.status);
+    if status_check.is_empty() && matches!(mode, Mode::Run { .. }) {
+        let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
+        return (cmd, errors, vec![]);
+    }
+    errors.extend(status_check);
+    if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        errors.push(Error::Bug(format!(
+            "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
+        )));
+        return (cmd, errors, vec![]);
+    }
+    // Always remove annotation comments from stderr.
+    let diagnostics = rustc_stderr::process(path, &output.stderr);
+    let rustfixed = matches!(mode, Mode::Fix).then(|| {
+        run_rustfix(
+            &output.stderr,
+            path,
+            comments,
+            revision,
+            config,
+            extra_args,
+            &mut errors,
+        )
+    });
     let stderr = check_test_result(
         path,
         config,
@@ -596,9 +874,204 @@ fn run_test(
         comments,
         &mut errors,
         &output.stdout,
+        diagnostics,
+    );
+    if let Some((mut rustfix, rustfix_path)) = rustfixed {
+        // picking the crate name from the file name is problematic when `.revision_name` is inserted
+        rustfix.arg("--crate-name").arg(
+            path.file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .replace('-', "_"),
+        );
+        let output = rustfix.output().unwrap();
+        if !output.status.success() {
+            errors.push(Error::Command {
+                kind: "rustfix".into(),
+                status: output.status,
+            });
+            return (
+                rustfix,
+                errors,
+                rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
+            );
+        }
+    }
+    (cmd, errors, stderr)
+}
+
+fn build_aux_files(
+    path: &Path,
+    aux_dir: &Path,
+    comments: &Comments,
+    revision: &str,
+    config: &Config,
+) -> Result<Vec<String>, (Command, Vec<Error>, Vec<u8>)> {
+    let mut extra_args = vec![];
+    for rev in comments.for_revision(revision) {
+        for (aux, kind, line) in &rev.aux_builds {
+            let aux_file = if aux.starts_with("..") {
+                aux_dir.parent().unwrap().join(aux)
+            } else {
+                aux_dir.join(aux)
+            };
+            if let Err((command, errors, msg)) = build_aux(
+                &aux_file,
+                path,
+                config,
+                revision,
+                comments,
+                kind,
+                aux,
+                &mut extra_args,
+            ) {
+                return Err((
+                    command,
+                    vec![Error::Aux {
+                        path: aux_file,
+                        errors,
+                        line: *line,
+                    }],
+                    msg,
+                ));
+            }
+        }
+    }
+    Ok(extra_args)
+}
+
+fn run_test_binary(
+    mode: Mode,
+    path: &Path,
+    revision: &str,
+    comments: &Comments,
+    mut cmd: Command,
+    config: &Config,
+    errors: &mut Vec<Error>,
+) -> Command {
+    let out_dir = config.out_dir.as_deref();
+    cmd.arg("--print").arg("file-names");
+    let output = cmd.output().unwrap();
+    assert!(output.status.success());
+
+    let mut files = output.stdout.lines();
+    let file = files.next().unwrap();
+    assert_eq!(files.next(), None);
+    let file = std::str::from_utf8(file).unwrap();
+    let exe = match out_dir {
+        None => PathBuf::from(file),
+        Some(path) => path.join(file),
+    };
+    let mut exe = Command::new(exe);
+    let output = exe.output().unwrap();
+
+    check_test_output(
+        path,
+        errors,
+        revision,
+        config,
+        comments,
+        &output.stdout,
         &output.stderr,
     );
-    (cmd, errors, stderr)
+
+    errors.extend(mode.ok(output.status));
+
+    exe
+}
+
+fn run_rustfix(
+    stderr: &[u8],
+    path: &Path,
+    comments: &Comments,
+    revision: &str,
+    config: &Config,
+    extra_args: Vec<String>,
+    errors: &mut Vec<Error>,
+) -> (Command, PathBuf) {
+    let input = std::str::from_utf8(stderr).unwrap();
+    let suggestions = rustfix::get_suggestions_from_json(
+        input,
+        &HashSet::new(),
+        if let Mode::Yolo = config.mode {
+            rustfix::Filter::Everything
+        } else {
+            rustfix::Filter::MachineApplicableOnly
+        },
+    )
+    .unwrap_or_else(|err| {
+        panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
+    });
+    let fixed_code =
+        rustfix::apply_suggestions(&std::fs::read_to_string(path).unwrap(), &suggestions)
+            .unwrap_or_else(|e| {
+                panic!(
+                    "failed to apply suggestions for {:?} with rustfix: {e}",
+                    path.display()
+                )
+            });
+    let edition = comments.edition(errors, revision, config);
+    let rustfix_comments = Comments {
+        revisions: None,
+        revisioned: std::iter::once((
+            vec![],
+            Revisioned {
+                ignore: vec![],
+                only: vec![],
+                stderr_per_bitwidth: false,
+                compile_flags: comments
+                    .for_revision(revision)
+                    .flat_map(|r| r.compile_flags.iter().cloned())
+                    .collect(),
+                env_vars: comments
+                    .for_revision(revision)
+                    .flat_map(|r| r.env_vars.iter().cloned())
+                    .collect(),
+                normalize_stderr: vec![],
+                error_in_other_files: vec![],
+                error_matches: vec![],
+                require_annotations_for_level: None,
+                aux_builds: comments
+                    .for_revision(revision)
+                    .flat_map(|r| r.aux_builds.iter().cloned())
+                    .collect(),
+                edition,
+                mode: Some((Mode::Pass, 0)),
+                needs_asm_support: false,
+            },
+        ))
+        .collect(),
+    };
+    let path = check_output(
+        fixed_code.as_bytes(),
+        path,
+        errors,
+        revised(revision, "fixed"),
+        &Filter::default(),
+        config,
+        &rustfix_comments,
+        revision,
+    );
+
+    let mut cmd = build_command(
+        &path,
+        config,
+        revision,
+        &rustfix_comments,
+        config.out_dir.as_deref(),
+        errors,
+    );
+    cmd.args(extra_args);
+    (cmd, path)
+}
+
+fn revised(revision: &str, extension: &str) -> String {
+    if revision.is_empty() {
+        extension.to_string()
+    } else {
+        format!("{revision}.{extension}")
+    }
 }
 
 fn check_test_result(
@@ -608,38 +1081,16 @@ fn check_test_result(
     comments: &Comments,
     errors: &mut Errors,
     stdout: &[u8],
-    stderr: &[u8],
+    diagnostics: Diagnostics,
 ) -> Vec<u8> {
-    // Always remove annotation comments from stderr.
-    let diagnostics = rustc_stderr::process(path, stderr);
-    // Check output files (if any)
-    let revised = |extension: &str| {
-        if revision.is_empty() {
-            extension.to_string()
-        } else {
-            format!("{}.{}", revision, extension)
-        }
-    };
-    // Check output files against actual output
-    check_output(
-        &diagnostics.rendered,
+    check_test_output(
         path,
         errors,
-        revised("stderr"),
-        &config.stderr_filters,
+        revision,
         config,
         comments,
-        revision,
-    );
-    check_output(
         stdout,
-        path,
-        errors,
-        revised("stdout"),
-        &config.stdout_filters,
-        config,
-        comments,
-        revision,
+        &diagnostics.rendered,
     );
     // Check error annotations in the source against output
     check_annotations(
@@ -654,6 +1105,39 @@ fn check_test_result(
     diagnostics.rendered
 }
 
+fn check_test_output(
+    path: &Path,
+    errors: &mut Vec<Error>,
+    revision: &str,
+    config: &Config,
+    comments: &Comments,
+    stdout: &[u8],
+    stderr: &[u8],
+) {
+    // Check output files (if any)
+    // Check output files against actual output
+    check_output(
+        stderr,
+        path,
+        errors,
+        revised(revision, "stderr"),
+        &config.stderr_filters,
+        config,
+        comments,
+        revision,
+    );
+    check_output(
+        stdout,
+        path,
+        errors,
+        revised(revision, "stdout"),
+        &config.stdout_filters,
+        config,
+        comments,
+        revision,
+    );
+}
+
 fn check_annotations(
     mut messages: Vec<Vec<Message>>,
     mut messages_from_unknown_file_or_line: Vec<Message>,
@@ -663,19 +1147,15 @@ fn check_annotations(
     revision: &str,
     comments: &Comments,
 ) {
-    let error_pattern = comments.find_one_for_revision(
-        revision,
-        |r| r.error_pattern.as_ref(),
-        |(_, line)| {
-            errors.push(Error::InvalidComment {
-                msg: "same revision defines pattern twice".into(),
-                line: *line,
-            })
-        },
-    );
-    if let Some((error_pattern, definition_line)) = error_pattern {
+    let error_patterns = comments
+        .for_revision(revision)
+        .flat_map(|r| r.error_in_other_files.iter());
+
+    let mut seen_error_match = false;
+    for (error_pattern, definition_line) in error_patterns {
+        seen_error_match = true;
         // first check the diagnostics messages outside of our file. We check this first, so that
-        // you can mix in-file annotations with //@error-pattern annotations, even if there is overlap
+        // you can mix in-file annotations with //@error-in-other-file annotations, even if there is overlap
         // in the messages.
         if let Some(i) = messages_from_unknown_file_or_line
             .iter()
@@ -694,7 +1174,6 @@ fn check_annotations(
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    let mut seen_error_match = false;
     for &ErrorMatch {
         ref pattern,
         definition_line,
@@ -726,39 +1205,46 @@ fn check_annotations(
         });
     }
 
-    let filter = |mut msgs: Vec<Message>, errors: &mut Vec<_>| -> Vec<_> {
-        let error = |_| {
-            errors.push(Error::InvalidComment {
-                msg: "`require_annotations_for_level` specified twice for same revision".into(),
-                line: 0,
-            })
-        };
-        let required_annotation_level = comments
-            .find_one_for_revision(revision, |r| r.require_annotations_for_level, error)
-            .unwrap_or(lowest_annotation_level);
+    let required_annotation_level = comments
+        .find_one_for_revision(
+            revision,
+            |r| r.require_annotations_for_level,
+            |_| {
+                errors.push(Error::InvalidComment {
+                    msg: "`require_annotations_for_level` specified twice for same revision".into(),
+                    line: 0,
+                })
+            },
+        )
+        .unwrap_or(lowest_annotation_level);
+    let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= required_annotation_level);
         msgs
     };
 
-    let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line, errors);
-    if !messages_from_unknown_file_or_line.is_empty() {
-        errors.push(Error::ErrorsWithoutPattern {
-            path: None,
-            msgs: messages_from_unknown_file_or_line,
-        });
-    }
+    let mode = config.mode.maybe_override(comments, revision, errors);
 
-    for (line, msgs) in messages.into_iter().enumerate() {
-        let msgs = filter(msgs, errors);
-        if !msgs.is_empty() {
+    if !matches!(config.mode, Mode::Yolo) {
+        let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
+        if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
-                path: Some((path.to_path_buf(), line)),
-                msgs,
+                path: None,
+                msgs: messages_from_unknown_file_or_line,
             });
+        }
+
+        for (line, msgs) in messages.into_iter().enumerate() {
+            let msgs = filter(msgs);
+            if !msgs.is_empty() {
+                errors.push(Error::ErrorsWithoutPattern {
+                    path: Some((path.to_path_buf(), line)),
+                    msgs,
+                });
+            }
         }
     }
 
-    match (config.mode, error_pattern.is_some() || seen_error_match) {
+    match (mode, seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
         (
             Mode::Fail {
@@ -779,23 +1265,23 @@ fn check_output(
     config: &Config,
     comments: &Comments,
     revision: &str,
-) {
+) -> PathBuf {
     let target = config.target.as_ref().unwrap();
     let output = normalize(path, output, filters, comments, revision);
     let path = output_path(path, comments, kind, target, revision);
     match config.output_conflict_handling {
         OutputConflictHandling::Bless => {
             if output.is_empty() {
-                let _ = std::fs::remove_file(path);
+                let _ = std::fs::remove_file(&path);
             } else {
-                std::fs::write(path, &output).unwrap();
+                std::fs::write(&path, &output).unwrap();
             }
         }
         OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
             if output != expected_output {
                 errors.push(Error::OutputDiffers {
-                    path,
+                    path: path.clone(),
                     actual: output,
                     expected: expected_output,
                 });
@@ -803,6 +1289,7 @@ fn check_output(
         }
         OutputConflictHandling::Ignore => {}
     }
+    path
 }
 
 fn output_path(
@@ -826,6 +1313,7 @@ fn test_condition(condition: &Condition, config: &Config) -> bool {
     match condition {
         Condition::Bitwidth(bits) => get_pointer_width(target) == *bits,
         Condition::Target(t) => target.contains(t),
+        Condition::Host(t) => config.host.as_ref().unwrap().contains(t),
         Condition::OnHost => target == config.host.as_ref().unwrap(),
     }
 }
@@ -836,6 +1324,12 @@ fn test_file_conditions(comments: &Comments, config: &Config, revision: &str) ->
         .for_revision(revision)
         .flat_map(|r| r.ignore.iter())
         .any(|c| test_condition(c, config))
+    {
+        return false;
+    }
+    if comments
+        .for_revision(revision)
+        .any(|r| r.needs_asm_support && !config.has_asm_support())
     {
         return false;
     }
@@ -866,13 +1360,15 @@ fn normalize(
     revision: &str,
 ) -> Vec<u8> {
     // Useless paths
-    let mut text = text.replace(&path.parent().unwrap().display().to_string(), "$DIR");
+    let path_filter = (Match::from(path.parent().unwrap()), b"$DIR" as &[u8]);
+    let filters = filters.iter().chain(std::iter::once(&path_filter));
+    let mut text = text.to_owned();
     if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
         text = text.replace(lib_path, "RUSTLIB");
     }
 
-    for (regex, replacement) in filters.iter() {
-        text = regex.replace_all(&text, *replacement).into_owned();
+    for (regex, replacement) in filters {
+        text = regex.replace_all(&text, replacement).into_owned();
     }
 
     for (from, to) in comments
@@ -885,9 +1381,17 @@ fn normalize(
 }
 
 #[derive(Copy, Clone, Debug)]
+/// Decides what is expected of each test's exit status.
 pub enum Mode {
+    /// The test fails with an error, but passes after running rustfix
+    Fix,
     /// The test passes a full execution of the rustc driver
     Pass,
+    /// The test produces an executable binary that can get executed on the host
+    Run {
+        /// The expected exit code
+        exit_code: i32,
+    },
     /// The rustc driver panicked
     Panic,
     /// The rustc driver emitted an error
@@ -895,14 +1399,18 @@ pub enum Mode {
         /// Whether failing tests must have error patterns. Set to false if you just care about .stderr output.
         require_patterns: bool,
     },
+    /// Run the tests, but always pass them as long as all annotations are satisfied and stderr files match.
+    Yolo,
 }
 
 impl Mode {
     fn ok(self, status: ExitStatus) -> Errors {
         let expected = match self {
+            Mode::Run { exit_code } => exit_code,
             Mode::Pass => 0,
             Mode::Panic => 101,
             Mode::Fail { .. } => 1,
+            Mode::Fix | Mode::Yolo => return vec![],
         };
         if status.code() == Some(expected) {
             vec![]
@@ -914,16 +1422,34 @@ impl Mode {
             }]
         }
     }
+    fn maybe_override(self, comments: &Comments, revision: &str, errors: &mut Vec<Error>) -> Self {
+        comments
+            .find_one_for_revision(
+                revision,
+                |r| r.mode.as_ref(),
+                |&(_, line)| {
+                    errors.push(Error::InvalidComment {
+                        msg: "multiple mode changes found".into(),
+                        line,
+                    })
+                },
+            )
+            .map(|&(mode, _)| mode)
+            .unwrap_or(self)
+    }
 }
 
 impl Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Mode::Run { exit_code } => write!(f, "run({exit_code})"),
             Mode::Pass => write!(f, "pass"),
             Mode::Panic => write!(f, "panic"),
             Mode::Fail {
                 require_patterns: _,
             } => write!(f, "fail"),
+            Mode::Yolo => write!(f, "yolo"),
+            Mode::Fix => write!(f, "fix"),
         }
     }
 }

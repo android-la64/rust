@@ -11,8 +11,9 @@ extern crate tracing;
 use fluent_bundle::FluentResource;
 use fluent_syntax::parser::ParserError;
 use icu_provider_adapters::fallback::{LocaleFallbackProvider, LocaleFallbacker};
-use rustc_data_structures::sync::Lrc;
-use rustc_macros::{fluent_messages, Decodable, Encodable};
+use rustc_data_structures::sync::{IntoDynSyncSend, Lrc};
+use rustc_fluent_macro::fluent_messages;
+use rustc_macros::{Decodable, Encodable};
 use rustc_span::Span;
 use std::borrow::Cow;
 use std::error::Error;
@@ -36,16 +37,17 @@ pub use unic_langid::{langid, LanguageIdentifier};
 
 fluent_messages! { "../messages.ftl" }
 
-pub type FluentBundle = fluent_bundle::bundle::FluentBundle<FluentResource, IntlLangMemoizer>;
-
-#[cfg(parallel_compiler)]
-fn new_bundle(locales: Vec<LanguageIdentifier>) -> FluentBundle {
-    FluentBundle::new_concurrent(locales)
-}
+pub type FluentBundle =
+    IntoDynSyncSend<fluent_bundle::bundle::FluentBundle<FluentResource, IntlLangMemoizer>>;
 
 #[cfg(not(parallel_compiler))]
 fn new_bundle(locales: Vec<LanguageIdentifier>) -> FluentBundle {
-    FluentBundle::new(locales)
+    IntoDynSyncSend(fluent_bundle::bundle::FluentBundle::new(locales))
+}
+
+#[cfg(parallel_compiler)]
+fn new_bundle(locales: Vec<LanguageIdentifier>) -> FluentBundle {
+    IntoDynSyncSend(fluent_bundle::bundle::FluentBundle::new_concurrent(locales))
 }
 
 #[derive(Debug)]
@@ -286,11 +288,19 @@ pub enum SubdiagnosticMessage {
     FluentAttr(FluentId),
 }
 
-/// `From` impl that enables existing diagnostic calls to functions which now take
-/// `impl Into<SubdiagnosticMessage>` to continue to work as before.
-impl<S: Into<String>> From<S> for SubdiagnosticMessage {
-    fn from(s: S) -> Self {
-        SubdiagnosticMessage::Str(s.into())
+impl From<String> for SubdiagnosticMessage {
+    fn from(s: String) -> Self {
+        SubdiagnosticMessage::Str(s)
+    }
+}
+impl<'a> From<&'a str> for SubdiagnosticMessage {
+    fn from(s: &'a str) -> Self {
+        SubdiagnosticMessage::Str(s.to_string())
+    }
+}
+impl From<Cow<'static, str>> for SubdiagnosticMessage {
+    fn from(s: Cow<'static, str>) -> Self {
+        SubdiagnosticMessage::Str(s.to_string())
     }
 }
 
@@ -351,11 +361,19 @@ impl DiagnosticMessage {
     }
 }
 
-/// `From` impl that enables existing diagnostic calls to functions which now take
-/// `impl Into<DiagnosticMessage>` to continue to work as before.
-impl<S: Into<String>> From<S> for DiagnosticMessage {
-    fn from(s: S) -> Self {
-        DiagnosticMessage::Str(s.into())
+impl From<String> for DiagnosticMessage {
+    fn from(s: String) -> Self {
+        DiagnosticMessage::Str(s)
+    }
+}
+impl<'a> From<&'a str> for DiagnosticMessage {
+    fn from(s: &'a str) -> Self {
+        DiagnosticMessage::Str(s.to_string())
+    }
+}
+impl From<Cow<'static, str>> for DiagnosticMessage {
+    fn from(s: Cow<'static, str>) -> Self {
+        DiagnosticMessage::Str(s.to_string())
     }
 }
 

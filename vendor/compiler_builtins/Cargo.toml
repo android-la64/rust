@@ -11,7 +11,7 @@
 
 [package]
 name = "compiler_builtins"
-version = "0.1.91"
+version = "0.1.92"
 authors = ["Jorge Aparicio <japaricious@gmail.com>"]
 links = "compiler-rt"
 include = [
@@ -70,3 +70,4 @@ rustc-dep-of-std = [
     "compiler-builtins",
     "core",
 ]
+weak-intrinsics = []

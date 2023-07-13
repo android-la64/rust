@@ -12,7 +12,8 @@ bitflags! {
     /// keep special rules only applicable when matching paths.
     ///
     /// The mode is typically created when parsing the pattern by inspecting it and isn't typically handled by the user.
-    #[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, Ord, PartialOrd)]
     pub struct Mode: u32 {
         /// The pattern does not contain a sub-directory and - it doesn't contain slashes after removing the trailing one.
         const NO_SUB_DIR = 1 << 0;
@@ -30,30 +31,29 @@ bitflags! {
 /// Describes whether to match a path case sensitively or not.
 ///
 /// Used in [Pattern::matches_repo_relative_path()].
-#[derive(Debug, PartialOrd, PartialEq, Copy, Clone, Hash, Ord, Eq)]
+#[derive(Default, Debug, PartialOrd, PartialEq, Copy, Clone, Hash, Ord, Eq)]
 pub enum Case {
     /// The case affects the match
+    #[default]
     Sensitive,
     /// Ignore the case of ascii characters.
     Fold,
 }
 
-impl Default for Case {
-    fn default() -> Self {
-        Case::Sensitive
-    }
-}
-
+/// Instantiation
 impl Pattern {
     /// Parse the given `text` as pattern, or return `None` if `text` was empty.
     pub fn from_bytes(text: &[u8]) -> Option<Self> {
         crate::parse::pattern(text).map(|(text, mode, first_wildcard_pos)| Pattern {
-            text,
+            text: text.into(),
             mode,
             first_wildcard_pos,
         })
     }
+}
 
+/// Access
+impl Pattern {
     /// Return true if a match is negated.
     pub fn is_negative(&self) -> bool {
         self.mode.contains(Mode::NEGATIVE)
@@ -104,8 +104,9 @@ impl Pattern {
     /// `mode` can identify `value` as path which won't match the slash character, and can match
     /// strings with cases ignored as well. Note that the case folding performed here is ASCII only.
     ///
-    /// Note that this method uses some shortcuts to accelerate simple patterns.
-    fn matches<'a>(&self, value: impl Into<&'a BStr>, mode: wildmatch::Mode) -> bool {
+    /// Note that this method uses some shortcuts to accelerate simple patterns, but falls back to
+    /// [wildmatch()][crate::wildmatch()] if these fail.
+    pub fn matches<'a>(&self, value: impl Into<&'a BStr>, mode: wildmatch::Mode) -> bool {
         let value = value.into();
         match self.first_wildcard_pos {
             // "*literal" case, overrides starts-with
