@@ -679,6 +679,10 @@ pub(crate) fn make_test(
             // parse the source, but only has false positives, not false
             // negatives.
             if s.contains(crate_name) {
+                // rustdoc implicitly inserts an `extern crate` item for the own crate
+                // which may be unused, so we need to allow the lint.
+                prog.push_str(&format!("#[allow(unused_extern_crates)]\n"));
+
                 prog.push_str(&format!("extern crate r#{crate_name};\n"));
                 line_offset += 1;
             }
@@ -1059,15 +1063,10 @@ impl Tester for Collector {
                     Ignore::Some(ref ignores) => ignores.iter().any(|s| target_str.contains(s)),
                 },
                 ignore_message: None,
-                #[cfg(not(bootstrap))]
                 source_file: "",
-                #[cfg(not(bootstrap))]
                 start_line: 0,
-                #[cfg(not(bootstrap))]
                 start_col: 0,
-                #[cfg(not(bootstrap))]
                 end_line: 0,
-                #[cfg(not(bootstrap))]
                 end_col: 0,
                 // compiler failures are test failures
                 should_panic: test::ShouldPanic::No,
@@ -1238,7 +1237,7 @@ impl<'a, 'hir, 'tcx> HirCollector<'a, 'hir, 'tcx> {
         // The collapse-docs pass won't combine sugared/raw doc attributes, or included files with
         // anything else, this will combine them for us.
         let attrs = Attributes::from_ast(ast_attrs);
-        if let Some(doc) = attrs.collapsed_doc_value() {
+        if let Some(doc) = attrs.opt_doc_value() {
             // Use the outermost invocation, so that doctest names come from where the docs were written.
             let span = ast_attrs
                 .iter()

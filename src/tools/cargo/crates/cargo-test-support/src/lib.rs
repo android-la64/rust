@@ -59,8 +59,8 @@ pub fn panic_error(what: &str, err: impl Into<anyhow::Error>) -> ! {
     fn pe(what: &str, err: anyhow::Error) -> ! {
         let mut result = format!("{}\nerror: {}", what, err);
         for cause in err.chain().skip(1) {
-            drop(writeln!(result, "\nCaused by:"));
-            drop(write!(result, "{}", cause));
+            let _ = writeln!(result, "\nCaused by:");
+            let _ = write!(result, "{}", cause);
         }
         panic!("\n{}", result);
     }
@@ -517,6 +517,29 @@ pub fn cargo_exe() -> PathBuf {
     snapbox::cmd::cargo_bin("cargo")
 }
 
+/// A wrapper around `rustc` instead of calling `clippy`.
+pub fn wrapped_clippy_driver() -> PathBuf {
+    let clippy_driver = project()
+        .at(paths::global_root().join("clippy-driver"))
+        .file("Cargo.toml", &basic_manifest("clippy-driver", "0.0.1"))
+        .file(
+            "src/main.rs",
+            r#"
+            fn main() {
+                let mut args = std::env::args_os();
+                let _me = args.next().unwrap();
+                let rustc = args.next().unwrap();
+                let status = std::process::Command::new(rustc).args(args).status().unwrap();
+                std::process::exit(status.code().unwrap_or(1));
+            }
+            "#,
+        )
+        .build();
+    clippy_driver.cargo("build").run();
+
+    clippy_driver.bin("clippy-driver")
+}
+
 /// This is the raw output from the process.
 ///
 /// This is similar to `std::process::Output`, however the `status` is
@@ -677,13 +700,15 @@ impl Execs {
     /// The substrings are matched as `contains`. Example:
     ///
     /// ```no_run
-    /// execs.with_stderr_line_without(
+    /// use cargo_test_support::execs;
+    ///
+    /// execs().with_stderr_line_without(
     ///     &[
     ///         "[RUNNING] `rustc --crate-name build_script_build",
     ///         "-C opt-level=3",
     ///     ],
     ///     &["-C debuginfo", "-C incremental"],
-    /// )
+    /// );
     /// ```
     ///
     /// This will check that a build line includes `-C opt-level=3` but does

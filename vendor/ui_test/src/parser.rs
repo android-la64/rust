@@ -1,11 +1,14 @@
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error};
+use crate::{rustc_stderr::Level, Error, Mode};
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 
 #[cfg(test)]
 mod tests;
@@ -24,7 +27,7 @@ pub(crate) struct Comments {
 
 impl Comments {
     /// Check that a comment isn't specified twice across multiple differently revisioned statements.
-    /// e.g. `//@[foo, bar] error-pattern: bop` and `//@[foo, baz] error-pattern boop` would end up
+    /// e.g. `//@[foo, bar] error-in-other-file: bop` and `//@[foo, baz] error-in-other-file boop` would end up
     /// specifying two error patterns that are available in revision `foo`.
     pub fn find_one_for_revision<'a, T: 'a>(
         &'a self,
@@ -50,6 +53,26 @@ impl Comments {
             }
         })
     }
+
+    pub(crate) fn edition(
+        &self,
+        errors: &mut Vec<Error>,
+        revision: &str,
+        config: &crate::Config,
+    ) -> Option<(String, usize)> {
+        self.find_one_for_revision(
+            revision,
+            |r| r.edition.as_ref(),
+            |&(_, line)| {
+                errors.push(Error::InvalidComment {
+                    msg: "`edition` specified twice".into(),
+                    line,
+                })
+            },
+        )
+        .cloned()
+        .or(config.edition.clone().map(|e| (e, 0)))
+    }
 }
 
 #[derive(Default, Debug)]
@@ -67,12 +90,19 @@ pub(crate) struct Revisioned {
     pub env_vars: Vec<(String, String)>,
     /// Normalizations to apply to the stderr output before emitting it to disk
     pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
-    /// An arbitrary pattern to look for in the stderr.
-    pub error_pattern: Option<(Pattern, usize)>,
+    /// Arbitrary patterns to look for in the stderr.
+    /// The error must be from another file, as errors from the current file must be
+    /// checked via `error_matches`.
+    pub error_in_other_files: Vec<(Pattern, usize)>,
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
+    pub aux_builds: Vec<(PathBuf, String, usize)>,
+    pub edition: Option<(String, usize)>,
+    /// Overwrites the mode from `Config`.
+    pub mode: Option<(Mode, usize)>,
+    pub needs_asm_support: bool,
 }
 
 #[derive(Debug)]
@@ -102,7 +132,9 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 /// The conditions used for "ignore" and "only" filters.
 #[derive(Debug)]
 pub(crate) enum Condition {
-    /// The given string must appear in the target.
+    /// The given string must appear in the host triple.
+    Host(String),
+    /// The given string must appear in the target triple.
     Target(String),
     /// Tests that the bitwidth is the given one.
     Bitwidth(u8),
@@ -111,7 +143,8 @@ pub(crate) enum Condition {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Pattern {
+/// An error pattern parsed from a `//~` comment.
+pub enum Pattern {
     SubString(String),
     Regex(Regex),
 }
@@ -135,11 +168,13 @@ impl Condition {
                 format!("invalid ignore/only filter ending in 'bit': {c:?} is not a valid bitwdith")
             })?;
             Ok(Condition::Bitwidth(bits))
-        } else if let Some(target) = c.strip_prefix("target-") {
-            Ok(Condition::Target(target.to_owned()))
+        } else if let Some(triple_substr) = c.strip_prefix("target-") {
+            Ok(Condition::Target(triple_substr.to_owned()))
+        } else if let Some(triple_substr) = c.strip_prefix("host-") {
+            Ok(Condition::Host(triple_substr.to_owned()))
         } else {
             Err(format!(
-                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/ or /target-.*/"
+                "`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/"
             ))
         }
     }
@@ -147,7 +182,8 @@ impl Condition {
 
 impl Comments {
     pub(crate) fn parse_file(path: &Path) -> Result<std::result::Result<Self, Vec<Error>>> {
-        let content = std::fs::read(path)?;
+        let content =
+            std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
         Ok(Self::parse(&content))
     }
 
@@ -188,7 +224,7 @@ impl CommentParser<Comments> {
         fallthrough_to: &mut Option<usize>,
         line: &[u8],
     ) -> std::result::Result<(), Utf8Error> {
-        if let Some((_, command)) = line.split_once_str("//@") {
+        if let Some(command) = line.strip_prefix(b"//@") {
             self.parse_command(command.trim().to_str()?)
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
@@ -197,6 +233,38 @@ impl CommentParser<Comments> {
             })
         } else {
             *fallthrough_to = None;
+            for pos in line.find_iter("//") {
+                let rest = &line[pos + 2..];
+                for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
+                    if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
+                        self.errors.push(Error::InvalidComment {
+                            msg: format!(
+                                "comment looks suspiciously like a test suite command: `{}`\n\
+                             All `//@` test suite commands must be at the start of the line.\n\
+                             The `//` must be directly followed by `@` or `~`.",
+                                rest.to_str()?,
+                            ),
+                            line: self.line,
+                        })
+                    } else {
+                        let mut parser = Self {
+                            line: 0,
+                            errors: vec![],
+                            comments: Comments::default(),
+                        };
+                        parser.parse_command(rest.to_str()?);
+                        if parser.errors.is_empty() {
+                            self.errors.push(Error::InvalidComment {
+                                msg: "a compiletest-rs style comment was detected.\n\
+                                Please use text that could not also be interpreted as a command,\n\
+                                and prefix all actual commands with `//@`"
+                                    .into(),
+                                line: self.line,
+                            });
+                        }
+                    }
+                }
+            }
         }
         Ok(())
     }
@@ -228,8 +296,8 @@ impl CommentParser<Comments> {
 
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
         let (command, args) = match command
-            .chars()
-            .position(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+            .char_indices()
+            .find_map(|(i, c)| (!c.is_alphanumeric() && c != '-' && c != '_').then_some(i))
         {
             None => (command, ""),
             Some(i) => {
@@ -250,7 +318,7 @@ impl CommentParser<Comments> {
         if command == "revisions" {
             self.check(
                 revisions.is_empty(),
-                "cannot declare revisions under a revision",
+                "revisions cannot be declared under a revision",
             );
             self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
             self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
@@ -314,11 +382,12 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "error-pattern" => {
-                self.check(
-                    self.error_pattern.is_none(),
-                    "cannot specify `error_pattern` twice",
-                );
-                self.error_pattern = Some((self.parse_error_pattern(args.trim()), self.line))
+                self.error("`error-pattern` has been renamed to `error-in-other-file`");
+            }
+            "error-in-other-file" => {
+                let pat = self.parse_error_pattern(args.trim());
+                let line = self.line;
+                self.error_in_other_files.push((pat, line));
             }
             "stderr-per-bitwidth" => {
                 // args are ignored (can be used as comment)
@@ -327,6 +396,54 @@ impl CommentParser<&mut Revisioned> {
                     "cannot specify `stderr-per-bitwidth` twice",
                 );
                 self.stderr_per_bitwidth = true;
+            }
+            "run-rustfix" => {
+                // args are ignored (can be used as comment)
+                self.check(
+                    self.mode.is_none(),
+                    "cannot specify test mode changes twice",
+                );
+                self.mode = Some((Mode::Fix, self.line))
+            }
+            "needs-asm-support" => {
+                // args are ignored (can be used as comment)
+                self.check(
+                    !self.needs_asm_support,
+                    "cannot specify `needs-asm-support` twice",
+                );
+                self.needs_asm_support = true;
+            }
+            "aux-build" => {
+                let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
+                let line = self.line;
+                self.aux_builds.push((name.into(), kind.into(), line));
+            }
+            "edition" => {
+                self.check(self.edition.is_none(), "cannot specify `edition` twice");
+                self.edition = Some((args.into(), self.line))
+            }
+            "check-pass" => {
+                // args are ignored (can be used as comment)
+                self.check(
+                    self.mode.is_none(),
+                    "cannot specify test mode changes twice",
+                );
+                self.mode = Some((Mode::Pass, self.line))
+            }
+            "run" => {
+                self.check(
+                    self.mode.is_none(),
+                    "cannot specify test mode changes twice",
+                );
+                let mut set = |exit_code| self.mode = Some((Mode::Run { exit_code }, self.line));
+                if args.is_empty() {
+                    set(0);
+                } else {
+                    match args.parse() {
+                        Ok(exit_code) => set(exit_code),
+                        Err(err) => self.error(err.to_string()),
+                    }
+                }
             }
             "require-annotations-for-level" => {
                 self.check(
@@ -458,10 +575,7 @@ impl CommentParser<&mut Revisioned> {
         };
 
         let pattern = pattern.trim_start();
-        let offset = match pattern
-            .chars()
-            .position(|c| !matches!(c, 'A'..='Z' | 'a'..='z'))
-        {
+        let offset = match pattern.chars().position(|c| !c.is_ascii_alphabetic()) {
             Some(offset) => offset,
             None => {
                 self.error("pattern without level");

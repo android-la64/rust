@@ -19,17 +19,19 @@ impl crate::Repository {
     }
 }
 
+mod attributes;
 mod cache;
 mod config;
+mod excludes;
 pub(crate) mod identity;
 mod impls;
 mod init;
 mod location;
 mod object;
-pub(crate) mod permissions;
 mod reference;
 mod remote;
 mod revision;
+mod shallow;
 mod snapshots;
 mod state;
 mod thread_safe;

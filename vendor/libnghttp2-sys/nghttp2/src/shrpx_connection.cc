@@ -74,7 +74,7 @@ Connection::Connection(struct ev_loop *loop, int fd, SSL *ssl,
       read_timeout(read_timeout) {
 
   ev_io_init(&wev, writecb, fd, EV_WRITE);
-  ev_io_init(&rev, readcb, fd, EV_READ);
+  ev_io_init(&rev, readcb, proto == Proto::HTTP3 ? 0 : fd, EV_READ);
 
   wev.data = this;
   rev.data = this;
@@ -128,7 +128,7 @@ void Connection::disconnect() {
     tls.early_data_finish = false;
   }
 
-  if (fd != -1) {
+  if (proto != Proto::HTTP3 && fd != -1) {
     shutdown(fd, SHUT_WR);
     close(fd);
     fd = -1;
@@ -312,10 +312,13 @@ BIO_METHOD *create_bio_method() {
 void Connection::set_ssl(SSL *ssl) {
   tls.ssl = ssl;
 
-  auto &tlsconf = get_config()->tls;
-  auto bio = BIO_new(tlsconf.bio_method);
-  BIO_set_data(bio, this);
-  SSL_set_bio(tls.ssl, bio, bio);
+  if (proto != Proto::HTTP3) {
+    auto &tlsconf = get_config()->tls;
+    auto bio = BIO_new(tlsconf.bio_method);
+    BIO_set_data(bio, this);
+    SSL_set_bio(tls.ssl, bio, bio);
+  }
+
   SSL_set_app_data(tls.ssl, this);
 }
 
@@ -616,18 +619,18 @@ int Connection::check_http2_requirement() {
     return -1;
   }
 
-  auto check_black_list = false;
+  auto check_block_list = false;
   if (tls.server_handshake) {
-    check_black_list = !get_config()->tls.no_http2_cipher_black_list;
+    check_block_list = !get_config()->tls.no_http2_cipher_block_list;
   } else {
-    check_black_list = !get_config()->tls.client.no_http2_cipher_black_list;
+    check_block_list = !get_config()->tls.client.no_http2_cipher_block_list;
   }
 
-  if (check_black_list &&
-      nghttp2::tls::check_http2_cipher_black_list(tls.ssl)) {
+  if (check_block_list &&
+      nghttp2::tls::check_http2_cipher_block_list(tls.ssl)) {
     if (LOG_ENABLED(INFO)) {
       LOG(INFO) << "The negotiated cipher suite is in HTTP/2 cipher suite "
-                   "black list.  HTTP/2 must not be used.";
+                   "block list.  HTTP/2 must not be used.";
     }
     return -1;
   }

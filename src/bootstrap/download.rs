@@ -2,7 +2,7 @@ use std::{
     env,
     ffi::{OsStr, OsString},
     fs::{self, File},
-    io::{BufRead, BufReader, ErrorKind},
+    io::{BufRead, BufReader, BufWriter, ErrorKind, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -112,7 +112,7 @@ impl Config {
             is_nixos && !Path::new("/lib").exists()
         });
         if val {
-            println!("info: You seem to be using Nix.");
+            eprintln!("info: You seem to be using Nix.");
         }
         val
     }
@@ -123,7 +123,7 @@ impl Config {
     /// This is only required on NixOS and uses the PatchELF utility to
     /// change the interpreter/RPATH of ELF executables.
     ///
-    /// Please see https://nixos.org/patchelf.html for more information
+    /// Please see <https://nixos.org/patchelf.html> for more information
     fn fix_bin_or_dylib(&self, fname: &Path) {
         assert_eq!(SHOULD_FIX_BINS_AND_DYLIBS.get(), Some(&true));
         println!("attempting to patch {}", fname.display());
@@ -219,14 +219,14 @@ impl Config {
             "30", // timeout if cannot connect within 30 seconds
             "--retry",
             "3",
-            "-Sf",
+            "-SRf",
         ]);
         curl.arg(url);
         let f = File::create(tempfile).unwrap();
         curl.stdout(Stdio::from(f));
         if !self.check_run(&mut curl) {
             if self.build.contains("windows-msvc") {
-                println!("Fallback to PowerShell");
+                eprintln!("Fallback to PowerShell");
                 for _ in 0..3 {
                     if self.try_run(Command::new("PowerShell.exe").args(&[
                         "/nologo",
@@ -239,7 +239,7 @@ impl Config {
                     ])) {
                         return;
                     }
-                    println!("\nspurious failure, trying again");
+                    eprintln!("\nspurious failure, trying again");
                 }
             }
             if !help_on_error.is_empty() {
@@ -250,7 +250,7 @@ impl Config {
     }
 
     fn unpack(&self, tarball: &Path, dst: &Path, pattern: &str) {
-        println!("extracting {} to {}", tarball.display(), dst.display());
+        eprintln!("extracting {} to {}", tarball.display(), dst.display());
         if !dst.exists() {
             t!(fs::create_dir_all(dst));
         }
@@ -262,10 +262,20 @@ impl Config {
         let directory_prefix = Path::new(Path::new(uncompressed_filename).file_stem().unwrap());
 
         // decompress the file
-        let data = t!(File::open(tarball));
+        let data = t!(File::open(tarball), format!("file {} not found", tarball.display()));
         let decompressor = XzDecoder::new(BufReader::new(data));
 
         let mut tar = tar::Archive::new(decompressor);
+
+        // `compile::Sysroot` needs to know the contents of the `rustc-dev` tarball to avoid adding
+        // it to the sysroot unless it was explicitly requested. But parsing the 100 MB tarball is slow.
+        // Cache the entries when we extract it so we only have to read it once.
+        let mut recorded_entries = if dst.ends_with("ci-rustc") && pattern == "rustc-dev" {
+            Some(BufWriter::new(t!(File::create(dst.join(".rustc-dev-contents")))))
+        } else {
+            None
+        };
+
         for member in t!(tar.entries()) {
             let mut member = t!(member);
             let original_path = t!(member.path()).into_owned();
@@ -283,13 +293,19 @@ impl Config {
             if !t!(member.unpack_in(dst)) {
                 panic!("path traversal attack ??");
             }
+            if let Some(record) = &mut recorded_entries {
+                t!(writeln!(record, "{}", short_path.to_str().unwrap()));
+            }
             let src_path = dst.join(original_path);
             if src_path.is_dir() && dst_path.exists() {
                 continue;
             }
             t!(fs::rename(src_path, dst_path));
         }
-        t!(fs::remove_dir_all(dst.join(directory_prefix)));
+        let dst_dir = dst.join(directory_prefix);
+        if dst_dir.exists() {
+            t!(fs::remove_dir_all(&dst_dir), format!("failed to remove {}", dst_dir.display()));
+        }
     }
 
     /// Returns whether the SHA256 checksum of `path` matches `expected`.
@@ -365,6 +381,13 @@ impl Config {
         Some(rustfmt_path)
     }
 
+    pub(crate) fn rustc_dev_contents(&self) -> Vec<String> {
+        assert!(self.download_rustc());
+        let ci_rustc_dir = self.out.join(&*self.build.triple).join("ci-rustc");
+        let rustc_dev_contents_file = t!(File::open(ci_rustc_dir.join(".rustc-dev-contents")));
+        t!(BufReader::new(rustc_dev_contents_file).lines().collect())
+    }
+
     pub(crate) fn download_ci_rustc(&self, commit: &str) {
         self.verbose(&format!("using downloaded stage2 artifacts from CI (commit {commit})"));
 
@@ -404,7 +427,6 @@ impl Config {
 
     fn download_toolchain(
         &self,
-        // FIXME(ozkanonur) use CompilerMetadata instead of `version: &str`
         version: &str,
         sysroot: &str,
         stamp_key: &str,
@@ -518,7 +540,18 @@ impl Config {
             None
         };
 
-        self.download_file(&format!("{base_url}/{url}"), &tarball, "");
+        let mut help_on_error = "";
+        if destination == "ci-rustc" {
+            help_on_error = "error: failed to download pre-built rustc from CI
+
+note: old builds get deleted after a certain time
+help: if trying to compile an old commit of rustc, disable `download-rustc` in config.toml:
+
+[rust]
+download-rustc = false
+";
+        }
+        self.download_file(&format!("{base_url}/{url}"), &tarball, help_on_error);
         if let Some(sha256) = checksum {
             if !self.verify(&tarball, sha256) {
                 panic!("failed to verify {}", tarball.display());

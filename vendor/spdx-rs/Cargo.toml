@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "spdx-rs"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["Mikko Murto <mikko.murto@hhpartners.fi>"]
 exclude = [
     "/tests/",
@@ -30,7 +30,11 @@ repository = "https://github.com/doubleopen-project/spdx-rs"
 
 [dependencies.chrono]
 version = "0.4"
-features = ["serde"]
+features = [
+    "clock",
+    "serde",
+]
+default-features = false
 
 [dependencies.log]
 version = "0.4"
@@ -55,7 +59,7 @@ version = "0.24"
 version = "1"
 
 [dependencies.uuid]
-version = "0.8"
+version = "1"
 features = ["v4"]
 
 [dev-dependencies.serde_json]

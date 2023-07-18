@@ -949,7 +949,6 @@ pub unsafe fn _mm_cvtps_epi32(a: __m128) -> __m128i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_cvtsi32_si128)
 #[inline]
 #[target_feature(enable = "sse2")]
-#[cfg_attr(all(test, target_arch = "x86_64"), assert_instr(movd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtsi32_si128(a: i32) -> __m128i {
     transmute(i32x4::new(a, 0, 0, 0))
@@ -960,7 +959,6 @@ pub unsafe fn _mm_cvtsi32_si128(a: i32) -> __m128i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_cvtsi128_si32)
 #[inline]
 #[target_feature(enable = "sse2")]
-#[cfg_attr(all(test, not(target_os = "windows")), assert_instr(movd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtsi128_si32(a: __m128i) -> i32 {
     simd_extract(a.as_i32x4(), 0)
@@ -2739,7 +2737,9 @@ pub unsafe fn _mm_castsi128_ps(a: __m128i) -> __m128 {
     transmute(a)
 }
 
-/// Returns vector of type __m128d with undefined elements.
+/// Returns vector of type __m128d with indeterminate elements.
+/// Despite being "undefined", this is some valid value and not equivalent to [`mem::MaybeUninit`].
+/// In practice, this is equivalent to [`mem::zeroed`].
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_undefined_pd)
 #[inline]
@@ -2749,7 +2749,9 @@ pub unsafe fn _mm_undefined_pd() -> __m128d {
     __m128d(0.0, 0.0)
 }
 
-/// Returns vector of type __m128i with undefined elements.
+/// Returns vector of type __m128i with indeterminate elements.
+/// Despite being "undefined", this is some valid value and not equivalent to [`mem::MaybeUninit`].
+/// In practice, this is equivalent to [`mem::zeroed`].
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_undefined_si128)
 #[inline]

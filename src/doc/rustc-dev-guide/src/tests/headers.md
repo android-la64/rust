@@ -52,6 +52,8 @@ found in [`header.rs`] from the compiletest source.
     * [`stderr-per-bitwidth`](ui.md#output-comparison) — separate output per bit width
     * [`dont-check-compiler-stderr`](ui.md#output-comparison) — don't validate stderr
     * [`dont-check-compiler-stdout`](ui.md#output-comparison) — don't validate stdout
+    * [`compare-output-lines-by-subset`](ui.md#output-comparison) — checks output by
+      line subset
 * [Building auxiliary crates](compiletest.md#building-auxiliary-crates)
     * `aux-build`
     * `aux-crate`
@@ -72,6 +74,7 @@ found in [`header.rs`] from the compiletest source.
 * [Environment variable headers](#environment-variable-headers)
     * `rustc-env`
     * `exec-env`
+    * `unset-exec-env`
     * `unset-rustc-env`
 * [Miscellaneous headers](#miscellaneous-headers)
     * `compile-flags` — adds compiler flags
@@ -177,6 +180,8 @@ The following headers affect environment variables.
   form `KEY=VALUE`.
 * `exec-env` is an environment variable to set when executing a test of the
   form `KEY=VALUE`.
+* `unset-exec-env` specifies an environment variable to unset when executing a
+  test.
 * `unset-rustc-env` specifies an environment variable to unset when running
   `rustc`.
 

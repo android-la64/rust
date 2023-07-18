@@ -271,7 +271,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             &cause,
             &mut |err| {
                 if let Some((span, msg)) = &ret_reason {
-                    err.span_label(*span, msg);
+                    err.span_label(*span, msg.clone());
                 } else if let ExprKind::Block(block, _) = &then_expr.kind
                     && let Some(expr) = &block.expr
                 {
@@ -530,7 +530,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 for ty in [first_ty, second_ty] {
                     for (pred, _) in self
                         .tcx
-                        .bound_explicit_item_bounds(rpit_def_id)
+                        .explicit_item_bounds(rpit_def_id)
                         .subst_iter_copied(self.tcx, substs)
                     {
                         let pred = pred.kind().rebind(match pred.kind().skip_binder() {

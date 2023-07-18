@@ -47,7 +47,6 @@ extern crate rustc_ast;
 extern crate rustc_middle;
 extern crate rustc_const_eval;
 extern crate rustc_data_structures;
-extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_index;
 extern crate rustc_session;
@@ -130,6 +129,7 @@ pub const MIRI_DEFAULT_ARGS: &[&str] = &[
     "-Zalways-encode-mir",
     "-Zextra-const-ub-checks",
     "-Zmir-emit-retag",
+    "-Zmir-keep-place-mention",
     "-Zmir-opt-level=0",
     "-Zmir-enable-passes=-CheckAlignment",
 ];

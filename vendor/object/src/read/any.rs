@@ -32,6 +32,8 @@ macro_rules! with_inner {
         match $inner {
             #[cfg(feature = "coff")]
             $enum::Coff(ref $var) => $body,
+            #[cfg(feature = "coff")]
+            $enum::CoffBig(ref $var) => $body,
             #[cfg(feature = "elf")]
             $enum::Elf32(ref $var) => $body,
             #[cfg(feature = "elf")]
@@ -59,6 +61,8 @@ macro_rules! with_inner_mut {
         match $inner {
             #[cfg(feature = "coff")]
             $enum::Coff(ref mut $var) => $body,
+            #[cfg(feature = "coff")]
+            $enum::CoffBig(ref mut $var) => $body,
             #[cfg(feature = "elf")]
             $enum::Elf32(ref mut $var) => $body,
             #[cfg(feature = "elf")]
@@ -87,6 +91,8 @@ macro_rules! map_inner {
         match $inner {
             #[cfg(feature = "coff")]
             $from::Coff(ref $var) => $to::Coff($body),
+            #[cfg(feature = "coff")]
+            $from::CoffBig(ref $var) => $to::CoffBig($body),
             #[cfg(feature = "elf")]
             $from::Elf32(ref $var) => $to::Elf32($body),
             #[cfg(feature = "elf")]
@@ -115,6 +121,8 @@ macro_rules! map_inner_option {
         match $inner {
             #[cfg(feature = "coff")]
             $from::Coff(ref $var) => $body.map($to::Coff),
+            #[cfg(feature = "coff")]
+            $from::CoffBig(ref $var) => $body.map($to::CoffBig),
             #[cfg(feature = "elf")]
             $from::Elf32(ref $var) => $body.map($to::Elf32),
             #[cfg(feature = "elf")]
@@ -142,6 +150,8 @@ macro_rules! map_inner_option_mut {
         match $inner {
             #[cfg(feature = "coff")]
             $from::Coff(ref mut $var) => $body.map($to::Coff),
+            #[cfg(feature = "coff")]
+            $from::CoffBig(ref mut $var) => $body.map($to::CoffBig),
             #[cfg(feature = "elf")]
             $from::Elf32(ref mut $var) => $body.map($to::Elf32),
             #[cfg(feature = "elf")]
@@ -170,6 +180,8 @@ macro_rules! next_inner {
         match $inner {
             #[cfg(feature = "coff")]
             $from::Coff(ref mut iter) => iter.next().map($to::Coff),
+            #[cfg(feature = "coff")]
+            $from::CoffBig(ref mut iter) => iter.next().map($to::CoffBig),
             #[cfg(feature = "elf")]
             $from::Elf32(ref mut iter) => iter.next().map($to::Elf32),
             #[cfg(feature = "elf")]
@@ -204,6 +216,8 @@ pub struct File<'data, R: ReadRef<'data> = &'data [u8]> {
 enum FileInternal<'data, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffFile<'data, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigFile<'data, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfFile32<'data, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -244,6 +258,8 @@ impl<'data, R: ReadRef<'data>> File<'data, R> {
             FileKind::Pe64 => FileInternal::Pe64(pe::PeFile64::parse(data)?),
             #[cfg(feature = "coff")]
             FileKind::Coff => FileInternal::Coff(coff::CoffFile::parse(data)?),
+            #[cfg(feature = "coff")]
+            FileKind::CoffBig => FileInternal::CoffBig(coff::CoffBigFile::parse(data)?),
             #[cfg(feature = "xcoff")]
             FileKind::Xcoff32 => FileInternal::Xcoff32(xcoff::XcoffFile32::parse(data)?),
             #[cfg(feature = "xcoff")]
@@ -275,7 +291,7 @@ impl<'data, R: ReadRef<'data>> File<'data, R> {
     pub fn format(&self) -> BinaryFormat {
         match self.inner {
             #[cfg(feature = "coff")]
-            FileInternal::Coff(_) => BinaryFormat::Coff,
+            FileInternal::Coff(_) | FileInternal::CoffBig(_) => BinaryFormat::Coff,
             #[cfg(feature = "elf")]
             FileInternal::Elf32(_) | FileInternal::Elf64(_) => BinaryFormat::Elf,
             #[cfg(feature = "macho")]
@@ -457,7 +473,7 @@ where
     }
 
     #[inline]
-    fn pdb_info(&self) -> Result<Option<CodeView>> {
+    fn pdb_info(&self) -> Result<Option<CodeView<'_>>> {
         with_inner!(self.inner, FileInternal, |x| x.pdb_info())
     }
 
@@ -476,20 +492,16 @@ where
 
 /// An iterator over the segments of a `File`.
 #[derive(Debug)]
-pub struct SegmentIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct SegmentIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SegmentIteratorInternal<'data, 'file, R>,
 }
 
 #[derive(Debug)]
-enum SegmentIteratorInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum SegmentIteratorInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffSegmentIterator<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigSegmentIterator<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfSegmentIterator32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -520,20 +532,16 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for SegmentIterator<'data, 'file,
 }
 
 /// A segment of a `File`.
-pub struct Segment<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct Segment<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SegmentInternal<'data, 'file, R>,
 }
 
 #[derive(Debug)]
-enum SegmentInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum SegmentInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffSegment<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigSegment<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfSegment32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -615,21 +623,17 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSegment<'data> for Segment<'data, 'f
 
 /// An iterator of the sections of a `File`.
 #[derive(Debug)]
-pub struct SectionIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct SectionIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SectionIteratorInternal<'data, 'file, R>,
 }
 
 // we wrap our enums in a struct so that they are kept private.
 #[derive(Debug)]
-enum SectionIteratorInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum SectionIteratorInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffSectionIterator<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigSectionIterator<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfSectionIterator32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -660,19 +664,15 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for SectionIterator<'data, 'file,
 }
 
 /// A Section of a File
-pub struct Section<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct Section<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SectionInternal<'data, 'file, R>,
 }
 
-enum SectionInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum SectionInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffSection<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigSection<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfSection32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -795,20 +795,16 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSection<'data> for Section<'data, 'f
 
 /// An iterator of the COMDAT section groups of a `File`.
 #[derive(Debug)]
-pub struct ComdatIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct ComdatIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: ComdatIteratorInternal<'data, 'file, R>,
 }
 
 #[derive(Debug)]
-enum ComdatIteratorInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum ComdatIteratorInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffComdatIterator<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigComdatIterator<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfComdatIterator32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -839,19 +835,15 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for ComdatIterator<'data, 'file, 
 }
 
 /// A COMDAT section group of a `File`.
-pub struct Comdat<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct Comdat<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: ComdatInternal<'data, 'file, R>,
 }
 
-enum ComdatInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum ComdatInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffComdat<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigComdat<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfComdat32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -917,20 +909,16 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectComdat<'data> for Comdat<'data, 'fil
 
 /// An iterator over COMDAT section entries.
 #[derive(Debug)]
-pub struct ComdatSectionIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct ComdatSectionIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: ComdatSectionIteratorInternal<'data, 'file, R>,
 }
 
 #[derive(Debug)]
-enum ComdatSectionIteratorInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum ComdatSectionIteratorInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffComdatSectionIterator<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigComdatSectionIterator<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfComdatSectionIterator32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]
@@ -963,7 +951,6 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for ComdatSectionIterator<'data, 
 #[derive(Debug)]
 pub struct SymbolTable<'data, 'file, R = &'data [u8]>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     inner: SymbolTableInternal<'data, 'file, R>,
@@ -972,11 +959,12 @@ where
 #[derive(Debug)]
 enum SymbolTableInternal<'data, 'file, R>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     #[cfg(feature = "coff")]
     Coff((coff::CoffSymbolTable<'data, 'file, R>, PhantomData<R>)),
+    #[cfg(feature = "coff")]
+    CoffBig((coff::CoffBigSymbolTable<'data, 'file, R>, PhantomData<R>)),
     #[cfg(feature = "elf")]
     Elf32(
         (
@@ -1047,7 +1035,6 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSymbolTable<'data> for SymbolTable<'
 #[derive(Debug)]
 pub struct SymbolIterator<'data, 'file, R = &'data [u8]>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     inner: SymbolIteratorInternal<'data, 'file, R>,
@@ -1056,11 +1043,12 @@ where
 #[derive(Debug)]
 enum SymbolIteratorInternal<'data, 'file, R>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     #[cfg(feature = "coff")]
     Coff((coff::CoffSymbolIterator<'data, 'file, R>, PhantomData<R>)),
+    #[cfg(feature = "coff")]
+    CoffBig((coff::CoffBigSymbolIterator<'data, 'file, R>, PhantomData<R>)),
     #[cfg(feature = "elf")]
     Elf32(
         (
@@ -1125,7 +1113,6 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for SymbolIterator<'data, 'file, 
 /// A symbol table entry.
 pub struct Symbol<'data, 'file, R = &'data [u8]>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     inner: SymbolInternal<'data, 'file, R>,
@@ -1133,11 +1120,12 @@ where
 
 enum SymbolInternal<'data, 'file, R>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     #[cfg(feature = "coff")]
     Coff((coff::CoffSymbol<'data, 'file, R>, PhantomData<R>)),
+    #[cfg(feature = "coff")]
+    CoffBig((coff::CoffBigSymbol<'data, 'file, R>, PhantomData<R>)),
     #[cfg(feature = "elf")]
     Elf32(
         (
@@ -1252,7 +1240,7 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSymbol<'data> for Symbol<'data, 'fil
         with_inner!(self.inner, SymbolInternal, |x| x.0.is_local())
     }
 
-    fn flags(&self) -> SymbolFlags<SectionIndex> {
+    fn flags(&self) -> SymbolFlags<SectionIndex, SymbolIndex> {
         with_inner!(self.inner, SymbolInternal, |x| x.0.flags())
     }
 }
@@ -1261,7 +1249,6 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSymbol<'data> for Symbol<'data, 'fil
 #[derive(Debug)]
 pub struct DynamicRelocationIterator<'data, 'file, R = &'data [u8]>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     inner: DynamicRelocationIteratorInternal<'data, 'file, R>,
@@ -1270,7 +1257,6 @@ where
 #[derive(Debug)]
 enum DynamicRelocationIteratorInternal<'data, 'file, R>
 where
-    'data: 'file,
     R: ReadRef<'data>,
 {
     #[cfg(feature = "elf")]
@@ -1298,20 +1284,16 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for DynamicRelocationIterator<'da
 
 /// An iterator over section relocation entries.
 #[derive(Debug)]
-pub struct SectionRelocationIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]>
-where
-    'data: 'file,
-{
+pub struct SectionRelocationIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SectionRelocationIteratorInternal<'data, 'file, R>,
 }
 
 #[derive(Debug)]
-enum SectionRelocationIteratorInternal<'data, 'file, R: ReadRef<'data>>
-where
-    'data: 'file,
-{
+enum SectionRelocationIteratorInternal<'data, 'file, R: ReadRef<'data>> {
     #[cfg(feature = "coff")]
     Coff(coff::CoffRelocationIterator<'data, 'file, R>),
+    #[cfg(feature = "coff")]
+    CoffBig(coff::CoffBigRelocationIterator<'data, 'file, R>),
     #[cfg(feature = "elf")]
     Elf32(elf::ElfSectionRelocationIterator32<'data, 'file, Endianness, R>),
     #[cfg(feature = "elf")]

@@ -109,19 +109,19 @@ impl<'a> DiffState<'a> {
                         // drawing the entire line in red/green.
                         eprint!("{}", "-".red());
                         for char in &diff {
-                            match char {
+                            match *char {
                                 Left(l) => eprint!("{}", l.to_string().red()),
                                 Right(_) => {}
-                                Both(l, _) => eprint!("{}", l),
+                                Both(l, _) => eprint!("{l}"),
                             }
                         }
                         eprintln!();
                         eprint!("{}", "+".green());
-                        for char in &diff {
+                        for char in diff {
                             match char {
                                 Left(_) => {}
                                 Right(r) => eprint!("{}", r.to_string().green()),
-                                Both(l, _) => eprint!("{}", l),
+                                Both(l, _) => eprint!("{l}"),
                             }
                         }
                         eprintln!();
@@ -131,7 +131,7 @@ impl<'a> DiffState<'a> {
                         for char in diff {
                             match char {
                                 Left(l) => eprint!("{}", l.to_string().red()),
-                                Both(l, _) => eprint!("{}", l),
+                                Both(l, _) => eprint!("{l}"),
                                 Right(r) => eprint!("{}", r.to_string().green()),
                             }
                         }
@@ -162,6 +162,10 @@ pub fn print_diff(expected: &[u8], actual: &[u8]) {
             "Non-UTF8 characters in output, diff may be imprecise.".red()
         );
     }
+
+    let pat = |c: char| c.is_whitespace() && c != ' ' && c != '\n' && c != '\r';
+    let expected_str = expected_str.replace(pat, "░");
+    let actual_str = actual_str.replace(pat, "░");
 
     let mut state = DiffState::default();
     for row in lines(&expected_str, &actual_str) {

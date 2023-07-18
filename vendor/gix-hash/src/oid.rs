@@ -1,4 +1,4 @@
-use std::{convert::TryInto, fmt};
+use std::{convert::TryInto, fmt, hash};
 
 use crate::{ObjectId, SIZE_OF_SHA1_DIGEST};
 
@@ -14,15 +14,27 @@ use crate::{ObjectId, SIZE_OF_SHA1_DIGEST};
 /// hash `[`kind()`][oid::kind()]`.
 /// We expect to have quite a few bits available for such 'conflict resolution' as most hashes aren't longer
 /// than 64 bytes.
-#[derive(PartialEq, Eq, Hash, Ord, PartialOrd)]
+#[derive(PartialEq, Eq, Ord, PartialOrd)]
 #[repr(transparent)]
 #[allow(non_camel_case_types)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct oid {
     bytes: [u8],
 }
 
-/// A utility able to format itself with the given amount of characters in hex
+// False positive:
+// Using an automatic implementation of `Hash` for `oid` would lead to
+// it attempting to hash the length of the slice first. On 32 bit systems
+// this can lead to issues with the custom `gix_hashtable` `Hasher` implementation,
+// and it currently ends up being discarded there anyway.
+#[allow(clippy::derived_hash_with_manual_eq)]
+impl hash::Hash for oid {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        state.write(self.as_bytes())
+    }
+}
+
+/// A utility able to format itself with the given amount of characters in hex.
 #[derive(PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct HexDisplay<'a> {
     inner: &'a oid,
@@ -79,7 +91,7 @@ impl oid {
         Self::from_bytes(value)
     }
 
-    /// Only from code that statically assures correct sizes using array conversions
+    /// Only from code that statically assures correct sizes using array conversions.
     pub(crate) fn from_bytes(value: &[u8]) -> &Self {
         #[allow(unsafe_code)]
         unsafe {
@@ -90,13 +102,13 @@ impl oid {
 
 /// Access
 impl oid {
-    /// The kind of hash used for this Digest
+    /// The kind of hash used for this Digest.
     #[inline]
     pub fn kind(&self) -> crate::Kind {
         crate::Kind::from_len_in_bytes(self.bytes.len())
     }
 
-    /// The first byte of the hash, commonly used to partition a set of `Id`s
+    /// The first byte of the hash, commonly used to partition a set of `Id`s.
     #[inline]
     pub fn first_byte(&self) -> u8 {
         self.bytes[0]
@@ -140,7 +152,7 @@ impl oid {
         num_hex_bytes
     }
 
-    /// Write ourselves to `out` in hexadecimal notation
+    /// Write ourselves to `out` in hexadecimal notation.
     #[inline]
     pub fn write_hex_to(&self, mut out: impl std::io::Write) -> std::io::Result<()> {
         let mut hex = crate::Kind::hex_buf();
@@ -193,9 +205,9 @@ impl PartialEq<crate::ObjectId> for &oid {
 }
 
 /// Manually created from a version that uses a slice, and we forcefully try to convert it into a borrowed array of the desired size
-/// Could be improved by fitting this into serde
+/// Could be improved by fitting this into serde.
 /// Unfortunately the serde::Deserialize derive wouldn't work for borrowed arrays.
-#[cfg(feature = "serde1")]
+#[cfg(feature = "serde")]
 impl<'de: 'a, 'a> serde::Deserialize<'de> for &'a oid {
     fn deserialize<D>(deserializer: D) -> Result<Self, <D as serde::Deserializer<'de>>::Error>
     where

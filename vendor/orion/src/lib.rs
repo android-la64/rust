@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018-2022 The orion Developers
+// Copyright (c) 2018-2023 The orion Developers
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,6 @@
     unused_qualifications,
     overflowing_literals
 )]
-#![doc(html_root_url = "https://docs.rs/orion/0.17.3")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(test)]

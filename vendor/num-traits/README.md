@@ -16,12 +16,6 @@ Add this to your `Cargo.toml`:
 num-traits = "0.2"
 ```
 
-and this to your crate root:
-
-```rust
-extern crate num_traits;
-```
-
 ## Features
 
 This crate can be used without the standard library (`#![no_std]`) by disabling
@@ -52,3 +46,18 @@ Release notes are available in [RELEASES.md](RELEASES.md).
 ## Compatibility
 
 The `num-traits` crate is tested for rustc 1.8 and greater.
+
+## License
+
+Licensed under either of
+
+ * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+ * [MIT license](http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.

@@ -7,6 +7,7 @@ use crate::rmeta::*;
 use rustc_ast as ast;
 use rustc_data_structures::captures::Captures;
 use rustc_data_structures::fx::FxHashMap;
+use rustc_data_structures::owned_slice::OwnedSlice;
 use rustc_data_structures::svh::Svh;
 use rustc_data_structures::sync::{AppendOnlyVec, Lock, Lrc, OnceCell};
 use rustc_data_structures::unhash::UnhashMap;
@@ -16,14 +17,15 @@ use rustc_hir::def::{CtorKind, DefKind, DocLinkResMap, Res};
 use rustc_hir::def_id::{CrateNum, DefId, DefIndex, CRATE_DEF_INDEX, LOCAL_CRATE};
 use rustc_hir::definitions::{DefKey, DefPath, DefPathData, DefPathHash};
 use rustc_hir::diagnostic_items::DiagnosticItems;
-use rustc_index::vec::{Idx, IndexVec};
+use rustc_index::{Idx, IndexVec};
 use rustc_middle::metadata::ModChild;
+use rustc_middle::middle::debugger_visualizer::DebuggerVisualizerFile;
 use rustc_middle::middle::exported_symbols::{ExportedSymbol, SymbolExportInfo};
 use rustc_middle::mir::interpret::{AllocDecodingSession, AllocDecodingState};
 use rustc_middle::ty::codec::TyDecoder;
 use rustc_middle::ty::fast_reject::SimplifiedType;
 use rustc_middle::ty::GeneratorDiagnosticData;
-use rustc_middle::ty::{self, ParameterizedOverTcx, Ty, TyCtxt, Visibility};
+use rustc_middle::ty::{self, ParameterizedOverTcx, Predicate, Ty, TyCtxt, Visibility};
 use rustc_serialize::opaque::MemDecoder;
 use rustc_serialize::{Decodable, Decoder};
 use rustc_session::cstore::{
@@ -50,7 +52,7 @@ mod cstore_impl;
 /// A `MetadataBlob` internally is just a reference counted pointer to
 /// the actual data, so cloning it is cheap.
 #[derive(Clone)]
-pub(crate) struct MetadataBlob(Lrc<MetadataRef>);
+pub(crate) struct MetadataBlob(pub(crate) OwnedSlice);
 
 impl std::ops::Deref for MetadataBlob {
     type Target = [u8];
@@ -117,7 +119,7 @@ pub(crate) struct CrateMetadata {
 
     /// Additional data used for decoding `HygieneData` (e.g. `SyntaxContext`
     /// and `ExpnId`).
-    /// Note that we store a `HygieneDecodeContext` for each `CrateMetadat`. This is
+    /// Note that we store a `HygieneDecodeContext` for each `CrateMetadata`. This is
     /// because `SyntaxContext` ids are not globally unique, so we need
     /// to track which ids we've decoded on a per-crate basis.
     hygiene_context: HygieneDecodeContext,
@@ -373,16 +375,6 @@ impl<'a, 'tcx> TyDecoder for DecodeContext<'a, 'tcx> {
         self.tcx()
     }
 
-    #[inline]
-    fn peek_byte(&self) -> u8 {
-        self.opaque.data[self.opaque.position()]
-    }
-
-    #[inline]
-    fn position(&self) -> usize {
-        self.opaque.position()
-    }
-
     fn cached_ty_for_shorthand<F>(&mut self, shorthand: usize, or_insert_with: F) -> Ty<'tcx>
     where
         F: FnOnce(&mut Self) -> Ty<'tcx>,
@@ -404,7 +396,7 @@ impl<'a, 'tcx> TyDecoder for DecodeContext<'a, 'tcx> {
     where
         F: FnOnce(&mut Self) -> R,
     {
-        let new_opaque = MemDecoder::new(self.opaque.data, pos);
+        let new_opaque = MemDecoder::new(self.opaque.data(), pos);
         let old_opaque = mem::replace(&mut self.opaque, new_opaque);
         let old_state = mem::replace(&mut self.lazy_state, LazyState::NoNode);
         let r = f(self);
@@ -625,17 +617,12 @@ impl<'a, 'tcx> Decodable<DecodeContext<'a, 'tcx>> for Symbol {
             SYMBOL_OFFSET => {
                 // read str offset
                 let pos = d.read_usize();
-                let old_pos = d.opaque.position();
 
-                // move to str ofset and read
-                d.opaque.set_position(pos);
-                let s = d.read_str();
-                let sym = Symbol::intern(s);
-
-                // restore position
-                d.opaque.set_position(old_pos);
-
-                sym
+                // move to str offset and read
+                d.opaque.with_position(pos, |d| {
+                    let s = d.read_str();
+                    Symbol::intern(s)
+                })
             }
             SYMBOL_PREINTERNED => {
                 let symbol_index = d.read_u32();
@@ -675,10 +662,6 @@ impl<'a, 'tcx, I: Idx, T> Decodable<DecodeContext<'a, 'tcx>> for LazyTable<I, T>
 implement_ty_decoder!(DecodeContext<'a, 'tcx>);
 
 impl MetadataBlob {
-    pub(crate) fn new(metadata_ref: MetadataRef) -> MetadataBlob {
-        MetadataBlob(Lrc::new(metadata_ref))
-    }
-
     pub(crate) fn is_compatible(&self) -> bool {
         self.blob().starts_with(METADATA_HEADER)
     }
@@ -857,6 +840,20 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
         )
     }
 
+    fn get_explicit_item_bounds(
+        self,
+        index: DefIndex,
+        tcx: TyCtxt<'tcx>,
+    ) -> ty::EarlyBinder<&'tcx [(Predicate<'tcx>, Span)]> {
+        let lazy = self.root.tables.explicit_item_bounds.get(self, index);
+        let output = if lazy.is_default() {
+            &mut []
+        } else {
+            tcx.arena.alloc_from_iter(lazy.decode((self, tcx)))
+        };
+        ty::EarlyBinder(&*output)
+    }
+
     fn get_variant(
         self,
         kind: DefKind,
@@ -883,16 +880,11 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
                 variant_did,
                 ctor,
                 data.discr,
-                self.root
-                    .tables
-                    .children
-                    .get(self, index)
-                    .expect("fields are not encoded for a variant")
-                    .decode(self)
-                    .map(|index| ty::FieldDef {
-                        did: self.local_def_id(index),
-                        name: self.item_name(index),
-                        vis: self.get_visibility(index),
+                self.get_associated_item_or_field_def_ids(index)
+                    .map(|did| ty::FieldDef {
+                        did,
+                        name: self.item_name(did.index),
+                        vis: self.get_visibility(did.index),
                     })
                     .collect(),
                 adt_kind,
@@ -918,7 +910,7 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
         let mut variants: Vec<_> = if let ty::AdtKind::Enum = adt_kind {
             self.root
                 .tables
-                .children
+                .module_children_non_reexports
                 .get(self, item_id)
                 .expect("variants are not encoded for an enum")
                 .decode(self)
@@ -967,7 +959,7 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
             .decode((self, sess))
     }
 
-    fn get_debugger_visualizers(self) -> Vec<rustc_span::DebuggerVisualizerFile> {
+    fn get_debugger_visualizers(self) -> Vec<DebuggerVisualizerFile> {
         self.root.debugger_visualizers.decode(self).collect::<Vec<_>>()
     }
 
@@ -1013,9 +1005,8 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
         let ident = self.item_ident(id, sess);
         let res = Res::Def(self.def_kind(id), self.local_def_id(id));
         let vis = self.get_visibility(id);
-        let span = self.get_span(id, sess);
 
-        ModChild { ident, res, vis, span, reexport_chain: Default::default() }
+        ModChild { ident, res, vis, reexport_chain: Default::default() }
     }
 
     /// Iterates over all named children of the given module,
@@ -1038,11 +1029,9 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
                 }
             } else {
                 // Iterate over all children.
-                for child_index in self.root.tables.children.get(self, id).unwrap().decode(self) {
-                    // FIXME: Do not encode RPITITs as a part of this list.
-                    if self.root.tables.opt_rpitit_info.get(self, child_index).is_none() {
-                        yield self.get_mod_child(child_index, sess);
-                    }
+                let non_reexports = self.root.tables.module_children_non_reexports.get(self, id);
+                for child_index in non_reexports.unwrap().decode(self) {
+                    yield self.get_mod_child(child_index, sess);
                 }
 
                 let reexports = self.root.tables.module_children_reexports.get(self, id);
@@ -1071,20 +1060,19 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
             .expect("argument names not encoded for a function")
             .decode((self, sess))
             .nth(0)
-            .map_or(false, |ident| ident.name == kw::SelfLower)
+            .is_some_and(|ident| ident.name == kw::SelfLower)
     }
 
-    fn get_associated_item_def_ids(
+    fn get_associated_item_or_field_def_ids(
         self,
         id: DefIndex,
-        sess: &'a Session,
     ) -> impl Iterator<Item = DefId> + 'a {
         self.root
             .tables
-            .children
+            .associated_item_or_field_def_ids
             .get(self, id)
-            .expect("associated items not encoded for an item")
-            .decode((self, sess))
+            .unwrap_or_else(|| self.missing("associated_item_or_field_def_ids", id))
+            .decode(self)
             .map(move |child_index| self.local_def_id(child_index))
     }
 
@@ -1261,14 +1249,6 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
                 ast::MacroDef { macro_rules, body: ast::ptr::P(body) }
             }
             _ => bug!(),
-        }
-    }
-
-    fn is_foreign_item(self, id: DefIndex) -> bool {
-        if let Some(parent) = self.def_key(id).parent {
-            matches!(self.def_kind(parent), DefKind::ForeignMod)
-        } else {
-            false
         }
     }
 
@@ -1482,28 +1462,30 @@ impl<'a, 'tcx> CrateMetadataRef<'a> {
                     ..
                 } = source_file_to_import;
 
-                // If this file is under $sysroot/lib/rustlib/src/ but has not been remapped
-                // during rust bootstrapping by `remap-debuginfo = true`, and the user
-                // wish to simulate that behaviour by -Z simulate-remapped-rust-src-base,
+                // If this file is under $sysroot/lib/rustlib/src/
+                // and the user wish to simulate remapping with -Z simulate-remapped-rust-src-base,
                 // then we change `name` to a similar state as if the rust was bootstrapped
                 // with `remap-debuginfo = true`.
                 // This is useful for testing so that tests about the effects of
                 // `try_to_translate_virtual_to_real` don't have to worry about how the
                 // compiler is bootstrapped.
                 if let Some(virtual_dir) = &sess.opts.unstable_opts.simulate_remapped_rust_src_base
-                {
-                    if let Some(real_dir) = &sess.opts.real_rust_source_base_dir {
-                        for subdir in ["library", "compiler"] {
-                            if let rustc_span::FileName::Real(ref mut old_name) = name {
-                                if let rustc_span::RealFileName::LocalPath(local) = old_name {
-                                    if let Ok(rest) = local.strip_prefix(real_dir.join(subdir)) {
-                                        *old_name = rustc_span::RealFileName::Remapped {
-                                            local_path: None,
-                                            virtual_name: virtual_dir.join(subdir).join(rest),
-                                        };
-                                    }
-                                }
-                            }
+                && let Some(real_dir) = &sess.opts.real_rust_source_base_dir
+                && let rustc_span::FileName::Real(ref mut old_name) = name {
+                    let relative_path = match old_name {
+                        rustc_span::RealFileName::LocalPath(local) => local.strip_prefix(real_dir).ok(),
+                        rustc_span::RealFileName::Remapped { virtual_name, .. } => {
+                            option_env!("CFG_VIRTUAL_RUST_SOURCE_BASE_DIR").and_then(|virtual_dir| virtual_name.strip_prefix(virtual_dir).ok())
+                        }
+                    };
+                    debug!(?relative_path, ?virtual_dir, "simulate_remapped_rust_src_base");
+                    for subdir in ["library", "compiler"] {
+                        if let Some(rest) = relative_path.and_then(|p| p.strip_prefix(subdir).ok()) {
+                            *old_name = rustc_span::RealFileName::Remapped {
+                                local_path: None, // FIXME: maybe we should preserve this?
+                                virtual_name: virtual_dir.join(subdir).join(rest),
+                            };
+                            break;
                         }
                     }
                 }

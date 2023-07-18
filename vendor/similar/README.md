@@ -3,6 +3,7 @@
 [![Build Status](https://github.com/mitsuhiko/similar/workflows/Tests/badge.svg?branch=main)](https://github.com/mitsuhiko/similar/actions?query=workflow%3ATests)
 [![Crates.io](https://img.shields.io/crates/d/similar.svg)](https://crates.io/crates/similar)
 [![License](https://img.shields.io/github/license/mitsuhiko/similar)](https://github.com/mitsuhiko/similar/blob/main/LICENSE)
+[![rustc 1.41.0](https://img.shields.io/badge/rust-1.41%2B-orange.svg)](https://img.shields.io/badge/rust-1.41%2B-orange.svg)
 [![Documentation](https://docs.rs/similar/badge.svg)](https://docs.rs/similar)
 
 Similar is a dependency free crate for Rust that implements different diffing
@@ -53,8 +54,7 @@ fn main() {
 
 ## License and Links
 
-- [Documentation](https://docs.rs/similar/)
-- [Issue Tracker](https://github.com/mitsuhiko/similar/issues)
-- [Examples](https://github.com/mitsuhiko/similar/tree/main/examples)
-- License: [Apache-2.0](https://github.com/mitsuhiko/similar/blob/main/LICENSE)
-
+* [Documentation](https://docs.rs/similar/)
+* [Issue Tracker](https://github.com/mitsuhiko/similar/issues)
+* [Examples](https://github.com/mitsuhiko/similar/tree/main/examples)
+* License: [Apache-2.0](https://github.com/mitsuhiko/similar/blob/main/LICENSE)

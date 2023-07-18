@@ -1,17 +1,18 @@
 use crate::hir::{ModuleItems, Owner};
+use crate::middle::debugger_visualizer::DebuggerVisualizerFile;
 use crate::query::LocalCrate;
 use crate::ty::TyCtxt;
 use rustc_ast as ast;
 use rustc_data_structures::fingerprint::Fingerprint;
 use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
 use rustc_data_structures::svh::Svh;
-use rustc_data_structures::sync::{par_for_each_in, Send, Sync};
+use rustc_data_structures::sync::{par_for_each_in, DynSend, DynSync};
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::def_id::{DefId, LocalDefId, CRATE_DEF_ID, LOCAL_CRATE};
 use rustc_hir::definitions::{DefKey, DefPath, DefPathData, DefPathHash};
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_hir::*;
-use rustc_index::vec::Idx;
+use rustc_index::Idx;
 use rustc_middle::hir::nested_filter;
 use rustc_span::def_id::StableCrateId;
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
@@ -148,11 +149,6 @@ impl<'hir> Map<'hir> {
     #[inline]
     pub fn module_items(self, module: LocalDefId) -> impl Iterator<Item = ItemId> + 'hir {
         self.tcx.hir_module_items(module).items()
-    }
-
-    #[inline]
-    pub fn par_for_each_item(self, f: impl Fn(ItemId) + Sync + Send) {
-        par_for_each_in(&self.tcx.hir_crate_items(()).items[..], |id| f(*id));
     }
 
     pub fn def_key(self, def_id: LocalDefId) -> DefKey {
@@ -414,7 +410,7 @@ impl<'hir> Map<'hir> {
     /// item (possibly associated), a closure, or a `hir::AnonConst`.
     pub fn body_owner(self, BodyId { hir_id }: BodyId) -> HirId {
         let parent = self.parent_id(hir_id);
-        assert!(self.find(parent).map_or(false, |n| is_body_owner(n, hir_id)), "{hir_id:?}");
+        assert!(self.find(parent).is_some_and(|n| is_body_owner(n, hir_id)), "{hir_id:?}");
         parent
     }
 
@@ -502,7 +498,7 @@ impl<'hir> Map<'hir> {
     }
 
     #[inline]
-    pub fn par_body_owners(self, f: impl Fn(LocalDefId) + Sync + Send) {
+    pub fn par_body_owners(self, f: impl Fn(LocalDefId) + DynSend + DynSync) {
         par_for_each_in(&self.tcx.hir_crate_items(()).body_owners[..], |&def_id| f(def_id));
     }
 
@@ -640,7 +636,7 @@ impl<'hir> Map<'hir> {
     }
 
     #[inline]
-    pub fn par_for_each_module(self, f: impl Fn(LocalDefId) + Sync + Send) {
+    pub fn par_for_each_module(self, f: impl Fn(LocalDefId) + DynSend + DynSync) {
         let crate_items = self.tcx.hir_crate_items(());
         par_for_each_in(&crate_items.submodules[..], |module| f(module.def_id))
     }
@@ -1170,11 +1166,26 @@ pub(super) fn crate_hash(tcx: TyCtxt<'_>, _: LocalCrate) -> Svh {
 
     source_file_names.sort_unstable();
 
+    // We have to take care of debugger visualizers explicitly. The HIR (and
+    // thus `hir_body_hash`) contains the #[debugger_visualizer] attributes but
+    // these attributes only store the file path to the visualizer file, not
+    // their content. Yet that content is exported into crate metadata, so any
+    // changes to it need to be reflected in the crate hash.
+    let debugger_visualizers: Vec<_> = tcx
+        .debugger_visualizers(LOCAL_CRATE)
+        .iter()
+        // We ignore the path to the visualizer file since it's not going to be
+        // encoded in crate metadata and we already hash the full contents of
+        // the file.
+        .map(DebuggerVisualizerFile::path_erased)
+        .collect();
+
     let crate_hash: Fingerprint = tcx.with_stable_hashing_context(|mut hcx| {
         let mut stable_hasher = StableHasher::new();
         hir_body_hash.hash_stable(&mut hcx, &mut stable_hasher);
         upstream_crates.hash_stable(&mut hcx, &mut stable_hasher);
         source_file_names.hash_stable(&mut hcx, &mut stable_hasher);
+        debugger_visualizers.hash_stable(&mut hcx, &mut stable_hasher);
         if tcx.sess.opts.incremental_relative_spans() {
             let definitions = tcx.definitions_untracked();
             let mut owner_spans: Vec<_> = krate
@@ -1199,7 +1210,7 @@ pub(super) fn crate_hash(tcx: TyCtxt<'_>, _: LocalCrate) -> Svh {
         stable_hasher.finish()
     });
 
-    Svh::new(crate_hash.to_smaller_hash())
+    Svh::new(crate_hash)
 }
 
 fn upstream_crates(tcx: TyCtxt<'_>) -> Vec<(StableCrateId, Svh)> {
@@ -1217,7 +1228,7 @@ fn upstream_crates(tcx: TyCtxt<'_>) -> Vec<(StableCrateId, Svh)> {
 }
 
 fn hir_id_to_string(map: Map<'_>, id: HirId) -> String {
-    let path_str = |def_id: LocalDefId| map.tcx.def_path_str(def_id.to_def_id());
+    let path_str = |def_id: LocalDefId| map.tcx.def_path_str(def_id);
 
     let span_str = || map.tcx.sess.source_map().span_to_snippet(map.span(id)).unwrap_or_default();
     let node_str = |prefix| format!("{id} ({prefix} `{}`)", span_str());

@@ -10,7 +10,8 @@ use crate::{
         cache::{interpolate_context, util::ApplyLeniency},
         tree::{gitoxide, Core, Key, Safe},
     },
-    permission, Permissions, ThreadSafeRepository,
+    open::Permissions,
+    ThreadSafeRepository,
 };
 
 #[derive(Default, Clone)]
@@ -26,7 +27,7 @@ pub(crate) struct EnvironmentOverrides {
 }
 
 impl EnvironmentOverrides {
-    fn from_env() -> Result<Self, permission::env_var::resource::Error> {
+    fn from_env() -> Result<Self, gix_sec::permission::Error<std::path::PathBuf>> {
         let mut worktree_dir = None;
         if let Some(path) = std::env::var_os(Core::WORKTREE.the_environment_override()) {
             worktree_dir = PathBuf::from(path).into();
@@ -146,13 +147,18 @@ impl ThreadSafeRepository {
             lenient_config,
             bail_if_untrusted,
             open_path_as_is: _,
-            permissions: Permissions { ref env, config },
+            permissions:
+                Permissions {
+                    ref env,
+                    config,
+                    attributes,
+                },
             ref api_config_overrides,
             ref cli_config_overrides,
             ref current_dir,
         } = options;
         let current_dir = current_dir.as_deref().expect("BUG: current_dir must be set by caller");
-        let git_dir_trust = git_dir_trust.expect("trust must be been determined by now");
+        let git_dir_trust = git_dir_trust.expect("trust must be determined by now");
 
         // TODO: assure we handle the worktree-dir properly as we can have config per worktree with an extension.
         //       This would be something read in later as have to first check for extensions. Also this means
@@ -180,9 +186,7 @@ impl ThreadSafeRepository {
         };
         let head = refs.find("HEAD").ok();
         let git_install_dir = crate::path::install_dir().ok();
-        let home = std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .and_then(|home| env.home.check_opt(home));
+        let home = gix_path::env::home_dir().and_then(|home| env.home.check_opt(home));
 
         let mut filter_config_section = filter_config_section.unwrap_or(config::section::is_trusted);
         let config = config::Cache::from_stage_one(
@@ -192,7 +196,8 @@ impl ThreadSafeRepository {
             filter_config_section,
             git_install_dir.as_deref(),
             home.as_deref(),
-            env.clone(),
+            *env,
+            attributes,
             config,
             lenient_config,
             api_config_overrides,
@@ -266,7 +271,8 @@ impl ThreadSafeRepository {
             config,
             // used when spawning new repositories off this one when following worktrees
             linked_worktree_options: options,
-            index: gix_features::fs::MutableSnapshot::new().into(),
+            index: gix_fs::SharedFileSnapshotMut::new().into(),
+            shallow_commits: gix_fs::SharedFileSnapshotMut::new().into(),
         })
     }
 }

@@ -38,7 +38,7 @@ in `Cargo.toml`:
 
 ```toml
 [dependencies]
-unicode-bom = "1"
+unicode-bom = "2"
 ```
 
 ## How do I use it?

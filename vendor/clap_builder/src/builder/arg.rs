@@ -17,7 +17,9 @@ use crate::builder::OsStr;
 use crate::builder::PossibleValue;
 use crate::builder::Str;
 use crate::builder::StyledStr;
+use crate::builder::Styles;
 use crate::builder::ValueRange;
+use crate::util::AnyValueId;
 use crate::ArgAction;
 use crate::Id;
 use crate::ValueHint;
@@ -4004,7 +4006,7 @@ impl Arg {
         self.value_hint.unwrap_or_else(|| {
             if self.is_takes_value_set() {
                 let type_id = self.get_value_parser().type_id();
-                if type_id == crate::parser::AnyValueId::of::<std::path::PathBuf>() {
+                if type_id == AnyValueId::of::<std::path::PathBuf>() {
                     ValueHint::AnyPath
                 } else {
                     ValueHint::default()
@@ -4270,49 +4272,74 @@ impl Arg {
         }
     }
 
-    pub(crate) fn stylized(&self, required: Option<bool>) -> StyledStr {
+    pub(crate) fn stylized(&self, styles: &Styles, required: Option<bool>) -> StyledStr {
+        use std::fmt::Write as _;
+        let literal = styles.get_literal();
+
         let mut styled = StyledStr::new();
         // Write the name such --long or -l
         if let Some(l) = self.get_long() {
-            styled.literal("--");
-            styled.literal(l);
+            let _ = write!(
+                styled,
+                "{}--{l}{}",
+                literal.render(),
+                literal.render_reset()
+            );
         } else if let Some(s) = self.get_short() {
-            styled.literal("-");
-            styled.literal(s);
+            let _ = write!(styled, "{}-{s}{}", literal.render(), literal.render_reset());
         }
-        styled.push_styled(&self.stylize_arg_suffix(required));
+        styled.push_styled(&self.stylize_arg_suffix(styles, required));
         styled
     }
 
-    pub(crate) fn stylize_arg_suffix(&self, required: Option<bool>) -> StyledStr {
+    pub(crate) fn stylize_arg_suffix(&self, styles: &Styles, required: Option<bool>) -> StyledStr {
+        use std::fmt::Write as _;
+        let literal = styles.get_literal();
+        let placeholder = styles.get_placeholder();
         let mut styled = StyledStr::new();
 
         let mut need_closing_bracket = false;
         if self.is_takes_value_set() && !self.is_positional() {
             let is_optional_val = self.get_min_vals() == 0;
-            if self.is_require_equals_set() {
+            let (style, start) = if self.is_require_equals_set() {
                 if is_optional_val {
                     need_closing_bracket = true;
-                    styled.placeholder("[=");
+                    (placeholder, "[=")
                 } else {
-                    styled.literal("=");
+                    (literal, "=")
                 }
             } else if is_optional_val {
                 need_closing_bracket = true;
-                styled.placeholder(" [");
+                (placeholder, " [")
             } else {
-                styled.placeholder(" ");
-            }
+                (placeholder, " ")
+            };
+            let _ = write!(styled, "{}{start}{}", style.render(), style.render_reset());
         }
         if self.is_takes_value_set() || self.is_positional() {
             let required = required.unwrap_or_else(|| self.is_required_set());
             let arg_val = self.render_arg_val(required);
-            styled.placeholder(arg_val);
+            let _ = write!(
+                styled,
+                "{}{arg_val}{}",
+                placeholder.render(),
+                placeholder.render_reset()
+            );
         } else if matches!(*self.get_action(), ArgAction::Count) {
-            styled.placeholder("...");
+            let _ = write!(
+                styled,
+                "{}...{}",
+                placeholder.render(),
+                placeholder.render_reset()
+            );
         }
         if need_closing_bracket {
-            styled.placeholder("]");
+            let _ = write!(
+                styled,
+                "{}]{}",
+                placeholder.render(),
+                placeholder.render_reset()
+            );
         }
 
         styled
@@ -4400,7 +4427,8 @@ impl Eq for Arg {}
 
 impl Display for Arg {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        self.stylized(None).fmt(f)
+        let plain = Styles::plain();
+        self.stylized(&plain, None).fmt(f)
     }
 }
 

@@ -10,7 +10,7 @@ pub struct Bash;
 
 impl Generator for Bash {
     fn file_name(&self, name: &str) -> String {
-        format!("{}.bash", name)
+        format!("{name}.bash")
     }
 
     fn generate(&self, cmd: &Command, buf: &mut dyn Write) {
@@ -22,7 +22,7 @@ impl Generator for Bash {
             buf,
             format!(
                 "_{name}() {{
-    local i cur prev opts cmds
+    local i cur prev opts cmd
     COMPREPLY=()
     cur=\"${{COMP_WORDS[COMP_CWORD]}}\"
     prev=\"${{COMP_WORDS[COMP_CWORD-1]}}\"
@@ -114,9 +114,6 @@ fn all_subcommands(cmd: &Command) -> String {
             "{parent_fn_name},{name})
                 cmd=\"{fn_name}\"
                 ;;",
-            parent_fn_name = parent_fn_name,
-            name = name,
-            fn_name = fn_name,
         ));
     }
 
@@ -161,7 +158,7 @@ fn subcommand_details(cmd: &Command) -> String {
 }
 
 fn option_details_for_path(cmd: &Command, path: &str) -> String {
-    debug!("option_details_for_path: path={}", path);
+    debug!("option_details_for_path: path={path}");
 
     let p = utils::find_subcommand_with_path(cmd, path.split("__").skip(1).collect());
     let mut opts = vec![String::new()];
@@ -209,22 +206,24 @@ fn vals_for(o: &Arg) -> String {
                 .collect::<Vec<_>>()
                 .join(" ")
         )
+    } else if o.get_value_hint() == ValueHint::Other {
+        String::from("\"${cur}\"")
     } else {
         String::from("$(compgen -f \"${cur}\")")
     }
 }
 
 fn all_options_for_path(cmd: &Command, path: &str) -> String {
-    debug!("all_options_for_path: path={}", path);
+    debug!("all_options_for_path: path={path}");
 
     let p = utils::find_subcommand_with_path(cmd, path.split("__").skip(1).collect());
 
     let mut opts = String::new();
     for short in utils::shorts_and_visible_aliases(p) {
-        write!(&mut opts, "-{} ", short).unwrap();
+        write!(&mut opts, "-{short} ").unwrap();
     }
     for long in utils::longs_and_visible_aliases(p) {
-        write!(&mut opts, "--{} ", long).unwrap();
+        write!(&mut opts, "--{long} ").unwrap();
     }
     for pos in p.get_positionals() {
         if let Some(vals) = utils::possible_values(pos) {
@@ -232,11 +231,11 @@ fn all_options_for_path(cmd: &Command, path: &str) -> String {
                 write!(&mut opts, "{} ", value.get_name()).unwrap();
             }
         } else {
-            write!(&mut opts, "{} ", pos).unwrap();
+            write!(&mut opts, "{pos} ").unwrap();
         }
     }
     for (sc, _) in utils::subcommands(p) {
-        write!(&mut opts, "{} ", sc).unwrap();
+        write!(&mut opts, "{sc} ").unwrap();
     }
     opts.pop();
 

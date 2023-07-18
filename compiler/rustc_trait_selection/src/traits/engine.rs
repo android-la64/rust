@@ -14,11 +14,11 @@ use rustc_infer::infer::canonical::{
 };
 use rustc_infer::infer::outlives::env::OutlivesEnvironment;
 use rustc_infer::infer::{DefineOpaqueTypes, InferCtxt, InferOk};
-use rustc_infer::traits::query::Fallible;
 use rustc_infer::traits::{
     FulfillmentError, Obligation, ObligationCause, PredicateObligation, TraitEngineExt as _,
 };
 use rustc_middle::arena::ArenaAllocatable;
+use rustc_middle::traits::query::NoSolution;
 use rustc_middle::ty::error::TypeError;
 use rustc_middle::ty::ToPredicate;
 use rustc_middle::ty::TypeFoldable;
@@ -97,7 +97,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
         def_id: DefId,
     ) {
         let tcx = self.infcx.tcx;
-        let trait_ref = tcx.mk_trait_ref(def_id, [ty]);
+        let trait_ref = ty::TraitRef::new(tcx, def_id, [ty]);
         self.register_obligation(Obligation {
             cause,
             recursion_depth: 0,
@@ -235,7 +235,7 @@ impl<'a, 'tcx> ObligationCtxt<'a, 'tcx> {
         &self,
         inference_vars: CanonicalVarValues<'tcx>,
         answer: T,
-    ) -> Fallible<CanonicalQueryResponse<'tcx, T>>
+    ) -> Result<CanonicalQueryResponse<'tcx, T>, NoSolution>
     where
         T: Debug + TypeFoldable<TyCtxt<'tcx>>,
         Canonical<'tcx, QueryResponse<'tcx, T>>: ArenaAllocatable<'tcx>,

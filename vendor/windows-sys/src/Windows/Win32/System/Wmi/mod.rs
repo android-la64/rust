@@ -1,4 +1,4 @@
-::windows_sys::core::link ! ( "mi.dll""cdecl" #[doc = "*Required features: `\"Win32_System_Wmi\"`*"] fn MI_Application_InitializeV1 ( flags : u32 , applicationid : *const u16 , extendederror : *mut *mut MI_Instance , application : *mut MI_Application ) -> MI_Result );
+::windows_targets::link ! ( "mi.dll""cdecl" #[doc = "*Required features: `\"Win32_System_Wmi\"`*"] fn MI_Application_InitializeV1 ( flags : u32 , applicationid : *const u16 , extendederror : *mut *mut MI_Instance , application : *mut MI_Application ) -> MI_Result );
 pub type IEnumWbemClassObject = *mut ::core::ffi::c_void;
 pub type IMofCompiler = *mut ::core::ffi::c_void;
 pub type ISWbemDateTime = *mut ::core::ffi::c_void;
@@ -176,9 +176,9 @@ pub const MI_SERIALIZER_FLAGS_CLASS_DEEP: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
 pub const MI_SERIALIZER_FLAGS_INSTANCE_WITH_CLASS: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const MI_SUBSCRIBE_BOOKMARK_NEWEST: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MI_SUBSCRIBE_BOOKMARK_NEWEST");
+pub const MI_SUBSCRIBE_BOOKMARK_NEWEST: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("MI_SUBSCRIBE_BOOKMARK_NEWEST");
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const MI_SUBSCRIBE_BOOKMARK_OLDEST: ::windows_sys::core::PCWSTR = ::windows_sys::w!("MI_SUBSCRIBE_BOOKMARK_OLDEST");
+pub const MI_SUBSCRIBE_BOOKMARK_OLDEST: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("MI_SUBSCRIBE_BOOKMARK_OLDEST");
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
 pub const MI_WRITEMESSAGE_CHANNEL_DEBUG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
@@ -1132,39 +1132,39 @@ pub const WBEM_FLAVOR_AMENDED: WBEM_FLAVOR_TYPE = 128i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
 pub const WBEM_FLAVOR_MASK_AMENDED: WBEM_FLAVOR_TYPE = 128i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub type WBEM_GENERIC_FLAG_TYPE = u32;
+pub type WBEM_GENERIC_FLAG_TYPE = i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_RETURN_IMMEDIATELY: WBEM_GENERIC_FLAG_TYPE = 16u32;
+pub const WBEM_FLAG_RETURN_IMMEDIATELY: WBEM_GENERIC_FLAG_TYPE = 16i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_RETURN_WBEM_COMPLETE: WBEM_GENERIC_FLAG_TYPE = 0u32;
+pub const WBEM_FLAG_RETURN_WBEM_COMPLETE: WBEM_GENERIC_FLAG_TYPE = 0i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_BIDIRECTIONAL: WBEM_GENERIC_FLAG_TYPE = 0u32;
+pub const WBEM_FLAG_BIDIRECTIONAL: WBEM_GENERIC_FLAG_TYPE = 0i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_FORWARD_ONLY: WBEM_GENERIC_FLAG_TYPE = 32u32;
+pub const WBEM_FLAG_FORWARD_ONLY: WBEM_GENERIC_FLAG_TYPE = 32i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_NO_ERROR_OBJECT: WBEM_GENERIC_FLAG_TYPE = 64u32;
+pub const WBEM_FLAG_NO_ERROR_OBJECT: WBEM_GENERIC_FLAG_TYPE = 64i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_RETURN_ERROR_OBJECT: WBEM_GENERIC_FLAG_TYPE = 0u32;
+pub const WBEM_FLAG_RETURN_ERROR_OBJECT: WBEM_GENERIC_FLAG_TYPE = 0i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_SEND_STATUS: WBEM_GENERIC_FLAG_TYPE = 128u32;
+pub const WBEM_FLAG_SEND_STATUS: WBEM_GENERIC_FLAG_TYPE = 128i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_DONT_SEND_STATUS: WBEM_GENERIC_FLAG_TYPE = 0u32;
+pub const WBEM_FLAG_DONT_SEND_STATUS: WBEM_GENERIC_FLAG_TYPE = 0i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_ENSURE_LOCATABLE: WBEM_GENERIC_FLAG_TYPE = 256u32;
+pub const WBEM_FLAG_ENSURE_LOCATABLE: WBEM_GENERIC_FLAG_TYPE = 256i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_DIRECT_READ: WBEM_GENERIC_FLAG_TYPE = 512u32;
+pub const WBEM_FLAG_DIRECT_READ: WBEM_GENERIC_FLAG_TYPE = 512i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_SEND_ONLY_SELECTED: WBEM_GENERIC_FLAG_TYPE = 0u32;
+pub const WBEM_FLAG_SEND_ONLY_SELECTED: WBEM_GENERIC_FLAG_TYPE = 0i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_RETURN_WHEN_COMPLETE: WBEM_GENERIC_FLAG_TYPE = 0u32;
+pub const WBEM_RETURN_WHEN_COMPLETE: WBEM_GENERIC_FLAG_TYPE = 0i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_RETURN_IMMEDIATELY: WBEM_GENERIC_FLAG_TYPE = 16u32;
+pub const WBEM_RETURN_IMMEDIATELY: WBEM_GENERIC_FLAG_TYPE = 16i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_MASK_RESERVED_FLAGS: WBEM_GENERIC_FLAG_TYPE = 126976u32;
+pub const WBEM_MASK_RESERVED_FLAGS: WBEM_GENERIC_FLAG_TYPE = 126976i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_USE_AMENDED_QUALIFIERS: WBEM_GENERIC_FLAG_TYPE = 131072u32;
+pub const WBEM_FLAG_USE_AMENDED_QUALIFIERS: WBEM_GENERIC_FLAG_TYPE = 131072i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
-pub const WBEM_FLAG_STRONG_VALIDATION: WBEM_GENERIC_FLAG_TYPE = 1048576u32;
+pub const WBEM_FLAG_STRONG_VALIDATION: WBEM_GENERIC_FLAG_TYPE = 1048576i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
 pub type WBEM_GENUS_TYPE = i32;
 #[doc = "*Required features: `\"Win32_System_Wmi\"`*"]
@@ -4369,7 +4369,7 @@ pub struct SWbemQueryQualifiedName {
     pub m_uVersion: u32,
     pub m_uTokenType: u32,
     pub m_uNameListSize: u32,
-    pub m_ppszNameList: *mut ::windows_sys::core::PWSTR,
+    pub m_ppszNameList: *const ::windows_sys::core::PCWSTR,
     pub m_bArraysUsed: super::super::Foundation::BOOL,
     pub m_pbArrayElUsed: *mut super::super::Foundation::BOOL,
     pub m_puArrayIndex: *mut u32,
@@ -4416,13 +4416,13 @@ pub struct SWbemRpnEncodedQuery {
     pub m_uFromTargetType: u32,
     pub m_pszOptionalFromPath: ::windows_sys::core::PCWSTR,
     pub m_uFromListSize: u32,
-    pub m_ppszFromList: *mut ::windows_sys::core::PWSTR,
+    pub m_ppszFromList: *const ::windows_sys::core::PCWSTR,
     pub m_uWhereClauseSize: u32,
     pub m_ppRpnWhereClause: *mut *mut SWbemRpnQueryToken,
     pub m_dblWithinPolling: f64,
     pub m_dblWithinWindow: f64,
     pub m_uOrderByListSize: u32,
-    pub m_ppszOrderByList: *mut ::windows_sys::core::PWSTR,
+    pub m_ppszOrderByList: *const ::windows_sys::core::PCWSTR,
     pub m_uOrderDirectionEl: *mut u32,
 }
 #[cfg(feature = "Win32_Foundation")]

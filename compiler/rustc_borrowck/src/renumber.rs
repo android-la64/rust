@@ -1,7 +1,7 @@
 #![deny(rustc::untranslatable_diagnostic)]
 #![deny(rustc::diagnostic_outside_of_impl)]
 use crate::BorrowckInferCtxt;
-use rustc_index::vec::IndexSlice;
+use rustc_index::IndexSlice;
 use rustc_infer::infer::NllRegionVariableOrigin;
 use rustc_middle::mir::visit::{MutVisitor, TyContext};
 use rustc_middle::mir::Constant;
@@ -106,6 +106,14 @@ impl<'a, 'tcx> MutVisitor<'tcx> for RegionRenumberer<'a, 'tcx> {
         *region = self.renumber_regions(old_region, || RegionCtxt::Location(location));
 
         debug!(?region);
+    }
+
+    #[instrument(skip(self), level = "debug")]
+    fn visit_ty_const(&mut self, ct: &mut ty::Const<'tcx>, location: Location) {
+        let old_ct = *ct;
+        *ct = self.renumber_regions(old_ct, || RegionCtxt::Location(location));
+
+        debug!(?ct);
     }
 
     #[instrument(skip(self), level = "debug")]

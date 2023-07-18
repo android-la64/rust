@@ -1,12 +1,14 @@
-use cargo_metadata::DependencyKind;
+use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
+use cargo_platform::Cfg;
 use color_eyre::eyre::{bail, Result};
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
     process::Command,
+    str::FromStr,
 };
 
-use crate::{Config, DependencyBuilder, OutputConflictHandling};
+use crate::{Config, Mode, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -14,23 +16,40 @@ pub struct Dependencies {
     /// finding proc macros run on the host and dependencies for the target.
     pub import_paths: Vec<PathBuf>,
     /// The name as chosen in the `Cargo.toml` and its corresponding rmeta file.
-    pub dependencies: Vec<(String, PathBuf)>,
+    pub dependencies: Vec<(String, Vec<Utf8PathBuf>)>,
+}
+
+fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
+    let mut cmd = config.cfgs.build();
+    cmd.arg("--target").arg(config.target.as_ref().unwrap());
+    let output = cmd.output()?;
+    let stdout = String::from_utf8(output.stdout)?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8(output.stderr)?;
+        bail!(
+            "failed to obtain `cfg` information from {cmd:?}:\nstderr:\n{stderr}\n\nstdout:{stdout}"
+        );
+    }
+    let mut cfgs = vec![];
+
+    for line in stdout.lines() {
+        cfgs.push(Cfg::from_str(line)?);
+    }
+
+    Ok(cfgs)
 }
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
-pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
+pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     let manifest_path = match &config.dependencies_crate_manifest_path {
-        Some(path) => path,
+        Some(path) => path.to_owned(),
         None => return Ok(Default::default()),
     };
+    let manifest_path = &manifest_path;
+    config.fill_host_and_target()?;
     eprintln!("   Building test dependencies...");
-    let DependencyBuilder {
-        program,
-        args,
-        envs,
-    } = &config.dependency_builder;
-    let mut build = Command::new(program);
-    build.args(args);
+    let mut build = config.dependency_builder.build();
 
     if let Some(target) = &config.target {
         build.arg(format!("--target={target}"));
@@ -38,13 +57,13 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let setup_command = |cmd: &mut Command| {
-        cmd.envs(envs.iter().map(|(k, v)| (k, v)));
         cmd.arg("--manifest-path").arg(manifest_path);
-        if matches!(
-            config.output_conflict_handling,
-            OutputConflictHandling::Error
-        ) {
-            cmd.arg("--locked");
+        match (&config.output_conflict_handling, &config.mode) {
+            (_, Mode::Yolo) => {}
+            (OutputConflictHandling::Error, _) => {
+                cmd.arg("--locked");
+            }
+            _ => {}
         }
     };
 
@@ -60,10 +79,10 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     }
 
     // Collect all artifacts generated
-    let output = output.stdout;
-    let output = String::from_utf8(output)?;
+    let artifact_output = output.stdout;
+    let artifact_output = String::from_utf8(artifact_output)?;
     let mut import_paths: HashSet<PathBuf> = HashSet::new();
-    let mut artifacts: HashMap<_, _> = output
+    let mut artifacts: HashMap<_, _> = artifact_output
         .lines()
         .filter_map(|line| {
             let message = serde_json::from_str::<cargo_metadata::Message>(line).ok()?;
@@ -71,11 +90,7 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
                 for filename in &artifact.filenames {
                     import_paths.insert(filename.parent().unwrap().into());
                 }
-                let filename = artifact
-                    .filenames
-                    .into_iter()
-                    .find(|filename| filename.extension() == Some("rmeta"))?;
-                Some((artifact.package_id, filename.into_std_path_buf()))
+                Some((artifact.package_id, artifact.filenames))
             } else {
                 None
             }
@@ -84,6 +99,7 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
 
     // Check which crates are mentioned in the crate itself
     let mut metadata = cargo_metadata::MetadataCommand::new().cargo_command();
+    config.dependency_builder.apply_env(&mut metadata);
     setup_command(&mut metadata);
     let output = metadata.output()?;
 
@@ -95,6 +111,8 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
 
     let output = output.stdout;
     let output = String::from_utf8(output)?;
+
+    let cfg = cfgs(config)?;
 
     for line in output.lines() {
         if !line.starts_with('{') {
@@ -118,6 +136,11 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
             .dependencies
             .iter()
             .filter(|dep| matches!(dep.kind, DependencyKind::Normal))
+            // Only consider dependencies that are enabled on the current target
+            .filter(|dep| match &dep.target {
+                Some(platform) => platform.matches(config.target.as_ref().unwrap(), &cfg),
+                None => true,
+            })
             .map(|dep| {
                 let package = metadata
                     .packages
@@ -135,10 +158,19 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
                 // Get the id for the package matching the version requirement of the dep
                 let id = &package.id;
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
-                // If there are no artifacts, this is the root crate and it is being built as a binary/test
-                // instead of a library. We simply add no artifacts, meaning you can't depend on functions
-                // and types declared in the root crate.
-                Some((name, artifacts.remove(id)?))
+                match artifacts.remove(id) {
+                    Some(artifacts) => Some((name.replace('-', "_"), artifacts)),
+                    None => {
+                        if name == root.name {
+                            // If there are no artifacts, this is the root crate and it is being built as a binary/test
+                            // instead of a library. We simply add no artifacts, meaning you can't depend on functions
+                            // and types declared in the root crate.
+                            None
+                        } else {
+                            panic!("no artifact found for `{name}`(`{id}`):`\n{artifact_output}")
+                        }
+                    }
+                }
             })
             .collect();
         let import_paths = import_paths.into_iter().collect();

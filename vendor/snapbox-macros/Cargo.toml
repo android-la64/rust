@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56.1"
+rust-version = "1.64.0"
 name = "snapbox-macros"
-version = "0.3.0"
+version = "0.3.3"
 include = [
     "build.rs",
     "src/**/*",
@@ -36,13 +36,15 @@ keywords = [
 categories = ["development-tools::testing"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/assert-rs/trycmd/"
-resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
 
-[dependencies]
+[dependencies.anstream]
+version = "0.2.1"
+optional = true
 
 [features]
+color = ["dep:anstream"]
 debug = []
 default = []

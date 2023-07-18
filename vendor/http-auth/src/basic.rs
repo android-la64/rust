@@ -28,11 +28,12 @@ use crate::ChallengeRef;
 ///     "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
 /// );
 pub fn encode_credentials(username: &str, password: &str) -> String {
+    use base64::Engine as _;
     let user_pass = format!("{}:{}", username, password);
     const PREFIX: &str = "Basic ";
     let mut value = String::with_capacity(PREFIX.len() + base64_encoded_len(user_pass.len()));
     value.push_str(PREFIX);
-    base64::encode_config_buf(&user_pass[..], base64::STANDARD, &mut value);
+    base64::engine::general_purpose::STANDARD.encode_string(&user_pass[..], &mut value);
     value
 }
 
@@ -53,7 +54,7 @@ pub struct BasicClient {
 
 impl BasicClient {
     pub fn realm(&self) -> &str {
-        &*self.realm
+        &self.realm
     }
 
     /// Responds to the challenge with the supplied parameters.

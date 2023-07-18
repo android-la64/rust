@@ -1,7 +1,7 @@
 use crate::MirPass;
 use rustc_hir::def_id::DefId;
 use rustc_hir::lang_items::LangItem;
-use rustc_index::vec::IndexVec;
+use rustc_index::IndexVec;
 use rustc_middle::mir::*;
 use rustc_middle::mir::{
     interpret::{ConstValue, Scalar},
@@ -14,6 +14,10 @@ pub struct CheckAlignment;
 
 impl<'tcx> MirPass<'tcx> for CheckAlignment {
     fn is_enabled(&self, sess: &Session) -> bool {
+        // FIXME(#112480) MSVC and rustc disagree on minimum stack alignment on x86 Windows
+        if sess.target.llvm_target == "i686-pc-windows-msvc" {
+            return false;
+        }
         sess.opts.debug_assertions
     }
 
@@ -232,10 +236,10 @@ fn insert_alignment_check<'tcx>(
             cond: Operand::Copy(is_ok),
             expected: true,
             target: new_block,
-            msg: AssertKind::MisalignedPointerDereference {
+            msg: Box::new(AssertKind::MisalignedPointerDereference {
                 required: Operand::Copy(alignment),
                 found: Operand::Copy(addr),
-            },
+            }),
             unwind: UnwindAction::Terminate,
         },
     });

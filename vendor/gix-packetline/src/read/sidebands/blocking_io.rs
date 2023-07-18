@@ -1,6 +1,6 @@
 use std::{io, io::BufRead};
 
-use crate::{BandRef, PacketLineRef, StreamingPeekableIter, TextRef, U16_HEX_BYTES};
+use crate::{read::ProgressAction, BandRef, PacketLineRef, StreamingPeekableIter, TextRef, U16_HEX_BYTES};
 
 /// An implementor of [`BufRead`][io::BufRead] yielding packet lines on each call to [`read_line()`][io::BufRead::read_line()].
 /// It's also possible to hide the underlying packet lines using the [`Read`][io::Read] implementation which is useful
@@ -24,7 +24,7 @@ where
     }
 }
 
-impl<'a, T> WithSidebands<'a, T, fn(bool, &[u8])>
+impl<'a, T> WithSidebands<'a, T, fn(bool, &[u8]) -> ProgressAction>
 where
     T: io::Read,
 {
@@ -42,7 +42,7 @@ where
 impl<'a, T, F> WithSidebands<'a, T, F>
 where
     T: io::Read,
-    F: FnMut(bool, &[u8]),
+    F: FnMut(bool, &[u8]) -> ProgressAction,
 {
     /// Create a new instance with the given `parent` provider and the `handle_progress` function.
     ///
@@ -109,12 +109,28 @@ where
         );
         self.parent.read_line()
     }
+
+    /// Like `BufRead::read_line()`, but will only read one packetline at a time.
+    ///
+    /// It will also be easier to call as sometimes it's unclear which implementation we get on a type like this with
+    /// plenty of generic parameters.
+    pub fn read_line_to_string(&mut self, buf: &mut String) -> io::Result<usize> {
+        assert_eq!(
+            self.cap, 0,
+            "we don't support partial buffers right now - read-line must be used consistently"
+        );
+        let line = std::str::from_utf8(self.fill_buf()?).map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
+        buf.push_str(line);
+        let bytes = line.len();
+        self.cap = 0;
+        Ok(bytes)
+    }
 }
 
 impl<'a, T, F> BufRead for WithSidebands<'a, T, F>
 where
     T: io::Read,
-    F: FnMut(bool, &[u8]),
+    F: FnMut(bool, &[u8]) -> ProgressAction,
 {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         if self.pos >= self.cap {
@@ -138,11 +154,27 @@ where
                             }
                             BandRef::Progress(d) => {
                                 let text = TextRef::from(d).0;
-                                handle_progress(false, text);
+                                match handle_progress(false, text) {
+                                    ProgressAction::Continue => {}
+                                    ProgressAction::Interrupt => {
+                                        return Err(std::io::Error::new(
+                                            std::io::ErrorKind::Other,
+                                            "interrupted by user",
+                                        ))
+                                    }
+                                };
                             }
                             BandRef::Error(d) => {
                                 let text = TextRef::from(d).0;
-                                handle_progress(true, text);
+                                match handle_progress(true, text) {
+                                    ProgressAction::Continue => {}
+                                    ProgressAction::Interrupt => {
+                                        return Err(std::io::Error::new(
+                                            std::io::ErrorKind::Other,
+                                            "interrupted by user",
+                                        ))
+                                    }
+                                };
                             }
                         };
                     }
@@ -168,24 +200,12 @@ where
     fn consume(&mut self, amt: usize) {
         self.pos = std::cmp::min(self.pos + amt, self.cap);
     }
-
-    fn read_line(&mut self, buf: &mut String) -> io::Result<usize> {
-        assert_eq!(
-            self.cap, 0,
-            "we don't support partial buffers right now - read-line must be used consistently"
-        );
-        let line = std::str::from_utf8(self.fill_buf()?).map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
-        buf.push_str(line);
-        let bytes = line.len();
-        self.cap = 0;
-        Ok(bytes)
-    }
 }
 
 impl<'a, T, F> io::Read for WithSidebands<'a, T, F>
 where
     T: io::Read,
-    F: FnMut(bool, &[u8]),
+    F: FnMut(bool, &[u8]) -> ProgressAction,
 {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let nread = {

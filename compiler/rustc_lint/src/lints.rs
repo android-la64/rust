@@ -662,6 +662,43 @@ pub struct ForLoopsOverFalliblesSuggestion<'a> {
     pub end_span: Span,
 }
 
+// drop_forget_useless.rs
+#[derive(LintDiagnostic)]
+#[diag(lint_dropping_references)]
+#[note]
+pub struct DropRefDiag<'a> {
+    pub arg_ty: Ty<'a>,
+    #[label]
+    pub label: Span,
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_dropping_copy_types)]
+#[note]
+pub struct DropCopyDiag<'a> {
+    pub arg_ty: Ty<'a>,
+    #[label]
+    pub label: Span,
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_forgetting_references)]
+#[note]
+pub struct ForgetRefDiag<'a> {
+    pub arg_ty: Ty<'a>,
+    #[label]
+    pub label: Span,
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_forgetting_copy_types)]
+#[note]
+pub struct ForgetCopyDiag<'a> {
+    pub arg_ty: Ty<'a>,
+    #[label]
+    pub label: Span,
+}
+
 // hidden_unicode_codepoints.rs
 #[derive(LintDiagnostic)]
 #[diag(lint_hidden_unicode_codepoints)]
@@ -819,6 +856,10 @@ pub struct DiagOutOfImpl;
 #[derive(LintDiagnostic)]
 #[diag(lint_untranslatable_diag)]
 pub struct UntranslatableDiag;
+
+#[derive(LintDiagnostic)]
+#[diag(lint_trivial_untranslatable_diag)]
+pub struct UntranslatableDiagnosticTrivial;
 
 #[derive(LintDiagnostic)]
 #[diag(lint_bad_opt_access)]
@@ -1144,6 +1185,14 @@ pub struct NoopMethodCallDiag<'a> {
     pub receiver_ty: Ty<'a>,
     #[label]
     pub label: Span,
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_suspicious_double_ref_op)]
+pub struct SuspiciousDoubleRefDiag<'a> {
+    pub call: Symbol,
+    pub ty: Ty<'a>,
+    pub op: &'static str,
 }
 
 // pass_by_value.rs

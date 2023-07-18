@@ -20,7 +20,7 @@ use crate::ir::{
     self,
     condcodes::{FloatCC, IntCC},
     trapcode::TrapCode,
-    types, Block, FuncRef, JumpTable, MemFlags, SigRef, StackSlot, Type, Value,
+    types, Block, FuncRef, MemFlags, SigRef, StackSlot, Type, Value,
 };
 
 /// Some instructions use an external list of argument values because there is not enough space in
@@ -45,7 +45,7 @@ pub type ValueListPool = entity::ListPool<Value>;
 /// The BlockCall::new function guarantees this layout by requiring a block argument that's written
 /// in as the first element of the EntityList. Any subsequent entries are always assumed to be real
 /// Values.
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub struct BlockCall {
     /// The underlying storage for the BlockCall. The first element of the values EntityList is
@@ -122,6 +122,15 @@ impl BlockCall {
     /// Return a value that can display this block call.
     pub fn display<'a>(&self, pool: &'a ValueListPool) -> DisplayBlockCall<'a> {
         DisplayBlockCall { block: *self, pool }
+    }
+
+    /// Deep-clone the underlying list in the same pool. The returned
+    /// list will have identical contents but changes to this list
+    /// will not change its contents or vice-versa.
+    pub fn deep_clone(&self, pool: &mut ValueListPool) -> Self {
+        Self {
+            values: self.values.deep_clone(pool),
+        }
     }
 }
 
@@ -292,37 +301,16 @@ impl Default for VariableArgs {
 /// Avoid large matches on instruction formats by using the methods defined here to examine
 /// instructions.
 impl InstructionData {
-    /// Return information about the destination of a branch or jump instruction.
-    ///
-    /// Any instruction that can transfer control to another block reveals its possible destinations
-    /// here.
-    pub fn analyze_branch(&self) -> BranchInfo {
-        match *self {
-            Self::Jump { destination, .. } => BranchInfo::SingleDest(destination),
-            Self::Brif {
-                blocks: [block_then, block_else],
-                ..
-            } => BranchInfo::Conditional(block_then, block_else),
-            Self::BranchTable {
-                table, destination, ..
-            } => BranchInfo::Table(table, destination),
-            _ => {
-                debug_assert!(!self.opcode().is_branch());
-                BranchInfo::NotABranch
-            }
-        }
-    }
-
     /// Get the destinations of this instruction, if it's a branch.
     ///
     /// `br_table` returns the empty slice.
-    pub fn branch_destination(&self) -> &[BlockCall] {
+    pub fn branch_destination<'a>(&'a self, jump_tables: &'a ir::JumpTables) -> &[BlockCall] {
         match self {
             Self::Jump {
                 ref destination, ..
             } => std::slice::from_ref(destination),
-            Self::Brif { blocks, .. } => blocks,
-            Self::BranchTable { .. } => &[],
+            Self::Brif { blocks, .. } => blocks.as_slice(),
+            Self::BranchTable { table, .. } => jump_tables.get(*table).unwrap().all_branches(),
             _ => {
                 debug_assert!(!self.opcode().is_branch());
                 &[]
@@ -333,14 +321,19 @@ impl InstructionData {
     /// Get a mutable slice of the destinations of this instruction, if it's a branch.
     ///
     /// `br_table` returns the empty slice.
-    pub fn branch_destination_mut(&mut self) -> &mut [BlockCall] {
+    pub fn branch_destination_mut<'a>(
+        &'a mut self,
+        jump_tables: &'a mut ir::JumpTables,
+    ) -> &mut [BlockCall] {
         match self {
             Self::Jump {
                 ref mut destination,
                 ..
             } => std::slice::from_mut(destination),
-            Self::Brif { blocks, .. } => blocks,
-            Self::BranchTable { .. } => &mut [],
+            Self::Brif { blocks, .. } => blocks.as_mut_slice(),
+            Self::BranchTable { table, .. } => {
+                jump_tables.get_mut(*table).unwrap().all_branches_mut()
+            }
             _ => {
                 debug_assert!(!self.opcode().is_branch());
                 &mut []
@@ -410,7 +403,9 @@ impl InstructionData {
             &InstructionData::Load { flags, .. }
             | &InstructionData::LoadNoOffset { flags, .. }
             | &InstructionData::Store { flags, .. }
-            | &InstructionData::StoreNoOffset { flags, .. } => Some(flags),
+            | &InstructionData::StoreNoOffset { flags, .. }
+            | &InstructionData::AtomicCas { flags, .. }
+            | &InstructionData::AtomicRmw { flags, .. } => Some(flags),
             _ => None,
         }
     }
@@ -474,23 +469,6 @@ impl InstructionData {
             _ => {}
         }
     }
-}
-
-/// Information about branch and jump instructions.
-pub enum BranchInfo {
-    /// This is not a branch or jump instruction.
-    /// This instruction will not transfer control to another block in the function, but it may still
-    /// affect control flow by returning or trapping.
-    NotABranch,
-
-    /// This is a branch or jump to a single destination block, possibly taking value arguments.
-    SingleDest(BlockCall),
-
-    /// This is a conditional branch
-    Conditional(BlockCall, BlockCall),
-
-    /// This is a jump table branch which can have many destination blocks and one default block.
-    Table(JumpTable, Block),
 }
 
 /// Information about call instructions.
@@ -597,12 +575,9 @@ impl OpcodeConstraints {
     /// `ctrl_type`.
     pub fn result_type(self, n: usize, ctrl_type: Type) -> Type {
         debug_assert!(n < self.num_fixed_results(), "Invalid result index");
-        if let ResolvedConstraint::Bound(t) =
-            OPERAND_CONSTRAINTS[self.constraint_offset() + n].resolve(ctrl_type)
-        {
-            t
-        } else {
-            panic!("Result constraints can't be free");
+        match OPERAND_CONSTRAINTS[self.constraint_offset() + n].resolve(ctrl_type) {
+            ResolvedConstraint::Bound(t) => t,
+            ResolvedConstraint::Free(ts) => panic!("Result constraints can't be free: {:?}", ts),
         }
     }
 
@@ -636,7 +611,7 @@ type BitSet8 = BitSet<u8>;
 type BitSet16 = BitSet<u16>;
 
 /// A value type set describes the permitted set of types for a type variable.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ValueTypeSet {
     /// Allowed lane sizes
     pub lanes: BitSet16,
@@ -708,8 +683,8 @@ enum OperandConstraint {
     /// This operand is `ctrlType.lane_of()`.
     LaneOf,
 
-    /// This operand is `ctrlType.as_bool()`.
-    AsBool,
+    /// This operand is `ctrlType.as_truthy()`.
+    AsTruthy,
 
     /// This operand is `ctrlType.half_width()`.
     HalfWidth,
@@ -725,6 +700,12 @@ enum OperandConstraint {
 
     /// This operands is `ctrlType.dynamic_to_vector()`.
     DynamicToVector,
+
+    /// This operand is `ctrlType.narrower()`.
+    Narrower,
+
+    /// This operand is `ctrlType.wider()`.
+    Wider,
 }
 
 impl OperandConstraint {
@@ -738,7 +719,7 @@ impl OperandConstraint {
             Free(vts) => ResolvedConstraint::Free(TYPE_SETS[vts as usize]),
             Same => Bound(ctrl_type),
             LaneOf => Bound(ctrl_type.lane_of()),
-            AsBool => Bound(ctrl_type.as_bool()),
+            AsTruthy => Bound(ctrl_type.as_truthy()),
             HalfWidth => Bound(ctrl_type.half_width().expect("invalid type for half_width")),
             DoubleWidth => Bound(
                 ctrl_type
@@ -788,6 +769,57 @@ impl OperandConstraint {
                     .dynamic_to_vector()
                     .expect("invalid type for dynamic_to_vector"),
             ),
+            Narrower => {
+                let ctrl_type_bits = ctrl_type.log2_lane_bits();
+                let mut tys = ValueTypeSet::default();
+
+                // We're testing scalar values, only.
+                tys.lanes = BitSet::from_range(0, 1);
+
+                if ctrl_type.is_int() {
+                    // The upper bound in from_range is exclusive, and we want to exclude the
+                    // control type to construct the interval of [I8, ctrl_type).
+                    tys.ints = BitSet8::from_range(3, ctrl_type_bits as u8);
+                } else if ctrl_type.is_float() {
+                    // The upper bound in from_range is exclusive, and we want to exclude the
+                    // control type to construct the interval of [F32, ctrl_type).
+                    tys.floats = BitSet8::from_range(5, ctrl_type_bits as u8);
+                } else {
+                    panic!("The Narrower constraint only operates on floats or ints");
+                }
+                ResolvedConstraint::Free(tys)
+            }
+            Wider => {
+                let ctrl_type_bits = ctrl_type.log2_lane_bits();
+                let mut tys = ValueTypeSet::default();
+
+                // We're testing scalar values, only.
+                tys.lanes = BitSet::from_range(0, 1);
+
+                if ctrl_type.is_int() {
+                    let lower_bound = ctrl_type_bits as u8 + 1;
+                    // The largest integer type we can represent in `BitSet8` is I128, which is
+                    // represented by bit 7 in the bit set. Adding one to exclude I128 from the
+                    // lower bound would overflow as 2^8 doesn't fit in a u8, but this would
+                    // already describe the empty set so instead we leave `ints` in its default
+                    // empty state.
+                    if lower_bound < BitSet8::bits() as u8 {
+                        // The interval should include all types wider than `ctrl_type`, so we use
+                        // `2^8` as the upper bound, and add one to the bits of `ctrl_type` to define
+                        // the interval `(ctrl_type, I128]`.
+                        tys.ints = BitSet8::from_range(lower_bound, 8);
+                    }
+                } else if ctrl_type.is_float() {
+                    // The interval should include all float types wider than `ctrl_type`, so we
+                    // use `2^7` as the upper bound, and add one to the bits of `ctrl_type` to
+                    // define the interval `(ctrl_type, F64]`.
+                    tys.floats = BitSet8::from_range(ctrl_type_bits as u8 + 1, 7);
+                } else {
+                    panic!("The Wider constraint only operates on floats or ints");
+                }
+
+                ResolvedConstraint::Free(tys)
+            }
         }
     }
 }

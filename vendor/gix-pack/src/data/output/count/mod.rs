@@ -4,7 +4,7 @@ use crate::data::output::Count;
 
 /// Specifies how the pack location was handled during counting
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum PackLocation {
     /// We did not lookup this object
     NotLookedUp,
@@ -30,7 +30,7 @@ impl PackLocation {
 }
 
 impl Count {
-    /// Create a new instance from the given `oid` and its corresponding git `obj`ect data.
+    /// Create a new instance from the given `oid` and its corresponding location.
     pub fn from_data(oid: impl Into<ObjectId>, location: Option<crate::data::entry::Location>) -> Self {
         Count {
             id: oid.into(),

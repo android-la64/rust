@@ -28,12 +28,13 @@ pub enum Domain {
     System,
 }
 
-impl Into<SecTrustSettingsDomain> for Domain {
-    fn into(self) -> SecTrustSettingsDomain {
-        match self {
-            Self::User => kSecTrustSettingsDomainUser,
-            Self::Admin => kSecTrustSettingsDomainAdmin,
-            Self::System => kSecTrustSettingsDomainSystem,
+impl From<Domain> for SecTrustSettingsDomain {
+    #[inline]
+    fn from(domain: Domain) -> SecTrustSettingsDomain {
+        match domain {
+            Domain::User => kSecTrustSettingsDomainUser,
+            Domain::Admin => kSecTrustSettingsDomainAdmin,
+            Domain::System => kSecTrustSettingsDomainSystem,
         }
     }
 }
@@ -80,13 +81,14 @@ pub struct TrustSettings {
 }
 
 impl TrustSettings {
-    /// Create a new TrustSettings for the given domain.
+    /// Create a new `TrustSettings` for the given domain.
     ///
     /// You can call `iter()` to discover the certificates with settings in this domain.
     ///
     /// Then you can call `tls_trust_settings_for_certificate()` with a given certificate
     /// to learn what the aggregate trust setting for that certificate within this domain.
-    pub fn new(domain: Domain) -> Self {
+    #[inline(always)]
+    #[must_use] pub fn new(domain: Domain) -> Self {
         Self { domain }
     }
 
@@ -139,13 +141,10 @@ impl TrustSettings {
                 let ssl_policy_name = CFString::from_static_string("sslServer");
 
                 let maybe_name: Option<CFString> = settings
-                    .find(policy_name_key.as_CFTypeRef() as *const _)
-                    .map(|name| unsafe { CFString::wrap_under_get_rule(*name as *const _) });
+                    .find(policy_name_key.as_CFTypeRef().cast())
+                    .map(|name| unsafe { CFString::wrap_under_get_rule((*name).cast()) });
 
-                match maybe_name {
-                    Some(ref name) if name != &ssl_policy_name => true,
-                    _ => false,
-                }
+                matches!(maybe_name, Some(ref name) if name != &ssl_policy_name)
             };
 
             if is_not_ssl_policy {
@@ -156,15 +155,15 @@ impl TrustSettings {
             let maybe_trust_result = {
                 let settings_result_key = CFString::from_static_string("kSecTrustSettingsResult");
                 settings
-                    .find(settings_result_key.as_CFTypeRef() as *const _)
-                    .map(|num| unsafe { CFNumber::wrap_under_get_rule(*num as *const _) })
+                    .find(settings_result_key.as_CFTypeRef().cast())
+                    .map(|num| unsafe { CFNumber::wrap_under_get_rule((*num).cast()) })
                     .and_then(|num| num.to_i64())
             };
 
             // "Note that an empty Trust Settings array means "always trust this cert,
             //  with a resulting kSecTrustSettingsResult of kSecTrustSettingsResultTrustRoot"."
             let trust_result = TrustSettingsForCertificate::new(maybe_trust_result
-                .unwrap_or(i64::from(kSecTrustSettingsResultTrustRoot)));
+                .unwrap_or_else(|| i64::from(kSecTrustSettingsResultTrustRoot)));
 
             match trust_result {
                 TrustSettingsForCertificate::Unspecified |
@@ -189,17 +188,18 @@ pub struct TrustSettingsIter {
 impl Iterator for TrustSettingsIter {
     type Item = SecCertificate;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.array.len() {
             None
         } else {
-            let cert = self.array.get(self.index)
-                .unwrap();
+            let cert = self.array.get(self.index).unwrap();
             self.index += 1;
             Some(cert.clone())
         }
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         let left = (self.array.len() as usize).saturating_sub(self.index as usize);
         (left, Some(left))
@@ -214,8 +214,7 @@ mod test {
     fn list_for_domain(domain: Domain) {
         println!("--- domain: {:?}", domain);
         let ts = TrustSettings::new(domain);
-        let iterator = ts.iter()
-            .unwrap();
+        let iterator = ts.iter().unwrap();
 
         for (i, cert) in iterator.enumerate() {
             println!("cert({:?}) = {:?}", i, cert);

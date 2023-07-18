@@ -484,6 +484,14 @@ impl Deref for Utf8PathBuf {
     }
 }
 
+/// *Requires Rust 1.68 or newer.*
+#[cfg(path_buf_deref_mut)]
+impl std::ops::DerefMut for Utf8PathBuf {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { Utf8Path::assume_utf8_mut(&mut self.0) }
+    }
+}
+
 impl fmt::Debug for Utf8PathBuf {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
@@ -1457,6 +1465,11 @@ impl Utf8Path {
         // *const Path to a *const Utf8Path is valid.
         &*(path as *const Path as *const Utf8Path)
     }
+
+    #[cfg(path_buf_deref_mut)]
+    unsafe fn assume_utf8_mut(path: &mut Path) -> &mut Utf8Path {
+        &mut *(path as *mut Path as *mut Utf8Path)
+    }
 }
 
 impl Clone for Box<Utf8Path> {
@@ -2219,6 +2232,17 @@ impl Utf8DirEntry {
     #[inline]
     pub fn into_inner(self) -> fs::DirEntry {
         self.inner
+    }
+
+    /// Returns the full path to the file that this entry represents.
+    ///
+    /// This is analogous to [`path`], but moves ownership of the path.
+    ///
+    /// [`path`]: struct.Utf8DirEntry.html#method.path
+    #[inline]
+    #[must_use = "`self` will be dropped if the result is not used"]
+    pub fn into_path(self) -> Utf8PathBuf {
+        self.path
     }
 }
 

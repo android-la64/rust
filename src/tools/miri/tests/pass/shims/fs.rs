@@ -31,7 +31,7 @@ fn main() {
 }
 
 fn host_to_target_path(path: String) -> PathBuf {
-    use std::ffi::{CStr, CString};
+    use std::ffi::{c_char, CStr, CString};
 
     let path = CString::new(path).unwrap();
     let mut out = Vec::with_capacity(1024);
@@ -365,7 +365,7 @@ fn test_directory() {
 
     // Deleting the directory should succeed.
     remove_dir(&dir_path).unwrap();
-    // Reading the metadata of a non-existent directory should fail with a "not found" error.
+    // Reading the metadata of a nonexistent directory should fail with a "not found" error.
     assert_eq!(ErrorKind::NotFound, check_metadata(&[], &dir_path).unwrap_err().kind());
 
     // To test remove_dir_all, re-create the directory with a file and a directory in it.

@@ -141,13 +141,7 @@ fn parse_args<'a>(ecx: &mut ExtCtxt<'a>, sp: Span, tts: TokenStream) -> PResult<
                         args: args
                             .named_args()
                             .iter()
-                            .filter_map(|a| {
-                                if let Some(ident) = a.kind.ident() {
-                                    Some((a, ident))
-                                } else {
-                                    None
-                                }
-                            })
+                            .filter_map(|a| a.kind.ident().map(|ident| (a, ident)))
                             .map(|(arg, n)| n.span.to(arg.expr.span))
                             .collect(),
                     });
@@ -622,14 +616,14 @@ fn report_missing_placeholders(
                         } else {
                             diag.span_note(
                                 sp,
-                                &format!("format specifiers use curly braces, and {}", trn),
+                                format!("format specifiers use curly braces, and {}", trn),
                             );
                         }
                     } else {
                         if success {
-                            diag.help(&format!("`{}` should be written as `{}`", sub, trn));
+                            diag.help(format!("`{}` should be written as `{}`", sub, trn));
                         } else {
-                            diag.note(&format!("`{}` should use curly braces, and {}", sub, trn));
+                            diag.note(format!("`{}` should use curly braces, and {}", sub, trn));
                         }
                     }
                 }
@@ -783,7 +777,7 @@ fn report_invalid_references(
                 has_precision_star = true;
                 e.span_label(
                     *span,
-                    &format!(
+                    format!(
                         "this precision flag adds an extra required argument at position {}, which is why there {} expected",
                         index,
                         if num_placeholders == 1 {
@@ -820,7 +814,7 @@ fn report_invalid_references(
         };
         e = ecx.struct_span_err(
             span,
-            &format!("invalid reference to positional {} ({})", arg_list, num_args_desc),
+            format!("invalid reference to positional {} ({})", arg_list, num_args_desc),
         );
         e.note("positional arguments are zero-based");
     }

@@ -34,7 +34,7 @@ impl Inst {
         debug_assert!(dst.to_reg().class() == RegClass::Float);
         Inst::XmmUnaryRmRImm {
             op,
-            src: XmmMem::new(src).unwrap(),
+            src: XmmMemAligned::new(src).unwrap(),
             imm,
             dst: WritableXmm::from_writable_reg(dst).unwrap(),
         }
@@ -56,7 +56,7 @@ impl Inst {
         Inst::XmmRmiReg {
             opcode,
             src1: Xmm::new(dst.to_reg()).unwrap(),
-            src2: XmmMemImm::new(src).unwrap(),
+            src2: XmmMemAlignedImm::new(src).unwrap(),
             dst: WritableXmm::from_writable_reg(dst).unwrap(),
         }
     }
@@ -96,7 +96,7 @@ impl Inst {
         debug_assert!(dst.to_reg().class() == RegClass::Float);
         Inst::XmmUnaryRmR {
             op,
-            src: XmmMem::new(src).unwrap(),
+            src: XmmMemAligned::new(src).unwrap(),
             dst: WritableXmm::from_writable_reg(dst).unwrap(),
         }
     }
@@ -136,7 +136,7 @@ impl Inst {
         Inst::XmmRmRBlend {
             op,
             src1: Xmm::new(dst.to_reg()).unwrap(),
-            src2: XmmMem::new(src2).unwrap(),
+            src2: XmmMemAligned::new(src2).unwrap(),
             mask: Xmm::new(regs::xmm0()).unwrap(),
             dst: WritableXmm::from_writable_reg(dst).unwrap(),
         }
@@ -1749,7 +1749,8 @@ fn test_x64_emit() {
     insns.push((
         Inst::div(
             OperandSize::Size32,
-            true, /*signed*/
+            DivSignedness::Signed,
+            TrapCode::IntegerDivisionByZero,
             RegMem::reg(regs::rsi()),
             Gpr::new(regs::rax()).unwrap(),
             Gpr::new(regs::rdx()).unwrap(),
@@ -1757,12 +1758,13 @@ fn test_x64_emit() {
             WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
         ),
         "F7FE",
-        "idiv    %eax, %edx, %esi, %eax, %edx",
+        "idiv    %eax, %edx, %esi, %eax, %edx ; trap=int_divz",
     ));
     insns.push((
         Inst::div(
             OperandSize::Size64,
-            true, /*signed*/
+            DivSignedness::Signed,
+            TrapCode::IntegerDivisionByZero,
             RegMem::reg(regs::r15()),
             Gpr::new(regs::rax()).unwrap(),
             Gpr::new(regs::rdx()).unwrap(),
@@ -1770,12 +1772,13 @@ fn test_x64_emit() {
             WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
         ),
         "49F7FF",
-        "idiv    %rax, %rdx, %r15, %rax, %rdx",
+        "idiv    %rax, %rdx, %r15, %rax, %rdx ; trap=int_divz",
     ));
     insns.push((
         Inst::div(
             OperandSize::Size32,
-            false, /*signed*/
+            DivSignedness::Unsigned,
+            TrapCode::IntegerDivisionByZero,
             RegMem::reg(regs::r14()),
             Gpr::new(regs::rax()).unwrap(),
             Gpr::new(regs::rdx()).unwrap(),
@@ -1783,12 +1786,13 @@ fn test_x64_emit() {
             WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
         ),
         "41F7F6",
-        "div     %eax, %edx, %r14d, %eax, %edx",
+        "div     %eax, %edx, %r14d, %eax, %edx ; trap=int_divz",
     ));
     insns.push((
         Inst::div(
             OperandSize::Size64,
-            false, /*signed*/
+            DivSignedness::Unsigned,
+            TrapCode::IntegerDivisionByZero,
             RegMem::reg(regs::rdi()),
             Gpr::new(regs::rax()).unwrap(),
             Gpr::new(regs::rdx()).unwrap(),
@@ -1796,33 +1800,29 @@ fn test_x64_emit() {
             WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
         ),
         "48F7F7",
-        "div     %rax, %rdx, %rdi, %rax, %rdx",
+        "div     %rax, %rdx, %rdi, %rax, %rdx ; trap=int_divz",
     ));
     insns.push((
-        Inst::div(
-            OperandSize::Size8,
-            false,
+        Inst::div8(
+            DivSignedness::Unsigned,
+            TrapCode::IntegerDivisionByZero,
             RegMem::reg(regs::rax()),
             Gpr::new(regs::rax()).unwrap(),
-            Gpr::new(regs::rdx()).unwrap(),
             WritableGpr::from_reg(Gpr::new(regs::rax()).unwrap()),
-            WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
         ),
         "F6F0",
-        "div     %al, (none), %al, %al, (none)",
+        "div     %al, %al, %al ; trap=int_divz",
     ));
     insns.push((
-        Inst::div(
-            OperandSize::Size8,
-            false,
+        Inst::div8(
+            DivSignedness::Unsigned,
+            TrapCode::IntegerDivisionByZero,
             RegMem::reg(regs::rsi()),
             Gpr::new(regs::rax()).unwrap(),
-            Gpr::new(regs::rdx()).unwrap(),
             WritableGpr::from_reg(Gpr::new(regs::rax()).unwrap()),
-            WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
         ),
         "40F6F6",
-        "div     %al, (none), %sil, %al, (none)",
+        "div     %al, %sil, %al ; trap=int_divz",
     ));
 
     // ========================================================
@@ -1862,48 +1862,6 @@ fn test_x64_emit() {
         ),
         "48F7E7",
         "mul     %rax, %rdi, %rax, %rdx",
-    ));
-
-    // ========================================================
-    // cbw
-    insns.push((
-        Inst::sign_extend_data(
-            OperandSize::Size8,
-            Gpr::new(regs::rax()).unwrap(),
-            WritableGpr::from_reg(Gpr::new(regs::rax()).unwrap()),
-        ),
-        "6698",
-        "cbw %al, %al",
-    ));
-
-    // ========================================================
-    // cdq family: SignExtendRaxRdx
-    insns.push((
-        Inst::sign_extend_data(
-            OperandSize::Size16,
-            Gpr::new(regs::rax()).unwrap(),
-            WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
-        ),
-        "6699",
-        "cwd %ax, %dx",
-    ));
-    insns.push((
-        Inst::sign_extend_data(
-            OperandSize::Size32,
-            Gpr::new(regs::rax()).unwrap(),
-            WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
-        ),
-        "99",
-        "cdq %eax, %edx",
-    ));
-    insns.push((
-        Inst::sign_extend_data(
-            OperandSize::Size64,
-            Gpr::new(regs::rax()).unwrap(),
-            WritableGpr::from_reg(Gpr::new(regs::rdx()).unwrap()),
-        ),
-        "4899",
-        "cqo %rax, %rdx",
     ));
 
     // ========================================================
@@ -3964,25 +3922,25 @@ fn test_x64_emit() {
     // XMM FMA
 
     insns.push((
-        Inst::xmm_rm_r_vex(AvxOpcode::Vfmadd213ss, RegMem::reg(xmm2), xmm1, w_xmm0),
+        Inst::xmm_rmr_vex3(AvxOpcode::Vfmadd213ss, RegMem::reg(xmm2), xmm1, w_xmm0),
         "C4E271A9C2",
         "vfmadd213ss %xmm0, %xmm1, %xmm2, %xmm0",
     ));
 
     insns.push((
-        Inst::xmm_rm_r_vex(AvxOpcode::Vfmadd213sd, RegMem::reg(xmm5), xmm4, w_xmm3),
+        Inst::xmm_rmr_vex3(AvxOpcode::Vfmadd213sd, RegMem::reg(xmm5), xmm4, w_xmm3),
         "C4E2D9A9DD",
         "vfmadd213sd %xmm3, %xmm4, %xmm5, %xmm3",
     ));
 
     insns.push((
-        Inst::xmm_rm_r_vex(AvxOpcode::Vfmadd213ps, RegMem::reg(xmm2), xmm1, w_xmm0),
+        Inst::xmm_rmr_vex3(AvxOpcode::Vfmadd213ps, RegMem::reg(xmm2), xmm1, w_xmm0),
         "C4E271A8C2",
         "vfmadd213ps %xmm0, %xmm1, %xmm2, %xmm0",
     ));
 
     insns.push((
-        Inst::xmm_rm_r_vex(AvxOpcode::Vfmadd213pd, RegMem::reg(xmm5), xmm4, w_xmm3),
+        Inst::xmm_rmr_vex3(AvxOpcode::Vfmadd213pd, RegMem::reg(xmm5), xmm4, w_xmm3),
         "C4E2D9A8DD",
         "vfmadd213pd %xmm3, %xmm4, %xmm5, %xmm3",
     ));
@@ -4861,6 +4819,20 @@ fn test_x64_emit() {
     ));
 
     // ========================================================
+    // XmmRmRImmVex
+    insns.push((
+        Inst::XmmVexPinsr {
+            op: AvxOpcode::Vpinsrb,
+            dst: Writable::from_reg(Xmm::new(xmm13).unwrap()),
+            src1: Xmm::new(xmm14).unwrap(),
+            src2: GprMem::new(RegMem::reg(r15)).unwrap(),
+            imm: 2,
+        },
+        "C4430920EF02",
+        "vpinsrb $2, %xmm14, %r15, %xmm13",
+    ));
+
+    // ========================================================
     // Pertaining to atomics.
     let am1: SyntheticAmode =
         Amode::imm_reg_reg_shift(321, Gpr::new(r10).unwrap(), Gpr::new(rdx).unwrap(), 2).into();
@@ -5135,12 +5107,13 @@ fn test_x64_emit() {
     isa_flag_builder.enable("has_ssse3").unwrap();
     isa_flag_builder.enable("has_sse41").unwrap();
     isa_flag_builder.enable("has_fma").unwrap();
+    isa_flag_builder.enable("has_avx").unwrap();
     isa_flag_builder.enable("has_avx512bitalg").unwrap();
     isa_flag_builder.enable("has_avx512dq").unwrap();
     isa_flag_builder.enable("has_avx512f").unwrap();
     isa_flag_builder.enable("has_avx512vbmi").unwrap();
     isa_flag_builder.enable("has_avx512vl").unwrap();
-    let isa_flags = x64::settings::Flags::new(&flags, isa_flag_builder);
+    let isa_flags = x64::settings::Flags::new(&flags, &isa_flag_builder);
 
     let emit_info = EmitInfo::new(flags, isa_flags);
     for (insn, expected_encoding, expected_printing) in insns {

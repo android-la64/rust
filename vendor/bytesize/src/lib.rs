@@ -27,12 +27,17 @@
 //!  assert_eq!("518 GB".to_string(), ByteSize::gb(518).to_string(false));
 //! ```
 
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
+mod parse;
 
-use std::fmt::{Debug, Display, Formatter, Result};
-use std::ops::{Add, Mul};
+#[cfg(feature = "serde")]
+extern crate serde;
+#[cfg(feature = "serde")]
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+#[cfg(feature = "serde")]
+use std::convert::TryFrom;
+
+use std::fmt::{self, Debug, Display, Formatter};
+use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 /// byte size for 1 byte
 pub const B: u64 = 1;
@@ -58,8 +63,8 @@ pub const TIB: u64 = 1_099_511_627_776;
 /// bytes size for 1 pebibyte
 pub const PIB: u64 = 1_125_899_906_842_624;
 
-static UNITS: &'static str = "KMGTPE";
-static UNITS_SI: &'static str = "kMGTPE";
+static UNITS: &str = "KMGTPE";
+static UNITS_SI: &str = "kMGTPE";
 static LN_KB: f64 = 6.931471806; // ln 1024
 static LN_KIB: f64 = 6.907755279; // ln 1000
 
@@ -104,68 +109,67 @@ pub fn pib<V: Into<u64>>(size: V) -> u64 {
 }
 
 /// Byte size representation
-#[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Default)]
 pub struct ByteSize(pub u64);
 
 impl ByteSize {
     #[inline(always)]
-    pub fn b(size: u64) -> ByteSize {
+    pub const fn b(size: u64) -> ByteSize {
         ByteSize(size)
     }
 
     #[inline(always)]
-    pub fn kb(size: u64) -> ByteSize {
+    pub const fn kb(size: u64) -> ByteSize {
         ByteSize(size * KB)
     }
 
     #[inline(always)]
-    pub fn kib(size: u64) -> ByteSize {
+    pub const fn kib(size: u64) -> ByteSize {
         ByteSize(size * KIB)
     }
 
     #[inline(always)]
-    pub fn mb(size: u64) -> ByteSize {
+    pub const fn mb(size: u64) -> ByteSize {
         ByteSize(size * MB)
     }
 
     #[inline(always)]
-    pub fn mib(size: u64) -> ByteSize {
+    pub const fn mib(size: u64) -> ByteSize {
         ByteSize(size * MIB)
     }
 
     #[inline(always)]
-    pub fn gb(size: u64) -> ByteSize {
+    pub const fn gb(size: u64) -> ByteSize {
         ByteSize(size * GB)
     }
 
     #[inline(always)]
-    pub fn gib(size: u64) -> ByteSize {
+    pub const fn gib(size: u64) -> ByteSize {
         ByteSize(size * GIB)
     }
 
     #[inline(always)]
-    pub fn tb(size: u64) -> ByteSize {
+    pub const fn tb(size: u64) -> ByteSize {
         ByteSize(size * TB)
     }
 
     #[inline(always)]
-    pub fn tib(size: u64) -> ByteSize {
+    pub const fn tib(size: u64) -> ByteSize {
         ByteSize(size * TIB)
     }
 
     #[inline(always)]
-    pub fn pb(size: u64) -> ByteSize {
+    pub const fn pb(size: u64) -> ByteSize {
         ByteSize(size * PB)
     }
 
     #[inline(always)]
-    pub fn pib(size: u64) -> ByteSize {
+    pub const fn pib(size: u64) -> ByteSize {
         ByteSize(size * PIB)
     }
 
     #[inline(always)]
-    pub fn as_u64(&self) -> u64 {
+    pub const fn as_u64(&self) -> u64 {
         self.0
     }
 
@@ -204,40 +208,24 @@ pub fn to_string(bytes: u64, si_prefix: bool) -> String {
 }
 
 impl Display for ByteSize {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) ->fmt::Result {
         f.pad(&to_string(self.0, false))
     }
 }
 
 impl Debug for ByteSize {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self)
     }
 }
 
 macro_rules! commutative_op {
     ($t:ty) => {
-        impl Add<$t> for ByteSize {
-            type Output = ByteSize;
-            #[inline(always)]
-            fn add(self, rhs: $t) -> ByteSize {
-                ByteSize(self.0 + (rhs as u64))
-            }
-        }
-
         impl Add<ByteSize> for $t {
             type Output = ByteSize;
             #[inline(always)]
             fn add(self, rhs: ByteSize) -> ByteSize {
                 ByteSize(rhs.0 + (self as u64))
-            }
-        }
-
-        impl Mul<$t> for ByteSize {
-            type Output = ByteSize;
-            #[inline(always)]
-            fn mul(self, rhs: $t) -> ByteSize {
-                ByteSize(self.0 * (rhs as u64))
             }
         }
 
@@ -265,13 +253,118 @@ impl Add<ByteSize> for ByteSize {
     }
 }
 
+impl AddAssign<ByteSize> for ByteSize {
+    #[inline(always)]
+    fn add_assign(&mut self, rhs: ByteSize) {
+        self.0 += rhs.0
+    }
+}
+
+impl<T> Add<T> for ByteSize
+    where T: Into<u64> {
+    type Output = ByteSize;
+    #[inline(always)]
+    fn add(self, rhs: T) -> ByteSize {
+        ByteSize(self.0 + (rhs.into() as u64))
+    }
+}
+
+impl<T> AddAssign<T> for ByteSize
+    where T: Into<u64> {
+    #[inline(always)]
+    fn add_assign(&mut self, rhs: T) {
+        self.0 += rhs.into() as u64;
+    }
+}
+
+impl<T> Mul<T> for ByteSize
+    where T: Into<u64> {
+    type Output = ByteSize;
+    #[inline(always)]
+    fn mul(self, rhs: T) -> ByteSize {
+        ByteSize(self.0 * (rhs.into() as u64))
+    }
+}
+
+impl<T> MulAssign<T> for ByteSize
+    where T: Into<u64> {
+    #[inline(always)]
+    fn mul_assign(&mut self, rhs: T) {
+        self.0 *= rhs.into() as u64;
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for ByteSize {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ByteSizeVistor;
+
+        impl<'de> de::Visitor<'de> for ByteSizeVistor {
+            type Value = ByteSize;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("an integer or string")
+            }
+
+            fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
+                if let Ok(val) = u64::try_from(value) {
+                    Ok(ByteSize(val))
+                } else {
+                    Err(E::invalid_value(
+                        de::Unexpected::Signed(value),
+                        &"integer overflow",
+                    ))
+                }
+            }
+
+            fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
+                Ok(ByteSize(value))
+            }
+
+            fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
+                if let Ok(val) = value.parse() {
+                    Ok(val)
+                } else {
+                    Err(E::invalid_value(
+                        de::Unexpected::Str(value),
+                        &"parsable string",
+                    ))
+                }
+            }
+        }
+
+        if deserializer.is_human_readable() {
+            deserializer.deserialize_any(ByteSizeVistor)
+        } else {
+            deserializer.deserialize_u64(ByteSizeVistor)
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for ByteSize {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            <str>::serialize(self.to_string().as_str(), serializer)
+        } else {
+            self.0.serialize(serializer)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_arithmetic_op() {
-        let x = ByteSize::mb(1);
+        let mut x = ByteSize::mb(1);
         let y = ByteSize::kb(100);
 
         assert_eq!((x + y).as_u64(), 1_100_000u64);
@@ -279,11 +372,16 @@ mod tests {
         assert_eq!((x + (100 * 1000) as u64).as_u64(), 1_100_000);
 
         assert_eq!((x * 2u64).as_u64(), 2_000_000);
+
+        x += y;
+        assert_eq!(x.as_u64(), 1_100_000);
+        x *= 2u64;
+        assert_eq!(x.as_u64(), 2_200_000);
     }
 
     #[test]
     fn test_arithmetic_primitives() {
-        let x = ByteSize::mb(1);
+        let mut x = ByteSize::mb(1);
 
         assert_eq!((x + MB as u64).as_u64(), 2_000_000);
 
@@ -292,6 +390,12 @@ mod tests {
         assert_eq!((x + KB as u16).as_u64(), 1_001_000);
 
         assert_eq!((x + B as u8).as_u64(), 1_000_001);
+
+        x += MB as u64;
+        x += MB as u32;
+        x += 10u16;
+        x += 1u8;
+        assert_eq!(x.as_u64(), 3_000_011);
     }
 
     #[test]
@@ -373,5 +477,27 @@ mod tests {
     #[test]
     fn test_to_string() {
         assert_to_string("609.0 PB", ByteSize::pb(609), false);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_serde() {
+        #[derive(Serialize, Deserialize)]
+        struct S {
+            x: ByteSize,
+        }
+
+        let s: S = serde_json::from_str(r#"{ "x": "5 B" }"#).unwrap();
+        assert_eq!(s.x, ByteSize(5));
+
+        let s: S = serde_json::from_str(r#"{ "x": 1048576 }"#).unwrap();
+        assert_eq!(s.x, "1 MiB".parse::<ByteSize>().unwrap());
+
+        let s: S = toml::from_str(r#"x = "2.5 MiB""#).unwrap();
+        assert_eq!(s.x, "2.5 MiB".parse::<ByteSize>().unwrap());
+
+        // i64 MAX
+        let s: S = toml::from_str(r#"x = "9223372036854775807""#).unwrap();
+        assert_eq!(s.x, "9223372036854775807".parse::<ByteSize>().unwrap());
     }
 }

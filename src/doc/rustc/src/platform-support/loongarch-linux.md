@@ -1,6 +1,6 @@
 # loongarch\*-unknown-linux-\*
 
-**Tier: 3**
+**Tier: 2**
 
 [LoongArch] is a new RISC ISA developed by Loongson Technology Corporation Limited.
 
@@ -14,6 +14,8 @@ While the integer base ABI is implied by the machine field, the floating po
 |          f64           | The base ABI use 64-bits FPRs for parameter passing. (lp64d)|
 |          f32           | The base ABI uses 32-bit FPRs for parameter passing. (lp64f)|
 |          sf            | The base ABI uses no FPR for parameter passing. (lp64s)     |
+
+<br>
 
 |`ABI type(Base ABI/ABI extension)`| `C library` | `kernel` |          `target tuple`          |
 |----------------------------------|-------------|----------|----------------------------------|

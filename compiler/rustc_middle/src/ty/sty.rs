@@ -19,7 +19,7 @@ use rustc_errors::{DiagnosticArgValue, IntoDiagnosticArg};
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_hir::LangItem;
-use rustc_index::vec::Idx;
+use rustc_index::Idx;
 use rustc_macros::HashStable;
 use rustc_span::symbol::{kw, sym, Symbol};
 use rustc_span::Span;
@@ -631,7 +631,7 @@ impl<'tcx> UpvarSubsts<'tcx> {
 /// type of the constant. The reason that `R` is represented as an extra type parameter
 /// is the same reason that [`ClosureSubsts`] have `CS` and `U` as type parameters:
 /// inline const can reference lifetimes that are internal to the creating function.
-#[derive(Copy, Clone, Debug, TypeFoldable, TypeVisitable)]
+#[derive(Copy, Clone, Debug)]
 pub struct InlineConstSubsts<'tcx> {
     /// Generic parameters from the enclosing item,
     /// concatenated with the inferred type of the constant.
@@ -727,13 +727,13 @@ impl<'tcx> PolyExistentialPredicate<'tcx> {
             ExistentialPredicate::AutoTrait(did) => {
                 let generics = tcx.generics_of(did);
                 let trait_ref = if generics.params.len() == 1 {
-                    tcx.mk_trait_ref(did, [self_ty])
+                    ty::TraitRef::new(tcx, did, [self_ty])
                 } else {
                     // If this is an ill-formed auto trait, then synthesize
                     // new error substs for the missing generics.
                     let err_substs =
                         ty::InternalSubsts::extend_with_error(tcx, did, &[self_ty.into()]);
-                    tcx.mk_trait_ref(did, err_substs)
+                    ty::TraitRef::new(tcx, did, err_substs)
                 };
                 self.rebind(trait_ref).without_const().to_predicate(tcx)
             }
@@ -820,27 +820,28 @@ pub struct TraitRef<'tcx> {
     pub def_id: DefId,
     pub substs: SubstsRef<'tcx>,
     /// This field exists to prevent the creation of `TraitRef` without
-    /// calling [TyCtxt::mk_trait_ref].
-    pub(super) _use_mk_trait_ref_instead: (),
+    /// calling [`TraitRef::new`].
+    pub(super) _use_trait_ref_new_instead: (),
 }
 
 impl<'tcx> TraitRef<'tcx> {
-    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
-        tcx.mk_trait_ref(
-            self.def_id,
-            [self_ty.into()].into_iter().chain(self.substs.iter().skip(1)),
-        )
+    pub fn new(
+        tcx: TyCtxt<'tcx>,
+        trait_def_id: DefId,
+        substs: impl IntoIterator<Item: Into<GenericArg<'tcx>>>,
+    ) -> Self {
+        let substs = tcx.check_and_mk_substs(trait_def_id, substs);
+        Self { def_id: trait_def_id, substs, _use_trait_ref_new_instead: () }
     }
 
-    /// Returns a `TraitRef` of the form `P0: Foo<P1..Pn>` where `Pi`
-    /// are the parameters defined on trait.
-    pub fn identity(tcx: TyCtxt<'tcx>, def_id: DefId) -> Binder<'tcx, TraitRef<'tcx>> {
-        ty::Binder::dummy(tcx.mk_trait_ref(def_id, InternalSubsts::identity_for_item(tcx, def_id)))
-    }
-
-    #[inline]
-    pub fn self_ty(&self) -> Ty<'tcx> {
-        self.substs.type_at(0)
+    pub fn from_lang_item(
+        tcx: TyCtxt<'tcx>,
+        trait_lang_item: LangItem,
+        span: Span,
+        substs: impl IntoIterator<Item: Into<ty::GenericArg<'tcx>>>,
+    ) -> Self {
+        let trait_def_id = tcx.require_lang_item(trait_lang_item, Some(span));
+        Self::new(tcx, trait_def_id, substs)
     }
 
     pub fn from_method(
@@ -849,7 +850,38 @@ impl<'tcx> TraitRef<'tcx> {
         substs: SubstsRef<'tcx>,
     ) -> ty::TraitRef<'tcx> {
         let defs = tcx.generics_of(trait_id);
-        tcx.mk_trait_ref(trait_id, tcx.mk_substs(&substs[..defs.params.len()]))
+        ty::TraitRef::new(tcx, trait_id, tcx.mk_substs(&substs[..defs.params.len()]))
+    }
+
+    /// Returns a `TraitRef` of the form `P0: Foo<P1..Pn>` where `Pi`
+    /// are the parameters defined on trait.
+    pub fn identity(tcx: TyCtxt<'tcx>, def_id: DefId) -> TraitRef<'tcx> {
+        ty::TraitRef::new(tcx, def_id, InternalSubsts::identity_for_item(tcx, def_id))
+    }
+
+    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
+        ty::TraitRef::new(
+            tcx,
+            self.def_id,
+            [self_ty.into()].into_iter().chain(self.substs.iter().skip(1)),
+        )
+    }
+
+    /// Converts this trait ref to a trait predicate with a given `constness` and a positive polarity.
+    #[inline]
+    pub fn with_constness(self, constness: ty::BoundConstness) -> ty::TraitPredicate<'tcx> {
+        ty::TraitPredicate { trait_ref: self, constness, polarity: ty::ImplPolarity::Positive }
+    }
+
+    /// Converts this trait ref to a trait predicate without `const` and a positive polarity.
+    #[inline]
+    pub fn without_const(self) -> ty::TraitPredicate<'tcx> {
+        self.with_constness(ty::BoundConstness::NotConst)
+    }
+
+    #[inline]
+    pub fn self_ty(&self) -> Ty<'tcx> {
+        self.substs.type_at(0)
     }
 }
 
@@ -907,7 +939,7 @@ impl<'tcx> ExistentialTraitRef<'tcx> {
         // otherwise the escaping vars would be captured by the binder
         // debug_assert!(!self_ty.has_escaping_bound_vars());
 
-        tcx.mk_trait_ref(self.def_id, [self_ty.into()].into_iter().chain(self.substs.iter()))
+        ty::TraitRef::new(tcx, self.def_id, [self_ty.into()].into_iter().chain(self.substs.iter()))
     }
 }
 
@@ -1158,9 +1190,9 @@ where
 
 /// Represents the projection of an associated type.
 ///
-/// For a projection, this would be `<Ty as Trait<...>>::N`.
-///
-/// For an opaque type, there is no explicit syntax.
+/// * For a projection, this would be `<Ty as Trait<...>>::N<...>`.
+/// * For an inherent projection, this would be `Ty::N<...>`.
+/// * For an opaque type, there is no explicit syntax.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, TyEncodable, TyDecodable)]
 #[derive(HashStable, TypeFoldable, TypeVisitable, Lift)]
 pub struct AliasTy<'tcx> {
@@ -1169,12 +1201,16 @@ pub struct AliasTy<'tcx> {
     /// For a projection, these are the substitutions for the trait and the
     /// GAT substitutions, if there are any.
     ///
+    /// For an inherent projection, they consist of the self type and the GAT substitutions,
+    /// if there are any.
+    ///
     /// For RPIT the substitutions are for the generics of the function,
     /// while for TAIT it is used for the generic parameters of the alias.
     pub substs: SubstsRef<'tcx>,
 
-    /// The `DefId` of the `TraitItem` for the associated type `N` if this is a projection,
-    /// or the `OpaqueType` item if this is an opaque.
+    /// The `DefId` of the `TraitItem` or `ImplItem` for the associated type `N` depending on whether
+    /// this is a projection or an inherent projection or the `DefId` of the `OpaqueType` item if
+    /// this is an opaque.
     ///
     /// During codegen, `tcx.type_of(def_id)` can be used to get the type of the
     /// underlying type if the type is an opaque.
@@ -1192,6 +1228,7 @@ pub struct AliasTy<'tcx> {
 impl<'tcx> AliasTy<'tcx> {
     pub fn kind(self, tcx: TyCtxt<'tcx>) -> ty::AliasKind {
         match tcx.def_kind(self.def_id) {
+            DefKind::AssocTy if let DefKind::Impl { of_trait: false } = tcx.def_kind(tcx.parent(self.def_id)) => ty::Inherent,
             DefKind::AssocTy | DefKind::ImplTraitPlaceholder => ty::Projection,
             DefKind::OpaqueTy => ty::Opaque,
             kind => bug!("unexpected DefKind in AliasTy: {kind:?}"),
@@ -1205,6 +1242,17 @@ impl<'tcx> AliasTy<'tcx> {
 
 /// The following methods work only with associated type projections.
 impl<'tcx> AliasTy<'tcx> {
+    pub fn self_ty(self) -> Ty<'tcx> {
+        self.substs.type_at(0)
+    }
+
+    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
+        tcx.mk_alias_ty(self.def_id, [self_ty.into()].into_iter().chain(self.substs.iter().skip(1)))
+    }
+}
+
+/// The following methods work only with trait associated type projections.
+impl<'tcx> AliasTy<'tcx> {
     pub fn trait_def_id(self, tcx: TyCtxt<'tcx>) -> DefId {
         match tcx.def_kind(self.def_id) {
             DefKind::AssocTy | DefKind::AssocConst => tcx.parent(self.def_id),
@@ -1217,7 +1265,7 @@ impl<'tcx> AliasTy<'tcx> {
 
     /// Extracts the underlying trait reference and own substs from this projection.
     /// For example, if this is a projection of `<T as StreamingIterator>::Item<'a>`,
-    /// then this function would return a `T: Iterator` trait reference and `['a]` as the own substs
+    /// then this function would return a `T: StreamingIterator` trait reference and `['a]` as the own substs
     pub fn trait_ref_and_own_substs(
         self,
         tcx: TyCtxt<'tcx>,
@@ -1226,7 +1274,7 @@ impl<'tcx> AliasTy<'tcx> {
         let trait_def_id = self.trait_def_id(tcx);
         let trait_generics = tcx.generics_of(trait_def_id);
         (
-            tcx.mk_trait_ref(trait_def_id, self.substs.truncate_to(tcx, trait_generics)),
+            ty::TraitRef::new(tcx, trait_def_id, self.substs.truncate_to(tcx, trait_generics)),
             &self.substs[trait_generics.count()..],
         )
     }
@@ -1240,15 +1288,30 @@ impl<'tcx> AliasTy<'tcx> {
     /// as well.
     pub fn trait_ref(self, tcx: TyCtxt<'tcx>) -> ty::TraitRef<'tcx> {
         let def_id = self.trait_def_id(tcx);
-        tcx.mk_trait_ref(def_id, self.substs.truncate_to(tcx, tcx.generics_of(def_id)))
+        ty::TraitRef::new(tcx, def_id, self.substs.truncate_to(tcx, tcx.generics_of(def_id)))
     }
+}
 
-    pub fn self_ty(self) -> Ty<'tcx> {
-        self.substs.type_at(0)
-    }
+/// The following methods work only with inherent associated type projections.
+impl<'tcx> AliasTy<'tcx> {
+    /// Transform the substitutions to have the given `impl` substs as the base and the GAT substs on top of that.
+    ///
+    /// Does the following transformation:
+    ///
+    /// ```text
+    /// [Self, P_0...P_m] -> [I_0...I_n, P_0...P_m]
+    ///
+    ///     I_i impl subst
+    ///     P_j GAT subst
+    /// ```
+    pub fn rebase_substs_onto_impl(
+        self,
+        impl_substs: ty::SubstsRef<'tcx>,
+        tcx: TyCtxt<'tcx>,
+    ) -> ty::SubstsRef<'tcx> {
+        debug_assert_eq!(self.kind(tcx), ty::Inherent);
 
-    pub fn with_self_ty(self, tcx: TyCtxt<'tcx>, self_ty: Ty<'tcx>) -> Self {
-        tcx.mk_alias_ty(self.def_id, [self_ty.into()].into_iter().chain(self.substs.iter().skip(1)))
+        tcx.mk_substs_from_iter(impl_substs.into_iter().chain(self.substs.into_iter().skip(1)))
     }
 }
 
@@ -1436,7 +1499,7 @@ pub struct ConstVid<'tcx> {
 rustc_index::newtype_index! {
     /// A **region** (lifetime) **v**ariable **ID**.
     #[derive(HashStable)]
-    #[debug_format = "'_#{}r"]
+    #[debug_format = "'?{}"]
     pub struct RegionVid {}
 }
 
@@ -1645,7 +1708,9 @@ impl<'tcx> Region<'tcx> {
             ty::ReErased => {
                 flags = flags | TypeFlags::HAS_RE_ERASED;
             }
-            ty::ReError(_) => {}
+            ty::ReError(_) => {
+                flags = flags | TypeFlags::HAS_FREE_REGIONS;
+            }
         }
 
         debug!("type_flags({:?}) = {:?}", self, flags);
@@ -2303,13 +2368,11 @@ impl<'tcx> Ty<'tcx> {
 
             ty::Adt(def, _substs) => def.sized_constraint(tcx).0.is_empty(),
 
-            ty::Alias(..) | ty::Param(_) => false,
+            ty::Alias(..) | ty::Param(_) | ty::Placeholder(..) => false,
 
             ty::Infer(ty::TyVar(_)) => false,
 
-            ty::Bound(..)
-            | ty::Placeholder(..)
-            | ty::Infer(ty::FreshTy(_) | ty::FreshIntTy(_) | ty::FreshFloatTy(_)) => {
+            ty::Bound(..) | ty::Infer(ty::FreshTy(_) | ty::FreshIntTy(_) | ty::FreshFloatTy(_)) => {
                 bug!("`is_trivially_sized` applied to unexpected type: {:?}", self)
             }
         }
@@ -2398,6 +2461,13 @@ impl<'tcx> Ty<'tcx> {
                 ty::UintTy::U128 => Some(sym::u128),
             },
             _ => None,
+        }
+    }
+
+    pub fn is_c_void(self, tcx: TyCtxt<'_>) -> bool {
+        match self.kind() {
+            ty::Adt(adt, _) => tcx.lang_items().get(LangItem::CVoid) == Some(adt.did()),
+            _ => false,
         }
     }
 }

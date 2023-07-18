@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-discover"
-version = "0.15.0"
+version = "0.18.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -35,16 +35,16 @@ features = [
 default-features = false
 
 [dependencies.gix-hash]
-version = "^0.10.3"
+version = "^0.11.1"
 
 [dependencies.gix-path]
-version = "^0.7.2"
+version = "^0.8.0"
 
 [dependencies.gix-ref]
-version = "^0.26.0"
+version = "^0.29.0"
 
 [dependencies.gix-sec]
-version = "^0.6.2"
+version = "^0.8.0"
 
 [dependencies.thiserror]
 version = "1.0.26"
@@ -53,7 +53,8 @@ version = "1.0.26"
 version = "1.1.1"
 
 [dev-dependencies.serial_test]
-version = "1.0.0"
+version = "2.0.0"
+default-features = false
 
 [target."cfg(any(unix, windows))".dev-dependencies.tempfile]
 version = "3.2.0"

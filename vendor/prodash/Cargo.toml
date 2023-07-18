@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "prodash"
-version = "23.1.1"
+version = "23.1.2"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",

@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018-2022 The orion Developers
+// Copyright (c) 2018-2023 The orion Developers
 // Based on the algorithm from https://github.com/floodyberry/poly1305-donna
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -163,7 +163,7 @@ impl Poly1305 {
         mb[..16].copy_from_slice(data);
         // One byte is appended to detect trailing zeroes if not last chunk.
         // See https://cr.yp.to/mac/poly1305-20050329.pdf, Section 2 "Conversion and padding".
-        mb[16] = if self.is_finalized { 0 } else { 1 };
+        mb[16] = u8::from(!self.is_finalized);
         let mut m: fiat_poly1305_tight_field_element = [0u32; 5];
         fiat_poly1305_from_bytes(&mut m, &mb);
 

@@ -94,7 +94,6 @@ use std::fmt;
 use std::io;
 use std::io::prelude::*;
 use std::marker::PhantomData;
-use std::mem;
 use std::panic::{self, AssertUnwindSafe};
 use std::ptr;
 use std::result;
@@ -104,9 +103,11 @@ use crate::base::{Error, Result};
 use crate::certificate::SecCertificate;
 use crate::cipher_suite::CipherSuite;
 use crate::identity::SecIdentity;
+use crate::import_export::Pkcs12ImportOptions;
 use crate::policy::SecPolicy;
-use crate::trust::{SecTrust, TrustResult};
+use crate::trust::SecTrust;
 use crate::{cvt, AsInner};
+use security_framework_sys::base::errSecParam;
 
 /// Specifies a side of a TLS session.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -142,6 +143,7 @@ pub enum HandshakeError<S> {
 }
 
 impl<S> From<Error> for HandshakeError<S> {
+    #[inline(always)]
     fn from(err: Error) -> Self {
         Self::Failure(err)
     }
@@ -157,6 +159,7 @@ pub enum ClientHandshakeError<S> {
 }
 
 impl<S> From<Error> for ClientHandshakeError<S> {
+    #[inline(always)]
     fn from(err: Error) -> Self {
         Self::Failure(err)
     }
@@ -171,49 +174,58 @@ pub struct MidHandshakeSslStream<S> {
 
 impl<S> MidHandshakeSslStream<S> {
     /// Returns a shared reference to the inner stream.
-    pub fn get_ref(&self) -> &S {
+    #[inline(always)]
+    #[must_use] pub fn get_ref(&self) -> &S {
         self.stream.get_ref()
     }
 
     /// Returns a mutable reference to the inner stream.
+    #[inline(always)]
     pub fn get_mut(&mut self) -> &mut S {
         self.stream.get_mut()
     }
 
     /// Returns a shared reference to the `SslContext` of the stream.
-    pub fn context(&self) -> &SslContext {
+    #[inline(always)]
+    #[must_use] pub fn context(&self) -> &SslContext {
         self.stream.context()
     }
 
     /// Returns a mutable reference to the `SslContext` of the stream.
+    #[inline(always)]
     pub fn context_mut(&mut self) -> &mut SslContext {
         self.stream.context_mut()
     }
 
     /// Returns `true` iff `break_on_server_auth` was set and the handshake has
     /// progressed to that point.
-    pub fn server_auth_completed(&self) -> bool {
+    #[inline(always)]
+    #[must_use] pub fn server_auth_completed(&self) -> bool {
         self.error.code() == errSSLPeerAuthCompleted
     }
 
     /// Returns `true` iff `break_on_cert_requested` was set and the handshake
     /// has progressed to that point.
-    pub fn client_cert_requested(&self) -> bool {
+    #[inline(always)]
+    #[must_use] pub fn client_cert_requested(&self) -> bool {
         self.error.code() == errSSLClientCertRequested
     }
 
     /// Returns `true` iff the underlying stream returned an error with the
     /// `WouldBlock` kind.
-    pub fn would_block(&self) -> bool {
+    #[inline(always)]
+    #[must_use] pub fn would_block(&self) -> bool {
         self.error.code() == errSSLWouldBlock
     }
 
     /// Returns the error which caused the handshake interruption.
-    pub fn error(&self) -> &Error {
+    #[inline(always)]
+    #[must_use] pub fn error(&self) -> &Error {
         &self.error
     }
 
     /// Restarts the handshake process.
+    #[inline(always)]
     pub fn handshake(self) -> result::Result<SslStream<S>, HandshakeError<S>> {
         self.stream.handshake()
     }
@@ -231,17 +243,20 @@ pub struct MidHandshakeClientBuilder<S> {
 
 impl<S> MidHandshakeClientBuilder<S> {
     /// Returns a shared reference to the inner stream.
-    pub fn get_ref(&self) -> &S {
+    #[inline(always)]
+    #[must_use] pub fn get_ref(&self) -> &S {
         self.stream.get_ref()
     }
 
     /// Returns a mutable reference to the inner stream.
+    #[inline(always)]
     pub fn get_mut(&mut self) -> &mut S {
         self.stream.get_mut()
     }
 
     /// Returns the error which caused the handshake interruption.
-    pub fn error(&self) -> &Error {
+    #[inline(always)]
+    #[must_use] pub fn error(&self) -> &Error {
         self.stream.error()
     }
 
@@ -290,28 +305,15 @@ impl<S> MidHandshakeClientBuilder<S> {
                 };
                 trust.set_anchor_certificates(&certs)?;
                 trust.set_trust_anchor_certificates_only(self.trust_certs_only)?;
-                let policy =
-                    SecPolicy::create_ssl(SslProtocolSide::SERVER, domain.as_ref().map(|s| &**s));
+                let policy = SecPolicy::create_ssl(SslProtocolSide::SERVER, domain.as_deref());
                 trust.set_policy(&policy)?;
-                let trusted = trust.evaluate()?;
-                match trusted {
-                    TrustResult::PROCEED | TrustResult::UNSPECIFIED => {
-                        result = stream.handshake();
-                        continue;
-                    }
-                    TrustResult::DENY => {
-                        let err = Error::from_code(errSecTrustSettingDeny);
-                        return Err(ClientHandshakeError::Failure(err));
-                    }
-                    TrustResult::RECOVERABLE_TRUST_FAILURE | TrustResult::FATAL_TRUST_FAILURE => {
-                        let err = Error::from_code(errSecNotTrusted);
-                        return Err(ClientHandshakeError::Failure(err));
-                    }
-                    TrustResult::INVALID | TrustResult::OTHER_ERROR | _ => {
-                        let err = Error::from_code(errSecBadReq);
-                        return Err(ClientHandshakeError::Failure(err));
-                    }
-                }
+                trust.evaluate_with_error().map_err(|error| {
+                    #[cfg(feature = "log")]
+                    log::warn!("SecTrustEvaluateWithError: {}", error.to_string());
+                    Error::from_code(error.code() as _)
+                })?;
+                result = stream.handshake();
+                continue;
             }
 
             let err = Error::from_code(stream.error().code());
@@ -370,7 +372,8 @@ impl SslClientCertificateState {
     pub const SENT: Self = Self(kSSLClientCertSent);
 
     /// A client certificate has been received but has failed to validate.
-    pub const REJECTED: Self = Self(kSSLClientCertRejected); }
+    pub const REJECTED: Self = Self(kSSLClientCertRejected);
+}
 
 /// Specifies protocol versions.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -403,7 +406,7 @@ impl SslProtocol {
     /// Only the SSL 2.0 protocol is accepted.
     pub const SSL2: Self = Self(kSSLProtocol2);
 
-    /// The DTLSv1 protocol is preferred.
+    /// The `DTLSv1` protocol is preferred.
     pub const DTLS1: Self = Self(kDTLSProtocol1);
 
     /// Only the SSL 3.0 protocol is accepted.
@@ -424,6 +427,7 @@ declare_TCFType! {
 impl_TCFType!(SslContext, SSLContextRef, SSLContextGetTypeID);
 
 impl fmt::Debug for SslContext {
+    #[cold]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut builder = fmt.debug_struct("SslContext");
         if let Ok(state) = self.state() {
@@ -439,6 +443,7 @@ unsafe impl Send for SslContext {}
 impl AsInner for SslContext {
     type Inner = SSLContextRef;
 
+    #[inline(always)]
     fn as_inner(&self) -> SSLContextRef {
         self.0
     }
@@ -448,11 +453,13 @@ macro_rules! impl_options {
     ($($(#[$a:meta])* const $opt:ident: $get:ident & $set:ident,)*) => {
         $(
             $(#[$a])*
+            #[inline(always)]
             pub fn $set(&mut self, value: bool) -> Result<()> {
                 unsafe { cvt(SSLSetSessionOption(self.0, $opt, value as Boolean)) }
             }
 
             $(#[$a])*
+            #[inline]
             pub fn $get(&self) -> Result<bool> {
                 let mut value = 0;
                 unsafe { cvt(SSLGetSessionOption(self.0, $opt, &mut value))?; }
@@ -465,6 +472,7 @@ macro_rules! impl_options {
 impl SslContext {
     /// Creates a new `SslContext` for the specified side and type of SSL
     /// connection.
+    #[inline]
     pub fn new(side: SslProtocolSide, type_: SslConnectionType) -> Result<Self> {
         unsafe {
             let ctx = SSLCreateContext(kCFAllocatorDefault, side.0, type_.0);
@@ -480,12 +488,13 @@ impl SslContext {
     ///
     /// It is *highly* recommended to call this method before starting the
     /// handshake process.
+    #[inline]
     pub fn set_peer_domain_name(&mut self, peer_name: &str) -> Result<()> {
         unsafe {
             // SSLSetPeerDomainName doesn't need a null terminated string
             cvt(SSLSetPeerDomainName(
                 self.0,
-                peer_name.as_ptr() as *const _,
+                peer_name.as_ptr().cast(),
                 peer_name.len(),
             ))
         }
@@ -499,7 +508,7 @@ impl SslContext {
             let mut buf = vec![0; len];
             cvt(SSLGetPeerDomainName(
                 self.0,
-                buf.as_mut_ptr() as *mut _,
+                buf.as_mut_ptr().cast(),
                 &mut len,
             ))?;
             Ok(String::from_utf8(buf).unwrap())
@@ -531,11 +540,12 @@ impl SslContext {
     /// Transport to identify the peer of an SSL session. If the peer ID of
     /// this session matches that of a previously terminated session, the
     /// previous session can be resumed without requiring a full handshake.
+    #[inline]
     pub fn set_peer_id(&mut self, peer_id: &[u8]) -> Result<()> {
         unsafe {
             cvt(SSLSetPeerID(
                 self.0,
-                peer_id.as_ptr() as *const _,
+                peer_id.as_ptr().cast(),
                 peer_id.len(),
             ))
         }
@@ -550,7 +560,7 @@ impl SslContext {
             if ptr.is_null() {
                 Ok(None)
             } else {
-                Ok(Some(slice::from_raw_parts(ptr as *const _, len)))
+                Ok(Some(slice::from_raw_parts(ptr.cast(), len)))
             }
         }
     }
@@ -599,6 +609,7 @@ impl SslContext {
     }
 
     /// Returns the cipher being used by the session.
+    #[inline]
     pub fn negotiated_cipher(&self) -> Result<CipherSuite> {
         unsafe {
             let mut cipher = 0;
@@ -610,11 +621,13 @@ impl SslContext {
     /// Sets the requirements for client certificates.
     ///
     /// Should only be called on server-side sessions.
+    #[inline]
     pub fn set_client_side_authenticate(&mut self, auth: SslAuthenticate) -> Result<()> {
         unsafe { cvt(SSLSetClientSideAuthenticate(self.0, auth.0)) }
     }
 
     /// Returns the state of client certificate processing.
+    #[inline]
     pub fn client_certificate_state(&self) -> Result<SslClientCertificateState> {
         let mut state = 0;
 
@@ -647,6 +660,7 @@ impl SslContext {
     }
 
     /// Returns the state of the session.
+    #[inline]
     pub fn state(&self) -> Result<SessionState> {
         unsafe {
             let mut state = 0;
@@ -656,6 +670,7 @@ impl SslContext {
     }
 
     /// Returns the protocol version being used by the session.
+    #[inline]
     pub fn negotiated_protocol_version(&self) -> Result<SslProtocol> {
         unsafe {
             let mut version = 0;
@@ -665,6 +680,7 @@ impl SslContext {
     }
 
     /// Returns the maximum protocol version allowed by the session.
+    #[inline]
     pub fn protocol_version_max(&self) -> Result<SslProtocol> {
         unsafe {
             let mut version = 0;
@@ -674,11 +690,13 @@ impl SslContext {
     }
 
     /// Sets the maximum protocol version allowed by the session.
+    #[inline]
     pub fn set_protocol_version_max(&mut self, max_version: SslProtocol) -> Result<()> {
         unsafe { cvt(SSLSetProtocolVersionMax(self.0, max_version.0)) }
     }
 
     /// Returns the minimum protocol version allowed by the session.
+    #[inline]
     pub fn protocol_version_min(&self) -> Result<SslProtocol> {
         unsafe {
             let mut version = 0;
@@ -688,6 +706,7 @@ impl SslContext {
     }
 
     /// Sets the minimum protocol version allowed by the session.
+    #[inline]
     pub fn set_protocol_version_min(&mut self, min_version: SslProtocol) -> Result<()> {
         unsafe { cvt(SSLSetProtocolVersionMin(self.0, min_version.0)) }
     }
@@ -800,6 +819,7 @@ impl SslContext {
 
     /// Returns the number of bytes which can be read without triggering a
     /// `read` call in the underlying stream.
+    #[inline]
     pub fn buffered_read_size(&self) -> Result<usize> {
         unsafe {
             let mut size = 0;
@@ -848,7 +868,7 @@ impl SslContext {
                 panic: None,
             };
             let stream = Box::into_raw(Box::new(stream));
-            let ret = SSLSetConnection(self.0, stream as *mut _);
+            let ret = SSLSetConnection(self.0, stream.cast());
             if ret != errSecSuccess {
                 let _conn = Box::from_raw(stream);
                 return Err(Error::from_code(ret));
@@ -879,7 +899,7 @@ struct Connection<S> {
 }
 
 // the logic here is based off of libcurl's
-
+#[cold]
 fn translate_err(e: &io::Error) -> OSStatus {
     match e.kind() {
         io::ErrorKind::NotFound => errSSLClosedGraceful,
@@ -899,7 +919,7 @@ where
     S: Read,
 {
     let conn: &mut Connection<S> = &mut *(connection as *mut _);
-    let data = slice::from_raw_parts_mut(data as *mut u8, *data_length);
+    let data = slice::from_raw_parts_mut(data.cast::<u8>(), *data_length);
     let mut start = 0;
     let mut ret = errSecSuccess;
 
@@ -971,6 +991,7 @@ pub struct SslStream<S> {
 }
 
 impl<S: fmt::Debug> fmt::Debug for SslStream<S> {
+    #[cold]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("SslStream")
             .field("context", &self.ctx)
@@ -985,7 +1006,7 @@ impl<S> Drop for SslStream<S> {
             let mut conn = ptr::null();
             let ret = SSLGetConnection(self.ctx.0, &mut conn);
             assert!(ret == errSecSuccess);
-            Box::<Connection<S>>::from_raw(conn as *mut _);
+            let _ = Box::<Connection<S>>::from_raw(conn as *mut _);
         }
     }
 }
@@ -1011,21 +1032,25 @@ impl<S> SslStream<S> {
     }
 
     /// Returns a shared reference to the inner stream.
-    pub fn get_ref(&self) -> &S {
+    #[inline(always)]
+    #[must_use] pub fn get_ref(&self) -> &S {
         &self.connection().stream
     }
 
     /// Returns a mutable reference to the underlying stream.
+    #[inline(always)]
     pub fn get_mut(&mut self) -> &mut S {
         &mut self.connection_mut().stream
     }
 
     /// Returns a shared reference to the `SslContext` of the stream.
-    pub fn context(&self) -> &SslContext {
+    #[inline(always)]
+    #[must_use] pub fn context(&self) -> &SslContext {
         &self.ctx
     }
 
     /// Returns a mutable reference to the `SslContext` of the stream.
+    #[inline(always)]
     pub fn context_mut(&mut self) -> &mut SslContext {
         &mut self.ctx
     }
@@ -1048,7 +1073,7 @@ impl<S> SslStream<S> {
             let ret = SSLGetConnection(self.ctx.0, &mut conn);
             assert!(ret == errSecSuccess);
 
-            mem::transmute(conn)
+            &mut *(conn as *mut Connection<S>)
         }
     }
 
@@ -1058,10 +1083,11 @@ impl<S> SslStream<S> {
             let ret = SSLGetConnection(self.ctx.0, &mut conn);
             assert!(ret == errSecSuccess);
 
-            mem::transmute(conn)
+            &mut *(conn as *mut Connection<S>)
         }
     }
 
+    #[cold]
     fn check_panic(&mut self) {
         let conn = self.connection_mut();
         if let Some(err) = conn.panic.take() {
@@ -1069,6 +1095,7 @@ impl<S> SslStream<S> {
         }
     }
 
+    #[cold]
     fn get_error(&mut self, ret: OSStatus) -> io::Error {
         self.check_panic();
 
@@ -1103,11 +1130,11 @@ impl<S: Read + Write> Read for SslStream<S> {
 
         unsafe {
             let mut nread = 0;
-            let ret = SSLRead(self.ctx.0, buf.as_mut_ptr() as *mut _, to_read, &mut nread);
+            let ret = SSLRead(self.ctx.0, buf.as_mut_ptr().cast(), to_read, &mut nread);
             // SSLRead can return an error at the same time it returns the last
             // chunk of data (!)
             if nread > 0 {
-                return Ok(nread as usize);
+                return Ok(nread);
             }
 
             match ret {
@@ -1128,14 +1155,14 @@ impl<S: Read + Write> Write for SslStream<S> {
             let mut nwritten = 0;
             let ret = SSLWrite(
                 self.ctx.0,
-                buf.as_ptr() as *const _,
+                buf.as_ptr().cast(),
                 buf.len(),
                 &mut nwritten,
             );
             // just to be safe, base success off of nwritten rather than ret
             // for the same reason as in read
             if nwritten > 0 {
-                Ok(nwritten as usize)
+                Ok(nwritten)
             } else {
                 Err(self.get_error(ret))
             }
@@ -1161,11 +1188,14 @@ pub struct ClientBuilder {
     danger_accept_invalid_hostnames: bool,
     whitelisted_ciphers: Vec<CipherSuite>,
     blacklisted_ciphers: Vec<CipherSuite>,
+    #[cfg(feature = "alpn")]
     alpn: Option<Vec<String>>,
+    #[cfg(feature = "session-tickets")]
     enable_session_tickets: bool,
 }
 
 impl Default for ClientBuilder {
+    #[inline(always)]
     fn default() -> Self {
         Self::new()
     }
@@ -1173,7 +1203,8 @@ impl Default for ClientBuilder {
 
 impl ClientBuilder {
     /// Creates a new builder with default options.
-    pub fn new() -> Self {
+    #[inline]
+    #[must_use] pub fn new() -> Self {
         Self {
             identity: None,
             certs: Vec::new(),
@@ -1186,20 +1217,32 @@ impl ClientBuilder {
             danger_accept_invalid_hostnames: false,
             whitelisted_ciphers: Vec::new(),
             blacklisted_ciphers: Vec::new(),
+            #[cfg(feature = "alpn")]
             alpn: None,
+            #[cfg(feature = "session-tickets")]
             enable_session_tickets: false,
         }
     }
 
     /// Specifies the set of root certificates to trust when
     /// verifying the server's certificate.
+    #[inline]
     pub fn anchor_certificates(&mut self, certs: &[SecCertificate]) -> &mut Self {
         self.certs = certs.to_owned();
         self
     }
 
+    /// Add the certificate the set of root certificates to trust
+    /// when verifying the server's certificate.
+    #[inline]
+    pub fn add_anchor_certificate(&mut self, certs: &SecCertificate) -> &mut Self {
+        self.certs.push(certs.to_owned());
+        self
+    }
+
     /// Specifies whether to trust the built-in certificates in addition
     /// to specified anchor certificates.
+    #[inline(always)]
     pub fn trust_anchor_certificates_only(&mut self, only: bool) -> &mut Self {
         self.trust_certs_only = only;
         self
@@ -1213,12 +1256,14 @@ impl ClientBuilder {
     /// certificates are trusted, *any* certificate for *any* site will be
     /// trusted for use. This includes expired certificates. This introduces
     /// significant vulnerabilities, and should only be used as a last resort.
+    #[inline(always)]
     pub fn danger_accept_invalid_certs(&mut self, noverify: bool) -> &mut Self {
         self.danger_accept_invalid_certs = noverify;
         self
     }
 
     /// Specifies whether to use Server Name Indication (SNI).
+    #[inline(always)]
     pub fn use_sni(&mut self, use_sni: bool) -> &mut Self {
         self.use_sni = use_sni;
         self
@@ -1231,6 +1276,7 @@ impl ClientBuilder {
     /// You should think very carefully before using this method. If hostnames are not verified,
     /// *any* valid certificate for *any* site will be trusted for use. This introduces significant
     /// vulnerabilities, and should only be used as a last resort.
+    #[inline(always)]
     pub fn danger_accept_invalid_hostnames(
         &mut self,
         danger_accept_invalid_hostnames: bool,
@@ -1259,12 +1305,14 @@ impl ClientBuilder {
     }
 
     /// Configure the minimum protocol that this client will support.
+    #[inline(always)]
     pub fn protocol_min(&mut self, min: SslProtocol) -> &mut Self {
         self.protocol_min = Some(min);
         self
     }
 
     /// Configure the minimum protocol that this client will support.
+    #[inline(always)]
     pub fn protocol_max(&mut self, max: SslProtocol) -> &mut Self {
         self.protocol_max = Some(max);
         self
@@ -1281,6 +1329,7 @@ impl ClientBuilder {
     ///
     /// Defaults to `false`.
     #[cfg(feature = "session-tickets")]
+    #[inline(always)]
     pub fn enable_session_tickets(&mut self, enable: bool) -> &mut Self {
         self.enable_session_tickets = enable;
         self
@@ -1389,11 +1438,43 @@ pub struct ServerBuilder {
 impl ServerBuilder {
     /// Creates a new `ServerBuilder` which will use the specified identity
     /// and certificate chain for handshakes.
-    pub fn new(identity: &SecIdentity, certs: &[SecCertificate]) -> Self {
+    #[must_use] pub fn new(identity: &SecIdentity, certs: &[SecCertificate]) -> Self {
         Self {
             identity: identity.clone(),
             certs: certs.to_owned(),
         }
+    }
+
+    /// Creates a new `ServerBuilder` which will use the identity
+    /// from the given PKCS #12 data.
+    ///
+    /// This operation fails if PKCS #12 file contains zero or more than one identity.
+    ///
+    /// This is a shortcut for the most common operation.
+    pub fn from_pkcs12(pkcs12_der: &[u8], passphrase: &str) -> Result<Self> {
+        let mut identities: Vec<(SecIdentity, Vec<SecCertificate>)> = Pkcs12ImportOptions::new()
+            .passphrase(passphrase)
+            .import(pkcs12_der)?
+            .into_iter()
+            .filter_map(|idendity| {
+                let certs = idendity.cert_chain.unwrap_or_default();
+                idendity.identity.map(|identity| (identity, certs))
+            })
+            .collect();
+        if identities.len() == 1 {
+            let (identity, certs) = identities.pop().unwrap();
+            Ok(ServerBuilder::new(&identity, &certs))
+        } else {
+            // This error code is not really helpful
+            Err(Error::from_code(errSecParam))
+        }
+    }
+
+    /// Create a SSL context for lower-level stream initialization.
+    pub fn new_ssl_context(&self) -> Result<SslContext> {
+        let mut ctx = SslContext::new(SslProtocolSide::SERVER, SslConnectionType::STREAM)?;
+        ctx.set_certificate(&self.identity, &self.certs)?;
+        Ok(ctx)
     }
 
     /// Initiates a new SSL/TLS session over a stream.
@@ -1401,11 +1482,9 @@ impl ServerBuilder {
     where
         S: Read + Write,
     {
-        let mut ctx = SslContext::new(SslProtocolSide::SERVER, SslConnectionType::STREAM)?;
-        ctx.set_certificate(&self.identity, &self.certs)?;
-        match ctx.handshake(stream) {
+        match self.new_ssl_context()?.handshake(stream) {
             Ok(stream) => Ok(stream),
-            Err(HandshakeError::Interrupted(stream)) => Err(stream.error().clone()),
+            Err(HandshakeError::Interrupted(stream)) => Err(*stream.error()),
             Err(HandshakeError::Failure(err)) => Err(err),
         }
     }
@@ -1418,6 +1497,12 @@ mod test {
     use std::net::TcpStream;
 
     use super::*;
+
+    #[test]
+    fn server_builder_from_pkcs12() {
+        let pkcs12_der = include_bytes!("../test/server.p12");
+        ServerBuilder::from_pkcs12(pkcs12_der, "password123").unwrap();
+    }
 
     #[test]
     fn connect() {

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "litemap"
-version = "0.6.1"
+version = "0.7.0"
 authors = ["The ICU4X Project Developers"]
 include = [
     "src/**/*",
@@ -35,7 +35,6 @@ keywords = [
 ]
 license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
-resolver = "2"
 
 [package.metadata.workspaces]
 independent = true
@@ -76,7 +75,7 @@ optional = true
 default-features = false
 
 [dependencies.yoke]
-version = "0.7.0"
+version = "0.7.1"
 features = ["derive"]
 optional = true
 
@@ -87,11 +86,12 @@ version = "1"
 version = "0.6"
 
 [dev-dependencies.criterion]
-version = "0.3.4"
+version = "0.4"
 
 [dev-dependencies.postcard]
 version = "1.0.0"
 features = ["use-std"]
+default-features = false
 
 [dev-dependencies.rkyv]
 version = "0.7"

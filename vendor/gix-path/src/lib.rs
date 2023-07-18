@@ -66,3 +66,6 @@ mod spec;
 ///
 pub mod realpath;
 pub use realpath::function::{realpath, realpath_opts};
+
+/// Information about the environment in terms of locations of resources.
+pub mod env;

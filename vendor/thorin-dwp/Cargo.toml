@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "thorin-dwp"
-version = "0.4.0"
+version = "0.6.0"
 authors = ["David Wood <david.wood@huawei.com>"]
 description = "Library for building DWARF packages from input DWARF objects and packages"
 homepage = "https://docs.rs/thorin-dwp"
@@ -46,7 +46,7 @@ default-features = false
 version = "0.12.0"
 
 [dependencies.object]
-version = "0.30.0"
+version = "0.31.0"
 features = [
     "archive",
     "read",

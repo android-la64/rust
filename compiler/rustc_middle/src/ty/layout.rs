@@ -1,11 +1,12 @@
 use crate::fluent_generated as fluent;
 use crate::middle::codegen_fn_attrs::CodegenFnAttrFlags;
+use crate::query::TyCtxtAt;
 use crate::ty::normalize_erasing_regions::NormalizationError;
 use crate::ty::{self, ReprOptions, Ty, TyCtxt, TypeVisitableExt};
 use rustc_errors::{DiagnosticBuilder, Handler, IntoDiagnostic};
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
-use rustc_index::vec::IndexVec;
+use rustc_index::IndexVec;
 use rustc_session::config::OptLevel;
 use rustc_span::symbol::{sym, Symbol};
 use rustc_span::{Span, DUMMY_SP};
@@ -210,6 +211,7 @@ pub enum LayoutError<'tcx> {
     Unknown(Ty<'tcx>),
     SizeOverflow(Ty<'tcx>),
     NormalizationFailure(Ty<'tcx>, NormalizationError<'tcx>),
+    Cycle,
 }
 
 impl IntoDiagnostic<'_, !> for LayoutError<'_> {
@@ -230,12 +232,15 @@ impl IntoDiagnostic<'_, !> for LayoutError<'_> {
                 diag.set_arg("failure_ty", e.get_type_for_failure());
                 diag.set_primary_message(fluent::middle_cannot_be_normalized);
             }
+            LayoutError::Cycle => {
+                diag.set_primary_message(fluent::middle_cycle);
+            }
         }
         diag
     }
 }
 
-// FIXME: Once the other errors that embed this error have been converted to translateable
+// FIXME: Once the other errors that embed this error have been converted to translatable
 // diagnostics, this Display impl should be removed.
 impl<'tcx> fmt::Display for LayoutError<'tcx> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -250,6 +255,7 @@ impl<'tcx> fmt::Display for LayoutError<'tcx> {
                 t,
                 e.get_type_for_failure()
             ),
+            LayoutError::Cycle => write!(f, "a cycle occurred during layout computation"),
         }
     }
 }
@@ -263,7 +269,7 @@ pub struct LayoutCx<'tcx, C> {
 impl<'tcx> LayoutCalculator for LayoutCx<'tcx, TyCtxt<'tcx>> {
     type TargetDataLayoutRef = &'tcx TargetDataLayout;
 
-    fn delay_bug(&self, txt: &str) {
+    fn delay_bug(&self, txt: String) {
         self.tcx.sess.delay_span_bug(DUMMY_SP, txt);
     }
 
@@ -319,7 +325,7 @@ impl<'tcx> SizeSkeleton<'tcx> {
                 let non_zero = !ty.is_unsafe_ptr();
                 let tail = tcx.struct_tail_erasing_lifetimes(pointee, param_env);
                 match tail.kind() {
-                    ty::Param(_) | ty::Alias(ty::Projection, _) => {
+                    ty::Param(_) | ty::Alias(ty::Projection | ty::Inherent, _) => {
                         debug_assert!(tail.has_non_region_param());
                         Ok(SizeSkeleton::Pointer { non_zero, tail: tcx.erase_regions(tail) })
                     }
@@ -458,10 +464,10 @@ impl<'tcx> SizeSkeleton<'tcx> {
     }
 }
 
-/// When creating the layout for types with abstract conts in their size (i.e. [usize; 4 * N]),
+/// When creating the layout for types with abstract consts in their size (i.e. [usize; 4 * N]),
 /// to ensure that they have a canonical order and can be compared directly we combine all
 /// constants, and sort the other terms. This allows comparison of expressions of sizes,
-/// allowing for things like transmutating between types that depend on generic consts.
+/// allowing for things like transmuting between types that depend on generic consts.
 /// This returns `None` if multiplication of constants overflows.
 fn mul_sorted_consts<'tcx>(
     tcx: TyCtxt<'tcx>,
@@ -538,20 +544,20 @@ impl<'tcx> HasTyCtxt<'tcx> for TyCtxt<'tcx> {
     }
 }
 
-impl<'tcx> HasDataLayout for ty::query::TyCtxtAt<'tcx> {
+impl<'tcx> HasDataLayout for TyCtxtAt<'tcx> {
     #[inline]
     fn data_layout(&self) -> &TargetDataLayout {
         &self.data_layout
     }
 }
 
-impl<'tcx> HasTargetSpec for ty::query::TyCtxtAt<'tcx> {
+impl<'tcx> HasTargetSpec for TyCtxtAt<'tcx> {
     fn target_spec(&self) -> &Target {
         &self.sess.target
     }
 }
 
-impl<'tcx> HasTyCtxt<'tcx> for ty::query::TyCtxtAt<'tcx> {
+impl<'tcx> HasTyCtxt<'tcx> for TyCtxtAt<'tcx> {
     #[inline]
     fn tcx(&self) -> TyCtxt<'tcx> {
         **self
@@ -678,7 +684,7 @@ impl<'tcx> LayoutOfHelpers<'tcx> for LayoutCx<'tcx, TyCtxt<'tcx>> {
     }
 }
 
-impl<'tcx> LayoutOfHelpers<'tcx> for LayoutCx<'tcx, ty::query::TyCtxtAt<'tcx>> {
+impl<'tcx> LayoutOfHelpers<'tcx> for LayoutCx<'tcx, TyCtxtAt<'tcx>> {
     type LayoutOfResult = Result<TyAndLayout<'tcx>, LayoutError<'tcx>>;
 
     #[inline]

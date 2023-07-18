@@ -5,7 +5,7 @@ use super::super::c;
 use super::super::conv::borrowed_fd;
 use super::super::conv::{c_str, ret, ret_c_int, ret_discarded_char_ptr};
 #[cfg(not(target_os = "wasi"))]
-use super::super::conv::{ret_infallible, ret_pid_t};
+use super::super::conv::{ret_infallible, ret_pid_t, ret_usize};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use super::super::conv::{syscall_ret, syscall_ret_u32};
 #[cfg(any(
@@ -23,6 +23,8 @@ use crate::ffi::CStr;
 #[cfg(feature = "fs")]
 use crate::fs::Mode;
 use crate::io;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use crate::process::Sysinfo;
 #[cfg(not(any(target_os = "wasi", target_os = "redox", target_os = "openbsd")))]
 use crate::process::{WaitId, WaitidOptions, WaitidStatus};
 use core::mem::MaybeUninit;
@@ -37,12 +39,12 @@ use {
 use {
     super::super::offset::{libc_getrlimit, libc_rlimit, libc_setrlimit, LIBC_RLIM_INFINITY},
     crate::process::{Resource, Rlimit},
-    core::convert::TryInto,
 };
 #[cfg(not(target_os = "wasi"))]
 use {
     super::types::RawUname,
     crate::process::{Gid, Pid, RawNonZeroPid, RawPid, Signal, Uid, WaitOptions, WaitStatus},
+    core::convert::TryInto,
 };
 
 #[cfg(not(target_os = "wasi"))]
@@ -55,6 +57,11 @@ pub(crate) fn fchdir(dirfd: BorrowedFd<'_>) -> io::Result<()> {
     unsafe { ret(c::fchdir(borrowed_fd(dirfd))) }
 }
 
+#[cfg(not(any(target_os = "fuchsia", target_os = "wasi")))]
+pub(crate) fn chroot(path: &CStr) -> io::Result<()> {
+    unsafe { ret(c::chroot(c_str(path))) }
+}
+
 #[cfg(not(target_os = "wasi"))]
 pub(crate) fn getcwd(buf: &mut [u8]) -> io::Result<()> {
     unsafe { ret_discarded_char_ptr(c::getcwd(buf.as_mut_ptr().cast(), buf.len())) }
@@ -62,7 +69,7 @@ pub(crate) fn getcwd(buf: &mut [u8]) -> io::Result<()> {
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub(crate) fn membarrier_query() -> MembarrierQuery {
-    // GLIBC does not have a wrapper for `membarrier`; [the documentation]
+    // glibc does not have a wrapper for `membarrier`; [the documentation]
     // says to use `syscall`.
     //
     // [the documentation]: https://man7.org/linux/man-pages/man2/membarrier.2.html#NOTES
@@ -162,6 +169,12 @@ pub(crate) fn getpgid(pid: Option<Pid>) -> io::Result<Pid> {
         debug_assert_ne!(pgid, 0);
         Ok(Pid::from_raw_nonzero(RawNonZeroPid::new_unchecked(pgid)))
     }
+}
+
+#[cfg(not(target_os = "wasi"))]
+#[inline]
+pub(crate) fn setpgid(pid: Option<Pid>, pgid: Option<Pid>) -> io::Result<()> {
+    unsafe { ret(c::setpgid(Pid::as_raw(pid) as _, Pid::as_raw(pgid) as _)) }
 }
 
 #[cfg(not(target_os = "wasi"))]
@@ -426,7 +439,9 @@ pub(crate) fn waitid(id: WaitId<'_>, options: WaitidOptions) -> io::Result<Optio
 #[cfg(not(any(target_os = "wasi", target_os = "redox", target_os = "openbsd")))]
 #[inline]
 fn _waitid_all(options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
-    let mut status = MaybeUninit::<c::siginfo_t>::uninit();
+    // `waitid` can return successfully without initializing the struct (no
+    // children found when using `WNOHANG`)
+    let mut status = MaybeUninit::<c::siginfo_t>::zeroed();
     unsafe {
         ret(c::waitid(
             c::P_ALL,
@@ -442,7 +457,9 @@ fn _waitid_all(options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
 #[cfg(not(any(target_os = "wasi", target_os = "redox", target_os = "openbsd")))]
 #[inline]
 fn _waitid_pid(pid: Pid, options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
-    let mut status = MaybeUninit::<c::siginfo_t>::uninit();
+    // `waitid` can return successfully without initializing the struct (no
+    // children found when using `WNOHANG`)
+    let mut status = MaybeUninit::<c::siginfo_t>::zeroed();
     unsafe {
         ret(c::waitid(
             c::P_PID,
@@ -458,7 +475,9 @@ fn _waitid_pid(pid: Pid, options: WaitidOptions) -> io::Result<Option<WaitidStat
 #[cfg(target_os = "linux")]
 #[inline]
 fn _waitid_pidfd(fd: BorrowedFd<'_>, options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
-    let mut status = MaybeUninit::<c::siginfo_t>::uninit();
+    // `waitid` can return successfully without initializing the struct (no
+    // children found when using `WNOHANG`)
+    let mut status = MaybeUninit::<c::siginfo_t>::zeroed();
     unsafe {
         ret(c::waitid(
             c::P_PIDFD,
@@ -481,6 +500,13 @@ fn _waitid_pidfd(fd: BorrowedFd<'_>, options: WaitidOptions) -> io::Result<Optio
 #[inline]
 unsafe fn cvt_waitid_status(status: MaybeUninit<c::siginfo_t>) -> Option<WaitidStatus> {
     let status = status.assume_init();
+    // `si_pid` is supposedly the better way to check that the struct has been
+    // filled, e.g. the Linux manpage says about the `WNOHANG` case “zero out
+    // the si_pid field before the call and check for a nonzero value”.
+    // But e.g. NetBSD/OpenBSD don't have it exposed in the libc crate for now, and
+    // some platforms don't have it at all. For simplicity, always check
+    // `si_signo`. We have zero-initialized the whole struct, and all kernels
+    // should set `SIGCHLD` here.
     if status.si_signo == 0 {
         None
     } else {
@@ -499,6 +525,16 @@ pub(crate) fn exit_group(code: c::c_int) -> ! {
     #[cfg(unix)]
     unsafe {
         c::_exit(code)
+    }
+}
+
+#[cfg(not(any(target_os = "redox", target_os = "wasi")))]
+#[inline]
+pub(crate) fn getsid(pid: Option<Pid>) -> io::Result<Pid> {
+    unsafe {
+        let pid = ret_pid_t(c::getsid(Pid::as_raw(pid) as _))?;
+        debug_assert_ne!(pid, 0);
+        Ok(Pid::from_raw_nonzero(RawNonZeroPid::new_unchecked(pid)))
     }
 }
 
@@ -535,6 +571,24 @@ pub(crate) fn kill_current_process_group(sig: Signal) -> io::Result<()> {
     unsafe { ret(c::kill(0, sig as i32)) }
 }
 
+#[cfg(not(target_os = "wasi"))]
+#[inline]
+pub(crate) fn test_kill_process(pid: Pid) -> io::Result<()> {
+    unsafe { ret(c::kill(pid.as_raw_nonzero().get(), 0)) }
+}
+
+#[cfg(not(target_os = "wasi"))]
+#[inline]
+pub(crate) fn test_kill_process_group(pid: Pid) -> io::Result<()> {
+    unsafe { ret(c::kill(pid.as_raw_nonzero().get().wrapping_neg(), 0)) }
+}
+
+#[cfg(not(target_os = "wasi"))]
+#[inline]
+pub(crate) fn test_kill_current_process_group() -> io::Result<()> {
+    unsafe { ret(c::kill(0, 0)) }
+}
+
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[inline]
 pub(crate) unsafe fn prctl(
@@ -561,10 +615,36 @@ pub(crate) unsafe fn procctl(
 #[cfg(target_os = "linux")]
 pub(crate) fn pidfd_open(pid: Pid, flags: PidfdFlags) -> io::Result<OwnedFd> {
     unsafe {
-        syscall_ret_owned_fd(libc::syscall(
+        syscall_ret_owned_fd(c::syscall(
             c::SYS_pidfd_open,
             pid.as_raw_nonzero().get(),
             flags.bits(),
+        ))
+    }
+}
+
+#[cfg(not(target_os = "wasi"))]
+pub(crate) fn getgroups(buf: &mut [Gid]) -> io::Result<usize> {
+    let len = buf.len().try_into().map_err(|_| io::Errno::NOMEM)?;
+
+    unsafe { ret_usize(c::getgroups(len, buf.as_mut_ptr().cast()) as isize) }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+pub(crate) fn sysinfo() -> Sysinfo {
+    let mut info = MaybeUninit::<Sysinfo>::uninit();
+    unsafe {
+        ret_infallible(c::sysinfo(info.as_mut_ptr()));
+        info.assume_init()
+    }
+}
+
+#[cfg(not(any(target_os = "emscripten", target_os = "redox", target_os = "wasi")))]
+pub(crate) fn sethostname(name: &[u8]) -> io::Result<()> {
+    unsafe {
+        ret(c::sethostname(
+            name.as_ptr().cast(),
+            name.len().try_into().map_err(|_| io::Errno::INVAL)?,
         ))
     }
 }

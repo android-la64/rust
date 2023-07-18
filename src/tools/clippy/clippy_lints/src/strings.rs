@@ -132,7 +132,7 @@ declare_clippy_lint! {
     /// Probably lots of false positives. If an index comes from a known valid position (e.g.
     /// obtained via `char_indices` over the same string), it is totally OK.
     ///
-    /// # Example
+    /// ### Example
     /// ```rust,should_panic
     /// &"Ölkanne"[1..];
     /// ```
@@ -292,6 +292,7 @@ impl<'tcx> LateLintPass<'tcx> for StringLitAsBytes {
         }
 
         if_chain! {
+            if !in_external_macro(cx.sess(), e.span);
             if let ExprKind::MethodCall(path, receiver, ..) = &e.kind;
             if path.ident.name == sym!(as_bytes);
             if let ExprKind::Lit(lit) = &receiver.kind;

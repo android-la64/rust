@@ -90,6 +90,14 @@ impl<'repo> Object<'repo> {
         }
     }
 
+    /// Transform this object into a tag, or panic if it is none.
+    pub fn into_tag(self) -> Tag<'repo> {
+        match self.try_into() {
+            Ok(tag) => tag,
+            Err(this) => panic!("Tried to use {} as commit, but was {}", this.id, this.kind),
+        }
+    }
+
     /// Transform this object into a commit, or return it as part of the `Err` if it is no commit.
     pub fn try_into_commit(self) -> Result<Commit<'repo>, try_into::Error> {
         self.try_into().map_err(|this: Self| try_into::Error {
@@ -157,7 +165,7 @@ impl<'repo> Object<'repo> {
             })
     }
 
-    /// Obtain a an iterator over commit tokens like in [`to_commit_iter()`][Object::try_to_commit_ref_iter()].
+    /// Obtain an iterator over commit tokens like in [`to_commit_iter()`][Object::try_to_commit_ref_iter()].
     ///
     /// # Panic
     ///

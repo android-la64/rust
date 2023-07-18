@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-credentials"
-version = "0.11.0"
+version = "0.14.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 description = "A WIP crate of the gitoxide project to interact with git credentials helpers"
 license = "MIT/Apache-2.0"
@@ -43,19 +43,19 @@ optional = true
 version = "^0.2.4"
 
 [dependencies.gix-config-value]
-version = "^0.10.1"
+version = "^0.12.0"
 
 [dependencies.gix-path]
-version = "^0.7.2"
+version = "^0.8.0"
 
 [dependencies.gix-prompt]
-version = "^0.3.2"
+version = "^0.5.0"
 
 [dependencies.gix-sec]
-version = "^0.6.2"
+version = "^0.8.0"
 
 [dependencies.gix-url]
-version = "^0.15.0"
+version = "^0.18.0"
 
 [dependencies.serde]
 version = "1.0.114"
@@ -69,8 +69,8 @@ version = "1.0.32"
 [dev-dependencies]
 
 [features]
-serde1 = [
-    "serde",
+serde = [
+    "dep:serde",
     "bstr/serde",
-    "gix-sec/serde1",
+    "gix-sec/serde",
 ]

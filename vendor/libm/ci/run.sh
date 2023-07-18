@@ -1,11 +1,21 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 set -ex
 TARGET=$1
 
-cargo test --target $TARGET
-cargo test --target $TARGET --release
+CMD="cargo test --all --target $TARGET"
 
-cargo test --features 'checked musl-reference-tests' --target $TARGET
+# Needed for no-panic to correct detect a lack of panics
+export RUSTFLAGS="$RUSTFLAGS -Ccodegen-units=1"
 
-cargo test --features 'checked musl-reference-tests' --target $TARGET --release
+# stable by default
+$CMD
+$CMD --release
+
+# unstable with a feature
+$CMD --features 'unstable'
+$CMD --release --features 'unstable'
+
+# also run the reference tests
+$CMD --features 'unstable musl-reference-tests'
+$CMD --release --features 'unstable musl-reference-tests'

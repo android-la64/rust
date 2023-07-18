@@ -74,7 +74,6 @@ use rustc_middle::ty::{
     self, error::TypeError, List, Region, Ty, TyCtxt, TypeFoldable, TypeSuperVisitable,
     TypeVisitable, TypeVisitableExt,
 };
-use rustc_span::DUMMY_SP;
 use rustc_span::{sym, symbol::kw, BytePos, DesugaringKind, Pos, Span};
 use rustc_target::spec::abi;
 use std::ops::{ControlFlow, Deref};
@@ -138,7 +137,7 @@ impl Drop for TypeErrCtxt<'_, '_> {
             self.infcx
                 .tcx
                 .sess
-                .delay_span_bug(DUMMY_SP, "used a `TypeErrCtxt` without failing compilation");
+                .delay_good_path_bug("used a `TypeErrCtxt` without raising an error or lint");
         }
     }
 }
@@ -283,9 +282,9 @@ fn emit_msg_span(
     let message = format!("{}{}{}", prefix, description, suffix);
 
     if let Some(span) = span {
-        err.span_note(span, &message);
+        err.span_note(span, message);
     } else {
-        err.note(&message);
+        err.note(message);
     }
 }
 
@@ -299,9 +298,9 @@ fn label_msg_span(
     let message = format!("{}{}{}", prefix, description, suffix);
 
     if let Some(span) = span {
-        err.span_label(span, &message);
+        err.span_label(span, message);
     } else {
-        err.note(&message);
+        err.note(message);
     }
 }
 
@@ -403,7 +402,7 @@ impl<'tcx> InferCtxt<'tcx> {
         let future_trait = self.tcx.require_lang_item(LangItem::Future, None);
         let item_def_id = self.tcx.associated_item_def_ids(future_trait)[0];
 
-        self.tcx.bound_explicit_item_bounds(def_id).subst_iter_copied(self.tcx, substs).find_map(
+        self.tcx.explicit_item_bounds(def_id).subst_iter_copied(self.tcx, substs).find_map(
             |(predicate, _)| {
                 predicate
                     .kind()
@@ -1826,7 +1825,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                         s
                     };
                     if !(values.expected.is_simple_text() && values.found.is_simple_text())
-                        || (exp_found.map_or(false, |ef| {
+                        || (exp_found.is_some_and(|ef| {
                             // This happens when the type error is a subset of the expectation,
                             // like when you have two references but one is `usize` and the other
                             // is `f32`. In those cases we still want to show the `note`. If the
@@ -1878,7 +1877,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
         let exp_found = match terr {
             // `terr` has more accurate type information than `exp_found` in match expressions.
             ty::error::TypeError::Sorts(terr)
-                if exp_found.map_or(false, |ef| terr.found == ef.found) =>
+                if exp_found.is_some_and(|ef| terr.found == ef.found) =>
             {
                 Some(terr)
             }
@@ -1927,6 +1926,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
         {
             let span = self.tcx.def_span(def_id);
             diag.span_note(span, "this closure does not fulfill the lifetime requirements");
+            self.suggest_for_all_lifetime_closure(span, self.tcx.hir().get_by_def_id(def_id), &exp_found, diag);
         }
 
         // It reads better to have the error origin as the final
@@ -1961,7 +1961,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                     if let Ok(code) = self.tcx.sess().source_map().span_to_snippet(span)
                         && let Some(code) = code.strip_prefix('\'').and_then(|s| s.strip_suffix('\''))
                         && !code.starts_with("\\u") // forbid all Unicode escapes
-                        && code.chars().next().map_or(false, |c| c.is_ascii()) // forbids literal Unicode characters beyond ASCII
+                        && code.chars().next().is_some_and(|c| c.is_ascii()) // forbids literal Unicode characters beyond ASCII
                     {
                         suggestions.push(TypeErrorAdditionalDiags::MeantByteLiteral { span, code: escape_literal(code) })
                     }
@@ -2329,7 +2329,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                         .source_map()
                         .span_to_prev_source(p.span.shrink_to_hi())
                         .ok()
-                        .map_or(false, |s| *s.as_bytes().last().unwrap() == b'&')
+                        .is_some_and(|s| *s.as_bytes().last().unwrap() == b'&')
                     {
                         add_lt_suggs
                             .push(Some(
@@ -2354,7 +2354,9 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
         let labeled_user_string = match bound_kind {
             GenericKind::Param(ref p) => format!("the parameter type `{}`", p),
             GenericKind::Alias(ref p) => match p.kind(self.tcx) {
-                ty::AliasKind::Projection => format!("the associated type `{}`", p),
+                ty::AliasKind::Projection | ty::AliasKind::Inherent => {
+                    format!("the associated type `{}`", p)
+                }
                 ty::AliasKind::Opaque => format!("the opaque type `{}`", p),
             },
         };
@@ -2395,7 +2397,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 );
             } else {
                 let consider = format!("{} `{}: {}`...", msg, bound_kind, sub);
-                err.help(&consider);
+                err.help(consider);
             }
         }
 
@@ -2625,7 +2627,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             );
             err.span_note(
                 sup_trace.cause.span,
-                &format!("...so that the {}", sup_trace.cause.as_requirement_str()),
+                format!("...so that the {}", sup_trace.cause.as_requirement_str()),
             );
 
             err.note_expected_found(&"", sup_expected, &"", sup_found);
@@ -2721,7 +2723,7 @@ impl<'tcx> TypeRelation<'tcx> for SameTypeModuloInfer<'_, 'tcx> {
             | (ty::Infer(ty::InferTy::TyVar(_)), _)
             | (_, ty::Infer(ty::InferTy::TyVar(_))) => Ok(a),
             (ty::Infer(_), _) | (_, ty::Infer(_)) => Err(TypeError::Mismatch),
-            _ => relate::super_relate_tys(self, a, b),
+            _ => relate::structurally_relate_tys(self, a, b),
         }
     }
 
@@ -2885,7 +2887,7 @@ impl<'tcx> ObligationCauseExt<'tcx> for ObligationCause<'tcx> {
             LetElse => ObligationCauseFailureCode::NoDiverge { span, subdiags },
             MainFunctionType => ObligationCauseFailureCode::FnMainCorrectType { span },
             StartFunctionType => ObligationCauseFailureCode::FnStartCorrectType { span, subdiags },
-            IntrinsicType => ObligationCauseFailureCode::IntristicCorrectType { span, subdiags },
+            IntrinsicType => ObligationCauseFailureCode::IntrinsicCorrectType { span, subdiags },
             MethodReceiver => ObligationCauseFailureCode::MethodCorrectType { span, subdiags },
 
             // In the case where we have no more specific thing to
@@ -2942,7 +2944,7 @@ impl IntoDiagnosticArg for ObligationCauseAsDiagArg<'_> {
             IfExpressionWithNoElse => "no_else",
             MainFunctionType => "fn_main_correct_type",
             StartFunctionType => "fn_start_correct_type",
-            IntrinsicType => "intristic_correct_type",
+            IntrinsicType => "intrinsic_correct_type",
             MethodReceiver => "method_correct_type",
             _ => "other",
         }

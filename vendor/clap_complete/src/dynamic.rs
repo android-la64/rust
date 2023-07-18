@@ -2,9 +2,11 @@
 
 /// Complete commands within bash
 pub mod bash {
+    use std::ffi::OsStr;
     use std::ffi::OsString;
     use std::io::Write;
 
+    use clap_lex::OsStrExt as _;
     use unicode_xid::UnicodeXID;
 
     #[derive(clap::Subcommand)]
@@ -69,7 +71,7 @@ pub mod bash {
 
         /// Process the completion request
         pub fn try_complete(&self, cmd: &mut clap::Command) -> clap::error::Result<()> {
-            debug!("CompleteCommand::try_complete: {:?}", self);
+            debug!("CompleteCommand::try_complete: {self:?}");
             let CompleteCommand::Complete(args) = self;
             if let Some(out_path) = args.register.as_deref() {
                 let mut buf = Vec::new();
@@ -122,7 +124,7 @@ pub mod bash {
 
     /// The recommended file name for the registration code
     pub fn file_name(name: &str) -> String {
-        format!("{}.bash", name)
+        format!("{name}.bash")
     }
 
     /// Define the completion behavior
@@ -152,8 +154,7 @@ pub mod bash {
         let escaped_name = name.replace('-', "_");
         debug_assert!(
             escaped_name.chars().all(|c| c.is_xid_continue()),
-            "`name` must be an identifier, got `{}`",
-            escaped_name
+            "`name` must be an identifier, got `{escaped_name}`"
         );
         let mut upper_name = escaped_name.clone();
         upper_name.make_ascii_uppercase();
@@ -199,7 +200,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
         .replace("COMPLETER", &completer)
         .replace("UPPER", &upper_name);
 
-        writeln!(buf, "{}", script)?;
+        writeln!(buf, "{script}")?;
         Ok(())
     }
 
@@ -320,11 +321,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
                 return complete_arg(&arg, current_cmd, current_dir, pos_index, is_escaped);
             }
 
-            debug!(
-                "complete::next: Begin parsing '{:?}' ({:?})",
-                arg.to_value_os(),
-                arg.to_value_os().as_raw_bytes()
-            );
+            debug!("complete::next: Begin parsing '{:?}'", arg.to_value_os(),);
 
             if let Ok(value) = arg.to_value() {
                 if let Some(next_cmd) = current_cmd.find_subcommand(value) {
@@ -388,7 +385,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
                             crate::generator::utils::longs_and_visible_aliases(cmd)
                                 .into_iter()
                                 .filter_map(|f| {
-                                    f.starts_with(flag).then(|| format!("--{}", f).into())
+                                    f.starts_with(flag).then(|| format!("--{f}").into())
                                 }),
                         );
                     }
@@ -398,7 +395,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
                 completions.extend(
                     crate::generator::utils::longs_and_visible_aliases(cmd)
                         .into_iter()
-                        .map(|f| format!("--{}", f).into()),
+                        .map(|f| format!("--{f}").into()),
                 );
             }
 
@@ -408,7 +405,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
                     crate::generator::utils::shorts_and_visible_aliases(cmd)
                         .into_iter()
                         // HACK: Need better `OsStr` manipulation
-                        .map(|f| format!("{}{}", arg.to_value_os().to_str_lossy(), f).into()),
+                        .map(|f| format!("{}{}", arg.to_value_os().to_string_lossy(), f).into()),
                 );
             }
         }
@@ -428,12 +425,12 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
     }
 
     fn complete_arg_value(
-        value: Result<&str, &clap_lex::RawOsStr>,
+        value: Result<&str, &OsStr>,
         arg: &clap::Arg,
         current_dir: Option<&std::path::Path>,
     ) -> Vec<OsString> {
         let mut values = Vec::new();
-        debug!("complete_arg_value: arg={:?}, value={:?}", arg, value);
+        debug!("complete_arg_value: arg={arg:?}, value={value:?}");
 
         if let Some(possible_values) = crate::generator::utils::possible_values(arg) {
             if let Ok(value) = value {
@@ -444,7 +441,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
             }
         } else {
             let value_os = match value {
-                Ok(value) => clap_lex::RawOsStr::from_str(value),
+                Ok(value) => OsStr::new(value),
                 Err(value_os) => value_os,
             };
             match arg.get_value_hint() {
@@ -485,7 +482,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
     }
 
     fn complete_path(
-        value_os: &clap_lex::RawOsStr,
+        value_os: &OsStr,
         current_dir: Option<&std::path::Path>,
         is_wanted: impl Fn(&std::path::Path) -> bool,
     ) -> Vec<OsString> {
@@ -499,10 +496,11 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
             }
         };
         let (existing, prefix) = value_os
-            .split_once('\\')
-            .unwrap_or((clap_lex::RawOsStr::from_str(""), value_os));
-        let root = current_dir.join(existing.to_os_str());
-        debug!("complete_path: root={:?}, prefix={:?}", root, prefix);
+            .split_once("\\")
+            .unwrap_or((OsStr::new(""), value_os));
+        let root = current_dir.join(existing);
+        debug!("complete_path: root={root:?}, prefix={prefix:?}");
+        let prefix = prefix.to_string_lossy();
 
         for entry in std::fs::read_dir(&root)
             .ok()
@@ -510,8 +508,8 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
             .flatten()
             .filter_map(Result::ok)
         {
-            let raw_file_name = clap_lex::RawOsString::new(entry.file_name());
-            if !raw_file_name.starts_with_os(prefix) {
+            let raw_file_name = OsString::from(entry.file_name());
+            if !raw_file_name.starts_with(&prefix) {
                 continue;
             }
 

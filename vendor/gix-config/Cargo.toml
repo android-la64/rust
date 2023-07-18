@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-config"
-version = "0.18.0"
+version = "0.22.0"
 authors = ["Edward Shen <code@eddie.sh>"]
 include = [
     "src/**/*",
@@ -60,22 +60,25 @@ version = "0.2.0"
 optional = true
 
 [dependencies.gix-config-value]
-version = "^0.10.1"
+version = "^0.12.0"
 
 [dependencies.gix-features]
-version = "^0.28.0"
+version = "^0.29.0"
 
 [dependencies.gix-glob]
-version = "^0.5.5"
+version = "^0.7.0"
 
 [dependencies.gix-path]
-version = "^0.7.2"
+version = "^0.8.0"
 
 [dependencies.gix-ref]
-version = "^0.26.0"
+version = "^0.29.0"
 
 [dependencies.gix-sec]
-version = "^0.6.2"
+version = "^0.8.0"
+
+[dependencies.log]
+version = "0.4.17"
 
 [dependencies.memchr]
 version = "2"
@@ -101,17 +104,17 @@ version = "1.9.0"
 version = "1.0.26"
 
 [dependencies.unicode-bom]
-version = "1.1.4"
+version = "2.0.2"
 
 [dev-dependencies.criterion]
 version = "0.4.0"
 
 [features]
-serde1 = [
-    "serde",
+serde = [
+    "dep:serde",
     "bstr/serde",
-    "gix-sec/serde1",
-    "gix-ref/serde1",
-    "gix-glob/serde1",
-    "gix-config-value/serde1",
+    "gix-sec/serde",
+    "gix-ref/serde",
+    "gix-glob/serde",
+    "gix-config-value/serde",
 ]

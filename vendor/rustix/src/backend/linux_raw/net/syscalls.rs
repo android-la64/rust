@@ -13,7 +13,7 @@ use super::super::conv::{
 };
 use super::read_sockaddr::{initialize_family_to_unspec, maybe_read_sockaddr_os, read_sockaddr_os};
 use super::send_recv::{RecvFlags, SendFlags};
-use super::types::{AcceptFlags, AddressFamily, Protocol, Shutdown, SocketFlags, SocketType};
+use super::types::{AddressFamily, Protocol, Shutdown, SocketFlags, SocketType};
 use super::write_sockaddr::{encode_sockaddr_v4, encode_sockaddr_v6};
 use crate::fd::{BorrowedFd, OwnedFd};
 use crate::io;
@@ -143,7 +143,7 @@ pub(crate) fn accept(fd: BorrowedFd<'_>) -> io::Result<OwnedFd> {
 }
 
 #[inline]
-pub(crate) fn accept_with(fd: BorrowedFd<'_>, flags: AcceptFlags) -> io::Result<OwnedFd> {
+pub(crate) fn accept_with(fd: BorrowedFd<'_>, flags: SocketFlags) -> io::Result<OwnedFd> {
     #[cfg(not(target_arch = "x86"))]
     unsafe {
         let fd = ret_owned_fd(syscall_readonly!(__NR_accept4, fd, zero(), zero(), flags))?;
@@ -200,7 +200,7 @@ pub(crate) fn acceptfrom(fd: BorrowedFd<'_>) -> io::Result<(OwnedFd, Option<Sock
 #[inline]
 pub(crate) fn acceptfrom_with(
     fd: BorrowedFd<'_>,
-    flags: AcceptFlags,
+    flags: SocketFlags,
 ) -> io::Result<(OwnedFd, Option<SocketAddrAny>)> {
     #[cfg(not(target_arch = "x86"))]
     unsafe {
@@ -1066,13 +1066,50 @@ pub(crate) mod sockopt {
     }
 
     #[inline]
-    pub(crate) fn get_socket_error(fd: BorrowedFd<'_>) -> io::Result<Result<(), crate::io::Errno>> {
+    pub(crate) fn get_socket_error(fd: BorrowedFd<'_>) -> io::Result<Result<(), io::Errno>> {
         let err: c::c_int = getsockopt(fd, c::SOL_SOCKET as _, c::SO_ERROR)?;
         Ok(if err == 0 {
             Ok(())
         } else {
-            Err(crate::io::Errno::from_raw_os_error(err))
+            Err(io::Errno::from_raw_os_error(err))
         })
+    }
+
+    #[inline]
+    pub(crate) fn set_socket_keepalive(fd: BorrowedFd<'_>, keepalive: bool) -> io::Result<()> {
+        setsockopt(
+            fd,
+            c::SOL_SOCKET as _,
+            c::SO_KEEPALIVE,
+            from_bool(keepalive),
+        )
+    }
+
+    #[inline]
+    pub(crate) fn get_socket_keepalive(fd: BorrowedFd<'_>) -> io::Result<bool> {
+        getsockopt(fd, c::SOL_SOCKET as _, c::SO_KEEPALIVE).map(to_bool)
+    }
+
+    #[inline]
+    pub(crate) fn set_socket_recv_buffer_size(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
+        let size: c::c_int = size.try_into().map_err(|_| io::Errno::OVERFLOW)?;
+        setsockopt(fd, c::SOL_SOCKET as _, c::SO_RCVBUF, size)
+    }
+
+    #[inline]
+    pub(crate) fn get_socket_recv_buffer_size(fd: BorrowedFd<'_>) -> io::Result<usize> {
+        getsockopt(fd, c::SOL_SOCKET as _, c::SO_RCVBUF).map(|size: u32| size as usize)
+    }
+
+    #[inline]
+    pub(crate) fn set_socket_send_buffer_size(fd: BorrowedFd<'_>, size: usize) -> io::Result<()> {
+        let size: c::c_int = size.try_into().map_err(|_| io::Errno::OVERFLOW)?;
+        setsockopt(fd, c::SOL_SOCKET as _, c::SO_SNDBUF, size)
+    }
+
+    #[inline]
+    pub(crate) fn get_socket_send_buffer_size(fd: BorrowedFd<'_>) -> io::Result<usize> {
+        getsockopt(fd, c::SOL_SOCKET as _, c::SO_SNDBUF).map(|size: u32| size as usize)
     }
 
     #[inline]
@@ -1197,6 +1234,20 @@ pub(crate) mod sockopt {
     ) -> io::Result<()> {
         let mreq = to_ipv6mr(multiaddr, interface);
         setsockopt(fd, c::IPPROTO_IPV6 as _, c::IPV6_DROP_MEMBERSHIP, mreq)
+    }
+
+    #[inline]
+    pub(crate) fn get_ipv6_unicast_hops(fd: BorrowedFd<'_>) -> io::Result<u8> {
+        getsockopt(fd, c::IPPROTO_IPV6 as _, c::IPV6_UNICAST_HOPS).map(|hops: c::c_int| hops as u8)
+    }
+
+    #[inline]
+    pub(crate) fn set_ipv6_unicast_hops(fd: BorrowedFd<'_>, hops: Option<u8>) -> io::Result<()> {
+        let hops = match hops {
+            Some(hops) => hops as c::c_int,
+            None => -1,
+        };
+        setsockopt(fd, c::IPPROTO_IPV6 as _, c::IPV6_UNICAST_HOPS, hops)
     }
 
     #[inline]

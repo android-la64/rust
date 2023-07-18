@@ -54,10 +54,13 @@ pub(crate) struct AuxVec {
 /// error, cpuinfo still can (and will) be used to try to perform run-time
 /// feature detection on some platforms.
 ///
-/// Note: The `std_detect_dlsym_getauxval` cargo feature is ignored on `*-linux-gnu*` targets,
-/// since [all `*-linux-gnu*` targets ([since Rust 1.64](https://blog.rust-lang.org/2022/08/01/Increasing-glibc-kernel-requirements.html))
-/// have glibc requirements higher than [glibc 2.16 that added `getauxval`](https://sourceware.org/legacy-ml/libc-announce/2012/msg00000.html),
-/// and we can safely assume [`getauxval`] is linked to the binary.
+///  Note: The `std_detect_dlsym_getauxval` cargo feature is ignored on
+/// `*-linux-gnu*` and `*-android*` targets because we can safely assume `getauxval`
+/// is linked to the binary.
+/// - `*-linux-gnu*` targets ([since Rust 1.64](https://blog.rust-lang.org/2022/08/01/Increasing-glibc-kernel-requirements.html))
+///   have glibc requirements higher than [glibc 2.16 that added `getauxval`](https://sourceware.org/legacy-ml/libc-announce/2012/msg00000.html).
+/// - `*-android*` targets ([since Rust 1.68](https://blog.rust-lang.org/2023/01/09/android-ndk-update-r25.html))
+///   have the minimum supported API level higher than [Android 4.3 (API level 18) that added `getauxval`](https://github.com/aosp-mirror/platform_bionic/blob/d3ebc2f7c49a9893b114124d4a6b315f3a328764/libc/include/sys/auxv.h#L49).
 ///
 /// For more information about when `getauxval` is available check the great
 /// [`auxv` crate documentation][auxv_docs].
@@ -67,7 +70,9 @@ pub(crate) struct AuxVec {
 pub(crate) fn auxv() -> Result<AuxVec, ()> {
     #[cfg(all(
         feature = "std_detect_dlsym_getauxval",
-        not(all(target_os = "linux", target_env = "gnu"))
+        not(all(target_os = "linux", target_env = "gnu")),
+        // TODO: libc crate currently doesn't provide getauxval on 32-bit Android.
+        not(all(target_os = "android", target_pointer_width = "64")),
     ))]
     {
         // Try to call a dynamically-linked getauxval function.
@@ -105,13 +110,17 @@ pub(crate) fn auxv() -> Result<AuxVec, ()> {
                     }
                 }
             }
-            drop(hwcap);
+
+            // Intentionnaly not used
+            let _ = hwcap;
         }
     }
 
     #[cfg(any(
         not(feature = "std_detect_dlsym_getauxval"),
-        all(target_os = "linux", target_env = "gnu")
+        all(target_os = "linux", target_env = "gnu"),
+        // TODO: libc crate currently doesn't provide getauxval on 32-bit Android.
+        all(target_os = "android", target_pointer_width = "64"),
     ))]
     {
         // Targets with only AT_HWCAP:
@@ -189,13 +198,12 @@ fn getauxval(key: usize) -> Result<usize, ()> {
 pub(super) fn auxv_from_file(file: &str) -> Result<AuxVec, ()> {
     let file = super::read_file(file)?;
 
-    // See <https://github.com/torvalds/linux/blob/v3.19/include/uapi/linux/auxvec.h>.
+    // See <https://github.com/torvalds/linux/blob/v5.15/include/uapi/linux/auxvec.h>.
     //
-    // The auxiliary vector contains at most 32 (key,value) fields: from
-    // `AT_EXECFN = 31` to `AT_NULL = 0`. That is, a buffer of
-    // 2*32 `usize` elements is enough to read the whole vector.
-    let mut buf = [0_usize; 64];
-    let len = core::mem::size_of_val(&buf).max(file.len());
+    // The auxiliary vector contains at most 34 (key,value) fields: from
+    // `AT_MINSIGSTKSZ` to `AT_NULL`, but its number may increase.
+    let len = file.len();
+    let mut buf = alloc::vec![0_usize; 1 + len / core::mem::size_of::<usize>()];
     unsafe {
         core::ptr::copy_nonoverlapping(file.as_ptr(), buf.as_mut_ptr() as *mut u8, len);
     }
@@ -206,7 +214,7 @@ pub(super) fn auxv_from_file(file: &str) -> Result<AuxVec, ()> {
 /// Tries to interpret the `buffer` as an auxiliary vector. If that fails, this
 /// function returns `Err`.
 #[cfg(feature = "std_detect_file_io")]
-fn auxv_from_buf(buf: &[usize; 64]) -> Result<AuxVec, ()> {
+fn auxv_from_buf(buf: &[usize]) -> Result<AuxVec, ()> {
     // Targets with only AT_HWCAP:
     #[cfg(any(
         target_arch = "riscv32",
@@ -247,7 +255,8 @@ fn auxv_from_buf(buf: &[usize; 64]) -> Result<AuxVec, ()> {
             return Ok(AuxVec { hwcap, hwcap2 });
         }
     }
-    drop(buf);
+    // Suppress unused variable
+    let _ = buf;
     Err(())
 }
 

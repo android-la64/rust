@@ -220,7 +220,13 @@ impl Switch {
             "Jump tables bigger than 2^32-1 are not yet supported"
         );
 
-        let jt_data = JumpTableData::with_blocks(Vec::from(blocks));
+        let jt_data = JumpTableData::new(
+            bx.func.dfg.block_call(otherwise, &[]),
+            &blocks
+                .iter()
+                .map(|block| bx.func.dfg.block_call(*block, &[]))
+                .collect::<Vec<_>>(),
+        );
         let jump_table = bx.create_jump_table(jt_data);
 
         let discr = if first_index == 0 {
@@ -256,7 +262,7 @@ impl Switch {
             _ => discr,
         };
 
-        bx.ins().br_table(discr, otherwise, jump_table);
+        bx.ins().br_table(discr, jump_table);
     }
 
     /// Build the switch
@@ -416,12 +422,10 @@ mod tests {
         let func = setup!(0, [0, 1,]);
         assert_eq_output!(
             func,
-            "    jt0 = jump_table [block1, block2]
-
-block0:
+            "block0:
     v0 = iconst.i8 0
     v1 = uextend.i32 v0  ; v0 = 0
-    br_table v1, block0, jt0"
+    br_table v1, block0, [block1, block2]"
         );
     }
 
@@ -445,10 +449,7 @@ block3:
         let func = setup!(0, [0, 1, 5, 7, 10, 11, 12,]);
         assert_eq_output!(
             func,
-            "    jt0 = jump_table [block5, block6, block7]
-    jt1 = jump_table [block1, block2]
-
-block0:
+            "block0:
     v0 = iconst.i8 0
     v1 = icmp_imm uge v0, 7  ; v0 = 0
     brif v1, block9, block8
@@ -460,7 +461,7 @@ block9:
 block11:
     v3 = iadd_imm.i8 v0, -10  ; v0 = 0
     v4 = uextend.i32 v3
-    br_table v4, block0, jt0
+    br_table v4, block0, [block5, block6, block7]
 
 block10:
     v5 = icmp_imm.i8 eq v0, 7  ; v0 = 0
@@ -472,7 +473,7 @@ block8:
 
 block12:
     v7 = uextend.i32 v0  ; v0 = 0
-    br_table v7, block0, jt1"
+    br_table v7, block0, [block1, block2]"
         );
     }
 
@@ -513,16 +514,14 @@ block3:
         let func = setup!(0, [-1i8 as u8 as u128, 0, 1,]);
         assert_eq_output!(
             func,
-            "    jt0 = jump_table [block2, block3]
-
-block0:
+            "block0:
     v0 = iconst.i8 0
     v1 = icmp_imm eq v0, 255  ; v0 = 0
     brif v1, block1, block4
 
 block4:
     v2 = uextend.i32 v0  ; v0 = 0
-    br_table v2, block0, jt0"
+    br_table v2, block0, [block2, block3]"
         );
     }
 
@@ -607,16 +606,14 @@ block4:
             .to_string();
         assert_eq_output!(
             func,
-            "    jt0 = jump_table [block2, block1]
-
-block0:
+            "block0:
     v0 = iconst.i64 0
     v1 = icmp_imm ugt v0, 0xffff_ffff  ; v0 = 0
     brif v1, block3, block4
 
 block4:
     v2 = ireduce.i32 v0  ; v0 = 0
-    br_table v2, block3, jt0"
+    br_table v2, block3, [block2, block1]"
         );
     }
 
@@ -645,9 +642,7 @@ block4:
             .to_string();
         assert_eq_output!(
             func,
-            "    jt0 = jump_table [block2, block1]
-
-block0:
+            "block0:
     v0 = iconst.i64 0
     v1 = uextend.i128 v0  ; v0 = 0
     v2 = icmp_imm ugt v1, 0xffff_ffff
@@ -655,7 +650,7 @@ block0:
 
 block4:
     v3 = ireduce.i32 v1
-    br_table v3, block3, jt0"
+    br_table v3, block3, [block2, block1]"
         );
     }
 }

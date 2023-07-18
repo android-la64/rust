@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "icu_locid"
-version = "1.1.0"
+version = "1.2.0"
 authors = ["The ICU4X Project Developers"]
 include = [
     "src/**/*",
@@ -28,7 +28,6 @@ readme = "README.md"
 categories = ["internationalization"]
 license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
-resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -76,7 +75,7 @@ version = "0.2.3"
 default-features = false
 
 [dependencies.litemap]
-version = "0.6.1"
+version = "0.7.0"
 
 [dependencies.serde]
 version = "1.0"
@@ -96,11 +95,11 @@ default-features = false
 version = "0.5.1"
 
 [dependencies.zerovec]
-version = "0.9.2"
+version = "0.9.4"
 optional = true
 
 [dev-dependencies.criterion]
-version = "0.3.3"
+version = "0.4"
 
 [dev-dependencies.iai]
 version = "0.1.1"

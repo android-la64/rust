@@ -16,6 +16,9 @@ use core::{fmt, i64};
 #[cfg(any(feature = "std", test))]
 use std::error::Error;
 
+#[cfg(feature = "rkyv")]
+use rkyv::{Archive, Deserialize, Serialize};
+
 /// The number of nanoseconds in a microsecond.
 const NANOS_PER_MICRO: i32 = 1000;
 /// The number of nanoseconds in a millisecond.
@@ -45,21 +48,23 @@ macro_rules! try_opt {
 }
 
 /// ISO 8601 time duration with nanosecond precision.
+///
 /// This also allows for the negative duration; see individual methods for details.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "rkyv", derive(Archive, Deserialize, Serialize))]
 pub struct Duration {
     secs: i64,
     nanos: i32, // Always 0 <= nanos < NANOS_PER_SEC
 }
 
 /// The minimum possible `Duration`: `i64::MIN` milliseconds.
-pub const MIN: Duration = Duration {
+pub(crate) const MIN: Duration = Duration {
     secs: i64::MIN / MILLIS_PER_SEC - 1,
     nanos: NANOS_PER_SEC + (i64::MIN % MILLIS_PER_SEC) as i32 * NANOS_PER_MILLI,
 };
 
 /// The maximum possible `Duration`: `i64::MAX` milliseconds.
-pub const MAX: Duration = Duration {
+pub(crate) const MAX: Duration = Duration {
     secs: i64::MAX / MILLIS_PER_SEC,
     nanos: (i64::MAX % MILLIS_PER_SEC) as i32 * NANOS_PER_MILLI,
 };
@@ -115,7 +120,7 @@ impl Duration {
 
     /// Makes a new `Duration` with given number of milliseconds.
     #[inline]
-    pub fn milliseconds(milliseconds: i64) -> Duration {
+    pub const fn milliseconds(milliseconds: i64) -> Duration {
         let (secs, millis) = div_mod_floor_64(milliseconds, MILLIS_PER_SEC);
         let nanos = millis as i32 * NANOS_PER_MILLI;
         Duration { secs: secs, nanos: nanos }
@@ -123,7 +128,7 @@ impl Duration {
 
     /// Makes a new `Duration` with given number of microseconds.
     #[inline]
-    pub fn microseconds(microseconds: i64) -> Duration {
+    pub const fn microseconds(microseconds: i64) -> Duration {
         let (secs, micros) = div_mod_floor_64(microseconds, MICROS_PER_SEC);
         let nanos = micros as i32 * NANOS_PER_MICRO;
         Duration { secs: secs, nanos: nanos }
@@ -131,36 +136,36 @@ impl Duration {
 
     /// Makes a new `Duration` with given number of nanoseconds.
     #[inline]
-    pub fn nanoseconds(nanos: i64) -> Duration {
+    pub const fn nanoseconds(nanos: i64) -> Duration {
         let (secs, nanos) = div_mod_floor_64(nanos, NANOS_PER_SEC as i64);
         Duration { secs: secs, nanos: nanos as i32 }
     }
 
     /// Returns the total number of whole weeks in the duration.
     #[inline]
-    pub fn num_weeks(&self) -> i64 {
+    pub const fn num_weeks(&self) -> i64 {
         self.num_days() / 7
     }
 
     /// Returns the total number of whole days in the duration.
-    pub fn num_days(&self) -> i64 {
+    pub const fn num_days(&self) -> i64 {
         self.num_seconds() / SECS_PER_DAY
     }
 
     /// Returns the total number of whole hours in the duration.
     #[inline]
-    pub fn num_hours(&self) -> i64 {
+    pub const fn num_hours(&self) -> i64 {
         self.num_seconds() / SECS_PER_HOUR
     }
 
     /// Returns the total number of whole minutes in the duration.
     #[inline]
-    pub fn num_minutes(&self) -> i64 {
+    pub const fn num_minutes(&self) -> i64 {
         self.num_seconds() / SECS_PER_MINUTE
     }
 
     /// Returns the total number of whole seconds in the duration.
-    pub fn num_seconds(&self) -> i64 {
+    pub const fn num_seconds(&self) -> i64 {
         // If secs is negative, nanos should be subtracted from the duration.
         if self.secs < 0 && self.nanos > 0 {
             self.secs + 1
@@ -172,7 +177,7 @@ impl Duration {
     /// Returns the number of nanoseconds such that
     /// `nanos_mod_sec() + num_seconds() * NANOS_PER_SEC` is the total number of
     /// nanoseconds in the duration.
-    fn nanos_mod_sec(&self) -> i32 {
+    const fn nanos_mod_sec(&self) -> i32 {
         if self.secs < 0 && self.nanos > 0 {
             self.nanos - NANOS_PER_SEC
         } else {
@@ -181,7 +186,7 @@ impl Duration {
     }
 
     /// Returns the total number of whole milliseconds in the duration,
-    pub fn num_milliseconds(&self) -> i64 {
+    pub const fn num_milliseconds(&self) -> i64 {
         // A proper Duration will not overflow, because MIN and MAX are defined
         // such that the range is exactly i64 milliseconds.
         let secs_part = self.num_seconds() * MILLIS_PER_SEC;
@@ -191,7 +196,7 @@ impl Duration {
 
     /// Returns the total number of whole microseconds in the duration,
     /// or `None` on overflow (exceeding 2^63 microseconds in either direction).
-    pub fn num_microseconds(&self) -> Option<i64> {
+    pub const fn num_microseconds(&self) -> Option<i64> {
         let secs_part = try_opt!(self.num_seconds().checked_mul(MICROS_PER_SEC));
         let nanos_part = self.nanos_mod_sec() / NANOS_PER_MICRO;
         secs_part.checked_add(nanos_part as i64)
@@ -199,7 +204,7 @@ impl Duration {
 
     /// Returns the total number of whole nanoseconds in the duration,
     /// or `None` on overflow (exceeding 2^63 nanoseconds in either direction).
-    pub fn num_nanoseconds(&self) -> Option<i64> {
+    pub const fn num_nanoseconds(&self) -> Option<i64> {
         let secs_part = try_opt!(self.num_seconds().checked_mul(NANOS_PER_SEC as i64));
         let nanos_part = self.nanos_mod_sec();
         secs_part.checked_add(nanos_part as i64)
@@ -243,31 +248,35 @@ impl Duration {
 
     /// Returns the duration as an absolute (non-negative) value.
     #[inline]
-    pub fn abs(&self) -> Duration {
-        Duration { secs: self.secs.abs(), nanos: self.nanos }
+    pub const fn abs(&self) -> Duration {
+        if self.secs < 0 && self.nanos != 0 {
+            Duration { secs: (self.secs + 1).abs(), nanos: NANOS_PER_SEC - self.nanos }
+        } else {
+            Duration { secs: self.secs.abs(), nanos: self.nanos }
+        }
     }
 
     /// The minimum possible `Duration`: `i64::MIN` milliseconds.
     #[inline]
-    pub fn min_value() -> Duration {
+    pub const fn min_value() -> Duration {
         MIN
     }
 
     /// The maximum possible `Duration`: `i64::MAX` milliseconds.
     #[inline]
-    pub fn max_value() -> Duration {
+    pub const fn max_value() -> Duration {
         MAX
     }
 
     /// A duration where the stored seconds and nanoseconds are equal to zero.
     #[inline]
-    pub fn zero() -> Duration {
+    pub const fn zero() -> Duration {
         Duration { secs: 0, nanos: 0 }
     }
 
     /// Returns `true` if the duration equals `Duration::zero()`.
     #[inline]
-    pub fn is_zero(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.secs == 0 && self.nanos == 0
     }
 
@@ -372,7 +381,26 @@ impl Div<i32> for Duration {
     }
 }
 
+#[cfg(any(feature = "std", test))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+impl<'a> std::iter::Sum<&'a Duration> for Duration {
+    fn sum<I: Iterator<Item = &'a Duration>>(iter: I) -> Duration {
+        iter.fold(Duration::zero(), |acc, x| acc + *x)
+    }
+}
+
+#[cfg(any(feature = "std", test))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+impl std::iter::Sum<Duration> for Duration {
+    fn sum<I: Iterator<Item = Duration>>(iter: I) -> Duration {
+        iter.fold(Duration::zero(), |acc, x| acc + x)
+    }
+}
+
 impl fmt::Display for Duration {
+    /// Format a duration using the [ISO 8601] format
+    ///
+    /// [ISO 8601]: https://en.wikipedia.org/wiki/ISO_8601#Durations
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // technically speaking, negative duration is not valid ISO 8601,
         // but we need to print it anyway.
@@ -419,6 +447,7 @@ impl fmt::Display for OutOfRangeError {
 }
 
 #[cfg(any(feature = "std", test))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl Error for OutOfRangeError {
     #[allow(deprecated)]
     fn description(&self) -> &str {
@@ -428,12 +457,12 @@ impl Error for OutOfRangeError {
 
 // Copied from libnum
 #[inline]
-fn div_mod_floor_64(this: i64, other: i64) -> (i64, i64) {
+const fn div_mod_floor_64(this: i64, other: i64) -> (i64, i64) {
     (div_floor_64(this, other), mod_floor_64(this, other))
 }
 
 #[inline]
-fn div_floor_64(this: i64, other: i64) -> i64 {
+const fn div_floor_64(this: i64, other: i64) -> i64 {
     match div_rem_64(this, other) {
         (d, r) if (r > 0 && other < 0) || (r < 0 && other > 0) => d - 1,
         (d, _) => d,
@@ -441,7 +470,7 @@ fn div_floor_64(this: i64, other: i64) -> i64 {
 }
 
 #[inline]
-fn mod_floor_64(this: i64, other: i64) -> i64 {
+const fn mod_floor_64(this: i64, other: i64) -> i64 {
     match this % other {
         r if (r > 0 && other < 0) || (r < 0 && other > 0) => r + other,
         r => r,
@@ -449,8 +478,26 @@ fn mod_floor_64(this: i64, other: i64) -> i64 {
 }
 
 #[inline]
-fn div_rem_64(this: i64, other: i64) -> (i64, i64) {
+const fn div_rem_64(this: i64, other: i64) -> (i64, i64) {
     (this / other, this % other)
+}
+
+#[cfg(feature = "arbitrary")]
+impl arbitrary::Arbitrary<'_> for Duration {
+    fn arbitrary(u: &mut arbitrary::Unstructured) -> arbitrary::Result<Duration> {
+        const MIN_SECS: i64 = i64::MIN / MILLIS_PER_SEC - 1;
+        const MAX_SECS: i64 = i64::MAX / MILLIS_PER_SEC;
+
+        let secs: i64 = u.int_in_range(MIN_SECS..=MAX_SECS)?;
+        let nanos: i32 = u.int_in_range(0..=(NANOS_PER_SEC - 1))?;
+        let duration = Duration { secs, nanos };
+
+        if duration < MIN || duration > MAX {
+            Err(arbitrary::Error::IncorrectFormat)
+        } else {
+            Ok(duration)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -589,6 +636,19 @@ mod tests {
     }
 
     #[test]
+    fn test_duration_abs() {
+        assert_eq!(Duration::milliseconds(1300).abs(), Duration::milliseconds(1300));
+        assert_eq!(Duration::milliseconds(1000).abs(), Duration::milliseconds(1000));
+        assert_eq!(Duration::milliseconds(300).abs(), Duration::milliseconds(300));
+        assert_eq!(Duration::milliseconds(0).abs(), Duration::milliseconds(0));
+        assert_eq!(Duration::milliseconds(-300).abs(), Duration::milliseconds(300));
+        assert_eq!(Duration::milliseconds(-700).abs(), Duration::milliseconds(700));
+        assert_eq!(Duration::milliseconds(-1000).abs(), Duration::milliseconds(1000));
+        assert_eq!(Duration::milliseconds(-1300).abs(), Duration::milliseconds(1300));
+        assert_eq!(Duration::milliseconds(-1700).abs(), Duration::milliseconds(1700));
+    }
+
+    #[test]
     fn test_duration_mul() {
         assert_eq!(Duration::zero() * i32::MAX, Duration::zero());
         assert_eq!(Duration::zero() * i32::MIN, Duration::zero());
@@ -624,6 +684,27 @@ mod tests {
         assert_eq!(Duration::seconds(-1) / -2, Duration::milliseconds(500));
         assert_eq!(Duration::seconds(-4) / 3, Duration::nanoseconds(-1_333_333_333));
         assert_eq!(Duration::seconds(-4) / -3, Duration::nanoseconds(1_333_333_333));
+    }
+
+    #[test]
+    fn test_duration_sum() {
+        let duration_list_1 = [Duration::zero(), Duration::seconds(1)];
+        let sum_1: Duration = duration_list_1.iter().sum();
+        assert_eq!(sum_1, Duration::seconds(1));
+
+        let duration_list_2 =
+            [Duration::zero(), Duration::seconds(1), Duration::seconds(6), Duration::seconds(10)];
+        let sum_2: Duration = duration_list_2.iter().sum();
+        assert_eq!(sum_2, Duration::seconds(17));
+
+        let duration_vec = vec![
+            Duration::zero(),
+            Duration::seconds(1),
+            Duration::seconds(6),
+            Duration::seconds(10),
+        ];
+        let sum_3: Duration = duration_vec.into_iter().sum();
+        assert_eq!(sum_3, Duration::seconds(17));
     }
 
     #[test]

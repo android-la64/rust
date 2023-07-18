@@ -348,7 +348,7 @@ impl<'a> AstValidator<'a> {
         let source_map = self.session.source_map();
         let end = source_map.end_point(sp);
 
-        if source_map.span_to_snippet(end).map(|s| s == ";").unwrap_or(false) {
+        if source_map.span_to_snippet(end).is_ok_and(|s| s == ";") {
             end
         } else {
             sp.shrink_to_hi()
@@ -736,11 +736,10 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
                         this.visit_expr(&arm.body);
                         this.visit_pat(&arm.pat);
                         walk_list!(this, visit_attribute, &arm.attrs);
-                        if let Some(guard) = &arm.guard && let ExprKind::Let(_, guard_expr, _) = &guard.kind {
+                        if let Some(guard) = &arm.guard {
                             this.with_let_management(None, |this, _| {
-                                this.visit_expr(guard_expr)
+                                this.visit_expr(guard)
                             });
-                            return;
                         }
                     }
                 }
@@ -1168,9 +1167,24 @@ impl<'a> Visitor<'a> for AstValidator<'a> {
                     });
                 }
                 (_, TraitBoundModifier::MaybeConstMaybe) => {
-                    self.err_handler().emit_err(errors::OptionalConstExclusive {span: bound.span()});
+                    self.err_handler().emit_err(errors::OptionalConstExclusive {span: bound.span(), modifier: "?" });
+                }
+                (_, TraitBoundModifier::MaybeConstNegative) => {
+                    self.err_handler().emit_err(errors::OptionalConstExclusive {span: bound.span(), modifier: "!" });
                 }
                 _ => {}
+            }
+        }
+
+        // Negative trait bounds are not allowed to have associated constraints
+        if let GenericBound::Trait(trait_ref, TraitBoundModifier::Negative) = bound
+            && let Some(segment) = trait_ref.trait_ref.path.segments.last()
+            && let Some(ast::GenericArgs::AngleBracketed(args)) = segment.args.as_deref()
+        {
+            for arg in &args.args {
+                if let ast::AngleBracketedArg::Constraint(constraint) = arg {
+                    self.err_handler().emit_err(errors::ConstraintOnNegativeBound { span: constraint.span });
+                }
             }
         }
 

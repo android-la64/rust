@@ -1374,7 +1374,7 @@ pub unsafe fn _mm_sfence() {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_getcsr() -> u32 {
     let mut result = 0_i32;
-    stmxcsr((&mut result) as *mut _ as *mut i8);
+    stmxcsr(&mut result as *mut _ as *mut i8);
     result as u32
 }
 
@@ -1754,7 +1754,9 @@ pub unsafe fn _mm_prefetch<const STRATEGY: i32>(p: *const i8) {
     prefetch(p, (STRATEGY >> 2) & 1, STRATEGY & 3, 1);
 }
 
-/// Returns vector of type __m128 with undefined elements.
+/// Returns vector of type __m128 with indeterminate elements.
+/// Despite being "undefined", this is some valid value and not equivalent to [`mem::MaybeUninit`].
+/// In practice, this is equivalent to [`mem::zeroed`].
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_undefined_ps)
 #[inline]

@@ -62,7 +62,7 @@ use crate::dominator_tree::DominatorTree;
 use crate::entity::SparseSet;
 use crate::flowgraph::{BlockPredecessor, ControlFlowGraph};
 use crate::ir::entities::AnyEntity;
-use crate::ir::instructions::{BranchInfo, CallInfo, InstructionFormat, ResolvedConstraint};
+use crate::ir::instructions::{CallInfo, InstructionFormat, ResolvedConstraint};
 use crate::ir::{self, ArgumentExtension};
 use crate::ir::{
     types, ArgumentPurpose, Block, Constant, DynamicStackSlot, FuncRef, Function, GlobalValue,
@@ -446,15 +446,6 @@ impl<'a> Verifier<'a> {
         Ok(())
     }
 
-    fn verify_jump_tables(&self, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
-        for (jt, jt_data) in &self.func.jump_tables {
-            for &block in jt_data.iter() {
-                self.verify_block(jt, block, errors)?;
-            }
-        }
-        Ok(())
-    }
-
     /// Check that the given block can be encoded as a BB, by checking that only
     /// branching instructions are ending the block.
     fn encodable_as_bb(&self, block: Block, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
@@ -588,10 +579,7 @@ impl<'a> Verifier<'a> {
                 self.verify_block(inst, block_then.block(&self.func.dfg.value_lists), errors)?;
                 self.verify_block(inst, block_else.block(&self.func.dfg.value_lists), errors)?;
             }
-            BranchTable {
-                table, destination, ..
-            } => {
-                self.verify_block(inst, destination, errors)?;
+            BranchTable { table, .. } => {
                 self.verify_jump_table(inst, table, errors)?;
             }
             Call {
@@ -854,13 +842,17 @@ impl<'a> Verifier<'a> {
         j: JumpTable,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        if !self.func.jump_tables.is_valid(j) {
+        if !self.func.stencil.dfg.jump_tables.is_valid(j) {
             errors.nonfatal((
                 inst,
                 self.context(inst),
                 format!("invalid jump table reference {}", j),
             ))
         } else {
+            let pool = &self.func.stencil.dfg.value_lists;
+            for block in self.func.stencil.dfg.jump_tables[j].all_branches() {
+                self.verify_block(inst, block.block(pool), errors)?;
+            }
             Ok(())
         }
     }
@@ -892,7 +884,11 @@ impl<'a> Verifier<'a> {
         self.verify_value(loc_inst, v, errors)?;
 
         let dfg = &self.func.dfg;
-        let loc_block = self.func.layout.pp_block(loc_inst);
+        let loc_block = self
+            .func
+            .layout
+            .inst_block(loc_inst)
+            .expect("Instruction not in layout.");
         let is_reachable = self.expected_domtree.is_reachable(loc_block);
 
         // SSA form
@@ -1109,17 +1105,13 @@ impl<'a> Verifier<'a> {
                 ));
             }
         }
-        // We verify rpo_cmp on pairs of adjacent blocks in the postorder
+        // We verify rpo_cmp_block on pairs of adjacent blocks in the postorder
         for (&prev_block, &next_block) in domtree.cfg_postorder().iter().adjacent_pairs() {
-            if self
-                .expected_domtree
-                .rpo_cmp(prev_block, next_block, &self.func.layout)
-                != Ordering::Greater
-            {
+            if self.expected_domtree.rpo_cmp_block(prev_block, next_block) != Ordering::Greater {
                 return errors.fatal((
                     next_block,
                     format!(
-                        "invalid domtree, rpo_cmp does not says {} is greater than {}",
+                        "invalid domtree, rpo_cmp_block does not says {} is greater than {}",
                         prev_block, next_block
                     ),
                 ));
@@ -1199,7 +1191,7 @@ impl<'a> Verifier<'a> {
         let _ = self.typecheck_fixed_args(inst, ctrl_type, errors);
         let _ = self.typecheck_variable_args(inst, errors);
         let _ = self.typecheck_return(inst, errors);
-        let _ = self.typecheck_special(inst, ctrl_type, errors);
+        let _ = self.typecheck_special(inst, errors);
 
         Ok(())
     }
@@ -1293,63 +1285,23 @@ impl<'a> Verifier<'a> {
         inst: Inst,
         errors: &mut VerifierErrors,
     ) -> VerifierStepResult<()> {
-        match self.func.dfg.analyze_branch(inst) {
-            BranchInfo::SingleDest(block) => {
-                let iter = self
-                    .func
-                    .dfg
-                    .block_params(block.block(&self.func.dfg.value_lists))
-                    .iter()
-                    .map(|&v| self.func.dfg.value_type(v));
-                let args = block.args_slice(&self.func.dfg.value_lists);
-                self.typecheck_variable_args_iterator(inst, iter, args, errors)?;
+        match &self.func.dfg.insts[inst] {
+            ir::InstructionData::Jump { destination, .. } => {
+                self.typecheck_block_call(inst, destination, errors)?;
             }
-            BranchInfo::Conditional(block_then, block_else) => {
-                let iter = self
-                    .func
-                    .dfg
-                    .block_params(block_then.block(&self.func.dfg.value_lists))
-                    .iter()
-                    .map(|&v| self.func.dfg.value_type(v));
-                let args_then = block_then.args_slice(&self.func.dfg.value_lists);
-                self.typecheck_variable_args_iterator(inst, iter, args_then, errors)?;
-
-                let iter = self
-                    .func
-                    .dfg
-                    .block_params(block_else.block(&self.func.dfg.value_lists))
-                    .iter()
-                    .map(|&v| self.func.dfg.value_type(v));
-                let args_else = block_else.args_slice(&self.func.dfg.value_lists);
-                self.typecheck_variable_args_iterator(inst, iter, args_else, errors)?;
+            ir::InstructionData::Brif {
+                blocks: [block_then, block_else],
+                ..
+            } => {
+                self.typecheck_block_call(inst, block_then, errors)?;
+                self.typecheck_block_call(inst, block_else, errors)?;
             }
-            BranchInfo::Table(table, block) => {
-                let arg_count = self.func.dfg.num_block_params(block);
-                if arg_count != 0 {
-                    return errors.nonfatal((
-                        inst,
-                        self.context(inst),
-                        format!(
-                            "takes no arguments, but had target {} with {} arguments",
-                            block, arg_count,
-                        ),
-                    ));
-                }
-                for block in self.func.jump_tables[table].iter() {
-                    let arg_count = self.func.dfg.num_block_params(*block);
-                    if arg_count != 0 {
-                        return errors.nonfatal((
-                            inst,
-                            self.context(inst),
-                            format!(
-                                "takes no arguments, but had target {} with {} arguments",
-                                block, arg_count,
-                            ),
-                        ));
-                    }
+            ir::InstructionData::BranchTable { table, .. } => {
+                for block in self.func.stencil.dfg.jump_tables[*table].all_branches() {
+                    self.typecheck_block_call(inst, block, errors)?;
                 }
             }
-            BranchInfo::NotABranch => {}
+            inst => debug_assert!(!inst.opcode().is_branch()),
         }
 
         match self.func.dfg.insts[inst].analyze_call(&self.func.dfg.value_lists) {
@@ -1371,6 +1323,23 @@ impl<'a> Verifier<'a> {
             CallInfo::NotACall => {}
         }
         Ok(())
+    }
+
+    fn typecheck_block_call(
+        &self,
+        inst: Inst,
+        block: &ir::BlockCall,
+        errors: &mut VerifierErrors,
+    ) -> VerifierStepResult<()> {
+        let pool = &self.func.dfg.value_lists;
+        let iter = self
+            .func
+            .dfg
+            .block_params(block.block(pool))
+            .iter()
+            .map(|&v| self.func.dfg.value_type(v));
+        let args = block.args_slice(pool);
+        self.typecheck_variable_args_iterator(inst, iter, args, errors)
     }
 
     fn typecheck_variable_args_iterator<I: Iterator<Item = Type>>(
@@ -1509,63 +1478,8 @@ impl<'a> Verifier<'a> {
 
     // Check special-purpose type constraints that can't be expressed in the normal opcode
     // constraints.
-    fn typecheck_special(
-        &self,
-        inst: Inst,
-        ctrl_type: Type,
-        errors: &mut VerifierErrors,
-    ) -> VerifierStepResult<()> {
+    fn typecheck_special(&self, inst: Inst, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
         match self.func.dfg.insts[inst] {
-            ir::InstructionData::Unary { opcode, arg } => {
-                let arg_type = self.func.dfg.value_type(arg);
-                match opcode {
-                    Opcode::Uextend | Opcode::Sextend | Opcode::Fpromote => {
-                        if arg_type.lane_count() != ctrl_type.lane_count() {
-                            return errors.nonfatal((
-                                inst,
-                                self.context(inst),
-                                format!(
-                                    "input {} and output {} must have same number of lanes",
-                                    arg_type, ctrl_type,
-                                ),
-                            ));
-                        }
-                        if arg_type.lane_bits() >= ctrl_type.lane_bits() {
-                            return errors.nonfatal((
-                                inst,
-                                self.context(inst),
-                                format!(
-                                    "input {} must be smaller than output {}",
-                                    arg_type, ctrl_type,
-                                ),
-                            ));
-                        }
-                    }
-                    Opcode::Ireduce | Opcode::Fdemote => {
-                        if arg_type.lane_count() != ctrl_type.lane_count() {
-                            return errors.nonfatal((
-                                inst,
-                                self.context(inst),
-                                format!(
-                                    "input {} and output {} must have same number of lanes",
-                                    arg_type, ctrl_type,
-                                ),
-                            ));
-                        }
-                        if arg_type.lane_bits() <= ctrl_type.lane_bits() {
-                            return errors.nonfatal((
-                                inst,
-                                self.context(inst),
-                                format!(
-                                    "input {} must be larger than output {}",
-                                    arg_type, ctrl_type,
-                                ),
-                            ));
-                        }
-                    }
-                    _ => {}
-                }
-            }
             ir::InstructionData::TableAddr { table, arg, .. } => {
                 let index_type = self.func.dfg.value_type(arg);
                 let table_index_type = self.func.tables[table].index_type;
@@ -1716,6 +1630,28 @@ impl<'a> Verifier<'a> {
                     Ok(())
                 }
             }
+            ir::InstructionData::Shuffle {
+                opcode: ir::instructions::Opcode::Shuffle,
+                imm,
+                ..
+            } => {
+                let imm = self.func.dfg.immediates.get(imm).unwrap().as_slice();
+                if imm.len() != 16 {
+                    errors.fatal((
+                        inst,
+                        self.context(inst),
+                        format!("the shuffle immediate wasn't 16-bytes long"),
+                    ))
+                } else if let Some(i) = imm.iter().find(|i| **i >= 32) {
+                    errors.fatal((
+                        inst,
+                        self.context(inst),
+                        format!("shuffle immediate index {i} is larger than the maximum 31"),
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
             _ => Ok(()),
         }
     }
@@ -1783,7 +1719,6 @@ impl<'a> Verifier<'a> {
     pub fn run(&self, errors: &mut VerifierErrors) -> VerifierStepResult<()> {
         self.verify_global_values(errors)?;
         self.verify_tables(errors)?;
-        self.verify_jump_tables(errors)?;
         self.typecheck_entry_block_params(errors)?;
         self.check_entry_not_cold(errors)?;
         self.typecheck_function_signature(errors)?;

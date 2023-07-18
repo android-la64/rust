@@ -22,6 +22,42 @@ struct SymbolOffsets {
     str_id: Option<StringId>,
 }
 
+/// The customizable portion of a [`macho::BuildVersionCommand`].
+#[derive(Debug, Default, Clone, Copy)]
+#[non_exhaustive] // May want to add the tool list?
+pub struct MachOBuildVersion {
+    /// One of the `PLATFORM_` constants (for example,
+    /// [`object::macho::PLATFORM_MACOS`](macho::PLATFORM_MACOS)).
+    pub platform: u32,
+    /// The minimum OS version, where `X.Y.Z` is encoded in nibbles as
+    /// `xxxx.yy.zz`.
+    pub minos: u32,
+    /// The SDK version as `X.Y.Z`, where `X.Y.Z` is encoded in nibbles as
+    /// `xxxx.yy.zz`.
+    pub sdk: u32,
+}
+
+impl MachOBuildVersion {
+    fn cmdsize(&self) -> u32 {
+        // Same size for both endianness, and we don't have `ntools`.
+        let sz = mem::size_of::<macho::BuildVersionCommand<Endianness>>();
+        debug_assert!(sz <= u32::MAX as usize);
+        sz as u32
+    }
+}
+
+// Public methods.
+impl<'a> Object<'a> {
+    /// Specify information for a Mach-O `LC_BUILD_VERSION` command.
+    ///
+    /// Requires `feature = "macho"`.
+    #[inline]
+    pub fn set_macho_build_version(&mut self, info: MachOBuildVersion) {
+        self.macho_build_version = Some(info);
+    }
+}
+
+// Private methods.
 impl<'a> Object<'a> {
     pub(crate) fn macho_set_subsections_via_symbols(&mut self) {
         let flags = match self.flags {
@@ -44,38 +80,72 @@ impl<'a> Object<'a> {
     pub(crate) fn macho_section_info(
         &self,
         section: StandardSection,
-    ) -> (&'static [u8], &'static [u8], SectionKind) {
+    ) -> (&'static [u8], &'static [u8], SectionKind, SectionFlags) {
         match section {
-            StandardSection::Text => (&b"__TEXT"[..], &b"__text"[..], SectionKind::Text),
-            StandardSection::Data => (&b"__DATA"[..], &b"__data"[..], SectionKind::Data),
-            StandardSection::ReadOnlyData => {
-                (&b"__TEXT"[..], &b"__const"[..], SectionKind::ReadOnlyData)
-            }
-            StandardSection::ReadOnlyDataWithRel => {
-                (&b"__DATA"[..], &b"__const"[..], SectionKind::ReadOnlyData)
-            }
+            StandardSection::Text => (
+                &b"__TEXT"[..],
+                &b"__text"[..],
+                SectionKind::Text,
+                SectionFlags::None,
+            ),
+            StandardSection::Data => (
+                &b"__DATA"[..],
+                &b"__data"[..],
+                SectionKind::Data,
+                SectionFlags::None,
+            ),
+            StandardSection::ReadOnlyData => (
+                &b"__TEXT"[..],
+                &b"__const"[..],
+                SectionKind::ReadOnlyData,
+                SectionFlags::None,
+            ),
+            StandardSection::ReadOnlyDataWithRel => (
+                &b"__DATA"[..],
+                &b"__const"[..],
+                SectionKind::ReadOnlyDataWithRel,
+                SectionFlags::None,
+            ),
             StandardSection::ReadOnlyString => (
                 &b"__TEXT"[..],
                 &b"__cstring"[..],
                 SectionKind::ReadOnlyString,
+                SectionFlags::None,
             ),
             StandardSection::UninitializedData => (
                 &b"__DATA"[..],
                 &b"__bss"[..],
                 SectionKind::UninitializedData,
+                SectionFlags::None,
             ),
-            StandardSection::Tls => (&b"__DATA"[..], &b"__thread_data"[..], SectionKind::Tls),
+            StandardSection::Tls => (
+                &b"__DATA"[..],
+                &b"__thread_data"[..],
+                SectionKind::Tls,
+                SectionFlags::None,
+            ),
             StandardSection::UninitializedTls => (
                 &b"__DATA"[..],
                 &b"__thread_bss"[..],
                 SectionKind::UninitializedTls,
+                SectionFlags::None,
             ),
             StandardSection::TlsVariables => (
                 &b"__DATA"[..],
                 &b"__thread_vars"[..],
                 SectionKind::TlsVariables,
+                SectionFlags::None,
             ),
-            StandardSection::Common => (&b"__DATA"[..], &b"__common"[..], SectionKind::Common),
+            StandardSection::Common => (
+                &b"__DATA"[..],
+                &b"__common"[..],
+                SectionKind::Common,
+                SectionFlags::None,
+            ),
+            StandardSection::GnuProperty => {
+                // Unsupported section.
+                (&[], &[], SectionKind::Note, SectionFlags::None)
+            }
         }
     }
 
@@ -211,6 +281,12 @@ impl<'a> Object<'a> {
         let mut ncmds = 0;
         let command_offset = offset;
 
+        let build_version_offset = offset;
+        if let Some(version) = &self.macho_build_version {
+            offset += version.cmdsize() as usize;
+            ncmds += 1;
+        }
+
         // Calculate size of segment command and section headers.
         let segment_command_offset = offset;
         let segment_command_len =
@@ -271,16 +347,8 @@ impl<'a> Object<'a> {
             //
             // Since we don't actually emit the symbol kind, we validate it here too.
             match symbol.kind {
-                SymbolKind::Text | SymbolKind::Data | SymbolKind::Tls => {}
+                SymbolKind::Text | SymbolKind::Data | SymbolKind::Tls | SymbolKind::Unknown => {}
                 SymbolKind::File | SymbolKind::Section => continue,
-                SymbolKind::Unknown => {
-                    if symbol.section != SymbolSection::Undefined {
-                        return Err(Error(format!(
-                            "defined symbol `{}` with unknown kind",
-                            symbol.name().unwrap_or(""),
-                        )));
-                    }
-                }
                 SymbolKind::Null | SymbolKind::Label => {
                     return Err(Error(format!(
                         "unimplemented symbol `{}` kind {:?}",
@@ -330,6 +398,9 @@ impl<'a> Object<'a> {
         let (cputype, cpusubtype) = match self.architecture {
             Architecture::Arm => (macho::CPU_TYPE_ARM, macho::CPU_SUBTYPE_ARM_ALL),
             Architecture::Aarch64 => (macho::CPU_TYPE_ARM64, macho::CPU_SUBTYPE_ARM64_ALL),
+            Architecture::Aarch64_Ilp32 => {
+                (macho::CPU_TYPE_ARM64_32, macho::CPU_SUBTYPE_ARM64_32_V8)
+            }
             Architecture::I386 => (macho::CPU_TYPE_X86, macho::CPU_SUBTYPE_I386_ALL),
             Architecture::X86_64 => (macho::CPU_TYPE_X86_64, macho::CPU_SUBTYPE_X86_64_ALL),
             Architecture::PowerPc => (macho::CPU_TYPE_POWERPC, macho::CPU_SUBTYPE_POWERPC_ALL),
@@ -357,6 +428,18 @@ impl<'a> Object<'a> {
                 flags,
             },
         );
+
+        if let Some(version) = &self.macho_build_version {
+            debug_assert_eq!(build_version_offset, buffer.len());
+            buffer.write(&macho::BuildVersionCommand {
+                cmd: U32::new(endian, macho::LC_BUILD_VERSION),
+                cmdsize: U32::new(endian, version.cmdsize()),
+                platform: U32::new(endian, version.platform),
+                minos: U32::new(endian, version.minos),
+                sdk: U32::new(endian, version.sdk),
+                ntools: U32::new(endian, 0),
+            });
+        }
 
         // Write segment command.
         debug_assert_eq!(segment_command_offset, buffer.len());
@@ -406,7 +489,7 @@ impl<'a> Object<'a> {
                         macho::S_ATTR_PURE_INSTRUCTIONS | macho::S_ATTR_SOME_INSTRUCTIONS
                     }
                     SectionKind::Data => 0,
-                    SectionKind::ReadOnlyData => 0,
+                    SectionKind::ReadOnlyData | SectionKind::ReadOnlyDataWithRel => 0,
                     SectionKind::ReadOnlyString => macho::S_CSTRING_LITERALS,
                     SectionKind::UninitializedData | SectionKind::Common => macho::S_ZEROFILL,
                     SectionKind::Tls => macho::S_THREAD_LOCAL_REGULAR,
@@ -592,39 +675,48 @@ impl<'a> Object<'a> {
                                 return Err(Error(format!("unimplemented relocation {:?}", reloc)));
                             }
                         },
-                        Architecture::Aarch64 => match (reloc.kind, reloc.encoding, reloc.addend) {
-                            (RelocationKind::Absolute, RelocationEncoding::Generic, 0) => {
-                                (false, macho::ARM64_RELOC_UNSIGNED)
-                            }
-                            (RelocationKind::Relative, RelocationEncoding::AArch64Call, 0) => {
-                                (true, macho::ARM64_RELOC_BRANCH26)
-                            }
-                            // Non-zero addend, so we have to encode the addend separately
-                            (RelocationKind::Relative, RelocationEncoding::AArch64Call, value) => {
-                                // first emit the BR26 relocation
-                                let reloc_info = macho::RelocationInfo {
-                                    r_address: reloc.offset as u32,
-                                    r_symbolnum,
-                                    r_pcrel: true,
-                                    r_length,
-                                    r_extern: true,
-                                    r_type: macho::ARM64_RELOC_BRANCH26,
-                                };
-                                buffer.write(&reloc_info.relocation(endian));
+                        Architecture::Aarch64 | Architecture::Aarch64_Ilp32 => {
+                            match (reloc.kind, reloc.encoding, reloc.addend) {
+                                (RelocationKind::Absolute, RelocationEncoding::Generic, 0) => {
+                                    (false, macho::ARM64_RELOC_UNSIGNED)
+                                }
+                                (RelocationKind::Relative, RelocationEncoding::AArch64Call, 0) => {
+                                    (true, macho::ARM64_RELOC_BRANCH26)
+                                }
+                                // Non-zero addend, so we have to encode the addend separately
+                                (
+                                    RelocationKind::Relative,
+                                    RelocationEncoding::AArch64Call,
+                                    value,
+                                ) => {
+                                    // first emit the BR26 relocation
+                                    let reloc_info = macho::RelocationInfo {
+                                        r_address: reloc.offset as u32,
+                                        r_symbolnum,
+                                        r_pcrel: true,
+                                        r_length,
+                                        r_extern: true,
+                                        r_type: macho::ARM64_RELOC_BRANCH26,
+                                    };
+                                    buffer.write(&reloc_info.relocation(endian));
 
-                                // set up a separate relocation for the addend
-                                r_symbolnum = value as u32;
-                                (false, macho::ARM64_RELOC_ADDEND)
+                                    // set up a separate relocation for the addend
+                                    r_symbolnum = value as u32;
+                                    (false, macho::ARM64_RELOC_ADDEND)
+                                }
+                                (
+                                    RelocationKind::MachO { value, relative },
+                                    RelocationEncoding::Generic,
+                                    0,
+                                ) => (relative, value),
+                                _ => {
+                                    return Err(Error(format!(
+                                        "unimplemented relocation {:?}",
+                                        reloc
+                                    )));
+                                }
                             }
-                            (
-                                RelocationKind::MachO { value, relative },
-                                RelocationEncoding::Generic,
-                                0,
-                            ) => (relative, value),
-                            _ => {
-                                return Err(Error(format!("unimplemented relocation {:?}", reloc)));
-                            }
-                        },
+                        }
                         _ => {
                             if let RelocationKind::MachO { value, relative } = reloc.kind {
                                 (relative, value)

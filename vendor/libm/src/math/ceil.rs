@@ -1,3 +1,4 @@
+#![allow(unreachable_code)]
 use core::f64;
 
 const TOINT: f64 = 1. / f64::EPSILON;
@@ -5,7 +6,6 @@ const TOINT: f64 = 1. / f64::EPSILON;
 /// Ceil (f64)
 ///
 /// Finds the nearest integer greater than or equal to `x`.
-#[inline]
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn ceil(x: f64) -> f64 {
     // On wasm32 we know that LLVM's intrinsic will compile to an optimized
@@ -14,6 +14,24 @@ pub fn ceil(x: f64) -> f64 {
     llvm_intrinsically_optimized! {
         #[cfg(target_arch = "wasm32")] {
             return unsafe { ::core::intrinsics::ceilf64(x) }
+        }
+    }
+    #[cfg(all(target_arch = "x86", not(target_feature = "sse2")))]
+    {
+        //use an alternative implementation on x86, because the
+        //main implementation fails with the x87 FPU used by
+        //debian i386, probablly due to excess precision issues.
+        //basic implementation taken from https://github.com/rust-lang/libm/issues/219
+        use super::fabs;
+        if fabs(x).to_bits() < 4503599627370496.0_f64.to_bits() {
+            let truncated = x as i64 as f64;
+            if truncated < x {
+                return truncated + 1.0;
+            } else {
+                return truncated;
+            }
+        } else {
+            return x;
         }
     }
     let u: u64 = x.to_bits();
@@ -43,9 +61,22 @@ pub fn ceil(x: f64) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use core::f64::*;
+
     #[test]
     fn sanity_check() {
-        assert_eq!(super::ceil(1.1), 2.0);
-        assert_eq!(super::ceil(2.9), 3.0);
+        assert_eq!(ceil(1.1), 2.0);
+        assert_eq!(ceil(2.9), 3.0);
+    }
+
+    /// The spec: https://en.cppreference.com/w/cpp/numeric/math/ceil
+    #[test]
+    fn spec_tests() {
+        // Not Asserted: that the current rounding mode has no effect.
+        assert!(ceil(NAN).is_nan());
+        for f in [0.0, -0.0, INFINITY, NEG_INFINITY].iter().copied() {
+            assert_eq!(ceil(f), f);
+        }
     }
 }

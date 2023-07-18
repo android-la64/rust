@@ -15,24 +15,52 @@
 use super::*;
 
 #[test]
-fn as_ref() {
-    assert_eq!(Bom::Null.as_ref(), "[not set]");
-    assert_eq!(Bom::Bocu1.as_ref(), "BOCU-1");
-    assert_eq!(Bom::Gb18030.as_ref(), "GB 18030");
-    assert_eq!(Bom::Scsu.as_ref(), "SCSU");
-    assert_eq!(Bom::UtfEbcdic.as_ref(), "UTF-EBCDIC");
-    assert_eq!(Bom::Utf1.as_ref(), "UTF-1");
-    assert_eq!(Bom::Utf7.as_ref(), "UTF-7");
-    assert_eq!(Bom::Utf8.as_ref(), "UTF-8");
-    assert_eq!(Bom::Utf16Be.as_ref(), "UTF-16 (big-endian)");
-    assert_eq!(Bom::Utf16Le.as_ref(), "UTF-16 (little-endian)");
-    assert_eq!(Bom::Utf32Be.as_ref(), "UTF-32 (big-endian)");
-    assert_eq!(Bom::Utf32Le.as_ref(), "UTF-32 (little-endian)");
+fn as_ref_str() {
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Null), "[not set]");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Bocu1), "BOCU-1");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Gb18030), "GB 18030");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Scsu), "SCSU");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::UtfEbcdic), "UTF-EBCDIC");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Utf1), "UTF-1");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Utf7), "UTF-7");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Utf8), "UTF-8");
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Utf16Be), "UTF-16 (big-endian)");
+    assert_eq!(
+        AsRef::<str>::as_ref(&Bom::Utf16Le),
+        "UTF-16 (little-endian)"
+    );
+    assert_eq!(AsRef::<str>::as_ref(&Bom::Utf32Be), "UTF-32 (big-endian)");
+    assert_eq!(
+        AsRef::<str>::as_ref(&Bom::Utf32Le),
+        "UTF-32 (little-endian)"
+    );
 }
 
 #[test]
 fn to_string() {
     assert_eq!(Bom::Null.to_string(), Bom::Null.as_ref());
+}
+
+#[test]
+fn as_ref_arr() {
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Null), &[]);
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Bocu1), &[0xfb, 0xee, 0x28]);
+    assert_eq!(
+        AsRef::<[u8]>::as_ref(&Bom::Gb18030),
+        &[0x84, 0x31, 0x95, 0x33]
+    );
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Scsu), &[0x0e, 0xfe, 0xff]);
+    assert_eq!(
+        AsRef::<[u8]>::as_ref(&Bom::UtfEbcdic),
+        &[0xdd, 0x73, 0x66, 0x73]
+    );
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Utf1), &[0xf7, 0x64, 0x4c]);
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Utf7), &[0x2b, 0x2f, 0x76]);
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Utf8), &[0xef, 0xbb, 0xbf]);
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Utf16Be), &[0xfe, 0xff]);
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Utf16Le), &[0xff, 0xfe]);
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Utf32Be), &[0, 0, 0xfe, 0xff]);
+    assert_eq!(AsRef::<[u8]>::as_ref(&Bom::Utf32Le), &[0xff, 0xfe, 0, 0]);
 }
 
 #[test]
@@ -134,6 +162,21 @@ fn from_slice() {
     assert_bom(&[0xff, 0xfe, 0, 0, 42], Bom::Utf32Le);
     assert_bom(&[0xff, 0xfe, 0, 1], Bom::Utf16Le);
     assert_bom(&[0xff, 0xfe, 0, 1, 42], Bom::Utf16Le);
+}
+
+#[test]
+fn from_as_ref_arr() {
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Null), Bom::Null);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Bocu1), Bom::Bocu1);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Gb18030), Bom::Gb18030);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Scsu), Bom::Scsu);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::UtfEbcdic), Bom::UtfEbcdic);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Utf1), Bom::Utf1);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Utf8), Bom::Utf8);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Utf16Be), Bom::Utf16Be);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Utf16Le), Bom::Utf16Le);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Utf32Be), Bom::Utf32Be);
+    assert_bom(AsRef::<[u8]>::as_ref(&Bom::Utf32Le), Bom::Utf32Le);
 }
 
 fn assert_bom(bytes: &[u8], expected: Bom) {

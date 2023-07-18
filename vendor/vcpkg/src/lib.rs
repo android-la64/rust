@@ -8,12 +8,14 @@
 //! The simplest possible usage looks like this :-
 //!
 //! ```rust,no_run
+//! // build.rs
 //! vcpkg::find_package("libssh2").unwrap();
 //! ```
 //!
 //! The cargo metadata that is emitted can be changed like this :-
 //!
 //! ```rust,no_run
+//! // build.rs
 //! vcpkg::Config::new()
 //!     .emit_includes(true)
 //!     .find_package("zlib").unwrap();
@@ -22,20 +24,29 @@
 //! If the search was successful all appropriate Cargo metadata will be printed
 //! to stdout.
 //!
-//! ## Static vs. dynamic linking
-//! At this time, vcpkg itself only has a single triplet on macOS and Linux which builds
-//! static link versions of libraries, which works well with Rust.
+//! # Static vs. dynamic linking
+//! ## Linux and Mac
+//! At this time, vcpkg has a single triplet on macOS and Linux, which builds
+//! static link versions of libraries. This triplet works well with Rust. It is also possible
+//! to select a custom triplet using the `VCPKGRS_TRIPLET` environment variable.
+//! ## Windows
 //! On Windows there are three
 //! configurations that are supported for 64-bit builds and another three for 32-bit.
 //! The default 64-bit configuration is `x64-windows-static-md` which is a
 //! [community supported](https://github.com/microsoft/vcpkg/blob/master/docs/users/triplets.md#community-triplets)
 //! configuration that is a good match for Rust - dynamically linking to the C runtime,
-//! and statically linking to the packages in vcpkg. Another option is to build a fully static
+//! and statically linking to the packages in vcpkg.
+//!
+//! Another option is to build a fully static
 //! binary using `RUSTFLAGS=-Ctarget-feature=+crt-static`. This will link to libraries built
-//! with vcpkg triplet `x64-windows-static`. For dynamic linking, set `VCPKGRS_DYNAMIC=1` in the
+//! with vcpkg triplet `x64-windows-static`.
+//!
+//! For dynamic linking, set `VCPKGRS_DYNAMIC=1` in the
 //! environment. This will link to libraries built with vcpkg triplet `x64-windows`. If `VCPKGRS_DYNAMIC` is set, `cargo install` will
 //! generate dynamically linked binaries, in which case you will have to arrange for
 //! dlls from your Vcpkg installation to be available in your path.
+//!
+//! # Environment variables
 //!
 //! A number of environment variables are available to globally configure which
 //! libraries are selected.
@@ -45,14 +56,22 @@
 //! set up with `vcpkg integrate install`, and check the crate source and target
 //! to see if a vcpkg tree has been created by [cargo-vcpkg](https://crates.io/crates/cargo-vcpkg).
 //!
+//! * `VCPKGRS_TRIPLET` - Use this to override vcpkg-rs' default triplet selection with your own.
+//! This is how to select a custom vcpkg triplet.
+//!
 //! * `VCPKGRS_NO_FOO` - if set, vcpkg-rs will not attempt to find the
 //! library named `foo`.
 //!
 //! * `VCPKGRS_DISABLE` - if set, vcpkg-rs will not attempt to find any libraries.
 //!
 //! * `VCPKGRS_DYNAMIC` - if set, vcpkg-rs will link to DLL builds of ports.
-//!
-//! There is a companion crate `vcpkg_cli` that allows testing of environment
+//! # Related tools
+//! ## cargo vcpkg
+//! [`cargo vcpkg`](https://crates.io/crates/cargo-vcpkg) can fetch and build a vcpkg installation of
+//! required packages from scratch. It merges package requirements specified in the `Cargo.toml` of
+//! crates in the dependency tree.  
+//! ## vcpkg_cli
+//! There is also a rudimentary companion crate, `vcpkg_cli` that allows testing of environment
 //! and flag combinations.
 //!
 //! ```Batchfile
@@ -67,9 +86,11 @@
 //!         cargo:rustc-link-lib=static=mysqlclient
 //! ```
 
-// The CI will test vcpkg-rs on 1.10 because at this point rust-openssl's
-// openssl-sys is backward compatible that far. (Actually, the oldest release
-// crate openssl version 0.10 seems to build against is now Rust 1.24.1?)
+// The CI will test vcpkg-rs on 1.12 because that is how far back vcpkg-rs 0.2 tries to be
+// compatible (was actually 1.10 see #29).  This was originally based on how far back
+// rust-openssl's openssl-sys was backward compatible when this crate originally released.
+//
+// This will likely get bumped by the next major release.
 #![allow(deprecated)]
 #![allow(warnings)]
 
@@ -81,12 +102,13 @@ extern crate lazy_static;
 use std::ascii::AsciiExt;
 
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::env;
 use std::error;
 use std::ffi::OsStr;
 use std::fmt;
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 
 /// Configuration options for finding packages, setting up the tree and emitting metadata to cargo
@@ -109,6 +131,8 @@ pub struct Config {
 
     /// override VCPKG_ROOT environment variable
     vcpkg_root: Option<PathBuf>,
+
+    target: Option<TargetTriplet>,
 }
 
 /// Details of a package that was found
@@ -140,13 +164,38 @@ pub struct Library {
 
     /// ports that are providing the libraries to link to, in port link order
     pub ports: Vec<String>,
+
+    /// the vcpkg triplet that has been selected
+    pub vcpkg_triplet: String,
 }
 
+#[derive(Clone)]
 struct TargetTriplet {
     triplet: String,
     is_static: bool,
     lib_suffix: String,
     strip_lib_prefix: bool,
+}
+
+impl<S: AsRef<str>> From<S> for TargetTriplet {
+    fn from(triplet: S) -> TargetTriplet {
+        let triplet = triplet.as_ref();
+        if triplet.contains("windows") {
+            TargetTriplet {
+                triplet: triplet.into(),
+                is_static: triplet.contains("-static"),
+                lib_suffix: "lib".into(),
+                strip_lib_prefix: false,
+            }
+        } else {
+            TargetTriplet {
+                triplet: triplet.into(),
+                is_static: true,
+                lib_suffix: "a".into(),
+                strip_lib_prefix: true,
+            }
+        }
+    }
 }
 
 #[derive(Debug)] // need Display?
@@ -341,7 +390,7 @@ fn find_vcpkg_target(cfg: &Config, target_triplet: &TargetTriplet) -> Result<Vcp
     let vcpkg_root = try!(find_vcpkg_root(&cfg));
     try!(validate_vcpkg_root(&vcpkg_root));
 
-    let mut base = vcpkg_root;
+    let mut base = vcpkg_root.clone();
     base.push("installed");
     let status_path = base.join("vcpkg");
 
@@ -350,17 +399,190 @@ fn find_vcpkg_target(cfg: &Config, target_triplet: &TargetTriplet) -> Result<Vcp
     let lib_path = base.join("lib");
     let bin_path = base.join("bin");
     let include_path = base.join("include");
+    let packages_path = vcpkg_root.join("packages");
 
     Ok(VcpkgTarget {
-        vcpkg_triplet: target_triplet.triplet.to_owned(),
         lib_path: lib_path,
         bin_path: bin_path,
         include_path: include_path,
-        is_static: target_triplet.is_static,
         status_path: status_path,
-        lib_suffix: target_triplet.lib_suffix.to_owned(),
-        strip_lib_prefix: target_triplet.strip_lib_prefix,
+        packages_path: packages_path,
+        target_triplet: target_triplet.clone(),
     })
+}
+
+/// Parsed knowledge from a .pc file.
+#[derive(Debug)]
+struct PcFile {
+    /// The pkg-config name of this library.
+    id: String,
+    /// List of libraries found as '-l', translated to a given vcpkg_target. e.g. libbrotlicommon.a
+    libs: Vec<String>,
+    /// List of pkgconfig dependencies, e.g. PcFile::id.
+    deps: Vec<String>,
+}
+impl PcFile {
+    fn parse_pc_file(vcpkg_target: &VcpkgTarget, path: &Path) -> Result<Self, Error> {
+        // Extract the pkg-config name.
+        let id = try!(path
+            .file_stem()
+            .ok_or_else(|| Error::VcpkgInstallation(format!(
+                "pkg-config file {} has bogus name",
+                path.to_string_lossy()
+            ))))
+        .to_string_lossy();
+        // Read through the file and gather what we want.
+        let mut file = try!(File::open(path)
+            .map_err(|_| Error::VcpkgInstallation(format!("Couldn't open {}", path.display()))));
+        let mut pc_file_contents = String::new();
+
+        try!(file
+            .read_to_string(&mut pc_file_contents)
+            .map_err(|_| Error::VcpkgInstallation(format!("Couldn't read {}", path.display()))));
+        PcFile::from_str(&id, &pc_file_contents, &vcpkg_target.target_triplet)
+    }
+    fn from_str(id: &str, s: &str, target_triplet: &TargetTriplet) -> Result<Self, Error> {
+        let mut libs = Vec::new();
+        let mut deps = Vec::new();
+
+        for line in s.lines() {
+            // We could collect a lot of stuff here, but we only care about Requires and Libs for the moment.
+            if line.starts_with("Requires:") {
+                let mut requires_args = line
+                    .split(":")
+                    .skip(1)
+                    .next()
+                    .unwrap_or("")
+                    .split_whitespace()
+                    .flat_map(|e| e.split(","))
+                    .filter(|s| *s != "");
+                while let Some(dep) = requires_args.next() {
+                    // Drop any versioning requirements, we only care about library order and rely upon
+                    // port dependencies to resolve versioning.
+                    if let Some(_) = dep.find(|c| c == '=' || c == '<' || c == '>') {
+                        requires_args.next();
+                        continue;
+                    }
+                    deps.push(dep.to_owned());
+                }
+            } else if line.starts_with("Libs:") {
+                let lib_flags = line
+                    .split(":")
+                    .skip(1)
+                    .next()
+                    .unwrap_or("")
+                    .split_whitespace();
+                for lib_flag in lib_flags {
+                    if lib_flag.starts_with("-l") {
+                        // reconstruct the library name.
+                        let lib = format!(
+                            "{}{}.{}",
+                            if target_triplet.strip_lib_prefix {
+                                "lib"
+                            } else {
+                                ""
+                            },
+                            lib_flag.trim_left_matches("-l"),
+                            target_triplet.lib_suffix
+                        );
+                        libs.push(lib);
+                    }
+                }
+            }
+        }
+
+        Ok(PcFile {
+            id: id.to_string(),
+            libs: libs,
+            deps: deps,
+        })
+    }
+}
+
+/// Collection of PcFile.  Can be built and queried as a set of .pc files.
+#[derive(Debug)]
+struct PcFiles {
+    files: HashMap<String, PcFile>,
+}
+impl PcFiles {
+    fn load_pkgconfig_dir(vcpkg_target: &VcpkgTarget, path: &PathBuf) -> Result<Self, Error> {
+        let mut files = HashMap::new();
+        for dir_entry in try!(path.read_dir().map_err(|e| {
+            Error::VcpkgInstallation(format!(
+                "Missing pkgconfig directory {}: {}",
+                path.to_string_lossy(),
+                e
+            ))
+        })) {
+            let dir_entry = try!(dir_entry.map_err(|e| {
+                Error::VcpkgInstallation(format!(
+                    "Troubling reading pkgconfig dir {}: {}",
+                    path.to_string_lossy(),
+                    e
+                ))
+            }));
+            // Only look at .pc files.
+            if dir_entry.path().extension() != Some(OsStr::new("pc")) {
+                continue;
+            }
+            let pc_file = try!(PcFile::parse_pc_file(vcpkg_target, &dir_entry.path()));
+            files.insert(pc_file.id.to_owned(), pc_file);
+        }
+        Ok(PcFiles { files: files })
+    }
+    /// Use the .pc files as a hint to the library sort order.
+    fn fix_ordering(&self, mut libs: Vec<String>) -> Vec<String> {
+        // Overall heuristic: for each library given as input, identify which PcFile declared it.
+        // Then, looking at that PcFile, check its Requires: (deps), and if the pc file for that
+        // dep is in our set, check if its libraries are in our set of libs.  If so, move it to the
+        // end to ensure it gets linked afterwards.
+
+        // We may need to do this a few times to properly handle the case where A -> (depends on) B
+        // -> C -> D and libraries were originally sorted D, C, B, A.  Avoid recursion so we don't
+        // have to detect potential cycles.
+        for _iter in 0..3 {
+            let mut required_lib_order: Vec<String> = Vec::new();
+            for lib in &libs {
+                required_lib_order.push(lib.to_owned());
+                if let Some(pc_file) = self.locate_pc_file_by_lib(lib) {
+                    // Consider its requirements:
+                    for dep in &pc_file.deps {
+                        // Only consider pkgconfig dependencies we know about.
+                        if let Some(dep_pc_file) = self.files.get(dep) {
+                            // Intra-port library ordering found, pivot any already seen dep_lib to the
+                            // end of the list.
+                            for dep_lib in &dep_pc_file.libs {
+                                if let Some(removed) = remove_item(&mut required_lib_order, dep_lib)
+                                {
+                                    required_lib_order.push(removed);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // We should always end up with the same number of libraries, only their order should
+            // change.
+            assert_eq!(libs.len(), required_lib_order.len());
+            // Termination:
+            if required_lib_order == libs {
+                // Nothing changed, we're done here.
+                return libs;
+            }
+            libs = required_lib_order;
+        }
+        println!("cargo:warning=vcpkg gave up trying to resolve pkg-config ordering.");
+        libs
+    }
+    /// Locate which PcFile contains this library, if any.
+    fn locate_pc_file_by_lib(&self, lib: &str) -> Option<&PcFile> {
+        for (id, pc_file) in &self.files {
+            if pc_file.libs.contains(&lib.to_owned()) {
+                return Some(pc_file);
+            }
+        }
+        None
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -383,7 +605,7 @@ fn load_port_manifest(
 ) -> Result<(Vec<String>, Vec<String>), Error> {
     let manifest_file = path.join("info").join(format!(
         "{}_{}_{}.list",
-        port, version, vcpkg_target.vcpkg_triplet
+        port, version, vcpkg_target.target_triplet.triplet
     ));
 
     let mut dlls = Vec::new();
@@ -398,8 +620,8 @@ fn load_port_manifest(
 
     let file = BufReader::new(&f);
 
-    let dll_prefix = Path::new(&vcpkg_target.vcpkg_triplet).join("bin");
-    let lib_prefix = Path::new(&vcpkg_target.vcpkg_triplet).join("lib");
+    let dll_prefix = Path::new(&vcpkg_target.target_triplet.triplet).join("bin");
+    let lib_prefix = Path::new(&vcpkg_target.target_triplet.triplet).join("lib");
 
     for line in file.lines() {
         let line = line.unwrap();
@@ -415,7 +637,7 @@ fn load_port_manifest(
                 dll.to_str().map(|s| dlls.push(s.to_owned()));
             }
         } else if let Ok(lib) = file_path.strip_prefix(&lib_prefix) {
-            if lib.extension() == Some(OsStr::new(&vcpkg_target.lib_suffix))
+            if lib.extension() == Some(OsStr::new(&vcpkg_target.target_triplet.lib_suffix))
                 && lib.components().collect::<Vec<_>>().len() == 1
             {
                 if let Some(lib) = vcpkg_target.link_name_for_lib(lib) {
@@ -423,6 +645,18 @@ fn load_port_manifest(
                 }
             }
         }
+    }
+
+    // Load .pc files for hints about intra-port library ordering.
+    let pkg_config_prefix = vcpkg_target
+        .packages_path
+        .join(format!("{}_{}", port, vcpkg_target.target_triplet.triplet))
+        .join("lib")
+        .join("pkgconfig");
+    // Try loading the pc files, if they are present. Not all ports have pkgconfig.
+    if let Ok(pc_files) = PcFiles::load_pkgconfig_dir(vcpkg_target, &pkg_config_prefix) {
+        // Use the .pc file data to potentially sort the libs to the correct order.
+        libs = pc_files.fix_ordering(libs);
     }
 
     Ok((dlls, libs))
@@ -532,7 +766,7 @@ fn load_ports(target: &VcpkgTarget) -> Result<BTreeMap<String, Port>, Error> {
     }
 
     for (&(name, arch, feature), current) in &seen_names {
-        if **arch == target.vcpkg_triplet {
+        if **arch == target.target_triplet.triplet {
             let mut deps = if let Some(deps) = current.get("Depends") {
                 deps.split(", ").map(|x| x.to_owned()).collect()
             } else {
@@ -586,24 +820,22 @@ fn load_ports(target: &VcpkgTarget) -> Result<BTreeMap<String, Port>, Error> {
 
 /// paths and triple for the chosen target
 struct VcpkgTarget {
-    vcpkg_triplet: String,
     lib_path: PathBuf,
     bin_path: PathBuf,
     include_path: PathBuf,
 
     // directory containing the status file
     status_path: PathBuf,
+    // directory containing the install files per port.
+    packages_path: PathBuf,
 
-    is_static: bool,
-    lib_suffix: String,
-
-    /// strip 'lib' from library names in linker args?
-    strip_lib_prefix: bool,
+    // target-specific settings.
+    target_triplet: TargetTriplet,
 }
 
 impl VcpkgTarget {
     fn link_name_for_lib(&self, filename: &std::path::Path) -> Option<String> {
-        if self.strip_lib_prefix {
+        if self.target_triplet.strip_lib_prefix {
             filename.to_str().map(|s| s.to_owned())
         // filename
         //     .to_str()
@@ -623,6 +855,19 @@ impl Config {
         }
     }
 
+    fn get_target_triplet(&mut self) -> Result<TargetTriplet, Error> {
+        if self.target.is_none() {
+            let target = if let Ok(triplet_str) = env::var("VCPKGRS_TRIPLET") {
+                triplet_str.into()
+            } else {
+                try!(msvc_target())
+            };
+            self.target = Some(target);
+        }
+
+        Ok(self.target.as_ref().unwrap().clone())
+    }
+
     /// Find the package `port_name` in a Vcpkg tree.
     ///
     /// Emits cargo metadata to link to libraries provided by the Vcpkg package/port
@@ -634,7 +879,7 @@ impl Config {
     pub fn find_package(&mut self, port_name: &str) -> Result<Library, Error> {
         // determine the target type, bailing out if it is not some
         // kind of msvc
-        let msvc_target = try!(msvc_target());
+        let msvc_target = try!(self.get_target_triplet());
 
         // bail out if requested to not try at all
         if env::var_os("VCPKGRS_DISABLE").is_some() {
@@ -670,7 +915,7 @@ impl Config {
                 return Err(Error::LibNotFound(format!(
                     "package {} is not installed for vcpkg triplet {}",
                     port_name.to_owned(),
-                    vcpkg_target.vcpkg_triplet
+                    vcpkg_target.target_triplet.triplet
                 )));
             }
 
@@ -738,11 +983,14 @@ impl Config {
         // require explicit opt-in before using dynamically linked
         // variants, otherwise cargo install of various things will
         // stop working if Vcpkg is installed.
-        if !vcpkg_target.is_static && !env::var_os("VCPKGRS_DYNAMIC").is_some() {
+        if !vcpkg_target.target_triplet.is_static && !env::var_os("VCPKGRS_DYNAMIC").is_some() {
             return Err(Error::RequiredEnvMissing("VCPKGRS_DYNAMIC".to_owned()));
         }
 
-        let mut lib = Library::new(vcpkg_target.is_static);
+        let mut lib = Library::new(
+            vcpkg_target.target_triplet.is_static,
+            &vcpkg_target.target_triplet.triplet,
+        );
 
         if self.emit_includes {
             lib.cargo_metadata.push(format!(
@@ -760,7 +1008,7 @@ impl Config {
                 .expect("failed to convert string type")
         ));
         lib.link_paths.push(vcpkg_target.lib_path.clone());
-        if !vcpkg_target.is_static {
+        if !vcpkg_target.target_triplet.is_static {
             lib.cargo_metadata.push(format!(
                 "cargo:rustc-link-search=native={}",
                 vcpkg_target
@@ -815,6 +1063,17 @@ impl Config {
         self
     }
 
+    /// Specify target triplet. When triplet is not specified, inferred triplet from rust target is used.
+    ///
+    /// Specifying a triplet using `target_triplet` will override the default triplet for this crate. This
+    /// cannot change the choice of triplet made by other crates, so a safer choice will be to set
+    /// `VCPKGRS_TRIPLET` in the environment which will allow all crates to use a consistent set of
+    /// external dependencies.
+    pub fn target_triplet<S: AsRef<str>>(&mut self, triplet: S) -> &mut Config {
+        self.target = Some(triplet.into());
+        self
+    }
+
     /// Find the library `port_name` in a Vcpkg tree.
     ///
     /// This will use all configuration previously set to select the
@@ -824,7 +1083,7 @@ impl Config {
     pub fn probe(&mut self, port_name: &str) -> Result<Library, Error> {
         // determine the target type, bailing out if it is not some
         // kind of msvc
-        let msvc_target = try!(msvc_target());
+        let msvc_target = try!(self.get_target_triplet());
 
         // bail out if requested to not try at all
         if env::var_os("VCPKGRS_DISABLE").is_some() {
@@ -860,11 +1119,14 @@ impl Config {
         // require explicit opt-in before using dynamically linked
         // variants, otherwise cargo install of various things will
         // stop working if Vcpkg is installed.
-        if !vcpkg_target.is_static && !env::var_os("VCPKGRS_DYNAMIC").is_some() {
+        if !vcpkg_target.target_triplet.is_static && !env::var_os("VCPKGRS_DYNAMIC").is_some() {
             return Err(Error::RequiredEnvMissing("VCPKGRS_DYNAMIC".to_owned()));
         }
 
-        let mut lib = Library::new(vcpkg_target.is_static);
+        let mut lib = Library::new(
+            vcpkg_target.target_triplet.is_static,
+            &vcpkg_target.target_triplet.triplet,
+        );
 
         if self.emit_includes {
             lib.cargo_metadata.push(format!(
@@ -882,7 +1144,7 @@ impl Config {
                 .expect("failed to convert string type")
         ));
         lib.link_paths.push(vcpkg_target.lib_path.clone());
-        if !vcpkg_target.is_static {
+        if !vcpkg_target.target_triplet.is_static {
             lib.cargo_metadata.push(format!(
                 "cargo:rustc-link-search=native={}",
                 vcpkg_target
@@ -913,7 +1175,7 @@ impl Config {
             // this could use static-nobundle= for static libraries but it is apparently
             // not necessary to make the distinction for windows-msvc.
 
-            let link_name = match vcpkg_target.strip_lib_prefix {
+            let link_name = match vcpkg_target.target_triplet.strip_lib_prefix {
                 true => required_lib.trim_left_matches("lib"),
                 false => required_lib,
             };
@@ -925,7 +1187,7 @@ impl Config {
 
             // verify that the library exists
             let mut lib_location = vcpkg_target.lib_path.clone();
-            lib_location.push(required_lib.clone() + "." + &vcpkg_target.lib_suffix);
+            lib_location.push(required_lib.clone() + "." + &vcpkg_target.target_triplet.lib_suffix);
 
             if !lib_location.exists() {
                 return Err(Error::LibNotFound(lib_location.display().to_string()));
@@ -933,7 +1195,7 @@ impl Config {
             lib.found_libs.push(lib_location);
         }
 
-        if !vcpkg_target.is_static {
+        if !vcpkg_target.target_triplet.is_static {
             for required_dll in &self.required_dlls {
                 let mut dll_location = vcpkg_target.bin_path.clone();
                 dll_location.push(required_dll.clone() + ".dll");
@@ -986,6 +1248,8 @@ impl Config {
 
     /// Override the name of the library to look for if it differs from the package name.
     ///
+    /// It should not be necessary to use `lib_name` anymore. Calling `find_package` with a package name
+    /// will result in the correct library names.
     /// This may be called more than once if multiple libs are required.
     /// All libs must be found for the probe to succeed. `.probe()` must
     /// be run with a different configuration to look for libraries under one of several names.
@@ -999,6 +1263,8 @@ impl Config {
 
     /// Override the name of the library to look for if it differs from the package name.
     ///
+    /// It should not be necessary to use `lib_names` anymore. Calling `find_package` with a package name
+    /// will result in the correct library names.
     /// This may be called more than once if multiple libs are required.
     /// All libs must be found for the probe to succeed. `.probe()` must
     /// be run with a different configuration to look for libraries under one of several names.
@@ -1019,7 +1285,7 @@ fn remove_item(cont: &mut Vec<String>, item: &String) -> Option<String> {
 }
 
 impl Library {
-    fn new(is_static: bool) -> Library {
+    fn new(is_static: bool, vcpkg_triplet: &str) -> Library {
         Library {
             link_paths: Vec::new(),
             dll_paths: Vec::new(),
@@ -1030,6 +1296,7 @@ impl Library {
             found_libs: Vec::new(),
             found_names: Vec::new(),
             ports: Vec::new(),
+            vcpkg_triplet: vcpkg_triplet.to_string(),
         }
     }
 }
@@ -1054,9 +1321,23 @@ fn msvc_target() -> Result<TargetTriplet, Error> {
             lib_suffix: "a".into(),
             strip_lib_prefix: true,
         })
+    } else if target == "aarch64-apple-darwin" {
+        Ok(TargetTriplet {
+            triplet: "arm64-osx".into(),
+            is_static: true,
+            lib_suffix: "a".into(),
+            strip_lib_prefix: true,
+        })
     } else if target == "x86_64-unknown-linux-gnu" {
         Ok(TargetTriplet {
             triplet: "x64-linux".into(),
+            is_static: true,
+            lib_suffix: "a".into(),
+            strip_lib_prefix: true,
+        })
+    } else if target == "aarch64-apple-ios" {
+        Ok(TargetTriplet {
+            triplet: "arm64-ios".into(),
             is_static: true,
             lib_suffix: "a".into(),
             strip_lib_prefix: true,
@@ -1081,6 +1362,29 @@ fn msvc_target() -> Result<TargetTriplet, Error> {
         } else {
             Ok(TargetTriplet {
                 triplet: "x64-windows-static-md".into(),
+                is_static: true,
+                lib_suffix: "lib".into(),
+                strip_lib_prefix: false,
+            })
+        }
+    } else if target.starts_with("aarch64") {
+        if is_static {
+            Ok(TargetTriplet {
+                triplet: "arm64-windows-static".into(),
+                is_static: true,
+                lib_suffix: "lib".into(),
+                strip_lib_prefix: false,
+            })
+        } else if is_definitely_dynamic {
+            Ok(TargetTriplet {
+                triplet: "arm64-windows".into(),
+                is_static: false,
+                lib_suffix: "lib".into(),
+                strip_lib_prefix: false,
+            })
+        } else {
+            Ok(TargetTriplet {
+                triplet: "arm64-windows-static-md".into(),
                 is_static: true,
                 lib_suffix: "lib".into(),
                 strip_lib_prefix: false,
@@ -1333,6 +1637,74 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn custom_target_triplet_in_config() {
+        let _g = LOCK.lock();
+
+        clean_env();
+        env::set_var("VCPKG_ROOT", vcpkg_test_tree_loc("normalized"));
+        env::set_var("TARGET", "aarch64-apple-ios");
+        env::set_var("VCPKGRS_DYNAMIC", "1");
+        let tmp_dir = tempdir::TempDir::new("vcpkg_tests").unwrap();
+        env::set_var("OUT_DIR", tmp_dir.path());
+
+        let harfbuzz = ::Config::new()
+            // For the sake of testing, force this build to try to
+            // link to the arm64-osx libraries in preference to the
+            // default of arm64-ios.
+            .target_triplet("x64-osx")
+            .find_package("harfbuzz");
+        println!("Result with specifying target triplet is {:?}", &harfbuzz);
+        let harfbuzz = harfbuzz.unwrap();
+        assert_eq!(harfbuzz.vcpkg_triplet, "x64-osx");
+        clean_env();
+    }
+
+    #[test]
+    fn custom_target_triplet_by_env_no_default() {
+        let _g = LOCK.lock();
+
+        clean_env();
+        env::set_var("VCPKG_ROOT", vcpkg_test_tree_loc("normalized"));
+        env::set_var("TARGET", "aarch64-apple-doesnotexist");
+        env::set_var("VCPKGRS_DYNAMIC", "1");
+        let tmp_dir = tempdir::TempDir::new("vcpkg_tests").unwrap();
+        env::set_var("OUT_DIR", tmp_dir.path());
+
+        let harfbuzz = ::find_package("harfbuzz");
+        println!("Result with inference is {:?}", &harfbuzz);
+        assert!(harfbuzz.is_err());
+
+        env::set_var("VCPKGRS_TRIPLET", "x64-osx");
+        let harfbuzz = ::find_package("harfbuzz").unwrap();
+        println!("Result with setting VCPKGRS_TRIPLET is {:?}", &harfbuzz);
+        assert_eq!(harfbuzz.vcpkg_triplet, "x64-osx");
+        clean_env();
+    }
+
+    #[test]
+    fn custom_target_triplet_by_env_with_default() {
+        let _g = LOCK.lock();
+
+        clean_env();
+        env::set_var("VCPKG_ROOT", vcpkg_test_tree_loc("normalized"));
+        env::set_var("TARGET", "aarch64-apple-ios");
+        env::set_var("VCPKGRS_DYNAMIC", "1");
+        let tmp_dir = tempdir::TempDir::new("vcpkg_tests").unwrap();
+        env::set_var("OUT_DIR", tmp_dir.path());
+
+        let harfbuzz = ::find_package("harfbuzz").unwrap();
+        println!("Result with inference is {:?}", &harfbuzz);
+        assert_eq!(harfbuzz.vcpkg_triplet, "arm64-ios");
+
+        env::set_var("VCPKGRS_TRIPLET", "x64-osx");
+        let harfbuzz = ::find_package("harfbuzz").unwrap();
+        println!("Result with setting VCPKGRS_TRIPLET is {:?}", &harfbuzz);
+        assert_eq!(harfbuzz.vcpkg_triplet, "x64-osx");
+        clean_env();
+    }
+
     // #[test]
     // fn dynamic_build_package_specific_bailout() {
     //     clean_env();
@@ -1365,6 +1737,193 @@ mod tests {
     //     clean_env();
     // }
 
+    #[test]
+    fn pc_files_reordering() {
+        let _g = LOCK.lock();
+        clean_env();
+        env::set_var("VCPKG_ROOT", vcpkg_test_tree_loc("normalized"));
+        env::set_var("TARGET", "x86_64-unknown-linux-gnu");
+        // env::set_var("VCPKGRS_DYNAMIC", "1");
+        let tmp_dir = tempdir::TempDir::new("vcpkg_tests").unwrap();
+        env::set_var("OUT_DIR", tmp_dir.path());
+
+        let target_triplet = msvc_target().unwrap();
+
+        // The brotli use-case.
+        {
+            let mut pc_files = PcFiles {
+                files: HashMap::new(),
+            };
+            pc_files.files.insert(
+                "libbrotlicommon".to_owned(),
+                PcFile::from_str(
+                    "libbrotlicommon",
+                    "Libs: -lbrotlicommon-static\nRequires:",
+                    &target_triplet,
+                )
+                .unwrap(),
+            );
+            pc_files.files.insert(
+                "libbrotlienc".to_owned(),
+                PcFile::from_str(
+                    "libbrotlienc",
+                    "Libs: -lbrotlienc-static\nRequires: libbrotlicommon",
+                    &target_triplet,
+                )
+                .unwrap(),
+            );
+            pc_files.files.insert(
+                "libbrotlidec".to_owned(),
+                PcFile::from_str(
+                    "brotlidec",
+                    "Libs: -lbrotlidec-static\nRequires: libbrotlicommon >= 1.0.9",
+                    &target_triplet,
+                )
+                .unwrap(),
+            );
+            // Note that the input is alphabetically sorted.
+            let input_libs = vec![
+                "libbrotlicommon-static.a".to_owned(),
+                "libbrotlidec-static.a".to_owned(),
+                "libbrotlienc-static.a".to_owned(),
+            ];
+            let output_libs = pc_files.fix_ordering(input_libs);
+            assert_eq!(output_libs[0], "libbrotlidec-static.a");
+            assert_eq!(output_libs[1], "libbrotlienc-static.a");
+            assert_eq!(output_libs[2], "libbrotlicommon-static.a");
+        }
+
+        // Concoct elaborate dependency graph, try all variations of input sort.
+        // Throw some (ignored) version dependencies as well as extra libs not represented in the
+        // pc_files dataset.
+        {
+            let mut pc_files = PcFiles {
+                files: HashMap::new(),
+            };
+            pc_files.files.insert(
+                "libA".to_owned(),
+                PcFile::from_str(
+                    "libA",
+                    "Libs: -lA\n\
+                     Requires:",
+                    &target_triplet,
+                )
+                .unwrap(),
+            );
+            pc_files.files.insert(
+                "libB".to_owned(),
+                PcFile::from_str(
+                    "libB",
+                    "Libs:  -lB -lm -pthread \n\
+                     Requires: libA",
+                    &target_triplet,
+                )
+                .unwrap(),
+            );
+            pc_files.files.insert(
+                "libC".to_owned(),
+                PcFile::from_str(
+                    "libC",
+                    "Libs: -lC -L${libdir}\n\
+                     Requires: libB <=1.0 , libmysql-client = 0.9, ",
+                    &target_triplet,
+                )
+                .unwrap(),
+            );
+            pc_files.files.insert(
+                "libD".to_owned(),
+                PcFile::from_str(
+                    "libD",
+                    "Libs: -Lpath/to/libs -Rplugins -lD\n\
+                     Requires: libpostgres libC",
+                    &target_triplet,
+                )
+                .unwrap(),
+            );
+            let permutations: Vec<Vec<&str>> = vec![
+                vec!["libA.a", "libB.a", "libC.a", "libD.a"],
+                vec!["libA.a", "libB.a", "libD.a", "libC.a"],
+                vec!["libA.a", "libC.a", "libB.a", "libD.a"],
+                vec!["libA.a", "libC.a", "libD.a", "libB.a"],
+                vec!["libA.a", "libD.a", "libB.a", "libC.a"],
+                vec!["libA.a", "libD.a", "libC.a", "libB.a"],
+                //
+                vec!["libB.a", "libA.a", "libC.a", "libD.a"],
+                vec!["libB.a", "libA.a", "libD.a", "libC.a"],
+                vec!["libB.a", "libC.a", "libA.a", "libD.a"],
+                vec!["libB.a", "libC.a", "libD.a", "libA.a"],
+                vec!["libB.a", "libD.a", "libA.a", "libC.a"],
+                vec!["libB.a", "libD.a", "libC.a", "libA.a"],
+                //
+                vec!["libC.a", "libA.a", "libB.a", "libD.a"],
+                vec!["libC.a", "libA.a", "libD.a", "libB.a"],
+                vec!["libC.a", "libB.a", "libA.a", "libD.a"],
+                vec!["libC.a", "libB.a", "libD.a", "libA.a"],
+                vec!["libC.a", "libD.a", "libA.a", "libB.a"],
+                vec!["libC.a", "libD.a", "libB.a", "libA.a"],
+                //
+                vec!["libD.a", "libA.a", "libB.a", "libC.a"],
+                vec!["libD.a", "libA.a", "libC.a", "libB.a"],
+                vec!["libD.a", "libB.a", "libA.a", "libC.a"],
+                vec!["libD.a", "libB.a", "libC.a", "libA.a"],
+                vec!["libD.a", "libC.a", "libA.a", "libB.a"],
+                vec!["libD.a", "libC.a", "libB.a", "libA.a"],
+            ];
+            for permutation in permutations {
+                let input_libs = vec![
+                    permutation[0].to_owned(),
+                    permutation[1].to_owned(),
+                    permutation[2].to_owned(),
+                    permutation[3].to_owned(),
+                ];
+                let output_libs = pc_files.fix_ordering(input_libs);
+                assert_eq!(output_libs.len(), 4);
+                assert_eq!(output_libs[0], "libD.a");
+                assert_eq!(output_libs[1], "libC.a");
+                assert_eq!(output_libs[2], "libB.a");
+                assert_eq!(output_libs[3], "libA.a");
+            }
+        }
+
+        // Test parsing of a couple different Requires: lines.
+        {
+            let pc_file = PcFile::from_str(
+                "test",
+                "Libs: -ltest\n\
+                 Requires: cairo libpng",
+                &target_triplet,
+            )
+            .unwrap();
+            assert_eq!(pc_file.deps, vec!["cairo", "libpng"]);
+            let pc_file = PcFile::from_str(
+                "test",
+                "Libs: -ltest\n\
+                 Requires: cairo xcb >= 1.6 xcb-render >= 1.6",
+                &target_triplet,
+            )
+            .unwrap();
+            assert_eq!(pc_file.deps, vec!["cairo", "xcb", "xcb-render"]);
+            let pc_file = PcFile::from_str(
+                "test",
+                "Libs: -ltest\n\
+                 Requires: glib-2.0, gobject-2.0",
+                &target_triplet,
+            )
+            .unwrap();
+            assert_eq!(pc_file.deps, vec!["glib-2.0", "gobject-2.0"]);
+            let pc_file = PcFile::from_str(
+                "test",
+                "Libs: -ltest\n\
+                 Requires: glib-2.0 >=  2.58.0, gobject-2.0 >=  2.58.0",
+                &target_triplet,
+            )
+            .unwrap();
+            assert_eq!(pc_file.deps, vec!["glib-2.0", "gobject-2.0"]);
+        }
+
+        clean_env();
+    }
+
     fn clean_env() {
         env::remove_var("TARGET");
         env::remove_var("VCPKG_ROOT");
@@ -1373,13 +1932,13 @@ mod tests {
         env::remove_var("CARGO_CFG_TARGET_FEATURE");
         env::remove_var("VCPKGRS_DISABLE");
         env::remove_var("VCPKGRS_NO_LIBMYSQL");
+        env::remove_var("VCPKGRS_TRIPLET");
     }
 
     // path to a to vcpkg installation to test against
     fn vcpkg_test_tree_loc(name: &str) -> PathBuf {
         let mut path = PathBuf::new();
         path.push(env::var("CARGO_MANIFEST_DIR").unwrap());
-        path.pop();
         path.push("test-data");
         path.push(name);
         path

@@ -1,10 +1,15 @@
-use crate::config::tree::{keys, Gitoxide, Key, Section};
+use crate::{
+    config,
+    config::tree::{keys, Gitoxide, Key, Section},
+};
 
 impl Gitoxide {
     /// The `gitoxide.allow` section.
     pub const ALLOW: Allow = Allow;
     /// The `gitoxide.author` section.
     pub const AUTHOR: Author = Author;
+    /// The `gitoxide.core` section.
+    pub const CORE: Core = Core;
     /// The `gitoxide.commit` section.
     pub const COMMIT: Commit = Commit;
     /// The `gitoxide.committer` section.
@@ -39,6 +44,7 @@ impl Section for Gitoxide {
         &[
             &Self::ALLOW,
             &Self::AUTHOR,
+            &Self::CORE,
             &Self::COMMIT,
             &Self::COMMITTER,
             &Self::HTTP,
@@ -55,6 +61,41 @@ mod subsections {
         tree::{http, keys, Gitoxide, Key, Section},
         Tree,
     };
+
+    /// The `Core` sub-section.
+    #[derive(Copy, Clone, Default)]
+    pub struct Core;
+
+    impl Core {
+        /// The `gitoxide.core.useNsec` key.
+        pub const USE_NSEC: keys::Boolean = keys::Boolean::new_boolean("useNsec", &Gitoxide::CORE)
+            .with_note("A runtime version of the USE_NSEC build flag.");
+
+        /// The `gitoxide.core.useStdev` key.
+        pub const USE_STDEV: keys::Boolean = keys::Boolean::new_boolean("useStdev", &Gitoxide::CORE)
+            .with_note("A runtime version of the USE_STDEV build flag.");
+
+        /// The `gitoxide.core.shallowFile` key.
+        pub const SHALLOW_FILE: keys::Path = keys::Path::new_path("shallowFile", &Gitoxide::CORE)
+            .with_environment_override("GIT_SHALLOW_FILE")
+            .with_deviation(
+                "relative file paths will always be made relative to the git-common-dir, whereas `git` keeps them as is.",
+            );
+    }
+
+    impl Section for Core {
+        fn name(&self) -> &str {
+            "core"
+        }
+
+        fn keys(&self) -> &[&dyn Key] {
+            &[&Self::USE_NSEC, &Self::USE_STDEV, &Self::SHALLOW_FILE]
+        }
+
+        fn parent(&self) -> Option<&dyn Section> {
+            Some(&Tree::GITOXIDE)
+        }
+    }
 
     /// The `Http` sub-section.
     #[derive(Copy, Clone, Default)]
@@ -341,6 +382,7 @@ mod subsections {
         }
     }
 }
+pub use subsections::{Allow, Author, Commit, Committer, Core, Http, Https, Objects, Ssh, User};
 
 pub mod validate {
     use std::error::Error;
@@ -357,7 +399,3 @@ pub mod validate {
         }
     }
 }
-
-pub use subsections::{Allow, Author, Commit, Committer, Http, Https, Objects, Ssh, User};
-
-use crate::config;

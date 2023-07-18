@@ -86,7 +86,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
     ) -> AutoTraitResult<A> {
         let tcx = self.tcx;
 
-        let trait_ref = tcx.mk_trait_ref(trait_did, [ty]);
+        let trait_ref = ty::TraitRef::new(tcx, trait_did, [ty]);
 
         let infcx = tcx.infer_ctxt().build();
         let mut selcx = SelectionContext::new(&infcx);
@@ -263,7 +263,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         let mut already_visited = FxHashSet::default();
         let mut predicates = VecDeque::new();
         predicates.push_back(ty::Binder::dummy(ty::TraitPredicate {
-            trait_ref: infcx.tcx.mk_trait_ref(trait_did, [ty]),
+            trait_ref: ty::TraitRef::new(infcx.tcx, trait_did, [ty]),
 
             constness: ty::BoundConstness::NotConst,
             // Auto traits are positive
@@ -591,7 +591,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
     fn evaluate_nested_obligations(
         &self,
         ty: Ty<'_>,
-        nested: impl Iterator<Item = Obligation<'tcx, ty::Predicate<'tcx>>>,
+        nested: impl Iterator<Item = PredicateObligation<'tcx>>,
         computed_preds: &mut FxIndexSet<ty::Predicate<'tcx>>,
         fresh_preds: &mut FxHashSet<ty::Predicate<'tcx>>,
         predicates: &mut VecDeque<ty::PolyTraitPredicate<'tcx>>,
@@ -796,13 +796,12 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                                 Ok(Some(valtree)) => Ok(selcx.tcx().mk_const(valtree, c.ty())),
                                 Ok(None) => {
                                     let tcx = self.tcx;
-                                    let def_id = unevaluated.def.did;
                                     let reported =
                                         tcx.sess.emit_err(UnableToConstructConstantValue {
-                                            span: tcx.def_span(def_id),
+                                            span: tcx.def_span(unevaluated.def),
                                             unevaluated: unevaluated,
                                         });
-                                    Err(ErrorHandled::Reported(reported))
+                                    Err(ErrorHandled::Reported(reported.into()))
                                 }
                                 Err(err) => Err(err),
                             }
@@ -835,8 +834,10 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                 | ty::PredicateKind::Subtype(..)
                 // FIXME(generic_const_exprs): you can absolutely add this as a where clauses
                 | ty::PredicateKind::ConstEvaluatable(..)
-                | ty::PredicateKind::Coerce(..)
-                | ty::PredicateKind::TypeWellFormedFromEnv(..) => {}
+                | ty::PredicateKind::Coerce(..) => {}
+                ty::PredicateKind::TypeWellFormedFromEnv(..) => {
+                    bug!("predicate should only exist in the environment: {bound_predicate:?}")
+                }
                 ty::PredicateKind::Ambiguous => return false,
             };
         }

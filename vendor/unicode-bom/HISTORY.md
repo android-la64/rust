@@ -1,5 +1,27 @@
 # Change log
 
+## 2.0.2
+
+### Other changes
+
+* docs: fix version string in readme (8f49df5c92c176a7bd3e296992eda4fdef8b5c96)
+
+## 2.0.1
+
+### Bug fixes
+
+* docs: fix misleasing typo in doc comment (dfc5982cf7238fc8f0b00ad7958ea89092062a84)
+
+## 2.0.0
+
+### Breaking changes
+
+* api: implement AsRef<[u8]> for Bom (45c0e3ed98a555ee31fcdfb1740e64b7e30b9967)
+
+### Other changes
+
+* project: switch dev environment to stable (a536298f7c1f138787ea05764acfd62a24ac9745)
+
 ## 1.1.4
 
 ### Refactorings

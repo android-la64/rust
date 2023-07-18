@@ -1,10 +1,16 @@
 #![allow(clippy::result_large_err)]
 use std::convert::TryInto;
 
-use crate::{bstr::BString, config::tree::gitoxide};
+use crate::{bstr::BString, config::tree::gitoxide, remote};
 
 type ConfigureRemoteFn =
     Box<dyn FnMut(crate::Remote<'_>) -> Result<crate::Remote<'_>, Box<dyn std::error::Error + Send + Sync>>>;
+#[cfg(any(feature = "async-network-client", feature = "blocking-network-client"))]
+type ConfigureConnectionFn = Box<
+    dyn FnMut(
+        &mut remote::Connection<'_, '_, Box<dyn gix_protocol::transport::client::Transport + Send>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>,
+>;
 
 /// A utility to collect configuration on how to fetch from a remote and initiate a fetch operation. It will delete the newly
 /// created repository on when dropped without successfully finishing a fetch.
@@ -16,12 +22,18 @@ pub struct PrepareFetch {
     remote_name: Option<BString>,
     /// A function to configure a remote prior to fetching a pack.
     configure_remote: Option<ConfigureRemoteFn>,
+    /// A function to configure a connection before using it.
+    #[cfg(any(feature = "async-network-client", feature = "blocking-network-client"))]
+    configure_connection: Option<ConfigureConnectionFn>,
     /// Options for preparing a fetch operation.
     #[cfg(any(feature = "async-network-client", feature = "blocking-network-client"))]
-    fetch_options: crate::remote::ref_map::Options,
+    fetch_options: remote::ref_map::Options,
     /// The url to clone from
     #[cfg_attr(not(feature = "blocking-network-client"), allow(dead_code))]
     url: gix_url::Url,
+    /// How to handle shallow clones
+    #[cfg_attr(not(feature = "blocking-network-client"), allow(dead_code))]
+    shallow: remote::fetch::Shallow,
 }
 
 /// The error returned by [`PrepareFetch::new()`].
@@ -99,6 +111,9 @@ impl PrepareFetch {
             repo: Some(repo),
             remote_name: None,
             configure_remote: None,
+            #[cfg(any(feature = "async-network-client", feature = "blocking-network-client"))]
+            configure_connection: None,
+            shallow: remote::fetch::Shallow::NoChange,
         })
     }
 }
@@ -111,7 +126,41 @@ pub struct PrepareCheckout {
     pub(self) repo: Option<crate::Repository>,
 }
 
+mod access;
+
+// This module encapsulates functionality that works with both feature toggles. Can be combined with `fetch`
+// once async and clone are a thing.
+#[cfg(any(feature = "async-network-client", feature = "blocking-network-client"))]
+mod access_feat {
+    use crate::clone::PrepareFetch;
+
+    /// Builder
+    impl PrepareFetch {
+        /// Set a callback to use for configuring the connection to use right before connecting to the remote.
+        ///
+        /// It is most commonly used for custom configuration.
+        // TODO: tests
+        pub fn configure_connection(
+            mut self,
+            f: impl FnMut(
+                    &mut crate::remote::Connection<'_, '_, Box<dyn gix_protocol::transport::client::Transport + Send>>,
+                ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+                + 'static,
+        ) -> Self {
+            self.configure_connection = Some(Box::new(f));
+            self
+        }
+
+        /// Set additional options to adjust parts of the fetch operation that are not affected by the git configuration.
+        pub fn with_fetch_options(mut self, opts: crate::remote::ref_map::Options) -> Self {
+            self.fetch_options = opts;
+            self
+        }
+    }
+}
+
 ///
+#[cfg(feature = "blocking-network-client")]
 pub mod fetch;
 
 ///

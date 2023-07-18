@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-validate"
-version = "0.7.3"
+version = "0.7.4"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = ["src/**/*"]
 description = "Validation functions for various kinds of names in git"

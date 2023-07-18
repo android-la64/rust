@@ -5,19 +5,19 @@ pub unsafe fn DoMsCtfMonitor<P0>(dwflags: u32, heventforservicestop: P0) -> supe
 where
     P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows::imp::link ! ( "msctfmonitor.dll""system" fn DoMsCtfMonitor ( dwflags : u32 , heventforservicestop : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link ! ( "msctfmonitor.dll""system" fn DoMsCtfMonitor ( dwflags : u32 , heventforservicestop : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOL );
     DoMsCtfMonitor(dwflags, heventforservicestop.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 #[inline]
 pub unsafe fn InitLocalMsCtfMonitor(dwflags: u32) -> ::windows::core::Result<()> {
-    ::windows::imp::link ! ( "msctfmonitor.dll""system" fn InitLocalMsCtfMonitor ( dwflags : u32 ) -> :: windows::core::HRESULT );
+    ::windows_targets::link ! ( "msctfmonitor.dll""system" fn InitLocalMsCtfMonitor ( dwflags : u32 ) -> ::windows::core::HRESULT );
     InitLocalMsCtfMonitor(dwflags).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 #[inline]
 pub unsafe fn UninitLocalMsCtfMonitor() -> ::windows::core::Result<()> {
-    ::windows::imp::link ! ( "msctfmonitor.dll""system" fn UninitLocalMsCtfMonitor ( ) -> :: windows::core::HRESULT );
+    ::windows_targets::link ! ( "msctfmonitor.dll""system" fn UninitLocalMsCtfMonitor ( ) -> ::windows::core::HRESULT );
     UninitLocalMsCtfMonitor().ok()
 }
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
@@ -10352,7 +10352,7 @@ pub const TF_DISABLE_DICTATION: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 pub const TF_DISABLE_SPEECH: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
-pub const TF_ENABLE_PROCESS_ATOM: ::windows::core::PCWSTR = ::windows::w!("_CTF_ENABLE_PROCESS_ATOM_");
+pub const TF_ENABLE_PROCESS_ATOM: ::windows::core::PCWSTR = ::windows::core::w!("_CTF_ENABLE_PROCESS_ATOM_");
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 pub const TF_E_ALREADY_EXISTS: ::windows::core::HRESULT = ::windows::core::HRESULT(-2147220218i32);
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
@@ -10398,11 +10398,11 @@ pub const TF_E_STACKFULL: ::windows::core::HRESULT = ::windows::core::HRESULT(-2
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 pub const TF_E_SYNCHRONOUS: ::windows::core::HRESULT = ::windows::core::HRESULT(-2147220984i32);
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
-pub const TF_FLOATINGLANGBAR_WNDTITLE: ::windows::core::PCWSTR = ::windows::w!("TF_FloatingLangBar_WndTitle");
+pub const TF_FLOATINGLANGBAR_WNDTITLE: ::windows::core::PCWSTR = ::windows::core::w!("TF_FloatingLangBar_WndTitle");
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
-pub const TF_FLOATINGLANGBAR_WNDTITLEA: ::windows::core::PCSTR = ::windows::s!("TF_FloatingLangBar_WndTitle");
+pub const TF_FLOATINGLANGBAR_WNDTITLEA: ::windows::core::PCSTR = ::windows::core::s!("TF_FloatingLangBar_WndTitle");
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
-pub const TF_FLOATINGLANGBAR_WNDTITLEW: ::windows::core::PCWSTR = ::windows::w!("TF_FloatingLangBar_WndTitle");
+pub const TF_FLOATINGLANGBAR_WNDTITLEW: ::windows::core::PCWSTR = ::windows::core::w!("TF_FloatingLangBar_WndTitle");
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 pub const TF_HF_OBJECT: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
@@ -10524,7 +10524,7 @@ pub const TF_MOD_SHIFT: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 pub const TF_POPF_ALL: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
-pub const TF_PROCESS_ATOM: ::windows::core::PCWSTR = ::windows::w!("_CTF_PROCESS_ATOM_");
+pub const TF_PROCESS_ATOM: ::windows::core::PCWSTR = ::windows::core::w!("_CTF_PROCESS_ATOM_");
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]
 pub const TF_PROFILETYPE_INPUTPROCESSOR: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_TextServices\"`*"]

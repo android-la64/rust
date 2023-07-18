@@ -1,8 +1,8 @@
 // Copyright 2015 The Rust Project Developers.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
@@ -32,6 +32,7 @@ use winapi::um::winsock2::{
     self as sock, u_long, POLLERR, POLLHUP, POLLRDNORM, POLLWRNORM, SD_BOTH, SD_RECEIVE, SD_SEND,
     WSAPOLLFD,
 };
+use winapi::um::winsock2::{SOCKET_ERROR, WSAEMSGSIZE, WSAESHUTDOWN};
 
 use crate::{RecvFlags, SockAddr, TcpKeepalive, Type};
 
@@ -66,11 +67,14 @@ pub(crate) use winapi::shared::ws2def::{
     IPPROTO_IP, SOL_SOCKET, SO_BROADCAST, SO_ERROR, SO_KEEPALIVE, SO_LINGER, SO_OOBINLINE,
     SO_RCVBUF, SO_RCVTIMEO, SO_REUSEADDR, SO_SNDBUF, SO_SNDTIMEO, SO_TYPE, TCP_NODELAY,
 };
+#[cfg(feature = "all")]
+pub(crate) use winapi::shared::ws2ipdef::IP_HDRINCL;
 pub(crate) use winapi::shared::ws2ipdef::{
     IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_MREQ as Ipv6Mreq, IPV6_MULTICAST_HOPS,
     IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IP_ADD_MEMBERSHIP,
-    IP_DROP_MEMBERSHIP, IP_MREQ as IpMreq, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL,
-    IP_TOS, IP_TTL,
+    IP_ADD_SOURCE_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_DROP_SOURCE_MEMBERSHIP, IP_MREQ as IpMreq,
+    IP_MREQ_SOURCE as IpMreqSource, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_TOS,
+    IP_TTL,
 };
 pub(crate) use winapi::um::winsock2::{linger, MSG_OOB, MSG_PEEK};
 pub(crate) const IPPROTO_IPV6: c_int = winapi::shared::ws2def::IPPROTO_IPV6 as c_int;
@@ -156,6 +160,10 @@ pub struct MaybeUninitSlice<'a> {
     vec: WSABUF,
     _lifetime: PhantomData<&'a mut [MaybeUninit<u8>]>,
 }
+
+unsafe impl<'a> Send for MaybeUninitSlice<'a> {}
+
+unsafe impl<'a> Sync for MaybeUninitSlice<'a> {}
 
 impl<'a> MaybeUninitSlice<'a> {
     pub fn new(buf: &'a mut [MaybeUninit<u8>]) -> MaybeUninitSlice<'a> {
@@ -459,6 +467,38 @@ pub(crate) fn recv_from(
     }
 }
 
+pub(crate) fn peek_sender(socket: Socket) -> io::Result<SockAddr> {
+    // Safety: `recvfrom` initialises the `SockAddr` for us.
+    let ((), sender) = unsafe {
+        SockAddr::init(|storage, addrlen| {
+            let res = syscall!(
+                recvfrom(
+                    socket,
+                    // Windows *appears* not to care if you pass a null pointer.
+                    ptr::null_mut(),
+                    0,
+                    MSG_PEEK,
+                    storage.cast(),
+                    addrlen,
+                ),
+                PartialEq::eq,
+                SOCKET_ERROR
+            );
+            match res {
+                Ok(_n) => Ok(()),
+                Err(e) => match e.raw_os_error() {
+                    Some(code) if code == (WSAESHUTDOWN as i32) || code == (WSAEMSGSIZE as i32) => {
+                        Ok(())
+                    }
+                    _ => Err(e),
+                },
+            }
+        })
+    }?;
+
+    Ok(sender)
+}
+
 pub(crate) fn recv_from_vectored(
     socket: Socket,
     bufs: &mut [crate::MaybeUninitSlice<'_>],
@@ -733,6 +773,32 @@ pub(crate) fn to_in6_addr(addr: &Ipv6Addr) -> in6_addr {
 
 pub(crate) fn from_in6_addr(addr: in6_addr) -> Ipv6Addr {
     Ipv6Addr::from(*unsafe { addr.u.Byte() })
+}
+
+pub(crate) fn to_mreqn(
+    multiaddr: &Ipv4Addr,
+    interface: &crate::socket::InterfaceIndexOrAddress,
+) -> IpMreq {
+    IpMreq {
+        imr_multiaddr: to_in_addr(multiaddr),
+        // Per https://docs.microsoft.com/en-us/windows/win32/api/ws2ipdef/ns-ws2ipdef-ip_mreq#members:
+        //
+        // imr_interface
+        //
+        // The local IPv4 address of the interface or the interface index on
+        // which the multicast group should be joined or dropped. This value is
+        // in network byte order. If this member specifies an IPv4 address of
+        // 0.0.0.0, the default IPv4 multicast interface is used.
+        //
+        // To use an interface index of 1 would be the same as an IP address of
+        // 0.0.0.1.
+        imr_interface: match interface {
+            crate::socket::InterfaceIndexOrAddress::Index(interface) => {
+                to_in_addr(&(*interface).into())
+            }
+            crate::socket::InterfaceIndexOrAddress::Address(interface) => to_in_addr(interface),
+        },
+    }
 }
 
 /// Windows only API.

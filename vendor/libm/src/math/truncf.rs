@@ -1,6 +1,5 @@
 use core::f32;
 
-#[inline]
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn truncf(x: f32) -> f32 {
     // On wasm32 we know that LLVM's intrinsic will compile to an optimized
@@ -32,6 +31,8 @@ pub fn truncf(x: f32) -> f32 {
     f32::from_bits(i)
 }
 
+// PowerPC tests are failing on LLVM 13: https://github.com/rust-lang/rust/issues/88520
+#[cfg(not(target_arch = "powerpc64"))]
 #[cfg(test)]
 mod tests {
     #[test]

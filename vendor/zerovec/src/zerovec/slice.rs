@@ -191,6 +191,27 @@ where
             .map(T::from_unaligned)
     }
 
+    /// Gets the entire slice as an array of length `N`. Returns None if the slice
+    /// does not have exactly `N` elements.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use zerovec::ZeroVec;
+    ///
+    /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
+    /// let zerovec: ZeroVec<u16> =
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
+    /// let array: [u16; 4] =
+    ///     zerovec.get_as_array().expect("should be 4 items in array");
+    ///
+    /// assert_eq!(array[2], 421);
+    /// ```
+    pub fn get_as_array<const N: usize>(&self) -> Option<[T; N]> {
+        let ule_array = <&[T::ULE; N]>::try_from(self.as_ule_slice()).ok()?;
+        Some(ule_array.map(|u| T::from_unaligned(u)))
+    }
+
     /// Gets a subslice of elements within a certain range. Returns None if the range
     /// is out of bounds of this `ZeroSlice`.
     ///
@@ -510,7 +531,7 @@ where
     }
 }
 
-impl<'a, T: AsULE + PartialOrd> PartialOrd for ZeroSlice<T> {
+impl<T: AsULE + PartialOrd> PartialOrd for ZeroSlice<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.iter().partial_cmp(other.iter())
     }
@@ -524,13 +545,13 @@ impl<T: AsULE + Ord> Ord for ZeroSlice<T> {
 
 impl<T: AsULE> AsRef<ZeroSlice<T>> for Vec<T::ULE> {
     fn as_ref(&self) -> &ZeroSlice<T> {
-        ZeroSlice::<T>::from_ule_slice(&**self)
+        ZeroSlice::<T>::from_ule_slice(self)
     }
 }
 
 impl<T: AsULE> AsRef<ZeroSlice<T>> for &[T::ULE] {
     fn as_ref(&self) -> &ZeroSlice<T> {
-        ZeroSlice::<T>::from_ule_slice(&**self)
+        ZeroSlice::<T>::from_ule_slice(self)
     }
 }
 

@@ -60,7 +60,7 @@ pub mod fatal_error;
 
 pub mod profiling;
 
-use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
+use rustc_data_structures::stable_hasher::{Hash128, Hash64, HashStable, StableHasher};
 use rustc_data_structures::sync::{Lock, Lrc};
 
 use std::borrow::Cow;
@@ -70,7 +70,6 @@ use std::hash::Hash;
 use std::ops::{Add, Range, Sub};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::Arc;
 
 use md5::Digest;
 use md5::Md5;
@@ -283,22 +282,22 @@ impl RealFileName {
 pub enum FileName {
     Real(RealFileName),
     /// Call to `quote!`.
-    QuoteExpansion(u64),
+    QuoteExpansion(Hash64),
     /// Command line.
-    Anon(u64),
+    Anon(Hash64),
     /// Hack in `src/librustc_ast/parse.rs`.
     // FIXME(jseyfried)
-    MacroExpansion(u64),
-    ProcMacroSourceCode(u64),
+    MacroExpansion(Hash64),
+    ProcMacroSourceCode(Hash64),
     /// Strings provided as `--cfg [cfgspec]` stored in a `crate_cfg`.
-    CfgSpec(u64),
+    CfgSpec(Hash64),
     /// Strings provided as crate attributes in the CLI.
-    CliCrateAttr(u64),
+    CliCrateAttr(Hash64),
     /// Custom sources for explicit parser calls from plugins and drivers.
     Custom(String),
     DocTest(PathBuf, isize),
     /// Post-substitution inline assembly from LLVM.
-    InlineAsm(u64),
+    InlineAsm(Hash64),
 }
 
 impl From<PathBuf> for FileName {
@@ -595,12 +594,6 @@ impl Span {
         matches!(outer_expn.kind, ExpnKind::Macro(..)) && outer_expn.collapse_debuginfo
     }
 
-    /// Returns `true` if this span comes from MIR inlining.
-    pub fn is_inlined(self) -> bool {
-        let outer_expn = self.ctxt().outer_expn_data();
-        matches!(outer_expn.kind, ExpnKind::Inlined)
-    }
-
     /// Returns `true` if `span` originates in a derive-macro's expansion.
     pub fn in_derive_expansion(self) -> bool {
         matches!(self.ctxt().outer_expn_data().kind, ExpnKind::Macro(MacroKind::Derive, _))
@@ -755,7 +748,7 @@ impl Span {
         self.ctxt()
             .outer_expn_data()
             .allow_internal_unstable
-            .map_or(false, |features| features.iter().any(|&f| f == feature))
+            .is_some_and(|features| features.iter().any(|&f| f == feature))
     }
 
     /// Checks if this span arises from a compiler desugaring of kind `kind`.
@@ -1045,17 +1038,26 @@ impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Use the global `SourceMap` to print the span. If that's not
         // available, fall back to printing the raw values.
-        with_session_globals(|session_globals| {
-            if let Some(source_map) = &*session_globals.source_map.borrow() {
-                write!(f, "{} ({:?})", source_map.span_to_diagnostic_string(*self), self.ctxt())
-            } else {
-                f.debug_struct("Span")
-                    .field("lo", &self.lo())
-                    .field("hi", &self.hi())
-                    .field("ctxt", &self.ctxt())
-                    .finish()
-            }
-        })
+
+        fn fallback(span: Span, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("Span")
+                .field("lo", &span.lo())
+                .field("hi", &span.hi())
+                .field("ctxt", &span.ctxt())
+                .finish()
+        }
+
+        if SESSION_GLOBALS.is_set() {
+            with_session_globals(|session_globals| {
+                if let Some(source_map) = &*session_globals.source_map.borrow() {
+                    write!(f, "{} ({:?})", source_map.span_to_diagnostic_string(*self), self.ctxt())
+                } else {
+                    fallback(*self, f)
+                }
+            })
+        } else {
+            fallback(*self, f)
+        }
     }
 }
 
@@ -1249,29 +1251,6 @@ impl SourceFileHash {
     }
 }
 
-#[derive(HashStable_Generic)]
-#[derive(Copy, PartialEq, PartialOrd, Clone, Ord, Eq, Hash, Debug, Encodable, Decodable)]
-pub enum DebuggerVisualizerType {
-    Natvis,
-    GdbPrettyPrinter,
-}
-
-/// A single debugger visualizer file.
-#[derive(HashStable_Generic)]
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Encodable, Decodable)]
-pub struct DebuggerVisualizerFile {
-    /// The complete debugger visualizer source.
-    pub src: Arc<[u8]>,
-    /// Indicates which visualizer type this targets.
-    pub visualizer_type: DebuggerVisualizerType,
-}
-
-impl DebuggerVisualizerFile {
-    pub fn new(src: Arc<[u8]>, visualizer_type: DebuggerVisualizerType) -> Self {
-        DebuggerVisualizerFile { src, visualizer_type }
-    }
-}
-
 #[derive(Clone)]
 pub enum SourceFileLines {
     /// The source file lines, in decoded (random-access) form.
@@ -1344,7 +1323,7 @@ pub struct SourceFile {
     /// Locations of characters removed during normalization.
     pub normalized_pos: Vec<NormalizedPos>,
     /// A hash of the filename, used for speeding up hashing in incremental compilation.
-    pub name_hash: u128,
+    pub name_hash: Hash128,
     /// Indicates which crate this `SourceFile` was imported from.
     pub cnum: CrateNum,
 }
@@ -1473,7 +1452,7 @@ impl<D: Decoder> Decodable<D> for SourceFile {
         };
         let multibyte_chars: Vec<MultiByteChar> = Decodable::decode(d);
         let non_narrow_chars: Vec<NonNarrowChar> = Decodable::decode(d);
-        let name_hash: u128 = Decodable::decode(d);
+        let name_hash = Decodable::decode(d);
         let normalized_pos: Vec<NormalizedPos> = Decodable::decode(d);
         let cnum: CrateNum = Decodable::decode(d);
         SourceFile {
@@ -1515,7 +1494,7 @@ impl SourceFile {
         let name_hash = {
             let mut hasher: StableHasher = StableHasher::new();
             name.hash(&mut hasher);
-            hasher.finish::<u128>()
+            hasher.finish()
         };
         let end_pos = start_pos.to_usize() + src.len();
         assert!(end_pos <= u32::MAX as usize);
@@ -1664,10 +1643,11 @@ impl SourceFile {
 
         if let Some(ref src) = self.src {
             Some(Cow::from(get_until_newline(src, begin)))
-        } else if let Some(src) = self.external_src.borrow().get_source() {
-            Some(Cow::Owned(String::from(get_until_newline(src, begin))))
         } else {
-            None
+            self.external_src
+                .borrow()
+                .get_source()
+                .map(|src| Cow::Owned(String::from(get_until_newline(src, begin))))
         }
     }
 
@@ -1734,6 +1714,28 @@ impl SourceFile {
         };
 
         BytePos::from_u32(pos.0 - self.start_pos.0 + diff)
+    }
+
+    /// Calculates a normalized byte position from a byte offset relative to the
+    /// start of the file.
+    ///
+    /// When we get an inline assembler error from LLVM during codegen, we
+    /// import the expanded assembly code as a new `SourceFile`, which can then
+    /// be used for error reporting with spans. However the byte offsets given
+    /// to us by LLVM are relative to the start of the original buffer, not the
+    /// normalized one. Hence we need to convert those offsets to the normalized
+    /// form when constructing spans.
+    pub fn normalized_byte_pos(&self, offset: u32) -> BytePos {
+        let diff = match self
+            .normalized_pos
+            .binary_search_by(|np| (np.pos.0 + np.diff).cmp(&(self.start_pos.0 + offset)))
+        {
+            Ok(i) => self.normalized_pos[i].diff,
+            Err(i) if i == 0 => 0,
+            Err(i) => self.normalized_pos[i - 1].diff,
+        };
+
+        BytePos::from_u32(self.start_pos.0 + offset - diff)
     }
 
     /// Converts an absolute `BytePos` to a `CharPos` relative to the `SourceFile`.
@@ -2160,9 +2162,7 @@ where
         };
 
         Hash::hash(&TAG_VALID_SPAN, hasher);
-        // We truncate the stable ID hash and line and column numbers. The chances
-        // of causing a collision this way should be minimal.
-        Hash::hash(&(file.name_hash as u64), hasher);
+        Hash::hash(&file.name_hash, hasher);
 
         // Hash both the length and the end location (line/column) of a span. If we
         // hash only the length, for example, then two otherwise equal spans with
@@ -2193,6 +2193,7 @@ pub struct ErrorGuaranteed(());
 impl ErrorGuaranteed {
     /// To be used only if you really know what you are doing... ideally, we would find a way to
     /// eliminate all calls to this method.
+    #[deprecated = "`Session::delay_span_bug` should be preferred over this function"]
     pub fn unchecked_claim_error_was_emitted() -> Self {
         ErrorGuaranteed(())
     }

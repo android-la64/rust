@@ -91,18 +91,20 @@ static DISTRIBUTIONS: [ReleaseInfo; 6] = [
                     // https://github.com/chef/os_release
 
                     //"almalinux" => Alma
+                    "alpaquita" => Some(Type::Alpaquita),
                     "alpine" => Some(Type::Alpine),
                     "amzn" => Some(Type::Amazon),
                     //"antergos" => Antergos
                     //"aosc" => AOSC
                     "arch" => Some(Type::Arch),
-                    //"artix" => Artix
+                    "archarm" => Some(Type::Arch),
+                    "artix" => Some(Type::Artix),
                     "centos" => Some(Type::CentOS),
                     //"clear-linux-os" => ClearLinuxOS
                     //"clearos" => ClearOS
                     //"coreos"
                     //"cumulus-linux" => Cumulus
-                    //"debian" => Debian
+                    "debian" => Some(Type::Debian),
                     //"devuan" => Devuan
                     //"elementary" => Elementary
                     "fedora" => Some(Type::Fedora),
@@ -115,6 +117,8 @@ static DISTRIBUTIONS: [ReleaseInfo; 6] = [
                     "mariner" => Some(Type::Mariner),
                     //"nexus" => Nexus
                     "nixos" => Some(Type::NixOS),
+                    "opencloudos" => Some(Type::OpenCloudOS),
+                    "openEuler" => Some(Type::openEuler),
                     "ol" => Some(Type::OracleLinux),
                     "opensuse" => Some(Type::openSUSE),
                     "opensuse-leap" => Some(Type::openSUSE),
@@ -196,6 +200,17 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
+    fn alpaquita_os_release() {
+        let root = "src/linux/tests/Alpaquita";
+
+        let info = retrieve(&DISTRIBUTIONS, root).unwrap();
+        assert_eq!(info.os_type(), Type::Alpaquita);
+        assert_eq!(info.version, Version::Semantic(23, 0, 0));
+        assert_eq!(info.edition, None);
+        assert_eq!(info.codename, None);
+    }
+
+    #[test]
     fn alpine_3_12_os_release() {
         let root = "src/linux/tests/Alpine_3_12";
 
@@ -240,6 +255,39 @@ mod tests {
     }
 
     #[test]
+    fn arch_os_release() {
+        let root = "src/linux/tests/Arch";
+
+        let info = retrieve(&DISTRIBUTIONS, root).unwrap();
+        assert_eq!(info.os_type(), Type::Arch);
+        assert_eq!(info.version, Version::Unknown);
+        assert_eq!(info.edition, None);
+        assert_eq!(info.codename, None);
+    }
+
+    #[test]
+    fn archarm_os_release() {
+        let root = "src/linux/tests/ArchARM";
+
+        let info = retrieve(&DISTRIBUTIONS, root).unwrap();
+        assert_eq!(info.os_type(), Type::Arch);
+        assert_eq!(info.version, Version::Unknown);
+        assert_eq!(info.edition, None);
+        assert_eq!(info.codename, None);
+    }
+
+    #[test]
+    fn artix_os_release() {
+        let root = "src/linux/tests/Artix";
+
+        let info = retrieve(&DISTRIBUTIONS, root).unwrap();
+        assert_eq!(info.os_type(), Type::Artix);
+        assert_eq!(info.version, Version::Unknown);
+        assert_eq!(info.edition, None);
+        assert_eq!(info.codename, None);
+    }
+
+    #[test]
     fn centos_7_os_release() {
         let root = "src/linux/tests/CentOS_7";
 
@@ -279,6 +327,17 @@ mod tests {
         let info = retrieve(&DISTRIBUTIONS, root).unwrap();
         assert_eq!(info.os_type(), Type::CentOS);
         assert_eq!(info.version, Version::Unknown);
+        assert_eq!(info.edition, None);
+        assert_eq!(info.codename, None);
+    }
+
+    #[test]
+    fn debian_11_os_release() {
+        let root = "src/linux/tests/Debian_11";
+
+        let info = retrieve(&DISTRIBUTIONS, root).unwrap();
+        assert_eq!(info.os_type(), Type::Debian);
+        assert_eq!(info.version, Version::Semantic(11, 0, 0));
         assert_eq!(info.edition, None);
         assert_eq!(info.codename, None);
     }
@@ -396,6 +455,28 @@ mod tests {
 
         let info = retrieve(&DISTRIBUTIONS, root);
         assert_eq!(info, None);
+    }
+
+    #[test]
+    fn opencloudos_os_release() {
+        let root = "src/linux/tests/OpenCloudOS";
+
+        let info = retrieve(&DISTRIBUTIONS, root).unwrap();
+        assert_eq!(info.os_type(), Type::OpenCloudOS);
+        assert_eq!(info.version, Version::Semantic(8, 6, 0));
+        assert_eq!(info.edition, None);
+        assert_eq!(info.codename, None);
+    }
+
+    #[test]
+    fn openeuler_os_release() {
+        let root = "src/linux/tests/openEuler";
+
+        let info = retrieve(&DISTRIBUTIONS, root).unwrap();
+        assert_eq!(info.os_type(), Type::openEuler);
+        assert_eq!(info.version, Version::Semantic(22, 3, 0));
+        assert_eq!(info.edition, None);
+        assert_eq!(info.codename, None);
     }
 
     #[test]

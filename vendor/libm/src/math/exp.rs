@@ -81,7 +81,6 @@ const P5: f64 = 4.13813679705723846039e-08; /* 0x3E663769, 0x72BEA4D0 */
 ///
 /// Calculate the exponential of `x`, that is, *e* raised to the power `x`
 /// (where *e* is the base of the natural system of logarithms, approximately 2.71828).
-#[inline]
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn exp(mut x: f64) -> f64 {
     let x1p1023 = f64::from_bits(0x7fe0000000000000); // 0x1p1023 === 2 ^ 1023
@@ -125,7 +124,7 @@ pub fn exp(mut x: f64) -> f64 {
         /* if |x| > 0.5 ln2 */
         if hx >= 0x3ff0a2b2 {
             /* if |x| >= 1.5 ln2 */
-            k = (INVLN2 * x + HALF[sign as usize]) as i32;
+            k = (INVLN2 * x + i!(HALF, sign as usize)) as i32;
         } else {
             k = 1 - sign - sign;
         }

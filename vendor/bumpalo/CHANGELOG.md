@@ -8,6 +8,7 @@ Released YYYY-MM-DD.
 
 ### Changed
 
+* The minimum supported Rust version (MSRV) is now 1.60.0.
 * TODO (or remove section if none)
 
 ### Deprecated
@@ -25,6 +26,34 @@ Released YYYY-MM-DD.
 ### Security
 
 * TODO (or remove section if none)
+
+--------------------------------------------------------------------------------
+
+## 3.12.1
+
+Released 2023-04-21.
+
+### Fixed
+
+* Fixed a bug where `Bump::try_with_capacity(n)` where `n > isize::MAX` could
+  lead to attempts to create invalid `Layout`s.
+
+--------------------------------------------------------------------------------
+
+## 3.12.0
+
+Released 2023-01-17.
+
+### Added
+
+* Added the `bumpalo::boxed::Box::bump` and `bumpalo::collections::String::bump`
+  getters to get the underlying `Bump` that a string or box was allocated into.
+
+### Changed
+
+* Some uses of `Box` that MIRI did not previously consider as UB are now
+  reported as UB, and `bumpalo`'s internals have been adjusted to avoid the new
+  UB.
 
 --------------------------------------------------------------------------------
 

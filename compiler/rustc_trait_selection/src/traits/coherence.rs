@@ -17,9 +17,10 @@ use crate::traits::{
 use rustc_data_structures::fx::FxIndexSet;
 use rustc_errors::Diagnostic;
 use rustc_hir::def_id::{DefId, CRATE_DEF_ID, LOCAL_CRATE};
-use rustc_infer::infer::{DefineOpaqueTypes, DefiningAnchor, InferCtxt, TyCtxtInferExt};
+use rustc_infer::infer::{DefineOpaqueTypes, InferCtxt, TyCtxtInferExt};
 use rustc_infer::traits::util;
 use rustc_middle::traits::specialization_graph::OverlapMode;
+use rustc_middle::traits::DefiningAnchor;
 use rustc_middle::ty::fast_reject::{DeepRejectCtxt, TreatParams};
 use rustc_middle::ty::visit::{TypeVisitable, TypeVisitableExt};
 use rustc_middle::ty::{self, ImplSubject, Ty, TyCtxt, TypeVisitor};
@@ -322,7 +323,9 @@ fn negative_impl(tcx: TyCtxt<'_>, impl1_def_id: DefId, impl2_def_id: DefId) -> b
     let selcx = &mut SelectionContext::new(&infcx);
     let impl2_substs = infcx.fresh_substs_for_item(DUMMY_SP, impl2_def_id);
     let (subject2, obligations) =
-        impl_subject_and_oblig(selcx, impl_env, impl2_def_id, impl2_substs);
+        impl_subject_and_oblig(selcx, impl_env, impl2_def_id, impl2_substs, |_, _| {
+            ObligationCause::dummy()
+        });
 
     !equate(&infcx, impl_env, subject1, subject2, obligations, impl1_def_id)
 }
@@ -582,7 +585,7 @@ fn orphan_check_trait_ref<'tcx>(
     trait_ref: ty::TraitRef<'tcx>,
     in_crate: InCrate,
 ) -> Result<(), OrphanCheckErr<'tcx>> {
-    if trait_ref.needs_infer() && trait_ref.needs_subst() {
+    if trait_ref.has_infer() && trait_ref.has_param() {
         bug!(
             "can't orphan check a trait ref with both params and inference variables {:?}",
             trait_ref
@@ -673,7 +676,7 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for OrphanChecker<'tcx> {
             | ty::RawPtr(..)
             | ty::Never
             | ty::Tuple(..)
-            | ty::Alias(ty::Projection, ..) => self.found_non_local_ty(ty),
+            | ty::Alias(ty::Projection | ty::Inherent, ..) => self.found_non_local_ty(ty),
 
             ty::Param(..) => self.found_param_ty(ty),
 
@@ -704,7 +707,7 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for OrphanChecker<'tcx> {
             }
             ty::Dynamic(tt, ..) => {
                 let principal = tt.principal().map(|p| p.def_id());
-                if principal.map_or(false, |p| self.def_id_is_local(p)) {
+                if principal.is_some_and(|p| self.def_id_is_local(p)) {
                     ControlFlow::Break(OrphanCheckEarlyExit::LocalTy(ty))
                 } else {
                     self.found_non_local_ty(ty)

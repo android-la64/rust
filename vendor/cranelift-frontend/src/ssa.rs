@@ -14,11 +14,8 @@ use core::mem;
 use cranelift_codegen::cursor::{Cursor, FuncCursor};
 use cranelift_codegen::entity::{EntityList, EntitySet, ListPool, SecondaryMap};
 use cranelift_codegen::ir::immediates::{Ieee32, Ieee64};
-use cranelift_codegen::ir::instructions::BranchInfo;
 use cranelift_codegen::ir::types::{F32, F64, I128, I64};
-use cranelift_codegen::ir::{
-    Block, Function, Inst, InstBuilder, InstructionData, JumpTableData, Type, Value,
-};
+use cranelift_codegen::ir::{Block, Function, Inst, InstBuilder, Type, Value};
 use cranelift_codegen::packed_option::PackedOption;
 
 /// Structure containing the data relevant the construction of SSA for a given function.
@@ -66,9 +63,6 @@ pub struct SSABuilder {
 /// Side effects of a `use_var` or a `seal_block` method call.
 #[derive(Default)]
 pub struct SideEffects {
-    /// When we want to append jump arguments to a `br_table` instruction, the critical edge is
-    /// splitted and the newly created `Block`s are signaled here.
-    pub split_blocks_created: Vec<Block>,
     /// When a variable is used but has never been defined before (this happens in the case of
     /// unreachable code), a placeholder `iconst` or `fconst` value is added to the right `Block`.
     /// This field signals if it is the case and return the `Block` to which the initialization has
@@ -78,7 +72,7 @@ pub struct SideEffects {
 
 impl SideEffects {
     fn is_empty(&self) -> bool {
-        self.split_blocks_created.is_empty() && self.instructions_added_to_blocks.is_empty()
+        self.instructions_added_to_blocks.is_empty()
     }
 }
 
@@ -491,7 +485,6 @@ impl SSABuilder {
         &mut self,
         func: &mut Function,
         sentinel: Value,
-        var: Variable,
         dest_block: Block,
     ) -> Value {
         // Determine how many predecessors are yielding unique, non-temporary Values. If a variable
@@ -548,97 +541,23 @@ impl SSABuilder {
             // There is disagreement in the predecessors on which value to use so we have
             // to keep the block argument.
             let mut preds = self.ssa_blocks[dest_block].predecessors;
-            let var_defs = &mut self.variables[var];
+            let dfg = &mut func.stencil.dfg;
             for (idx, &val) in results.as_slice().iter().enumerate() {
                 let pred = preds.get_mut(idx, &mut self.inst_pool).unwrap();
                 let branch = *pred;
-                if let Some((new_block, new_branch)) =
-                    Self::append_jump_argument(func, branch, dest_block, val)
-                {
-                    *pred = new_branch;
-                    let old_block = func.layout.inst_block(branch).unwrap();
-                    self.ssa_blocks[new_block] = SSABlockData {
-                        predecessors: EntityList::from_slice(&[branch], &mut self.inst_pool),
-                        sealed: Sealed::Yes,
-                        single_predecessor: PackedOption::from(old_block),
-                    };
-                    var_defs[new_block] = PackedOption::from(val);
-                    self.side_effects.split_blocks_created.push(new_block);
-                }
-            }
-            sentinel
-        }
-    }
 
-    /// Appends a jump argument to a jump instruction, returns block created in case of
-    /// critical edge splitting.
-    fn append_jump_argument(
-        func: &mut Function,
-        branch: Inst,
-        dest_block: Block,
-        val: Value,
-    ) -> Option<(Block, Inst)> {
-        match func.dfg.analyze_branch(branch) {
-            BranchInfo::NotABranch => {
-                panic!("you have declared a non-branch instruction as a predecessor to a block");
-            }
-            // For a single destination appending a jump argument to the instruction
-            // is sufficient.
-            BranchInfo::SingleDest(_) => {
-                let dfg = &mut func.dfg;
-                for dest in dfg.insts[branch].branch_destination_mut() {
-                    dest.append_argument(val, &mut dfg.value_lists);
-                }
-                None
-            }
-            BranchInfo::Conditional(_, _) => {
-                let dfg = &mut func.dfg;
-                for block in dfg.insts[branch].branch_destination_mut() {
+                let dests = dfg.insts[branch].branch_destination_mut(&mut dfg.jump_tables);
+                assert!(
+                    !dests.is_empty(),
+                    "you have declared a non-branch instruction as a predecessor to a block!"
+                );
+                for block in dests {
                     if block.block(&dfg.value_lists) == dest_block {
                         block.append_argument(val, &mut dfg.value_lists);
                     }
                 }
-                None
             }
-            BranchInfo::Table(mut jt, _default_block) => {
-                // In the case of a jump table, the situation is tricky because br_table doesn't
-                // support arguments. We have to split the critical edge.
-                let middle_block = func.dfg.make_block();
-                func.layout.append_block(middle_block);
-
-                let table = &func.jump_tables[jt];
-                let mut copied = JumpTableData::with_capacity(table.len());
-                let mut changed = false;
-                for &destination in table.iter() {
-                    if destination == dest_block {
-                        copied.push_entry(middle_block);
-                        changed = true;
-                    } else {
-                        copied.push_entry(destination);
-                    }
-                }
-
-                if changed {
-                    jt = func.create_jump_table(copied);
-                }
-
-                // Redo the match from `analyze_branch` but this time capture mutable references
-                match &mut func.dfg.insts[branch] {
-                    InstructionData::BranchTable {
-                        destination, table, ..
-                    } => {
-                        if *destination == dest_block {
-                            *destination = middle_block;
-                        }
-                        *table = jt;
-                    }
-                    _ => unreachable!(),
-                }
-
-                let mut cur = FuncCursor::new(func).at_bottom(middle_block);
-                let middle_jump_inst = cur.ins().jump(dest_block, &[val]);
-                Some((middle_block, middle_jump_inst))
-            }
+            sentinel
         }
     }
 
@@ -673,7 +592,7 @@ impl SSABuilder {
                     self.use_var_nonlocal(func, var, ty, block);
                 }
                 Call::FinishPredecessorsLookup(sentinel, dest_block) => {
-                    let val = self.finish_predecessors_lookup(func, sentinel, var, dest_block);
+                    let val = self.finish_predecessors_lookup(func, sentinel, dest_block);
                     self.results.push(val);
                 }
             }
@@ -689,7 +608,7 @@ mod tests {
     use crate::Variable;
     use cranelift_codegen::cursor::{Cursor, FuncCursor};
     use cranelift_codegen::entity::EntityRef;
-    use cranelift_codegen::ir::instructions::BranchInfo;
+    use cranelift_codegen::ir;
     use cranelift_codegen::ir::types::*;
     use cranelift_codegen::ir::{Function, Inst, InstBuilder, JumpTableData, Opcode};
     use cranelift_codegen::settings;
@@ -838,8 +757,11 @@ mod tests {
 
         assert_eq!(x_ssa, x_use3);
         assert_eq!(y_ssa, y_use3);
-        match func.dfg.analyze_branch(brif_block0_block2_block1) {
-            BranchInfo::Conditional(block_then, block_else) => {
+        match func.dfg.insts[brif_block0_block2_block1] {
+            ir::InstructionData::Brif {
+                blocks: [block_then, block_else],
+                ..
+            } => {
                 assert_eq!(block_then.block(&func.dfg.value_lists), block2);
                 assert_eq!(block_then.args_slice(&func.dfg.value_lists).len(), 0);
                 assert_eq!(block_else.block(&func.dfg.value_lists), block1);
@@ -847,8 +769,11 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match func.dfg.analyze_branch(brif_block0_block2_block1) {
-            BranchInfo::Conditional(block_then, block_else) => {
+        match func.dfg.insts[brif_block0_block2_block1] {
+            ir::InstructionData::Brif {
+                blocks: [block_then, block_else],
+                ..
+            } => {
                 assert_eq!(block_then.block(&func.dfg.value_lists), block2);
                 assert_eq!(block_then.args_slice(&func.dfg.value_lists).len(), 0);
                 assert_eq!(block_else.block(&func.dfg.value_lists), block1);
@@ -856,8 +781,10 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match func.dfg.analyze_branch(jump_block1_block2) {
-            BranchInfo::SingleDest(dest) => {
+        match func.dfg.insts[jump_block1_block2] {
+            ir::InstructionData::Jump {
+                destination: dest, ..
+            } => {
                 assert_eq!(dest.block(&func.dfg.value_lists), block2);
                 assert_eq!(dest.args_slice(&func.dfg.value_lists).len(), 0);
             }
@@ -997,10 +924,9 @@ mod tests {
         // Here is the pseudo-program we want to translate:
         //
         // function %f {
-        // jt = jump_table [block2, block1]
         // block0:
         //    x = 1;
-        //    br_table x, block2, jt
+        //    br_table x, block2, [block2, block1]
         // block1:
         //    x = 2
         //    jump block2
@@ -1014,9 +940,6 @@ mod tests {
         let block0 = func.dfg.make_block();
         let block1 = func.dfg.make_block();
         let block2 = func.dfg.make_block();
-        let mut jump_table = JumpTableData::new();
-        jump_table.push_entry(block2);
-        jump_table.push_entry(block1);
         {
             let mut cur = FuncCursor::new(&mut func);
             cur.insert_block(block0);
@@ -1035,9 +958,16 @@ mod tests {
         ssa.def_var(x_var, x1, block0);
         ssa.use_var(&mut func, x_var, I32, block0).0;
         let br_table = {
+            let jump_table = JumpTableData::new(
+                func.dfg.block_call(block2, &[]),
+                &[
+                    func.dfg.block_call(block2, &[]),
+                    func.dfg.block_call(block1, &[]),
+                ],
+            );
             let jt = func.create_jump_table(jump_table);
             let mut cur = FuncCursor::new(&mut func).at_bottom(block0);
-            cur.ins().br_table(x1, block2, jt)
+            cur.ins().br_table(x1, jt)
         };
 
         // block1

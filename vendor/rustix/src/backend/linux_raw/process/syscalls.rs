@@ -9,7 +9,8 @@
 use super::super::c;
 use super::super::conv::{
     by_mut, by_ref, c_int, c_uint, negative_pid, pass_usize, ret, ret_c_int, ret_c_uint,
-    ret_infallible, ret_usize, ret_usize_infallible, size_of, slice_just_addr, slice_mut, zero,
+    ret_infallible, ret_usize, ret_usize_infallible, size_of, slice, slice_just_addr,
+    slice_just_addr_mut, slice_mut, zero,
 };
 use super::types::{RawCpuSet, RawUname};
 use crate::backend::conv::ret_owned_fd;
@@ -18,7 +19,8 @@ use crate::ffi::CStr;
 use crate::io;
 use crate::process::{
     Cpuid, Gid, MembarrierCommand, MembarrierQuery, Pid, PidfdFlags, RawNonZeroPid, RawPid,
-    Resource, Rlimit, Signal, Uid, WaitId, WaitOptions, WaitStatus, WaitidOptions, WaitidStatus,
+    Resource, Rlimit, Signal, Sysinfo, Uid, WaitId, WaitOptions, WaitStatus, WaitidOptions,
+    WaitidStatus,
 };
 use core::convert::TryInto;
 use core::mem::MaybeUninit;
@@ -40,6 +42,11 @@ pub(crate) fn chdir(filename: &CStr) -> io::Result<()> {
 #[inline]
 pub(crate) fn fchdir(fd: BorrowedFd<'_>) -> io::Result<()> {
     unsafe { ret(syscall_readonly!(__NR_fchdir, fd)) }
+}
+
+#[inline]
+pub(crate) fn chroot(filename: &CStr) -> io::Result<()> {
+    unsafe { ret(syscall_readonly!(__NR_chroot, filename)) }
 }
 
 #[inline]
@@ -112,6 +119,17 @@ pub(crate) fn getpgid(pid: Option<Pid>) -> io::Result<Pid> {
         Ok(Pid::from_raw_nonzero(NonZeroU32::new_unchecked(
             pgid as u32,
         )))
+    }
+}
+
+#[inline]
+pub(crate) fn setpgid(pid: Option<Pid>, pgid: Option<Pid>) -> io::Result<()> {
+    unsafe {
+        ret(syscall_readonly!(
+            __NR_setpgid,
+            c_uint(Pid::as_raw(pid)),
+            c_uint(Pid::as_raw(pgid))
+        ))
     }
 }
 
@@ -541,7 +559,9 @@ pub(crate) fn waitid(id: WaitId<'_>, options: WaitidOptions) -> io::Result<Optio
 
 #[inline]
 fn _waitid_all(options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
-    let mut status = MaybeUninit::<c::siginfo_t>::uninit();
+    // `waitid` can return successfully without initializing the struct (no
+    // children found when using `WNOHANG`)
+    let mut status = MaybeUninit::<c::siginfo_t>::zeroed();
     unsafe {
         ret(syscall!(
             __NR_waitid,
@@ -558,7 +578,9 @@ fn _waitid_all(options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
 
 #[inline]
 fn _waitid_pid(pid: Pid, options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
-    let mut status = MaybeUninit::<c::siginfo_t>::uninit();
+    // `waitid` can return successfully without initializing the struct (no
+    // children found when using `WNOHANG`)
+    let mut status = MaybeUninit::<c::siginfo_t>::zeroed();
     unsafe {
         ret(syscall!(
             __NR_waitid,
@@ -575,7 +597,9 @@ fn _waitid_pid(pid: Pid, options: WaitidOptions) -> io::Result<Option<WaitidStat
 
 #[inline]
 fn _waitid_pidfd(fd: BorrowedFd<'_>, options: WaitidOptions) -> io::Result<Option<WaitidStatus>> {
-    let mut status = MaybeUninit::<c::siginfo_t>::uninit();
+    // `waitid` can return successfully without initializing the struct (no
+    // children found when using `WNOHANG`)
+    let mut status = MaybeUninit::<c::siginfo_t>::zeroed();
     unsafe {
         ret(syscall!(
             __NR_waitid,
@@ -597,9 +621,10 @@ fn _waitid_pidfd(fd: BorrowedFd<'_>, options: WaitidOptions) -> io::Result<Optio
 /// The caller must ensure that `status` is initialized and that `waitid`
 /// returned successfully.
 #[inline]
+#[rustfmt::skip]
 unsafe fn cvt_waitid_status(status: MaybeUninit<c::siginfo_t>) -> Option<WaitidStatus> {
     let status = status.assume_init();
-    if status.__bindgen_anon_1.__bindgen_anon_1.si_signo == 0 {
+    if status.__bindgen_anon_1.__bindgen_anon_1._sifields._sigchld._pid == 0 {
         None
     } else {
         Some(WaitidStatus(status))
@@ -610,6 +635,17 @@ unsafe fn cvt_waitid_status(status: MaybeUninit<c::siginfo_t>) -> Option<WaitidS
 #[inline]
 pub(crate) fn exit_group(code: c::c_int) -> ! {
     unsafe { syscall_noreturn!(__NR_exit_group, c_int(code)) }
+}
+
+#[inline]
+pub(crate) fn getsid(pid: Option<Pid>) -> io::Result<Pid> {
+    unsafe {
+        let pid = ret_usize(syscall_readonly!(__NR_getsid, c_uint(Pid::as_raw(pid))))?;
+        debug_assert!(pid > 0);
+        Ok(Pid::from_raw_nonzero(RawNonZeroPid::new_unchecked(
+            pid as u32,
+        )))
+    }
 }
 
 #[inline]
@@ -639,6 +675,27 @@ pub(crate) fn kill_current_process_group(sig: Signal) -> io::Result<()> {
 }
 
 #[inline]
+pub(crate) fn test_kill_process(pid: Pid) -> io::Result<()> {
+    unsafe { ret(syscall_readonly!(__NR_kill, pid, pass_usize(0))) }
+}
+
+#[inline]
+pub(crate) fn test_kill_process_group(pid: Pid) -> io::Result<()> {
+    unsafe {
+        ret(syscall_readonly!(
+            __NR_kill,
+            negative_pid(pid),
+            pass_usize(0)
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn test_kill_current_process_group() -> io::Result<()> {
+    unsafe { ret(syscall_readonly!(__NR_kill, pass_usize(0), pass_usize(0))) }
+}
+
+#[inline]
 pub(crate) unsafe fn prctl(
     option: c::c_int,
     arg2: *mut c::c_void,
@@ -658,4 +715,32 @@ pub(crate) fn pidfd_open(pid: Pid, flags: PidfdFlags) -> io::Result<OwnedFd> {
             c_int(flags.bits() as _)
         ))
     }
+}
+
+#[inline]
+pub(crate) fn getgroups(buf: &mut [Gid]) -> io::Result<usize> {
+    let len = buf.len().try_into().map_err(|_| io::Errno::NOMEM)?;
+
+    unsafe {
+        ret_usize(syscall!(
+            __NR_getgroups,
+            c_int(len),
+            slice_just_addr_mut(buf)
+        ))
+    }
+}
+
+#[inline]
+pub(crate) fn sysinfo() -> Sysinfo {
+    let mut info = MaybeUninit::<Sysinfo>::uninit();
+    unsafe {
+        ret_infallible(syscall!(__NR_sysinfo, &mut info));
+        info.assume_init()
+    }
+}
+
+#[inline]
+pub(crate) fn sethostname(name: &[u8]) -> io::Result<()> {
+    let (ptr, len) = slice(name);
+    unsafe { ret(syscall_readonly!(__NR_sethostname, ptr, len)) }
 }

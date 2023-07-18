@@ -167,6 +167,8 @@ mod b {
 
 ## Projects using pest
 
+You can find more projects and ecosystem tools in the [awesome-pest](https://github.com/pest-parser/awesome-pest) repo.
+
 * [pest_meta](https://github.com/pest-parser/pest/blob/master/meta/src/grammar.pest) (bootstrapped)
 * [AshPaper](https://github.com/shnewto/ashpaper)
 * [brain](https://github.com/brain-lang/brain)
@@ -202,6 +204,29 @@ mod b {
 
 This library should always compile with default features on **Rust 1.56.1** 
 or **Rust 1.61** with `const_prec_climber`.
+
+## no_std support
+
+The `pest` and `pest_derive` crates can be built without the Rust standard
+library and target embedded environments. To do so, you need to disable
+their default features. In your `Cargo.toml`, you can specify it as follows:
+
+```toml
+[dependencies]
+# ...
+pest = { version = "2", default-features = false }
+pest_derive = { version = "2", default-features = false }
+```
+
+If you want to build these crates in the pest repository's workspace, you can
+pass the `--no-default-features` flag to `cargo` and specify these crates using
+the `--package` (`-p`) flag. For example:
+
+```bash
+$ cargo build --target thumbv7em-none-eabihf --no-default-features -p pest
+$ cargo bootstrap
+$ cargo build --target thumbv7em-none-eabihf --no-default-features -p pest_derive
+```
 
 ## Special thanks
 

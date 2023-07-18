@@ -89,7 +89,6 @@ const IVLN2: f64 = 1.44269504088896338700e+00; /* 0x3ff71547_652b82fe =1/ln2 */
 const IVLN2_H: f64 = 1.44269502162933349609e+00; /* 0x3ff71547_60000000 =24b 1/ln2*/
 const IVLN2_L: f64 = 1.92596299112661746887e-08; /* 0x3e54ae0b_f85ddf44 =1/ln2 tail*/
 
-#[inline]
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn pow(x: f64, y: f64) -> f64 {
     let t1: f64;
@@ -300,8 +299,8 @@ pub fn pow(x: f64, y: f64) -> f64 {
         ax = with_set_high_word(ax, ix as u32);
 
         /* compute ss = s_h+s_l = (x-1)/(x+1) or (x-1.5)/(x+1.5) */
-        let u: f64 = ax - BP[k as usize]; /* bp[0]=1.0, bp[1]=1.5 */
-        let v: f64 = 1.0 / (ax + BP[k as usize]);
+        let u: f64 = ax - i!(BP, k as usize); /* bp[0]=1.0, bp[1]=1.5 */
+        let v: f64 = 1.0 / (ax + i!(BP, k as usize));
         let ss: f64 = u * v;
         let s_h = with_set_low_word(ss, 0);
 
@@ -310,7 +309,7 @@ pub fn pow(x: f64, y: f64) -> f64 {
             0.0,
             ((ix as u32 >> 1) | 0x20000000) + 0x00080000 + ((k as u32) << 18),
         );
-        let t_l: f64 = ax - (t_h - BP[k as usize]);
+        let t_l: f64 = ax - (t_h - i!(BP, k as usize));
         let s_l: f64 = v * ((u - s_h * t_h) - s_h * t_l);
 
         /* compute log(ax) */
@@ -329,12 +328,12 @@ pub fn pow(x: f64, y: f64) -> f64 {
         let p_h: f64 = with_set_low_word(u + v, 0);
         let p_l = v - (p_h - u);
         let z_h: f64 = CP_H * p_h; /* cp_h+cp_l = 2/(3*log2) */
-        let z_l: f64 = CP_L * p_h + p_l * CP + DP_L[k as usize];
+        let z_l: f64 = CP_L * p_h + p_l * CP + i!(DP_L, k as usize);
 
         /* log2(ax) = (ss+..)*2/(3*log2) = n + dp_h + z_h + z_l */
         let t: f64 = n as f64;
-        t1 = with_set_low_word(((z_h + z_l) + DP_H[k as usize]) + t, 0);
-        t2 = z_l - (((t1 - t) - DP_H[k as usize]) - z_h);
+        t1 = with_set_low_word(((z_h + z_l) + i!(DP_H, k as usize)) + t, 0);
+        t2 = z_l - (((t1 - t) - i!(DP_H, k as usize)) - z_h);
     }
 
     /* split up y into y1+y2 and compute (y1+y2)*(t1+t2) */
@@ -479,12 +478,16 @@ mod tests {
             .for_each(|s| s.iter().for_each(|val| pow_test(base, *val, expected)));
     }
 
-    fn test_sets(sets: &[&[f64]], computed: &Fn(f64) -> f64, expected: &Fn(f64) -> f64) {
+    fn test_sets(sets: &[&[f64]], computed: &dyn Fn(f64) -> f64, expected: &dyn Fn(f64) -> f64) {
         sets.iter().for_each(|s| {
             s.iter().for_each(|val| {
                 let exp = expected(*val);
                 let res = computed(*val);
 
+                #[cfg(all(target_arch = "x86", not(target_feature = "sse2")))]
+                let exp = force_eval!(exp);
+                #[cfg(all(target_arch = "x86", not(target_feature = "sse2")))]
+                let res = force_eval!(res);
                 assert!(
                     if exp.is_nan() {
                         res.is_nan()
@@ -605,7 +608,7 @@ mod tests {
 
         // Factoring -1 out:
         // (negative anything ^ integer should be (-1 ^ integer) * (positive anything ^ integer))
-        &[POS_ZERO, NEG_ZERO, POS_ONE, NEG_ONE, POS_EVENS, NEG_EVENS]
+        (&[POS_ZERO, NEG_ZERO, POS_ONE, NEG_ONE, POS_EVENS, NEG_EVENS])
             .iter()
             .for_each(|int_set| {
                 int_set.iter().for_each(|int| {
@@ -617,7 +620,7 @@ mod tests {
 
         // Negative base (imaginary results):
         // (-anything except 0 and Infinity ^ non-integer should be NAN)
-        &NEG[1..(NEG.len() - 1)].iter().for_each(|set| {
+        (&NEG[1..(NEG.len() - 1)]).iter().for_each(|set| {
             set.iter().for_each(|val| {
                 test_sets(&ALL[3..7], &|v: f64| pow(*val, v), &|_| NAN);
             })

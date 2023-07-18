@@ -25,22 +25,27 @@
 mod field_impl;
 
 use self::field_impl::*;
-use crate::FieldBytes;
-use core::ops::{AddAssign, MulAssign, Neg, SubAssign};
+use crate::{FieldBytes, NistP384};
+use core::{
+    iter::{Product, Sum},
+    ops::{AddAssign, MulAssign, Neg, SubAssign},
+};
 use elliptic_curve::{
-    bigint::{self, Encoding, Limb, U384},
+    bigint::{self, Limb, U384},
+    ff::PrimeField,
     subtle::{Choice, ConstantTimeEq, CtOption},
 };
 
 /// Constant representing the modulus
 /// p = 2^{384} − 2^{128} − 2^{96} + 2^{32} − 1
-pub(crate) const MODULUS: U384 = U384::from_be_hex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000ffffffff");
+pub(crate) const MODULUS: U384 = U384::from_be_hex(FieldElement::MODULUS);
 
 /// Element of the secp384r1 base field used for curve coordinates.
 #[derive(Clone, Copy, Debug)]
 pub struct FieldElement(pub(super) U384);
 
-elliptic_curve::impl_field_element!(
+primeorder::impl_mont_field_element!(
+    NistP384,
     FieldElement,
     FieldBytes,
     U384,
@@ -56,26 +61,20 @@ elliptic_curve::impl_field_element!(
 );
 
 impl FieldElement {
-    /// Parse the given byte array as an SEC1-encoded field element.
-    ///
-    /// Returns `None` if the byte array does not contain a big-endian integer in
-    /// the range `[0, p)`.
-    pub fn from_sec1(bytes: FieldBytes) -> CtOption<Self> {
-        Self::from_be_bytes(bytes)
-    }
-
-    /// Returns the SEC1 encoding of this field element.
-    pub fn to_sec1(self) -> FieldBytes {
-        self.to_be_bytes()
-    }
-
     /// Compute [`FieldElement`] inversion: `1 / self`.
     pub fn invert(&self) -> CtOption<Self> {
-        let ret = impl_field_invert!(
-            self.to_canonical().to_words(),
+        CtOption::new(self.invert_unchecked(), !self.is_zero())
+    }
+
+    /// Returns the multiplicative inverse of self.
+    ///
+    /// Does not check that self is non-zero.
+    const fn invert_unchecked(&self) -> Self {
+        let words = impl_field_invert!(
+            self.to_canonical().as_words(),
             Self::ONE.0.to_words(),
-            Limb::BIT_SIZE,
-            bigint::nlimbs!(U384::BIT_SIZE),
+            Limb::BITS,
+            bigint::nlimbs!(U384::BITS),
             fiat_p384_mul,
             fiat_p384_opp,
             fiat_p384_divstep_precomp,
@@ -83,7 +82,8 @@ impl FieldElement {
             fiat_p384_msat,
             fiat_p384_selectznz,
         );
-        CtOption::new(Self(ret.into()), !self.is_zero())
+
+        Self(U384::from_words(words))
     }
 
     /// Returns the square root of self mod p, or `None` if no square root
@@ -122,9 +122,52 @@ impl FieldElement {
     }
 }
 
+impl PrimeField for FieldElement {
+    type Repr = FieldBytes;
+
+    const MODULUS: &'static str = "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000ffffffff";
+    const NUM_BITS: u32 = 384;
+    const CAPACITY: u32 = 383;
+    const TWO_INV: Self = Self::from_u64(2).invert_unchecked();
+    const MULTIPLICATIVE_GENERATOR: Self = Self::from_u64(19);
+    const S: u32 = 1;
+    const ROOT_OF_UNITY: Self = Self::from_hex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000fffffffe");
+    const ROOT_OF_UNITY_INV: Self = Self::ROOT_OF_UNITY.invert_unchecked();
+    const DELTA: Self = Self::from_u64(49);
+
+    #[inline]
+    fn from_repr(bytes: FieldBytes) -> CtOption<Self> {
+        Self::from_bytes(&bytes)
+    }
+
+    #[inline]
+    fn to_repr(&self) -> FieldBytes {
+        self.to_bytes()
+    }
+
+    #[inline]
+    fn is_odd(&self) -> Choice {
+        self.is_odd()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::FieldElement;
+    use elliptic_curve::ff::PrimeField;
+    use primeorder::impl_primefield_tests;
+
+    /// t = (modulus - 1) >> S
+    const T: [u64; 6] = [
+        0x000000007fffffff,
+        0x7fffffff80000000,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+        0x7fffffffffffffff,
+    ];
+
+    impl_primefield_tests!(FieldElement, T);
 
     /// Basic tests that field inversion works.
     #[test]

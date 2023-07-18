@@ -1,62 +1,62 @@
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfCloseHandle ( filehandle : super::super::Foundation:: HANDLE ) -> ( ) );
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfConnectSyncRoot ( syncrootpath : :: windows_sys::core::PCWSTR , callbacktable : *const CF_CALLBACK_REGISTRATION , callbackcontext : *const ::core::ffi::c_void , connectflags : CF_CONNECT_FLAGS , connectionkey : *mut CF_CONNECTION_KEY ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfCloseHandle ( filehandle : super::super::Foundation:: HANDLE ) -> ( ) );
+#[cfg(feature = "Win32_System_CorrelationVector")]
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfConnectSyncRoot ( syncrootpath : ::windows_sys::core::PCWSTR , callbacktable : *const CF_CALLBACK_REGISTRATION , callbackcontext : *const ::core::ffi::c_void , connectflags : CF_CONNECT_FLAGS , connectionkey : *mut CF_CONNECTION_KEY ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfConvertToPlaceholder ( filehandle : super::super::Foundation:: HANDLE , fileidentity : *const ::core::ffi::c_void , fileidentitylength : u32 , convertflags : CF_CONVERT_FLAGS , convertusn : *mut i64 , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfConvertToPlaceholder ( filehandle : super::super::Foundation:: HANDLE , fileidentity : *const ::core::ffi::c_void , fileidentitylength : u32 , convertflags : CF_CONVERT_FLAGS , convertusn : *mut i64 , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Storage_FileSystem")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Storage_FileSystem\"`*"] fn CfCreatePlaceholders ( basedirectorypath : :: windows_sys::core::PCWSTR , placeholderarray : *mut CF_PLACEHOLDER_CREATE_INFO , placeholdercount : u32 , createflags : CF_CREATE_FLAGS , entriesprocessed : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Storage_FileSystem\"`*"] fn CfCreatePlaceholders ( basedirectorypath : ::windows_sys::core::PCWSTR , placeholderarray : *mut CF_PLACEHOLDER_CREATE_INFO , placeholdercount : u32 , createflags : CF_CREATE_FLAGS , entriesprocessed : *mut u32 ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfDehydratePlaceholder ( filehandle : super::super::Foundation:: HANDLE , startingoffset : i64 , length : i64 , dehydrateflags : CF_DEHYDRATE_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfDisconnectSyncRoot ( connectionkey : CF_CONNECTION_KEY ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfDehydratePlaceholder ( filehandle : super::super::Foundation:: HANDLE , startingoffset : i64 , length : i64 , dehydrateflags : CF_DEHYDRATE_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfDisconnectSyncRoot ( connectionkey : CF_CONNECTION_KEY ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Storage_FileSystem", feature = "Win32_System_CorrelationVector"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_Storage_FileSystem\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfExecute ( opinfo : *const CF_OPERATION_INFO , opparams : *mut CF_OPERATION_PARAMETERS ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_Storage_FileSystem\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfExecute ( opinfo : *const CF_OPERATION_INFO , opparams : *mut CF_OPERATION_PARAMETERS ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfGetCorrelationVector ( filehandle : super::super::Foundation:: HANDLE , correlationvector : *mut super::super::System::CorrelationVector:: CORRELATION_VECTOR ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfGetCorrelationVector ( filehandle : super::super::Foundation:: HANDLE , correlationvector : *mut super::super::System::CorrelationVector:: CORRELATION_VECTOR ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetPlaceholderInfo ( filehandle : super::super::Foundation:: HANDLE , infoclass : CF_PLACEHOLDER_INFO_CLASS , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetPlaceholderInfo ( filehandle : super::super::Foundation:: HANDLE , infoclass : CF_PLACEHOLDER_INFO_CLASS , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetPlaceholderRangeInfo ( filehandle : super::super::Foundation:: HANDLE , infoclass : CF_PLACEHOLDER_RANGE_INFO_CLASS , startingoffset : i64 , length : i64 , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfGetPlaceholderStateFromAttributeTag ( fileattributes : u32 , reparsetag : u32 ) -> CF_PLACEHOLDER_STATE );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetPlaceholderRangeInfo ( filehandle : super::super::Foundation:: HANDLE , infoclass : CF_PLACEHOLDER_RANGE_INFO_CLASS , startingoffset : i64 , length : i64 , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfGetPlaceholderStateFromAttributeTag ( fileattributes : u32 , reparsetag : u32 ) -> CF_PLACEHOLDER_STATE );
 #[cfg(feature = "Win32_Storage_FileSystem")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Storage_FileSystem\"`*"] fn CfGetPlaceholderStateFromFileInfo ( infobuffer : *const ::core::ffi::c_void , infoclass : super::FileSystem:: FILE_INFO_BY_HANDLE_CLASS ) -> CF_PLACEHOLDER_STATE );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Storage_FileSystem\"`*"] fn CfGetPlaceholderStateFromFileInfo ( infobuffer : *const ::core::ffi::c_void , infoclass : super::FileSystem:: FILE_INFO_BY_HANDLE_CLASS ) -> CF_PLACEHOLDER_STATE );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Storage_FileSystem"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_Storage_FileSystem\"`*"] fn CfGetPlaceholderStateFromFindData ( finddata : *const super::FileSystem:: WIN32_FIND_DATAA ) -> CF_PLACEHOLDER_STATE );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfGetPlatformInfo ( platformversion : *mut CF_PLATFORM_INFO ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_Storage_FileSystem\"`*"] fn CfGetPlaceholderStateFromFindData ( finddata : *const super::FileSystem:: WIN32_FIND_DATAA ) -> CF_PLACEHOLDER_STATE );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfGetPlatformInfo ( platformversion : *mut CF_PLATFORM_INFO ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetSyncRootInfoByHandle ( filehandle : super::super::Foundation:: HANDLE , infoclass : CF_SYNC_ROOT_INFO_CLASS , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfGetSyncRootInfoByPath ( filepath : :: windows_sys::core::PCWSTR , infoclass : CF_SYNC_ROOT_INFO_CLASS , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetSyncRootInfoByHandle ( filehandle : super::super::Foundation:: HANDLE , infoclass : CF_SYNC_ROOT_INFO_CLASS , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfGetSyncRootInfoByPath ( filepath : ::windows_sys::core::PCWSTR , infoclass : CF_SYNC_ROOT_INFO_CLASS , infobuffer : *mut ::core::ffi::c_void , infobufferlength : u32 , returnedlength : *mut u32 ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetTransferKey ( filehandle : super::super::Foundation:: HANDLE , transferkey : *mut i64 ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetTransferKey ( filehandle : super::super::Foundation:: HANDLE , transferkey : *mut i64 ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetWin32HandleFromProtectedHandle ( protectedhandle : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: HANDLE );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfGetWin32HandleFromProtectedHandle ( protectedhandle : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: HANDLE );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfHydratePlaceholder ( filehandle : super::super::Foundation:: HANDLE , startingoffset : i64 , length : i64 , hydrateflags : CF_HYDRATE_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfHydratePlaceholder ( filehandle : super::super::Foundation:: HANDLE , startingoffset : i64 , length : i64 , hydrateflags : CF_HYDRATE_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfOpenFileWithOplock ( filepath : :: windows_sys::core::PCWSTR , flags : CF_OPEN_FILE_FLAGS , protectedhandle : *mut super::super::Foundation:: HANDLE ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfQuerySyncProviderStatus ( connectionkey : CF_CONNECTION_KEY , providerstatus : *mut CF_SYNC_PROVIDER_STATUS ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfOpenFileWithOplock ( filepath : ::windows_sys::core::PCWSTR , flags : CF_OPEN_FILE_FLAGS , protectedhandle : *mut super::super::Foundation:: HANDLE ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfQuerySyncProviderStatus ( connectionkey : CF_CONNECTION_KEY , providerstatus : *mut CF_SYNC_PROVIDER_STATUS ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfReferenceProtectedHandle ( protectedhandle : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOLEAN );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfRegisterSyncRoot ( syncrootpath : :: windows_sys::core::PCWSTR , registration : *const CF_SYNC_REGISTRATION , policies : *const CF_SYNC_POLICIES , registerflags : CF_REGISTER_FLAGS ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfReferenceProtectedHandle ( protectedhandle : super::super::Foundation:: HANDLE ) -> super::super::Foundation:: BOOLEAN );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfRegisterSyncRoot ( syncrootpath : ::windows_sys::core::PCWSTR , registration : *const CF_SYNC_REGISTRATION , policies : *const CF_SYNC_POLICIES , registerflags : CF_REGISTER_FLAGS ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfReleaseProtectedHandle ( protectedhandle : super::super::Foundation:: HANDLE ) -> ( ) );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfReleaseProtectedHandle ( protectedhandle : super::super::Foundation:: HANDLE ) -> ( ) );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfReleaseTransferKey ( filehandle : super::super::Foundation:: HANDLE , transferkey : *mut i64 ) -> ( ) );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfReportProviderProgress ( connectionkey : CF_CONNECTION_KEY , transferkey : i64 , providerprogresstotal : i64 , providerprogresscompleted : i64 ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfReportProviderProgress2 ( connectionkey : CF_CONNECTION_KEY , transferkey : i64 , requestkey : i64 , providerprogresstotal : i64 , providerprogresscompleted : i64 , targetsessionid : u32 ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfReportSyncStatus ( syncrootpath : :: windows_sys::core::PCWSTR , syncstatus : *const CF_SYNC_STATUS ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfReleaseTransferKey ( filehandle : super::super::Foundation:: HANDLE , transferkey : *mut i64 ) -> ( ) );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfReportProviderProgress ( connectionkey : CF_CONNECTION_KEY , transferkey : i64 , providerprogresstotal : i64 , providerprogresscompleted : i64 ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfReportProviderProgress2 ( connectionkey : CF_CONNECTION_KEY , transferkey : i64 , requestkey : i64 , providerprogresstotal : i64 , providerprogresscompleted : i64 , targetsessionid : u32 ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfReportSyncStatus ( syncrootpath : ::windows_sys::core::PCWSTR , syncstatus : *const CF_SYNC_STATUS ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfRevertPlaceholder ( filehandle : super::super::Foundation:: HANDLE , revertflags : CF_REVERT_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfRevertPlaceholder ( filehandle : super::super::Foundation:: HANDLE , revertflags : CF_REVERT_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfSetCorrelationVector ( filehandle : super::super::Foundation:: HANDLE , correlationvector : *const super::super::System::CorrelationVector:: CORRELATION_VECTOR ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"] fn CfSetCorrelationVector ( filehandle : super::super::Foundation:: HANDLE , correlationvector : *const super::super::System::CorrelationVector:: CORRELATION_VECTOR ) -> ::windows_sys::core::HRESULT );
 #[cfg(feature = "Win32_Foundation")]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfSetInSyncState ( filehandle : super::super::Foundation:: HANDLE , insyncstate : CF_IN_SYNC_STATE , insyncflags : CF_SET_IN_SYNC_FLAGS , insyncusn : *mut i64 ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`*"] fn CfSetInSyncState ( filehandle : super::super::Foundation:: HANDLE , insyncstate : CF_IN_SYNC_STATE , insyncflags : CF_SET_IN_SYNC_FLAGS , insyncusn : *mut i64 ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfSetPinState ( filehandle : super::super::Foundation:: HANDLE , pinstate : CF_PIN_STATE , pinflags : CF_SET_PIN_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfUnregisterSyncRoot ( syncrootpath : :: windows_sys::core::PCWSTR ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`*"] fn CfSetPinState ( filehandle : super::super::Foundation:: HANDLE , pinstate : CF_PIN_STATE , pinflags : CF_SET_PIN_FLAGS , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfUnregisterSyncRoot ( syncrootpath : ::windows_sys::core::PCWSTR ) -> ::windows_sys::core::HRESULT );
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Storage_FileSystem", feature = "Win32_System_IO"))]
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_Storage_FileSystem\"`, `\"Win32_System_IO\"`*"] fn CfUpdatePlaceholder ( filehandle : super::super::Foundation:: HANDLE , fsmetadata : *const CF_FS_METADATA , fileidentity : *const ::core::ffi::c_void , fileidentitylength : u32 , dehydraterangearray : *const CF_FILE_RANGE , dehydraterangecount : u32 , updateflags : CF_UPDATE_FLAGS , updateusn : *mut i64 , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> :: windows_sys::core::HRESULT );
-::windows_sys::core::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfUpdateSyncProviderStatus ( connectionkey : CF_CONNECTION_KEY , providerstatus : CF_SYNC_PROVIDER_STATUS ) -> :: windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_Storage_FileSystem\"`, `\"Win32_System_IO\"`*"] fn CfUpdatePlaceholder ( filehandle : super::super::Foundation:: HANDLE , fsmetadata : *const CF_FS_METADATA , fileidentity : *const ::core::ffi::c_void , fileidentitylength : u32 , dehydraterangearray : *const CF_FILE_RANGE , dehydraterangecount : u32 , updateflags : CF_UPDATE_FLAGS , updateusn : *mut i64 , overlapped : *mut super::super::System::IO:: OVERLAPPED ) -> ::windows_sys::core::HRESULT );
+::windows_targets::link ! ( "cldapi.dll""system" #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"] fn CfUpdateSyncProviderStatus ( connectionkey : CF_CONNECTION_KEY , providerstatus : CF_SYNC_PROVIDER_STATUS ) -> ::windows_sys::core::HRESULT );
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_MAX_PRIORITY_HINT: u32 = 15u32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
@@ -68,33 +68,33 @@ pub const CF_PLACEHOLDER_MAX_FILE_IDENTITY_LENGTH: u32 = 4096u32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_REQUEST_KEY_DEFAULT: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_CANCEL_FLAGS = u32;
+pub type CF_CALLBACK_CANCEL_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_CANCEL_FLAG_NONE: CF_CALLBACK_CANCEL_FLAGS = 0u32;
+pub const CF_CALLBACK_CANCEL_FLAG_NONE: CF_CALLBACK_CANCEL_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_CANCEL_FLAG_IO_TIMEOUT: CF_CALLBACK_CANCEL_FLAGS = 1u32;
+pub const CF_CALLBACK_CANCEL_FLAG_IO_TIMEOUT: CF_CALLBACK_CANCEL_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_CANCEL_FLAG_IO_ABORTED: CF_CALLBACK_CANCEL_FLAGS = 2u32;
+pub const CF_CALLBACK_CANCEL_FLAG_IO_ABORTED: CF_CALLBACK_CANCEL_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_CLOSE_COMPLETION_FLAGS = u32;
+pub type CF_CALLBACK_CLOSE_COMPLETION_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_CLOSE_COMPLETION_FLAG_NONE: CF_CALLBACK_CLOSE_COMPLETION_FLAGS = 0u32;
+pub const CF_CALLBACK_CLOSE_COMPLETION_FLAG_NONE: CF_CALLBACK_CLOSE_COMPLETION_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_CLOSE_COMPLETION_FLAG_DELETED: CF_CALLBACK_CLOSE_COMPLETION_FLAGS = 1u32;
+pub const CF_CALLBACK_CLOSE_COMPLETION_FLAG_DELETED: CF_CALLBACK_CLOSE_COMPLETION_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = u32;
+pub type CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DEHYDRATE_COMPLETION_FLAG_NONE: CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = 0u32;
+pub const CF_CALLBACK_DEHYDRATE_COMPLETION_FLAG_NONE: CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DEHYDRATE_COMPLETION_FLAG_BACKGROUND: CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = 1u32;
+pub const CF_CALLBACK_DEHYDRATE_COMPLETION_FLAG_BACKGROUND: CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DEHYDRATE_COMPLETION_FLAG_DEHYDRATED: CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = 2u32;
+pub const CF_CALLBACK_DEHYDRATE_COMPLETION_FLAG_DEHYDRATED: CF_CALLBACK_DEHYDRATE_COMPLETION_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_DEHYDRATE_FLAGS = u32;
+pub type CF_CALLBACK_DEHYDRATE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DEHYDRATE_FLAG_NONE: CF_CALLBACK_DEHYDRATE_FLAGS = 0u32;
+pub const CF_CALLBACK_DEHYDRATE_FLAG_NONE: CF_CALLBACK_DEHYDRATE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DEHYDRATE_FLAG_BACKGROUND: CF_CALLBACK_DEHYDRATE_FLAGS = 1u32;
+pub const CF_CALLBACK_DEHYDRATE_FLAG_BACKGROUND: CF_CALLBACK_DEHYDRATE_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub type CF_CALLBACK_DEHYDRATION_REASON = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
@@ -108,51 +108,51 @@ pub const CF_CALLBACK_DEHYDRATION_REASON_SYSTEM_INACTIVITY: CF_CALLBACK_DEHYDRAT
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_CALLBACK_DEHYDRATION_REASON_SYSTEM_OS_UPGRADE: CF_CALLBACK_DEHYDRATION_REASON = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_DELETE_COMPLETION_FLAGS = u32;
+pub type CF_CALLBACK_DELETE_COMPLETION_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DELETE_COMPLETION_FLAG_NONE: CF_CALLBACK_DELETE_COMPLETION_FLAGS = 0u32;
+pub const CF_CALLBACK_DELETE_COMPLETION_FLAG_NONE: CF_CALLBACK_DELETE_COMPLETION_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_DELETE_FLAGS = u32;
+pub type CF_CALLBACK_DELETE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DELETE_FLAG_NONE: CF_CALLBACK_DELETE_FLAGS = 0u32;
+pub const CF_CALLBACK_DELETE_FLAG_NONE: CF_CALLBACK_DELETE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DELETE_FLAG_IS_DIRECTORY: CF_CALLBACK_DELETE_FLAGS = 1u32;
+pub const CF_CALLBACK_DELETE_FLAG_IS_DIRECTORY: CF_CALLBACK_DELETE_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_DELETE_FLAG_IS_UNDELETE: CF_CALLBACK_DELETE_FLAGS = 2u32;
+pub const CF_CALLBACK_DELETE_FLAG_IS_UNDELETE: CF_CALLBACK_DELETE_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_FETCH_DATA_FLAGS = u32;
+pub type CF_CALLBACK_FETCH_DATA_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_FETCH_DATA_FLAG_NONE: CF_CALLBACK_FETCH_DATA_FLAGS = 0u32;
+pub const CF_CALLBACK_FETCH_DATA_FLAG_NONE: CF_CALLBACK_FETCH_DATA_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_FETCH_DATA_FLAG_RECOVERY: CF_CALLBACK_FETCH_DATA_FLAGS = 1u32;
+pub const CF_CALLBACK_FETCH_DATA_FLAG_RECOVERY: CF_CALLBACK_FETCH_DATA_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_FETCH_DATA_FLAG_EXPLICIT_HYDRATION: CF_CALLBACK_FETCH_DATA_FLAGS = 2u32;
+pub const CF_CALLBACK_FETCH_DATA_FLAG_EXPLICIT_HYDRATION: CF_CALLBACK_FETCH_DATA_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_FETCH_PLACEHOLDERS_FLAGS = u32;
+pub type CF_CALLBACK_FETCH_PLACEHOLDERS_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_FETCH_PLACEHOLDERS_FLAG_NONE: CF_CALLBACK_FETCH_PLACEHOLDERS_FLAGS = 0u32;
+pub const CF_CALLBACK_FETCH_PLACEHOLDERS_FLAG_NONE: CF_CALLBACK_FETCH_PLACEHOLDERS_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_OPEN_COMPLETION_FLAGS = u32;
+pub type CF_CALLBACK_OPEN_COMPLETION_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_OPEN_COMPLETION_FLAG_NONE: CF_CALLBACK_OPEN_COMPLETION_FLAGS = 0u32;
+pub const CF_CALLBACK_OPEN_COMPLETION_FLAG_NONE: CF_CALLBACK_OPEN_COMPLETION_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_OPEN_COMPLETION_FLAG_PLACEHOLDER_UNKNOWN: CF_CALLBACK_OPEN_COMPLETION_FLAGS = 1u32;
+pub const CF_CALLBACK_OPEN_COMPLETION_FLAG_PLACEHOLDER_UNKNOWN: CF_CALLBACK_OPEN_COMPLETION_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_OPEN_COMPLETION_FLAG_PLACEHOLDER_UNSUPPORTED: CF_CALLBACK_OPEN_COMPLETION_FLAGS = 2u32;
+pub const CF_CALLBACK_OPEN_COMPLETION_FLAG_PLACEHOLDER_UNSUPPORTED: CF_CALLBACK_OPEN_COMPLETION_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_RENAME_COMPLETION_FLAGS = u32;
+pub type CF_CALLBACK_RENAME_COMPLETION_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_RENAME_COMPLETION_FLAG_NONE: CF_CALLBACK_RENAME_COMPLETION_FLAGS = 0u32;
+pub const CF_CALLBACK_RENAME_COMPLETION_FLAG_NONE: CF_CALLBACK_RENAME_COMPLETION_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_RENAME_FLAGS = u32;
+pub type CF_CALLBACK_RENAME_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_RENAME_FLAG_NONE: CF_CALLBACK_RENAME_FLAGS = 0u32;
+pub const CF_CALLBACK_RENAME_FLAG_NONE: CF_CALLBACK_RENAME_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_RENAME_FLAG_IS_DIRECTORY: CF_CALLBACK_RENAME_FLAGS = 1u32;
+pub const CF_CALLBACK_RENAME_FLAG_IS_DIRECTORY: CF_CALLBACK_RENAME_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_RENAME_FLAG_SOURCE_IN_SCOPE: CF_CALLBACK_RENAME_FLAGS = 2u32;
+pub const CF_CALLBACK_RENAME_FLAG_SOURCE_IN_SCOPE: CF_CALLBACK_RENAME_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_RENAME_FLAG_TARGET_IN_SCOPE: CF_CALLBACK_RENAME_FLAGS = 4u32;
+pub const CF_CALLBACK_RENAME_FLAG_TARGET_IN_SCOPE: CF_CALLBACK_RENAME_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub type CF_CALLBACK_TYPE = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
@@ -184,57 +184,57 @@ pub const CF_CALLBACK_TYPE_NOTIFY_RENAME_COMPLETION: CF_CALLBACK_TYPE = 12i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_CALLBACK_TYPE_NONE: CF_CALLBACK_TYPE = -1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CALLBACK_VALIDATE_DATA_FLAGS = u32;
+pub type CF_CALLBACK_VALIDATE_DATA_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_VALIDATE_DATA_FLAG_NONE: CF_CALLBACK_VALIDATE_DATA_FLAGS = 0u32;
+pub const CF_CALLBACK_VALIDATE_DATA_FLAG_NONE: CF_CALLBACK_VALIDATE_DATA_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CALLBACK_VALIDATE_DATA_FLAG_EXPLICIT_HYDRATION: CF_CALLBACK_VALIDATE_DATA_FLAGS = 2u32;
+pub const CF_CALLBACK_VALIDATE_DATA_FLAG_EXPLICIT_HYDRATION: CF_CALLBACK_VALIDATE_DATA_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CONNECT_FLAGS = u32;
+pub type CF_CONNECT_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONNECT_FLAG_NONE: CF_CONNECT_FLAGS = 0u32;
+pub const CF_CONNECT_FLAG_NONE: CF_CONNECT_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONNECT_FLAG_REQUIRE_PROCESS_INFO: CF_CONNECT_FLAGS = 2u32;
+pub const CF_CONNECT_FLAG_REQUIRE_PROCESS_INFO: CF_CONNECT_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONNECT_FLAG_REQUIRE_FULL_FILE_PATH: CF_CONNECT_FLAGS = 4u32;
+pub const CF_CONNECT_FLAG_REQUIRE_FULL_FILE_PATH: CF_CONNECT_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONNECT_FLAG_BLOCK_SELF_IMPLICIT_HYDRATION: CF_CONNECT_FLAGS = 8u32;
+pub const CF_CONNECT_FLAG_BLOCK_SELF_IMPLICIT_HYDRATION: CF_CONNECT_FLAGS = 8i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CONVERT_FLAGS = u32;
+pub type CF_CONVERT_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONVERT_FLAG_NONE: CF_CONVERT_FLAGS = 0u32;
+pub const CF_CONVERT_FLAG_NONE: CF_CONVERT_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONVERT_FLAG_MARK_IN_SYNC: CF_CONVERT_FLAGS = 1u32;
+pub const CF_CONVERT_FLAG_MARK_IN_SYNC: CF_CONVERT_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONVERT_FLAG_DEHYDRATE: CF_CONVERT_FLAGS = 2u32;
+pub const CF_CONVERT_FLAG_DEHYDRATE: CF_CONVERT_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONVERT_FLAG_ENABLE_ON_DEMAND_POPULATION: CF_CONVERT_FLAGS = 4u32;
+pub const CF_CONVERT_FLAG_ENABLE_ON_DEMAND_POPULATION: CF_CONVERT_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONVERT_FLAG_ALWAYS_FULL: CF_CONVERT_FLAGS = 8u32;
+pub const CF_CONVERT_FLAG_ALWAYS_FULL: CF_CONVERT_FLAGS = 8i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CONVERT_FLAG_FORCE_CONVERT_TO_CLOUD_FILE: CF_CONVERT_FLAGS = 16u32;
+pub const CF_CONVERT_FLAG_FORCE_CONVERT_TO_CLOUD_FILE: CF_CONVERT_FLAGS = 16i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_CREATE_FLAGS = u32;
+pub type CF_CREATE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CREATE_FLAG_NONE: CF_CREATE_FLAGS = 0u32;
+pub const CF_CREATE_FLAG_NONE: CF_CREATE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_CREATE_FLAG_STOP_ON_ERROR: CF_CREATE_FLAGS = 1u32;
+pub const CF_CREATE_FLAG_STOP_ON_ERROR: CF_CREATE_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_DEHYDRATE_FLAGS = u32;
+pub type CF_DEHYDRATE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_DEHYDRATE_FLAG_NONE: CF_DEHYDRATE_FLAGS = 0u32;
+pub const CF_DEHYDRATE_FLAG_NONE: CF_DEHYDRATE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_DEHYDRATE_FLAG_BACKGROUND: CF_DEHYDRATE_FLAGS = 1u32;
+pub const CF_DEHYDRATE_FLAG_BACKGROUND: CF_DEHYDRATE_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_HARDLINK_POLICY = u32;
+pub type CF_HARDLINK_POLICY = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_HARDLINK_POLICY_NONE: CF_HARDLINK_POLICY = 0u32;
+pub const CF_HARDLINK_POLICY_NONE: CF_HARDLINK_POLICY = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_HARDLINK_POLICY_ALLOWED: CF_HARDLINK_POLICY = 1u32;
+pub const CF_HARDLINK_POLICY_ALLOWED: CF_HARDLINK_POLICY = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_HYDRATE_FLAGS = u32;
+pub type CF_HYDRATE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_HYDRATE_FLAG_NONE: CF_HYDRATE_FLAGS = 0u32;
+pub const CF_HYDRATE_FLAG_NONE: CF_HYDRATE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub type CF_HYDRATION_POLICY_MODIFIER = u16;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
@@ -296,55 +296,55 @@ pub const CF_IN_SYNC_STATE_NOT_IN_SYNC: CF_IN_SYNC_STATE = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_IN_SYNC_STATE_IN_SYNC: CF_IN_SYNC_STATE = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPEN_FILE_FLAGS = u32;
+pub type CF_OPEN_FILE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPEN_FILE_FLAG_NONE: CF_OPEN_FILE_FLAGS = 0u32;
+pub const CF_OPEN_FILE_FLAG_NONE: CF_OPEN_FILE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPEN_FILE_FLAG_EXCLUSIVE: CF_OPEN_FILE_FLAGS = 1u32;
+pub const CF_OPEN_FILE_FLAG_EXCLUSIVE: CF_OPEN_FILE_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPEN_FILE_FLAG_WRITE_ACCESS: CF_OPEN_FILE_FLAGS = 2u32;
+pub const CF_OPEN_FILE_FLAG_WRITE_ACCESS: CF_OPEN_FILE_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPEN_FILE_FLAG_DELETE_ACCESS: CF_OPEN_FILE_FLAGS = 4u32;
+pub const CF_OPEN_FILE_FLAG_DELETE_ACCESS: CF_OPEN_FILE_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPEN_FILE_FLAG_FOREGROUND: CF_OPEN_FILE_FLAGS = 8u32;
+pub const CF_OPEN_FILE_FLAG_FOREGROUND: CF_OPEN_FILE_FLAGS = 8i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_ACK_DATA_FLAGS = u32;
+pub type CF_OPERATION_ACK_DATA_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_ACK_DATA_FLAG_NONE: CF_OPERATION_ACK_DATA_FLAGS = 0u32;
+pub const CF_OPERATION_ACK_DATA_FLAG_NONE: CF_OPERATION_ACK_DATA_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_ACK_DEHYDRATE_FLAGS = u32;
+pub type CF_OPERATION_ACK_DEHYDRATE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_ACK_DEHYDRATE_FLAG_NONE: CF_OPERATION_ACK_DEHYDRATE_FLAGS = 0u32;
+pub const CF_OPERATION_ACK_DEHYDRATE_FLAG_NONE: CF_OPERATION_ACK_DEHYDRATE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_ACK_DELETE_FLAGS = u32;
+pub type CF_OPERATION_ACK_DELETE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_ACK_DELETE_FLAG_NONE: CF_OPERATION_ACK_DELETE_FLAGS = 0u32;
+pub const CF_OPERATION_ACK_DELETE_FLAG_NONE: CF_OPERATION_ACK_DELETE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_ACK_RENAME_FLAGS = u32;
+pub type CF_OPERATION_ACK_RENAME_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_ACK_RENAME_FLAG_NONE: CF_OPERATION_ACK_RENAME_FLAGS = 0u32;
+pub const CF_OPERATION_ACK_RENAME_FLAG_NONE: CF_OPERATION_ACK_RENAME_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_RESTART_HYDRATION_FLAGS = u32;
+pub type CF_OPERATION_RESTART_HYDRATION_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_RESTART_HYDRATION_FLAG_NONE: CF_OPERATION_RESTART_HYDRATION_FLAGS = 0u32;
+pub const CF_OPERATION_RESTART_HYDRATION_FLAG_NONE: CF_OPERATION_RESTART_HYDRATION_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_RESTART_HYDRATION_FLAG_MARK_IN_SYNC: CF_OPERATION_RESTART_HYDRATION_FLAGS = 1u32;
+pub const CF_OPERATION_RESTART_HYDRATION_FLAG_MARK_IN_SYNC: CF_OPERATION_RESTART_HYDRATION_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_RETRIEVE_DATA_FLAGS = u32;
+pub type CF_OPERATION_RETRIEVE_DATA_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_RETRIEVE_DATA_FLAG_NONE: CF_OPERATION_RETRIEVE_DATA_FLAGS = 0u32;
+pub const CF_OPERATION_RETRIEVE_DATA_FLAG_NONE: CF_OPERATION_RETRIEVE_DATA_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_TRANSFER_DATA_FLAGS = u32;
+pub type CF_OPERATION_TRANSFER_DATA_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_TRANSFER_DATA_FLAG_NONE: CF_OPERATION_TRANSFER_DATA_FLAGS = 0u32;
+pub const CF_OPERATION_TRANSFER_DATA_FLAG_NONE: CF_OPERATION_TRANSFER_DATA_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = u32;
+pub type CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_NONE: CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = 0u32;
+pub const CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_NONE: CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR: CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = 1u32;
+pub const CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR: CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION: CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = 2u32;
+pub const CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION: CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub type CF_OPERATION_TYPE = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
@@ -376,17 +376,17 @@ pub const CF_PIN_STATE_EXCLUDED: CF_PIN_STATE = 3i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_PIN_STATE_INHERIT: CF_PIN_STATE = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_PLACEHOLDER_CREATE_FLAGS = u32;
+pub type CF_PLACEHOLDER_CREATE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_PLACEHOLDER_CREATE_FLAG_NONE: CF_PLACEHOLDER_CREATE_FLAGS = 0u32;
+pub const CF_PLACEHOLDER_CREATE_FLAG_NONE: CF_PLACEHOLDER_CREATE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_PLACEHOLDER_CREATE_FLAG_DISABLE_ON_DEMAND_POPULATION: CF_PLACEHOLDER_CREATE_FLAGS = 1u32;
+pub const CF_PLACEHOLDER_CREATE_FLAG_DISABLE_ON_DEMAND_POPULATION: CF_PLACEHOLDER_CREATE_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC: CF_PLACEHOLDER_CREATE_FLAGS = 2u32;
+pub const CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC: CF_PLACEHOLDER_CREATE_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE: CF_PLACEHOLDER_CREATE_FLAGS = 4u32;
+pub const CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE: CF_PLACEHOLDER_CREATE_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_PLACEHOLDER_CREATE_FLAG_ALWAYS_FULL: CF_PLACEHOLDER_CREATE_FLAGS = 8u32;
+pub const CF_PLACEHOLDER_CREATE_FLAG_ALWAYS_FULL: CF_PLACEHOLDER_CREATE_FLAGS = 8i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub type CF_PLACEHOLDER_INFO_CLASS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
@@ -442,33 +442,33 @@ pub const CF_POPULATION_POLICY_FULL: CF_POPULATION_POLICY_PRIMARY = 2u16;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_POPULATION_POLICY_ALWAYS_FULL: CF_POPULATION_POLICY_PRIMARY = 3u16;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_REGISTER_FLAGS = u32;
+pub type CF_REGISTER_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_REGISTER_FLAG_NONE: CF_REGISTER_FLAGS = 0u32;
+pub const CF_REGISTER_FLAG_NONE: CF_REGISTER_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_REGISTER_FLAG_UPDATE: CF_REGISTER_FLAGS = 1u32;
+pub const CF_REGISTER_FLAG_UPDATE: CF_REGISTER_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_REGISTER_FLAG_DISABLE_ON_DEMAND_POPULATION_ON_ROOT: CF_REGISTER_FLAGS = 2u32;
+pub const CF_REGISTER_FLAG_DISABLE_ON_DEMAND_POPULATION_ON_ROOT: CF_REGISTER_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_REGISTER_FLAG_MARK_IN_SYNC_ON_ROOT: CF_REGISTER_FLAGS = 4u32;
+pub const CF_REGISTER_FLAG_MARK_IN_SYNC_ON_ROOT: CF_REGISTER_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_REVERT_FLAGS = u32;
+pub type CF_REVERT_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_REVERT_FLAG_NONE: CF_REVERT_FLAGS = 0u32;
+pub const CF_REVERT_FLAG_NONE: CF_REVERT_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_SET_IN_SYNC_FLAGS = u32;
+pub type CF_SET_IN_SYNC_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_SET_IN_SYNC_FLAG_NONE: CF_SET_IN_SYNC_FLAGS = 0u32;
+pub const CF_SET_IN_SYNC_FLAG_NONE: CF_SET_IN_SYNC_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_SET_PIN_FLAGS = u32;
+pub type CF_SET_PIN_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_SET_PIN_FLAG_NONE: CF_SET_PIN_FLAGS = 0u32;
+pub const CF_SET_PIN_FLAG_NONE: CF_SET_PIN_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_SET_PIN_FLAG_RECURSE: CF_SET_PIN_FLAGS = 1u32;
+pub const CF_SET_PIN_FLAG_RECURSE: CF_SET_PIN_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_SET_PIN_FLAG_RECURSE_ONLY: CF_SET_PIN_FLAGS = 2u32;
+pub const CF_SET_PIN_FLAG_RECURSE_ONLY: CF_SET_PIN_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_SET_PIN_FLAG_RECURSE_STOP_ON_ERROR: CF_SET_PIN_FLAGS = 4u32;
+pub const CF_SET_PIN_FLAG_RECURSE_STOP_ON_ERROR: CF_SET_PIN_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub type CF_SYNC_PROVIDER_STATUS = u32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
@@ -502,34 +502,34 @@ pub const CF_SYNC_ROOT_INFO_STANDARD: CF_SYNC_ROOT_INFO_CLASS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub const CF_SYNC_ROOT_INFO_PROVIDER: CF_SYNC_ROOT_INFO_CLASS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub type CF_UPDATE_FLAGS = u32;
+pub type CF_UPDATE_FLAGS = i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_NONE: CF_UPDATE_FLAGS = 0u32;
+pub const CF_UPDATE_FLAG_NONE: CF_UPDATE_FLAGS = 0i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_VERIFY_IN_SYNC: CF_UPDATE_FLAGS = 1u32;
+pub const CF_UPDATE_FLAG_VERIFY_IN_SYNC: CF_UPDATE_FLAGS = 1i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_MARK_IN_SYNC: CF_UPDATE_FLAGS = 2u32;
+pub const CF_UPDATE_FLAG_MARK_IN_SYNC: CF_UPDATE_FLAGS = 2i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_DEHYDRATE: CF_UPDATE_FLAGS = 4u32;
+pub const CF_UPDATE_FLAG_DEHYDRATE: CF_UPDATE_FLAGS = 4i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_ENABLE_ON_DEMAND_POPULATION: CF_UPDATE_FLAGS = 8u32;
+pub const CF_UPDATE_FLAG_ENABLE_ON_DEMAND_POPULATION: CF_UPDATE_FLAGS = 8i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_DISABLE_ON_DEMAND_POPULATION: CF_UPDATE_FLAGS = 16u32;
+pub const CF_UPDATE_FLAG_DISABLE_ON_DEMAND_POPULATION: CF_UPDATE_FLAGS = 16i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_REMOVE_FILE_IDENTITY: CF_UPDATE_FLAGS = 32u32;
+pub const CF_UPDATE_FLAG_REMOVE_FILE_IDENTITY: CF_UPDATE_FLAGS = 32i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_CLEAR_IN_SYNC: CF_UPDATE_FLAGS = 64u32;
+pub const CF_UPDATE_FLAG_CLEAR_IN_SYNC: CF_UPDATE_FLAGS = 64i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_REMOVE_PROPERTY: CF_UPDATE_FLAGS = 128u32;
+pub const CF_UPDATE_FLAG_REMOVE_PROPERTY: CF_UPDATE_FLAGS = 128i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_PASSTHROUGH_FS_METADATA: CF_UPDATE_FLAGS = 256u32;
+pub const CF_UPDATE_FLAG_PASSTHROUGH_FS_METADATA: CF_UPDATE_FLAGS = 256i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_ALWAYS_FULL: CF_UPDATE_FLAGS = 512u32;
+pub const CF_UPDATE_FLAG_ALWAYS_FULL: CF_UPDATE_FLAGS = 512i32;
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub const CF_UPDATE_FLAG_ALLOW_PARTIAL: CF_UPDATE_FLAGS = 1024u32;
+pub const CF_UPDATE_FLAG_ALLOW_PARTIAL: CF_UPDATE_FLAGS = 1024i32;
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_System_CorrelationVector\"`*"]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 pub struct CF_CALLBACK_INFO {
     pub StructSize: u32,
     pub ConnectionKey: CF_CONNECTION_KEY,
@@ -551,9 +551,9 @@ pub struct CF_CALLBACK_INFO {
     pub ProcessInfo: *mut CF_PROCESS_INFO,
     pub RequestKey: i64,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 impl ::core::marker::Copy for CF_CALLBACK_INFO {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 impl ::core::clone::Clone for CF_CALLBACK_INFO {
     fn clone(&self) -> Self {
         *self
@@ -763,15 +763,15 @@ impl ::core::clone::Clone for CF_CALLBACK_PARAMETERS_0_11 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_System_CorrelationVector\"`*"]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 pub struct CF_CALLBACK_REGISTRATION {
     pub Type: CF_CALLBACK_TYPE,
     pub Callback: CF_CALLBACK,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 impl ::core::marker::Copy for CF_CALLBACK_REGISTRATION {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 impl ::core::clone::Clone for CF_CALLBACK_REGISTRATION {
     fn clone(&self) -> Self {
         *self
@@ -808,8 +808,8 @@ impl ::core::clone::Clone for CF_FS_METADATA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub struct CF_HYDRATION_POLICY {
-    pub Primary: CF_HYDRATION_POLICY_PRIMARY_USHORT,
-    pub Modifier: CF_HYDRATION_POLICY_MODIFIER_USHORT,
+    pub Primary: CF_HYDRATION_POLICY_PRIMARY,
+    pub Modifier: CF_HYDRATION_POLICY_MODIFIER,
 }
 impl ::core::marker::Copy for CF_HYDRATION_POLICY {}
 impl ::core::clone::Clone for CF_HYDRATION_POLICY {
@@ -818,30 +818,8 @@ impl ::core::clone::Clone for CF_HYDRATION_POLICY {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub struct CF_HYDRATION_POLICY_MODIFIER_USHORT {
-    pub us: u16,
-}
-impl ::core::marker::Copy for CF_HYDRATION_POLICY_MODIFIER_USHORT {}
-impl ::core::clone::Clone for CF_HYDRATION_POLICY_MODIFIER_USHORT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-#[repr(C)]
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub struct CF_HYDRATION_POLICY_PRIMARY_USHORT {
-    pub us: u16,
-}
-impl ::core::marker::Copy for CF_HYDRATION_POLICY_PRIMARY_USHORT {}
-impl ::core::clone::Clone for CF_HYDRATION_POLICY_PRIMARY_USHORT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-#[repr(C)]
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_System_CorrelationVector\"`*"]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 pub struct CF_OPERATION_INFO {
     pub StructSize: u32,
     pub Type: CF_OPERATION_TYPE,
@@ -851,9 +829,9 @@ pub struct CF_OPERATION_INFO {
     pub SyncStatus: *const CF_SYNC_STATUS,
     pub RequestKey: i64,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 impl ::core::marker::Copy for CF_OPERATION_INFO {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 impl ::core::clone::Clone for CF_OPERATION_INFO {
     fn clone(&self) -> Self {
         *self
@@ -1103,33 +1081,11 @@ impl ::core::clone::Clone for CF_PLATFORM_INFO {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
 pub struct CF_POPULATION_POLICY {
-    pub Primary: CF_POPULATION_POLICY_PRIMARY_USHORT,
-    pub Modifier: CF_POPULATION_POLICY_MODIFIER_USHORT,
+    pub Primary: CF_POPULATION_POLICY_PRIMARY,
+    pub Modifier: CF_POPULATION_POLICY_MODIFIER,
 }
 impl ::core::marker::Copy for CF_POPULATION_POLICY {}
 impl ::core::clone::Clone for CF_POPULATION_POLICY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-#[repr(C)]
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub struct CF_POPULATION_POLICY_MODIFIER_USHORT {
-    pub us: u16,
-}
-impl ::core::marker::Copy for CF_POPULATION_POLICY_MODIFIER_USHORT {}
-impl ::core::clone::Clone for CF_POPULATION_POLICY_MODIFIER_USHORT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-#[repr(C)]
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`*"]
-pub struct CF_POPULATION_POLICY_PRIMARY_USHORT {
-    pub us: u16,
-}
-impl ::core::marker::Copy for CF_POPULATION_POLICY_PRIMARY_USHORT {}
-impl ::core::clone::Clone for CF_POPULATION_POLICY_PRIMARY_USHORT {
     fn clone(&self) -> Self {
         *self
     }
@@ -1245,6 +1201,6 @@ impl ::core::clone::Clone for CF_SYNC_STATUS {
         *self
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_Foundation\"`, `\"Win32_System_CorrelationVector\"`*"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_CorrelationVector"))]
+#[doc = "*Required features: `\"Win32_Storage_CloudFilters\"`, `\"Win32_System_CorrelationVector\"`*"]
+#[cfg(feature = "Win32_System_CorrelationVector")]
 pub type CF_CALLBACK = ::core::option::Option<unsafe extern "system" fn(callbackinfo: *const CF_CALLBACK_INFO, callbackparameters: *const CF_CALLBACK_PARAMETERS) -> ()>;
